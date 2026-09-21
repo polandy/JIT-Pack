@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { buildSections, openCount } from '../list'
+import { buildSections, listInFocus, openCount } from '../list'
 
 function line(name: string, section: string | null = null): ShoppingLine {
   return {
@@ -60,5 +60,30 @@ describe('openCount', () => {
         source({ buy_local: [line('d')] }),
       ]),
     ).toBe(4)
+  })
+})
+
+/**
+ * FR-30.8 — which list M6 opens on.
+ *
+ * „Vor der Abreise" stops being the answer the moment that moment is past:
+ * the trip has started, or the packing has been declared finished (FR-5.10).
+ * The other list keeps its count in the tab label, so nothing is hidden —
+ * it is one tap away and says how much is on it.
+ */
+describe('listInFocus', () => {
+  it('opens a planned trip on the list before departure', () => {
+    expect(listInFocus({ planned: true, packingClosed: false })).toBe('buy_before')
+  })
+
+  it('opens a running trip at the destination', () => {
+    expect(listInFocus({ planned: false, packingClosed: false })).toBe('buy_local')
+  })
+
+  it('opens a planned trip at the destination once the packing is closed', () => {
+    // The bag is shut the evening before, with the trip still „planning"
+    // because nobody tapped *Reise starten*. Shopping before departure is
+    // over all the same.
+    expect(listInFocus({ planned: true, packingClosed: true })).toBe('buy_local')
   })
 })

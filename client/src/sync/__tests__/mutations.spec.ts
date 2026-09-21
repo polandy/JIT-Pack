@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMutations } from '@/sync/mutations'
 import type { HLCGenerator } from '@/sync/hlc'
+import { TABLE } from '@/types/tables'
 
 /**
  * The instant an injected clock reports. Deliberately not near "now", so an
@@ -208,6 +209,47 @@ describe('createMutations', () => {
     const m = createMutations(mockHLC())
     const mut = m.restoreSkipped('i1', 3, 2, 'partial')
     expect(mut.fields).toEqual({ quantity: 3, packed_count: 2, state: 'partial' })
+  })
+
+  // FR-5.10. The close reaches rows the row menu is not offered on — a row
+  // somebody else holds — so it releases the claim the menu's own skip leaves
+  // standing. A decided row that still reads „Sonja packt gerade" is the
+  // defect this field pair exists to prevent.
+  it('closeRowUnpacked skips the row and releases the claim (FR-5.10)', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.closeRowUnpacked('i1')
+    expect(mut.fields).toEqual({
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  })
+
+  // Variant P1: the amount shrinks to what is in the bag, so four of six
+  // socks read as packed instead of being denied by a quantity of zero. And
+  // `packed_at` is deliberately absent — nothing was packed at this moment,
+  // so the row keeps saying when the four actually went in.
+  it('closeRowPartlyPacked shrinks the amount to the count and stamps no packing (FR-5.10)', () => {
+    const m = createMutations(mockHLC(), () => FIXED_ISO)
+    const mut = m.closeRowPartlyPacked('i1', 4)
+    expect(mut.fields).toEqual({
+      quantity: 4,
+      packed_count: 4,
+      state: 'packed',
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  })
+
+  // One field, both ways: NFR-4.2a merges it alone, so a status another
+  // device set meanwhile survives the stamp.
+  it('setPackingClosed writes the moment alone, and null reopens (FR-5.10)', () => {
+    const m = createMutations(mockHLC())
+    expect(m.setPackingClosed('t1', FIXED_ISO).fields).toEqual({ packing_closed_at: FIXED_ISO })
+    expect(m.setPackingClosed('t1', null).fields).toEqual({ packing_closed_at: null })
+    expect(m.setPackingClosed('t1', null).table).toBe(TABLE.trips)
   })
 
   it('unskipItem restores to qty 1 open', () => {

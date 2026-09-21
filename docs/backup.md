@@ -37,7 +37,9 @@ Back it up from inside the app:
    **Nor is anything typed straight onto the shopping list** — the milk and bread under
    *„Eingetragen"*. Those entries belong to the shopping list, not to the packing list the
    file describes, and a restored trip's shopping list holds only what the packing list
-   marks to buy.
+   marks to buy. **And *Packen abgeschlossen* is not in it either:** a restored trip's
+   packing is open again, with the rows that were deliberately left behind still marked as
+   such. Finish it again from the packing list's ⋮ if you want the note back.
 
 Restore it through the **document icon** in the app bar on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are

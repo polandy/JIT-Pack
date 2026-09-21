@@ -32,6 +32,13 @@ export interface Trip {
   duration_days: number | null
   series_id: string | null
   attributes: Record<string, unknown> | null
+  /**
+   * When the packing was declared finished (FR-5.10), or null while it is
+   * still running. A decision with a moment rather than a reading of the
+   * rows: the list stays open afterwards, so „nothing is open" would be
+   * revoked by the next row added.
+   */
+  packing_closed_at: string | null
   imported: boolean
 }
 
@@ -67,7 +74,15 @@ export const STATE_PACKING_NOW: ItemState = 'packing_now'
  * purchase (FR-25.11j): buying at the destination *is* packing, so the row
  * says it was bought by being packed.
  */
-export const STATE_PACKED: ItemState = 'packed'
+export const STATE_PACKED = 'packed' as const satisfies ItemState
+
+/**
+ * FR-5.5's *bewusst nicht mitgenommen*, as a value for the two rules that
+ * must read the **decision** rather than the row's numbers: a skip beside an
+ * amount above zero is a legal row (the merge decides the two fields
+ * separately), so „quantity is 0" is not the same question.
+ */
+export const STATE_SKIPPED = 'skipped' as const satisfies ItemState
 export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 
 /**

@@ -258,6 +258,10 @@ CREATE TABLE trips (
     status     TEXT NOT NULL DEFAULT 'planning'
                CHECK (status IN ('planning','active','repack','archived')),
     attributes TEXT CHECK (attributes IS NULL OR json_valid(attributes)),
+    -- When the packing was declared finished (FR-5.10). A decision with a
+    -- moment, not a reading of the rows: the list stays open afterwards, so
+    -- „nothing is open" would be revoked by the next row added.
+    packing_closed_at TEXT,
     imported   INTEGER NOT NULL DEFAULT 0 CHECK (imported IN (0,1)),
     created_by TEXT REFERENCES users(id),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)

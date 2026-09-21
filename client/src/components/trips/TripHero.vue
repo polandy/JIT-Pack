@@ -11,6 +11,9 @@
  * (`--jp-hero-wash`, G-11): identity marks the thing you are on, and there
  * is exactly one of those per screen.
  */
+import { IonIcon } from '@ionic/vue'
+import { checkmarkCircleOutline } from 'ionicons/icons'
+
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 
 /**
@@ -38,8 +41,15 @@ withDefaults(
     to: string
     /** Put on the card, for the cases that address the hero. */
     testid?: string
+    /**
+     * FR-5.10: the packing is finished, so say *that* instead of drawing the
+     * figure. The ring is the loudest thing on this card and it would be
+     * answering a settled question — and the figure beside it, which is not
+     * settled, takes the lone ring size back.
+     */
+    doneNote?: string | null
   }>(),
-  { when: null, meta: null, detail: null, testid: undefined },
+  { when: null, meta: null, detail: null, testid: undefined, doneNote: null },
 )
 </script>
 
@@ -52,7 +62,12 @@ withDefaults(
     <!-- FR-7.4: a second answer may stand beside the share — M1 puts the
          trip's own todos there, which no packing figure counts. -->
     <div class="figures">
+      <p v-if="doneNote" class="done-note" data-testid="hero-done">
+        <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" />
+        <span>{{ doneNote }}</span>
+      </p>
       <ProgressFigure
+        v-else
         class="hero-figure"
         :percent="percent"
         :headline="progress"
@@ -63,9 +78,10 @@ withDefaults(
         detail-testid="hero-detail"
       />
       <!-- The slot is handed the ring size, so the pair is one size by
-           construction rather than by two constants kept in step. -->
+           construction rather than by two constants kept in step — and the
+           full size once the packing figure has stood down. -->
       <div v-if="$slots.beside" class="beside">
-        <slot name="beside" :ring-size="RING_SIZE_PAIRED" />
+        <slot name="beside" :ring-size="doneNote ? undefined : RING_SIZE_PAIRED" />
       </div>
     </div>
 
@@ -99,6 +115,24 @@ withDefaults(
 .name {
   margin: 4px 0;
   overflow-wrap: anywhere;
+}
+
+/* The settled half of the card: done ink, body size, no figure. It sits in
+   the figures row so the card's rhythm is unchanged when the ring goes. */
+.done-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  align-self: center;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.done-note ion-icon {
+  flex: none;
+  font-size: var(--jp-icon-sm);
+  color: var(--jp-done);
 }
 
 .figures {

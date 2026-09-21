@@ -20,6 +20,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     duration_days: 7,
     series_id: 'ser-1',
     attributes: { season: 'summer' },
+    packing_closed_at: null,
     imported: false,
     ...over,
   }

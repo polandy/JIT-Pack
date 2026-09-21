@@ -779,6 +779,13 @@ These patterns apply to every screen and are specified once.
   and a second hero is a second answer to which one that is. It is the only card in the app that paints brand on its
   own plane (G-11). The active trips are ordered **soonest departure first** — the hero is the head of that list, and
   before the rule existed the head was whatever IndexedDB handed over.
+* **A finished packing recedes (FR-5.10, added 2026-09-20).** On a trip whose packing has been declared finished, the
+  hero and the trip cards below it drop the packing **figure** and carry one line in its place — a done-role tick and
+  *„Packen abgeschlossen"*, at meta size. The phase has moved on, and a ring is the loudest thing on the card about a
+  question that is settled. What is still owed moves up into the space: the trip's tasks become the card's one figure
+  at the lone ring size (FR-7.4), and the shopping card under it opens on *Vor Ort* (FR-30.8). The open-rows preview
+  needs no rule — it lists open rows, of which a finished list has none, and a row added afterwards belongs there.
+  (E2E-M1-25)
 * **Its blocks are the app's card (added 2026-09-09, FR-21.28).** Every section on M1 — delegation, last-minute,
   prep, the trip cards under the hero, the planned lookahead — is `.jp-card` (G-14) under a section head (G-13). Until
   then M1 was the one screen still drawing Ionic's card: 10 px further in than the hero above it, at a quarter of its
@@ -1453,6 +1460,24 @@ These patterns apply to every screen and are specified once.
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.
+  * **Packen abschliessen (FR-5.10 — built 2026-09-20).** A ⋮ entry, above *Reise starten* / *Reise abschliessen* and
+    worded to stay one word away from the latter: finishing the packing is not finishing the trip. Offered while the
+    trip is not archived and its packing is open, a list with nothing left open included. It asks once, in **the app's
+    own sheet** (U-3's chrome, head + lead + the exceptions on the sunken plane + one primary): the count of what is
+    about to be left behind, then how many rows are started, due on departure day (FR-5.1) or held by somebody else
+    (G-3), each on its own line. **When the last open row is packed, the step appears in the *„Alles gepackt"*
+    empty state** the list shows at that moment (FR-25.11e), and the sheet opens from it, headed *„Das war das letzte
+    offene Packelement."* There rather than in a band of its own, because nothing may enter the flow above a list
+    somebody is tapping (ADR-060) and an unasked-for modal takes the screen from the tap that follows it — both
+    measured, at seventeen and four e2e flows. Once per trip per visit, on the transition only, never over a list that
+    has not arrived, and gone again as soon as the list reopens. The snackbar's one *Rückgängig* takes the whole batch
+    back, the stamp with it (FR-25.31). A row
+    nothing was packed of becomes FR-5.5's *weggelassen* with its claim released; a half-packed row keeps what is in
+    the bag, its amount shrinking to the count (variant P1). Afterwards **M4 leads with a card** naming the moment and
+    how many rows are *nicht mitgenommen*, carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a
+    single row still comes back through the *Erledigte* reveal. The list stays workable: the composer is where it was,
+    and while the packing is closed what is typed into it lands **packed**, its hint saying so instead of FR-9.1's.
+    (E2E-M4-139, E2E-M4-140, E2E-M4-141, E2E-M4-142, E2E-M4-143)
   * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done
     row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two
     mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
@@ -1648,6 +1673,11 @@ These patterns apply to every screen and are specified once.
   the packing list's rows in that tab's mode, grouped by category (*„Ohne Kategorie"* for none), each with a
   check-off, its amount when above one, and — for a per-person item — the recipients (FR-25.6), and **no** remove. An
   entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not built.
+* **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Abreise* while the trip is planned **and** its packing is
+  open; *Vor Ort* otherwise — running, archived, or planned with the packing declared finished (FR-5.10). The other tab
+  keeps its count in its label, so nothing is hidden. A tab the reader picks holds for the visit and is not remembered
+  across visits; until the trip itself is on the device the tab stays *Vor der Abreise* (ADR-033's reasoning). The
+  dashboard card (FR-30.7) opens by the same rule, from the same function. (E2E-M6-30)
 * **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
   entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
   BUY_LOCAL → packed). ✕ on an entry → removed. A packing row leaves only by being bought or by changing mode on M4/M5.

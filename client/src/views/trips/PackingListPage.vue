@@ -68,7 +68,7 @@ import {
 import { packedPercent, stateFor } from '@/domain/packState'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -76,6 +76,8 @@ import RevealBar from '@/components/global/RevealBar.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
+import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
+import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -141,6 +143,8 @@ import {
   type ClusterMenuAction,
 } from '@/domain/clusterActions'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
+import { packingIsFinished, planPackingClose, type ClosePackingPlan } from '@/domain/closePacking'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -162,7 +166,13 @@ import type {
   TripParticipant,
   TripTodo,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  STATE_PACKED,
+  STATE_SKIPPED,
+  TRIP_STATUS_ARCHIVED,
+} from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
 import { removalSentence } from '@/lib/removalLabels'
@@ -335,6 +345,12 @@ const kpis = computed(() =>
   tripStore.kpis(props.tripId, new Set([...removingRows.value, ...removingTodos.value])),
 )
 const active = computed(() => isActive(trip.value))
+/** FR-5.10: whether this trip's packing has been declared finished. */
+const packingClosed = computed(() => isPackingClosed(trip.value))
+/** What the card counts: the rows the list currently carries as decided. */
+const skippedCount = computed(
+  () => allItems.value.filter((row) => row.state === STATE_SKIPPED).length,
+)
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
 
@@ -1410,6 +1426,20 @@ setHeaderActions(() => {
       onClick: () => (inventoryNamesOpen.value = true),
     })
   }
+  // FR-5.10, above the lifecycle steps because it is the step most trips
+  // take before them: finishing the packing is not finishing the trip. It is
+  // offered on a fully packed list too — declaring a finished list finished is
+  // the ordinary case — and disappears once it has been done, where the card
+  // at the top of the list carries the way back instead.
+  if (trip.value && trip.value.status !== TRIP_STATUS_ARCHIVED && !packingClosed.value) {
+    items.push({
+      id: 'm4-close-packing',
+      icon: checkmarkDoneOutline,
+      label: t('packing.closeAction'),
+      overflow: true,
+      onClick: onClosePacking,
+    })
+  }
   // The two lifecycle steps, each offered only where it is the next one.
   // Without the first, *active* was unreachable in the whole app — and with
   // it the archive action below, FR-9.1's Missing flagging and everything
@@ -2083,8 +2113,15 @@ function quickAddOptions(item: BrowseAddition) {
  */
 function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision) {
   const opts = quickAddOptions(item)
-  const { id: addedId, companions } = decided
-    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decided)
+  // FR-5.10: while the packing is closed, a row typed here is a thing that
+  // travelled and was never on the list (owner, 2026-09-20) — so it lands
+  // *packed* rather than as the one open job on a finished list. An add for
+  // named travelers keeps the open row it always wrote: a row per person is
+  // a plan being made, not a bag being recorded.
+  const decision: AddedItemDecision | undefined =
+    decided ?? (packingClosed.value && item.travelerIds.length === 0 ? STATE_PACKED : undefined)
+  const { id: addedId, companions } = decision
+    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decision)
     : orchestrator.setTravelerAssignment(
         props.tripId,
         item.name,
@@ -2315,6 +2352,118 @@ function onCancelClosingPass() {
   closingPass.value = false
 }
 
+/**
+ * FR-5.10's question, live: what closing *now* would decide. The sheet reads
+ * it, and so does the write, so the sentence confirmed and the rows changed
+ * come from one rule — and on a shared trip the sheet follows a list that
+ * changes while it is open.
+ */
+const closePlan = computed<ClosePackingPlan>(() =>
+  planPackingClose(allItems.value, { isClaimed: (row: TripItem) => locked(row) }),
+)
+
+/** Whether the question is on screen, and whether it came asked or invited. */
+const closeSheetOpen = ref(false)
+const closePrompted = ref(false)
+
+/**
+ * FR-5.10's second door (owner, 2026-09-20): the step is offered where the
+ * moment is. Packing the last open row *is* the moment — finding the ⋮
+ * afterwards is the part nobody does.
+ *
+ * Three guards, each paid for by a way this becomes a nuisance:
+ *
+ *  - it asks on the **transition**, never on arrival at a list that was
+ *    already complete — `settled` drops the first reading, which is the one
+ *    that describes a moment that passed before the screen opened;
+ *  - a reader who says *später* is not asked again for this trip while the
+ *    screen lives, or the box would raise it on every tick;
+ *  - a list that has not arrived is not an empty one (ADR-033), and a trip
+ *    with no rows at all has nothing to finish.
+ */
+const packingComplete = computed(() => packingIsFinished(allItems.value))
+const closeDeclined = ref(false)
+/**
+ * Whether this screen has read the list *once*. Counted from the partition
+ * arriving rather than from the mount: on a cold start M4 renders before its
+ * rows land, so the mount's reading says „nothing is open" about a list
+ * nobody has read (ADR-033), and the reading after it — the real first one —
+ * would otherwise look like the transition this watches for.
+ */
+let listRead = false
+/** Whether the offer has been raised for this list, as a bar above it. */
+const closePromptUp = ref(false)
+watch(
+  [rowsLoaded, packingComplete] as const,
+  ([loaded, complete]) => {
+    if (!loaded) return
+    const firstReading = !listRead
+    listRead = true
+    // The offer stands down by itself when the list reopens — a row added or
+    // un-packed — so it never outlives the moment it reports.
+    if (!complete) closePromptUp.value = false
+    if (firstReading || !complete || packingClosed.value || closeDeclined.value) return
+    closePromptUp.value = true
+  },
+  { immediate: true },
+)
+
+/** The bar's own button: the same question, now asked for. */
+function onOpenFromPrompt() {
+  closePrompted.value = true
+  closeSheetOpen.value = true
+}
+
+/** *Später* on the sheet: this trip stops volunteering it while M4 lives. */
+function onDismissPrompt() {
+  closePromptUp.value = false
+  closeDeclined.value = true
+}
+
+/** The ⋮ asks the same question, and says so by not being a prompt. */
+function onClosePacking() {
+  closePrompted.value = false
+  closeSheetOpen.value = true
+}
+
+/** Dismissed: nothing is written, and an offered close stops being offered. */
+function onCloseSheetDismissed() {
+  closeSheetOpen.value = false
+  if (closePrompted.value) onDismissPrompt()
+}
+
+/**
+ * FR-5.10: everything still open becomes a decision, and the trip records
+ * that the packing is finished.
+ *
+ * The plan is read twice on purpose — once by the sheet, once inside the
+ * action for the write. In between the user reads a question, and on a
+ * shared trip the list can change while they do; the write must act on what
+ * is there when it runs, not on what the question counted.
+ */
+function onConfirmClosePacking() {
+  closeSheetOpen.value = false
+  closePromptUp.value = false
+  const affected = orchestrator.closePacking(props.tripId, {
+    isClaimed: (row: TripItem) => locked(row),
+  })
+  rowUndo.armUndo(affected, (records) => orchestrator.restorePackingClose(props.tripId, records))
+  void announceAct(
+    affected.length > 0
+      ? t('packing.closedToast', { n: affected.length })
+      : t('packing.closedToastNone'),
+  )
+}
+
+/**
+ * FR-5.10's way back. No snackbar and no undo: the card that offered it is
+ * gone from the top of the list, which is the whole feedback — and reopening
+ * is itself the way back out of closing.
+ */
+function onReopenPacking() {
+  orchestrator.reopenPacking(props.tripId)
+}
+
 /** FR-9.3's ending: the pass archives the trip and continues into M14. */
 async function onFinishClosingPass() {
   closingPass.value = false
@@ -2535,6 +2684,15 @@ setHeaderTitle(
         @decline="declineGroupChanges"
       />
 
+      <!-- FR-5.10: a finished list says so, and says when. Not during the
+           closing pass, which is a posture of its own asking one question. -->
+      <PackingClosedCard
+        v-if="packingClosed && !closingPass && trip?.packing_closed_at"
+        :at="trip.packing_closed_at"
+        :skipped="skippedCount"
+        @reopen="onReopenPacking"
+      />
+
       <ArchivedTripCard
         v-if="trip?.status === TRIP_STATUS_ARCHIVED"
         :trip-id="tripId"
@@ -2545,6 +2703,7 @@ setHeaderTitle(
         v-if="!closingPass"
         ref="quickAdd"
         :is-active="active"
+        :adds-packed="packingClosed"
         :show-trigger="false"
         :offer-groups="true"
         :traveler-count="travelers.length"
@@ -2756,7 +2915,21 @@ setHeaderTitle(
         :title="t('packing.allDone')"
         :hint="t('packing.allDoneHint')"
         testid="packing-empty"
-      />
+      >
+        <!-- FR-5.10: the step, offered where the moment is. In the state the
+             list already shows when the last row goes in — so nothing new
+             enters the flow and nothing moves under the finger that packed
+             it (ADR-060). The sheet is one deliberate tap away. -->
+        <IonButton
+          v-if="closePromptUp && !packingClosed && !closingPass"
+          size="small"
+          data-testid="m4-close-prompt"
+          @click="onOpenFromPrompt"
+        >
+          <IonIcon slot="start" :icon="checkmarkDoneOutline" />
+          {{ t('packing.closeAction') }}
+        </IonButton>
+      </EmptyState>
 
       <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
            whose rows still ask for something first — packed on departure day
@@ -2891,6 +3064,22 @@ setHeaderTitle(
           />
         </aside>
       </Teleport>
+
+      <!-- FR-5.10: the question, as the round drew it. Also the app's own
+           way of noticing that the last row went in. -->
+      <SheetModal
+        :is-open="closeSheetOpen"
+        testid="m4-close-modal"
+        @dismiss="onCloseSheetDismissed"
+      >
+        <ClosePackingSheet
+          v-if="closeSheetOpen"
+          :plan="closePlan"
+          :prompted="closePrompted"
+          @close="onCloseSheetDismissed"
+          @confirm="onConfirmClosePacking"
+        />
+      </SheetModal>
 
       <SheetModal
         :is-open="inventoryNamesOpen"

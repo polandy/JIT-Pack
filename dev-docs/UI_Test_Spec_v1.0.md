@@ -818,6 +818,33 @@ in WebKit.
   unfolding reports edges that were never on screen together. The **packing row is measured in the same frame and
   asserted the same way**, which is what makes the case about the idiom rather than a number: that clause alone would
   stay green the day the packing control moves, and the task clauses would be the ones to fail.
+* **E2E-M4-139** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the whole shape of
+  finishing the packing, in one pass. Two rows, one packed; the ⋮ step asks first and the question states *„1 open
+  item"*, which is the one row still open rather than the two on the list. Confirmed, the open row leaves the working
+  list and the card names the moment and the **1** left behind; the step is then **gone from the ⋮**, since a second
+  close would re-decide rows nobody touched. The snackbar's one *Rückgängig* brings the row back **and** takes the
+  card away — a close that was undone did not happen — and the ⋮ offers the step again.
+* **E2E-M4-140** `local` (FR-5.10, variant P1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): four of
+  six socks are in the bag. Closing shrinks the amount to what travelled rather than skipping the row, so the trip's
+  figure reads **4/4** and the row sits under the *Erledigte* reveal as a packed one. The figure is the assertion that
+  separates P1 from P2: a skip would have written 0/0 and denied four socks that are in the bag. The quantity above one
+  comes from the M18 import, which is the only path to one through the app (§2.4).
+* **E2E-M4-141** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a finished list stays
+  workable. The composer opens on a closed list, says *„recorded as packed"* before anything is typed, and the row it
+  adds lands packed — it is **not** on the open list, the card still stands (the addition did not reopen the packing)
+  and the trip's figure reads *2/2*. Without the last two clauses the case would pass on a build where an addition
+  silently revoked the decision, which is the failure the stamp exists to prevent.
+* **E2E-M4-142** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): reopening is not the
+  undo. Every snackbar is taken off the page first, so nothing the case then asserts can be an undo's doing; the card's
+  *Reopen* removes the card and brings the ⋮ step back, **and the rows the close decided stay decided** — the skipped
+  row is still off the working list and still counted behind the reveal. That last clause is the case: a reopen that
+  restored rows would have to invent the amount variant P1 no longer records.
+* **E2E-M4-143** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the step is offered
+  where the moment is, **and the offer does not take the screen**. With one of two rows packed the bar is **absent** —
+  the negative half, without which the case would pass on a build that shows it always — and packing the second raises
+  it, in the empty state, with no sheet. The list underneath is then operated (the reveal bar is clicked and answers),
+  which is the clause that fails on both builds this replaced. Taking the offer opens the sheet; *Später* there leaves
+  the trip exactly as it was: no card, and the ⋮ still offering the step.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
@@ -1379,6 +1406,14 @@ composer.
   because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
   **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
   entry's time survives a reload) each assert *„bought · today"*.
+* **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
+  and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
+  *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
+* **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
+  opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
+  and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
+  is read off the segment's own value, as E2E-M2-33 does, rather than off Ionic's checked class. The planning status is
+  what makes the case about FR-30.8 rather than about the trip's phase alone.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its

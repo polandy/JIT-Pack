@@ -415,6 +415,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The inventory could not say whose job an item usually is (2026-09-20)](#the-inventory-could-not-say-whose-job-an-item-usually-is-2026-09-20) — FR-1.9's reader on M9: the offer is filtered by G-8, the stored preference is not; no filter by account.
 - [The item merge asked four tables the same question (2026-09-20)](#the-item-merge-asked-four-tables-the-same-question-2026-09-20) — why a position is updated rather than re-created, and what the FK guard decided.
 - [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
+- [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-070: the derivation that revokes the user's own decision, and the half-packed row three ways.
 
 ## Deviations
 
@@ -16765,3 +16766,96 @@ these were passing on the budget, so the re-record needed
 `--update-snapshots=all`. And `scripts/visual.sh` ignored `E2E_PORT`, which
 `scripts/e2e.sh` honours precisely because two worktrees collide on the host
 port — it forwards it now.
+
+## Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)
+
+FR-5.10/FR-30.8, ADR-070. The owner asked for two things in one sentence: an action that *finishes the packing* —
+everything still open becoming FR-5.5's *bewusst nicht mitgenommen* — and an end to M6 opening on *Vor der Abreise*
+once that moment is past. Five decisions came out of drawing it
+(`dev-docs/UI_Concept_ClosePacking_variants.html`, rendered against one trip: 84 of 96 packed, twelve open, one of
+them half-packed, three due on departure day, one held by somebody else). The rendered round is why the questions
+were separable at all — a list of plain open rows would have made every variant look equally good.
+
+**What the mockups were for, and what they settled.** The owner answered A (the step lives in the ⋮, beside the
+lifecycle's own), A (one confirmation and one undo, not a row-by-row last look), P1 (a half-packed row keeps what is
+in the bag), the stamp, and the phase rule for M6. The two that were close are in ADR-070; the one worth repeating
+here is the question the drawing *created*: the owner read variant A of question 2 and added a requirement nobody had
+asked about — that the list must stay workable afterwards, because the thing he wants to add later is something he
+*packed* and forgot to write down. That requirement is what decided question 4 against the cheap option.
+
+**The premise that would have been wrong.** „Packing is closed" was going to be derived — no column, no reseed, just
+*nothing is open*. It survives exactly until the first row is added afterwards, which is the feature's own purpose:
+the card would vanish, the ⋮ would offer the step again, and M6 would fall back to the tab this FR exists to get away
+from. The derivation is cheap and it revokes the user's decision silently, which is the one thing a decision may not
+do. So `trips.packing_closed_at` was bought, at the price invariant 2 charges — every development database deleted and
+reseeded, and the live instance owed the hand-carried `ALTER TABLE` of ADR-067.
+
+**The wrong answer that the drawing caught.** M4's existing skip writes quantity 0. Run over a *half-packed* row —
+four of six socks in the bag — that denies four socks that travelled, and takes four packed rows away from M14's
+review. Nobody would have noticed in a list of one-quantity rows, which is most of a test trip; it took drawing the
+row three ways side by side to make it a question at all. P1 shrinks the amount to what is in the bag instead, and
+its accepted cost is written into the FR: *how many were left behind on that row is not recorded anywhere*. P3 — the
+truthful one, `state='skipped'` beside the untouched numbers, which FR-5.5 already legalised — lost on the size of its
+blast radius: `packState.unitsOf` reads the numbers alone, and teaching it the state changes every figure in the app
+for a fact nothing displays yet. It has a revisit trigger in ADR-070 rather than a shrug.
+
+**The clause that was already right, and was nearly changed.** The plan said an addition on a closed list should land
+*packed* rather than as the one open job on a finished list — and the first draft of that clause also proposed
+suppressing FR-9.1's *Missing* flag, on the reasoning that „I had it with me" is the opposite of „I needed it and did
+not have it". That reasoning was wrong about what *Missing* means here: the plan forgot the item, which is exactly
+what M14 should propose for next time. The flag stays; only the row's state changes. The machinery was already there
+— FR-25.13f's decided add — so the whole clause is a branch in `onQuickAdd` and a different hint under the field.
+
+**Where the rule had to live, twice.** The module boundary (FR-30.3) says the shopping module may not import
+`domain/`, and both sides need the same two facts. „Is the packing closed" went to `lib/tripPhase.ts`, kernel-side, so
+M4 and M6 ask one function; „which list is now" went to `shopping/list.ts`, because *that* is the module's own
+decision — and M1's card, which had the rule inline as `props.planned ? before : local`, now reads the same function.
+The card therefore grew a `packingClosed` prop: the alternative was two rules that agree today and drift on the first
+trip whose packing is closed before it starts.
+
+**What the owner said when he saw it running, and what each note cost.** Three, the same evening. *„Das Finish-Packing-
+Overlay sieht nicht schön aus"* — the question had been an `ion-alert`, chosen to reuse the app's confirm grammar; it is
+the app's own sheet now, with the three exceptions on their own lines instead of run together into a dialogue's
+paragraph. The round had *drawn* a sheet and I had built the cheap equivalent, which is the kind of substitution that
+reads as fine in a diff and not on a phone. *„Wird es auch getriggert, wenn das letzte Item gepackt wurde? Das sollte
+es."* — the step now comes up by itself on that transition, which took three guards to stay a help rather than a
+nuisance (the first reading is dropped, a *Später* silences it for the trip, and a list that has not arrived is not a
+finished one). And *„die Packliste kann dort deutlich weniger prominent sein"* — M1's hero and trip cards drop the
+packing ring for one line once the packing is closed, and the trip's tasks take the lone ring size back.
+
+**And then it found the defect under the case.** The first build asked „is the packing finished?" by reading the
+*plan*: nothing left for a close to decide. That is a different question, and on a trip carrying only shopping rows it
+answers yes — a buy row is not the packing list's (FR-30.2), so the plan is empty on a trip nobody has packed anything
+on. The sheet put itself over M4 there and every later click landed on the modal: twelve e2e cases on CI, in files
+that have nothing to do with packing (`backup-restore`, `dashboard`, `analytics`). The rule is its own function now
+(`packingIsFinished`) and says what the moment actually is — at least one packing row, none of them open or half
+packed, **and at least one actually packed**, so that skipping the last row does not raise the question on the back of
+the skip's own snackbar either.
+
+**And the second thing the suite said, which was about the design.** With the rule fixed, seventeen cases still
+failed — in both browsers, in files about backups, analytics, the dashboard, M5. Every one of them packed a trip's
+last row for its own reasons and then tapped something, and the sheet was in the way. That is not a test problem: a
+modal the user did not ask for takes the screen from the tap that follows it, and seventeen flows is a measurement of
+how often that happens. The offer moved out of the modal — and then out of the flow as well: a bar
+above the list fixed the seventeen and broke four more, because inserting a band above a list moves the page under
+whatever is being tapped, which is ADR-060's whole subject and a decision this project had already taken for the
+update banner. It lives in the *„Alles gepackt"* empty state now (FR-25.11e), which the list shows at exactly that
+moment and which occupies space the packed row has just vacated, so nothing moves at all. The sheet stays where a
+question belongs, one deliberate tap away. Nothing in the twenty-one cases had to change.
+
+**What it cost, and the habit it changes.** The local pass before that push was chromium-only, and the defect is
+browser-independent — it showed on CI because CI runs the whole suite, not because WebKit differs. A change that can
+make something *appear on its own* is a change to every screen that renders while it can appear, and the only thing
+that measures that is the whole suite. It is ten minutes; the CI round trip that found it instead was thirty.
+
+**The trigger found a case, which is the point of having them.** E2E-M4-141 packed the trip's only row and then reached
+for the ⋮ — and the new sheet, which had just opened over the list, swallowed the click. The case was right and the
+build was right: after this change, packing the last row *is* how the question arrives, so the case answers that one
+instead. A cross-suite run is what said so, and it is the reason the whole local suite is worth the ten minutes when a
+change adds something that can appear on its own.
+
+**Three fixtures caught the column before a screen could.** `rowBuilders.spec.ts` exists so a new `trips` column
+cannot be forgotten in `tripRow`, and it failed on the first run, exactly as designed. The type-check then found seven
+more `Trip` literals in specs — the price of a required field, paid once, and worth it: a nullable-by-omission field
+would have let the optimistic paint drop the stamp on every unrelated trip edit, which is the defect PR #158 already
+paid for once with `status`.

@@ -1006,6 +1006,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Post-trip review (FR-9.2, M14)
     activateTrip: tripLifecycleActions.activateTrip,
     archiveTrip: tripLifecycleActions.archiveTrip,
+    closePacking: tripLifecycleActions.closePacking,
+    reopenPacking: tripLifecycleActions.reopenPacking,
+    restorePackingClose: tripLifecycleActions.restorePackingClose,
     deleteTrip: tripLifecycleActions.deleteTrip,
     applyReviewProposal: postTripActions.applyReviewProposal,
     createTemplateFromTrip: postTripActions.createTemplateFromTrip,

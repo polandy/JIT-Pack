@@ -46,6 +46,7 @@ export function tripRow(trip: Trip): Record<string, unknown> {
     end_date: trip.end_date,
     series_id: trip.series_id,
     attributes: jsonColumn(trip.attributes),
+    packing_closed_at: trip.packing_closed_at,
     imported: dbBool(trip.imported),
   }
 }

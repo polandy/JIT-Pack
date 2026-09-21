@@ -16,6 +16,8 @@ export interface TripCardProps {
   tripName: string
   /** A trip that has not started yet (FR-6.1's *Demnächst*), rather than a running one. */
   planned: boolean
+  /** Whether its packing has been declared finished (FR-5.10) — FR-30.8 reads it. */
+  packingClosed: boolean
 }
 
 /** The cards the composition root provides, in the order M1 renders them. */

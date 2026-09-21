@@ -258,6 +258,31 @@ export const en = {
   'packing.tripViews': "This trip's views",
   'packing.archive': 'Finish trip',
 
+  // FR-5.10 — finishing the packing: whatever stays open is a decision.
+  'packing.closeAction': 'Finish packing',
+  'packing.closeConfirmTitle': 'Finish packing?',
+  'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
+  'packing.closePromptTitle': 'Everything is packed',
+  'packing.closePromptMeta': 'That was the last open item.',
+  'packing.closeLater': 'Later',
+  'packing.closeConfirmBody':
+    '{n} open item is recorded as deliberately left behind. | {n} open items are recorded as deliberately left behind.',
+  'packing.closeConfirmStarted':
+    '{n} started row keeps what is already packed. | {n} started rows keep what is already packed.',
+  'packing.closeConfirmLate':
+    '{n} of them is only due on departure day. | {n} of them are only due on departure day.',
+  'packing.closeConfirmHeld':
+    '{n} is in somebody else’s hands right now. | {n} are in other people’s hands right now.',
+  'packing.closeConfirmNothing': 'Nothing is open — the packing list is recorded as finished.',
+  'packing.closeConfirmVerb': 'Finish · {n}',
+  'packing.closeConfirmVerbNothing': 'Finish',
+  'packing.closedToast': 'Packing finished · {n} left behind | Packing finished · {n} left behind',
+  'packing.closedToastNone': 'Packing finished',
+  'packing.closedTitle': 'Packing finished',
+  'packing.closedStamp': '{when} · {n} left behind | {when} · {n} left behind',
+  'packing.closedStampNone': '{when}',
+  'packing.reopen': 'Reopen',
+
   // FR-25.20 — rows somebody else is responsible for.
   'packing.othersHidden': '{n} item is with {who} · show | {n} items are with {who} · show',
   'packing.othersShown': 'Hide {n} from {who}',
@@ -710,6 +735,8 @@ export const en = {
   'quickAdd.trigger': 'Add item…',
   'quickAdd.placeholder': 'Search or create…',
   'quickAdd.missingHint': 'New items are flagged as missing',
+  // FR-5.10: on a finished list an addition is what is already in the bag.
+  'quickAdd.packedHint': 'New items are recorded as packed',
   'quickAdd.offerCreateHint': 'Create it in the inventory and add it right away',
   'quickAdd.offerRestoreHint': 'Restore it and add it right away',
   'quickAdd.alreadyIn': '“{name}” is already in',
@@ -1447,6 +1474,7 @@ export const en = {
   'tripTodos.forItem': 'Belongs to {name}',
   'dashboard.taskLineOpen': 'Tasks: {n} open',
   'dashboard.taskLineDone': 'Tasks: all done',
+  'dashboard.packingDone': 'Packing finished',
   'dashboard.openCount': '{n} open',
   'dashboard.moreItems': '+{n} more',
 

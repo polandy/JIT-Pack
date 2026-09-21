@@ -45,6 +45,7 @@ function trip(extra: Partial<Trip> = {}): Trip {
     duration_days: 8,
     series_id: null,
     attributes: null,
+    packing_closed_at: null,
     imported: false,
     ...extra,
   }

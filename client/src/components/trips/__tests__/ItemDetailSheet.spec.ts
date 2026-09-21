@@ -60,6 +60,7 @@ function seedTrip(
     duration_days: null,
     series_id: null,
     attributes: null,
+    packing_closed_at: null,
     imported: false,
   }
   tripStore.applyChange({ seq: 0, table: 'trips', id: 't1', deleted: false, row: trip })

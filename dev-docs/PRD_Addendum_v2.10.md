@@ -4505,6 +4505,24 @@ as for the packing rows.
   section gathering every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated
   the field per trip. M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3).
 
+* **FR-30.8 (The List That Is Now — owner request 2026-09-20, *built 2026-09-20*):** M6 opened on *Vor der Abreise*
+  whatever the trip was doing, and that is the one list which is certainly over once you have left. It now opens on the
+  list still worth working: ***Vor der Abreise*** while the trip is planned **and** its packing is open, ***Vor Ort***
+  otherwise — a running trip, an archived one, and a planned trip whose packing has been declared finished (FR-5.10),
+  which is the case the phase alone gets wrong: the bag is shut the evening before, on a trip nobody has tapped
+  *Reise starten* on. **One rule for both of the module's screens** (`listInFocus` in `client/src/shopping/list.ts`):
+  M6 and the dashboard card under each trip (FR-30.7) must not disagree about the same trip.
+  * **Nothing is hidden.** The other tab keeps its count in its label, so the five things still unbought before
+    departure are one tap away and say how many they are.
+  * **The reader's pick wins for the visit** and is not remembered across visits, as before (FR-25.18's rule is about
+    a filter of four facet values, not about a tab). **Until the trip itself is on the device** the tab stays
+    *Vor der Abreise*: a rule read off an absent trip would open a planned trip at the destination and then move the tab
+    under the reader (ADR-033's reasoning).
+  * Rejected: letting the **content** decide — open whichever tab has something on it. It never opens on an empty list,
+    and it makes the screen open differently as lines are checked off, so the tab you were working stops being the tab
+    you come back to.
+  * **It decides more than what is read first:** the open tab is also where M6's own field files an entry (FR-30.1).
+
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
 every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
 cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still unbuilt and would now pre-fill entries
@@ -5004,6 +5022,86 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Taken back like every act on the list (FR-25.31):** the snackbar names it (*„„Sonnencreme" wird vor Ort
     gekauft"*), and its *Rückgängig* writes the previous mode back — per instance, from the head.
   * **Modes.** Identical in all three: one trip-partition field write.
+
+* **FR-5.10 (Finishing the packing — owner request and decision 2026-09-20, *built 2026-09-20*):** a trip is packed at
+  some point, and until now nothing said so. A row still open meant two different things — *not done yet* and *decided
+  against* — and only the person holding the bag could tell them apart. M4's ⋮ now carries ***Packen abschliessen***,
+  one step above the lifecycle's two, and it makes the whole list a statement: **whatever is still open becomes FR-5.5's
+  *bewusst nicht mitgenommen*.** It is offered while the trip is not archived and the packing is not closed, **including
+  on a list with nothing left open** — declaring a finished list finished is the ordinary case, not a no-op.
+  * **What it writes, per row** (`client/src/domain/closePacking.ts`, so the question, the write and the undo read one
+    rule):
+    * **Nothing packed** → the skip M4's row menu already writes (quantity 0, `state='skipped'`), **plus the release of
+      a claim** (FR-5.3). That release is the one difference from the row menu's own skip, and it is owed: the menu is
+      not offered on a row somebody else holds, while this reaches every open row at once — the G-3 lock is advisory by
+      decision — and a decided row must not still read *„Sonja packt gerade"*.
+    * **Half packed** → **the amount shrinks to what is in the bag** (`quantity = packed_count`, state *packed*).
+      Variant **P1** of the round, chosen over skipping the row (**P2**, which writes quantity 0 and thereby denies four
+      socks that travelled — M14 would lose four packed rows it could have judged) and over keeping both numbers beside
+      `state='skipped'` (**P3**, the most truthful and the most expensive: `packState.unitsOf` would have to read the
+      state, or the trip line would sit at 4/6 for ever). **The accepted cost of P1 is that nothing records how many
+      were left behind on that row** — the row says four were wanted and four are packed, and the two that were not
+      taken are gone from the record.
+    * **Untouched:** an already-decided row (packed, or *skipped* — the **state** is the decision, and FR-5.5 makes
+      `state='skipped'` beside an amount above zero a legal row), every row in a buy mode (the shopping list's business,
+      FR-30.2), FR-7.3/7.4's todos, and the lifecycle — closing the packing neither starts nor archives the trip.
+  * **One question, one undo** (variant **A** of the round). A single confirmation — **a sheet, not a system dialogue**
+    (revised 2026-09-20 on seeing it rendered: an `ion-alert` was the cheap way to ask and looked it, on the one moment
+    in a trip where the app should look like itself) — states the count and then the three things a count hides, each on
+    its own line: how many rows packing has begun on, how many are due on departure day (FR-5.1), and how many
+    somebody else is holding. The snackbar's *Rückgängig* then takes the **whole batch** back (FR-25.31), and it also
+    lifts the stamp — a close that was undone did not happen. Rejected: **variant B**, a last look row by row with each
+    row tappable back into the list. It catches the one thing you actually forgot, which is the point of the action, and
+    it was still declined — it is a second review in front of the trip's own (FR-9.3), and on a forty-row remainder it
+    is a screen rather than a question.
+  * **The last row packed offers the step** (owner, 2026-09-20: *„wird es auch getriggert, wenn das letzte Item
+    gepackt wurde? das sollte es."*). The step is offered where the moment is, not only where the menu is: when the last
+    open row is packed, the step appears **in the *„Alles gepackt"* empty state the list already shows at that moment**
+    (FR-25.11e) — no new element enters the flow, so nothing moves under the finger that packed the row (ADR-060). The
+    sheet opens from it, headed *„Das war das letzte offene Packelement."*, and *Später* there waves it off for the
+    visit. **Two builds were measured away before this one:** opening the sheet by itself failed seventeen e2e flows
+    across both browsers, every one on a tap that landed on the modal instead of the list; a bar inserted above the
+    list then failed four more, because it moved the page under an open sheet. The offer also disappears by itself when
+    the list reopens — a row added or un-packed — so it never outlives the moment it reports. Three
+    guards, each against a way this becomes a nuisance: it fires on the **transition** and never on arrival at a list
+    that was already complete (that moment passed before the screen opened); a reader who answers *Später* is not asked
+    again for that trip while the screen lives, or ticking the last box would raise it every time; and a list that has
+    not arrived is not a finished one (ADR-033). **What counts as finished is its own rule** (`packingIsFinished`),
+    and not „the close would decide nothing": a trip carrying only shopping rows has an empty plan because a buy row is
+    not this list's (FR-30.2), and a trip whose last row was *skipped* was decided rather than packed — asking in either
+    place is asking about a moment that never happened. So: at least one packing row, none of them open or half packed,
+    and at least one of them actually packed. It remains a *question* — nothing is
+    written until it is answered, because the decision is the user's and not the app's.
+  * **„Abgeschlossen" is a stamp, not a reading.** `trips.packing_closed_at` (master partition, merged on its own under
+    NFR-4.2a) records the moment. Deriving it from *„nothing is open"* was the cheaper option and is wrong here for one
+    reason: **the list stays workable afterwards** (below), so the next row added would silently revoke the decision —
+    and with it FR-30.8's default and the card that offers the way back. The cost is a schema change, which pre-ADR-067
+    means every development database is deleted and reseeded, and the live instance is carried across by hand.
+  * **The finished list says so.** M4 leads with a card naming the moment and how many rows the list carries as
+    *nicht mitgenommen*, and carrying ***Wieder öffnen***. Reopening lifts the stamp **and nothing else**: the rows it
+    decided stay decided, because that is what the decision was — and with P1 the amount a half-packed row wanted is no
+    longer recorded anywhere, so a wholesale restore would have to invent it. A single row comes back through FR-5.5's
+    reveal, as it always did. No name on the card: a person would have to be stamped by the server (invariant 3), and
+    Local Mode has nobody to name.
+  * **Adding afterwards is the point, not an exception** (owner, on the same day): *„wenn ich auf der Reise etwas
+    hinzufügen möchte, das ich eingepackt, aber vergessen hatte aufzunehmen"*. The list is not locked — quick-add, the
+    ＋ FAB and the browse-sheet all stay — and **while the packing is closed a row typed into the composer lands
+    *packed*** (the FR-25.13f machinery), with the hint under the field saying so instead of FR-9.1's. On an active trip
+    it is still flagged *Missing*, which is exactly right: the plan forgot it, and M14 should propose it for next time.
+    **An add for named travelers keeps the open row it always wrote** — a row per person is a plan being made, not a bag
+    being recorded.
+  * **M1 lets the packing recede** (owner, 2026-09-20: *„die Packliste kann dort deutlich weniger prominent sein, da wir
+    nun in einer anderen Ferienphase sind"*). On a trip whose packing is closed, the dashboard's hero and its trip cards
+    replace the packing **figure** — a ring, the loudest thing on the card — with one quiet line, *„Packen
+    abgeschlossen"*, in the done role's ink. What is still owed takes the space: the trip's tasks become the card's one
+    figure and take the lone ring size back (FR-7.4), and the shopping card below opens on *Vor Ort* (FR-30.8). The
+    open-rows preview needs no rule of its own — it lists open rows, and a finished list has none; a row added
+    afterwards (above) reappears there, which is correct, because that one really is open.
+  * **Modes:** identical in all three — one batch on the trip partition and one field on the master partition.
+    **Not carried** by the portable backup (NFR-4.11), like every other piece of progress and like FR-7.3/7.4's todos —
+    a restored trip's packing is open again with its decided rows still decided, which `docs/backup.md` states.
+  * The round: `dev-docs/UI_Concept_ClosePacking_variants.html`, five questions rendered against one trip; the owner's
+    answers were A (where it lives), A (what it asks), P1 (the half-packed row), the stamp, and FR-30.8's phase rule.
 
 ### 3.6 Notifications & Delegation
 

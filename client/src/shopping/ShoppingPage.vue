@@ -48,9 +48,10 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { boughtStampText } from '@/lib/rowFacts'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, TRIP_STATUS_PLANNING } from '@/types/domain'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
-import { buildSections } from './list'
+import { buildSections, listInFocus } from './list'
 import { useShoppingStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -61,8 +62,6 @@ const actions = createShoppingActions(orchestrator.moduleHost)
 const own = ownEntriesSource(shoppingStore, actions)
 // Absent in a spec that provides none: the list still works on its own.
 const sources = inject(SHOPPING_SOURCES, [])
-
-const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
 
 /**
  * FR-25.11j's reveal, shaped like M4's *Erledigte* bar (FR-25.2): off by
@@ -79,6 +78,24 @@ const showBought = ref(false)
 // partition as the packing rows. „Nothing to buy" is a sentence somebody
 // leaves the house on, and a partition still in flight is not it.
 const { trip, loaded: rowsLoaded, ensure } = useTripScreen(props.tripId, orchestrator)
+
+/**
+ * The tab the reader picked; none yet means the trip decides (FR-30.8).
+ *
+ * Until the trip itself is on the device there is nothing to decide with, and
+ * *Vor der Abreise* is the answer that cannot be wrong for a trip nobody has
+ * left on yet — a rule read off an absent trip would open a planned trip at
+ * the destination and then move the tab under the reader.
+ */
+const chosen = ref<ShoppingMode | null>(null)
+const tab = computed<ShoppingMode>(() => {
+  if (chosen.value !== null) return chosen.value
+  if (!trip.value) return ITEM_MODE_BUY_BEFORE
+  return listInFocus({
+    planned: trip.value.status === TRIP_STATUS_PLANNING,
+    packingClosed: isPackingClosed(trip.value),
+  })
+})
 
 // FR-30.4: a purchase is named from the trip's participants, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
@@ -170,7 +187,7 @@ setHeaderTitle(
   <IonPage>
     <IonContent ref="content" class="shop-content" data-testid="m6-page">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
-      <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
+      <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (chosen = e.detail.value)">
         <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
           <IonLabel>{{ beforeTabLabel }}</IonLabel>
         </IonSegmentButton>

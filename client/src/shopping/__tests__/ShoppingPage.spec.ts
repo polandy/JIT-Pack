@@ -18,6 +18,8 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ShoppingPage from '../ShoppingPage.vue'
 import { useShoppingStore } from '../store'
+import { useTripStore } from '@/stores/tripStore'
+import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 import type { Mutation } from '@/api/types'
 import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/lib/shoppingSources'
@@ -436,5 +438,75 @@ describe('M6 — an absence it has not read yet (ADR-033, G-7)', () => {
     expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(
       t('shopping.atDestinationCount', { n: 0 }),
     )
+  })
+})
+
+/**
+ * FR-30.8 — which list M6 opens on.
+ *
+ * „Vor der Abreise" is the right answer only while departure is ahead. The
+ * rule itself is pinned in `list.spec.ts`; what is pinned here is that the
+ * screen *asks* it — and that it waits for the trip before doing so, since a
+ * rule read off an absent trip would open a planned trip at the destination
+ * and then move the tab under the reader (ADR-033's reasoning).
+ */
+describe('M6 — the list that is now (FR-30.8)', () => {
+  function seedTrip(row: Record<string, unknown>) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, ...row },
+    })
+  }
+
+  const openTab = (page: ReturnType<typeof mountPage>) =>
+    page.findComponent({ name: 'IonSegment' }).props('value')
+
+  it('opens a planned trip on the list before departure', async () => {
+    seedTrip({ status: 'planning' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(openTab(page)).toBe('buy_before')
+  })
+
+  it('opens a running trip at the destination', async () => {
+    seedTrip({ status: 'active' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(openTab(page)).toBe('buy_local')
+  })
+
+  it('opens a planned trip at the destination once its packing is finished (FR-5.10)', async () => {
+    seedTrip({ status: 'planning', packing_closed_at: '2026-09-20T18:40:00.000Z' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(openTab(page)).toBe('buy_local')
+  })
+
+  it('keeps the tab the reader picked', async () => {
+    seedTrip({ status: 'active' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
+      detail: { value: 'buy_before' },
+    })
+
+    expect(openTab(page)).toBe('buy_before')
+  })
+
+  it('stays on the list before departure while the trip itself is not here yet', async () => {
+    const page = mountPage()
+    await flushPromises()
+
+    expect(openTab(page)).toBe('buy_before')
   })
 })

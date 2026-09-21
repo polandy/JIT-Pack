@@ -52,6 +52,7 @@ function trip(id: string, overrides: Partial<Trip> = {}): Trip {
     duration_days: 10,
     series_id: 's1',
     attributes: null,
+    packing_closed_at: null,
     imported: false,
     ...overrides,
   }

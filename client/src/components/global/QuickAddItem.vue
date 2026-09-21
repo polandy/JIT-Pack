@@ -108,6 +108,12 @@ const props = withDefaults(
   defineProps<{
     /** M4's FR-9.1 hint: an add on an active trip flags the item Missing. */
     isActive?: boolean
+    /**
+     * FR-5.10: the packing is finished, so what is typed here is a thing that
+     * travelled and was never listed — the caller adds it packed, and the
+     * hint says so instead of FR-9.1's.
+     */
+    addsPacked?: boolean
     /** Scope-labelled commit text (FR-25.13 in M8); icon-only when absent. */
     confirmLabel?: string
     /** Master items to keep out of the suggestions (already present). */
@@ -145,6 +151,7 @@ const props = withDefaults(
   }>(),
   {
     isActive: false,
+    addsPacked: false,
     confirmLabel: undefined,
     excludeItemIds: () => [],
     offerGroups: false,
@@ -649,7 +656,9 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
 
-      <p v-if="isActive" class="add-hint">{{ t('quickAdd.missingHint') }}</p>
+      <p v-if="addsPacked || isActive" class="add-hint">
+        {{ t(addsPacked ? 'quickAdd.packedHint' : 'quickAdd.missingHint') }}
+      </p>
 
       <!-- FR-25.13c: the empty composer offers chips before it asks for
            typing — the reason open() no longer raises the keyboard. -->
