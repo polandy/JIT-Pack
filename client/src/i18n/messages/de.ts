@@ -1521,6 +1521,13 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.resolvedBy': 'erledigt von {who} · {when}',
   'tasks.resolvedByUnknown': 'erledigt · {when}',
   'tasks.openAll': 'Alle Aufgaben',
+  // FR-7.8 — das eine Tag einer Aufgabe und die Gruppen daraus.
+  'tasks.fromPacking': 'Aus Packliste',
+  'tasks.noTag': 'Ohne Tag',
+  'tasks.dropHere': 'hier ablegen',
+  'tasks.tagLabel': 'Tag — genau eines',
+  'tasks.newTag': 'Neues Tag…',
+  'tasks.movedToast': '„{body}" verschoben',
   'tasks.whilePacking': 'Beim Packen zu erledigen',
   'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
   'dashboard.taskLineDone': 'Aufgaben: alle erledigt',

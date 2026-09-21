@@ -182,4 +182,61 @@ describe('createCommentActions without an orchestrator', () => {
     createCommentActions(ctx).assignTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
     expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.assignee_user_id)).toEqual([null])
   })
+
+  it('setTaskTag writes the tag alone, and takes it off again (FR-7.8)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Salbe holen',
+      is_task: 1,
+      task_state: 'open',
+      phase: 'before',
+    })
+
+    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'tt-apo')
+
+    const { mutation } = queued[0]!.muts[0]!
+    expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
+    // The one field, for the same reason as the assignment above: the phase
+    // beside it is written by its own act, and a tag riding along with it
+    // would overwrite whatever another device meanwhile decided (ADR-022).
+    expect(mutation.fields).toEqual({ task_tag_id: 'tt-apo' })
+    // The row the screen shows while the push is in flight is the whole row,
+    // not the one field — a task that lost its words on the way to a group
+    // would be a task nobody recognises when it lands there.
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
+      trip_item_id: null,
+      is_task: 1,
+      body: 'Salbe holen',
+      phase: 'before',
+      task_tag_id: 'tt-apo',
+    })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
+
+    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
+  })
+
+  it('setTaskTag reaches a preparation through its own row shape (FR-7.8)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'td-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: 'ti-1',
+      author_id: AUTHOR,
+      body: 'Akku laden',
+      is_task: 1,
+      task_state: 'open',
+    })
+
+    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTodos(TRIP_ID)[0]!, 'tt-apo')
+
+    // The anchor survives: a preparation that lost its trip_item_id would
+    // leave the packing row it belongs to and become the trip's own chore.
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
+      trip_item_id: 'ti-1',
+      is_task: 1,
+      task_tag_id: 'tt-apo',
+    })
+    expect(ctx.tripStore.getTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
+  })
 })

@@ -25,7 +25,7 @@
  * screen handed it.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
-import { chevronForwardOutline, closeOutline } from 'ionicons/icons'
+import { chevronForwardOutline, closeOutline, reorderTwoOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
@@ -63,6 +63,17 @@ const props = defineProps<{
   composerLabel?: string
   /** What to say when the list is empty. Absent renders nothing. */
   emptyText?: string
+  /**
+   * FR-7.8: how a row is picked up, where this list is inside something that
+   * can be dragged between. A function rather than an event, because the
+   * gesture has to start *during* the pointerdown — an emit would arrive
+   * after the browser has already decided the press is a scroll.
+   *
+   * Absent means the rows are not draggable and no grip is drawn, which is
+   * how M4's window renders them: its window is a handful of lines with
+   * nothing to sort them into.
+   */
+  lift?: (ev: PointerEvent, task: TripTask, row: HTMLElement, immediate: boolean) => void
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -106,6 +117,17 @@ function assigneeOf(task: TripTask) {
   return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
 }
 
+/**
+ * FR-7.8: the grip lifts at once; anywhere else on the row the press has to
+ * be held, so a finger can still scroll. The row element is handed over with
+ * it, because the gesture clones it.
+ */
+function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
+  if (!props.lift) return
+  const row = (ev.currentTarget as HTMLElement).closest('.todo-row') as HTMLElement | null
+  if (row) props.lift(ev, task, row, immediate)
+}
+
 /** Q3 B: the one line under the words, whichever of the two it is. */
 function subline(task: TripTask): string | null {
   return taskSubline(task, (userId) => props.nameOf?.(userId) ?? null)
@@ -124,7 +146,19 @@ function subline(task: TripTask): string | null {
       lines="none"
       class="todo-row"
       :data-testid="`trip-todo-${task.body}`"
+      @pointerdown="lift && onLift($event, task, false)"
     >
+      <!-- FR-7.8: the grip exists only to be dragged, so it lifts without the
+           hold. It is drawn only where this list sits in something that can
+           be dragged between. -->
+      <span
+        v-if="lift"
+        class="grip"
+        :data-testid="`trip-todo-grip-${task.body}`"
+        @pointerdown.stop="onLift($event, task, true)"
+      >
+        <IonIcon :icon="reorderTwoOutline" />
+      </span>
       <!-- FR-7.7: the words are the way into the task's own sheet, where the
            facts that do not fit a line live — and where it is moved between
            the phases. A button rather than the label itself, so the target is
@@ -265,6 +299,24 @@ function subline(task: TripTask): string | null {
 
 .todo-row {
   --min-height: 36px;
+}
+
+/* The one control that exists only to be dragged, so it says so and takes
+   the pointer for itself — `touch-action: none` is what stops the page
+   scrolling out from under a finger that meant to lift. */
+.grip {
+  flex: none;
+  margin-inline-end: 2px;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The row stays where it was while its clone travels (ADR-060); it is only
+   dimmed, so the list does not close up under the finger. */
+.todo-row[data-drag-source] {
+  opacity: 0.4;
 }
 
 .todo-row.resolved ion-label {

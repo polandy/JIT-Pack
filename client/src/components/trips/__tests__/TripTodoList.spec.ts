@@ -34,6 +34,7 @@ function ownTask(
 
 /** FR-7.7's facts, absent unless a case is about them. */
 const FACTS = {
+  task_tag_id: null,
   phase: 'before',
   author_id: 'u-andy',
   created_at: null,

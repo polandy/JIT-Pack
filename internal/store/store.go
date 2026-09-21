@@ -42,6 +42,7 @@ const columnTripID = "trip_id"
 // silently missing case rather than as a compile error.
 const (
 	TableTags                      = "tags"
+	TableTaskTags                  = "task_tags"
 	TableItemTags                  = "item_tags"
 	TableItems                     = "items"
 	TableItemDependencies          = "item_dependencies"

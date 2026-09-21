@@ -338,7 +338,12 @@ describe('sample master data, FR-28.1/28.8', () => {
     const { master } = seed()
     const known = new Set(MARK_INDEX.map((entry) => entry.emoji))
 
-    const seeded = [...master.itemList, ...master.templateList]
+    // FR-7.8's task tags are marked like anything else and are read from the
+    // same face, so they belong in the same count. The inventory's tags are
+    // deliberately *not* here: one of them carries a glyph outside the index
+    // today, which is a defect of its own rather than something this case
+    // should be widened around.
+    const seeded = [...master.itemList, ...master.templateList, ...master.taskTagList]
       .map((row) => row.icon)
       .filter((icon): icon is string => Boolean(icon))
 

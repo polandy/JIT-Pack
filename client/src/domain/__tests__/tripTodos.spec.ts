@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  filedTagOf,
+  groupAccepts,
   packingWindowTasks,
+  tagForGroup,
+  taskGroups,
   taskPhaseOf,
   tasksInPhase,
   tasksOfAssignee,
@@ -10,6 +14,7 @@ import {
   tripTodoProgress,
   tripTodoStatus,
   tripTodosUnfolded,
+  type TripTask,
 } from '../tripTodos'
 import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
@@ -240,6 +245,7 @@ describe('the two windows on one list (FR-7.7)', () => {
     created_at: null,
     resolved_at: null,
     resolved_by_user_id: null,
+    task_tag_id: null,
   })
 
   const camera = { id: 'i1', name: 'Camera', icon: null }
@@ -289,5 +295,111 @@ describe('the two windows on one list (FR-7.7)', () => {
    */
   it('answers with nothing where nobody is signed in', () => {
     expect(tasksOfAssignee([task('a'), task('b', { assignee: 'user-1' })], null)).toEqual([])
+  })
+})
+
+describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
+  const tag = (id: string, name: string, sort = 0) => ({ id, name, sort_order: sort, icon: null })
+  const t = (
+    id: string,
+    over: {
+      tag?: string | null
+      item?: { id: string; name: string; icon: string | null } | null
+    } = {},
+  ) =>
+    ({
+      id,
+      body: id,
+      task_state: 'open' as TodoState,
+      item: over.item ?? null,
+      assignee_user_id: null,
+      phase: TASK_PHASE_BEFORE,
+      author_id: 'someone',
+      created_at: null,
+      resolved_at: null,
+      resolved_by_user_id: null,
+      task_tag_id: over.tag ?? null,
+    }) as TripTask
+
+  const camera = { id: 'i1', name: 'Kamera', icon: null }
+  const tags = [tag('apo', 'Apotheke', 0), tag('haus', 'Haus', 1)]
+
+  it('files each task under its tag, in the order the tags carry', () => {
+    const groups = taskGroups([t('a', { tag: 'haus' }), t('b', { tag: 'apo' })], tags)
+    expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
+      ['apo', ['b']],
+      ['haus', ['a']],
+    ])
+  })
+
+  /*
+   * „Aus Packliste" is not a tag — it is what the *untagged* group is called
+   * when the task came from a packing row (owner, 2026-09-21). Both kinds are
+   * `task_tag_id === null` in the data, and only the heading differs, so
+   * nothing has to create the row, nobody can rename it, and it cannot end up
+   * describing a task it is not true of.
+   */
+  it('splits the untagged ones by where they came from', () => {
+    const groups = taskGroups([t('prep', { item: camera }), t('own')], tags)
+    expect(groups.map((g) => [g.key, g.origin, g.tasks.map((x) => x.id)])).toEqual([
+      ['prep', 'prep', ['prep']],
+      ['trip', 'trip', ['own']],
+    ])
+  })
+
+  /*
+   * An empty heading says nothing while reading — and because it is not drawn
+   * it is not a drop target either, which is what keeps the list from growing
+   * under a finger that has just lifted something (ADR-060). Losing a tag is
+   * the sheet's job instead.
+   */
+  it('draws no heading for a group with nothing in it', () => {
+    expect(taskGroups([t('a', { tag: 'apo' })], tags).map((g) => g.key)).toEqual(['apo'])
+  })
+
+  it('refuses a task the heading would not be true of', () => {
+    expect(groupAccepts({ origin: 'prep' }, t('x', { item: camera }))).toBe(true)
+    expect(groupAccepts({ origin: 'prep' }, t('y'))).toBe(false)
+    expect(groupAccepts({ origin: 'trip' }, t('y'))).toBe(true)
+    expect(groupAccepts({ origin: 'trip' }, t('x', { item: camera }))).toBe(false)
+    // A real tag takes either kind: what a task is *about* has nothing to do
+    // with whether a packing row owes it.
+    expect(groupAccepts({ origin: null }, t('x', { item: camera }))).toBe(true)
+  })
+
+  /*
+   * A task can name a tag this device has no row for, and it is not an exotic
+   * state: the master and trip partitions arrive through separate feeds, so a
+   * task written elsewhere can land before the tag it names — and a deleted
+   * tag sets the column to NULL on the server without passing the change log,
+   * so a device that never saw the delete keeps the old id for good.
+   *
+   * Whatever the cause, a task nobody can file is still a task. Before this
+   * rule it fell through both passes — not its tag's group, because no such
+   * group is built, and not the untagged one, because its column is not NULL
+   * — and disappeared from the screen while sitting in the data.
+   */
+  it('files a task whose tag this device does not know as an untagged one', () => {
+    const groups = taskGroups(
+      [t('stranger', { tag: 'gone' }), t('prep', { tag: 'gone', item: camera })],
+      tags,
+    )
+    expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
+      ['prep', ['prep']],
+      ['trip', ['stranger']],
+    ])
+  })
+
+  it('names the tag a task is filed under, which is not always the one it carries', () => {
+    expect(filedTagOf({ task_tag_id: 'apo' }, tags)).toBe('apo')
+    expect(filedTagOf({ task_tag_id: null }, tags)).toBeNull()
+    // The one that matters: an id with no tag behind it reads as „none".
+    expect(filedTagOf({ task_tag_id: 'gone' }, tags)).toBeNull()
+  })
+
+  it('reads a drop on an origin group as “no tag”', () => {
+    expect(tagForGroup('apo')).toBe('apo')
+    expect(tagForGroup('prep')).toBeNull()
+    expect(tagForGroup('trip')).toBeNull()
   })
 })

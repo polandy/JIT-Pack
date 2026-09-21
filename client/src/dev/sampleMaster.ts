@@ -277,6 +277,15 @@ const VACATION = {
   /** FR-7.4: chores for the trip itself, not for anything packed. */
   // FR-7.7: the third one is for the road, so a seeded Vorlage carries both
   // phases and M25 opens with something in either section.
+  // FR-7.8: the tags a *task* can carry — their own list. „Technik" is not
+  // among them on purpose: a task is filed by what it is about, and the
+  // overlap with an item tag would be the one thing variant B accepts as a
+  // cost rather than something the seed should go looking for.
+  taskTags: [
+    { name: 'Apotheke', icon: '💊' },
+    { name: 'Haus', icon: '🚪' },
+    { name: 'Bahn', icon: '🚆' },
+  ] as const,
   tripTasks: [
     { task: 'Pflanzen giessen', phase: TASK_PHASE_BEFORE },
     { task: 'Elektronische Geräte abschalten', phase: TASK_PHASE_BEFORE },
@@ -429,6 +438,9 @@ export function seedSampleMaster(
       if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
     }
     addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
+    VACATION.taskTags.forEach((tag, index) => {
+      orchestrator.createTaskTag(tag.name, index, tag.icon)
+    })
     for (const { task, phase } of VACATION.tripTasks) {
       orchestrator.addTemplateTask(vacationTemplateId, task, phase)
     }

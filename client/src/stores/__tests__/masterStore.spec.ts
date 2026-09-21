@@ -38,6 +38,49 @@ describe('masterStore', () => {
     expect(masterStore.tagList[1]!.name).toBe('Clothes')
   })
 
+  /*
+   * FR-7.8: the tasks' own vocabulary, in its own list. It is the inventory's
+   * tag list in shape and nothing else — a word here may exist there too and
+   * mean something different, which is the cost ADR-072 accepted, so the two
+   * lists must never be read from one another.
+   *
+   * The order is the tags' own, and the name settles a tie: two tags created
+   * in passing both carry sort_order 0, and M25's headings would otherwise
+   * change places between one load and the next.
+   */
+  it('keeps the task tags apart from the item tags, in their own order', () => {
+    const masterStore = useMasterStore()
+    masterStore.applyChange({
+      seq: 1,
+      table: 'task_tags',
+      id: 'tt-haus',
+      deleted: false,
+      row: { name: 'Haus', sort_order: 0 },
+    })
+    masterStore.applyChange({
+      seq: 2,
+      table: 'task_tags',
+      id: 'tt-apo',
+      deleted: false,
+      row: { name: 'Apotheke', sort_order: 0, icon: '💊' },
+    })
+    masterStore.applyChange({
+      seq: 3,
+      table: 'task_tags',
+      id: 'tt-bahn',
+      deleted: false,
+      row: { name: 'Bahn', sort_order: -1 },
+    })
+
+    expect(masterStore.taskTagList.map((t) => t.name)).toEqual(['Bahn', 'Apotheke', 'Haus'])
+    // The mark travels, and its absence is null rather than undefined — the
+    // group heading asks whether there is one.
+    expect(masterStore.taskTagList[1]!.icon).toBe('💊')
+    expect(masterStore.taskTagList[0]!.icon).toBeNull()
+    // And nothing of this reached the inventory's tags.
+    expect(masterStore.tagList).toEqual([])
+  })
+
   it('applies item changes', () => {
     const masterStore = useMasterStore()
     masterStore.applyChange({

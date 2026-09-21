@@ -87,6 +87,45 @@ func TestStampActor_TaskPhase_IsTheClientsToChoose_FR7_7(t *testing.T) {
 	}
 }
 
+// FR-7.8: the tag is the same kind of statement as the phase — what the task
+// is about, chosen by the person who wrote it. There is nothing to stamp, and
+// the case exists so that a later rewrite of the stamping rules cannot take
+// the field away in passing: an id silently dropped here would be a tag that
+// never syncs, and the device that set it would be the last to find out.
+func TestStampActor_TaskTag_IsTheClientsToChoose_FR7_8(t *testing.T) {
+	m := &syncpkg.Mutation{
+		Table: store.TableComments,
+		Op:    syncpkg.OpUpsert,
+		// Beside the resolution, so the case also holds that stamping the
+		// record leaves the neighbouring fields alone.
+		Fields: map[string]any{"task_tag_id": "tt-apotheke", "task_state": "resolved"},
+	}
+
+	stampActor(m, "user-andy", func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) })
+
+	if got := m.Fields["task_tag_id"]; got != "tt-apotheke" {
+		t.Errorf("task_tag_id = %v, want the client's value to survive", got)
+	}
+}
+
+// Clearing the tag is a value, not an absence: the person took the task out
+// of its group. A stamping rule that treated NULL as „nothing was sent" would
+// leave the old tag standing on every other device.
+func TestStampActor_TaskTagCleared_SurvivesAsNull_FR7_8(t *testing.T) {
+	m := &syncpkg.Mutation{
+		Table:  store.TableComments,
+		Op:     syncpkg.OpUpsert,
+		Fields: map[string]any{"task_tag_id": nil},
+	}
+
+	stampActor(m, "user-andy", time.Now)
+
+	value, sent := m.Fields["task_tag_id"]
+	if !sent || value != nil {
+		t.Errorf("task_tag_id = %v (present: %v), want an explicit NULL", value, sent)
+	}
+}
+
 // A task created and ticked off in one insert is still authored by the pusher
 // and resolved by them: the author is decided once at birth, the resolution
 // follows the state, and neither reads a client-sent id.

@@ -5418,6 +5418,59 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     chip), M1 (unchanged — it counts every task, as FR-7.6 left it), M5 (unchanged — still where a preparation is
     declared). UI-Spec M25/M4/M8; E2E-M25-01…04, E2E-M4-141.
 
+
+* **FR-7.8 (One tag per task, and the groups it makes — new 2026-09-21, owner request, decided from an interactive
+  prototype; *built the same day*):** M25 lists a trip's tasks and, past a handful, listing is not ordering. The owner
+  asked for *„einem task soll man genau ein Tag vergeben können. damit werden sie dann standardmässig in der task
+  ansicht gruppiert. man kann tasks auch zwischen den Tags einfach schieben können."* The tradeoff is ADR-072.
+  * **Their own tags** (`task_tags`), not the inventory's — the owner's choice of variant B over sharing the
+    `tags` axis. An item is filed by what it *is*, a task by what it is *about*, and the two words rarely coincide:
+    *„Pflanzen giessen"* has no place among *Technik* and *Kleidung*, and the inventory's leftover bucket already
+    holds 49 of 184 items (ADR-063). **Accepted cost:** the same word may exist in both lists. They never appear in
+    one picker, so neither means the other.
+  * **Exactly one, and none is one of the answers.** `comments.task_tag_id`, nullable, no join table: *at most one,
+    never two* is what the owner meant, and a set that may hold one element states its rule nowhere the database can
+    see it. NULL is a real state — a task typed in a hurry has no tag.
+  * **The untagged group is named after where the task came from** (owner, on reading the prototype): a preparation
+    that hangs off a packing row reads under ***Aus Packliste***, a chore of the trip under ***Ohne Tag***. Both are
+    `task_tag_id IS NULL`; only the heading differs. **It is deliberately not a tag row**: as one it could be
+    renamed, deleted, and hung on tasks that never came from a packing list, and the heading would then be false. As
+    the name of an origin that cannot happen, and nothing has to seed it, protect it or keep it in step.
+    * A group therefore **refuses what it could not honestly head**: *Aus Packliste* does not light up under a chore
+      of the trip, and does not take it.
+  * **The phase stays the outer split** (variant A): *Vor der Reise* and *Während der Reise* first, the tag groups
+    inside each. „What is still open before we leave" remains one look, which is what M25 was built for (FR-7.7) —
+    and the crossing between phases keeps a target to drag to.
+  * **Dragging moves it**, by the grip or by holding the row (500 ms, 8 px — `useLongPress`'s own values, so a finger
+    can still scroll). The group under the pointer says *hier ablegen* before the drop. **A movement may change the
+    tag and the phase at once**, because a drop across both is what the reader meant, and the snackbar names it.
+  * **An empty group is not drawn**, and is therefore not a target. Losing a tag is the task sheet's job — *Ohne Tag*
+    is a choice in a list there, not a place to find. The first prototype did the opposite, bringing empty groups out
+    when a task was lifted, and the list moved under the finger that had just lifted it (ADR-060).
+  * **One undo for the whole movement** (FR-25.31). Tag and phase are written and taken back together: the undo
+    record holds one action at a time, so arming a second would leave the first without a way home. A drop that
+    changes nothing writes nothing and arms nothing — and the gesture still ends, which is a rule the drag composable
+    carries rather than this screen.
+  * **A tag is created where it is needed** — a word the picker does not have yet is the next tag, the way an item's
+    tag is created in M10 rather than in a screen of its own. Any account may: task tags are instance-wide master
+    data like `tags`, and Single-User and Local Mode have nobody to disagree.
+  * **Modes.** All three. The grouping, the drag and the sheet are client-side; `task_tags` travels the master
+    partition like every other shared list, and in Local Mode it lives in the same IndexedDB row store as everything
+    else — a new syncable table is new *keys* there, not a new object store, so nothing had to be migrated.
+  * **A deleted tag unassigns itself** and the tasks stay: `ON DELETE SET NULL`, where `item_tags` cascades. The
+    difference is what the row is — there it *is* the assignment, here it is the task, and deleting the task would
+    throw away the work. This is also why ADR-063's merge-instead-of-delete does not have to reach task tags.
+  * **A task whose tag this device does not know reads as untagged**, under the group named after where it came
+    from. It is not an error state and nothing says so: the master and trip partitions arrive through separate
+    feeds, so a task can land before the tag it names — and when the tag arrives the task moves to it. Without the
+    rule such a task matches neither pass and is **invisible while sitting in the data**, which is also what would
+    happen on a device that never saw a tag's deletion, since `SET NULL` does not travel the change log.
+  * **The portable format does not carry the tag**, exactly as it does not carry the phase (FR-7.7): `trip_tasks` is
+    a list of words. An imported task arrives untagged and can be filed afterwards. Reading a tag out of a document
+    that never stated one would be a claim, not an import — and `docs/backup.md` says so.
+  * **Surfaces:** M25 (the groups, the drag, the sheet's tag list), M8 and M4 unchanged — the packing list's window
+    is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09.
+
 ### 3.9 Trip Feedback & Post-Trip Review
 
 * **FR-9.3 (Capturing Trip Feedback Without Visiting Every Row — new 2026-08-22, owner request):**

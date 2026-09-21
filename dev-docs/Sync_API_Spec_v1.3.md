@@ -8,6 +8,12 @@ distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All fo
 fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
 
 **Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
+* **2026-09-21 (FR-7.8, ADR-072) — P-3, `GET /master/sync`:** `task_tags` joins the master partition and
+  `comments.task_tag_id` points at it across the partition boundary. Was: a task could be filed by nothing but the
+  row it hung off.
+* **2026-09-21 (FR-7.7, ADR-071) — §5, server-stamped fields:** `comments.phase` is the client's to choose, while
+  `resolved_by_user_id`/`resolved_at` are stamped by the task's state as the packing record is by its own. Was: a
+  task recorded nothing about when it was due or who ticked it off.
 * **2026-09-19 (FR-30.4) — §5, server-stamped fields:** `bought_by_user_id`/`bought_at` on `trip_items` and
   `shopping_entries` — who bought a thing and when, stamped like the packing record. Was: no record of a purchase.
 * **2026-09-19 (FR-30.1, ADR-066) — P-3:** `shopping_entries` joins the trip partition — the shopping list's own
@@ -90,8 +96,9 @@ to open.
 * **P-2 (One write path):** Clients write exclusively via the **push endpoint** from a local outbox — also while online.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
-  trip_generated_positions, shopping_entries) and one **master partition per user** (items, tags, item_tags, templates,
-  template_items, template_includes, template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*,
+  trip_generated_positions, shopping_entries) and one **master partition per user** (items, tags, item_tags, task_tags,
+  templates, template_items, template_includes, template_item_tasks, template_tasks, item_dependencies, trip_series,
+  destination_*,
   trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel
   the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition
   membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its
@@ -287,6 +294,25 @@ and no client wrote before. Nothing about either needs a new rule on the server.
 todo's assignment, the counterpart of `trip_items.packer_user_id`, and like it **not** stamped: invariant 3 governs
 `author_id`. Setting it to another member earns that member a `delegation` notification (§ Notifications).
 
+`comments.phase` (FR-7.7, 2026-09-21) is the client's statement about when a task is due — `before`, `during`, or NULL
+for a task written before the column existed. `template_tasks.phase` is the same value on the Vorlage's side, carried
+into the trip at generation. Both are nullable and free of a CHECK, like everything else on these tables: a constraint
+that can refuse a single-field mutation loses the user's choice (ADR-022). `resolved_at`/`resolved_by_user_id` beside
+them are the resolution's record and are **stamped** — see §5.
+
+`task_tags` (FR-7.8, ADR-072, 2026-09-21) joins the master partition: `{name, sort_order, icon}`, instance-wide like
+`tags`, and a separate vocabulary from it on purpose — a task is filed by what it is *about*, an item by what it *is*,
+and the two never appear in one picker. `comments.task_tag_id` names one of its rows, which makes it a trip-partition
+row pointing at a master-partition one, as `trip_items.source_item_id` already does. It is the client's to choose and
+is **not** stamped: invariant 3 is about identity claims, and a tag is not one. An explicit `null` takes the tag off
+and is a value rather than an omission, since a field that is not sent is a field that does not merge.
+
+**Deleting a task tag unassigns it and keeps the tasks** — `ON DELETE SET NULL`, where `item_tags` cascades; there the
+row *is* the assignment, here the row is the task. That unassignment happens inside SQLite, where the trip partition's
+change feed cannot see it, so **no tombstone and no update travel** and a device that never saw the delete keeps the
+old id. The client therefore reads a task whose tag it has no row for as untagged rather than trusting the column —
+the same rule that covers the ordinary case of the two feeds arriving out of order.
+
 `items.icon` and `templates.icon` (§3.28, FR-28.1/28.8/28.9 — **built 2026-08-22**, ADR-021) are ordinary synced columns
 carrying one emoji, resolved by field-level LWW like `name`. They are deliberately **not** given the `image_hash`
 treatment beside them: that split exists because BLOBs bloat every pull envelope (ADR-002), and a mark is a handful of
@@ -362,6 +388,11 @@ copy until it discards it (lazy, same semantics as trip deletes).
   already recorded.
   `trips.year` (migration 021) is `NOT NULL` — a `trips` insert without it is rejected rather than defaulted, because a
   trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable from the same migration.
+  **The task's resolution record (FR-7.7)** follows the purchase's rule on `comments`: `resolved_by_user_id`/
+  `resolved_at` are stripped from every mutation and written back only by the `task_state` the mutation carries —
+  `resolved` names the pusher and keeps the client's tap time, any other state clears both, and a mutation touching no
+  state carries no record at all. `phase` and `task_tag_id` are left untouched beside them: when a task is due and what
+  it is about are the user's statements, not claims about who anyone is.
   `trip_items.packed_at` (migration 020) is the same record's *when* (FR-25.17) and follows it exactly — written with
   the record, cleared with it, stripped from every mutation first — with one deliberate difference: a **client-supplied
   RFC 3339 value is kept**, because packing happens offline and the push can land days after the tap. A clock is not an

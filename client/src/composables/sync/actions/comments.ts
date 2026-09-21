@@ -149,6 +149,19 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /**
+   * FR-7.8: the one tag a task carries, given, changed or taken off. One
+   * field, like the phase beside it — the task keeps everything else it was.
+   */
+  function setTaskTag(tripId: string, todo: ItemTodo | TripTodo, taskTagId: string | null) {
+    const mut = mutations.setTaskTag(todo.id, taskTagId)
+    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, { ...row, task_tag_id: taskTagId }),
+    })
+  }
+
   function deleteTripTodo(todo: TripTodo) {
     const mutation = mutations.deleteTodo(todo.id)
     enqueueAndDrain('trip', todo.trip_id, {
@@ -170,6 +183,7 @@ export function createCommentActions(ctx: SyncContext) {
     assignTripTodo,
     assignPrepTodo,
     setTaskPhase,
+    setTaskTag,
     deleteTripTodo,
   }
 }

@@ -550,7 +550,9 @@ const CASES: BuilderCase[] = [
       author_id: 'user-a',
       body: 'Zeltstangen prüfen',
       task_state: 'resolved',
-      // FR-7.7's five, all null on a task nobody has said anything about.
+      // FR-7.7's five and FR-7.8's one, all null on a task nobody has said
+      // anything about.
+      task_tag_id: null,
       phase: null,
       created_at: null,
       assignee_user_id: null,
@@ -711,6 +713,7 @@ describe('commentRow', () => {
         // Flagging a comment says nothing about when the task is due or whose
         // it is, so it says nothing: the phase is read as *before* where it is
         // asked for (`taskPhaseOf`) rather than written here.
+        task_tag_id: null,
         phase: null,
         assignee_user_id: null,
         resolved_at: null,

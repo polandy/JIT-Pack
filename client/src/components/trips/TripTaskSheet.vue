@@ -11,7 +11,7 @@
  * It decides nothing. The phase move and the removal are emitted, because the
  * screen owns the one snackbar that takes either back (FR-25.31).
  */
-import { IonButton, IonIcon } from '@ionic/vue'
+import { IonButton, IonIcon, IonInput } from '@ionic/vue'
 import {
   arrowBackOutline,
   arrowForwardOutline,
@@ -20,22 +20,61 @@ import {
   cubeOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
+import ItemMark from '@/components/items/ItemMark.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import type { TripTask } from '@/domain/tripTodos'
+import { filedTagOf, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase, type TaskTag } from '@/types/domain'
+
+/** The size a tag chip wears its mark at (G-15's scale). */
+const MARK_SIZE = 15
 
 const props = defineProps<{
   task: TripTask
   /** How a member is named; returns null where nobody can be (G-8). */
   nameOf: NameOf
+  /** FR-7.8: the tags a task may carry, in their own order. */
+  taskTags?: readonly TaskTag[]
 }>()
 
-const emit = defineEmits<{ close: []; move: [phase: TaskPhase]; remove: [] }>()
+const emit = defineEmits<{
+  close: []
+  move: [phase: TaskPhase]
+  remove: []
+  /** FR-7.8: this tag, or null for none. */
+  tag: [taskTagId: string | null]
+  /** A word the list does not have yet — created where it is needed. */
+  newTag: [name: string]
+}>()
+
+/**
+ * FR-7.8: „exactly one" as the owner asked it — at most one, never two. The
+ * list is therefore a choice and not a set of toggles, and *no tag* is one of
+ * the choices rather than the absence of a choice. It is named after where
+ * the task came from, because that is what its group is called.
+ */
+const draftTag = ref('')
+
+/**
+ * Which chip reads as chosen. Not the raw column: a task can carry an id this
+ * device has no tag for — the two partitions arrive through separate feeds —
+ * and the list files such a task as untagged (`filedTagOf`). The sheet has to
+ * agree, or it would show a task with nothing selected while its group says
+ * it has no tag.
+ */
+const chosenTag = computed(() => filedTagOf(props.task, props.taskTags ?? []))
+const noTagLabel = computed(() => (props.task.item ? t('tasks.fromPacking') : t('tasks.noTag')))
+
+function addTag() {
+  const name = draftTag.value.trim()
+  if (!name) return
+  draftTag.value = ''
+  emit('newTag', name)
+}
 
 /** Where the task would go — the other phase, always. */
 const otherPhase = computed<TaskPhase>(() =>
@@ -82,6 +121,48 @@ function factLine(key: string, icon: string, text: string | null) {
         <span>{{ fact.text }}</span>
       </li>
     </ul>
+
+    <div v-if="taskTags" class="tags" data-testid="task-sheet-tags">
+      <div class="tags-label jp-section-count">{{ t('tasks.tagLabel') }}</div>
+      <button
+        v-for="tag in taskTags"
+        :key="tag.id"
+        type="button"
+        class="tag"
+        :class="{ on: chosenTag === tag.id }"
+        :data-testid="`task-sheet-tag-${tag.name}`"
+        @click="emit('tag', tag.id)"
+      >
+        <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="MARK_SIZE" />{{
+          tag.name
+        }}
+      </button>
+      <button
+        type="button"
+        class="tag"
+        :class="{ on: chosenTag === null }"
+        data-testid="task-sheet-tag-none"
+        @click="emit('tag', null)"
+      >
+        {{ noTagLabel }}
+      </button>
+      <div class="tag-new">
+        <IonInput
+          v-model="draftTag"
+          :placeholder="t('tasks.newTag')"
+          data-testid="task-sheet-tag-input"
+          @keydown.enter="addTag"
+        />
+        <IonButton
+          size="small"
+          :disabled="!draftTag.trim()"
+          data-testid="task-sheet-tag-add"
+          @click="addTag"
+        >
+          {{ t('common.add') }}
+        </IonButton>
+      </div>
+    </div>
 
     <div class="actions">
       <IonButton expand="block" data-testid="task-sheet-move" @click="emit('move', otherPhase)">
@@ -137,6 +218,52 @@ function factLine(key: string, icon: string, text: string | null) {
   flex: none;
   font-size: var(--jp-icon-sm);
   color: var(--ct-overlay2);
+}
+
+/* The tags read as one block of choices, which is what „exactly one" is. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 16px 0 0;
+}
+
+.tags-label {
+  flex: 0 0 100%;
+  margin-bottom: 2px;
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.tag.on {
+  border-color: var(--jp-action);
+  color: var(--ct-text);
+}
+
+.tag-new {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tag-new ion-input {
+  --background: var(--ct-surface0);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: var(--jp-r-md);
 }
 
 .actions {

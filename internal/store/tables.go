@@ -108,6 +108,24 @@ var tableSpecs = map[string]tableSpec{
 
 	// Renamed from `categories` by migration 022 (ADR-014): an item carries
 	// a set of these, not one of them.
+	// FR-7.8: the tags a task can carry — their own list, so that „what an
+	// item is" and „what a task is about" never have to be the same word.
+	// Master data like `tags`: instance-wide, every account may add one, and
+	// in Single-User and Local Mode there is nobody else to disagree.
+	TableTaskTags: {
+		partition: partitionMaster,
+		columns:   toSet("name", "sort_order", MarkColumn),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM task_tags`},
+		// No cascade and no blockingReference, and the difference from
+		// `tags` below is the point: a deleted tag there takes its
+		// *assignment rows* with it, while a task's tag is a column on the
+		// task. `ON DELETE SET NULL` in the schema unassigns it instead —
+		// the tasks stay and fall back to the group named after where they
+		// came from. Deleting the tag is therefore allowed outright, unlike
+		// FR-24.3's retire-instead-of-delete for a row something *is*.
+	},
+
 	TableTags: {
 		partition: partitionMaster,
 		columns:   toSet("name", "sort_order", MarkColumn), // the mark: FR-24.13
@@ -424,6 +442,10 @@ var tableSpecs = map[string]tableSpec{
 			// the push path — stampActor discards any client-sent value
 			// first (invariant 3), exactly as it does for packed_by_user_id.
 			"phase", "resolved_at", "resolved_by_user_id",
+			// FR-7.8: the one tag the task carries, the user's own statement
+			// about what it is about — nothing to stamp (invariant 3 is about
+			// identity, and a tag is not one).
+			"task_tag_id",
 			// FR-7.7: the moment the task was written. The client names it
 			// (Local Mode has no server to default it), and the column's own
 			// DEFAULT still covers a mutation that omits it — the same shape

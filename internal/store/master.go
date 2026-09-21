@@ -90,10 +90,12 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 // difference.
 func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (RejectReason, error) {
 	switch m.Table {
-	case TableTags, TableItemTags:
+	case TableTags, TableItemTags, TableTaskTags:
 		// Shared master data like the items they classify (FR-24.1): any
 		// authenticated user creates a tag by typing it in M10, and there
-		// is no separate tag-management screen to gate.
+		// is no separate tag-management screen to gate. FR-7.8's task tags
+		// are the same kind of thing and are created the same way — in the
+		// picker, by typing a word that is not there yet.
 		return ReasonNone, nil
 
 	case TableItems:

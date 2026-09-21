@@ -141,6 +141,23 @@ CREATE TABLE tags (
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
+-- FR-7.8: the tags a *task* can carry — their own list, not the inventory's
+-- (owner, 2026-09-21). The two vocabularies never appear in the same picker,
+-- so „Technik" may exist in both without either meaning the other: an item is
+-- filed by what it is, a task by what it is about.
+--
+-- Same shape as `tags` deliberately: a name, an order and a mark are what a
+-- heading needs, and a second answer to that question would be a second thing
+-- to keep in step.
+CREATE TABLE task_tags (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    name        TEXT NOT NULL UNIQUE,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    icon        TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-24.13's shape
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE item_tags (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     item_id     TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
@@ -394,6 +411,19 @@ CREATE TABLE comments (
     -- and free of a CHECK for field-level LWW's sake: a constraint that can
     -- refuse a single-field mutation loses the user's choice.
     assignee_user_id TEXT REFERENCES users(id),
+    -- FR-7.8: the one tag a task carries, or NULL for none. A column rather
+    -- than a join table because the owner asked for **exactly one** — at most
+    -- one, never two — and a set that may hold one element is a set whose
+    -- rule lives nowhere the database can state it.
+    --
+    -- NULL is a real answer, not a gap: a task written in a hurry has no tag,
+    -- and M25 names that group after where the task came from (*Aus
+    -- Packliste* for a row's preparation, *Ohne Tag* for the trip's own).
+    --
+    -- ON DELETE SET NULL, unlike `item_tags`' cascade: there the row *is* the
+    -- assignment and deleting it unassigns, while here the row is the task
+    -- and deleting it would throw away the work.
+    task_tag_id  TEXT REFERENCES task_tags(id) ON DELETE SET NULL,
     -- FR-7.7: when the task is meant to be done — 'before' the trip or
     -- 'during' it. Stored rather than derived: nothing else in the row tells
     -- „not done yet" from „always meant for later", which is the whole

@@ -191,5 +191,38 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     )
   }
 
-  return { toggle, added, assign, remove, move, liveTripTodo, liveItemTodo }
+  /**
+   * FR-7.8: the task lands somewhere — a tag, a phase, or both in one motion,
+   * which is what the owner asked a drag across the two to do.
+   *
+   * **One undo for the whole movement.** The record holds a single action at
+   * a time by design (`useRowUndo`), so arming one for the tag and another
+   * for the phase would leave the first without a way back. It writes both
+   * previous values, and it writes them even where only one changed: an undo
+   * that put back what never moved is harmless, while one that forgot half a
+   * movement is the defect.
+   */
+  function retag(task: TripTask, phase: TaskPhase, taskTagId: string | null) {
+    const todo = liveTask(task)
+    if (!todo) return
+    const before = { tag: todo.task_tag_id, phase: todo.phase }
+    const movedTag = before.tag !== taskTagId
+    const movedPhase = before.phase !== phase
+    // A drop that changed nothing writes nothing and arms nothing. The
+    // gesture still ends — `data-drag` returns to idle either way — and a
+    // snackbar for a non-event would be noise.
+    if (!movedTag && !movedPhase) return
+
+    rowUndo.armAction(todo.body, () => {
+      const live = liveTask(task)
+      if (!live) return
+      if (movedTag) orchestrator.setTaskTag(tripId(), live, before.tag)
+      if (movedPhase) orchestrator.setTaskPhase(tripId(), live, before.phase)
+    })
+    if (movedTag) orchestrator.setTaskTag(tripId(), todo, taskTagId)
+    if (movedPhase) orchestrator.setTaskPhase(tripId(), todo, phase)
+    void announceAct(t('tasks.movedToast', { body: todo.body }))
+  }
+
+  return { toggle, added, assign, remove, move, retag, liveTripTodo, liveItemTodo }
 }

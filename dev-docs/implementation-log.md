@@ -400,6 +400,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
 - [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
+- [2026-09-21 — A tag on a task, and a drag two screens share (FR-7.8, ADR-072)](#2026-09-21--a-tag-on-a-task-and-a-drag-two-screens-share-fr-78-adr-072) — why „Aus Packliste" is not a tag, and what a shared gesture owes its second consumer.
 - [2026-09-21 — A task that changes phase, and the screen it needed (FR-7.7, ADR-071)](#2026-09-21--a-task-that-changes-phase-and-the-screen-it-needed-fr-77-adr-071) — why the phase had to be a column, and two defects only the e2e could find.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
@@ -16971,3 +16972,48 @@ place. Comparing order would fail on every correct chain forever — and in the 
 hand-carried columns already sit behind `updated_hlc` for exactly that reason (ADR-067 driver 4). CHECK
 constraints are compared as a *set* of normalised texts, because they exist only inside the table's own
 DDL and arrive differently formatted from the two directions.
+
+### 2026-09-21 — A tag on a task, and a drag two screens share (FR-7.8, ADR-072)
+
+The request was three sentences and the first one decided the rest: **which tags**. Sharing the inventory's axis
+would have brought an order, a mark and a manager for free — and left *„Pflanzen giessen"* in the leftover bucket
+that already holds 49 of 184 items. The owner chose a list of its own, and accepted the one cost that comes with it:
+the same word may exist twice, once for an item and once for a task. They never meet in a picker.
+
+**The sentence that had two meanings.** *„tags die aus der packliste übernommen werden bekommen das tag 'aus
+packliste'"* can mean a real tag row, seeded per instance, or the name the *untagged* group wears when the task came
+from a packing row. I built the second and said so before building it. As a row it could be renamed, deleted, and
+given to a task that never came from a packing list — and then the heading is false. As the name of an origin that
+cannot happen, and nothing has to seed it, protect it or keep it in step. The consequence is visible in the app: a
+group refuses what it could not honestly head, so *Aus Packliste* does not light up under a chore of the trip.
+
+**A premise in the brief was wrong, and checking it saved a migration.** The instruction said a new syncable table
+means a new IndexedDB object store and a `DB_VERSION` bump — the one thing a server-side test never finds. It is not
+true here: the Local Mode adapter keeps every table in **one** store keyed `table/id`, so a new table is new keys.
+Nothing had to be migrated. A case in `persistence.spec.ts` now states it, because the next person will have the same
+worry and should find the answer rather than the question.
+
+**The drag is shared code, and the second consumer improved it before it existed.** The tag-reorder session, which
+will reorder *within* a list rather than move *between* groups, sent four requirements while I was writing it. Three
+widened the shape — the drop place is a container **and** a gap, the gap is reported continuously rather than at the
+drop, and the position a gesture *started* at is captured at the lift, because a list that makes way renumbers the
+rows under the finger. The fourth was a defect in my design, and the sharpest thing anyone said this week:
+
+> **`idle` means „nothing is in the air", not „something was written."**
+
+A drop that changes nothing — landing back in your own group — writes nothing. Built as „resolve after the
+mutation", the attribute sticks on `settling` for exactly that one drop, and every case waiting on it times out. Only
+that drop. No run of the happy path would ever find it. There is a unit case for it now, and it is
+mutation-proved: remove the restore and it goes red along with the ordinary drag.
+
+**And I broke ADR-060 with the feature meant to help, in the prototype.** Empty groups appeared the moment a task was
+lifted, so that a tag could be dropped away — and the list grew under the finger that had just lifted something.
+Empty groups are not drawn at all now, and a tag is removed in the task's sheet, where it is a choice rather than a
+place to find. The e2e reads the list's scroll position before and after the lift, which is the assertion that would
+fail if this comes back.
+
+**Two smaller things the gates caught, both mine.** A tag's mark interpolated as text (`{{ tag.icon }}`) — G-15 says
+a mark is painted by its own component, and `markRendering.spec.ts` names the file that broke it. And an encoder in
+the table registry for a table nothing rebuilds optimistically: the pairing gate refuses an encoder without a writer,
+which is right, and the row builder came back out.
+
