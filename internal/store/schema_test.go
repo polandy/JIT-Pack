@@ -58,7 +58,10 @@ func TestOpen_AppliesTheSchemaToAnEmptyDatabase(t *testing.T) {
 	}
 }
 
-func TestOpen_StampsTheSchemaFingerprint(t *testing.T) {
+// Since ADR-067 a fresh database is stamped with the *level* it stands at —
+// the end of the chain, because schema.sql is every migration already applied
+// — and `user_version` carries it as the readable mirror.
+func TestOpen_StampsTheSchemaLevelAndMirrorsIt(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "fresh.db")
 	s, err := Open(path)
 	if err != nil {
@@ -69,8 +72,37 @@ func TestOpen_StampsTheSchemaFingerprint(t *testing.T) {
 	}
 
 	db := openRaw(t, path)
-	if got, want := userVersion(t, db), schemaFingerprint(); got != want {
-		t.Fatalf("user_version = %d, want the schema fingerprint %d", got, want)
+	var level int
+	var baseline string
+	if err := db.QueryRow(`SELECT level, baseline FROM schema_meta WHERE id = 1`).Scan(&level, &baseline); err != nil {
+		t.Fatalf("read schema_meta: %v", err)
+	}
+	if level != currentSchemaLevel() {
+		t.Errorf("level = %d, want %d", level, currentSchemaLevel())
+	}
+	if baseline != "schema.sql" {
+		t.Errorf("baseline = %q — a fresh database passed through no release", baseline)
+	}
+	if got := userVersion(t, db); got != int64(level) {
+		t.Errorf("user_version = %d, want the level %d it mirrors", got, level)
+	}
+}
+
+// The literal the bridge stands on, proven against the schema it names.
+// Recomputing it in the loader would make it follow the hash function instead
+// of the release, and the first sign would be a real database refused.
+//
+// The fixture is v0.16.0's schema.sql, which is byte-identical to v0.15.0's —
+// which is why the bridge covers both and why the operator-facing line says
+// v0.15.0, the older of the two.
+func TestBaselineFingerprint_MatchesTheSharedV015AndV016Schema(t *testing.T) {
+	ddl, err := os.ReadFile(filepath.Join("testdata", "schema-v0.16.0.sql"))
+	if err != nil {
+		t.Fatalf("read the fixture: %v", err)
+	}
+	if got := fingerprintOf(string(ddl)); got != baselineFingerprint {
+		t.Fatalf("v0.16.0 fingerprints to %d, the bridge expects %d — one of the two is wrong, "+
+			"and the database that pays for it cannot be rebuilt", got, baselineFingerprint)
 	}
 }
 
@@ -124,9 +156,14 @@ func TestOpen_RejectsAStaleDatabaseAndSaysHowToFixIt(t *testing.T) {
 	if err := s.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
-	// Any fingerprint but the current one: the state a database is in after
-	// the schema changed underneath it.
+	// A database from before the chain — no schema_meta — carrying a
+	// fingerprint this build cannot name. Since ADR-067 that is the only
+	// shape that is still refused outright, and `user_version` alone is not
+	// enough to condemn one: it is a mirror now, so the table has to go too.
 	db := openRaw(t, path)
+	if _, err := db.Exec(`DROP TABLE schema_meta`); err != nil {
+		t.Fatalf("drop schema_meta: %v", err)
+	}
 	if _, err := db.Exec(`PRAGMA user_version = 4711`); err != nil {
 		t.Fatalf("stamp stale version: %v", err)
 	}
@@ -223,11 +260,20 @@ func TestSchema_IsEmbeddedAndNotEmpty(t *testing.T) {
 	}
 }
 
-func TestSchema_HasNoMigrationsDirectoryLeftBehind(t *testing.T) {
-	// The development phase has one always-current schema; a stray
-	// migrations directory would be applied by nothing and read as truth.
-	if _, err := os.Stat("migrations"); !os.IsNotExist(err) {
-		t.Fatalf("internal/store/migrations still exists: %v", err)
+// Replaces `TestSchema_HasNoMigrationsDirectoryLeftBehind`, which held
+// ADR-018's rule that no such directory may exist. ADR-067 reverses it: the
+// chain is now how an existing database reaches this schema, and a *missing*
+// chain is the defect — the directory would be silently absent from the
+// binary if the embed pattern ever stopped matching.
+func TestSchema_TheMigrationChainIsEmbedded(t *testing.T) {
+	if migrationChainErr != nil {
+		t.Fatalf("the embedded chain does not load: %v", migrationChainErr)
+	}
+	if len(migrationChain) == 0 {
+		t.Fatal("no migrations embedded — an existing database has no way to this schema")
+	}
+	if _, err := os.Stat("migrations"); err != nil {
+		t.Fatalf("internal/store/migrations must exist: %v", err)
 	}
 }
 

@@ -20,7 +20,7 @@ reason this file exists.
 | Slash commands | `.claude/commands/*.md` | `/next`, `/review`, `/status` | surfaced as project skills under the same names |
 | MCP servers | `.mcp.json` | project servers | project servers |
 | Formatting on edit | `.claude/hooks/format-file.sh` | `PostToolUse` from the `.claude` settings | same file, same settings — see below |
-| Migrations speed bump | Claude: a `deny` rule in `.claude/settings.json`; Copilot: `.github/hooks/jitpack.json` → `scripts/agent-guard-migrations.sh` | deny rule | `PreToolUse` hook |
+| Migrations speed bump | **Retired 2026-09-21 (ADR-067).** A schema change now *owes* a migration, so neither the `deny` rule nor the Copilot hook exists any more; what holds the pair together is the chain gate in `internal/store` (`TestSchemaChain_EndsWhereSchemaSQLDoes`). | — |
 
 `.github/copilot-instructions.md` is deliberately a **pointer, not a second orientation document**.
 It exists because the cloud agent and code review do not read `CLAUDE.md`, and it says three things

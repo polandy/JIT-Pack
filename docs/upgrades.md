@@ -1,17 +1,28 @@
 # Upgrades
 
-JIT-Pack is **pre-1.0, and pre-1.0 versions ship no database upgrade path.** A new version whose database layout differs from the one that wrote your file refuses to open it and exits — it never tries to upgrade the file, and it never touches it:
+**From 0.17.0 on, JIT-Pack upgrades its own database.** When a new version starts against a file an older one wrote, it applies the schema changes it is missing and carries on — no SQL to run, no export-and-import, nothing for you to do but pull the image and restart.
+
+That holds from **0.15.0** onwards. 0.15.0 and 0.16.0 ship the same database layout — byte for byte, so they are one starting point rather than two — and anything written by them or later is carried forward. A database from **0.14.0 or earlier** is refused, with the instruction it has always carried:
 
 ```
-store: database schema is stale: /data/jitpack.db was built from a different schema
-	JIT-Pack is pre-1.0 and ships no schema upgrade path
-	to discard it:   rm /data/jitpack.db   and restart
+store: database schema is stale: /data/jitpack.db was built from a schema this build cannot place
+	it predates v0.15.0, the oldest release this build carries forward
 	to keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import
+	to discard it:   rm /data/jitpack.db   and restart
 ```
 
-The refused file is left byte-for-byte as it was, so nothing is lost at that moment — but the new version will not run against it. [Troubleshooting](troubleshooting.md#store-database-schema-is-stale) covers the error itself; this page is about upgrading without losing what matters.
+Two other refusals exist, and both leave the file untouched as well:
 
-This is planned to change in a 0.x release rather than waiting for 1.0: a coming version will carry the database forward on start-up instead of refusing it. Until that version ships, treat every image bump as potentially breaking and follow the steps below.
+- **A database from a newer version than the one you are starting.** Migrations only go forward; roll the image back to the version that wrote it.
+- **A database from the pre-0.15 migration era** (its schema level is between 1 and 23). Same two ways out as above.
+
+The refused file is never modified — not to "fix" it, not to stamp it. [Troubleshooting](troubleshooting.md#store-database-schema-is-stale) covers the message itself.
+
+## What an upgrade does to your data
+
+Nothing you have to undo. Each schema change runs in its own transaction, so a step either lands whole or not at all, and the database records how far it got. If one fails, the instance stops with the error and stays on the level it had — start the previous image again and the file is exactly as it was.
+
+**Back up anyway before pulling a new image** ([how](backup.md#wal-mode-back-up-all-three-files-or-use-a-proper-snapshot)). Not because the upgrade is expected to fail, but because a restore is the only thing that helps if it does, and a file backup costs a second.
 
 ## Knowing a new version is out
 
@@ -19,21 +30,22 @@ Nothing tells you by default. If you want the instance to say so, set [`JITPACK_
 
 It is deliberately quiet — a line, never a notification — because pulling a new image is your decision, and the rest of this page is why it should stay one.
 
-## Export before you pull
+## Before you pull
 
-Whether a given release actually changed the schema is not something you can tell from the version number, so the safe routine assumes it did. **Do the exports while the old version is still running** — afterwards, the data is only reachable by rolling the image back.
+1. **Take a file backup** of the database ([how](backup.md#wal-mode-back-up-all-three-files-or-use-a-proper-snapshot)). A `.db` file restores into the version that wrote it, so together with the old image tag it recreates the instance exactly as it was — that pair is your rollback.
+2. Pull the new image and start it. The log says what it did:
 
-1. **Take a file backup** of the database ([how](backup.md#wal-mode-back-up-all-three-files-or-use-a-proper-snapshot)). This is your rollback: a `.db` file restores only [into the version that wrote it](backup.md#restoring), so together with the old image tag it recreates the instance exactly as it was.
-2. **Export portable YAML** for every template and every trip you want to carry forward ([how](backup.md#getting-data-out-over-the-api)). Portable YAML is version-independent — it survives a schema change, the `.db` file does not.
-3. Now pull the new image and start it.
-   - If it starts, the schema did not change — you are done, and the exports cost you a minute.
-   - If it refuses with the stale-schema error, move the old database file aside (keep it — it pairs with the old image), start the new version against an empty path, and **import** your YAML exports through the app or with the [import command](backup.md#importing-yaml-from-the-command-line).
+   ```
+   INFO schema migrated level=1 migration=001_columns_since_v0_16_0.sql
+   ```
+
+3. If it refuses instead, read which of the three refusals above it is. Only the *oldest-release* one needs the export route: run the version that wrote the file, export portable YAML for every template and trip ([how](backup.md#getting-data-out-over-the-api)), then start the new version against an empty path and import them.
 
 On a multi-user instance, accounts need no export: they are provisioned from the identity provider, so everyone gets their account back by [logging in again](multi-user-setup.md).
 
 ## What the portable exports do not carry
 
-Re-importing YAML into a fresh database is a real reset in several ways. The exports carry your **lists** — trips, templates, items, quantities, travelers, containers, preparation tasks — and deliberately not the rest:
+This matters only on the export route above — an ordinary upgrade keeps everything. Re-importing YAML into a fresh database is a real reset in several ways. The exports carry your **lists** — trips, templates, items, quantities, travelers, containers, preparation tasks — and deliberately not the rest:
 
 - **Packing progress.** Trip YAML is a clean list; every checkmark is gone.
 - **Item reference photos and user avatars.** Images never travel in the exports; they are re-uploaded by hand.
@@ -51,4 +63,4 @@ Pin the version **and the digest** before a trip and leave it pinned until you a
 image: ghcr.io/polandy/jit-pack:0.4.0@sha256:…   # imagetools inspect prints the digest
 ```
 
-A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while everyone depends on it. Upgrade after the trip, when lost packing progress is a shrug instead of a problem. The same logic applies to any auto-update mechanism: exclude JIT-Pack from it entirely while pre-1.0, and upgrade deliberately with the routine above.
+A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while everyone depends on it. Upgrade after the trip. The upgrade itself is unattended now, but a restart is still a restart: somebody is mid-list, offline, with unsynced changes on a phone, and the minute the server is away is the minute they tap *sync*. The same logic applies to any auto-update mechanism — exclude JIT-Pack from it and upgrade deliberately, between trips.

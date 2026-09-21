@@ -18,8 +18,9 @@ anything.
 
 - **Verify with `make ci` before finishing any change.** It mirrors the CI jobs 1:1. Do not use
   `go test ./...` — the Makefile's `GO_PKGS` is the one place the package scope is decided.
-- **No DDL migrations** (invariant 2, ADR-018): a schema change edits `internal/store/schema.sql`.
-  `.github/hooks/jitpack.json` refuses a write under `internal/store/migrations/` as a speed bump.
+- **A schema change carries a migration** (invariant 2, ADR-067): edit `internal/store/schema.sql`
+  *and* add `internal/store/migrations/NNN_*.sql`. The chain gate in `internal/store` proves the two
+  end at the same database; the old speed bump that refused such a write is gone with the rule.
 - **Never commit to `main`** — a worktree under `.claude/worktrees/`, a PR, green CI, and then wait
   for the merge go-ahead.
 

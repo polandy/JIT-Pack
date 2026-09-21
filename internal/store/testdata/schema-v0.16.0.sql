@@ -49,25 +49,6 @@ CREATE TABLE sessions (
     expires_at        TEXT NOT NULL
 );
 
--- The level this database stands at (ADR-067 with its 2026-09-21 amendment).
--- One row, written by the loader: a fresh database gets the current level with
--- schema.sql, an existing one gets it from the migration that last ran.
---
--- Why a table and not `PRAGMA user_version` alone: the fingerprint era stored a
--- hash there and the migration era before it stored a counter, so the field
--- holds values from two vocabularies that cannot be told apart. The presence of
--- *this table* is the signal that a database belongs to the chain era at all;
--- user_version is kept as a readable mirror and decides nothing.
---
--- Never synced: it describes the file, not the trip data (it is absent from
--- `syncableColumns`), and a level travelling between devices would be a device
--- claiming another device's schema.
-CREATE TABLE schema_meta (
-    id       INTEGER PRIMARY KEY CHECK (id = 1),
-    level    INTEGER NOT NULL,
-    baseline TEXT NOT NULL
-);
-
 CREATE TABLE server_keys (
     name  TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -102,17 +83,6 @@ CREATE TABLE items (                            -- FR-1.1
     -- Nullable and unconstrained beyond the FK, for the same LWW reason as
     -- retired_at above.
     default_assignee_id TEXT REFERENCES users(id),
-    -- FR-24.15: the item this one was merged into, set on the row that loses
-    -- a merge. NULL for every active row. The master data moves to the
-    -- survivor; the *trip* rows keep pointing here, and the rear view follows
-    -- this column one hop so the two pasts read as one (ADR-069). Nullable and
-    -- unconstrained beyond the FK, for the same LWW reason as retired_at.
-    -- ON DELETE SET NULL, not the default RESTRICT: the alias is a *reading*
-    -- convenience, not a reference that has to hold. Deleting the survivor
-    -- outright — which FR-24.3 only allows when nothing else resolves against
-    -- it — simply gives the merged-away rows their own past back, instead of
-    -- refusing a delete over a pointer the user cannot see.
-    merged_into_id TEXT REFERENCES items(id) ON DELETE SET NULL,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc   TEXT NOT NULL DEFAULT ''
     -- FR-16.3's uniqueness is over what the user can see: a retired row
@@ -228,10 +198,6 @@ CREATE TABLE template_tasks (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     task        TEXT NOT NULL,
-    -- FR-7.7: the phase the instantiated task starts in, so a template can
-    -- author „am Bahnhof die Zugverbindung abklären" up front. Same NULL
-    -- reading as comments.phase.
-    phase       TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -281,10 +247,6 @@ CREATE TABLE trips (
     status     TEXT NOT NULL DEFAULT 'planning'
                CHECK (status IN ('planning','active','repack','archived')),
     attributes TEXT CHECK (attributes IS NULL OR json_valid(attributes)),
-    -- When the packing was declared finished (FR-5.10). A decision with a
-    -- moment, not a reading of the rows: the list stays open afterwards, so
-    -- „nothing is open" would be revoked by the next row added.
-    packing_closed_at TEXT,
     imported   INTEGER NOT NULL DEFAULT 0 CHECK (imported IN (0,1)),
     created_by TEXT REFERENCES users(id),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
@@ -394,20 +356,6 @@ CREATE TABLE comments (
     -- and free of a CHECK for field-level LWW's sake: a constraint that can
     -- refuse a single-field mutation loses the user's choice.
     assignee_user_id TEXT REFERENCES users(id),
-    -- FR-7.7: when the task is meant to be done — 'before' the trip or
-    -- 'during' it. Stored rather than derived: nothing else in the row tells
-    -- „not done yet" from „always meant for later", which is the whole
-    -- distinction the phase carries. NULL reads as 'before' (the phase a task
-    -- has until somebody says otherwise) and, like every other column here,
-    -- it carries no CHECK for field-level LWW's sake.
-    phase        TEXT,
-    -- FR-7.7: the resolution record, the FR-25.17 packing record's shape
-    -- applied to a task. The *when* may be named by the client, because a
-    -- task is ticked off away from a network; the *who* is stamped by the
-    -- server alone (invariant 3). Both are cleared when the task is
-    -- reopened — a record must not outlive what it describes.
-    resolved_at  TEXT,
-    resolved_by_user_id TEXT REFERENCES users(id),
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',

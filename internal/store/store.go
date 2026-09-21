@@ -233,8 +233,13 @@ const maxUserVersion = 0x7fffffff
 // to fit; 0 is skipped because that is what an unstamped database already
 // reads as, and a fingerprint landing there would make a stale database look
 // fresh.
-func schemaFingerprint() int64 {
-	sum := sha256.Sum256([]byte(schemaSQL))
+func schemaFingerprint() int64 { return fingerprintOf(schemaSQL) }
+
+// fingerprintOf is schemaFingerprint over any DDL, so a *released* schema can
+// be fingerprinted from its fixture — which is how the bridge's literal is
+// proven (ADR-067 amendment).
+func fingerprintOf(ddl string) int64 {
+	sum := sha256.Sum256([]byte(ddl))
 	fp := int64(binary.BigEndian.Uint32(sum[:4]) & maxUserVersion)
 	if fp == 0 {
 		return 1
@@ -296,53 +301,145 @@ func withForeignKeys(dsn string) string {
 	return dsn + sep + foreignKeysPragma
 }
 
-// ensureSchema applies schema.sql to an empty database and otherwise checks
-// that the one it was handed came from the same schema.
+// ensureSchema brings the database to the current schema level (ADR-067):
+// an empty file gets schema.sql, an existing one gets the migrations it is
+// missing, and one this build cannot place is refused rather than guessed at.
 //
-// The development phase deliberately has no migrations (CLAUDE.md invariant
-// 2): a schema change edits schema.sql, and every existing database becomes
-// unreadable by design. Nothing is recreated silently — the owner chose an
-// error carrying the instruction, so a database that might still be wanted
-// survives a start-up that refuses it.
+// Three kinds of database arrive here, and the order below is the order in
+// which they can be told apart:
+//
+//  1. **Chain era** — it has `schema_meta` and says its level. Behind the
+//     current level it is carried forward; ahead of it, it was written by a
+//     newer build and is refused, because migrations only go forward.
+//  2. **Empty** — nothing in it yet, so schema.sql applies whole.
+//  3. **Before the chain** — no `schema_meta`, and `user_version` holds
+//     either a release fingerprint (bridged, see baselineLevels) or something
+//     this build cannot name: a migration-era level, a fingerprint from a
+//     schema that was never released, or a hand-stamped value. Refused, with
+//     the file left exactly as it was.
 func ensureSchema(db *sql.DB, dsn string) error {
-	var version int64
-	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
-		return fmt.Errorf("read user_version: %w", err)
+	if migrationChainErr != nil {
+		return fmt.Errorf("migration chain: %w", migrationChainErr)
 	}
-	want := schemaFingerprint()
-	if version == want {
+	level, known, err := readSchemaLevel(db)
+	if err != nil {
+		return err
+	}
+	if !known {
+		level, err = placeDatabase(db, dsn)
+		if err != nil {
+			return err
+		}
+	}
+	switch {
+	case level == currentSchemaLevel():
 		return nil
+	case level > currentSchemaLevel():
+		return fmt.Errorf("%w: %s stands at schema level %d and this build knows %d\n"+
+			"\tit was written by a newer JIT-Pack; migrations only go forward\n"+
+			"\tto use it:       run the newer version\n"+
+			"\tto discard it:   rm %s   and restart",
+			ErrSchemaStale, dsn, level, currentSchemaLevel(), dsn)
 	}
-	// user_version 0 means "never stamped", which is only *fresh* when the
-	// file carries nothing yet — a populated database reading 0 comes from a
-	// build that stamped something else, and applying the schema on top of it
-	// would fail halfway through with "table already exists".
-	if version == 0 {
-		var tables int
-		if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`).Scan(&tables); err != nil {
-			return fmt.Errorf("inspect database: %w", err)
-		}
-		if tables == 0 {
-			return applySchema(db, schemaSQL, want)
-		}
-	}
-	// Two paths, because the reader is either a developer whose scratch
-	// database is worth nothing or an operator whose database is worth
-	// everything — and the error cannot tell which.
-	return fmt.Errorf("%w: %s was built from a different schema\n"+
-		"\tJIT-Pack is pre-1.0 and ships no schema upgrade path\n"+
-		"\tto discard it:   rm %s   and restart\n"+
-		"\tto keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import",
-		ErrSchemaStale, dsn, dsn)
+	return applyMigrations(db, migrationChain[level:])
 }
 
-// applySchema installs ddl and stamps its fingerprint in the same
+// placeDatabase decides what a database without `schema_meta` is, and leaves
+// it stamped with the level it turns out to stand at.
+func placeDatabase(db *sql.DB, dsn string) (int, error) {
+	var tables int
+	if err := db.QueryRow(
+		`SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`).Scan(&tables); err != nil {
+		return 0, fmt.Errorf("inspect database: %w", err)
+	}
+	if tables == 0 {
+		return currentSchemaLevel(), applySchema(db, schemaSQL, currentSchemaLevel())
+	}
+
+	var version int64
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return 0, fmt.Errorf("read user_version: %w", err)
+	}
+	// Before anything is looked up: a value the *old* migration era could have
+	// written is refused outright. It has to be a rule and not a consequence —
+	// a fingerprint is a 31-bit hash and may legitimately be small, so a future
+	// baseline could otherwise land on a number that also means „migration-era
+	// level 5" and bridge a database that is twenty-three steps behind.
+	if version > 0 && version <= lastMigrationEraLevel {
+		return 0, fmt.Errorf("%w: %s stands at migration level %d, from the chain ADR-018 deleted\n"+
+			"\tthat era ended before %s, the oldest release this build carries forward\n"+
+			"\tto keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import\n"+
+			"\tto discard it:   rm %s   and restart",
+			ErrSchemaStale, dsn, version, oldestBaselineTag(), dsn)
+	}
+	baseline, ok := baselineLevels[version]
+	if !ok {
+		// The reader is either a developer whose scratch database is worth
+		// nothing or an operator whose database is worth everything, and the
+		// error cannot tell which — so it names both ways out and takes
+		// neither. A value at or below lastMigrationEraLevel is one of the
+		// deleted chain's levels, which is why it is not read as one of this
+		// chain's.
+		return 0, fmt.Errorf("%w: %s was built from a schema this build cannot place\n"+
+			"\tit predates %s, the oldest release this build carries forward\n"+
+			"\tto keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import\n"+
+			"\tto discard it:   rm %s   and restart",
+			ErrSchemaStale, dsn, oldestBaselineTag(), dsn)
+	}
+	if err := stampBaseline(db, baseline.level, baseline.tag); err != nil {
+		return 0, err
+	}
+	return baseline.level, nil
+}
+
+// oldestBaselineTag names the earliest release the chain can start from, for
+// the one error message that has to tell an operator where the line is.
+func oldestBaselineTag() string {
+	oldest := ""
+	lowest := 0
+	for _, b := range baselineLevels {
+		if oldest == "" || b.level < lowest {
+			oldest, lowest = b.tag, b.level
+		}
+	}
+	return oldest
+}
+
+// stampBaseline records that a pre-chain database has been placed, so the
+// next start reads a level instead of matching a fingerprint again.
+func stampBaseline(db *sql.DB, level int, tag string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin baseline stamp: %w", err)
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			slog.Error("rolling back baseline stamp", "error", err)
+		}
+	}()
+	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS schema_meta (
+		id       INTEGER PRIMARY KEY CHECK (id = 1),
+		level    INTEGER NOT NULL,
+		baseline TEXT NOT NULL
+	)`); err != nil {
+		return fmt.Errorf("create schema_meta: %w", err)
+	}
+	if err := stampLevel(tx, level, tag); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit baseline stamp: %w", err)
+	}
+	return nil
+}
+
+// applySchema installs ddl and stamps the level it represents in the same
 // transaction, so a database can never be left carrying half of one.
 //
 // The DDL is a parameter rather than the package's embedded schema so the
 // failure path — a statement that does not apply — can be driven directly
 // instead of only through a deliberately broken build.
-func applySchema(db *sql.DB, ddl string, fingerprint int64) error {
+func applySchema(db *sql.DB, ddl string, level int) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin schema: %w", err)
@@ -356,10 +453,11 @@ func applySchema(db *sql.DB, ddl string, fingerprint int64) error {
 	if _, err := tx.Exec(ddl); err != nil {
 		return fmt.Errorf("apply schema: %w", err)
 	}
-	// PRAGMA takes no bind parameters; the value is an int64 this package
-	// computed, never anything a caller supplied.
-	if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, fingerprint)); err != nil {
-		return fmt.Errorf("stamp user_version: %w", err)
+	// A fresh database is at the end of the chain by construction: schema.sql
+	// *is* every migration already applied. `baseline` says so, rather than
+	// naming a release it never passed through.
+	if err := stampLevel(tx, level, "schema.sql"); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit schema: %w", err)
