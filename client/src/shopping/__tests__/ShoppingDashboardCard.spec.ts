@@ -62,14 +62,19 @@ function source(open: Partial<Record<ShoppingMode, ShoppingLine[]>>): ShoppingSo
   return { open: (_trip, list) => open[list] ?? [], bought: () => [] }
 }
 
-function entry(id: string, name: string, list: ShoppingMode = 'buy_local') {
+function entry(
+  id: string,
+  name: string,
+  list: ShoppingMode = 'buy_local',
+  tag: string | null = null,
+) {
   useShoppingStore().applyChanges([
     {
       seq: 0,
       table: 'shopping_entries',
       id,
       deleted: false,
-      row: { trip_id: 't1', name, list, bought: 0 },
+      row: { trip_id: 't1', name, list, bought: 0, tag },
     },
   ])
 }
@@ -122,6 +127,16 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
     expect(card.get('[data-testid="dash-shop-tab-before"]').text()).toBe(
       t('shopping.beforeDepartureCount', { n: 1 }),
     )
+  })
+
+  it('shows an entry’s tag, and puts the check-off at the end of the row (FR-30.9)', () => {
+    entry('e1', 'Brot', 'buy_local', 'Supermarkt')
+    const card = mountCard()
+
+    const row = card.get('[data-testid="dash-shop-row"]')
+    expect(row.get('[data-testid="dash-shop-row-tag"]').text()).toBe('Supermarkt')
+    const children = [...row.element.children].map((el) => el.tagName.toLowerCase())
+    expect(children.at(-1)).toBe('ion-checkbox')
   })
 
   it('opens a planned trip on the list before departure, and names the trip', () => {

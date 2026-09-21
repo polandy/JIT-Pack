@@ -19,7 +19,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
-import { seedSampleTrip } from '../sampleTrip'
+import { SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
@@ -56,6 +56,18 @@ describe('seedSampleTrip (dev)', () => {
     // All of a row's preparations name the same row, which is what the chip
     // on the seeded list will say.
     expect(new Set(prepared.map((task) => task.item?.name)).size).toBe(1)
+  })
+
+  /*
+   * FR-30.9: M6 groups by tag, so the seed needs two tags and an untagged
+   * entry or a fresh device shows a list with nothing to group.
+   */
+  it('names two shopping tags and one untagged entry (FR-30.9)', () => {
+    // The entries themselves reach the module's store only once the app
+    // shell has bound it (FR-30.3), so what the seed *offers* is what is pinned.
+    const tags = SEED_SHOPPING_ENTRIES.map((entry) => entry.tag)
+    expect(new Set(tags.filter((tag) => tag !== null)).size).toBe(2)
+    expect(tags).toContain(null)
   })
 
   /*

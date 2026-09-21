@@ -463,6 +463,8 @@ var tableSpecs = map[string]tableSpec{
 		partition: partitionTrip,
 		columns: toSet(
 			"trip_id", "name", "list", "bought",
+			// FR-30.9: the entry's one tag, client-chosen free text.
+			"tag",
 			// FR-30.4, stamped by stampActor.
 			"bought_at", "bought_by_user_id",
 		),

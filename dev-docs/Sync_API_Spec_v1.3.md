@@ -14,6 +14,8 @@ fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to
 * **2026-09-21 (FR-7.7, ADR-071) — §5, server-stamped fields:** `comments.phase` is the client's to choose, while
   `resolved_by_user_id`/`resolved_at` are stamped by the task's state as the packing record is by its own. Was: a
   task recorded nothing about when it was due or who ticked it off.
+* **2026-09-21 (FR-30.9) — §5:** `shopping_entries.tag`, one nullable client-chosen column (1–40 characters). Merged per
+  field like the rest, so a retag and a purchase never contend. Was: an entry had no tag.
 * **2026-09-19 (FR-30.4) — §5, server-stamped fields:** `bought_by_user_id`/`bought_at` on `trip_items` and
   `shopping_entries` — who bought a thing and when, stamped like the packing record. Was: no record of a purchase.
 * **2026-09-19 (FR-30.1, ADR-066) — P-3:** `shopping_entries` joins the trip partition — the shopping list's own

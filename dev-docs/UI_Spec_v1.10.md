@@ -31,6 +31,8 @@ replaced and why. This index only says where to look.
   (FR-24.13).
 * 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
   offers it for its own row (FR-27.16).
+* 2026-09-21 — **M6**: an own entry carries one tag, the open list is grouped by it, and the check-off moves to the end
+  of the row (FR-30.9).
 * 2026-09-19 — **M6** becomes the shopping module's screen: its own entries beside the packing list's buy rows, a
   purchase stamp, and M4's ＋ (FR-30). **M1** carries each trip's shopping card, the one card it lets you work
   (FR-30.7).
@@ -1689,10 +1691,23 @@ These patterns apply to every screen and are specified once.
   an* and *Beschreibung* — which would now apply to both kinds of line); read them with that in mind.
 * **Elements:** Two tabs: *Vor der Abreise* (BUY_BEFORE) and *Vor Ort* (BUY_LOCAL), each label counting its open
   lines. Under them a **text field** with an add button (placeholder *„Was kaufen? z. B. Milch, Brot …"*). Then the
-  list: the tab's own entries first, under the heading *„Eingetragen"*, each with a check-off and a remove (✕); then
-  the packing list's rows in that tab's mode, grouped by category (*„Ohne Kategorie"* for none), each with a
-  check-off, its amount when above one, and — for a per-person item — the recipients (FR-25.6), and **no** remove. An
-  entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not built.
+  list: the tab's own entries first — **a section per tag, A–Z, then the untagged under *„Eingetragen"* (FR-30.9)** —
+  each with a remove (✕) and, **at the end of the row, a check-off**; then the packing list's rows in that tab's mode,
+  grouped by category (*„Ohne Kategorie"* for none), each with its check-off at the end, its amount when above one,
+  and — for a per-person item — the recipients (FR-25.6), and **no** remove. An entry and a packing row of the same
+  name stay two lines. FR-13.3's destination entries are not built.
+* **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
+  made in this visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap
+  on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's name
+  (an untagged one also says *＋ Tag*), open the **entry sheet**, laid out like the packing list's creation sheet
+  (`CreateItemSheet.vue`): head *Neuer Eintrag* / *Eintrag bearbeiten* with the close, a **Name** field, M10's
+  **search-or-create mask** (`ShoppingTagChooser.vue`, the shape of `TagChooser.vue`: a search field *„Tags suchen
+  oder anlegen…"*, the chosen tag as a chip with its ✕, the matching tags as chips, a dashed *„… neu anlegen"* chip for
+  a name nothing carries — matched case-insensitively, Enter chooses or creates — and a summary line) and one button,
+  *Hinzufügen* or *Speichern*, disabled while the name is blank. Nothing is written before the button; *Speichern*
+  writes the fields that changed. There is no inline field for a new tag. A packing row's name opens nothing.
+  **The reveal of what was bought is not grouped:** its rows say their tag as a small label under the name, and its
+  check (which puts the line back) is at the end like the open rows'. Mockup: 2026-09-21 review. (E2E-M6-31)
 * **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Abreise* while the trip is planned **and** its packing is
   open; *Vor Ort* otherwise — running, archived, or planned with the packing declared finished (FR-5.10). The other tab
   keeps its count in its label, so nothing is hidden. A tab the reader picks holds for the visit and is not remembered

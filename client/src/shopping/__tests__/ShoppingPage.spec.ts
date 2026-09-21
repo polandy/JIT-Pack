@@ -12,7 +12,7 @@
  * and the reveal, the counts and the ADR-033 guard read both alike.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { IonInput } from '@ionic/vue'
+import { IonButton, IonInput, IonSearchbar } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -106,7 +106,15 @@ function mountPage(sources?: ShoppingSource[]) {
     },
   }
   if (sources) provide[SHOPPING_SOURCES] = sources
-  return mount(ShoppingPage, { props: { tripId: 't1' }, global: { provide } })
+  return mount(ShoppingPage, {
+    props: { tripId: 't1' },
+    // Ionic's modal presents on an animation nobody controls; the sheet's
+    // content is what these cases operate (FR-30.9).
+    global: {
+      provide,
+      stubs: { IonModal: { props: ['isOpen'], template: '<div><slot /></div>' } },
+    },
+  })
 }
 
 function seedEntry(id: string, row: Record<string, unknown>) {
@@ -148,7 +156,7 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
       fields: { trip_id: 't1', name: 'Milch', list: 'buy_local', bought: 0 },
     })
     const rows = page.findAll('[data-testid="m6-row"]')
-    expect(rows.map((r) => r.text())).toEqual(['Milch'])
+    expect(rows.map((r) => r.find('h3').text())).toEqual(['Milch'])
     expect(page.find('[data-testid="m6-group-own"]').text()).toContain(t('shopping.ownEntries'))
     expect(input.props('modelValue')).toBe('')
   })
@@ -187,7 +195,7 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
       id: 'e1',
       fields: { bought: 0, bought_at: null, bought_by_user_id: null },
     })
-    expect(page.findAll('[data-testid="m6-row"]').map((r) => r.text())).toEqual(['Brot'])
+    expect(page.findAll('[data-testid="m6-row"]').map((r) => r.find('h3').text())).toEqual(['Brot'])
   })
 
   it('removes an entry as a delete of its own row', async () => {
@@ -204,7 +212,10 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     seedEntry('e2', { name: 'Milch' })
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
-    expect(page.findAll('[data-testid="m6-row"]').map((r) => r.text())).toEqual(['Brot', 'Milch'])
+    expect(page.findAll('[data-testid="m6-row"]').map((r) => r.find('h3').text())).toEqual([
+      'Brot',
+      'Milch',
+    ])
   })
 
   it('keeps each list’s entries on their own tab', () => {
@@ -508,5 +519,258 @@ describe('M6 — the list that is now (FR-30.8)', () => {
     await flushPromises()
 
     expect(openTab(page)).toBe('buy_before')
+  })
+})
+
+describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
+  /** Types into the sheet's search field, the way Ionic reports it. */
+  async function search(page: ReturnType<typeof mountPage>, text: string) {
+    await page.findComponent(IonSearchbar).vm.$emit('ionInput', { detail: { value: text } })
+  }
+  const headings = (page: ReturnType<typeof mountPage>) =>
+    page.findAll('ion-item-group').map((g) => g.attributes('data-testid'))
+
+  it('files an entry under the tag chosen in the composer, and keeps the tag for the next one', async () => {
+    seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-tag-chip"]').trigger('click')
+    await page.findComponent(IonInput).setValue('Milch')
+    await page.find('[data-testid="m6-add"]').trigger('submit')
+
+    expect(written.at(-1)).toMatchObject({
+      op: 'insert',
+      table: 'shopping_entries',
+      fields: { name: 'Milch', tag: 'Supermarkt' },
+    })
+    expect(page.find('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
+    expect(written.at(-1)!.fields).not.toHaveProperty('bought_at')
+  })
+
+  it('adds an entry with no tag while no chip is selected, and a second tap unselects', async () => {
+    seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    const chip = page.find('[data-testid="m6-tag-chip"]')
+
+    await chip.trigger('click')
+    await chip.trigger('click')
+    await page.findComponent(IonInput).setValue('Batterien')
+    await page.find('[data-testid="m6-add"]').trigger('submit')
+
+    expect(written.at(-1)!.fields).toMatchObject({ name: 'Batterien', tag: null })
+  })
+
+  /** The sheet's name field — the composer has an IonInput of its own. */
+  const sheetName = (page: ReturnType<typeof mountPage>) =>
+    page.findAllComponents(IonInput).find((c) => c.attributes('data-testid') === 'm6-entry-name')!
+
+  async function typeSheetName(page: ReturnType<typeof mountPage>, text: string) {
+    await sheetName(page).vm.$emit('ionInput', { detail: { value: text } })
+  }
+
+  const confirm = (page: ReturnType<typeof mountPage>) =>
+    page.find('[data-testid="m6-entry-confirm"]')
+
+  it('the sheet adds an entry from a name and a tag made in it, and writes nothing before Hinzufügen', async () => {
+    const page = mountPage()
+    await page.findComponent(IonInput).setValue('Mücken')
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+    // Carries what was typed in the field: the same entry, in the fuller mask.
+    expect(sheetName(page).props('value')).toBe('Mücken')
+
+    await typeSheetName(page, 'Mückenspray')
+    await search(page, '  Apotheke ')
+    expect(page.find('[data-testid="m6-tag-create"]').text()).toContain('Apotheke')
+    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    expect(written).toEqual([])
+    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(
+      t('shopping.tagFiledUnder', { tag: 'Apotheke' }),
+    )
+
+    await confirm(page).trigger('click')
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({
+      op: 'insert',
+      table: 'shopping_entries',
+      fields: { name: 'Mückenspray', tag: 'Apotheke' },
+    })
+    expect(page.find('[data-testid="m6-entry-name"]').exists()).toBe(false)
+    expect(page.findComponent(IonInput).props('modelValue')).toBe('')
+    expect(page.find('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
+    expect(headings(page)).toEqual(['m6-group-tag-Apotheke'])
+  })
+
+  it('the sheet offers no create for a name that exists in another case, and chooses the existing one', async () => {
+    seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+    await typeSheetName(page, 'Milch')
+
+    await search(page, 'super')
+    expect(page.find('[data-testid="m6-tag-offer-Supermarkt"]').exists()).toBe(true)
+    await search(page, 'supermarkt')
+    expect(page.find('[data-testid="m6-tag-create"]').exists()).toBe(false)
+    await page.findComponent(IonSearchbar).trigger('keyup', { key: 'Enter' })
+    await confirm(page).trigger('click')
+
+    expect(written.at(-1)!.fields).toMatchObject({ name: 'Milch', tag: 'Supermarkt' })
+  })
+
+  it('offers Hinzufügen only for a name: a blank one writes nothing', async () => {
+    const page = mountPage()
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+    expect(
+      page
+        .findAllComponents(IonButton)
+        .find((c) => c.attributes('data-testid') === 'm6-entry-confirm')!
+        .props('disabled'),
+    ).toBe(true)
+
+    await confirm(page).trigger('click')
+    await page.findComponent(IonSearchbar).trigger('keyup', { key: 'Enter' })
+    expect(written).toEqual([])
+  })
+
+  it('a tag made in the sheet stays a chip when it is unselected — even with no entry carrying it', async () => {
+    const page = mountPage()
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+    await typeSheetName(page, 'Pasta')
+    await search(page, 'Laden')
+    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    await confirm(page).trigger('click')
+    await page.find('[data-testid="m6-row-remove"]').trigger('click')
+
+    const chip = () => page.find('[data-testid="m6-tag-chip"]')
+    expect(chip().text()).toBe('Laden')
+    expect(chip().attributes('aria-pressed')).toBe('true')
+
+    await chip().trigger('click')
+    expect(chip().exists()).toBe(true)
+    expect(chip().attributes('aria-pressed')).toBe('false')
+    await chip().trigger('click')
+    expect(chip().attributes('aria-pressed')).toBe('true')
+  })
+
+  it('groups the open entries by tag A–Z, then the untagged, then the source’s headings', () => {
+    seedEntry('e1', { name: 'Pasta', tag: 'Supermarkt' })
+    seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke' })
+    seedEntry('e3', { name: 'Batterien' })
+    seedEntry('e4', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+
+    expect(headings(page)).toEqual([
+      'm6-group-tag-Apotheke',
+      'm6-group-tag-Supermarkt',
+      'm6-group-own',
+      'm6-group-Pflege',
+    ])
+    const supermarkt = page.find('[data-testid="m6-group-tag-Supermarkt"]')
+    expect(supermarkt.findAll('h3').map((h) => h.text())).toEqual(['Brot', 'Pasta'])
+  })
+
+  it('does not group what is bought: the reveal stays flat and names the tag in the row', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt', bought: 1 })
+    seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke', bought: 1 })
+    const page = mountPage()
+    expect(headings(page)).toEqual([])
+
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    expect(page.findAll('ion-item-group')).toHaveLength(0)
+    // By name (Brot, Mückenspray), not by tag: nothing is filed under a heading.
+    expect(page.findAll('[data-testid="m6-bought-tag"]').map((p) => p.text())).toEqual([
+      'Supermarkt',
+      'Apotheke',
+    ])
+  })
+
+  it('a tag whose last entry was bought is no longer offered as a chip', () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt', bought: 1 })
+    seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke' })
+    const page = mountPage()
+    expect(page.findAll('[data-testid="m6-tag-chip"]').map((c) => c.text())).toEqual(['Apotheke'])
+  })
+
+  it('a tap on an own entry’s name opens the sheet with its name and tag; Speichern writes only what changed', async () => {
+    seedEntry('e1', { name: 'Batterien' })
+    seedEntry('e2', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    const open = () =>
+      page
+        .findAll('[data-testid="m6-row-label"]')
+        .find((l) => l.find('h3').text().startsWith('Batterien'))!
+        .trigger('click')
+
+    await open()
+    expect(page.find('[data-testid="m6-entry-title"]').text()).toBe(t('shopping.entrySheetEdit'))
+    expect(sheetName(page).props('value')).toBe('Batterien')
+    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(t('shopping.tagNone'))
+    await page.find('[data-testid="m6-tag-offer-Supermarkt"]').trigger('click')
+    expect(written).toEqual([])
+    await confirm(page).trigger('click')
+
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({
+      op: 'upsert',
+      table: 'shopping_entries',
+      id: 'e1',
+      fields: { tag: 'Supermarkt' },
+    })
+    expect(written[0]!.fields).not.toHaveProperty('name')
+    expect(written[0]!.fields).not.toHaveProperty('bought')
+    expect(headings(page)).toEqual(['m6-group-tag-Supermarkt'])
+
+    // The title alone: the tag is left as it is.
+    await open()
+    await typeSheetName(page, '  Batterien AA ')
+    await confirm(page).trigger('click')
+    expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { name: 'Batterien AA' } })
+    expect(written.at(-1)!.fields).not.toHaveProperty('tag')
+  })
+
+  it('saving an entry as it was writes nothing', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    await confirm(page).trigger('click')
+    expect(written).toEqual([])
+  })
+
+  it('the sheet takes the chosen tag away with its ✕, or makes a new one', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(
+      t('shopping.tagFiledUnder', { tag: 'Supermarkt' }),
+    )
+    await page.find('[data-testid="m6-tag-assigned-Supermarkt"]').trigger('click')
+    await confirm(page).trigger('click')
+    expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: null } })
+    expect(headings(page)).toEqual(['m6-group-own'])
+
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    await search(page, ' Bäcker ')
+    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    await confirm(page).trigger('click')
+    expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: 'Bäcker' } })
+    expect(headings(page)).toEqual(['m6-group-tag-Bäcker'])
+  })
+
+  it('a source line offers nothing to edit: a tap on its name opens nothing', async () => {
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    expect(page.find('[data-testid="m6-entry-name"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-row-tag-add"]').exists()).toBe(false)
+  })
+
+  it('puts the check-off at the end of the row, after the remove control', () => {
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage()
+    const slots = page
+      .find('[data-testid="m6-row"]')
+      .findAll('[slot="end"]')
+      .map((el) => el.element.tagName.toLowerCase())
+    expect(slots).toEqual(['ion-button', 'ion-checkbox'])
+    expect(page.find('[data-testid="m6-row"] [slot="start"]').exists()).toBe(false)
   })
 })

@@ -1426,6 +1426,13 @@ composer.
   because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
   **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
   entry's time survives a reload) each assert *„bought · today"*.
+* **E2E-M6-31** `local` (FR-30.9, added 2026-09-21) — **implemented** (`shopping/shopping.spec.ts`): the entry sheet
+  (opened by *＋ Tag*) adds *Pasta* with a tag made in its search-or-create mask, and the tag stays selected for the next
+  entry typed in the field; unselecting the chip leaves it in place (a tag nobody carries yet used to vanish) and the
+  next entry has no tag; the same sheet, opened from an entry's name, is prefilled and renames it and files it under a
+  new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
+  the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
+  entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
 * **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
   and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
   *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
@@ -3763,6 +3770,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-28.10 | UNIT | `internal/portable` and `internal/store` round-trip with and without `icon` on all three levels (document, group, item); the client's `domain/portable.ts` and `commitPortableImport` likewise; an export from before the field imports unmarked (FR-18.4 tolerance) |
 | FR-28.11 | E2E | M10-11 runs in `local` — the picker, the search and the suggestion work with no server present |
 | FR-30.1 | E2E+UNIT | M6-26 (reaches no packing figure), M6-27 (buy, reveal, put back, remove, reload), M6-01/03 (one entry per tab); `shopping/__tests__/ShoppingPage.spec.ts`, `sync.spec.ts` (routing, trip cascade, restart); Go: `shopping_entries_test.go` |
+| FR-30.9 | E2E+UNIT | M6-31 (the entry sheet with name and search-or-create tag, grouped open list, flat reveal with the tag, check-off at the end, reload); `shopping/__tests__/ShoppingPage.spec.ts` (grouping order, chips, sheet, source lines offer none); Go: `shopping_entries_test.go` (push path, per-field merge, 1–40 bound) |
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |

@@ -166,6 +166,7 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     name: entry.name,
     list: entry.list,
     bought: dbBool(entry.bought),
+    tag: entry.tag,
     bought_at: entry.bought_at,
     bought_by_user_id: entry.bought_by_user_id,
   }

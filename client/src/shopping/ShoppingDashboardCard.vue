@@ -149,14 +149,16 @@ function switchTo(which: ShoppingMode) {
 
     <ul v-if="shown.length > 0" class="lines">
       <li v-for="{ line, own: isOwn } in shown" :key="line.key" data-testid="dash-shop-row">
+        <span class="name">{{ line.name }}</span>
+        <span v-if="line.quantity > 1" class="qty">{{ line.quantity }}×</span>
+        <span v-if="!isOwn" class="tag">{{ t('shopping.fromPacking') }}</span>
+        <span v-else-if="line.tag" class="tag" data-testid="dash-shop-row-tag">{{ line.tag }}</span>
+        <!-- FR-30.9: the check-off sits at the end, where the thumb rests. -->
         <IonCheckbox
           :checked="false"
           :aria-label="t('shopping.bought', { name: line.name })"
           @ionChange="buy(line)"
         />
-        <span class="name">{{ line.name }}</span>
-        <span v-if="line.quantity > 1" class="qty">{{ line.quantity }}×</span>
-        <span v-if="!isOwn" class="tag">{{ t('shopping.fromPacking') }}</span>
       </li>
     </ul>
     <p v-else-if="loaded" class="empty" data-testid="dash-shop-empty">

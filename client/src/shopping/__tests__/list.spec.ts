@@ -9,13 +9,18 @@ import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { buildSections, listInFocus, openCount } from '../list'
 
-function line(name: string, section: string | null = null): ShoppingLine {
+function line(
+  name: string,
+  section: string | null = null,
+  tag: string | null = null,
+): ShoppingLine {
   return {
     key: name,
     name,
     quantity: 1,
     recipients: [],
     section,
+    tag,
     buy: () => {},
     unbuy: () => {},
   }
@@ -44,6 +49,31 @@ describe('buildSections', () => {
       [true, 1],
       [false, 1],
     ])
+    expect(new Set(sections.map((s) => s.key)).size).toBe(2)
+  })
+})
+
+describe('buildSections — tags (FR-30.9)', () => {
+  it('files the own entries under a section per tag, A–Z, then the untagged, then the sources', () => {
+    const sections = buildSections(
+      [
+        line('Pasta', null, 'Supermarkt'),
+        line('Batterien'),
+        line('Spray', null, 'Apotheke'),
+        line('Brot', null, 'Supermarkt'),
+      ],
+      [line('Hut', 'Kleidung')],
+    )
+    expect(sections.map((s) => [s.tagged, s.own, s.name, s.lines.map((l) => l.name)])).toEqual([
+      [true, false, 'Apotheke', ['Spray']],
+      [true, false, 'Supermarkt', ['Pasta', 'Brot']],
+      [false, true, null, ['Batterien']],
+      [false, false, 'Kleidung', ['Hut']],
+    ])
+  })
+
+  it('never lets a source heading collide with a tag of the same name', () => {
+    const sections = buildSections([line('Brot', null, 'Kleidung')], [line('Hut', 'Kleidung')])
     expect(new Set(sections.map((s) => s.key)).size).toBe(2)
   })
 })
