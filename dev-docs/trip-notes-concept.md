@@ -1,6 +1,7 @@
 # Concept — trip notes: written by one traveller, read by all, ticked per person
 
-**Status:** **decided 2026-09-21, nothing built — implementation is deferred by the owner.** Variants and an
+**Status:** **decided 2026-09-21, nothing built yet — the implementation follows later, in the same PR as this
+concept (owner, 2026-09-21).** Variants and an
 interactive prototype are in `dev-docs/UI_Concept_TripNotes_variants.html`. When building starts this becomes
 **FR-7.9** in PRD Addendum §3.7 and the FR is authoritative; the ADR on per-person state as a table is written then.
 
