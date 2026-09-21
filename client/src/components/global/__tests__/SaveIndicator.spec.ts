@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest'
 import SaveIndicator from '../SaveIndicator.vue'
 
 const LAMP = '[data-testid="save-indicator"]'
+const REGION = '[data-testid="save-announcement"]'
 
 describe('SaveIndicator (FR-25.15)', () => {
   it('says nothing at all until a write of mine has been open', () => {
@@ -61,6 +62,51 @@ describe('SaveIndicator (FR-25.15)', () => {
 
   it('carries no glyph — the lamp is a drawn shape, not a ✓ to be tapped', () => {
     const wrapper = mount(SaveIndicator, { props: { pending: true } })
-    expect(wrapper.text()).toBe('')
+    // Scoped to the lamp: the component's own text is the announcement below.
+    expect(wrapper.get(LAMP).text()).toBe('')
+  })
+})
+
+/**
+ * FR-25.15, the spoken half (2026-09-21). The lamp is the sighted signal and
+ * it is deliberately silent until a write happens — but *silence* and *not
+ * being there* are the same thing only for the eye. A live region that is
+ * created and filled in one frame is not reliably announced: the region has
+ * to exist before it has anything to say, and change its text when it does.
+ *
+ * So the two halves are split. A permanent, visually hidden region carries
+ * the words; the lamp carries the picture and is hidden from assistive tech,
+ * so the same fact is not announced twice from two elements that could drift.
+ */
+describe('SaveIndicator — what it announces (FR-25.15)', () => {
+  it('keeps its live region in the DOM from the first frame, before it has anything to say', () => {
+    const wrapper = mount(SaveIndicator, { props: { pending: false } })
+    expect(wrapper.find(REGION).exists()).toBe(true)
+    expect(wrapper.get(REGION).attributes('role')).toBe('status')
+  })
+
+  it('says nothing through it while nothing has been written', () => {
+    const wrapper = mount(SaveIndicator, { props: { pending: false } })
+    // Empty, not absent. An empty region makes no announcement, which is
+    // what "the indicator is silent until it writes" has to mean out loud.
+    expect(wrapper.get(REGION).text()).toBe('')
+  })
+
+  it('announces the write, then its landing, in the words the tooltip uses', async () => {
+    const wrapper = mount(SaveIndicator, { props: { pending: true } })
+    expect(wrapper.get(REGION).text()).toBe('Saving…')
+    expect(wrapper.get(REGION).text()).toBe(wrapper.get(LAMP).attributes('title'))
+
+    await wrapper.setProps({ pending: false })
+    expect(wrapper.get(REGION).text()).toBe('Saved')
+    expect(wrapper.get(REGION).text()).toBe(wrapper.get(LAMP).attributes('title'))
+  })
+
+  it('hides the lamp from assistive tech — the region is the one voice', () => {
+    const wrapper = mount(SaveIndicator, { props: { pending: true } })
+    expect(wrapper.get(LAMP).attributes('aria-hidden')).toBe('true')
+    // The lamp used to carry the label itself, on an element that is also a
+    // live region; a label change there is not reliably announced either.
+    expect(wrapper.get(LAMP).attributes('aria-label')).toBeUndefined()
   })
 })

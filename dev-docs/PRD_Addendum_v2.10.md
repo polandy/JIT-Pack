@@ -2475,6 +2475,24 @@ locked.
     ✕ to one diameter (E2E-M5-14) had written the confusion into the suite as a promise; it now asserts the shared
     centre line, which is what was actually wrong when it was first raised in 2026-08-16, plus that the lamp is visibly
     smaller than the button beside it.
+    **The spoken half, added 2026-09-21 (owner, ahead of 0.17.0).** The two refinements above are about what the
+    indicator *shows*; this one is about what it **says**, and the difference is the whole point. *Silent* and *absent*
+    are the same thing to the eye and opposite things to a screen reader: an announcement is made when the text inside
+    a live region **changes**, so a region that appears together with its own first words has nothing to change from
+    and is not reliably announced at all. The lamp therefore stopped being the announcement. The words live in a
+    **permanent, visually hidden `role="status"` region** that is in the DOM from the first frame and **empty** until
+    there is something to say; the lamp beside it is **`aria-hidden`**, so one fact is not announced from two elements
+    that could drift apart. The wording is the catalogue's (`item.saving`/`item.saved`) and is the same string the
+    tooltip carries — the tooltip rule (G-12-06) covers the sighted mouse user and says nothing about the spoken one.
+    *Note the distinction this draws for G-12:* an icon-only **control** names itself with `aria-label`, an icon-only
+    **readout** cannot, because a label that changes on a live region is no better announced than a region that
+    appears. **Not a regression being repaired** — before 2026-09-20 the label sat on a permanent region and changed,
+    which is the same defect wearing the other hat; it was found while reviewing the lamp and fixed on its own terms.
+    **One accepted limit:** M5's side panel keys the indicator to the item (ADR-046), so switching rows re-creates the
+    region. Created **empty**, which is the correct shape — except when the switch happens while a write is still in
+    flight, where the region is born already carrying *„Speichert…"* and that one announcement is lost. The content is
+    never wrong, only occasionally unspoken, and the alternative is hoisting the region out of the component that owns
+    the state it reports.
   * **FR-25.11k (Search and filter are icons, not a permanent row — 2026-08-07):** **RETIRED for M6 (owner decision
     2026-08-30)**, with FR-25.11g and for the same reason: M6 has no filter bar to put a magnifier beside, and a list of
     this length is read rather than searched. M4's half stands. *What was specified:* on M6 the search field is
