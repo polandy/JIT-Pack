@@ -99,9 +99,40 @@ is behind, and two things collide without git saying a word (see `pr-review`, §
 - **A duplicate e2e case id.** `scripts/case-id-gate.mjs` catches it; the ledger `dev-docs/e2e-tests.md`
   is where it gets resolved. On collision the number means what the suite implements — the loser is
   struck through in place, never renumbered.
+- **A duplicate ADR number.** Two branches each add `ADR-0NN_*.md` under different filenames, so git
+  merges them side by side, no conflict and no red check. Whoever merges second renumbers. Say which
+  number is taken the moment the first one lands.
 
 If the merge carried a schema change, say so plainly: every session deletes its development databases and
 reseeds through the M2 dev button, and the live instance is carried across by hand.
+
+### The file that belongs to several sessions
+
+`implementation-log.md`, `e2e-tests.md`, `UI_Spec_v1.10.md` and `dev-docs/adr/README.md` all collect
+entries from everyone. Three defects of one family have come out of that, and no gate catches any of them —
+each is a *valid-looking* edit to somebody else's paragraph:
+
+- **A blanket replace hits foreign sections.** Renumbering an ADR with `s/ADR-069/ADR-070/` over the whole
+  log rewrote another PR's entry, which merely *mentioned* 069.
+- **A renumbered case id silently repoints a foreign reference.** `case-id-gate.mjs` checks *definitions* —
+  each id defined once, each claimed id defined. A *mention* pointing at the wrong existing id is invisible
+  to it, because that id is real. A sweep that moved 138→139 took a foreign FR-7.6 mention with it.
+- **A conflict with an empty HEAD side leaves markers git does not announce.** The merge output named only
+  the other file; the markers sat in `dev-docs/adr/README.md`, which no gate reads.
+
+So require a mechanical proof before any push that touched one of these files, rather than a careful look:
+
+```bash
+git diff origin/main -- dev-docs/implementation-log.md dev-docs/e2e-tests.md   # additions ONLY
+for f in dev-docs/e2e-tests.md dev-docs/UI_Spec_v1.10.md; do                   # foreign ids unchanged
+  diff <(git show origin/main:$f | grep -o 'E2E-M[0-9]*-[0-9]*' | sort | uniq -c) \
+       <(grep -o 'E2E-M[0-9]*-[0-9]*' $f | sort | uniq -c)
+done
+git grep -nE '^(<<<<<<<|>>>>>>>|=======$)' -- '*.md' '*.ts' '*.vue' '*.go' '*.sql' '*.yml'
+```
+
+A deleted or modified line in the first command's output that the session did not write is the defect.
+Foreign ids must keep the same hit count; only its own may be new.
 
 ## 6. Authority — who outranks whom
 
@@ -125,6 +156,12 @@ Collect what the sessions tell you and pass it on; it is the cheapest thing you 
 - **A single CI run cannot resolve a timing question.** The runners' variance is the size of every effect
   worth chasing (502 s and 583 s for the same configuration, 2026-09-20).
 - **`main` moves under people.** Warn before it happens, not after.
+- **Never wait on `pgrep -f 'make ci'`.** The pattern matches the waiting shell's own command line, so
+  the loop never ends — one sat for six and a half hours. Run the job in the foreground of a background
+  task and read its exit code, or wait on the PID you started.
+- **Re-check the queue after any long silence.** Overnight a PR the owner had merged himself left a
+  commit stranded on a branch that no longer had an open PR. `gh pr list` and `git worktree list`
+  first, before acting on what the last message said.
 
 ## 8. Report to the owner
 
