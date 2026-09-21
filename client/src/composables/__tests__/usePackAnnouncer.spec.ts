@@ -66,12 +66,12 @@ function settleCreates(): void {
 
 type Announcer = ReturnType<typeof usePackAnnouncer>
 
-function mountAnnouncer(): { api: Announcer; unmount: () => void } {
+function mountAnnouncer(anchor?: string | null): { api: Announcer; unmount: () => void } {
   let api!: Announcer
   const wrapper = mount(
     defineComponent({
       setup() {
-        api = usePackAnnouncer()
+        api = anchor === undefined ? usePackAnnouncer() : usePackAnnouncer(anchor)
         return () => null
       },
     }),
@@ -114,6 +114,31 @@ describe('usePackAnnouncer — the snackbar (FR-25.2)', () => {
     expect(options.duration).toBe(TOAST_DURATION_MS)
     expect(options.position).toBe('bottom')
     expect(options.positionAnchor).toBe(FAB_ANCHOR.m4)
+  })
+
+  /*
+   * FR-7.7: a screen without a FAB names no anchor, and the snackbar then
+   * sits where a snackbar sits. Anchoring to an element that is not on the
+   * page is not a cosmetic mistake — Ionic positions the toast off the
+   * viewport, where it is visible, enabled, stable and **unclickable**, so
+   * the undo exists and cannot be reached (found by E2E-M25-02, which is
+   * where M25 first raised one).
+   *
+   * `null` rather than `undefined` on purpose: a default parameter takes its
+   * default when you pass `undefined`, which is how the first fix for that
+   * defect silently did nothing at all.
+   */
+  it('leaves the anchor out where the screen has no FAB to sit above', async () => {
+    const { api } = mountAnnouncer(null)
+
+    await announce(api, 'Zelt')
+
+    const options = create.mock.calls[0]![0]!
+    expect(options.positionAnchor).toBeUndefined()
+    // The rest of the snackbar is unchanged: it is the same snackbar, on a
+    // screen that simply has nothing for it to stand above.
+    expect(options.position).toBe('bottom')
+    expect(options.duration).toBe(TOAST_DURATION_MS)
   })
 
   it('offers the armed undo behind its button', async () => {

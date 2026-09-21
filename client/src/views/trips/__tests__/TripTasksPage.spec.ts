@@ -29,6 +29,14 @@ import { TABLE } from '@/types/tables'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
+/**
+ * What the person picker answers. It is mocked rather than driven, because
+ * the value under test is the *third* one it can give — an action sheet that
+ * was dismissed — and dismissing a real one asserts Ionic rather than us.
+ */
+let picked: string | null | undefined
+vi.mock('@/lib/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
+
 const tripScreen = tripScreenStub()
 
 /** The people the instance knows — two, so a task can be handed over (G-8). */
@@ -127,6 +135,7 @@ function seedTask(id: string, row: Record<string, unknown>) {
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  picked = null
   tripScreen.loadedTrips.clear()
   tripScreen.loadedTrips.add('t1')
 })
@@ -302,6 +311,50 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     await flushPromises()
 
     expect(page.find('[data-testid="m25-mine"]').exists()).toBe(false)
+  })
+
+  /**
+   * FR-7.5/FR-7.7: the picker answers three ways, and the third one is the
+   * reason `pickAssignee` returns `undefined` at all — *„assign to nobody"*
+   * and *„never mind"* must not arrive as the same value. `useTaskActs`
+   * carries that distinction in one line, and this is the case that holds it.
+   *
+   * Both halves are asserted **positively**, against a known armed undo
+   * rather than against an empty one: the record holds a single action at a
+   * time, so an act that armed anything would have *replaced* the tick's
+   * record. A case that only checked „nothing was written" would stay green
+   * on a build that wrote nothing and armed an undo for it anyway — and that
+   * undo would then take back the tick instead.
+   */
+  it('writes nothing and arms nothing when the picker is dismissed', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+
+    // A known record to compare against: ticking a task arms its own undo.
+    const before = page.get('[data-testid="m25-before"]')
+    await before.get('[data-testid="trip-todo-Salbe holen"] ion-checkbox').trigger('ionChange')
+    await flushPromises()
+    const undo = (page.vm as unknown as { rowUndo: RowUndo }).rowUndo
+    expect(undo.pending.value.map((record) => record.name)).toEqual(['Salbe holen'])
+
+    // Dismissed: nothing is handed over …
+    picked = undefined
+    await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(acts.assignTripTodo).not.toHaveBeenCalled()
+    // … and the tick's undo is still the one on offer, untouched.
+    expect(undo.pending.value.map((record) => record.name)).toEqual(['Salbe holen'])
+
+    // The positive twin, so the two absences above are not simply a screen
+    // that stopped answering: a real answer does write, and does take the
+    // pending record over.
+    picked = 'u-sia'
+    await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(acts.assignTripTodo).toHaveBeenCalledTimes(1)
   })
 
   /*
