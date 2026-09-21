@@ -15,6 +15,7 @@ import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { taskGroups, tripTasks } from '@/domain/tripTodos'
 import { IndexedDBPersistence } from '@/local/persistence'
+import { useShoppingStore } from '@/shopping/store'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
@@ -56,6 +57,19 @@ describe('seedSampleTrip (dev)', () => {
     // All of a row's preparations name the same row, which is what the chip
     // on the seeded list will say.
     expect(new Set(prepared.map((task) => task.item?.name)).size).toBe(1)
+  })
+
+  /*
+   * FR-30.9: M6 groups by tag, so the seed needs two tags and an untagged
+   * entry or a fresh device shows a list with nothing to group.
+   */
+  it('leaves a fresh device with two shopping tags and an untagged entry (FR-30.9)', () => {
+    const { tripId } = seed()
+    const tags = useShoppingStore()
+      .getEntries(tripId)
+      .map((entry) => entry.tag)
+    expect(new Set(tags.filter((tag) => tag !== null)).size).toBe(2)
+    expect(tags).toContain(null)
   })
 
   /*
