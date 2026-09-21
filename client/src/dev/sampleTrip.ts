@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import {
   PORTABLE_SCHEMA_VERSION,
@@ -163,14 +164,28 @@ export function seedSampleTrip(
  * sections. Through the orchestrator's own actions, like the comment below.
  */
 const SEED_TRIP_TODOS = [
-  { body: 'Briefkasten leeren lassen', phase: TASK_PHASE_BEFORE },
-  { body: 'Kühlschrank leeren', phase: TASK_PHASE_BEFORE },
-  { body: 'Am Bahnhof die Zugverbindung nach Pontresina abklären', phase: TASK_PHASE_DURING },
+  // FR-7.8: `tag` names one of `sampleMaster`'s task tags, or none — so a
+  // fresh device shows the grouping with something in it *and* the two
+  // untagged headings, which are the halves a reader has to tell apart.
+  { body: 'Briefkasten leeren lassen', phase: TASK_PHASE_BEFORE, tag: 'Haus' },
+  { body: 'Kühlschrank leeren', phase: TASK_PHASE_BEFORE, tag: null },
+  {
+    body: 'Am Bahnhof die Zugverbindung nach Pontresina abklären',
+    phase: TASK_PHASE_DURING,
+    tag: 'Bahn',
+  },
 ] as const
 
 function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
-  for (const { body, phase } of SEED_TRIP_TODOS) {
-    orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+  const tags = new Map(useMasterStore().taskTagList.map((tag) => [tag.name, tag.id]))
+  for (const { body, phase, tag } of SEED_TRIP_TODOS) {
+    const id = orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+    const tagId = tag === null ? null : (tags.get(tag) ?? null)
+    if (tagId === null) continue
+    const todo = useTripStore()
+      .getTripTodos(tripId)
+      .find((row) => row.id === id)
+    if (todo) orchestrator.setTaskTag(tripId, todo, tagId)
   }
   const done = useTripStore()
     .getTripTodos(tripId)

@@ -11,7 +11,7 @@
  * task counts nothing the packing list measures, so that neither a houseplant
  * nor an uncharged battery can hold a finished rucksack below 100 %.
  */
-import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
+import type { ItemTodo, TaskPhase, TaskTag, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 
 /** How far a trip's todos are, as the two figures M1 states. */
@@ -104,6 +104,8 @@ export interface TripTask {
   /** FR-7.7: the resolution record; both null while the task is open. */
   resolved_at: string | null
   resolved_by_user_id: string | null
+  /** FR-7.8: the one tag it carries, or null for none. */
+  task_tag_id: string | null
 }
 
 /**
@@ -171,6 +173,7 @@ export function tripTasks(
  */
 function factsOf(todo: ItemTodo | TripTodo) {
   return {
+    task_tag_id: todo.task_tag_id,
     assignee_user_id: todo.assignee_user_id,
     phase: taskPhaseOf(todo),
     author_id: todo.author_id,
@@ -221,4 +224,85 @@ function compareTasks(a: TripTask, b: TripTask): number {
     if (byRow !== 0) return byRow
   }
   return a.body.localeCompare(b.body) || a.id.localeCompare(b.id)
+}
+
+// --- FR-7.8: one tag, and the groups it makes ---
+
+/**
+ * Where a task with **no** tag is filed, which is not „nowhere".
+ *
+ * The owner asked for preparations to read under *Aus Packliste*
+ * (2026-09-21). That is not a tag: as a row it could be renamed, deleted, and
+ * hung on tasks that never came from a packing list, and then the heading
+ * would be a lie. It is the *name of an origin* — so both kinds of untagged
+ * task are `task_tag_id === null` in the data, and only the heading differs.
+ */
+export type TaskOrigin = 'prep' | 'trip'
+
+/** One heading of M25 and the tasks under it. */
+export interface TaskGroup {
+  /**
+   * What a drop names this group by. A tag's id, or the origin for the two
+   * untagged ones — distinct from any tag id because no id is `prep`/`trip`.
+   */
+  key: string
+  /** The tag this group is, or null where it is an origin. */
+  tag: TaskTag | null
+  /** Which untagged group this is, or null where it is a tag. */
+  origin: TaskOrigin | null
+  tasks: TripTask[]
+}
+
+/** The origin a task belongs to while it carries no tag. */
+export function taskOrigin(task: Pick<TripTask, 'item'>): TaskOrigin {
+  return task.item === null ? 'trip' : 'prep'
+}
+
+/**
+ * taskGroups files a phase's tasks under their headings, in reading order:
+ * the tags in the order the tags themselves carry, then what came from the
+ * packing list, then what has no tag and never did.
+ *
+ * **An empty heading is not drawn.** A group with nothing in it says nothing
+ * while reading, and it is not a drop target either — losing a tag happens in
+ * the task's own sheet, where it is a choice rather than a place you have to
+ * find. The first build of the concept did the opposite: empty groups
+ * appeared the moment a task was lifted, and the list moved under the finger
+ * that had just lifted it. That is ADR-060, broken by the feature meant to
+ * help.
+ */
+export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[]): TaskGroup[] {
+  const groups: TaskGroup[] = tags.map((tag) => ({
+    key: tag.id,
+    tag,
+    origin: null,
+    tasks: tasks.filter((task) => task.task_tag_id === tag.id),
+  }))
+  for (const origin of ['prep', 'trip'] as const) {
+    groups.push({
+      key: origin,
+      tag: null,
+      origin,
+      tasks: tasks.filter((task) => task.task_tag_id === null && taskOrigin(task) === origin),
+    })
+  }
+  return groups.filter((group) => group.tasks.length > 0)
+}
+
+/**
+ * Whether a group can hold this task — which only the two origin groups ever
+ * refuse. A heading that would not be true of the thing under it is worse
+ * than no target at all: *Aus Packliste* over a chore of the trip would file
+ * it where the next reader looks for something else.
+ */
+export function groupAccepts(
+  group: Pick<TaskGroup, 'origin'>,
+  task: Pick<TripTask, 'item'>,
+): boolean {
+  return group.origin === null || group.origin === taskOrigin(task)
+}
+
+/** What a drop on `key` makes the task's tag: a tag id, or none. */
+export function tagForGroup(key: string): string | null {
+  return key === 'prep' || key === 'trip' ? null : key
 }

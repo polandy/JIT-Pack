@@ -10,6 +10,7 @@
  */
 export const TABLE = {
   tags: 'tags',
+  taskTags: 'task_tags',
   itemTags: 'item_tags',
   items: 'items',
   itemDependencies: 'item_dependencies',

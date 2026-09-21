@@ -1249,6 +1249,35 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.tripMembers, memberId)
   }
 
+  // --- Task tag mutations (FR-7.8) ---
+
+  /**
+   * Create a task tag. Its own table, not the inventory's (owner,
+   * 2026-09-21): a task is filed by what it is *about*, an item by what it
+   * *is*, and the two never share a picker.
+   */
+  function createTaskTag(
+    name: string,
+    sortOrder: number = 0,
+    icon: string | null = null,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const fields = icon ? { name, sort_order: sortOrder, icon } : { name, sort_order: sortOrder }
+    return { mutation: make('insert', TABLE.taskTags, id, fields), id }
+  }
+
+  /**
+   * FR-7.8: the one tag a task carries. `null` takes it off, which is a
+   * state and not a gap — the task then reads under the group named after
+   * where it came from.
+   *
+   * One field, because that is the only thing that changes: the task keeps
+   * its words, its phase, its assignee and the day it was written.
+   */
+  function setTaskTag(todoId: string, taskTagId: string | null): Mutation {
+    return make('upsert', TABLE.comments, todoId, { task_tag_id: taskTagId })
+  }
+
   // --- Tag mutations (FR-24.1) ---
 
   function createTag(
@@ -1427,6 +1456,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     resolveTodo,
     setTodoAssignee,
     setTaskPhase,
+    setTaskTag,
+    createTaskTag,
     reopenTodo,
     deleteTodo,
     addComment,

@@ -9,6 +9,7 @@ import {
   tripWithRows,
 } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
+import { fillIonic } from './helpers/ionic'
 
 /**
  * A trip's tasks (FR-7.4, FR-7.6, FR-7.7) — its own chores and the
@@ -384,6 +385,151 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(task.getByTestId('trip-todo-assign-Water the plants')).toHaveCount(0)
     await expect(task.getByTestId('trip-todo-assignee-Water the plants')).toHaveCount(0)
     await expect(visible(page).getByTestId('m25-mine')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M25-07 (FR-7.8): a task is given a tag from its own sheet, and the
+   * heading it lands under appears with it.
+   *
+   * The tag is *created* here rather than picked, because that is the first
+   * run every instance has: the list starts empty, and a word that is not in
+   * it yet is the next tag rather than an error. The undo is asserted too —
+   * a tag given by mistake is one tap to take back, and FR-25.31 covers every
+   * act on the list.
+   */
+  test('E2E-M25-07: a task is tagged from its sheet, and the tag is taken back', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Salbe holen')
+
+    const before = await openTasks(page, 'before')
+    await expect(before.getByTestId('m25-group-trip')).toContainText('No tag')
+
+    await before.getByTestId('trip-todo-open-Salbe holen').click()
+    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
+    await page.getByTestId('task-sheet-tag-add').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The heading is the assertion: a tag that wrote nothing visible would
+    // pass a check on the sheet alone.
+    const tagged = visible(page)
+      .locator('[data-testid^="m25-group-"]')
+      .filter({ hasText: 'Apotheke' })
+    await expect(tagged).toContainText('Salbe holen')
+    await writesLanded(page)
+    await page.reload()
+    await openTasks(page, 'before')
+    await expect(
+      visible(page).locator('[data-testid^="m25-group-"]').filter({ hasText: 'Apotheke' }),
+    ).toContainText('Salbe holen')
+
+    // Taken back: the task is under „No tag" again, and the empty tag group
+    // is gone with it — an empty heading is not drawn.
+    await visible(page).getByTestId('trip-todo-open-Salbe holen').click()
+    await page.getByTestId('task-sheet-tag-none').click()
+    await expect(visible(page).getByTestId('m25-group-trip')).toContainText('Salbe holen')
+  })
+
+  /**
+   * E2E-M25-08 (FR-7.8): the drag. A task is lifted by its grip, carried into
+   * another group and let go, and the write lands.
+   *
+   * Three clauses, and each is a way the gesture goes wrong on its own:
+   *
+   *  - **`data-drag` is the signal**, and the case waits for `idle` — which
+   *    arrives only once the write has resolved. Waiting on the animation
+   *    instead is what E2E-M4-135 paid for.
+   *  - **The group under the pointer says so** while the task is in the air,
+   *    or the drop is made blind.
+   *  - **Nothing moves that the hand did not move** (ADR-060): the list's
+   *    scroll position is read before the lift and after it, because a list
+   *    that grew a drop target under the finger would have shifted every row
+   *    below it.
+   */
+  test('E2E-M25-08: a task is dragged from one tag into another @m25', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Salbe holen')
+    await addTripTodo(page, 'Pflanzen giessen')
+
+    // Two tags to drag between, made the way the app makes them.
+    const section = await openTasks(page, 'before')
+    await section.getByTestId('trip-todo-open-Salbe holen').click()
+    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
+    await page.getByTestId('task-sheet-tag-add').click()
+    await visible(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
+    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
+    await page.getByTestId('task-sheet-tag-add').click()
+    // The sheet's own teardown, as `tripAction` waits for it: one still on
+    // screen takes the pointer that was meant for the row underneath — which
+    // is exactly what the first run of this case did.
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await writesLanded(page)
+
+    const host = visible(page).getByTestId('m25-page')
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+
+    const grip = visible(page).getByTestId('trip-todo-grip-Salbe holen')
+    const target = visible(page).locator('[data-testid^="m25-group-"]').filter({ hasText: 'Haus' })
+    const before = await host.evaluate((el) => el.scrollTop)
+    const g = (await grip.boundingBox())!
+    const t = (await target.boundingBox())!
+
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(g.x + 12, g.y + 12, { steps: 3 })
+    await expect(host).toHaveAttribute('data-drag', 'dragging')
+    await page.mouse.move(t.x + t.width / 2, t.y + 10, { steps: 8 })
+    // It says where it will land before it lands.
+    await expect(target).toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+
+    // `idle` means the write is real, not that the animation finished.
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(target).toContainText('Salbe holen')
+    expect(await host.evaluate((el) => el.scrollTop)).toBe(before)
+
+    await writesLanded(page)
+    await page.reload()
+    await openTasks(page, 'before')
+    await expect(
+      visible(page).locator('[data-testid^="m25-group-"]').filter({ hasText: 'Haus' }),
+    ).toContainText('Salbe holen')
+  })
+
+  /**
+   * E2E-M25-09 (FR-7.8): a heading that would not be true of the task in hand
+   * neither lights up nor takes it.
+   *
+   * *Aus Packliste* holds what a packing row owes; a chore of the trip
+   * dropped there would be filed under a sentence that is false of it, and
+   * the next reader would look for it in the wrong place. The positive half
+   * is asserted beside the refusal: the task is still where it was.
+   */
+  test('E2E-M25-09: a group refuses a task it could not honestly head @m25', async ({ page }) => {
+    await tripWithRows(page, ['Kamera'], 'Samedan')
+    await addPrepTodo(page, 'Kamera', 'Akku laden')
+    await addTripTodo(page, 'Pflanzen giessen')
+
+    await openTasks(page, 'before')
+    const host = visible(page).getByTestId('m25-page')
+    const fromPacking = visible(page).getByTestId('m25-group-prep')
+    await expect(fromPacking).toContainText('Akku laden')
+
+    const grip = visible(page).getByTestId('trip-todo-grip-Pflanzen giessen')
+    const g = (await grip.boundingBox())!
+    const t = (await fromPacking.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(t.x + t.width / 2, t.y + 10, { steps: 8 })
+    await expect(fromPacking).not.toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+
+    // The gesture still ends — a refused drop is not a hung one — and the
+    // task stayed where it was.
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(visible(page).getByTestId('m25-group-trip')).toContainText('Pflanzen giessen')
+    await expect(fromPacking).not.toContainText('Pflanzen giessen')
   })
 
   /**

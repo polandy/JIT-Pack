@@ -40,6 +40,31 @@ describe('IndexedDBPersistence', () => {
     expect(trip).toMatchObject({ id: 't1', deleted: false, row: { name: 'Engadin' } })
   })
 
+  /*
+   * FR-7.8 added a syncable table (`task_tags`), and the obvious worry is the
+   * one this case settles: does a Local Mode database written before it
+   * existed still open, and do the new rows land?
+   *
+   * They do, and the reason is the shape rather than luck — this store keeps
+   * **every** table in one object store keyed `table/id`, so a new table is
+   * new *keys*, not a new store, and `DB_VERSION` has nothing to say about
+   * it. The case is here because that is not obvious from the outside, and
+   * the next person to add a table should find the answer rather than the
+   * question.
+   */
+  it('takes a table that did not exist when the database was written', async () => {
+    const before = new IndexedDBPersistence()
+    await before.save([change('items', 'i1', { name: 'Socken' })])
+
+    // The same database, opened by a build that knows one more table.
+    const after = new IndexedDBPersistence()
+    await after.save([change('task_tags', 'tt1', { name: 'Apotheke', sort_order: 0 })])
+
+    const loaded = await new IndexedDBPersistence().load()
+    expect(loaded.map((c) => `${c.table}/${c.id}`).sort()).toEqual(['items/i1', 'task_tags/tt1'])
+    expect(loaded.find((c) => c.table === 'task_tags')?.row).toMatchObject({ name: 'Apotheke' })
+  })
+
   it('latest write per row wins', async () => {
     const p = new IndexedDBPersistence()
     await p.save([change('items', 'i1', { name: 'Socken', weight_grams: 80 })])

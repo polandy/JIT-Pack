@@ -30,6 +30,7 @@ import type {
   ItemTodo,
   ShoppingEntry,
   TaskFacts,
+  TaskTag,
   TaskPhase,
   TripTodo,
   MasterItem,
@@ -85,6 +86,16 @@ export interface TableCodec<T = unknown> {
 }
 
 function rowToTag(id: string, row: Record<string, unknown>): Tag {
+  return {
+    id,
+    name: row['name'] as string,
+    sort_order: (row['sort_order'] as number) ?? 0,
+    icon: (row['icon'] as string) ?? null,
+  }
+}
+
+/** FR-7.8's task tag — `rowToTag`'s shape over its own table. */
+function rowToTaskTag(id: string, row: Record<string, unknown>): TaskTag {
   return {
     id,
     name: row['name'] as string,
@@ -373,6 +384,7 @@ function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
  */
 function taskFacts(row: Record<string, unknown>): TaskFacts {
   return {
+    task_tag_id: (row['task_tag_id'] as string | null | undefined) ?? null,
     phase: (row['phase'] as TaskPhase | null | undefined) ?? null,
     created_at: (row['created_at'] as string | null | undefined) ?? null,
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
@@ -388,6 +400,7 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
  */
 export const TABLE_CODECS = {
   [TABLE.tags]: { parse: rowToTag },
+  [TABLE.taskTags]: { parse: rowToTaskTag },
   [TABLE.itemTags]: { parse: rowToItemTag },
   [TABLE.items]: { parse: rowToItem, encode: masterItemRow },
   [TABLE.itemDependencies]: { parse: rowToDependency, encode: dependencyRow },

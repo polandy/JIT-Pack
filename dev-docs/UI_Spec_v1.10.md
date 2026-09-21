@@ -7,6 +7,10 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-21 — **M25** groups by tag: a task carries at most one tag of its own (`task_tags`, not the inventory's
+  axis), the groups sit inside the two phases, and a task is dragged between them by its grip or by holding the row.
+  What has no tag reads under *Aus Packliste* or *Ohne Tag*, after where it came from — and a group refuses what it
+  could not honestly head (FR-7.8, ADR-072).
 * 2026-09-21 — **M25** added: *Aufgaben*, a trip's tasks in their two phases, as the third pill beside *Packliste*
   and *Einkauf*. **M4** keeps a window of it — the preparations still due before the trip — loses its task composer,
   and its close question says how many tasks move with the close. **M8** gives a Vorlage's task a phase chip. Both
@@ -2715,12 +2719,22 @@ token would prove nothing there is anything to prove.
   * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is what is still open
     there — a finished section says nothing rather than „0". Sections are **not** a segment: the shopping list's two
     tabs are two places you stand, while the two phases of a trip are one thing read top to bottom.
+  * **Inside each section, the tag groups** (FR-7.8 — built 2026-09-21). One heading per task tag that holds
+    something, in the tags' own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names
+    where the task came from, and both are the same state in the data. **An empty heading is not drawn**, and is
+    therefore not a drop target: a tag is removed in the task's sheet, where *Ohne Tag* is a choice rather than a
+    place to find. Each group is a drop target carrying its phase *and* its tag, so one movement may change both.
   * **Per section, the task list** (the component M4 shares) and **its own composer**, whose placeholder names the
     phase it writes: *„Aufgabe für vor der Reise…"* / *„Aufgabe für unterwegs…"*. A section with nothing in it says so
     in one line **and keeps its field** — a trip with no tasks at all is exactly the reader the two fields are for, so
     there is no screen-wide empty state.
-* **A task's line:** the words, one provenance line under them, then the cluster and the tick at the row's own edge —
-  the rule M4's packing rows follow.
+* **A task's line:** a grip, the words, one provenance line under them, then the cluster and the tick at the row's
+  own edge — the rule M4's packing rows follow.
+  * **The grip** (FR-7.8) lifts the task at once; anywhere else on the row a **hold** does, at `useLongPress`'s own
+    500 ms and 8 px, so a finger can still scroll. While a task is in the air the group under the pointer says
+    *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
+    row would move every row below it under the finger that pressed one (ADR-060). The gesture's state is on the
+    page as `data-drag`, always set, and returns to `idle` only once the write has landed.
   * The **provenance line** changes role with the task: *„erstellt von Andy · heute 14:32"* while it is open,
     *„erledigt von Sia · gestern 09:15"* once it is done. Where nobody can be named it keeps the moment and drops the
     person: *„erstellt · heute 14:32"* (G-8). A task that carries neither says nothing.
@@ -2730,7 +2744,9 @@ token would prove nothing there is anything to prove.
   * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
 * **The task sheet** opens by tapping a task's words, on this screen and on M4's window. It carries the head (the
   task's words, with its phase as the meta), the facts that do not fit a line — the row it prepares, who wrote it and
-  when, who finished it and when — and two actions: ***Auf „Während der Reise" schieben*** / ***Zurück auf „Vor der
+  when, who finished it and when — **the tag list** (FR-7.8: every task tag as a chip, exactly one selectable, plus
+  the *no tag* entry under the name of the group it would return to, and a field that creates a tag the list does
+  not have yet), and two actions: ***Auf „Während der Reise" schieben*** / ***Zurück auf „Vor der
   Reise"***, and *Aufgabe entfernen* for the trip's own kind only.
 * **Every act raises the screen's one snackbar with *Rückgängig*** (FR-25.31): the tick, the add, the removal, the
   assignment and the phase move. The move's undo writes back the phase the task actually had, which for a task written

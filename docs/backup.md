@@ -34,7 +34,7 @@ Back it up from inside the app:
    screen's *bought* reveal still finds it after a restore. **Todos are not in it** —
    neither a trip's own tasks nor an item's preparation todos; a restored trip comes back
    without them. A template's *tasks for the trip* are, because they belong to the template —
-   their words, not the phase they are due in (see `trip_tasks:` below).
+   their words — not the phase they are due in, and not their tag (see `trip_tasks:` below).
    **Nor is anything typed straight onto the shopping list** — the milk and bread under
    *„Eingetragen"*. Those entries belong to the shopping list, not to the packing list the
    file describes, and a restored trip's shopping list holds only what the packing list
@@ -372,9 +372,9 @@ the file still means something on an instance that has never seen those groups.
 `trip_tasks:` lists the template's *tasks for the trip* — chores such as watering the plants
 that every trip generated from it starts with — on the template and on each included group;
 it is left out where there are none. The file carries a task's **words only**. A task in the
-app also says whether it is due *before* the trip or *during* it, and an imported one always
-comes back as a task for before the trip; move it afterwards on the trip's **Aufgaben** screen
-if it belonged to the other half. `icon:` is
+app also says whether it is due *before* the trip or *during* it, and which of your task tags it
+carries; an imported one always comes back as a task for before the trip, with no tag. File it
+afterwards on the trip's **Aufgaben** screen if it belonged elsewhere. `icon:` is
 the optional mark, on the template, on each group and on each item; it is left out where
 there is none, and a file written before the field existed imports without one.
 

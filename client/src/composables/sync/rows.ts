@@ -125,6 +125,7 @@ export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
  */
 function taskFactRow(task: TaskFacts): Record<string, unknown> {
   return {
+    task_tag_id: task.task_tag_id,
     phase: task.phase,
     created_at: task.created_at,
     assignee_user_id: task.assignee_user_id,

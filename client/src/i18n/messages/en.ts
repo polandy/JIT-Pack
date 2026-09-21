@@ -1504,6 +1504,13 @@ export const en = {
   'tasks.resolvedBy': 'done by {who} · {when}',
   'tasks.resolvedByUnknown': 'done · {when}',
   'tasks.openAll': 'All tasks',
+  // FR-7.8 — a task's one tag, and the groups it makes.
+  'tasks.fromPacking': 'From the packing list',
+  'tasks.noTag': 'No tag',
+  'tasks.dropHere': 'drop here',
+  'tasks.tagLabel': 'Tag — exactly one',
+  'tasks.newTag': 'New tag…',
+  'tasks.movedToast': '“{body}” moved',
   'tasks.whilePacking': 'To do while packing',
   'dashboard.taskLineOpen': 'Tasks: {n} open',
   'dashboard.taskLineDone': 'Tasks: all done',

@@ -24,6 +24,7 @@ import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import type { RowUndo } from '@/composables/useRowUndo'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 
@@ -46,6 +47,8 @@ const people = [
 ]
 
 const acts = {
+  setTaskTag: vi.fn(),
+  createTaskTag: vi.fn(() => 'tag-new'),
   addTripTodo: vi.fn(() => 'new-task'),
   deleteTripTodo: vi.fn(),
   resolveTripTodo: vi.fn(),
@@ -110,6 +113,17 @@ function seedRow(id: string, name: string) {
     id,
     deleted: false,
     row: { trip_id: 't1', name, quantity: 1, packed_count: 0, state: 'open', mode: 'pack' },
+  })
+}
+
+/** FR-7.8: a task tag in the master store, the way a pull delivers one. */
+function seedTaskTag(id: string, name: string, sortOrder: number) {
+  useMasterStore().applyChange({
+    seq: 0,
+    table: TABLE.taskTags,
+    id,
+    deleted: false,
+    row: { name, sort_order: sortOrder },
   })
 }
 
@@ -370,5 +384,121 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     await flushPromises()
 
     expect(page.find('[data-testid="trip-todo-assign-Akkus laden"]').exists()).toBe(true)
+  })
+})
+
+/**
+ * FR-7.8: one tag per task, and the headings it makes. The rule itself is
+ * pure (`domain/__tests__/tripTodos.spec.ts`); what is pinned here is the
+ * screen's half — that the groups are rendered as drop targets, that the
+ * sheet writes the tag, and that a movement is **one** undo.
+ */
+describe('M25 — the tag a task carries (FR-7.8)', () => {
+  it('files the tasks under their tags, and names the two untagged groups apart', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedRow('ti-1', 'Kulturbeutel')
+    seedTask('Salbe holen', { task_tag_id: 'apo' })
+    seedTask('Akku laden', { trip_item_id: 'ti-1' })
+    seedTask('Pflanzen giessen', {})
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.get('[data-testid="m25-group-apo"]').text()).toContain('Salbe holen')
+    // The two shapes of „no tag", told apart by where the task came from.
+    expect(page.get('[data-testid="m25-group-prep"]').text()).toContain('From the packing list')
+    expect(page.get('[data-testid="m25-group-prep"]').text()).toContain('Akku laden')
+    expect(page.get('[data-testid="m25-group-trip"]').text()).toContain('No tag')
+    expect(page.get('[data-testid="m25-group-trip"]').text()).toContain('Pflanzen giessen')
+  })
+
+  /*
+   * Every group is a drop target, and its key carries the phase as well as
+   * the tag — that is what lets one movement change both, which is what the
+   * owner asked a drag across the two phases to do.
+   */
+  it('marks every group as a place a task can be dropped, phase included', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedTask('Salbe holen', { task_tag_id: 'apo' })
+    seedTask('Zug abklären', { phase: 'during', task_tag_id: 'apo' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    const targets = page
+      .findAll('[data-drop-target]')
+      .map((el) => el.attributes('data-drop-target'))
+    expect(targets).toContain('before/apo')
+    expect(targets).toContain('during/apo')
+  })
+
+  it('writes the tag the sheet was asked for, and takes it back whole', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedTask('Salbe holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    await page.get('[data-testid="task-sheet-tag-Apotheke"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.setTaskTag).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Salbe holen' }),
+      'apo',
+    )
+
+    // One undo for the movement, and it writes the tag back. A second armed
+    // record would have replaced this one and left the movement half undone.
+    acts.setTaskTag.mockClear()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.setTaskTag).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Salbe holen' }),
+      null,
+    )
+  })
+
+  /*
+   * „No tag" is a choice in the list rather than the absence of one, and it
+   * is named after where the task came from — the same words as its group,
+   * so the sheet and the list cannot disagree about where it will land.
+   */
+  it('offers “no tag” under the name of the group it would return to', async () => {
+    seedTrip()
+    seedRow('ti-1', 'Kulturbeutel')
+    seedTask('Akku laden', { trip_item_id: 'ti-1', task_tag_id: 'apo' })
+    seedTaskTag('apo', 'Apotheke', 0)
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Akku laden"]').trigger('click')
+    await flushPromises()
+
+    expect(page.get('[data-testid="task-sheet-tag-none"]').text()).toBe('From the packing list')
+  })
+
+  it('creates a tag that is not in the list yet, where it is needed', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    await page.findComponent({ name: 'TripTaskSheet' }).findComponent(IonInput).setValue('Apotheke')
+    await page.get('[data-testid="task-sheet-tag-add"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
+    expect(acts.setTaskTag).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Salbe holen' }),
+      'tag-new',
+    )
   })
 })

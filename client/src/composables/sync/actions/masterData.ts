@@ -825,6 +825,17 @@ export function createMasterDataActions(ctx: SyncContext) {
     return id
   }
 
+  /**
+   * FR-7.8: create a task tag. Master data like an item's tag, and created
+   * the same way — by typing a word the picker does not have yet, rather
+   * than in a screen of its own that does not exist.
+   */
+  function createTaskTag(name: string, sortOrder: number, icon: string | null = null): string {
+    const { mutation, id } = mutations.createTaskTag(name, sortOrder, icon)
+    enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+    return id
+  }
+
   /** FR-7.7: move a Vorlage's task to the other phase. */
   function setTemplateTaskPhase(task: TemplateTask, phase: TaskPhase) {
     const mutation = mutations.setTemplateTaskPhase(task.id, phase)
@@ -885,6 +896,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     addTemplateItemTask,
     deleteTemplateItemTask,
     addTemplateTask,
+    createTaskTag,
     setTemplateTaskPhase,
     deleteTemplateTask,
   }

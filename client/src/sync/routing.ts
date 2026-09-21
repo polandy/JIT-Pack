@@ -31,6 +31,7 @@ export const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
 /** The tables `useMasterStore` holds. */
 export const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tags,
+  TABLE.taskTags,
   TABLE.itemTags,
   TABLE.items,
   TABLE.templates,

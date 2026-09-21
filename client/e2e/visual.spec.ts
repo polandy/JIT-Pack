@@ -10,6 +10,7 @@ import {
   tripAction,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
+import { writesLanded } from './helpers/page'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
@@ -308,6 +309,19 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   await addPrepTodo(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
   await addTripTodo(page, 'Pflanzen giessen')
   await addTripTodo(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
+  await openTasks(page, 'before')
+  // FR-7.8: one task carries a tag, so the baseline shows all three kinds of
+  // heading — a tag, what came from the packing list, and what has none.
+  await visiblePage(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
+  await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
+  await page.getByTestId('task-sheet-tag-add').click()
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+  // Reloaded before the shot: the tag's own snackbar is a transient, and a
+  // layout baseline that photographs one is a baseline that moves when the
+  // toast's lifetime does. What survives the reload is the grouping, which
+  // is what this case is about.
+  await writesLanded(page)
+  await page.reload()
   await openTasks(page, 'before')
   await settled(page)
   await expect(page).toHaveScreenshot('m25-tasks.png')

@@ -15,6 +15,7 @@ import type {
   ItemTag,
   MasterItem,
   Tag,
+  TaskTag,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -45,6 +46,7 @@ export const useMasterStore = defineStore('master', () => {
   const templateItemRows = bucketedRows(templateItems, (r) => r.template_id)
   const templateIncludes = ref<Map<string, TemplateInclude>>(new Map())
   const templateItemTasks = ref<Map<string, TemplateItemTask>>(new Map())
+  const taskTags = ref<Map<string, TaskTag>>(new Map())
   const templateTasks = ref<Map<string, TemplateTask>>(new Map())
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
@@ -58,6 +60,17 @@ export const useMasterStore = defineStore('master', () => {
   )
 
   const itemTagList = computed(() => [...itemTags.value.values()])
+
+  /**
+   * FR-7.8: the task tags in the order their headings read. The order is the
+   * tag's own (`sort_order`), so M25's groups and any future tag manager
+   * agree without either of them deciding it.
+   */
+  const taskTagList = computed(() =>
+    [...taskTags.value.values()].sort(
+      (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name),
+    ),
+  )
 
   /**
    * The whole inventory, retired rows included (FR-24.3). Everything that
@@ -373,6 +386,7 @@ export const useMasterStore = defineStore('master', () => {
    */
   const sinks: RowSinks = {
     [TABLE.tags]: keyedSink(tags),
+    [TABLE.taskTags]: keyedSink(taskTags),
     [TABLE.itemTags]: keyedSink(itemTags),
     [TABLE.items]: keyedSink(items),
     [TABLE.templates]: keyedSink(templates),
@@ -422,10 +436,12 @@ export const useMasterStore = defineStore('master', () => {
 
   return {
     tags,
+    taskTags,
     itemTags,
     items,
     templates,
     tagList,
+    taskTagList,
     itemTagList,
     itemList,
     categorisedItemList,

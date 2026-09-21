@@ -292,6 +292,13 @@ export type TaskPhase = (typeof TASK_PHASES)[number]
  * *before* (`taskPhaseOf`); the resolution pair is null while the task is open.
  */
 export interface TaskFacts {
+  /**
+   * FR-7.8: the one tag the task carries, or null for none. „Exactly one"
+   * as the owner asked it — at most one, never two — so a column and not a
+   * set. Null is a real state: M25 names that group after where the task
+   * came from rather than calling it a gap.
+   */
+  task_tag_id: string | null
   phase: TaskPhase | null
   created_at: string | null
   /** FR-7.7: whose job it is — since FR-7.7 on both kinds, not only the trip's own. */
@@ -350,6 +357,19 @@ export interface ShoppingEntry {
  * in M10 creates one (ADR-014). Fixing one afterwards — rename, merge,
  * reorder, delete — is M9's tag manager (FR-24.10).
  */
+/**
+ * FR-7.8: a tag a *task* can carry. Its own list, not the inventory's (owner,
+ * 2026-09-21) — the two never appear in the same picker, so „Technik" may
+ * exist in both without either meaning the other.
+ */
+export interface TaskTag {
+  id: string
+  name: string
+  sort_order: number
+  /** FR-24.13's shape: the mark a group's heading wears, or none. */
+  icon?: string | null
+}
+
 export interface Tag {
   id: string
   name: string
