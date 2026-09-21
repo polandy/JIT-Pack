@@ -419,6 +419,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
 - [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-070: the derivation that revokes the user's own decision, and the half-packed row three ways.
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
+- [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
 
 ## Deviations
 
@@ -17017,3 +17018,36 @@ a mark is painted by its own component, and `markRendering.spec.ts` names the fi
 the table registry for a table nothing rebuilds optimistically: the pairing gate refuses an encoder without a writer,
 which is right, and the row builder came back out.
 
+### Silence and absence are not the same thing (2026-09-21)
+
+FR-25.15's spoken half, and it exists because of a defect I reported in my own review of #544 rather than one anybody
+hit. That is worth recording on its own: the finding cost nothing to make, because it came from asking what a rule I
+had just applied means for a reader who cannot see it.
+
+**The trap.** An `aria-live` region announces when the text **inside it changes**. A region that appears in the DOM
+already containing its first words has nothing to change from, and most screen readers say nothing. So the obvious
+implementation — put `role="status"` on the element that already exists to show the state — is wrong in exactly the
+case it is written for, and wrong silently: the markup validates, the roles are correct, and nothing in a rendered
+test can tell you, because the failure is in an event that never fired. `#544` made this concrete by putting the
+indicator behind a `v-if`, but the previous build was no better for a different reason: it kept a permanent region
+and changed its `aria-label`, and a label change is not announced either. Two builds, two spellings of the same
+mistake, and the doc comment of each described the intent accurately.
+
+**What follows for the pattern, not just this control.** G-12 already said *an icon-only control names itself with
+`aria-label`*. That rule answers *what is this?* — a question about something that sits still. A glyph reporting a
+changing state is asked *what just happened?*, and no name answers it. So the two split: a **control** gets a name, a
+**readout** gets `aria-hidden` and a permanent region beside it. Worth noticing that `iconButtonLabels.spec.ts` would
+never have caught this and should not be extended to try — it scans button-shaped elements, and the whole point is
+that a readout is not one.
+
+**The layout cost, which is where the implementation is non-obvious.** The region is `position: absolute`, and the
+reason is not hiding — a 1×1 clipped element would be invisible either way. It is that the sheet header lays its
+children out with `gap`, so an in-flow child of zero size still takes a gap on each side and pushes the ✕ inward. Out
+of flow it is not a flex item at all, and the header measures exactly as it did before the region existed.
+
+**An accepted limit, named because it will look like a bug.** M5's side panel keys the indicator to the item
+(ADR-046), so switching rows re-creates the region. Created empty, which is right — unless the switch happens while a
+write is in flight, and then the region is born already carrying its first words and that one announcement is lost.
+The content is never wrong, only occasionally unspoken. Hoisting the region out of the component that owns the state
+it reports would fix it and would separate the two things that have to agree; that trade was not worth making for a
+race this narrow.

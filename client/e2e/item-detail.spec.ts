@@ -343,6 +343,50 @@ test.describe('M5 item detail @local @m5', () => {
     // "visibly smaller" and not a pixel count.
     expect(save.width).toBeLessThan(close.width / 2)
   })
+
+  // E2E-M5-32 (FR-25.15): the lamp is the sighted signal and says nothing out
+  // loud. The words live in a live region that is present from the first
+  // frame and empty until there is something to say — a region created and
+  // filled in one frame is not reliably announced, which is the whole reason
+  // it cannot simply follow the lamp's `v-if`.
+  //
+  // The unit case owns the roles and the wording (SaveIndicator.spec.ts). What
+  // only the built bundle can answer is whether the region is actually
+  // invisible and actually out of flow: a scoped style that does not reach it
+  // would put the word "Saved" in the header, beside the item's name.
+  test('E2E-M5-32: the save indicator has a voice that is present before it speaks', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await addInComposer(page, 'Stirnlampe')
+    await page.getByTestId('m4-row-Stirnlampe').getByRole('heading').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+
+    const region = page.getByTestId('m5-sheet').getByTestId('save-announcement')
+    // There, and with nothing to announce — the sheet has written nothing.
+    await expect(region).toHaveAttribute('role', 'status')
+    await expect(region).toHaveText('')
+    await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveCount(0)
+
+    // Hidden by size, read from the rendered box rather than the stylesheet:
+    // this is the half a scoped-style mistake would break, and it would break
+    // it by printing the word next to the item's name.
+    const box = await region.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      return { width: r.width, height: r.height }
+    })
+    expect(box.width).toBeLessThanOrEqual(1)
+    expect(box.height).toBeLessThanOrEqual(1)
+
+    // Now give it something to say. The in-flight wording is unit-tested;
+    // racing it here would be a timing bet, so this reads the settled one.
+    await page.getByTestId('m5-pack').getByTestId('row-check').click()
+    await expect(region).toHaveText('Saved')
+    await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toBeVisible()
+  })
+
   // E2E-M5-17 (FR-9.1): the two trip-feedback flags are controls behind
   // *Details ▾*, and only while the trip runs. Until 2026-08-20 the sheet
   // printed them as a note, which left *unused* — the flag M14's assistant

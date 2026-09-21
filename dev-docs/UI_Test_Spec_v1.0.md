@@ -1156,6 +1156,14 @@ rather than registered.
   crooked — the shared centre line was — and a measurement that over-states what it protects outlives the reason it was
   written. Because the lamp is silent until the sheet writes, the case now makes an edit first, which is also the only
   way it can fail for the right reason.
+* **E2E-M5-32** `all` (FR-25.15) — **implemented 2026-09-21** (`e2e/item-detail.spec.ts`): the indicator's spoken half.
+  The live region is in the DOM with `role="status"` before the sheet has written anything, and **empty** — silence
+  that is present, not absence — and it carries *„Gespeichert"* once an edit commits, with the lamp appearing beside
+  it. The roles and the wording are owned by `SaveIndicator.spec.ts`, mutation-proved by hanging the region back on
+  the lamp's `v-if`; what only the built bundle can answer is that the region is **invisible and out of flow**, which
+  the case reads as a rendered box of at most 1×1 px. That is the half a scoped-style mistake breaks, and it breaks it
+  by printing the word *Saved* in the header beside the item's name. The in-flight wording is deliberately not read
+  here — racing a local write is a timing bet, and the unit case already owns it.
 * **E2E-M5-17** `all` (FR-9.1) — **implemented** (`e2e/item-detail.spec.ts`): the two trip-feedback flags are controls
   behind *Details ▾* and appear **only once the trip runs** — the same case starts the trip and marks the row *unused*,
   so the absence half has a positive signal beside it rather than passing on a typo. Read back from the glance chip,
@@ -3712,7 +3720,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
 | FR-25.14 | E2E | M5-18 (the aggregate is M4's cluster head since FR-25.21; M5-06 retired) |
-| FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button — asserted since 2026-08-30; the credit stood for months on a case that asserted only the indicator's presence). Since 2026-09-20 each of these reads the indicator **after** an edit, with its absence before asserted beside it: the lamp is silent until the sheet writes, so the presence clauses are falsifiable for the first time |
+| FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button — asserted since 2026-08-30; the credit stood for months on a case that asserted only the indicator's presence). Since 2026-09-20 each of these reads the indicator **after** an edit, with its absence before asserted beside it: the lamp is silent until the sheet writes, so the presence clauses are falsifiable for the first time. The spoken half is M5-32 + SaveIndicator.spec.ts's second describe (permanent live region, empty until written, lamp `aria-hidden`) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |

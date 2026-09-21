@@ -2,10 +2,12 @@
 /**
  * FR-25.15 — the sheet's auto-save indicator: an amber pulsing lamp the
  * moment a change is in flight, a green one once it settled on this device.
- * Icon-only; the meaning rides on the tooltip (G-12-06). Deliberately
- * distinct from G-2: this says the edit is captured locally, G-2 says
- * whether it reached the server — offline that difference is the entire
- * story.
+ * Icon-only for the eye, with the meaning on the tooltip (G-12-06), and
+ * spoken through the live region below it — the lamp itself is `aria-hidden`
+ * so one fact is not announced from two elements that could drift.
+ * Deliberately distinct from G-2: this says the edit is captured locally,
+ * G-2 says whether it reached the server — offline that difference is the
+ * entire story.
  *
  * The seam is the orchestrator's `capturePending`, which counts this device's
  * own open writes and nothing else. It used to be `syncStatus.state` — G-2's
@@ -55,20 +57,48 @@ const title = computed(() => (saving.value ? t('item.saving') : t('item.saved'))
 </script>
 
 <template>
+  <!--
+    The spoken half. It is here before it has anything to say, because a live
+    region created and filled in the same frame is not reliably announced —
+    only a change *inside* a region that already exists is. So the region is
+    permanent and its text is what comes and goes, while the lamp beside it
+    keeps appearing and disappearing for the eye.
+  -->
+  <span class="announcement" role="status" data-testid="save-announcement">{{
+    written ? title : ''
+  }}</span>
   <span
     v-if="written"
     class="lamp"
     :class="saving ? 'saving' : 'saved'"
-    role="status"
     data-testid="save-indicator"
     :title="title"
-    :aria-label="title"
+    aria-hidden="true"
   >
     <span class="bulb" />
   </span>
 </template>
 
 <style scoped>
+/*
+ * Out of flow, and that is the load-bearing part rather than the hiding: the
+ * header lays its children out with `gap`, and an in-flow element of zero
+ * size would still take a gap on each side and push the ✕ inward. An
+ * absolutely positioned child is not a flex item at all, so the row measures
+ * exactly as it did before this region existed.
+ */
+.announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /*
  * As tall as the ✕ it stands beside and no wider than the lamp inside it.
  * Equal heights hung from the same top edge put the two centres on one line;

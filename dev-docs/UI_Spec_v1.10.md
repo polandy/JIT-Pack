@@ -54,6 +54,8 @@ replaced and why. This index only says where to look.
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
+* 2026-09-21 — **G-12**: a state readout is `aria-hidden` beside a permanent live region, not an `aria-label`
+  (FR-25.15).
 * 2026-09-20 — **M5/M8/M10/M11, G-14**: the FR-25.15 save indicator is silent until it has written something, and is a
   lamp rather than a ✓ at the ✕'s diameter.
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
@@ -453,7 +455,15 @@ These patterns apply to every screen and are specified once.
   labelled filter bar plus a "grouped by" line) made the product's core working screen restless beside it. **Every
   icon-only control names itself (2026-08-27, UX-13):** a button whose body renders no text carries an `aria-label` — a
   `title` alone is a tooltip, not a name. The rule is held over the source by `iconButtonLabels.spec.ts`, because the
-  bars had grown unlabeled glyphs faster than per-screen cases could chase them. **And a cluster has an overflow (added
+  bars had grown unlabeled glyphs faster than per-screen cases could chase them.
+  **A readout is not a control, and naming it is not enough (added 2026-09-21, FR-25.15):** the rule above answers
+  *what is this?*, which is a question about a thing that sits still. A glyph that reports a **changing state** —
+  the save indicator is the built example — is asked *what just happened?*, and an `aria-label` does not answer it:
+  a label that changes on a live region is not reliably announced, and neither is a region that appears already
+  carrying its first words. Such a glyph is **`aria-hidden`** and the words go in a **permanent, visually hidden
+  `role="status"` region** that is present before it has anything to say. `iconButtonLabels.spec.ts` deliberately
+  does not cover these — it scans button-shaped elements, and a readout is a `span`.
+  **And a cluster has an overflow (added
   2026-08-27, the same finding's second half):** a page may mark an action `overflow`, and the bar then renders it
   behind a single **⋮** that opens the action sheet the row menus already use, where each entry is a **word**. The bar
   decides nothing itself — an unmarked action is always a glyph. **M4 is the first user:** *Suchen*, *Filter* and
