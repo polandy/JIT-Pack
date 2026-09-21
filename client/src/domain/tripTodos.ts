@@ -237,7 +237,10 @@ function compareTasks(a: TripTask, b: TripTask): number {
  * would be a lie. It is the *name of an origin* — so both kinds of untagged
  * task are `task_tag_id === null` in the data, and only the heading differs.
  */
-export type TaskOrigin = 'prep' | 'trip'
+export const TASK_ORIGIN_PREP = 'prep'
+export const TASK_ORIGIN_TRIP = 'trip'
+export const TASK_ORIGINS = [TASK_ORIGIN_PREP, TASK_ORIGIN_TRIP] as const
+export type TaskOrigin = (typeof TASK_ORIGINS)[number]
 
 /** One heading of M25 and the tasks under it. */
 export interface TaskGroup {
@@ -255,7 +258,7 @@ export interface TaskGroup {
 
 /** The origin a task belongs to while it carries no tag. */
 export function taskOrigin(task: Pick<TripTask, 'item'>): TaskOrigin {
-  return task.item === null ? 'trip' : 'prep'
+  return task.item === null ? TASK_ORIGIN_TRIP : TASK_ORIGIN_PREP
 }
 
 /**
@@ -307,7 +310,7 @@ export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[])
     origin: null,
     tasks: filed.filter((f) => f.tag === tag.id).map((f) => f.task),
   }))
-  for (const origin of ['prep', 'trip'] as const) {
+  for (const origin of TASK_ORIGINS) {
     groups.push({
       key: origin,
       tag: null,
@@ -335,5 +338,5 @@ export function groupAccepts(
 
 /** What a drop on `key` makes the task's tag: a tag id, or none. */
 export function tagForGroup(key: string): string | null {
-  return key === 'prep' || key === 'trip' ? null : key
+  return (TASK_ORIGINS as readonly string[]).includes(key) ? null : key
 }

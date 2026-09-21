@@ -42,6 +42,7 @@ import { useTripTasks } from '@/composables/useTripTasks'
 import {
   groupAccepts,
   tagForGroup,
+  TASK_ORIGIN_PREP,
   taskGroups,
   tasksInPhase,
   tasksOfAssignee,
@@ -128,7 +129,7 @@ const dropKey = (phase: TaskPhase, group: TaskGroup) => `${phase}/${group.key}`
 /** A group's heading: its tag's name, or what the untagged group is called. */
 function groupName(group: TaskGroup): string {
   if (group.tag) return group.tag.name
-  return t(group.origin === 'prep' ? 'tasks.fromPacking' : 'tasks.noTag')
+  return t(group.origin === TASK_ORIGIN_PREP ? 'tasks.fromPacking' : 'tasks.noTag')
 }
 
 /**
