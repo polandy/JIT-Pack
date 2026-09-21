@@ -5547,11 +5547,15 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     finished; while it is open the hero keeps the ring, FR-7.4's pair and FR-30.7's card exactly as they were. Each is a
     section of the hero's own card, headed by its name and the **open count in the numeric face** (*„12 offen“*; a
     done-role tick in place of the number when none is open):
-    * **Aufgaben** lists the **next four** open tasks of the trip, each with when it is due (FR-7.7) on a second line.
-      **Order:** overdue first (*„gestern“*, *„vor 3 Tagen“*, in the action ink and bold), then today, then dated
-      ascending, and undated last; in Server Mode the tasks assigned to me stand before the others and the assignee's
-      initials sit beside the due date (FR-7.5). Single-User and Local have no assignee and no *„meine zuerst“* in the
-      head. Below the rows, *„+ 8 weitere · alle Aufgaben ›“* names the remainder and leads into M25.
+    * **Aufgaben** lists the **next four** open tasks of the trip. A second line says what kind of task it is — its tag
+      (FR-7.8), or the packing row it prepares (FR-7.6) — and in Server Mode the assignee's initials follow it (FR-7.5).
+      **Order:** the phase in front of the trip first (*Während der Reise* while it runs, *Vor der Reise* before), then
+      the other; inside a phase, in Server Mode mine before the rest, then M25's own order (`compareTasks`). **A task
+      has a phase, not a date** (FR-7.7): nothing here is *overdue*, *today* or *tomorrow*, and a task whose moment has
+      passed is not shown as late — closing the packing already moves it to *during* (FR-5.10). (The first mockup drew
+      due dates; they were invented, the data has none, and they were struck on 2026-09-21 before anything was built.)
+      Single-User and Local have no assignee and no *„meine zuerst“* in the head. Below the rows, *„+ 8 weitere · alle
+      Aufgaben ›“* names the remainder and leads into M25.
     * **Einkauf** lists the **next seven** open lines of the list that is *now* (`listInFocus`, FR-30.8) with the
       quantity on the second line, and *„+ 7 weitere · zur Einkaufsliste ›“* leads onto M6. Packing lines keep FR-30.7's
       *Packliste* tag. Seven, not FR-30.7's five: the card no longer sits under the hero as a second object, and the
@@ -5566,7 +5570,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     * **Both take an entry in place**: a field under the head, 48 px, with a ＋ of the same height; Enter or ＋ adds it
       and the field keeps focus for the next. The task goes to the phase in front of the trip (*„Aufgabe für
       unterwegs…“* while it runs, *„Aufgabe für vor der Reise…“* before — M25's own two labels); the shopping entry goes
-      onto the list shown, as FR-30.1 says. A task typed here has no date and no tag; both are set on M25.
+      onto the list shown, as FR-30.1 says. A task typed here has no tag; that is set on M25.
     * **The confirmation names what was added and where**, in the app's quoting: ***„Milch“ zu Einkaufsliste
       hinzugefügt*** and ***„Post nachsenden“ zu Aufgaben hinzugefügt***. In an open block the new row also appears at
       the top, tinted for a moment, and the count moves. In a **folded** block only the count moves (with a short pulse)
@@ -5604,9 +5608,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       place of the line (variant B of the first round); and hiding an empty block, which would take the field with it.
     * **Open, to be decided while building, and written back here:** (1) where the fold state lives — the device's own
       storage is what the mockup does and is the M9 property-sheet precedent (*a viewing preference, not data*, never
-      synced), a synced per-user setting would follow the person to a second device; (2) whether the task rows list both
-      of the trip's phases or the one in front of it first; (3) whether FR-30.7's chip per list stays in the shopping
-      block — the mockup drew none, and the count and rows always read the list in focus.
+      synced), a synced per-user setting would follow the person to a second device; (2) whether FR-30.7's chip per list
+      stays in the shopping block — the mockup drew none, and the count and rows always read the list in focus.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

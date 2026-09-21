@@ -823,10 +823,11 @@ These patterns apply to every screen and are specified once.
   * **Two blocks** in the sunken surface (G-14) side by side, stacked below the width where both do not fit at 300 px.
     Each: a head — the name in the label role, the open count in the numeric face at 24 px (*„12 offen“*; a done tick
     when none) and an arrow — then the field (48 px input, 48 px ＋), then the rows, then the *„+ n weitere · … ›“* line.
-  * **Rows** are 52 px high at body size 16: the title, and beneath it the due date or the quantity at 13 px, the
-    **check box on the right** as a 28 px box inside a 56 × 52 px target that reaches the card's edge. An overdue date
-    is bold in the action ink; in Server Mode the assignee's initials follow it. Order and counts: Aufgaben four,
-    overdue → today → dated → undated, mine first; Einkauf seven of the list in focus.
+  * **Rows** are 52 px high at body size 16: the title, and beneath it what kind of task it is (its tag, or the row it
+    prepares) or the quantity at 13 px, the **check box on the right** as a 28 px box inside a 56 × 52 px target that
+    reaches the card's edge. In Server Mode the assignee's initials follow the second line. Order and counts: Aufgaben
+    four, the phase in front of the trip first, mine first; Einkauf seven of the list in focus. There are no dates: a
+    task has a phase (FR-7.7).
   * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
     fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
     field; its rows leave the tab order. Both start open, and the state is remembered per user and block.
