@@ -4555,9 +4555,11 @@ as for the packing rows.
   * **The open list is grouped by it:** one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*, then
     the packing list's rows under their categories as before (FR-30.2). **What is bought is not grouped** — the reveal
     (FR-25.11j) stays one flat list, and each row says its tag, because the heading that named it is gone.
-  * **Set in two places:** a chip row under M6's field — the trip's tags and *＋ Neues Tag* — files the *next* entry and
+  * **Set in two places:** a chip row under M6's field — the trip's tags and *＋ Tag* — files the *next* entry and
     holds until the reader taps the chip again, so the things for one shop are typed one after another; and a tap on an
-    own entry's name opens a sheet with one tag or none. **Only own entries carry a tag:** a packing row keeps its
+    own entry's name opens a sheet. **A new tag is made in the same mask an item's tags are (FR-24.1)** —
+    *„Tags suchen oder anlegen…"*, the matching tags as chips, a dashed *„… neu anlegen"* chip for a name nothing
+    carries — and never by typing straight into the row or the composer; both places open that one sheet. **Only own entries carry a tag:** a packing row keeps its
     category, and the dashboard card (FR-30.7) shows an entry's tag but offers no way to choose one.
   * **The check-off sits at the end of the row**, on M6 and on the dashboard card: the thumb rests on the right, and the
     remove (✕) of an own entry stands beside it, to its left.

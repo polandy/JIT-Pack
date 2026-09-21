@@ -38,6 +38,11 @@ function m6(page: Page) {
   return visible(page).getByTestId('m6-page')
 }
 
+/** The tag sheet — the search-or-create mask (FR-30.9); its presentation is a state, not an event. */
+function sheet(page: Page) {
+  return page.getByTestId('m6-tag-sheet')
+}
+
 /**
  * Type an entry into M6's own field and commit it with the button — no
  * keyboard, which is the phone case (E2E-M6-16). Lands on the open tab.
@@ -154,8 +159,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
 
     // A new tag from the composer, kept for the next entry.
     await m6(page).getByTestId('m6-tag-new').click()
-    await m6(page).getByTestId('m6-tag-new-input').fill('Supermarkt')
-    await m6(page).getByTestId('m6-tag-new-input').press('Enter')
+    await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m6-tag-search').locator('input').fill('Supermarkt')
+    await page.getByTestId('m6-tag-create').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
     await addEntry(page, 'Pasta')
     await addEntry(page, 'Brot')
 
@@ -173,8 +180,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .filter({ hasText: 'Batterien' })
       .getByTestId('m6-row-label')
       .click()
-    await page.getByTestId('m6-tag-sheet-input').fill('Baumarkt')
-    await page.getByTestId('m6-tag-sheet-input').press('Enter')
+    await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m6-tag-search').locator('input').fill('Baumarkt')
+    await page.getByTestId('m6-tag-create').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
     await expect(m6(page).getByTestId('m6-group-tag-Baumarkt').locator('h3')).toHaveText([
       'Batterien',
     ])

@@ -1697,10 +1697,13 @@ These patterns apply to every screen and are specified once.
   and — for a per-person item — the recipients (FR-25.6), and **no** remove. An entry and a packing row of the same
   name stay two lines. FR-13.3's destination entries are not built.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip and
-  *＋ Neues Tag* (an inline field, committed by Enter or leaving it). A chip selected files the next entry and stays
-  selected after the add; a second tap on it unselects. A tap on an own entry's name (an untagged one also says
-  *＋ Tag*) opens a bottom sheet — *Tag für „Milch"*, *Ein Tag pro Eintrag* — with *Kein Tag*, the tags in use with a
-  check on the current one, and a field for a new one; choosing closes it. A packing row's name opens nothing. **The
+  *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap on it unselects.
+  *＋ Tag*, and a tap on an own entry's name (an untagged one also says *＋ Tag*), open a **bottom sheet with M10's
+  search-or-create mask** (`ShoppingTagChooser.vue`, the same shape as `TagChooser.vue`): a search field *„Tags suchen
+  oder anlegen…"*, the chosen tag as a chip with its ✕ (which takes it off), the matching tags as chips, a dashed
+  *„… neu anlegen"* chip for a name nothing carries (matched case-insensitively; Enter chooses or creates), and a
+  summary line. Choosing closes the sheet; its title says whose tag it is — *Tag für „Milch"* or *Tag für den nächsten
+  Eintrag*. There is no inline field for a new tag. A packing row's name opens nothing. **The
   reveal of what was bought is not grouped:** its rows say their tag as a small label under the name, and its check
   (which puts the line back) is at the end like the open rows'. Mockup: 2026-09-21 review. (E2E-M6-31)
 * **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Abreise* while the trip is planned **and** its packing is

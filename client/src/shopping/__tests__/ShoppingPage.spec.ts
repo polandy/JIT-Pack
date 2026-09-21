@@ -12,7 +12,7 @@
  * and the reveal, the counts and the ADR-033 guard read both alike.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { IonInput } from '@ionic/vue'
+import { IonInput, IonSearchbar } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -523,6 +523,10 @@ describe('M6 — the list that is now (FR-30.8)', () => {
 })
 
 describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
+  /** Types into the sheet's search field, the way Ionic reports it. */
+  async function search(page: ReturnType<typeof mountPage>, text: string) {
+    await page.findComponent(IonSearchbar).vm.$emit('ionInput', { detail: { value: text } })
+  }
   const headings = (page: ReturnType<typeof mountPage>) =>
     page.findAll('ion-item-group').map((g) => g.attributes('data-testid'))
 
@@ -556,18 +560,35 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(written.at(-1)!.fields).toMatchObject({ name: 'Batterien', tag: null })
   })
 
-  it('a new tag typed in the composer becomes the draft tag and is trimmed', async () => {
+  it('a new tag is made in the search-or-create sheet, trimmed, and becomes the draft tag', async () => {
     const page = mountPage()
     await page.find('[data-testid="m6-tag-new"]').trigger('click')
-    await page.find('[data-testid="m6-tag-new-input"]').setValue('  Apotheke ')
-    await page.find('[data-testid="m6-tag-new-input"]').trigger('blur')
+    await search(page, '  Apotheke ')
+    expect(page.find('[data-testid="m6-tag-create"]').text()).toContain('Apotheke')
+    await page.find('[data-testid="m6-tag-create"]').trigger('click')
 
     expect(page.find('[data-testid="m6-tag-chip"]').text()).toBe('Apotheke')
     expect(page.find('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
+    expect(page.find('[data-testid="m6-tag-search"]').exists()).toBe(false)
 
     await page.findComponent(IonInput).setValue('Mückenspray')
     await page.find('[data-testid="m6-add"]').trigger('submit')
     expect(written.at(-1)!.fields).toMatchObject({ name: 'Mückenspray', tag: 'Apotheke' })
+  })
+
+  it('the sheet offers no create for a name that exists in another case, and chooses the existing one', async () => {
+    seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+
+    await search(page, 'super')
+    expect(page.find('[data-testid="m6-tag-offer-Supermarkt"]').exists()).toBe(true)
+    await search(page, 'supermarkt')
+    expect(page.find('[data-testid="m6-tag-create"]').exists()).toBe(false)
+    await page.findComponent(IonSearchbar).trigger('keyup', { key: 'Enter' })
+
+    expect(page.find('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
+    expect(page.findAll('[data-testid="m6-tag-chip"]').map((c) => c.text())).toEqual(['Supermarkt'])
   })
 
   it('groups the open entries by tag A–Z, then the untagged, then the source’s headings', () => {
@@ -618,9 +639,9 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
       .findAll('[data-testid="m6-row-label"]')
       .find((l) => l.find('h3').text() === 'Batterien')!
       .trigger('click')
-    const options = page.findAll('[data-testid="m6-tag-option"]')
-    expect(options.map((o) => o.text())).toEqual(['Supermarkt'])
-    await options[0]!.trigger('click')
+    const offer = page.find('[data-testid="m6-tag-offer-Supermarkt"]')
+    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(t('shopping.tagNone'))
+    await offer.trigger('click')
 
     expect(written.at(-1)).toMatchObject({
       op: 'upsert',
@@ -632,18 +653,21 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(headings(page)).toEqual(['m6-group-tag-Supermarkt'])
   })
 
-  it('the sheet takes a tag away, or files under a new one', async () => {
+  it('the sheet takes the chosen tag away with its ✕, or creates a new one', async () => {
     seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
     const page = mountPage()
 
     await page.find('[data-testid="m6-row-label"]').trigger('click')
-    await page.find('[data-testid="m6-tag-none"]').trigger('click')
+    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(
+      t('shopping.tagFiledUnder', { tag: 'Supermarkt' }),
+    )
+    await page.find('[data-testid="m6-tag-assigned-Supermarkt"]').trigger('click')
     expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: null } })
     expect(headings(page)).toEqual(['m6-group-own'])
 
     await page.find('[data-testid="m6-row-label"]').trigger('click')
-    await page.find('[data-testid="m6-tag-sheet-input"]').setValue(' Bäcker ')
-    await page.find('[data-testid="m6-tag-sheet-input"]').trigger('submit')
+    await search(page, ' Bäcker ')
+    await page.find('[data-testid="m6-tag-create"]').trigger('click')
     expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: 'Bäcker' } })
     expect(headings(page)).toEqual(['m6-group-tag-Bäcker'])
   })
@@ -651,7 +675,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
   it('a source line offers no tag: a tap on its name opens nothing', async () => {
     const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
     await page.find('[data-testid="m6-row-label"]').trigger('click')
-    expect(page.find('[data-testid="m6-tag-none"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-tag-search"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-row-tag-add"]').exists()).toBe(false)
   })
 

@@ -33,7 +33,7 @@ import {
   IonFab,
   IonFabButton,
 } from '@ionic/vue'
-import { addOutline, bagHandleOutline, checkmarkOutline, closeOutline } from 'ionicons/icons'
+import { addOutline, bagHandleOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -51,8 +51,9 @@ import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { isPackingClosed } from '@/lib/tripPhase'
-import { createShoppingActions, normalizeTag, ownEntriesSource, SHOPPING_TAG_MAX } from './actions'
+import { createShoppingActions, ownEntriesSource } from './actions'
 import { buildSections, listInFocus } from './list'
+import ShoppingTagChooser from './ShoppingTagChooser.vue'
 import { useShoppingStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -176,8 +177,6 @@ async function goToField() {
  * clears it, by tapping the chip again.
  */
 const draftTag = ref<string | null>(null)
-const composingTag = ref(false)
-const newTag = ref('')
 
 /** The tags still in use on this trip, plus the one being drafted before its first entry exists. */
 const tagChips = computed(() => {
@@ -191,14 +190,6 @@ function toggleDraftTag(tag: string) {
   draftTag.value = draftTag.value === tag ? null : tag
 }
 
-/** The typed tag becomes the draft's, and its chip appears selected. */
-function commitNewTag() {
-  const tag = normalizeTag(newTag.value)
-  if (tag !== null) draftTag.value = tag
-  newTag.value = ''
-  composingTag.value = false
-}
-
 /** FR-30.1: an entry of the list's own, on the open tab. */
 function addEntry() {
   if (draft.value.trim() === '') return
@@ -206,24 +197,39 @@ function addEntry() {
   draft.value = ''
 }
 
-/** The entry whose tag the sheet is choosing (FR-30.9); none while it is closed. */
-const retagging = ref<ShoppingLine | null>(null)
-const sheetTag = ref('')
+/**
+ * The search-or-create sheet (FR-30.9), one mask for both callers: it says
+ * whose tag is being chosen, what it is now, and what choosing does.
+ */
+const tagSheet = ref<{
+  title: string
+  current: string | null
+  apply: (tag: string | null) => void
+} | null>(null)
 
+/** The tag of the next entry, from the composer's ＋ Tag. */
+function openDraftSheet() {
+  tagSheet.value = {
+    title: t('shopping.tagSheetDraftTitle'),
+    current: draftTag.value,
+    apply: (tag) => (draftTag.value = tag),
+  }
+}
+
+/** An existing entry's tag, from a tap on its name; a source's line has none to choose. */
 function openTagSheet(line: ShoppingLine) {
-  if (!line.retag) return
-  sheetTag.value = ''
-  retagging.value = line
+  const retag = line.retag
+  if (!retag) return
+  tagSheet.value = {
+    title: t('shopping.tagSheetTitle', { name: line.name }),
+    current: line.tag ?? null,
+    apply: retag,
+  }
 }
 
 function chooseTag(tag: string | null) {
-  retagging.value?.retag?.(tag)
-  retagging.value = null
-}
-
-function commitSheetTag() {
-  const tag = normalizeTag(sheetTag.value)
-  if (tag !== null) chooseTag(tag)
+  tagSheet.value?.apply(tag)
+  tagSheet.value = null
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -281,25 +287,13 @@ setHeaderTitle(
         >
           {{ tag }}
         </button>
-        <form v-if="composingTag" class="chip-new" @submit.prevent="commitNewTag">
-          <input
-            v-model="newTag"
-            :maxlength="SHOPPING_TAG_MAX"
-            :placeholder="t('shopping.tagNewPlaceholder')"
-            :aria-label="t('shopping.tagNewPlaceholder')"
-            autocomplete="off"
-            data-testid="m6-tag-new-input"
-            @blur="commitNewTag"
-          />
-        </form>
         <button
-          v-else
           type="button"
           class="chip chip-add"
           data-testid="m6-tag-new"
-          @click="composingTag = true"
+          @click="openDraftSheet"
         >
-          {{ t('shopping.tagNew') }}
+          {{ t('shopping.tagAdd') }}
         </button>
       </div>
 
@@ -428,50 +422,16 @@ setHeaderTitle(
         </IonItem>
       </IonList>
 
-      <!-- FR-30.9: one tag or none, for an entry of the list's own. -->
-      <SheetModal :is-open="retagging !== null" testid="m6-tag-sheet" @dismiss="retagging = null">
-        <div v-if="retagging" class="tag-sheet">
-          <h2 class="tag-sheet-title">
-            {{ t('shopping.tagSheetTitle', { name: retagging.name }) }}
-          </h2>
+      <!-- FR-30.9: one tag or none — M10's search-or-create mask. -->
+      <SheetModal :is-open="tagSheet !== null" testid="m6-tag-sheet" @dismiss="tagSheet = null">
+        <div v-if="tagSheet" class="tag-sheet">
+          <h2 class="tag-sheet-title">{{ tagSheet.title }}</h2>
           <p class="tag-sheet-hint">{{ t('shopping.tagSheetHint') }}</p>
-          <IonList lines="full">
-            <IonItem button :detail="false" data-testid="m6-tag-none" @click="chooseTag(null)">
-              <IonLabel>{{ t('shopping.tagNone') }}</IonLabel>
-              <IonIcon
-                v-if="!retagging.tag"
-                slot="end"
-                :icon="checkmarkOutline"
-                aria-hidden="true"
-              />
-            </IonItem>
-            <IonItem
-              v-for="entry in shoppingStore.tagCounts(tripId)"
-              :key="entry.tag"
-              button
-              :detail="false"
-              data-testid="m6-tag-option"
-              @click="chooseTag(entry.tag)"
-            >
-              <IonLabel>{{ entry.tag }}</IonLabel>
-              <IonIcon
-                v-if="retagging.tag === entry.tag"
-                slot="end"
-                :icon="checkmarkOutline"
-                aria-hidden="true"
-              />
-            </IonItem>
-          </IonList>
-          <form class="tag-sheet-new" @submit.prevent="commitSheetTag">
-            <input
-              v-model="sheetTag"
-              :maxlength="SHOPPING_TAG_MAX"
-              :placeholder="t('shopping.tagNewPlaceholder')"
-              :aria-label="t('shopping.tagNewPlaceholder')"
-              autocomplete="off"
-              data-testid="m6-tag-sheet-input"
-            />
-          </form>
+          <ShoppingTagChooser
+            :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
+            :assigned="tagSheet.current"
+            @choose="chooseTag"
+          />
         </div>
       </SheetModal>
       <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
@@ -537,19 +497,7 @@ setHeaderTitle(
   color: var(--ct-subtext0);
 }
 
-.chip-new input,
-.tag-sheet-new input {
-  padding: 5px 12px;
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-sunken);
-  color: var(--ct-text);
-  font-size: var(--jp-text-sm);
-}
-
-.chip:focus-visible,
-.chip-new input:focus-visible,
-.tag-sheet-new input:focus-visible {
+.chip:focus-visible {
   outline: 2px solid var(--jp-action);
   outline-offset: 2px;
 }
@@ -581,13 +529,5 @@ setHeaderTitle(
 .tag-sheet-hint {
   margin: 2px 0 8px;
   color: var(--ct-subtext0);
-}
-
-.tag-sheet-new {
-  padding-top: 8px;
-}
-
-.tag-sheet-new input {
-  width: 100%;
 }
 </style>

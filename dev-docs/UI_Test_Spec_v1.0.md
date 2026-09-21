@@ -1427,8 +1427,8 @@ composer.
   **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
   entry's time survives a reload) each assert *„bought · today"*.
 * **E2E-M6-31** `local` (FR-30.9, added 2026-09-21) — **implemented** (`shopping/shopping.spec.ts`): a new tag typed in
-  the composer files the next two entries and stays selected; unselecting it adds an untagged one; the sheet retags that
-  entry under a new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box
+  the search-or-create sheet (opened by *＋ Tag*) files the next two entries and stays selected; unselecting it adds an
+  untagged one; the same sheet retags that entry under a new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box
   is right of the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying
   a tagged entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a
   reload.
