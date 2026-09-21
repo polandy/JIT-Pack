@@ -584,6 +584,25 @@ describe('the tag admin actions (FR-24.10)', () => {
 })
 
 describe('a template’s trip tasks on the seam (FR-7.4)', () => {
+  // FR-7.8: the tasks' own vocabulary, created where it is needed — by
+  // typing a word the picker does not have yet, since no screen manages
+  // these tags (ADR-072).
+  it('createTaskTag queues one master insert and the list carries it', () => {
+    const id = createMasterDataActions(ctx).createTaskTag('Apotheke', 0)
+
+    expect(queued[0]!.type).toBe('master')
+    expect(queued[0]!.muts[0]!.mutation).toMatchObject({
+      op: 'insert',
+      // Its own table, never the inventory's: a word created for a task must
+      // not turn up in the item picker.
+      table: TABLE.taskTags,
+      id,
+      fields: { name: 'Apotheke', sort_order: 0 },
+    })
+    expect(ctx.masterStore.taskTagList.map((t) => t.name)).toEqual(['Apotheke'])
+    expect(ctx.masterStore.tagList).toEqual([])
+  })
+
   it('addTemplateTask queues one master insert and the template lists it', () => {
     const id = createMasterDataActions(ctx).addTemplateTask(
       TEMPLATE_ID,

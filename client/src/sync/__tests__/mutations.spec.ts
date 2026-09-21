@@ -444,6 +444,41 @@ describe('createMutations', () => {
     expect(m.setTaskPhase('todo1', null).fields).toEqual({ phase: null })
   })
 
+  /*
+   * FR-7.8's filing, on the same terms as the phase above: one field, and
+   * `null` is a value rather than a gap — the person took the task out of
+   * its group, and the task then reads under the group named after where it
+   * came from. An omission here would leave every other device on the old
+   * tag, because a field that is not sent is a field that does not merge.
+   */
+  it('setTaskTag writes the tag alone, and can write it away', () => {
+    const m = createMutations(mockHLC())
+    expect(m.setTaskTag('todo1', 'tt-apotheke').fields).toEqual({ task_tag_id: 'tt-apotheke' })
+    expect(m.setTaskTag('todo1', null).fields).toEqual({ task_tag_id: null })
+    // The task's own table, not the tag's: the row being changed is the task.
+    expect(m.setTaskTag('todo1', null).table).toBe(TABLE.comments)
+  })
+
+  // The vocabulary is the tasks' own (ADR-072), so the row goes to task_tags
+  // and never to the inventory's `tags` — where it would appear in the item
+  // picker as a word no item uses.
+  it('createTaskTag inserts into the tasks’ own vocabulary', () => {
+    const m = createMutations(mockHLC())
+    const { mutation, id } = m.createTaskTag('Apotheke')
+
+    expect(mutation.op).toBe('insert')
+    expect(mutation.table).toBe(TABLE.taskTags)
+    expect(mutation.id).toBe(id)
+    // No mark unless one was asked for: writing `icon: null` would be a
+    // statement, and a tag created in passing makes none.
+    expect(mutation.fields).toEqual({ name: 'Apotheke', sort_order: 0 })
+    expect(m.createTaskTag('Bahn', 2, '🚆').mutation.fields).toEqual({
+      name: 'Bahn',
+      sort_order: 2,
+      icon: '🚆',
+    })
+  })
+
   it('deleteTodo creates delete mutation', () => {
     const m = createMutations(mockHLC())
     const mut = m.deleteTodo('todo1')

@@ -283,7 +283,7 @@ const VACATION = {
   // cost rather than something the seed should go looking for.
   taskTags: [
     { name: 'Apotheke', icon: '💊' },
-    { name: 'Haus', icon: '🏠' },
+    { name: 'Haus', icon: '🚪' },
     { name: 'Bahn', icon: '🚆' },
   ] as const,
   tripTasks: [

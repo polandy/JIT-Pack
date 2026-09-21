@@ -13,8 +13,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { tripTasks } from '@/domain/tripTodos'
+import { taskGroups, tripTasks } from '@/domain/tripTodos'
 import { IndexedDBPersistence } from '@/local/persistence'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
@@ -55,6 +56,32 @@ describe('seedSampleTrip (dev)', () => {
     // All of a row's preparations name the same row, which is what the chip
     // on the seeded list will say.
     expect(new Set(prepared.map((task) => task.item?.name)).size).toBe(1)
+  })
+
+  /*
+   * FR-7.8: the seed has to show the grouping with all three shapes of
+   * heading in it, because those are what a reader has to tell apart — a
+   * tag, what came from the packing list, and what has neither. A seed that
+   * tagged everything, or nothing, would leave two of the three unseen on a
+   * fresh device, which is what the seed exists to prevent.
+   */
+  it('leaves a fresh device with a tagged task and both untagged headings (FR-7.8)', () => {
+    const { tripId, trip } = seed()
+    const master = useMasterStore()
+
+    const rows = trip.getItems(tripId).map((item) => ({ id: item.id, name: item.name, icon: null }))
+    const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
+    const groups = taskGroups(tasks, master.taskTagList)
+
+    const byTag = groups.filter((group) => group.tag !== null)
+    expect(byTag.length).toBeGreaterThan(0)
+    // The tag the task names is one the master seed actually created — the
+    // lookup is by name, so a renamed tag would silently file nothing.
+    for (const group of byTag) {
+      expect(master.taskTagList.map((tag) => tag.id)).toContain(group.tag!.id)
+      expect(group.tasks.length).toBeGreaterThan(0)
+    }
+    expect(groups.map((group) => group.key)).toEqual(expect.arrayContaining(['prep', 'trip']))
   })
 
   it('hangs its preparations off a row the trip actually carries', () => {
