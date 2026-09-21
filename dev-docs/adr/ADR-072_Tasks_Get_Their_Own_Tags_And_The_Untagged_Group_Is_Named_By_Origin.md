@@ -106,6 +106,16 @@ already carries: a preparation reads *Aus Packliste*, a chore of the trip *Ohne 
   tasks standing, under the group named after where they came from — and ADR-063's merge-instead-of-delete does not
   have to be extended, because the reason it exists (a delete silently refiling rows nobody was looking at) does not
   arise when the rows stay put and say so.
+  * **What makes that sentence true on every device is not the constraint.** `SET NULL` changes the server's
+    `comments` rows without passing through the change log, so a device that never saw the delete keeps the old id
+    for good. The promise is kept by a *reading* rule instead: **a task whose tag this device has no row for is filed
+    as untagged** (`filedTagOf`). The same rule covers the ordinary case that has nothing to do with deletion — the
+    master and trip partitions arrive through separate feeds, so a task written elsewhere can land before the tag it
+    names, and without the rule it would fall through both passes and be invisible while sitting in the data.
+    **Nothing is wrong with such a task, so nothing says so**; when the tag arrives it simply moves.
+  * There is **no delete path for a task tag in the client today** — the picker creates, and no screen removes — so
+    the deletion case above is reachable only through the push route. If one is ever added, it owes the write that
+    sets the affected tasks to NULL, because that is what other devices learn from.
 * **Local Mode needed no migration**, and the reason is worth writing down because the opposite was assumed: the
   IndexedDB adapter keeps every table in **one** object store keyed `table/id`, so a new syncable table is new keys
   rather than a new store, and `DB_VERSION` has nothing to say about it. A case in `persistence.spec.ts` now states
@@ -119,7 +129,9 @@ already carries: a preparation reads *Aus Packliste*, a chore of the trip *Ohne 
     a pointer move does not re-render the list under the finger holding it.
   * **`idle` means „nothing is in the air", not „something was written."** A drop that changes nothing must still
     reach it, or every case that waits on the attribute hangs on exactly that one drop — the tag-reorder session's
-    point, from a case it already has.
+    point, from a case it already has. The same applies to a write that *fails*: the call sits inside the `try`,
+    because `onDrop` is evaluated before a promise exists and one that throws synchronously would otherwise leave
+    nothing for a `.finally` to attach to. Both paths are cases, and both are mutation-proved.
 * **An empty group is not drawn and is not a target**, so a tag is removed in the task's sheet rather than by
   dragging into a heading that would have to appear for the purpose. The prototype did it the other way and the list
   moved under the finger that had just lifted a task (ADR-060).

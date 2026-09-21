@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  filedTagOf,
   groupAccepts,
   packingWindowTasks,
   tagForGroup,
@@ -364,6 +365,36 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
     // A real tag takes either kind: what a task is *about* has nothing to do
     // with whether a packing row owes it.
     expect(groupAccepts({ origin: null }, t('x', { item: camera }))).toBe(true)
+  })
+
+  /*
+   * A task can name a tag this device has no row for, and it is not an exotic
+   * state: the master and trip partitions arrive through separate feeds, so a
+   * task written elsewhere can land before the tag it names — and a deleted
+   * tag sets the column to NULL on the server without passing the change log,
+   * so a device that never saw the delete keeps the old id for good.
+   *
+   * Whatever the cause, a task nobody can file is still a task. Before this
+   * rule it fell through both passes — not its tag's group, because no such
+   * group is built, and not the untagged one, because its column is not NULL
+   * — and disappeared from the screen while sitting in the data.
+   */
+  it('files a task whose tag this device does not know as an untagged one', () => {
+    const groups = taskGroups(
+      [t('stranger', { tag: 'gone' }), t('prep', { tag: 'gone', item: camera })],
+      tags,
+    )
+    expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
+      ['prep', ['prep']],
+      ['trip', ['stranger']],
+    ])
+  })
+
+  it('names the tag a task is filed under, which is not always the one it carries', () => {
+    expect(filedTagOf({ task_tag_id: 'apo' }, tags)).toBe('apo')
+    expect(filedTagOf({ task_tag_id: null }, tags)).toBeNull()
+    // The one that matters: an id with no tag behind it reads as „none".
+    expect(filedTagOf({ task_tag_id: 'gone' }, tags)).toBeNull()
   })
 
   it('reads a drop on an origin group as “no tag”', () => {

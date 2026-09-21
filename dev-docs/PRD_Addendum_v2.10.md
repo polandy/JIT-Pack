@@ -5460,6 +5460,11 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **A deleted tag unassigns itself** and the tasks stay: `ON DELETE SET NULL`, where `item_tags` cascades. The
     difference is what the row is — there it *is* the assignment, here it is the task, and deleting the task would
     throw away the work. This is also why ADR-063's merge-instead-of-delete does not have to reach task tags.
+  * **A task whose tag this device does not know reads as untagged**, under the group named after where it came
+    from. It is not an error state and nothing says so: the master and trip partitions arrive through separate
+    feeds, so a task can land before the tag it names — and when the tag arrives the task moves to it. Without the
+    rule such a task matches neither pass and is **invisible while sitting in the data**, which is also what would
+    happen on a device that never saw a tag's deletion, since `SET NULL` does not travel the change log.
   * **The portable format does not carry the tag**, exactly as it does not carry the phase (FR-7.7): `trip_tasks` is
     a list of words. An imported task arrives untagged and can be filed afterwards. Reading a tag out of a document
     that never stated one would be a claim, not an import — and `docs/backup.md` says so.

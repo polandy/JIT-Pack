@@ -24,7 +24,7 @@ import { computed, ref } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import type { TripTask } from '@/domain/tripTodos'
+import { filedTagOf, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
@@ -58,6 +58,15 @@ const emit = defineEmits<{
  * the task came from, because that is what its group is called.
  */
 const draftTag = ref('')
+
+/**
+ * Which chip reads as chosen. Not the raw column: a task can carry an id this
+ * device has no tag for — the two partitions arrive through separate feeds —
+ * and the list files such a task as untagged (`filedTagOf`). The sheet has to
+ * agree, or it would show a task with nothing selected while its group says
+ * it has no tag.
+ */
+const chosenTag = computed(() => filedTagOf(props.task, props.taskTags ?? []))
 const noTagLabel = computed(() => (props.task.item ? t('tasks.fromPacking') : t('tasks.noTag')))
 
 function addTag() {
@@ -120,7 +129,7 @@ function factLine(key: string, icon: string, text: string | null) {
         :key="tag.id"
         type="button"
         class="tag"
-        :class="{ on: task.task_tag_id === tag.id }"
+        :class="{ on: chosenTag === tag.id }"
         :data-testid="`task-sheet-tag-${tag.name}`"
         @click="emit('tag', tag.id)"
       >
@@ -131,7 +140,7 @@ function factLine(key: string, icon: string, text: string | null) {
       <button
         type="button"
         class="tag"
-        :class="{ on: task.task_tag_id === null }"
+        :class="{ on: chosenTag === null }"
         data-testid="task-sheet-tag-none"
         @click="emit('tag', null)"
       >

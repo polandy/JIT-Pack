@@ -259,6 +259,30 @@ export function taskOrigin(task: Pick<TripTask, 'item'>): TaskOrigin {
 }
 
 /**
+ * The tag a task is **filed under**, which is not always the tag it names.
+ *
+ * A task can carry an id this device does not have a tag for, and it is not
+ * an exotic state: the master and trip partitions arrive through separate
+ * feeds, so a task written on another device can land before the tag it
+ * names — and if a tag is ever deleted, `ON DELETE SET NULL` changes the
+ * server's row without passing the change log, so a device that never saw the
+ * delete keeps the old id for good.
+ *
+ * Whatever the cause, **a task nobody can file is still a task**: it reads as
+ * untagged, under the group named after where it came from, rather than
+ * falling through every filter and out of the screen. Nothing is wrong with
+ * it, so nothing says so — and when the tag does arrive, it simply moves to
+ * the right group.
+ */
+export function filedTagOf(
+  task: Pick<TripTask, 'task_tag_id'>,
+  tags: readonly TaskTag[],
+): string | null {
+  if (task.task_tag_id === null) return null
+  return tags.some((tag) => tag.id === task.task_tag_id) ? task.task_tag_id : null
+}
+
+/**
  * taskGroups files a phase's tasks under their headings, in reading order:
  * the tags in the order the tags themselves carry, then what came from the
  * packing list, then what has no tag and never did.
@@ -272,18 +296,25 @@ export function taskOrigin(task: Pick<TripTask, 'item'>): TaskOrigin {
  * help.
  */
 export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[]): TaskGroup[] {
+  // Filed once, up front: every task lands in exactly one bucket, and a task
+  // whose tag this device does not know lands in the untagged one rather than
+  // in none. Filtering twice over the raw column is what let a task fall
+  // through both passes and off the screen.
+  const filed = tasks.map((task) => ({ task, tag: filedTagOf(task, tags) }))
   const groups: TaskGroup[] = tags.map((tag) => ({
     key: tag.id,
     tag,
     origin: null,
-    tasks: tasks.filter((task) => task.task_tag_id === tag.id),
+    tasks: filed.filter((f) => f.tag === tag.id).map((f) => f.task),
   }))
   for (const origin of ['prep', 'trip'] as const) {
     groups.push({
       key: origin,
       tag: null,
       origin,
-      tasks: tasks.filter((task) => task.task_tag_id === null && taskOrigin(task) === origin),
+      tasks: filed
+        .filter((f) => f.tag === null && taskOrigin(f.task) === origin)
+        .map((f) => f.task),
     })
   }
   return groups.filter((group) => group.tasks.length > 0)

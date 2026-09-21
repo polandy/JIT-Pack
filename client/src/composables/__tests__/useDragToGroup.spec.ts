@@ -150,6 +150,56 @@ describe('useDragToGroup — the state the suite waits on', () => {
     expect(onDrop).not.toHaveBeenCalled()
   })
 
+  /*
+   * The write's failing path, which no run of the happy path reaches. An
+   * `onDrop` that throws *synchronously* — a mutation raising before its
+   * first await — used to leave nothing for a `.finally` to attach to: the
+   * exception escaped, and the attribute stood at `settling` for ever.
+   */
+  it('reaches idle when the write throws before it ever returns a promise', async () => {
+    vi.useFakeTimers()
+    const onError = vi.fn()
+    const drag = useDragToGroup<string>({
+      onDrop: () => {
+        throw new Error('the mutation refused')
+      },
+      onError,
+    })
+    drag.bindHost(host)
+
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 50))
+    drag.up(at(10, 50))
+
+    await vi.runAllTimersAsync()
+    expect(host.getAttribute(DRAG_STATE_ATTRIBUTE)).toBe('idle')
+    // And the failure is handed over rather than swallowed: a write that went
+    // wrong silently is worse than one that hangs, because nobody looks.
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'the mutation refused' }),
+    )
+  })
+
+  it('reaches idle when the write rejects, and hands the reason over', async () => {
+    vi.useFakeTimers()
+    const onError = vi.fn()
+    const drag = useDragToGroup<string>({
+      onDrop: () => Promise.reject(new Error('the push was refused')),
+      onError,
+    })
+    drag.bindHost(host)
+
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 50))
+    drag.up(at(10, 50))
+
+    await vi.runAllTimersAsync()
+    expect(host.getAttribute(DRAG_STATE_ATTRIBUTE)).toBe('idle')
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'the push was refused' }),
+    )
+  })
+
   it('puts the attribute back when the finger turns out to be scrolling', () => {
     vi.useFakeTimers()
     const drag = useDragToGroup<string>({ onDrop: vi.fn() })

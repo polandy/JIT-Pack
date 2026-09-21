@@ -86,6 +86,17 @@ export interface DragToGroupOptions<T> {
    * value, not the final one. `null` is „nowhere".
    */
   onHover?: (place: DropPlace | null) => void
+  /**
+   * A write that failed. Given one, the gesture hands the error over and
+   * carries on; without one it is re-thrown from a microtask, so it reaches
+   * the page's error handling as an uncaught error rather than vanishing
+   * into a promise nobody awaited.
+   *
+   * Either way the gesture ends: `idle` is reached on the failing path too,
+   * because a signal that only arrives when the write succeeds is a signal
+   * every test hangs on the day a write does not.
+   */
+  onError?: (error: unknown) => void
 }
 
 export interface DragToGroup<T> {
@@ -287,7 +298,32 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       return
     }
     setState('settling')
-    void Promise.resolve(opts.onDrop(payload, landed, from)).finally(() => setState('idle'))
+    void settle(payload, landed, from)
+  }
+
+  /**
+   * Run the write and end the gesture, whatever the write does.
+   *
+   * The call is inside the `try`, not handed to `Promise.resolve` outside it:
+   * `onDrop` is evaluated *before* a promise exists, so an `onDrop` that
+   * throws synchronously — a mutation that raises before its first await —
+   * would leave nothing for a `.finally` to attach to, the exception would
+   * escape `up()`, and the state would stand at `settling` for ever. Only
+   * that path, only on a failure, which is why no run of the happy path
+   * finds it.
+   */
+  async function settle(payload: T, landed: DropPlace, from: number | null): Promise<void> {
+    try {
+      await opts.onDrop(payload, landed, from)
+    } catch (error) {
+      if (opts.onError) opts.onError(error)
+      else
+        queueMicrotask(() => {
+          throw error
+        })
+    } finally {
+      setState('idle')
+    }
   }
 
   function cancel(): void {
