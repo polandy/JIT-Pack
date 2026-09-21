@@ -2,11 +2,11 @@
 
 **From 0.17.0 on, JIT-Pack upgrades its own database.** When a new version starts against a file an older one wrote, it applies the schema changes it is missing and carries on — no SQL to run, no export-and-import, nothing for you to do but pull the image and restart.
 
-That holds from **0.16.0** onwards, which is the oldest release this mechanism can start from. A database written by 0.16.0 or later is carried forward; one written by anything earlier is refused, with the same instruction it has always carried:
+That holds from **0.15.0** onwards. 0.15.0 and 0.16.0 ship the same database layout — byte for byte, so they are one starting point rather than two — and anything written by them or later is carried forward. A database from **0.14.0 or earlier** is refused, with the instruction it has always carried:
 
 ```
 store: database schema is stale: /data/jitpack.db was built from a schema this build cannot place
-	it predates v0.16.0, the oldest release this build carries forward
+	it predates v0.15.0, the oldest release this build carries forward
 	to keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import
 	to discard it:   rm /data/jitpack.db   and restart
 ```
@@ -14,7 +14,7 @@ store: database schema is stale: /data/jitpack.db was built from a schema this b
 Two other refusals exist, and both leave the file untouched as well:
 
 - **A database from a newer version than the one you are starting.** Migrations only go forward; roll the image back to the version that wrote it.
-- **A database from the pre-0.16 migration era** (its schema level is between 1 and 23). Same two ways out as above.
+- **A database from the pre-0.15 migration era** (its schema level is between 1 and 23). Same two ways out as above.
 
 The refused file is never modified — not to "fix" it, not to stamp it. [Troubleshooting](troubleshooting.md#store-database-schema-is-stale) covers the message itself.
 

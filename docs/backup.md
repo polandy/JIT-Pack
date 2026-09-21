@@ -194,13 +194,13 @@ Stop the server, put the backup file in place at `JITPACK_DB_PATH` (removing any
 !!! warning "A file backup restores forward, never backward"
 
     Since 0.17.0 a newer JIT-Pack [carries an older database
-    forward](upgrades.md) when it starts, so a `.db` backup taken on 0.16.0 or later
+    forward](upgrades.md) when it starts, so a `.db` backup taken on 0.15.0 or later
     restores into that version **or any later one**. What it cannot do is go backward: an
     older binary meets a database from the future and
     [refuses to start](troubleshooting.md#store-database-schema-is-stale) rather than
     downgrade it. Restore into the version it came from, or a newer one.
 
-    A backup from **before 0.16.0** is outside the chain and restores only into the version
+    A backup from **before 0.15.0** is outside the chain and restores only into the version
     that wrote it. That is what the [API exports](#getting-data-out-over-the-api) below are
     for: portable YAML and the JSON export survive any schema change, a copy of the file
     does not.

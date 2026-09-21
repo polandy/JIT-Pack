@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -110,11 +111,12 @@ func TestOpen_RefusesWhatItCannotPlace(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		version int64
+		says    []string
 	}{
-		{"the first migration-era level", 1},
-		{"the last migration-era level", 23},
-		{"the first value above them, an unknown fingerprint", 24},
-		{"a fingerprint from a schema this build never had", 1234567},
+		{"the first migration-era level", 1, []string{"migration level 1", "v0.15.0", "export", "rm "}},
+		{"the last migration-era level", 23, []string{"migration level 23", "v0.15.0", "export", "rm "}},
+		{"the first value above them, an unknown fingerprint", 24, []string{"cannot place", "v0.15.0"}},
+		{"a fingerprint from a schema this build never had", 1234567, []string{"cannot place", "v0.15.0"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dsn := filepath.Join(t.TempDir(), "jitpack.db")
@@ -125,8 +127,18 @@ func TestOpen_RefusesWhatItCannotPlace(t *testing.T) {
 				t.Fatalf("close seed: %v", err)
 			}
 
-			if _, err := Open(dsn); !errors.Is(err, ErrSchemaStale) {
-				t.Errorf("Open err = %v, want ErrSchemaStale — an unplaceable database is refused, never guessed", err)
+			_, err := Open(dsn)
+			if !errors.Is(err, ErrSchemaStale) {
+				t.Fatalf("Open err = %v, want ErrSchemaStale — an unplaceable database is refused, never guessed", err)
+			}
+			// The message is the only thing an operator gets, so it is part of
+			// the contract rather than a courtesy: it has to say which case
+			// this is and leave both ways out. Without this assert the whole
+			// migration-era branch could be deleted and every test stay green.
+			for _, want := range tc.says {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("the refusal does not say %q:\n%s", want, err)
+				}
 			}
 		})
 	}

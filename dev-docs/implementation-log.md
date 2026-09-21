@@ -16953,8 +16953,18 @@ inside the era's range.
 fixture and compared that to `schema.sql`. It went red immediately — `schema_meta` was missing from the
 chain — and the fix exposed the real flaw: the files are not what an operator's database meets. The loader
 is, and it does two things no replay does (placing the baseline, creating the table). So the comparison
-now opens a real v0.16.0 file with this build and compares *that* to a fresh open. The replay survives in
+now opens a real v0.15.0/v0.16.0 file with this build and compares *that* to a fresh open. The replay survives in
 one place only, the mutation proof, where the point is to break the chain on purpose.
+
+**The line an operator reads was one release too high.** The first version said the chain starts at v0.16.0,
+because that is the tag the fixture came from. Review caught it: v0.15.0 and v0.16.0 ship a byte-identical
+`schema.sql` and therefore the same fingerprint, so a v0.15.0 database is carried forward too — and the
+message „it predates v0.16.0" could never appear for one. Not cosmetic: the live instance was hand-carried
+to v0.15.0, so the operator it was written for would have read it as „export and reimport" for a database
+that upgrades itself. The entry in `baselineLevels` now names the *oldest* release carrying its schema, and
+the refusal's text is asserted rather than trusted — `TestOpen_RefusesWhatItCannotPlace` checks that each
+refusal names its case and both ways out, which also makes the migration-era branch impossible to delete
+silently.
 
 **Column order is deliberately not compared.** `ALTER TABLE ADD COLUMN` appends; `schema.sql` declares in
 place. Comparing order would fail on every correct chain forever — and in the live database the

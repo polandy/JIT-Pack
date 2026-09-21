@@ -254,7 +254,7 @@ Everything JIT-Pack stores — trips, items, templates, users, the sync change l
 
 The schema is created automatically the first time the server sees an empty file, and reopening that file afterwards is safe.
 
-**Since 0.17.0 the server upgrades the database itself.** Starting a newer image against a file an older one wrote applies the schema changes it is missing, in a transaction each, and logs what it did — nothing to run by hand. That works back to **0.16.0**; a file older than that, or one written by a *newer* version than the image you are starting, is refused rather than touched, and the log says which it is ([the schema is stale](troubleshooting.md#store-database-schema-is-stale)). [Upgrades](upgrades.md) has the routine, and a file backup before the pull is still the cheap insurance.
+**Since 0.17.0 the server upgrades the database itself.** Starting a newer image against a file an older one wrote applies the schema changes it is missing, in a transaction each, and logs what it did — nothing to run by hand. That works back to **0.15.0** (0.15.0 and 0.16.0 ship the same layout); a file older than that, or one written by a *newer* version than the image you are starting, is refused rather than touched, and the log says which it is ([the schema is stale](troubleshooting.md#store-database-schema-is-stale)). [Upgrades](upgrades.md) has the routine, and a file backup before the pull is still the cheap insurance.
 
 One caveat for backups: the database runs in **WAL mode**, so at runtime it is accompanied by `jitpack.db-wal` and `jitpack.db-shm` sidecars. Copying `jitpack.db` alone while the server is running can therefore miss the most recent writes. [Backup & Export](backup.md) covers how to take a consistent copy.
 

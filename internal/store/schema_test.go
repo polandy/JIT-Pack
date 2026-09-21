@@ -88,10 +88,14 @@ func TestOpen_StampsTheSchemaLevelAndMirrorsIt(t *testing.T) {
 	}
 }
 
-// The literal the bridge stands on, proven against the release it names.
+// The literal the bridge stands on, proven against the schema it names.
 // Recomputing it in the loader would make it follow the hash function instead
-// of the release, and the first sign would be a v0.16.0 database refused.
-func TestBaselineFingerprint_MatchesTheV0160Schema(t *testing.T) {
+// of the release, and the first sign would be a real database refused.
+//
+// The fixture is v0.16.0's schema.sql, which is byte-identical to v0.15.0's —
+// which is why the bridge covers both and why the operator-facing line says
+// v0.15.0, the older of the two.
+func TestBaselineFingerprint_MatchesTheSharedV015AndV016Schema(t *testing.T) {
 	ddl, err := os.ReadFile(filepath.Join("testdata", "schema-v0.16.0.sql"))
 	if err != nil {
 		t.Fatalf("read the fixture: %v", err)

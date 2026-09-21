@@ -71,14 +71,17 @@ func loadMigrations() ([]migration, error) {
 // run — and, for a fresh one, the level schema.sql already stands at.
 func currentSchemaLevel() int { return len(migrationChain) }
 
-// baselineFingerprint is the `PRAGMA user_version` a v0.16.0 database carries:
-// the fingerprint of *that* release's schema.sql, recorded here as a literal.
+// baselineFingerprint is the `PRAGMA user_version` a v0.15.0 **or** v0.16.0
+// database carries: the two releases ship a byte-identical schema.sql, so they
+// fingerprint the same and the chain starts from either. v0.14.0 hashes
+// differently (1094229030) and is outside the chain.
 //
-// Deliberately not recomputed at run time. The value has to keep meaning
-// „v0.16.0" for as long as any database still stands on it, and a computation
-// would follow whatever the hash function does next — the bridge would break
-// silently, on the one database nobody can rebuild. `TestBaselineFingerprint`
-// proves the literal against `testdata/schema-v0.16.0.sql`.
+// Deliberately not recomputed at run time. The value has to keep meaning „the
+// schema those two releases shipped" for as long as any database still stands
+// on it, and a computation would follow whatever the hash function does next —
+// the bridge would break silently, on the one database nobody can rebuild.
+// `TestBaselineFingerprint_MatchesTheSharedV015AndV016Schema` proves the
+// literal against the fixture.
 const baselineFingerprint int64 = 620367602
 
 // baselineLevels maps a *released* schema's fingerprint to the level a
@@ -89,7 +92,10 @@ var baselineLevels = map[int64]struct {
 	level int
 	tag   string
 }{
-	baselineFingerprint: {level: 0, tag: "v0.16.0"},
+	// The *oldest* release carrying this schema, because that is the line an
+	// operator needs: everything from here on is carried forward. v0.16.0
+	// shares it and is covered by the same entry.
+	baselineFingerprint: {level: 0, tag: "v0.15.0"},
 }
 
 // lastMigrationEraLevel is the highest `user_version` the *old* migration era

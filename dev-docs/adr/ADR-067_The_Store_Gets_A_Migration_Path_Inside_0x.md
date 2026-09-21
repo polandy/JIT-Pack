@@ -190,12 +190,14 @@ a current one refused.
 authoritative, and `user_version` is kept as a readable mirror that nothing decides on. The *presence* of
 that table is what says a database belongs to the chain era at all, which is a fact no hash can imitate.
 A database without it is placed by matching `user_version` against a **list of known release
-fingerprints** (`baselineLevels`, today just v0.16.0 → level 0), and anything not on the list is refused.
+fingerprints** (`baselineLevels`, today one entry: the schema v0.15.0 and v0.16.0 share, byte for byte, → level 0),
+and anything not on the list is refused.
 Two guards keep the vocabularies apart for good: values at or below `lastMigrationEraLevel` are refused
 before the list is even consulted, and a test refuses a future baseline whose fingerprint would land in
 that range.
 
-**The baseline fingerprint is a literal**, proven against `internal/store/testdata/schema-v0.16.0.sql`
+**The baseline fingerprint is a literal**, proven against `internal/store/testdata/schema-v0.16.0.sql` — which is also
+v0.15.0's, the two being identical
 rather than recomputed at run time. A recomputation would follow whatever the hash function does next, and
 the bridge would break on the one database that cannot be rebuilt.
 
