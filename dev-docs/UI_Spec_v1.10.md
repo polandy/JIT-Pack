@@ -825,21 +825,21 @@ These patterns apply to every screen and are specified once.
     when none) and an arrow — then the field (48 px input, 48 px ＋), then the rows, then the *„+ n weitere · … ›“* line.
   * **Rows** are 52 px high at body size 16: the title, and beneath it what kind of task it is (its tag, or the row it
     prepares) or the quantity at 13 px, the **check box on the right** as a 28 px box inside a 56 × 52 px target that
-    reaches the card's edge. In Server Mode the assignee's initials follow the second line. Order and counts: Aufgaben
-    four, the phase in front of the trip first, mine first; Einkauf seven of the list in focus. There are no dates: a
-    task has a phase (FR-7.7).
+    reaches the card's edge. In Server Mode the assignee's name follows it. Order and counts: Aufgaben four, the phase
+    in front of the trip first, mine first; Einkauf seven of the list in focus. There are no dates: a task has a phase
+    (FR-7.7).
   * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
     fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
-    field; its rows leave the tab order. Both start open, and the state is remembered per user and block.
-  * **Feedback:** a tick strikes the row through and raises the snackbar with *Rückgängig* for about four seconds, then
-    the row goes. An entry added to an **open** block appears on top, tinted for a moment; added to a **folded** one
-    only the count pulses and the snackbar says *„Milch“ zu Einkaufsliste hinzugefügt* / *„Post nachsenden“ zu Aufgaben
-    hinzugefügt*. The block never unfolds by itself.
+    field; its rows leave the tab order. Both start open, and the state is remembered per block on this device.
+  * **Feedback:** a tick takes the row off and raises the app's snackbar with *Rückgängig* (the shopping block:
+    FR-30.7's undo bar). An entry added to an **open** block appears on top, tinted for a moment; added to a **folded**
+    one only the count pulses and the snackbar says *„Milch“ zu Einkaufsliste hinzugefügt* / *„Post nachsenden“ zu
+    Aufgaben hinzugefügt*. The block never unfolds by itself.
   * **Empty (G-7):** the block stays; done tick in the head, the field, and a quiet sentence in the place of the rows —
     *Für unterwegs ist nichts notiert.*, *Vor Ort ist nichts zu kaufen.* / *Vor der Abreise ist nichts zu kaufen.*
   * **Foot:** a 48 px bordered control, *Packliste öffnen ›*, leads to M4. Links: the card's head into the trip, a
-    block's head and its *„weitere“* line into M25 / M6, and none inside another. The Playwright cases go into the
-    ledger (`dev-docs/e2e-tests.md`) with the build.
+    block's *„weitere“* line into M25 / M6 (its head folds it), and none inside another. The Playwright cases go into
+    the ledger (`dev-docs/e2e-tests.md`) with the build.
 * **Its blocks are the app's card (added 2026-09-09, FR-21.28).** Every section on M1 — delegation, last-minute,
   prep, the trip cards under the hero, the planned lookahead — is `.jp-card` (G-14) under a section head (G-13). Until
   then M1 was the one screen still drawing Ionic's card: 10 px further in than the hero above it, at a quarter of its

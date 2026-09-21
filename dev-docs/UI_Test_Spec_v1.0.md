@@ -1433,9 +1433,17 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
-* **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
-  and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
-  *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
+* **E2E-M1-25** `local` (FR-5.10 with FR-7.9 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
+  trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
+  finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
+  The pair is the case: a card that had merely lost its figure would satisfy half of it.
+* **E2E-M1-26** `local` (FR-7.9, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the hero's task block
+  takes a task in its field, lists it, shows the check to the right of the words, and drops the row when it is ticked.
+  Folded, the head and the field stay and an added task moves the count without unfolding the block (the count is
+  the positive signal for that absence), and the fold survives a reload.
+* **E2E-M1-27** `local` (FR-7.9, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the shopping block adds
+  an entry, lists it, and buys it on the right-hand check; the hero contains **no control inside a link**, and
+  *Packliste öffnen* is there.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
   opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
   and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab

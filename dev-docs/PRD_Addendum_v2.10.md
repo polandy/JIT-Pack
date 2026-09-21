@@ -5523,13 +5523,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09.
 
 * **FR-7.9 (The dashboard once the packing is done — owner request and decision 2026-09-21, decided from an interactive
-  mockup, `dev-docs/UI_Concept_DashboardAfterPacking.html`):** FR-5.10 made a finished packing recede into one line,
-  *„Packen abgeschlossen“*. The owner found that line takes too much room for what it says (translated from German: *on
-  the dashboard „packing finished“ takes up too much space; I think it can be left out once the trip is in that phase*),
-  and asked in the same breath that the phase be shown somewhere else — in the date line — and that the freed room carry
-  something useful. What is useful, in the
-  owner's words, is *how many tasks and shopping items* are open: the packing figures
-  are not, because on that dashboard the packing is over. The tradeoff is ADR-073.
+  mockup, `dev-docs/UI_Concept_DashboardAfterPacking.html`; *built the same day*):** FR-5.10 made a finished packing
+  recede into one line, *„Packen abgeschlossen“*. The owner found that line takes too much room for what it says
+  (translated from German: *on the dashboard „packing finished“ takes up too much space; I think it can be left out once
+  the trip is in that phase*), and asked in the same breath that the phase be shown somewhere else — in the date line —
+  and that the freed room carry something useful. What is useful, in the owner's words, is *how many tasks and shopping
+  items* are open: the packing figures are not, because on that dashboard the packing is over. The tradeoff is ADR-073.
   * **The line is struck; the phase moves into the date line.** The hero and every trip card below it carry the trip's
     phase after the dates (*„12.–18. Okt 2026 · ● Vor Ort“*): a dot and one word — ***Vor Ort*** once the packing is
     declared finished (FR-5.10) and ***Packen*** until then — in `--jp-done` ink for the first and `--ct-subtext0` for
@@ -5548,25 +5547,25 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     section of the hero's own card, headed by its name and the **open count in the numeric face** (*„12 offen“*; a
     done-role tick in place of the number when none is open):
     * **Aufgaben** lists the **next four** open tasks of the trip. A second line says what kind of task it is — its tag
-      (FR-7.8), or the packing row it prepares (FR-7.6) — and in Server Mode the assignee's initials follow it (FR-7.5).
-      **Order:** the phase in front of the trip first (*Während der Reise* while it runs, *Vor der Reise* before), then
-      the other; inside a phase, in Server Mode mine before the rest, then M25's own order (`compareTasks`). **A task
-      has a phase, not a date** (FR-7.7): nothing here is *overdue*, *today* or *tomorrow*, and a task whose moment has
-      passed is not shown as late — closing the packing already moves it to *during* (FR-5.10). (The first mockup drew
-      due dates; they were invented, the data has none, and they were struck on 2026-09-21 before anything was built.)
-      Single-User and Local have no assignee and no *„meine zuerst“* in the head. Below the rows, *„+ 8 weitere · alle
-      Aufgaben ›“* names the remainder and leads into M25.
+      (FR-7.8), or the packing row it prepares (FR-7.6) — and in Server Mode the assignee's name follows it (FR-7.5), as
+      it does on the overview card. **Order:** the phase in front of the trip first (*Während der Reise* while it runs,
+      *Vor der Reise* before), then the other; inside a phase, in Server Mode mine before the rest, then M25's own order
+      (`compareTasks`). **A task has a phase, not a date** (FR-7.7): nothing here is *overdue*, *today* or *tomorrow*,
+      and a task whose moment has passed is not shown as late — closing the packing already moves it to *during*
+      (FR-5.10). (The first mockup drew due dates; they were invented, the data has none, and they were struck on
+      2026-09-21 before anything was built.) Single-User and Local have no assignee and no *„meine zuerst“* in the head.
+      Below the rows, *„+ 8 weitere · alle Aufgaben ›“* names the remainder and leads into M25.
     * **Einkauf** lists the **next seven** open lines of the list that is *now* (`listInFocus`, FR-30.8) with the
       quantity on the second line, and *„+ 7 weitere · zur Einkaufsliste ›“* leads onto M6. Packing lines keep FR-30.7's
       *Packliste* tag. Seven, not FR-30.7's five: the card no longer sits under the hero as a second object, and the
       list is what the person came for.
     * **Both are workable in place** — this is the reversal ADR-073 records. **Check-off on the right, and hard to
       miss**: the box is drawn 28 px inside a **56 × 52 px** target that runs to the card's edge, on a **52 px** row at
-      body size 16. *Right, always*, in both blocks, and on M6 too where FR-30.9 already put it. A tick keeps the row
-      struck-through and shows the snackbar with ***Rückgängig*** for about four seconds before the row leaves the list,
-      so a mis-tap is a tap rather than a hunt: a list that shifts under the finger with no way back is the harm G-19
-      names for banners, and it is no less one here. A packing line is checked through FR-3.3, as FR-30.7 already
-      had it.
+      body size 16. *Right, always*, in both blocks, and on M6 too where FR-30.9 already put it. A tick takes the row
+      off the list and raises the app's snackbar with ***Rückgängig*** (the one M4 and M25 raise, through the same act,
+      `useTaskActs`; the shopping block keeps FR-30.7's undo bar), so a mis-tap is a tap rather than a hunt: a list that
+      shifts under the finger with no way back is the harm G-19 names for banners, and it is no less one here. A packing
+      line is checked through FR-3.3, as FR-30.7 already had it.
     * **Both take an entry in place**: a field under the head, 48 px, with a ＋ of the same height; Enter or ＋ adds it
       and the field keeps focus for the next. The task goes to the phase in front of the trip (*„Aufgabe für
       unterwegs…“* while it runs, *„Aufgabe für vor der Reise…“* before — M25's own two labels); the shopping entry goes
@@ -5578,8 +5577,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     * **Each block folds and unfolds**, by tapping its head (the arrow turns with it), **with a motion that shows it
       happening**: the rows glide shut over about 0.3 s while they fade, and the blocks below move up with them — no
       jump. `prefers-reduced-motion` gets no animation. A folded block keeps its head, the count and its field, and its
-      rows are out of the tab order and the accessibility tree. **The state is remembered per user and per block**, and
-      both blocks start open. It is the person's choice, so it is not the trip's and is not in the partition.
+      rows are out of the tab order and the accessibility tree. **The state is remembered per block, on this device**
+      (`lib/blockFold.ts`, the M9 property-sheet hint's precedent: a viewing preference, never synced), and both blocks
+      start open. It is the person's choice, so it is not the trip's and is not in the partition.
     * **Adding to a folded block does not unfold it.** Whoever folded it did not want the list; and adding several
       things in a row is the ordinary case at a shopping list, where a layout that opens and pushes the field away makes
       the second entry a search. The evidence that it landed is the count and the snackbar, and the field stays focused.
@@ -5593,23 +5593,25 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       the blocks, ***Packliste öffnen ›***, 48 px high, leads to M4. The head of the card (dates, name, counter) still
       leads into the trip.
     * **The hero is no longer one link** (FR-30.7's own rule: *the trip card is a link, and a card that can be worked is
-      not*). The head — dates, name, meta and counter — is the link into the trip, each block's head and its *„weitere“*
-      line lead where they say, and the check boxes, fields and the fold are controls; none is nested in another. The
-      blocks are drawn as sections of the hero's card, not as sibling cards under it, and `TripHero` accepts them
-      through its slot; **M1 still does not import the shopping module** — the block is bound through `lib/tripCards.ts`
-      (FR-30.3), which grows the one contract needed for a slot in the hero.
+      not*). The head — dates, name, meta and counter — is the link into the trip, the block heads fold their block and
+      each block's *„weitere“* line leads where it says, and the check boxes, fields and the fold are controls; none is
+      nested in another. The blocks are drawn as sections of the hero's card, not as sibling cards under it, and
+      `TripHero` accepts them through its slot; **M1 still does not import the shopping module** — the block is bound
+      through `lib/tripCards.ts` (FR-30.3), which grows the one contract needed for a slot in the hero.
     * **What does not change.** The trip cards below the hero keep their FR-30.7 shopping card and FR-7.4's one-line
       task summary; they lose only *„Packen abgeschlossen“* and gain the phase and, when the trip is running, the
-      counter. Nothing is written to a table that was not written before: a task is a `comments` row, an entry a
-      `shopping_entries` row, and both travel their own partitions. **Three modes:** Server as above; Single-User has no
-      assignee; Local has no network and needs none, and the per-user memory of the fold is the device's own there.
+      counter. **Two consequences on M1:** FR-7.6's *Aufgaben* overview card leaves the hero's trip out (the same tasks
+      twice on one screen disagree the moment one is ticked), and the hero draws no preview of open packing rows — a row
+      added after the packing was finished is one tap away under *Packliste öffnen*. Nothing is written to a table that
+      was not written before: a task is a `comments` row, an entry a `shopping_entries` row, and both travel their own
+      partitions. **Three modes:** Server as above; Single-User has no assignee; Local has no network and needs none,
+      and the per-user memory of the fold is the device's own there.
     * **Decided against**, from the mockup: three key figures (packed, left at home, open purchases) in a row —
       (translated) *the metrics are of no use*, and the dashboard normally holds one trip; a done-tick after the name in
       place of the line (variant B of the first round); and hiding an empty block, which would take the field with it.
-    * **Open, to be decided while building, and written back here:** (1) where the fold state lives — the device's own
-      storage is what the mockup does and is the M9 property-sheet precedent (*a viewing preference, not data*, never
-      synced), a synced per-user setting would follow the person to a second device; (2) whether FR-30.7's chip per list
-      stays in the shopping block — the mockup drew none, and the count and rows always read the list in focus.
+    * **Decided while building (2026-09-21):** (1) a synced per-user fold state would follow the person to a second
+      device — built device-local; (2) FR-30.7's chip per list is not in the shopping block, which reads the list in
+      focus.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

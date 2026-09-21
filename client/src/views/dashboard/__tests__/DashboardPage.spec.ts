@@ -41,6 +41,11 @@ const orchestratorFake = {
   subscribeTrip: vi.fn(),
   resolvePrepTodo: vi.fn(),
   reopenPrepTodo: vi.fn(),
+  tripDataLoaded: vi.fn(() => true),
+  addTripTodo: vi.fn(() => 'new-task'),
+  resolveTripTodo: vi.fn(),
+  reopenTripTodo: vi.fn(),
+  deleteTripTodo: vi.fn(),
 }
 
 function mountPage(cards?: Component[]) {
@@ -108,6 +113,7 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
       tripName: { type: String, required: true },
       planned: { type: Boolean, required: true },
       packingClosed: { type: Boolean, required: true },
+      embedded: { type: Boolean, default: false },
     },
     setup(props) {
       seen.push({ ...props })
@@ -153,16 +159,17 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
 })
 
 /**
- * FR-5.10 on M1 (owner, 2026-09-20): *„es soll auch Auswirkungen auf das
- * Dashboard haben. Die Packliste kann dort deutlich weniger prominent sein,
- * da wir nun in einer anderen Ferienphase sind."*
+ * FR-7.9 on M1 (owner, 2026-09-21; translated from German): *on the dashboard
+ * „packing finished“ takes up too much space — leave it out once the trip is
+ * in that phase*, and show the phase in the date line instead.
  *
- * The ring is the loudest thing on the card and it answers a question that
- * is settled. What replaces it has to be quieter *and* still true — hence
- * both halves below: the figure goes, and the sentence that goes in its
- * place says what happened rather than nothing.
+ * Both halves matter: the line is gone, and the phase is said elsewhere.
+ * Without the second, a spec that only proved the line's absence would pass
+ * against a card that had simply stopped saying anything.
  */
-describe('M1 — a trip whose packing is finished (FR-5.10)', () => {
+describe('M1 — the hero once the packing is finished (FR-7.9)', () => {
+  const CLOSED = '2026-09-20T18:40:00.000Z'
+
   function seedActiveTrip(row: Record<string, unknown> = {}) {
     useTripStore().applyChange({
       seq: 0,
@@ -173,51 +180,217 @@ describe('M1 — a trip whose packing is finished (FR-5.10)', () => {
     })
   }
 
-  it('keeps the packing figure while the packing is open', async () => {
-    seedActiveTrip()
+  function seedTask(id: string, row: Record<string, unknown> = {}) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.comments,
+      id,
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        trip_item_id: null,
+        author_id: 'u-andy',
+        is_task: 1,
+        task_state: 'open',
+        phase: 'during',
+        body: id,
+        ...row,
+      },
+    })
+  }
+
+  it('keeps the ring and says Packen in the date line while the packing is open', async () => {
+    seedActiveTrip({ start_date: '2026-10-12', end_date: '2026-10-18' })
 
     const page = mountPage()
     await flushPromises()
 
     expect(page.find('[data-testid="hero-progress"]').exists()).toBe(true)
-    expect(page.find('[data-testid="hero-done"]').exists()).toBe(false)
+    expect(page.find('[data-testid="hero-phase"]').text()).toBe(t('dashboard.phasePacking'))
+    expect(page.find('[data-testid="dashboard-tasks-Samedan-add"]').exists()).toBe(false)
   })
 
-  it('replaces the figure with one quiet line once it is closed', async () => {
-    seedActiveTrip({ packing_closed_at: '2026-09-20T18:40:00.000Z' })
+  it('drops the ring, names the phase, and shows the blocks', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
 
     const page = mountPage()
     await flushPromises()
 
     expect(page.find('[data-testid="hero-progress"]').exists()).toBe(false)
-    const done = page.find('[data-testid="hero-done"]')
-    expect(done.exists()).toBe(true)
-    expect(done.text()).toBe(t('dashboard.packingDone'))
+    expect(page.find('[data-testid="hero-phase"]').text()).toBe(t('dashboard.phaseOnSite'))
+    expect(page.find('[data-testid="dashboard-tasks-Samedan"]').exists()).toBe(true)
   })
 
-  it('does the same on the cards below the hero', async () => {
+  it('is no longer one link: only the head leads into the trip, and no control sits in a link', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    seedTask('Post nachsenden')
+
+    const page = mountPage()
+    await flushPromises()
+
+    const hero = page.find('[data-testid="dashboard-trip-Samedan"]')
+    expect(hero.element.tagName).not.toBe('A')
+    expect(hero.find('[data-testid="hero-head"]').exists()).toBe(true)
+    // A control inside a link is the defect: the tap would be a navigation.
+    for (const control of hero.findAll('button, input')) {
+      expect(control.element.closest('a')).toBeNull()
+    }
+  })
+
+  it('lists the four next open tasks, counts them all, and names the rest', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f']) seedTask(id)
+    seedTask('done', { task_state: 'resolved' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    const block = page.find('[data-testid="dashboard-tasks-Samedan"]')
+    expect(block.findAll('[data-testid="dashboard-tasks-Samedan-row"]')).toHaveLength(4)
+    expect(block.find('[data-testid="dashboard-tasks-Samedan-count"]').text()).toBe('6')
+    expect(block.find('[data-testid="dashboard-tasks-Samedan-more"]').text()).toContain(
+      t('dashboard.tasksMore', { n: 2 }),
+    )
+  })
+
+  it('ticks a task on the right-hand check and writes it through the shared act', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    seedTask('Post nachsenden')
+
+    const page = mountPage()
+    await flushPromises()
+    await page.find('[data-testid="dashboard-tasks-Samedan-row-check"]').trigger('click')
+
+    expect(orchestratorFake.resolveTripTodo).toHaveBeenCalledTimes(1)
+  })
+
+  it('adds a task in the phase in front of the trip and keeps the field for the next', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+
+    const page = mountPage()
+    await flushPromises()
+    const input = page.find('[data-testid="dashboard-tasks-Samedan-add-input"]')
+    await input.setValue('  Post nachsenden  ')
+    await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
+
+    expect(orchestratorFake.addTripTodo).toHaveBeenCalledWith(
+      't1',
+      expect.anything(),
+      'Post nachsenden',
+      'during',
+    )
+    expect((input.element as HTMLInputElement).value).toBe('')
+  })
+
+  it('adds nothing for a blank field', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.find('[data-testid="dashboard-tasks-Samedan-add-input"]').setValue('   ')
+    await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
+
+    expect(orchestratorFake.addTripTodo).not.toHaveBeenCalled()
+  })
+
+  it('stays, with its field and a sentence, when nothing is left to do', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="dashboard-tasks-Samedan-empty"]').text()).toBe(
+      t('tasks.emptyDuring'),
+    )
+    expect(page.find('[data-testid="dashboard-tasks-Samedan-add-input"]').exists()).toBe(true)
+  })
+
+  it('folds and unfolds by its head, and a folded block keeps head, count and field', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    seedTask('Post nachsenden')
+    localStorage.clear()
+
+    const page = mountPage()
+    await flushPromises()
+    const fold = page.find('[data-testid="dashboard-tasks-Samedan-fold"]')
+    expect(fold.attributes('aria-expanded')).toBe('true')
+
+    await fold.trigger('click')
+
+    expect(fold.attributes('aria-expanded')).toBe('false')
+    const block = page.find('[data-testid="dashboard-tasks-Samedan"]')
+    expect(block.attributes('data-folded')).toBe('true')
+    expect(block.find('[data-testid="dashboard-tasks-Samedan-count"]').exists()).toBe(true)
+    expect(block.find('[data-testid="dashboard-tasks-Samedan-add-input"]').exists()).toBe(true)
+    expect(block.find('.body').attributes('inert')).toBeDefined()
+  })
+
+  it('lists tasks only of the trip whose block it is, and not again in the overview card', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    seedTask('Post nachsenden')
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.findAll('[data-testid="dashboard-tasks-Samedan-row"]')).toHaveLength(1)
+    expect(page.text().match(/Post nachsenden/g)).toHaveLength(1)
+  })
+
+  it('leads back to the packing list from under the blocks', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="dashboard-open-packing"]').text()).toContain(
+      t('dashboard.openPackingList'),
+    )
+  })
+
+  it('hands the shopping card the hero to sit in, and no card sits under it', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    const seen: TripCardProps[] = []
+    const spy = defineComponent({
+      props: {
+        tripId: { type: String, required: true },
+        tripName: { type: String, required: true },
+        planned: { type: Boolean, required: true },
+        packingClosed: { type: Boolean, required: true },
+        embedded: { type: Boolean, default: false },
+      },
+      setup(props) {
+        seen.push({ ...props })
+        return () => null
+      },
+    })
+
+    mountPage([spy])
+    await flushPromises()
+
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ embedded: true, packingClosed: true })
+  })
+
+  it('draws the cards below the hero without a ring or a line, and with the phase', async () => {
     // The hero is the soonest *dated* departure (FR-21.13), so Samedan is the
-    // hero and Elba — undated, still packing open — is a card below it.
+    // hero and Elba — undated, packing finished — is a card below it.
     seedActiveTrip({ start_date: '2026-10-01' })
     useTripStore().applyChange({
       seq: 1,
       table: TABLE.trips,
       id: 't2',
       deleted: false,
-      row: {
-        name: 'Elba',
-        year: 2026,
-        status: 'active',
-        packing_closed_at: '2026-09-20T18:40:00.000Z',
-      },
+      row: { name: 'Elba', year: 2026, status: 'active', packing_closed_at: CLOSED },
     })
 
     const page = mountPage()
     await flushPromises()
 
     expect(page.find('[data-testid="dashboard-summary-Elba"]').exists()).toBe(false)
-    expect(page.find('[data-testid="dashboard-done-Elba"]').text()).toBe(t('dashboard.packingDone'))
-    // The hero's own figure is untouched: its packing is still open, and the
+    expect(page.find('[data-testid="dashboard-phase-Elba"]').text()).toBe(
+      t('dashboard.phaseOnSite'),
+    )
+    // The hero's own ring is untouched: its packing is still open, and the
     // rule is about the trip, not about the screen.
     expect(page.find('[data-testid="hero-progress"]').exists()).toBe(true)
   })

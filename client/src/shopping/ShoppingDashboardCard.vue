@@ -20,9 +20,13 @@ import { IonCheckbox, IonIcon } from '@ionic/vue'
 import { addOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import DashboardBlock from '@/components/global/DashboardBlock.vue'
+import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
+
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
+import { presentToast } from '@/lib/toast'
 import type { TripCardProps } from '@/lib/tripCards'
 import { tripSubPath } from '@/router/paths'
 import type { ShoppingMode } from '@/types/domain'
@@ -33,8 +37,11 @@ import { useShoppingStore } from './store'
 
 const props = defineProps<TripCardProps>()
 
-/** How many lines the card shows before it hands over to M6. */
-const MAX_LINES = 5
+/** The block's remembered fold (`lib/blockFold.ts`). */
+const SHOPPING_FOLD_KEY = 'shopping'
+
+/** How many lines the card shows before it hands over to M6 — seven as a block of the hero (FR-7.9). */
+const MAX_LINES = props.embedded ? 7 : 5
 
 const orchestrator = useOrchestrator()
 const shoppingStore = useShoppingStore()
@@ -95,6 +102,28 @@ function add() {
   lastBought.value = null
 }
 
+/** FR-7.9: the block's own field — the confirmation is what a folded block has to show. */
+function addFromBlock(text: string) {
+  actions.addEntry(props.tripId, list.value, text)
+  lastBought.value = null
+  void presentToast({ message: t('shopping.addedToList', { name: text }) })
+}
+
+/** What kind of line it is, under its name: how many, then where it came from. */
+function subOf(line: ShoppingLine, isOwn: boolean): string | null {
+  const parts = [
+    line.quantity > 1 ? `${line.quantity}×` : null,
+    isOwn ? line.tag : t('shopping.fromPacking'),
+  ].filter(Boolean)
+  return parts.join(' · ') || null
+}
+
+const blockEmpty = computed(() =>
+  loaded.value && lines.value.length === 0
+    ? t(list.value === ITEM_MODE_BUY_BEFORE ? 'shopping.emptyBefore' : 'shopping.emptyLocal')
+    : null,
+)
+
 function switchTo(which: ShoppingMode) {
   list.value = which
   lastBought.value = null
@@ -102,7 +131,45 @@ function switchTo(which: ShoppingMode) {
 </script>
 
 <template>
-  <section v-if="visible" class="jp-card shop-card" :data-testid="`dashboard-shopping-${tripName}`">
+  <!-- FR-7.9: a block of the hero, drawn by the same object as the task block. -->
+  <template v-if="visible && embedded">
+    <DashboardBlock
+      :title="t('shopping.title')"
+      :count="lines.length"
+      :fold-key="SHOPPING_FOLD_KEY"
+      :add-label="t('shopping.addPlaceholder')"
+      :more-route="tripSubPath(tripId, 'shopping')"
+      :more-label="
+        lines.length > MAX_LINES
+          ? t('shopping.moreLines', { n: lines.length - MAX_LINES })
+          : t('shopping.openList')
+      "
+      :empty="blockEmpty"
+      :testid="`dashboard-shopping-${tripName}`"
+      @add="addFromBlock"
+    >
+      <DashboardBlockRow
+        v-for="{ line, own: isOwn } in shown"
+        :key="line.key"
+        :title="line.name"
+        :sub="subOf(line, isOwn)"
+        :check-label="t('shopping.bought', { name: line.name })"
+        testid="dash-shop-row"
+        @check="buy(line)"
+      />
+    </DashboardBlock>
+    <div v-if="lastBought" class="undo" data-testid="dash-shop-undo">
+      <span>{{ t('shopping.boughtUndoable', { name: lastBought.name }) }}</span>
+      <button type="button" data-testid="dash-shop-undo-button" @click="undo">
+        {{ t('packing.undo') }}
+      </button>
+    </div>
+  </template>
+  <section
+    v-else-if="visible"
+    class="jp-card shop-card"
+    :data-testid="`dashboard-shopping-${tripName}`"
+  >
     <div class="head">
       <h3 class="title">
         {{ planned ? t('shopping.cardTitleFor', { trip: tripName }) : t('shopping.title') }}

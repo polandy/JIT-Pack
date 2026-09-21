@@ -523,3 +523,33 @@ test('E2E-VIS-11: visual: M2 with the hero card @local @visual', async ({ page, 
   await settled(page)
   await expect(page).toHaveScreenshot('m2-hero.png')
 })
+
+// E2E-VIS-13: M1's hero once the packing is finished (FR-7.9, ADR-073) — the
+// phase in the date line, no ring, and the two blocks with a row each. The
+// trip is undated on purpose: the day counter reads the wall clock, and a
+// baseline that says *„in 3 Tagen"* is a baseline that goes stale by itself.
+test('E2E-VIS-13: visual: M1 hero after the packing @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await packingList(page, ['Zelt', 'Schlafsack'])
+  await tripAction(page, 'start')
+  await tripAction(page, 'closePacking')
+  await page.getByTestId('m4-close-sheet-confirm').click()
+  await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+  await writesLanded(page)
+
+  await page.goto(PATH.dashboard)
+  const tasks = page.getByTestId('dashboard-tasks-Samedan 2026')
+  await tasks.getByTestId('dashboard-tasks-Samedan 2026-add-input').fill('Post nachsenden')
+  await tasks.getByTestId('dashboard-tasks-Samedan 2026-add-submit').click()
+  const shop = page.getByTestId('dashboard-shopping-Samedan 2026')
+  await shop.getByTestId('dashboard-shopping-Samedan 2026-add-input').fill('Blasenpflaster')
+  await shop.getByTestId('dashboard-shopping-Samedan 2026-add-submit').click()
+  await expect(tasks.getByTestId('dashboard-tasks-Samedan 2026-row')).toHaveCount(1)
+  await expect(shop.getByTestId('dash-shop-row')).toHaveCount(1)
+  // The two confirmations are toasts and lapse by themselves; a baseline taken
+  // under them would photograph how far along their timers were.
+  await expect(page.locator('ion-toast')).toHaveCount(0)
+  await settled(page)
+  await expect(page).toHaveScreenshot('m1-hero-packed.png')
+})

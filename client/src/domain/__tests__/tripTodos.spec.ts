@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  dashboardTasks,
   filedTagOf,
   groupAccepts,
   packingWindowTasks,
@@ -401,5 +402,80 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
     expect(tagForGroup('apo')).toBe('apo')
     expect(tagForGroup('prep')).toBeNull()
     expect(tagForGroup('trip')).toBeNull()
+  })
+})
+
+describe('dashboardTasks (FR-7.9): what the hero lists of a trip’s tasks', () => {
+  const task = (
+    id: string,
+    opts: { phase?: TaskPhase; assignee?: string | null; state?: TodoState } = {},
+  ): TripTask => ({
+    id,
+    body: id,
+    task_state: opts.state ?? 'open',
+    item: null,
+    assignee_user_id: opts.assignee ?? null,
+    phase: opts.phase ?? TASK_PHASE_BEFORE,
+    author_id: 'someone',
+    created_at: null,
+    resolved_at: null,
+    resolved_by_user_id: null,
+    task_tag_id: null,
+  })
+  const ids = (list: TripTask[]) => list.map((entry) => entry.id)
+
+  it('lists only open tasks and counts them all, whatever the limit', () => {
+    const got = dashboardTasks(
+      [task('a'), task('b', { state: 'resolved' }), task('c'), task('d'), task('e')],
+      { phaseInFront: TASK_PHASE_BEFORE, myUserId: null, limit: 2 },
+    )
+    expect(ids(got.rows)).toEqual(['a', 'c'])
+    expect(got.open).toBe(4)
+    expect(got.rest).toBe(2)
+  })
+
+  it('puts the phase the trip is in first, and keeps FR-7.6’s order inside each group', () => {
+    const got = dashboardTasks(
+      [
+        task('before-1'),
+        task('during-1', { phase: TASK_PHASE_DURING }),
+        task('before-2'),
+        task('during-2', { phase: TASK_PHASE_DURING }),
+      ],
+      { phaseInFront: TASK_PHASE_DURING, myUserId: null, limit: 10 },
+    )
+    expect(ids(got.rows)).toEqual(['during-1', 'during-2', 'before-1', 'before-2'])
+  })
+
+  it('puts mine before the rest inside a phase, but never ahead of the phase in front', () => {
+    const got = dashboardTasks(
+      [
+        task('other-during', { phase: TASK_PHASE_DURING }),
+        task('mine-before', { assignee: 'me' }),
+        task('mine-during', { phase: TASK_PHASE_DURING, assignee: 'me' }),
+        task('other-before'),
+      ],
+      { phaseInFront: TASK_PHASE_DURING, myUserId: 'me', limit: 10 },
+    )
+    expect(ids(got.rows)).toEqual(['mine-during', 'other-during', 'mine-before', 'other-before'])
+  })
+
+  it('has no “mine” without a signed-in person, so an unassigned task is not one', () => {
+    const got = dashboardTasks([task('a'), task('b', { assignee: 'someone' })], {
+      phaseInFront: TASK_PHASE_BEFORE,
+      myUserId: null,
+      limit: 10,
+    })
+    expect(ids(got.rows)).toEqual(['a', 'b'])
+  })
+
+  it('says nothing is left when nothing is open', () => {
+    expect(
+      dashboardTasks([task('a', { state: 'resolved' })], {
+        phaseInFront: TASK_PHASE_BEFORE,
+        myUserId: null,
+        limit: 4,
+      }),
+    ).toEqual({ rows: [], open: 0, rest: 0 })
   })
 })

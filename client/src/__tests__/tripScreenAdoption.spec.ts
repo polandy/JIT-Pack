@@ -23,6 +23,8 @@ import { describe, it, expect } from 'vitest'
  * removed.
  */
 const NOT_TRIP_PARTITION: Record<string, string> = {
+  'src/views/dashboard/DashboardTasksBlock.vue':
+    'a block of M1’s hero, not a screen: M1 loads and follows every active trip’s partition itself (`ensureTripData`), and the block asks `tripDataLoaded` before it says nothing is left',
   'src/views/trips/TripMembersPage.vue':
     'the roster is `trip_members`, which is master data — it arrives with the master pull',
 }

@@ -18,7 +18,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { trainOutline, addOutline, checkmarkCircleOutline } from 'ionicons/icons'
+import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { TRIP_CARDS } from '@/lib/tripCards'
 import { isPackingClosed } from '@/lib/tripPhase'
@@ -47,6 +47,10 @@ import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import TripPhase from '@/components/trips/TripPhase.vue'
+import DashboardTasksBlock from './DashboardTasksBlock.vue'
+import { taskPhaseInFront, tripDay } from '@/domain/tripDay'
+import { dayText, phaseWord } from '@/lib/tripDayText'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
@@ -63,6 +67,18 @@ onMounted(() => {
   // two of three modes and leaves the section absent rather than broken.
   void load()
 })
+
+/**
+ * FR-7.9: the phase word and the day counter, for the hero and for the cards
+ * under it. `today` is read where it is asked, so a dashboard left open across
+ * midnight reads the new day on its next render rather than a cached one.
+ */
+function phaseOf(trip: Trip) {
+  return { label: phaseWord(isPackingClosed(trip)), done: isPackingClosed(trip) }
+}
+function counterOf(trip: Trip) {
+  return dayText(tripDay(trip, new Date()))
+}
 
 const activeTrips = computed(() =>
   byDepartureSoonestFirst(tripStore.tripList.filter((t) => isActive(t))),
@@ -134,6 +150,16 @@ const tripCards = inject(TRIP_CARDS, [])
  */
 const heroTrip = computed(() => activeTrips.value[0] ?? null)
 const followingTrips = computed(() => activeTrips.value.slice(1))
+
+/**
+ * FR-7.6's *Aufgaben* card reports the open tasks of every active trip. The
+ * hero of a trip whose packing is finished lists them itself and works them
+ * (FR-7.9), and the same tasks twice on one screen would be two answers that
+ * disagree the moment one is ticked.
+ */
+const overviewTrips = computed(() =>
+  activeTrips.value.filter((trip) => trip !== heroTrip.value || !isPackingClosed(trip)),
+)
 
 /** Who is on the trip, for the hero's second line. */
 function travelerLine(trip: Trip): string | null {
@@ -358,7 +384,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FR-7.6: every open task of every active trip, its own and its
            rows' preparations, reported; they are written in the trip. -->
-      <TripTodosOverview :trips="activeTrips" />
+      <TripTodosOverview :trips="overviewTrips" />
 
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
@@ -382,51 +408,84 @@ async function handleRefresh(event: CustomEvent) {
             ? t('dashboard.openCount', { n: openItemCount(heroTrip.id) })
             : null
         "
+        :phase="phaseOf(heroTrip)"
+        :counter="counterOf(heroTrip)"
+        :workable="isPackingClosed(heroTrip)"
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
-        :done-note="isPackingClosed(heroTrip) ? t('dashboard.packingDone') : null"
       >
+        <!-- FR-7.9: once the packing is finished the hero works the two
+             things that are still owed, in place; only its head is a link. -->
+        <template v-if="isPackingClosed(heroTrip)" #blocks>
+          <DashboardTasksBlock
+            :trip-id="heroTrip.id"
+            :phase-in-front="taskPhaseInFront(tripDay(heroTrip, new Date()))"
+            :testid="`dashboard-tasks-${heroTrip.name}`"
+          />
+          <component
+            :is="card"
+            v-for="(card, index) in tripCards"
+            :key="`hero-${index}`"
+            :trip-id="heroTrip.id"
+            :trip-name="heroTrip.name"
+            :planned="false"
+            :packing-closed="true"
+            embedded
+          />
+        </template>
+        <template v-if="isPackingClosed(heroTrip)" #foot>
+          <RouterLink
+            :to="tripPath(heroTrip.id)"
+            class="pack-link"
+            data-testid="dashboard-open-packing"
+          >
+            <span>{{ t('dashboard.openPackingList') }}</span>
+            <span aria-hidden="true">›</span>
+          </RouterLink>
+        </template>
         <!-- FR-7.4: the trip's todos as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
-        <template v-if="taskLine(heroTrip)" #beside="{ ringSize }">
+        <template v-if="!isPackingClosed(heroTrip) && taskLine(heroTrip)" #beside="{ ringSize }">
           <TripTodoFigure
             :trip-id="heroTrip.id"
             :ring-size="ringSize"
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
         </template>
-        <IonItem
-          v-for="item in previewItems(heroTrip.id)"
-          :key="item.id"
-          lines="none"
-          class="dashboard-item"
-          :data-testid="`dashboard-preview-${item.name}`"
-        >
-          <IonCheckbox
-            slot="start"
-            :checked="isFullyPacked(item)"
-            :indeterminate="isPartlyPacked(item)"
-            disabled
-          />
-          <IonLabel>
-            <span>{{ item.name }}</span>
-            <span v-if="item.quantity > 1" class="qty-badge">
-              {{ item.packed_count }}/{{ item.quantity }}
-            </span>
-          </IonLabel>
-        </IonItem>
+        <template v-if="!isPackingClosed(heroTrip)">
+          <IonItem
+            v-for="item in previewItems(heroTrip.id)"
+            :key="item.id"
+            lines="none"
+            class="dashboard-item"
+            :data-testid="`dashboard-preview-${item.name}`"
+          >
+            <IonCheckbox
+              slot="start"
+              :checked="isFullyPacked(item)"
+              :indeterminate="isPartlyPacked(item)"
+              disabled
+            />
+            <IonLabel>
+              <span>{{ item.name }}</span>
+              <span v-if="item.quantity > 1" class="qty-badge">
+                {{ item.packed_count }}/{{ item.quantity }}
+              </span>
+            </IonLabel>
+          </IonItem>
 
-        <p
-          v-if="openItemCount(heroTrip.id) > 3"
-          class="more-items"
-          :data-testid="`dashboard-more-${heroTrip.name}`"
-        >
-          {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
-        </p>
+          <p
+            v-if="openItemCount(heroTrip.id) > 3"
+            class="more-items"
+            :data-testid="`dashboard-more-${heroTrip.name}`"
+          >
+            {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
+          </p>
+        </template>
       </TripHero>
       <!-- FR-30.7: the modules' cards for this trip, as siblings of its card
            — the trip card is a link, and a card that can be worked is not. -->
-      <template v-if="heroTrip">
+      <template v-if="heroTrip && !isPackingClosed(heroTrip)">
         <component
           :is="card"
           v-for="(card, index) in tripCards"
@@ -446,27 +505,27 @@ async function handleRefresh(event: CustomEvent) {
           :data-testid="`dashboard-trip-${trip.name}`"
         >
           <div class="trip-card-head">
-            <h3 class="trip-card-name">{{ trip.name }}</h3>
-            <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
+            <div class="trip-card-title">
+              <h3 class="trip-card-name">{{ trip.name }}</h3>
+              <p v-if="counterOf(trip)" class="trip-counter" data-testid="trip-counter">
+                {{ counterOf(trip)?.headline }}
+              </p>
+            </div>
+            <p class="trip-dates">
+              {{ formatTripPeriod(trip) }}
+              <TripPhase v-bind="phaseOf(trip)" :testid="`dashboard-phase-${trip.name}`" />
+            </p>
           </div>
 
           <div class="trip-card-body">
-            <!-- FR-5.10: a finished packing says so in one line, here as on
-                 the hero — the phase has moved on, and the ring would be the
-                 loudest thing on the card about a settled question. -->
-            <p
-              v-if="isPackingClosed(trip)"
-              class="done-note"
-              :data-testid="`dashboard-done-${trip.name}`"
-            >
-              <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" />
-              <span>{{ t('dashboard.packingDone') }}</span>
-            </p>
+            <!-- FR-7.9: a finished packing draws no figure here — the phase after
+                 the dates says it, and the ring would be answering a settled
+                 question. -->
             <!-- The same figure the hero carries, one ring size down: a trip's
                progress is one composition in this app, and M2's list rows
                read it the same way. -->
             <ProgressFigure
-              v-else
+              v-if="!isPackingClosed(trip)"
               :percent="progressFraction(trip) * 100"
               :headline="
                 t('trips.itemSummary', {
@@ -611,6 +670,41 @@ async function handleRefresh(event: CustomEvent) {
   padding: 12px 16px 14px;
 }
 
+.trip-card-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trip-counter {
+  margin: 0;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-semibold);
+}
+
+/* FR-7.9: the way back to the packing list once the hero stopped showing it. */
+.pack-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--ct-surface0);
+  border-radius: var(--jp-r-sm);
+  color: var(--jp-action);
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+  text-decoration: none;
+}
+
+.pack-link:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
+}
+
 .trip-card-name {
   font-size: var(--jp-text-lg);
   font-weight: var(--jp-weight-semibold);
@@ -628,22 +722,6 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 /* FR-7.4: a statement under the packing figure, not a part of it. */
-/* FR-5.10, the hero's line one card down: done ink, body size, no figure. */
-.done-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
-}
-
-.done-note ion-icon {
-  flex: none;
-  font-size: var(--jp-icon-sm);
-  color: var(--jp-done);
-}
-
 .task-line {
   margin: 10px 0 4px;
   color: var(--ct-subtext0);
