@@ -243,7 +243,8 @@ stable references for the traceability matrix.
   no checkbox. Resolving the todo in M5, reached through the chip, is what clears the card; that is the positive signal
   that the card reads the todos rather than a copy of them. ~~grouped by item~~ in a card of its own (*Prep to do*) is
   what FR-7.6 replaced on 2026-09-20 — the chip is what the grouping became. ~~ticking one resolves it~~ is the clause
-  the 2026-09-18 ruling struck — it was implemented and asserted until that day.
+  the 2026-09-18 ruling struck — it was implemented and asserted until that day. The hero's own task block of a finished
+  packing is the exception and is worked (FR-7.9, E2E-M1-26).
 * **E2E-M1-03** `server` (FR-6.1/6.3/4.4) — **implemented 2026-08-31** (`server/multi-user.spec.ts`): Alice assigns a
   row and it appears on Bob's dashboard **while he is looking at it**, marked new, without a reload; opening it leads to
   the row; and coming back the same row is listed and no longer news. Every assertion is scoped to **this case's row**

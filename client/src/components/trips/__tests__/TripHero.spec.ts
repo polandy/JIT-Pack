@@ -111,4 +111,56 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
       '--ring-size: 58px',
     )
   })
+
+  it('names the phase after the dates and opposite the name the day counter (FR-7.9)', () => {
+    const wrapper = mount(TripHero, {
+      props: {
+        ...base,
+        when: '12.–18. Okt 2026',
+        phase: { label: 'Vor Ort', done: true },
+        counter: { headline: 'Tag 2 von 7', sub: 'noch 5 Tage' },
+      },
+      global,
+    })
+
+    expect(wrapper.get('[data-testid="hero-phase"]').text()).toBe('Vor Ort')
+    expect(wrapper.get('[data-testid="hero-phase"]').classes()).toContain('done')
+    expect(wrapper.get('[data-testid="hero-counter"]').text()).toContain('Tag 2 von 7')
+    expect(wrapper.get('[data-testid="hero-counter"]').text()).toContain('noch 5 Tage')
+  })
+
+  it('leaves the counter out when it has none, and the phase’s ink quiet while packing (FR-7.9)', () => {
+    const wrapper = mount(TripHero, {
+      props: { ...base, when: '2026', phase: { label: 'Packen', done: false } },
+      global,
+    })
+
+    expect(wrapper.find('[data-testid="hero-counter"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="hero-phase"]').classes()).not.toContain('done')
+  })
+
+  it('is one link while the packing is open (FR-7.9’s other half)', () => {
+    const wrapper = mount(TripHero, { props: base, global })
+    const link = wrapper.getComponent(RouterLinkStub)
+    expect(link.find('[data-testid="hero-progress"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="hero-head"]').exists()).toBe(false)
+  })
+
+  it('stops being one link once it is worked: only the head leads on, and the blocks are the slot’s (FR-7.9)', () => {
+    const wrapper = mount(TripHero, {
+      props: { ...base, workable: true },
+      slots: { blocks: '<button data-testid="in-block">tick</button>' },
+      global,
+    })
+
+    const links = wrapper.findAllComponents(RouterLinkStub)
+    expect(links).toHaveLength(1)
+    expect(links[0]!.props('to')).toBe('/trips/t1')
+    expect(links[0]!.find('[data-testid="hero-name"]').exists()).toBe(true)
+    // The control is in the card and outside the link: a tap on it is a tick.
+    expect(wrapper.find('[data-testid="in-block"]').exists()).toBe(true)
+    expect(links[0]!.find('[data-testid="in-block"]').exists()).toBe(false)
+    // The card itself is not the link, so the figure is not inside one, and none is drawn.
+    expect(wrapper.find('[data-testid="hero-progress"]').exists()).toBe(false)
+  })
 })

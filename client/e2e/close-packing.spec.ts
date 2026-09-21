@@ -431,6 +431,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     const fold = block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold')
     await fold.click()
     await expect(fold).toHaveAttribute('aria-expanded', 'false')
+    await expect(block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-input')).toBeVisible()
     await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-input').fill('Schlüssel geben')
     await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-submit').click()
     await expect(count).toHaveText('1')
@@ -440,6 +441,14 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(
       visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold').first(),
     ).toHaveAttribute('aria-expanded', 'false')
+
+    // The way on is the block's own line — the head folds — and it leads to M25.
+    // It is out of reach while the block is folded, so the fold is undone first.
+    const foldAgain = visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold')
+    await foldAgain.click()
+    await expect(foldAgain).toHaveAttribute('aria-expanded', 'true')
+    await visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-more').click()
+    await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
   })
 
   /**
@@ -471,6 +480,13 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     const hero = visiblePage(page).getByTestId('dashboard-trip-Dashboard-Einkauf')
     await expect(hero.locator('a button, a input')).toHaveCount(0)
     await expect(hero.getByTestId('dashboard-open-packing')).toBeVisible()
+
+    // The blocks' own lines lead on, and the way back to the packing list.
+    await block.getByTestId('dashboard-shopping-Dashboard-Einkauf-more').click()
+    await expect(visiblePage(page).getByTestId('m6-page')).toBeVisible()
+    await page.goto(PATH.dashboard)
+    await visiblePage(page).getByTestId('dashboard-open-packing').click()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toBeVisible()
   })
 
   /**

@@ -886,23 +886,24 @@ These patterns apply to every screen and are specified once.
   assistive technology too). ~~Tapping a todo toggles it resolved~~ — **struck 2026-09-18 (owner): M1 takes no
   actions**, so the card lists the tasks as text and they are resolved in M4 or M5 (E2E-M1-02, E2E-M1-07).
 * **Tasks section (FR-7.4 — built 2026-09-18, reworked the same day; every task of the trip since FR-7.6).** An
-  *Aufgaben* card under its section head (G-13, the open count beside the name) **reports, never operates**:
-  M1 takes no actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure
-  first — the hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2
-  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open tasks as plain text —
-  an assigned one followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5), one that
-  prepares a row followed by that row's chip instead (FR-7.6), which is the one link on the line and leads into the
-  row. The block's head is the other link, and leads into the trip; the two are never nested. A
-  trip without any task is left out, and the card is absent when none has one — the first cut put an editor with an
-  empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
-  check too:** the hero as the **packing share's pair** — the same ring (both step down to 46 px while paired),
-  *„1/4 Aufgaben"*, *„3 offen"* while any is open, and a track, in `--jp-done` like the share's (G-11). Side by side
-  where both sentences fit, headlines on one line and tracks on another; stacked where they do not, which is a
-  phone — each column's basis is the ring, its gap and the longest sentence measured, so no breakpoint is involved
-  and no sentence is ellipsized. Each list card below the hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben:
-  alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
-  is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
-  modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11)
+  *Aufgaben* card under its section head (G-13, the open count beside the name) **reports, never operates**: M1 takes no
+  actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure first — the
+  hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2 erledigt"*, or *„✓
+  Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open tasks as plain text — an assigned one
+  followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5), one that prepares a row
+  followed by that row's chip instead (FR-7.6), which is the one link on the line and leads into the row. The block's
+  head is the other link, and leads into the trip; the two are never nested. A trip without any task is left out, and
+  the card is absent when none has one — the first cut put an editor with an empty composer here for every active trip,
+  which stood above the hero on every dashboard. **The trip cards carry the check too:** the hero as the **packing
+  share's pair** — the same ring (both step down to 46 px while paired), *„1/4 Aufgaben"*, *„3 offen"* while any is
+  open, and a track, in `--jp-done` like the share's (G-11). Side by side where both sentences fit, headlines on one
+  line and tracks on another; stacked where they do not, which is a phone — each column's basis is the ring, its gap and
+  the longest sentence measured, so no breakpoint is involved and no sentence is ellipsized. Each list card below the
+  hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben: alle erledigt"*. Both are present only when the trip has at
+  least one trip todo, and neither is folded into the ring, the track or the share. The todos are written in M4
+  (*Aufgaben für die Reise*). All three modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11) **Amended
+  2026-09-21 (FR-7.9, ADR-073):** this card still reports and never operates; the hero of a trip whose packing is
+  finished carries its own task block, which is worked in place, and this card leaves that trip out.
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's

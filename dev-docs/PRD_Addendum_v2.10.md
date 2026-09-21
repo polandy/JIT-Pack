@@ -4515,20 +4515,20 @@ as for the packing rows.
 * **FR-30.6 (The ＋ Bottom Right — owner request 2026-09-19):** M6 carries M4's FAB. It leads to the field — scrolled
   to the top, focused — rather than opening a second one, and the list scrolls clear of it (FR-25.11h).
 
-* **FR-30.7 (The Shopping List on the Dashboard, Workable — owner request and decision 2026-09-19):** under each trip
-  on M1 sits its shopping card: at most **five** open lines of the list that is *now* — *Vor Ort* for a running trip,
-  *Vor der Abreise* for a planned one — with a chip per list to switch, a field that adds an entry to the shown list,
-  a check-off per line (a packing line through FR-3.3, as on M6) with the card's own *Rückgängig*, and the way onto
-  M6. Packing lines carry a *Packliste* tag. Removing, the bought reveal and FR-30.4's stamps stay on M6. A running
-  trip always has its card; a planned trip only while something is left to buy. **This is the one exception to M1's
-  „reports, takes no actions" ruling (FR-7.4, 2026-09-18)**, taken on purpose: the list is opened in the shop, where
-  a detour through the trip is what nobody wants. The cost that ruling named — an empty composer on every dashboard —
-  is accepted for this card and not extended to trip todos, which stay read-only. Chosen over a single *Einkaufen*
-  section gathering every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated
-  the field per trip. M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3).
-  **Amended 2026-09-21 (FR-7.9, ADR-073):** once the packing is finished the card is a block of the hero — seven lines,
-  under the trip's head and no longer a sibling under it — and the *„sibling, because a card that can be worked is not a
-  link“* rule is kept by making the hero's head the link and nothing else.
+* **FR-30.7 (The Shopping List on the Dashboard, Workable — owner request and decision 2026-09-19):** under each trip on
+  M1 sits its shopping card: at most **five** open lines of the list that is *now* — *Vor Ort* for a running trip, *Vor
+  der Abreise* for a planned one — with a chip per list to switch, a field that adds an entry to the shown list, a
+  check-off per line (a packing line through FR-3.3, as on M6) with the card's own *Rückgängig*, and the way onto M6.
+  Packing lines carry a *Packliste* tag. Removing, the bought reveal and FR-30.4's stamps stay on M6. A running trip
+  always has its card; a planned trip only while something is left to buy. **This is the one exception to M1's „reports,
+  takes no actions" ruling (FR-7.4, 2026-09-18)**, taken on purpose: the list is opened in the shop, where a detour
+  through the trip is what nobody wants. The cost that ruling named — an empty composer on every dashboard — is accepted
+  for this card and not extended to trip todos, which stay read-only. Chosen over a single *Einkaufen* section gathering
+  every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated the field per trip.
+  M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3). **Amended 2026-09-21 (FR-7.9,
+  ADR-073):** once the packing is finished the card is a block of the hero — seven lines, under the trip's head and no
+  longer a sibling under it — and the *„sibling, because a card that can be worked is not a link“* rule is kept by
+  making the hero's head the link and nothing else.
 
 * **FR-30.8 (The List That Is Now — owner request 2026-09-20, *built 2026-09-20*):** M6 opened on *Vor der Abreise*
   whatever the trip was doing, and that is the one list which is certainly over once you have left. It now opens on the
@@ -5251,17 +5251,19 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     above is unchanged in the direction that matters: no task of either kind moves the share.
   * **Surface: written in the trip, reported on the dashboard (owner decision, revised the same day).** M4 carries an
     *Aufgaben für die Reise* section whose head states the second check and which unfolds to the editable list: open
-    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **Ticking a task
-    off raises FR-25.2's snackbar with its undo** — the row leaves the open list the way a packed row leaves the
-    packing list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no
-    actions** — it reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's
-    block leading into the trip, and each active trip card states the check beside — never inside — its packing
-    progress (**one exception since 2026-09-19: the shopping list, FR-30.7**). The first cut put the whole editor
-    on M1; the owner ruled it out once it was built, because an empty composer stood above the hero on every dashboard
-    and because the dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show
-    trip todos, and M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card
-    is display-only and fetches no trip partition — but their M4 section works like any other. **Revisit trigger:** a
-    trip todo somebody needs to see on M1 before the trip is started.
+    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **Ticking a task off
+    raises FR-25.2's snackbar with its undo** — the row leaves the open list the way a packed row leaves the packing
+    list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no actions** — it
+    reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's block leading
+    into the trip, and each active trip card states the check beside — never inside — its packing progress (**one
+    exception since 2026-09-19: the shopping list, FR-30.7**). The first cut put the whole editor on M1; the owner ruled
+    it out once it was built, because an empty composer stood above the hero on every dashboard and because the
+    dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show trip todos, and
+    M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card is display-only
+    and fetches no trip partition — but their M4 section works like any other. **Revisit trigger:** a trip todo somebody
+    needs to see on M1 before the trip is started. **Amended 2026-09-21 (FR-7.9, ADR-073):** the ruling stands for the
+    *Aufgaben* overview card and for every trip card, and no longer for the hero of a trip whose packing is finished —
+    its task block is worked in place, on purpose, for the reason FR-30.7 gave the shopping list.
   * **Visibility (owner request, 2026-09-18, after using the first cut).** The section began closed at the foot of
     M4, under every group and reveal bar, where it went unseen. Of four mocked variants the owner chose two, together:
     **(A) a second figure** — M4's header line and M1's hero carry the todos as the packing share's pair: the same

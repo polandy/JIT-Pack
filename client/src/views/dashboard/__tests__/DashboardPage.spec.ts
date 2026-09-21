@@ -9,7 +9,7 @@
  * the two states have to be told apart with the store held still, which a
  * held pull can do for one screen (E2E-M2-18) but not cheaply for nine.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -393,5 +393,107 @@ describe('M1 — the hero once the packing is finished (FR-7.9)', () => {
     // The hero's own ring is untouched: its packing is still open, and the
     // rule is about the trip, not about the screen.
     expect(page.find('[data-testid="hero-progress"]').exists()).toBe(true)
+  })
+
+  describe('the day counter and the phase of task the block leads with', () => {
+    afterEach(() => vi.useRealTimers())
+
+    /** A clock that only Date follows: timers and microtasks stay real. */
+    function today(day: string) {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(`${day}T12:00:00`))
+    }
+
+    it('says which day of how many while the trip runs, on the hero and on the cards', async () => {
+      today('2026-10-13')
+      seedActiveTrip({
+        packing_closed_at: CLOSED,
+        start_date: '2026-10-12',
+        end_date: '2026-10-18',
+      })
+      useTripStore().applyChange({
+        seq: 1,
+        table: TABLE.trips,
+        id: 't2',
+        deleted: false,
+        row: {
+          name: 'Elba',
+          year: 2026,
+          status: 'active',
+          start_date: '2026-10-20',
+          end_date: '2026-10-25',
+        },
+      })
+
+      const page = mountPage()
+      await flushPromises()
+
+      expect(page.find('[data-testid="hero-counter"]').text()).toContain(
+        t('dashboard.dayOf', { day: 2, total: 7 }),
+      )
+      // The card below is the trip that has not started: a different sentence,
+      // so a card echoing the hero's counter would fail here.
+      expect(page.find('[data-testid="trip-counter"]').text()).toBe(
+        t('dashboard.dayBefore', { n: 7 }),
+      )
+    })
+
+    it('files a task added before the trip starts under *before*, and labels the field so', async () => {
+      today('2026-10-01')
+      seedActiveTrip({
+        packing_closed_at: CLOSED,
+        start_date: '2026-10-12',
+        end_date: '2026-10-18',
+      })
+
+      const page = mountPage()
+      await flushPromises()
+      const input = page.find('[data-testid="dashboard-tasks-Samedan-add-input"]')
+      expect(input.attributes('placeholder')).toBe(t('tasks.addBefore'))
+      await input.setValue('Post nachsenden')
+      await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
+
+      expect(orchestratorFake.addTripTodo).toHaveBeenCalledWith(
+        't1',
+        expect.anything(),
+        'Post nachsenden',
+        'before',
+      )
+    })
+
+    it('leads with the phase the trip is in: a task for the road stands before one for before', async () => {
+      today('2026-10-13')
+      seedActiveTrip({
+        packing_closed_at: CLOSED,
+        start_date: '2026-10-12',
+        end_date: '2026-10-18',
+      })
+      seedTask('before-task', { phase: 'before' })
+      seedTask('during-task', { phase: 'during' })
+
+      const page = mountPage()
+      await flushPromises()
+
+      const rows = page.findAll('[data-testid="dashboard-tasks-Samedan-row"]')
+      expect(rows.map((row) => row.text())).toEqual([
+        expect.stringContaining('during-task'),
+        expect.stringContaining('before-task'),
+      ])
+    })
+  })
+
+  it('draws no preview of open packing rows in the worked hero, and keeps it while packing is open', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    useTripStore().applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'i1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Nachträglich', quantity: 1, packed_count: 0, state: 'open' },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="dashboard-preview-Nachträglich"]').exists()).toBe(false)
   })
 })
