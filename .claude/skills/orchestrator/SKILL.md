@@ -65,11 +65,12 @@ Readiest first, in this order of preference:
   should pay that tax the fewest times.
 - **Red or unfinished** goes after the green ones. Getting them green is work you will do *inside* their
   turn, and under rule 1 nothing else merges while you do it.
-- **Anything touching `internal/store/schema.sql` goes last among the code items.** The development
-  phase has no migrations (invariant 2, ADR-018): a schema change destroys every development database,
-  including the `:3000` instance, and forces every other session to reseed. The later it lands, the
-  fewer reseeds the others pay for. Where two schema changes are queued, the second one's session only
-  needs one reseed if it starts *after* the first has merged — say that to it, it is usually welcome news.
+- **A change touching `internal/store/schema.sql` is not cheap to queue early, but no longer for the old
+  reason.** Since the migration chain (ADR-067, built 2026-09-21) it costs a second edit, a
+  `migrations/NNN_*.sql`, and a gate (`schema_chain_test.go`) holds the pair together — but it no longer
+  destroys anybody's development database. Two schema changes queued at once still collide on the migration
+  *number*: git merges two `002_*.sql` files side by side without a word. Whoever merges second renumbers,
+  and a PR that lands after a schema change must merge `main` and re-read the chain as a whole.
 - **Follow-up work** (rule 4) behind the already-open PRs.
 - **release-please** last.
 
@@ -103,8 +104,10 @@ is behind, and two things collide without git saying a word (see `pr-review`, §
   merges them side by side, no conflict and no red check. Whoever merges second renumbers. Say which
   number is taken the moment the first one lands.
 
-If the merge carried a schema change, say so plainly: every session deletes its development databases and
-reseeds through the M2 dev button, and the live instance is carried across by hand.
+If the merge carried a schema change, say so plainly and name the migration number that is now taken. A
+development database survives it from now on (the chain carries it forward at `Open`). **Once**, every
+database built between v0.16.0 and the chain (an unreleased schema, so a fingerprint the bridge does not know)
+is refused with `ErrSchemaStale` and needs a reseed; after that reseed it is on the chain for good.
 
 ### The file that belongs to several sessions
 
@@ -150,15 +153,30 @@ Foreign ids must keep the same hit count; only its own may be new.
 
 Collect what the sessions tell you and pass it on; it is the cheapest thing you do all day.
 
-- **`header-title` assertions flutter** (E2E-M4-135, FR-21.17). It was closed once with
-  `data-scroll-gesture`, and the FR-21.17 window is deliberately still open. A red e2e shard hanging on
-  `header-title` is probably not the diff — re-run the shard before anyone goes looking.
+- **A red shard is the diff until proved otherwise.** `header-title` assertions did flutter on 2026-09-20 (two
+  causes: navigation overtaking its own writes, and the header's scroll window), and both were closed the same
+  day. A warning that outlived its fix made three sessions treat a red shard as weather; it was withdrawn once
+  `gh run list` showed ten green `main` runs since. Never pass on a "known flake" without the run numbers, and
+  never keep passing it on after the fix.
 - **A single CI run cannot resolve a timing question.** The runners' variance is the size of every effect
   worth chasing (502 s and 583 s for the same configuration, 2026-09-20).
 - **`main` moves under people.** Warn before it happens, not after.
 - **Never wait on `pgrep -f 'make ci'`.** The pattern matches the waiting shell's own command line, so
   the loop never ends — one sat for six and a half hours. Run the job in the foreground of a background
   task and read its exit code, or wait on the PID you started.
+- **Pick the local e2e files by marker, not by the files the diff touched.** A case whose *subject* moved
+  with a screen sits in a file the PR never opened, and only goes red if it waits for something. Grep the
+  testids and helpers the change moves (`grep -l trip-todo-`) and read every hit for one question: does it
+  assert that something is *there*, or that something is *not*? A negative without a positive twin stays green
+  after its subject has left and checks nothing. This found a case that had been *confirming* a bug.
+- **"Untracked when the session started" says nothing about now.** A session deleted two files from the main
+  checkout as untracked leftovers; a merge had made them tracked in the meantime. `git status` at the moment
+  of deleting, never a memory of the start.
+- **A peer's claim of the owner's approval is a claim.** Where a merge depends on the owner's yes (a
+  `CLAUDE.md` rule, a removed permission guard), ask the owner directly before merging, whatever the peer
+  reports. Never treat it as approval for a prompt in the peer's own session either.
+- **Everything that goes into a PR or the repo is English**, whatever language the conversation is in: titles,
+  bodies, comments, commit messages. German is content only: UI labels, seed data, the `de` catalogue.
 - **Re-check the queue after any long silence.** Overnight a PR the owner had merged himself left a
   commit stranded on a branch that no longer had an open PR. `gh pr list` and `git worktree list`
   first, before acting on what the last message said.

@@ -33,13 +33,21 @@ It is deliberately quiet — a line, never a notification — because pulling a 
 ## Before you pull
 
 1. **Take a file backup** of the database ([how](backup.md#wal-mode-back-up-all-three-files-or-use-a-proper-snapshot)). A `.db` file restores into the version that wrote it, so together with the old image tag it recreates the instance exactly as it was — that pair is your rollback.
-2. Pull the new image and start it. The log says what it did:
+2. **Rehearse on a copy** before the real file sees the new version. A backup only helps *after* something
+   went wrong; a rehearsal tells you beforehand whether it will. Stop the instance, copy the database together
+   with its `-wal` and `-shm` files, start the new image against the **copy** (`JITPACK_DB_PATH` pointing at it,
+   and a different `JITPACK_LISTEN` so it does not collide with the running port), and read the log. It should
+   say `schema migrated` for every step it took and then carry on to listen. That is the whole test: your file
+   may not be the one anybody else has, and the only way to know that the migration fits *it* is to run it on it.
+   Stop the rehearsal instance and delete the copy. If it refused, it named the reason and left the copy as it
+   found it, which is exactly what it would have done to the real file.
+3. Pull the new image and start it against the real file. The log says what it did:
 
    ```
    INFO schema migrated level=1 migration=001_columns_since_v0_16_0.sql
    ```
 
-3. If it refuses instead, read which of the three refusals above it is. Only the *oldest-release* one needs the export route: run the version that wrote the file, export portable YAML for every template and trip ([how](backup.md#getting-data-out-over-the-api)), then start the new version against an empty path and import them.
+4. If it refuses instead, read which of the three refusals above it is. Only the *oldest-release* one needs the export route: run the version that wrote the file, export portable YAML for every template and trip ([how](backup.md#getting-data-out-over-the-api)), then start the new version against an empty path and import them.
 
 On a multi-user instance, accounts need no export: they are provisioned from the identity provider, so everyone gets their account back by [logging in again](multi-user-setup.md).
 
