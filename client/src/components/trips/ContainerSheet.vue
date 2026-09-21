@@ -3,8 +3,8 @@
  * M11 — container sheet (FR-10.1/10.3), in the M5 sheet grammar like M8's
  * position sheet: header with the container's load, then name, carrier,
  * weight limit and the pairing selector. Every control commits immediately
- * (G-5) — the FR-25.15 ●→✓ indicator confirms local capture, there is no
- * save button.
+ * (G-5) — the FR-25.15 lamp confirms local capture once something has been
+ * written, and is silent until then; there is no save button.
  *
  * Pairing is exclusive and set on both sides at once; tapping the active
  * partner clears the pair for both (see domain/containers.ts).

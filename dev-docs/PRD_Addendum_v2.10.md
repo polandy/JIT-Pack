@@ -5067,7 +5067,11 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     visit. **Two builds were measured away before this one:** opening the sheet by itself failed seventeen e2e flows
     across both browsers, every one on a tap that landed on the modal instead of the list; a bar inserted above the
     list then failed four more, because it moved the page under an open sheet. The offer also disappears by itself when
-    the list reopens — a row added or un-packed — so it never outlives the moment it reports. Three
+    the list reopens — a row added or un-packed — so it never outlives the moment it reports. **It lives in the empty
+    state, so it needs the list to be empty:** with the *Erledigte anzeigen* bar open the packed rows are listed, the
+    empty state does not render, and the offer waits until the bar is closed again (the ⋮ entry carries the step in
+    every case). Accepted rather than fixed: a second place to render it would be a second thing that can move the
+    page under a tap. Three
     guards, each against a way this becomes a nuisance: it fires on the **transition** and never on arrival at a list
     that was already complete (that moment passed before the screen opened); a reader who answers *Später* is not asked
     again for that trip while the screen lives, or ticking the last box would raise it every time; and a list that has
