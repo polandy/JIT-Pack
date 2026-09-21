@@ -83,7 +83,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 25. FR-30 the shopping list as a feature module (ADR-066) — 2026-09-19. Own entries are not in the portable backup either.
 26. FR-24.14/FR-24.15 the inventory's two merges — tags in one act, duplicate items at all (ADR-069) — 2026-09-20. The item merge moves master data only: trip history keeps naming the row it was packed from, and `items.merged_into_id` is what makes the two pasts read as one.
 
-**Parked, specified, do not start:** §3.26 calendar feed, the North-Star Plan/During phases, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
+**Parked, specified, do not start:** §3.26 calendar feed, the North-Star Plan/During phases, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model, trip notes with a per-person tick (`dev-docs/trip-notes-concept.md`, decided 2026-09-21, owner: build later). Each carries a revisit trigger in its stub.
 
 ## Packages
 
