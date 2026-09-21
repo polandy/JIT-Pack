@@ -2497,6 +2497,7 @@ setHeaderTitle(
             <TripTodoFigure
               :trip-id="tripId"
               :ring-size="RING_SIZE_HEADER"
+              :tasks="windowTasks"
               testid="m4-trip-todos-progress"
             />
           </button>

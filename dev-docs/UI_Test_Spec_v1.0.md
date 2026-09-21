@@ -747,9 +747,9 @@ in WebKit.
   *Late packer on* from the row menu, undone; the menu then offers *on* again and no *off* — the row's own answer.
 * **E2E-M4-123** `local` (FR-25.31 with FR-9.3, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`):
   in the closing pass one tap on a row's mark raises the snackbar, and its undo leaves the mark unpressed.
-* **E2E-M4-124** `local` (FR-25.31 with FR-7.4, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`): a
-  trip task removed with ✕ leaves the list and its undo brings it back; removed again and left, it is gone after a
-  reload once the snackbar has gone — the lapse is the delete.
+* ~~**E2E-M4-124**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-06**, with the screen the trip's own
+  tasks are removed on. It is the fourth id to move for that reason, and the first the ledger's count comparison could
+  not have caught: it lived in a file this change never touched.
 * **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
   (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
   back); *Packen* (the claim), undone, takes the row's own-claim note away.
@@ -3366,6 +3366,11 @@ moved, so the M4 entries are struck in place and say where each went.
   to hand a task to, so the task carries no seat **and** the screen offers no *Meine* chip — absent, not an empty
   picker over an empty list. The task's ✕ is the positive signal beside the two absences, rendered in the box the seat
   would share; the seat itself is E2E-M4-133's.
+* **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a
+  task removed with ✕ leaves the list and its undo brings it back; removed again and left alone, it is gone after a
+  reload once the snackbar has gone — the lapse is the delete. **The snackbar's disappearance is the signal waited
+  on**, because the lapse changes nothing on screen, and the composer's field is asserted after the reload as the
+  positive half: without it, „the task is gone" is also what an empty screen says.
 * **E2E-M25-05** `server` (FR-7.5/FR-7.7, was E2E-M4-133) — **implemented** (`e2e/server/multi-user.spec.ts`): a
   task's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
   and picking the other account fills the seat with them. That account is told (the toast names the task and who

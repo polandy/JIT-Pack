@@ -21,7 +21,12 @@ import { computed } from 'vue'
 
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import { useTripTasks } from '@/composables/useTripTasks'
-import { tripTodoPercent, tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import {
+  tripTodoPercent,
+  tripTodoProgress,
+  tripTodoStatus,
+  type TripTask,
+} from '@/domain/tripTodos'
 import { t } from '@/i18n'
 
 const props = withDefaults(
@@ -36,13 +41,22 @@ const props = withDefaults(
     ringSize?: number
     /** Put on the fraction, for the cases that read it. */
     testid: string
+    /**
+     * FR-7.7: the tasks this figure stands for, where that is not all of the
+     * trip's. M4's figure leads to a section that shows a *window* of the one
+     * list — the preparations still due before the trip — and a figure that
+     * counted more than the section it opens would be reporting on a screen
+     * the reader is not looking at. M1 passes nothing and counts everything,
+     * because its card lists everything.
+     */
+    tasks?: readonly TripTask[]
   }>(),
-  { ringSize: undefined },
+  { ringSize: undefined, tasks: undefined },
 )
 
 const { tasksOf } = useTripTasks()
 
-const progress = computed(() => tripTodoProgress(tasksOf(props.tripId)))
+const progress = computed(() => tripTodoProgress(props.tasks ?? tasksOf(props.tripId)))
 const shown = computed(() => tripTodoStatus(progress.value) !== 'none')
 </script>
 
