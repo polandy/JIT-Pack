@@ -505,6 +505,13 @@ setHeaderTitle(
 
 .add-input {
   flex: 1;
+  min-height: 40px;
+}
+
+/* The ＋ is a control in a row of 40, not a 48 that pushes the chips below it down. */
+.add ion-button {
+  margin: 0;
+  height: 40px;
 }
 
 /* FR-30.9: the tag the next entry is filed under. */
@@ -512,7 +519,7 @@ setHeaderTitle(
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 8px 16px 0;
+  padding: 0 16px 8px;
 }
 
 .chip {
