@@ -343,6 +343,8 @@ export interface ShoppingEntry {
   name: string
   list: ShoppingMode
   bought: boolean
+  /** FR-30.9: the one tag the entry carries, free text; null for none. */
+  tag: string | null
   /** FR-30.4: when it was bought — the tap's time; null while it is not. */
   bought_at: string | null
   /** FR-30.4: who bought it, stamped by the server (invariant 3); null in Local Mode. */

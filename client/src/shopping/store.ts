@@ -45,6 +45,23 @@ export const useShoppingStore = defineStore('shopping', () => {
     return getEntries(tripId).filter((entry) => entry.list === list && entry.bought)
   }
 
+  /**
+   * The tags still in use on a trip and how many open entries carry each,
+   * A–Z (FR-30.9). Read off the open entries of both lists: a tag is a
+   * heading for what is left to buy, and one whose last entry was bought is
+   * not offered again — typing it anew is one field away.
+   */
+  function tagCounts(tripId: string): { tag: string; count: number }[] {
+    const counts = new Map<string, number>()
+    for (const entry of getEntries(tripId)) {
+      if (entry.bought || entry.tag === null) continue
+      counts.set(entry.tag, (counts.get(entry.tag) ?? 0) + 1)
+    }
+    return [...counts]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => a.tag.localeCompare(b.tag))
+  }
+
   function applyChanges(changes: PullChange[]): void {
     for (const change of changes) {
       if (change.table !== TABLE.shoppingEntries) continue
@@ -66,7 +83,15 @@ export const useShoppingStore = defineStore('shopping', () => {
     for (const entry of getEntries(tripId)) entries.value.delete(entry.id)
   }
 
-  return { getEntries, openEntries, boughtEntries, applyChanges, tripChildRows, forgetTrip }
+  return {
+    getEntries,
+    openEntries,
+    boughtEntries,
+    tagCounts,
+    applyChanges,
+    tripChildRows,
+    forgetTrip,
+  }
 })
 
 /** This module's store as the orchestrator reads and writes it (FR-30.3). */

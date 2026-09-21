@@ -4545,6 +4545,24 @@ as for the packing rows.
     you come back to.
   * **It decides more than what is read first:** the open tab is also where M6's own field files an entry (FR-30.1).
 
+* **FR-30.9 (Tags on the List's Own Entries, Grouped by Them — owner request 2026-09-21):** an entry carries **at most
+  one tag**, a short free-text label of the person's own — *Supermarkt*, *Apotheke*, *Baumarkt*. It is one nullable
+  column, `shopping_entries.tag` (1–40 characters, trimmed; a blank is no tag), that syncs and merges like the entry's
+  other fields, so tagging never contends with a purchase. **Free text rather than a reference:** a shopping list's
+  tags are made up on the spot for one trip, and a table of them — or a reach into the inventory's tags (FR-24), which
+  classify what a thing *is* and not where it is bought — would be a second list to keep beside the entries. The
+  tags on offer are read off the trip's open entries, so one whose last entry was bought is not offered again.
+  * **The open list is grouped by it:** one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*, then
+    the packing list's rows under their categories as before (FR-30.2). **What is bought is not grouped** — the reveal
+    (FR-25.11j) stays one flat list, and each row says its tag, because the heading that named it is gone.
+  * **Set in two places:** a chip row under M6's field — the trip's tags and *＋ Neues Tag* — files the *next* entry and
+    holds until the reader taps the chip again, so the things for one shop are typed one after another; and a tap on an
+    own entry's name opens a sheet with one tag or none. **Only own entries carry a tag:** a packing row keeps its
+    category, and the dashboard card (FR-30.7) shows an entry's tag but offers no way to choose one.
+  * **The check-off sits at the end of the row**, on M6 and on the dashboard card: the thumb rests on the right, and the
+    remove (✕) of an own entry stands beside it, to its left.
+  * *Not carried:* the portable backup, like the entries themselves; trip cloning.
+
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
 every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
 cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still unbuilt and would now pre-fill entries

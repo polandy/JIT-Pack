@@ -18,6 +18,20 @@ import { TABLE } from '@/types/tables'
 /** The key prefix that keeps an own entry's line apart from any source's. */
 const LINE_KEY_PREFIX = 'own:'
 
+/** The longest tag (FR-30.9) — schema.sql's CHECK and the field's `maxlength`. */
+export const SHOPPING_TAG_MAX = 40
+
+/**
+ * A tag as it is stored: trimmed, and null when nothing is left — a blank is
+ * no tag, not a tag named nothing (FR-30.9). Cut at the bound rather than
+ * refused, because the field already stops typing there and a pasted line
+ * should still land.
+ */
+export function normalizeTag(tag: string | null | undefined): string | null {
+  const trimmed = (tag ?? '').trim().slice(0, SHOPPING_TAG_MAX).trim()
+  return trimmed === '' ? null : trimmed
+}
+
 export function createShoppingActions(host: ModuleHost) {
   const encode = TABLE_CODECS[TABLE.shoppingEntries].encode
 
@@ -25,7 +39,12 @@ export function createShoppingActions(host: ModuleHost) {
    * Adds an entry to one of the trip's two lists. A blank name is not an
    * entry — the field's own content decides, not the button.
    */
-  function addEntry(tripId: string, list: ShoppingMode, name: string): void {
+  function addEntry(
+    tripId: string,
+    list: ShoppingMode,
+    name: string,
+    tag: string | null = null,
+  ): void {
     const trimmed = name.trim()
     if (trimmed === '') return
     const mutation = host.mutation('insert', TABLE.shoppingEntries, newId(), {
@@ -33,8 +52,20 @@ export function createShoppingActions(host: ModuleHost) {
       name: trimmed,
       list,
       bought: dbBool(false),
+      tag: normalizeTag(tag),
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+  }
+
+  /** FR-30.9: files an entry under a tag, or takes it out of one with null. */
+  function setTag(entry: ShoppingEntry, tag: string | null): void {
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
+      tag: normalizeTag(tag),
+    })
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encode(entry)),
+    })
   }
 
   /**
@@ -58,7 +89,7 @@ export function createShoppingActions(host: ModuleHost) {
     host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
   }
 
-  return { addEntry, setBought, removeEntry }
+  return { addEntry, setTag, setBought, removeEntry }
 }
 
 export type ShoppingActions = ReturnType<typeof createShoppingActions>
@@ -83,11 +114,13 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): S
       quantity: 1,
       recipients: [],
       section: null,
+      tag: entry.tag,
       boughtAt: entry.bought ? entry.bought_at : undefined,
       boughtBy: entry.bought ? entry.bought_by_user_id : undefined,
       buy: () => actions.setBought(entry, true),
       unbuy: () => actions.setBought(entry, false),
       remove: () => actions.removeEntry(entry),
+      retag: (tag) => actions.setTag(entry, tag),
     }
   }
   return {

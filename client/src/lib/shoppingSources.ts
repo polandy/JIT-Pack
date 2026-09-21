@@ -39,6 +39,11 @@ export interface ShoppingLine {
    * bucket. The list renders the headings; it never invents one.
    */
   section: string | null
+  /**
+   * The tag the line carries (FR-30.9); null or absent for none. Only the
+   * list's own entries have one — a packing line is filed by its category.
+   */
+  tag?: string | null
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
   /** For a bought line: when it was bought, an ISO instant (FR-30.4). */
@@ -55,6 +60,8 @@ export interface ShoppingLine {
   unbuy(): void
   /** Removes the line; only a line the list itself owns offers this. */
   remove?(): void
+  /** Sets or clears the line's tag (FR-30.9); only a line the list owns offers this. */
+  retag?(tag: string | null): void
 }
 
 /** Something that contributes lines to a trip's two shopping lists. */

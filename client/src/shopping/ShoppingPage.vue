@@ -33,11 +33,12 @@ import {
   IonFab,
   IonFabButton,
 } from '@ionic/vue'
-import { addOutline, bagHandleOutline, closeOutline } from 'ionicons/icons'
+import { addOutline, bagHandleOutline, checkmarkOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -50,7 +51,7 @@ import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { isPackingClosed } from '@/lib/tripPhase'
-import { createShoppingActions, ownEntriesSource } from './actions'
+import { createShoppingActions, normalizeTag, ownEntriesSource, SHOPPING_TAG_MAX } from './actions'
 import { buildSections, listInFocus } from './list'
 import { useShoppingStore } from './store'
 
@@ -169,11 +170,60 @@ async function goToField() {
   await (field.value?.$el as HTMLIonInputElement | undefined)?.setFocus()
 }
 
+/*
+ * FR-30.9: the tag the next entry is filed under. It stays after an add — the
+ * things for one shop are typed one after another — and only the reader
+ * clears it, by tapping the chip again.
+ */
+const draftTag = ref<string | null>(null)
+const composingTag = ref(false)
+const newTag = ref('')
+
+/** The tags still in use on this trip, plus the one being drafted before its first entry exists. */
+const tagChips = computed(() => {
+  const inUse = shoppingStore.tagCounts(props.tripId).map((entry) => entry.tag)
+  return draftTag.value && !inUse.includes(draftTag.value)
+    ? [...inUse, draftTag.value].sort((a, b) => a.localeCompare(b))
+    : inUse
+})
+
+function toggleDraftTag(tag: string) {
+  draftTag.value = draftTag.value === tag ? null : tag
+}
+
+/** The typed tag becomes the draft's, and its chip appears selected. */
+function commitNewTag() {
+  const tag = normalizeTag(newTag.value)
+  if (tag !== null) draftTag.value = tag
+  newTag.value = ''
+  composingTag.value = false
+}
+
 /** FR-30.1: an entry of the list's own, on the open tab. */
 function addEntry() {
   if (draft.value.trim() === '') return
-  actions.addEntry(props.tripId, tab.value, draft.value)
+  actions.addEntry(props.tripId, tab.value, draft.value, draftTag.value)
   draft.value = ''
+}
+
+/** The entry whose tag the sheet is choosing (FR-30.9); none while it is closed. */
+const retagging = ref<ShoppingLine | null>(null)
+const sheetTag = ref('')
+
+function openTagSheet(line: ShoppingLine) {
+  if (!line.retag) return
+  sheetTag.value = ''
+  retagging.value = line
+}
+
+function chooseTag(tag: string | null) {
+  retagging.value?.retag?.(tag)
+  retagging.value = null
+}
+
+function commitSheetTag() {
+  const tag = normalizeTag(sheetTag.value)
+  if (tag !== null) chooseTag(tag)
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -218,11 +268,46 @@ setHeaderTitle(
         </IonButton>
       </form>
 
+      <!-- FR-30.9: the tag the next entry is filed under. -->
+      <div class="chips" role="group" :aria-label="t('shopping.tags')" data-testid="m6-tag-chips">
+        <button
+          v-for="tag in tagChips"
+          :key="tag"
+          type="button"
+          class="chip"
+          :aria-pressed="draftTag === tag"
+          data-testid="m6-tag-chip"
+          @click="toggleDraftTag(tag)"
+        >
+          {{ tag }}
+        </button>
+        <form v-if="composingTag" class="chip-new" @submit.prevent="commitNewTag">
+          <input
+            v-model="newTag"
+            :maxlength="SHOPPING_TAG_MAX"
+            :placeholder="t('shopping.tagNewPlaceholder')"
+            :aria-label="t('shopping.tagNewPlaceholder')"
+            autocomplete="off"
+            data-testid="m6-tag-new-input"
+            @blur="commitNewTag"
+          />
+        </form>
+        <button
+          v-else
+          type="button"
+          class="chip chip-add"
+          data-testid="m6-tag-new"
+          @click="composingTag = true"
+        >
+          {{ t('shopping.tagNew') }}
+        </button>
+      </div>
+
       <IonList v-if="sections.length > 0">
         <IonItemGroup
           v-for="section in sections"
           :key="section.key"
-          :data-testid="`m6-group-${section.own ? 'own' : (section.name ?? 'none')}`"
+          :data-testid="`m6-group-${section.own ? 'own' : section.tagged ? `tag-${section.name}` : (section.name ?? 'none')}`"
         >
           <IonItemDivider>
             <IonLabel>{{
@@ -230,13 +315,15 @@ setHeaderTitle(
             }}</IonLabel>
           </IonItemDivider>
           <IonItem v-for="line in section.lines" :key="line.key" data-testid="m6-row">
-            <IonCheckbox
-              slot="start"
-              :checked="false"
-              :aria-label="t('shopping.bought', { name: line.name })"
-              @ionChange="line.buy()"
-            />
-            <IonLabel>
+            <!-- FR-30.9: a tap on an own entry's name files it under a tag. -->
+            <IonLabel
+              :class="{ tappable: !!line.retag }"
+              :role="line.retag ? 'button' : undefined"
+              :tabindex="line.retag ? 0 : undefined"
+              data-testid="m6-row-label"
+              @click="openTagSheet(line)"
+              @keyup.enter="openTagSheet(line)"
+            >
               <h3>{{ line.name }}</h3>
               <p v-if="line.quantity > 1">{{ line.quantity }}×</p>
               <!-- FR-25.6: for whom, derived from membership — never a control. -->
@@ -250,6 +337,9 @@ setHeaderTitle(
                 />
                 <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
               </p>
+              <p v-if="line.retag && !line.tag" class="tag-add" data-testid="m6-row-tag-add">
+                {{ t('shopping.tagAdd') }}
+              </p>
             </IonLabel>
             <IonButton
               v-if="line.remove"
@@ -261,6 +351,13 @@ setHeaderTitle(
             >
               <IonIcon slot="icon-only" :icon="closeOutline" aria-hidden="true" />
             </IonButton>
+            <!-- FR-30.9: the check-off sits at the end, where the thumb rests. -->
+            <IonCheckbox
+              slot="end"
+              :checked="false"
+              :aria-label="t('shopping.bought', { name: line.name })"
+              @ionChange="line.buy()"
+            />
           </IonItem>
         </IonItemGroup>
       </IonList>
@@ -296,14 +393,10 @@ setHeaderTitle(
 
       <IonList v-if="showBought && boughtLines.length > 0" data-testid="m6-bought-list">
         <IonItem v-for="line in boughtLines" :key="line.key" data-testid="m6-bought-row">
-          <IonCheckbox
-            slot="start"
-            :checked="true"
-            :aria-label="t('shopping.undoBought', { name: line.name })"
-            @ionChange="line.unbuy()"
-          />
           <IonLabel>
             <h3>{{ line.name }}</h3>
+            <!-- FR-30.9: the reveal is flat, so the tag has to be said in the row. -->
+            <p v-if="line.tag" class="tag-chip" data-testid="m6-bought-tag">{{ line.tag }}</p>
             <p v-if="line.boughtNote" data-testid="m6-bought-note">{{ line.boughtNote }}</p>
             <!-- FR-30.4: who bought it, and when. -->
             <p v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
@@ -326,8 +419,61 @@ setHeaderTitle(
           >
             <IonIcon slot="icon-only" :icon="closeOutline" aria-hidden="true" />
           </IonButton>
+          <IonCheckbox
+            slot="end"
+            :checked="true"
+            :aria-label="t('shopping.undoBought', { name: line.name })"
+            @ionChange="line.unbuy()"
+          />
         </IonItem>
       </IonList>
+
+      <!-- FR-30.9: one tag or none, for an entry of the list's own. -->
+      <SheetModal :is-open="retagging !== null" testid="m6-tag-sheet" @dismiss="retagging = null">
+        <div v-if="retagging" class="tag-sheet">
+          <h2 class="tag-sheet-title">
+            {{ t('shopping.tagSheetTitle', { name: retagging.name }) }}
+          </h2>
+          <p class="tag-sheet-hint">{{ t('shopping.tagSheetHint') }}</p>
+          <IonList lines="full">
+            <IonItem button :detail="false" data-testid="m6-tag-none" @click="chooseTag(null)">
+              <IonLabel>{{ t('shopping.tagNone') }}</IonLabel>
+              <IonIcon
+                v-if="!retagging.tag"
+                slot="end"
+                :icon="checkmarkOutline"
+                aria-hidden="true"
+              />
+            </IonItem>
+            <IonItem
+              v-for="entry in shoppingStore.tagCounts(tripId)"
+              :key="entry.tag"
+              button
+              :detail="false"
+              data-testid="m6-tag-option"
+              @click="chooseTag(entry.tag)"
+            >
+              <IonLabel>{{ entry.tag }}</IonLabel>
+              <IonIcon
+                v-if="retagging.tag === entry.tag"
+                slot="end"
+                :icon="checkmarkOutline"
+                aria-hidden="true"
+              />
+            </IonItem>
+          </IonList>
+          <form class="tag-sheet-new" @submit.prevent="commitSheetTag">
+            <input
+              v-model="sheetTag"
+              :maxlength="SHOPPING_TAG_MAX"
+              :placeholder="t('shopping.tagNewPlaceholder')"
+              :aria-label="t('shopping.tagNewPlaceholder')"
+              autocomplete="off"
+              data-testid="m6-tag-sheet-input"
+            />
+          </form>
+        </div>
+      </SheetModal>
       <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
            top of the list, so the screen still has one way to add. -->
       <IonFab :id="FAB_ANCHOR.m6" slot="fixed" vertical="bottom" horizontal="end">
@@ -361,5 +507,87 @@ setHeaderTitle(
 
 .add-input {
   flex: 1;
+}
+
+/* FR-30.9: the tag the next entry is filed under. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+
+.chip {
+  padding: 5px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--jp-action);
+  color: var(--jp-action);
+}
+
+.chip-add {
+  background: none;
+  color: var(--ct-subtext0);
+}
+
+.chip-new input,
+.tag-sheet-new input {
+  padding: 5px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+}
+
+.chip:focus-visible,
+.chip-new input:focus-visible,
+.tag-sheet-new input:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
+}
+
+.tappable {
+  cursor: pointer;
+}
+
+.tag-add {
+  color: var(--ct-subtext0);
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext0);
+}
+
+.tag-sheet {
+  padding: 8px 16px 16px;
+}
+
+.tag-sheet-title {
+  margin: 0;
+}
+
+.tag-sheet-hint {
+  margin: 2px 0 8px;
+  color: var(--ct-subtext0);
+}
+
+.tag-sheet-new {
+  padding-top: 8px;
+}
+
+.tag-sheet-new input {
+  width: 100%;
 }
 </style>

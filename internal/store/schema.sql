@@ -519,6 +519,13 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     list        TEXT NOT NULL DEFAULT 'buy_local'
                 CHECK (list IN ('buy_before','buy_local')),
     bought      INTEGER NOT NULL DEFAULT 0 CHECK (bought IN (0,1)),
+    -- FR-30.9: the one tag an entry carries, or NULL for none. Free text
+    -- rather than a reference: a shopping list's tags are „Supermarkt" and
+    -- „Apotheke", made up on the spot for one trip, and a table of them would
+    -- be a second list to keep beside the entries. NULL is a real answer —
+    -- an entry typed in a hurry has no tag — and the list files it under its
+    -- own heading. The bound is the same 40 characters the client enforces.
+    tag         TEXT CHECK (tag IS NULL OR (length(tag) BETWEEN 1 AND 40)),
     -- FR-30.4: who bought it and when. The buyer is stamped by the server
     -- (invariant 3); the time is the tap's. Cleared when the purchase is
     -- taken back.

@@ -72,7 +72,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
 
     // Its own section, first; the packing row after it under its own heading.
     await expect(m6(page).getByTestId('m6-group-own')).toContainText('Added here')
-    await expect(m6(page).getByTestId('m6-group-own').getByTestId('m6-row')).toHaveText(['Milch'])
+    await expect(
+      m6(page).getByTestId('m6-group-own').getByTestId('m6-row').locator('h3'),
+    ).toHaveText(['Milch'])
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(2)')
     await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (2)')
@@ -133,7 +135,79 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
     await writesLanded(page)
     await page.reload()
-    await expect(m6(page).getByTestId('m6-row')).toHaveText(['Zucker'])
+    await expect(m6(page).getByTestId('m6-row').locator('h3')).toHaveText(['Zucker'])
+  })
+
+  /**
+   * E2E-M6-31 (FR-30.9): an entry carries one tag, the open list is grouped
+   * by it, and the check-off sits at the end of the row. What is bought is
+   * not grouped — the reveal stays flat and says the tag in the row. The
+   * bounding boxes are the positive signal for „right": a checkbox that had
+   * stayed at the start would pass every locator and fail the geometry.
+   */
+  test('E2E-M6-31: entries are filed under one tag each, and the open list is grouped by it (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await m6(page).getByTestId('m6-tab-local').click()
+
+    // A new tag from the composer, kept for the next entry.
+    await m6(page).getByTestId('m6-tag-new').click()
+    await m6(page).getByTestId('m6-tag-new-input').fill('Supermarkt')
+    await m6(page).getByTestId('m6-tag-new-input').press('Enter')
+    await addEntry(page, 'Pasta')
+    await addEntry(page, 'Brot')
+
+    // Untagged: unselect the chip, and add one with no tag at all.
+    await m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Supermarkt' }).click()
+    await addEntry(page, 'Batterien')
+
+    const supermarkt = m6(page).getByTestId('m6-group-tag-Supermarkt')
+    await expect(supermarkt.locator('h3')).toHaveText(['Brot', 'Pasta'])
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Batterien'])
+
+    // Retag through the sheet: a new tag, and A–Z puts it first.
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Batterien' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('m6-tag-sheet-input').fill('Baumarkt')
+    await page.getByTestId('m6-tag-sheet-input').press('Enter')
+    await expect(m6(page).getByTestId('m6-group-tag-Baumarkt').locator('h3')).toHaveText([
+      'Batterien',
+    ])
+    await expect(m6(page).getByTestId('m6-group-own')).toHaveCount(0)
+    await expect(m6(page).locator('ion-item-group').first()).toHaveAttribute(
+      'data-testid',
+      'm6-group-tag-Baumarkt',
+    )
+
+    // The check-off is right of the name.
+    const row = m6(page).getByTestId('m6-row').filter({ hasText: 'Brot' })
+    const box = await row.locator('ion-checkbox').boundingBox()
+    const label = await row.locator('h3').boundingBox()
+    expect(box!.x).toBeGreaterThan(label!.x + label!.width)
+
+    // Bought: leaves its group, and the flat reveal names the tag.
+    await row.locator('ion-checkbox').click()
+    await expect(supermarkt.locator('h3')).toHaveText(['Pasta'])
+    await m6(page).getByTestId('m6-bought-bar').click()
+    await expect(m6(page).getByTestId('m6-bought-row').getByTestId('m6-bought-tag')).toHaveText([
+      'Supermarkt',
+    ])
+    await expect(m6(page).getByTestId('m6-bought-list').locator('ion-item-group')).toHaveCount(0)
+
+    // The tags survive a reload — they are a column of the row.
+    await writesLanded(page)
+    await page.reload()
+    // The tab is not remembered across visits (FR-30.8): the entries are at the destination.
+    await m6(page).getByTestId('m6-tab-local').click()
+    await expect(m6(page).getByTestId('m6-group-tag-Supermarkt').locator('h3')).toHaveText([
+      'Pasta',
+    ])
+    await expect(m6(page).getByTestId('m6-group-tag-Baumarkt')).toBeVisible()
   })
 
   /**

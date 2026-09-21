@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"jitpack/internal/sync"
@@ -116,5 +117,77 @@ func TestSchema_APurchaseRecordsWhoAndWhen_FR30_4(t *testing.T) {
 				t.Errorf("%s.%s is not pushable — the server's stamp could not be persisted", table, col)
 			}
 		}
+	}
+}
+
+// FR-30.9: an entry's tag travels the push path like any field, is cleared by
+// a null, and merges per field — tagging never touches the purchase.
+func TestApplyMutation_ShoppingEntryTag_SetThenClear_FR30_9(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	add := sync.Mutation{
+		MutationID: "m1", Op: sync.OpInsert, Table: TableShoppingEntries, ID: "se-1",
+		Fields: map[string]any{
+			"trip_id": testTrip, "name": "Milch", "list": "buy_local", "bought": 0, "tag": "Supermarkt",
+		},
+		HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, add); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("insert: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+	}
+	tagOf := func() (tag *string, bought int) {
+		t.Helper()
+		if err := s.db.QueryRow(
+			`SELECT tag, bought FROM shopping_entries WHERE id = 'se-1'`).Scan(&tag, &bought); err != nil {
+			t.Fatalf("read entry: %v", err)
+		}
+		return tag, bought
+	}
+	if tag, _ := tagOf(); tag == nil || *tag != "Supermarkt" {
+		t.Fatalf("tag after insert = %v, want Supermarkt", tag)
+	}
+
+	buy := upsert("se-1", "m2", map[string]any{"bought": 1}, "0000000002000-0000-aaaaaaaa")
+	buy.Table = TableShoppingEntries
+	retag := upsert("se-1", "m3", map[string]any{"tag": "Bäcker"}, "0000000003000-0000-bbbbbbbb")
+	retag.Table = TableShoppingEntries
+	for _, m := range []sync.Mutation{buy, retag} {
+		if res, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+			t.Fatalf("%s: outcome %q reason %q err %v, want applied", m.MutationID, res.Outcome, res.Reason, err)
+		}
+	}
+	if tag, bought := tagOf(); tag == nil || *tag != "Bäcker" || bought != 1 {
+		t.Errorf("after a purchase and a retag = (%v, bought %d), want (Bäcker, 1): the fields merge apart", tag, bought)
+	}
+
+	clear := upsert("se-1", "m4", map[string]any{"tag": nil}, "0000000004000-0000-aaaaaaaa")
+	clear.Table = TableShoppingEntries
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, clear); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("clear: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+	}
+	if tag, _ := tagOf(); tag != nil {
+		t.Errorf("tag after a null = %q, want NULL", *tag)
+	}
+}
+
+// FR-30.9: the bound is enforced where the row lives, not only in the field —
+// a blank or over-long tag is refused by the schema, which is what keeps a
+// hand-made client from writing a heading nobody can read.
+func TestSchema_ShoppingEntryTagIsOneToFortyCharacters_FR30_9(t *testing.T) {
+	s := openTestStore(t)
+	insert := func(id, tag string) error {
+		_, err := s.db.Exec(
+			`INSERT INTO shopping_entries (id, trip_id, name, tag) VALUES (?, ?, 'x', ?)`, id, testTrip, tag)
+		return err
+	}
+	if err := insert("ok-40", strings.Repeat("a", 40)); err != nil {
+		t.Errorf("a 40-character tag was refused: %v", err)
+	}
+	if err := insert("bad-41", strings.Repeat("a", 41)); err == nil {
+		t.Error("a 41-character tag was accepted")
+	}
+	if err := insert("bad-blank", ""); err == nil {
+		t.Error("an empty tag was accepted — none is NULL, not a tag named nothing")
 	}
 }

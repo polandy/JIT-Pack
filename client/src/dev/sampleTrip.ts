@@ -251,17 +251,25 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
 }
 
 /**
- * FR-30.1: groceries typed into the shopping list itself, one already bought,
+ * FR-30.1: groceries typed into the shopping list itself, most under a tag (FR-30.9), one already bought,
  * so M6 shows its own section beside the packing list's buy rows and its
  * reveal holds an entry as well as a packing row. Through the module's own
  * actions, for the reason `buyOneShoppingRow` gives.
  */
-const SEED_SHOPPING_ENTRIES = ['Brot', 'Milch', 'Pasta', 'Mineralwasser'] as const
+const SEED_SHOPPING_ENTRIES = [
+  { name: 'Brot', tag: 'Supermarkt' },
+  { name: 'Milch', tag: 'Supermarkt' },
+  { name: 'Pasta', tag: 'Supermarkt' },
+  { name: 'Mückenspray', tag: 'Apotheke' },
+  { name: 'Mineralwasser', tag: null },
+] as const
 const SEED_BOUGHT_ENTRY = 'Mineralwasser'
 
 function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
   const actions = createShoppingActions(orchestrator.moduleHost)
-  for (const name of SEED_SHOPPING_ENTRIES) actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name)
+  for (const { name, tag } of SEED_SHOPPING_ENTRIES) {
+    actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name, tag)
+  }
   const bought = useShoppingStore()
     .getEntries(tripId)
     .find((entry) => entry.name === SEED_BOUGHT_ENTRY)

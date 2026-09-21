@@ -350,6 +350,7 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     name: row['name'] as string,
     list: (row['list'] as ShoppingEntry['list']) ?? ITEM_MODE_BUY_LOCAL,
     bought: Boolean(row['bought']),
+    tag: (row['tag'] as string) ?? null,
     bought_at: (row['bought_at'] as string) ?? null,
     bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
   }
