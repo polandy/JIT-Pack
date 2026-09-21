@@ -5531,12 +5531,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   owner's words, is *how many tasks and shopping items* are open: the packing figures
   are not, because on that dashboard the packing is over. The tradeoff is ADR-073.
   * **The line is struck; the phase moves into the date line.** The hero and every trip card below it carry the trip's
-    phase after the dates (*„12.–18. Okt 2026 · ● Vor Ort“*): a dot and one word, `--jp-done` ink once the packing is
-    declared finished, `--ct-subtext0` while it is still open (*Packen*). **The word is the shopping module's own rule**
-    (`listInFocus`, FR-30.8) — *Vor Ort* for a running trip, an archived one, and a planned trip whose packing is
-    finished; *Packen* otherwise — so the dashboard, M6 and the phase label cannot disagree about the same trip. The
-    first cut of this section named a third word for the finished packing; the owner asked for the phase to be *shown*,
-    and there are only two.
+    phase after the dates (*„12.–18. Okt 2026 · ● Vor Ort“*): a dot and one word — ***Vor Ort*** once the packing is
+    declared finished (FR-5.10) and ***Packen*** until then — in `--jp-done` ink for the first and `--ct-subtext0` for
+    the second. The word is the packing stamp (`isPackingClosed`) and **not** `listInFocus`: the dashboard's trips are
+    all active, and `listInFocus` calls every active trip *Vor Ort*, which would put that word on a trip whose ring is
+    still on screen. The two answers differ only for an active trip with open packing, where M6's tab is right to open
+    at the destination and the dashboard is right to say the bag is still being packed.
   * **A day counter opposite the name**, on the hero: *„in 3 Tagen“* before the start, *„Abreise heute“* on the first
     day, ***„Tag 2 von 7“*** with *„noch 5 Tage“* beneath while the trip runs (both days count, so a trip 12.–18. Oct is
     seven days), *„Letzter Tag“* on the last, and nothing afterwards. The owner asked for *which day of how many*; the

@@ -89,7 +89,8 @@ actions is amended to say *except the shopping card and the hero's two blocks*.
 
 **Positive**
 - The dashboard after the packing shows what is left to do and lets it be done.
-- The phase label, M6's tab and the shopping block read one rule (`listInFocus`).
+- The shopping block reads the list in focus (`listInFocus`) and the phase word reads the packing stamp, so each
+  says the one thing it is about.
 
 **Negative / accepted costs**
 - M1 is no longer read-only for tasks; every later dashboard feature has one exception more to argue against.

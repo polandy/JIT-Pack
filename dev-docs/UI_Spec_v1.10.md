@@ -814,9 +814,9 @@ These patterns apply to every screen and are specified once.
 * **The hero after the packing (FR-7.9, ADR-073, decided 2026-09-21 from `UI_Concept_DashboardAfterPacking.html`) —
   amends the bullet above: the „Packen abgeschlossen“ line is struck.** Rendered from top to bottom on a trip whose
   packing is finished:
-  * **Date line:** the dates, then a dot and the phase word (*Vor Ort*; *Packen* while the packing is open, on every
-    trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is `listInFocus`'s (FR-30.8), so it
-    agrees with M6.
+  * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
+    then, on every trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is the packing stamp,
+    not `listInFocus` (FR-7.9).
   * **Name row:** the trip's name, and opposite it the day counter in the action ink with its second line in
     `--ct-subtext0` — *in 3 Tagen*, *Abreise heute*, *Tag 2 von 7* / *noch 5 Tage*, *Letzter Tag*, nothing afterwards;
     without an end date *Tag 2*, without a start date none. The meta line follows.
