@@ -129,6 +129,7 @@ describe('seedSampleMaster (dev)', () => {
       { item: 'Ersatzakkus', dependsOn: 'Kamera', mode: 'required' },
       { item: 'Ringlicht', dependsOn: 'Makro-Objektiv', mode: 'required' },
       { item: 'Powerbank', dependsOn: 'Kamera', mode: 'suggested' },
+      { item: 'Stirnlampe Petzl', dependsOn: 'Ersatzakkus', mode: 'required' },
     ])
   })
 
@@ -184,7 +185,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 29 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 30 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 
@@ -214,6 +215,42 @@ describe('seedSampleData (dev)', () => {
       (o) => o.item_id === both[0]!.item_id && o.tag_id === technik!.id,
     )!
     expect(both[0]!.position).toBeLessThan(second.position)
+  })
+
+  it('seeds two rows for one thing, so FR-24.15’s merge has a case as well', () => {
+    const { master } = seed()
+
+    // The duplicate tag above, one table further in: a head torch entered a
+    // second time under its brand. What makes it a fixture rather than just a
+    // second row is what each side brings — the merge has to re-point one tag,
+    // drop another, take a companion over and move a Vorlage position, and
+    // none of it needs anything typed first.
+    const petzl = master.activeItemList.find((i) => i.name === 'Stirnlampe Petzl')
+    const kept = master.activeItemList.find((i) => i.name === 'Stirnlampe')
+    expect(petzl).toBeDefined()
+    expect(kept).toBeDefined()
+
+    const tagsOf = (itemId: string): string[] =>
+      master.itemTagList
+        .filter((a) => a.item_id === itemId)
+        .sort((a, b) => a.position - b.position)
+        .map((a) => master.tagList.find((t) => t.id === a.tag_id)!.name)
+    // „Technik" is new to the survivor and is re-pointed; „Camping" it already
+    // carries, so that assignment is dropped — the two halves of the tag rule,
+    // on one pair.
+    expect(tagsOf(petzl!.id)).toEqual(['Technik', 'Camping'])
+    expect(tagsOf(kept!.id)).toEqual(['Camping'])
+
+    expect(master.dependencyList.some((d) => d.item_id === petzl!.id)).toBe(true)
+
+    // A Vorlage the survivor is *not* in, so the position moves rather than
+    // collapsing — and, the reason it is seeded at all, that reference is what
+    // makes FR-24.3 retire the losing row instead of removing it. Without it
+    // M23 could never be asked whether it names the survivor.
+    const positions = master.positionList.filter((p) => p.item_id === petzl!.id)
+    expect(positions).toHaveLength(1)
+    const wandern = master.templateList.find((t) => t.name === 'Wandern')!
+    expect(positions[0]!.template_id).toBe(wandern.id)
   })
 
   it('seeds a *planned* trip that follows the sample Vorlage (FR-27.4)', async () => {

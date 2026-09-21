@@ -40,7 +40,9 @@ import {
  * - a third, unincluded group, so M8's picker and M3's *Zusätzliche Gruppen*
  *   both have something to offer;
  * - per-person and buy-before positions, so a generated trip fans out and the
- *   shopping list is not empty.
+ *   shopping list is not empty;
+ * - **two rows for one thing** (FR-24.15), because a merge cannot be looked at
+ *   on a device whose inventory is perfectly tidy.
  */
 type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 
@@ -110,6 +112,15 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Schlafsack', tag: 'Camping', weightGrams: 900, icon: '🛏️' },
   { name: 'Isomatte', tag: 'Camping', weightGrams: 480 },
   { name: 'Stirnlampe', tag: 'Camping', weightGrams: 95, icon: '🔦' },
+  // The same head torch, entered a second time under its brand (FR-24.15) —
+  // the duplicate an inventory grows when two people type it on different
+  // days. It is built so the merge has each of its moves to make: „Technik"
+  // is a tag the other row lacks and is re-pointed, „Camping" it already has
+  // and is dropped, the companion below comes with it, and its position in
+  // *Wandern* moves to a Vorlage the survivor is not in. Neither row carries
+  // what would make the choice obvious, which is the point: the sheet has to
+  // say what each one brings.
+  { name: 'Stirnlampe Petzl', tag: 'Technik', alsoTag: 'Camping' },
   { name: 'Gaskocher', tag: 'Camping', weightGrams: 320, icon: '🔥' },
   { name: 'Regenjacke', tag: 'Kleidung', weightGrams: 340, icon: '🧥' },
   { name: 'Wandersocken', tag: 'Kleidung', weightGrams: 70, icon: '🧦' },
@@ -153,6 +164,9 @@ const DEPENDENCIES: { item: string; dependsOn: string; mode?: DependencyMode }[]
   { item: 'Ersatzakkus', dependsOn: 'Kamera' },
   { item: 'Ringlicht', dependsOn: 'Makro-Objektiv' },
   { item: 'Powerbank', dependsOn: 'Kamera', mode: 'suggested' },
+  // On the duplicate, not on the row that stays: an edge the merge has to
+  // carry over is worth more here than one it can ignore.
+  { item: 'Stirnlampe Petzl', dependsOn: 'Ersatzakkus' },
 ]
 
 interface PositionSeed {
@@ -220,6 +234,12 @@ const GROUPS: GroupSeed[] = [
       { item: 'Wanderstöcke' },
       { item: 'Regenjacke', perPerson: true },
       { item: 'Blasenpflaster' },
+      // The duplicate head torch, here rather than in *Camping Basis* where
+      // the original sits: a reference is what turns FR-24.3's delete into a
+      // **retire**, so M23 can be asked whether it names the survivor — and
+      // one in a second Vorlage moves rather than collapsing into a position
+      // that is already there.
+      { item: 'Stirnlampe Petzl' },
     ],
   },
   {
