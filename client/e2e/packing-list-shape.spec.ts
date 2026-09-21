@@ -429,7 +429,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // A packed row is what puts the bar on the screen (FR-25.2).
     await visible(page).getByTestId('m4-row-Zelt').getByTestId('row-check').click()
     const bar = visible(page).getByTestId('m4-done-bar')
-    await expect(bar).toHaveText('Show 1 done item')
+    await expect(bar).toHaveText('Show 1 done')
 
     await expect(bar).toHaveCSS('border-style', 'solid')
     await expect(bar).toHaveAttribute('aria-expanded', 'false')

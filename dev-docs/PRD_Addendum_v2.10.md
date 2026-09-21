@@ -2150,13 +2150,13 @@ locked.
     other facet, the search and the done rule still leave the shape alone.
 * **FR-25.2 (Completed & Skipped Items Hidden by Default):** An item that is **done** — either fully packed, or
   consciously skipped (FR-5.5) — is **hidden from the active packing list by default**, keeping the working list focused
-  on what is left. A persistent, unobtrusive control re-reveals them — *„{n} Erledigte anzeigen"* / *"Show {n} done
-  items"*; revealing is non-destructive and per-user. **The word is the neutral one (owner, 2026-09-21):** one word
-  covers both halves of *done*, packed and deliberately skipped alike, and there is no second count beside it. The bar
-  said *„gepackt"* until then, which this paragraph's own first sentence already contradicted; FR-5.10 is what made the
+  on what is left. A persistent, unobtrusive control re-reveals them — *„{n} Erledigte anzeigen"* / *"Show {n} done"*;
+  revealing is non-destructive and per-user. **The word is the neutral one (owner, 2026-09-21):** one word covers both
+  halves of *done*, packed and deliberately skipped alike, and there is no second count beside it. The bar said
+  *„gepackt"* until then, which this paragraph's own first sentence already contradicted; FR-5.10 is what made the
   wrong half the ordinary case rather than the rare one, because closing a packing decides every row still open in a
-  single act. **When revealed, a done row sinks to the end of its group and wears its name struck
-  through** (added 2026-09-06): sinking says the same thing the hiding says — this one is not waiting for you — without
+  single act. **When revealed, a done row sinks to the end of its group and wears its name struck through**
+  (added 2026-09-06): sinking says the same thing the hiding says — this one is not waiting for you — without
   taking the row away, so the rows still asking for something stay together at the top instead of being interleaved
   with the settled ones. Order within each half is untouched, and the strike replaces the blanket dim the row used to
   carry, which also dimmed the FR-25.17 stamp naming who packed it and when — the one part of a done row still worth

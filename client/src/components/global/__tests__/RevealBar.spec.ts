@@ -14,7 +14,7 @@ import RevealBar from '../RevealBar.vue'
 
 function mountBar(open: boolean) {
   return mount(RevealBar, {
-    props: { open, label: open ? 'Hide 2 done items' : 'Show 2 done items', testid: 'm4-done-bar' },
+    props: { open, label: open ? 'Hide 2 done' : 'Show 2 done', testid: 'm4-done-bar' },
     global: { stubs: { IonIcon: { template: '<i class="icon" />' } } },
   })
 }
@@ -27,7 +27,7 @@ describe('RevealBar', () => {
 
   it('carries the screen’s own wording and its test id', () => {
     const wrapper = mountBar(false)
-    expect(wrapper.text()).toBe('Show 2 done items')
+    expect(wrapper.text()).toBe('Show 2 done')
     expect(wrapper.find('[data-testid="m4-done-bar"]').exists()).toBe(true)
   })
 

@@ -1074,8 +1074,8 @@ in WebKit.
 
 * **E2E-M4-145** `local` (FR-25.2 with FR-5.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the
   reveal bar names what it counts, and so does the state above it. One row is packed and one is left behind by the
-  close, so the word standing over both has to be true of both: the bar reads *„Show 2 done items"*, and
-  *„Hide 2 done items"* once it is open, while the empty state the finished list shows reads *„All done 🎉"* —
+  close, so the word standing over both has to be true of both: the bar reads *„Show 2 done"*, and *„Hide 2 done"*
+  once it is open, while the empty state the finished list shows reads *„All done 🎉"* —
   read before the bar is opened, since revealing the rows takes that state off the screen. **Both
   directions, because the label is built twice** — once per direction in the same template — and the pair has drifted
   here before (the log records a bar reading „Show 3 packed" and then „Hide 5 packed" for the same rows). The case
@@ -3077,7 +3077,7 @@ landed, that no test has ever rendered.
   and in that order: the edge is the defect reported (a dashed outline is this app's mark for a place where something is
   *not yet*, and the bar counts rows that exist), and the attribute is what a reader who cannot see the caret is told
   instead. The case ends by revealing the row it counted, so a bar that had merely stopped being dashed would not pass.
-  It reads the label whole (*„Show 1 done item"*), which is also where the **singular** form of FR-25.2's word is
+  It reads the label whole (*„Show 1 done"*), which is also where the **singular** case of FR-25.2's bar is
   asserted — E2E-M4-145 has the plural, and the German pair is a unit case (`i18n.spec.ts`), since the suite runs in
   English.
 * **E2E-M4-75** `all` (FR-21.23, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): the header line's

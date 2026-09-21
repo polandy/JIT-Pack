@@ -17075,10 +17075,15 @@ sentence stays true of the label instead of being contradicted by it.
 **The trap, with its price: the two catalogues must pluralize alike.** `i18n.spec.ts` holds a catalogue-integrity
 check that the `singular | plural` split matches key for key in German and English — a translation that drops the
 split silently renders the singular for every count. German has no invariant form here (*„1 Erledigtes"* against
-*„3 Erledigte"*), so the English side had to gain a real plural too, and the only honest way to give English one is a
-noun: *"Show {n} done item | Show {n} done items"* against *„{n} Erledigtes anzeigen | {n} Erledigte anzeigen"*. The
-pair is deliberately not word-for-word — German nominalizes the adjective where English cannot — and the structural
-check is what forces that to be a decision rather than an oversight.
+*„3 Erledigte"*), and English has nothing to decline, so the English entry carries the split with **both sides the
+same**: *"Show {n} done | Show {n} done"*. That looks like a mistake and is not one; the catalogue already holds
+sixteen of them, `packing.lateHidden` among them, each where one language inflects and the other does not.
+
+**The alternative was to give English a noun** — *"Show {n} done item | Show {n} done items"* — which pluralizes
+honestly and was written first. It was dropped on the sibling: M6's bought bar is specified as *M4's FR-25.2 shape*
+and reads *"Show {n} bought"* / *„{n} gekaufte anzeigen"*. A noun here would have made the original diverge from its
+own copy, and the shorter label is also the owner's own phrasing. The cost accepted is a redundant-looking split that
+a later tidy-up will want to collapse; the integrity check is what stops that from silently breaking the German.
 
 **And the German half has exactly one reader.** The Playwright suite runs in English, so no browser case can see the
 German forms; they are asserted in a unit case instead. That holds generally: a rule that only exists in the German

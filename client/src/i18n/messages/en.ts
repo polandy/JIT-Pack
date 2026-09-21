@@ -142,8 +142,10 @@ export const en = {
   // FR-25.2: *done*, not *packed* — a deliberately skipped row is a done one,
   // and since FR-5.10 closes a list by skipping the rest in one act, naming
   // them all “packed” is wrong on the ordinary case rather than the rare one.
-  'packing.showDone': 'Show {n} done item | Show {n} done items',
-  'packing.hideDone': 'Hide {n} done item | Hide {n} done items',
+  // The split is degenerate here and has to be: English has one form, German
+  // declines, and the catalogues are checked for the same split key for key.
+  'packing.showDone': 'Show {n} done | Show {n} done',
+  'packing.hideDone': 'Hide {n} done | Hide {n} done',
   // FR-25.11e, and the same word as the bar above: the state is reached by
   // packing *or* skipping the last open row, and since FR-5.10 one act can
   // do the skipping for every row at once.

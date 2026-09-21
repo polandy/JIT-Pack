@@ -132,14 +132,14 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await confirmClose(page)
 
     const bar = visiblePage(page).getByTestId('m4-done-bar')
-    await expect(bar).toHaveText('Show 2 done items')
+    await expect(bar).toHaveText('Show 2 done')
     // The same word one element up, while the rows are still away: the state a
     // finished list shows is named for what it covers too, and one of the two
     // rows it covers here was never packed.
     await expect(visiblePage(page).getByTestId('packing-empty')).toContainText('All done')
 
     await bar.click()
-    await expect(bar).toHaveText('Hide 2 done items')
+    await expect(bar).toHaveText('Hide 2 done')
     // The second of the two, revealed: not packed, and counted all the same.
     await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toContainText(
       /deliberately skipped/i,
