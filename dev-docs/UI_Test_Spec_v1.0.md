@@ -788,11 +788,8 @@ in WebKit.
   longer written or listed on M4 — its section keeps only the preparations still due before the trip — so the case
   runs on M25, unchanged in what it asserts and widened by the phase. Not renumbered: an id says what the suite
   implements, and this one's promise did not change screens by being wrong.
-* **E2E-M4-133** `server` (FR-7.5, added 2026-09-19) — **implemented** (`e2e/server/multi-user.spec.ts`): a trip
-  todo's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
-  and picking the other account fills the seat with them. That account is told (the toast names the task and who
-  handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
-  on M1's *Aufgaben* card.
+* ~~**E2E-M4-133**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-05**, with the screen the trip's own
+  tasks are worked on.
 * ~~**E2E-M4-134**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-03**, which also asserts the *Meine*
   chip's absence — the second thing G-8 takes away on a screen with nobody to name.
 * ~~**E2E-M4-105**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-02.** E2E-M4-106 still holds the same
@@ -3369,6 +3366,11 @@ moved, so the M4 entries are struck in place and say where each went.
   to hand a task to, so the task carries no seat **and** the screen offers no *Meine* chip — absent, not an empty
   picker over an empty list. The task's ✕ is the positive signal beside the two absences, rendered in the box the seat
   would share; the seat itself is E2E-M4-133's.
+* **E2E-M25-05** `server` (FR-7.5/FR-7.7, was E2E-M4-133) — **implemented** (`e2e/server/multi-user.spec.ts`): a
+  task's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
+  and picking the other account fills the seat with them. That account is told (the toast names the task and who
+  handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
+  on M1's *Aufgaben* card. Since FR-7.7 both halves happen on M25, which is where the trip's own tasks are worked.
 * **E2E-M25-04** `local` (FR-7.7, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): the salve. A preparation
   that will not happen before departure is moved to *Während der Reise* from the task's own sheet, and the move is
   what takes it **off the packing list** — the consequence that makes a stored phase worth its column. Both halves are
