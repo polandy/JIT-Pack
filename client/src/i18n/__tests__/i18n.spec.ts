@@ -110,6 +110,19 @@ describe('t', () => {
     expect(t('packing.itemsLeft', { n: 4 })).toBe('4 Packelemente offen')
   })
 
+  /**
+   * FR-25.2's word, in the language whose grammar declines it. The M4 reveal
+   * bar counts rows that are done — packed and deliberately skipped alike —
+   * and English gets away with one form where German needs two. The e2e suite
+   * runs in English, so this is the only place the German pair is read.
+   */
+  it('declines the M4 reveal bar’s word with the count it carries', () => {
+    setLocale('de')
+    expect(t('packing.showDone', { n: 1 })).toBe('1 Erledigtes anzeigen')
+    expect(t('packing.showDone', { n: 3 })).toBe('3 Erledigte anzeigen')
+    expect(t('packing.hideDone', { n: 3 })).toBe('3 Erledigte ausblenden')
+  })
+
   it('returns the key itself for an unknown key, so the UI never renders blank', () => {
     // @ts-expect-error deliberately probing a key no catalogue defines
     expect(t('nope.not.here')).toBe('nope.not.here')

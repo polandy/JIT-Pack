@@ -420,6 +420,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-070: the derivation that revokes the user's own decision, and the half-packed row three ways.
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 - [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
+- [A bar that counted done rows called them packed (2026-09-21)](#a-bar-that-counted-done-rows-called-them-packed-2026-09-21) — FR-25.2 contradicted its own label; the counter the owner refused, and the plural rule that split the languages.
 
 ## Deviations
 
@@ -17051,3 +17052,41 @@ write is in flight, and then the region is born already carrying its first words
 The content is never wrong, only occasionally unspoken. Hoisting the region out of the component that owns the state
 it reports would fix it and would separate the two things that have to agree; that trade was not worth making for a
 race this narrow.
+
+## A bar that counted done rows called them packed (2026-09-21)
+
+M4 hides a row once it is done and offers it back through a bar at the foot of the list. The bar read *„{n} gepackte
+anzeigen"*. It counted `doneCount`, and FR-25.2 defines *done* in its own first sentence as **fully packed, or
+consciously skipped** — so the label had been naming half of what it counted since the requirement was written, in the
+same paragraph that prescribed the label. Both halves are there to read; nobody read them together.
+
+**What made it ordinary.** The defect needed a skipped row to show, and skipping was a single deliberate act on a
+single row — rare enough that the wrong word was almost never on screen. FR-5.10 changed the arithmetic: finishing a
+packing decides *every* row still open in one act, so the common state after a close is several skipped rows sitting
+behind a bar that calls them packed. The bug did not change; its frequency did. Worth keeping as a shape — a wording
+that is only wrong in a rare state is a wording that a later feature can promote to the default without touching it.
+
+**The option the owner refused: a second count.** The obvious repair is to say both — *„2 gepackt, 2 weggelassen"*.
+Ruled out (owner, 2026-09-21) in favour of one neutral word and no second number. The cost is real and accepted: the
+bar no longer tells you the mix, and a reader who wants it has to open the Status facet, which already separates the
+two buckets. What was bought is that the bar keeps answering one question — *how much is behind me* — and FR-25.2's
+sentence stays true of the label instead of being contradicted by it.
+
+**The trap, with its price: the two catalogues must pluralize alike.** `i18n.spec.ts` holds a catalogue-integrity
+check that the `singular | plural` split matches key for key in German and English — a translation that drops the
+split silently renders the singular for every count. German has no invariant form here (*„1 Erledigtes"* against
+*„3 Erledigte"*), so the English side had to gain a real plural too, and the only honest way to give English one is a
+noun: *"Show {n} done item | Show {n} done items"* against *„{n} Erledigtes anzeigen | {n} Erledigte anzeigen"*. The
+pair is deliberately not word-for-word — German nominalizes the adjective where English cannot — and the structural
+check is what forces that to be a decision rather than an oversight.
+
+**And the German half has exactly one reader.** The Playwright suite runs in English, so no browser case can see the
+German forms; they are asserted in a unit case instead. That holds generally: a rule that only exists in the German
+grammar is invisible to e2e, and putting it in front of a unit test is not a weaker choice but the only one.
+
+**One of the three copies was never on screen.** `packing.closePromptTitle` — *„Alles gepackt"* — arrived with FR-5.10
+(`582d97f0`) and has never been rendered: `ClosePackingSheet` swaps the sheet's *meta* line between the prompted and
+the menu-opened case and keeps one title for both. It is deleted rather than reworded. The point worth keeping is how
+it looked from outside: a catalogue entry, a plausible name, a sentence that reads as a screen's — and grep finds it
+in the same shape as the two strings that are real. Only following the key to a template tells them apart, and the
+suite cannot, because there is nothing to assert about a string nothing renders.

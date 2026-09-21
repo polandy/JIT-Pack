@@ -1162,7 +1162,7 @@ taken straight from a phone camera never reaches the server unprocessed.
   the same glyph has to be the one the reader learned.
 * **FR-21.22 (A Dashed Edge Means *Not Yet* — added 2026-09-08):** A dashed outline marks a place where something is
   not there: the empty picker slot (M9), the quick-add invitation, the browse hand-over. A control that acts on
-  content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} gepackte
+  content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} Erledigte
   anzeigen"* and its *others* bar (FR-25.2/25.20), M6's *„{n} gekaufte anzeigen"* (FR-25.11j) — and each states the
   count of rows it is holding back, so a dashed edge told the reader those rows were a placeholder. They are one
   `RevealBar` component now: a filled bar with a caret that turns, carrying `aria-expanded` for the reader who
@@ -2150,8 +2150,12 @@ locked.
     other facet, the search and the done rule still leave the shape alone.
 * **FR-25.2 (Completed & Skipped Items Hidden by Default):** An item that is **done** — either fully packed, or
   consciously skipped (FR-5.5) — is **hidden from the active packing list by default**, keeping the working list focused
-  on what is left. A persistent, unobtrusive control (e.g., "N gepackte anzeigen") re-reveals them; revealing is
-  non-destructive and per-user. **When revealed, a done row sinks to the end of its group and wears its name struck
+  on what is left. A persistent, unobtrusive control re-reveals them — *„{n} Erledigte anzeigen"* / *"Show {n} done
+  items"*; revealing is non-destructive and per-user. **The word is the neutral one (owner, 2026-09-21):** one word
+  covers both halves of *done*, packed and deliberately skipped alike, and there is no second count beside it. The bar
+  said *„gepackt"* until then, which this paragraph's own first sentence already contradicted; FR-5.10 is what made the
+  wrong half the ordinary case rather than the rare one, because closing a packing decides every row still open in a
+  single act. **When revealed, a done row sinks to the end of its group and wears its name struck
   through** (added 2026-09-06): sinking says the same thing the hiding says — this one is not waiting for you — without
   taking the row away, so the rows still asking for something stay together at the top instead of being interleaved
   with the settled ones. Order within each half is untouched, and the strike replaces the blanket dim the row used to
@@ -2505,7 +2509,7 @@ locked.
   * **FR-25.11i ("Show done" belongs in the filter panel — 2026-08-07):** hiding finished rows *is* a filter, so its
     control lives in the filter sheet on **every** list screen, as an "Erledigte" section carrying the count. Default
     stays hidden (FR-25.2); revealed rows are dimmed and **remain interactive**, so a mistap is undone by tapping the
-    same control again. M4 keeps its list-foot "N gepackte anzeigen" shortcut — well-liked in testing — and the two
+    same control again. M4 keeps its list-foot *„{n} Erledigte anzeigen"* shortcut — well-liked in testing — and the two
     reflect one state. Found because M6 had **no** such control at all: a checked shopping row disappeared with no way
     to bring it back.
   * **FR-25.11j (Leaving a list must stay reversible — 2026-08-07):** checking off a **BUY_BEFORE** row does not merely
@@ -3138,7 +3142,7 @@ locked.
   both halves of every fraction it used to inflate. This is decided once in `domain/packState.ts` beside `stateFor`,
   because it is the same reading of the same two numbers.
 
-  **What is *not* a fraction stays a count with a noun.** „2 gepackte anzeigen" and the filter sheet's „zeigt 13
+  **What is *not* a fraction stays a count with a noun.** „2 Erledigte anzeigen" and the filter sheet's „zeigt 13
   Packelemente" count **rows**, correctly — a reveal toggle promises how many lines will appear, which is not a
   quantity of anything. They are safe from this rule precisely because they name what they count; a bare `x/y` cannot.
 
@@ -5079,7 +5083,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     is a screen rather than a question.
   * **The last row packed offers the step** (owner, 2026-09-20: *„wird es auch getriggert, wenn das letzte Item
     gepackt wurde? das sollte es."*). The step is offered where the moment is, not only where the menu is: when the last
-    open row is packed, the step appears **in the *„Alles gepackt"* empty state the list already shows at that moment**
+    open row is packed, the step appears **in the *„Alles erledigt"* empty state the list already shows at that moment**
     (FR-25.11e) — no new element enters the flow, so nothing moves under the finger that packed the row (ADR-060). The
     sheet opens from it, headed *„Das war das letzte offene Packelement."*, and *Später* there waves it off for the
     visit. **Two builds were measured away before this one:** opening the sheet by itself failed seventeen e2e flows
@@ -5572,7 +5576,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   **Built 2026-08-24.** Two things were widened while building, both found by rendering the
   posture rather than by reading this text. **The price above priced one affordance, and there
   were five.** Press-and-hold going inert is what this FR named; the rendered mode also carried
-  the quick-add row, the ＋ FAB, the FR-25.2 *„n gepackte zeigen"* reveal bar and an app-bar
+  the quick-add row, the ＋ FAB, the FR-25.2 *„{n} Erledigte anzeigen"* reveal bar and an app-bar
   cluster still offering *Reise bearbeiten* and *Reise abschliessen* — the archive action, offered
   from inside the room it opens. All five are gone in the posture; what stays is what the mode was
   chosen for (grouping, FR-25.11 facets, search). The rule is not "hide the controls" but **a

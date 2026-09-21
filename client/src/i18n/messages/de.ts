@@ -141,9 +141,9 @@ export const de: Record<keyof typeof en, string> = {
 
   'packing.title': 'Packliste',
   'packing.itemsLeft': '{n} Packelement offen | {n} Packelemente offen',
-  'packing.showPacked': '{n} gepackte anzeigen',
-  'packing.hidePacked': '{n} gepackte ausblenden',
-  'packing.allDone': 'Alles gepackt 🎉',
+  'packing.showDone': '{n} Erledigtes anzeigen | {n} Erledigte anzeigen',
+  'packing.hideDone': '{n} Erledigtes ausblenden | {n} Erledigte ausblenden',
+  'packing.allDone': 'Alles erledigt 🎉',
   'packing.allDoneHint': 'Nichts mehr offen für diese Reise.',
   'packing.skipped': 'Bewusst weggelassen',
   'packing.undo': 'Rückgängig',
@@ -264,7 +264,6 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closeAction': 'Packen abschliessen',
   'packing.closeConfirmTitle': 'Packen abschliessen?',
   'packing.closeConfirmMeta': 'Was offen bleibt, ist danach eine Entscheidung.',
-  'packing.closePromptTitle': 'Alles gepackt',
   'packing.closePromptMeta': 'Das war das letzte offene Packelement.',
   'packing.closeLater': 'Später',
   'packing.closeConfirmBody':

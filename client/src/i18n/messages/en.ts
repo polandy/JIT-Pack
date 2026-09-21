@@ -139,9 +139,15 @@ export const en = {
   // Packing list (M4).
   'packing.title': 'Packing list',
   'packing.itemsLeft': '{n} item left | {n} items left',
-  'packing.showPacked': 'Show {n} packed',
-  'packing.hidePacked': 'Hide {n} packed',
-  'packing.allDone': 'All packed 🎉',
+  // FR-25.2: *done*, not *packed* — a deliberately skipped row is a done one,
+  // and since FR-5.10 closes a list by skipping the rest in one act, naming
+  // them all “packed” is wrong on the ordinary case rather than the rare one.
+  'packing.showDone': 'Show {n} done item | Show {n} done items',
+  'packing.hideDone': 'Hide {n} done item | Hide {n} done items',
+  // FR-25.11e, and the same word as the bar above: the state is reached by
+  // packing *or* skipping the last open row, and since FR-5.10 one act can
+  // do the skipping for every row at once.
+  'packing.allDone': 'All done 🎉',
   'packing.allDoneHint': 'Nothing left for this trip.',
   'packing.skipped': 'Deliberately skipped',
   'packing.undo': 'Undo',
@@ -265,7 +271,6 @@ export const en = {
   'packing.closeAction': 'Finish packing',
   'packing.closeConfirmTitle': 'Finish packing?',
   'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
-  'packing.closePromptTitle': 'Everything is packed',
   'packing.closePromptMeta': 'That was the last open item.',
   'packing.closeLater': 'Later',
   'packing.closeConfirmBody':

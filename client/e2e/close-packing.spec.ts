@@ -109,6 +109,44 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
+   * E2E-M4-145 (FR-25.2 with FR-5.10): the bar names what it counts. Two rows
+   * stand behind it and only one of them was packed — the other was left
+   * behind on purpose by the close — so a word that is true of both is the
+   * only honest one. It read „2 packed" until 2026-09-21, which FR-25.2's own
+   * sentence contradicted from the start (a skipped row *is* a done row); the
+   * close is what made the wrong half the ordinary case rather than the rare
+   * one, because it decides every remaining row in a single act.
+   *
+   * Both directions are asserted. The label is built twice in the template,
+   * once per direction, and the pair has drifted apart here before — the log
+   * records a bar that read „Show 3 packed" and then „Hide 5 packed" for the
+   * same rows.
+   */
+  test('E2E-M4-145: the reveal bar counts a skipped row under a word that is true of it', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Wortlaut')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    await tripAction(page, 'closePacking')
+    await confirmClose(page)
+
+    const bar = visiblePage(page).getByTestId('m4-done-bar')
+    await expect(bar).toHaveText('Show 2 done items')
+    // The same word one element up, while the rows are still away: the state a
+    // finished list shows is named for what it covers too, and one of the two
+    // rows it covers here was never packed.
+    await expect(visiblePage(page).getByTestId('packing-empty')).toContainText('All done')
+
+    await bar.click()
+    await expect(bar).toHaveText('Hide 2 done items')
+    // The second of the two, revealed: not packed, and counted all the same.
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toContainText(
+      /deliberately skipped/i,
+    )
+  })
+
+  /**
    * E2E-M4-144 (FR-7.7): closing the packing is the moment „before the trip"
    * ends, so every task still open and still due before it crosses to
    * *during* — and the question says so before anything is written.
