@@ -417,6 +417,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The item merge asked four tables the same question (2026-09-20)](#the-item-merge-asked-four-tables-the-same-question-2026-09-20) — why a position is updated rather than re-created, and what the FK guard decided.
 - [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
 - [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-070: the derivation that revokes the user's own decision, and the half-packed row three ways.
+- [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 
 ## Deviations
 
@@ -16920,3 +16921,43 @@ measurement it rested on was re-opened by adding one — so E2E-G12-07 now measu
 phone the app targets, and asserts both that every pill is inside the viewport and that all three sit on one line. A
 row that wrapped would have passed a width assertion on its own.
 
+## The upgrade stops needing a person (2026-09-21)
+
+ADR-067 built, with one amendment written before the first line of code. The chain itself is the small
+half: `internal/store/migrations/NNN_*.sql`, applied at `Open`, one transaction per step. What is worth
+recording is the field that could not carry what the ADR wanted it to, the guard that turned out to be
+decoration, and the gate that was measuring the wrong thing.
+
+**The field that holds two vocabularies.** Option A said `PRAGMA user_version` goes back to naming a
+level. It cannot: `schemaFingerprint()` is a 31-bit hash, so a fingerprint may be *any* value including
+1…23, and those are exactly the levels the deleted migration era left behind. One integer, two meanings,
+and the confusion is silent in the worst direction — a database twenty-three steps behind read as current.
+The level moved into `schema_meta`, whose *presence* is the signal no hash can imitate; `user_version`
+stays as a mirror that decides nothing. The amendment is in the ADR because the ADR is where the next
+person will look for the rule, not in a commit message.
+
+**A number I got wrong, and how.** I first bounded the old era at 19, from CLAUDE.md's backlog line
+„Migrationen 018/019". Those were the two migrations *open* at the time, not the end of the chain — it ran
+to 023. The correct bound came from `git log --diff-filter=D` over the deleted files. It is the same
+mistake this whole PR is about, in miniature: a document describing a past state, read as the present.
+The constant now carries its provenance in its comment, because it cannot be derived from anything.
+
+**The guard that was decoration.** `lastMigrationEraLevel` was documented and then never consulted —
+refusal happened to fall out of „fingerprint not in the list". `golangci-lint` called it unused, which was
+the useful half of the finding: today it is harmless, and it stops being harmless the moment a future
+baseline's fingerprint comes out small, because then a migration-era database at that level would be
+bridged as a release. It is now checked first, and a test refuses any baseline whose fingerprint lands
+inside the era's range.
+
+**The gate that proved the wrong thing.** The first version replayed the SQL files against the baseline
+fixture and compared that to `schema.sql`. It went red immediately — `schema_meta` was missing from the
+chain — and the fix exposed the real flaw: the files are not what an operator's database meets. The loader
+is, and it does two things no replay does (placing the baseline, creating the table). So the comparison
+now opens a real v0.16.0 file with this build and compares *that* to a fresh open. The replay survives in
+one place only, the mutation proof, where the point is to break the chain on purpose.
+
+**Column order is deliberately not compared.** `ALTER TABLE ADD COLUMN` appends; `schema.sql` declares in
+place. Comparing order would fail on every correct chain forever — and in the live database the
+hand-carried columns already sit behind `updated_hlc` for exactly that reason (ADR-067 driver 4). CHECK
+constraints are compared as a *set* of normalised texts, because they exist only inside the table's own
+DDL and arrive differently formatted from the two directions.

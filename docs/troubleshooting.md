@@ -15,16 +15,21 @@ half-working instance. Check the very first lines of the log.
 ### `store: database schema is stale`
 
 ```
-store: database schema is stale: /data/jitpack.db was built from a different schema
-	JIT-Pack is pre-1.0 and ships no schema upgrade path
-	to discard it:   rm /data/jitpack.db   and restart
+store: database schema is stale: /data/jitpack.db was built from a schema this build cannot place
+	it predates v0.16.0, the oldest release this build carries forward
 	to keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import
+	to discard it:   rm /data/jitpack.db   and restart
 ```
 
-**Cause:** the image you just started defines a different database schema than the one that
-wrote the file at `JITPACK_DB_PATH`. While JIT-Pack is pre-1.0 the schema is a single
-always-current definition with no migration chain behind it, so there is no path from the
-old file to the new schema.
+**Cause:** since 0.17.0 the server upgrades a database it finds ([Upgrades](upgrades.md)), so
+seeing this at all means the file is one of the three it cannot place:
+
+- **Older than 0.16.0** — before the oldest release the chain starts from, which is the
+  message above.
+- **From the pre-0.16 migration era**, whose schema level is between 1 and 23. Same message,
+  naming the level.
+- **From a newer version than the one you started** — `stands at schema level N and this
+  build knows M`. Migrations only go forward; put the newer image back.
 
 **The server changed nothing.** It refuses to start rather than touching a database it does
 not understand, so the file is exactly as it was and you can still go back.

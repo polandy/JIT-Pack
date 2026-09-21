@@ -1,6 +1,6 @@
 # ADR-067: The store gets a migration path inside the 0.x line — a baseline plus an additive chain, over waiting for 1.0
 
-**Status:** Accepted (2026-09-20) — the mechanism is owed, not yet built
+**Status:** Accepted (2026-09-20), **built 2026-09-21** with the amendment below
 **Related:** ADR-018 (whose revisit trigger this fires), CLAUDE.md invariant 2, `internal/store/schema.sql`,
 `internal/store/store.go` (`ensureSchema`, `schemaFingerprint`, `ErrSchemaStale`), `docs/upgrades.md`, NFR-4.11
 
@@ -146,6 +146,11 @@ is written down in `dev-docs/implementation-log.md` so it stops being tribal kno
 ## Consequences
 
 **Positive**
+- Built as of 2026-09-21: the chain is `internal/store/migrations/NNN_*.sql`, the equivalence proof is
+  `TestSchemaChain_EndsWhereSchemaSQLDoes` — a **test**, not a shell gate, so it runs inside `make ci` and
+  the CI `go` job with the product's own SQLite driver and needs no new wiring. Its own mutation proof
+  (`TestSchemaChain_TheComparisonCatchesDrift`) breaks the chain three ways and requires the comparison to
+  report each.
 - An instance upgrades by pulling an image, which is what everyone already assumes a version bump does.
 - A change needing a backfill becomes expressible again. The four data-transformation tests ADR-018 retired describe a
   category of test that can exist once more.
@@ -167,6 +172,36 @@ is written down in `dev-docs/implementation-log.md` so it stops being tribal kno
   `client/src/local/persistence.ts`.
 - Nothing here changes what `ErrSchemaStale` says or when it fires. A database *ahead* of the binary, or off the chain
   entirely, is still refused rather than guessed at.
+
+## Amendment, 2026-09-21: the level does not live in `PRAGMA user_version`
+
+Option A said *„`PRAGMA user_version` goes back to naming a level rather than a fingerprint."* Building it
+showed that it cannot, safely, and the owner accepted the correction before any code was written.
+
+**The reason is that the field holds two vocabularies at once.** `schemaFingerprint()` is
+`sha256(schema.sql)` truncated to 31 bits, so a fingerprint is *any* value in 1…2³¹-1 — including 1…23,
+which are exactly the levels the migration era left behind (its chain ran `001_schema.sql` …
+`023_planning_refresh.sql`; counted off the deleted files, not off the backlog, which names only the last
+two that were open at the time). A loader reading that one field has no way to tell a level from a hash,
+and the failure is silent in the worst direction: a database twenty-three steps behind read as current, or
+a current one refused.
+
+**So the level gets its own place.** `schema_meta(level, baseline)` — one row, never synced — is
+authoritative, and `user_version` is kept as a readable mirror that nothing decides on. The *presence* of
+that table is what says a database belongs to the chain era at all, which is a fact no hash can imitate.
+A database without it is placed by matching `user_version` against a **list of known release
+fingerprints** (`baselineLevels`, today just v0.16.0 → level 0), and anything not on the list is refused.
+Two guards keep the vocabularies apart for good: values at or below `lastMigrationEraLevel` are refused
+before the list is even consulted, and a test refuses a future baseline whose fingerprint would land in
+that range.
+
+**The baseline fingerprint is a literal**, proven against `internal/store/testdata/schema-v0.16.0.sql`
+rather than recomputed at run time. A recomputation would follow whatever the hash function does next, and
+the bridge would break on the one database that cannot be rebuilt.
+
+**What this costs:** one more table in the schema, and a list that has to be extended each time a release
+becomes a supported starting point. What it buys is that no reading of a single integer can ever place a
+database wrongly.
 
 ## Revisit Trigger
 

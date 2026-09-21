@@ -35,8 +35,7 @@
     ],
     "deny": [
       "Edit(client/node_modules/**)",
-      "Write(client/node_modules/**)",
-      "Write(internal/store/migrations/**)"
+      "Write(client/node_modules/**)"
     ]
   },
   "hooks": {
