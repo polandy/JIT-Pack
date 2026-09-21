@@ -57,11 +57,18 @@ export function createShoppingActions(host: ModuleHost) {
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
 
-  /** FR-30.9: files an entry under a tag, or takes it out of one with null. */
-  function setTag(entry: ShoppingEntry, tag: string | null): void {
-    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
-      tag: normalizeTag(tag),
-    })
+  /**
+   * FR-30.9: renames an entry and/or files it under a tag, or takes it out of
+   * one with null. Only what differs is written — a blank name is no rename.
+   */
+  function updateEntry(entry: ShoppingEntry, fields: { name: string; tag: string | null }): void {
+    const patch: Record<string, unknown> = {}
+    const name = fields.name.trim()
+    if (name !== '' && name !== entry.name) patch['name'] = name
+    const tag = normalizeTag(fields.tag)
+    if (tag !== entry.tag) patch['tag'] = tag
+    if (Object.keys(patch).length === 0) return
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, patch)
     host.writeTrip(entry.trip_id, {
       mutation,
       optimistic: optimisticUpdate(mutation, encode(entry)),
@@ -89,7 +96,7 @@ export function createShoppingActions(host: ModuleHost) {
     host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
   }
 
-  return { addEntry, setTag, setBought, removeEntry }
+  return { addEntry, updateEntry, setBought, removeEntry }
 }
 
 export type ShoppingActions = ReturnType<typeof createShoppingActions>
@@ -120,7 +127,7 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): S
       buy: () => actions.setBought(entry, true),
       unbuy: () => actions.setBought(entry, false),
       remove: () => actions.removeEntry(entry),
-      retag: (tag) => actions.setTag(entry, tag),
+      edit: (fields) => actions.updateEntry(entry, fields),
     }
   }
   return {

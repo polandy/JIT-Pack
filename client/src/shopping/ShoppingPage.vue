@@ -38,6 +38,7 @@ import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -178,16 +179,22 @@ async function goToField() {
  */
 const draftTag = ref<string | null>(null)
 
-/** The tags still in use on this trip, plus the one being drafted before its first entry exists. */
+/**
+ * The tags on offer: those still in use on this trip, plus those made in this
+ * visit — a tag nobody carries yet must stay a chip, or unselecting it would
+ * make it disappear.
+ */
 const tagChips = computed(() => {
-  const inUse = shoppingStore.tagCounts(props.tripId).map((entry) => entry.tag)
-  return draftTag.value && !inUse.includes(draftTag.value)
-    ? [...inUse, draftTag.value].sort((a, b) => a.localeCompare(b))
-    : inUse
+  const names = new Set(shoppingStore.tagCounts(props.tripId).map((entry) => entry.tag))
+  for (const tag of [...madeTags.value, ...(draftTag.value ? [draftTag.value] : [])]) names.add(tag)
+  return [...names].sort((a, b) => a.localeCompare(b))
 })
 
 function toggleDraftTag(tag: string) {
   draftTag.value = draftTag.value === tag ? null : tag
+  if (draftTag.value !== null && !madeTags.value.includes(draftTag.value)) {
+    madeTags.value.push(draftTag.value)
+  }
 }
 
 /** FR-30.1: an entry of the list's own, on the open tab. */
@@ -198,38 +205,46 @@ function addEntry() {
 }
 
 /**
- * The search-or-create sheet (FR-30.9), one mask for both callers: it says
- * whose tag is being chosen, what it is now, and what choosing does.
+ * The entry sheet (FR-30.9): the name and the tag, like the packing list's
+ * creation sheet. One mask for two acts — adding an entry (opened from the
+ * composer's ＋ Tag, carrying what was typed there) and editing one that
+ * exists (a tap on its name) — so `line` is what tells them apart.
  */
-const tagSheet = ref<{
-  title: string
-  current: string | null
-  apply: (tag: string | null) => void
+const entrySheet = ref<{
+  line: ShoppingLine | null
+  name: string
+  tag: string | null
 } | null>(null)
 
-/** The tag of the next entry, from the composer's ＋ Tag. */
-function openDraftSheet() {
-  tagSheet.value = {
-    title: t('shopping.tagSheetDraftTitle'),
-    current: draftTag.value,
-    apply: (tag) => (draftTag.value = tag),
-  }
+/** Tags made in this visit, kept as chips even while no entry carries them yet. */
+const madeTags = ref<string[]>([])
+
+function openAddSheet() {
+  entrySheet.value = { line: null, name: draft.value, tag: draftTag.value }
 }
 
-/** An existing entry's tag, from a tap on its name; a source's line has none to choose. */
-function openTagSheet(line: ShoppingLine) {
-  const retag = line.retag
-  if (!retag) return
-  tagSheet.value = {
-    title: t('shopping.tagSheetTitle', { name: line.name }),
-    current: line.tag ?? null,
-    apply: retag,
-  }
+/** An existing entry, from a tap on its name; a source's line has nothing to edit. */
+function openEditSheet(line: ShoppingLine) {
+  if (!line.edit) return
+  entrySheet.value = { line, name: line.name, tag: line.tag ?? null }
 }
 
-function chooseTag(tag: string | null) {
-  tagSheet.value?.apply(tag)
-  tagSheet.value = null
+function chooseSheetTag(tag: string | null) {
+  if (entrySheet.value) entrySheet.value.tag = tag
+  if (tag !== null && !madeTags.value.includes(tag)) madeTags.value.push(tag)
+}
+
+function confirmEntrySheet() {
+  const sheet = entrySheet.value
+  if (!sheet || sheet.name.trim() === '') return
+  if (sheet.line?.edit) {
+    sheet.line.edit({ name: sheet.name, tag: sheet.tag })
+  } else {
+    actions.addEntry(props.tripId, tab.value, sheet.name, sheet.tag)
+    draft.value = ''
+    draftTag.value = sheet.tag
+  }
+  entrySheet.value = null
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -287,12 +302,7 @@ setHeaderTitle(
         >
           {{ tag }}
         </button>
-        <button
-          type="button"
-          class="chip chip-add"
-          data-testid="m6-tag-new"
-          @click="openDraftSheet"
-        >
+        <button type="button" class="chip chip-add" data-testid="m6-tag-new" @click="openAddSheet">
           {{ t('shopping.tagAdd') }}
         </button>
       </div>
@@ -311,12 +321,12 @@ setHeaderTitle(
           <IonItem v-for="line in section.lines" :key="line.key" data-testid="m6-row">
             <!-- FR-30.9: a tap on an own entry's name files it under a tag. -->
             <IonLabel
-              :class="{ tappable: !!line.retag }"
-              :role="line.retag ? 'button' : undefined"
-              :tabindex="line.retag ? 0 : undefined"
+              :class="{ tappable: !!line.edit }"
+              :role="line.edit ? 'button' : undefined"
+              :tabindex="line.edit ? 0 : undefined"
               data-testid="m6-row-label"
-              @click="openTagSheet(line)"
-              @keyup.enter="openTagSheet(line)"
+              @click="openEditSheet(line)"
+              @keyup.enter="openEditSheet(line)"
             >
               <h3>{{ line.name }}</h3>
               <p v-if="line.quantity > 1">{{ line.quantity }}×</p>
@@ -331,7 +341,7 @@ setHeaderTitle(
                 />
                 <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
               </p>
-              <p v-if="line.retag && !line.tag" class="tag-add" data-testid="m6-row-tag-add">
+              <p v-if="line.edit && !line.tag" class="tag-add" data-testid="m6-row-tag-add">
                 {{ t('shopping.tagAdd') }}
               </p>
             </IonLabel>
@@ -422,17 +432,45 @@ setHeaderTitle(
         </IonItem>
       </IonList>
 
-      <!-- FR-30.9: one tag or none — M10's search-or-create mask. -->
-      <SheetModal :is-open="tagSheet !== null" testid="m6-tag-sheet" @dismiss="tagSheet = null">
-        <div v-if="tagSheet" class="tag-sheet">
-          <h2 class="tag-sheet-title">{{ tagSheet.title }}</h2>
-          <p class="tag-sheet-hint">{{ t('shopping.tagSheetHint') }}</p>
+      <!-- FR-30.9: name and tag — the packing list's creation sheet, for an entry. -->
+      <SheetModal
+        :is-open="entrySheet !== null"
+        testid="m6-entry-sheet"
+        @dismiss="entrySheet = null"
+      >
+        <section v-if="entrySheet" class="entry-sheet">
+          <SheetHead
+            :title="entrySheet.line ? t('shopping.entrySheetEdit') : t('shopping.entrySheetNew')"
+            title-testid="m6-entry-title"
+            close-testid="m6-entry-close"
+            @close="entrySheet = null"
+          />
+          <IonInput
+            :value="entrySheet.name"
+            :label="t('shopping.entryName')"
+            label-placement="stacked"
+            fill="outline"
+            data-testid="m6-entry-name"
+            @ionInput="
+              (e: CustomEvent) => entrySheet && (entrySheet.name = (e.detail.value as string) ?? '')
+            "
+            @keyup.enter="confirmEntrySheet"
+          />
           <ShoppingTagChooser
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
-            :assigned="tagSheet.current"
-            @choose="chooseTag"
+            :assigned="entrySheet.tag"
+            @choose="chooseSheetTag"
           />
-        </div>
+          <div class="entry-sheet-actions">
+            <IonButton
+              :disabled="entrySheet.name.trim() === ''"
+              data-testid="m6-entry-confirm"
+              @click="confirmEntrySheet"
+            >
+              {{ entrySheet.line ? t('common.save') : t('common.add') }}
+            </IonButton>
+          </div>
+        </section>
       </SheetModal>
       <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
            top of the list, so the screen still has one way to add. -->
@@ -518,16 +556,12 @@ setHeaderTitle(
   color: var(--ct-subtext0);
 }
 
-.tag-sheet {
-  padding: 8px 16px 16px;
+.entry-sheet {
+  padding: 4px 18px 22px;
 }
 
-.tag-sheet-title {
-  margin: 0;
-}
-
-.tag-sheet-hint {
-  margin: 2px 0 8px;
-  color: var(--ct-subtext0);
+.entry-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

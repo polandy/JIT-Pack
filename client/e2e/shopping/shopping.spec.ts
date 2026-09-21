@@ -38,9 +38,9 @@ function m6(page: Page) {
   return visible(page).getByTestId('m6-page')
 }
 
-/** The tag sheet — the search-or-create mask (FR-30.9); its presentation is a state, not an event. */
+/** The entry sheet (FR-30.9); its presentation is a state, not an event. */
 function sheet(page: Page) {
-  return page.getByTestId('m6-tag-sheet')
+  return page.getByTestId('m6-entry-sheet')
 }
 
 /**
@@ -157,35 +157,44 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await openTripView(page, 'shopping')
     await m6(page).getByTestId('m6-tab-local').click()
 
-    // A new tag from the composer, kept for the next entry.
+    // The sheet adds an entry with its name and a tag made in it; the tag is
+    // then kept for the next entry typed in the field.
     await m6(page).getByTestId('m6-tag-new').click()
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m6-entry-name').locator('input').fill('Pasta')
     await page.getByTestId('m6-tag-search').locator('input').fill('Supermarkt')
     await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
-    await addEntry(page, 'Pasta')
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Pasta' })).toBeVisible()
     await addEntry(page, 'Brot')
 
-    // Untagged: unselect the chip, and add one with no tag at all.
-    await m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Supermarkt' }).click()
+    // Untagged: unselecting the chip must not make it disappear (a tag nobody
+    // carries would have), and the next entry has no tag at all.
+    const chip = m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Supermarkt' })
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'false')
     await addEntry(page, 'Batterien')
 
     const supermarkt = m6(page).getByTestId('m6-group-tag-Supermarkt')
     await expect(supermarkt.locator('h3')).toHaveText(['Brot', 'Pasta'])
     await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Batterien'])
 
-    // Retag through the sheet: a new tag, and A–Z puts it first.
+    // Edit through the sheet: the title and a new tag; A–Z puts it first.
     await m6(page)
       .getByTestId('m6-row')
       .filter({ hasText: 'Batterien' })
       .getByTestId('m6-row-label')
       .click()
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await expect(page.getByTestId('m6-entry-name').locator('input')).toHaveValue('Batterien')
+    await page.getByTestId('m6-entry-name').locator('input').fill('Batterien AA')
     await page.getByTestId('m6-tag-search').locator('input').fill('Baumarkt')
     await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
     await expect(m6(page).getByTestId('m6-group-tag-Baumarkt').locator('h3')).toHaveText([
-      'Batterien',
+      'Batterien AA',
     ])
     await expect(m6(page).getByTestId('m6-group-own')).toHaveCount(0)
     await expect(m6(page).locator('ion-item-group').first()).toHaveAttribute(

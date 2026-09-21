@@ -60,8 +60,12 @@ export interface ShoppingLine {
   unbuy(): void
   /** Removes the line; only a line the list itself owns offers this. */
   remove?(): void
-  /** Sets or clears the line's tag (FR-30.9); only a line the list owns offers this. */
-  retag?(tag: string | null): void
+  /**
+   * Changes the line's name and/or tag (FR-30.9); only a line the list owns
+   * offers this. What did not change is not written, so two people editing
+   * different fields of one entry do not overwrite each other.
+   */
+  edit?(fields: { name: string; tag: string | null }): void
 }
 
 /** Something that contributes lines to a trip's two shopping lists. */
