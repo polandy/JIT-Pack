@@ -152,6 +152,7 @@ export const en = {
   'packing.allDone': 'All done 🎉',
   'packing.allDoneHint': 'Nothing left for this trip.',
   'packing.skipped': 'Deliberately skipped',
+  'packing.forgotten': 'Forgotten to pack',
   'packing.undo': 'Undo',
   'packing.skippedVia': 'skipped: “{name}” is not on this trip',
   'packing.passTitle': 'Finish the trip',
@@ -752,6 +753,9 @@ export const en = {
   'quickAdd.missingHint': 'New items are flagged as missing',
   // FR-5.10: on a finished list an addition is what is already in the bag.
   'quickAdd.packedHint': 'New items are recorded as packed',
+  // FR-5.11: was auf der Reise fehlt, weil es nicht eingepackt wurde.
+  'quickAdd.forgottenToggle': 'Forgot to pack it',
+  'quickAdd.forgottenHint': 'New items are recorded as forgotten – left behind, for next trip',
   'quickAdd.offerCreateHint': 'Create it in the inventory and add it right away',
   'quickAdd.offerRestoreHint': 'Restore it and add it right away',
   'quickAdd.alreadyIn': '“{name}” is already in',

@@ -294,6 +294,38 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
+   * E2E-M4-146 (FR-5.11, owner 2026-09-21): *„was ich vergessen habe zu
+   * packen"*. On the road, a thing that stayed home is added with the
+   * composer's switch on. It must not land *packed* (it is not in the bag) and
+   * must not become an open job either — it is a record for the next trip, so
+   * the packing figure stays where it was and the row carries the Missing flag
+   * M14 reads.
+   */
+  test('E2E-M4-146: something forgotten is recorded as left behind, not as packed or open', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Vergessen')
+    await startTrip(page)
+
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-forgotten').click()
+    await expect(page.getByTestId('quick-add-hint')).toContainText('forgotten')
+    await addInComposer(page, 'Zahnbürste')
+    await page.keyboard.press('Escape')
+    await writesLanded(page)
+
+    // Neither packed nor open: the figure is the one it was before the add.
+    await expect(visiblePage(page).getByTestId('m4-progress')).toContainText('0/1')
+    await expect(visiblePage(page).getByTestId('m4-row-Zahnbürste')).toHaveCount(0)
+
+    // It is there, behind the bar with the other decided rows, and flagged.
+    await visiblePage(page).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Zahnbürste')).toContainText(
+      'Forgotten to pack',
+    )
+  })
+
+  /**
    * E2E-M4-143 (FR-5.10, owner 2026-09-20): the step is offered where the
    * moment is. Packing the last open row raises the same question the ⋮
    * asks — and it is still a *question*: nothing is written until it is

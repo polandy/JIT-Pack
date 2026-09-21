@@ -5145,6 +5145,18 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     it is still flagged *Missing*, which is exactly right: the plan forgot it, and M14 should propose it for next time.
     **An add for named travelers keeps the open row it always wrote** — a row per person is a plan being made, not a bag
     being recorded.
+  * **FR-5.11 — *forgot to pack it* (owner, 2026-09-21: *„wenn ich auf der Reise etwas hinzufügen möchte, das ich zu
+    packen vergessen habe, damit ich es beim nächsten Urlaub berücksichtige"*).** FR-5.6's add and FR-5.10's add both
+    record something that **travelled**. This one records what **stayed home**. The composer on an *active* trip
+    carries a switch, *„Vergessen einzupacken"*; while it is on, an add writes a row that is **skipped at quantity 0
+    and flagged *Missing*** (FR-9.1) — so it is neither packed nor an open job, the packing figure does not move, and
+    M14 (FR-9.2) proposes it for the next trip like any other *Missing* row. No new state and no schema change: the row
+    is the shape FR-5.5's skip already writes, plus the flag. **The one *not-taken* add that is flagged** — FR-25.13f's
+    skip-add still is not, because *„we are leaving it"* and *„the plan forgot it"* are different statements. The
+    switch never reads FR-25.28's for-whom strip (one thing stayed home, for nobody in particular), stays on across a
+    run of adds and is off again the next time the composer opens. Not offered in M8, which plans rather than remembers.
+    **The row says so:** a revealed skipped row that is flagged *Missing* reads *„Vergessen einzupacken"* where its
+    siblings read *„Bewusst weggelassen"* — the flag is what tells forgotten from decided.
   * **M1 lets the packing recede** (owner, 2026-09-20: *„die Packliste kann dort deutlich weniger prominent sein, da wir
     nun in einer anderen Ferienphase sind"*). On a trip whose packing is closed, the dashboard's hero and its trip cards
     replace the packing **figure** — a ring, the loudest thing on the card — with one quiet line, *„Packen

@@ -2648,6 +2648,7 @@ setHeaderTitle(
         ref="quickAdd"
         :is-active="active"
         :adds-packed="packingClosed"
+        :offer-forgotten="active"
         :show-trigger="false"
         :offer-groups="true"
         :traveler-count="travelers.length"

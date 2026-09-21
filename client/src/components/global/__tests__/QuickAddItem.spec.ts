@@ -430,3 +430,58 @@ describe('QuickAddItem — the search creates what it did not find (FR-24.11)', 
     expect(rows[0]!.text()).toContain('Camping')
   })
 })
+
+describe('QuickAddItem — FR-5.11 forgot to pack it', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    seedInventory()
+  })
+
+  it('offers no switch where the trip is not on the road (M8 plans, it does not remember)', async () => {
+    const wrapper = open()
+    await expand(wrapper)
+
+    expect(wrapper.find('[data-testid="quick-add-forgotten"]').exists()).toBe(false)
+  })
+
+  it('adds with the forgotten decision, and for nobody in particular, once the switch is on', async () => {
+    const wrapper = open({ offerForgotten: true, isActive: true, ...ROSTER })
+    await expand(wrapper)
+    await wrapper.find('[data-testid="quick-add-for-whom"] button').trigger('click')
+
+    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+    await type(wrapper, NAME)
+    await confirm(wrapper)
+
+    const [item, decided] = wrapper.emitted('add')![0] as [{ travelerIds: string[] }, string]
+    expect(decided).toBe('forgotten')
+    expect(item.travelerIds).toEqual([])
+  })
+
+  it('says what it will record, instead of the Missing hint', async () => {
+    const wrapper = open({ offerForgotten: true, isActive: true })
+    await expand(wrapper)
+    const before = wrapper.find('[data-testid="quick-add-hint"]').text()
+
+    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="quick-add-forgotten"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.find('[data-testid="quick-add-hint"]').text()).not.toBe(before)
+  })
+
+  it('starts the next visit from the ordinary add', async () => {
+    const wrapper = open({ offerForgotten: true, isActive: true })
+    await expand(wrapper)
+    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+    await wrapper.find('[data-testid="quick-add-close"]').trigger('click')
+    await expand(wrapper)
+
+    await type(wrapper, NAME)
+    await confirm(wrapper)
+
+    expect(wrapper.emitted('add')![0]![1]).toBeUndefined()
+  })
+})

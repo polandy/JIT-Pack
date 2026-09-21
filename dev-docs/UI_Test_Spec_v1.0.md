@@ -1082,6 +1082,11 @@ in WebKit.
   ends on the revealed row wearing *deliberately skipped*, which is what makes the count more than arithmetic: without
   it, a bar reading „2 done" over two packed rows would pass just as well.
 
+* **E2E-M4-146** `local` (FR-5.11, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): on an active trip
+  the composer's *Forgot to pack it* switch records something that stayed home. The hint changes to say so before
+  anything is typed; after the add the packing figure is still *0/1* (not packed, not an open job) and the row is
+  absent from the open list. Behind the reveal bar it reads *„Forgotten to pack“* rather than *deliberately skipped*.
+
 ### M5 — Item Detail
 
 **How to read this section (2026-08-30, audit of backlog item 6).** M5's

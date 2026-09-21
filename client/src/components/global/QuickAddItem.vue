@@ -63,8 +63,10 @@ import { IonInput, IonList, IonItem, IonLabel, IonIcon, IonButton } from '@ionic
 import {
   addCircleOutline,
   albumsOutline,
+  checkmarkCircleOutline,
   checkmarkOutline,
   closeCircleOutline,
+  ellipseOutline,
 } from 'ionicons/icons'
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
@@ -114,6 +116,12 @@ const props = withDefaults(
      * hint says so instead of FR-9.1's.
      */
     addsPacked?: boolean
+    /**
+     * FR-5.11: offer the *forgot to pack it* switch — a trip on the road,
+     * where something can be missed. Absent in M8, which plans rather than
+     * remembers.
+     */
+    offerForgotten?: boolean
     /** Scope-labelled commit text (FR-25.13 in M8); icon-only when absent. */
     confirmLabel?: string
     /** Master items to keep out of the suggestions (already present). */
@@ -152,6 +160,7 @@ const props = withDefaults(
   {
     isActive: false,
     addsPacked: false,
+    offerForgotten: false,
     confirmLabel: undefined,
     excludeItemIds: () => [],
     offerGroups: false,
@@ -360,6 +369,7 @@ function close() {
   expanded.value = false
   query.value = ''
   chosenTravelers.value = new Set()
+  forgotten.value = false
   browseOpen.value = false
   createOpen.value = false
 }
@@ -404,7 +414,10 @@ function afterAdd(item: MasterItem) {
 
 /** A composer add: a chip or a suggestion, for whoever the strip names. */
 function emitMasterItem(item: MasterItem) {
-  emit('add', { ...additionOf(item), travelerIds: chosenTravelerIds() })
+  // FR-5.11: a forgotten add is a record of one thing that stayed home, so it
+  // never reads the strip — the same reason a browse-sheet add does not.
+  if (forgottenOn.value) emit('add', { ...additionOf(item), travelerIds: [] }, 'forgotten')
+  else emit('add', { ...additionOf(item), travelerIds: chosenTravelerIds() })
   afterAdd(item)
 }
 
@@ -453,6 +466,14 @@ function selectSuggestion(item: MasterItem) {
 function selectChip(item: MasterItem) {
   emitMasterItem(item)
 }
+
+/**
+ * FR-5.11: the switch. A plain local `ref`, kept across adds because rows
+ * are entered in runs („Sonnencreme, Ladekabel, Mütze"), and dropped when the
+ * composer closes so the next visit starts from the ordinary add.
+ */
+const forgotten = ref(false)
+const forgottenOn = computed(() => props.offerForgotten && forgotten.value)
 
 // --- Inventory browse-sheet (FR-25.13d) -------------------------------------
 
@@ -656,9 +677,31 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
 
-      <p v-if="addsPacked || isActive" class="add-hint">
-        {{ t(addsPacked ? 'quickAdd.packedHint' : 'quickAdd.missingHint') }}
+      <p v-if="forgottenOn || addsPacked || isActive" class="add-hint" data-testid="quick-add-hint">
+        {{
+          t(
+            forgottenOn
+              ? 'quickAdd.forgottenHint'
+              : addsPacked
+                ? 'quickAdd.packedHint'
+                : 'quickAdd.missingHint',
+          )
+        }}
       </p>
+      <!-- FR-5.11: the other half of „I am adding something": not what
+           travelled without being listed, but what stayed home unlisted. -->
+      <button
+        v-if="offerForgotten"
+        type="button"
+        class="forgotten-toggle"
+        :class="{ on: forgotten }"
+        :aria-pressed="forgotten"
+        data-testid="quick-add-forgotten"
+        @click="forgotten = !forgotten"
+      >
+        <IonIcon :icon="forgotten ? checkmarkCircleOutline : ellipseOutline" />
+        {{ t('quickAdd.forgottenToggle') }}
+      </button>
 
       <!-- FR-25.13c: the empty composer offers chips before it asks for
            typing — the reason open() no longer raises the keyboard. -->
@@ -902,6 +945,24 @@ function onKeydown(event: KeyboardEvent) {
   font-size: var(--jp-text-xs);
   color: var(--ct-straw);
   margin: 4px 8px 0;
+}
+
+.forgotten-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 8px 0;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--ct-text) 25%, transparent);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-card);
+  color: var(--ct-text);
+  font: inherit;
+}
+
+.forgotten-toggle.on {
+  border-color: var(--ct-straw);
+  color: var(--ct-straw);
 }
 
 .groups {

@@ -29,7 +29,7 @@ import {
   TRIP_STATUS_PLANNING,
 } from '@/types/domain'
 
-import type { Trip } from '@/types/domain'
+import { STATE_SKIPPED, type Trip } from '@/types/domain'
 import type {
   AppliedChange,
   Container,
@@ -143,7 +143,7 @@ export type ItemDependencyEdit = Partial<Pick<ItemDependency, 'mode' | 'quantity
  * mutation's (count meets quantity, `packed_at` at the tap — the server
  * stamps who), *skipped* is the skip mutation's (quantity 0).
  */
-export type AddedItemDecision = 'packed' | 'skipped'
+export type AddedItemDecision = 'packed' | 'skipped' | 'forgotten'
 
 export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
   function make(
@@ -431,7 +431,10 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const packed = opts.decided === 'packed'
-    const skipped = opts.decided === 'skipped'
+    // FR-5.11: a forgotten row is a skipped one that says why — it stayed
+    // home, so it is stored as the decision *not taken* and the caller adds
+    // the Missing flag that says the plan should have named it.
+    const skipped = opts.decided === 'skipped' || opts.decided === 'forgotten'
     const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name,
@@ -442,7 +445,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       // A skip is a quantity of zero whatever was asked for (FR-5.5).
       quantity: skipped ? 0 : (opts.quantity ?? 1),
       packed_count: packed ? 1 : 0,
-      state: opts.decided ?? 'open',
+      state: skipped ? STATE_SKIPPED : (opts.decided ?? 'open'),
       packed_at: packed ? nowIso() : null,
       mode: opts.mode ?? ITEM_MODE_PACK,
       flag_missing: dbBool(opts.flagMissing),

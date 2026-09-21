@@ -146,6 +146,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.allDone': 'Alles erledigt 🎉',
   'packing.allDoneHint': 'Nichts mehr offen für diese Reise.',
   'packing.skipped': 'Bewusst weggelassen',
+  'packing.forgotten': 'Vergessen einzupacken',
   'packing.undo': 'Rückgängig',
   'packing.skippedVia': 'weggelassen: „{name}“ ist nicht dabei',
   'packing.passTitle': 'Reise abschliessen',
@@ -760,6 +761,10 @@ export const de: Record<keyof typeof en, string> = {
   // FR-5.10: auf einer abgeschlossenen Liste ist ein Nachtrag das, was
   // schon im Koffer liegt — nicht der einzige offene Job.
   'quickAdd.packedHint': 'Neue Packelemente werden als eingepackt vermerkt',
+  // FR-5.11: was auf der Reise fehlt, weil es nicht eingepackt wurde.
+  'quickAdd.forgottenToggle': 'Vergessen einzupacken',
+  'quickAdd.forgottenHint':
+    'Neue Einträge werden als „vergessen“ vermerkt – nicht mitgenommen, für die nächste Reise',
   'quickAdd.offerCreateHint': 'Neu im Inventar anlegen und gleich hinzufügen',
   'quickAdd.offerRestoreHint': 'Wiederherstellen und gleich hinzufügen',
   'quickAdd.alreadyIn': '„{name}“ ist schon drin',
