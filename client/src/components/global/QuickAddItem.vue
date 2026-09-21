@@ -63,10 +63,8 @@ import { IonInput, IonList, IonItem, IonLabel, IonIcon, IonButton } from '@ionic
 import {
   addCircleOutline,
   albumsOutline,
-  checkmarkCircleOutline,
   checkmarkOutline,
   closeCircleOutline,
-  ellipseOutline,
 } from 'ionicons/icons'
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
@@ -117,9 +115,9 @@ const props = withDefaults(
      */
     addsPacked?: boolean
     /**
-     * FR-5.11: offer the *forgot to pack it* switch — a trip on the road,
-     * where something can be missed. Absent in M8, which plans rather than
-     * remembers.
+     * FR-5.11: offer the two-way answer *packed* / *forgotten* — once the
+     * packing is closed, when an add is a record of what happened rather than
+     * a job. Absent in M8, which plans rather than remembers.
      */
     offerForgotten?: boolean
     /** Scope-labelled commit text (FR-25.13 in M8); icon-only when absent. */
@@ -677,6 +675,41 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
 
+      <!-- FR-5.11: after the packing closed an add answers *what happened*: it
+           travelled unlisted (the default, as ever) or it stayed home. -->
+      <div
+        v-if="offerForgotten"
+        class="add-choice"
+        role="radiogroup"
+        :aria-label="t('quickAdd.choiceLabel')"
+        data-testid="quick-add-choice"
+      >
+        <button
+          type="button"
+          role="radio"
+          class="add-choice-opt"
+          :class="{ on: !forgotten }"
+          :aria-checked="!forgotten"
+          data-testid="quick-add-choice-packed"
+          @click="forgotten = false"
+        >
+          {{ t('quickAdd.choicePacked') }}
+          <small>{{ t('quickAdd.choicePackedSub') }}</small>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          class="add-choice-opt"
+          :class="{ on: forgotten }"
+          :aria-checked="forgotten"
+          data-testid="quick-add-choice-forgotten"
+          @click="forgotten = true"
+        >
+          {{ t('quickAdd.choiceForgotten') }}
+          <small>{{ t('quickAdd.choiceForgottenSub') }}</small>
+        </button>
+      </div>
+
       <p v-if="forgottenOn || addsPacked || isActive" class="add-hint" data-testid="quick-add-hint">
         {{
           t(
@@ -688,20 +721,6 @@ function onKeydown(event: KeyboardEvent) {
           )
         }}
       </p>
-      <!-- FR-5.11: the other half of „I am adding something": not what
-           travelled without being listed, but what stayed home unlisted. -->
-      <button
-        v-if="offerForgotten"
-        type="button"
-        class="forgotten-toggle"
-        :class="{ on: forgotten }"
-        :aria-pressed="forgotten"
-        data-testid="quick-add-forgotten"
-        @click="forgotten = !forgotten"
-      >
-        <IonIcon :icon="forgotten ? checkmarkCircleOutline : ellipseOutline" />
-        {{ t('quickAdd.forgottenToggle') }}
-      </button>
 
       <!-- FR-25.13c: the empty composer offers chips before it asks for
            typing — the reason open() no longer raises the keyboard. -->
@@ -947,22 +966,37 @@ function onKeydown(event: KeyboardEvent) {
   margin: 4px 8px 0;
 }
 
-.forgotten-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 6px 8px 0;
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--ct-text) 25%, transparent);
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-card);
-  color: var(--ct-text);
-  font: inherit;
+.add-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 8px 8px 0;
+  padding: 3px;
+  border-radius: var(--jp-r-sm);
+  background: var(--jp-surface-sunken);
 }
 
-.forgotten-toggle.on {
-  border-color: var(--ct-straw);
-  color: var(--ct-straw);
+.add-choice-opt {
+  all: unset;
+  box-sizing: border-box;
+  padding: 6px 4px;
+  border-radius: var(--jp-r-xs);
+  text-align: center;
+  color: var(--ct-text);
+}
+
+.add-choice-opt small {
+  display: block;
+  opacity: 0.75;
+}
+
+.add-choice-opt.on {
+  background: var(--jp-surface-card);
+  box-shadow: 0 0 0 1px var(--ct-straw);
+}
+
+.add-choice-opt:focus-visible {
+  outline: 2px solid var(--ct-glacier);
 }
 
 .groups {

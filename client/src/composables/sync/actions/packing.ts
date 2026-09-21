@@ -468,8 +468,10 @@ export function createPackingActions(ctx: SyncContext) {
     const { mutation, id } = mutations.addTripItem(tripId, name, {
       ...opts,
       // FR-5.11: forgetting is the one *not-taken* add that is flagged — the
-      // plan is what failed, not a decision to leave it behind.
-      flagMissing: (packed || decided === 'forgotten') && isActive,
+      // plan is what failed, not a decision to leave it behind. Whatever the
+      // trip's status: it is offered once the packing closed, which a trip
+      // still planning can have.
+      flagMissing: (packed && isActive) || decided === 'forgotten',
       decided,
     })
     enqueueAndDrain('trip', tripId, {

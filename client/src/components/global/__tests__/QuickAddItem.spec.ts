@@ -431,26 +431,45 @@ describe('QuickAddItem — the search creates what it did not find (FR-24.11)', 
   })
 })
 
-describe('QuickAddItem — FR-5.11 forgot to pack it', () => {
+describe('QuickAddItem — FR-5.11 packed or forgotten', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
     seedInventory()
   })
 
-  it('offers no switch where the trip is not on the road (M8 plans, it does not remember)', async () => {
+  const CLOSED = { offerForgotten: true, addsPacked: true }
+
+  async function choose(wrapper: ReturnType<typeof open>, which: 'packed' | 'forgotten') {
+    await wrapper.find(`[data-testid="quick-add-choice-${which}"]`).trigger('click')
+  }
+
+  it('offers no choice where the packing is not closed (M8 plans, an open list still packs)', async () => {
     const wrapper = open()
     await expand(wrapper)
 
-    expect(wrapper.find('[data-testid="quick-add-forgotten"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="quick-add-choice"]').exists()).toBe(false)
   })
 
-  it('adds with the forgotten decision, and for nobody in particular, once the switch is on', async () => {
-    const wrapper = open({ offerForgotten: true, isActive: true, ...ROSTER })
+  it('starts on *packed*, which adds exactly what a closed list always added', async () => {
+    const wrapper = open(CLOSED)
+    await expand(wrapper)
+
+    expect(wrapper.find('[data-testid="quick-add-choice-packed"]').attributes('aria-checked')).toBe(
+      'true',
+    )
+    await type(wrapper, NAME)
+    await confirm(wrapper)
+
+    expect(wrapper.emitted('add')![0]![1]).toBeUndefined()
+  })
+
+  it('adds with the forgotten decision, and for nobody in particular, once it is chosen', async () => {
+    const wrapper = open({ ...CLOSED, ...ROSTER })
     await expand(wrapper)
     await wrapper.find('[data-testid="quick-add-for-whom"] button').trigger('click')
 
-    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+    await choose(wrapper, 'forgotten')
     await type(wrapper, NAME)
     await confirm(wrapper)
 
@@ -459,23 +478,23 @@ describe('QuickAddItem — FR-5.11 forgot to pack it', () => {
     expect(item.travelerIds).toEqual([])
   })
 
-  it('says what it will record, instead of the Missing hint', async () => {
-    const wrapper = open({ offerForgotten: true, isActive: true })
+  it('says what it will record, instead of the packed hint', async () => {
+    const wrapper = open(CLOSED)
     await expand(wrapper)
     const before = wrapper.find('[data-testid="quick-add-hint"]').text()
 
-    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+    await choose(wrapper, 'forgotten')
 
-    expect(wrapper.find('[data-testid="quick-add-forgotten"]').attributes('aria-pressed')).toBe(
-      'true',
-    )
+    expect(
+      wrapper.find('[data-testid="quick-add-choice-forgotten"]').attributes('aria-checked'),
+    ).toBe('true')
     expect(wrapper.find('[data-testid="quick-add-hint"]').text()).not.toBe(before)
   })
 
-  it('starts the next visit from the ordinary add', async () => {
-    const wrapper = open({ offerForgotten: true, isActive: true })
+  it('goes back to *packed* the next time the composer opens', async () => {
+    const wrapper = open(CLOSED)
     await expand(wrapper)
-    await wrapper.find('[data-testid="quick-add-forgotten"]').trigger('click')
+    await choose(wrapper, 'forgotten')
     await wrapper.find('[data-testid="quick-add-close"]').trigger('click')
     await expand(wrapper)
 

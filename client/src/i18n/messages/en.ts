@@ -753,9 +753,13 @@ export const en = {
   'quickAdd.missingHint': 'New items are flagged as missing',
   // FR-5.10: on a finished list an addition is what is already in the bag.
   'quickAdd.packedHint': 'New items are recorded as packed',
-  // FR-5.11: was auf der Reise fehlt, weil es nicht eingepackt wurde.
-  'quickAdd.forgottenToggle': 'Forgot to pack it',
-  'quickAdd.forgottenHint': 'New items are recorded as forgotten – left behind, for next trip',
+  // FR-5.11: nach dem Packen: lag es im Koffer oder blieb es zuhause?
+  'quickAdd.choiceLabel': 'What happened to it?',
+  'quickAdd.choicePacked': 'Packed',
+  'quickAdd.choicePackedSub': 'was not on the list',
+  'quickAdd.choiceForgotten': 'Forgotten',
+  'quickAdd.choiceForgottenSub': 'stayed home',
+  'quickAdd.forgottenHint': 'Recorded as forgotten, so it is on the list next time',
   'quickAdd.offerCreateHint': 'Create it in the inventory and add it right away',
   'quickAdd.offerRestoreHint': 'Restore it and add it right away',
   'quickAdd.alreadyIn': '“{name}” is already in',

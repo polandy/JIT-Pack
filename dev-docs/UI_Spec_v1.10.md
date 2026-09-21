@@ -1500,13 +1500,14 @@ These patterns apply to every screen and are specified once.
     single row still comes back through the *Erledigte* reveal. The list stays workable: the composer is where it was,
     and while the packing is closed what is typed into it lands **packed**, its hint saying so instead of FR-9.1's.
     (E2E-M4-139, E2E-M4-140, E2E-M4-141, E2E-M4-142, E2E-M4-143)
-  * **Forgot to pack it (FR-5.11 — built 2026-09-21).** On an *active* trip the composer carries a pill under its
-    hint, *„Vergessen einzupacken"*, a two-state control (`aria-pressed`) that is off each time the composer opens and
-    stays on across a run of adds. While on, the hint reads *„…als vergessen vermerkt – nicht mitgenommen, für die
-    nächste Reise"* instead of FR-9.1's or FR-5.10's, and an add writes a row that stayed home: skipped at quantity 0,
-    flagged *Missing*, so it is neither packed nor open and the figure does not move. It never reads the for-whom
-    strip. Revealed with the other done rows, it says *„Vergessen einzupacken"* where its siblings say *„Bewusst
-    weggelassen"*. Absent in M8, and on a trip that is not active. (E2E-M4-146)
+  * **Packed or forgotten (FR-5.11 — built 2026-09-21).** Once the packing is closed the composer carries a
+    two-way choice above its hint (`role=radiogroup`): ***Eingepackt*** — *stand nicht auf der Liste* — and
+    ***Vergessen*** — *blieb zuhause*. *Eingepackt* is selected each time the composer opens and is exactly the add
+    above; the choice stays across a run of adds. On *Vergessen* the hint reads *„Wird als vergessen vermerkt, damit es
+    nächstes Mal auf der Liste steht"* and an add writes a row that stayed home: skipped at quantity 0, flagged
+    *Missing*, so it is neither packed nor open and the figure does not move. It never reads the for-whom strip.
+    Revealed with the other done rows, it says *„Vergessen einzupacken"* where its siblings say *„Bewusst
+    weggelassen"*. No choice before the close, in M8, or on an archived trip. (E2E-M4-146)
   * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done
     row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two
     mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
