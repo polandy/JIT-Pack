@@ -19,6 +19,8 @@ class FakeInstance {
   }[] = []
   trip: Record<string, typeof this.master> = {}
   users: { user_id: string; display_name: string }[] = []
+  /** Mutations the instance answers with `rejected` — a 200 that refuses a row. */
+  rejectTable: string | null = null
   pushed: { path: string; mutations: Mutation[] }[] = []
 
   get mutations(): Mutation[] {
@@ -115,7 +117,8 @@ class FakeInstance {
       return Response.json({
         results: body.mutations.map((m) => ({
           mutation_id: m.mutation_id,
-          outcome: 'applied',
+          outcome: m.table === this.rejectTable ? 'rejected' : 'applied',
+          ...(m.table === this.rejectTable ? { error: 'constraint' } : {}),
         })),
         pull_hint: { next_cursor: 0 },
       })
@@ -254,6 +257,38 @@ describe('runTraveler add', () => {
       table: 'travelers',
       fields: { trip_id: 'trip-1', name: 'Andy', linked_user_id: null },
     })
+  })
+
+  // A push can answer 200 and still refuse rows. Until this, the run closed
+  // with „1 added, 0 already here" and exited 0 while the roster had not
+  // changed — and where a trip follows its groups, half the write landing is
+  // a person without their positions.
+  it('fails and names the writes the instance refused, rather than counting them as added', async () => {
+    instance.addTrip('trip-1', 'Cannobio', 2026)
+    instance.rejectTable = 'travelers'
+    const it0 = io()
+
+    const code = await runTraveler(
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
+      it0,
+    )
+
+    expect(code).toBe(EXIT.failed)
+    const said = it0.lines.join('\n')
+    // The whole line, count included: the total comes from the trip
+    // partition's own list, which is where a traveler's writes sit.
+    expect(said).toMatch(
+      /Cannobio 2026: 1 of 1 writes rejected by the instance: travelers\/[\w-]+ \(constraint\)/,
+    )
+    expect(said).not.toContain('1 added, 0 already here')
   })
 
   it('takes several names in one run', async () => {

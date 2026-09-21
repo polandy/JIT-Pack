@@ -24,7 +24,9 @@ import {
   ENV_SERVER,
   ENV_TOKEN,
   EXIT,
+  pendingCount,
   pushPending,
+  rejectionLine,
   type CommandIO,
   type PendingWrites,
 } from './common'
@@ -205,10 +207,20 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
         continue
       }
 
+      const sending = pendingCount(pending)
+      let rejected
       try {
-        await pushPending(client, hlc, pending)
+        rejected = await pushPending(client, hlc, pending)
       } catch (e) {
         io.write(`${what}: failed — ${message(e)}`)
+        failed++
+        continue
+      }
+      // A document whose writes were partly refused is half here, which is
+      // worse than not here at all: it counts as failed, so the summary and
+      // the exit code say so and the file can be looked at.
+      if (rejected.length > 0) {
+        io.write(`${what}: ${rejectionLine(rejected, sending)}`)
         failed++
         continue
       }

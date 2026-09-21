@@ -466,6 +466,12 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
     no token; a multi-user instance needs `--token` (or `$JITPACK_TOKEN`), sent with every push. `$JITPACK_SERVER`
     supplies the address where the flag is omitted. Local Mode has no server and therefore no CLI import — its restore
     is M18, which is where it belongs.
+  * **A write the instance rejects fails the run (added 2026-09-20, all commands).** A push answers 200 and still
+    reports each mutation's outcome; every command ignored that and closed with a count of what it *sent*. So an
+    import whose rows were refused said „imported", and `traveler add` said „1 added" while the roster had not
+    changed — and where the trip follows its groups, half a write is a person without their positions. Every command
+    now names the refused writes (`table/id (reason)`) and exits 1: `import` counts that document as failed, and
+    `traveler` says it rather than closing with a count that includes it.
 * **FR-18.9 (Tags from the Command Line, added 2026-09-19; ADR-042):** `jitpack tags ACTION` does to the tag axis
   what M9's tag manager (FR-24.10, FR-24.13) and its selection mode (FR-24.9) do: `list [--items]`, `rename TAG NAME`,
   `merge TAG INTO`, `give TAG ITEM... [--no-primary]`, `take TAG ITEM...|--all`, `delete TAG`, `mark TAG EMOJI|--clear`,

@@ -59,7 +59,9 @@ for an instance you run.
 
 Every command exits `0` when it worked, `1` when the instance refused or something failed,
 and `2` when the command line itself was wrong — so a script can tell "nothing landed" from
-"most of it did".
+"most of it did". "Refused" includes a single row: an instance can accept a request and still
+turn down some of what it carried, and the command then names those writes instead of
+reporting them as sent.
 
 ## Travelers
 
