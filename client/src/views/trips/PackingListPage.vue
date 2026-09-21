@@ -50,6 +50,7 @@ import {
   refreshOutline,
   checkmarkDoneOutline,
   chevronDownOutline,
+  chevronForwardOutline,
   contractOutline,
   createOutline,
   expandOutline,
@@ -58,7 +59,6 @@ import {
   locationOutline,
   lockOpenOutline,
   peopleOutline,
-  personOutline,
   playOutline,
   textOutline,
   timeOutline,
@@ -80,9 +80,11 @@ import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
 import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
+import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import {
+  packingWindowTasks,
   tripTodoProgress,
   tripTodoStatus,
   tripTodosUnfolded,
@@ -148,6 +150,8 @@ import { isPackingClosed } from '@/lib/tripPhase'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
+import { useTaskActs } from '@/composables/useTaskActs'
 import { isScrollGesture, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
 import { collapseRow } from '@/lib/rowCollapse'
 import type { HeadScrollState } from '@/lib/headScroll'
@@ -157,21 +161,14 @@ import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
-import type {
-  FacetKey,
-  GroupBy,
-  ItemTodo,
-  MasterItem,
-  TripItem,
-  TripParticipant,
-  TripTodo,
-} from '@/types/domain'
+import type { FacetKey, GroupBy, MasterItem, TripItem, TripParticipant } from '@/types/domain'
 import {
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   STATE_PACKED,
   STATE_SKIPPED,
   TRIP_STATUS_ARCHIVED,
+  type TaskPhase,
 } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
@@ -403,43 +400,17 @@ function assignableRow(item: TripItem): boolean {
 }
 
 /**
- * The person picker, shared by the row's avatar and the cluster head's „für
- * alle" (FR-25.25/25.26). Resolves to the chosen assignment — `null` is
- * *nobody*, which is a choice like any other — or to `undefined` when the
- * sheet was dismissed, because "assign to nobody" and "never mind" must not
- * arrive here as the same value.
+ * The person picker for this screen's two callers — the row's avatar and the
+ * cluster head's „für alle" (FR-25.25/25.26). The sheet itself is
+ * `lib/pickAssignee`, shared with M25 since a task is handed over the same
+ * way (FR-7.7); what stays here is only this screen's default audience.
  */
 async function pickAssignee(
   header: string,
   current: string | null,
   people: readonly TripParticipant[] = assignableMembers.value,
 ): Promise<string | null | undefined> {
-  let picked: string | null | undefined
-  const sheet = await actionSheetController.create({
-    header,
-    buttons: [
-      ...people.map((person) => ({
-        text: person.display_name,
-        icon: personOutline,
-        role: person.user_id === current ? 'selected' : undefined,
-        handler: () => {
-          picked = person.user_id
-        },
-      })),
-      {
-        text: t('item.assignedToNobody'),
-        icon: removeCircleOutline,
-        role: current === null ? 'selected' : undefined,
-        handler: () => {
-          picked = null
-        },
-      },
-      { text: t('common.cancel'), role: 'cancel' },
-    ],
-  })
-  await sheet.present()
-  await sheet.onDidDismiss()
-  return picked
+  return pickAssigneeFrom(header, current, people)
 }
 
 /**
@@ -1205,7 +1176,17 @@ const tasks = computed(() =>
       !(task.item !== null && removingRows.value.has(task.item.id)),
   ),
 )
-const tripTodoCount = computed(() => tripTodoProgress(tasks.value))
+/**
+ * FR-7.7: what M4 keeps of the tasks — the ones that hang off a packing row
+ * and are still due before the trip, because those are the ones you do as
+ * part of packing. Everything else lives on M25, one pill away.
+ *
+ * The section's figure counts this list and not the trip's whole one: a head
+ * that said „3 von 8" over four lines would be reporting on a screen the
+ * reader is not looking at.
+ */
+const windowTasks = computed(() => packingWindowTasks(tasks.value))
+const tripTodoCount = computed(() => tripTodoProgress(windowTasks.value))
 const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
 
 /** FR-7.4/7.6: the section head's own check, apart from every packing figure. */
@@ -1971,114 +1952,45 @@ function onToggle(item: TripItem) {
   void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
 }
 
-/** The trip's own task as it is now — the undo never writes from a snapshot. */
-function liveTripTodo(id: string): TripTodo | null {
-  return tripStore.getTripTodos(props.tripId).find((row) => row.id === id) ?? null
-}
-
-/** A row's preparation as it is now, for the same reason. */
-function liveItemTodo(itemId: string, id: string): ItemTodo | null {
-  return tripStore.getItemTodos(props.tripId, itemId).find((row) => row.id === id) ?? null
-}
+/**
+ * FR-7.6/FR-7.7: every act on a task, written once in `useTaskActs` and shared
+ * with M25 — the same two kinds of row, the same undo, the same sentences.
+ * What stays here is only what belongs to this screen: its snackbar, its
+ * picker's audience, and the set of tasks hidden pending a removal.
+ */
+const taskActs = useTaskActs(() => props.tripId, {
+  rowUndo,
+  announceAct,
+  announceTaskDone,
+  pickAssignee: (header, current) => pickAssignee(header, current, todoAssignees.value),
+  nameOf,
+  removing: removingTodos,
+})
 
 /**
- * FR-7.6: one checkbox, two kinds of task. The list reports the tap and the
- * screen writes it — the two kinds are written through different actions and
- * taken back through the one snackbar (FR-25.31), and the live row is looked
- * up here because the task in hand is a projection of the pre-tap state.
+ * FR-7.7: the task sheet, the same one M25 opens. Held by id rather than by
+ * value, so a task ticked off on another device cannot leave a sheet behind
+ * claiming it is open.
  */
-function onTaskToggle(task: TripTask) {
-  if (task.item) {
-    const prep = liveItemTodo(task.item.id, task.id)
-    if (prep) togglePrepTodo(prep)
-    return
-  }
-  const todo = liveTripTodo(task.id)
-  if (todo) toggleTripTodo(todo)
+const openedTaskId = ref<string | null>(null)
+const openedTask = computed(
+  () => tasks.value.find((task) => task.id === openedTaskId.value) ?? null,
+)
+
+function onOpenTask(task: TripTask) {
+  openedTaskId.value = task.id
 }
 
-/** FR-7.4: the trip's own task, ticked off or put back, with its undo. */
-function toggleTripTodo(todo: TripTodo) {
-  if (todo.task_state === 'open') {
-    orchestrator.resolveTripTodo(todo)
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTripTodo(todo.id)
-      if (live?.task_state === 'resolved') orchestrator.reopenTripTodo(live)
-    })
-    void announceTaskDone(todo.body)
-  } else {
-    orchestrator.reopenTripTodo(todo)
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTripTodo(todo.id)
-      if (live?.task_state === 'open') orchestrator.resolveTripTodo(live)
-    })
-    void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
-  }
+function onTaskMove(phase: TaskPhase) {
+  const task = openedTask.value
+  openedTaskId.value = null
+  if (task) taskActs.move(task, phase)
 }
 
-function onTripTodoAdded(id: string, body: string) {
-  rowUndo.armAction(body, () => {
-    const live = liveTripTodo(id)
-    if (live) orchestrator.deleteTripTodo(live)
-  })
-  void announceAct(t('packing.taskAddedToast', { body }))
-}
-
-/** FR-7.5: the task's seat, tapped — the row's picker and the row's undo. */
-async function onTripTodoAssign(task: TripTask) {
-  const todo = liveTripTodo(task.id)
-  if (!todo) return
-  const picked = await pickAssignee(todo.body, todo.assignee_user_id, todoAssignees.value)
-  if (picked === undefined || picked === todo.assignee_user_id) return
-  const previous = todo.assignee_user_id
-  rowUndo.armAction(todo.body, () => {
-    const live = liveTripTodo(todo.id)
-    if (live) orchestrator.assignTripTodo(live, previous)
-  })
-  orchestrator.assignTripTodo(todo, picked)
-  void announceAct(
-    picked === null
-      ? t('packing.unassignedToast', { name: todo.body })
-      : t('packing.assignedToast', { name: todo.body, who: nameOf(picked) ?? '' }),
-  )
-}
-
-/** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
-function onTripTodoRemove(task: TripTask) {
-  const id = task.id
-  rowUndo.armAction(
-    task.body,
-    () => removingTodos.value.delete(id),
-    () => {
-      const live = liveTripTodo(id)
-      if (live) orchestrator.deleteTripTodo(live)
-      removingTodos.value.delete(id)
-    },
-  )
-  removingTodos.value.add(id)
-  void announceAct(t('packing.taskDeletedToast', { body: task.body }))
-}
-
-function togglePrepTodo(todo: ItemTodo) {
-  // Looked up again on undo: the `todo` in hand is the pre-tap snapshot, and
-  // writing from it would hand the optimistic layer a stale baseline.
-  const live = () =>
-    tripStore.getItemTodos(props.tripId, todo.trip_item_id).find((row) => row.id === todo.id)
-  if (todo.task_state === 'open') {
-    orchestrator.resolvePrepTodo(props.tripId, todo)
-    rowUndo.armAction(todo.body, () => {
-      const row = live()
-      if (row?.task_state === 'resolved') orchestrator.reopenPrepTodo(props.tripId, row)
-    })
-    void announceTaskDone(todo.body)
-  } else {
-    orchestrator.reopenPrepTodo(props.tripId, todo)
-    rowUndo.armAction(todo.body, () => {
-      const row = live()
-      if (row?.task_state === 'open') orchestrator.resolvePrepTodo(props.tripId, row)
-    })
-    void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
-  }
+function onTaskRemoveFromSheet() {
+  const task = openedTask.value
+  openedTaskId.value = null
+  if (task) taskActs.remove(task)
 }
 
 /**
@@ -2359,7 +2271,13 @@ function onCancelClosingPass() {
  * changes while it is open.
  */
 const closePlan = computed<ClosePackingPlan>(() =>
-  planPackingClose(allItems.value, { isClaimed: (row: TripItem) => locked(row) }),
+  planPackingClose(allItems.value, {
+    isClaimed: (row: TripItem) => locked(row),
+    // FR-7.7: the tasks that would cross with the close. Read into the plan
+    // rather than counted beside it, so the sentence the reader confirms and
+    // the write that follows cannot disagree about how many move.
+    tasks: [...tripStore.getTripTodos(props.tripId), ...tripStore.getTodos(props.tripId)],
+  }),
 )
 
 /** Whether the question is on screen, and whether it came asked or invited. */
@@ -2444,15 +2362,22 @@ function onCloseSheetDismissed() {
 function onConfirmClosePacking() {
   closeSheetOpen.value = false
   closePromptUp.value = false
-  const affected = orchestrator.closePacking(props.tripId, {
+  const { rows, tasks } = orchestrator.closePacking(props.tripId, {
     isClaimed: (row: TripItem) => locked(row),
   })
-  rowUndo.armUndo(affected, (records) => orchestrator.restorePackingClose(props.tripId, records))
-  void announceAct(
-    affected.length > 0
-      ? t('packing.closedToast', { n: affected.length })
-      : t('packing.closedToastNone'),
-  )
+  // One undo for the whole act (FR-25.31), and deliberately one *call*: the
+  // rows travel as the records the snackbar snapshots, the moved tasks in the
+  // closure beside them. Arming a second undo for the tasks would replace the
+  // first — the record holds one action at a time, by design — and the rows
+  // would quietly lose their way back.
+  rowUndo.armUndo(rows, (records) => orchestrator.restorePackingClose(props.tripId, records, tasks))
+  const said = [
+    rows.length > 0 ? t('packing.closedToast', { n: rows.length }) : t('packing.closedToastNone'),
+  ]
+  // FR-7.7: the sheet said it would happen; the snackbar says it did, because
+  // the tasks left a screen the reader is still looking at.
+  if (tasks.length > 0) said.push(t('packing.closedToastTasks', { n: tasks.length }))
+  void announceAct(said.join(' · '))
 }
 
 /**
@@ -2623,24 +2548,42 @@ setHeaderTitle(
         >
           <IonIcon :icon="checkmarkDoneOutline" />
           <span>
-            {{ t('tripTodos.section') }}
+            {{ t('tasks.whilePacking') }}
             <template v-if="tripTodoLine">
               · <span data-testid="m4-trip-todos-status">{{ tripTodoLine }}</span>
             </template>
           </span>
           <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: tripTodosOpen }" />
         </button>
+        <!-- FR-7.7: no composer. Everything this window shows hangs off a
+             packing row, and a trip task typed here would be written into a
+             list that cannot show it. It is written on M25, which the line
+             below leads to. -->
         <TripTodoList
           v-if="tripTodosOpen"
           :trip-id="tripId"
-          :tasks="tasks"
+          :tasks="windowTasks"
           :assignable="todoAssignees.length > 1"
           :name-of="nameOf"
-          @assign="onTripTodoAssign"
-          @toggle="onTaskToggle"
-          @added="onTripTodoAdded"
-          @remove="onTripTodoRemove"
+          :empty-text="t('tripTodos.allDone')"
+          @assign="taskActs.assign"
+          @toggle="taskActs.toggle"
+          @remove="taskActs.remove"
+          @open="onOpenTask"
         />
+        <!-- Always rendered, folded or not: since FR-7.7 this section is a
+             window, and a reader who finds it empty is exactly the one who
+             has to be told where the rest of the tasks are. Hiding the way
+             out inside the fold would answer only the readers who did not
+             need it. -->
+        <RouterLink
+          class="tasks-all"
+          :to="tripSubPath(tripId, 'tasks')"
+          data-testid="m4-trip-todos-all"
+        >
+          {{ t('tasks.openAll') }}
+          <IonIcon :icon="chevronForwardOutline" />
+        </RouterLink>
       </div>
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
@@ -3068,6 +3011,21 @@ setHeaderTitle(
       <!-- FR-5.10: the question, as the round drew it. Also the app's own
            way of noticing that the last row went in. -->
       <SheetModal
+        :is-open="openedTask !== null"
+        testid="m4-task-modal"
+        @dismiss="openedTaskId = null"
+      >
+        <TripTaskSheet
+          v-if="openedTask"
+          :task="openedTask"
+          :name-of="nameOf"
+          @close="openedTaskId = null"
+          @move="onTaskMove"
+          @remove="onTaskRemoveFromSheet"
+        />
+      </SheetModal>
+
+      <SheetModal
         :is-open="closeSheetOpen"
         testid="m4-close-modal"
         @dismiss="onCloseSheetDismissed"
@@ -3385,6 +3343,24 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 
 .tasks-header .caret.open {
   transform: rotate(180deg);
+}
+
+/* FR-7.7: the way out of the window and into all of them. It reads as a
+   footer of the section rather than an action on it — the tasks are not
+   leaving, the reader is. */
+.tasks-all {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 2px 16px 10px;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+  text-decoration: none;
+}
+
+.tasks-all ion-icon {
+  font-size: var(--jp-icon-xs);
 }
 
 /* --- Per-person cluster ----------------------------------------------- */

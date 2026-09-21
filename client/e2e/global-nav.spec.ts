@@ -910,9 +910,27 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     for (const [id, name] of [
       ['trip-view-packing', 'Packing list'],
       ['trip-view-shopping', 'Shopping'],
+      ['trip-view-tasks', 'Tasks'],
     ] as const) {
       await expect(page.getByTestId(id)).toHaveText(name)
     }
+
+    // FR-7.7's third pill re-opens the measurement amendment 1 was made from,
+    // so the row is measured rather than assumed — and at the **narrowest**
+    // phone the app targets, not at the one the baselines happen to use. Two
+    // clauses, because a row can fail either way: every pill inside the
+    // viewport, and all three on one line, since a row that wrapped would
+    // have „fitted" by every width assertion on its own.
+    const viewport = page.viewportSize()!
+    await page.setViewportSize({ width: 360, height: 780 })
+    const boxes = await Promise.all(
+      ['trip-view-packing', 'trip-view-shopping', 'trip-view-tasks'].map(
+        async (id) => (await page.getByTestId(id).boundingBox())!,
+      ),
+    )
+    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(360)
+    expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
+    await page.setViewportSize(viewport)
     // The two the row leaves out are not gone: they are words in the ⋮, which
     // is the half of the amendment that keeps them reachable at all.
     await expect(page.getByTestId('trip-view-luggage')).toHaveCount(0)

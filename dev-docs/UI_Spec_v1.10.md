@@ -7,6 +7,11 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-21 — **M25** added: *Aufgaben*, a trip's tasks in their two phases, as the third pill beside *Packliste*
+  and *Einkauf*. **M4** keeps a window of it — the preparations still due before the trip — loses its task composer,
+  and its close question says how many tasks move with the close. **M8** gives a Vorlage's task a phase chip. Both
+  kinds of task now carry an assignment seat and a provenance line, and a task has a sheet of its own (FR-7.7,
+  ADR-071).
 * 2026-09-20 — **M4**'s head and header line yield to the reader's own scroll and stand still for every other one
   (FR-21.17).
 * 2026-09-20 — **M4** and **M1** carry one task list: a row's preparation (FR-7.3) stands in *Aufgaben für die Reise*
@@ -740,6 +745,7 @@ These patterns apply to every screen and are specified once.
 | M20 | User Administration | P3 | Addendum 3.23 |
 | M21 | Vorlage aus Reise (Template from Trip) | MVP | Addendum 3.27 (27.5, 27.1, 27.4) |
 | M24 | Aufräumen (Inventory Cleanup) | P2 | Addendum 24.12, 24.13 |
+| M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 
 ---
 
@@ -1820,6 +1826,11 @@ These patterns apply to every screen and are specified once.
     a count on the section head. Each task becomes an open trip todo on every trip generated from this template, not on
     any row, so it holds back no item from counting as done. Editing the list changes the next generated trip only;
     running trips are not offered the change (FR-7.4 names the trigger). (E2E-M8-26)
+    * **Each task carries its phase (FR-7.7 — built 2026-09-21).** A quiet chip on the line reads *Vor der Reise* or
+      *Während der Reise*, and tapping it flips the task to the other one; the composer carries the same chip, which
+      says which phase the next task is written in and remembers the choice while the editor is open. A Vorlage can
+      therefore author *„Am Bahnhof die Zugverbindung abklären"*, and the trip it generates starts that task in the
+      right section of M25. A task that names no phase reads as one for before the trip.
 * **The template's own mark (Addendum FR-28.8, G-15 — built 2026-08-22):** the same picker as M10's, on the slot left of
   the editable name, suggested from the template's name. It is the field the prototype has been faking since §3.27 —
   every 📷/⛺ on a group row in M3, M7, M8 and the FR-27.12 peek sheet is hardcoded in the mock, and those rows read the
@@ -2685,6 +2696,50 @@ token would prove nothing there is anything to prove.
   arrived** the screen says the inventory is not here yet and lists nothing (ADR-033).
 * **Navigation:** M9 → M24 (the ⋮ word or the foot sentence); back returns to M9. The one header bar names it from the
   route's `titleKey`.
+
+### M25 — Aufgaben (A Trip's Tasks, FR-7.7) — *built 2026-09-21*
+
+* **Purpose:** every task of one trip, in the two phases a trip has. *„Eine Salbe in der Apotheke holen"* is for
+  before it; *„am Bahnhof die Zugverbindung abklären"* can only happen during it. The screen exists because the tasks
+  outgrew the packing list: they are returned to across a whole trip, and half of them have nothing to do with packing.
+* **Where it lives:** the third pill of the trip's view switcher (G-11/FR-21.21), after *Packliste* and *Einkauf*,
+  at `/trips/{id}/tasks`. The page head names it *Aufgaben* with the trip's name as its meta (G-9).
+* **One list in the data, two windows on it.** This screen shows **all** of a trip's tasks — both a preparation
+  declared on a packing row (FR-7.3) and a chore of the trip itself (FR-7.4), which FR-7.6 already made one list. M4
+  shows a *window* of the same list. Nothing is filed twice, which is what gives the phase its meaning: moving a task
+  to *Während der Reise* takes it off the packing list.
+* **Elements, top to bottom:**
+  * **The *Meine* chip**, off by default — the whole list is the screen's subject. It narrows to the tasks handed to
+    the viewer. **Absent where nobody can be named** (Local Mode, Single-User Mode, a trip with no second member,
+    G-8): with nobody to hand a task to, every task is everybody's.
+  * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is what is still open
+    there — a finished section says nothing rather than „0". Sections are **not** a segment: the shopping list's two
+    tabs are two places you stand, while the two phases of a trip are one thing read top to bottom.
+  * **Per section, the task list** (the component M4 shares) and **its own composer**, whose placeholder names the
+    phase it writes: *„Aufgabe für vor der Reise…"* / *„Aufgabe für unterwegs…"*. A section with nothing in it says so
+    in one line **and keeps its field** — a trip with no tasks at all is exactly the reader the two fields are for, so
+    there is no screen-wide empty state.
+* **A task's line:** the words, one provenance line under them, then the cluster and the tick at the row's own edge —
+  the rule M4's packing rows follow.
+  * The **provenance line** changes role with the task: *„erstellt von Andy · heute 14:32"* while it is open,
+    *„erledigt von Sia · gestern 09:15"* once it is done. Where nobody can be named it keeps the moment and drops the
+    person: *„erstellt · heute 14:32"* (G-8). A task that carries neither says nothing.
+  * The **cluster**: a preparation carries the chip of its row (FR-7.6) *and*, since FR-7.7, an assignment seat; a
+    trip's own task carries the seat and a ✕. A preparation has no ✕ — it is removed in M5, the one place that shows
+    what else its row still owes.
+  * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
+* **The task sheet** opens by tapping a task's words, on this screen and on M4's window. It carries the head (the
+  task's words, with its phase as the meta), the facts that do not fit a line — the row it prepares, who wrote it and
+  when, who finished it and when — and two actions: ***Auf „Während der Reise" schieben*** / ***Zurück auf „Vor der
+  Reise"***, and *Aufgabe entfernen* for the trip's own kind only.
+* **Every act raises the screen's one snackbar with *Rückgängig*** (FR-25.31): the tick, the add, the removal, the
+  assignment and the phase move. The move's undo writes back the phase the task actually had, which for a task written
+  before FR-7.7 is none at all.
+* **Modes:** all three. Local and Single-User lose the seat, the chip and the *who* of each stamp (G-8) and keep
+  everything else — the phases, the move and the moments are client-side rules. **Before the trip partition has
+  arrived** the screen shows nothing rather than an empty list (ADR-033).
+* **Navigation:** the pill row reaches it from M4 and M6 and back; M4's task section also carries *„Alle Aufgaben"* as
+  the way out of its window. The bar's ⋮ keeps the two views the row does not show (ADR-051 amendment 1).
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

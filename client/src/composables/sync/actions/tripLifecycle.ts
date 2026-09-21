@@ -20,7 +20,26 @@ import { itemRow, travelerRow, tripRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
-import { planPackingClose } from '@/domain/closePacking'
+import { planPackingClose, type ClosingTask } from '@/domain/closePacking'
+import { TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+
+/**
+ * FR-7.7: one task the close moved, with the phase it had before.
+ *
+ * The phase is snapshotted rather than assumed: a task written before FR-7.7
+ * carries none at all, and an undo that wrote *before* onto it would be an
+ * undo that changed something.
+ */
+export interface TaskPhaseRecord {
+  task: ClosingTask
+  phase: TaskPhase | null
+}
+
+/** What closing the packing touched, for the one snackbar that takes it back. */
+export interface ClosePackingEffect {
+  rows: TripItem[]
+  tasks: TaskPhaseRecord[]
+}
 import { followsGroups } from '@/domain/trips'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import type { TripEdit } from '@/sync/mutations'
@@ -393,16 +412,27 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    * fully packed is exactly the one somebody declares finished — and it does
    * **not** touch the lifecycle: starting and archiving stay their own steps.
    *
-   * Returns the rows it changed, snapshotted before the write, for the
-   * snackbar's one undo (FR-25.31) — the same contract `skipItem` has.
+   * **FR-7.7 amends what it leaves alone.** The tasks used to be outside this
+   * entirely (*„todos are not packing"*); since the owner's request of
+   * 2026-09-20 every task still open and still meant for before the trip
+   * crosses to *during* here, because the packing being finished is the
+   * moment „before" ends. The rule is `tasksCrossing`, in the same plan the
+   * question was read from.
+   *
+   * Returns the rows and the tasks it changed, snapshotted before the write,
+   * for the snackbar's one undo (FR-25.31) — the same contract `skipItem`
+   * has, widened by exactly what this action now also touches.
    */
   function closePacking(
     tripId: string,
     opts: { isClaimed?: (item: TripItem) => boolean } = {},
-  ): TripItem[] {
+  ): ClosePackingEffect {
     const trip = tripStore.getTrip(tripId)
-    if (!trip) return []
-    const plan = planPackingClose(tripStore.getItems(tripId), opts)
+    if (!trip) return { rows: [], tasks: [] }
+    const plan = planPackingClose(tripStore.getItems(tripId), {
+      ...opts,
+      tasks: tasksOf(tripId),
+    })
     const writes = [
       ...plan.skip.map((row) => ({ row, mutation: mutations.closeRowUnpacked(row.id) })),
       ...plan.trim.map((row) => ({
@@ -414,8 +444,20 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       optimistic: optimisticUpdate(mutation, itemRow(row)),
     }))
     if (writes.length > 0) enqueueAndDrain('trip', tripId, ...writes)
+
+    // The crossing, in the same partition and before the stamp for the same
+    // reason the rows are: the stamp is what every screen reads afterwards,
+    // so nothing it claims may still be in flight when it lands.
+    const moved = plan.tasks.map((task) => ({ task, phase: task.phase }))
+    for (const { task } of moved) commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+
     stampPackingClosed(tripId, nowIso())
-    return plan.rows
+    return { rows: plan.rows, tasks: moved }
+  }
+
+  /** Every task of the trip, both kinds, as the close reads them (FR-7.7). */
+  function tasksOf(tripId: string): ClosingTask[] {
+    return [...tripStore.getTripTodos(tripId), ...tripStore.getTodos(tripId)]
   }
 
   /**
@@ -435,19 +477,30 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
 
   /**
    * The snackbar's undo of {@link closePacking}: the rows go back where the
-   * close found them, and the trip is not closed after all.
+   * close found them, the tasks go back to the phase they were in, and the
+   * trip is not closed after all.
    *
    * The rows are restored through the skip's own undo, which writes the three
-   * fields both closing writes touched. A claim the close released is *not*
-   * restored: it was somebody else's hold on a row, and it has been given up
-   * in the meantime — a few seconds of a snackbar is not a reason to hand it
-   * back.
+   * fields both closing writes touched — and only those, which is why the
+   * tasks are passed in separately and put back here rather than riding along
+   * in `records`. A claim the close released is *not* restored: it was
+   * somebody else's hold on a row, and it has been given up in the meantime —
+   * a few seconds of a snackbar is not a reason to hand it back.
+   *
+   * An undo is not a reopen. *Wieder öffnen* lifts the stamp and nothing else
+   * (FR-5.10): the rows it decided stay decided, and so do the tasks it
+   * moved. This is the other case — the tap just made, taken back whole.
    */
   function restorePackingClose(
     tripId: string,
     records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+    tasks: readonly TaskPhaseRecord[] = [],
   ) {
     packingActions.restoreSkip(tripId, records)
+    // The phase each task actually had, not a hard-coded *before*: a task
+    // written before FR-7.7 carries none at all, and inventing one would be
+    // an undo that changed something.
+    for (const { task, phase } of tasks) commentActions.setTaskPhase(tripId, task, phase)
     stampPackingClosed(tripId, null)
   }
 

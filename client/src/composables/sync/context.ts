@@ -20,6 +20,7 @@ import type {
   GeneratedPosition,
   ItemDependency,
   ItemTodo,
+  TripTodo,
   CategorisedMasterItem,
   ItemTag,
   MasterItem,
@@ -59,6 +60,8 @@ export interface TripReads {
   getMembers(tripId: string): TripMember[]
   getContainers(tripId: string): Container[]
   getTodos(tripId: string): ItemTodo[]
+  /** FR-7.4's trip-level tasks — read since FR-7.7's crossing writes them. */
+  getTripTodos(tripId: string): TripTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
   /** The three `cascade.ts` asks for, since a group hands it this store. */

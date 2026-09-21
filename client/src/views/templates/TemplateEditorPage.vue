@@ -57,7 +57,9 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { positionChips as chipsFor } from '@/lib/positionChips'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { TemplateItem, TemplateKind } from '@/types/domain'
+import type { TaskPhase, TemplateItem, TemplateKind, TemplateTask } from '@/types/domain'
+import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
+import { taskPhaseOf } from '@/domain/tripTodos'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ templateId: string }>()
@@ -354,11 +356,32 @@ function removePosition(templateItemId: string) {
 const tripTasks = computed(() => masterStore.getTemplateTasks(props.templateId))
 const tripTaskDraft = ref('')
 
+/**
+ * FR-7.7: which phase a task typed here starts in. The field remembers the
+ * last choice while the editor is open, because tasks for the road tend to be
+ * written in a run — and it opens on *before*, which is what a Vorlage's
+ * tasks have always meant.
+ */
+const tripTaskPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
+
 function addTripTask() {
   const task = tripTaskDraft.value.trim()
   if (!task) return
-  orchestrator.addTemplateTask(props.templateId, task)
+  orchestrator.addTemplateTask(props.templateId, task, tripTaskPhase.value)
   tripTaskDraft.value = ''
+}
+
+/** The phase a stored task is in, with the null of an older row read as *before*. */
+function phaseOf(task: TemplateTask): TaskPhase {
+  return taskPhaseOf(task)
+}
+
+/** The chip on a task line, tapped: the same task, due at the other end. */
+function flipPhase(task: TemplateTask) {
+  orchestrator.setTemplateTaskPhase(
+    task,
+    phaseOf(task) === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : TASK_PHASE_BEFORE,
+  )
 }
 
 /** The collapsed row's summary chips; "Standard" when nothing deviates. */
@@ -810,6 +833,16 @@ const mergeLines = computed(() =>
             :data-testid="`m8-trip-task-${task.task}`"
           >
             <span class="trip-task-body">{{ task.task }}</span>
+            <!-- FR-7.7: the phase as a chip, and the chip as the way to change
+                 it — one control, because there are only two answers. -->
+            <button
+              class="phase"
+              :class="{ during: phaseOf(task) === TASK_PHASE_DURING }"
+              :data-testid="`m8-trip-task-phase-${task.task}`"
+              @click="flipPhase(task)"
+            >
+              {{ t(phaseOf(task) === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during') }}
+            </button>
             <button
               class="rm"
               :aria-label="t('templates.removeTask')"
@@ -820,6 +853,17 @@ const mergeLines = computed(() =>
             </button>
           </div>
           <div class="trip-task-composer">
+            <button
+              class="phase"
+              :class="{ during: tripTaskPhase === TASK_PHASE_DURING }"
+              data-testid="m8-trip-task-phase"
+              @click="
+                tripTaskPhase =
+                  tripTaskPhase === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : TASK_PHASE_BEFORE
+              "
+            >
+              {{ t(tripTaskPhase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during') }}
+            </button>
             <IonInput
               v-model="tripTaskDraft"
               :placeholder="t('templates.addTripTask')"
@@ -999,6 +1043,24 @@ const mergeLines = computed(() =>
   align-items: center;
   gap: 10px;
   padding: 4px 0;
+}
+
+/* FR-7.7: a quiet chip — it states a fact and offers to change it, and a
+   task list where every line shouts its phase is a list you cannot skim. */
+.phase {
+  flex: none;
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface1);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+  cursor: pointer;
+}
+
+.phase.during {
+  background: var(--ct-surface2);
+  color: var(--ct-text);
 }
 
 .trip-task-body {

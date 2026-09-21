@@ -16,8 +16,9 @@
  */
 import { optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
+import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { planClone, type CloneOptions } from '@/domain/clone'
-import { durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { durationDays, type DraftTripTask, type GeneratedItem } from '@/domain/instantiate'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import { t } from '@/i18n'
 import type { ItemMode } from '@/types/domain'
@@ -55,8 +56,11 @@ export interface TripWizardDraft {
    * correct rather than a gap.
    */
   sourceTemplateIds?: string[]
-  /** FR-7.4: the trip todos the trip starts with, already deduplicated. */
-  tripTasks?: string[]
+  /**
+   * FR-7.4: the trip todos the trip starts with, already deduplicated — each
+   * with the phase its template gave it (FR-7.7).
+   */
+  tripTasks?: DraftTripTask[]
 }
 
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
@@ -133,11 +137,15 @@ export function createTripCreationActions(ctx: SyncContext) {
       // Enqueued inside this loop so each todo follows the trip_items row it
       // references; pushed ahead of it, the server rejects the foreign key.
       for (const taskBody of item.tasks) {
+        // FR-7.7: a row's preparation is something you do to get packed, so
+        // it starts *before* the trip. It can be moved afterwards like any
+        // other task — the salve that was never fetched is exactly this one.
         const { mutation: todoMut } = mutations.addTodo(
           tripId,
           id,
           CLIENT_ACTOR_PLACEHOLDER,
           taskBody,
+          TASK_PHASE_BEFORE,
         )
         enqueue('trip', tripId, { mutation: todoMut, optimistic: optimisticInsert(todoMut) })
       }
@@ -155,8 +163,15 @@ export function createTripCreationActions(ctx: SyncContext) {
 
     // FR-7.4: the templates' trip tasks, on the trip itself rather than on a
     // row, so they hold back nothing the packing list counts.
-    for (const taskBody of draft.tripTasks ?? []) {
-      const { mutation } = mutations.addTodo(tripId, null, CLIENT_ACTOR_PLACEHOLDER, taskBody)
+    for (const task of draft.tripTasks ?? []) {
+      const { mutation } = mutations.addTodo(
+        tripId,
+        null,
+        CLIENT_ACTOR_PLACEHOLDER,
+        task.body,
+        // FR-7.7: the template said when it is due, and the trip keeps that.
+        task.phase,
+      )
       enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
     }
 
@@ -343,6 +358,7 @@ export function createTripCreationActions(ctx: SyncContext) {
             id,
             'import',
             t('import.wizard.noiseTodo', { name: item.name }),
+            TASK_PHASE_BEFORE,
           )
           enqueue('trip', tripId, {
             mutation: todo.mutation,

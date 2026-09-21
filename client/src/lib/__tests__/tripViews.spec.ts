@@ -21,9 +21,10 @@ import {
 const TRIP = 'trip-1'
 
 describe('the trip views that earn a pill', () => {
-  it('shows the two a trip is worked in, in the order it is worked through', () => {
-    expect(tripViewPills('packing')).toEqual(['packing', 'shopping'])
-    expect(tripViewPills('shopping')).toEqual(['packing', 'shopping'])
+  it('shows the three a trip is worked in, in the order it is worked through', () => {
+    expect(tripViewPills('packing')).toEqual(['packing', 'shopping', 'tasks'])
+    expect(tripViewPills('shopping')).toEqual(['packing', 'shopping', 'tasks'])
+    expect(tripViewPills('tasks')).toEqual(['packing', 'shopping', 'tasks'])
   })
 
   /*
@@ -31,9 +32,9 @@ describe('the trip views that earn a pill', () => {
    * standing somewhere: a switcher whose every pill is inactive has stopped
    * answering the half of its job that is "where am I".
    */
-  it('adds the view being looked at when it is neither of them', () => {
-    expect(tripViewPills('luggage')).toEqual(['packing', 'shopping', 'luggage'])
-    expect(tripViewPills('analytics')).toEqual(['packing', 'shopping', 'analytics'])
+  it('adds the view being looked at when it is none of them', () => {
+    expect(tripViewPills('luggage')).toEqual(['packing', 'shopping', 'tasks', 'luggage'])
+    expect(tripViewPills('analytics')).toEqual(['packing', 'shopping', 'tasks', 'analytics'])
   })
 
   it('offers the rest in the bar, so every view is reachable from every view', () => {

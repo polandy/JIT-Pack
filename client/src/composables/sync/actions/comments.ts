@@ -6,7 +6,8 @@
  */
 import { commentRow, todoRow, tripTodoRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import type { ItemComment, ItemTodo, TripTodo } from '@/types/domain'
+import type { ItemComment, ItemTodo, TaskPhase, TripTodo } from '@/types/domain'
+import { TASK_PHASE_BEFORE } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
@@ -44,8 +45,19 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
-  function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
-    const { mutation } = mutations.addTodo(tripId, tripItemId, authorId, body)
+  /**
+   * FR-7.3 with FR-7.7's phase: a preparation is written *before* the trip
+   * unless the caller says otherwise — M5 writes one while packing, M25 can
+   * write one for the road.
+   */
+  function addPrepTodo(
+    tripId: string,
+    tripItemId: string,
+    authorId: string,
+    body: string,
+    phase: TaskPhase = TASK_PHASE_BEFORE,
+  ) {
+    const { mutation } = mutations.addTodo(tripId, tripItemId, authorId, body, phase)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -70,8 +82,13 @@ export function createCommentActions(ctx: SyncContext) {
 
   // --- Trip todos (FR-7.4): the same row with no anchor ---
 
-  function addTripTodo(tripId: string, authorId: string, body: string): string {
-    const { mutation, id } = mutations.addTodo(tripId, null, authorId, body)
+  function addTripTodo(
+    tripId: string,
+    authorId: string,
+    body: string,
+    phase: TaskPhase = TASK_PHASE_BEFORE,
+  ): string {
+    const { mutation, id } = mutations.addTodo(tripId, null, authorId, body, phase)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -104,6 +121,34 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /**
+   * FR-7.7: a preparation is somebody's job too. The same column and the same
+   * mutation as the trip's own task — what differs is only which row the
+   * optimistic update is rebuilt from, because the two kinds live in
+   * different buckets of the store.
+   */
+  function assignPrepTodo(tripId: string, todo: ItemTodo, userId: string | null) {
+    const mut = mutations.setTodoAssignee(todo.id, userId)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, todoRow(todo)),
+    })
+  }
+
+  /**
+   * FR-7.7's crossing: the task moves to the other phase and nothing else
+   * about it changes. Both kinds pass through here — the caller says which
+   * row to rebuild, because that is the only difference.
+   */
+  function setTaskPhase(tripId: string, todo: ItemTodo | TripTodo, phase: TaskPhase | null) {
+    const mut = mutations.setTaskPhase(todo.id, phase)
+    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, { ...row, phase }),
+    })
+  }
+
   function deleteTripTodo(todo: TripTodo) {
     const mutation = mutations.deleteTodo(todo.id)
     enqueueAndDrain('trip', todo.trip_id, {
@@ -123,6 +168,8 @@ export function createCommentActions(ctx: SyncContext) {
     resolveTripTodo,
     reopenTripTodo,
     assignTripTodo,
+    assignPrepTodo,
+    setTaskPhase,
     deleteTripTodo,
   }
 }

@@ -13,7 +13,14 @@ import {
   writesLanded,
 } from './fixtures'
 import { PATH } from './routes'
-import { packRow, startTrip, tripWithRows } from './helpers/m4'
+import {
+  addPrepTodo,
+  openTasks,
+  openTripTodos,
+  packRow,
+  startTrip,
+  tripWithRows,
+} from './helpers/m4'
 
 /**
  * FR-5.10 — finishing the packing, and FR-30.8's consequence for M6.
@@ -99,6 +106,72 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toBeVisible()
     await expect(card).toHaveCount(0)
     await expectTripActionOffered(page, 'closePacking')
+  })
+
+  /**
+   * E2E-M4-144 (FR-7.7): closing the packing is the moment „before the trip"
+   * ends, so every task still open and still due before it crosses to
+   * *during* — and the question says so before anything is written.
+   *
+   * Three things have to hold together, and each is a way this goes wrong on
+   * its own: the **count in the question comes from the same plan the write
+   * reads**, so it cannot say two while one moves; the task **leaves M4's
+   * window and stands in M25's second section**, because the move is a write
+   * and not a repaint; and **one undo takes back the rows and the tasks**,
+   * since the record holds a single action at a time and a second undo would
+   * have quietly cost the rows their way back.
+   *
+   * A resolved task is seeded beside the open one as the negative half: its
+   * phase says when it *was* done, and a close that moved it would be
+   * inventing a second history.
+   */
+  test('E2E-M4-144: finishing the packing moves the open tasks to the trip itself', async ({
+    page,
+  }) => {
+    const trip = await tripWithRows(page, ['Zelt', 'Kulturbeutel'], 'Abschluss')
+    await addPrepTodo(page, 'Kulturbeutel', 'Fetch the salve')
+    await addPrepTodo(page, 'Kulturbeutel', 'Pack the toothbrush')
+    // The one that must not move: done is done, in the phase it was done in.
+    const window = await openTripTodos(page)
+    await window.getByTestId('trip-todo-Pack the toothbrush').locator('ion-checkbox').click()
+    await writesLanded(page)
+
+    // Only the other row is packed: FR-7.3 keeps a packed row with an open
+    // preparation on the list, so packing this one would be asserting against
+    // a rule rather than with it. Closing decides it instead, which is the
+    // batch the tasks have to ride in.
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+
+    // Taken back first, and from the frame the undo was armed in: a snackbar
+    // belongs to the screen that raised it, so a case that navigates away
+    // before reaching for it is testing nothing.
+    await tripAction(page, 'closePacking')
+    // One task moves, not two: the resolved one is not counted, and the
+    // sentence is read off the plan the write will use.
+    await expect(closeSheet(page)).toContainText('1 open task')
+    await confirmClose(page)
+    await expect(visiblePage(page).getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+
+    // One undo for the whole act: the row the close decided *and* the task it
+    // moved come back together, because a second undo would have replaced the
+    // first and one of the two would have lost its way back.
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: /undo/i }).click()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    const back = await openTripTodos(page)
+    await expect(back.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-row-Kulturbeutel')).toBeVisible()
+    await writesLanded(page)
+
+    // Closed for good this time: off the packing list, and standing in the
+    // trip's own section on M25.
+    await tripAction(page, 'closePacking')
+    await confirmClose(page)
+    await writesLanded(page)
+    await expect(visiblePage(page).getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+    const during = await openTasks(page, 'during')
+    await expect(during.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+    await page.goto(trip)
   })
 
   /**

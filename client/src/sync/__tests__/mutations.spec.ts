@@ -389,7 +389,7 @@ describe('createMutations', () => {
 
   it('addTodo creates insert on comments table', () => {
     const m = createMutations(mockHLC())
-    const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery')
+    const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery', 'before')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('comments')
     expect(mutation.id).toBe(id)
@@ -400,22 +400,48 @@ describe('createMutations', () => {
       body: 'Charge battery',
       is_task: 1,
       task_state: 'open',
+      // FR-7.7: every task is written with a phase, so no reader has to guess
+      // at one — the composer it was typed into knows which. The creation
+      // moment is named here too, because Local Mode has no database server
+      // to default the column and the task's line would otherwise say nothing.
+      phase: 'before',
+      created_at: expect.any(String),
     })
   })
 
-  it('resolveTodo sets task_state to resolved', () => {
+  /*
+   * FR-7.7: the resolution carries the moment of the tap, the way `packItem`
+   * carries `packed_at` — a task is ticked off away from a network and the
+   * push can land days later. The *who* is absent on purpose: the server
+   * stamps it (invariant 3), and in Local Mode there is nobody to name.
+   */
+  it('resolveTodo sets task_state to resolved and names the tap', () => {
     const m = createMutations(mockHLC())
     const mut = m.resolveTodo('todo1')
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('comments')
     expect(mut.id).toBe('todo1')
-    expect(mut.fields).toEqual({ task_state: 'resolved' })
+    expect(mut.fields).toEqual({ task_state: 'resolved', resolved_at: expect.any(String) })
+    expect(mut.fields?.['resolved_by_user_id']).toBeUndefined()
   })
 
-  it('reopenTodo sets task_state to open', () => {
+  it('reopenTodo sets task_state to open and clears the record with it', () => {
     const m = createMutations(mockHLC())
     const mut = m.reopenTodo('todo1')
-    expect(mut.fields).toEqual({ task_state: 'open' })
+    expect(mut.fields).toEqual({ task_state: 'open', resolved_at: null })
+  })
+
+  /*
+   * FR-7.7's crossing: one field, because it is the only thing that changes.
+   * The task keeps its words, its state, its assignee and the day it was
+   * written — a move that rewrote any of those would be a different act.
+   */
+  it('setTaskPhase writes the phase alone', () => {
+    const m = createMutations(mockHLC())
+    expect(m.setTaskPhase('todo1', 'during').fields).toEqual({ phase: 'during' })
+    // Null is a legal value, not an omission: it is what a task written
+    // before FR-7.7 carries, and an undo has to be able to put it back.
+    expect(m.setTaskPhase('todo1', null).fields).toEqual({ phase: null })
   })
 
   it('deleteTodo creates delete mutation', () => {

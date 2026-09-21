@@ -217,6 +217,14 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // M25 (FR-7.7): every task of the trip, in its two phases.
+    path: tripSubPath(TRIP_ID_PARAM, 'tasks'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'tasks' },
+    name: 'trip-tasks',
+    component: () => import('@/views/trips/TripTasksPage.vue'),
+    props: true,
+  },
+  {
     path: templatePath(TEMPLATE_ID_PARAM),
     meta: { parent: PATH.templates, titleKey: 'nav.title.template' },
     name: 'template-editor',

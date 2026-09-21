@@ -253,6 +253,9 @@ export const en = {
   'packing.openCount': '{n} open',
   'packing.shopping': 'Shopping',
   'packing.shoppingCount': 'Shopping ({n})',
+  // FR-7.7 — the third view a trip is worked in.
+  'packing.tasks': 'Tasks',
+  'packing.tasksCount': 'Tasks ({n})',
   'packing.luggage': 'Luggage',
   'packing.analytics': 'Analytics',
   'packing.tripViews': "This trip's views",
@@ -278,6 +281,11 @@ export const en = {
   'packing.closeConfirmVerbNothing': 'Finish',
   'packing.closedToast': 'Packing finished · {n} left behind | Packing finished · {n} left behind',
   'packing.closedToastNone': 'Packing finished',
+  // FR-7.7 — what becomes of the open tasks when the packing ends.
+  'packing.closeConfirmTasks':
+    '{n} open task moves to the tasks for the trip itself. | {n} open tasks move to the tasks for the trip itself.',
+  'packing.closedToastTasks':
+    '{n} task is now for the trip itself | {n} tasks are now for the trip itself',
   'packing.closedTitle': 'Packing finished',
   'packing.closedStamp': '{when} · {n} left behind | {when} · {n} left behind',
   'packing.closedStampNone': '{when}',
@@ -1472,6 +1480,31 @@ export const en = {
   'tripTodos.add': 'Add a task…',
   'tripTodos.remove': 'Remove task',
   'tripTodos.forItem': 'Belongs to {name}',
+
+  // FR-7.7 — M25, a trip's tasks on a screen of their own.
+  'tasks.title': 'Tasks',
+  'tasks.before': 'Before the trip',
+  'tasks.during': 'During the trip',
+  'tasks.mine': 'Mine',
+  'tasks.addBefore': 'A task for before the trip…',
+  'tasks.addDuring': 'A task for the trip itself…',
+  'tasks.emptyBefore': 'Nothing left to do before the trip.',
+  'tasks.emptyDuring': 'Nothing noted for the trip itself.',
+  'tasks.emptyMine': 'Nothing is assigned to you right now.',
+  'tasks.emptyAll': 'This trip has no tasks yet.',
+  'tasks.moveToDuring': 'Move to “During the trip”',
+  'tasks.moveToBefore': 'Move back to “Before the trip”',
+  'tasks.movedToDuring': '“{body}” is now for the trip itself',
+  'tasks.movedToBefore': '“{body}” is for before the trip again',
+  // FR-7.7 — who wrote the task and who ticked it off, and when. Without a
+  // name the time still stands: Local Mode has nobody to name (G-8), and a
+  // line then says less rather than something untrue.
+  'tasks.createdBy': 'written by {who} · {when}',
+  'tasks.createdByUnknown': 'written · {when}',
+  'tasks.resolvedBy': 'done by {who} · {when}',
+  'tasks.resolvedByUnknown': 'done · {when}',
+  'tasks.openAll': 'All tasks',
+  'tasks.whilePacking': 'To do while packing',
   'dashboard.taskLineOpen': 'Tasks: {n} open',
   'dashboard.taskLineDone': 'Tasks: all done',
   'dashboard.packingDone': 'Packing finished',

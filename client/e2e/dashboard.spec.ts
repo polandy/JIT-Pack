@@ -10,7 +10,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
-import { addBuyRowOnM4, addTripTodo, openTripTodos, packRow } from './helpers/m4'
+import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 
 /**
@@ -362,8 +362,11 @@ test.describe('M1 — the three promises @local @m1', () => {
     await activeTripWith(page, ['Zelt'])
     await addTripTodo(page, 'Water the plants')
     await addTripTodo(page, 'Empty the fridge')
-    await visible(page).getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
-    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('1 of 2 done')
+    // Ticked on M25 since FR-7.7: M4's section keeps only the preparations
+    // still due before the trip, and these are the trip's own chores.
+    const tasks = await openTasks(page, 'before')
+    await tasks.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
+    await expect(tasks.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
     await writesLanded(page)
 
     await page.goto(PATH.dashboard)
@@ -385,6 +388,8 @@ test.describe('M1 — the three promises @local @m1', () => {
     await group.getByTestId(`trip-todos-open-${TRIP.name}`).click()
     await expectTripOpen(page, TRIP.name)
     await expect(visible(page).getByTestId('m4-trip-todos')).toBeVisible()
+    // The way on to where these tasks now live (FR-7.7).
+    await expect(visible(page).getByTestId('m4-trip-todos-all')).toBeVisible()
   })
 
   /**
@@ -427,9 +432,9 @@ test.describe('M1 — the three promises @local @m1', () => {
     // Resolving it changes the task check and nothing else.
     await hero.click()
     await expectTripOpen(page, TRIP.name)
-    await openTripTodos(page)
-    await visible(page).getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
+    const section = await openTasks(page, 'before')
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('1/1 tasks')

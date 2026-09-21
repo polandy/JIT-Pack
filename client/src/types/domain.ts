@@ -270,7 +270,39 @@ export interface ItemComment {
 
 export type TodoState = 'open' | 'resolved'
 
-export interface ItemTodo {
+/**
+ * FR-7.7: when a task is meant to be done — before the trip or during it.
+ *
+ * Stored rather than derived, because nothing else in the row tells „not done
+ * yet" from „always meant for later": the salve that was not fetched before
+ * departure is still open, and what changes about it is only this.
+ */
+export const TASK_PHASE_BEFORE = 'before'
+export const TASK_PHASE_DURING = 'during'
+export const TASK_PHASES = [TASK_PHASE_BEFORE, TASK_PHASE_DURING] as const
+export type TaskPhase = (typeof TASK_PHASES)[number]
+
+/**
+ * FR-7.7: the facts every task carries beside its words — when it is due, who
+ * wrote it and when, and the record of it being ticked off.
+ *
+ * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's trip
+ * todo), because they are one table and the owner asked for the same four
+ * facts on both. `phase` is null on a task written before FR-7.7 and reads as
+ * *before* (`taskPhaseOf`); the resolution pair is null while the task is open.
+ */
+export interface TaskFacts {
+  phase: TaskPhase | null
+  created_at: string | null
+  /** FR-7.7: whose job it is — since FR-7.7 on both kinds, not only the trip's own. */
+  assignee_user_id: string | null
+  /** The tap that ticked it off; the client may name it (FR-25.17's precedent). */
+  resolved_at: string | null
+  /** Who ticked it off — stamped by the server alone (invariant 3). */
+  resolved_by_user_id: string | null
+}
+
+export interface ItemTodo extends TaskFacts {
   id: string
   trip_id: string
   trip_item_id: string
@@ -284,17 +316,12 @@ export interface ItemTodo {
  * Kept apart from `ItemTodo` because nothing the packing list measures may
  * count it: a row's doneness, the ring and the prep KPI read `ItemTodo` only.
  */
-export interface TripTodo {
+export interface TripTodo extends TaskFacts {
   id: string
   trip_id: string
   author_id: string
   body: string
   task_state: TodoState
-  /**
-   * FR-7.5: whose job it is — an account, like a row's `packer_user_id`; null
-   * while it is everybody's.
-   */
-  assignee_user_id: string | null
 }
 
 /**
@@ -441,6 +468,8 @@ export interface TemplateTask {
   id: string
   template_id: string
   task: string
+  /** FR-7.7: the phase the instantiated task starts in; null reads as *before*. */
+  phase: TaskPhase | null
 }
 
 // --- Trip series & destination profiles (FR-13.1/13.2) ---

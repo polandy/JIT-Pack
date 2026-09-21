@@ -146,9 +146,13 @@ items: []
         .filter((r) => r.table === TABLE.templates)
         .map((r) => [(r.mutation.fields as Record<string, unknown>)['name'], r.id]),
     )
+    // FR-7.7: the portable format carries a task's words and nothing else, so
+    // an imported one arrives as a task for before the trip — which is what a
+    // task meant in every file written so far. Reading a phase out of a
+    // document that never stated one would be a claim, not an import.
     expect(rowsFor(recorded, TABLE.templateTasks)).toEqual([
-      { template_id: templateIds.get('Ferien'), task: 'Pflanzen giessen' },
-      { template_id: templateIds.get('Camping'), task: 'Gasflasche füllen' },
+      { template_id: templateIds.get('Ferien'), task: 'Pflanzen giessen', phase: 'before' },
+      { template_id: templateIds.get('Camping'), task: 'Gasflasche füllen', phase: 'before' },
     ])
   })
 

@@ -62,6 +62,7 @@ export type TripSubScreen =
   | 'conflicts'
   | 'members'
   | 'shopping'
+  | 'tasks'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {

@@ -400,6 +400,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
 - [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
+- [2026-09-21 — A task that changes phase, and the screen it needed (FR-7.7, ADR-071)](#2026-09-21--a-task-that-changes-phase-and-the-screen-it-needed-fr-77-adr-071) — why the phase had to be a column, and two defects only the e2e could find.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 - [The instance outgrew "delete and reseed" (2026-09-20)](#the-instance-outgrew-delete-and-reseed-2026-09-20) — ADR-018's trigger fired, ADR-067 answers it; why a stamped fingerprint proves nothing.
@@ -16859,3 +16860,63 @@ cannot be forgotten in `tripRow`, and it failed on the first run, exactly as des
 more `Trip` literals in specs — the price of a required field, paid once, and worth it: a nullable-by-omission field
 would have let the optimistic paint drop the stamp on every unrelated trip edit, which is the defect PR #158 already
 paid for once with `status`.
+
+### 2026-09-21 — A task that changes phase, and the screen it needed (FR-7.7, ADR-071)
+
+The owner's story was one sentence: *„da es vor den ferien nicht geklappt hat, wechselt der task die phase der
+ferien."* The salve was not fetched before leaving, and it does not stop being a task — it becomes one for the road.
+What made this a feature rather than a filter is the second half of that sentence, which is about **data**: nothing in
+a task row separated *not done yet* from *always meant for later*. Both are open tasks. A reading could not have told
+them apart at any price, which is why `comments.phase` is a stored column and why deriving it from the trip's status
+was rejected before it was costed.
+
+**The null is a reading, not a gap.** Every task written before this carried no phase, and every one of them meant
+„before the trip" — so `taskPhaseOf` resolves NULL to *before* and nothing is backfilled. Writing the column onto
+those rows would have claimed a statement nobody made, and it would have cost a data transformation that invariant 2
+has nowhere to put.
+
+**The window is what makes the phase mean something.** M4 keeps only the tasks that hang off a packing row and are
+still due before the trip; M25 holds all of them. Because the window is a *reading* of the one list rather than a
+second list, moving the salve to *during* **takes it off the packing list** — the act and its consequence are the same
+write. The alternative that looked cheaper, „show everything due before the trip on M4", would have kept the composer
+and re-created the complaint the feature answers.
+
+**A decision may move a task; a date may not.** The concept round refused to let the departure day move anything: a
+date passing is a clock, and a clock does not know whether you still mean to do the thing. Closing the packing
+(FR-5.10) is a person saying they are done, so the crossing hangs off that act — and FR-5.10's own line about leaving
+the todos alone is amended **where it stands**, not quietly reinterpreted in the new FR. A reader of the older rule
+must not meet a justification that no longer carries.
+
+**One undo, because the record holds one action.** `armUndo` replaces the pending entry by design, so arming a second
+one for the moved tasks would have silently cost the rows their way back. The tasks ride in the restore closure
+instead, and the close's snapshot grew from `TripItem[]` to a pair. This was handed over by the session that built
+FR-5.10 before the code was read, and it saved the defect rather than the debugging.
+
+**Two defects the e2e found that no unit test could have.**
+
+- *A snackbar anchored to a FAB that was not there.* `usePackAnnouncer` hard-coded `FAB_ANCHOR.m4` as the toast's
+  position anchor. On M25, which has no FAB, Ionic positioned the toast off the viewport — visible, enabled, stable
+  and unclickable. The undo existed and could not be reached. The anchor is now the screen's to name. **And the first
+  fix did not work**: `anchor: string | undefined = FAB_ANCHOR.m4` with `undefined` passed at the call site takes the
+  default, which is what a default parameter means. It is `null` now.
+- *A way out hidden inside the fold.* M4's task section folds when nothing is open, and *„Alle Aufgaben"* was rendered
+  inside the unfolded body — so the reader who most needs it, the one who opened the section and found it empty, was
+  the one who could not see it. It is outside the fold now. The case that caught it was asserting something else
+  entirely.
+
+**Local Mode had no creation time at all.** `comments.created_at` has a DEFAULT, and a default is the *database's* —
+Local Mode has no database server, so a task written offline carried none and its provenance line said nothing. The
+client names the moment now, the way it already names `packed_at`: a clock is not an identity claim. The author
+beside it stays the server's, and in Local Mode the line keeps the moment and drops the person (G-8) rather than
+inventing one.
+
+**Three ids moved screens rather than being renumbered.** E2E-M4-96, -105 and -134 promise exactly what they always
+did; the screen that makes the promise is what changed. They run as E2E-M25-01/02/03, and the M4 entries are struck in
+place saying where each went — an id says what the suite implements, and these did not change screens by being wrong.
+
+**The pill row was measured, not argued.** ADR-051 amendment 1 cut the row to two pills the previous morning because
+four filled a 390 px line to within six pixels. The third pill is right by that amendment's own rule, but the
+measurement it rested on was re-opened by adding one — so E2E-G12-07 now measures the row at **360 px**, the narrowest
+phone the app targets, and asserts both that every pill is inside the viewport and that all three sit on one line. A
+row that wrapped would have passed a width assertion on its own.
+

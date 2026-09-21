@@ -93,7 +93,17 @@ interface BuilderCase {
    * defends the first one's column. Where a builder has one real writer the
    * list stays at one and the case says so.
    */
-  acts: Array<{ act: (entity: never) => void; changed: string; becomes: unknown }>
+  acts: Array<{
+    act: (entity: never) => void
+    changed: string
+    becomes: unknown
+    /**
+     * A second column the same writer owns *by rule* — FR-7.7's resolution
+     * record follows the state it describes, so „leaves every other column
+     * alone" has to name it rather than be surprised by it.
+     */
+    also?: Record<string, unknown>
+  }>
   /**
    * The whole entity the seed must produce. Typed per case with
    * `satisfies Record<keyof …, unknown>`, so a field added to the domain
@@ -519,11 +529,18 @@ const CASES: BuilderCase[] = [
         act: (t) => newOrch().reopenPrepTodo(TRIP_ID, t),
         changed: 'task_state',
         becomes: 'open',
+        // FR-7.7: unticking clears the record with the state it described.
+        // Already null in the seed, so the expectation is that it stays so.
+        also: { resolved_at: null },
       },
       {
         act: (t) => newOrch().resolvePrepTodo(TRIP_ID, t),
         changed: 'task_state',
         becomes: 'resolved',
+        // FR-7.7: the tap's own moment, named by the client (FR-25.17's
+        // precedent). Its value is a clock reading, so the case pins that one
+        // is written rather than which.
+        also: { resolved_at: expect.any(String) as unknown },
       },
     ],
     expected: {
@@ -533,6 +550,12 @@ const CASES: BuilderCase[] = [
       author_id: 'user-a',
       body: 'Zeltstangen prüfen',
       task_state: 'resolved',
+      // FR-7.7's five, all null on a task nobody has said anything about.
+      phase: null,
+      created_at: null,
+      assignee_user_id: null,
+      resolved_at: null,
+      resolved_by_user_id: null,
     } satisfies Record<keyof ItemTodo, unknown>,
   },
   {
@@ -603,12 +626,15 @@ describe.each(CASES)('$builder', (testCase) => {
 
   it.each(testCase.acts)(
     'changing $changed leaves every other column alone',
-    ({ act, changed, becomes }) => {
+    ({ act, changed, becomes, also }) => {
       testCase.seed()
 
       act(testCase.read() as never)
 
-      expect(testCase.read()).toEqual({ ...testCase.expected, [changed]: becomes })
+      // `also` is for a writer that owns a second column by rule rather than
+      // by accident — FR-7.7's resolution record follows the state it
+      // describes, so „leaves every other column alone" has to name it.
+      expect(testCase.read()).toEqual({ ...testCase.expected, [changed]: becomes, ...also })
     },
   )
 })
@@ -622,19 +648,18 @@ describe.each(CASES)('$builder', (testCase) => {
  * read back as the entity the seed produced. What can be read is the todo,
  * and every column `ItemTodo` names has to have survived the promotion.
  *
- * Two of its columns are unreachable, both for the same structural reason and
- * neither by oversight:
+ * One of its columns is unreachable, and not by oversight: `is_task: 0`. The
+ * only writer sets it to 1, so dropping the constant changes nothing today.
+ * `todoRow`'s `is_task: 1` *is* defended, because resolve and reopen both
+ * rebuild a row that has to stay a task. The asymmetry is worth knowing: a
+ * hard-coded column is only as defended as the writer that contradicts it.
  *
- *  - `created_at` — `ItemTodo` does not carry it, so once the row is a task
- *    no client surface can show it. It is in `commentRow` on purpose: PR #204
- *    found it missing, which meant an optimistic promotion blanked the
- *    timestamp, permanently in Local Mode. The `satisfies` on `expected`
- *    holds it, not an assertion.
- *  - `is_task: 0` — the only writer sets it to 1, so dropping the constant
- *    changes nothing today. `todoRow`'s `is_task: 1` *is* defended, because
- *    resolve and reopen both rebuild a row that has to stay a task. The
- *    asymmetry is worth knowing: a hard-coded column is only as defended as
- *    the writer that contradicts it.
+ * `created_at` used to be the second one. It was in `commentRow` on purpose —
+ * PR #204 found it missing, which meant an optimistic promotion blanked the
+ * timestamp, permanently in Local Mode — but nothing could observe it,
+ * because `ItemTodo` did not carry it and the `satisfies` held it instead of
+ * an assertion. FR-7.7 gave a task its own provenance line, so the column is
+ * now read by a surface and defended by the case below.
  */
 describe('commentRow', () => {
   const COMMENT_ID = 'cmt-1'
@@ -680,6 +705,16 @@ describe('commentRow', () => {
         author_id: 'user-a',
         body: 'Reissverschluss klemmt',
         task_state: 'open',
+        // FR-7.7: the moment the comment was written survives the promotion —
+        // it is the same row, and the task's line now says so.
+        created_at: '2026-08-20T10:00:00Z',
+        // Flagging a comment says nothing about when the task is due or whose
+        // it is, so it says nothing: the phase is read as *before* where it is
+        // asked for (`taskPhaseOf`) rather than written here.
+        phase: null,
+        assignee_user_id: null,
+        resolved_at: null,
+        resolved_by_user_id: null,
       } satisfies Record<keyof ItemTodo, unknown>,
     ])
   })

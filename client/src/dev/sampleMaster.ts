@@ -1,6 +1,11 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { DependencyMode, TemplateKind } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_PACK,
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+} from '@/types/domain'
 
 /**
  * A ready-made master partition to test against — inventory, tags, groups and
@@ -250,7 +255,13 @@ const VACATION = {
     { item: 'Sonnencreme', buyBefore: true },
   ] satisfies PositionSeed[],
   /** FR-7.4: chores for the trip itself, not for anything packed. */
-  tripTasks: ['Pflanzen giessen', 'Elektronische Geräte abschalten'],
+  // FR-7.7: the third one is for the road, so a seeded Vorlage carries both
+  // phases and M25 opens with something in either section.
+  tripTasks: [
+    { task: 'Pflanzen giessen', phase: TASK_PHASE_BEFORE },
+    { task: 'Elektronische Geräte abschalten', phase: TASK_PHASE_BEFORE },
+    { task: 'Am Bahnhof die Zugverbindung nach Pontresina abklären', phase: TASK_PHASE_DURING },
+  ] as const,
 }
 
 function addPositions(
@@ -398,7 +409,9 @@ export function seedSampleMaster(
       if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
     }
     addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
-    for (const task of VACATION.tripTasks) orchestrator.addTemplateTask(vacationTemplateId, task)
+    for (const { task, phase } of VACATION.tripTasks) {
+      orchestrator.addTemplateTask(vacationTemplateId, task, phase)
+    }
   }
 
   // Only on a run that actually created templates: a second run finds every

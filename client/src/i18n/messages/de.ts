@@ -252,6 +252,9 @@ export const de: Record<keyof typeof en, string> = {
   'packing.openCount': '{n} offen',
   'packing.shopping': 'Einkauf',
   'packing.shoppingCount': 'Einkaufen ({n})',
+  // FR-7.7 — die dritte Ansicht, in der an einer Reise gearbeitet wird.
+  'packing.tasks': 'Aufgaben',
+  'packing.tasksCount': 'Aufgaben ({n})',
   'packing.luggage': 'Gepäck',
   'packing.analytics': 'Auswertung',
   'packing.tripViews': 'Ansichten dieser Reise',
@@ -279,6 +282,11 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closedToast':
     'Packen abgeschlossen · {n} nicht mitgenommen | Packen abgeschlossen · {n} nicht mitgenommen',
   'packing.closedToastNone': 'Packen abgeschlossen',
+  // FR-7.7 — was mit den offenen Aufgaben passiert, wenn das Packen endet.
+  'packing.closeConfirmTasks':
+    '{n} offene Aufgabe wandert zu den Aufgaben für unterwegs. | {n} offene Aufgaben wandern zu den Aufgaben für unterwegs.',
+  'packing.closedToastTasks':
+    '{n} Aufgabe ist jetzt für unterwegs | {n} Aufgaben sind jetzt für unterwegs',
   'packing.closedTitle': 'Packen abgeschlossen',
   'packing.closedStamp': '{when} · {n} nicht mitgenommen | {when} · {n} nicht mitgenommen',
   'packing.closedStampNone': '{when}',
@@ -1489,6 +1497,31 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.add': 'Aufgabe hinzufügen…',
   'tripTodos.remove': 'Aufgabe entfernen',
   'tripTodos.forItem': 'Gehört zu {name}',
+
+  // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
+  'tasks.title': 'Aufgaben',
+  'tasks.before': 'Vor der Reise',
+  'tasks.during': 'Während der Reise',
+  'tasks.mine': 'Meine',
+  'tasks.addBefore': 'Aufgabe für vor der Reise…',
+  'tasks.addDuring': 'Aufgabe für unterwegs…',
+  'tasks.emptyBefore': 'Vor der Reise ist nichts mehr offen.',
+  'tasks.emptyDuring': 'Für unterwegs ist nichts notiert.',
+  'tasks.emptyMine': 'Dir ist gerade nichts zugewiesen.',
+  'tasks.emptyAll': 'Diese Reise hat noch keine Aufgaben.',
+  'tasks.moveToDuring': 'Auf „Während der Reise" schieben',
+  'tasks.moveToBefore': 'Zurück auf „Vor der Reise"',
+  'tasks.movedToDuring': '„{body}" ist jetzt für unterwegs',
+  'tasks.movedToBefore': '„{body}" ist wieder für vor der Reise',
+  // FR-7.7 — wer die Aufgabe geschrieben und wer sie erledigt hat, und wann.
+  // Ohne Namen bleibt der Zeitpunkt stehen: in Local Mode gibt es niemanden
+  // zu nennen (G-8), und eine Zeile sagt dann weniger statt etwas Unwahres.
+  'tasks.createdBy': 'erstellt von {who} · {when}',
+  'tasks.createdByUnknown': 'erstellt · {when}',
+  'tasks.resolvedBy': 'erledigt von {who} · {when}',
+  'tasks.resolvedByUnknown': 'erledigt · {when}',
+  'tasks.openAll': 'Alle Aufgaben',
+  'tasks.whilePacking': 'Beim Packen zu erledigen',
   'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
   'dashboard.taskLineDone': 'Aufgaben: alle erledigt',
   'dashboard.packingDone': 'Packen abgeschlossen',

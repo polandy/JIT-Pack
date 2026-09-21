@@ -11,7 +11,8 @@
  * task counts nothing the packing list measures, so that neither a houseplant
  * nor an uncharged battery can hold a finished rucksack below 100 %.
  */
-import type { ItemTodo, TodoState, TripTodo } from '@/types/domain'
+import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
+import { TASK_PHASE_BEFORE } from '@/types/domain'
 
 /** How far a trip's todos are, as the two figures M1 states. */
 export interface TripTodoProgress {
@@ -85,8 +86,37 @@ export interface TripTask {
   task_state: TodoState
   /** The row it prepares, or null when the task is the trip's own. */
   item: TripTaskItem | null
-  /** FR-7.5: whose job it is. Only the trip's own name one. */
+  /**
+   * FR-7.5/FR-7.7: whose job it is. Since FR-7.7 both kinds can name
+   * somebody — a task is handed over like a packing row, whether or not it
+   * hangs off one.
+   */
   assignee_user_id: string | null
+  /**
+   * FR-7.7: when it is due. Resolved here rather than carried as a nullable,
+   * so the null that means *before* is read in one place instead of by every
+   * surface that filters on it.
+   */
+  phase: TaskPhase
+  /** FR-7.7: who wrote it and when — the server stamps both on insert. */
+  author_id: string
+  created_at: string | null
+  /** FR-7.7: the resolution record; both null while the task is open. */
+  resolved_at: string | null
+  resolved_by_user_id: string | null
+}
+
+/**
+ * FR-7.7: the phase a stored task is in, with the null every task written
+ * before FR-7.7 carries read as *before*.
+ *
+ * It is a reading and not a default: a task nobody has said anything about is
+ * one you meant to do before you left, which is what the app asked for until
+ * now. Writing the column on every old row would have claimed a statement
+ * nobody made.
+ */
+export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
+  return task.phase ?? TASK_PHASE_BEFORE
 }
 
 /**
@@ -112,7 +142,7 @@ export function tripTasks(
     body: todo.body,
     task_state: todo.task_state,
     item: null,
-    assignee_user_id: todo.assignee_user_id,
+    ...factsOf(todo),
   }))
 
   const prepared: TripTask[] = []
@@ -124,12 +154,60 @@ export function tripTasks(
       body: todo.body,
       task_state: todo.task_state,
       item: row,
-      // FR-7.5: a preparation names nobody — its row already does.
-      assignee_user_id: null,
+      ...factsOf(todo),
     })
   }
 
   return [...own, ...prepared].sort(compareTasks)
+}
+
+/**
+ * FR-7.7's five facts, read the same way off both kinds of task.
+ *
+ * FR-7.5 used to leave a preparation's assignee null on the way through here,
+ * on the grounds that its row already names somebody. The owner's 2026-09-20
+ * request reverses that: a task is handed over like a pack item, and a
+ * preparation is a task.
+ */
+function factsOf(todo: ItemTodo | TripTodo) {
+  return {
+    assignee_user_id: todo.assignee_user_id,
+    phase: taskPhaseOf(todo),
+    author_id: todo.author_id,
+    created_at: todo.created_at,
+    resolved_at: todo.resolved_at,
+    resolved_by_user_id: todo.resolved_by_user_id,
+  }
+}
+
+/**
+ * FR-7.7: the tasks M4 still shows — the ones that hang off a packing row and
+ * are due before the trip.
+ *
+ * This is the *window*, and it is the whole reason nothing is filed twice:
+ * M25 holds every task, M4 shows the ones you do as part of packing. Moving
+ * the salve to *during* therefore takes it off the packing list, which is what
+ * moving it means.
+ */
+export function packingWindowTasks(tasks: readonly TripTask[]): TripTask[] {
+  return tasks.filter((task) => task.item !== null && task.phase === TASK_PHASE_BEFORE)
+}
+
+/** FR-7.7: the tasks of one phase, for M25's two sections. */
+export function tasksInPhase(tasks: readonly TripTask[], phase: TaskPhase): TripTask[] {
+  return tasks.filter((task) => task.phase === phase)
+}
+
+/**
+ * FR-7.7: the *Meine* chip — the tasks handed to this person.
+ *
+ * Nobody signed in (Local Mode) means nobody to filter by, and the chip is
+ * not offered there at all (G-8); the empty answer here is the second half of
+ * that, so a caller cannot accidentally show every unassigned task as „mine".
+ */
+export function tasksOfAssignee(tasks: readonly TripTask[], userId: string | null): TripTask[] {
+  if (!userId) return []
+  return tasks.filter((task) => task.assignee_user_id === userId)
 }
 
 /** The order FR-7.6 states, written once because only `tripTasks` may decide it. */

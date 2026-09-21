@@ -1,13 +1,19 @@
 <script setup lang="ts">
 /**
- * The trip's tasks (FR-7.6), editable: the list M4's *Aufgaben für die Reise*
- * section unfolds to. Open ones are ticked off in place, resolved ones fold
- * away but stay reachable to untick, and the composer adds one.
+ * The trip's tasks (FR-7.6/FR-7.7), editable: the list M25 renders twice —
+ * once per phase — and the window M4 keeps of what is to be done while
+ * packing. Open ones are ticked off in place, resolved ones fold away but
+ * stay reachable to untick.
  *
- * Two kinds of task share the list. The trip's own (FR-7.4) carry a seat and
- * a ✕; a row's preparation (FR-7.3) carries the chip of the row it belongs to
- * instead — it names nobody (FR-7.5: the row already does) and it is removed
- * where it lives, which is the row. The chip is what says which is which.
+ * Two kinds of task share the list. The trip's own (FR-7.4) carry a ✕; a
+ * row's preparation (FR-7.3) carries the chip of the row it belongs to
+ * instead and is removed where it lives, which is the row. The chip is what
+ * says which is which.
+ *
+ * **Since FR-7.7 both kinds carry a seat** (the owner's request of
+ * 2026-09-20: *a task can be assigned to somebody like a pack item*), and
+ * both carry the one line Q3 B asks for — who wrote it while it is open, who
+ * finished it once it is done.
  *
  * The trip is where these are written (owner, 2026-09-18): M1 only reports
  * them, because the dashboard takes no actions.
@@ -15,7 +21,8 @@
  * Every act is *emitted*: both kinds are written through different actions
  * and both undone through the screen's one snackbar (FR-25.31), so the writer
  * is the screen and this list reports the tap. The composer is the exception —
- * it can only write the trip's own kind, so it writes it.
+ * it can only write the trip's own kind, so it writes it, in the phase the
+ * screen handed it.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
 import { chevronForwardOutline, closeOutline } from 'ionicons/icons'
@@ -27,8 +34,10 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
+import { taskSubline } from '@/lib/taskFacts'
 import { tripItemPath } from '@/router/paths'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
+import type { TaskPhase } from '@/types/domain'
 
 const props = defineProps<{
   /** The trip whose tasks these are. */
@@ -41,8 +50,19 @@ const props = defineProps<{
    * not rendered at all, rather than offered with nobody behind it.
    */
   assignable?: boolean
-  /** A member's display name, for the avatar's initials. */
-  nameOf?: (userId: string) => string | null
+  /** A member's display name, for the avatar's initials and the subline. */
+  nameOf?: (userId: string | null) => string | null
+  /**
+   * FR-7.7: the phase a task typed into the composer is written in, or null
+   * for a list without one. M4's window has none — everything it shows hangs
+   * off a packing row, and a trip task typed there would vanish as it was
+   * written.
+   */
+  composerPhase?: TaskPhase | null
+  /** What the composer's empty field says; the screen knows which list it is. */
+  composerLabel?: string
+  /** What to say when the list is empty. Absent renders nothing. */
+  emptyText?: string
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -55,6 +75,8 @@ const emit = defineEmits<{
   remove: [task: TripTask]
   /** FR-7.5: the seat was tapped — the screen asks whose job it is. */
   assign: [task: TripTask]
+  /** FR-7.7: the words were tapped — the screen opens the task's own sheet. */
+  open: [task: TripTask]
 }>()
 
 const orchestrator = useOrchestrator()
@@ -67,8 +89,13 @@ const showResolved = ref(false)
 
 function add() {
   const body = draft.value.trim()
-  if (!body) return
-  const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body)
+  if (!body || !props.composerPhase) return
+  const id = orchestrator.addTripTodo(
+    props.tripId,
+    CLIENT_ACTOR_PLACEHOLDER,
+    body,
+    props.composerPhase,
+  )
   draft.value = ''
   emit('added', id, body)
 }
@@ -78,10 +105,19 @@ function assigneeOf(task: TripTask) {
   const id = task.assignee_user_id
   return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
 }
+
+/** Q3 B: the one line under the words, whichever of the two it is. */
+function subline(task: TripTask): string | null {
+  return taskSubline(task, (userId) => props.nameOf?.(userId) ?? null)
+}
 </script>
 
 <template>
   <div class="trip-todo-list" data-testid="trip-todo-list">
+    <p v-if="emptyText && tasks.length === 0" class="empty" data-testid="trip-todo-empty">
+      {{ emptyText }}
+    </p>
+
     <IonItem
       v-for="task in open"
       :key="task.id"
@@ -89,35 +125,50 @@ function assigneeOf(task: TripTask) {
       class="todo-row"
       :data-testid="`trip-todo-${task.body}`"
     >
-      <IonLabel>{{ task.body }}</IonLabel>
+      <!-- FR-7.7: the words are the way into the task's own sheet, where the
+           facts that do not fit a line live — and where it is moved between
+           the phases. A button rather than the label itself, so the target is
+           the words and not the whole row: the tick is the row's own edge. -->
+      <IonLabel>
+        <button
+          type="button"
+          class="body"
+          :data-testid="`trip-todo-open-${task.body}`"
+          @click="emit('open', task)"
+        >
+          {{ task.body }}
+        </button>
+        <p v-if="subline(task)" class="stamp" :data-testid="`trip-todo-stamp-${task.body}`">
+          {{ subline(task) }}
+        </p>
+      </IonLabel>
       <span slot="end" class="todo-end">
         <!-- FR-7.6: the chip stands where the trip's own task carries its
-             seat — one line, one place that says what the task belongs to. -->
+             ✕ — one line, one place that says what the task belongs to. -->
         <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
-        <template v-else>
-          <AssigneeSeat
-            v-if="assignable"
-            :avatar="assigneeOf(task)"
-            :data-testid="`trip-todo-assign-${task.body}`"
-            @assign="emit('assign', task)"
-          />
-          <UserAvatar
-            v-else-if="task.assignee_user_id"
-            variant="assignee"
-            :name="nameOf?.(task.assignee_user_id)"
-            :seed="task.assignee_user_id"
-            :data-testid="`trip-todo-assignee-${task.body}`"
-          />
-          <button
-            type="button"
-            class="rm"
-            :aria-label="t('tripTodos.remove')"
-            :data-testid="`trip-todo-remove-${task.body}`"
-            @click="emit('remove', task)"
-          >
-            <IonIcon :icon="closeOutline" />
-          </button>
-        </template>
+        <AssigneeSeat
+          v-if="assignable"
+          :avatar="assigneeOf(task)"
+          :data-testid="`trip-todo-assign-${task.body}`"
+          @assign="emit('assign', task)"
+        />
+        <UserAvatar
+          v-else-if="task.assignee_user_id"
+          variant="assignee"
+          :name="nameOf?.(task.assignee_user_id)"
+          :seed="task.assignee_user_id"
+          :data-testid="`trip-todo-assignee-${task.body}`"
+        />
+        <button
+          v-if="!task.item"
+          type="button"
+          class="rm"
+          :aria-label="t('tripTodos.remove')"
+          :data-testid="`trip-todo-remove-${task.body}`"
+          @click="emit('remove', task)"
+        >
+          <IonIcon :icon="closeOutline" />
+        </button>
       </span>
       <!-- The tick is last, so its outer edge is the row's — the same rule a
            packing row's control follows (UI-Spec M4), and the reason both land
@@ -149,43 +200,54 @@ function assigneeOf(task: TripTask) {
           class="todo-row resolved"
           :data-testid="`trip-todo-${task.body}`"
         >
-          <IonLabel>{{ task.body }}</IonLabel>
+          <IonLabel>
+            <button
+              type="button"
+              class="body"
+              :data-testid="`trip-todo-open-${task.body}`"
+              @click="emit('open', task)"
+            >
+              {{ task.body }}
+            </button>
+            <p v-if="subline(task)" class="stamp" :data-testid="`trip-todo-stamp-${task.body}`">
+              {{ subline(task) }}
+            </p>
+          </IonLabel>
           <span slot="end" class="todo-end">
             <TaskItemChip
               v-if="task.item"
               :item="task.item"
               :to="tripItemPath(tripId, task.item.id)"
             />
-            <template v-else>
-              <!-- Done is done: who had it is still worth reading, but handing
-                   over a finished task decides nothing. -->
-              <UserAvatar
-                v-if="task.assignee_user_id"
-                variant="assignee"
-                :name="nameOf?.(task.assignee_user_id)"
-                :seed="task.assignee_user_id"
-                :data-testid="`trip-todo-assignee-${task.body}`"
-              />
-              <button
-                type="button"
-                class="rm"
-                :aria-label="t('tripTodos.remove')"
-                :data-testid="`trip-todo-remove-${task.body}`"
-                @click="emit('remove', task)"
-              >
-                <IonIcon :icon="closeOutline" />
-              </button>
-            </template>
+            <!-- Done is done: who had it is still worth reading, but handing
+                 over a finished task decides nothing. -->
+            <UserAvatar
+              v-if="task.assignee_user_id"
+              variant="assignee"
+              :name="nameOf?.(task.assignee_user_id)"
+              :seed="task.assignee_user_id"
+              :data-testid="`trip-todo-assignee-${task.body}`"
+            />
+            <button
+              v-if="!task.item"
+              type="button"
+              class="rm"
+              :aria-label="t('tripTodos.remove')"
+              :data-testid="`trip-todo-remove-${task.body}`"
+              @click="emit('remove', task)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
           </span>
           <IonCheckbox slot="end" class="tick" :checked="true" @ionChange="emit('toggle', task)" />
         </IonItem>
       </template>
     </template>
 
-    <div class="composer">
+    <div v-if="composerPhase" class="composer">
       <IonInput
         v-model="draft"
-        :placeholder="t('tripTodos.add')"
+        :placeholder="composerLabel ?? t('tripTodos.add')"
         data-testid="trip-todo-input"
         @keydown.enter="add"
       />
@@ -207,7 +269,37 @@ function assigneeOf(task: TripTask) {
 
 .todo-row.resolved ion-label {
   color: var(--ct-subtext0);
+}
+
+.todo-row.resolved .body {
   text-decoration: line-through;
+}
+
+/* The words are a control, and must not read as one: the line is the task,
+   and a button's chrome here would compete with the tick for the eye. */
+.body {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+/* Q3 B: one line, and it changes its role rather than stacking a second. */
+.stamp {
+  margin: 1px 0 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+.empty {
+  margin: 4px 14px 8px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
 }
 
 .todo-end {
@@ -215,9 +307,11 @@ function assigneeOf(task: TripTask) {
   align-items: center;
   gap: 6px;
   /* The chip is the one thing here that carries text, so it is the one thing
-     that can outgrow the row; everything else keeps its box. */
+     that can outgrow the row; everything else keeps its box. Since FR-7.7 a
+     preparation carries a seat beside its chip, so the cluster is given the
+     width that seat costs and the chip shrinks first. */
   min-width: 0;
-  max-width: 55%;
+  max-width: 62%;
 }
 
 .tick {
