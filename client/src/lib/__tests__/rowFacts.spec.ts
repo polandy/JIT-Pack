@@ -174,6 +174,12 @@ describe('skippedNote (FR-5.5/20.2)', () => {
     expect(skippedNote(battery, [drone, battery], dependencies)).toBe('Deliberately skipped')
   })
 
+  it('says a skipped row the plan forgot was forgotten, not left behind on purpose (FR-5.11)', () => {
+    const forgotten = row({ name: 'Sonnencreme', state: 'skipped', flag_missing: true })
+
+    expect(skippedNote(forgotten, [forgotten], [])).toBe('Forgotten to pack')
+  })
+
   it('says nothing about a row that is not skipped', () => {
     expect(skippedNote(row({ state: 'packed' }), [], dependencies)).toBeNull()
   })

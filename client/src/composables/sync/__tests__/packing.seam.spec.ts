@@ -310,6 +310,33 @@ describe('createPackingActions without an orchestrator', () => {
     expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ flag_missing: 0 })
   })
 
+  it('a forgotten-add is a row that stayed home, flagged Missing (FR-5.11/FR-9.1)', () => {
+    const actions = createPackingActions(ctx)
+
+    actions.addDecidedItem(TRIP_ID, 'Sonnencreme', {}, true, 'forgotten')
+
+    // Not packed and not open: it neither inflates the packing progress nor
+    // becomes a job on the list, and M14 reads the flag for the next trip.
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
+      name: 'Sonnencreme',
+      state: 'skipped',
+      quantity: 0,
+      packed_count: 0,
+      packed_at: null,
+      flag_missing: 1,
+    })
+  })
+
+  it('flags a forgotten-add Missing even on a trip that is still planning (FR-5.11)', () => {
+    const actions = createPackingActions(ctx)
+
+    actions.addDecidedItem(TRIP_ID, 'Sonnencreme', {}, false, 'forgotten')
+
+    // The packing can be closed before departure (FR-5.10), and the choice is
+    // offered from then on: the flag is what makes the row worth recording.
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ flag_missing: 1 })
+  })
+
   it('pulls companions for a pack-add and none for a skip-add (FR-20.4/FR-25.13f)', () => {
     seedRow(ctx.masterStore, TABLE.items, 'item-tent', { name: 'Zelt', weight_grams: 2000 })
     seedRow(ctx.masterStore, TABLE.items, 'item-pegs', { name: 'Heringe', weight_grams: 300 })

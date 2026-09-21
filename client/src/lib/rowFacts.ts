@@ -121,5 +121,8 @@ export function skippedNote(
 ): string | null {
   if (item.state !== 'skipped') return null
   const via = skippedVia(item, rows, dependencies)
-  return via ? t('packing.skippedVia', { name: via.name }) : t('packing.skipped')
+  if (via) return t('packing.skippedVia', { name: via.name })
+  // FR-5.11: a skipped row the plan forgot (Missing) stayed home by accident,
+  // and „deliberately" would say the opposite of what happened.
+  return item.flag_missing ? t('packing.forgotten') : t('packing.skipped')
 }

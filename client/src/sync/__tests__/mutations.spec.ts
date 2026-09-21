@@ -353,6 +353,17 @@ describe('createMutations', () => {
     ).toBe(0)
   })
 
+  it('a forgotten-add is skipped at quantity zero, whatever was asked for (FR-5.11)', () => {
+    const m = createMutations(mockHLC())
+
+    const { fields } = m.addTripItem('t1', 'Sonnencreme', {
+      quantity: 2,
+      decided: 'forgotten',
+    }).mutation
+
+    expect(fields).toMatchObject({ state: 'skipped', quantity: 0, packed_count: 0 })
+  })
+
   it('createTrip creates insert with planning status', () => {
     const m = createMutations(mockHLC())
     const { mutation, id } = m.createTrip('Beach', 2026, '2026-08-01', '2026-08-07')
