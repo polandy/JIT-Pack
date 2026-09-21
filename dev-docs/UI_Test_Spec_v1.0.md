@@ -1428,10 +1428,10 @@ composer.
   entry's time survives a reload) each assert *„bought · today"*.
 * **E2E-M6-31** `local` (FR-30.9, added 2026-09-21) — **implemented** (`shopping/shopping.spec.ts`): a new tag typed in
   the search-or-create sheet (opened by *＋ Tag*) files the next two entries and stays selected; unselecting it adds an
-  untagged one; the same sheet retags that entry under a new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box
-  is right of the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying
-  a tagged entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a
-  reload.
+  untagged one; the same sheet retags that entry under a new tag, which A–Z puts first and which empties the
+  *Eingetragen* section. The check-off's bounding box is right of the name's — the positive signal for „at the end",
+  which a checkbox left at the start would fail. Buying a tagged entry takes it out of its group, the reveal is flat
+  and names the tag in the row, and the tags survive a reload.
 * **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
   and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
   *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
