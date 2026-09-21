@@ -2879,7 +2879,7 @@ setHeaderTitle(
            whose rows still ask for something first — packed on departure day
            (FR-25.27), then in somebody else's hands (FR-25.20) — and last the
            one whose rows ask for nothing. Hidden only on request, and never
-           silently: this bar is what keeps „alles gepackt" from covering rows
+           silently: this bar is what keeps „alles erledigt" from covering rows
            nobody has touched. -->
       <!-- Like the Erledigte bar, absent while a term is typed: the search
            already shows its late-packer matches (FR-25.32). -->
@@ -2919,8 +2919,8 @@ setHeaderTitle(
         :open="showDone"
         :label="
           showDone
-            ? t('packing.hidePacked', { n: view.doneCount })
-            : t('packing.showPacked', { n: view.doneCount })
+            ? t('packing.hideDone', { n: view.doneCount })
+            : t('packing.showDone', { n: view.doneCount })
         "
         testid="m4-done-bar"
         @toggle="showDone = !showDone"

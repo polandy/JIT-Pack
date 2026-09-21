@@ -673,9 +673,9 @@ in WebKit.
 * **E2E-M4-17** `all` (FR-25.11d) — **implemented** (`domain/__tests__/packingView.spec.ts`, four cases): a value counts
   against the *other* active facets but not its own, dead ends are not offered, counts run over open rows only, and a
   selected value stays listed at zero so a filter can always be undone from the panel. Same reasoning as E2E-M4-16.
-* **E2E-M4-18** `all` (FR-25.11e): the "Alles gepackt 🎉" state appears **only** when nothing is narrowing the list. Four
-  cases, all required: **search** with no match, **filter** with no match, **search + filter** together, and
-  genuinely-everything-packed. The first three must all show "Keine Treffer" naming what is in force; only the fourth
+* **E2E-M4-18** `all` (FR-25.11e): the "Alles erledigt 🎉" state appears **only** when nothing is narrowing the list.
+  Four cases, all required: **search** with no match, **filter** with no match, **search + filter** together, and
+  genuinely-everything-done. The first three must all show "Keine Treffer" naming what is in force; only the fourth
   may celebrate. The reset offered clears **everything** narrowing — after pressing it, both the search term and the
   filter set are empty and the list is back. Regression guard: searching for a string the list does not contain
   announced completion, because the check looked at the filter count only.
@@ -908,7 +908,7 @@ in WebKit.
 * **E2E-M4-94** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list-shape.spec.ts`): the
   *Spätpacker* switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and
   the row goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list
-  still offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The
+  still offers the reset is what proves it did not fall through to *„alles erledigt"* over a row nobody has touched. The
   bar brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
   the rule the rows already follow read once more at the foot of the list. Since 2026-09-19 (FR-25.32) a search for the
   hidden row shows it and takes the bar away; clearing the term hides the row and brings the bar back.
@@ -1071,6 +1071,16 @@ in WebKit.
   task is off M4's window and stands in M25's *Während der Reise*. **One undo takes back the rows and the tasks**: the
   record holds a single action at a time, so a second `armUndo` for the tasks would have silently cost the rows their
   way back — the case reads the restored task from M4, where the undo was armed.
+
+* **E2E-M4-145** `local` (FR-25.2 with FR-5.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the
+  reveal bar names what it counts, and so does the state above it. One row is packed and one is left behind by the
+  close, so the word standing over both has to be true of both: the bar reads *„Show 2 done"*, and *„Hide 2 done"*
+  once it is open, while the empty state the finished list shows reads *„All done 🎉"* —
+  read before the bar is opened, since revealing the rows takes that state off the screen. **Both
+  directions, because the label is built twice** — once per direction in the same template — and the pair has drifted
+  here before (the log records a bar reading „Show 3 packed" and then „Hide 5 packed" for the same rows). The case
+  ends on the revealed row wearing *deliberately skipped*, which is what makes the count more than arithmetic: without
+  it, a bar reading „2 done" over two packed rows would pass just as well.
 
 ### M5 — Item Detail
 
@@ -3063,10 +3073,13 @@ landed, that no test has ever rendered.
   head, and the step alone on one that had left the head inset. The cluster is proved to have more than one person under
   it first, or neither assertion is about a cluster at all.
 * **E2E-M4-74** `all` (FR-21.22, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): M4's reveal bar
-  for the packed rows wears a **solid** edge and carries `aria-expanded`, which flips with the rows it governs. Both,
+  for the done rows wears a **solid** edge and carries `aria-expanded`, which flips with the rows it governs. Both,
   and in that order: the edge is the defect reported (a dashed outline is this app's mark for a place where something is
   *not yet*, and the bar counts rows that exist), and the attribute is what a reader who cannot see the caret is told
   instead. The case ends by revealing the row it counted, so a bar that had merely stopped being dashed would not pass.
+  It reads the label whole (*„Show 1 done"*), which is also where the **singular** case of FR-25.2's bar is
+  asserted — E2E-M4-145 has the plural, and the German pair is a unit case (`i18n.spec.ts`), since the suite runs in
+  English.
 * **E2E-M4-75** `all` (FR-21.23, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): the header line's
   ring, sentence and track are read before and after one row of four is packed — 0 %, *0/4*, a track of zero width, then
   25 %, *1/4*, and a track a quarter of its own container. All three against the same pack, because the point of the
@@ -3692,7 +3705,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation; photo, dependency and delete sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
-| FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
+| FR-25.2 | E2E+UNIT | M4-14; M4-74 and M4-145 (the reveal bar's word and its two directions, singular and plural); packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
 | FR-25.8 | E2E | M4-12/M4-58 (per-person quick-add is one cluster, not N items), M4-13 (the lone member is a flat row), M4-64 (absent where there is nobody to distribute over); ~~M4-65~~ retired with the editor it made way for |
 | FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |

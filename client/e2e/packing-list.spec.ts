@@ -194,7 +194,7 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   })
 
-  // E2E-M4-18 (FR-25.11e): "Alles gepackt" may appear only when nothing is
+  // E2E-M4-18 (FR-25.11e): "Alles erledigt" may appear only when nothing is
   // narrowing the list. The regression this guards actually happened: the
   // check looked at the filter count alone, so an unmatched *search*
   // announced completion.

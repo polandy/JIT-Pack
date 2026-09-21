@@ -1172,7 +1172,7 @@ These patterns apply to every screen and are specified once.
     cluster sinks as soon as one visible instance carries the flag, matching the ⏰ its head already paints
     (FR-25.23). The filter panel's **third switch**, *Spätpacker*, hides them outright; it is the only one of the three
     that starts **on**, because those rows are not finished with, merely not due yet. Hidden, they get the same reveal
-    bar the other two classes get and the list still counts as narrowed, so *„alles gepackt"* cannot appear over them.
+    bar the other two classes get and the list still counts as narrowed, so *„alles erledigt"* cannot appear over them.
     **The three bars sit in the same order as the rows** (owner, 2026-09-18): Spätpacker, then *Anderen zugewiesen*,
     then *Erledigte* last — the two whose rows still ask for something stand above the one whose rows do not.
     Picking ⏰ in *Merkmale* overrides the switch, as a *Status* value overrides *Erledigte* (FR-25.11l). The closing
@@ -1485,7 +1485,7 @@ These patterns apply to every screen and are specified once.
     trip is not archived and its packing is open, a list with nothing left open included. It asks once, in **the app's
     own sheet** (U-3's chrome, head + lead + the exceptions on the sunken plane + one primary): the count of what is
     about to be left behind, then how many rows are started, due on departure day (FR-5.1) or held by somebody else
-    (G-3), each on its own line. **When the last open row is packed, the step appears in the *„Alles gepackt"*
+    (G-3), each on its own line. **When the last open row is packed, the step appears in the *„Alles erledigt"*
     empty state** the list shows at that moment (FR-25.11e), and the sheet opens from it, headed *„Das war das letzte
     offene Packelement."* There rather than in a band of its own, because nothing may enter the flow above a list
     somebody is tapping (ADR-060) and an unasked-for modal takes the screen from the tap that follows it — both
