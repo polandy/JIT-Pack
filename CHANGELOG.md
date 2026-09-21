@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.17.0](https://github.com/polandy/JIT-Pack/compare/v0.16.0...v0.17.0) (2026-09-21)
+
+
+### Features
+
+* a task carries one tag, and M25 groups by it (FR-7.8) ([5bedeaf](https://github.com/polandy/JIT-Pack/commit/5bedeaffc6933469076ffd8761b68449f73a08e3))
+* a task says when it is due, and the tasks get a screen (FR-7.7) ([de32ff9](https://github.com/polandy/JIT-Pack/commit/de32ff92731eb35a7c6d7cd2c54db972b3a10f6e))
+* **store:** an existing database upgrades itself (ADR-067) ([6d9d2d7](https://github.com/polandy/JIT-Pack/commit/6d9d2d74c034283479133fcc8b7df64afbe86a37))
+* the inventory merges what is duplicated — tags, and items (FR-24.14, FR-24.15, FR-1.9) ([fc32c5c](https://github.com/polandy/JIT-Pack/commit/fc32c5ce16a226c92d6ee357fa01b514e2add268))
+* the packing list can be declared finished (FR-5.10, FR-30.8) ([582d97f](https://github.com/polandy/JIT-Pack/commit/582d97f0ee173bcc9b044975213dd5a3f9445568))
+
+
+### Bug Fixes
+
+* **client:** a task is ticked at the row's own edge (FR-7.3/FR-7.6) ([ac51073](https://github.com/polandy/JIT-Pack/commit/ac51073f4cb264863ee7ba3724fe0b305f985e1d))
+* **client:** the reveal bar and the finished list name what they cover (FR-25.2, FR-5.10) ([244ec99](https://github.com/polandy/JIT-Pack/commit/244ec992245abc6a400ba00187744850063d8a88))
+* **client:** the save indicator gets a voice present before it speaks (FR-25.15) ([9ec5505](https://github.com/polandy/JIT-Pack/commit/9ec5505e286f6f5102e7457a466ba6584a98bd65))
+* **cli:** every command names the writes an instance rejected (FR-18.7, FR-18.8) ([3ba1b1b](https://github.com/polandy/JIT-Pack/commit/3ba1b1b242e4d3ea5b94c6bf70099b74786ef856))
+
 ## [0.16.0](https://github.com/polandy/JIT-Pack/compare/v0.15.0...v0.16.0) (2026-09-20)
 
 
