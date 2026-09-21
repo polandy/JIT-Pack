@@ -157,6 +157,25 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await openTripView(page, 'shopping')
     await m6(page).getByTestId('m6-tab-local').click()
 
+    // A tag made in the sheet stays a chip when nothing carries it: add an
+    // entry under „Laden", remove it, and unselect the chip — it must remain.
+    await m6(page).getByTestId('m6-tag-new').click()
+    await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m6-entry-name').locator('input').fill('Probe')
+    await page.getByTestId('m6-tag-search').locator('input').fill('Laden')
+    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Probe' })
+      .getByTestId('m6-row-remove')
+      .click()
+    const laden = m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Laden' })
+    await expect(laden).toHaveAttribute('aria-pressed', 'true')
+    await laden.click()
+    await expect(laden).toHaveAttribute('aria-pressed', 'false')
+
     // The sheet adds an entry with its name and a tag made in it; the tag is
     // then kept for the next entry typed in the field.
     await m6(page).getByTestId('m6-tag-new').click()
@@ -169,8 +188,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Pasta' })).toBeVisible()
     await addEntry(page, 'Brot')
 
-    // Untagged: unselecting the chip must not make it disappear (a tag nobody
-    // carries would have), and the next entry has no tag at all.
+    // Untagged: unselect the chip, and the next entry has no tag at all.
     const chip = m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Supermarkt' })
     await chip.click()
     await expect(chip).toHaveAttribute('aria-pressed', 'false')
