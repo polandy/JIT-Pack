@@ -256,7 +256,7 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
  * reveal holds an entry as well as a packing row. Through the module's own
  * actions, for the reason `buyOneShoppingRow` gives.
  */
-const SEED_SHOPPING_ENTRIES = [
+export const SEED_SHOPPING_ENTRIES = [
   { name: 'Brot', tag: 'Supermarkt' },
   { name: 'Milch', tag: 'Supermarkt' },
   { name: 'Pasta', tag: 'Supermarkt' },
