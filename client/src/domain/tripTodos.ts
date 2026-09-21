@@ -301,8 +301,8 @@ export function filedTagOf(
 export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[]): TaskGroup[] {
   // Filed once, up front: every task lands in exactly one bucket, and a task
   // whose tag this device does not know lands in the untagged one rather than
-  // in none. Filtering twice over the raw column is what let a task fall
-  // through both passes and off the screen.
+  // in none. Filtering twice over the raw column — once per tag, once for
+  // NULL — lets such a task match neither pass and drop off the screen.
   const filed = tasks.map((task) => ({ task, tag: filedTagOf(task, tags) }))
   const groups: TaskGroup[] = tags.map((tag) => ({
     key: tag.id,

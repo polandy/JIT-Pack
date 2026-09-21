@@ -123,8 +123,17 @@ const masterStore = useMasterStore()
 const groupsBefore = computed(() => taskGroups(before.value, masterStore.taskTagList))
 const groupsDuring = computed(() => taskGroups(during.value, masterStore.taskTagList))
 
-/** `before/apotheke` — the phase and the group, which is what a drop decides. */
-const dropKey = (phase: TaskPhase, group: TaskGroup) => `${phase}/${group.key}`
+/**
+ * `before/apotheke` — the phase and the group, which is what a drop decides.
+ * Built and read in one place, because a separator a reader has to match by
+ * eye is a separator that will one day be matched wrong.
+ */
+const DROP_KEY_SEPARATOR = '/'
+const dropKey = (phase: TaskPhase, group: TaskGroup) => `${phase}${DROP_KEY_SEPARATOR}${group.key}`
+const readDropKey = (place: DropPlace) => {
+  const [phase, key] = place.target.split(DROP_KEY_SEPARATOR)
+  return { phase: phase as TaskPhase, key }
+}
 
 /** A group's heading: its tag's name, or what the untagged group is called. */
 function groupName(group: TaskGroup): string {
@@ -146,14 +155,13 @@ const drag = useDragToGroup<TripTask>({
   },
   onDrop: (task, place) => {
     const group = groupAt(place)
-    if (group) acts.retag(task, phaseOf(place), tagForGroup(group.key))
+    if (group) acts.retag(task, readDropKey(place).phase, tagForGroup(group.key))
   },
 })
 watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
 
-const phaseOf = (place: DropPlace) => place.target.split('/')[0] as TaskPhase
 function groupAt(place: DropPlace): TaskGroup | null {
-  const [phase, key] = place.target.split('/')
+  const { phase, key } = readDropKey(place)
   const groups = phase === TASK_PHASE_BEFORE ? groupsBefore.value : groupsDuring.value
   return groups.find((group) => group.key === key) ?? null
 }

@@ -1,8 +1,9 @@
 # Cleaning Up Master Data
 
-Your instance accumulates items, tags and templates that nobody needs any more. You can
-delete them one at a time in the app — but if you have a long list, or you want to work
-from a spreadsheet, JIT-Pack gives you a delete endpoint per row.
+Your instance accumulates items, tags, templates and task tags that nobody needs any more.
+You can delete the first three one at a time in the app — but if you have a long list, or
+you want to work from a spreadsheet, JIT-Pack gives you a delete endpoint per row. Task
+tags are the exception, and the [note below](#task-tags-cannot-be-cleaned-up-yet) says why.
 
 !!! tip "For tags, try the app first"
     **Inventory → ⋮ → Manage tags** renames, merges, reorders and deletes tags, and it is
@@ -101,6 +102,23 @@ One more item endpoint is not a plain delete: `POST /api/v1/master/items/{id}/pr
 the item **only if nothing uses it**, and otherwise leaves it untouched instead of hiding it.
 It answers `{"pruned": true}` or `{"pruned": false}`. The app calls it when a packing-list
 removal leaves an item unused ([see above](#removing-a-packing-list-row-can-remove-its-item)), and it is just as safe to call from a script.
+
+### Task tags cannot be cleaned up yet
+
+A trip's **Tasks** screen groups its tasks by a tag, and those tags are a list of their
+own — separate from the inventory's tags, because a task is filed by what it is *about* and
+an item by what it *is*. You create one by typing a name that does not exist yet in a task's
+own sheet, which is the only place they come from.
+
+There is no screen that renames, merges or deletes them, and no endpoint either. A tag typed
+twice stays twice. If that becomes a nuisance, say so — the shape the inventory's tag manager
+already has is what it would be built from.
+
+Should a task tag ever be removed (today only by writing to the database directly), the tasks
+under it are **not** deleted: they lose the tag and read under the heading that says where
+they came from — *From the packing list* for something a packing row needs done first, *No
+tag* for a chore of the trip itself. Devices that were offline at the time keep showing the old
+heading until they hear about the tag, and then fall back to the same two.
 
 ## Authenticating
 
