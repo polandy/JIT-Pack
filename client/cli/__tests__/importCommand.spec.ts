@@ -18,6 +18,8 @@ class FakeInstance {
   pushed: { path: string; mutations: Mutation[] }[] = []
   refuse: string | null = null
   tokens: (string | null)[] = []
+  /** Mutations the instance answers with `rejected` — a 200 that refuses a row. */
+  rejectTable: string | null = null
 
   get mutations(): Mutation[] {
     return this.pushed.flatMap((p) => p.mutations)
@@ -44,7 +46,11 @@ class FakeInstance {
       const body = JSON.parse(String(init.body)) as { mutations: Mutation[] }
       this.pushed.push({ path, mutations: body.mutations })
       return Response.json({
-        results: body.mutations.map((m) => ({ mutation_id: m.mutation_id, outcome: 'applied' })),
+        results: body.mutations.map((m) => ({
+          mutation_id: m.mutation_id,
+          outcome: m.table === this.rejectTable ? 'rejected' : 'applied',
+          ...(m.table === this.rejectTable ? { error: 'constraint' } : {}),
+        })),
         pull_hint: { next_cursor: 0 },
       })
     }
@@ -268,6 +274,27 @@ describe('runImport', () => {
 
   // Sync-API §9 caps a push at 200 mutations; a real Vorlage is well past it,
   // and a whole-file rejection is what the cap costs if nobody chunks.
+  // A push can answer 200 and still refuse rows. Until this, such a document
+  // was reported as imported and the run exited 0, so a half-written Vorlage
+  // looked like a good one.
+  it('counts a document whose writes the instance refused as failed, and names them', async () => {
+    instance.rejectTable = 'items'
+    const it0 = io({ 'f.yaml': TEMPLATE })
+
+    const code = await runImport(
+      { serverUrl: 'http://x', token: null, dryRun: false, files: ['f.yaml'] },
+      it0,
+    )
+
+    expect(code).toBe(EXIT.failed)
+    const said = it0.lines.join('\n')
+    // The count is this document's own writes, not the run's: `pending` is
+    // built per document, and a shared one would re-push the ones before it.
+    expect(said).toMatch(/\d+ of \d+ writes rejected by the instance: items\/[\w-]+ \(constraint\)/)
+    expect(said).not.toContain(': imported')
+    expect(it0.lines.at(-1)).toContain('1 failed')
+  })
+
   it('chunks a document that is larger than one push', async () => {
     const many = Array.from(
       { length: 150 },

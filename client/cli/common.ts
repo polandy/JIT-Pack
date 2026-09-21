@@ -88,6 +88,25 @@ export async function pushPending(
   return rejected
 }
 
+/** How many mutations a run has collected, over both partitions. */
+export function pendingCount(pending: PendingWrites): number {
+  let n = pending.master.length
+  for (const list of pending.trips.values()) n += list.length
+  return n
+}
+
+/**
+ * One line naming the writes the instance refused, for a command that has
+ * just pushed. Shared so the three commands say it the same way: a push can
+ * answer 200 and still reject mutations, and „sent" would then be a lie.
+ */
+export function rejectionLine(rejected: RejectedWrite[], total: number): string {
+  const which = rejected
+    .map(({ mutation, error }) => `${mutation.table}/${mutation.id}${error ? ` (${error})` : ''}`)
+    .join(', ')
+  return `${rejected.length} of ${total} writes rejected by the instance: ${which}`
+}
+
 export function message(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }

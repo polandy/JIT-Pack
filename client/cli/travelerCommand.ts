@@ -26,7 +26,9 @@ import {
   ENV_SERVER,
   ENV_TOKEN,
   EXIT,
+  pendingCount,
   pushPending,
+  rejectionLine,
   type CommandIO,
   type Connection,
 } from './common'
@@ -233,13 +235,21 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
   }
 
   if (written > 0) {
+    let rejected
     try {
-      await pushPending(client, hlc, pending)
+      rejected = await pushPending(client, hlc, pending)
     } catch (e) {
       io.write(`${where}: failed — ${message(e)}`)
       return EXIT.failed
     }
     for (const line of reports) io.write(line)
+    // A rejected mutation is a half-written roster — the traveler may exist
+    // while the positions their arrival generated do not — so the run fails
+    // instead of closing with a count that includes them.
+    if (rejected.length > 0) {
+      io.write(`${where}: ${rejectionLine(rejected, pendingCount(pending))}`)
+      return EXIT.failed
+    }
   }
 
   const added = opts.dryRun ? opts.names.length - skipped : written
