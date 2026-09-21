@@ -75,7 +75,7 @@ export interface PackAnnouncer {
  * has been left. The second had been marked untestable while it lived in the
  * view; from here it is one unmount away.
  */
-export function usePackAnnouncer(): PackAnnouncer {
+export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnnouncer {
   const rowUndo = useRowUndo()
   const packAnnouncements = ref(0)
 
@@ -137,8 +137,11 @@ export function usePackAnnouncer(): PackAnnouncer {
       // and a snackbar with none sits over the row menu until the page moves.
       duration: TOAST_DURATION_MS,
       position: 'bottom',
-      // Above the FAB rather than behind it — see the anchor's own note.
-      positionAnchor: FAB_ANCHOR.m4,
+      // Above the FAB rather than behind it — see the anchor's own note. The
+      // screen names its own: M25 has no FAB, and an anchor that is not on
+      // the page leaves Ionic positioning the snackbar off the viewport,
+      // where its *Rückgängig* cannot be reached (found by E2E-M25-02).
+      positionAnchor: anchor ?? undefined,
       cssClass: 'pack-toast',
       buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],
     })

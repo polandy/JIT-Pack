@@ -585,14 +585,19 @@ describe('the tag admin actions (FR-24.10)', () => {
 
 describe('a template’s trip tasks on the seam (FR-7.4)', () => {
   it('addTemplateTask queues one master insert and the template lists it', () => {
-    const id = createMasterDataActions(ctx).addTemplateTask(TEMPLATE_ID, 'Pflanzen giessen')
+    const id = createMasterDataActions(ctx).addTemplateTask(
+      TEMPLATE_ID,
+      'Pflanzen giessen',
+      'before',
+    )
 
     expect(queued[0]!.type).toBe('master')
     expect(queued[0]!.muts[0]!.mutation).toMatchObject({
       op: 'insert',
       table: TABLE.templateTasks,
       id,
-      fields: { template_id: TEMPLATE_ID, task: 'Pflanzen giessen' },
+      // FR-7.7: a Vorlage's task carries the phase the trip starts it in.
+      fields: { template_id: TEMPLATE_ID, task: 'Pflanzen giessen', phase: 'before' },
     })
     expect(ctx.masterStore.getTemplateTasks(TEMPLATE_ID).map((t) => t.task)).toEqual([
       'Pflanzen giessen',
@@ -601,7 +606,7 @@ describe('a template’s trip tasks on the seam (FR-7.4)', () => {
 
   it('deleteTemplateTask queues a tombstone and the task leaves the template', () => {
     const actions = createMasterDataActions(ctx)
-    const id = actions.addTemplateTask(TEMPLATE_ID, 'Pflanzen giessen')
+    const id = actions.addTemplateTask(TEMPLATE_ID, 'Pflanzen giessen', 'before')
 
     actions.deleteTemplateTask(id)
 

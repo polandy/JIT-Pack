@@ -13,6 +13,7 @@ import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
+import { addPrepTodo, addTripTodo, openTasks } from './helpers/m4'
 
 /**
  * Visual baselines (ADR-013; UI-Test-Spec §3).
@@ -295,6 +296,23 @@ test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) 
 // whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and
 // the card list itself — and because the rebuild that introduced them was
 // judged on exactly those pixels.
+// E2E-VIS-13: M25 — the tasks in their two phases (FR-7.7). The screen the
+// owner asked for beside the packing and shopping lists, and the one place
+// where both kinds of task and both phases are visible at once: a
+// preparation with the chip of its row under *Vor der Reise*, a chore of the
+// trip under *Während der Reise*, and the provenance line under each.
+test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await packingList(page, ['Kulturbeutel', 'Zelt'])
+  await addPrepTodo(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
+  await addTripTodo(page, 'Pflanzen giessen')
+  await addTripTodo(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
+  await openTasks(page, 'before')
+  await settled(page)
+  await expect(page).toHaveScreenshot('m25-tasks.png')
+})
+
 test('E2E-VIS-06: visual: M11 container list @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })

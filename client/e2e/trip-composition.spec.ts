@@ -397,8 +397,11 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await page.getByTestId('wizard-create').click()
     await expectTripOpen(page, 'Fototour 2026')
     // Three tasks on the trip: the two deduplicated trip tasks and the
-    // position's preparation, which FR-7.6 counts in the same figure.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/3 tasks')
+    // position's preparation. **M4 counts one of them** (FR-7.7): its figure
+    // stands for the window under it — the preparations still due before the
+    // trip — and the two chores of the trip itself are M25's. The three are
+    // read off M1 below, which lists all of them; the pair is the case.
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
     await tripAction(page, 'start')
 
     await page.goto(PATH.dashboard)

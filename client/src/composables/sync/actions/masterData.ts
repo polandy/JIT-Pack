@@ -42,7 +42,15 @@ import { TABLE } from '@/types/tables'
 import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
-import type { ItemTag, MasterItem, Template, TemplateItem, TemplateKind } from '@/types/domain'
+import type {
+  ItemTag,
+  MasterItem,
+  TaskPhase,
+  Template,
+  TemplateItem,
+  TemplateKind,
+  TemplateTask,
+} from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /**
@@ -808,13 +816,26 @@ export function createMasterDataActions(ctx: SyncContext) {
   }
 
   /** addTemplateTask attaches one FR-7.4 trip task to a template. */
-  function addTemplateTask(templateId: string, task: string): string {
-    const { mutation, id } = mutations.addTemplateTask(templateId, task)
+  function addTemplateTask(templateId: string, task: string, phase: TaskPhase): string {
+    const { mutation, id } = mutations.addTemplateTask(templateId, task, phase)
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: optimisticInsert(mutation),
     })
     return id
+  }
+
+  /** FR-7.7: move a Vorlage's task to the other phase. */
+  function setTemplateTaskPhase(task: TemplateTask, phase: TaskPhase) {
+    const mutation = mutations.setTemplateTaskPhase(task.id, phase)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, {
+        template_id: task.template_id,
+        task: task.task,
+        phase,
+      }),
+    })
   }
 
   function deleteTemplateTask(taskId: string) {
@@ -864,6 +885,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     addTemplateItemTask,
     deleteTemplateItemTask,
     addTemplateTask,
+    setTemplateTaskPhase,
     deleteTemplateTask,
   }
 }

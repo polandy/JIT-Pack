@@ -5,7 +5,13 @@ import {
   type PortableDocument,
   type PortableItem,
 } from '@/domain/portable'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+} from '@/types/domain'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
@@ -151,24 +157,32 @@ export function seedSampleTrip(
 }
 
 /**
- * FR-7.4: two chores on the trip itself, one already done, so M1's *Aufgaben*
- * section shows both its open rows and its folded *erledigt* line on a fresh
- * device. Through the orchestrator's own actions, like the comment below.
+ * FR-7.4 with FR-7.7's phases: three chores on the trip itself, one already
+ * done and one for the road — so M1's *Aufgaben* section shows its open rows
+ * and its folded *erledigt* line, and M25 opens with something in both of its
+ * sections. Through the orchestrator's own actions, like the comment below.
  */
-const SEED_TRIP_TODOS = ['Briefkasten leeren lassen', 'Kühlschrank leeren'] as const
+const SEED_TRIP_TODOS = [
+  { body: 'Briefkasten leeren lassen', phase: TASK_PHASE_BEFORE },
+  { body: 'Kühlschrank leeren', phase: TASK_PHASE_BEFORE },
+  { body: 'Am Bahnhof die Zugverbindung nach Pontresina abklären', phase: TASK_PHASE_DURING },
+] as const
 
 function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
-  for (const body of SEED_TRIP_TODOS) orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body)
+  for (const { body, phase } of SEED_TRIP_TODOS) {
+    orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+  }
   const done = useTripStore()
     .getTripTodos(tripId)
-    .find((todo) => todo.body === SEED_TRIP_TODOS[1])
+    .find((todo) => todo.body === SEED_TRIP_TODOS[1].body)
   if (done) orchestrator.resolveTripTodo(done)
 }
 
 /**
  * FR-7.3/7.6: two preparations on one row, so a fresh device's task list
  * shows the item-bound kind — the chip that names its row, and the row badge
- * that counts it — beside the trip's own chores above.
+ * that counts it — beside the trip's own chores above. Both are for before
+ * the trip (FR-7.7), which is what M4's window shows.
  */
 const SEED_PREPARED_ROW = 'iPad Pro + Tastatur'
 const SEED_PREPARATIONS = ['Akku laden', 'Filme herunterladen'] as const

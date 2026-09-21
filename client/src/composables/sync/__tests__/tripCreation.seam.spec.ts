@@ -144,7 +144,11 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
       attributes: null,
       travelers: [],
       items: [generated()],
-      tripTasks: ['Pflanzen giessen', 'Kühlschrank leeren'],
+      tripTasks: [
+        { body: 'Pflanzen giessen', phase: 'before' },
+        // FR-7.7: a template may author one for the trip itself.
+        { body: 'Zugverbindung abklären', phase: 'during' },
+      ],
     })
 
     expect(tablesOf('trip')).toEqual([TABLE.tripItems, TABLE.comments, TABLE.comments])
@@ -156,9 +160,14 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
     for (const fields of todos) {
       expect(fields).toMatchObject({ trip_item_id: null, is_task: 1, task_state: 'open' })
     }
+    // FR-7.7: each keeps the phase its template gave it.
+    expect(todos.map((fields) => [fields?.['body'], fields?.['phase']])).toEqual([
+      ['Pflanzen giessen', 'before'],
+      ['Zugverbindung abklären', 'during'],
+    ])
     expect(ctx.tripStore.getTripTodos(tripId).map((t) => t.body)).toEqual([
-      'Kühlschrank leeren',
       'Pflanzen giessen',
+      'Zugverbindung abklären',
     ])
     // No row gained a preparation todo on the way.
     expect(ctx.tripStore.getTodos(tripId)).toEqual([])

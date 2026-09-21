@@ -429,6 +429,15 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 		if m.Op == syncpkg.OpInsert {
 			m.Set("author_id", userID)
 		}
+
+		// FR-7.7: the resolution record, following the state the way the
+		// purchase follows its flag. `phase` is not touched at all — when a
+		// task is due is the user's statement, not an identity claim.
+		state, known := m.Fields[columnTaskState].(string)
+		stampRecord(m, userID, now, recordColumns{
+			by: "resolved_by_user_id",
+			at: "resolved_at",
+		}, known, state == taskStateResolved)
 	case store.TableShoppingEntries:
 		// FR-30.4: the entry's purchase record. `bought` is the flag the
 		// record describes, sent as a JSON number or boolean.
@@ -500,25 +509,58 @@ const (
 	columnBoughtAt = "bought_at"
 )
 
-// stampPurchase writes who bought a thing and when (FR-30.4) — the FR-25.19
-// packing record's rule applied to a purchase. The buyer is the pusher,
-// never a client value (invariant 3); the time may be the client's tap,
-// because shopping happens offline. A mutation that does not touch the
-// purchase (`known` false) carries no record at all, not even a null: a
-// null would erase a purchase another device already recorded.
-func stampPurchase(m *syncpkg.Mutation, userID string, now func() time.Time, known, bought bool) {
-	delete(m.Fields, columnBoughtBy)
-	tapped, _ := m.Fields[columnBoughtAt].(string)
-	delete(m.Fields, columnBoughtAt)
+// The task columns FR-7.7's resolution record follows: the state that decides
+// whether there is a record, and the value that state carries when there is.
+const (
+	columnTaskState   = "task_state"
+	taskStateResolved = "resolved"
+)
+
+// recordColumns names one who-and-when pair — the shape three records in the
+// schema share (FR-25.17's packing, FR-30.4's purchase, FR-7.7's resolution).
+type recordColumns struct {
+	by string
+	at string
+}
+
+// stampRecord writes who did a thing and when, for a record whose truth is
+// decided by a state the same mutation carries.
+//
+// The rule is FR-25.19's, and it is written once because three records now
+// obey it: the person is the pusher and never a client value (invariant 3),
+// while the time may be the client's tap, because packing, shopping and
+// ticking a task off all happen away from a network and the push lands later.
+//
+// `known` says whether this mutation speaks about the record's state at all.
+// One that does not carries no record — not even a null, which would erase
+// what another device already recorded (NFR-4.2a's field-level merge has no
+// way to tell an erasure from an absence once it is written).
+func stampRecord(
+	m *syncpkg.Mutation,
+	userID string,
+	now func() time.Time,
+	cols recordColumns,
+	known, done bool,
+) {
+	delete(m.Fields, cols.by)
+	tapped, _ := m.Fields[cols.at].(string)
+	delete(m.Fields, cols.at)
 	switch {
 	case !known:
-	case bought:
-		m.Set(columnBoughtBy, userID)
-		m.Set(columnBoughtAt, tapTime(tapped, now))
+	case done:
+		m.Set(cols.by, userID)
+		m.Set(cols.at, tapTime(tapped, now))
 	default:
-		m.Set(columnBoughtBy, nil)
-		m.Set(columnBoughtAt, nil)
+		m.Set(cols.by, nil)
+		m.Set(cols.at, nil)
 	}
+}
+
+// stampPurchase writes who bought a thing and when (FR-30.4) — stampRecord
+// under the purchase's own column names, kept as its own function because
+// two tables reach it and each reads a different flag to decide `bought`.
+func stampPurchase(m *syncpkg.Mutation, userID string, now func() time.Time, known, bought bool) {
+	stampRecord(m, userID, now, recordColumns{by: columnBoughtBy, at: columnBoughtAt}, known, bought)
 }
 
 // truthy reads a 0/1 column as JSON delivers it: a number, or a boolean

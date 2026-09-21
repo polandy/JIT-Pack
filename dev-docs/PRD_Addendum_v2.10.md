@@ -5044,7 +5044,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       taken are gone from the record.
     * **Untouched:** an already-decided row (packed, or *skipped* — the **state** is the decision, and FR-5.5 makes
       `state='skipped'` beside an amount above zero a legal row), every row in a buy mode (the shopping list's business,
-      FR-30.2), FR-7.3/7.4's todos, and the lifecycle — closing the packing neither starts nor archives the trip.
+      FR-30.2), and the lifecycle — closing the packing neither starts nor archives the trip. ~~FR-7.3/7.4's todos~~
+      **amended 2026-09-21 (FR-7.7): the todos are no longer untouched.** *„Todos are not packing"* was the reason
+      they were left alone, and it still holds for the *rows* this step writes — but finishing the packing is the
+      moment „before the trip" ends, so every task still open and still due before it crosses to *during* in the same
+      batch, under the same undo, and the question above names how many will move. See FR-7.7 for the rule, and for
+      why a decision may move a task where a date may not.
   * **One question, one undo** (variant **A** of the round). A single confirmation — **a sheet, not a system dialogue**
     (revised 2026-09-20 on seeing it rendered: an `ion-alert` was the cheap way to ask and looked it, on the one moment
     in a trip where the app should look like itself) — states the count and then the three things a count hides, each on
@@ -5312,6 +5317,102 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Surfaces:** M4 (the section, the figure, the header line), M1 (the *Aufgaben* card, the trip cards' line), M5
     (unchanged — it stays where a preparation is declared). UI-Spec M1/M4; E2E-M4-136, E2E-M4-137, E2E-M1-02,
     E2E-M1-07, E2E-M1-10.
+
+* **FR-7.7 (When a task is due, and a screen of its own — new 2026-09-20, owner request, decided from an interactive
+  mockup; *built 2026-09-21*):** a trip has two kinds of moment and the app knew only one of them. *„Eine Salbe in der
+  Apotheke holen"* is a task for before the holiday; when it did not happen before departure it does not stop being a
+  task — **it changes phase**. And a task can be written for the road from the start: *„am Bahnhof die Zugverbindung
+  nach X abklären"*. Beside that, the owner asked for three things the task list never said: **a task can be assigned
+  to somebody like a pack item**, and **when it was written and when it was done must be visible, with who did each**.
+  The shape is **one list in the data, two windows on it**, and the tradeoff is ADR-071.
+  * **The phase is stored, not derived.** `comments.phase` is `'before' | 'during'`, nullable and free of a CHECK
+    (ADR-022, like every column of this table). Nothing else in the row separates *not done yet* from *always meant
+    for later* — both are open tasks — so a reading could never have told them apart. **NULL reads as *before***
+    (`taskPhaseOf`): that is what a task meant in every row written until now, and writing the column onto those rows
+    would have claimed a statement nobody made.
+  * **M25 *Aufgaben* is the third trip view** (owner: *„maske analog packliste neben packliste, einkaufsliste"*), with
+    a pill beside *Packliste* and *Einkauf*. It holds **every** task of the trip in two sections, *Vor der Reise* and
+    *Während der Reise* — variant **A** of the round, over a segment like M6's: the shopping list's two tabs are two
+    places you stand and you are only ever in one of them, while the two phases of a trip are one thing read top to
+    bottom. Each section has its own composer, and what is typed there is written in that section's phase.
+  * **M4 keeps a window, and only a window** (variant **A** of the round): the tasks that **hang off a packing row and
+    are still due before the trip** — the ones you do as part of packing — under *„Beim Packen zu erledigen"*. It has
+    **no composer**: everything it shows hangs off a row, so a trip task typed there would be written into a list that
+    cannot show it; a line leads to M25, where it is written. M4's task figure and section head count the window, not
+    the trip's whole list — a head reporting on a screen the reader is not looking at is a head that disagrees with
+    what is under it.
+  * **Nothing is filed twice.** The window is a *reading* of the one list, which is what makes the phase mean
+    something: moving the salve to *during* takes it off the packing list, and moving it back puts it there. A second
+    list would have made the same act a copy.
+  * **The crossing happens when the packing is declared finished** (owner, 2026-09-21): *„wenn die Packliste
+    geschlossen wurde, wird der User darauf aufmerksam, dass die Vorbereitungstasks nun zu den normalen Tasks
+    wandern."* Closing the packing (FR-5.10) writes `phase='during'` on **every task still open and still due before
+    the trip**, both kinds, and the question that is asked first says how many will move. It is a **write**, not a
+    window rule: the phase is stored precisely so that it can be the user's own statement, and a reading taken off
+    `packing_closed_at` would contradict a field they can set by hand — a later *Wieder öffnen* would silently reclaim
+    tasks somebody has been working on since.
+    * **Why an automatic move is right here and was refused elsewhere.** The concept round refused to let a *date*
+      move a task: a departure day passing is a clock, and a clock does not know whether you still mean to do the
+      thing. Closing the packing is a person saying they are done. **A decision may move the tasks; a date may not.**
+    * **One undo for the whole act** (FR-25.31). The rows travel as the snapshot the snackbar holds and the moved
+      tasks ride in the same restore — a second undo would replace the first, because the record holds one action at a
+      time by design, and the rows would quietly lose their way back. The undo writes back **the phase each task
+      actually had**, which for a task written before FR-7.7 is none at all.
+    * **Undo is not *Wieder öffnen*.** FR-5.10's rule stands unchanged and now covers the tasks too: *reopening lifts
+      the stamp and nothing else — the rows it decided stay decided*, and so do the tasks it moved. An undo takes back
+      the tap just made; reopening is a new decision.
+    * **A resolved task never crosses.** Its phase says when it *was* done, and rewriting that would invent a second
+      history.
+  * **The crossing by hand** is the task's own sheet, opened by tapping its words on either screen: *„Auf Während der
+    Reise schieben"* / *„Zurück auf Vor der Reise"*, with its own undo.
+  * **Assignment reaches both kinds**, reversing half of FR-7.5. That rule left a preparation unassignable because its
+    row already names a person; the owner's request is that a task is handed over like a pack item, and a preparation
+    is a task. The two are different questions — a battery can be Sia's to charge on a camera Andy is packing — and
+    they are different columns (`comments.assignee_user_id` beside `trip_items.packer_user_id`). The seat, the picker
+    and the FR-6.2 delegation notification are the ones FR-7.5 already built. **The ✕ still belongs to the row**: a
+    preparation is removed in M5, which is the one place that shows what else that row still owes.
+  * **Provenance, and who owns which half.** Four facts, and the split follows invariant 3 exactly:
+
+| Fact | Column | Written by | Note |
+|---|---|---|---|
+| when it was written | `comments.created_at` | server (default on insert) | existed since FR-7.1; nothing showed it |
+| who wrote it | `comments.author_id` | server (`stampActor`, on insert only) | existed since FR-7.1; nothing showed it |
+| when it was done | `comments.resolved_at` | **client may name the tap** | FR-25.17's precedent — a task is ticked off offline |
+| who did it | `comments.resolved_by_user_id` | **server only** (`stampActor`) | a record you can pick is not a record |
+
+  * Both are cleared when a task is unticked, with the state they described — a record must not outlive what it
+    describes. The stamping rule is `stampRecord` in `internal/api/server.go`, which FR-30.4's purchase and this now
+    share: three records in the schema obey one rule, and it is written once.
+  * **The line says one of them, the sheet says all of them** (variant **B** of the round). Under a task's words
+    stands **one** line whose role changes with the task: *erstellt von … · heute 14:32* while it is open, *erledigt
+    von … · gestern 09:15* once it is done. An open task is a promise, so it names who made it; a finished one is a
+    record, so it names who kept it. Two lines would have doubled the height of every row to say, on the open ones,
+    nothing that is not true of all of them. The task sheet carries both pairs, the row a preparation belongs to, the
+    phase, and the move.
+  * **G-8 in both halves.** Where nobody can be named — Local Mode, and Single-User Mode, which has no second account
+    — the line **keeps the moment and drops the person**: *erstellt · heute 14:32*. A line that said less is right; a
+    line that invented „von jemandem" would not be. The *Meine* chip is absent for the same reason: with nobody to
+    hand a task to, every task is everybody's and the filter is for a distinction that does not exist.
+  * **Templates carry the phase.** `template_tasks.phase` (same shape, same NULL reading) lets a Vorlage author a task
+    for the road, and M8's task list shows each one's phase as a chip that flips it. Instantiation carries the phase
+    into the generated task; where two sources say the same text, the first one supplies the phase, as it supplies
+    every other attribute (FR-27.2). A template's *item* tasks (FR-27.7) are preparations and start *before*.
+  * **The portable format does not carry the phase.** `trip_tasks` is a list of words and stays one (NFR-4.11); an
+    imported template task therefore arrives as a task for before the trip — which is what a task meant in every file
+    written so far — and can be moved afterwards. Reading a phase out of a document that never stated one would be a
+    claim, not an import.
+  * **The pill row is re-measured, not assumed.** ADR-051 amendment 1 cut the row to two pills on the morning of
+    2026-09-20 because four filled a 390 px line to within six pixels. The third pill is right by that amendment's own
+    rule — the row keeps the views a trip is *worked* in, and the tasks are returned to across a trip rather than read
+    once — but the measurement it was based on is re-opened, so the row is checked at 360 px (UI-Test-Spec M25).
+  * **Modes.** All three. The phase, the sections and the move are pure client-side rules (invariant 4) and work with
+    no backend; what Local and Single-User Mode lose is the *who* of each stamp and the assignment, per G-8 above.
+  * **Schema cost.** Four nullable columns on two tables, no CHECK, no NOT NULL, no change to an existing column — so
+    the ADR-067 migration chain can express all of them as `ALTER TABLE ADD COLUMN`. Until that chain lands this is
+    still a reseed of every development database (invariant 2), and the live instance is carried across by hand.
+  * **Surfaces:** M25 (new) and its task sheet, M4 (the window, the section head, the close question), M8 (the phase
+    chip), M1 (unchanged — it counts every task, as FR-7.6 left it), M5 (unchanged — still where a preparation is
+    declared). UI-Spec M25/M4/M8; E2E-M25-01…04, E2E-M4-141.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

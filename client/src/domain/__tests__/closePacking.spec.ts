@@ -13,8 +13,13 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { packingIsFinished, planPackingClose } from '../closePacking'
-import type { TripItem } from '@/types/domain'
+import {
+  packingIsFinished,
+  planPackingClose,
+  tasksCrossing,
+  type ClosingTask,
+} from '../closePacking'
+import type { TaskPhase, TripItem } from '@/types/domain'
 
 let seq = 0
 
@@ -196,5 +201,72 @@ describe('packingIsFinished', () => {
         item({ quantity: 0, packed_count: 0, state: 'skipped' }),
       ]),
     ).toBe(false)
+  })
+})
+
+/**
+ * FR-7.7's crossing: finishing the packing is the moment „before the trip"
+ * ends, so what was still owed before it is now owed during it.
+ *
+ * The salve is the whole story — a row's preparation that was never done, on
+ * a list somebody has just declared finished. What it must *not* touch is as
+ * much the point: a task already meant for the road, and a task somebody
+ * finished, whose phase is a record of when it was done.
+ */
+describe('tasksCrossing (FR-7.7): what stops being a task for before the trip', () => {
+  const task = (
+    id: string,
+    over: { phase?: TaskPhase | null; state?: 'open' | 'resolved'; row?: string } = {},
+  ) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'u-andy',
+      body: id,
+      task_state: over.state ?? 'open',
+      phase: over.phase === undefined ? 'before' : over.phase,
+      created_at: null,
+      assignee_user_id: null,
+      resolved_at: null,
+      resolved_by_user_id: null,
+      ...(over.row ? { trip_item_id: over.row } : {}),
+    }) as ClosingTask
+
+  it('takes every open task that was still meant for before the trip, of either kind', () => {
+    const crossing = tasksCrossing([task('Salbe holen', { row: 'ti-1' }), task('Pflanzen giessen')])
+
+    expect(crossing.map((t) => t.id)).toEqual(['Salbe holen', 'Pflanzen giessen'])
+  })
+
+  it('leaves a task that was already for the road where it is', () => {
+    expect(tasksCrossing([task('Zugverbindung abklären', { phase: 'during' })])).toEqual([])
+  })
+
+  /*
+   * A resolved task's phase says when it *was* done. Moving it would invent a
+   * second history for something that already happened.
+   */
+  it('leaves a finished task alone, whichever phase it was finished in', () => {
+    expect(tasksCrossing([task('Akkus laden', { state: 'resolved', row: 'ti-1' })])).toEqual([])
+  })
+
+  /*
+   * A task written before FR-7.7 carries no phase at all, and reads as one
+   * for before the trip (`taskPhaseOf`) — so it crosses like the rest rather
+   * than being stranded by a null.
+   */
+  it('takes a task that never named a phase', () => {
+    expect(tasksCrossing([task('Salbe holen', { phase: null })]).map((t) => t.id)).toEqual([
+      'Salbe holen',
+    ])
+  })
+
+  it('is part of the plan, so the question and the write read one rule', () => {
+    const plan = planPackingClose([item({ name: 'Regenjacke' })], {
+      tasks: [task('Salbe holen'), task('Zugverbindung abklären', { phase: 'during' })],
+    })
+
+    expect(plan.tasks.map((t) => t.id)).toEqual(['Salbe holen'])
+    expect(plan.rows.map((row) => row.name)).toEqual(['Regenjacke'])
   })
 })

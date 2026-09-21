@@ -99,12 +99,12 @@ beforeEach(() => {
 })
 
 describe('TripViewNav', () => {
-  it('offers the two views a trip is worked in, in the order it is worked through', () => {
+  it('offers the three views a trip is worked in, in the order it is worked through', () => {
     seed()
     const labels = mountNav()
       .findAll('button')
       .map((b) => b.text())
-    expect(labels).toEqual(['Packing list', 'Shopping (1)'])
+    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks'])
   })
 
   /*
@@ -112,12 +112,12 @@ describe('TripViewNav', () => {
    * row still has to say where you are — so the view being looked at stands
    * in it while you are there, and leaves again when you go.
    */
-  it('makes room for the view being looked at when it is neither of the two', () => {
+  it('makes room for the view being looked at when it is none of the three', () => {
     seed()
     const labels = mountNav('luggage')
       .findAll('button')
       .map((b) => b.text())
-    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Luggage'])
+    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks', 'Luggage'])
     expect(mountNav('luggage').find('[data-testid="trip-view-analytics"]').exists()).toBe(false)
   })
 

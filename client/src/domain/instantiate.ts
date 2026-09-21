@@ -20,8 +20,9 @@ import type {
   TemplateItem,
   TemplateTask,
   TemplateItemTask,
+  TaskPhase,
 } from '@/types/domain'
-import { ITEM_MODE_PACK } from '@/types/domain'
+import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
 
 export interface GenerationTraveler {
   name: string
@@ -296,9 +297,17 @@ export interface GenerationResult {
   unassignable: UnassignableItem[]
   /**
    * FR-7.4: the trip todos the trip starts with — every source's trip tasks
-   * in source order, the same text once however many groups say it.
+   * in source order, the same text once however many groups say it. Each
+   * carries the phase its template gave it (FR-7.7), so a Vorlage can author
+   * „am Bahnhof die Zugverbindung abklären" for the trip itself.
    */
-  tripTasks: string[]
+  tripTasks: DraftTripTask[]
+}
+
+/** FR-7.7: one trip task a draft starts with — its words and when it is due. */
+export interface DraftTripTask {
+  body: string
+  phase: TaskPhase
 }
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
@@ -527,15 +536,19 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
 export function tripTasksOf(
   sources: readonly Template[],
   templateTasks: readonly TemplateTask[],
-): string[] {
+): DraftTripTask[] {
   const seen = new Set<string>()
-  const tasks: string[] = []
+  const tasks: DraftTripTask[] = []
   for (const source of sources) {
     for (const t of templateTasks) {
       const text = t.task.trim()
       if (t.template_id !== source.id || text === '' || seen.has(text)) continue
       seen.add(text)
-      tasks.push(text)
+      // The first source to say it also supplies its phase — the rule the
+      // whole instantiation follows for an attribute two contributors both
+      // carry (FR-27.2). A template that names none means *before*, which is
+      // what every task written before FR-7.7 also reads as.
+      tasks.push({ body: text, phase: t.phase ?? TASK_PHASE_BEFORE })
     }
   }
   return tasks

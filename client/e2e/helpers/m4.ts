@@ -15,6 +15,7 @@ import {
   openQuickAdd,
   tripAction,
 } from './trips'
+import { openTripView } from './trips'
 import { visiblePage, writesLanded } from './page'
 import { chooseInSelect, fillIonic } from './ionic'
 
@@ -280,15 +281,56 @@ export async function openTripTodos(page: Page): Promise<Locator> {
 }
 
 /**
- * FR-7.4: add a trip todo through M4's *Aufgaben für die Reise* section,
- * unfolding it first when it is closed. Ends with the todo listed and the
- * write landed, so a caller may navigate or reload straight after.
+ * FR-7.7: M25, the trip's tasks, reached the way a reader reaches it — the
+ * third pill of the view switcher. Returns the section of the phase asked
+ * for, so a caller writes into the list it means.
  */
-export async function addTripTodo(page: Page, body: string): Promise<void> {
-  const section = await openTripTodos(page)
+export async function openTasks(page: Page, phase: 'before' | 'during'): Promise<Locator> {
+  // The pill is frame chrome rather than page content, and it is reached the
+  // way every other view is — `openTripView` owns the scroll and the settle.
+  await openTripView(page, 'tasks')
+  await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
+  const section = visiblePage(page).getByTestId(`m25-${phase}`)
+  await expect(section).toBeVisible()
+  return section
+}
+
+/**
+ * FR-7.4 with FR-7.7: add a task of the trip itself. It is written on **M25**
+ * since M4 lost its composer (everything M4's window shows hangs off a row),
+ * so the helper goes there, writes, and comes back to where it was — the
+ * callers that follow it are asserting about the packing list.
+ *
+ * Ends with the write landed, so a caller may reload straight after.
+ */
+export async function addTripTodo(
+  page: Page,
+  body: string,
+  phase: 'before' | 'during' = 'before',
+): Promise<void> {
+  const cameFrom = page.url()
+  const section = await openTasks(page, phase)
   const field = section.getByTestId('trip-todo-input')
   await fillIonic(field, body)
   await field.locator('input').press('Enter')
   await expect(section.getByTestId(`trip-todo-${body}`)).toBeVisible()
+  await writesLanded(page)
+  if (page.url() !== cameFrom) {
+    await page.goto(cameFrom)
+    await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
+  }
+}
+
+/**
+ * FR-7.3: a preparation, declared where it lives — on the row's own sheet.
+ * M4's task window is made of these, so most of the section's cases need one.
+ */
+export async function addPrepTodo(page: Page, rowName: string, body: string): Promise<void> {
+  await visiblePage(page).getByTestId(`m4-row-${rowName}`).click()
+  await page.getByTestId('m5-todo-input').locator('input').fill(body)
+  await page.getByTestId('m5-todo-add').click()
+  await expect(page.getByTestId(`m5-todo-${body}`)).toBeVisible()
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   await writesLanded(page)
 }

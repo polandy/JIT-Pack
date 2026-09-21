@@ -132,6 +132,13 @@ function todo(
     author_id: 'user-a',
     body,
     task_state: 'open',
+    // FR-7.7's facts: none of them is what this file is about, so they carry
+    // the value a task written without a word about them has.
+    phase: null,
+    created_at: null,
+    assignee_user_id: null,
+    resolved_at: null,
+    resolved_by_user_id: null,
     ...extra,
   }
 }

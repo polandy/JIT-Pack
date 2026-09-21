@@ -4,10 +4,15 @@
  * and whose job the trip's own is (FR-7.5).
  *
  * What is worth pinning: a preparation names the row it belongs to and leads
- * to it, and carries neither seat nor ✕ — it is removed where it lives; the
- * trip's own carries both. For FR-7.5: the seat exists only where somebody
- * can be picked (G-8), a todo already assigned still names its person where
- * nothing can be changed, and a finished todo names but offers nothing.
+ * to it, and carries no ✕ — it is removed where it lives; the trip's own
+ * carries one. For FR-7.5: the seat exists only where somebody can be picked
+ * (G-8), a todo already assigned still names its person where nothing can be
+ * changed, and a finished todo names but offers nothing.
+ *
+ * **Since FR-7.7 the seat is on both kinds** (the owner's request of
+ * 2026-09-20: a task is handed over like a pack item), each line carries the
+ * one stamp of Q3 B, and the composer belongs to the screen rather than the
+ * list — M4's window has none, because everything it shows hangs off a row.
  */
 import { RouterLinkStub, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -24,8 +29,17 @@ function ownTask(
   state: 'open' | 'resolved',
   assignee: string | null = null,
 ): TripTask {
-  return { id: body, body, task_state: state, item: null, assignee_user_id: assignee }
+  return { id: body, body, task_state: state, item: null, assignee_user_id: assignee, ...FACTS }
 }
+
+/** FR-7.7's facts, absent unless a case is about them. */
+const FACTS = {
+  phase: 'before',
+  author_id: 'u-andy',
+  created_at: null,
+  resolved_at: null,
+  resolved_by_user_id: null,
+} as const
 
 /** A row's preparation (FR-7.3), as FR-7.6 lists it. */
 function preparation(
@@ -39,14 +53,21 @@ function preparation(
     task_state: state,
     item: { id: `row-${itemName}`, name: itemName, icon: '📷' },
     assignee_user_id: null,
+    ...FACTS,
   }
 }
 
 const names: Record<string, string> = { 'u-sia': 'Sia' }
 
-function mountList(tasks: TripTask[], assignable = true) {
+function mountList(tasks: TripTask[], assignable = true, extra: Record<string, unknown> = {}) {
   return mount(TripTodoList, {
-    props: { tripId: 't1', tasks, assignable, nameOf: (id: string) => names[id] ?? null },
+    props: {
+      tripId: 't1',
+      tasks,
+      assignable,
+      nameOf: (id: string | null) => (id ? (names[id] ?? null) : null),
+      ...extra,
+    },
     global: {
       provide: { [ORCHESTRATOR]: {} },
       stubs: { RouterLink: RouterLinkStub },
@@ -68,10 +89,16 @@ describe('TripTodoList — one list, two kinds of task (FR-7.6)', () => {
     expect(chip.getComponent(RouterLinkStub).props('to')).toBe('/trips/t1?item=row-Kamera')
   })
 
-  it('gives a preparation neither a seat nor a ✕ — it is removed where it lives', () => {
+  /*
+   * FR-7.7 reverses half of FR-7.5's rule: a preparation is somebody's job
+   * too, so it gains the seat. The ✕ stays away — a preparation is removed on
+   * the row it prepares, which is the one place that shows what else that row
+   * still owes.
+   */
+  it('gives a preparation a seat but no ✕ — it is removed where it lives', () => {
     const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
 
-    expect(wrapper.find('[data-testid="trip-todo-assign-Akkus laden"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-todo-assign-Akkus laden"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="trip-todo-remove-Akkus laden"]').exists()).toBe(false)
   })
 
@@ -236,5 +263,95 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
     expect((wrapper.emitted('toggle') ?? []).map(([task]) => (task as TripTask).id)).toEqual([
       'Pflanzen giessen',
     ])
+  })
+})
+
+/**
+ * FR-7.7 on the line: the one stamp Q3 B asks for, and the way into the
+ * task's own sheet.
+ */
+describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  const written = { ...FACTS, author_id: 'u-sia', created_at: '2026-09-20T14:32:00Z' }
+
+  /*
+   * An open task is a promise, so its line says who made it; a resolved one
+   * is a record, so it says who kept it. One line either way — two would
+   * double the height of every row in the list to say, on the open ones,
+   * nothing that is not true of all of them.
+   */
+  it('names who wrote an open task, and who finished a resolved one', async () => {
+    const wrapper = mountList([
+      { ...ownTask('Pflanzen giessen', 'open'), ...written },
+      {
+        ...ownTask('Kühlschrank leeren', 'resolved'),
+        ...written,
+        resolved_at: '2026-09-20T18:05:00Z',
+        resolved_by_user_id: 'u-sia',
+      },
+    ])
+
+    expect(wrapper.get('[data-testid="trip-todo-stamp-Pflanzen giessen"]').text()).toContain(
+      'written by Sia',
+    )
+    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
+    expect(wrapper.get('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').text()).toContain(
+      'done by Sia',
+    )
+  })
+
+  /*
+   * G-8: Local Mode has nobody to name, and the line then states the moment
+   * alone rather than inventing a person or falling silent about both.
+   */
+  it('keeps the moment where nobody can be named', () => {
+    const wrapper = mountList(
+      [{ ...ownTask('Pflanzen giessen', 'open'), ...written, author_id: 'u-nobody' }],
+      false,
+    )
+
+    const stamp = wrapper.get('[data-testid="trip-todo-stamp-Pflanzen giessen"]').text()
+    expect(stamp).toContain('written')
+    expect(stamp).not.toContain('by')
+  })
+
+  it('says nothing where the task carries no facts at all', () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
+
+    expect(wrapper.find('[data-testid="trip-todo-stamp-Pflanzen giessen"]').exists()).toBe(false)
+  })
+
+  it('reports the words being tapped, so the screen can open the sheet', async () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
+
+    await wrapper.get('[data-testid="trip-todo-open-Pflanzen giessen"]').trigger('click')
+
+    const opened = wrapper.emitted('open') ?? []
+    expect(opened.map(([task]) => (task as TripTask).id)).toEqual(['Pflanzen giessen'])
+  })
+
+  /*
+   * M4's window shows only what hangs off a packing row, so a trip task typed
+   * there would be written into a list that cannot show it. The composer is
+   * therefore the screen's to offer, not the list's to have.
+   */
+  it('offers no composer until a screen names the phase one would write', () => {
+    expect(mountList([]).find('[data-testid="trip-todo-input"]').exists()).toBe(false)
+    expect(
+      mountList([], true, { composerPhase: 'during' })
+        .find('[data-testid="trip-todo-input"]')
+        .exists(),
+    ).toBe(true)
+  })
+
+  it('says what an empty list means, where the screen gave it words', () => {
+    const wrapper = mountList([], true, { emptyText: 'Nothing left to do before the trip.' })
+
+    expect(wrapper.get('[data-testid="trip-todo-empty"]').text()).toBe(
+      'Nothing left to do before the trip.',
+    )
   })
 })

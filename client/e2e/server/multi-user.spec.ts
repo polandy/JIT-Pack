@@ -16,7 +16,7 @@ import {
   lightTraveler,
   openCluster,
   openRowMenu,
-  openTripTodos,
+  openTasks,
 } from '../helpers/m4'
 import { fillIonic } from '../helpers/ionic'
 import { writesLanded } from '../helpers/page'
@@ -795,14 +795,19 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-M4-133 (FR-7.5): a trip todo is handed over from its own seat, the
-   * way a row is (E2E-M4-90) — and the assignee is told, sees it on the task,
-   * and finds it named on M1.
+   * E2E-M25-05 (FR-7.5/FR-7.7, was E2E-M4-133): a task is handed over from
+   * its own seat, the way a row is (E2E-M4-90) — and the assignee is told,
+   * sees it on the task, and finds it named on M1.
+   *
+   * It moved to M25 with FR-7.7: the trip's own tasks are written and worked
+   * there now, and M4 keeps only the preparations still due before the trip.
+   * The promise is unchanged, which is why the id moved rather than the case
+   * being rewritten.
    *
    * Two accounts are the whole point: the seat is absent where nobody else
-   * can be picked (E2E-M4-134), and „I was told" needs a second person.
+   * can be picked (E2E-M25-03), and „I was told" needs a second person.
    */
-  test('E2E-M4-133: a trip todo is handed to the other account from its seat, and they are told', async ({
+  test('E2E-M25-05: a task is handed to the other account from its seat, and they are told', async ({
     browser,
   }) => {
     const id = uniq()
@@ -821,13 +826,14 @@ test.describe('Two accounts on one instance @server', () => {
 
     const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
-    const bobsTodo = visiblePage(bob).getByTestId(`trip-todo-${task}`)
-    await expect(bobsTodo).toBeVisible()
     await subscribedBob
+    const bobsSection = await openTasks(bob, 'before')
+    const bobsTodo = bobsSection.getByTestId(`trip-todo-${task}`)
+    await expect(bobsTodo).toBeVisible()
 
-    // An unassigned todo carries the empty seat, as an unassigned row does.
+    // An unassigned task carries the empty seat, as an unassigned row does.
     await alice.goto(tripPath)
-    const section = await openTripTodos(alice)
+    const section = await openTasks(alice, 'before')
     const seat = section.getByTestId(`trip-todo-assign-${task}`)
     await expect(seat).toBeVisible()
     await expect(seat.getByTestId('user-avatar')).toHaveCount(0)

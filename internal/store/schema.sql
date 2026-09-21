@@ -209,6 +209,10 @@ CREATE TABLE template_tasks (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     task        TEXT NOT NULL,
+    -- FR-7.7: the phase the instantiated task starts in, so a template can
+    -- author „am Bahnhof die Zugverbindung abklären" up front. Same NULL
+    -- reading as comments.phase.
+    phase       TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -371,6 +375,20 @@ CREATE TABLE comments (
     -- and free of a CHECK for field-level LWW's sake: a constraint that can
     -- refuse a single-field mutation loses the user's choice.
     assignee_user_id TEXT REFERENCES users(id),
+    -- FR-7.7: when the task is meant to be done — 'before' the trip or
+    -- 'during' it. Stored rather than derived: nothing else in the row tells
+    -- „not done yet" from „always meant for later", which is the whole
+    -- distinction the phase carries. NULL reads as 'before' (the phase a task
+    -- has until somebody says otherwise) and, like every other column here,
+    -- it carries no CHECK for field-level LWW's sake.
+    phase        TEXT,
+    -- FR-7.7: the resolution record, the FR-25.17 packing record's shape
+    -- applied to a task. The *when* may be named by the client, because a
+    -- task is ticked off away from a network; the *who* is stamped by the
+    -- server alone (invariant 3). Both are cleared when the task is
+    -- reopened — a record must not outlive what it describes.
+    resolved_at  TEXT,
+    resolved_by_user_id TEXT REFERENCES users(id),
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',

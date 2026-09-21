@@ -51,7 +51,8 @@ const orchestratorFake = {
   holdsClaim: vi.fn(() => false),
   isLockedByOther: vi.fn(() => false),
   lockHolder: vi.fn(() => null),
-  closePacking: vi.fn(() => [] as unknown[]),
+  // FR-7.7: the action reports the rows it decided *and* the tasks it moved.
+  closePacking: vi.fn(() => ({ rows: [], tasks: [] }) as { rows: unknown[]; tasks: unknown[] }),
   reopenPacking: vi.fn(),
   restorePackingClose: vi.fn(),
   addDecidedItem: vi.fn(() => ({ id: 'new-1', companions: [] })),
@@ -83,6 +84,25 @@ function seedTrip(trip: Record<string, unknown> = {}, rows: Record<string, unkno
   }
   tripScreen.loadedTrips.add('t1')
   return trips
+}
+
+/** FR-7.7: one task of the trip itself, open and due before it. */
+function seedTask(task: Record<string, unknown>) {
+  useTripStore().applyChange({
+    seq: 0,
+    table: TABLE.comments,
+    id: String(task['id']),
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      trip_item_id: null,
+      author_id: 'u-andy',
+      is_task: 1,
+      task_state: 'open',
+      phase: 'before',
+      ...task,
+    },
+  })
 }
 
 function mountPage() {
@@ -192,9 +212,14 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
 
   it('writes the close once it is confirmed, and arms one undo for the batch', async () => {
     seedTrip({}, [{ name: 'Regenjacke' }])
-    orchestratorFake.closePacking.mockReturnValue([
-      { id: 'ti1', name: 'Regenjacke', quantity: 1, packed_count: 0, state: 'open' },
-    ])
+    // FR-7.7: the action now reports two things it touched. One undo covers
+    // both — the rows travel as the snapshot the snackbar holds, the moved
+    // tasks in the closure beside it.
+    const moved = [{ task: { id: 'task-1', body: 'Salbe holen' }, phase: 'before' }]
+    orchestratorFake.closePacking.mockReturnValue({
+      rows: [{ id: 'ti1', name: 'Regenjacke', quantity: 1, packed_count: 0, state: 'open' }],
+      tasks: moved,
+    })
 
     const page = mountPage()
     await flushPromises()
@@ -212,9 +237,32 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     // `<script setup>` exposes its bindings on the instance, and the undo is
     // not rendered anywhere a spec could tap it.
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(orchestratorFake.restorePackingClose).toHaveBeenCalledWith('t1', [
-      expect.objectContaining({ itemId: 'ti1', quantity: 1, state: 'open' }),
-    ])
+    expect(orchestratorFake.restorePackingClose).toHaveBeenCalledWith(
+      't1',
+      [expect.objectContaining({ itemId: 'ti1', quantity: 1, state: 'open' })],
+      moved,
+    )
+  })
+
+  /*
+   * FR-7.7: the question names what the close will do to the tasks, and the
+   * number comes from the plan the write reads — not from a second count
+   * beside it, which could say four while three move.
+   */
+  it('tells the reader that the open tasks move with the close', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+    seedTask({ id: 'task-1', body: 'Salbe holen' })
+
+    const page = mountPage()
+    await flushPromises()
+    await headerActions()
+      .find((action) => action.id === 'm4-close-packing')
+      ?.onClick?.()
+    await flushPromises()
+
+    const sheet = page.findComponent(ClosePackingSheet)
+    expect(sheet.props('plan').tasks.map((task: { id: string }) => task.id)).toEqual(['task-1'])
+    expect(sheet.find('[data-testid="m4-close-sheet-tasks"]').text()).toContain('1 open task')
   })
 })
 

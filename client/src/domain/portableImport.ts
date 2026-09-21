@@ -23,7 +23,7 @@ import type {
   TemplateKind,
   Trip,
 } from '@/types/domain'
-import { ITEM_MODE_PACK } from '@/types/domain'
+import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
 import type { createMutations } from '@/sync/mutations'
 
 /**
@@ -155,10 +155,20 @@ function importPositions(
   }
 }
 
-/** importTripTasks writes a template's FR-7.4 trip tasks from a portable document. */
+/**
+ * importTripTasks writes a template's FR-7.4 trip tasks from a portable
+ * document.
+ *
+ * FR-7.7's phase is deliberately *not* read from the file: the portable
+ * format carries a task as its words and nothing else, and inventing a phase
+ * from a document that never stated one would be a claim rather than an
+ * import. Every imported task therefore arrives as a task for before the
+ * trip, which is what a task meant in every file written so far — and it can
+ * be moved afterwards like any other.
+ */
 function importTripTasks(env: PortableImportEnv, templateId: string, tasks: string[]): void {
   for (const task of tasks) {
-    const t = env.mutations.addTemplateTask(templateId, task)
+    const t = env.mutations.addTemplateTask(templateId, task, TASK_PHASE_BEFORE)
     env.emit('master', null, t.mutation)
   }
 }

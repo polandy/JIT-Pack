@@ -40,6 +40,7 @@ import type {
   ItemMode,
   ReviewFlag,
   ShoppingMode,
+  TaskPhase,
   MasterItem,
   Template,
   TemplateItem,
@@ -628,6 +629,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     tripItemId: string | null,
     authorId: string,
     body: string,
+    phase: TaskPhase,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.comments, id, {
@@ -637,16 +639,51 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       body,
       is_task: 1,
       task_state: 'open',
+      // FR-7.7: every task is written with a phase — the composer it was
+      // typed into knows which, and a task that arrived without one would
+      // have to be guessed at by every reader instead of once, here.
+      phase,
+      // FR-7.7: the moment it was written, named by the client for the same
+      // reason `packed_at` is (FR-25.17) — and for one more: the column's
+      // DEFAULT is the database's, and **Local Mode has no database server**,
+      // so a task written offline would carry no creation time at all and its
+      // line would say nothing. A clock is not an identity claim; the author
+      // beside it stays the server's (invariant 3).
+      created_at: nowIso(),
     })
     return { mutation, id }
   }
 
+  /**
+   * FR-7.7: ticking a task off writes the moment of the tap beside the state,
+   * the way `packItem` writes `packed_at` — a task is ticked off away from a
+   * network and the push can land days later. The *who* is the server's
+   * (invariant 3), which is why nothing here names one: in Local Mode there
+   * is nobody to name, and the line then says when without saying who (G-8).
+   */
   function resolveTodo(todoId: string): Mutation {
-    return make('upsert', TABLE.comments, todoId, { task_state: 'resolved' })
+    return make('upsert', TABLE.comments, todoId, {
+      task_state: 'resolved',
+      resolved_at: nowIso(),
+    })
   }
 
+  /** Unticking clears the record with the state it described. */
   function reopenTodo(todoId: string): Mutation {
-    return make('upsert', TABLE.comments, todoId, { task_state: 'open' })
+    return make('upsert', TABLE.comments, todoId, {
+      task_state: 'open',
+      resolved_at: null,
+    })
+  }
+
+  /**
+   * FR-7.7: the crossing — the salve that was not fetched before departure is
+   * now a task for the trip itself. One field, because that is the only thing
+   * that changes about it: it is the same task, still open, still whosever it
+   * was, and it keeps the day it was written.
+   */
+  function setTaskPhase(todoId: string, phase: TaskPhase | null): Mutation {
+    return make('upsert', TABLE.comments, todoId, { phase })
   }
 
   function deleteTodo(todoId: string): Mutation {
@@ -654,9 +691,10 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   /**
-   * setTodoAssignee hands a trip todo to somebody, or back to everybody
-   * (FR-7.5) — `setPacker`'s counterpart, and like it the client's to choose;
-   * the server turns it into the FR-6.2 delegation notification.
+   * setTodoAssignee hands a task to somebody, or back to everybody (FR-7.5)
+   * — `setPacker`'s counterpart, and like it the client's to choose; the
+   * server turns it into the FR-6.2 delegation notification. Since FR-7.7 it
+   * reaches both kinds of task: a preparation can be somebody's job too.
    */
   function setTodoAssignee(todoId: string, userId: string | null): Mutation {
     return make('upsert', TABLE.comments, todoId, { assignee_user_id: userId })
@@ -1047,10 +1085,29 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   /** addTemplateTask attaches one FR-7.4 trip task to a template. */
-  function addTemplateTask(templateId: string, task: string): { mutation: Mutation; id: string } {
+  /**
+   * FR-7.4 with FR-7.7's phase: a Vorlage can author a task for the trip
+   * itself — „am Bahnhof die Zugverbindung abklären" is not something you do
+   * before leaving, and the trip it generates has to start with it in the
+   * right place.
+   */
+  function addTemplateTask(
+    templateId: string,
+    task: string,
+    phase: TaskPhase,
+  ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', TABLE.templateTasks, id, { template_id: templateId, task })
+    const mutation = make('insert', TABLE.templateTasks, id, {
+      template_id: templateId,
+      task,
+      phase,
+    })
     return { mutation, id }
+  }
+
+  /** FR-7.7: the same task, due at the other end of the trip. */
+  function setTemplateTaskPhase(taskId: string, phase: TaskPhase): Mutation {
+    return make('upsert', TABLE.templateTasks, taskId, { phase })
   }
 
   function deleteTemplateTask(taskId: string): Mutation {
@@ -1369,6 +1426,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     addTodo,
     resolveTodo,
     setTodoAssignee,
+    setTaskPhase,
     reopenTodo,
     deleteTodo,
     addComment,
@@ -1408,6 +1466,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     addTemplateItemTask,
     deleteTemplateItemTask,
     addTemplateTask,
+    setTemplateTaskPhase,
     deleteTemplateTask,
     deleteTemplate,
     addTemplateItem,

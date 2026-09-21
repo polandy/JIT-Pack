@@ -21,8 +21,22 @@
  * to happen, the action writes it, and the undo puts back exactly these rows.
  */
 import { stateFor } from './packState'
+import { taskPhaseOf } from './tripTodos'
 
-import { ITEM_MODE_PACK, STATE_SKIPPED, type TripItem } from '@/types/domain'
+import {
+  ITEM_MODE_PACK,
+  STATE_SKIPPED,
+  TASK_PHASE_BEFORE,
+  type ItemTodo,
+  type TripItem,
+  type TripTodo,
+} from '@/types/domain'
+
+/**
+ * A task as the close reads it — either kind (FR-7.3's preparation or
+ * FR-7.4's trip todo), because both cross.
+ */
+export type ClosingTask = ItemTodo | TripTodo
 
 /** What closing the packing would do, and what the reader is owed first. */
 export interface ClosePackingPlan {
@@ -36,6 +50,16 @@ export interface ClosePackingPlan {
   late: number
   /** Of those rows, how many somebody else is holding (G-3, advisory). */
   claimed: number
+  /**
+   * FR-7.7: the still-open tasks that move to *during the trip* with the
+   * close — the crossing.
+   *
+   * It lives in the plan rather than beside it for the reason the rest does:
+   * the sentence the user confirms and the write that follows must read one
+   * rule. A fourth line in the question counted somewhere else could say four
+   * while three move.
+   */
+  tasks: ClosingTask[]
 }
 
 /**
@@ -47,7 +71,11 @@ export interface ClosePackingPlan {
  */
 export function planPackingClose(
   items: readonly TripItem[],
-  opts: { isClaimed?: (item: TripItem) => boolean } = {},
+  opts: {
+    isClaimed?: (item: TripItem) => boolean
+    /** FR-7.7: every task of the trip, both kinds, for the crossing below. */
+    tasks?: readonly ClosingTask[]
+  } = {},
 ): ClosePackingPlan {
   const isClaimed = opts.isClaimed ?? (() => false)
   const skip: TripItem[] = []
@@ -72,7 +100,33 @@ export function planPackingClose(
     if (isClaimed(item)) claimed += 1
   }
 
-  return { skip, trim, rows, late, claimed }
+  return { skip, trim, rows, late, claimed, tasks: tasksCrossing(opts.tasks ?? []) }
+}
+
+/**
+ * FR-7.7's crossing: which tasks stop being *before the trip* when the
+ * packing is declared finished.
+ *
+ * Every task still open and still meant for before it — both kinds, because
+ * the salve that started as a row's preparation is the story this came from.
+ * A resolved task keeps its phase: it says when it *was* done, and rewriting
+ * that would be inventing a second history.
+ *
+ * Why this is a write and not a reading: the phase is stored precisely
+ * because nothing else separates „not done yet" from „always meant for
+ * later". Deriving the crossing from the stamp instead would contradict a
+ * field the user can set by hand, and reopening the packing would silently
+ * reclaim tasks somebody has been working on since.
+ *
+ * And why an automatic move is right here, where FR-5.10's own reasoning
+ * refuses one elsewhere: a departure date is a clock, and the concept refused
+ * to let a clock decide. Closing the packing is a person saying they are
+ * done. A decision may move the tasks; a date may not.
+ */
+export function tasksCrossing(tasks: readonly ClosingTask[]): ClosingTask[] {
+  return tasks.filter(
+    (task) => task.task_state === 'open' && taskPhaseOf(task) === TASK_PHASE_BEFORE,
+  )
 }
 
 /**

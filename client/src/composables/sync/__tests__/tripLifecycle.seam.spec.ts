@@ -272,7 +272,7 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       mode: 'pack',
     })
 
-    const changed = build(ctx).closePacking(TRIP_ID)
+    const changed = build(ctx).closePacking(TRIP_ID).rows
 
     expect(changed.map((row) => row.name)).toEqual(['Regenjacke', 'Wandersocken'])
     const rowWrites = queued.find((q) => q.type === 'trip')
@@ -303,7 +303,7 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       mode: 'pack',
     })
 
-    expect(build(ctx).closePacking(TRIP_ID)).toEqual([])
+    expect(build(ctx).closePacking(TRIP_ID)).toEqual({ rows: [], tasks: [] })
     // The one write is the stamp: finishing a list with nothing left open is
     // the ordinary case, not a no-op.
     expect(tablesQueued()).toEqual([TABLE.trips])

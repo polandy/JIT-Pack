@@ -3,7 +3,7 @@ import { test, expect, tripAction, visiblePage, useReducedMotion, writesLanded }
 import {
   chooseInRowMenu,
   openRowMenu,
-  openTripTodos,
+  openTasks,
   addTripTodo,
   packRow,
   row,
@@ -168,15 +168,18 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     await expect(mark).toHaveAttribute('aria-pressed', 'false')
   })
 
-  // E2E-M4-124: a trip task deleted comes back, and one left deleted goes
-  // once the snackbar does — hidden until then, never re-created.
-  test('E2E-M4-124: a deleted trip task is undone, and goes for good once the snackbar does @local @m4', async ({
+  // ~~E2E-M4-124~~ moved 2026-09-21 to E2E-M25-06 (FR-7.7). The promise is
+  // unchanged — a deleted task comes back, and one left deleted goes when the
+  // snackbar does — but a trip's own task is not on M4 any more: its section
+  // keeps only the preparations still due before the trip. The case runs on
+  // the screen that now holds the thing it is about.
+  test('E2E-M25-06: a deleted task is undone, and goes for good once the snackbar does @local @m25', async ({
     page,
   }) => {
     test.slow()
     await tripWithRows(page, ['Zelt'], 'Rückgängigprobe')
     await addTripTodo(page, 'Pass erneuern')
-    const section = await openTripTodos(page)
+    const section = await openTasks(page, 'before')
     const task = section.getByTestId('trip-todo-Pass erneuern')
 
     await section.getByTestId('trip-todo-remove-Pass erneuern').click()
@@ -192,8 +195,9 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     await expect(toast).toBeHidden()
     await writesLanded(page)
     await page.reload()
-    const reloaded = await openTripTodos(page)
-    // The input rendering is the positive signal that the list is there.
+    const reloaded = await openTasks(page, 'before')
+    // The input rendering is the positive signal that the list is there —
+    // without it, „the task is gone" is also what an empty screen says.
     await expect(reloaded.getByTestId('trip-todo-input')).toBeVisible()
     await expect(reloaded.getByTestId('trip-todo-Pass erneuern')).toHaveCount(0)
   })

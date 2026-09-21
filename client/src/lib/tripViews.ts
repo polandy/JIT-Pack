@@ -1,11 +1,17 @@
 import type { InjectionKey } from 'vue'
-import { briefcaseOutline, cartOutline, listOutline, statsChartOutline } from 'ionicons/icons'
+import {
+  briefcaseOutline,
+  cartOutline,
+  checkboxOutline,
+  listOutline,
+  statsChartOutline,
+} from 'ionicons/icons'
 
 import { t, type MessageKey } from '@/i18n'
 import { tripPath, tripSubPath } from '@/router/paths'
 
 /**
- * The trip's four views, named once (FR-21.21, ADR-051).
+ * The trip's five views, named once (FR-21.21, ADR-051).
  *
  * The ids are the vocabulary three places share: the route table says which
  * view a route *is*, the switcher decides which pill is current from that,
@@ -15,9 +21,9 @@ import { tripPath, tripSubPath } from '@/router/paths'
  * The order is the one a trip is worked through, and it is the order the two
  * readers below render in — the switcher's pills and the bar's ⋮ entries.
  */
-export const TRIP_VIEW_IDS = ['packing', 'shopping', 'luggage', 'analytics'] as const
+export const TRIP_VIEW_IDS = ['packing', 'shopping', 'tasks', 'luggage', 'analytics'] as const
 
-/** One of the trip's four views — see TRIP_VIEW_IDS. */
+/** One of the trip's five views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -37,11 +43,16 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  * ADR-051 gave all four a pill, and the row filled a 390 px line to within
  * six pixels: four destinations, all equally loud, two of which are read once
  * a trip. The owner's call of 2026-09-20 is that the luggage and the analytics
- * are not that — so the row keeps the two views a trip is *worked* in, and the
+ * are not that — so the row keeps the views a trip is *worked* in, and the
  * other two are words in the bar's ⋮ again, where the once-per-trip actions
  * already are.
+ *
+ * FR-7.7 adds the third worked-in view by that same rule: the tasks are
+ * returned to across a trip, not read once. It re-opens the measurement the
+ * amendment made — three words against the four that did not fit — so the
+ * row is measured again at 360 px rather than assumed (UI-Test-Spec, M25).
  */
-export const TRIP_VIEW_PILLS: readonly TripViewId[] = ['packing', 'shopping']
+export const TRIP_VIEW_PILLS: readonly TripViewId[] = ['packing', 'shopping', 'tasks']
 
 /** What one view is called, where it lives, and the glyph it wears (G-12). */
 interface TripViewSpec {
@@ -63,6 +74,12 @@ const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
     nameKey: 'packing.shopping',
     countKey: 'packing.shoppingCount',
     path: (tripId) => tripSubPath(tripId, 'shopping'),
+  },
+  tasks: {
+    icon: checkboxOutline,
+    nameKey: 'packing.tasks',
+    countKey: 'packing.tasksCount',
+    path: (tripId) => tripSubPath(tripId, 'tasks'),
   },
   luggage: {
     icon: briefcaseOutline,

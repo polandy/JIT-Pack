@@ -172,6 +172,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
 | E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
 | E2E-VIS-12 | Visual M1 below the hero | all | **New 2026-09-09** (FR-21.28). M1's only baseline is of the hero card, so the blocks under it — the following trip and the planned lookahead — had never been photographed, and that is where the screen had kept Ionic's card: another radius, another inset, another shadow, none of which a stylesheet gate can see, because it is not our stylesheet. Three trips, each with a departure date, so which one is the hero is the rule (`byDepartureSoonestFirst`) rather than the fixture. |
+| E2E-VIS-13 | Visual M25 — a trip's tasks | all | **New 2026-09-21** (FR-7.7). The screen that did not exist before, and the one place where both kinds of task and both phases stand together: a preparation with the chip of its row under *Vor der Reise*, a chore of the trip under *Während der Reise*, each with the provenance line the list gained, and the section heads' open counts. It is photographed because three of its decisions are pixels — the chip beside a seat in one cluster, the subtitle under the words, and the third pill above it, which is the row ADR-051 amendment 1 measured. |
 | E2E-VIS-11 | Visual M2 with the hero card | all | **New 2026-09-07.** The `trips` tab-root baseline is an *empty* state, so the segment carrying the hero (FR-21.15) had no picture of itself. It is the one thing on that screen a stylesheet cannot be read for: a card inside a list of cards, which is exactly the collision G-14 exists for. Captured with a second trip of the same series below it, so the hero *and* the group it was lifted out of are in one frame, and with rows on the trip — a ring reading 0/0 is a picture of the card rather than of what the card says. |
 | E2E-VIS-10 | Visual M1 with the hero card | all | **New 2026-09-07.** The four tab-root baselines are all *empty* states, so until this one the screen every rebuild lands on had no picture of itself with data — and the hero (FR-21.13) is exactly what an empty dashboard cannot show. The trip is **started** first: a trip out of the wizard is planned, and M1 lists what is active, which is why the tab-root baseline shows an empty state at all. |
 | E2E-VIS-09 | Visual M16 series profile | all | **New 2026-08-31.** The screen that had no coverage at any layer until 2026-08-30, and whose first render found FR-13.3's checklist input at **width 0** — Ionic gives `ion-select` `width: 100%`, and as a flex item that is a basis of the whole row. That is the class this gate exists for: every assertion passed, the element was in the DOM with the right computed flex and height, and only the pixel said the box was empty. The row is captured **with content on both sides**, a select carrying a value beside an input carrying text, because an empty row of the same geometry would not show the collapse coming back. |
@@ -746,9 +747,9 @@ in WebKit.
   *Late packer on* from the row menu, undone; the menu then offers *on* again and no *off* — the row's own answer.
 * **E2E-M4-123** `local` (FR-25.31 with FR-9.3, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`):
   in the closing pass one tap on a row's mark raises the snackbar, and its undo leaves the mark unpressed.
-* **E2E-M4-124** `local` (FR-25.31 with FR-7.4, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`): a
-  trip task removed with ✕ leaves the list and its undo brings it back; removed again and left, it is gone after a
-  reload once the snackbar has gone — the lapse is the delete.
+* ~~**E2E-M4-124**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-06**, with the screen the trip's own
+  tasks are removed on. It is the fourth id to move for that reason, and the first the ledger's count comparison could
+  not have caught: it lived in a file this change never touched.
 * **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
   (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
   back); *Packen* (the claim), undone, takes the row's own-claim note away.
@@ -783,23 +784,16 @@ in WebKit.
   own M5 (the head draws one instance's mode, so it repaints on a fan-out that reached one child of two). With all
   instances bought there the head offers only *Doch mitnehmen*; its snackbar undo gives each instance its previous
   mode back.
-* **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`trip-tasks.spec.ts`): M4's *Aufgaben für die
-  Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
-  reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
-  are each read back after a reload — a list that only repaints proves the component and not the write; the removal once
-  its snackbar has gone, since FR-25.31 writes the delete when the undo lapses — and the head's check (*„0 von 2"* → *„1
-  von 2"* → *„0 von 1 erledigt"*) follows every step.
-* **E2E-M4-133** `server` (FR-7.5, added 2026-09-19) — **implemented** (`e2e/server/multi-user.spec.ts`): a trip
-  todo's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
-  and picking the other account fills the seat with them. That account is told (the toast names the task and who
-  handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
-  on M1's *Aufgaben* card.
-* **E2E-M4-134** `local` (FR-7.5, G-8, added 2026-09-19) — **implemented** (`trip-tasks.spec.ts`): Local Mode renders no
-  seat and no assignee on a trip todo. The todo's ✕ in the same end box is the positive signal; the negative half of
-  E2E-M4-133.
-* **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`trip-tasks.spec.ts`): ticking a
-  trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
-  head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
+* ~~**E2E-M4-96**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-01.** The trip's own tasks are no
+  longer written or listed on M4 — its section keeps only the preparations still due before the trip — so the case
+  runs on M25, unchanged in what it asserts and widened by the phase. Not renumbered: an id says what the suite
+  implements, and this one's promise did not change screens by being wrong.
+* ~~**E2E-M4-133**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-05**, with the screen the trip's own
+  tasks are worked on.
+* ~~**E2E-M4-134**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-03**, which also asserts the *Meine*
+  chip's absence — the second thing G-8 takes away on a screen with nobody to name.
+* ~~**E2E-M4-105**~~ **struck 2026-09-21 (FR-7.7): its promise moved to E2E-M25-02.** E2E-M4-106 still holds the same
+  rule for a preparation, ticked in M4's own window, so the snackbar's undo stays covered on this screen too.
 * **E2E-M4-136** `local` (FR-7.6, added 2026-09-20) — **implemented** (`trip-tasks.spec.ts`): a row's preparation and a
   chore of the trip stand in the one section, counted by the one figure (*„0/2 tasks"*), and the header line no longer
   states the preparation a second time. Every clause is a pair, because „both kinds are here" is green on a list that
@@ -1069,6 +1063,14 @@ in WebKit.
   `packingView.spec.ts`; what this case owns is M4's own wiring, because the screen holds a full set and a hidden-done
   one and handing over the wrong one flattens the survivor the instant its sibling is packed — restructuring the list
   under the finger that is mid-tap.
+
+* **E2E-M4-144** `local` (FR-7.7, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): finishing the packing
+  is the moment „before the trip" ends, so the open tasks cross with it. Two preparations on one row, one of them
+  already done; the question names *„1 open task"* — the count comes from the same plan the write reads, so it cannot
+  say two while one moves, and the resolved one is not in it because its phase says when it *was* done. Confirmed, the
+  task is off M4's window and stands in M25's *Während der Reise*. **One undo takes back the rows and the tasks**: the
+  record holds a single action at a time, so a second `armUndo` for the tasks would have silently cost the rows their
+  way back — the case reads the restored task from M4, where the undo was armed.
 
 ### M5 — Item Detail
 
@@ -3342,6 +3344,45 @@ by the optimistic row alone. The same shape E2E-M22-03's note already paid for o
 five cases that reload after a write.
 
 ---
+
+### M25 — Aufgaben (a trip's tasks, FR-7.7)
+
+*New 2026-09-21.* The screen that holds every task of a trip, in the two phases a trip has. Three ids below **moved
+here from M4** rather than being renumbered: their promise is unchanged and the screen that makes it is the one that
+moved, so the M4 entries are struck in place and say where each went.
+
+* **E2E-M25-01** `local` (FR-7.7, was E2E-M4-96) — **implemented** (`trip-tasks.spec.ts`): the trip's own tasks are
+  written, ticked, reopened and removed here, each state read back **after a reload** because a list that only
+  repaints proves the component and not the write. What the id gained with the move is the phase: a task written into
+  *Während der Reise* stands in that section and **not** in the other one — a task in both would be a task filed
+  twice, which is the defect „one list, two windows" exists to prevent. The removal keeps the other section's task as
+  its positive signal, and waits for the snackbar to lapse before reloading, since that is when the delete is written
+  (FR-25.31).
+* **E2E-M25-02** `local` (FR-7.7/FR-25.2, was E2E-M4-105) — **implemented** (`trip-tasks.spec.ts`): ticking a task off
+  offers the snackbar's undo, like a pack. The tick makes the task leave the open list, so the mistap has no evidence
+  left to tap again; the undo brings it back and the reopened state is read after a reload. The *„N erledigt"* fold is
+  asserted **absent** afterwards, which is the positive signal that the undo reached the store rather than the paint.
+* **E2E-M25-03** `local` (FR-7.5/G-8, was E2E-M4-134) — **implemented** (`trip-tasks.spec.ts`): Local Mode has nobody
+  to hand a task to, so the task carries no seat **and** the screen offers no *Meine* chip — absent, not an empty
+  picker over an empty list. The task's ✕ is the positive signal beside the two absences, rendered in the box the seat
+  would share; the seat itself is E2E-M4-133's.
+* **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a
+  task removed with ✕ leaves the list and its undo brings it back; removed again and left alone, it is gone after a
+  reload once the snackbar has gone — the lapse is the delete. **The snackbar's disappearance is the signal waited
+  on**, because the lapse changes nothing on screen, and the composer's field is asserted after the reload as the
+  positive half: without it, „the task is gone" is also what an empty screen says.
+* **E2E-M25-05** `server` (FR-7.5/FR-7.7, was E2E-M4-133) — **implemented** (`e2e/server/multi-user.spec.ts`): a
+  task's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
+  and picking the other account fills the seat with them. That account is told (the toast names the task and who
+  handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
+  on M1's *Aufgaben* card. Since FR-7.7 both halves happen on M25, which is where the trip's own tasks are worked.
+* **E2E-M25-04** `local` (FR-7.7, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): the salve. A preparation
+  that will not happen before departure is moved to *Während der Reise* from the task's own sheet, and the move is
+  what takes it **off the packing list** — the consequence that makes a stored phase worth its column. Both halves are
+  asserted on both screens, because either alone is green on a build that moved the task in one list and copied it in
+  the other. The sheet's own promise rides along: it names the row the task prepares and who wrote it, which is what
+  the line has no room for. The undo is asserted too, and it returns the task to M4's window rather than to „no phase
+  at all".
 
 ## 5. Cross-Screen Flow Tests
 

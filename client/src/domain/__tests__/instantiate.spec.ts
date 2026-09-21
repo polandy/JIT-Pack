@@ -24,6 +24,7 @@ import type {
   TemplateItem,
   TemplateItemTask,
   TemplateTask,
+  TaskPhase,
   TripItem,
 } from '@/types/domain'
 import { ITEM_MODE_PACK } from '@/types/domain'
@@ -1158,9 +1159,17 @@ describe('the rows a wizard draft is made of', () => {
  * the composition like positions do, and the same chore said twice is one.
  */
 describe('generateTripItems — trip tasks (FR-7.4)', () => {
-  function tripTask(id: string, templateId: string, text: string): TemplateTask {
-    return { id, template_id: templateId, task: text }
+  function tripTask(
+    id: string,
+    templateId: string,
+    text: string,
+    phase: TaskPhase | null = null,
+  ): TemplateTask {
+    return { id, template_id: templateId, task: text, phase }
   }
+
+  /** The words alone, where the phase is not what the case is about. */
+  const bodies = (tasks: readonly { body: string }[]) => tasks.map((task) => task.body)
 
   it('carries the Vorlage’s and its groups’ tasks, the same text once', () => {
     const res = generateTripItems(
@@ -1177,7 +1186,7 @@ describe('generateTripItems — trip tasks (FR-7.4)', () => {
     )
 
     // Three written, two chores: a concatenation without the dedup says three.
-    expect(res.tripTasks).toEqual(['Pflanzen giessen', 'Gasflasche füllen'])
+    expect(bodies(res.tripTasks)).toEqual(['Pflanzen giessen', 'Gasflasche füllen'])
   })
 
   it('dedups on trimmed text and drops a blank, but keeps a near-miss', () => {
@@ -1193,7 +1202,49 @@ describe('generateTripItems — trip tasks (FR-7.4)', () => {
       }),
     )
 
-    expect(res.tripTasks).toEqual(['Pflanzen giessen', 'Pflanzen gießen'])
+    expect(bodies(res.tripTasks)).toEqual(['Pflanzen giessen', 'Pflanzen gießen'])
+  })
+
+  /*
+   * FR-7.7: a Vorlage can author a task for the trip itself — „am Bahnhof die
+   * Zugverbindung abklären" is not something you do before leaving. The phase
+   * travels with the words; a template that names none means *before*, which
+   * is what every task written before FR-7.7 also reads as.
+   */
+  it('carries each task’s phase, and reads a template that names none as before', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien')],
+        templateTasks: [
+          tripTask('a', 't1', 'Pflanzen giessen'),
+          tripTask('b', 't1', 'Zugverbindung abklären', 'during'),
+        ],
+      }),
+    )
+
+    expect(res.tripTasks).toEqual([
+      { body: 'Pflanzen giessen', phase: 'before' },
+      { body: 'Zugverbindung abklären', phase: 'during' },
+    ])
+  })
+
+  /*
+   * The dedup keeps the first source's version whole, phase included — the
+   * rule the rest of the instantiation follows for an attribute two
+   * contributors both carry (FR-27.2).
+   */
+  it('lets the first source to say it supply the phase', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), template('t2', 'Stadt')],
+        templateTasks: [
+          tripTask('a', 't1', 'Zugverbindung abklären', 'during'),
+          tripTask('b', 't2', 'Zugverbindung abklären', 'before'),
+        ],
+      }),
+    )
+
+    expect(res.tripTasks).toEqual([{ body: 'Zugverbindung abklären', phase: 'during' }])
   })
 
   it('carries nothing from a template that was not picked or included', () => {

@@ -29,6 +29,8 @@ import type {
   ItemTag,
   ItemTodo,
   ShoppingEntry,
+  TaskFacts,
+  TaskPhase,
   TripTodo,
   MasterItem,
   Tag,
@@ -148,6 +150,7 @@ function rowToTemplateTask(id: string, row: Record<string, unknown>): TemplateTa
     id,
     template_id: row['template_id'] as string,
     task: row['task'] as string,
+    phase: (row['phase'] as TaskPhase | null | undefined) ?? null,
   }
 }
 
@@ -360,6 +363,21 @@ function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
     author_id: row['author_id'] as string,
     body: row['body'] as string,
     task_state: (row['task_state'] as ItemTodo['task_state']) ?? 'open',
+    ...taskFacts(row),
+  }
+}
+
+/**
+ * FR-7.7's five facts, read the same way for both kinds of task — they are
+ * one table, and a second transcription is how the two kinds drift apart.
+ */
+function taskFacts(row: Record<string, unknown>): TaskFacts {
+  return {
+    phase: (row['phase'] as TaskPhase | null | undefined) ?? null,
+    created_at: (row['created_at'] as string | null | undefined) ?? null,
+    assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
+    resolved_at: (row['resolved_at'] as string | null | undefined) ?? null,
+    resolved_by_user_id: (row['resolved_by_user_id'] as string | null | undefined) ?? null,
   }
 }
 
@@ -410,7 +428,7 @@ function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
     author_id: row['author_id'] as string,
     body: row['body'] as string,
     task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
-    assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
+    ...taskFacts(row),
   }
 }
 

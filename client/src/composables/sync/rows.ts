@@ -17,6 +17,7 @@ import type {
   ItemDependency,
   ItemTodo,
   ShoppingEntry,
+  TaskFacts,
   TripTodo,
   MasterItem,
   Template,
@@ -100,6 +101,7 @@ export function todoRow(todo: ItemTodo): Record<string, unknown> {
     body: todo.body,
     is_task: dbBool(true),
     task_state: todo.task_state,
+    ...taskFactRow(todo),
   }
 }
 
@@ -112,7 +114,22 @@ export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
     body: todo.body,
     is_task: dbBool(true),
     task_state: todo.task_state,
-    assignee_user_id: todo.assignee_user_id,
+    ...taskFactRow(todo),
+  }
+}
+
+/**
+ * FR-7.7's facts on the way back out. An optimistic row must carry them or
+ * the store reads the merged row as a task with no phase and no record — the
+ * line would lose its subtitle for as long as the push is in flight.
+ */
+function taskFactRow(task: TaskFacts): Record<string, unknown> {
+  return {
+    phase: task.phase,
+    created_at: task.created_at,
+    assignee_user_id: task.assignee_user_id,
+    resolved_at: task.resolved_at,
+    resolved_by_user_id: task.resolved_by_user_id,
   }
 }
 

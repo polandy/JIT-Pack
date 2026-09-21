@@ -232,9 +232,10 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTemplateTasks: {
 		partition: partitionMaster,
-		columns:   toSet("template_id", "task"),
-		visible:   visibilityRule{everyone: true},
-		export:    exportQuery{query: `SELECT * FROM template_tasks`},
+		// FR-7.7: `phase` is the phase the instantiated task starts in.
+		columns: toSet("template_id", "task", "phase"),
+		visible: visibilityRule{everyone: true},
+		export:  exportQuery{query: `SELECT * FROM template_tasks`},
 	},
 
 	TableTripSeries: {
@@ -413,9 +414,21 @@ var tableSpecs = map[string]tableSpec{
 		columns: toSet(
 			"trip_id", "trip_item_id", "author_id", "body",
 			"is_task", "task_state",
-			// FR-7.5: a trip todo's assignment, the client's to choose
-			// like trip_items.packer_user_id.
+			// FR-7.5/FR-7.7: a task's assignment, the client's to choose
+			// like trip_items.packer_user_id — since FR-7.7 on both kinds
+			// of task, not only the trip's own.
 			"assignee_user_id",
+			// FR-7.7: when the task is meant to be done (the client's
+			// choice), and the resolution's record. `resolved_by_user_id`
+			// is listed so the server's own stamp can be persisted through
+			// the push path — stampActor discards any client-sent value
+			// first (invariant 3), exactly as it does for packed_by_user_id.
+			"phase", "resolved_at", "resolved_by_user_id",
+			// FR-7.7: the moment the task was written. The client names it
+			// (Local Mode has no server to default it), and the column's own
+			// DEFAULT still covers a mutation that omits it — the same shape
+			// as trip_items.packed_at.
+			"created_at",
 		),
 		export: exportQuery{query: `SELECT x.* FROM comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

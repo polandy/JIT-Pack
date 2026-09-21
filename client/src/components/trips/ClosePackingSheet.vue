@@ -16,6 +16,7 @@
 import { IonButton, IonIcon } from '@ionic/vue'
 import {
   alarmOutline,
+  arrowForwardOutline,
   checkmarkDoneOutline,
   hourglassOutline,
   lockClosedOutline,
@@ -58,6 +59,15 @@ const facts = () =>
           ? t('packing.closeConfirmBody', { n: props.plan.rows.length })
           : t('packing.closeConfirmNothing')
       }}
+    </p>
+
+    <!-- FR-7.7: not one of the count's exceptions but the other thing the
+         close does, so it stands apart from the block above rather than
+         inside it. The number is the plan's, like every other here — the
+         sentence confirmed and the write performed read one rule. -->
+    <p v-if="props.plan.tasks.length > 0" class="crossing" data-testid="m4-close-sheet-tasks">
+      <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
+      <span>{{ t('packing.closeConfirmTasks', { n: props.plan.tasks.length }) }}</span>
     </p>
 
     <ul v-if="facts().length > 0" class="facts" data-testid="m4-close-sheet-facts">
@@ -127,6 +137,23 @@ const facts = () =>
   gap: 10px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
+}
+
+/* The crossing reads as a sentence about what happens next, so it keeps the
+   page's plane and takes the lead's colour rather than the sunken block's. */
+.crossing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 2px 0;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext1);
+}
+
+.crossing ion-icon {
+  flex: none;
+  font-size: var(--jp-icon-sm);
+  color: var(--ct-overlay2);
 }
 
 .facts ion-icon {
