@@ -1,9 +1,9 @@
 # Concept — trip notes: written by one traveller, read by all, ticked per person
 
-**Status:** **decided 2026-09-21, nothing built yet — the implementation follows later, in the same PR as this
-concept (owner, 2026-09-21).** Variants and an
-interactive prototype are in `dev-docs/UI_Concept_TripNotes_variants.html`. When building starts this becomes
-**FR-7.9** in PRD Addendum §3.7 and the FR is authoritative; the ADR on per-person state as a table is written then.
+**Status:** **decided 2026-09-21, built 2026-09-22, in the same PR as this concept.** Variants and an interactive
+prototype are in `dev-docs/UI_Concept_TripNotes_variants.html`. The built feature is **FR-7.9** in
+`dev-docs/PRD_Addendum_v2.10.md` §3.7a, which is now authoritative over this document; the per-person-state
+tradeoff is `dev-docs/adr/ADR-073_A_Notes_Tick_Is_A_Row_Per_Person_Not_A_Column_On_The_Comment.md`.
 
 **Asked for:** *„Auf einer Reise Notizen machen, die die anderen Mitreisenden lesen können — z.B. der Code für das
 Schlüsselfach, die Telefonnummer des Pizzakuriers. Auf dem Dashboard soll man die letzten Notizen von anderen sehen.

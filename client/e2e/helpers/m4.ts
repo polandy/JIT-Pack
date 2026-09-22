@@ -296,6 +296,35 @@ export async function openTasks(page: Page, phase: 'before' | 'during'): Promise
 }
 
 /**
+ * FR-7.9: M25's notes segment, reached the way a reader reaches it — the
+ * same pill as the tasks, then the *Notizen* button beside *Aufgaben*.
+ * Returns the list's own container.
+ */
+export async function openNotes(page: Page): Promise<Locator> {
+  await openTripView(page, 'tasks')
+  await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
+  await visiblePage(page).getByTestId('m25-segment-notes').click()
+  const section = visiblePage(page).getByTestId('m25-notes')
+  await expect(section).toBeVisible()
+  return section
+}
+
+/**
+ * FR-7.9: write a trip note from M25's notes segment. Ends with the write
+ * landed, so a caller may reload or switch identity straight after.
+ */
+export async function addTripNote(page: Page, body: string): Promise<void> {
+  const section = await openNotes(page)
+  await section.getByTestId('trip-note-input').locator('textarea').fill(body)
+  await section.getByTestId('trip-note-add').click()
+  // The row's own testid carries the note's server id, not its words, so
+  // the write is read back by its text instead — scoped to the row's own
+  // button, since the composer's field can still carry the same text.
+  await expect(section.getByRole('button', { name: body })).toBeVisible()
+  await writesLanded(page)
+}
+
+/**
  * FR-7.4 with FR-7.7: add a task of the trip itself. It is written on **M25**
  * since M4 lost its composer (everything M4's window shows hangs off a row),
  * so the helper goes there, writes, and comes back to where it was — the

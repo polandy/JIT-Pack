@@ -1,8 +1,10 @@
 import { test, expect, visiblePage as visible } from './fixtures'
 import {
   addPrepTodo,
+  addTripNote,
   addTripTodo,
   chooseInRowMenu,
+  openNotes,
   openTasks,
   openTripTodos,
   openRowMenu,
@@ -586,5 +588,45 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.goto(trip)
     const back = await openTripTodos(page)
     await expect(back.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-10 (FR-7.9): the notes segment on one identity — Local Mode has
+   * nobody else to write for, so „new" and the tick are `E2E-M25-11`'s
+   * (server, second identity). What a single writer can prove: the segment
+   * switch, the empty state, a note written and read back, its sheet's
+   * `tel:` link and phone-number rule, and the delete.
+   */
+  test('E2E-M25-10: a note is written, read in its sheet, and deleted', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+
+    const empty = await openNotes(page)
+    await expect(empty.getByTestId('trip-note-empty')).toBeVisible()
+
+    await addTripNote(page, 'Schlüsselfach: 4711, Pizza 044 555 01 00')
+    const section = visible(page).getByTestId('m25-notes')
+    await expect(section.getByTestId('trip-note-empty')).toHaveCount(0)
+    // Own note: no tick renders (decision 4) — Local Mode has nobody else
+    // either way, so this also covers G-8's absence.
+    await expect(section.locator('ion-checkbox.tick')).toHaveCount(0)
+
+    await section.getByRole('button', { name: 'Schlüsselfach: 4711, Pizza 044 555 01 00' }).click()
+    // The sheet is a modal, not page content, so it sits outside the
+    // `.ion-page` scope `visible()` narrows to — the task sheet's own cases
+    // read it the same way.
+    const sheet = page.getByTestId('note-sheet')
+    await expect(sheet).toBeVisible()
+    // The short code stays plain text; the phone number becomes a tel: link.
+    await expect(sheet.getByTestId('note-sheet-body')).toContainText('4711')
+    await expect(sheet.getByTestId('note-sheet-body').locator('a.tel')).toHaveAttribute(
+      'href',
+      'tel:0445550100',
+    )
+
+    await sheet.getByTestId('note-sheet-remove').click()
+    await writesLanded(page)
+    await page.reload()
+    const after = await openNotes(page)
+    await expect(after.getByTestId('trip-note-empty')).toBeVisible()
   })
 })

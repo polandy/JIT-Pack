@@ -1,6 +1,6 @@
 # Notifications & Push
 
-JIT-Pack notifies people when someone else's action concerns them. Four things trigger a notification, and only these:
+JIT-Pack notifies people when someone else's action concerns them. Five things trigger a notification, and only these:
 
 - **Delegation** — someone hands you the responsibility for packing an item, either directly or by assigning the
   item to a traveler linked to your account (see [Linking a person to an account](command-line.md#linking-a-person-to-an-account)),
@@ -9,6 +9,9 @@ JIT-Pack notifies people when someone else's action concerns them. Four things t
 - **Mention** — a comment names you with `@display-name`.
 - **Task** — a comment on an item is flagged as a task; the item's packer is notified.
 - **Row taken over** — you had started packing a row and somebody else took it over (see [Two people, one row](multi-user-setup.md#6-two-people-one-row)).
+- **Note** — a co-traveller writes a trip note (a key-box code, a courier's phone number — see
+  [Trip notes](trip-notes.md)). Everyone on the trip is notified except whoever wrote it, whether or not the note
+  names anyone by `@display-name`.
 
 Notifications exist **only in multi-user mode**. In Single-User Mode there is no second person to notify, so the whole system is inert; Local Mode has no server at all.
 
@@ -36,7 +39,7 @@ Push is off until someone turns it on, and the choice is **per device** — a ph
 
 Where the browser cannot do push, the toggle is disabled and says *Not supported by this browser*. The case that surprises people is the iPhone: **iOS delivers Web Push only to web apps installed on the home screen** (iOS 16.4 or later), so in a plain Safari tab the toggle stays disabled. Install the app to the home screen via the share sheet first, open it from there, and then enable push in Settings.
 
-Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
+Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
 
 ## Verifying delivery end to end
 

@@ -310,6 +310,11 @@ stable references for the traceability matrix.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
+* **E2E-M1-14** `server` (FR-7.9, added 2026-09-22) — **implemented** (`server/trip-notes.spec.ts`): the *Neue
+  Notizen* card, M1's one deliberate exception to "M1 takes no actions" (decision 2). A second member's dashboard
+  lists a note by another, with its trip's name; ticking it there is the same write M25 offers, so the card drops
+  the row once it is no longer new — asserted on the card itself as well as the row, since an emptied card must not
+  stay behind with nothing in it. A second note's words are the separate way into the trip, landing on M4.
 
 ### M2 — Trip List
 * **E2E-M2-01** `local` (FR-2.1) — **covered, where the rule is actually exercised**: the segments *partition* the list,
@@ -3417,6 +3422,19 @@ moved, so the M4 entries are struck in place and say where each went.
   not be true of the task in hand neither lights up nor takes it — *Aus Packliste* under a chore of the trip. The
   refusal is asserted with its positive half beside it: the gesture still reaches `idle`, because a refused drop is
   not a hung one, and the task is still where it was.
+* **E2E-M25-10** `local` (FR-7.9, added 2026-09-22) — **implemented** (`trip-tasks.spec.ts`): the notes segment on
+  one identity. The empty state, a note written and read back by its own row (not the composer's field, which the
+  same text can still carry), no tick on the writer's own note — Local Mode has nobody else either way, so this
+  also covers G-8's absence — the sheet's phone-number rule (a short code stays plain text, a spaced number becomes
+  a `tel:` link with its digits alone as the href), and the delete leaving the empty state behind again.
+* **E2E-M25-11** `server` (FR-7.9, added 2026-09-22) — **implemented** (`server/trip-notes.spec.ts`): a note is new
+  for a second member — marked in the list, counted on the segment's own label — and never new or tickable on its
+  writer's own screen (decision 4). Ticking it sinks the row and mutes it, and drops the segment's count to none;
+  the sheet then names the ticker, and only the ticker, among who has seen it (decision 3). The stricter claim that
+  a *third* reader's "new" survives a second reader's tick is not driven here a second time at real-browser cost —
+  it is `isNoteNewForMe`'s own unit coverage and the Go side's
+  `TestStampActor_NoteAckUpsertCannotStealAnotherUsersRow`, both of which read only the acting reader's own row by
+  construction.
 
 * **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a
   task removed with ✕ leaves the list and its undo brings it back; removed again and left alone, it is gone after a
