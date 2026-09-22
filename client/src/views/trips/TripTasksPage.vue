@@ -31,7 +31,15 @@
  * which is why this one *is* an `IonSegment`, the shape the header comment
  * just rejected for the phases.
  */
-import { IonChip, IonContent, IonIcon, IonLabel, IonPage, IonSegment, IonSegmentButton } from '@ionic/vue'
+import {
+  IonChip,
+  IonContent,
+  IonIcon,
+  IonLabel,
+  IonPage,
+  IonSegment,
+  IonSegmentButton,
+} from '@ionic/vue'
 import { personOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 

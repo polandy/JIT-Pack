@@ -97,7 +97,11 @@ function add() {
       :data-testid="`trip-note-${row.note.id}`"
       :data-new="row.isNew ? '' : undefined"
     >
-      <UserAvatar :name="nameOf?.(row.note.author_id) ?? null" :seed="row.note.author_id" :size="28" />
+      <UserAvatar
+        :name="nameOf?.(row.note.author_id) ?? null"
+        :seed="row.note.author_id"
+        :size="28"
+      />
       <div class="body-col">
         <button
           type="button"

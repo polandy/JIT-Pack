@@ -31,7 +31,12 @@ import {
   latePackersDepartingToday,
   plannedTripsByDeparture,
 } from '@/domain/dashboardSections'
-import { myAckFor, newTripNotes, type DashboardNoteRow, type DashboardNoteTrip } from '@/domain/tripNotes'
+import {
+  myAckFor,
+  newTripNotes,
+  type DashboardNoteRow,
+  type DashboardNoteTrip,
+} from '@/domain/tripNotes'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import { t } from '@/i18n'

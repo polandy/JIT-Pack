@@ -36,10 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const stamp = computed(() =>
-  createdStampText(
-    { ...props.note, resolved_at: null, resolved_by_user_id: null },
-    props.nameOf,
-  ),
+  createdStampText({ ...props.note, resolved_at: null, resolved_by_user_id: null }, props.nameOf),
 )
 const segments = computed(() => linkifyPhoneNumbers(props.note.body))
 const ackedNames = computed(() =>
