@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.18.0](https://github.com/polandy/JIT-Pack/compare/v0.17.0...v0.18.0) (2026-09-22)
+
+
+### Features
+
+* ask packed or forgotten once the packing is closed (FR-5.11) ([9a062b8](https://github.com/polandy/JIT-Pack/commit/9a062b85cfcb157566c8f19b51c6fc452ae866ca))
+* **client:** once the packing is done the hero works the tasks and the shopping in place (FR-7.10) ([14ccd65](https://github.com/polandy/JIT-Pack/commit/14ccd65eb1ce5f2ef3b37700f42f10d5834c436c))
+* shopping entries carry one tag, grouped by it, chosen in a search-or-create sheet (FR-30.9) ([fa860e1](https://github.com/polandy/JIT-Pack/commit/fa860e11bc5e63a0534744a070f574d784963be3))
+* trip notes, read by every traveller and ticked per person (FR-7.9) ([2db6cce](https://github.com/polandy/JIT-Pack/commit/2db6cceb2d5e5ae3a0b8cae664fcb413f251cc9a))
+
 ## [0.17.0](https://github.com/polandy/JIT-Pack/compare/v0.16.0...v0.17.0) (2026-09-21)
 
 
