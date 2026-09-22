@@ -424,6 +424,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.10: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
 - [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 - [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
+- [One `TransitionGroup` per heading animated the wrong departures (2026-09-22)](#one-transitiongroup-per-heading-animated-the-wrong-departures-2026-09-22) — a retag read as a leave; the fix a render caught, not a test.
 
 ## Deviations
 
@@ -17199,3 +17200,43 @@ proposed it.
 until it is checked against what else is in flight for the same trigger — not the same file, the
 same *screen state*. Two sessions each building a correct answer to a different owner remark can
 still collide on the one place both answers have to render.
+
+## One `TransitionGroup` per heading animated the wrong departures (2026-09-22)
+
+FR-30.9 gained the owner's second round on M6: the „＋ Tag" line repeated under every untagged row
+was replaced with a tap-to-open sheet and nothing else, and several own entries — already tagged or
+not — can now be retagged in one act, entered by a long press on a row or the header's own icon
+(mirroring M9's `m9-select`, FR-24.9), spanning every tag heading rather than a filtered subset. In
+the same pass, checking a row off (FR-25.11j) was given the packing list's own shape: the row leaves
+with a wash-collapse-fade rather than vanishing, and a toast with an undo offers the way back before
+the reveal is ever opened, the same `presentToast` shape M4 already uses rather than the dashboard
+card's inline panel — that one exists only because several cards share M1's page and a toast could
+not say which one it was for.
+
+**The trap.** M6 renders one `IonItemGroup` per tag heading, each with its own rows, because a
+heading's rows are not siblings of another heading's — there is no single flat list to hand one
+`TransitionGroup`. Copying M4's `pack-out` recipe (`onRowLeave` calling the shared `collapseRow`)
+onto each heading's own `TransitionGroup` looked like the direct port it was, and the vitest suite —
+jsdom runs no real CSS transition — stayed green. Rendering it said otherwise: retagging an entry
+moves it out of one heading's list and into another's, which is exactly a "leave" as far as the old
+heading's `TransitionGroup` is concerned, and the collapse animated it there while the row had
+already reappeared under its new heading — a duplicate row hanging in the vacated heading for the
+length of the collapse. A tab switch recomputes every heading's contents the same way, so the same
+defect would have fired on every tab change too, not only a retag.
+
+**The fix mirrors one already in the file it was copied from.** `PackingListPage.vue`'s own
+`onRowLeave` finishes at once, uninanimated, when the row's cluster key says the item only changed
+*shape* rather than actually leaving (`isReshaped`) — a retag is this screen's version of a reshape.
+M6's fix is a `Set` of the keys currently mid-purchase (`buying`, filled by `buyLine` and drained by
+the leave hook): a row's `@leave` animates only when its key is in that set, and finishes immediately
+for any other reason a row leaves a heading's list. No unit test pins this — the failure mode is a
+real browser's transition timing, which is exactly the gap `dev-docs/CODING_PRINCIPLES.md`'s render-
+it-and-look rule exists to close, and the screenshots that caught it were taken for that reason
+before this shipped, not after a bug report.
+
+**A smaller mismatch, the same way.** The bulk sheet reuses `ShoppingTagChooser` as-is, per FR-30.9's
+own reasoning for the single-entry sheet — but that component's trailing summary sentence
+(*„the entry is listed under…"*) is written for exactly one entry that stays staged until *Speichern*,
+and the bulk sheet applies the instant a chip is chosen, to more than one entry. Rendering the sheet
+showed the mismatch immediately; the fix is a `summary` prop, defaulted on so the existing sheet is
+unchanged, off for the batch.

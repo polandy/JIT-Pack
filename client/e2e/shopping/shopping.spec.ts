@@ -247,6 +247,95 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
   })
 
   /**
+   * E2E-M6-32 (FR-30.9): several own entries — already tagged or not — are
+   * retagged in one act, entered inline on the list itself rather than
+   * through a separate selection screen like M9's own (FR-24.9): a shopping
+   * row is not a navigation link, so a long press fights no tap the way it
+   * would there. `contextmenu` stands in for the hold, the same substitution
+   * M4's own row-menu case makes (`helpers/m4.ts`'s `openRowMenu`).
+   */
+  test('E2E-M6-32: several entries, already tagged or not, are retagged in one act (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Mückenspray')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    // A long press on the untagged row enters the mode with it pre-selected.
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Brot' })
+      .getByTestId('m6-row-label')
+      .dispatchEvent('contextmenu')
+    await expect(m6(page).getByTestId('m6-selbar')).toBeVisible()
+    await expect(m6(page).getByTestId('m6-row-check-Brot')).toHaveClass(/on/)
+
+    // „Alle N" takes the already-tagged one too — the reach FR-30.9 added
+    // over M9's own selection mode, which never offered a retag.
+    await m6(page).getByTestId('m6-select-all').click()
+    await expect(m6(page).getByTestId('m6-select-count')).toContainText('2')
+
+    await m6(page).getByTestId('m6-bulk-tag').click()
+    await expect(page.getByTestId('m6-bulk-sheet')).toHaveAttribute('data-presented', 'true')
+    await expect(page.getByTestId('m6-bulk-title')).toContainText('2')
+    await page.getByTestId('m6-tag-search').locator('input').fill('Reise')
+    await page.getByTestId('m6-tag-create').click()
+
+    // The mode ends with the batch, and both now share the new tag.
+    await expect(m6(page).getByTestId('m6-selbar')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-group-tag-Reise').locator('h3')).toHaveText([
+      'Brot',
+      'Mückenspray',
+    ])
+
+    // The toast's undo puts both back exactly where they were.
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-group-tag-Apotheke').locator('h3')).toHaveText([
+      'Mückenspray',
+    ])
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
+  })
+
+  /**
+   * E2E-M6-33 (FR-25.11j): a bought row leaves the open list with a smooth
+   * effect rather than vanishing, and its own toast — not a trip through the
+   * reveal bar — is the fast way to take a mistap back. M4's own shape
+   * (`presentToast` with a button), not the dashboard card's inline panel,
+   * which exists only because several cards share that page.
+   */
+  test('E2E-M6-33: a bought row leaves smoothly, with its own undo (FR-25.11j)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Kaffee')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Kaffee' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
+
+    await expect(page.getByText('“Kaffee” bought')).toBeVisible()
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
+    // Brought back by the toast alone — the reveal was never opened.
+    await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
+  })
+
+  /**
    * E2E-M6-28 (FR-30.2): a packing row reaches the shopping list by its mode,
    * and leaves it the same way — it is a projection, never a copy. Setting the
    * row back to *Pack* on M5 empties the shopping tab; a copy would have left

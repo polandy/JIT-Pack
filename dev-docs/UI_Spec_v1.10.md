@@ -1750,16 +1750,39 @@ These patterns apply to every screen and are specified once.
   name stay two lines. FR-13.3's destination entries are not built.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
   made in this visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap
-  on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's name
-  (an untagged one also says *＋ Tag*), open the **entry sheet**, laid out like the packing list's creation sheet
-  (`CreateItemSheet.vue`): head *Neuer Eintrag* / *Eintrag bearbeiten* with the close, a **Name** field, M10's
-  **search-or-create mask** (`ShoppingTagChooser.vue`, the shape of `TagChooser.vue`: a search field *„Tags suchen
-  oder anlegen…"*, the chosen tag as a chip with its ✕, the matching tags as chips, a dashed *„… neu anlegen"* chip for
-  a name nothing carries — matched case-insensitively, Enter chooses or creates — and a summary line) and one button,
-  *Hinzufügen* or *Speichern*, disabled while the name is blank. Nothing is written before the button; *Speichern*
-  writes the fields that changed. There is no inline field for a new tag. A packing row's name opens nothing.
+  on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's
+  name, open the **entry sheet**, laid out like the packing list's creation sheet (`CreateItemSheet.vue`): head
+  *Neuer Eintrag* / *Eintrag bearbeiten* with the close, a **Name** field, M10's **search-or-create mask**
+  (`ShoppingTagChooser.vue`, the shape of `TagChooser.vue`: a search field *„Tags suchen oder anlegen…"*, the chosen
+  tag as a chip with its ✕, the matching tags as chips, a dashed *„… neu anlegen"* chip for a name nothing carries —
+  matched case-insensitively, Enter chooses or creates — and a summary line) and one button, *Hinzufügen* or
+  *Speichern*, disabled while the name is blank. Nothing is written before the button; *Speichern* writes the fields
+  that changed. There is no inline field for a new tag. A packing row's name opens nothing. **An untagged own row
+  carries no label of its own** (revised 2026-09-22 — was *＋ Tag*, repeated under every such row and read as
+  clutter at any real list length); the row's own tappability is the whole affordance, exactly as a tagged row's is.
   **The reveal of what was bought is not grouped:** its rows say their tag as a small label under the name, and its
   check (which puts the line back) is at the end like the open rows'. Mockup: 2026-09-21 review. (E2E-M6-31)
+* **Several entries retagged at once (FR-30.9, built 2026-09-22):** a long press on an own row, or the app bar's own
+  icon (`checkboxOutline`, mirroring M9's `m9-select`, FR-24.9) — active state on while the mode is on — arms an
+  inline **selection**, reaching every own entry on the open tab, tagged or not; unlike M9's, this selection offers a
+  *retag*, so an already-tagged entry is as selectable as an untagged one. Entering it replaces the field and the chip
+  row with a **selbar** — a ✕ to leave, *„N ausgewählt"* / *„Nichts ausgewählt"*, and *„Alle N"* over the open tab's
+  own entries — and each row grows a leading checkbox (a dashed, dimmed slot for a packing row's projection, which
+  never carries a tag and is named once below the list rather than repeated per row: *„Packlisten-Positionen tragen
+  nie ein Tag — nicht wählbar."*); the row's own tap toggles it instead of opening the entry sheet. A row selected by
+  the long press that started the mode is not toggled off by the tap the browser sends on release — the same care
+  M4's row menu takes with its own trailing click. Once at least one entry is picked, a bottom bar offers **Tag
+  vergeben**, opening the same search-or-create sheet the single entry does — titled *„Tag für N Einträge"*, and with
+  no trailing summary line, since that sentence is written for one entry staying staged until *Speichern* and this
+  sheet applies the instant a chip is chosen, to more than one. Choosing files every selected entry under it at once;
+  the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under the tag it carried before.
+  The header's icon is offered only while the open tab holds an own entry to select. Mockup: 2026-09-22 review.
+  (E2E-M6-32)
+* **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
+  projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and
+  raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather
+  than the dashboard card's inline panel (which exists only because several cards share M1's page). The reveal below
+  the list is unchanged and still the way back once the toast is gone. (E2E-M6-33)
 * **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Abreise* while the trip is planned **and** its packing is
   open; *Vor Ort* otherwise — running, archived, or planned with the packing declared finished (FR-5.10). The other tab
   keeps its count in its label, so nothing is hidden. A tab the reader picks holds for the visit and is not remembered

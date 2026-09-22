@@ -1445,6 +1445,16 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
+* **E2E-M6-32** `local` (FR-30.9, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): several own
+  entries, already tagged or not, are retagged in one act. A long press (`contextmenu`, its deterministic seam) on an
+  untagged entry enters an inline selection with that entry pre-selected; *„Alle N"* takes an already-tagged one too —
+  the reach this added over M9's own selection screen (FR-24.9), which never offered a retag. The bulk bar's *Tag
+  vergeben* opens the same search-or-create sheet a single entry's does, titled for the batch; choosing a tag files
+  both at once, the mode ends with the batch, and the toast's undo puts each back under the tag it carried before.
+* **E2E-M6-33** `local` (FR-25.11j, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): a bought row
+  leaves the open list smoothly rather than vanishing, and raises its own toast with an undo — M4's shape
+  (`presentToast` with a button), not the dashboard card's inline panel, which exists only because several cards share
+  that page. The undo puts the row back without the reveal ever being opened.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

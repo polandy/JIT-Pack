@@ -2552,6 +2552,13 @@ locked.
     and dropped with it, because where a row was bought is a fact about this trip's progress and not about its
     composition — read back only from `mode`'s own vocabulary, and written onto the restored row by the one importer M18
     and the FR-18.7 command share. Additive key, no `schema_version` bump (FR-18.5). E2E-M18-12.
+    * **M6's own undo, ahead of the reveal (owner request 2026-09-22):** checking a row off no longer only leaves it
+      to the reveal bar — the row leaves the open list with a wash-collapse-fade rather than vanishing, and a toast
+      with **Rückgängig** offers the way back immediately, M4's own shape (`presentToast` with a button, anchored
+      clear of the FAB) rather than the dashboard card's inline panel, which exists only because several cards share
+      M1's page and a toast could not say which one it was for. The reveal (above) is unchanged and still the way
+      back once the toast has gone. Applies to an own entry and a packing row's projection alike, since both check
+      off through `buy()`.
   * **FR-25.11h (Nothing may sit permanently under the FAB — 2026-08-07):** the floating ＋ hovers over the list, so
     every scrollable list must be able to scroll **clear of its whole footprint**. Otherwise the last row is permanently
     underneath it and whatever sits at that row's right edge — the assignee mark in M6 (FR-25.12), the packer avatar in
@@ -4570,6 +4577,19 @@ as for the packing rows.
     entry's tag but offers no way to choose one.
   * **The check-off sits at the end of the row**, on M6 and on the dashboard card: the thumb rests on the right, and the
     remove (✕) of an own entry stands beside it, to its left.
+  * **Several entries retagged at once (owner request 2026-09-22):** the per-row *＋ Tag* label under an untagged
+    entry — a line of clutter repeated once per row — is gone; a tap on any own entry's name still opens the entry
+    sheet, with no label to announce it. In its place, an entry can be **selected** — long-pressing an own row, or the
+    app bar's own icon (mirroring M9's `m9-select`, FR-24.9) — and the mode reaches **every own entry on the open
+    tab, already tagged or not**: the reach this adds over M9's own screen, which offers no *retag*, only a first
+    assignment. Inline on the list itself rather than a separate screen, because unlike M9's rows a shopping row is
+    not a navigation link, so a long press fights no tap the way it would there. A packing row's projection carries
+    no tag and is never selectable, named once below the list rather than dashed out on every row it excludes.
+    *„Alle N"* takes the open tab's own entries, filtered by nothing since M6 has no filter. The bar's *Tag vergeben*
+    opens the same search-or-create sheet a single entry's does, titled for the batch; choosing a tag files every
+    selected entry under it at once — only what changes is written, so an entry already carrying that tag is
+    untouched — the mode ends with the batch, and the toast's undo puts each entry back under the tag it carried
+    before.
   * *Not carried:* the portable backup, like the entries themselves; trip cloning.
 
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like

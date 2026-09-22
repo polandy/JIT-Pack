@@ -1732,6 +1732,17 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.openList': 'Zur Einkaufsliste',
   'shopping.moreLines': '+ {n} weitere · zur Einkaufsliste',
   'shopping.addedToList': '„{name}“ zu Einkaufsliste hinzugefügt',
+  'shopping.select': 'Auswählen',
+  'shopping.selectExit': 'Auswahl verlassen',
+  'shopping.selectedNone': 'Nichts ausgewählt',
+  'shopping.selectedCount': 'Einer ausgewählt | {n} ausgewählt',
+  'shopping.selectAll': 'Alle {n}',
+  'shopping.selectHint': 'Packlisten-Positionen tragen nie ein Tag — nicht wählbar.',
+  'shopping.bulkTag': 'Tag vergeben',
+  'shopping.bulkTagTitle': 'Tag für einen Eintrag | Tag für {n} Einträge',
+  'shopping.bulkTagged': '„{tag}“ vergeben an einen Eintrag | „{tag}“ vergeben an {n} Einträge',
+  'shopping.bulkUntagged': 'Tag von einem Eintrag entfernt | Tag von {n} Einträgen entfernt',
+  'shopping.bulkNothingToDo': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

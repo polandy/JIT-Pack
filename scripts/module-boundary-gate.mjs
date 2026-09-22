@@ -9,7 +9,8 @@
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
  *    `lib/`, `theme/`, `i18n/`, the shared components in `components/global/`,
  *    and the frame composables every screen is built on (the page head, the
- *    orchestrator's injection key, the trip-screen load, the trip's identity). Never packing's
+ *    header's action cluster, the press-and-hold primitive, the orchestrator's
+ *    injection key, the trip-screen load, the trip's identity). Never packing's
  *    views, stores, domain rules or composables, and never another module.
  * 2. **Nothing reaches into a module** except the composition root: `App.vue`
  *    through the module's public face (its `index.ts`), the router through a
@@ -54,6 +55,14 @@ const KERNEL_PATHS = [
   // Who the trip's people are, for naming a record (FR-30.4) — a trip-level
   // question every module asks, like the trip itself (the planner's votes).
   'composables/useTripIdentity',
+  // The app bar's action cluster (G-12) — a reactive map keyed by route path,
+  // no packing shape in sight; M9's own selection mode is what a module's
+  // FR-30.9-style selection mode mirrors.
+  'composables/useHeaderActions',
+  // Press-and-hold: pure timer logic templated over the payload, imported by
+  // packing screens today but with no packing shape of its own (FR-30.9's
+  // shopping-list selection is its first use outside one).
+  'composables/useLongPress',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

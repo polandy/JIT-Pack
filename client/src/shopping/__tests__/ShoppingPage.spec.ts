@@ -30,8 +30,13 @@ import type { ShoppingMode } from '@/types/domain'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { presentToast } from '@/lib/toast'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
 
 const tripScreen = tripScreenStub()
 
@@ -130,6 +135,14 @@ function seedEntry(id: string, row: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  // jsdom has no media queries; the leave animation reads `prefers-reduced-
+  // motion` at setup (FR-25.11j), like M4's own stub for the same query.
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }) as unknown as typeof window.matchMedia
+
   setActivePinia(createPinia())
   vi.clearAllMocks()
   written = []
@@ -772,5 +785,166 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
       .map((el) => el.element.tagName.toLowerCase())
     expect(slots).toEqual(['ion-button', 'ion-checkbox'])
     expect(page.find('[data-testid="m6-row"] [slot="start"]').exists()).toBe(false)
+  })
+})
+
+describe('M6 — a purchase’s own undo (FR-25.11j)', () => {
+  it('raises a toast with an undo, anchored clear of the FAB — M4’s shape, not the dashboard card’s panel', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('shopping.boughtUndoable', { name: 'Brot' }))
+    expect(toast.positionAnchor).toBe(FAB_ANCHOR.m6)
+
+    written = []
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    expect(written.at(-1)).toMatchObject({
+      id: 'e1',
+      fields: { bought: 0, bought_at: null, bought_by_user_id: null },
+    })
+  })
+
+  it('buys a source line through its own write, the same as a tap on its checkbox', async () => {
+    const sunscreen = line({ name: 'Sonnencreme' })
+    const page = mountPage([source({ buy_before: [sunscreen] })])
+
+    await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
+    expect(sunscreen.buy).toHaveBeenCalledTimes(1)
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    expect(sunscreen.unbuy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
+  /** The mocked `setHeaderActions` getter, called fresh so it reads live state. */
+  function headerActions(): HeaderAction[] {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build()
+  }
+
+  async function enterSelectionViaHeader() {
+    headerActions()
+      .find((a) => a.id === 'm6-select')!
+      .onClick()
+    await flushPromises()
+  }
+
+  it('offers the header icon only while an own entry is there to select', () => {
+    mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    expect(headerActions().map((a) => a.id)).not.toContain('m6-select')
+
+    seedEntry('e1', { name: 'Brot' })
+    mountPage()
+    expect(headerActions().map((a) => a.id)).toContain('m6-select')
+  })
+
+  it('a long press (contextmenu, its deterministic e2e seam) and the header icon both open the same inline selection', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-row-label"]').trigger('contextmenu')
+    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(true)
+    // Already selected by the press that started the mode — an entry that
+    // already carries a tag is exactly what FR-30.9 added over M9's own
+    // selection screen, which never offered a *retag*.
+    expect(page.find(`[data-testid="m6-row-check-Brot"]`).classes()).toContain('on')
+
+    await page.find('[data-testid="m6-select-exit"]').trigger('click')
+    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+
+    await enterSelectionViaHeader()
+    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(true)
+    expect(page.find(`[data-testid="m6-row-check-Brot"]`).classes()).not.toContain('on')
+  })
+
+  it('excludes a packing-projected line — dashed, dimmed, named in the hint below the list', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+
+    await enterSelectionViaHeader()
+
+    expect(page.find('[data-testid="m6-row-check-Brot"]').classes()).not.toContain('off')
+    expect(page.find('[data-testid="m6-row-check-Sonnencreme"]').classes()).toContain('off')
+    const rows = page.findAll('[data-testid="m6-row"]')
+    const sunscreenRow = rows.find((r) => r.text().includes('Sonnencreme'))!
+    expect(sunscreenRow.find('.rowbox').classes()).toContain('off')
+    expect(page.find('[data-testid="m6-select-hint"]').text()).toBe(t('shopping.selectHint'))
+
+    // It cannot be toggled into the selection either.
+    await sunscreenRow.find('[data-testid="m6-row-label"]').trigger('click')
+    expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
+  })
+
+  it('“Alle N” takes every own line on the open tab, and the same act undoes it', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    seedEntry('e2', { name: 'Milch', tag: 'Supermarkt' })
+    const page = mountPage()
+
+    await enterSelectionViaHeader()
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('shopping.selectedNone'))
+
+    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(
+      t('shopping.selectedCount', { n: 2 }),
+    )
+    expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(true)
+
+    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('shopping.selectedNone'))
+    expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
+  })
+
+  it('files every selected entry — tagged or not — under one tag at once, with an undo', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    seedEntry('e2', { name: 'Milch', tag: 'Apotheke' })
+    const page = mountPage()
+
+    await enterSelectionViaHeader()
+    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
+
+    expect(page.find('[data-testid="m6-bulk-title"]').text()).toBe(
+      t('shopping.bulkTagTitle', { n: 2 }),
+    )
+    // The single-entry sheet's summary sentence names "the entry" — wrong
+    // for a batch that also applies the instant a chip is chosen.
+    expect(page.find('[data-testid="m6-tag-summary"]').exists()).toBe(false)
+    await page.find('[data-testid="m6-tag-offer-Apotheke"]').trigger('click')
+
+    // Only Brot changed — Milch already carried Apotheke, so the two do not
+    // collide on one write.
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({ id: 'e1', fields: { tag: 'Apotheke' } })
+    // The mode itself ends with the batch (M9's own rule).
+    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('shopping.bulkTagged', { n: 1, tag: 'Apotheke' }))
+    expect(toast.positionAnchor).toBe(FAB_ANCHOR.m6)
+
+    written = []
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({ id: 'e1', fields: { tag: null } })
+  })
+
+  it('a batch that changes nothing raises a plain toast, with no undo to offer', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Apotheke' })
+    const page = mountPage()
+
+    await enterSelectionViaHeader()
+    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
+    await page.find('[data-testid="m6-tag-offer-Apotheke"]').trigger('click')
+
+    expect(written).toEqual([])
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('shopping.bulkNothingToDo'))
+    expect(toast.buttons).toBeUndefined()
   })
 })

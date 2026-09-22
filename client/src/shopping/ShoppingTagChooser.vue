@@ -24,12 +24,22 @@ import { tagOffer } from '@/lib/itemEditorOffers'
 
 import { normalizeTag } from './actions'
 
-const props = defineProps<{
-  /** The tags in use on the trip. */
-  tags: string[]
-  /** The tag chosen now; null for none. */
-  assigned: string | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** The tags in use on the trip. */
+    tags: string[]
+    /** The tag chosen now; null for none. */
+    assigned: string | null
+    /**
+     * The trailing summary line — off for a bulk choice (FR-30.9): that
+     * sheet applies the instant a chip is chosen and never carries one
+     * "assigned" tag to summarise, and the single-entry sentence
+     * (*„the entry is listed under…"*) reads as if there were only one.
+     */
+    summary?: boolean
+  }>(),
+  { summary: true },
+)
 
 const emit = defineEmits<{
   /** A tag to file under — an existing one, or a new name — or null for none. */
@@ -110,7 +120,7 @@ function commitQuery() {
       </button>
     </div>
 
-    <p class="tag-summary" data-testid="m6-tag-summary">
+    <p v-if="summary" class="tag-summary" data-testid="m6-tag-summary">
       {{ assigned ? t('shopping.tagFiledUnder', { tag: assigned }) : t('shopping.tagNone') }}
     </p>
   </div>

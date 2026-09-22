@@ -96,15 +96,65 @@ export function createShoppingActions(host: ModuleHost) {
     host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
   }
 
-  return { addEntry, updateEntry, setBought, removeEntry }
+  /**
+   * FR-30.9: files every entry in the batch under one tag at once, or clears
+   * it with null — the list's own shape of M9's give/take (`giveTagToItems`),
+   * flat rather than join-table-shaped because an entry carries at most one
+   * tag. Only what changes is written, so re-tagging an already-tagged entry
+   * beside an untagged one in the same batch does not touch the first.
+   *
+   * The undo cannot hand the pre-batch snapshot straight back to
+   * `updateEntry`: its "only write what changed" guard diffs the target
+   * against the entry it is given, and the snapshot's own tag *is* the
+   * target the undo is asking for — a diff of a value against itself, which
+   * looks like nothing changed and silently writes nothing. So the undo
+   * diffs against `entries` as the batch actually left them (only `tag`
+   * moved; nothing here touches a name), not against the snapshot.
+   */
+  function bulkSetTag(entries: ShoppingEntry[], tag: string | null): BulkTagResult {
+    const normalized = normalizeTag(tag)
+    const changed = entries.filter((entry) => entry.tag !== normalized)
+    for (const entry of changed) updateEntry(entry, { name: entry.name, tag: normalized })
+    return {
+      touched: changed.length,
+      undo: () => {
+        for (const entry of changed) {
+          updateEntry({ ...entry, tag: normalized }, { name: entry.name, tag: entry.tag })
+        }
+      },
+    }
+  }
+
+  return { addEntry, updateEntry, setBought, removeEntry, bulkSetTag }
 }
 
 export type ShoppingActions = ReturnType<typeof createShoppingActions>
+
+/** What a batch tag change reports (FR-30.9): how many entries it touched, and its undo. */
+export interface BulkTagResult {
+  touched: number
+  undo: () => void
+}
 
 /** What the own-entries source reads — the store satisfies it structurally. */
 export interface EntryReads {
   openEntries(tripId: string, list: ShoppingMode): ShoppingEntry[]
   boughtEntries(tripId: string, list: ShoppingMode): ShoppingEntry[]
+}
+
+/** What the own-entries source adds beyond a `ShoppingSource` (FR-30.9's bulk tag). */
+export interface OwnEntriesSource extends ShoppingSource {
+  /**
+   * Files every entry a line `key` in `keys` names under one tag at once.
+   * Only the open list is ever asked for — a bought line is never on offer to
+   * select (M6's screen never renders a selection checkbox on the reveal).
+   */
+  bulkSetTag(
+    tripId: string,
+    list: ShoppingMode,
+    keys: ReadonlySet<string>,
+    tag: string | null,
+  ): BulkTagResult
 }
 
 /**
@@ -113,7 +163,7 @@ export interface EntryReads {
  * the list alone, while a packing line leaves by being bought or by its row
  * changing mode on the packing list.
  */
-export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): ShoppingSource {
+export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): OwnEntriesSource {
   function lineOf(entry: ShoppingEntry): ShoppingLine {
     return {
       key: LINE_KEY_PREFIX + entry.id,
@@ -133,5 +183,10 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): S
   return {
     open: (tripId, list) => reads.openEntries(tripId, list).map(lineOf),
     bought: (tripId, list) => reads.boughtEntries(tripId, list).map(lineOf),
+    bulkSetTag: (tripId, list, keys, tag) =>
+      actions.bulkSetTag(
+        reads.openEntries(tripId, list).filter((entry) => keys.has(LINE_KEY_PREFIX + entry.id)),
+        tag,
+      ),
   }
 }

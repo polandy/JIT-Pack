@@ -1722,6 +1722,17 @@ export const en = {
   'shopping.openList': 'Open the shopping list',
   'shopping.moreLines': '+ {n} more · open the shopping list',
   'shopping.addedToList': '“{name}” added to the shopping list',
+  'shopping.select': 'Select',
+  'shopping.selectExit': 'Leave selection',
+  'shopping.selectedNone': 'Nothing selected',
+  'shopping.selectedCount': 'One selected | {n} selected',
+  'shopping.selectAll': 'All {n}',
+  'shopping.selectHint': 'Packing-list positions never carry a tag — not selectable.',
+  'shopping.bulkTag': 'Give a tag',
+  'shopping.bulkTagTitle': 'Tag for one entry | Tag for {n} entries',
+  'shopping.bulkTagged': '“{tag}” given to one entry | “{tag}” given to {n} entries',
+  'shopping.bulkUntagged': 'Tag removed from one entry | Tag removed from {n} entries',
+  'shopping.bulkNothingToDo': 'Nothing to change — the selection already carries that tag.',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',
