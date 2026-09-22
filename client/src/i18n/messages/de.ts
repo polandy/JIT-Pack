@@ -1743,6 +1743,9 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.bulkTagged': '„{tag}“ vergeben an einen Eintrag | „{tag}“ vergeben an {n} Einträge',
   'shopping.bulkUntagged': 'Tag von einem Eintrag entfernt | Tag von {n} Einträgen entfernt',
   'shopping.bulkNothingToDo': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
+  'shopping.dragToRetag': '{name} durch Ziehen umtaggen',
+  'shopping.dropHere': 'hier ablegen',
+  'shopping.retagged': '„{name}“ → {group}',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

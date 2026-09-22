@@ -299,8 +299,11 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       'Mückenspray',
     ])
 
-    // The toast's undo puts both back exactly where they were.
-    await page.getByRole('button', { name: 'Undo' }).click()
+    // The toast's undo puts both back exactly where they were. Scoped to
+    // `.pack-toast`, the app's one undo-snackbar style (found 2026-09-22: a
+    // shopping toast without it silently fell back to Ionic's stock, barely
+    // readable palette, and no assertion here would have caught it).
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: 'Undo' }).click()
     await expect(m6(page).getByTestId('m6-group-tag-Apotheke').locator('h3')).toHaveText([
       'Mückenspray',
     ])
@@ -328,11 +331,78 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
 
-    await expect(page.getByText('“Kaffee” bought')).toBeVisible()
-    await page.getByRole('button', { name: 'Undo' }).click()
+    // Scoped to `.pack-toast`, the app's one undo-snackbar style — see the
+    // same note on E2E-M6-32.
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('“Kaffee” bought')
+    await toast.getByRole('button', { name: 'Undo' }).click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
     // Brought back by the toast alone — the reveal was never opened.
     await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M6-34 (FR-30.9): one own entry, lifted by its grip and dropped onto
+   * another own section, is retagged in one act — the gesture the bulk sheet
+   * gives a batch of one. The mechanics are `useDragToGroup`'s own (FR-7.8,
+   * `TripTasksPage.vue`'s `E2E-M25-08`/`E2E-M25-09`); this only proves the
+   * shopping list wired it up: which section a drop lands in, and which one
+   * it never can — a packing-projected line's own heading files nothing
+   * under a tag, so it is never a target either.
+   */
+  test('E2E-M6-34: a grip drags one entry into another tag, and refuses a heading it cannot honestly hold (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await addBuyRowOnM4(page, 'Sonnencreme', 'Buy before')
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Mückenspray')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    const host = m6(page)
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+
+    // Refused: the packing row's own heading carries no tag of its own.
+    const grip = host.getByTestId('m6-row-grip-Brot')
+    const fromPacking = host.getByTestId('m6-group-none')
+    let g = (await grip.boundingBox())!
+    let target = (await fromPacking.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
+    await expect(fromPacking).not.toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
+
+    // Accepted: dropped onto the already-tagged group, it takes that tag.
+    const apotheke = host.getByTestId('m6-group-tag-Apotheke')
+    g = (await grip.boundingBox())!
+    target = (await apotheke.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
+    await expect(apotheke).toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(apotheke.locator('h3')).toHaveText(['Brot', 'Mückenspray'])
+
+    // The toast's own undo puts it back where it was.
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('“Brot” → Apotheke')
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
+    await expect(apotheke.locator('h3')).toHaveText(['Mückenspray'])
   })
 
   /**

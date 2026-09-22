@@ -1455,6 +1455,11 @@ composer.
   leaves the open list smoothly rather than vanishing, and raises its own toast with an undo — M4's shape
   (`presentToast` with a button), not the dashboard card's inline panel, which exists only because several cards share
   that page. The undo puts the row back without the reveal ever being opened.
+* **E2E-M6-34** `local` (FR-30.9, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): one own entry,
+  lifted by its grip (`useDragToGroup`, FR-7.8's own gesture) and dropped onto another own section, is retagged in one
+  act — a batch of one, through the same `bulkSetTag` a selection's *Tag vergeben* uses, so its undo diffs against the
+  entry as the drop actually left it rather than the pre-drop snapshot. A packing-projected line's own heading refuses
+  the drop — it never highlights and never takes it — since that heading carries no tag of its own to file under.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

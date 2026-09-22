@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { buildSections, listInFocus, openCount } from '../list'
+import { buildSections, dropTag, listInFocus, openCount } from '../list'
 
 function line(
   name: string,
@@ -75,6 +75,24 @@ describe('buildSections — tags (FR-30.9)', () => {
   it('never lets a source heading collide with a tag of the same name', () => {
     const sections = buildSections([line('Brot', null, 'Kleidung')], [line('Hut', 'Kleidung')])
     expect(new Set(sections.map((s) => s.key)).size).toBe(2)
+  })
+})
+
+/** FR-30.9's single-row drag: what dropping onto a section would set. */
+describe('dropTag', () => {
+  it('is the section’s own tag for a tagged section', () => {
+    const sections = buildSections([line('Spray', null, 'Apotheke')], [])
+    expect(dropTag(sections[0]!)).toBe('Apotheke')
+  })
+
+  it('is null for the untagged own section', () => {
+    const sections = buildSections([line('Batterien')], [])
+    expect(dropTag(sections[0]!)).toBeNull()
+  })
+
+  it('is undefined for a source’s own heading — never a drop target', () => {
+    const sections = buildSections([], [line('Hut', 'Kleidung')])
+    expect(dropTag(sections[0]!)).toBeUndefined()
   })
 })
 

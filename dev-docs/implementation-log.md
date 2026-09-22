@@ -425,6 +425,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 - [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
 - [One `TransitionGroup` per heading animated the wrong departures (2026-09-22)](#one-transitiongroup-per-heading-animated-the-wrong-departures-2026-09-22) — a retag read as a leave; the fix a render caught, not a test.
+- [A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)](#a-toasts-contrast-lived-in-a-route-that-had-not-loaded-and-an-undo-repeated-a-fixed-bug-2026-09-22) — `.pack-toast` moved to `App.vue`; drag-retag's undo now reuses `bulkSetTag`.
 
 ## Deviations
 
@@ -17240,3 +17241,35 @@ own reasoning for the single-entry sheet — but that component's trailing summa
 and the bulk sheet applies the instant a chip is chosen, to more than one entry. Rendering the sheet
 showed the mismatch immediately; the fix is a `summary` prop, defaulted on so the existing sheet is
 unchanged, off for the batch.
+
+## A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)
+
+Two more defects the owner's own manual test of the shipped feature (above) found — one a wrong
+premise, one the same trap already written down once.
+
+**The premise.** `PackingListPage.vue` carries `.pack-toast`, the app's one undo-snackbar style,
+in an *unscoped* `<style>` block — deliberately unscoped, since Ionic presents a toast into the app
+root and a scoped rule never reaches it. What that comment did not say is that `PackingListPage.vue`
+is also a lazy route chunk. A reader who opens the shopping tab straight from a link, never having
+visited the packing list first, never loads that chunk — and M6's own new toasts (FR-25.11j's
+purchase, FR-30.9's bulk and, moments later, single-row retag) rendered in Ionic's stock palette,
+the exact defect `.pack-toast` was written to close, because the rule closing it had never arrived.
+The fix moves `.pack-toast` into `App.vue`'s own unscoped block — the one component that is never
+lazy — so it is present regardless of which screen raises the toast first. The two e2e cases that
+already asserted these toasts' text were tightened to scope through `ion-toast.pack-toast` rather
+than a bare role query, and reverting the fix turns both red, which they would not have before.
+
+**The trap.** `actions.ts`'s `bulkSetTag` already carries a long comment on why its own undo cannot
+hand `updateEntry` the pre-batch snapshot: `updateEntry`'s "only write what changed" guard diffs the
+target against the entry it is given, and asking it to restore the very value that snapshot already
+holds looks like no change and writes nothing. FR-30.9's own drag-to-retag — added the same day, once
+the owner asked for the mockup's drag gesture in words — first went through `ShoppingLine.edit`
+directly rather than through `bulkSetTag`: apply the drop with one `edit()` call, undo it with a
+second `edit()` call closed over the *same* stale `ShoppingLine`. The second call diffed against the
+first call's own starting point, saw the tag it was being asked to restore, and silently wrote
+nothing — the identical failure shape, one layer up, on code written after the comment describing it.
+Caught by a driving e2e case (`E2E-M6-34`) rather than by rendering, this time — the write itself is
+wrong, not the paint, so a mounted assertion on where the entry ended up was enough. The fix is not a
+second copy of the workaround: the drag's drop is exactly a batch of one, so `onDrop` now calls
+`bulkSetTag` with a singleton set and hands its own already-correct `undo` to the toast, rather than
+re-deriving a second one.

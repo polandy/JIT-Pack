@@ -90,6 +90,19 @@ export function buildSections(own: ShoppingLine[], sourced: ShoppingLine[]): Sho
 }
 
 /**
+ * dropTag says what a drag onto this section would set (FR-30.9's own
+ * single-row retag): the section's tag, null for the untagged own section,
+ * or undefined where the section cannot take a drop at all — a source's own
+ * heading, which files nothing under a tag and is never one of this list's
+ * own sections.
+ */
+export function dropTag(section: ShoppingSection): string | null | undefined {
+  if (section.own) return null
+  if (section.tagged) return section.name
+  return undefined
+}
+
+/**
  * openCount is what the trip switcher's pill says: the things still to buy on
  * both lists, across every source. Lines, not rows — a source has already
  * aggregated what is bought in one act (FR-25.6).

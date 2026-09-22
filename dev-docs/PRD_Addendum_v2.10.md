@@ -4590,6 +4590,12 @@ as for the packing rows.
     selected entry under it at once — only what changes is written, so an entry already carrying that tag is
     untouched — the mode ends with the batch, and the toast's undo puts each entry back under the tag it carried
     before.
+  * **One entry, dragged into another heading (owner request 2026-09-22):** a grip at the leading edge of an own row,
+    shown while nothing is selected, lifts it and carries it over the open list; the heading under the pointer lights
+    up while it could honestly hold the row, and lets go of it into that tag — or into *„Eingetragen"* to clear one.
+    The write is the same batch-of-one `bulkSetTag` a selection's *Tag vergeben* uses, so its undo is exactly as
+    correct as a bulk retag's. A packing row's projection is refused the way it is refused a selection: its own
+    heading never lights up and never takes the drop, since it carries no tag of its own to file under.
   * *Not carried:* the portable backup, like the entries themselves; trip cloning.
 
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like

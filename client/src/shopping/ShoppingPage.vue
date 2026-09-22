@@ -40,14 +40,16 @@ import {
   checkmarkOutline,
   closeOutline,
   pricetagsOutline,
+  reorderThreeOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useLongPress } from '@/composables/useLongPress'
@@ -64,7 +66,7 @@ import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
-import { buildSections, listInFocus } from './list'
+import { buildSections, dropTag, listInFocus, type ShoppingSection } from './list'
 import ShoppingTagChooser from './ShoppingTagChooser.vue'
 import { useShoppingStore } from './store'
 
@@ -177,6 +179,7 @@ async function buyLine(line: ShoppingLine) {
   await presentToast({
     message: t('shopping.boughtUndoable', { name: line.name }),
     positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => line.unbuy() }],
   })
 }
@@ -292,7 +295,11 @@ async function applyBulkTag(tag: string | null) {
   bulkSheetOpen.value = false
   endSelecting()
   if (touched === 0) {
-    await presentToast({ message: t('shopping.bulkNothingToDo'), positionAnchor: FAB_ANCHOR.m6 })
+    await presentToast({
+      message: t('shopping.bulkNothingToDo'),
+      positionAnchor: FAB_ANCHOR.m6,
+      cssClass: 'pack-toast',
+    })
     return
   }
   bulkUndo = undo
@@ -302,6 +309,7 @@ async function applyBulkTag(tag: string | null) {
       tag: tag ?? '',
     }),
     positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => undoBulkTag() }],
   })
 }
@@ -343,6 +351,62 @@ const draft = ref('')
 
 const content = ref<InstanceType<typeof IonContent> | null>(null)
 const field = ref<InstanceType<typeof IonInput> | null>(null)
+
+/**
+ * FR-30.9's single-row retag: a grip lifts one own entry and drops it onto
+ * another own section — a tag heading, or the untagged one — filing it there
+ * the way the bulk sheet would for a batch of one. The gesture itself is
+ * `useDragToGroup` (FR-7.8's own, `TripTasksPage.vue`), which knows nothing
+ * about tags; a section's own `key` (already unique — `list.ts`) is what
+ * this screen hands it as the drop target's name, so no second key scheme is
+ * invented. Off while selecting: the grip and the selection checkbox share
+ * the row's leading slot, and a drag mid-selection would fight the
+ * tap-to-toggle gesture on the same rows.
+ *
+ * The write goes through `bulkSetTag`, not `line.edit` — a drop is exactly a
+ * batch of one, and `bulkSetTag`'s undo already diffs against the entry as
+ * the write actually left it rather than the pre-write snapshot (see its own
+ * doc comment). Two `line.edit` calls in a row — apply, then this gesture's
+ * own undo — would diff the second against the same stale snapshot the first
+ * one used, see the value it started at, and silently write nothing: the
+ * identical bug `bulkSetTag`'s own undo was written to avoid.
+ */
+const dragHost = computed(() => content.value?.$el ?? null)
+
+function sectionAt(place: DropPlace): ShoppingSection | null {
+  return sections.value.find((section) => section.key === place.target) ?? null
+}
+
+const drag = useDragToGroup<ShoppingLine>({
+  accepts: (_line, place) => {
+    const section = sectionAt(place)
+    return section !== null && dropTag(section) !== undefined
+  },
+  onDrop: (line, place) => {
+    const section = sectionAt(place)
+    const toTag = section ? dropTag(section) : undefined
+    if (toTag === undefined) return
+    const { touched, undo } = own.bulkSetTag(props.tripId, tab.value, new Set([line.key]), toTag)
+    if (touched === 0) return
+    void presentToast({
+      message: t('shopping.retagged', {
+        name: line.name,
+        group: toTag ?? t('shopping.ownEntries'),
+      }),
+      positionAnchor: FAB_ANCHOR.m6,
+      cssClass: 'pack-toast',
+      buttons: [{ text: t('packing.undo'), handler: () => undo() }],
+    })
+  },
+})
+watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
+
+/** The grip lifts at once — it exists only to be dragged (FR-7.8's own rule). */
+function onGripDown(line: ShoppingLine, event: PointerEvent) {
+  if (!line.edit || selecting.value) return
+  const row = (event.currentTarget as HTMLElement).closest<HTMLElement>('[data-row-key]')
+  if (row) drag.down(event, line, row, true)
+}
 
 /**
  * FR-30.6: the ＋ takes the reader to the field, wherever the list was
@@ -439,7 +503,14 @@ setHeaderTitle(
 
 <template>
   <IonPage>
-    <IonContent ref="content" class="shop-content" data-testid="m6-page">
+    <IonContent
+      ref="content"
+      class="shop-content"
+      data-testid="m6-page"
+      @pointermove="drag.move"
+      @pointerup="drag.up"
+      @pointercancel="drag.cancel"
+    >
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (chosen = e.detail.value)">
         <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
@@ -525,12 +596,18 @@ setHeaderTitle(
         <IonItemGroup
           v-for="section in sections"
           :key="section.key"
+          :data-drop-target="section.key"
           :data-testid="`m6-group-${section.own ? 'own' : section.tagged ? `tag-${section.name}` : (section.name ?? 'none')}`"
         >
           <IonItemDivider>
             <IonLabel>{{
               section.own ? t('shopping.ownEntries') : (section.name ?? t('shopping.uncategorized'))
             }}</IonLabel>
+            <!-- FR-30.9's single-row drag: shown only while this section is
+                 the one under the pointer — `[data-drop-over]`, set by
+                 `useDragToGroup` itself, is the only gate this needs (M25's
+                 own `.drop-hint`, `TripTasksPage.vue`). -->
+            <span slot="end" class="group-over-label">{{ t('shopping.dropHere') }}</span>
           </IonItemDivider>
           <!-- FR-25.11j: a bought row leaves rather than vanishes — M4's
                FR-25.2 `pack-out` recipe, kept to this list's own class names
@@ -554,6 +631,21 @@ setHeaderTitle(
                 :data-testid="`m6-row-check-${line.name}`"
               >
                 <IonIcon v-if="!!line.edit && selected.has(line.key)" :icon="checkmarkOutline" />
+              </span>
+              <!-- FR-30.9's single-row drag: a grip lifts one own entry onto
+                 another own section — `useDragToGroup`'s own rule, it lifts
+                 at once. Not selecting, own entries only — the same
+                 eligibility the selection checkbox uses, since a
+                 packing-projected line carries no tag to drag either way. -->
+              <span
+                v-else-if="line.edit"
+                slot="start"
+                class="rowgrip"
+                :aria-label="t('shopping.dragToRetag', { name: line.name })"
+                :data-testid="`m6-row-grip-${line.name}`"
+                @pointerdown.stop="(e: PointerEvent) => onGripDown(line, e)"
+              >
+                <IonIcon :icon="reorderThreeOutline" aria-hidden="true" />
               </span>
               <!-- FR-30.9: not selecting → a tap on an own entry's name files it
                  under a tag; a long press (or right-click) on one starts a
@@ -939,6 +1031,47 @@ setHeaderTitle(
   padding: 4px 16px 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
+}
+
+/* FR-30.9's single-row drag: the grip, at the leading edge like `.rowbox` —
+   `touch-action: none` unconditionally, since grabbing it always means the
+   drag, never a list scroll (M25's own `.grip`, `TripTodoList.vue`). */
+.rowgrip {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-inline-start: -12px;
+  color: var(--ct-subtext0);
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The row stays where it was while its clone travels (ADR-060); it is only
+   dimmed, so the list does not close up under the finger — M25's own rule. */
+[data-testid='m6-row'][data-drag-source] {
+  opacity: 0.4;
+}
+
+/* The tag heading a dragged row is over — `useDragToGroup` sets the
+   attribute itself; this only says what it looks like (M25's own rule). */
+ion-item-group[data-drop-over] {
+  --ion-item-background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-page));
+}
+
+/* `opacity`, not `display`: the divider's `end` slot lays this out itself
+   (Ionic's own shadow-part styling), and a `display` toggle here lost that
+   fight silently while `opacity` does not. */
+.group-over-label {
+  opacity: 0;
+  color: var(--jp-action);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+}
+
+ion-item-group[data-drop-over] .group-over-label {
+  opacity: 1;
 }
 
 /* Above the FAB's footprint, like M9's `.bulkbar`. */

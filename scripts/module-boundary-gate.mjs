@@ -63,6 +63,10 @@ const KERNEL_PATHS = [
   // packing screens today but with no packing shape of its own (FR-30.9's
   // shopping-list selection is its first use outside one).
   'composables/useLongPress',
+  // Lift-carry-drop, templated over the payload and the place: it knows a
+  // `data-drop-target` string, never a tag or a task (FR-7.8's own gesture,
+  // reused for FR-30.9's single-row retag — no packing shape either).
+  'composables/useDragToGroup',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

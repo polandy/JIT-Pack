@@ -1733,6 +1733,9 @@ export const en = {
   'shopping.bulkTagged': '“{tag}” given to one entry | “{tag}” given to {n} entries',
   'shopping.bulkUntagged': 'Tag removed from one entry | Tag removed from {n} entries',
   'shopping.bulkNothingToDo': 'Nothing to change — the selection already carries that tag.',
+  'shopping.dragToRetag': 'Drag to retag {name}',
+  'shopping.dropHere': 'drop here',
+  'shopping.retagged': '“{name}” → {group}',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',
