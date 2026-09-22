@@ -112,7 +112,7 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
     )
   })
 
-  it('names the phase after the dates and opposite the name the day counter (FR-7.9)', () => {
+  it('names the phase after the dates and opposite the name the day counter (FR-7.10)', () => {
     const wrapper = mount(TripHero, {
       props: {
         ...base,
@@ -129,7 +129,7 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
     expect(wrapper.get('[data-testid="hero-counter"]').text()).toContain('noch 5 Tage')
   })
 
-  it('leaves the counter out when it has none, and the phase’s ink quiet while packing (FR-7.9)', () => {
+  it('leaves the counter out when it has none, and the phase’s ink quiet while packing (FR-7.10)', () => {
     const wrapper = mount(TripHero, {
       props: { ...base, when: '2026', phase: { label: 'Packen', done: false } },
       global,
@@ -139,14 +139,14 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
     expect(wrapper.get('[data-testid="hero-phase"]').classes()).not.toContain('done')
   })
 
-  it('is one link while the packing is open (FR-7.9’s other half)', () => {
+  it('is one link while the packing is open (FR-7.10’s other half)', () => {
     const wrapper = mount(TripHero, { props: base, global })
     const link = wrapper.getComponent(RouterLinkStub)
     expect(link.find('[data-testid="hero-progress"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="hero-head"]').exists()).toBe(false)
   })
 
-  it('stops being one link once it is worked: only the head leads on, and the blocks are the slot’s (FR-7.9)', () => {
+  it('stops being one link once it is worked: only the head leads on, and the blocks are the slot’s (FR-7.10)', () => {
     const wrapper = mount(TripHero, {
       props: { ...base, workable: true },
       slots: { blocks: '<button data-testid="in-block">tick</button>' },

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One of the two workable blocks in the dashboard's hero (FR-7.9): a head that
+ * One of the two workable blocks in the dashboard's hero (FR-7.10): a head that
  * folds, a field that takes an entry, the next rows, and the way onto the full
  * screen.
  *
@@ -10,7 +10,7 @@
  * cannot drift into two.
  *
  * Rows are the slot's; a folded block keeps its head, its count and its field
- * — the field is the reason a block with nothing in it stays (FR-7.9) — and
+ * — the field is the reason a block with nothing in it stays (FR-7.10) — and
  * takes its rows out of the tab order and the accessibility tree.
  */
 import { IonIcon } from '@ionic/vue'

@@ -758,6 +758,38 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.comments, commentId)
   }
 
+  // --- Trip note tick mutations (FR-7.9) ---
+
+  /**
+   * Tick a note for the first time — a fresh row, one per (note, person),
+   * so two people ticking the same note offline both keep their own tick
+   * (ADR-073, the same reason FR-24.2's `assignTag` is an insert). userId is
+   * the client placeholder; the server stamps it (invariant 3).
+   */
+  function tickNote(
+    tripId: string,
+    commentId: string,
+    userId: string,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.noteAcks, id, {
+      trip_id: tripId,
+      comment_id: commentId,
+      user_id: userId,
+      acked: 1,
+    })
+    return { mutation, id }
+  }
+
+  /**
+   * Flip an existing tick — the row already names its person, so the field
+   * is the whole change, the same shape as `moveTag`. Un-ticking sets
+   * `acked` back rather than deleting the row (NFR-4.2a never deletes).
+   */
+  function setNoteAcked(ackId: string, acked: boolean): Mutation {
+    return make('upsert', TABLE.noteAcks, ackId, { acked: dbBool(acked) })
+  }
+
   // --- Trip mutations ---
 
   function createTrip(
@@ -1466,6 +1498,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     addComment,
     flagCommentAsTask,
     deleteComment,
+    tickNote,
+    setNoteAcked,
     addContainer,
     updateContainer,
     deleteContainer,

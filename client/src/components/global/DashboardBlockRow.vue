@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One row of a dashboard block (FR-7.9): the words, a quieter line beneath,
+ * One row of a dashboard block (FR-7.10): the words, a quieter line beneath,
  * and the check on the **right**, always — the thumb rests there.
  *
  * The box is 28 px drawn inside a target 56 × 52 px that runs to the block's

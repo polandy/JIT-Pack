@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * FR-7.9: the dashboard's field files a task and says where it went in its own
+ * FR-7.10: the dashboard's field files a task and says where it went in its own
  * words (*„… zu Aufgaben hinzugefügt“*), while M25's composer keeps the
  * sentence it always had. Both go through the same act, so the undo is the same.
  */
@@ -44,7 +44,7 @@ beforeEach(() => {
   deleteTripTodo.mockClear()
 })
 
-describe('useTaskActs.added (FR-7.9)', () => {
+describe('useTaskActs.added (FR-7.10)', () => {
   it('says what the caller says, when the caller says something', () => {
     const { acts, announceAct } = actsFor()
     acts.added('k1', 'Post nachsenden', t('dashboard.tasksAdded', { body: 'Post nachsenden' }))

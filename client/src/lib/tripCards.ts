@@ -19,7 +19,7 @@ export interface TripCardProps {
   /** Whether its packing has been declared finished (FR-5.10) — FR-30.8 reads it. */
   packingClosed: boolean
   /**
-   * FR-7.9: the card is drawn as a block *of the hero* — seven lines, no chip,
+   * FR-7.10: the card is drawn as a block *of the hero* — seven lines, no chip,
    * folding — once the packing is finished, instead of as the card under it.
    */
   embedded?: boolean

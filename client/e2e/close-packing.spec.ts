@@ -408,7 +408,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M1-25 (FR-5.10 with FR-7.9 on M1): the phase has moved on, so the
+   * E2E-M1-25 (FR-5.10 with FR-7.10 on M1): the phase has moved on, so the
    * dashboard's loudest element about packing stands down — and, since
    * 2026-09-21, no line takes its place. Asserted as a **pair**: the figure
    * gone *and* the phase said in the date line, because a card
@@ -435,7 +435,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M1-26 (FR-7.9): the hero's task block is worked in place. A task is
+   * E2E-M1-26 (FR-7.10): the hero's task block is worked in place. A task is
    * added in the block, ticked on its right-hand check, and comes back with
    * the snackbar's undo; the block folds and *stays folded* after a reload;
    * and adding to a folded block moves its count without unfolding it — the
@@ -495,7 +495,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M1-27 (FR-7.9): the hero's shopping block takes an entry in place,
+   * E2E-M1-27 (FR-7.10): the hero's shopping block takes an entry in place,
    * checks it off on the right, and the head of the card — not the card —
    * leads into the trip: no control sits inside a link.
    */

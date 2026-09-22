@@ -266,6 +266,21 @@ export interface ItemComment {
   created_at: string | null
 }
 
+/**
+ * FR-7.9: one row per (note, person) who has ticked it — a trip note is a
+ * trip-level `ItemComment` (trip_item_id null), read by every member and
+ * ticked per reader. A table rather than a column on `comments` so two
+ * people's ticks made at the same time never collide (ADR-073); `acked`
+ * false is un-ticked, never a deleted row (NFR-4.2a).
+ */
+export interface NoteAck {
+  id: string
+  trip_id: string
+  comment_id: string
+  user_id: string
+  acked: boolean
+}
+
 // --- Preparation Todos (FR-7.3) ---
 
 export type TodoState = 'open' | 'resolved'

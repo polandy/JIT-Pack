@@ -12,7 +12,7 @@
  * is exactly one of those per screen.
  *
  * **Once the packing is finished the card stops being one link** (`workable`,
- * FR-7.9, ADR-073): the figure gives way to the slot, whose blocks are
+ * FR-7.10, ADR-074): the figure gives way to the slot, whose blocks are
  * worked in place, and a control cannot sit inside a link. Only the head —
  * dates, name, counter, meta — leads into the trip then.
  */
@@ -33,9 +33,9 @@ withDefaults(
     name: string
     /** When it is — the line above the name. */
     when?: string | null
-    /** The phase word after the dates (FR-7.9). */
+    /** The phase word after the dates (FR-7.10). */
     phase?: { label: string; done: boolean } | null
-    /** The day counter opposite the name (FR-7.9). */
+    /** The day counter opposite the name (FR-7.10). */
     counter?: { headline: string; sub: string | null } | null
     /** Who is on it, and anything else that qualifies it. */
     meta?: string | null
@@ -50,7 +50,7 @@ withDefaults(
     /** Put on the card, for the cases that address the hero. */
     testid?: string
     /**
-     * FR-7.9: the packing is finished. The figure is not drawn, the default
+     * FR-7.10: the packing is finished. The figure is not drawn, the default
      * slot carries the blocks, and only the head is a link.
      */
     workable?: boolean
@@ -68,7 +68,7 @@ withDefaults(
 </script>
 
 <template>
-  <!-- FR-7.9: worked in place, so the card is not a link — its head is. -->
+  <!-- FR-7.10: worked in place, so the card is not a link — its head is. -->
   <div v-if="workable" class="hero jp-card" :data-testid="testid">
     <RouterLink :to="to" class="head" data-testid="hero-head">
       <p v-if="when" class="when jp-hero-eyebrow" data-testid="hero-when">
@@ -194,7 +194,7 @@ withDefaults(
   font-size: var(--jp-text-xs);
 }
 
-/* FR-7.9: the two blocks, side by side where 300 px each fit and stacked
+/* FR-7.10: the two blocks, side by side where 300 px each fit and stacked
    where they do not — no breakpoint, the basis decides. */
 .blocks {
   display: grid;

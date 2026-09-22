@@ -1,6 +1,6 @@
 /**
  * Where a trip stands against the calendar, as the dashboard's day counter
- * reads it (FR-7.9) — pure, no I/O, no Vue.
+ * reads it (FR-7.10) — pure, no I/O, no Vue.
  *
  * Whole calendar days in the reader's own zone, never a duration in hours: a
  * counter built on milliseconds says *„in 3 Tagen"* at 23:59 and *„in 2
@@ -57,7 +57,7 @@ export function tripDay(
 }
 
 /**
- * taskPhaseInFront is the phase of task the dashboard leads with (FR-7.9): a
+ * taskPhaseInFront is the phase of task the dashboard leads with (FR-7.10): a
  * trip that has not started is still in *before*; once it has — and once it
  * is over, or is undated with its packing shut — what is left is for the road.
  */

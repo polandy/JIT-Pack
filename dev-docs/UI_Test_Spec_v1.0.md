@@ -244,7 +244,7 @@ stable references for the traceability matrix.
   that the card reads the todos rather than a copy of them. ~~grouped by item~~ in a card of its own (*Prep to do*) is
   what FR-7.6 replaced on 2026-09-20 — the chip is what the grouping became. ~~ticking one resolves it~~ is the clause
   the 2026-09-18 ruling struck — it was implemented and asserted until that day. The hero's own task block of a finished
-  packing is the exception and is worked (FR-7.9, E2E-M1-26).
+  packing is the exception and is worked (FR-7.10, E2E-M1-26).
 * **E2E-M1-03** `server` (FR-6.1/6.3/4.4) — **implemented 2026-08-31** (`server/multi-user.spec.ts`): Alice assigns a
   row and it appears on Bob's dashboard **while he is looking at it**, marked new, without a reload; opening it leads to
   the row; and coming back the same row is listed and no longer news. Every assertion is scoped to **this case's row**
@@ -311,6 +311,11 @@ stable references for the traceability matrix.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
+* **E2E-M1-14** `server` (FR-7.9, added 2026-09-22) — **implemented** (`server/trip-notes.spec.ts`): the *Neue
+  Notizen* card, M1's one deliberate exception to "M1 takes no actions" (decision 2). A second member's dashboard
+  lists a note by another, with its trip's name; ticking it there is the same write M25 offers, so the card drops
+  the row once it is no longer new — asserted on the card itself as well as the row, since an emptied card must not
+  stay behind with nothing in it. A second note's words are the separate way into the trip, landing on M4.
 
 ### M2 — Trip List
 * **E2E-M2-01** `local` (FR-2.1) — **covered, where the rule is actually exercised**: the segments *partition* the list,
@@ -1440,15 +1445,15 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
-* **E2E-M1-25** `local` (FR-5.10 with FR-7.9 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
+* **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
   The pair is the case: a card that had merely lost its figure would satisfy half of it.
-* **E2E-M1-26** `local` (FR-7.9, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the hero's task block
+* **E2E-M1-26** `local` (FR-7.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the hero's task block
   takes a task in its field, lists it, shows the check to the right of the words, and drops the row when it is ticked.
   Folded, the head and the field stay and an added task moves the count without unfolding the block (the count is
   the positive signal for that absence), and the fold survives a reload.
-* **E2E-M1-27** `local` (FR-7.9, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the shopping block adds
+* **E2E-M1-27** `local` (FR-7.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the shopping block adds
   an entry, lists it, and buys it on the right-hand check; the hero contains **no control inside a link**, and
   *Packliste öffnen* is there.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
@@ -2607,8 +2612,9 @@ against a screen rather than against a stylesheet (G-14).
   later" as dead code, and the sentence above is the record instead.
 
 ### M17 — Settings & Notifications
-* **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Four kinds rather
-  than the three this sentence used to name: `lock_taken` joined them with FR-5.7. Bob turns *Delegations* off in his
+* **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Five kinds now:
+  `lock_taken` joined delegation/mention/task with FR-5.7, `note` with FR-7.9 (2026-09-22) — this case still drives
+  only delegation and mention, which is what it has always asserted. Bob turns *Delegations* off in his
   own M17, the choice survives his reload, and Alice's next hand-over produces no toast on his screen — while the same
   pair of pages produced one before he touched it, and a **mention** afterwards still arrives. The two positives are
   what make the absence assertable: a toast that has not come yet looks exactly like one that never will, and the
@@ -3426,6 +3432,19 @@ moved, so the M4 entries are struck in place and say where each went.
   not be true of the task in hand neither lights up nor takes it — *Aus Packliste* under a chore of the trip. The
   refusal is asserted with its positive half beside it: the gesture still reaches `idle`, because a refused drop is
   not a hung one, and the task is still where it was.
+* **E2E-M25-10** `local` (FR-7.9, added 2026-09-22) — **implemented** (`trip-tasks.spec.ts`): the notes segment on
+  one identity. The empty state, a note written and read back by its own row (not the composer's field, which the
+  same text can still carry), no tick on the writer's own note — Local Mode has nobody else either way, so this
+  also covers G-8's absence — the sheet's phone-number rule (a short code stays plain text, a spaced number becomes
+  a `tel:` link with its digits alone as the href), and the delete leaving the empty state behind again.
+* **E2E-M25-11** `server` (FR-7.9, added 2026-09-22) — **implemented** (`server/trip-notes.spec.ts`): a note is new
+  for a second member — marked in the list, counted on the segment's own label — and never new or tickable on its
+  writer's own screen (decision 4). Ticking it sinks the row and mutes it, and drops the segment's count to none;
+  the sheet then names the ticker, and only the ticker, among who has seen it (decision 3). The stricter claim that
+  a *third* reader's "new" survives a second reader's tick is not driven here a second time at real-browser cost —
+  it is `isNoteNewForMe`'s own unit coverage and the Go side's
+  `TestStampActor_NoteAckUpsertCannotStealAnotherUsersRow`, both of which read only the acting reader's own row by
+  construction.
 
 * **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a
   task removed with ✕ leaves the list and its undo brings it back; removed again and left alone, it is gone after a

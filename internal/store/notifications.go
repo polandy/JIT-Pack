@@ -21,10 +21,14 @@ const (
 	// row over (FR-5.7). It is the one kind the person notified did not
 	// set in motion themselves, which is exactly why it exists.
 	NotifyLockTaken = "lock_taken"
+	// NotifyNote is FR-7.9's "to all members" push for a new trip note —
+	// unlike NotifyMention it needs no @name in the body, because a note
+	// is written for every co-traveller by default.
+	NotifyNote = "note"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

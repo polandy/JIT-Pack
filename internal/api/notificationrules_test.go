@@ -159,34 +159,57 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			want:  nil,
 		},
 		{
+			// FR-7.9: trip-level and not a task is now a note, which
+			// broadcasts rather than scanning for @mentions — so a mention
+			// case has to anchor to a row to stay a mention case at all.
 			name:  "FR-6.2 a mention reaches the member it names",
-			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarah bring the poles"})},
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarah bring the poles", "trip_item_id": zelt})},
 			items: zeltUnassigned,
 			want:  []string{"u-sarah/" + store.NotifyMention},
 		},
 		{
 			name:  "a mention of a name with a space still resolves",
-			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "ping @max muster please"})},
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "ping @max muster please", "trip_item_id": zelt})},
 			items: zeltUnassigned,
 			want:  []string{"u-max/" + store.NotifyMention},
 		},
 		{
 			name:  "a longer name starting with a member's name is not that member",
-			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarahs Zelt"})},
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarahs Zelt", "trip_item_id": zelt})},
 			items: zeltUnassigned,
 			want:  nil,
 		},
 		{
 			name:  "mentioning yourself notifies nobody",
-			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Andy reminder"})},
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Andy reminder", "trip_item_id": zelt})},
 			items: zeltUnassigned,
 			want:  nil,
 		},
 		{
 			name:  "the same member mentioned twice is notified once",
-			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarah and @Sarah again"})},
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarah and @Sarah again", "trip_item_id": zelt})},
 			items: zeltUnassigned,
 			want:  []string{"u-sarah/" + store.NotifyMention},
+		},
+		{
+			name:  "FR-7.9 a new trip note notifies every other member",
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "Schlüsselfach: 4711"})},
+			items: zeltUnassigned,
+			want:  []string{"u-sarah/" + store.NotifyNote, "u-max/" + store.NotifyNote},
+		},
+		{
+			name:  "FR-7.9 a note names nobody by @mention — the broadcast covers it already",
+			muts:  []syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": "@Sarah check the code"})},
+			items: zeltUnassigned,
+			want:  []string{"u-sarah/" + store.NotifyNote, "u-max/" + store.NotifyNote},
+		},
+		{
+			name: "a trip todo (FR-7.4, is_task true, no row) is not a note",
+			muts: []syncpkg.Mutation{commentMutation("c-1", map[string]any{
+				"body": "Pflanzen giessen", "is_task": true, "task_state": "open",
+			})},
+			items: zeltUnassigned,
+			want:  nil,
 		},
 		{
 			name: "FR-7.2 a task on an assigned row notifies its packer",
@@ -257,7 +280,7 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			name: "two mutations in one push each earn their own notification",
 			muts: []syncpkg.Mutation{
 				tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"}),
-				commentMutation("c-1", map[string]any{"body": "@Max Muster look"}),
+				commentMutation("c-1", map[string]any{"body": "@Max Muster look", "trip_item_id": zelt}),
 			},
 			items: zeltUnassigned,
 			want:  []string{"u-sarah/" + store.NotifyDelegation, "u-max/" + store.NotifyMention},
@@ -400,17 +423,20 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 		})
 	})
 
-	t.Run("a comment on no item carries no item keys", func(t *testing.T) {
+	t.Run("a note (no item) carries no item keys", func(t *testing.T) {
+		// FR-7.9: two members only, so the broadcast lands on exactly one —
+		// three would make this a plan-shape test rather than a payload one.
+		twoMembers := notificationRuleMembers[:2]
 		plan := planNotifications("trip-1", "u-actor",
-			[]syncpkg.Mutation{commentMutation(comment, map[string]any{"body": "@Sarah hi"})},
-			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies)
+			[]syncpkg.Mutation{commentMutation(comment, map[string]any{"body": "Schlüsselfach: 4711"})},
+			allApplied(1), twoMembers, resolve, noTravelerLinks, noTodoBodies)
 		if len(plan) != 1 {
-			t.Fatalf("plan = %v, want one mention", recipients(plan))
+			t.Fatalf("plan = %v, want one note", recipients(plan))
 		}
 		wantPayload(t, plan[0].Payload, map[string]any{
 			payloadTripID: "trip-1", payloadCommentID: comment,
 			payloadActorID: "u-actor", payloadActorName: "Andy",
-			payloadPreview: "@Sarah hi",
+			payloadPreview: "Schlüsselfach: 4711",
 		})
 	})
 
@@ -448,11 +474,13 @@ func wantPayload(t *testing.T, got, want map[string]any) {
 // payload rides an OS notification, the deep link carries the rest.
 func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
 	body := strings.Repeat("ä", previewLen+10)
+	// FR-7.9: two members only — this is a note now (no trip_item_id), and
+	// the broadcast would otherwise land one payload per other member.
 	plan := planNotifications("trip-1", "u-actor",
-		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body + " @Sarah"})},
-		allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks, noTodoBodies)
+		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body})},
+		allApplied(1), notificationRuleMembers[:2], resolverFor(nil), noTravelerLinks, noTodoBodies)
 	if len(plan) != 1 {
-		t.Fatalf("plan = %v, want one mention", recipients(plan))
+		t.Fatalf("plan = %v, want one note", recipients(plan))
 	}
 	preview, _ := plan[0].Payload[payloadPreview].(string)
 	// Runes, not bytes: a two-byte character must not be cut in half.

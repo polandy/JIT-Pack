@@ -421,7 +421,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 - [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
 - [A bar that counted done rows called them packed (2026-09-21)](#a-bar-that-counted-done-rows-called-them-packed-2026-09-21) — FR-25.2 contradicted its own label; the counter the owner refused, and the plural rule that split the languages.
-- [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.9: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
+- [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.10: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
+- [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 
 ## Deviations
 
@@ -17099,7 +17100,7 @@ suite cannot, because there is nothing to assert about a string nothing renders.
 
 ## A mockup drew a date the data does not have (2026-09-21)
 
-FR-7.9's interactive mockup (`UI_Concept_DashboardAfterPacking.html`) showed each task with a due date — *gestern*,
+FR-7.10's interactive mockup (`UI_Concept_DashboardAfterPacking.html`) showed each task with a due date — *gestern*,
 *vor 3 Tagen*, *Fr* — sorted overdue first, and the owner approved it. **A task has no date.** FR-7.7 gives it a phase,
 *before* or *during*, and nothing else that orders in time; the dates were invented to make the rows look like a
 dashboard's, and the spec sentence citing FR-7.7 as their source was written without opening it. It surfaced at the
@@ -17116,3 +17117,44 @@ differ only for an active trip with open packing, where each is right about its 
 **One accepted cost, recorded so it is not fixed:** the fold state is device-local (`lib/blockFold.ts`), not per
 account. On a shared device two people see each other's folds. A synced setting would follow a person across devices,
 and there is no preference store to put it in yet.
+
+**FR-7.9 and ADR-073 were already taken.** `2db6cceb` (trip notes, merged 2026-09-22) landed FR-7.9/ADR-073 first;
+this feature's own spec and ADR were renumbered to FR-7.10/ADR-074 to match, across `PRD_Addendum_v2.10.md`,
+`UI_Spec_v1.10.md`, `UI_Test_Spec_v1.0.md`, `e2e-tests.md`, the ADR file and its `README.md` row, and every code
+comment and test title citing the old numbers.
+
+## `e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)
+
+`make ci-remote` dispatches `ci.yml` on GitHub for a feature branch with no PR open yet — the front door for the jobs
+that need docker and a browser, per the comment at the top of the workflow. It ran the full matrix on every
+dispatch, `e2e` (ten shards), `e2e-single` and `e2e-server` included, and that made it the slow step in ordinary
+iteration rather than the safety net it was meant to be: `e2e` alone is sized against ~2940 test-seconds, and the
+owner was paying that on every remote check, before a PR — and the review it was gathering evidence for — existed
+(owner, 2026-09-22).
+
+**The accepted cost.** Those three jobs now carry `if: github.event_name != 'workflow_dispatch'`, so `ci-remote`
+skips them; they still run on `pull_request` and on `push` to main, same as before. This is a real regression in
+signal, named so it does not get "fixed" later without the tradeoff being re-read: a feature branch can now carry an
+e2e-breaking change for as long as the owner iterates on it remotely, and the first e2e result appears only once a
+PR is opened. Cheap to accept because `e2e` was already not a required check for `main` (branch protection names
+`go`, `go-lint`, `client`, `format`, `docker-build`), so this changes *when* the signal arrives, not what blocks a
+merge — and CI already keeps a build-and-test record on `push` to main independent of what happened on the branch.
+
+**Why `docker-build` was left alone on `ci-remote`.** The one dispatch-only job the owner actually wanted to keep
+paying for: it is required for merge and cheap, so it was never the thing making the loop slow.
+
+**A second, independent cut: `e2e` and `visual` also skip a markdown-only diff.** The `changes` job (top of
+`ci.yml`) diffs the two SHAs `pull_request`/`push` already carry and checks every changed path against `\.md$`. A
+patch that touches only `*.md` — `docs/`, `dev-docs/`, `README.md`, `CLAUDE.md`, an ADR, anywhere — ships no code and
+renders no screen, so `e2e`, `e2e-single`, `e2e-server` and `visual` all skip it, on `pull_request` and `push` to
+main as well as `ci-remote`. A suffix check rather than an allowlist of doc directories, deliberately: a new doc
+location never needs this file touched to stay covered, and the check cannot go stale the way the shard count did.
+Unlike the `workflow_dispatch` cut above, `docker-build` was *not* added to this one — a docs change can still land
+in the Dockerfile's copied tree or break the image build in principle, and that job is cheap enough that narrowing
+it further wasn't worth the edge case.
+
+**What replaced the wait.** A lighter review skill, `.claude/skills/pr-review-lite`, covers the same ground as
+`/pr-review` — spec/ADR sync, `CODING_PRINCIPLES.md` and the invariants, test coverage, client/UI — against an
+unopened or freshly opened PR, but its CI-status section only requires `go`, `go-lint`, `client`, `format` and
+`docker-build` green; `e2e`, `e2e-single`, `e2e-server` and `visual` are read and reported if present, never waited
+on or treated as blockers. The full `/pr-review` is still the gate before an actual merge.

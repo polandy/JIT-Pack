@@ -405,7 +405,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
   })
 })
 
-describe('dashboardTasks (FR-7.9): what the hero lists of a trip’s tasks', () => {
+describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', () => {
   const task = (
     id: string,
     opts: { phase?: TaskPhase; assignee?: string | null; state?: TodoState } = {},

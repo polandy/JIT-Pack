@@ -158,14 +158,15 @@ async function readMirror() {
 
 /**
  * Which body a notification renders with — the same two rules as
- * `notificationBodyName` in src/notifications/messages.ts: a mention is
- * about its preview, everything else about its item, and a kind with no
- * detail (or one this client does not know) takes the plainer sentence.
+ * `notificationBodyName` in src/notifications/messages.ts: a mention and a
+ * note (FR-7.9) are about their preview, everything else about its item,
+ * and a kind with no detail (or one this client does not know) takes the
+ * plainer sentence.
  */
 function bodyName(kind, payload) {
-  const known = ['delegation', 'mention', 'task', 'lock_taken']
+  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note']
   if (known.indexOf(kind) === -1) return 'generic'
-  const named = kind === 'mention' ? payload.preview : payload.item_name
+  const named = kind === 'mention' || kind === 'note' ? payload.preview : payload.item_name
   return named ? kind : kind + 'Plain'
 }
 

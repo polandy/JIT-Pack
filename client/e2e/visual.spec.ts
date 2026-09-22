@@ -524,7 +524,7 @@ test('E2E-VIS-11: visual: M2 with the hero card @local @visual', async ({ page, 
   await expect(page).toHaveScreenshot('m2-hero.png')
 })
 
-// E2E-VIS-13: M1's hero once the packing is finished (FR-7.9, ADR-073) — the
+// E2E-VIS-13: M1's hero once the packing is finished (FR-7.10, ADR-074) — the
 // phase in the date line, no ring, and the two blocks with a row each. The
 // trip is undated on purpose: the day counter reads the wall clock, and a
 // baseline that says *„in 3 Tagen"* is a baseline that goes stale by itself.

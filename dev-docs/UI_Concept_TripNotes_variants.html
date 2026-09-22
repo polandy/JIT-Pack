@@ -1,0 +1,310 @@
+<title>Reisenotizen</title>
+<style>
+:root {
+  --bg: #f1f2ec; --card: #fbfbf8; --ink: #1c2629; --ink2: #56635f; --line: #d6dad2;
+  --accent: #b5641c; --pine: #2f7a4a; --chip: #e4e8df;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1417; --card: #172025; --ink: #e8ebe6; --ink2: #9aa6a3; --line: #2a353b;
+    --accent: #f0a44e; --pine: #7fc084; --chip: #232e34;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1417; --card: #172025; --ink: #e8ebe6; --ink2: #9aa6a3; --line: #2a353b;
+  --accent: #f0a44e; --pine: #7fc084; --chip: #232e34;
+}
+/* The phone screens are the app's own Nacht flavour in every viewer theme. */
+.phone {
+  --n-crust: #0e1417; --n-mantle: #131a1d; --n-base: #1b2327; --n-s0: #2a353b; --n-s1: #37444b;
+  --n-o1: #6b7a78; --n-sub0: #9aa6a3; --n-sub1: #bcc5c1; --n-text: #e8ebe6;
+  --n-larch: #f0a44e; --n-glacier: #6fb6da; --n-pine: #7fc084; --n-heather: #b49bd6;
+  --n-lupine: #9fb0e8; --n-rose: #e39ab8; --n-ember: #ee7a6e;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 "Hanken Grotesk", system-ui, sans-serif; margin: 0; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font: 700 30px/1.15 "Hanken Grotesk", system-ui, sans-serif; margin: 0 0 8px; text-wrap: balance; }
+h2 { font: 700 20px/1.25 "Hanken Grotesk", system-ui, sans-serif; margin: 44px 0 6px; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0 0 4px; }
+p { max-width: 68ch; margin: 0 0 12px; }
+.lede { color: var(--ink2); font-size: 16px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+.muted { color: var(--ink2); }
+code { font: 13px ui-monospace, "JetBrains Mono", monospace; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.col { flex: 1 1 280px; min-width: 0; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+.rec { color: var(--pine); font-weight: 700; }
+.stage { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 16px; }
+.who { display: flex; gap: 6px; }
+.who button, .tog button {
+  font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--ink); border: 1px solid var(--line);
+}
+.who button[aria-pressed="true"], .tog button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tog { display: flex; gap: 6px; align-items: center; }
+.cap { font-size: 13px; color: var(--ink2); margin-top: 8px; max-width: 340px; }
+
+/* ---- phone ---- */
+.phone { width: 340px; max-width: 100%; background: var(--n-mantle); color: var(--n-text); border-radius: 30px;
+  border: 6px solid #05090b; overflow: hidden; font: 14px/1.4 "Hanken Grotesk", system-ui, sans-serif; }
+.bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px 4px; font-size: 12px; color: var(--n-sub0); }
+.bar b { color: var(--n-text); font-size: 13px; }
+.title { padding: 6px 16px 10px; font-size: 20px; font-weight: 700; }
+.pills { display: flex; gap: 6px; padding: 0 16px 10px; }
+.pill { padding: 5px 11px; border-radius: 999px; background: var(--n-base); color: var(--n-sub1); font-size: 13px; white-space: nowrap; }
+.pill.on { background: var(--n-larch); color: var(--n-crust); font-weight: 700; }
+.pill i { font-style: normal; opacity: .8; margin-left: 4px; }
+.seg { display: flex; margin: 0 16px 12px; background: var(--n-crust); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; font-size: 13px; color: var(--n-sub1); }
+.seg span.on { background: var(--n-s0); color: var(--n-text); font-weight: 700; }
+.seg em { font-style: normal; color: var(--n-larch); margin-left: 4px; font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.note { display: flex; gap: 10px; background: var(--n-base); border-radius: 14px; padding: 10px 10px 10px 12px; align-items: flex-start; }
+.note.done { background: transparent; border: 1px solid var(--n-s0); color: var(--n-sub0); }
+.av { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--n-crust); }
+.nb { flex: 1; min-width: 0; }
+.nb .txt { overflow-wrap: anywhere; }
+.nb .meta { font-size: 12px; color: var(--n-sub0); margin-top: 3px; }
+.nb .seen { font-size: 12px; color: var(--n-pine); margin-top: 2px; }
+.new { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--n-larch); color: var(--n-crust); margin-right: 6px; }
+.tel { color: var(--n-glacier); text-decoration: underline; text-underline-offset: 2px; }
+.code { font: 700 14px ui-monospace, monospace; background: var(--n-crust); padding: 1px 7px; border-radius: 6px; letter-spacing: .08em; }
+.tick { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--n-o1); background: transparent; color: transparent;
+  display: grid; place-items: center; cursor: pointer; font-size: 16px; padding: 0; }
+.tick[aria-pressed="true"] { background: var(--n-pine); border-color: var(--n-pine); color: var(--n-crust); }
+.tick[disabled] { cursor: default; opacity: .5; }
+.tick:focus-visible { outline: 2px solid var(--n-larch); outline-offset: 2px; }
+.mine { font-size: 12px; color: var(--n-sub0); align-self: center; white-space: nowrap; padding-right: 4px; }
+.comp { display: flex; gap: 8px; margin: 0 12px 14px; }
+.comp div { flex: 1; background: var(--n-crust); border-radius: 10px; padding: 9px 12px; color: var(--n-o1); }
+.comp b { background: var(--n-larch); color: var(--n-crust); border-radius: 10px; padding: 9px 14px; }
+.card { margin: 0 12px 12px; background: var(--n-base); border-radius: 16px; padding: 12px; }
+.card h4 { margin: 0 0 8px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--n-sub0); display: flex; justify-content: space-between; }
+.card h4 span { color: var(--n-larch); }
+.hero { margin: 0 12px 12px; background: var(--n-s0); border-radius: 16px; padding: 14px; }
+.hero small { color: var(--n-sub0); display: block; }
+.hero strong { font-size: 18px; }
+.nrow { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--n-s0); }
+.nrow:first-of-type { border-top: 0; }
+.nrow .nb .txt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.chip { font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--n-s0); color: var(--n-sub1); margin-left: 4px; }
+.foot { text-align: right; padding-top: 8px; border-top: 1px solid var(--n-s0); color: var(--n-glacier); font-size: 13px; }
+.emptyc { color: var(--n-sub0); padding: 6px 0; }
+.sheetbg { background: rgba(0,0,0,.45); height: 96px; }
+.sheet { background: var(--n-base); border-radius: 22px 22px 0 0; padding: 14px 16px 18px; margin-top: -18px; position: relative; }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--n-s1); margin: 0 auto 12px; }
+.sheet .who2 { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; font-size: 13px; }
+.sheet .btns { display: flex; gap: 8px; margin-top: 12px; }
+.sheet .btns span { flex: 1; text-align: center; padding: 9px; border-radius: 10px; background: var(--n-s0); }
+.sheet .btns span.del { color: var(--n-ember); }
+.mini .title { font-size: 16px; }
+</style>
+
+<main>
+  <div class="eyebrow">Konzept · entschieden 21.09., Umsetzung später</div>
+  <h1>Notizen auf der Reise</h1>
+  <p class="lede">Der Schlüsselfach-Code, die Nummer vom Pizzakurier: etwas, das ein Mitreisender hinschreibt und alle anderen lesen. Anders als eine Aufgabe hat eine Notiz keinen Zustand für die ganze Reise, sondern einen <b>pro Person</b>: Ich hake sie ab, für Anna bleibt sie neu.</p>
+
+  <h2>Zum Ausprobieren</h2>
+  <p>Wechsle die Person oben. Das Häkchen gehört immer der Person, die es setzt; die Karte im Dashboard und die Notizenliste lesen dasselbe.</p>
+  <div class="stage">
+    <div class="controls">
+      <span class="muted">Ich bin</span>
+      <div class="who" id="who" role="group" aria-label="Person wählen"></div>
+      <span class="muted">Dashboard</span>
+      <div class="tog" id="dashmode" role="group" aria-label="Dashboard-Variante">
+        <button type="button" data-m="A" aria-pressed="false">A: meldet nur</button>
+        <button type="button" data-m="B" aria-pressed="true">B: Häkchen dort</button>
+      </div>
+      <div class="tog"><button type="button" id="seenbtn" aria-pressed="false">Wer hat’s gesehen? zeigen</button></div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="phone" id="m1"></div>
+        <div class="cap"><b>M1 Dashboard.</b> Die letzten Notizen <em>anderer</em>, die ich noch nicht abgehakt habe, quer über alle laufenden Reisen. Eigene Notizen erscheinen hier nie.</div>
+      </div>
+      <div>
+        <div class="phone" id="m25"></div>
+        <div class="cap"><b>Notizen der Reise.</b> Alles, was geschrieben wurde. Neue oben und hervorgehoben, abgehakte darunter gedämpft. Nummern wählen per Tipp, Codes lassen sich kopieren.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Frage 1: Wo wohnen die Notizen?</h2>
+  <p>Aufgaben (M25) sind gerade gebaut, die Pillenzeile hat mit drei Wörtern ihre Grenze bei 360 px erreicht (ADR-051, Nachtrag 1). Drei Wege:</p>
+  <div class="row">
+    <div>
+      <div class="phone mini">
+        <div class="bar"><b>‹ Toskana</b></div><div class="title">Aufgaben</div>
+        <div class="pills"><span class="pill">Packen</span><span class="pill">Kaufen</span><span class="pill on">Aufgaben<i>3</i></span></div>
+        <div class="seg"><span class="on">Aufgaben</span><span>Notizen<em>2</em></span></div>
+        <div class="list"><div class="note"><div class="nb"><div class="txt">Pflanzen giessen</div><div class="meta">Vor der Reise</div></div></div></div>
+      </div>
+      <div class="cap"><b class="rec">A · Zweiter Reiter in M25 (entschieden).</b> Die Pillenzeile bleibt, wie sie ist. Aufgaben und Notizen sind beides „was ansteht“; der Reiter trägt die Zahl der neuen Notizen.</div>
+    </div>
+    <div>
+      <div class="phone mini">
+        <div class="bar"><b>‹ Toskana</b></div><div class="title">Notizen</div>
+        <div class="pills"><span class="pill">Packen</span><span class="pill">Aufgaben<i>3</i></span><span class="pill on">Notizen<i>2</i></span></div>
+        <div class="list"><div class="note"><div class="nb"><div class="txt">Schlüsselfach: <span class="code">4711</span></div><div class="meta">Anna · vor 2 Std.</div></div></div></div>
+      </div>
+      <div class="cap"><b>B · Eigene Pille.</b> Der schnellste Zugriff. Kostet eine vierte Pille, also „Kaufen“ wird gekürzt oder die Zeile scrollt, und das hatte der Nachtrag gerade abgelehnt.</div>
+    </div>
+    <div>
+      <div class="phone mini">
+        <div class="bar"><b>‹ Toskana</b></div><div class="title">Packen</div>
+        <div class="pills"><span class="pill on">Packen</span><span class="pill">Kaufen</span><span class="pill">Aufgaben<i>3</i></span></div>
+        <div class="card" style="margin-top:0"><h4>Notizen <span>2 neu</span></h4>
+          <div class="nrow"><div class="nb"><div class="txt">Schlüsselfach: <span class="code">4711</span></div></div></div>
+        </div>
+      </div>
+      <div class="cap"><b>C · Karte über der Packliste.</b> Man sieht sie beim Losgehen, aber sie konkurriert mit der Liste, die man gerade abarbeitet, und mit dem Aufgabenband, das gerade dorthin gezogen ist.</div>
+    </div>
+  </div>
+
+  <h2>Frage 2: Darf man im Dashboard abhaken? — entschieden: ja</h2>
+  <p><b>Entschieden am 21.09.: Variante B, das Häkchen sitzt im Dashboard.</b> Das ist eine bewusste Ausnahme von FR-7.4 („das Dashboard meldet, es handelt nicht“), nur für Notizen. Variante A (nur melden) bleibt im Prototyp oben zum Vergleich umschaltbar.</p>
+
+  <h2>Die Notiz im Blatt</h2>
+  <div class="row">
+    <div>
+      <div class="phone mini">
+        <div class="sheetbg"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="txt" style="font-size:16px">Pizzakurier Da Gino: <span class="tel">+39 055 555 0123</span>, bis 22 Uhr</div>
+          <div class="meta" style="color:var(--n-sub0);font-size:12px;margin-top:4px">Ben · gestern 19:40</div>
+          <div class="who2">
+            <div><span style="color:var(--n-pine)">✓</span> Anna · gesehen 20:02</div>
+            <div><span style="color:var(--n-sub0)">○</span> Chris · noch nicht</div>
+          </div>
+          <div class="btns"><span>Bearbeiten</span><span class="del">Löschen</span></div>
+        </div>
+      </div>
+      <div class="cap">Das Blatt kennt die ganze Geschichte: wer, wann, und, falls angeschaltet, wer’s gesehen hat. Bearbeiten und Löschen für jedes Mitglied wie bei Aufgaben (FR-7.4).</div>
+    </div>
+    <div class="col">
+      <h3>Was der Tipp auf ein Wort macht</h3>
+      <p class="muted">Eine Telefonnummer wird ein <code>tel:</code>-Link, ein langer Tipp auf einen Code kopiert ihn. Beides ist reine Darstellung; die Notiz bleibt Text.</p>
+      <h3>Was die Notiz nicht ist</h3>
+      <p class="muted">Kein Tresor. Der Code liegt im Klartext bei allen Mitgliedern und im Server-Export. Für ein Schlüsselfach gedacht, nicht für ein Passwort.</p>
+    </div>
+  </div>
+
+  <h2>Wie es gebaut würde</h2>
+  <div class="tbl"><table>
+    <tr><th>Baustein</th><th>Entscheidung</th></tr>
+    <tr><td>Die Notiz</td><td>Eine Zeile in <code>comments</code> mit <code>trip_item_id</code> leer und <code>is_task = 0</code> — die Form „Kommentar auf der Reise“, die FR-7.1 längst zulässt und die noch kein Bildschirm schreibt. Autor, Zeit, Sync, Export und Löschen sind damit schon da; der Server stempelt den Autor (Invariante 3).</td></tr>
+    <tr><td>Das Häkchen pro Person</td><td>Neue Tabelle <code>note_acks</code> (<code>comment_id</code>, <code>user_id</code>, <code>acked</code>, Feld-HLCs) in der Reise-Partition. <code>user_id</code> stempelt der Server. Wieder entfernen setzt <code>acked</code> zurück, die Zeile bleibt (Feld-LWW löscht nicht).</td></tr>
+    <tr><td>Warum keine Spalte an der Notiz</td><td>Ein Feld <code>acked_by</code> an <code>comments</code> würde Feld-für-Feld zusammengeführt: Annas und Bens Häkchen zur selben Zeit überschreiben sich, einer verliert. Eine Zeile pro (Notiz, Person) kann nicht kollidieren. Das ist der Grund, aus dem <code>template_tasks</code> eine Tabelle wurde, und ein ADR wert.</td></tr>
+    <tr><td>„Neu für mich“</td><td>Abgeleitet, nie gespeichert: <code>autor ≠ ich</code> und keine Zeile <code>acked</code> für mich. Eigene Notizen sind nie neu.</td></tr>
+    <tr><td>Dashboard</td><td>Liest die Notizen aller laufenden Reisen, neueste zuerst, höchstens drei, mit Reise-Chip. Braucht wie die Aufgabenkarte die Reise-Partition der laufenden Reisen.</td></tr>
+    <tr><td>Drei Modi</td><td><b>Server:</b> alles. <b>Single-User:</b> ein Konto, also gibt es keine anderen Autoren, Karte und „neu“ sind still, die Notiz dient als Merkzettel. <b>Local:</b> dasselbe, ohne Nutzer-ID; kein <code>note_acks</code>, nichts, was ein Fremdschlüssel sein müsste.</td></tr>
+    <tr><td>Mitteilung</td><td>Eine neue Notiz löst die bestehende Push-Meldung „an alle Mitglieder“ aus, denn ohne sie liest niemand den Code rechtzeitig. Aus in den Einstellungen wie die übrigen.</td></tr>
+    <tr><td>Nicht im Backup</td><td>Wie alle Aufgaben und Einkaufseinträge (NFR-4.11).</td></tr>
+  </table></div>
+
+  <h2>Entscheidungen</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Frage</th><th>Entschieden</th></tr>
+    <tr><td>1</td><td>Wo wohnen die Notizen (A, B, C oben)?</td><td class="rec">A, zweiter Reiter</td></tr>
+    <tr><td>2</td><td>Abhaken im Dashboard oder nur dort melden?</td><td class="rec">B, Häkchen im Dashboard</td></tr>
+    <tr><td>3</td><td>Sollen alle sehen, wer abgehakt hat?</td><td class="rec">Ja, im Blatt, nicht in der Liste</td></tr>
+    <tr><td>4</td><td>Sind eigene Notizen für mich immer „gesehen“?</td><td class="rec">Ja, ohne Häkchen</td></tr>
+    <tr><td>5</td><td>Eine Push-Meldung bei neuer Notiz?</td><td class="rec">Ja</td></tr>
+    <tr><td>6</td><td>Darf man eine Notiz an eine Packliste-Zeile hängen („Zelt: Heringe im Kofferraum“) oder nur an die Reise?</td><td class="rec">Nur Reise</td></tr>
+  </table></div>
+</main>
+
+<script>
+(function () {
+  var USERS = [
+    { id: 'anna', name: 'Anna', hue: 'var(--n-heather)' },
+    { id: 'ben', name: 'Ben', hue: 'var(--n-lupine)' },
+    { id: 'chris', name: 'Chris', hue: 'var(--n-rose)' }
+  ];
+  var NOTES = [
+    { id: 'n1', by: 'anna', at: 'vor 2 Std.', html: 'Schlüsselfach am Eingang: <span class="code">4711</span>' },
+    { id: 'n2', by: 'ben', at: 'gestern 19:40', html: 'Pizzakurier Da Gino: <span class="tel">+39 055 555 0123</span>, bis 22 Uhr' },
+    { id: 'n3', by: 'chris', at: 'Sa. 11:15', html: 'Check-in erst ab 15 Uhr, Vermieterin wartet nicht länger als 17 Uhr' }
+  ];
+  var state = { me: 'anna', mode: 'B', seen: false, acks: { n3: { anna: true } } };
+
+  function user(id) { return USERS.filter(function (u) { return u.id === id; })[0]; }
+  function isNew(n) { return n.by !== state.me && !(state.acks[n.id] && state.acks[n.id][state.me]); }
+  function av(id) { var u = user(id); return '<div class="av" style="background:' + u.hue + '">' + u.name[0] + '</div>'; }
+  function toggle(id) {
+    var a = state.acks[id] || (state.acks[id] = {});
+    a[state.me] = !a[state.me];
+    render();
+  }
+  function tickBtn(n) {
+    var on = !isNew(n);
+    return '<button type="button" class="tick" data-id="' + n.id + '" aria-pressed="' + on + '" aria-label="Gesehen: ' + n.id + '">✓</button>';
+  }
+  function seenLine(n) {
+    if (!state.seen) return '';
+    var who = USERS.filter(function (u) { return u.id !== n.by && state.acks[n.id] && state.acks[n.id][u.id]; }).map(function (u) { return u.name; });
+    return '<div class="seen">' + (who.length ? '✓ ' + who.join(', ') : '<span style="color:var(--n-sub0)">noch niemand</span>') + '</div>';
+  }
+
+  function renderM1() {
+    var fresh = NOTES.filter(isNew);
+    var body = fresh.length ? fresh.slice(0, 3).map(function (n) {
+      return '<div class="nrow">' + av(n.by) + '<div class="nb"><div class="txt">' + n.html + '</div><div class="meta">' + user(n.by).name + ' · ' + n.at + '<span class="chip">Toskana</span></div></div>' +
+        (state.mode === 'B' ? tickBtn(n) : '') + '</div>';
+    }).join('') : '<div class="emptyc">Keine neuen Notizen.</div>';
+    document.getElementById('m1').innerHTML =
+      '<div class="bar"><b>Dashboard</b></div><div class="title">Guten Abend, ' + user(state.me).name + '</div>' +
+      '<div class="hero"><small>Toskana · ab Sa.</small><strong>41/58 gepackt</strong></div>' +
+      '<div class="card"><h4>Neue Notizen <span>' + fresh.length + '</span></h4>' + body +
+      (fresh.length ? '<div class="foot">Alle Notizen ›</div>' : '') + '</div>';
+    if (state.mode === 'B') bind('m1');
+  }
+
+  function renderM25() {
+    var fresh = NOTES.filter(isNew), rest = NOTES.filter(function (n) { return !isNew(n); });
+    function one(n) {
+      var fr = isNew(n), mine = n.by === state.me;
+      return '<div class="note' + (fr || mine ? '' : ' done') + '">' + av(n.by) +
+        '<div class="nb"><div class="txt">' + (fr ? '<span class="new">neu</span>' : '') + n.html + '</div>' +
+        '<div class="meta">' + user(n.by).name + ' · ' + n.at + '</div>' + seenLine(n) + '</div>' +
+        (mine ? '<span class="mine">von mir</span>' : tickBtn(n)) + '</div>';
+    }
+    document.getElementById('m25').innerHTML =
+      '<div class="bar"><b>‹ Toskana</b></div><div class="title">Aufgaben</div>' +
+      '<div class="pills"><span class="pill">Packen</span><span class="pill">Kaufen</span><span class="pill on">Aufgaben<i>3</i></span></div>' +
+      '<div class="seg"><span>Aufgaben</span><span class="on">Notizen' + (fresh.length ? '<em>' + fresh.length + '</em>' : '') + '</span></div>' +
+      '<div class="list">' + fresh.concat(rest).map(one).join('') + '</div>' +
+      '<div class="comp"><div>Notiz für alle…</div><b>Senden</b></div>';
+    bind('m25');
+  }
+
+  function bind(id) {
+    var btns = document.getElementById(id).querySelectorAll('.tick[data-id]');
+    for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function (e) { toggle(e.currentTarget.getAttribute('data-id')); });
+  }
+  function render() {
+    var w = document.getElementById('who');
+    w.innerHTML = USERS.map(function (u) { return '<button type="button" data-u="' + u.id + '" aria-pressed="' + (u.id === state.me) + '">' + u.name + '</button>'; }).join('');
+    var b = w.querySelectorAll('button');
+    for (var i = 0; i < b.length; i++) b[i].addEventListener('click', function (e) { state.me = e.currentTarget.getAttribute('data-u'); render(); });
+    var m = document.querySelectorAll('#dashmode button');
+    for (var j = 0; j < m.length; j++) m[j].setAttribute('aria-pressed', String(m[j].getAttribute('data-m') === state.mode));
+    document.getElementById('seenbtn').setAttribute('aria-pressed', String(state.seen));
+    renderM1(); renderM25();
+  }
+  var mb = document.querySelectorAll('#dashmode button');
+  for (var k = 0; k < mb.length; k++) mb[k].addEventListener('click', function (e) { state.mode = e.currentTarget.getAttribute('data-m'); render(); });
+  document.getElementById('seenbtn').addEventListener('click', function () { state.seen = !state.seen; render(); });
+  render();
+})();
+</script>

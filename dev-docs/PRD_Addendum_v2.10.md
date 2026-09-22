@@ -4525,10 +4525,10 @@ as for the packing rows.
   through the trip is what nobody wants. The cost that ruling named — an empty composer on every dashboard — is accepted
   for this card and not extended to trip todos, which stay read-only. Chosen over a single *Einkaufen* section gathering
   every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated the field per trip.
-  M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3). **Amended 2026-09-21 (FR-7.9,
-  ADR-073):** once the packing is finished the card is a block of the hero — seven lines, under the trip's head and no
-  longer a sibling under it — and the *„sibling, because a card that can be worked is not a link“* rule is kept by
-  making the hero's head the link and nothing else.
+  M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3). **Amended 2026-09-21
+  (FR-7.10, ADR-074):** once the packing is finished the card is a block of the hero — seven lines, under the trip's
+  head and no longer a sibling under it — and the *„sibling, because a card that can be worked is not a link“* rule is
+  kept by making the hero's head the link and nothing else.
 
 * **FR-30.8 (The List That Is Now — owner request 2026-09-20, *built 2026-09-20*):** M6 opened on *Vor der Abreise*
   whatever the trip was doing, and that is the one list which is certainly over once you have left. It now opens on the
@@ -5172,7 +5172,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     figure and take the lone ring size back (FR-7.4), and the shopping card below opens on *Vor Ort* (FR-30.8). The
     open-rows preview needs no rule of its own — it lists open rows, and a finished list has none; a row added
     afterwards (above) reappears there, which is correct, because that one really is open.
-    * **Amended 2026-09-21 (FR-7.9, ADR-073): the line is struck.** It took a figure's height to say one thing. The
+    * **Amended 2026-09-21 (FR-7.10, ADR-074): the line is struck.** It took a figure's height to say one thing. The
       phase is named after the dates instead, and the room carries the open tasks and shopping lines themselves.
   * **Modes:** identical in all three — one batch on the trip partition and one field on the master partition.
     **Not carried** by the portable backup (NFR-4.11), like every other piece of progress and like FR-7.3/7.4's todos —
@@ -5278,7 +5278,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show trip todos, and
     M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card is display-only
     and fetches no trip partition — but their M4 section works like any other. **Revisit trigger:** a trip todo somebody
-    needs to see on M1 before the trip is started. **Amended 2026-09-21 (FR-7.9, ADR-073):** the ruling stands for the
+    needs to see on M1 before the trip is started. **Amended 2026-09-21 (FR-7.10, ADR-074):** the ruling stands for the
     *Aufgaben* overview card and for every trip card, and no longer for the hero of a trip whose packing is finished —
     its task block is worked in place, on purpose, for the reason FR-30.7 gave the shopping list.
   * **Visibility (owner request, 2026-09-18, after using the first cut).** The section began closed at the foot of
@@ -5541,13 +5541,57 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Surfaces:** M25 (the groups, the drag, the sheet's tag list), M8 and M4 unchanged — the packing list's window
     is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09.
 
-* **FR-7.9 (The dashboard once the packing is done — owner request and decision 2026-09-21, decided from an interactive
+* **FR-7.9 (Trip Notes — Written by One Traveller, Read by All, Ticked per Person — new 2026-09-21, owner request,
+  decided from an interactive prototype; *built in the same round*):** a traveller can leave information for the
+  others — a key-box code, a courier's phone number — that everyone reads and can tick off for themselves. The owner
+  asked *„Auf einer Reise auch Notizen machen können, die die anderen Mitreisenden lesen können… Man kann sie
+  abhaken und als erledigt deklarieren; der State gilt für den User, der es deklariert hat, nicht global."* The
+  tradeoff is ADR-073.
+  * **A note is information, not work.** It is a trip-level `comments` row — `trip_item_id` NULL, `is_task = 0` —
+    the shape FR-7.1 already allows and no screen wrote until now. Author and time are stamped the same way a
+    comment's already are (invariant 3); sync, export and delete come with the table, no new column.
+  * **The tick is per reader, not global** (ADR-073): `note_acks`, one row per (note, person). A whole-field
+    `acked_by` column would let two people's concurrent ticks overwrite each other under NFR-4.2a's field-level
+    merge — the same reason FR-7.4's tasks are a table and not a column. Un-ticking sets `acked` back to `0` rather
+    than deleting the row; field-level LWW never deletes.
+  * **"New for me" is derived, never stored** (`isNoteNewForMe`, `client/src/domain/tripNotes.ts`): the author is
+    somebody else, and this reader has no `acked` row that says true. Own notes are never new and never carry a
+    tick — a tick on your own words would say nothing. The rule is the same shape as FR-7.3's open-prep derivation
+    applied again.
+  * **Where a note lives on the screen: a second segment inside M25**, not a fourth pill and not a card above the
+    packing list. A fourth pill would reopen ADR-051 amendment 1's three-word measurement; a card would compete
+    with the list being worked. The segment carries the count of *new* notes, not the whole list's count.
+  * **M1's one deliberate exception.** A *Neue Notizen* card lists the latest three notes by others I have not
+    ticked, across active trips, each with its trip's name and **its own tick** — the words lead into the trip, the
+    tick is a control beside them. This amends FR-7.4's *„M1 takes no actions"* for notes only: the owner's reading
+    is that *„gesehen"* is exactly what one says at the dashboard, and the ruling that ruled it out was made against
+    an empty composer standing above every card, which a tick is not.
+  * **Everyone sees who ticked a note, in the note's own sheet only** — never a line per note in the list, which
+    would turn the list into a read-receipt board.
+  * **Push.** A new note reaches every member but its author — a new `note` notification kind
+    (`store.NotifyNote`), the same infrastructure a mention or a delegation already rides (FR-4.2's shape), but a
+    genuine broadcast rather than a reuse: unlike a mention, a note needs no `@name` to reach the people it is for.
+    Without it, nobody reads a time-sensitive code before it is needed.
+  * **A phone number reads as a `tel:` link, and holding a press on the note copies it** — presentation only; the
+    note stays plain text either way, and a short run of digits (a key-box code) is deliberately left untouched by
+    the phone-number pattern.
+  * **Not a secret store.** The note is stored in clear text, visible to every member and in the server export. It
+    is a key-box code, not a password, and `docs/notifications.md`/`docs/backup.md` say so.
+  * **Not in the portable backup** (NFR-4.11), like every task and shopping entry — neither the note nor its ticks.
+  * **Modes.** Server: everything. Single-User: one account, so nothing is ever new and M1's card stays silent; the
+    screen still works as a scratchpad. Local: no user id (`identityStore.myUserId` is null by design), same as
+    Single-User, and no `note_acks` row is ever written — the tick control renders only where there is a reader to
+    tell apart from the author, so this is not a separate guard, it falls out of the same rule that hides an
+    author's own tick.
+  * **Surfaces:** M25 (the notes segment, the composer, the sheet), M1 (the *Neue Notizen* card). UI-Spec M25/M1;
+    E2E-M25-10/11, E2E-M1-14.
+* **FR-7.10 (The dashboard once the packing is done — owner request and decision 2026-09-21, decided from an interactive
   mockup, `dev-docs/UI_Concept_DashboardAfterPacking.html`; *built the same day*):** FR-5.10 made a finished packing
   recede into one line, *„Packen abgeschlossen“*. The owner found that line takes too much room for what it says
   (translated from German: *on the dashboard „packing finished“ takes up too much space; I think it can be left out once
   the trip is in that phase*), and asked in the same breath that the phase be shown somewhere else — in the date line —
   and that the freed room carry something useful. What is useful, in the owner's words, is *how many tasks and shopping
-  items* are open: the packing figures are not, because on that dashboard the packing is over. The tradeoff is ADR-073.
+  items* are open: the packing figures are not, because on that dashboard the packing is over. The tradeoff is ADR-074.
   * **The line is struck; the phase moves into the date line.** The hero and every trip card below it carry the trip's
     phase after the dates (*„12.–18. Okt 2026 · ● Vor Ort“*): a dot and one word — ***Vor Ort*** once the packing is
     declared finished (FR-5.10) and ***Packen*** until then — in `--jp-done` ink for the first and `--ct-subtext0` for
@@ -5578,7 +5622,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       quantity on the second line, and *„+ 7 weitere · zur Einkaufsliste ›“* leads onto M6. Packing lines keep FR-30.7's
       *Packliste* tag. Seven, not FR-30.7's five: the card no longer sits under the hero as a second object, and the
       list is what the person came for.
-    * **Both are workable in place** — this is the reversal ADR-073 records. **Check-off on the right, and hard to
+    * **Both are workable in place** — this is the reversal ADR-074 records. **Check-off on the right, and hard to
       miss**: the box is drawn 28 px inside a **56 × 52 px** target that runs to the card's edge, on a **52 px** row at
       body size 16. *Right, always*, in both blocks, and on M6 too where FR-30.9 already put it. A tick takes the row
       off the list and raises the app's snackbar with ***Rückgängig*** (the one M4 and M25 raise, through the same act,

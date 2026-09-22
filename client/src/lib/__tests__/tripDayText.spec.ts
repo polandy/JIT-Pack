@@ -4,7 +4,7 @@ import type { TripDay } from '@/domain/tripDay'
 import { t } from '@/i18n'
 import { dayText, phaseWord } from '../tripDayText'
 
-describe('dayText (FR-7.9): the counter’s words', () => {
+describe('dayText (FR-7.10): the counter’s words', () => {
   it.each<[string, TripDay, string | null, string | null]>([
     [
       'three days ahead',
@@ -49,7 +49,7 @@ describe('dayText (FR-7.9): the counter’s words', () => {
   })
 })
 
-describe('phaseWord (FR-7.9)', () => {
+describe('phaseWord (FR-7.10)', () => {
   it('is the packing stamp, not the trip’s status', () => {
     expect(phaseWord(false)).toBe(t('dashboard.phasePacking'))
     expect(phaseWord(true)).toBe(t('dashboard.phaseOnSite'))

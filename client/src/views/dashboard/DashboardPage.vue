@@ -31,6 +31,12 @@ import {
   latePackersDepartingToday,
   plannedTripsByDeparture,
 } from '@/domain/dashboardSections'
+import {
+  myAckFor,
+  newTripNotes,
+  type DashboardNoteRow,
+  type DashboardNoteTrip,
+} from '@/domain/tripNotes'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import { t } from '@/i18n'
@@ -38,6 +44,7 @@ import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen
 import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
@@ -69,7 +76,7 @@ onMounted(() => {
 })
 
 /**
- * FR-7.9: the phase word and the day counter, for the hero and for the cards
+ * FR-7.10: the phase word and the day counter, for the hero and for the cards
  * under it. `today` is read where it is asked, so a dashboard left open across
  * midnight reads the new day on its next render rather than a cached one.
  */
@@ -154,7 +161,7 @@ const followingTrips = computed(() => activeTrips.value.slice(1))
 /**
  * FR-7.6's *Aufgaben* card reports the open tasks of every active trip. The
  * hero of a trip whose packing is finished lists them itself and works them
- * (FR-7.9), and the same tasks twice on one screen would be two answers that
+ * (FR-7.10), and the same tasks twice on one screen would be two answers that
  * disagree the moment one is ticked.
  */
 const overviewTrips = computed(() =>
@@ -241,6 +248,35 @@ const delegated = computed(() =>
   delegatedToMe(sectionTrips.value, myUserId.value, seenDelegations.value),
 )
 const newDelegations = computed(() => delegated.value.filter((row) => row.isNew).length)
+
+/**
+ * FR-7.9 decision 1/2: the latest notes by others, not yet ticked by me,
+ * across active trips — with the card's own tick, the deliberate exception
+ * to "M1 takes no actions" (the concept's decision 2 and its consequence
+ * paragraph). Server Mode only, the same as `delegated` above: the other two
+ * modes have nobody else to write a note (G-8).
+ */
+const noteTrips = computed<DashboardNoteTrip[]>(() =>
+  activeTrips.value.map((trip) => ({
+    tripId: trip.id,
+    tripName: trip.name,
+    notes: tripStore.getTripComments(trip.id),
+    acks: tripStore.getNoteAcks(trip.id),
+  })),
+)
+const newNotes = computed(() => newTripNotes(noteTrips.value, myUserId.value))
+
+/** The tick itself — insert on a note's first tick, flip an existing row otherwise. */
+function tickNote(row: DashboardNoteRow): void {
+  if (!myUserId.value) return
+  const acks = noteTrips.value.find((trip) => trip.tripId === row.tripId)?.acks ?? []
+  orchestrator.toggleNoteTick(
+    row.tripId,
+    row.note.id,
+    CLIENT_ACTOR_PLACEHOLDER,
+    myAckFor(row.note.id, acks, myUserId.value),
+  )
+}
 
 /**
  * FR-5.1: the things somebody put off until the last morning, on the morning
@@ -355,6 +391,45 @@ async function handleRefresh(event: CustomEvent) {
       </template>
 
       <!--
+        FR-7.9 decision 1/2: the latest notes by others, not yet ticked.
+        Every row carries its own tick — M1's one deliberate exception, see
+        the script comment beside `newNotes`. Tapping the words leads into
+        the trip; the tick is a control of its own, the way the shopping
+        card's row already is.
+      -->
+      <template v-if="newNotes.length > 0">
+        <SectionHead :title="t('dashboard.newNotes')" data-testid="dashboard-notes-head" />
+        <div class="jp-card prep-card rows-card" data-testid="dashboard-notes">
+          <IonItem
+            v-for="row in newNotes"
+            :key="row.note.id"
+            lines="none"
+            class="dashboard-item is-new"
+            :data-testid="`dashboard-note-${row.note.id}`"
+          >
+            <IonLabel>
+              <button
+                type="button"
+                class="note-body"
+                :data-testid="`dashboard-note-open-${row.note.id}`"
+                @click="openTrip(row.tripId)"
+              >
+                <h3>{{ row.note.body }}</h3>
+                <p>{{ row.tripName }}</p>
+              </button>
+            </IonLabel>
+            <IonCheckbox
+              slot="end"
+              :checked="false"
+              :aria-label="t('dashboard.newNotesTick')"
+              :data-testid="`dashboard-note-tick-${row.note.id}`"
+              @ionChange="tickNote(row)"
+            />
+          </IonItem>
+        </div>
+      </template>
+
+      <!--
         FR-5.1: the rows somebody deliberately left until the last morning,
         on the morning it is. Absent on every other day — a permanent section
         counting down to a date is a different feature.
@@ -414,7 +489,7 @@ async function handleRefresh(event: CustomEvent) {
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
-        <!-- FR-7.9: once the packing is finished the hero works the two
+        <!-- FR-7.10: once the packing is finished the hero works the two
              things that are still owed, in place; only its head is a link. -->
         <template v-if="isPackingClosed(heroTrip)" #blocks>
           <DashboardTasksBlock
@@ -518,7 +593,7 @@ async function handleRefresh(event: CustomEvent) {
           </div>
 
           <div class="trip-card-body">
-            <!-- FR-7.9: a finished packing draws no figure here — the phase after
+            <!-- FR-7.10: a finished packing draws no figure here — the phase after
                  the dates says it, and the ring would be answering a settled
                  question. -->
             <!-- The same figure the hero carries, one ring size down: a trip's
@@ -684,7 +759,7 @@ async function handleRefresh(event: CustomEvent) {
   font-weight: var(--jp-weight-semibold);
 }
 
-/* FR-7.9: the way back to the packing list once the hero stopped showing it. */
+/* FR-7.10: the way back to the packing list once the hero stopped showing it. */
 .pack-link {
   display: flex;
   flex: 1;
@@ -719,6 +794,25 @@ async function handleRefresh(event: CustomEvent) {
 
 .dashboard-item {
   --min-height: 36px;
+}
+
+/* FR-7.10: only the words lead into the trip — the tick beside them is its
+   own control, so the row itself carries no `button`. */
+.note-body {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.note-body h3,
+.note-body p {
+  margin: 0;
 }
 
 /* FR-7.4: a statement under the packing figure, not a part of it. */

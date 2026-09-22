@@ -9,7 +9,7 @@ Single-User/Local only. No other changes from v1.9.
 replaced and why. This index only says where to look.
 * 2026-09-21 — **M1**: once the packing is finished the hero drops *„Packen abgeschlossen“* for the phase in the date
   line, a day counter and two blocks — *Aufgaben* (four) and *Einkauf* (seven) — that are checked off, added to and
-  folded in place, with *Packliste öffnen* under them (FR-7.9, ADR-073). The hero is no longer one link.
+  folded in place, with *Packliste öffnen* under them (FR-7.10, ADR-074). The hero is no longer one link.
 * 2026-09-21 — **M25** groups by tag: a task carries at most one tag of its own (`task_tags`, not the inventory's
   axis), the groups sit inside the two phases, and a task is dragged between them by its grip or by holding the row.
   What has no tag reads under *Aus Packliste* or *Ohne Tag*, after where it came from — and a group refuses what it
@@ -811,12 +811,12 @@ These patterns apply to every screen and are specified once.
   at the lone ring size (FR-7.4), and the shopping card under it opens on *Vor Ort* (FR-30.8). The open-rows preview
   needs no rule — it lists open rows, of which a finished list has none, and a row added afterwards belongs there.
   (E2E-M1-25)
-* **The hero after the packing (FR-7.9, ADR-073, decided 2026-09-21 from `UI_Concept_DashboardAfterPacking.html`) —
+* **The hero after the packing (FR-7.10, ADR-074, decided 2026-09-21 from `UI_Concept_DashboardAfterPacking.html`) —
   amends the bullet above: the „Packen abgeschlossen“ line is struck.** Rendered from top to bottom on a trip whose
   packing is finished:
   * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
     then, on every trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is the packing stamp,
-    not `listInFocus` (FR-7.9).
+    not `listInFocus` (FR-7.10).
   * **Name row:** the trip's name, and opposite it the day counter in the action ink with its second line in
     `--ct-subtext0` — *in 3 Tagen*, *Abreise heute*, *Tag 2 von 7* / *noch 5 Tage*, *Letzter Tag*, nothing afterwards;
     without an end date *Tag 2*, without a start date none. The meta line follows.
@@ -886,24 +886,35 @@ These patterns apply to every screen and are specified once.
   assistive technology too). ~~Tapping a todo toggles it resolved~~ — **struck 2026-09-18 (owner): M1 takes no
   actions**, so the card lists the tasks as text and they are resolved in M4 or M5 (E2E-M1-02, E2E-M1-07).
 * **Tasks section (FR-7.4 — built 2026-09-18, reworked the same day; every task of the trip since FR-7.6).** An
-  *Aufgaben* card under its section head (G-13, the open count beside the name) **reports, never operates**: M1 takes no
-  actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure first — the
-  hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2 erledigt"*, or *„✓
-  Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open tasks as plain text — an assigned one
-  followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5), one that prepares a row
-  followed by that row's chip instead (FR-7.6), which is the one link on the line and leads into the row. The block's
-  head is the other link, and leads into the trip; the two are never nested. A trip without any task is left out, and
-  the card is absent when none has one — the first cut put an editor with an empty composer here for every active trip,
-  which stood above the hero on every dashboard. **The trip cards carry the check too:** the hero as the **packing
-  share's pair** — the same ring (both step down to 46 px while paired), *„1/4 Aufgaben"*, *„3 offen"* while any is
-  open, and a track, in `--jp-done` like the share's (G-11). Side by side where both sentences fit, headlines on one
-  line and tracks on another; stacked where they do not, which is a phone — each column's basis is the ring, its gap and
-  the longest sentence measured, so no breakpoint is involved and no sentence is ellipsized. Each list card below the
-  hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben: alle erledigt"*. Both are present only when the trip has at
-  least one trip todo, and neither is folded into the ring, the track or the share. The todos are written in M4
-  (*Aufgaben für die Reise*). All three modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11) **Amended
-  2026-09-21 (FR-7.9, ADR-073):** this card still reports and never operates; the hero of a trip whose packing is
-  finished carries its own task block, which is worked in place, and this card leaves that trip out.
+  *Aufgaben* card under its section head (G-13, the open count beside the name) **reports, never operates**:
+  M1 takes no actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure
+  first — the hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2
+  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open tasks as plain text —
+  an assigned one followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5), one that
+  prepares a row followed by that row's chip instead (FR-7.6), which is the one link on the line and leads into the
+  row. The block's head is the other link, and leads into the trip; the two are never nested. A
+  trip without any task is left out, and the card is absent when none has one — the first cut put an editor with an
+  empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
+  check too:** the hero as the **packing share's pair** — the same ring (both step down to 46 px while paired),
+  *„1/4 Aufgaben"*, *„3 offen"* while any is open, and a track, in `--jp-done` like the share's (G-11). Side by side
+  where both sentences fit, headlines on one line and tracks on another; stacked where they do not, which is a
+  phone — each column's basis is the ring, its gap and the longest sentence measured, so no breakpoint is involved
+  and no sentence is ellipsized. Each list card below the hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben:
+  alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
+  is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
+  modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11) **Amended 2026-09-21 (FR-7.10, ADR-074):** this
+  card still reports and never operates; the hero of a trip whose packing is finished carries its own task block,
+  which is worked in place, and this card leaves that trip out.
+* **The *Neue Notizen* card (FR-7.9 decision 1/2 — built 2026-09-22).** M1's one deliberate exception to *„M1 takes
+  no actions"*: a card under a section head lists the three latest trip notes **by others** that this reader has not
+  ticked, across active trips, soonest-written first. Each row is the note's words and its trip's name, leading into
+  the trip on tap — **and, beside it, its own tick**, a control of its own rather than the row's `button`, the way
+  the shopping card's per-row check-off already is. Ticking calls the same `toggleNoteTick` M25's list uses: an
+  insert the first time this reader has ticked the note, an upsert flipping `acked` on every tap after. **The card
+  is absent** where it has nothing to show — nobody else has written an unticked note, or (Single-User/Local, G-8)
+  there is no other author for anything to ever be new from. **Modes:** Server only; the other two never populate
+  it, because nothing is ever new without a second identity (FR-7.9's own reasoning, not a separate gate here).
+  (E2E-M1-14)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
@@ -2458,10 +2469,11 @@ token would prove nothing there is anything to prove.
   revised 2026-08-29: no identity provider supplies a picture, so gating it on Single-User Mode meant a multi-user
   instance could never have one). The picture control is the same one M17 offers in Single-User Mode, described in the
   variant below. The note under the name names the display name specifically rather than claiming the whole profile is
-  managed elsewhere; notification preferences per event type: delegation, mention, task assigned and **items taken
-  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) with channel
-  status (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own
-  suppression rule and silences that kind alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
+  managed elsewhere; notification preferences per event type: delegation, mention, task assigned, **items taken
+  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) and
+  **trip notes** (FR-7.9, the fifth, 2026-09-22) with channel status (push registered via VAPID/UnifiedPush,
+  NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind
+  alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
   them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
   account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side
   because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because
@@ -2822,6 +2834,28 @@ token would prove nothing there is anything to prove.
   arrived** the screen shows nothing rather than an empty list (ADR-033).
 * **Navigation:** the pill row reaches it from M4 and M6 and back; M4's task section also carries *„Alle Aufgaben"* as
   the way out of its window. The bar's ⋮ keeps the two views the row does not show (ADR-051 amendment 1).
+* **The notes segment (FR-7.9 — built 2026-09-22).** An `IonSegment`, *Aufgaben* / *Notizen*, above the mine chip —
+  a second segment rather than a fourth pill (ADR-051 amendment 1's three-word row) and rather than a third section:
+  unlike the phase split above, tasks and notes are two places you stand, the way the shopping list's own two tabs
+  are. The *Notizen* button carries the count of **new** notes — by somebody else, not yet ticked — never the
+  segment's own count, and says nothing when there are none.
+  * **The list**, new-first and marked, ticked ones sunk below and muted (`opacity: 0.55`): every trip-level
+    `comments` row (`is_task = 0`), each an avatar, the words, a *„written by … · when"* line (the same stamp a
+    task's provenance line already carries), and — where the note is not mine and there is somebody to tell it
+    from — its own tick. My own notes never carry one (decision 4): a tick on your own words would say nothing.
+  * **The composer** writes a trip-level comment directly, the same shape M25's task composers already write —
+    no phase, because a note has none.
+  * **The note's sheet** opens on the words. It carries the head (a plain *„Notiz"* title — the body can run to a
+    paragraph, unlike a task's one line — the stamp as its meta), the body itself with a phone number read as a
+    `tel:` link and a long press (`useLongPress`'s own 500 ms/8 px) copying the text verbatim, **who has ticked it**
+    (decision 3 — every reader, named here and only here, never a line in the list), and *Notiz löschen*.
+  * **Modes.** All three. Server: everything. Single-User: one account, so every note is trivially mine and no tick
+    ever renders; the screen still works as a scratchpad. Local: same as Single-User (`identityStore.myUserId` is
+    null), and the tick's absence there is not a separate guard — it falls out of the same "not mine, and somebody
+    to tell it from" rule.
+  * **Push (decision 5):** a new note reaches every other member through the existing notification path
+    (`NotifyNote`), the same as a delegation or a mention.
+  * (E2E-M25-10, E2E-M25-11)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

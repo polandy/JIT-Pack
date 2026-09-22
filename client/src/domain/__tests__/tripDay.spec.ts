@@ -7,7 +7,7 @@ const trip = { start_date: '2026-10-12', end_date: '2026-10-18' }
 /** A local date at an hour, so the spec proves the counter counts days, not hours. */
 const at = (day: string, hour = 12) => new Date(`${day}T${String(hour).padStart(2, '0')}:00:00`)
 
-describe('tripDay — FR-7.9 the counter is calendar days', () => {
+describe('tripDay — FR-7.10 the counter is calendar days', () => {
   it.each([
     ['three days ahead', '2026-10-09', { kind: 'before', daysUntil: 3 }],
     ['the day of departure', '2026-10-12', { kind: 'first' }],
@@ -52,7 +52,7 @@ describe('tripDay — FR-7.9 the counter is calendar days', () => {
   })
 })
 
-describe('taskPhaseInFront (FR-7.9): the phase of task the dashboard leads with', () => {
+describe('taskPhaseInFront (FR-7.10): the phase of task the dashboard leads with', () => {
   it.each([
     ['before the start', { kind: 'before', daysUntil: 2 }, TASK_PHASE_BEFORE],
     ['the day of departure', { kind: 'first' }, TASK_PHASE_DURING],

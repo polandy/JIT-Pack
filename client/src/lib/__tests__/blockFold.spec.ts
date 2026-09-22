@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useBlockFold } from '../blockFold'
 
-describe('useBlockFold (FR-7.9): the fold is remembered per block', () => {
+describe('useBlockFold (FR-7.10): the fold is remembered per block', () => {
   beforeEach(() => localStorage.clear())
 
   it('starts open', () => {

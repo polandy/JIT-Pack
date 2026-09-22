@@ -1,5 +1,5 @@
 /**
- * The words of the dashboard's phase and day counter (FR-7.9).
+ * The words of the dashboard's phase and day counter (FR-7.10).
  *
  * The rule is `domain/tripDay.ts`; what lives here is the sentence, because a
  * sentence is a presentation choice and needs the active locale.

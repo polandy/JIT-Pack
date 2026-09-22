@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The phase a trip is in, after its dates (FR-7.9): a dot and one word — in
+ * The phase a trip is in, after its dates (FR-7.10): a dot and one word — in
  * the done role's ink once the packing is finished, quiet before.
  */
 defineProps<{ label: string; done: boolean; testid?: string }>()

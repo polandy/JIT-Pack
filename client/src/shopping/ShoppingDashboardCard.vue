@@ -40,7 +40,7 @@ const props = defineProps<TripCardProps>()
 /** The block's remembered fold (`lib/blockFold.ts`). */
 const SHOPPING_FOLD_KEY = 'shopping'
 
-/** How many lines the card shows before it hands over to M6 — seven as a block of the hero (FR-7.9). */
+/** How many lines the card shows before it hands over to M6 — seven as a block of the hero (FR-7.10). */
 const MAX_LINES = props.embedded ? 7 : 5
 
 const orchestrator = useOrchestrator()
@@ -102,7 +102,7 @@ function add() {
   lastBought.value = null
 }
 
-/** FR-7.9: the block's own field — the confirmation is what a folded block has to show. */
+/** FR-7.10: the block's own field — the confirmation is what a folded block has to show. */
 function addFromBlock(text: string) {
   actions.addEntry(props.tripId, list.value, text)
   lastBought.value = null
@@ -131,7 +131,7 @@ function switchTo(which: ShoppingMode) {
 </script>
 
 <template>
-  <!-- FR-7.9: a block of the hero, drawn by the same object as the task block. -->
+  <!-- FR-7.10: a block of the hero, drawn by the same object as the task block. -->
   <template v-if="visible && embedded">
     <DashboardBlock
       :title="t('shopping.title')"

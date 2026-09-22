@@ -12,7 +12,7 @@ import type { MessageKey } from '@/i18n'
 import type { NotificationEntry } from '@/api/types'
 
 /** The kinds the server sends (Sync-API §8). */
-export const NOTIFICATION_KINDS = ['delegation', 'mention', 'task', 'lock_taken'] as const
+export const NOTIFICATION_KINDS = ['delegation', 'mention', 'task', 'lock_taken', 'note'] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
 
@@ -61,7 +61,9 @@ export function notificationBodyName(
   detail: { item: string; preview: string },
 ): NotificationBodyName {
   if (!(NOTIFICATION_KINDS as readonly string[]).includes(kind)) return 'generic'
-  const named = kind === 'mention' ? detail.preview : detail.item
+  // FR-7.9: a note is about its own words, like a mention — it names no
+  // item, only the body's preview.
+  const named = kind === 'mention' || kind === 'note' ? detail.preview : detail.item
   return (named ? kind : `${kind}Plain`) as NotificationBodyName
 }
 

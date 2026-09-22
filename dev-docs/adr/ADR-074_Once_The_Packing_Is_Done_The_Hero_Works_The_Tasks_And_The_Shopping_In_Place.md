@@ -1,7 +1,7 @@
-# ADR-073: Once the packing is done the hero works the tasks and the shopping in place — vs. keeping M1 read-only, vs. only removing the line
+# ADR-074: Once the packing is done the hero works the tasks and the shopping in place — vs. keeping M1 read-only, vs. only removing the line
 
 **Status:** Accepted
-**Related:** FR-7.9, FR-5.10, FR-7.4, FR-7.7, FR-30.7, FR-30.8, ADR-066, ADR-071, ADR-060, UI-Spec M1,
+**Related:** FR-7.10, FR-5.10, FR-7.4, FR-7.7, FR-30.7, FR-30.8, ADR-066, ADR-071, ADR-060, UI-Spec M1,
 `client/src/components/trips/TripHero.vue`, `client/src/lib/tripCards.ts`,
 `dev-docs/UI_Concept_DashboardAfterPacking.html`
 
@@ -82,7 +82,7 @@ Lines and counts as text, tasks read-only, the shopping card unchanged under the
 ## Decision
 
 Option A. Once a trip's packing is declared finished the hero carries the phase in its date line, a day counter, and two
-blocks that are worked in place; only its head is a link. FR-7.9 has the details; FR-7.4's ruling that M1 takes no
+blocks that are worked in place; only its head is a link. FR-7.10 has the details; FR-7.4's ruling that M1 takes no
 actions is amended to say *except the shopping card and the hero's two blocks*.
 
 ## Consequences
@@ -94,7 +94,7 @@ actions is amended to say *except the shopping card and the hero's two blocks*.
 
 **Negative / accepted costs**
 - M1 is no longer read-only for tasks; every later dashboard feature has one exception more to argue against.
-- A fold state exists per user and block, with an open question on where it lives (FR-7.9).
+- A fold state exists per user and block, with an open question on where it lives (FR-7.10).
 - The hero's tab order is longer than before; the Playwright cases must walk it.
 
 **Neutral**

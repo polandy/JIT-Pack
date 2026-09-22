@@ -444,6 +444,28 @@ CREATE TABLE comments (
     CHECK (is_task = 0 OR task_state IS NOT NULL)
 );
 
+-- FR-7.9: a per-person tick on a trip note (a `comments` row with
+-- trip_item_id NULL and is_task = 0 — no column of its own). One row per
+-- (comment, user) rather than an `acked_by` column on comments, because a
+-- whole-field merge (NFR-4.2a) would let two people's ticks made at the same
+-- time overwrite each other; ADR-073 has the reasoning, which is the same
+-- one that put FR-7.4's own tasks in a table. Un-ticking sets `acked` back
+-- rather than deleting the row — field-level LWW never deletes.
+--
+-- trip_id is carried directly, like every other trip-partition table
+-- (`containers`, `comments`), because the sync partition's own scoping reads
+-- a row's trip_id column, not a join through comment_id.
+CREATE TABLE note_acks (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    comment_id  TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    acked       INTEGER NOT NULL DEFAULT 1 CHECK (acked IN (0,1)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT '',
+    UNIQUE (comment_id, user_id)
+);
+
 -- ---------------------------------------------------------------------------
 -- FR-27.4 planning refresh (ADR-016)
 -- ---------------------------------------------------------------------------

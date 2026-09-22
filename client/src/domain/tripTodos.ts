@@ -213,7 +213,7 @@ export function tasksOfAssignee(tasks: readonly TripTask[], userId: string | nul
   return tasks.filter((task) => task.assignee_user_id === userId)
 }
 
-/** What the dashboard's task block lists, and what it says of the rest (FR-7.9). */
+/** What the dashboard's task block lists, and what it says of the rest (FR-7.10). */
 export interface DashboardTasks {
   /** The next few open tasks, in the order the block shows them. */
   rows: TripTask[]
@@ -224,7 +224,7 @@ export interface DashboardTasks {
 }
 
 /**
- * dashboardTasks picks the tasks M1's block lists (FR-7.9): the open ones,
+ * dashboardTasks picks the tasks M1's block lists (FR-7.10): the open ones,
  * the phase in front of the trip first, and in Server Mode the tasks handed to
  * this person before the rest.
  *

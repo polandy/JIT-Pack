@@ -247,11 +247,11 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
 })
 
 /**
- * FR-7.9: once the packing is finished the card is a block of the hero — the
+ * FR-7.10: once the packing is finished the card is a block of the hero — the
  * same object as the task block, seven lines, no chip. The list it reads is
  * still the one in focus, and every write is still the card's own.
  */
-describe('ShoppingDashboardCard as a block of the hero (FR-7.9)', () => {
+describe('ShoppingDashboardCard as a block of the hero (FR-7.10)', () => {
   const blockRows = (card: ReturnType<typeof mountCard>) =>
     card.findAll('[data-testid="dash-shop-row"]').map((r) => r.find('.title').text())
   const embedded = (opts: Parameters<typeof mountCard>[0] = {}) =>

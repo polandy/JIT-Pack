@@ -44,6 +44,7 @@ import type {
   ItemDependency,
   ItemTodo,
   MasterItem,
+  NoteAck,
   Template,
   TemplateItem,
   Traveler,
@@ -616,6 +617,35 @@ const CASES: BuilderCase[] = [
       label: 'Reiseadapter',
       mode: 'pack',
     } satisfies Record<keyof DestinationChecklistItem, unknown>,
+  },
+  {
+    builder: 'noteAckRow',
+    seed: () => {
+      seedTrip()
+      pullIn(useTripStore(), TABLE.noteAcks, 'ack-1', {
+        trip_id: TRIP_ID,
+        comment_id: 'note-1',
+        user_id: 'u-anna',
+        acked: 1,
+      })
+    },
+    read: () => useTripStore().getNoteAcks(TRIP_ID)[0] as unknown as Record<string, unknown>,
+    acts: [
+      {
+        // The only writer beyond the insert: un-ticking flips `acked` back
+        // rather than deleting the row (NFR-4.2a never deletes).
+        act: (a: NoteAck) => newOrch().toggleNoteTick(TRIP_ID, a.comment_id, a.user_id, a),
+        changed: 'acked',
+        becomes: false,
+      },
+    ],
+    expected: {
+      id: 'ack-1',
+      trip_id: TRIP_ID,
+      comment_id: 'note-1',
+      user_id: 'u-anna',
+      acked: true,
+    } satisfies Record<keyof NoteAck, unknown>,
   },
 ]
 

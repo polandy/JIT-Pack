@@ -65,6 +65,8 @@ const CASES: ServerNotification[] = [
   notif('task', { actor_name: 'Sarah' }),
   notif('lock_taken', { actor_name: 'Sarah', item_name: 'Zelt' }),
   notif('lock_taken', { actor_name: 'Sarah' }),
+  notif('note', { actor_name: 'Sarah', preview: 'Schlüsselfach: 4711' }),
+  notif('note', { actor_name: 'Sarah' }),
   notif('shiny_new_kind', { actor_name: 'Andy' }),
   notif('mention', {}),
   notif('delegation', null),

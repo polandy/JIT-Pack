@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A trip's open tasks in the hero, worked in place (FR-7.9, ADR-073).
+ * A trip's open tasks in the hero, worked in place (FR-7.10, ADR-074).
  *
  * The one place M1 stops only reporting on tasks: once the packing is
  * finished what is owed is the tasks and the shopping, and the dashboard is

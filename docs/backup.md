@@ -33,7 +33,9 @@ Back it up from inside the app:
    what is packed, and which shopping list a bought item came from, so the shopping
    screen's *bought* reveal still finds it after a restore. **Todos are not in it** —
    neither a trip's own tasks nor an item's preparation todos; a restored trip comes back
-   without them. A template's *tasks for the trip* are, because they belong to the template —
+   without them. **Nor are trip notes** (see [Trip notes](trip-notes.md)) — neither the
+   notes themselves nor who has ticked them; a restored trip comes back without either.
+   A template's *tasks for the trip* are, because they belong to the template —
    their words — not the phase they are due in, and not their tag (see `trip_tasks:` below).
    **Nor is anything typed straight onto the shopping list** — the milk and bread under
    *„Eingetragen"*. Those entries belong to the shopping list, not to the packing list the

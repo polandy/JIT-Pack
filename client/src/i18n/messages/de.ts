@@ -946,6 +946,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.prefTaskHint': 'Zu deinem Packelement wurde eine Aufgabe eröffnet',
   'settings.prefLockTaken': 'Übernommene Artikel',
   'settings.prefLockTakenHint': 'Jemand hat einen Artikel übernommen, den du gerade gepackt hast',
+  'settings.prefNote': 'Reisenotizen',
+  'settings.prefNoteHint': 'Ein Mitreisender hat eine neue Notiz geschrieben',
   'settings.push': 'Push auf diesem Gerät',
   'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
   'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
@@ -1482,6 +1484,10 @@ export const de: Record<keyof typeof en, string> = {
   'dashboard.delegatedNewRow': '{name} — neu',
   'dashboard.delegatedNew': '{n} neu',
   'dashboard.latePackers': '{n} letzte Sache | {n} letzte Sachen',
+  // FR-7.9, Entscheid 1/2 — M1s Notizen-Karte: die neusten Notizen anderer,
+  // die ich noch nicht abgehakt habe, je mit Reise-Chip und eigenem Haken.
+  'dashboard.newNotes': 'Neue Notizen',
+  'dashboard.newNotesTick': 'Als gesehen markieren',
   'dashboard.planned': 'Geplant',
   'dashboard.tripTodos': 'Aufgaben',
   'travelerProgress.title': 'Pro Person',
@@ -1508,6 +1514,10 @@ export const de: Record<keyof typeof en, string> = {
 
   // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
   'tasks.title': 'Aufgaben',
+  // FR-7.9 — M25s zwei Segmente, Aufgaben und Notizen.
+  'tasks.segmentTasks': 'Aufgaben',
+  'tasks.segmentNotes': 'Notizen',
+  'tasks.segmentNotesCount': 'Notizen ({n})',
   'tasks.before': 'Vor der Reise',
   'tasks.during': 'Während der Reise',
   'tasks.mine': 'Meine',
@@ -1537,6 +1547,18 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.newTag': 'Neues Tag…',
   'tasks.movedToast': '„{body}" verschoben',
   'tasks.whilePacking': 'Beim Packen zu erledigen',
+
+  // FR-7.9 — Notizen einer Reise: von einer Person geschrieben, von allen
+  // gelesen, pro Person abgehakt. Keine Geheimnis-Ablage (§6 des Konzepts) —
+  // gespeichert im Klartext, wie ein Code auf einer Tafel im Flur.
+  'notes.empty': 'Für diese Reise gibt es noch keine Notizen.',
+  'notes.addPlaceholder': 'Eine Notiz für die Reise — ein Code, eine Nummer…',
+  'notes.new': 'Neu',
+  'notes.tick': 'Als gesehen markieren',
+  'notes.sheetTitle': 'Notiz',
+  'notes.ackedBy': 'Gesehen von',
+  'notes.remove': 'Notiz löschen',
+  'notes.copied': 'Kopiert',
   'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
   'dashboard.taskLineDone': 'Aufgaben: alle erledigt',
   'dashboard.openWord': 'offen',
@@ -1789,6 +1811,8 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.taskPlain': '{actor} hat eine Aufgabe für dich eröffnet',
   'notify.body.lock_taken': '{actor} hat „{item}“ von dir übernommen',
   'notify.body.lock_takenPlain': '{actor} hat einen Artikel von dir übernommen',
+  'notify.body.note': '{actor} hat eine Notiz geschrieben: {preview}',
+  'notify.body.notePlain': '{actor} hat eine neue Notiz geschrieben',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.actorUnknown': 'Jemand',
 }
