@@ -421,6 +421,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 - [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
 - [A bar that counted done rows called them packed (2026-09-21)](#a-bar-that-counted-done-rows-called-them-packed-2026-09-21) — FR-25.2 contradicted its own label; the counter the owner refused, and the plural rule that split the languages.
+- [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 
 ## Deviations
 
@@ -17095,3 +17096,39 @@ the menu-opened case and keeps one title for both. It is deleted rather than rew
 it looked from outside: a catalogue entry, a plausible name, a sentence that reads as a screen's — and grep finds it
 in the same shape as the two strings that are real. Only following the key to a template tells them apart, and the
 suite cannot, because there is nothing to assert about a string nothing renders.
+
+## `e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)
+
+`make ci-remote` dispatches `ci.yml` on GitHub for a feature branch with no PR open yet — the front door for the jobs
+that need docker and a browser, per the comment at the top of the workflow. It ran the full matrix on every
+dispatch, `e2e` (ten shards), `e2e-single` and `e2e-server` included, and that made it the slow step in ordinary
+iteration rather than the safety net it was meant to be: `e2e` alone is sized against ~2940 test-seconds, and the
+owner was paying that on every remote check, before a PR — and the review it was gathering evidence for — existed
+(owner, 2026-09-22).
+
+**The accepted cost.** Those three jobs now carry `if: github.event_name != 'workflow_dispatch'`, so `ci-remote`
+skips them; they still run on `pull_request` and on `push` to main, same as before. This is a real regression in
+signal, named so it does not get "fixed" later without the tradeoff being re-read: a feature branch can now carry an
+e2e-breaking change for as long as the owner iterates on it remotely, and the first e2e result appears only once a
+PR is opened. Cheap to accept because `e2e` was already not a required check for `main` (branch protection names
+`go`, `go-lint`, `client`, `format`, `docker-build`), so this changes *when* the signal arrives, not what blocks a
+merge — and CI already keeps a build-and-test record on `push` to main independent of what happened on the branch.
+
+**Why `docker-build` was left alone on `ci-remote`.** The one dispatch-only job the owner actually wanted to keep
+paying for: it is required for merge and cheap, so it was never the thing making the loop slow.
+
+**A second, independent cut: `e2e` and `visual` also skip a markdown-only diff.** The `changes` job (top of
+`ci.yml`) diffs the two SHAs `pull_request`/`push` already carry and checks every changed path against `\.md$`. A
+patch that touches only `*.md` — `docs/`, `dev-docs/`, `README.md`, `CLAUDE.md`, an ADR, anywhere — ships no code and
+renders no screen, so `e2e`, `e2e-single`, `e2e-server` and `visual` all skip it, on `pull_request` and `push` to
+main as well as `ci-remote`. A suffix check rather than an allowlist of doc directories, deliberately: a new doc
+location never needs this file touched to stay covered, and the check cannot go stale the way the shard count did.
+Unlike the `workflow_dispatch` cut above, `docker-build` was *not* added to this one — a docs change can still land
+in the Dockerfile's copied tree or break the image build in principle, and that job is cheap enough that narrowing
+it further wasn't worth the edge case.
+
+**What replaced the wait.** A lighter review skill, `.claude/skills/pr-review-lite`, covers the same ground as
+`/pr-review` — spec/ADR sync, `CODING_PRINCIPLES.md` and the invariants, test coverage, client/UI — against an
+unopened or freshly opened PR, but its CI-status section only requires `go`, `go-lint`, `client`, `format` and
+`docker-build` green; `e2e`, `e2e-single`, `e2e-server` and `visual` are read and reported if present, never waited
+on or treated as blockers. The full `/pr-review` is still the gate before an actual merge.

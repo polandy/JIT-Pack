@@ -5,8 +5,10 @@ on:
     branches: [main]
   pull_request:
   # Lets a feature branch be checked on GitHub without opening a PR first, so
-  # the jobs that need docker and a browser (e2e, visual, docker-build) never
-  # have to run on a maintainer laptop. `make ci-remote` is the front door.
+  # the jobs that need docker and a browser (visual, docker-build) never have
+  # to run on a maintainer laptop. `make ci-remote` is the front door. The e2e
+  # jobs (below) skip this trigger on purpose — they stay a pre-PR/pre-merge
+  # signal, not a per-push one, because they are the slow part of the loop.
   # Note this trigger is only honoured once it exists on the default branch.
   workflow_dispatch:
 
@@ -27,6 +29,50 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # A change that touches only `*.md` files — `docs/`, `dev-docs/`, README,
+  # CLAUDE.md, an ADR, anywhere — ships no code and touches nothing e2e or
+  # visual can see: no route, no component, no behaviour. A suffix check
+  # rather than a directory allowlist so a new doc location never needs this
+  # file updated to stay covered. Computed once here rather than with a
+  # third-party paths-filter action (NFR-4.3: a two-line diff check is not
+  # worth a new pinned dependency).
+  #
+  # Runs unconditionally, on every trigger including workflow_dispatch: a
+  # `needs`-job that is itself skipped skips every job that needs it, no
+  # matter what that job's own `if` says — the per-trigger e2e/visual skips
+  # below rely on this job's output actually existing, so it must not be the
+  # one with the workflow_dispatch condition.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      markdown_only: ${{ steps.check.outputs.markdown_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - id: check
+        # pull_request/push carry a base SHA in the event payload;
+        # workflow_dispatch carries neither, so it diffs against the
+        # merge-base with main instead (the fetch above already has the
+        # history `git merge-base` needs).
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE_SHA" ;;
+            push) base="$PUSH_BEFORE_SHA" ;;
+            *) base="$(git merge-base origin/main HEAD)" ;;
+          esac
+          changed="$(git diff --name-only "$base" "$HEAD")"
+          if [ -n "$changed" ] && [ -z "$(echo "$changed" | grep -vi '\.md$')" ]; then
+            echo "markdown_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "markdown_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
   go:
     runs-on: ubuntu-latest
     steps:
@@ -140,8 +186,12 @@ jobs:
   # failure itself. (The `needs` stays here, unlike on `e2e`, because this
   # job is off the critical path either way — it finishes well inside the
   # e2e window.)
+  #
+  # Skipped when only *.md files changed (see `changes` above) — a baseline diff
+  # needs a rendered screen, and nothing in `docs/` renders one.
   visual:
-    needs: [client]
+    needs: [changes, client]
+    if: needs.changes.outputs.markdown_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -182,7 +232,17 @@ jobs:
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
   # that same log section.
+  # Skipped on workflow_dispatch (`make ci-remote`): that trigger exists for a
+  # fast feature-branch check without a PR, and waiting on the full e2e matrix
+  # on every such run was the actual bottleneck in the dev loop, not the
+  # matrix itself. e2e still runs on every `pull_request` and on `push` to
+  # main, so it stays a pre-merge signal — just not one you pay for before a
+  # PR exists. visual and docker-build are unaffected: ci-remote still checks
+  # those, since they are cheap (docker-build) or not sharded (visual).
+  # Also skipped when only *.md files changed (see `changes` above).
   e2e:
+    needs: [changes]
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
     runs-on: ubuntu-latest
     strategy:
       # Every shard reports, so a failure in one is not hidden by the
@@ -217,7 +277,10 @@ jobs:
   # legs deliberately do not build. Same pinned image, same drift check, via
   # scripts/e2e.sh. Not a required check, for the same reasons `e2e` is not
   # (see CLAUDE.md — branch protection stays untouched).
+  # Skipped on workflow_dispatch and when only *.md files changed — see `e2e` above.
   e2e-single:
+    needs: [changes]
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -245,7 +308,10 @@ jobs:
   # the same reason `e2e-single` is one, and separate from it because the two
   # backend configurations are mutually exclusive in one process —
   # Single-User bypasses auth entirely. Not a required check either.
+  # Skipped on workflow_dispatch and when only *.md files changed — see `e2e` above.
   e2e-server:
+    needs: [changes]
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
