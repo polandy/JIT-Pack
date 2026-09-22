@@ -785,7 +785,9 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
       .map((el) => el.element.tagName.toLowerCase())
     expect(slots).toEqual(['ion-button', 'ion-checkbox'])
     // FR-30.9's single-row drag: the leading slot is the grip, not selecting.
-    expect(page.find('[data-testid="m6-row-grip-Brot"]').exists()).toBe(true)
+    const grip = page.find('[data-testid="m6-row-grip-Brot"]')
+    expect(grip.exists()).toBe(true)
+    expect(grip.attributes('aria-label')).toBe(t('shopping.dragToRetag', { name: 'Brot' }))
   })
 })
 
