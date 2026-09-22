@@ -1766,15 +1766,16 @@ These patterns apply to every screen and are specified once.
   icon (`checkboxOutline`, mirroring M9's `m9-select`, FR-24.9) — active state on while the mode is on — arms an
   inline **selection**, reaching every own entry on the open tab, tagged or not; unlike M9's, this selection offers a
   *retag*, so an already-tagged entry is as selectable as an untagged one. Entering it replaces the field and the chip
-  row with a **selbar** — a ✕ to leave, *„N ausgewählt"* / *„Nichts ausgewählt"*, and *„Alle N"* over the open tab's
-  own entries — and each row grows a leading checkbox (a dashed, dimmed slot for a packing row's projection, which
-  never carries a tag and is named once below the list rather than repeated per row: *„Packlisten-Positionen tragen
-  nie ein Tag — nicht wählbar."*); the row's own tap toggles it instead of opening the entry sheet. A row selected by
-  the long press that started the mode is not toggled off by the tap the browser sends on release — the same care
-  M4's row menu takes with its own trailing click. Once at least one entry is picked, a bottom bar offers **Tag
-  vergeben**, opening the same search-or-create sheet the single entry does — titled *„Tag für N Einträge"*, and with
-  no trailing summary line, since that sentence is written for one entry staying staged until *Speichern* and this
-  sheet applies the instant a chip is chosen, to more than one. Choosing files every selected entry under it at once;
+  row with a **selbar** — a ✕ to leave, *„Nichts ausgewählt"* at zero and *„N ausgewählt"* from one (the same two-form
+  split as M9's own bar, since one entry is not a plural), and *„Alle N"* over the open tab's own entries — and each
+  row grows a leading checkbox (a dashed, dimmed slot for a packing row's projection, which never carries a tag and
+  is named once below the list rather than repeated per row: *„Packlisten-Positionen tragen nie ein Tag — nicht
+  wählbar."*); the row's own tap toggles it instead of opening the entry sheet. A row selected by the long press that
+  started the mode is not toggled off by the tap the browser sends on release — the same care M4's row menu takes
+  with its own trailing click. Once at least one entry is picked, a bottom bar offers **Tag vergeben**, opening the
+  same search-or-create sheet the single entry does — titled *„Tag für einen Eintrag"* / *„Tag für N Einträge"*, and
+  with no trailing summary line, since that sentence is written for one entry staying staged until *Speichern* and
+  this sheet applies the instant a chip is chosen, to more than one. Choosing files every selected entry at once;
   the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under the tag it carried before.
   The header's icon is offered only while the open tab holds an own entry to select. Mockup: 2026-09-22 review.
   (E2E-M6-32)
