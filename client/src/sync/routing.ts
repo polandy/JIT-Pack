@@ -22,6 +22,7 @@ export const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.travelers,
   TABLE.containers,
   TABLE.comments,
+  TABLE.noteAcks,
   TABLE.tripMembers,
   TABLE.tripTemplateSources,
   TABLE.tripGeneratedPositions,

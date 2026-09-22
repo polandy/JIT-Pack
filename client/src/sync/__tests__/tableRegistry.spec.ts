@@ -94,6 +94,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   // FR-7.2: `is_task` is the column the *store* routes on, before either
   // parser runs, so both builders write it and neither reads it.
   { table: TABLE.comments, parse: 'rowToComment', encode: 'commentRow', encodeOnly: ['is_task'] },
+  { table: TABLE.noteAcks, parse: 'rowToNoteAck', encode: 'noteAckRow' },
 ]
 
 describe('every codec pair agrees about its columns', () => {

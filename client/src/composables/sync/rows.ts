@@ -16,6 +16,7 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTodo,
+  NoteAck,
   ShoppingEntry,
   TaskFacts,
   TripTodo,
@@ -90,6 +91,16 @@ export function commentRow(comment: ItemComment): Record<string, unknown> {
     body: comment.body,
     created_at: comment.created_at,
     is_task: dbBool(false),
+  }
+}
+
+/** FR-7.9: a note's tick. Own row per (comment, person) — see NoteAck. */
+export function noteAckRow(ack: NoteAck): Record<string, unknown> {
+  return {
+    trip_id: ack.trip_id,
+    comment_id: ack.comment_id,
+    user_id: ack.user_id,
+    acked: dbBool(ack.acked),
   }
 }
 

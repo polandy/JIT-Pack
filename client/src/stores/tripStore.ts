@@ -20,6 +20,7 @@ import type {
   Container,
   ItemComment,
   ItemTodo,
+  NoteAck,
   TripTodo,
   TripMember,
   TripTemplateSource,
@@ -44,6 +45,10 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const containers = ref<Map<string, Container[]>>(new Map())
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
+  // FR-7.9: a note's per-person ticks, bucketed by trip_id like every other
+  // trip-partition row (note_acks carries its own, rather than only a
+  // comment_id — see schema.sql).
+  const noteAcks = ref<Map<string, NoteAck[]>>(new Map())
   // FR-7.4: a separate bucket rather than a filter over `todos`, so that
   // every packing figure reading `todos` cannot count a trip task by mistake.
   const tripTodos = ref<Map<string, TripTodo[]>>(new Map())
@@ -55,12 +60,13 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const generatedPositions = ref<Map<string, GeneratedPosition>>(new Map())
   const appliedChanges = ref<Map<string, AppliedChange>>(new Map())
 
-  // The seven per-trip buckets, all one shape (see bucketedRows).
+  // The eight per-trip buckets, all one shape (see bucketedRows).
   const itemRows = bucketedRows(tripItems, (r) => r.trip_id)
   const travelerRows = bucketedRows(travelers, (r) => r.trip_id)
   const containerRows = bucketedRows(containers, (r) => r.trip_id)
   const memberRows = bucketedRows(members, (r) => r.trip_id)
   const commentRows = bucketedRows(comments, (r) => r.trip_id)
+  const noteAckRows = bucketedRows(noteAcks, (r) => r.trip_id)
   const todoRows = bucketedRows(todos, (r) => r.trip_id)
   const tripTodoRows = bucketedRows(tripTodos, (r) => r.trip_id)
 
@@ -198,6 +204,24 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   /** Plain comments anchored to the trip itself (FR-7.1). */
   function getTripComments(tripId: string): ItemComment[] {
     return (comments.value.get(tripId) ?? []).filter((c) => c.trip_item_id === null)
+  }
+
+  /** FR-7.9: every tick of a trip's notes — who has seen which one. */
+  function getNoteAcks(tripId: string): NoteAck[] {
+    return noteAcks.value.get(tripId) ?? []
+  }
+
+  /**
+   * A deleted comment takes its own ticks with it (mirrors the server's
+   * cascade, note_acks.comment_id ON DELETE CASCADE). Scans every trip's
+   * bucket rather than one, the same trade-off `bucketedRows.remove` makes:
+   * a comment's trip_id is not known here once the row itself is gone.
+   */
+  function removeAcksForComment(commentId: string): void {
+    for (const [tripId, list] of noteAcks.value) {
+      const filtered = list.filter((a) => a.comment_id !== commentId)
+      if (filtered.length !== list.length) noteAcks.value.set(tripId, filtered)
+    }
   }
 
   /** Items that are packed but still have open prep todos. */
@@ -379,7 +403,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       sinks[child.table]?.remove(child.id)
     }
     trips.value.delete(id)
-    // The seven per-trip buckets are keyed by trip id; the loop above emptied
+    // The eight per-trip buckets are keyed by trip id; the loop above emptied
     // them, this drops the empty keys with the trip.
     tripItems.value.delete(id)
     travelers.value.delete(id)
@@ -387,6 +411,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     todos.value.delete(id)
     tripTodos.value.delete(id)
     comments.value.delete(id)
+    noteAcks.value.delete(id)
     members.value.delete(id)
   }
 
@@ -410,8 +435,12 @@ export const useTripStore = defineStore(TABLE.trips, () => {
         commentRows.remove(id)
         todoRows.remove(id)
         tripTodoRows.remove(id)
+        // FR-7.9: a deleted note takes its own ticks with it, mirroring
+        // note_acks.comment_id ON DELETE CASCADE.
+        removeAcksForComment(id)
       },
     },
+    [TABLE.noteAcks]: bucketSink(noteAckRows),
   }
 
   /**
@@ -484,6 +513,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getComments,
     getItemComments,
     getTripComments,
+    getNoteAcks,
     itemsWithOpenPrep,
     kpis,
     setTrip,
