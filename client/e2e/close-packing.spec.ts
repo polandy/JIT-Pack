@@ -294,6 +294,49 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
+   * E2E-M4-146 (FR-5.11, owner 2026-09-21): *„was ich vergessen habe zu
+   * packen"*. Once the packing is closed an add answers what happened: it was
+   * in the bag and not on the list (the default, E2E-M4-141), or it stayed
+   * home. The second must not land *packed* (it is not in the bag) and must
+   * not become an open job — it is a record for the next trip, so the figure
+   * stays where it was and the row says what it is.
+   */
+  test('E2E-M4-146: a finished list takes an addition as forgotten, not as packed or open', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Vergessen')
+    await startTrip(page)
+    // Before the close there is no question to answer: the composer is as it was.
+    await openQuickAdd(page)
+    await expect(page.getByTestId('quick-add-choice')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await packRow(page, 'Zelt')
+    await visiblePage(page).getByTestId('m4-close-prompt').click()
+    await confirmClose(page)
+
+    await openQuickAdd(page)
+    await expect(page.getByTestId('quick-add-choice-packed')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    await page.getByTestId('quick-add-choice-forgotten').click()
+    await expect(page.getByTestId('quick-add-hint')).toContainText('forgotten')
+    await addInComposer(page, 'Zahnbürste')
+    await page.keyboard.press('Escape')
+    await writesLanded(page)
+
+    // The figure is the one it was before the add, and the row is not open.
+    await expect(visiblePage(page).getByTestId('m4-progress')).toContainText('1/1')
+    await expect(visiblePage(page).getByTestId('m4-row-Zahnbürste')).toHaveCount(0)
+
+    // Behind the bar with the other decided rows, in its own words.
+    await visiblePage(page).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Zahnbürste')).toContainText(
+      'Forgotten to pack',
+    )
+  })
+
+  /**
    * E2E-M4-143 (FR-5.10, owner 2026-09-20): the step is offered where the
    * moment is. Packing the last open row raises the same question the ⋮
    * asks — and it is still a *question*: nothing is written until it is

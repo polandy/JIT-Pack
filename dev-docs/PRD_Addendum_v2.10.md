@@ -5148,6 +5148,23 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     it is still flagged *Missing*, which is exactly right: the plan forgot it, and M14 should propose it for next time.
     **An add for named travelers keeps the open row it always wrote** — a row per person is a plan being made, not a bag
     being recorded.
+  * **FR-5.11 — packed or forgotten (owner, 2026-09-21: *„wenn ich auf der Reise etwas hinzufügen möchte, das ich zu
+    packen vergessen habe, damit ich es beim nächsten Urlaub berücksichtige"*, then: either *packed* — forgotten to
+    put on the list — or *forgotten to pack*).** FR-5.10's add records something that **travelled**; this is the
+    second answer, what **stayed home**. **Once the packing is closed** the composer asks *what happened to it* with
+    two equal answers: ***Eingepackt*** (the default, and exactly what FR-5.10 already writes) or ***Vergessen***.
+    Before the close nothing changes: the open row with FR-9.1's hint, no question, because a list still being packed
+    has nothing yet to have forgotten. *Vergessen* writes a row that is **skipped at quantity 0 and flagged
+    *Missing*** (FR-9.1) — neither packed nor an open job, so the packing figure does not move, and M14 (FR-9.2)
+    proposes it for the next trip like any other *Missing* row. No new state and no schema change: the row is the
+    shape FR-5.5's skip already writes, plus the flag. **The one *not-taken* add that is flagged** — FR-25.13f's
+    skip-add still is not, because *„we are leaving it"* and *„the plan forgot it"* are different statements — and
+    flagged whatever the trip's status, since a trip still *planning* can have its packing closed. The choice never
+    reads FR-25.28's for-whom strip (one thing stayed home, for nobody in particular), stays across a run of adds and
+    is back on *Eingepackt* the next time the composer opens. Not offered in M8. **The row says so:** a revealed
+    skipped row that is flagged *Missing* reads *„Vergessen einzupacken"* where its siblings read *„Bewusst
+    weggelassen"*. Both answers set the flag, so M14 reads them alike today; giving *Vergessen* its own proposal is
+    left open.
   * **M1 lets the packing recede** (owner, 2026-09-20: *„die Packliste kann dort deutlich weniger prominent sein, da wir
     nun in einer anderen Ferienphase sind"*). On a trip whose packing is closed, the dashboard's hero and its trip cards
     replace the packing **figure** — a ring, the loudest thing on the card — with one quiet line, *„Packen
