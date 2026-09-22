@@ -21,6 +21,9 @@ import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
 import type { ShoppingMode } from '@/types/domain'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { presentToast } from '@/lib/toast'
+
+vi.mock('@/lib/toast', () => ({ presentToast: vi.fn(() => Promise.resolve()) }))
 
 let written: Mutation[] = []
 const loadedTrips = reactive(new Set<string>(['t1']))
@@ -80,7 +83,12 @@ function entry(
 }
 
 function mountCard(
-  opts: { planned?: boolean; packingClosed?: boolean; sources?: ShoppingSource[] } = {},
+  opts: {
+    planned?: boolean
+    packingClosed?: boolean
+    embedded?: boolean
+    sources?: ShoppingSource[]
+  } = {},
 ) {
   return mount(ShoppingDashboardCard, {
     props: {
@@ -88,6 +96,7 @@ function mountCard(
       tripName: 'Elba',
       planned: opts.planned ?? false,
       packingClosed: opts.packingClosed ?? false,
+      embedded: opts.embedded ?? false,
     },
     global: {
       stubs: { RouterLink: RouterLinkStub },
@@ -108,6 +117,8 @@ const rows = (card: ReturnType<typeof mountCard>) =>
 beforeEach(() => {
   setActivePinia(createPinia())
   written = []
+  localStorage.clear()
+  vi.mocked(presentToast).mockClear()
   loadedTrips.clear()
   loadedTrips.add('t1')
 })
@@ -232,5 +243,93 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
   it('keeps the card of a running trip with nothing to buy, and says so', () => {
     const card = mountCard()
     expect(card.get('[data-testid="dash-shop-empty"]').text()).toBe(t('shopping.emptyLocal'))
+  })
+})
+
+/**
+ * FR-7.10: once the packing is finished the card is a block of the hero — the
+ * same object as the task block, seven lines, no chip. The list it reads is
+ * still the one in focus, and every write is still the card's own.
+ */
+describe('ShoppingDashboardCard as a block of the hero (FR-7.10)', () => {
+  const blockRows = (card: ReturnType<typeof mountCard>) =>
+    card.findAll('[data-testid="dash-shop-row"]').map((r) => r.find('.title').text())
+  const embedded = (opts: Parameters<typeof mountCard>[0] = {}) =>
+    mountCard({ ...opts, embedded: true, packingClosed: true })
+
+  it('shows seven lines and says how many more there are', () => {
+    const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map(line)
+    const card = embedded({ sources: [source({ buy_local: many })] })
+    expect(blockRows(card)).toHaveLength(7)
+    expect(card.get('[data-testid="dashboard-shopping-Elba-count"]').text()).toBe('9')
+    expect(card.get('[data-testid="dashboard-shopping-Elba-more"]').text()).toContain(
+      t('shopping.moreLines', { n: 2 }),
+    )
+    expect(card.getComponent(RouterLinkStub).props('to')).toBe('/trips/t1/shopping')
+  })
+
+  it('has no chip: it reads the list in focus and nothing else', () => {
+    const card = embedded({ sources: [source({ buy_before: [line('Hut')] })] })
+    expect(card.find('[data-testid="dash-shop-tab-before"]').exists()).toBe(false)
+    expect(blockRows(card)).toEqual([])
+  })
+
+  it('checks a line off on the right, through the line’s own write, with the card’s undo', async () => {
+    const sunscreen = line('Sonnencreme')
+    const card = embedded({ sources: [source({ buy_local: [sunscreen] })] })
+
+    await card.get('[data-testid="dash-shop-row-check"]').trigger('click')
+
+    expect(sunscreen.buy).toHaveBeenCalledTimes(1)
+    expect(card.get('[data-testid="dash-shop-undo"]').text()).toContain(
+      t('shopping.boughtUndoable', { name: 'Sonnencreme' }),
+    )
+  })
+
+  it('adds an entry to the list shown and says where it went', async () => {
+    const card = embedded()
+    await card.get('[data-testid="dashboard-shopping-Elba-add-input"]').setValue(' Milch ')
+    await card.get('[data-testid="dashboard-shopping-Elba-add"]').trigger('submit')
+
+    expect(written[0]).toMatchObject({
+      op: 'insert',
+      fields: { trip_id: 't1', name: 'Milch', list: 'buy_local' },
+    })
+    expect(presentToast).toHaveBeenCalledWith({
+      message: t('shopping.addedToList', { name: 'Milch' }),
+    })
+    expect(blockRows(card)).toEqual(['Milch'])
+  })
+
+  it('does not unfold when something is added to it — the count moves and the toast speaks', async () => {
+    const card = embedded()
+    await card.get('[data-testid="dashboard-shopping-Elba-fold"]').trigger('click')
+    expect(card.get('[data-testid="dashboard-shopping-Elba"]').attributes('data-folded')).toBe(
+      'true',
+    )
+
+    await card.get('[data-testid="dashboard-shopping-Elba-add-input"]').setValue('Milch')
+    await card.get('[data-testid="dashboard-shopping-Elba-add"]').trigger('submit')
+
+    expect(card.get('[data-testid="dashboard-shopping-Elba"]').attributes('data-folded')).toBe(
+      'true',
+    )
+    expect(card.get('[data-testid="dashboard-shopping-Elba-count"]').text()).toBe('1')
+    expect(presentToast).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays with its field and a sentence when nothing is left to buy', () => {
+    const card = embedded()
+    expect(card.get('[data-testid="dashboard-shopping-Elba-empty"]').text()).toBe(
+      t('shopping.emptyLocal'),
+    )
+    expect(card.find('[data-testid="dashboard-shopping-Elba-add-input"]').exists()).toBe(true)
+  })
+
+  it('remembers its fold apart from the task block’s', async () => {
+    const card = embedded()
+    await card.get('[data-testid="dashboard-shopping-Elba-fold"]').trigger('click')
+    expect(localStorage.getItem('jp_dash_fold_shopping')).toBe('folded')
+    expect(localStorage.getItem('jp_dash_fold_tasks')).toBeNull()
   })
 })

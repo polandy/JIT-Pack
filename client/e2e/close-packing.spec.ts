@@ -408,23 +408,128 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M1-25 (FR-5.10 on M1, owner 2026-09-20): the phase has moved on, so
-   * the dashboard's loudest element about packing stands down. Asserted as a
-   * **pair** — the figure gone *and* the line there — because a card that
-   * simply lost its figure would pass half of it.
+   * E2E-M1-25 (FR-5.10 with FR-7.10 on M1): the phase has moved on, so the
+   * dashboard's loudest element about packing stands down — and, since
+   * 2026-09-21, no line takes its place. Asserted as a **pair**: the figure
+   * gone *and* the phase said in the date line, because a card
+   * that simply stopped saying anything would pass the first half.
    */
   test('E2E-M1-25: the dashboard lets a finished packing recede', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Dashboard-Phase')
     await startTrip(page)
     await packRow(page, 'Zelt')
-    await visiblePage(page).getByTestId('m4-close-prompt').click()
+
+    await page.goto(PATH.dashboard)
+    const open = visiblePage(page).getByTestId('dashboard-trip-Dashboard-Phase')
+    await expect(open.getByTestId('hero-phase')).toContainText(/Packen|Packing/)
+
+    await open.getByTestId('hero-name').click()
+    await tripAction(page, 'closePacking')
     await confirmClose(page)
 
     await page.goto(PATH.dashboard)
     const hero = visiblePage(page).getByTestId('dashboard-trip-Dashboard-Phase')
     await expect(hero).toBeVisible()
     await expect(hero.getByTestId('hero-progress')).toHaveCount(0)
-    await expect(hero.getByTestId('hero-done')).toBeVisible()
+    await expect(hero.getByTestId('hero-phase')).toContainText(/Vor Ort|On site/)
+  })
+
+  /**
+   * E2E-M1-26 (FR-7.10): the hero's task block is worked in place. A task is
+   * added in the block, ticked on its right-hand check, and comes back with
+   * the snackbar's undo; the block folds and *stays folded* after a reload;
+   * and adding to a folded block moves its count without unfolding it — the
+   * absence needs the count as its positive signal.
+   */
+  test('E2E-M1-26: the hero’s task block adds, ticks and folds', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Dashboard-Aufgaben')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    await visiblePage(page).getByTestId('m4-close-prompt').click()
+    await confirmClose(page)
+
+    await page.goto(PATH.dashboard)
+    const block = visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben')
+    const count = block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-count')
+    await expect(block).toBeVisible()
+
+    await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-input').fill('Post nachsenden')
+    await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-submit').click()
+    const row = block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-row')
+    await expect(row).toHaveCount(1)
+    await expect(row).toContainText('Post nachsenden')
+    await expect(count).toHaveText('1')
+
+    // The check sits to the right of the words: the positive signal for
+    // „at the end", which a box at the start would fail.
+    const words = await row.locator('.words').boundingBox()
+    const check = await row.getByRole('checkbox').boundingBox()
+    expect(check!.x).toBeGreaterThan(words!.x + words!.width - 1)
+
+    await row.getByRole('checkbox').click()
+    await expect(row).toHaveCount(0)
+
+    // Folded: the head stays, the rows leave, and an added task moves the
+    // count but not the fold.
+    const fold = block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold')
+    await fold.click()
+    await expect(fold).toHaveAttribute('aria-expanded', 'false')
+    await expect(block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-input')).toBeVisible()
+    await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-input').fill('Schlüssel geben')
+    await block.getByTestId('dashboard-tasks-Dashboard-Aufgaben-add-submit').click()
+    await expect(count).toHaveText('1')
+    await expect(fold).toHaveAttribute('aria-expanded', 'false')
+
+    await page.reload()
+    await expect(
+      visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold').first(),
+    ).toHaveAttribute('aria-expanded', 'false')
+
+    // The way on is the block's own line — the head folds — and it leads to M25.
+    // It is out of reach while the block is folded, so the fold is undone first.
+    const foldAgain = visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-fold')
+    await foldAgain.click()
+    await expect(foldAgain).toHaveAttribute('aria-expanded', 'true')
+    await visiblePage(page).getByTestId('dashboard-tasks-Dashboard-Aufgaben-more').click()
+    await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
+  })
+
+  /**
+   * E2E-M1-27 (FR-7.10): the hero's shopping block takes an entry in place,
+   * checks it off on the right, and the head of the card — not the card —
+   * leads into the trip: no control sits inside a link.
+   */
+  test('E2E-M1-27: the hero’s shopping block adds and buys, and the hero is not one link', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Dashboard-Einkauf')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    await visiblePage(page).getByTestId('m4-close-prompt').click()
+    await confirmClose(page)
+
+    await page.goto(PATH.dashboard)
+    const block = visiblePage(page).getByTestId('dashboard-shopping-Dashboard-Einkauf')
+    await block.getByTestId('dashboard-shopping-Dashboard-Einkauf-add-input').fill('Milch')
+    await block.getByTestId('dashboard-shopping-Dashboard-Einkauf-add-submit').click()
+    const row = block.getByTestId('dash-shop-row')
+    await expect(row).toHaveCount(1)
+    await expect(row).toContainText('Milch')
+
+    await row.getByRole('checkbox').click()
+    await expect(row).toHaveCount(0)
+
+    // No control inside a link: the tap on a check would be a navigation.
+    const hero = visiblePage(page).getByTestId('dashboard-trip-Dashboard-Einkauf')
+    await expect(hero.locator('a button, a input')).toHaveCount(0)
+    await expect(hero.getByTestId('dashboard-open-packing')).toBeVisible()
+
+    // The blocks' own lines lead on, and the way back to the packing list.
+    await block.getByTestId('dashboard-shopping-Dashboard-Einkauf-more').click()
+    await expect(visiblePage(page).getByTestId('m6-page')).toBeVisible()
+    await page.goto(PATH.dashboard)
+    await visiblePage(page).getByTestId('dashboard-open-packing').click()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toBeVisible()
   })
 
   /**

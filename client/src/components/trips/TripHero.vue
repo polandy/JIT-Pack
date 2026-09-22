@@ -10,11 +10,15 @@
  * It is the only card in the app that carries brand on its own plane
  * (`--jp-hero-wash`, G-11): identity marks the thing you are on, and there
  * is exactly one of those per screen.
+ *
+ * **Once the packing is finished the card stops being one link** (`workable`,
+ * FR-7.10, ADR-074): the figure gives way to the slot, whose blocks are
+ * worked in place, and a control cannot sit inside a link. Only the head —
+ * dates, name, counter, meta — leads into the trip then.
  */
-import { IonIcon } from '@ionic/vue'
-import { checkmarkCircleOutline } from 'ionicons/icons'
-
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
+
+import TripPhase from './TripPhase.vue'
 
 /**
  * The ring of either figure once a second stands beside the share: two
@@ -29,6 +33,10 @@ withDefaults(
     name: string
     /** When it is — the line above the name. */
     when?: string | null
+    /** The phase word after the dates (FR-7.10). */
+    phase?: { label: string; done: boolean } | null
+    /** The day counter opposite the name (FR-7.10). */
+    counter?: { headline: string; sub: string | null } | null
     /** Who is on it, and anything else that qualifies it. */
     meta?: string | null
     /** How much of it is packed, 0–100. */
@@ -42,32 +50,68 @@ withDefaults(
     /** Put on the card, for the cases that address the hero. */
     testid?: string
     /**
-     * FR-5.10: the packing is finished, so say *that* instead of drawing the
-     * figure. The ring is the loudest thing on this card and it would be
-     * answering a settled question — and the figure beside it, which is not
-     * settled, takes the lone ring size back.
+     * FR-7.10: the packing is finished. The figure is not drawn, the default
+     * slot carries the blocks, and only the head is a link.
      */
-    doneNote?: string | null
+    workable?: boolean
   }>(),
-  { when: null, meta: null, detail: null, testid: undefined, doneNote: null },
+  {
+    when: null,
+    phase: null,
+    counter: null,
+    meta: null,
+    detail: null,
+    testid: undefined,
+    workable: false,
+  },
 )
 </script>
 
 <template>
-  <RouterLink :to="to" class="hero jp-card" :data-testid="testid">
-    <p v-if="when" class="when jp-hero-eyebrow" data-testid="hero-when">{{ when }}</p>
-    <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
+  <!-- FR-7.10: worked in place, so the card is not a link — its head is. -->
+  <div v-if="workable" class="hero jp-card" :data-testid="testid">
+    <RouterLink :to="to" class="head" data-testid="hero-head">
+      <p v-if="when" class="when jp-hero-eyebrow" data-testid="hero-when">
+        {{ when }}
+        <TripPhase v-if="phase" v-bind="phase" testid="hero-phase" />
+      </p>
+      <div class="title-row">
+        <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
+        <p v-if="counter" class="counter" data-testid="hero-counter">
+          <b>{{ counter.headline }}</b>
+          <span v-if="counter.sub">{{ counter.sub }}</span>
+        </p>
+      </div>
+      <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
+    </RouterLink>
+
+    <div class="blocks">
+      <slot name="blocks" />
+    </div>
+
+    <div v-if="$slots.foot" class="actions">
+      <slot name="foot" />
+    </div>
+  </div>
+
+  <RouterLink v-else :to="to" class="hero jp-card" :data-testid="testid">
+    <p v-if="when" class="when jp-hero-eyebrow" data-testid="hero-when">
+      {{ when }}
+      <TripPhase v-if="phase" v-bind="phase" testid="hero-phase" />
+    </p>
+    <div class="title-row">
+      <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
+      <p v-if="counter" class="counter" data-testid="hero-counter">
+        <b>{{ counter.headline }}</b>
+        <span v-if="counter.sub">{{ counter.sub }}</span>
+      </p>
+    </div>
     <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
 
     <!-- FR-7.4: a second answer may stand beside the share — M1 puts the
          trip's own todos there, which no packing figure counts. -->
     <div class="figures">
-      <p v-if="doneNote" class="done-note" data-testid="hero-done">
-        <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" />
-        <span>{{ doneNote }}</span>
-      </p>
       <ProgressFigure
-        v-else
         class="hero-figure"
         :percent="percent"
         :headline="progress"
@@ -78,10 +122,9 @@ withDefaults(
         detail-testid="hero-detail"
       />
       <!-- The slot is handed the ring size, so the pair is one size by
-           construction rather than by two constants kept in step — and the
-           full size once the packing figure has stood down. -->
+           construction rather than by two constants kept in step. -->
       <div v-if="$slots.beside" class="beside">
-        <slot name="beside" :ring-size="doneNote ? undefined : RING_SIZE_PAIRED" />
+        <slot name="beside" :ring-size="RING_SIZE_PAIRED" />
       </div>
     </div>
 
@@ -117,22 +160,47 @@ withDefaults(
   overflow-wrap: anywhere;
 }
 
-/* The settled half of the card: done ink, body size, no figure. It sits in
-   the figures row so the card's rhythm is unchanged when the ring goes. */
-.done-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  align-self: center;
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
+.head {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
-.done-note ion-icon {
+.title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.counter {
+  display: flex;
   flex: none;
-  font-size: var(--jp-icon-sm);
-  color: var(--jp-done);
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0;
+  padding-bottom: 4px;
+  line-height: 1.2;
+}
+
+.counter b {
+  color: var(--jp-action);
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-bold);
+}
+
+.counter span {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+/* FR-7.10: the two blocks, side by side where 300 px each fit and stacked
+   where they do not — no breakpoint, the basis decides. */
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .figures {

@@ -421,7 +421,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 - [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
 - [A bar that counted done rows called them packed (2026-09-21)](#a-bar-that-counted-done-rows-called-them-packed-2026-09-21) — FR-25.2 contradicted its own label; the counter the owner refused, and the plural rule that split the languages.
+- [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.10: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
 - [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
+- [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
 
 ## Deviations
 
@@ -17097,6 +17099,31 @@ it looked from outside: a catalogue entry, a plausible name, a sentence that rea
 in the same shape as the two strings that are real. Only following the key to a template tells them apart, and the
 suite cannot, because there is nothing to assert about a string nothing renders.
 
+## A mockup drew a date the data does not have (2026-09-21)
+
+FR-7.10's interactive mockup (`UI_Concept_DashboardAfterPacking.html`) showed each task with a due date — *gestern*,
+*vor 3 Tagen*, *Fr* — sorted overdue first, and the owner approved it. **A task has no date.** FR-7.7 gives it a phase,
+*before* or *during*, and nothing else that orders in time; the dates were invented to make the rows look like a
+dashboard's, and the spec sentence citing FR-7.7 as their source was written without opening it. It surfaced at the
+first line of the build, reading `TripTask`. The spec and the concept file were corrected before any code depended on
+them: the second line of a row is now the task's tag or the row it prepares, and the order is the phase the trip is in,
+then mine, then M25's own order. **What to keep:** a mockup can be approved on a datum the schema never held, so the
+fixture data of a concept is worth reading against the type it claims to show.
+
+**The phase word is not `listInFocus`.** The first draft said the date line's word and M6's tab read one rule. They do
+not: `listInFocus` calls every *active* trip *Vor Ort*, and the dashboard's trips are all active, so the word would
+have read *Vor Ort* over a card whose ring was still on screen. The word is the packing stamp instead; the two answers
+differ only for an active trip with open packing, where each is right about its own question.
+
+**One accepted cost, recorded so it is not fixed:** the fold state is device-local (`lib/blockFold.ts`), not per
+account. On a shared device two people see each other's folds. A synced setting would follow a person across devices,
+and there is no preference store to put it in yet.
+
+**FR-7.9 and ADR-073 were already taken.** `2db6cceb` (trip notes, merged 2026-09-22) landed FR-7.9/ADR-073 first;
+this feature's own spec and ADR were renumbered to FR-7.10/ADR-074 to match, across `PRD_Addendum_v2.10.md`,
+`UI_Spec_v1.10.md`, `UI_Test_Spec_v1.0.md`, `e2e-tests.md`, the ADR file and its `README.md` row, and every code
+comment and test title citing the old numbers.
+
 ## `e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)
 
 `make ci-remote` dispatches `ci.yml` on GitHub for a feature branch with no PR open yet — the front door for the jobs
@@ -17132,3 +17159,43 @@ it further wasn't worth the edge case.
 unopened or freshly opened PR, but its CI-status section only requires `go`, `go-lint`, `client`, `format` and
 `docker-build` green; `e2e`, `e2e-single`, `e2e-server` and `visual` are read and reported if present, never waited
 on or treated as blockers. The full `/pr-review` is still the gate before an actual merge.
+
+## A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)
+
+The owner asked for M1's trip card to stop always opening the packing list: once the bag is shut,
+the tap should land wherever the trip's work still is — the shopping list, or the tasks screen if
+shopping is empty. A mockup was built, approved against four trips, and turned into a full
+specification (FR-6.4, and an ADR numbered 073 at the time it was written: a fixed priority read
+off the packing stamp and the switcher's two pill counts, decided at the press) — with the owner's
+own instruction that it be specified only, implementation deferred, and tracked as a todo. A `CLAUDE.md`
+backlog item was added, a PR opened (#573), and a fast review found nothing wrong with the documents
+on their own terms.
+
+**What the review inside this branch could not see.** PR #572 (`FR-7.10`/`ADR-074`, *„once the
+packing is done the hero works the tasks and the shopping in place"*) was open at the same time,
+unrelated in origin — a separate owner remark about the finished-packing line being dead weight —
+and heading for the same trigger: what M1's card does once packing closes. Its answer is the
+opposite shape. `TripHero.vue`'s card stops being one link and grows two workable blocks, *Aufgaben*
+and *Einkauf*, folded into the card itself; only the head remains a `RouterLink`, and it goes to
+`tripPath` (M4) **unconditionally** — because there is nothing left to navigate to, the work is
+already on the card. FR-6.4's whole premise — that the tap should carry the reader *to* the view
+with open work — is answered by not needing a tap at all once that premise's own PR lands.
+
+**Neither branch could have caught this by reviewing its own diff.** FR-6.4's spec was internally
+consistent, gate-clean and reviewed; so was FR-7.10's. The conflict is only visible one level up,
+where two trips through the same trigger are compared — which is exactly the seam a cross-session
+merge coordinator (`jit-pack-70`) was sequencing for, flagging an ADR-number collision on a routine
+check and surfacing the deeper one as a side effect of reading both diffs side by side.
+
+**The choice, and what was not done.** Reframing FR-6.4 to the surfaces FR-7.10 leaves alone — M2's
+fixed index, say — was considered and set aside (owner, 2026-09-22): a rule earning its keep only on
+the screen nobody uses is not worth carrying. FR-6.4 and its ADR draft are withdrawn rather than
+merged; the number they briefly held is `ADR-074`'s own renumbering of the same collision, not this
+work's. The spec commit was reverted in place on `docs/trip-landing` rather than force-pushed away,
+so the record of having specified it, and of why it did not survive, stays on the branch that
+proposed it.
+
+**The trap, generalised.** A docs-only spec, gate-clean and owner-approved, is not yet load-bearing
+until it is checked against what else is in flight for the same trigger — not the same file, the
+same *screen state*. Two sessions each building a correct answer to a different owner remark can
+still collide on the one place both answers have to render.
