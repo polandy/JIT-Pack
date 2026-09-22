@@ -56,25 +56,36 @@ export function noteAckState(
   return { mine: myAckFor(noteId, acks, myUserId), ackedBy }
 }
 
-/** One M25 row: the note and whether it is new to this reader. */
+/** One M25 row: the note, whether it is new, and whether I have ticked it. */
 export interface TripNoteRow {
   note: ItemComment
   isNew: boolean
+  ackedByMe: boolean
 }
 
 /**
- * M25's notes segment, newest first, new-for-me marked — read order rather
- * than store order, which is why this exists beside `isNoteNewForMe` and not
- * only as a `.filter()` at the call site.
+ * M25's notes segment (FR-7.9 §4): new ones first and marked, ticked ones
+ * below and muted — read order rather than store order, which is why this
+ * exists beside `isNoteNewForMe` and not only as a `.filter()` at the call
+ * site. Within each of the two groups, newest first.
  */
 export function tripNoteRows(
   notes: readonly ItemComment[],
   acks: readonly NoteAck[],
   myUserId: string | null,
 ): TripNoteRow[] {
-  return [...notes]
-    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
-    .map((note) => ({ note, isNew: isNoteNewForMe(note, acks, myUserId) }))
+  return notes
+    .map((note) => ({
+      note,
+      isNew: isNoteNewForMe(note, acks, myUserId),
+      ackedByMe: myAckFor(note.id, acks, myUserId)?.acked === true,
+    }))
+    .sort(
+      (a, b) =>
+        Number(a.ackedByMe) - Number(b.ackedByMe) ||
+        Number(b.isNew) - Number(a.isNew) ||
+        (b.note.created_at ?? '').localeCompare(a.note.created_at ?? ''),
+    )
 }
 
 /** One trip's notes, as M1's cross-trip card needs them. */

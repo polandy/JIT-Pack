@@ -22,14 +22,24 @@
  * named at all — Local and Single-User Mode have no second account (G-8), and
  * a filter for „mine" on a list where everything is everybody's would hide
  * things for no reason.
+ *
+ * **FR-7.9's notes are a second segment**, not a third section: decision 1 of
+ * `dev-docs/trip-notes-concept.md` (owner, 2026-09-21) chose it over a fourth
+ * pill (ADR-051 amendment 1's three-word row) and over a card competing with
+ * the list being worked. Unlike the phase split above, tasks and notes really
+ * are two places you stand — a note is not read the way a task is worked —
+ * which is why this one *is* an `IonSegment`, the shape the header comment
+ * just rejected for the phases.
  */
-import { IonChip, IonContent, IonIcon, IonLabel, IonPage } from '@ionic/vue'
+import { IonChip, IonContent, IonIcon, IonLabel, IonPage, IonSegment, IonSegmentButton } from '@ionic/vue'
 import { personOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import TripNoteList from '@/components/trips/TripNoteList.vue'
+import TripNoteSheet from '@/components/trips/TripNoteSheet.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -49,12 +59,18 @@ import {
   type TaskGroup,
   type TripTask,
 } from '@/domain/tripTodos'
+import { isNoteNewForMe, noteAckState } from '@/domain/tripNotes'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { useTripStore } from '@/stores/tripStore'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  type ItemComment,
+  type TaskPhase,
+} from '@/types/domain'
 
 /** The size a group's heading wears its tag's mark at (G-15's scale). */
 const MARK_SIZE = 15
@@ -109,6 +125,46 @@ const shown = computed(() =>
 
 const before = computed(() => tasksInPhase(shown.value, TASK_PHASE_BEFORE))
 const during = computed(() => tasksInPhase(shown.value, TASK_PHASE_DURING))
+
+// --- FR-7.9: the notes segment ---
+
+const NOTES_SEGMENT = 'notes'
+const TASKS_SEGMENT = 'tasks'
+const segment = ref<typeof TASKS_SEGMENT | typeof NOTES_SEGMENT>(TASKS_SEGMENT)
+
+/** Every note of the trip (FR-7.1's shape, `is_task = 0`) — decision 6: the trip only. */
+const notes = computed(() => tripStore.getTripComments(props.tripId))
+const noteAcks = computed(() => tripStore.getNoteAcks(props.tripId))
+
+/** The segment's own count (decision 1): new notes, not the whole list. */
+const newNotesCount = computed(
+  () => notes.value.filter((note) => isNoteNewForMe(note, noteAcks.value, myUserId.value)).length,
+)
+const notesTabLabel = computed(() =>
+  newNotesCount.value > 0
+    ? t('tasks.segmentNotesCount', { n: newNotesCount.value })
+    : t('tasks.segmentNotes'),
+)
+
+const openedNoteId = ref<string | null>(null)
+const openedNote = computed(
+  () => notes.value.find((note) => note.id === openedNoteId.value) ?? null,
+)
+const openedNoteAckedBy = computed(() =>
+  openedNote.value
+    ? noteAckState(openedNote.value.id, noteAcks.value, myUserId.value).ackedBy
+    : new Set<string>(),
+)
+
+function openNote(note: ItemComment) {
+  openedNoteId.value = note.id
+}
+
+function onNoteSheetRemove() {
+  const note = openedNote.value
+  openedNoteId.value = null
+  if (note) orchestrator.deleteComment(props.tripId, note.id)
+}
 
 /**
  * FR-7.8: the headings, per phase. The phase stays the outer split (the
@@ -260,8 +316,22 @@ function onSheetRemove() {
       @pointerup="drag.up"
       @pointercancel="drag.cancel"
     >
+      <!-- FR-7.9 decision 1: notes are a second segment, not a fourth pill. -->
+      <IonSegment
+        :value="segment"
+        data-testid="m25-segment"
+        @ionChange="(e: CustomEvent) => (segment = e.detail.value)"
+      >
+        <IonSegmentButton :value="TASKS_SEGMENT" data-testid="m25-segment-tasks">
+          <IonLabel>{{ t('tasks.segmentTasks') }}</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton :value="NOTES_SEGMENT" data-testid="m25-segment-notes">
+          <IonLabel>{{ notesTabLabel }}</IonLabel>
+        </IonSegmentButton>
+      </IonSegment>
+
       <IonChip
-        v-if="assignable"
+        v-if="segment === TASKS_SEGMENT && assignable"
         :outline="!mineOnly"
         class="mine"
         data-testid="m25-mine"
@@ -272,7 +342,7 @@ function onSheetRemove() {
         <IonLabel>{{ t('tasks.mine') }}</IonLabel>
       </IonChip>
 
-      <template v-if="loaded">
+      <template v-if="segment === TASKS_SEGMENT && loaded">
         <section class="phase" data-testid="m25-before">
           <SectionHead :title="t('tasks.before')" :count="openCount(before)" />
           <p v-if="groupsBefore.length === 0" class="empty">{{ t('tasks.emptyBefore') }}</p>
@@ -356,6 +426,17 @@ function onSheetRemove() {
         </section>
       </template>
 
+      <section v-if="segment === NOTES_SEGMENT && loaded" data-testid="m25-notes">
+        <TripNoteList
+          :trip-id="tripId"
+          :notes="notes"
+          :acks="noteAcks"
+          :my-user-id="myUserId"
+          :name-of="nameOf"
+          @open="openNote"
+        />
+      </section>
+
       <SheetModal :is-open="opened !== null" testid="m25-task-modal" @dismiss="openedId = null">
         <TripTaskSheet
           v-if="opened"
@@ -369,6 +450,21 @@ function onSheetRemove() {
           @new-tag="onSheetNewTag"
         />
       </SheetModal>
+
+      <SheetModal
+        :is-open="openedNote !== null"
+        testid="m25-note-modal"
+        @dismiss="openedNoteId = null"
+      >
+        <TripNoteSheet
+          v-if="openedNote"
+          :note="openedNote"
+          :acked-by="openedNoteAckedBy"
+          :name-of="nameOf"
+          @close="openedNoteId = null"
+          @remove="onNoteSheetRemove"
+        />
+      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
@@ -376,6 +472,10 @@ function onSheetRemove() {
 <style scoped>
 .tasks-content {
   --padding-bottom: 24px;
+}
+
+ion-segment {
+  margin: 4px 14px 2px;
 }
 
 .mine {

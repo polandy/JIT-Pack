@@ -1472,6 +1472,12 @@ export const en = {
   'dashboard.delegatedNewRow': '{name} — new',
   'dashboard.delegatedNew': '{n} new',
   'dashboard.latePackers': '{n} last thing to pack | {n} last things to pack',
+  // FR-7.9 decision 1/2 — M1's notes card: the newest notes by others I
+  // have not ticked, each with its own trip chip and its own tick. The
+  // deliberate exception to "M1 takes no actions" — see the concept's
+  // decision 2 and its consequence paragraph.
+  'dashboard.newNotes': 'New notes',
+  'dashboard.newNotesTick': 'Mark as seen',
   'dashboard.planned': 'Planned',
   'dashboard.tripTodos': 'Tasks',
   'travelerProgress.title': 'Per person',
@@ -1498,6 +1504,10 @@ export const en = {
 
   // FR-7.7 — M25, a trip's tasks on a screen of their own.
   'tasks.title': 'Tasks',
+  // FR-7.9 — M25's two segments, tasks and notes.
+  'tasks.segmentTasks': 'Tasks',
+  'tasks.segmentNotes': 'Notes',
+  'tasks.segmentNotesCount': 'Notes ({n})',
   'tasks.before': 'Before the trip',
   'tasks.during': 'During the trip',
   'tasks.mine': 'Mine',
@@ -1527,6 +1537,18 @@ export const en = {
   'tasks.newTag': 'New tag…',
   'tasks.movedToast': '“{body}” moved',
   'tasks.whilePacking': 'To do while packing',
+
+  // FR-7.9 — a trip's notes: written by one traveller, read by all, ticked
+  // per person. The note itself is not a secret store (§6 of the concept) —
+  // it is stored in clear, like a key-box code written on a whiteboard.
+  'notes.empty': 'No notes for this trip yet.',
+  'notes.addPlaceholder': 'A note for the trip — a code, a number…',
+  'notes.new': 'New',
+  'notes.tick': 'Mark as seen',
+  'notes.sheetTitle': 'Note',
+  'notes.ackedBy': 'Seen by',
+  'notes.remove': 'Delete note',
+  'notes.copied': 'Copied',
   'dashboard.taskLineOpen': 'Tasks: {n} open',
   'dashboard.taskLineDone': 'Tasks: all done',
   'dashboard.packingDone': 'Packing finished',

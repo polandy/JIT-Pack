@@ -94,7 +94,7 @@ describe('noteAckState (FR-7.9 decision 3)', () => {
   })
 })
 
-describe('tripNoteRows', () => {
+describe('tripNoteRows (FR-7.9 §4)', () => {
   it('orders newest first and marks which are new to me', () => {
     const notes = [
       note({ id: 'old', created_at: '2026-09-01T00:00:00Z' }),
@@ -103,6 +103,18 @@ describe('tripNoteRows', () => {
     const rows = tripNoteRows(notes, [], ME)
     expect(rows.map((r) => r.note.id)).toEqual(['new', 'old'])
     expect(rows.every((r) => r.isNew)).toBe(true)
+  })
+
+  it('sinks a note I have ticked below the unticked ones, muted', () => {
+    const notes = [
+      note({ id: 'ticked', created_at: '2026-09-20T00:00:00Z' }),
+      note({ id: 'unticked', created_at: '2026-09-01T00:00:00Z' }),
+    ]
+    const acks = [ack({ comment_id: 'ticked' })]
+    const rows = tripNoteRows(notes, acks, ME)
+    expect(rows.map((r) => r.note.id)).toEqual(['unticked', 'ticked'])
+    expect(rows.find((r) => r.note.id === 'ticked')?.ackedByMe).toBe(true)
+    expect(rows.find((r) => r.note.id === 'unticked')?.ackedByMe).toBe(false)
   })
 })
 
