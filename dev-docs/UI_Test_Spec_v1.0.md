@@ -2603,8 +2603,9 @@ against a screen rather than against a stylesheet (G-14).
   later" as dead code, and the sentence above is the record instead.
 
 ### M17 — Settings & Notifications
-* **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Four kinds rather
-  than the three this sentence used to name: `lock_taken` joined them with FR-5.7. Bob turns *Delegations* off in his
+* **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Five kinds now:
+  `lock_taken` joined delegation/mention/task with FR-5.7, `note` with FR-7.9 (2026-09-22) — this case still drives
+  only delegation and mention, which is what it has always asserted. Bob turns *Delegations* off in his
   own M17, the choice survives his reload, and Alice's next hand-over produces no toast on his screen — while the same
   pair of pages produced one before he touched it, and a **mention** afterwards still arrives. The two positives are
   what make the absence assertable: a toast that has not come yet looks exactly like one that never will, and the

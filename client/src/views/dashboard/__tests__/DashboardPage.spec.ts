@@ -17,6 +17,7 @@ import DashboardPage from '../DashboardPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 
 import { defineComponent, type Component } from 'vue'
 import { TRIP_CARDS, type TripCardProps } from '@/lib/tripCards'
@@ -41,6 +42,7 @@ const orchestratorFake = {
   subscribeTrip: vi.fn(),
   resolvePrepTodo: vi.fn(),
   reopenPrepTodo: vi.fn(),
+  toggleNoteTick: vi.fn(),
 }
 
 function mountPage(cards?: Component[]) {
@@ -220,5 +222,78 @@ describe('M1 — a trip whose packing is finished (FR-5.10)', () => {
     // The hero's own figure is untouched: its packing is still open, and the
     // rule is about the trip, not about the screen.
     expect(page.find('[data-testid="hero-progress"]').exists()).toBe(true)
+  })
+})
+
+/**
+ * FR-7.9 decision 1/2 — the one deliberate exception to "M1 takes no
+ * actions". `identityStub`'s `fetchMe` answers `u1`, so a note authored by
+ * anyone else is new; one authored by `u1` itself is mine.
+ */
+describe('M1 — the Neue Notizen card (FR-7.9)', () => {
+  function seedActiveTrip(id: string, name: string) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id,
+      deleted: false,
+      row: { name, year: 2026, status: 'active' },
+    })
+  }
+
+  function seedNote(id: string, tripId: string, authorId: string, body: string) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.comments,
+      id,
+      deleted: false,
+      row: { trip_id: tripId, trip_item_id: null, author_id: authorId, body, is_task: 0 },
+    })
+  }
+
+  it('lists a note by someone else, naming its trip', async () => {
+    seedActiveTrip('t1', 'Samedan')
+    seedNote('note-1', 't1', 'u2', 'Schlüsselfach: 4711')
+
+    const page = mountPage()
+    await flushPromises()
+
+    const card = page.find('[data-testid="dashboard-notes"]')
+    expect(card.exists()).toBe(true)
+    expect(card.text()).toContain('Schlüsselfach: 4711')
+    expect(card.text()).toContain('Samedan')
+  })
+
+  it('never lists my own note (decision 4)', async () => {
+    seedActiveTrip('t1', 'Samedan')
+    seedNote('note-1', 't1', 'u1', 'Schlüsselfach: 4711')
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="dashboard-notes"]').exists()).toBe(false)
+  })
+
+  it('ticks a note from the card’s own control', async () => {
+    seedActiveTrip('t1', 'Samedan')
+    seedNote('note-1', 't1', 'u2', 'Schlüsselfach: 4711')
+
+    const page = mountPage()
+    await flushPromises()
+
+    await page
+      .get('[data-testid="dashboard-note-tick-note-1"]')
+      .trigger('ionChange', { detail: { checked: true } })
+
+    // The client's actor placeholder, like every write of an identity
+    // column the server stamps (invariant 3) — never the real myUserId.
+    // No existing ack row yet (null) — the caller decides insert vs. upsert
+    // from it, the same seam M25's own tick uses.
+    expect(orchestratorFake.toggleNoteTick).toHaveBeenCalledWith(
+      't1',
+      'note-1',
+      CLIENT_ACTOR_PLACEHOLDER,
+      null,
+    )
   })
 })

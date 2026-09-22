@@ -2435,10 +2435,11 @@ token would prove nothing there is anything to prove.
   revised 2026-08-29: no identity provider supplies a picture, so gating it on Single-User Mode meant a multi-user
   instance could never have one). The picture control is the same one M17 offers in Single-User Mode, described in the
   variant below. The note under the name names the display name specifically rather than claiming the whole profile is
-  managed elsewhere; notification preferences per event type: delegation, mention, task assigned and **items taken
-  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) with channel
-  status (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own
-  suppression rule and silences that kind alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
+  managed elsewhere; notification preferences per event type: delegation, mention, task assigned, **items taken
+  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) and
+  **trip notes** (FR-7.9, the fifth, 2026-09-22) with channel status (push registered via VAPID/UnifiedPush,
+  NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind
+  alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
   them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
   account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side
   because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because
