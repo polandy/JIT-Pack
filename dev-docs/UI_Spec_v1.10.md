@@ -7,6 +7,9 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-21 — **M1**: once the packing is finished the hero drops *„Packen abgeschlossen“* for the phase in the date
+  line, a day counter and two blocks — *Aufgaben* (four) and *Einkauf* (seven) — that are checked off, added to and
+  folded in place, with *Packliste öffnen* under them (FR-7.10, ADR-074). The hero is no longer one link.
 * 2026-09-21 — **M25** groups by tag: a task carries at most one tag of its own (`task_tags`, not the inventory's
   axis), the groups sit inside the two phases, and a task is dragged between them by its grip or by holding the row.
   What has no tag reads under *Aus Packliste* or *Ohne Tag*, after where it came from — and a group refuses what it
@@ -808,6 +811,35 @@ These patterns apply to every screen and are specified once.
   at the lone ring size (FR-7.4), and the shopping card under it opens on *Vor Ort* (FR-30.8). The open-rows preview
   needs no rule — it lists open rows, of which a finished list has none, and a row added afterwards belongs there.
   (E2E-M1-25)
+* **The hero after the packing (FR-7.10, ADR-074, decided 2026-09-21 from `UI_Concept_DashboardAfterPacking.html`) —
+  amends the bullet above: the „Packen abgeschlossen“ line is struck.** Rendered from top to bottom on a trip whose
+  packing is finished:
+  * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
+    then, on every trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is the packing stamp,
+    not `listInFocus` (FR-7.10).
+  * **Name row:** the trip's name, and opposite it the day counter in the action ink with its second line in
+    `--ct-subtext0` — *in 3 Tagen*, *Abreise heute*, *Tag 2 von 7* / *noch 5 Tage*, *Letzter Tag*, nothing afterwards;
+    without an end date *Tag 2*, without a start date none. The meta line follows.
+  * **Two blocks** in the sunken surface (G-14) side by side, stacked below the width where both do not fit at 300 px.
+    Each: a head — the name in the label role, the open count in the numeric face at 24 px (*„12 offen“*; a done tick
+    when none) and an arrow — then the field (48 px input, 48 px ＋), then the rows, then the *„+ n weitere · … ›“* line.
+  * **Rows** are 52 px high at body size 16: the title, and beneath it what kind of task it is (its tag, or the row it
+    prepares) or the quantity at 13 px, the **check box on the right** as a 28 px box inside a 56 × 52 px target that
+    reaches the card's edge. In Server Mode the assignee's name follows it. Order and counts: Aufgaben four, the phase
+    in front of the trip first, mine first; Einkauf seven of the list in focus. There are no dates: a task has a phase
+    (FR-7.7).
+  * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
+    fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
+    field; its rows leave the tab order. Both start open, and the state is remembered per block on this device.
+  * **Feedback:** a tick takes the row off and raises the app's snackbar with *Rückgängig* (the shopping block:
+    FR-30.7's undo bar). An entry added to an **open** block appears on top, tinted for a moment; added to a **folded**
+    one only the count pulses and the snackbar says *„Milch“ zu Einkaufsliste hinzugefügt* / *„Post nachsenden“ zu
+    Aufgaben hinzugefügt*. The block never unfolds by itself.
+  * **Empty (G-7):** the block stays; done tick in the head, the field, and a quiet sentence in the place of the rows —
+    *Für unterwegs ist nichts notiert.*, *Vor Ort ist nichts zu kaufen.* / *Vor der Abreise ist nichts zu kaufen.*
+  * **Foot:** a 48 px bordered control, *Packliste öffnen ›*, leads to M4. Links: the card's head into the trip, a
+    block's *„weitere“* line into M25 / M6 (its head folds it), and none inside another. The Playwright cases go into
+    the ledger (`dev-docs/e2e-tests.md`) with the build.
 * **Its blocks are the app's card (added 2026-09-09, FR-21.28).** Every section on M1 — delegation, last-minute,
   prep, the trip cards under the hero, the planned lookahead — is `.jp-card` (G-14) under a section head (G-13). Until
   then M1 was the one screen still drawing Ionic's card: 10 px further in than the hero above it, at a quarter of its
@@ -870,7 +902,9 @@ These patterns apply to every screen and are specified once.
   and no sentence is ellipsized. Each list card below the hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben:
   alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
   is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
-  modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11)
+  modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11) **Amended 2026-09-21 (FR-7.10, ADR-074):** this
+  card still reports and never operates; the hero of a trip whose packing is finished carries its own task block,
+  which is worked in place, and this card leaves that trip out.
 * **The *Neue Notizen* card (FR-7.9 decision 1/2 — built 2026-09-22).** M1's one deliberate exception to *„M1 takes
   no actions"*: a card under a section head lists the three latest trip notes **by others** that this reader has not
   ticked, across active trips, soonest-written first. Each row is the note's words and its trip's name, leading into

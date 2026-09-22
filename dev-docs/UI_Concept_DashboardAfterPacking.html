@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dashboard nach dem Packen</title>
+<style>
+:root {
+  --page: #f2f1ec; --card: #ffffff; --sunken: #e8e7df; --line: #dad9d0;
+  --text: #1e2427; --sub: #5c6a6e; --done: #2f7a3a; --action: #1f6f96; --ring-bg: #dad9d0;
+  --note: #fff3d6; --note-ink: #6b4a10;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #131a1d; --card: #1b2327; --sunken: #0e1417; --line: #2a353b;
+    --text: #e8ebe6; --sub: #9aa6a3; --done: #7fc084; --action: #6fb6da; --ring-bg: #2a353b;
+    --note: #2a2414; --note-ink: #f0c27a;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #131a1d; --card: #1b2327; --sunken: #0e1417; --line: #2a353b;
+  --text: #e8ebe6; --sub: #9aa6a3; --done: #7fc084; --action: #6fb6da; --ring-bg: #2a353b;
+  --note: #2a2414; --note-ink: #f0c27a;
+}
+* { box-sizing: border-box; }
+body { background: var(--sunken); color: var(--text); font: 14px/1.45 system-ui, sans-serif; padding-inline: 16px; padding-block: 24px 40px; margin: 0; }
+main { max-width: 1120px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; text-wrap: balance; }
+.lead { color: var(--sub); margin: 0 0 24px; max-width: 65ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start; }
+.opt h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 2px; }
+.opt p.why { color: var(--sub); margin: 0 0 10px; font-size: 13px; min-height: 5.6em; }
+.phone { background: var(--page); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; position: relative; }
+.when { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); margin: 0; }
+.name { font-size: 20px; font-weight: 700; margin: 2px 0; display: flex; align-items: center; gap: 8px; }
+.name svg { flex: none; }
+.meta { color: var(--sub); font-size: 13px; margin: 0; }
+.figures { display: flex; gap: 14px; margin-top: 12px; align-items: center; }
+.ring { width: 64px; height: 64px; flex: none; }
+.fig { display: flex; gap: 10px; align-items: center; flex: 1 1 0; min-width: 0; }
+.fig b { display: block; font-size: 15px; }
+.fig span { color: var(--sub); font-size: 12px; }
+.done-note { display: flex; gap: 8px; align-items: center; color: var(--sub); font-size: 13px; margin: 0; }
+.done-note svg { color: var(--done); }
+.strike { outline: 2px dashed var(--action); outline-offset: 3px; border-radius: 8px; }
+.tag { position: absolute; top: -9px; right: 12px; background: var(--action); color: var(--card); font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
+.small .name { font-size: 16px; }
+.small .figures { margin-top: 8px; }
+.small .ring { width: 44px; height: 44px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--sub); }
+.chip svg { color: var(--done); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.phase { display:inline-flex; align-items:center; gap:5px; margin-left:8px; color:var(--sub); font-weight:600; }
+.phase i { width:7px; height:7px; border-radius:50%; background:var(--sub); }
+.phase.done { color:var(--done); }
+.phase.done i { background:var(--done); }
+.count { text-align:right; line-height:1.2; flex:none; }
+.count b { display:block; font-size:15px; color:var(--action); }
+.count span { font-size:12px; color:var(--sub); }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; padding:10px 0; border-block:1px solid var(--line); }
+.stats b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+.stats span { font-size:11px; color:var(--sub); }
+.next { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+.lbl { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); }
+.trow { display:flex; align-items:center; gap:10px; font-size:14px; }
+.box { width:18px; height:18px; border:2px solid var(--line); border-radius:5px; flex:none; }
+.tt { flex:1 1 0; min-width:0; }
+.due { font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
+.due.late { color:var(--action); font-weight:700; }
+.more { font-size:12px; color:var(--sub); margin-top:2px; }
+.blocks { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:14px; }
+.blk { color:inherit; text-decoration:none; }
+.blk:focus-visible { outline:2px solid var(--action); outline-offset:2px; }
+.chev { color:var(--action); font-size:14px; }
+.blk { background:var(--sunken); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:7px; min-width:0; }
+.bh { display:flex; justify-content:space-between; align-items:baseline; }
+.bn { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+.bn em { font-style:normal; font-size:12px; font-weight:400; color:var(--sub); }
+.blocks { grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)) !important; }
+.blk { padding:6px 14px 4px !important; gap:0 !important; }
+.bh { color:inherit; text-decoration:none; padding:8px 0 6px; min-height:44px; align-items:center !important; }
+.lbl { font-size:12px; }
+.bn { font-size:24px !important; }
+.trow { display:flex; align-items:center; gap:8px; min-height:52px; border-top:1px solid var(--line); font-size:16px; }
+.tt { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:1px; line-height:1.3; }
+.due { font-size:13px !important; }
+.cb { flex:none; width:56px; height:52px; margin-right:-10px; background:none; border:0; padding:0; display:grid; place-items:center; cursor:pointer; color:var(--action); border-radius:10px; }
+.cb:focus-visible { outline:2px solid var(--action); outline-offset:-2px; }
+.box { width:28px !important; height:28px !important; border-width:2px !important; border-color:var(--sub) !important; border-radius:8px !important; display:grid; place-items:center; }
+.cb[aria-checked="true"] .box { background:var(--done); border-color:var(--done) !important; }
+.cb[aria-checked="true"] .box::after { content:""; width:6px; height:12px; border:solid var(--card); border-width:0 3px 3px 0; transform:rotate(45deg) translate(-1px,-1px); }
+.cb[aria-checked="true"] ~ * , .trow:has(.cb[aria-checked="true"]) .tt { opacity:.55; text-decoration:line-through; }
+a.more { display:flex; align-items:center; justify-content:space-between; min-height:48px; padding-top:2px; border-top:1px solid var(--line); color:var(--action) !important; text-decoration:none; font-size:14px !important; font-weight:600; }
+.add { display:flex; gap:8px; padding:4px 0 10px; }
+.add input { flex:1 1 0; min-width:0; height:48px; padding:0 14px; font:inherit; font-size:16px; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:10px; }
+.add input::placeholder { color:var(--sub); }
+.add input:focus-visible { outline:2px solid var(--action); outline-offset:1px; }
+.add button { flex:none; width:48px; height:48px; border:0; border-radius:10px; background:var(--action); color:var(--card); font-size:26px; line-height:1; cursor:pointer; }
+.add button:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+.empty { margin:0; padding:10px 0 14px; border-top:1px solid var(--line); color:var(--sub); font-size:15px; }
+.who { display:inline-grid; place-items:center; width:20px; height:20px; margin-left:6px; border-radius:50%; background:var(--line); color:var(--text); font-size:10px; font-weight:700; vertical-align:middle; }
+.due.late { color:var(--action); font-weight:700; }
+.fold { width:100%; background:none; border:0; border-bottom:0; font:inherit; color:inherit; cursor:pointer; text-align:left; display:flex; justify-content:space-between; align-items:center; padding:8px 0 6px; min-height:44px; }
+.fold:focus-visible { outline:2px solid var(--action); outline-offset:2px; }
+.fold-body { display:grid; grid-template-rows:1fr; transition:grid-template-rows .32s cubic-bezier(.3,.7,.2,1), opacity .24s ease; }
+.fold-in { overflow:hidden; min-height:0; }
+.blk.collapsed .fold-body { grid-template-rows:0fr; opacity:0; visibility:hidden; transition:grid-template-rows .32s cubic-bezier(.3,.7,.2,1), opacity .2s ease, visibility 0s .32s; }
+.fchev { display:inline-block; font-size:18px !important; transition:transform .32s cubic-bezier(.3,.7,.2,1); }
+.blk.collapsed .fchev { transform:rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .fold-body, .blk.collapsed .fold-body, .fchev { transition:none; } }
+.packlink { display:flex; justify-content:space-between; align-items:center; min-height:48px; margin-top:12px; padding:0 14px; border-radius:10px; border:1px solid var(--line); color:var(--action); text-decoration:none; font-weight:600; font-size:15px; }
+.toast { position:sticky; bottom:8px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--text); color:var(--card); border-radius:10px; padding:4px 4px 4px 14px; font-size:14px; }
+.toast[hidden] { display:none; }
+.toast button { height:44px; padding:0 14px; border:0; border-radius:8px; background:transparent; color:var(--action); font:inherit; font-weight:700; cursor:pointer; }
+.trow.gone { display:none; }
+.cstate { display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:48px; border-top:1px solid var(--line); }
+.cstate:first-child { border-top:0; }
+.cstate > span { color:var(--sub); font-size:13px; }
+.bn-n { display:inline-block; }
+.bn-n.bump { animation:bump .5s cubic-bezier(.3,.7,.2,1); color:var(--action); }
+@keyframes bump { 0% { transform:scale(1); } 35% { transform:scale(1.35); } 100% { transform:scale(1); } }
+.trow.fresh { animation:fresh 1.2s ease; }
+@keyframes fresh { 0%,40% { background:color-mix(in srgb,var(--action) 18%,transparent); } 100% { background:transparent; } }
+@media (prefers-reduced-motion: reduce) { .bn-n.bump, .trow.fresh { animation:none; } }
+.note { background: var(--note); color: var(--note-ink); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-top: 16px; max-width: 65ch; }
+</style>
+</head><body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="chk" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ring-full" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--ring-bg)" stroke-width="7"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--done)" stroke-width="7" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="0" transform="rotate(-90 32 32)"/></symbol>
+  <symbol id="ring-part" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--ring-bg)" stroke-width="7"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--action)" stroke-width="7" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="60" transform="rotate(-90 32 32)"/></symbol>
+</svg>
+
+<main>
+  <h1>Dashboard, wenn das Packen abgeschlossen ist</h1>
+  <p class="lead">Heute steht dort eine eigene Zeile „Packen abgeschlossen" mit Häkchen. Der Vorschlag: die Phase wandert in die Datumszeile, dazu Countdown sowie Aufgaben und Einkauf als zwei Blöcke. Gezeigt: der Hero (Aufgaben-Ring daneben) und darunter eine folgende Reise-Karte.</p>
+
+  <div class="grid">
+
+    <section class="opt">
+      <h2>Heute</h2>
+      <p class="why">Die Zeile belegt eine volle Figuren-Höhe, obwohl sie nur eine erledigte Frage bestätigt.</p>
+      <div class="phone">
+        <div class="card">
+          <p class="when">12.–19. Okt 2026</p>
+          <div class="name">Samedan</div>
+          <p class="meta">2 Personen · Wandern</p>
+          <div class="figures">
+            <p class="done-note strike"><svg width="18" height="18"><use href="#chk"/></svg>Packen abgeschlossen</p>
+            <div class="fig"><svg class="ring"><use href="#ring-part"/></svg><div><b>3/8</b><span>Aufgaben</span></div></div>
+          </div>
+        </div>
+        <div class="card small">
+          <div class="name">Elba</div>
+          <p class="meta">Sommer 2026</p>
+          <div class="figures"><p class="done-note strike"><svg width="18" height="18"><use href="#chk"/></svg>Packen abgeschlossen</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <h2>Vorschlag (Handy-Breite)</h2>
+      <p class="why">Beide Blöcke lassen sich über ihren Kopf ein- und ausklappen; Eingabefeld und Zähler bleiben sichtbar. Der Zustand wird pro Nutzer gemerkt (hier im Browser, damit du es ausprobieren kannst). Probier es aus: etwas hinzufügen (offen und zugeklappt), abhaken, „Rückgängig", Blöcke zuklappen und neu laden.</p>
+      <div class="phone" id="hero-phone">
+        <div class="card">
+          <p class="when">12.–18. Okt 2026 <span class="phase done"><i></i>Vor Ort</span></p>
+          <div class="row" style="align-items:flex-end;margin-top:2px">
+            <div class="name" style="margin:0">Samedan</div>
+            <div class="count"><b>Tag 2 von 7</b><span>noch 5 Tage</span></div>
+          </div>
+          <p class="meta">2 Personen · Wandern</p>
+          <div class="blocks">
+            <div class="blk" id="task-blk">
+              <button class="bh fold" type="button" aria-expanded="true" aria-controls="task-rows" data-key="tasks"><span class="lbl">Aufgaben · meine zuerst</span><span class="bn">12 <em>offen</em> <span class="chev fchev" aria-hidden="true">⌃</span></span></button>
+              <form class="add" onsubmit="event.preventDefault()"><input id="add-task" type="text" placeholder="Aufgabe für unterwegs…" autocomplete="off" aria-label="Aufgabe für unterwegs…"><button type="submit" aria-label="Hinzufügen"><span aria-hidden="true">+</span></button></form><div id="task-rows" class="fold-body"><div class="fold-in">
+              <div class="trow"><span class="tt">Reiseversicherung abschließen<span class="due">Reisen<span class="who" title="zugewiesen">AP</span></span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Reiseversicherung abschließen" aria-label="Reiseversicherung abschließen erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Hüttenplätze bestätigen<span class="due">Reisen<span class="who" title="zugewiesen">AP</span></span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Hüttenplätze bestätigen" aria-label="Hüttenplätze bestätigen erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Post nachsenden<span class="due">Haus</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Post nachsenden" aria-label="Post nachsenden erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Wanderkarten drucken<span class="due">Aus Packliste: Kamera<span class="who" title="zugewiesen">AP</span></span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Wanderkarten drucken" aria-label="Wanderkarten drucken erledigt"><span class="box"></span></button></div><a class="more" href="#aufgaben">+ 8 weitere · alle Aufgaben <span class="chev">›</span></a></div></div>
+            </div>
+            <div class="blk" id="shop-blk">
+              <button class="bh fold" type="button" aria-expanded="true" aria-controls="shop-rows" data-key="shop"><span class="lbl">Einkauf</span><span class="bn">14 <em>offen</em> <span class="chev fchev" aria-hidden="true">⌃</span></span></button>
+              <form class="add" onsubmit="event.preventDefault()"><input id="add-shop" type="text" placeholder="Zum Einkauf hinzufügen…" autocomplete="off" aria-label="Zum Einkauf hinzufügen…"><button type="submit" aria-label="Hinzufügen"><span aria-hidden="true">+</span></button></form>
+              <div id="shop-rows" class="fold-body"><div class="fold-in"><div class="trow"><span class="tt">Blasenpflaster<span class="due">2×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Blasenpflaster" aria-label="Blasenpflaster erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Sonnencreme LSF 50<span class="due">1×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Sonnencreme LSF 50" aria-label="Sonnencreme LSF 50 erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Müsliriegel<span class="due">12×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Müsliriegel" aria-label="Müsliriegel erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Elektrolyt-Tabs<span class="due">1×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Elektrolyt-Tabs" aria-label="Elektrolyt-Tabs erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Stirnlampen-Batterien<span class="due">4×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Stirnlampen-Batterien" aria-label="Stirnlampen-Batterien erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Zahnpasta Reise<span class="due">1×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Zahnpasta Reise" aria-label="Zahnpasta Reise erledigt"><span class="box"></span></button></div><div class="trow"><span class="tt">Trockenobst<span class="due">2×</span></span><button class="cb" type="button" role="checkbox" aria-checked="false" data-name="Trockenobst" aria-label="Trockenobst erledigt"><span class="box"></span></button></div><a class="more" href="#einkauf">+ 7 weitere · zur Einkaufsliste <span class="chev">›</span></a></div></div>
+            </div>
+          </div>
+          <a class="packlink" href="#packliste"><span>Packliste öffnen</span><span class="chev">›</span></a>
+          <div class="toast" id="toast" hidden><span id="toast-t"></span><button type="button" id="undo">Rückgängig</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <h2>Zähler in der Kopfzeile</h2>
+      <p class="why">Vier Zustände, damit „Tag 7 von 7" nicht wie ein Fehler aussieht.</p>
+      <div class="phone">
+        <div class="card"><div class="cstate"><span>Vor dem Start</span><div class="count"><b>in 3 Tagen</b></div></div>
+          <div class="cstate"><span>Am Starttag</span><div class="count"><b>Abreise heute</b></div></div>
+          <div class="cstate"><span>Unterwegs</span><div class="count"><b>Tag 2 von 7</b><span>noch 5 Tage</span></div></div>
+          <div class="cstate"><span>Am Endtag</span><div class="count"><b>Letzter Tag</b></div></div>
+          <div class="cstate"><span>Danach</span><div class="count"><span>— nichts —</span></div></div></div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <h2>Leere Blöcke</h2>
+      <p class="why">Die Blöcke bleiben stehen, weil man hier hinzufügt. Statt der Zeilen steht ein ruhiger Satz, der Zähler zeigt einen Haken statt „0". Die Sätze sind die vorhandenen der Aufgaben- und Einkaufsansicht, phasenabhängig.</p>
+      <div class="phone">
+        <div class="card">
+          <p class="when">12.–18. Okt 2026 <span class="phase done"><i></i>Vor Ort</span></p>
+          <div class="row" style="align-items:flex-end;margin-top:2px">
+            <div class="name" style="margin:0">Samedan</div>
+            <div class="count"><b>Tag 2 von 7</b><span>noch 5 Tage</span></div>
+          </div>
+          <p class="meta">2 Personen · Wandern</p>
+          <div class="blocks">
+            <div class="blk">
+              <a class="bh" href="#aufgaben"><span class="lbl">Aufgaben</span><span class="bn"><svg width="22" height="22" style="color:var(--done)" aria-label="alles erledigt"><use href="#chk"/></svg></span></a>
+              <form class="add" onsubmit="event.preventDefault()">
+                <input id="add-task-e" type="text" placeholder="Aufgabe für unterwegs…" autocomplete="off" aria-label="Aufgabe für unterwegs…">
+                <button type="submit" aria-label="Hinzufügen"><span aria-hidden="true">+</span></button>
+              </form>
+              <p class="empty">Für unterwegs ist nichts notiert.</p>
+            </div>
+            <div class="blk">
+              <a class="bh" href="#einkauf"><span class="lbl">Einkauf</span><span class="bn"><svg width="22" height="22" style="color:var(--done)" aria-label="alles erledigt"><use href="#chk"/></svg></span></a>
+              <form class="add" onsubmit="event.preventDefault()">
+                <input id="add-shop-e" type="text" placeholder="Was kaufen? z. B. Milch, Brot …" autocomplete="off" aria-label="Was kaufen? z. B. Milch, Brot …">
+                <button type="submit" aria-label="Hinzufügen"><span aria-hidden="true">+</span></button>
+              </form>
+              <p class="empty">Vor Ort ist nichts zu kaufen.</p>
+            </div>
+          </div>
+          <a class="packlink" href="#packliste"><span>Packliste öffnen</span><span class="chev">›</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <h2>Zum Vergleich: Packen noch offen</h2>
+      <p class="why">Solange gepackt wird, bleibt der Ring; Phase und Countdown stehen trotzdem in Kopf und Datumszeile.</p>
+      <div class="phone">
+        <div class="card">
+          <p class="when">24.–31. Okt 2026 <span class="phase"><i></i>Packen</span></p>
+          <div class="row" style="align-items:flex-end;margin-top:2px">
+            <div class="name" style="margin:0">Lofoten</div>
+            <div class="count"><b>in 13 Tagen</b><span>7 Nächte</span></div>
+          </div>
+          <p class="meta">2 Personen · Trekking</p>
+          <div class="figures">
+            <div class="fig"><svg class="ring"><use href="#ring-part"/></svg><div><b>41/118 gepackt</b><span>77 offen</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <p class="note">Zahlen und Einträge sind Beispiele. Kopf und „weitere“ eines Blocks sind Links (Aufgaben → M25, Einkauf → M6), die Checkbox rechts hakt direkt ab (56 × 52 px Trefferfläche). Aufgaben haben eine Phase, kein Datum: die zweite Zeile nennt Tag oder Packlisten-Zeile.</p>
+</main>
+<script>
+(function(){
+var undoBtn=document.getElementById("undo"),toast=document.getElementById("toast"),tt=document.getElementById("toast-t"),last=null,timer=null;
+var KEY="jp-dash-fold-";
+function setFold(f,open){ f.closest(".blk").classList.toggle("collapsed",!open); f.setAttribute("aria-expanded",open?"true":"false");  }
+function save(f){ try{ localStorage.setItem(KEY+f.dataset.key, f.getAttribute("aria-expanded")); }catch(_){} }
+Array.prototype.forEach.call(document.querySelectorAll(".fold[data-key]"),function(f){ try{ var v=localStorage.getItem(KEY+f.dataset.key); if(v) setFold(f,v==="true"); }catch(_){} });
+function commit(){ if(last){ last.row.classList.add("gone"); last=null; } toast.hidden=true; }
+document.addEventListener("click",function(e){
+  var f=e.target.closest(".fold");
+  if(f){ setFold(f,f.closest(".blk").classList.contains("collapsed")); save(f); return; }
+  var b=e.target.closest(".cb");
+  if(!b) return;
+  var row=b.closest(".trow");
+  if(b.getAttribute("aria-checked")==="true"){ return; }
+  if(last) commit();
+  clearTimeout(timer);
+  b.setAttribute("aria-checked","true");
+  last={row:row,btn:b};
+  tt.textContent="„"+b.dataset.name+"“ erledigt";
+  toast.hidden=false;
+  timer=setTimeout(commit,4000);
+});
+
+document.addEventListener("submit",function(e){
+  var form=e.target.closest(".add"); if(!form) return;
+  var inp=form.querySelector("input"), v=inp.value.trim(); if(!v) return;
+  var blk=form.closest(".blk"); if(!blk||!blk.querySelector(".fold-in")) return;
+  var isShop=blk.id==="shop-blk", num=blk.querySelector(".bn"), n=blk.querySelector(".bn-n");
+  if(!n){ var t=num.firstChild; var val=parseInt(t.textContent,10); n=document.createElement("span"); n.className="bn-n"; n.textContent=val; t.textContent=" "; num.insertBefore(n,t); }
+  n.textContent=parseInt(n.textContent,10)+1;
+  n.classList.remove("bump"); void n.offsetWidth; n.classList.add("bump");
+  if(!blk.classList.contains("collapsed")){
+    var body=blk.querySelector(".fold-in"), first=body.querySelector(".trow");
+    var r=document.createElement("div"); r.className="trow fresh";
+    r.innerHTML='<span class="tt"></span><button class="cb" type="button" role="checkbox" aria-checked="false"><span class="box"></span></button>';
+    r.querySelector(".tt").textContent=v; r.querySelector(".cb").dataset.name=v; r.querySelector(".cb").setAttribute("aria-label",v+" erledigt");
+    if(!isShop){ var d=document.createElement("span"); d.className="due"; d.textContent="ohne Datum"; r.querySelector(".tt").appendChild(d); }
+    body.insertBefore(r,first);
+  } else {
+    if(last) commit(); clearTimeout(timer); last=null;
+    tt.textContent="„"+v+"“"+(isShop?" zu Einkaufsliste hinzugefügt":" zu Aufgaben hinzugefügt");
+    undoBtn.hidden=true; toast.hidden=false; timer=setTimeout(function(){toast.hidden=true;undoBtn.hidden=false;},2600);
+  }
+  inp.value=""; inp.focus();
+});
+document.getElementById("undo").addEventListener("click",function(){
+  if(last){ last.btn.setAttribute("aria-checked","false"); last=null; }
+  clearTimeout(timer); toast.hidden=true;
+});
+})();
+</script>
+
+</body></html>

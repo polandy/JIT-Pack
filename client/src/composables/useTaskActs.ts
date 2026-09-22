@@ -116,12 +116,12 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   /** The composer wrote one: the undo takes it out again. */
-  function added(id: string, body: string) {
+  function added(id: string, body: string, message?: string) {
     rowUndo.armAction(body, () => {
       const live = liveTripTodo(id)
       if (live) orchestrator.deleteTripTodo(live)
     })
-    void announceAct(t('packing.taskAddedToast', { body }))
+    void announceAct(message ?? t('packing.taskAddedToast', { body }))
   }
 
   /**

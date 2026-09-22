@@ -421,6 +421,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The upgrade stops needing a person (2026-09-21)](#the-upgrade-stops-needing-a-person-2026-09-21) — ADR-067 built: the field that held two vocabularies, and the gate that proved the wrong thing.
 - [Silence and absence are not the same thing (2026-09-21)](#silence-and-absence-are-not-the-same-thing-2026-09-21) — FR-25.15's spoken half: why the live region cannot follow the glyph it describes.
 - [A bar that counted done rows called them packed (2026-09-21)](#a-bar-that-counted-done-rows-called-them-packed-2026-09-21) — FR-25.2 contradicted its own label; the counter the owner refused, and the plural rule that split the languages.
+- [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.10: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
 - [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 - [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
 
@@ -17097,6 +17098,31 @@ the menu-opened case and keeps one title for both. It is deleted rather than rew
 it looked from outside: a catalogue entry, a plausible name, a sentence that reads as a screen's — and grep finds it
 in the same shape as the two strings that are real. Only following the key to a template tells them apart, and the
 suite cannot, because there is nothing to assert about a string nothing renders.
+
+## A mockup drew a date the data does not have (2026-09-21)
+
+FR-7.10's interactive mockup (`UI_Concept_DashboardAfterPacking.html`) showed each task with a due date — *gestern*,
+*vor 3 Tagen*, *Fr* — sorted overdue first, and the owner approved it. **A task has no date.** FR-7.7 gives it a phase,
+*before* or *during*, and nothing else that orders in time; the dates were invented to make the rows look like a
+dashboard's, and the spec sentence citing FR-7.7 as their source was written without opening it. It surfaced at the
+first line of the build, reading `TripTask`. The spec and the concept file were corrected before any code depended on
+them: the second line of a row is now the task's tag or the row it prepares, and the order is the phase the trip is in,
+then mine, then M25's own order. **What to keep:** a mockup can be approved on a datum the schema never held, so the
+fixture data of a concept is worth reading against the type it claims to show.
+
+**The phase word is not `listInFocus`.** The first draft said the date line's word and M6's tab read one rule. They do
+not: `listInFocus` calls every *active* trip *Vor Ort*, and the dashboard's trips are all active, so the word would
+have read *Vor Ort* over a card whose ring was still on screen. The word is the packing stamp instead; the two answers
+differ only for an active trip with open packing, where each is right about its own question.
+
+**One accepted cost, recorded so it is not fixed:** the fold state is device-local (`lib/blockFold.ts`), not per
+account. On a shared device two people see each other's folds. A synced setting would follow a person across devices,
+and there is no preference store to put it in yet.
+
+**FR-7.9 and ADR-073 were already taken.** `2db6cceb` (trip notes, merged 2026-09-22) landed FR-7.9/ADR-073 first;
+this feature's own spec and ADR were renumbered to FR-7.10/ADR-074 to match, across `PRD_Addendum_v2.10.md`,
+`UI_Spec_v1.10.md`, `UI_Test_Spec_v1.0.md`, `e2e-tests.md`, the ADR file and its `README.md` row, and every code
+comment and test title citing the old numbers.
 
 ## `e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)
 

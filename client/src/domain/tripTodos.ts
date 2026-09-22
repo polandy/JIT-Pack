@@ -213,6 +213,43 @@ export function tasksOfAssignee(tasks: readonly TripTask[], userId: string | nul
   return tasks.filter((task) => task.assignee_user_id === userId)
 }
 
+/** What the dashboard's task block lists, and what it says of the rest (FR-7.10). */
+export interface DashboardTasks {
+  /** The next few open tasks, in the order the block shows them. */
+  rows: TripTask[]
+  /** Every open task of the trip — the block's count. */
+  open: number
+  /** How many open tasks the block does not list. */
+  rest: number
+}
+
+/**
+ * dashboardTasks picks the tasks M1's block lists (FR-7.10): the open ones,
+ * the phase in front of the trip first, and in Server Mode the tasks handed to
+ * this person before the rest.
+ *
+ * A task has a phase and no date (FR-7.7), so there is no *overdue* to lead
+ * with; the phase the trip is in is the closest thing the data has to *now*.
+ * `tasks` arrives in FR-7.6's order and the sort is stable, so inside each
+ * group that order stands — the block and M25 never rank two tasks
+ * differently.
+ */
+export function dashboardTasks(
+  tasks: readonly TripTask[],
+  opts: { phaseInFront: TaskPhase; myUserId: string | null; limit: number },
+): DashboardTasks {
+  const open = tasks.filter((task) => task.task_state === 'open')
+  const rank = (task: TripTask) =>
+    Number(task.phase !== opts.phaseInFront) * 2 +
+    Number(opts.myUserId === null || task.assignee_user_id !== opts.myUserId)
+  const ordered = open
+    .map((task, index) => ({ task, index }))
+    .sort((a, b) => rank(a.task) - rank(b.task) || a.index - b.index)
+    .map(({ task }) => task)
+  const rows = ordered.slice(0, opts.limit)
+  return { rows, open: open.length, rest: open.length - rows.length }
+}
+
 /** The order FR-7.6 states, written once because only `tripTasks` may decide it. */
 function compareTasks(a: TripTask, b: TripTask): number {
   const byState = Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved')

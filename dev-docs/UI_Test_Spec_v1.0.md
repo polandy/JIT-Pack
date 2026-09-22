@@ -243,7 +243,8 @@ stable references for the traceability matrix.
   no checkbox. Resolving the todo in M5, reached through the chip, is what clears the card; that is the positive signal
   that the card reads the todos rather than a copy of them. ~~grouped by item~~ in a card of its own (*Prep to do*) is
   what FR-7.6 replaced on 2026-09-20 — the chip is what the grouping became. ~~ticking one resolves it~~ is the clause
-  the 2026-09-18 ruling struck — it was implemented and asserted until that day.
+  the 2026-09-18 ruling struck — it was implemented and asserted until that day. The hero's own task block of a finished
+  packing is the exception and is worked (FR-7.10, E2E-M1-26).
 * **E2E-M1-03** `server` (FR-6.1/6.3/4.4) — **implemented 2026-08-31** (`server/multi-user.spec.ts`): Alice assigns a
   row and it appears on Bob's dashboard **while he is looking at it**, marked new, without a reload; opening it leads to
   the row; and coming back the same row is listed and no longer news. Every assertion is scoped to **this case's row**
@@ -1444,9 +1445,17 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
-* **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
-  and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
-  *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
+* **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
+  trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
+  finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
+  The pair is the case: a card that had merely lost its figure would satisfy half of it.
+* **E2E-M1-26** `local` (FR-7.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the hero's task block
+  takes a task in its field, lists it, shows the check to the right of the words, and drops the row when it is ticked.
+  Folded, the head and the field stay and an added task moves the count without unfolding the block (the count is
+  the positive signal for that absence), and the fold survives a reload.
+* **E2E-M1-27** `local` (FR-7.10, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): the shopping block adds
+  an entry, lists it, and buys it on the right-hand check; the hero contains **no control inside a link**, and
+  *Packliste öffnen* is there.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
   opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
   and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
