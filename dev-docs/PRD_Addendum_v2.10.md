@@ -5561,8 +5561,10 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     an empty composer standing above every card, which a tick is not.
   * **Everyone sees who ticked a note, in the note's own sheet only** — never a line per note in the list, which
     would turn the list into a read-receipt board.
-  * **Push.** A new note reaches every member through the existing notification path (FR-4.2's kind), the same as
-    a mention or a delegation — without it, nobody reads a time-sensitive code before it is needed.
+  * **Push.** A new note reaches every member but its author — a new `note` notification kind
+    (`store.NotifyNote`), the same infrastructure a mention or a delegation already rides (FR-4.2's shape), but a
+    genuine broadcast rather than a reuse: unlike a mention, a note needs no `@name` to reach the people it is for.
+    Without it, nobody reads a time-sensitive code before it is needed.
   * **A phone number reads as a `tel:` link, and holding a press on the note copies it** — presentation only; the
     note stays plain text either way, and a short run of digits (a key-box code) is deliberately left untouched by
     the phone-number pattern.
