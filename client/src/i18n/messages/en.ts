@@ -942,6 +942,8 @@ export const en = {
   'settings.prefTaskHint': 'A task was opened on your item',
   'settings.prefLockTaken': 'Items taken over',
   'settings.prefLockTakenHint': 'Somebody took over an item you were packing',
+  'settings.prefNote': 'Trip notes',
+  'settings.prefNoteHint': 'A co-traveller wrote a new note',
   'settings.push': 'Push on this device',
   'settings.pushHint': 'OS notifications while the app is closed',
   'settings.pushUnsupported': 'Not supported by this browser',
@@ -1779,6 +1781,8 @@ export const en = {
   'notify.body.taskPlain': '{actor} opened a task for you',
   'notify.body.lock_taken': '{actor} took “{item}” over from you',
   'notify.body.lock_takenPlain': '{actor} took an item over from you',
+  'notify.body.note': '{actor} wrote a note: {preview}',
+  'notify.body.notePlain': '{actor} wrote a new note',
   'notify.body.generic': '{actor} sent you a notification',
   'notify.actorUnknown': 'Someone',
 } as const

@@ -946,6 +946,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.prefTaskHint': 'Zu deinem Packelement wurde eine Aufgabe eröffnet',
   'settings.prefLockTaken': 'Übernommene Artikel',
   'settings.prefLockTakenHint': 'Jemand hat einen Artikel übernommen, den du gerade gepackt hast',
+  'settings.prefNote': 'Reisenotizen',
+  'settings.prefNoteHint': 'Ein Mitreisender hat eine neue Notiz geschrieben',
   'settings.push': 'Push auf diesem Gerät',
   'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
   'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
@@ -1791,6 +1793,8 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.taskPlain': '{actor} hat eine Aufgabe für dich eröffnet',
   'notify.body.lock_taken': '{actor} hat „{item}“ von dir übernommen',
   'notify.body.lock_takenPlain': '{actor} hat einen Artikel von dir übernommen',
+  'notify.body.note': '{actor} hat eine Notiz geschrieben: {preview}',
+  'notify.body.notePlain': '{actor} hat eine neue Notiz geschrieben',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.actorUnknown': 'Jemand',
 }

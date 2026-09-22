@@ -5534,6 +5534,49 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Surfaces:** M25 (the groups, the drag, the sheet's tag list), M8 and M4 unchanged — the packing list's window
     is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09.
 
+* **FR-7.9 (Trip Notes — Written by One Traveller, Read by All, Ticked per Person — new 2026-09-21, owner request,
+  decided from an interactive prototype; *built in the same round*):** a traveller can leave information for the
+  others — a key-box code, a courier's phone number — that everyone reads and can tick off for themselves. The owner
+  asked *„Auf einer Reise auch Notizen machen können, die die anderen Mitreisenden lesen können… Man kann sie
+  abhaken und als erledigt deklarieren; der State gilt für den User, der es deklariert hat, nicht global."* The
+  tradeoff is ADR-073.
+  * **A note is information, not work.** It is a trip-level `comments` row — `trip_item_id` NULL, `is_task = 0` —
+    the shape FR-7.1 already allows and no screen wrote until now. Author and time are stamped the same way a
+    comment's already are (invariant 3); sync, export and delete come with the table, no new column.
+  * **The tick is per reader, not global** (ADR-073): `note_acks`, one row per (note, person). A whole-field
+    `acked_by` column would let two people's concurrent ticks overwrite each other under NFR-4.2a's field-level
+    merge — the same reason FR-7.4's tasks are a table and not a column. Un-ticking sets `acked` back to `0` rather
+    than deleting the row; field-level LWW never deletes.
+  * **"New for me" is derived, never stored** (`isNoteNewForMe`, `client/src/domain/tripNotes.ts`): the author is
+    somebody else, and this reader has no `acked` row that says true. Own notes are never new and never carry a
+    tick — a tick on your own words would say nothing. The rule is the same shape as FR-7.3's open-prep derivation
+    applied again.
+  * **Where a note lives on the screen: a second segment inside M25**, not a fourth pill and not a card above the
+    packing list. A fourth pill would reopen ADR-051 amendment 1's three-word measurement; a card would compete
+    with the list being worked. The segment carries the count of *new* notes, not the whole list's count.
+  * **M1's one deliberate exception.** A *Neue Notizen* card lists the latest three notes by others I have not
+    ticked, across active trips, each with its trip's name and **its own tick** — the words lead into the trip, the
+    tick is a control beside them. This amends FR-7.4's *„M1 takes no actions"* for notes only: the owner's reading
+    is that *„gesehen"* is exactly what one says at the dashboard, and the ruling that ruled it out was made against
+    an empty composer standing above every card, which a tick is not.
+  * **Everyone sees who ticked a note, in the note's own sheet only** — never a line per note in the list, which
+    would turn the list into a read-receipt board.
+  * **Push.** A new note reaches every member through the existing notification path (FR-4.2's kind), the same as
+    a mention or a delegation — without it, nobody reads a time-sensitive code before it is needed.
+  * **A phone number reads as a `tel:` link, and holding a press on the note copies it** — presentation only; the
+    note stays plain text either way, and a short run of digits (a key-box code) is deliberately left untouched by
+    the phone-number pattern.
+  * **Not a secret store.** The note is stored in clear text, visible to every member and in the server export. It
+    is a key-box code, not a password, and `docs/notifications.md`/`docs/backup.md` say so.
+  * **Not in the portable backup** (NFR-4.11), like every task and shopping entry — neither the note nor its ticks.
+  * **Modes.** Server: everything. Single-User: one account, so nothing is ever new and M1's card stays silent; the
+    screen still works as a scratchpad. Local: no user id (`identityStore.myUserId` is null by design), same as
+    Single-User, and no `note_acks` row is ever written — the tick control renders only where there is a reader to
+    tell apart from the author, so this is not a separate guard, it falls out of the same rule that hides an
+    author's own tick.
+  * **Surfaces:** M25 (the notes segment, the composer, the sheet), M1 (the *Neue Notizen* card). UI-Spec M25/M1;
+    E2E-M25-10/11, E2E-M1-14.
+
 ### 3.9 Trip Feedback & Post-Trip Review
 
 * **FR-9.3 (Capturing Trip Feedback Without Visiting Every Row — new 2026-08-22, owner request):**
