@@ -393,6 +393,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await page.mouse.down()
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(apotheke).toHaveAttribute('data-drop-over', '')
+    // The heading says so out loud, too — not only the highlight the CSS
+    // gate would already catch.
+    await expect(apotheke.getByText('drop here')).toHaveCSS('opacity', '1')
+    await expect(fromPacking.getByText('drop here')).toHaveCSS('opacity', '0')
     await page.mouse.up()
     await expect(host).toHaveAttribute('data-drag', 'idle')
     await expect(apotheke.locator('h3')).toHaveText(['Brot', 'Mückenspray'])
