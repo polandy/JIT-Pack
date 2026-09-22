@@ -29,6 +29,8 @@ export const TABLE = {
   travelers: 'travelers',
   containers: 'containers',
   comments: 'comments',
+  /** FR-7.9: one row per (note, person) who has ticked it (ADR-073). */
+  noteAcks: 'note_acks',
   /** FR-30.1: the shopping list's own entries — not trip items (ADR-066). */
   shoppingEntries: 'shopping_entries',
   /** FR-27.4, the planning-trip refresh (migration 023). */

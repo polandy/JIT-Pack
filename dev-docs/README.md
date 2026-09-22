@@ -101,3 +101,7 @@ generated — edit the builder, not the HTML:
   assignment and the late-packer flag are operated (FR-25.25/25.26): the row's edge avatar and
   its menu, and a cluster head that sets both for every instance at once. Hand-written, no
   generator — it is five states of one screen rather than a matrix of variants.
+- [`UI_Concept_TripNotes_variants.html`](UI_Concept_TripNotes_variants.html) — trip notes read by
+  every traveller and ticked per person (decided 2026-09-21, reasoning in
+  [`trip-notes-concept.md`](trip-notes-concept.md)): where they live and whether M1 may tick.
+  Hand-written, with an interactive who-am-I switch.

@@ -335,6 +335,8 @@ type NotificationPrefs struct {
 	Task       bool `json:"task"`
 	// FR-5.7: somebody took over a row this user had claimed.
 	LockTaken bool `json:"lock_taken"`
+	// FR-7.9: a co-traveller wrote a new trip note.
+	Note bool `json:"note"`
 }
 
 // --- Web Push (NFR-4.6) ---

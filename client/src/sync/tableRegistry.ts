@@ -28,6 +28,7 @@ import type {
   ItemDependency,
   ItemTag,
   ItemTodo,
+  NoteAck,
   ShoppingEntry,
   TaskFacts,
   TaskTag,
@@ -60,6 +61,7 @@ import {
   dependencyRow,
   masterItemRow,
   memberRow,
+  noteAckRow,
   profileRow,
   seriesRow,
   templateItemRow,
@@ -367,6 +369,16 @@ function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
   }
 }
 
+function rowToNoteAck(id: string, row: Record<string, unknown>): NoteAck {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    comment_id: row['comment_id'] as string,
+    user_id: row['user_id'] as string,
+    acked: Boolean(row['acked']),
+  }
+}
+
 function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
   return {
     id,
@@ -426,6 +438,7 @@ export const TABLE_CODECS = {
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.
   [TABLE.comments]: { parse: rowToComment, encode: commentRow },
+  [TABLE.noteAcks]: { parse: rowToNoteAck, encode: noteAckRow },
 } satisfies Record<SyncTable, TableCodec>
 
 /**

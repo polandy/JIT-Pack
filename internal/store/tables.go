@@ -392,9 +392,14 @@ var tableSpecs = map[string]tableSpec{
 		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
 		// CASCADE). Trip-level comments have a NULL trip_item_id and are
 		// untouched by the delete, so the query names the row explicitly
-		// rather than matching on the trip.
+		// rather than matching on the trip. note_acks is reachable a second
+		// hop down (comments.id ON DELETE CASCADE) and is named here too —
+		// the fkgraph test walks transitively but a tableSpec's own
+		// `cascades` does not, so each reachable table needs its own entry.
 		cascades: []childQuery{
 			{TableComments, `SELECT id FROM comments WHERE trip_item_id = ?`},
+			{TableNoteAcks, `SELECT id FROM note_acks WHERE comment_id IN
+				(SELECT id FROM comments WHERE trip_item_id = ?)`},
 		},
 		export: exportQuery{query: `SELECT x.* FROM trip_items x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -452,7 +457,22 @@ var tableSpecs = map[string]tableSpec{
 			// as trip_items.packed_at.
 			"created_at",
 		),
+		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
+		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
+		// is a column on the same row, unlike a note's tick.
+		cascades: []childQuery{
+			{TableNoteAcks, `SELECT id FROM note_acks WHERE comment_id = ?`},
+		},
 		export: exportQuery{query: `SELECT x.* FROM comments x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-7.9: one row per (note, person) who has ticked it — see schema.sql
+	// for why this is a table and not a column on comments.
+	TableNoteAcks: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "comment_id", "user_id", "acked"),
+		export: exportQuery{query: `SELECT x.* FROM note_acks x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

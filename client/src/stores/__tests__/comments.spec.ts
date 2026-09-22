@@ -64,6 +64,52 @@ describe('tripStore comments (FR-7.1)', () => {
 
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
   })
+
+  /**
+   * FR-7.9: a deleted note takes its own ticks with it, mirroring the
+   * server's `note_acks.comment_id ON DELETE CASCADE` — a client that
+   * missed this would keep a tick for a note the list no longer shows.
+   */
+  it('deleting a note removes its note_acks rows too', () => {
+    const tripStore = useTripStore()
+    tripStore.applyChange(
+      commentChange('note-1', { trip_item_id: null, is_task: 0, author_id: 'u2' }),
+    )
+    tripStore.applyChange({
+      seq: 0,
+      table: 'note_acks',
+      id: 'ack-1',
+      deleted: false,
+      row: { trip_id: 't1', comment_id: 'note-1', user_id: 'u1', acked: 1 },
+    })
+    expect(tripStore.getNoteAcks('t1')).toHaveLength(1)
+
+    tripStore.applyChange({ seq: 0, table: 'comments', id: 'note-1', deleted: true, row: null })
+
+    expect(tripStore.getNoteAcks('t1')).toHaveLength(0)
+  })
+
+  /** A tick on a comment that is not the deleted one survives it. */
+  it('leaves another note’s ticks alone', () => {
+    const tripStore = useTripStore()
+    tripStore.applyChange(
+      commentChange('note-1', { trip_item_id: null, is_task: 0, author_id: 'u2' }),
+    )
+    tripStore.applyChange(
+      commentChange('note-2', { trip_item_id: null, is_task: 0, author_id: 'u2' }),
+    )
+    tripStore.applyChange({
+      seq: 0,
+      table: 'note_acks',
+      id: 'ack-2',
+      deleted: false,
+      row: { trip_id: 't1', comment_id: 'note-2', user_id: 'u1', acked: 1 },
+    })
+
+    tripStore.applyChange({ seq: 0, table: 'comments', id: 'note-1', deleted: true, row: null })
+
+    expect(tripStore.getNoteAcks('t1').map((a) => a.id)).toEqual(['ack-2'])
+  })
 })
 
 describe('comment mutations', () => {
@@ -89,6 +135,31 @@ describe('comment mutations', () => {
     expect(mutation.op).toBe('upsert')
     expect(mutation.fields).toMatchObject({ is_task: 1, task_state: 'open' })
   })
+
+  /** FR-7.9: the first tick is an insert — its own row, ADR-073. */
+  it('tickNote builds a note_acks insert', () => {
+    const { mutation, id } = mutations.tickNote('t1', 'note-1', 'u1')
+
+    expect(mutation.op).toBe('insert')
+    expect(mutation.table).toBe('note_acks')
+    expect(mutation.id).toBe(id)
+    expect(mutation.fields).toMatchObject({
+      trip_id: 't1',
+      comment_id: 'note-1',
+      user_id: 'u1',
+      acked: 1,
+    })
+  })
+
+  /** Un-ticking flips the field back rather than deleting the row (NFR-4.2a). */
+  it('setNoteAcked builds an upsert of the one field', () => {
+    const mutation = mutations.setNoteAcked('ack-1', false)
+
+    expect(mutation.op).toBe('upsert')
+    expect(mutation.table).toBe('note_acks')
+    expect(mutation.id).toBe('ack-1')
+    expect(mutation.fields).toEqual({ acked: 0 })
+  })
 })
 
 describe('orchestrator comment actions', () => {
@@ -108,5 +179,25 @@ describe('orchestrator comment actions', () => {
     const todos = tripStore.getItemTodos('t1', 'ti1')
     expect(todos).toHaveLength(1)
     expect(todos[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
+  })
+
+  /**
+   * FR-7.9: `toggleNoteTick` picks insert vs. upsert from what the caller
+   * hands it — the first tap has no existing row (`null`), the second one
+   * does, and flips it. This is the seam both M25 and M1 call through.
+   */
+  it('toggleNoteTick inserts the first tick and flips the existing row after', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    orch.toggleNoteTick('t1', 'note-1', 'u1', null)
+    const acks = tripStore.getNoteAcks('t1')
+    expect(acks).toHaveLength(1)
+    expect(acks[0]).toMatchObject({ comment_id: 'note-1', user_id: 'u1', acked: true })
+
+    orch.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!)
+    const flipped = tripStore.getNoteAcks('t1')
+    expect(flipped).toHaveLength(1)
+    expect(flipped[0]).toMatchObject({ id: acks[0]!.id, acked: false })
   })
 })

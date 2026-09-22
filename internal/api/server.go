@@ -408,12 +408,12 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 }
 
 // stampActor fills server-owned actor columns from the authenticated
-// pusher (FR-4.2): comment authors, the packing-now locker (FR-5.7) and
-// the packer. Client-sent values are placeholders (the client may not
-// know its user id) and are never trusted, so each of those columns is
-// removed from the mutation first and written back only where this
-// function decides it — invariant 3 holds for every op, not only the one
-// the client happens to send.
+// pusher (FR-4.2): comment authors, a note's per-person tick (FR-7.9), the
+// packing-now locker (FR-5.7) and the packer. Client-sent values are
+// placeholders (the client may not know its user id) and are never
+// trusted, so each of those columns is removed from the mutation first and
+// written back only where this function decides it — invariant 3 holds
+// for every op, not only the one the client happens to send.
 func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 	switch m.Table {
 	case store.TableComments:
@@ -438,6 +438,17 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 			by: "resolved_by_user_id",
 			at: "resolved_at",
 		}, known, state == taskStateResolved)
+	case store.TableNoteAcks:
+		// FR-7.9: whose tick a row is decided once, exactly like a comment's
+		// authorship (same shape as store.TableComments above). An upsert
+		// must only flip `acked`, never reassign the row to somebody else's
+		// tick — stamping unconditionally would let two users racing an
+		// upsert on the same row id steal each other's row instead of
+		// getting the UNIQUE(comment_id, user_id) refusal they should.
+		delete(m.Fields, "user_id")
+		if m.Op == syncpkg.OpInsert {
+			m.Set("user_id", userID)
+		}
 	case store.TableShoppingEntries:
 		// FR-30.4: the entry's purchase record. `bought` is the flag the
 		// record describes, sent as a JSON number or boolean.

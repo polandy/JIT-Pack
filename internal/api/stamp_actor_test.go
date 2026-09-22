@@ -110,6 +110,87 @@ func TestStampActor_UpsertCreatingACommentIsRefusedRatherThanAttributed(t *testi
 	}
 }
 
+func TestStampActor_NoteAckCannotBeForgedToAnotherUser(t *testing.T) {
+	srv := newTestServer(t)
+
+	pushOne(t, srv.URL, userA, map[string]any{
+		"mutation_id": "nk-1", "op": "insert", "table": "comments", "id": "com-note",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil, "body": "Code 4711", "is_task": 0,
+		},
+		"hlc": "0000000001000-0000-aaaaaaaa",
+	})
+
+	// user-b ticks the note but claims the tick is user-a's.
+	pushOne(t, srv.URL, userB, map[string]any{
+		"mutation_id": "nk-2", "op": "insert", "table": "note_acks", "id": "ack-forge",
+		"fields": map[string]any{
+			"trip_id": trip, "comment_id": "com-note", "user_id": userA, "acked": 1,
+		},
+		"hlc": "0000000002000-0000-bbbbbbbb",
+	})
+
+	row := pullRow(t, srv.URL, userA, "note_acks", "ack-forge")
+	if row["user_id"] != userB {
+		t.Errorf("user_id = %v, want %s — a tick is stamped to the pusher, never the field they sent", row["user_id"], userB)
+	}
+}
+
+func TestStampActor_NoteAckUpsertCannotStealAnotherUsersRow(t *testing.T) {
+	srv := newTestServer(t)
+
+	pushOne(t, srv.URL, userA, map[string]any{
+		"mutation_id": "nk-3", "op": "insert", "table": "comments", "id": "com-note-2",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil, "body": "Pizzakurier: 555-0100", "is_task": 0,
+		},
+		"hlc": "0000000001000-0000-aaaaaaaa",
+	})
+	pushOne(t, srv.URL, userA, map[string]any{
+		"mutation_id": "nk-4", "op": "insert", "table": "note_acks", "id": "ack-owned",
+		"fields": map[string]any{"trip_id": trip, "comment_id": "com-note-2", "user_id": userA, "acked": 1},
+		"hlc":    "0000000002000-0000-aaaaaaaa",
+	})
+
+	// user-b tries to take over user-a's ack row by upsert rather than
+	// inserting a row of their own.
+	pushOne(t, srv.URL, userB, map[string]any{
+		"mutation_id": "nk-5", "op": "upsert", "table": "note_acks", "id": "ack-owned",
+		"fields": map[string]any{"user_id": userB, "acked": 0},
+		"hlc":    "0000000003000-0000-bbbbbbbb",
+	})
+
+	row := pullRow(t, srv.URL, userA, "note_acks", "ack-owned")
+	if row["user_id"] != userA {
+		t.Errorf("user_id = %v, want %s — an upsert may never reassign whose tick a row is", row["user_id"], userA)
+	}
+}
+
+func TestStampActor_UpsertCreatingANoteAckIsRefusedRatherThanAttributed(t *testing.T) {
+	srv := newTestServer(t)
+
+	pushOne(t, srv.URL, userA, map[string]any{
+		"mutation_id": "nk-6", "op": "insert", "table": "comments", "id": "com-note-3",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil, "body": "WLAN: JitPack-Guest", "is_task": 0,
+		},
+		"hlc": "0000000001000-0000-aaaaaaaa",
+	})
+
+	// No real client creates a tick by upsert; if one arrives it must fail
+	// as a refusal, never as a forged tick and never as a 500.
+	outcome := pushOutcome(t, srv.URL, userB, map[string]any{
+		"mutation_id": "nk-7", "op": "upsert", "table": "note_acks", "id": "ack-fresh",
+		"fields": map[string]any{
+			"trip_id": trip, "comment_id": "com-note-3", "user_id": "user-x", "acked": 1,
+		},
+		"hlc": "0000000001000-0000-bbbbbbbb",
+	})
+	if outcome != "rejected" {
+		t.Errorf("outcome = %q, want rejected", outcome)
+	}
+}
+
 func TestStampActor_ClaimHolderCannotBeForgedWithoutAState(t *testing.T) {
 	srv := newTestServer(t)
 

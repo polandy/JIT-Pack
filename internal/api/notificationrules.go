@@ -81,7 +81,14 @@ func planNotifications(
 			assigned := planTodoAssignment(tripID, actor, actorName, m, members, resolveTodo)
 			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
-				plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
+				if isTripNote(m) {
+					// FR-7.9 decision 5: a note is written *for* every
+					// co-traveller, not addressed to whoever it names, so it
+					// takes the broadcast rather than planComment's mention scan.
+					plan = append(plan, planNote(tripID, actor, actorName, m, members)...)
+				} else {
+					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
+				}
 			}
 		}
 	}
@@ -252,6 +259,37 @@ func planComment(
 		}
 		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyMention, Payload: payload})
 		notified[target] = true
+	}
+	return plan
+}
+
+// isTripNote reports whether a comment insert is FR-7.9's shape: trip-level
+// (no `trip_item_id`) and not a task. It is checked on the mutation's own
+// fields, before any row is loaded — the same fields `stampActor` and the
+// client's `is_task` routing already read.
+func isTripNote(m syncpkg.Mutation) bool {
+	itemID, _ := m.Fields["trip_item_id"].(string)
+	return itemID == "" && !syncpkg.IsTruthy(m.Fields["is_task"])
+}
+
+// planNote fires FR-7.9's "to all members" push for a new trip note: every
+// member but its author, because a note is written for everyone else by
+// default — unlike planComment's mentions, which a body has to ask for by
+// name, a note needs no @name to reach the people it is for.
+func planNote(
+	tripID, actor, actorName string, m syncpkg.Mutation, members []store.MemberName,
+) []plannedNotification {
+	body, _ := m.Fields["body"].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadCommentID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadPreview: truncate(body, previewLen),
+	}
+	var plan []plannedNotification
+	for _, member := range members {
+		if member.UserID == actor {
+			continue
+		}
+		plan = append(plan, plannedNotification{UserID: member.UserID, Kind: store.NotifyNote, Payload: payload})
 	}
 	return plan
 }

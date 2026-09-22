@@ -277,12 +277,36 @@ func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	if prefs["delegation"] || !prefs["mention"] || !prefs["task"] {
 		t.Errorf("prefs = %v, want delegation off, rest on", prefs)
 	}
+	// FR-7.9: the GET handler builds the struct field by field
+	// (internal/api/notifications.go); a kind left out of that literal
+	// would serialize as false — indistinguishable from "on, but happens
+	// to answer false" — and TestWire_NotificationPrefsNamesEveryKindTheStoreKnows
+	// only holds the struct's *shape* against the store, not what the
+	// handler actually fills in.
+	if !prefs["note"] {
+		t.Errorf("prefs = %v, want note on (untouched default)", prefs)
+	}
 
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
 
 	if got := listNotifications(t, srv, userB, ""); len(got.Notifications) != 0 {
 		t.Errorf("suppressed kind produced %d notifications", len(got.Notifications))
+	}
+
+	// FR-7.9's kind round-trips the same way delegation's off state did above.
+	doJSON(t, http.MethodPut, srv.URL+"/api/v1/me/notification-prefs",
+		token(t, userB, testSecret), map[string]bool{"note": false})
+	resp, raw = doJSON(t, http.MethodGet, srv.URL+"/api/v1/me/notification-prefs",
+		token(t, userB, testSecret), nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("get prefs status = %d", resp.StatusCode)
+	}
+	if err := json.Unmarshal(raw, &prefs); err != nil {
+		t.Fatal(err)
+	}
+	if prefs["note"] {
+		t.Errorf("prefs = %v, want note off after the PUT", prefs)
 	}
 }
 

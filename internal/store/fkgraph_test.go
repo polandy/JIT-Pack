@@ -37,6 +37,7 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableTrips + " -> comments":                 "the trip's own feed is deleted with it",
 	TableTrips + " -> containers":               "the trip's own feed is deleted with it",
 	TableTrips + " -> lock_events":              "the trip's own feed is deleted with it",
+	TableTrips + " -> note_acks":                "the trip's own feed is deleted with it",
 	TableTrips + " -> shopping_entries":         "the trip's own feed is deleted with it",
 	TableTrips + " -> travelers":                "the trip's own feed is deleted with it",
 	TableTrips + " -> trip_items":               "the trip's own feed is deleted with it",

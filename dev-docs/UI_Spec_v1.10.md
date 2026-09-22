@@ -871,6 +871,16 @@ These patterns apply to every screen and are specified once.
   alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
   is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
   modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11)
+* **The *Neue Notizen* card (FR-7.9 decision 1/2 — built 2026-09-22).** M1's one deliberate exception to *„M1 takes
+  no actions"*: a card under a section head lists the three latest trip notes **by others** that this reader has not
+  ticked, across active trips, soonest-written first. Each row is the note's words and its trip's name, leading into
+  the trip on tap — **and, beside it, its own tick**, a control of its own rather than the row's `button`, the way
+  the shopping card's per-row check-off already is. Ticking calls the same `toggleNoteTick` M25's list uses: an
+  insert the first time this reader has ticked the note, an upsert flipping `acked` on every tap after. **The card
+  is absent** where it has nothing to show — nobody else has written an unticked note, or (Single-User/Local, G-8)
+  there is no other author for anything to ever be new from. **Modes:** Server only; the other two never populate
+  it, because nothing is ever new without a second identity (FR-7.9's own reasoning, not a separate gate here).
+  (E2E-M1-14)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
@@ -2425,10 +2435,11 @@ token would prove nothing there is anything to prove.
   revised 2026-08-29: no identity provider supplies a picture, so gating it on Single-User Mode meant a multi-user
   instance could never have one). The picture control is the same one M17 offers in Single-User Mode, described in the
   variant below. The note under the name names the display name specifically rather than claiming the whole profile is
-  managed elsewhere; notification preferences per event type: delegation, mention, task assigned and **items taken
-  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) with channel
-  status (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own
-  suppression rule and silences that kind alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
+  managed elsewhere; notification preferences per event type: delegation, mention, task assigned, **items taken
+  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) and
+  **trip notes** (FR-7.9, the fifth, 2026-09-22) with channel status (push registered via VAPID/UnifiedPush,
+  NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind
+  alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
   them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
   account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side
   because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because
@@ -2789,6 +2800,28 @@ token would prove nothing there is anything to prove.
   arrived** the screen shows nothing rather than an empty list (ADR-033).
 * **Navigation:** the pill row reaches it from M4 and M6 and back; M4's task section also carries *„Alle Aufgaben"* as
   the way out of its window. The bar's ⋮ keeps the two views the row does not show (ADR-051 amendment 1).
+* **The notes segment (FR-7.9 — built 2026-09-22).** An `IonSegment`, *Aufgaben* / *Notizen*, above the mine chip —
+  a second segment rather than a fourth pill (ADR-051 amendment 1's three-word row) and rather than a third section:
+  unlike the phase split above, tasks and notes are two places you stand, the way the shopping list's own two tabs
+  are. The *Notizen* button carries the count of **new** notes — by somebody else, not yet ticked — never the
+  segment's own count, and says nothing when there are none.
+  * **The list**, new-first and marked, ticked ones sunk below and muted (`opacity: 0.55`): every trip-level
+    `comments` row (`is_task = 0`), each an avatar, the words, a *„written by … · when"* line (the same stamp a
+    task's provenance line already carries), and — where the note is not mine and there is somebody to tell it
+    from — its own tick. My own notes never carry one (decision 4): a tick on your own words would say nothing.
+  * **The composer** writes a trip-level comment directly, the same shape M25's task composers already write —
+    no phase, because a note has none.
+  * **The note's sheet** opens on the words. It carries the head (a plain *„Notiz"* title — the body can run to a
+    paragraph, unlike a task's one line — the stamp as its meta), the body itself with a phone number read as a
+    `tel:` link and a long press (`useLongPress`'s own 500 ms/8 px) copying the text verbatim, **who has ticked it**
+    (decision 3 — every reader, named here and only here, never a line in the list), and *Notiz löschen*.
+  * **Modes.** All three. Server: everything. Single-User: one account, so every note is trivially mine and no tick
+    ever renders; the screen still works as a scratchpad. Local: same as Single-User (`identityStore.myUserId` is
+    null), and the tick's absence there is not a separate guard — it falls out of the same "not mine, and somebody
+    to tell it from" rule.
+  * **Push (decision 5):** a new note reaches every other member through the existing notification path
+    (`NotifyNote`), the same as a delegation or a mention.
+  * (E2E-M25-10, E2E-M25-11)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

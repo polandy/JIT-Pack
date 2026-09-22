@@ -154,7 +154,24 @@ export function seedSampleTrip(
   seedItemComment(id, orchestrator)
   seedTripTodos(id, orchestrator)
   seedPreparations(id, orchestrator)
+  seedTripNotes(id, orchestrator)
   return id
+}
+
+/**
+ * FR-7.9: two trip notes, so M25's *Notizen* segment opens with something
+ * in it rather than the empty state. Both are written under the same
+ * `SEED_AUTHOR_ID` placeholder — a fresh device has only ever the one
+ * (real or dev-seed) identity, so this shows the list and the sheet's
+ * shape only. "New for me" and the tick need a genuine second traveller,
+ * which is what `E2E-M25-11` (server, two real identities) exercises.
+ */
+const SEED_TRIP_NOTES = ['Schlüsselfach: 4711', 'Pizzakurier: 044 555 01 00, ab 18 Uhr'] as const
+
+function seedTripNotes(tripId: string, orchestrator: Orchestrator): void {
+  for (const body of SEED_TRIP_NOTES) {
+    orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, body)
+  }
 }
 
 /**

@@ -364,6 +364,8 @@ export interface NotificationPrefs {
   task: boolean
   // FR-5.7: somebody took over a row this user had claimed.
   lock_taken: boolean
+  // FR-7.9: a co-traveller wrote a new trip note.
+  note: boolean
 }
 
 /**

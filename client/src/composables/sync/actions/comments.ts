@@ -3,10 +3,14 @@
  * table: a todo is a comment with `is_task = 1`, and `flagCommentAsTask`
  * carries a row across the line. Moved out of the orchestrator closure under
  * R-4; moves only, so `useSyncOrchestrator`'s return shape is untouched.
+ *
+ * `toggleNoteTick` (FR-7.9) sits here too: a note is the same trip-level
+ * comment shape, and its tick hangs off `comment.id` the way a todo's
+ * resolution hangs off the same row.
  */
-import { commentRow, todoRow, tripTodoRow } from '../rows'
+import { commentRow, noteAckRow, todoRow, tripTodoRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import type { ItemComment, ItemTodo, TaskPhase, TripTodo } from '@/types/domain'
+import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 import type { SyncContext } from '../context'
 
@@ -42,6 +46,30 @@ export function createCommentActions(ctx: SyncContext) {
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticDelete(mutation),
+    })
+  }
+
+  /**
+   * FR-7.9: tick or un-tick a note. `existing` is this reader's own
+   * `note_acks` row, if `domain/tripNotes.ts`'s `myAckFor` found one — the
+   * first tick inserts a fresh row (one per (note, person), ADR-073),
+   * every later tap flips the row that already exists.
+   */
+  function toggleNoteTick(
+    tripId: string,
+    noteId: string,
+    userId: string,
+    existing: NoteAck | null,
+  ) {
+    if (!existing) {
+      const { mutation } = mutations.tickNote(tripId, noteId, userId)
+      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      return
+    }
+    const mut = mutations.setNoteAcked(existing.id, !existing.acked)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, noteAckRow(existing)),
     })
   }
 
@@ -174,6 +202,7 @@ export function createCommentActions(ctx: SyncContext) {
     addComment,
     flagCommentAsTask,
     deleteComment,
+    toggleNoteTick,
     addPrepTodo,
     resolvePrepTodo,
     reopenPrepTodo,

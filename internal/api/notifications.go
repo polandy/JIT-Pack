@@ -1,8 +1,9 @@
 // Package api — notifications.go implements FR-6.2: detecting
 // notification triggers in applied push mutations (delegation, @mention,
-// task on a delegated item), the REST endpoints to fetch/acknowledge
-// them, and the M17 per-kind preference endpoints. Fan-out to connected
-// devices rides the WebSocket as notification.created (spec §7).
+// task on a delegated item, FR-7.9's new trip note), the REST endpoints to
+// fetch/acknowledge them, and the M17 per-kind preference endpoints.
+// Fan-out to connected devices rides the WebSocket as notification.created
+// (spec §7).
 package api
 
 import (
@@ -70,6 +71,7 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		Delegation: prefs[store.NotifyDelegation],
 		Mention:    prefs[store.NotifyMention],
 		Task:       prefs[store.NotifyTask],
+		Note:       prefs[store.NotifyNote],
 	})
 }
 

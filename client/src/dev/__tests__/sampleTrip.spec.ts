@@ -104,4 +104,18 @@ describe('seedSampleTrip (dev)', () => {
     const rowIds = new Set(trip.getItems(tripId).map((item) => item.id))
     for (const todo of prepared) expect(rowIds.has(todo.trip_item_id)).toBe(true)
   })
+
+  /**
+   * FR-7.9: M25's *Notizen* segment opens with more than one note, hanging
+   * off the trip itself rather than a row — `getTripComments` is exactly
+   * what a note is (trip_item_id null, is_task 0), so this also pins that
+   * the seed does not accidentally write them as tasks.
+   */
+  it('leaves a fresh device with more than one trip note (FR-7.9)', () => {
+    const { tripId, trip } = seed()
+
+    const notes = trip.getTripComments(tripId)
+    expect(notes.length).toBeGreaterThan(1)
+    for (const note of notes) expect(note.trip_item_id).toBeNull()
+  })
 })
