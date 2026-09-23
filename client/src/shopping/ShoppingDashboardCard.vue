@@ -22,6 +22,7 @@ import { computed, inject, ref } from 'vue'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
+import InlineHint from '@/components/global/InlineHint.vue'
 
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
@@ -228,9 +229,9 @@ function switchTo(which: ShoppingMode) {
         />
       </li>
     </ul>
-    <p v-else-if="loaded" class="empty" data-testid="dash-shop-empty">
+    <InlineHint v-else-if="loaded" class="hint-flush" data-testid="dash-shop-empty">
       {{ t(list === ITEM_MODE_BUY_BEFORE ? 'shopping.emptyBefore' : 'shopping.emptyLocal') }}
-    </p>
+    </InlineHint>
 
     <div v-if="lastBought" class="undo" data-testid="dash-shop-undo">
       <span>{{ t('shopping.boughtUndoable', { name: lastBought.name }) }}</span>
@@ -346,13 +347,14 @@ function switchTo(which: ShoppingMode) {
   min-width: 0;
 }
 
-.qty,
-.empty {
+.qty {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
 }
 
-.empty {
+/* This card is already inset by its own padding, so InlineHint's default
+   left/right margin would double up — layout is the caller's. */
+.hint-flush {
   margin: 0;
 }
 

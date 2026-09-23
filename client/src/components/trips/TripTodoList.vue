@@ -30,6 +30,7 @@ import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -137,9 +138,9 @@ function subline(task: TripTask): string | null {
 
 <template>
   <div class="trip-todo-list" data-testid="trip-todo-list">
-    <p v-if="emptyText && tasks.length === 0" class="empty" data-testid="trip-todo-empty">
+    <InlineHint v-if="emptyText && tasks.length === 0" data-testid="trip-todo-empty">
       {{ emptyText }}
-    </p>
+    </InlineHint>
 
     <IonItem
       v-for="task in open"
@@ -339,12 +340,6 @@ function subline(task: TripTask): string | null {
   margin: 1px 0 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
-}
-
-.empty {
-  margin: 4px 14px 8px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
 }
 
 .todo-end {
