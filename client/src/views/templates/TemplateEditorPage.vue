@@ -35,6 +35,7 @@ import { computed, nextTick, ref } from 'vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import RemoveButton from '@/components/global/RemoveButton.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
@@ -586,15 +587,13 @@ const mergeLines = computed(() =>
               >
                 <IonIcon :icon="chevronForwardOutline" />
               </button>
-              <button
+              <RemoveButton
                 slot="end"
-                class="rm"
-                :aria-label="t('templates.removeGroup')"
+                class="rm-gap"
+                :label="t('templates.removeGroup')"
                 :data-testid="`m8-group-remove-${inc.included_template_id}`"
                 @click="removeInclude(inc.id)"
-              >
-                <IonIcon :icon="closeOutline" />
-              </button>
+              />
             </IonItem>
           </IonList>
           <p v-else class="empty-hint" data-testid="m8-groups-empty">
@@ -792,15 +791,13 @@ const mergeLines = computed(() =>
               <p v-else class="chip-line standard">{{ t('templates.standardChip') }}</p>
             </IonLabel>
             <span slot="end" class="qty-chip jp-num">{{ pos.quantity }}×</span>
-            <button
+            <RemoveButton
               slot="end"
-              class="rm"
-              :aria-label="t('templates.removePosition')"
+              class="rm-gap"
+              :label="t('templates.removePosition')"
               :data-testid="`m8-position-remove-${pos.id}`"
               @click.stop="removePosition(pos.id)"
-            >
-              <IonIcon :icon="closeOutline" />
-            </button>
+            />
           </IonItem>
         </IonList>
         <p v-else class="empty-hint" data-testid="m8-positions-empty">
@@ -843,14 +840,12 @@ const mergeLines = computed(() =>
             >
               {{ t(phaseOf(task) === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during') }}
             </button>
-            <button
-              class="rm"
-              :aria-label="t('templates.removeTask')"
+            <RemoveButton
+              class="rm-gap"
+              :label="t('templates.removeTask')"
               :data-testid="`m8-trip-task-remove-${task.task}`"
               @click="orchestrator.deleteTemplateTask(task.id)"
-            >
-              <IonIcon :icon="closeOutline" />
-            </button>
+            />
           </div>
           <div class="trip-task-composer">
             <button
@@ -1105,19 +1100,12 @@ const mergeLines = computed(() =>
   font-weight: var(--jp-weight-semibold);
 }
 
-.rm {
-  display: grid;
-  place-items: center;
+/* The three slot="end"/flex rows above give RemoveButton no gap of their
+   own; this is layout, not the button's business, so it stays local rather
+   than moving into the shared component. */
+.rm-gap {
   align-self: center;
-  width: 30px;
-  height: 30px;
   margin-inline-start: 4px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-sm);
-  cursor: pointer;
 }
 
 .empty-hint {
