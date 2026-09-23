@@ -44,6 +44,7 @@ import { personOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
+import InlineHint from '@/components/global/InlineHint.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TripNoteList from '@/components/trips/TripNoteList.vue'
@@ -353,7 +354,9 @@ function onSheetRemove() {
       <template v-if="segment === TASKS_SEGMENT && loaded">
         <section class="phase" data-testid="m25-before">
           <SectionHead :title="t('tasks.before')" :count="openCount(before)" />
-          <p v-if="groupsBefore.length === 0" class="empty">{{ t('tasks.emptyBefore') }}</p>
+          <InlineHint v-if="groupsBefore.length === 0" class="hint-wide">{{
+            t('tasks.emptyBefore')
+          }}</InlineHint>
           <div
             v-for="group in groupsBefore"
             :key="group.key"
@@ -394,7 +397,9 @@ function onSheetRemove() {
 
         <section class="phase" data-testid="m25-during">
           <SectionHead :title="t('tasks.during')" :count="openCount(during)" />
-          <p v-if="groupsDuring.length === 0" class="empty">{{ t('tasks.emptyDuring') }}</p>
+          <InlineHint v-if="groupsDuring.length === 0" class="hint-wide">{{
+            t('tasks.emptyDuring')
+          }}</InlineHint>
           <div
             v-for="group in groupsDuring"
             :key="group.key"
@@ -498,10 +503,11 @@ ion-segment {
   margin: 18px 16px 4px;
 }
 
-.empty {
+/* The two sections' hint sits at the group's own inset, wider than
+   InlineHint's default — layout is the caller's, same as RemoveButton's
+   `.rm-gap`. */
+.hint-wide {
   margin: 4px 18px 8px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
 }
 
 /* A group is a drop target, so it says where it ends — a border that is only

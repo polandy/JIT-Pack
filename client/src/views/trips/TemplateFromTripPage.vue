@@ -48,6 +48,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { templatePath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import InlineHint from '@/components/global/InlineHint.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
@@ -307,9 +308,9 @@ setHeaderTitle(() => t('templateFromTrip.title'))
           </IonCheckbox>
         </IonItem>
       </IonList>
-      <p v-else class="empty" data-testid="m21-loose-empty">
+      <InlineHint v-else class="hint-loose" data-testid="m21-loose-empty">
         {{ t('templateFromTrip.looseEmpty') }}
-      </p>
+      </InlineHint>
 
       <IonList>
         <IonItem>
@@ -431,14 +432,23 @@ setHeaderTitle(() => t('templateFromTrip.title'))
 }
 
 .blast,
-.absent,
-.empty {
+.absent {
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
 }
 
 .blast {
   margin: 8px 0 0;
+}
+
+/* This screen's three inline notes (blast/absent/loose) share the dimmer
+   subtext1, not InlineHint's subtext0 default — a deliberate screen-local
+   choice, so both color and margin (this one never had one, unlike
+   .blast — `revert` keeps the browser default rather than guessing it)
+   are overridden here rather than in the shared component. */
+.hint-loose {
+  margin: revert;
+  color: var(--ct-subtext1);
 }
 
 /* Its own rule, not a continuation of the blast note above it: one says what
