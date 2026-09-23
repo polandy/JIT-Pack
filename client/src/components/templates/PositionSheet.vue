@@ -16,6 +16,7 @@ import { IonIcon, IonButton, IonInput, IonToggle } from '@ionic/vue'
 import { addOutline, chevronForwardOutline, removeOutline, timeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
+import FactChip from '@/components/global/FactChip.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 
@@ -147,21 +148,21 @@ function removeTask(taskId: string) {
 
     <!-- Read-only summary of everything Details can change (M5 grammar). -->
     <div class="glance">
-      <span class="chip" data-testid="m8-glance-qty">{{ position.quantity }}×</span>
-      <span v-if="position.assignment === 'per_person'" class="chip accent">
+      <FactChip data-testid="m8-glance-qty">{{ position.quantity }}×</FactChip>
+      <FactChip v-if="position.assignment === 'per_person'" tone="accent">
         {{ t('templates.perPerson') }}
-      </span>
-      <span v-if="isShoppingMode(position.default_mode)" class="chip buy">
+      </FactChip>
+      <FactChip v-if="isShoppingMode(position.default_mode)" tone="buy">
         <IonIcon :icon="modeIcon(position.default_mode)" />
         {{ modeLabel(position.default_mode) }}
-      </span>
-      <span v-if="position.late_packer" class="chip warn">
+      </FactChip>
+      <FactChip v-if="position.late_packer" tone="warn">
         <IonIcon :icon="timeOutline" /> {{ t('mode.latePacker') }}
-      </span>
-      <span v-if="tasks.length" class="chip done">
+      </FactChip>
+      <FactChip v-if="tasks.length" tone="done">
         {{ t('templates.prepChip', { n: tasks.length }) }}
-      </span>
-      <span v-for="label in conditionSummary" :key="label" class="chip cond">{{ label }}</span>
+      </FactChip>
+      <FactChip v-for="label in conditionSummary" :key="label" tone="cond">{{ label }}</FactChip>
     </div>
 
     <!-- Menge first: the one parameter every position has (FR-25.7). -->
@@ -338,35 +339,6 @@ function removeTask(taskId: string) {
   flex-wrap: wrap;
   gap: 7px;
   padding: 0 0 4px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-}
-
-.chip.accent {
-  color: var(--jp-action);
-}
-
-.chip.buy,
-.chip.warn {
-  color: var(--ct-larch);
-}
-
-.chip.done {
-  color: var(--jp-done);
-}
-
-.chip.cond {
-  color: var(--ct-heather);
 }
 
 /* --- sections --- */

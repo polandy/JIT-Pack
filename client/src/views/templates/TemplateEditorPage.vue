@@ -35,6 +35,7 @@ import { computed, nextTick, ref } from 'vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import FactChip from '@/components/global/FactChip.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -793,7 +794,9 @@ const mergeLines = computed(() =>
               </p>
               <p v-else class="chip-line standard">{{ t('templates.standardChip') }}</p>
             </IonLabel>
-            <span slot="end" class="qty-chip jp-num">{{ pos.quantity }}×</span>
+            <FactChip slot="end" class="chip-compact chip-weight jp-num"
+              >{{ pos.quantity }}×</FactChip
+            >
             <RemoveButton
               slot="end"
               class="rm-gap"
@@ -1077,13 +1080,15 @@ const mergeLines = computed(() =>
   color: var(--ct-overlay0);
 }
 
-.qty-chip {
+/* Both local to this row: alignment inside the IonItem is layout, and the
+   semibold weight is this screen's own choice, same pattern as
+   RemoveButton's .rm-gap. */
+.chip-compact {
   align-self: center;
   padding: 3px 9px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
+}
+
+.chip-weight {
   font-weight: var(--jp-weight-semibold);
 }
 

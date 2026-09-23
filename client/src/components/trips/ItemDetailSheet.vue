@@ -47,6 +47,7 @@ import { useRoute } from 'vue-router'
 import { COMMENT_QUERY_PARAM } from '@/router/paths'
 
 import ItemMark from '@/components/items/ItemMark.vue'
+import FactChip from '@/components/global/FactChip.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
@@ -518,7 +519,7 @@ const packedStamp = computed(() => {
     <div class="glance" data-testid="m5-glance">
       <!-- Below two travelers there is no membership to distribute (G-8), and
            the chip is all that is left to say. -->
-      <span v-if="!offersForWhom" class="chip">
+      <FactChip v-if="!offersForWhom">
         <UserAvatar
           v-if="travelerName"
           :name="travelerName"
@@ -526,19 +527,21 @@ const packedStamp = computed(() => {
           :size="20"
         />
         {{ travelerName ?? t('facet.shared') }}
-      </span>
-      <span class="chip" :class="{ buy: isShoppingMode(item.mode) }">
+      </FactChip>
+      <FactChip :tone="isShoppingMode(item.mode) ? 'buy' : null">
         <IonIcon :icon="modeIcon(item.mode)" />
         {{ modeLabel(item.mode) }}
-      </span>
-      <span v-if="containerName" class="chip">
+      </FactChip>
+      <FactChip v-if="containerName">
         <span class="key">{{ t('facet.container') }}</span> {{ containerName }}
-      </span>
-      <span v-if="item.late_packer" class="chip warn">
+      </FactChip>
+      <FactChip v-if="item.late_packer" tone="warn" bordered>
         <IonIcon :icon="timeOutline" /> {{ t('mode.latePacker') }}
-      </span>
-      <span v-if="item.flag_missing" class="chip warn">{{ t('facet.flagMissing') }}</span>
-      <span v-if="item.flag_unused" class="chip warn">{{ t('facet.flagUnused') }}</span>
+      </FactChip>
+      <FactChip v-if="item.flag_missing" tone="warn" bordered>{{
+        t('facet.flagMissing')
+      }}</FactChip>
+      <FactChip v-if="item.flag_unused" tone="warn" bordered>{{ t('facet.flagUnused') }}</FactChip>
     </div>
 
     <!-- FR-7.3: the work attached to the thing, before the thing's fields. -->
@@ -906,29 +909,10 @@ const packedStamp = computed(() => {
   padding: 12px 0 2px;
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-}
-
+/* The container chip's key/value split is local to this one instance, not
+   part of FactChip.vue's own contract. */
 .chip .key {
   color: var(--ct-overlay0);
-}
-
-.chip.buy {
-  color: var(--ct-larch);
-}
-
-.chip.warn {
-  border-color: color-mix(in srgb, var(--ct-larch) 50%, transparent);
-  color: var(--ct-larch);
 }
 
 /* --- sections --- */
