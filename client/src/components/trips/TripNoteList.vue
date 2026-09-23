@@ -13,6 +13,7 @@
 import { IonButton, IonCheckbox, IonTextarea } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
+import InlineHint from '@/components/global/InlineHint.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { myAckFor, tripNoteRows } from '@/domain/tripNotes'
@@ -85,9 +86,9 @@ function add() {
 
 <template>
   <div class="trip-note-list" data-testid="trip-note-list">
-    <p v-if="rows.length === 0" class="empty" data-testid="trip-note-empty">
+    <InlineHint v-if="rows.length === 0" data-testid="trip-note-empty">
       {{ t('notes.empty') }}
-    </p>
+    </InlineHint>
 
     <div
       v-for="row in rows"
@@ -145,12 +146,6 @@ function add() {
 <style scoped>
 .trip-note-list {
   padding: 0 4px 12px;
-}
-
-.empty {
-  margin: 4px 14px 8px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
 }
 
 .note-row {

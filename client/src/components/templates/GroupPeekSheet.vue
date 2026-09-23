@@ -20,6 +20,7 @@ import { resolvedLines, type ResolvedLine } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
 import { isShoppingMode } from '@/types/domain'
 import ItemMark from '@/components/items/ItemMark.vue'
+import InlineHint from '@/components/global/InlineHint.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{ templateId: string }>()
@@ -92,7 +93,9 @@ function marksOf(line: ResolvedLine): string[] {
         <span class="qty jp-num">×{{ line.quantity }}</span>
       </li>
     </ul>
-    <p v-else class="empty" data-testid="group-peek-empty">{{ t('templates.noPositions') }}</p>
+    <InlineHint v-else class="hint-pad" data-testid="group-peek-empty">{{
+      t('templates.noPositions')
+    }}</InlineHint>
   </section>
 </template>
 
@@ -147,10 +150,10 @@ function marksOf(line: ResolvedLine): string[] {
   font-size: var(--jp-text-sm);
 }
 
-.empty {
+/* This sheet has no list inset to sit under, so InlineHint's own margin
+   becomes padding on the sheet body instead — layout is the caller's. */
+.hint-pad {
   margin: 0;
   padding: 14px 2px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
 }
 </style>
