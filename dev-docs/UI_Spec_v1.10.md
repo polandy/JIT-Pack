@@ -2851,8 +2851,9 @@ token would prove nothing there is anything to prove.
     phase it writes: *„Aufgabe für vor der Reise…"* / *„Aufgabe für unterwegs…"*. A section with nothing in it says so
     in one line **and keeps its field** — a trip with no tasks at all is exactly the reader the two fields are for, so
     there is no screen-wide empty state.
-* **A task's line:** a grip, the words, one provenance line under them, then the cluster and the tick at the row's
-  own edge — the rule M4's packing rows follow.
+* **A task's line:** a grip, the words, then the cluster and the tick at the row's own edge — the rule M4's packing
+  rows follow. The grip sits in the item's own `slot="start"`, matching M6's own grip (owner feedback 2026-09-23: the
+  two had drifted to a different gap between the icon and the words despite drawing the same gesture).
   * **The grip** (FR-7.8) lifts the task at once; anywhere else on the row a **hold** does, at `useLongPress`'s own
     500 ms and 8 px, so a finger can still scroll. While a task is in the air the group under the pointer says
     *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
@@ -2860,9 +2861,10 @@ token would prove nothing there is anything to prove.
     page as `data-drag`, always set, and returns to `idle` only once the write has landed. The travelling clone and
     the dimmed row share one frame with M6's own drag (`composables/dragToGroup.css`), unified 2026-09-23 — this
     screen had none of its own before that.
-  * The **provenance line** changes role with the task: *„erstellt von Andy · heute 14:32"* while it is open,
-    *„erledigt von Sia · gestern 09:15"* once it is done. Where nobody can be named it keeps the moment and drops the
-    person: *„erstellt · heute 14:32"* (G-8). A task that carries neither says nothing.
+  * **The provenance line moved off the row** (owner feedback 2026-09-23: an overview read at a glance does not need
+    who wrote or finished a task, only the task's own sheet does). It still changes role there, per Q3 B: *„erstellt
+    von Andy · heute 14:32"* while a task is open, *„erledigt von Sia · gestern 09:15"* once it is done, each its own
+    fact line in the sheet rather than one line that swaps meaning.
   * The **cluster**: a preparation carries the chip of its row (FR-7.6) *and*, since FR-7.7, an assignment seat; a
     trip's own task carries the seat and a ✕. A preparation has no ✕ — it is removed in M5, the one place that shows
     what else its row still owes.

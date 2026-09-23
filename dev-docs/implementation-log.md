@@ -428,6 +428,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)](#a-toasts-contrast-lived-in-a-route-that-had-not-loaded-and-an-undo-repeated-a-fixed-bug-2026-09-22) — `.pack-toast` moved to `App.vue`; drag-retag's undo now reuses `bulkSetTag`.
 - [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
 - [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
+- [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
 
 ## Deviations
 
@@ -17335,4 +17336,34 @@ lost their own copy of the same two rules; M25 gained the frame it never had. Mu
 reverting the new file and its import: both `E2E-M25-08` and `E2E-M6-34` fail on the ghost's
 `border-style`, restored to `solid` once the file is back — the case that used to only prove Shopping
 kept its own frame now also proves neither screen quietly loses the shared one.
+
+## A grip without `slot="start"` was never going to match one with it (2026-09-23)
+
+Asked to test the unified drag frame (above), the owner noticed a second gap: M6's grip sits at a
+generous distance from the row's words, M25's own sat almost flush against them, even though both are
+`useDragToGroup`'s own grip and, by the owner's read, "the same component." They are not, quite —
+`ShoppingPage.vue`'s `.rowgrip` and `TripTodoList.vue`'s `.grip` are two independent templates that
+happen to offer the same gesture — but the visible gap between the icon and the words is exactly the
+kind of thing that should not depend on which screen drew it.
+
+**The cause was a missing slot, not a missing margin.** `ShoppingPage.vue`'s grip carries
+`slot="start"` on its `IonItem`; Ionic's own item layout puts its automatic spacing between a
+`[slot=start]` element and the item's default-slot content. `TripTodoList.vue`'s grip had no slot at
+all — a plain child ahead of `<IonLabel>` — so it got none of that spacing, and a hand-picked
+`margin-inline-end: 2px` was standing in for what Ionic already does for every other slotted control in
+the app (`.rowgrip`, `.rowbox`, the `end` slot's own chips and buttons). Adding `slot="start"` closed
+the gap to the same look without inventing a new number to match by eye.
+
+**The same conversation surfaced a second, unrelated ask**: the row's own provenance line — Q3 B's
+*„erstellt von Andy · heute 14:32"* / *„erledigt von Sia · gestern 09:15"* — was more than the overview
+needed, now that every task also has a sheet of its own (FR-7.7, built 2026-09-21) that already carries
+both facts as their own lines. Removed from `TripTodoList.vue`'s row entirely, in both the open and
+resolved sections; `taskSubline()` (the function that picked which of the two sentences a row's line
+was) had no other caller once the row stopped needing it, so it was deleted from `lib/taskFacts.ts`
+along with its own test — `createdStampText`/`resolvedStampText`, which `TripTaskSheet.vue` calls
+directly, stay. Both changes touch `TripTodoList.vue` itself, so both apply wherever it is mounted —
+M4's own prep window included, which has no grip (`lift` is absent there) but shares the same row and
+so lost the same line. `E2E-VIS-13`'s baseline moved with the shorter rows and the wider grip gap
+(`make visual-update`); no other baseline did, since none of M4's own visual cases happen to seed a
+todo with the facts that would have drawn a stamp in the first place.
 

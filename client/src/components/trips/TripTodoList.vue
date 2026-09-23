@@ -11,9 +11,11 @@
  * says which is which.
  *
  * **Since FR-7.7 both kinds carry a seat** (the owner's request of
- * 2026-09-20: *a task can be assigned to somebody like a pack item*), and
- * both carry the one line Q3 B asks for — who wrote it while it is open, who
- * finished it once it is done.
+ * 2026-09-20: *a task can be assigned to somebody like a pack item*). Q3 B's
+ * own line — who wrote it while it is open, who finished it once it is done —
+ * lived on the row itself until 2026-09-23; the overview reads the words and
+ * the seat now, and the provenance moved to the task's own sheet
+ * (`TripTaskSheet.vue`), the only place it was still worth a line each.
  *
  * The trip is where these are written (owner, 2026-09-18): M1 only reports
  * them, because the dashboard takes no actions.
@@ -36,7 +38,6 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
-import { taskSubline } from '@/lib/taskFacts'
 import { tripItemPath } from '@/router/paths'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import type { TaskPhase } from '@/types/domain'
@@ -52,7 +53,7 @@ const props = defineProps<{
    * not rendered at all, rather than offered with nobody behind it.
    */
   assignable?: boolean
-  /** A member's display name, for the avatar's initials and the subline. */
+  /** A member's display name, for the avatar's initials. */
   nameOf?: (userId: string | null) => string | null
   /**
    * FR-7.7: the phase a task typed into the composer is written in, or null
@@ -129,11 +130,6 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
   const row = (ev.currentTarget as HTMLElement).closest('.todo-row') as HTMLElement | null
   if (row) props.lift(ev, task, row, immediate)
 }
-
-/** Q3 B: the one line under the words, whichever of the two it is. */
-function subline(task: TripTask): string | null {
-  return taskSubline(task, (userId) => props.nameOf?.(userId) ?? null)
-}
 </script>
 
 <template>
@@ -155,6 +151,7 @@ function subline(task: TripTask): string | null {
            be dragged between. -->
       <span
         v-if="lift"
+        slot="start"
         class="grip"
         :data-testid="`trip-todo-grip-${task.body}`"
         @pointerdown.stop="onLift($event, task, true)"
@@ -174,9 +171,6 @@ function subline(task: TripTask): string | null {
         >
           {{ task.body }}
         </button>
-        <p v-if="subline(task)" class="stamp" :data-testid="`trip-todo-stamp-${task.body}`">
-          {{ subline(task) }}
-        </p>
       </IonLabel>
       <span slot="end" class="todo-end">
         <!-- FR-7.6: the chip stands where the trip's own task carries its
@@ -241,9 +235,6 @@ function subline(task: TripTask): string | null {
             >
               {{ task.body }}
             </button>
-            <p v-if="subline(task)" class="stamp" :data-testid="`trip-todo-stamp-${task.body}`">
-              {{ subline(task) }}
-            </p>
           </IonLabel>
           <span slot="end" class="todo-end">
             <TaskItemChip
@@ -327,13 +318,6 @@ function subline(task: TripTask): string | null {
   font: inherit;
   text-align: start;
   cursor: pointer;
-}
-
-/* Q3 B: one line, and it changes its role rather than stacking a second. */
-.stamp {
-  margin: 1px 0 0;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
 }
 
 .todo-end {
