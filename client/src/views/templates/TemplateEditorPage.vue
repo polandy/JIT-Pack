@@ -35,7 +35,9 @@ import { computed, nextTick, ref } from 'vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import FactChip from '@/components/global/FactChip.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
+import SectionHead from '@/components/global/SectionHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
@@ -542,10 +544,11 @@ const mergeLines = computed(() =>
 
         <!-- Gruppen (Ferien-Vorlage only): included by reference, FR-27.1. -->
         <template v-if="!isGroup">
-          <h2 class="section-head" data-testid="m8-groups-head">
-            {{ t('templates.sectionGroups') }}
-            <span class="section-count">{{ includes.length }}</span>
-          </h2>
+          <SectionHead
+            :title="t('templates.sectionGroups')"
+            :count="includes.length"
+            data-testid="m8-groups-head"
+          />
 
           <IonList v-if="includes.length" class="section-card jp-card">
             <IonItem
@@ -769,10 +772,11 @@ const mergeLines = computed(() =>
         </div>
 
         <!-- Positions: a Gruppe's whole content, a Vorlage's own share. -->
-        <h2 class="section-head" data-testid="m8-positions-head">
-          {{ isGroup ? t('templates.positions') : t('templates.ownPositions') }}
-          <span class="section-count">{{ positions.length }}</span>
-        </h2>
+        <SectionHead
+          :title="isGroup ? t('templates.positions') : t('templates.ownPositions')"
+          :count="positions.length"
+          data-testid="m8-positions-head"
+        />
 
         <IonList v-if="positions.length" class="section-card jp-card">
           <IonItem
@@ -790,7 +794,9 @@ const mergeLines = computed(() =>
               </p>
               <p v-else class="chip-line standard">{{ t('templates.standardChip') }}</p>
             </IonLabel>
-            <span slot="end" class="qty-chip jp-num">{{ pos.quantity }}×</span>
+            <FactChip slot="end" class="chip-compact chip-weight jp-num"
+              >{{ pos.quantity }}×</FactChip
+            >
             <RemoveButton
               slot="end"
               class="rm-gap"
@@ -817,10 +823,11 @@ const mergeLines = computed(() =>
         <!-- FR-7.4: tasks for the trip itself — every generated trip starts
              with them as open trip todos, on no row, so they hold up no
              packing list. Below the positions, which they are not. -->
-        <h2 class="section-head" data-testid="m8-trip-tasks-head">
-          {{ t('templates.tripTasks') }}
-          <span class="section-count">{{ tripTasks.length }}</span>
-        </h2>
+        <SectionHead
+          :title="t('templates.tripTasks')"
+          :count="tripTasks.length"
+          data-testid="m8-trip-tasks-head"
+        />
         <div class="section-card jp-card trip-tasks" data-testid="m8-trip-tasks">
           <p class="trip-tasks-hint">{{ t('templates.tripTasksHint') }}</p>
           <div
@@ -1001,23 +1008,6 @@ const mergeLines = computed(() =>
   font-size: var(--jp-text-xs);
 }
 
-.section-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  padding: 18px 14px 8px;
-  font-size: var(--jp-text-lg);
-  font-weight: var(--jp-weight-bold);
-  letter-spacing: var(--jp-tracking-display);
-}
-
-.section-count {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  font-weight: var(--jp-weight-medium);
-}
-
 .section-card {
   margin: 0 8px 8px;
 }
@@ -1090,13 +1080,15 @@ const mergeLines = computed(() =>
   color: var(--ct-overlay0);
 }
 
-.qty-chip {
+/* Both local to this row: alignment inside the IonItem is layout, and the
+   semibold weight is this screen's own choice, same pattern as
+   RemoveButton's .rm-gap. */
+.chip-compact {
   align-self: center;
   padding: 3px 9px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
+}
+
+.chip-weight {
   font-weight: var(--jp-weight-semibold);
 }
 
