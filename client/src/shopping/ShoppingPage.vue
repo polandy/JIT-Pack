@@ -1061,6 +1061,9 @@ ion-item-group[data-drop-over] {
   --ion-item-background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-page));
   border: 1px solid var(--jp-action);
   border-radius: var(--jp-r);
+  /* Without this the rows' own square corners sit past the frame's rounded
+     ones, poking out from behind it. */
+  overflow: hidden;
 }
 
 /* The ghost is a clone of the lifted row (ADR-060: it travels, the row
