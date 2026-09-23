@@ -54,6 +54,7 @@ import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
+import SectionHead from '@/components/global/SectionHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
@@ -424,10 +425,12 @@ async function shareTemplate(tpl: Template) {
 
       <template v-else>
         <template v-for="section in sections" :key="section.key">
-          <h2 v-if="section.label" class="section-head" :data-testid="`m7-section-${section.key}`">
-            {{ section.label }}
-            <span class="section-count">{{ section.rows.length }}</span>
-          </h2>
+          <SectionHead
+            v-if="section.label"
+            :title="section.label"
+            :count="section.rows.length"
+            :data-testid="`m7-section-${section.key}`"
+          />
 
           <IonList class="section-card jp-card">
             <IonItem
@@ -573,25 +576,6 @@ async function shareTemplate(tpl: Template) {
 <style scoped>
 ion-segment {
   margin: 0 12px 4px;
-}
-
-/* The section heading outranks the rows it heads — the same relation the
-   M4 group head states, so the two lists read alike. */
-.section-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  padding: 20px 14px 8px;
-  font-size: var(--jp-text-lg);
-  font-weight: var(--jp-weight-bold);
-  letter-spacing: var(--jp-tracking-display);
-}
-
-.section-count {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  font-weight: var(--jp-weight-medium);
 }
 
 .section-card {
