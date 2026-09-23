@@ -1790,7 +1790,11 @@ These patterns apply to every screen and are specified once.
   lift-carry-drop with no shape of its own beyond a place's name and what was dropped on it. Mockup: 2026-09-22,
   extended by the owner directly on the canvas rather than asked for in words; built once asked for outright the
   same day. The frame itself was tightened 2026-09-23 to match the mockup's own blue outline on both the lifted
-  clone and the target heading, closer than the first cut's plain highlight. (E2E-M6-34)
+  clone and the target heading, closer than the first cut's plain highlight. A packing row has nothing to give
+  the gesture either — its grip slot carries a dashed placeholder instead of standing empty, and its own heading
+  dims for as long as something is being dragged, the same refusal `.rowbox.off` already gives the checkbox one
+  slot over; a line below the list also says so once in words, next to the checkbox's own hint (owner feedback
+  2026-09-23: an empty gap and an inert heading read as broken, not as absent). (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
   projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and
   raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather

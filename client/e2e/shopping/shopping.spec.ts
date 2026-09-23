@@ -372,17 +372,31 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     const host = m6(page)
     await expect(host).toHaveAttribute('data-drag', 'idle')
 
+    // A packing row has nothing to drag either — a dashed placeholder
+    // rather than an empty gap (owner feedback 2026-09-23), and the same
+    // refusal named once in words below the list.
+    const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
+    await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
+    await expect(sunscreenRow.locator('.rowgrip.off')).toBeVisible()
+    await expect(host.getByTestId('m6-drag-hint')).toBeVisible()
+
     // Refused: the packing row's own heading carries no tag of its own.
     const grip = host.getByTestId('m6-row-grip-Brot')
     const fromPacking = host.getByTestId('m6-group-none')
+    await expect(fromPacking).toHaveAttribute('data-droppable', 'false')
     let g = (await grip.boundingBox())!
     let target = (await fromPacking.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
+    await expect(host).toHaveAttribute('data-drag', 'dragging')
+    // A heading that can never take this drop dims for as long as one is
+    // in the air, rather than sitting inert next to the one that lit up.
+    await expect(fromPacking).toHaveCSS('opacity', '0.5')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(fromPacking).not.toHaveAttribute('data-drop-over', '')
     await page.mouse.up()
     await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(fromPacking).toHaveCSS('opacity', '1')
     await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
 
     // Accepted: dropped onto the already-tagged group, it takes that tag.

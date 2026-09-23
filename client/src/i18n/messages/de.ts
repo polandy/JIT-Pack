@@ -1746,6 +1746,8 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.dragToRetag': '{name} durch Ziehen umtaggen',
   'shopping.dropHere': 'hier ablegen',
   'shopping.retagged': '„{name}“ → {group}',
+  'shopping.dragHint':
+    'Packlisten-Positionen tragen nie ein Tag — dorthin oder von dort kann nichts gezogen werden.',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

@@ -776,6 +776,28 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(page.find('[data-testid="m6-row-tag-add"]').exists()).toBe(false)
   })
 
+  it('a source line has nothing to drag, and says so rather than leaving a gap — its own heading is never a target either (owner feedback 2026-09-23)', () => {
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    const row = page.find('[data-testid="m6-row"]')
+    expect(row.find('[data-testid^="m6-row-grip-"]').exists()).toBe(false)
+    const placeholder = row.find('.rowgrip.off')
+    expect(placeholder.exists()).toBe(true)
+    expect(placeholder.attributes('aria-hidden')).toBe('true')
+    const group = page.find('[data-testid="m6-group-Pflege"]')
+    expect(group.attributes('data-droppable')).toBe('false')
+  })
+
+  it('names the same refusal below the list, once, while not selecting', () => {
+    seedEntry('e1', { name: 'Brot' })
+    const withSourced = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    expect(withSourced.find('[data-testid="m6-drag-hint"]').text()).toBe(t('shopping.dragHint'))
+
+    // Own entries already in the store from above; nothing sourced this time
+    // — nothing to drag onto, so no hint either.
+    const ownOnly = mountPage()
+    expect(ownOnly.find('[data-testid="m6-drag-hint"]').exists()).toBe(false)
+  })
+
   it('puts the check-off at the end of the row, after the remove control', () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()

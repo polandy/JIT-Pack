@@ -597,6 +597,7 @@ setHeaderTitle(
           v-for="section in sections"
           :key="section.key"
           :data-drop-target="section.key"
+          :data-droppable="dropTag(section) !== undefined"
           :data-testid="`m6-group-${section.own ? 'own' : section.tagged ? `tag-${section.name}` : (section.name ?? 'none')}`"
         >
           <IonItemDivider>
@@ -647,6 +648,11 @@ setHeaderTitle(
               >
                 <IonIcon :icon="reorderThreeOutline" aria-hidden="true" />
               </span>
+              <!-- FR-30.9: a packing-projected line has nothing to drag either
+                 (owner feedback 2026-09-23: an empty gap here read as broken,
+                 not as absent) — a dashed placeholder, `.rowbox.off`'s own
+                 language for the same refusal on the checkbox. -->
+              <span v-else slot="start" class="rowgrip off" aria-hidden="true"></span>
               <!-- FR-30.9: not selecting → a tap on an own entry's name files it
                  under a tag; a long press (or right-click) on one starts a
                  selection. Selecting → the same tap toggles the row instead. -->
@@ -724,6 +730,18 @@ setHeaderTitle(
         data-testid="m6-select-hint"
       >
         {{ t('shopping.selectHint') }}
+      </p>
+
+      <!-- FR-30.9: the same refusal, named once for the grip too — the
+           dashed placeholder and the never-highlighted heading say it
+           visually; this says it in words the same way `m6-select-hint`
+           already does for the checkbox (owner feedback 2026-09-23). -->
+      <p
+        v-if="!selecting && open.own.length > 0 && open.sourced.length > 0"
+        class="select-hint"
+        data-testid="m6-drag-hint"
+      >
+        {{ t('shopping.dragHint') }}
       </p>
 
       <!-- FR-30.9: what the selection can be acted on with. -->
@@ -1048,10 +1066,35 @@ setHeaderTitle(
   touch-action: none;
 }
 
+/* A packing-projected line's own placeholder — `.rowbox.off`'s dashed
+   language, for the same refusal, at the grip's own size (owner feedback
+   2026-09-23: the empty gap it replaces read as a bug, not as an absence). */
+.rowgrip.off {
+  cursor: default;
+}
+
+.rowgrip.off::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 1.5px dashed var(--ct-surface2);
+  border-radius: var(--jp-r-pill);
+  opacity: 0.5;
+}
+
 /* The row stays where it was while its clone travels (ADR-060); it is only
    dimmed, so the list does not close up under the finger — M25's own rule. */
 [data-testid='m6-row'][data-drag-source] {
   opacity: 0.4;
+}
+
+/* A heading a drag can never land on (`dropTag` says so at render time, not
+   only `useDragToGroup`'s live hit-test) dims for as long as something is in
+   the air — the same feedback `.rowgrip.off` gives per row, given once per
+   heading instead of forcing a read of every row under it (owner feedback
+   2026-09-23: a heading that just sits there looked broken, not ineligible). */
+.shop-content[data-drag='dragging'] ion-item-group[data-droppable='false'] {
+  opacity: 0.5;
 }
 
 /* The tag heading a dragged row is over — `useDragToGroup` sets the

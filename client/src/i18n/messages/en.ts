@@ -1736,6 +1736,8 @@ export const en = {
   'shopping.dragToRetag': 'Drag to retag {name}',
   'shopping.dropHere': 'drop here',
   'shopping.retagged': '“{name}” → {group}',
+  'shopping.dragHint':
+    'Packing-list positions never carry a tag — nothing can be dragged in or onto them.',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',
