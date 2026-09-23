@@ -25,11 +25,12 @@
  * screen handed it.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
-import { chevronForwardOutline, closeOutline, reorderTwoOutline } from 'ionicons/icons'
+import { chevronForwardOutline, reorderTwoOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { TripTask } from '@/domain/tripTodos'
@@ -193,16 +194,12 @@ function subline(task: TripTask): string | null {
           :seed="task.assignee_user_id"
           :data-testid="`trip-todo-assignee-${task.body}`"
         />
-        <button
+        <RemoveButton
           v-if="!task.item"
-          type="button"
-          class="rm"
-          :aria-label="t('tripTodos.remove')"
+          :label="t('tripTodos.remove')"
           :data-testid="`trip-todo-remove-${task.body}`"
           @click="emit('remove', task)"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
+        />
       </span>
       <!-- The tick is last, so its outer edge is the row's — the same rule a
            packing row's control follows (UI-Spec M4), and the reason both land
@@ -262,16 +259,12 @@ function subline(task: TripTask): string | null {
               :seed="task.assignee_user_id"
               :data-testid="`trip-todo-assignee-${task.body}`"
             />
-            <button
+            <RemoveButton
               v-if="!task.item"
-              type="button"
-              class="rm"
-              :aria-label="t('tripTodos.remove')"
+              :label="t('tripTodos.remove')"
               :data-testid="`trip-todo-remove-${task.body}`"
               @click="emit('remove', task)"
-            >
-              <IonIcon :icon="closeOutline" />
-            </button>
+            />
           </span>
           <IonCheckbox slot="end" class="tick" :checked="true" @ionChange="emit('toggle', task)" />
         </IonItem>
@@ -370,19 +363,6 @@ function subline(task: TripTask): string | null {
   /* A destructive ✕ stands next to the tick: the extra step keeps a mis-tap
      from deleting what it meant to finish. */
   margin-inline-start: 4px;
-}
-
-.rm {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-sm);
-  cursor: pointer;
 }
 
 .resolved-toggle {

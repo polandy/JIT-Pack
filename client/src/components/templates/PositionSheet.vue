@@ -13,15 +13,10 @@
  * set on the trip (FR-25.8).
  */
 import { IonIcon, IonButton, IonInput, IonToggle } from '@ionic/vue'
-import {
-  addOutline,
-  chevronForwardOutline,
-  closeOutline,
-  removeOutline,
-  timeOutline,
-} from 'ionicons/icons'
+import { addOutline, chevronForwardOutline, removeOutline, timeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
+import RemoveButton from '@/components/global/RemoveButton.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 
 import { t } from '@/i18n'
@@ -207,9 +202,7 @@ function removeTask(taskId: string) {
       </h2>
       <div v-for="task in tasks" :key="task.id" class="task" data-testid="m8-task-row">
         <span class="task-body">{{ task.task }}</span>
-        <button class="rm" :aria-label="t('templates.removeTask')" @click="removeTask(task.id)">
-          <IonIcon :icon="closeOutline" />
-        </button>
+        <RemoveButton :label="t('templates.removeTask')" @click="removeTask(task.id)" />
       </div>
       <div class="composer">
         <IonInput
@@ -451,20 +444,6 @@ function removeTask(taskId: string) {
   flex: 1;
   min-width: 0;
   font-size: var(--jp-text-base);
-}
-
-.rm {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-sm);
-  cursor: pointer;
 }
 
 .composer {
