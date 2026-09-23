@@ -426,6 +426,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
 - [One `TransitionGroup` per heading animated the wrong departures (2026-09-22)](#one-transitiongroup-per-heading-animated-the-wrong-departures-2026-09-22) — a retag read as a leave; the fix a render caught, not a test.
 - [A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)](#a-toasts-contrast-lived-in-a-route-that-had-not-loaded-and-an-undo-repeated-a-fixed-bug-2026-09-22) — `.pack-toast` moved to `App.vue`; drag-retag's undo now reuses `bulkSetTag`.
+- [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
 
 ## Deviations
 
@@ -17273,3 +17274,33 @@ wrong, not the paint, so a mounted assertion on where the entry ended up was eno
 second copy of the workaround: the drag's drop is exactly a batch of one, so `onDrop` now calls
 `bulkSetTag` with a singleton set and hands its own already-correct `undo` to the toast, rather than
 re-deriving a second one.
+
+## A heading per packing category was the wrong shape for M6 (2026-09-23)
+
+FR-30.2's original cut filed the packing list's rows on M6 under the heading their `buildBuyRows`
+category already grouped them by on M4 — one section per category, same as the packing screen
+itself. It read as reuse: the packing list already had the grouping, so M6 rendered it rather than
+inventing a second one.
+
+**The premise was wrong the moment real data used it.** The dev seed's Sonnencreme carries the
+category *Bad*; once FR-30.9 gave the list's own entries tags, a packing category and an entry's tag
+sat in identical headings, drawn with the identical chip styling, telling two different stories —
+one names what a master item *is*, the other names where a person decided to buy it — and the owner
+read the *Bad* heading as a shopping-list tag on first use, tried to drag into and out of it, and got
+the refusal FR-30.9's drag gesture gives any heading that carries no tag of its own (`dropTag`
+already returned `undefined` for it — the mechanics were correct throughout; the heading itself was
+the wrong idea). A tag namespace and a category namespace happening to share a spelling was always
+possible — *Bad* being both a real inventory tag and dev-seed category is not a contrived case — and
+nothing on screen said which one a given heading was.
+
+**The fix drops the distinction the screen never needed to draw.** `buildSections` no longer groups
+`sourced` by heading at all: every source's lines file into one combined section (`packing: true` on
+`ShoppingSection`), placed first — ahead of the own entries' tag sections — and present only while a
+source has something open. `ShoppingLine.section`, the field that carried a packing row's category
+across the module boundary, is retired along with it: nothing downstream of `packingShoppingSource.ts`
+read it once the heading it fed was gone. `buildBuyRows`'s own category-scoped row aggregation
+(`internal` to the packing side, `domain/buyRows.ts`) is untouched — the category still decides which
+packing rows aggregate into one row there; it simply stops surfacing as an M6 heading. The drag
+refusal, the dashed grip placeholder and the dimmed-heading feedback built earlier the same day
+(above) carry over unchanged: they were already keyed off `dropTag`'s own `undefined` case, never off
+a category name, so collapsing every source heading into one changed nothing they depended on.

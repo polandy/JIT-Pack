@@ -1743,11 +1743,13 @@ These patterns apply to every screen and are specified once.
   an* and *Beschreibung* — which would now apply to both kinds of line); read them with that in mind.
 * **Elements:** Two tabs: *Vor der Abreise* (BUY_BEFORE) and *Vor Ort* (BUY_LOCAL), each label counting its open
   lines. Under them a **text field** with an add button (placeholder *„Was kaufen? z. B. Milch, Brot …"*). Then the
-  list: the tab's own entries first — **a section per tag, A–Z, then the untagged under *„Eingetragen"* (FR-30.9)** —
-  each with a remove (✕) and, **at the end of the row, a check-off**; then the packing list's rows in that tab's mode,
-  grouped by category (*„Ohne Kategorie"* for none), each with its check-off at the end, its amount when above one,
-  and — for a per-person item — the recipients (FR-25.6), and **no** remove. An entry and a packing row of the same
-  name stay two lines. FR-13.3's destination entries are not built.
+  list: the packing list's rows in that tab's mode first, **combined under one *„Packliste"* heading regardless of
+  category** (revised 2026-09-23 — a packing category is not this list's tag, and a heading per category read as more
+  shopping-list structure than it was; the heading is present only while that tab has a packing row open), each row
+  with its check-off at the end, its amount when above one, and — for a per-person item — the recipients (FR-25.6),
+  and **no** remove; then the tab's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"*
+  (FR-30.9)** — each with a remove (✕) and, **at the end of the row, a check-off**. An entry and a packing row of the
+  same name stay two lines. FR-13.3's destination entries are not built.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
   made in this visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap
   on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's
@@ -1783,17 +1785,17 @@ These patterns apply to every screen and are specified once.
   carries a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried
   across the list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself
   only dims in place) and the heading under the pointer takes the same accent frame while it could honestly hold it
-  — a tag's own heading, or *„Eingetragen"* to clear one; a packing row's own heading never frames and never takes
-  it, the same refusal a selection gives it. Letting go over a framed heading files the row under it in one act,
-  through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with
-  **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
+  — a tag's own heading, or *„Eingetragen"* to clear one; the packing list's combined heading never frames and never
+  takes it, the same refusal a selection gives it. Letting go over a framed heading files the row under it in one
+  act, through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast
+  with **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
   lift-carry-drop with no shape of its own beyond a place's name and what was dropped on it. Mockup: 2026-09-22,
   extended by the owner directly on the canvas rather than asked for in words; built once asked for outright the
   same day. The frame itself was tightened 2026-09-23 to match the mockup's own blue outline on both the lifted
   clone and the target heading, closer than the first cut's plain highlight. A packing row has nothing to give
-  the gesture either — its grip slot carries a dashed placeholder instead of standing empty, and its own heading
-  dims for as long as something is being dragged, the same refusal `.rowbox.off` already gives the checkbox one
-  slot over; a line below the list also says so once in words, next to the checkbox's own hint (owner feedback
+  the gesture either — its grip slot carries a dashed placeholder instead of standing empty, and the packing list's
+  heading dims for as long as something is being dragged, the same refusal `.rowbox.off` already gives the checkbox
+  one slot over; a line below the list also says so once in words, next to the checkbox's own hint (owner feedback
   2026-09-23: an empty gap and an inert heading read as broken, not as absent). (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
   projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and

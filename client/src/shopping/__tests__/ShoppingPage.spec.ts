@@ -84,7 +84,6 @@ function line(over: Partial<ShoppingLine> = {}): ShoppingLine {
     name: 'Sonnencreme',
     quantity: 1,
     recipients: [],
-    section: 'Pflege',
     buy: vi.fn(),
     unbuy: vi.fn(),
     ...over,
@@ -242,24 +241,21 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
 })
 
 describe('M6 — lines from a source (FR-30.2)', () => {
-  it('files the own entries first, then the source’s lines under its headings', () => {
+  it('files every source’s lines first, combined under one heading, then the own entries', () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage([
       source({
-        buy_before: [
-          line({ name: 'Sonnencreme', section: 'Pflege' }),
-          line({ name: 'Adapter', section: null }),
-        ],
+        buy_before: [line({ name: 'Sonnencreme' }), line({ name: 'Adapter' })],
       }),
     ])
 
     const groups = page.findAll('ion-item-group')
     expect(groups.map((g) => g.attributes('data-testid'))).toEqual([
+      'm6-group-packing',
       'm6-group-own',
-      'm6-group-Pflege',
-      'm6-group-none',
     ])
-    expect(groups[2]?.text()).toContain(t('shopping.uncategorized'))
+    expect(groups[0]?.text()).toContain(t('shopping.packingList'))
+    expect(groups[0]?.findAll('h3').map((h) => h.text())).toEqual(['Sonnencreme', 'Adapter'])
   })
 
   it('checking a source line off calls its own write and writes no entry', async () => {
@@ -664,7 +660,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(chip().attributes('aria-pressed')).toBe('true')
   })
 
-  it('groups the open entries by tag A–Z, then the untagged, then the source’s headings', () => {
+  it('puts the packing list first, then groups the open entries by tag A–Z, then the untagged', () => {
     seedEntry('e1', { name: 'Pasta', tag: 'Supermarkt' })
     seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke' })
     seedEntry('e3', { name: 'Batterien' })
@@ -672,10 +668,10 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
 
     expect(headings(page)).toEqual([
+      'm6-group-packing',
       'm6-group-tag-Apotheke',
       'm6-group-tag-Supermarkt',
       'm6-group-own',
-      'm6-group-Pflege',
     ])
     const supermarkt = page.find('[data-testid="m6-group-tag-Supermarkt"]')
     expect(supermarkt.findAll('h3').map((h) => h.text())).toEqual(['Brot', 'Pasta'])
@@ -783,7 +779,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     const placeholder = row.find('.rowgrip.off')
     expect(placeholder.exists()).toBe(true)
     expect(placeholder.attributes('aria-hidden')).toBe('true')
-    const group = page.find('[data-testid="m6-group-Pflege"]')
+    const group = page.find('[data-testid="m6-group-packing"]')
     expect(group.attributes('data-droppable')).toBe('false')
   })
 

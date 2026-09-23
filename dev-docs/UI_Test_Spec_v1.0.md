@@ -1339,13 +1339,14 @@ the way a person does — added on M4, its mode chosen in M5 (`addBuyRowOnM4`) �
 rows; the cases live in `client/e2e/shopping/`. The composer's cases on M6 (E2E-M6-21, E2E-M6-25) are retired with the
 composer.
 
-* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30** (`e2e/shopping/shopping.spec.ts`): two tabs (Before
-  departure / At destination), rows grouped by category, each tab's label counting the **things to buy** rather than
-  rows (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
-  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and would
-  now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one entry is
-  typed into M6's own field, and the case asserts the entry under *„Eingetragen"* before the packing rows' category
-  groups.
+* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-23** (`e2e/shopping/shopping.spec.ts`): two
+  tabs (Before departure / At destination), each tab's label counting the **things to buy** rather than rows
+  (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
+  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and
+  would now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one
+  entry is typed into M6's own field, and the case asserts the entry under *„Eingetragen"*. **Revised 2026-09-23:**
+  a tagged master item's category must not surface as a heading — the packing rows are combined under one
+  *„Packing list"* heading now, asserted by name, and the old per-category heading is asserted absent.
 * **E2E-M6-02** `all` (FR-3.3) — **implemented 2026-08-30, inside E2E-M6-17 and E2E-M6-22** rather than as a case of its
   own: both halves of this promise were already asserted there — the row leaving the list, and the reveal note naming
   where it went — so a third case would have re-run them for an id's sake. What was genuinely missing is one assertion,
@@ -1459,10 +1460,10 @@ composer.
   (`shopping/shopping.spec.ts`): one own entry, lifted by its grip (`useDragToGroup`, FR-7.8's own gesture) and
   dropped onto another own section, is retagged in one act — a batch of one, through the same `bulkSetTag` a
   selection's *Tag vergeben* uses, so its undo diffs against the entry as the drop actually left it rather than the
-  pre-drop snapshot. A packing-projected line's own heading refuses the drop — it never highlights and never takes it
-  — since that heading carries no tag of its own to file under; while a drag is in the air, that heading dims rather
-  than sitting inert (owner feedback 2026-09-23: an untouched heading read as broken, not as ineligible), and the
-  packing line's own grip slot carries a dashed placeholder rather than standing empty.
+  pre-drop snapshot. The packing list's combined heading refuses the drop — it never highlights and never takes it —
+  since it carries no tag of its own to file under; while a drag is in the air, that heading dims rather than
+  sitting inert (owner feedback 2026-09-23: an untouched heading read as broken, not as ineligible), and the packing
+  line's own grip slot carries a dashed placeholder rather than standing empty.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

@@ -75,7 +75,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await m6(page).getByTestId('m6-tab-local').click()
     await addEntry(page, 'Milch')
 
-    // Its own section, first; the packing row after it under its own heading.
+    // Its own section, named; the packing row sits in the combined heading.
     await expect(m6(page).getByTestId('m6-group-own')).toContainText('Added here')
     await expect(
       m6(page).getByTestId('m6-group-own').getByTestId('m6-row').locator('h3'),
@@ -380,9 +380,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(sunscreenRow.locator('.rowgrip.off')).toBeVisible()
     await expect(host.getByTestId('m6-drag-hint')).toBeVisible()
 
-    // Refused: the packing row's own heading carries no tag of its own.
+    // Refused: the packing row's own combined heading carries no tag of its own.
     const grip = host.getByTestId('m6-row-grip-Brot')
-    const fromPacking = host.getByTestId('m6-group-none')
+    const fromPacking = host.getByTestId('m6-group-packing')
     await expect(fromPacking).toHaveAttribute('data-droppable', 'false')
     let g = (await grip.boundingBox())!
     let target = (await fromPacking.boundingBox())!
@@ -678,10 +678,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M6-01: two tabs, grouped by category, each counting things to buy', async ({
+  test('E2E-M6-01: two tabs, the packing list combined ahead of the own entries, each counting things to buy', async ({
     page,
   }) => {
-    // A tagged master item, so the trip row carries a real category (FR-24.2).
+    // A tagged master item; its category must not surface as a heading here
+    // (revised 2026-09-23) — a packing category is not this list's tag.
     await page.goto(PATH.items)
     await createItem(page, 'Sonnencreme', { tags: ['Drogerie'] })
     await createTripViaWizard(page, TRIP)
@@ -699,13 +700,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(m6(page).getByTestId('m6-group-own').getByTestId('m6-row')).toContainText(
       'Kaugummi',
     )
-    await expect(m6(page).getByTestId('m6-group-Drogerie').getByTestId('m6-row')).toContainText(
-      'Sonnencreme',
-    )
-    await expect(m6(page).getByTestId('m6-group-none').getByTestId('m6-row')).toContainText(
-      'Batterien',
-    )
-    await expect(m6(page).getByTestId('m6-group-none')).toContainText('Uncategorized')
+    const packing = m6(page).getByTestId('m6-group-packing')
+    await expect(packing).toContainText('Packing list')
+    await expect(packing.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
+    await expect(packing.getByTestId('m6-row').filter({ hasText: 'Batterien' })).toBeVisible()
+    await expect(m6(page).getByTestId('m6-group-Drogerie')).toHaveCount(0)
 
     // The label counts things to buy (FR-25.6), and the other tab is its own
     // list — a shared list would show three here.

@@ -4494,9 +4494,11 @@ as for the packing rows.
   the packing row, the reveal says where it went. A packing row leaves the list by being bought or by changing mode on
   M4/M5 — M6 offers no remove for it. **M6 no longer adds packing rows**: the shared composer (FR-25.13) is gone from
   M6, and an inventory item to buy is put on the packing list in M4 with its mode chosen there — in M5, or for *vor Ort
-  kaufen* straight from the row's menu (FR-5.9). The list shows its own entries first under their own heading, then the
-  packing rows under their categories; an entry and a packing row of the same name are **not merged** — they are two
-  decisions, and the list does not guess that they are one.
+  kaufen* straight from the row's menu (FR-5.9). The list shows the packing rows first, **combined under one heading
+  regardless of category** (revised 2026-09-23: a packing category is not this list's tag, and a heading per category
+  read as more shopping-list structure than it was), then the own entries under their own heading, a section per tag;
+  an entry and a packing row of the same name are **not merged** — they are two decisions, and the list does not guess
+  that they are one.
 * **FR-30.3 (Module Boundary):** The shopping list's client code is a feature module under `client/src/shopping/`
   (store, actions, screen, specs), its Playwright cases under `client/e2e/shopping/` — the layout FR-29.9 names for the
   planner, used here first. Packing code never imports the module and the module never imports packing views, stores,
@@ -4562,9 +4564,10 @@ as for the packing rows.
   tags are made up on the spot for one trip, and a table of them — or a reach into the inventory's tags (FR-24), which
   classify what a thing *is* and not where it is bought — would be a second list to keep beside the entries. The
   tags on offer are read off the trip's open entries, so one whose last entry was bought is not offered again.
-  * **The open list is grouped by it:** one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*, then
-    the packing list's rows under their categories as before (FR-30.2). **What is bought is not grouped** — the reveal
-    (FR-25.11j) stays one flat list, and each row says its tag, because the heading that named it is gone.
+  * **The open list is grouped by it:** the packing list's rows first, combined under one heading (FR-30.2, revised
+    2026-09-23), then one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*. **What is bought is
+    not grouped** — the reveal (FR-25.11j) stays one flat list, and each row says its tag, because the heading that
+    named it is gone.
   * **Set in two places:** a chip row under M6's field — the trip's tags and *＋ Tag* — files the *next* entry and
     holds until the reader taps the chip again, so the things for one shop are typed one after another; and the
     **entry sheet**, which *＋ Tag* and a tap on an own entry's name both open. It is the packing list's creation

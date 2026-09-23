@@ -170,7 +170,6 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       name: entry.name,
       quantity: 1,
       recipients: [],
-      section: null,
       tag: entry.tag,
       boughtAt: entry.bought ? entry.bought_at : undefined,
       boughtBy: entry.bought ? entry.bought_by_user_id : undefined,

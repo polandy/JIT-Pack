@@ -598,11 +598,15 @@ setHeaderTitle(
           :key="section.key"
           :data-drop-target="section.key"
           :data-droppable="dropTag(section) !== undefined"
-          :data-testid="`m6-group-${section.own ? 'own' : section.tagged ? `tag-${section.name}` : (section.name ?? 'none')}`"
+          :data-testid="`m6-group-${section.packing ? 'packing' : section.own ? 'own' : `tag-${section.name}`}`"
         >
           <IonItemDivider>
             <IonLabel>{{
-              section.own ? t('shopping.ownEntries') : (section.name ?? t('shopping.uncategorized'))
+              section.packing
+                ? t('shopping.packingList')
+                : section.own
+                  ? t('shopping.ownEntries')
+                  : section.name
             }}</IonLabel>
             <!-- FR-30.9's single-row drag: shown only while this section is
                  the one under the pointer — `[data-drop-over]`, set by

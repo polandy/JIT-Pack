@@ -1696,7 +1696,7 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.beforeDepartureCount': 'Vor der Abreise ({n})',
   'shopping.atDestination': 'Vor Ort',
   'shopping.atDestinationCount': 'Vor Ort ({n})',
-  'shopping.uncategorized': 'Ohne Kategorie',
+  'shopping.packingList': 'Packliste',
   'shopping.forWhom': 'für {names}',
   'shopping.bought': 'Gekauft: {name}',
   'shopping.showBought': '{n} gekaufte anzeigen',

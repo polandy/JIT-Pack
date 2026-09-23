@@ -1686,7 +1686,7 @@ export const en = {
   'shopping.beforeDepartureCount': 'Before departure ({n})',
   'shopping.atDestination': 'At destination',
   'shopping.atDestinationCount': 'At destination ({n})',
-  'shopping.uncategorized': 'Uncategorized',
+  'shopping.packingList': 'Packing list',
   'shopping.forWhom': 'for {names}',
   'shopping.bought': 'Bought: {name}',
   'shopping.showBought': 'Show {n} bought',
