@@ -405,6 +405,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     target = (await apotheke.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
+    // The shared frame (`composables/dragToGroup.css`, unified with
+    // `TripTasksPage.vue`'s own drag 2026-09-23) still reaches this page's
+    // ghost now that it moved out of this component's own scoped style.
+    await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(apotheke).toHaveAttribute('data-drop-over', '')
     // The heading says so out loud, too — not only the highlight the CSS

@@ -427,6 +427,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [One `TransitionGroup` per heading animated the wrong departures (2026-09-22)](#one-transitiongroup-per-heading-animated-the-wrong-departures-2026-09-22) — a retag read as a leave; the fix a render caught, not a test.
 - [A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)](#a-toasts-contrast-lived-in-a-route-that-had-not-loaded-and-an-undo-repeated-a-fixed-bug-2026-09-22) — `.pack-toast` moved to `App.vue`; drag-retag's undo now reuses `bulkSetTag`.
 - [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
+- [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
 
 ## Deviations
 
@@ -17304,3 +17305,34 @@ packing rows aggregate into one row there; it simply stops surfacing as an M6 he
 refusal, the dashed grip placeholder and the dimmed-heading feedback built earlier the same day
 (above) carry over unchanged: they were already keyed off `dropTag`'s own `undefined` case, never off
 a category name, so collapsing every source heading into one changed nothing they depended on.
+
+## Two screens drew two frames around one gesture (2026-09-23)
+
+M6's drag (FR-30.9, above) and M25's own (FR-7.8, built 2026-09-21) both sit on `useDragToGroup`, and
+the composable's own doc comment says the attributes it sets are "for the screen to style" — a
+deliberate choice, since what a *target* looks like while something hangs over it is a screen's own
+call (a tag heading is not a task group). But two of the four attributes never carry a meaning that
+differs by screen: `data-drag-source` marks the row a clone left behind, and `data-drag-ghost` marks
+the clone itself, wherever `document.body` it lands in. Read against each other, `ShoppingPage.vue`
+had grown a mockup-verified frame for both — border, radius, shadow on the ghost; `opacity: 0.4` on
+the source — while `TripTasksPage.vue`'s own `TripTodoList.vue` had only the dimming, at the same
+`0.4`, and no ghost frame at all: a task mid-drag floated as an unstyled clone, because M6's polish
+pass (above, and the two before it) never had a reason to look at M25's code.
+
+**The owner asked directly**: which of #576's own gestures could unify for the app's UX rather than
+staying two hand-rolled copies of the same idea. The answer here was narrower than "unify the drag" —
+`data-drop-over`'s target styling stays split (Shopping's tinted `ion-item-group` background and
+corner-clip fix has no clean equivalent on M25's plain `<div>` group, and rebuilding M25's already
+green, already screenshot-baselined section for a cosmetic match risked more than a shared file was
+worth this round) — but the ghost and the source dim were an exact, unconditional duplicate in one
+case and a real gap in the other, not a difference in kind.
+
+**Fix:** `client/src/composables/dragToGroup.css`, imported once in `main.ts`, owns `[data-drag-ghost]`
+and `[data-drag-source]` globally — not scoped to a component, because the ghost is a DOM clone moved
+outside any component's own tree, and a scoped rule only ever reached it by the accident of Vue
+copying the clone's `data-v-*` attribute along with it. `ShoppingPage.vue` and `TripTodoList.vue` each
+lost their own copy of the same two rules; M25 gained the frame it never had. Mutation-tested by
+reverting the new file and its import: both `E2E-M25-08` and `E2E-M6-34` fail on the ghost's
+`border-style`, restored to `solid` once the file is back — the case that used to only prove Shopping
+kept its own frame now also proves neither screen quietly loses the shared one.
+

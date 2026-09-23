@@ -1463,7 +1463,8 @@ composer.
   pre-drop snapshot. The packing list's combined heading refuses the drop — it never highlights and never takes it —
   since it carries no tag of its own to file under; while a drag is in the air, that heading dims rather than
   sitting inert (owner feedback 2026-09-23: an untouched heading read as broken, not as ineligible), and the packing
-  line's own grip slot carries a dashed placeholder rather than standing empty.
+  line's own grip slot carries a dashed placeholder rather than standing empty. Also asserts the travelling clone's
+  border, now drawn from `composables/dragToGroup.css` (revised 2026-09-23) rather than this screen's own style.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3440,13 +3441,14 @@ moved, so the M4 entries are struck in place and say where each went.
   grouping is read back after a reload — a heading that only repainted proves the component and not the write — and
   the tag is then taken off again, which puts the task back under *Ohne Tag* and takes the now-empty heading away
   with it.
-* **E2E-M25-08** `local` (FR-7.8, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): the drag. A task is
-  lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the gesture fails on its
-  own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the write has resolved —
-  waiting on the animation is what E2E-M4-135 paid for; **the group under the pointer says so** while the task is in
-  the air, or the drop is made blind; and **the list's scroll position is read before the lift and after it**,
-  because a list that grew a drop target under the finger would have shifted every row below it (ADR-060). Run in
-  both browsers and repeated four times before it was trusted.
+* **E2E-M25-08** `local` (FR-7.8, added 2026-09-21, extended 2026-09-23) — **implemented** (`trip-tasks.spec.ts`): the
+  drag. A task is lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the
+  gesture fails on its own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the
+  write has resolved — waiting on the animation is what E2E-M4-135 paid for; **the group under the pointer says so**
+  while the task is in the air, or the drop is made blind; and **the list's scroll position is read before the lift
+  and after it**, because a list that grew a drop target under the finger would have shifted every row below it
+  (ADR-060). Run in both browsers and repeated four times before it was trusted. Also asserts the travelling clone's
+  border — this screen drew none of its own before `composables/dragToGroup.css` unified it with M6's (2026-09-23).
 * **E2E-M25-09** `local` (FR-7.8, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): a heading that would
   not be true of the task in hand neither lights up nor takes it — *Aus Packliste* under a chore of the trip. The
   refusal is asserted with its positive half beside it: the gesture still reaches `idle`, because a refused drop is

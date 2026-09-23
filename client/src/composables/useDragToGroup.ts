@@ -171,7 +171,12 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   /**
    * The ghost is a clone rather than the row itself: the row stays in the
    * list, marked, so the list does not close up under the finger and reopen
-   * on the drop (ADR-060 — nothing moves that the hand did not move).
+   * on the drop (ADR-060 — nothing moves that the hand did not move). Both
+   * `data-drag-ghost` and the marked row's `data-drag-source` carry one
+   * shared look from `./dragToGroup.css`, imported once in `main.ts` — a
+   * screen never redraws them (`data-drop-over` is the one exception: what a
+   * *target* looks like while something hangs over it is still the screen's
+   * own call, see `DROP_OVER_ATTRIBUTE`).
    */
   function lift(ev: PointerEvent, payload: T, row: HTMLElement): void {
     const box = row.getBoundingClientRect()

@@ -1796,7 +1796,10 @@ These patterns apply to every screen and are specified once.
   the gesture either — its grip slot carries a dashed placeholder instead of standing empty, and the packing list's
   heading dims for as long as something is being dragged, the same refusal `.rowbox.off` already gives the checkbox
   one slot over; a line below the list also says so once in words, next to the checkbox's own hint (owner feedback
-  2026-09-23: an empty gap and an inert heading read as broken, not as absent). (E2E-M6-34)
+  2026-09-23: an empty gap and an inert heading read as broken, not as absent). The lifted clone's frame and the
+  dimmed row it left behind are drawn once, in `composables/dragToGroup.css`, and reach every screen that lifts
+  something with `useDragToGroup` — M25's own drag (FR-7.8) draws the identical frame for the same reason,
+  unified 2026-09-23 rather than left as two screens describing the same gesture differently. (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
   projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and
   raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather
@@ -2854,7 +2857,9 @@ token would prove nothing there is anything to prove.
     500 ms and 8 px, so a finger can still scroll. While a task is in the air the group under the pointer says
     *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
     row would move every row below it under the finger that pressed one (ADR-060). The gesture's state is on the
-    page as `data-drag`, always set, and returns to `idle` only once the write has landed.
+    page as `data-drag`, always set, and returns to `idle` only once the write has landed. The travelling clone and
+    the dimmed row share one frame with M6's own drag (`composables/dragToGroup.css`), unified 2026-09-23 — this
+    screen had none of its own before that.
   * The **provenance line** changes role with the task: *„erstellt von Andy · heute 14:32"* while it is open,
     *„erledigt von Sia · gestern 09:15"* once it is done. Where nobody can be named it keeps the moment and drops the
     person: *„erstellt · heute 14:32"* (G-8). A task that carries neither says nothing.

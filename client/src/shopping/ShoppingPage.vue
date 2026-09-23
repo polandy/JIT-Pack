@@ -1086,12 +1086,6 @@ setHeaderTitle(
   opacity: 0.5;
 }
 
-/* The row stays where it was while its clone travels (ADR-060); it is only
-   dimmed, so the list does not close up under the finger — M25's own rule. */
-[data-testid='m6-row'][data-drag-source] {
-  opacity: 0.4;
-}
-
 /* A heading a drag can never land on (`dropTag` says so at render time, not
    only `useDragToGroup`'s live hit-test) dims for as long as something is in
    the air — the same feedback `.rowgrip.off` gives per row, given once per
@@ -1111,16 +1105,6 @@ ion-item-group[data-drop-over] {
   /* Without this the rows' own square corners sit past the frame's rounded
      ones, poking out from behind it. */
   overflow: hidden;
-}
-
-/* The ghost is a clone of the lifted row (ADR-060: it travels, the row
-   underneath only dims) appended to `document.body` — it inherits this
-   scoped style's own attribute since it is a literal DOM clone. Same frame
-   as the mockup's floating row. */
-[data-drag-ghost] {
-  border: 1px solid var(--jp-action);
-  border-radius: var(--jp-r-md);
-  box-shadow: var(--jp-shadow);
 }
 
 /* `opacity`, not `display`: the divider's `end` slot lays this out itself

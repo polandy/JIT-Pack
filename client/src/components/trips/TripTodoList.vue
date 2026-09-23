@@ -307,12 +307,6 @@ function subline(task: TripTask): string | null {
   touch-action: none;
 }
 
-/* The row stays where it was while its clone travels (ADR-060); it is only
-   dimmed, so the list does not close up under the finger. */
-.todo-row[data-drag-source] {
-  opacity: 0.4;
-}
-
 .todo-row.resolved ion-label {
   color: var(--ct-subtext0);
 }
