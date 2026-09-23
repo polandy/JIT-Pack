@@ -30,6 +30,7 @@ import {
 } from '@/domain/review'
 import { tripsReachedBy } from '@/domain/templates'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import FactChip from '@/components/global/FactChip.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
@@ -215,9 +216,11 @@ setHeaderTitle(
           data-testid="m14-open-row"
         >
           <div class="head">
-            <span class="chip kind" :class="row.p.kind">
+            <!-- Caution, not error, for both kinds: the item was forgotten
+                 or added off-list, nothing is broken (G-11). -->
+            <FactChip class="chip-compact" :tone="row.p.kind" bordered>
               {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
-            </span>
+            </FactChip>
             <div class="grow">
               <div class="name">{{ row.p.itemName }}</div>
               <div class="why">{{ whyText(row.p) }}</div>
@@ -296,16 +299,21 @@ setHeaderTitle(
           class="jp-card handled"
           data-testid="m14-handled-row"
         >
-          <span class="chip kind" :class="row.p.kind">
+          <FactChip class="chip-compact" :tone="row.p.kind" bordered>
             {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
-          </span>
+          </FactChip>
           <span class="grow">
             <span class="name">{{ row.p.itemName }}</span>
             <span class="why">{{ groupName(row.target) }}</span>
           </span>
-          <span class="chip state" :class="row.state" data-testid="m14-state">
+          <FactChip
+            class="chip-compact"
+            :tone="row.state === 'applied' ? 'applied' : null"
+            :bordered="row.state === 'applied'"
+            data-testid="m14-state"
+          >
             {{ row.state === 'applied' ? t('review.stateApplied') : t('review.stateSkipped') }}
-          </span>
+          </FactChip>
         </div>
         <p v-if="appliedCount > 0" class="jp-card summary" data-testid="m14-summary">
           {{ t('review.appliedSummary', { n: appliedCount }) }}
@@ -370,30 +378,11 @@ setHeaderTitle(
   color: var(--ct-subtext0);
 }
 
-.chip {
+/* This list is denser than FactChip.vue's default (a detail sheet's glance row);
+   layout stays with the caller, same as RemoveButton's .rm-gap. */
+.chip-compact {
   flex-shrink: 0;
   padding: 3px 9px;
-  border: 1px solid transparent;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  font-size: var(--jp-text-xs);
-  color: var(--ct-subtext1);
-}
-
-.chip.unused {
-  border-color: color-mix(in srgb, var(--ct-heather) 50%, transparent);
-  color: var(--ct-heather);
-}
-
-/* Caution, not error: the item was forgotten, nothing is broken (G-11). */
-.chip.missing {
-  border-color: color-mix(in srgb, var(--ct-straw) 50%, transparent);
-  color: var(--ct-straw);
-}
-
-.chip.applied {
-  border-color: color-mix(in srgb, var(--jp-done) 50%, transparent);
-  color: var(--jp-done);
 }
 
 .target {
