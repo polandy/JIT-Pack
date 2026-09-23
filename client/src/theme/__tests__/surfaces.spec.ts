@@ -152,7 +152,13 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
   })
 
   it('turns the segment into a pill track and switches the Material underline off', () => {
-    expect(rule(surfaces, 'ion-segment')).toContain('border-radius: var(--jp-r-pill)')
+    const segment = rule(surfaces, 'ion-segment')
+    expect(segment).toContain('border-radius: var(--jp-r-pill)')
+    // FR-21.8, 2026-09-23: Safari draws the checked button's own corner a
+    // hair off the track's radius where the last button meets it. Clipping
+    // to the track's shape is correct regardless of cause — see
+    // e2e/surfaces.spec.ts's E2E-G14-05 for the rendered assertion.
+    expect(segment).toContain('overflow: hidden')
     const button = rule(surfaces, 'ion-segment-button')
     expect(button).toContain('--border-radius: var(--jp-r-pill)')
     expect(button).toContain('--indicator-height: 0')

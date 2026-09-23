@@ -1,6 +1,8 @@
 import { addInComposer, test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
+import { openTasks, tripWithRows } from './helpers/m4'
+import { visiblePage } from './helpers/page'
 
 /**
  * Surfaces (UI-Test-Spec §3, G-14; Addendum FR-21.8).
@@ -228,3 +230,23 @@ async function closeControl(page: Page, testid: string) {
     }
   })
 }
+
+// E2E-G14-05 (G-14/FR-21.8): a segment's checked pill never draws past the
+// track's own rounded end. Safari renders the last button's own corner a
+// hair off the track's radius exactly where it meets the track's rounded
+// end — invisible in Chromium, found on an iPad testing M25's Tasks/Notes
+// segment (owner, 2026-09-23). The fix is `overflow: hidden` on the track;
+// this asserts the property actually computes, since the sub-pixel seam it
+// closes cannot be proven from a browser that never drew it.
+test('E2E-G14-05: a segment clips its checked pill to the track’s own shape', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize(MOBILE)
+  await tripWithRows(page, ['Zelt'], 'Samedan')
+  const section = await openTasks(page, 'before')
+  const segment = section.page().getByTestId('m25-segment')
+  await visiblePage(page).getByTestId('m25-segment-notes').click()
+  expect(await computed(segment, 'overflow')).toBe('hidden')
+})

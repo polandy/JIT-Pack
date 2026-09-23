@@ -429,6 +429,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
 - [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
 - [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
+- [A segment's checked corner was a hair off the track's, and only Safari drew it (2026-09-23)](#a-segments-checked-corner-was-a-hair-off-the-tracks-and-only-safari-drew-it-2026-09-23) — `ion-segment` clips to its own shape; the seam was invisible in every render this project has automated.
 
 ## Deviations
 
@@ -17366,4 +17367,32 @@ M4's own prep window included, which has no grip (`lift` is absent there) but sh
 so lost the same line. `E2E-VIS-13`'s baseline moved with the shorter rows and the wider grip gap
 (`make visual-update`); no other baseline did, since none of M4's own visual cases happen to seed a
 todo with the facts that would have drawn a stamp in the first place.
+
+## A segment's checked corner was a hair off the track's, and only Safari drew it (2026-09-23)
+
+Testing the row fixes above on an iPad, the owner reported M25's Tasks/Notes segment looking "cut off"
+on its right edge. Three rounds of screenshots — including one at 2× device-scale, matching the iPad's
+own pixel density — showed nothing wrong to me: Chromium, at every viewport and locale tried, drew a
+clean nested pair of rounded corners, track and checked pill concentric. The owner's own annotated
+screenshot (Markup arrow, precisely on the corner) settled it: the defect is real, and it does not exist
+in any render this project can automate.
+
+**The shape was never wrong, only where WebKit draws its edge.** `ion-segment`'s track and
+`ion-segment-button`'s checked pill both round to the same `var(--jp-r-pill)` token, and the geometry
+nests exactly (the track's padding is 3px, and its clamped radius at 40px tall is 20px against the
+button's clamped 17px at 34px tall — 20 − 3 = 17, an exact fit). The math says the two curves should
+trace one continuous arc, and on Chromium they do. On Safari, at the corner where the *last* button's
+own edge coincides with the track's rounded end, the two independently-rasterised curves apparently
+disagree by a sub-pixel amount too small for a screenshot's JPEG compression to keep — visible live,
+smoothed away by the time it reaches a file. Nothing about this was reachable by rendering harder;
+`overflow: hidden` on the track makes the exact cause moot, since a checked pill can never be the
+track's own shape *plus* a stray corner once the track itself clips it.
+
+**Fix:** `client/src/theme/surfaces.css`'s `ion-segment` rule gains `overflow: hidden`. Covered on two
+sides, deliberately not the one that found the bug: the unit half
+(`theme/__tests__/surfaces.spec.ts`) asserts the declaration is still there, and the rendered half
+(`e2e/surfaces.spec.ts`, `E2E-G14-05`) asserts the property actually computes on a live segment —
+neither can assert the sub-pixel seam itself closed, because neither runs WebKit. That gap stays open
+on purpose: `dev-docs/e2e-tests.md` names it, and closing it for real needs a WebKit run this project
+does not have wired up yet.
 
