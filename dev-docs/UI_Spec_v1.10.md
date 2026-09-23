@@ -1781,14 +1781,16 @@ These patterns apply to every screen and are specified once.
   (E2E-M6-32)
 * **One entry, dragged into another heading (FR-30.9, built 2026-09-22):** while nothing is selected, an own row
   carries a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried
-  across the list, it lifts the row (a clone follows the pointer, the row itself only dims in place) and the heading
-  under the pointer lights up while it could honestly hold it — a tag's own heading, or *„Eingetragen"* to clear one;
-  a packing row's own heading never lights up and never takes it, the same refusal a selection gives it. Letting go
-  over a lit heading files the row under it in one act, through the same `bulkSetTag` a selection's *Tag vergeben*
-  uses (a batch of one), and raises the same toast with **Rückgängig**. The gesture itself is `useDragToGroup`
-  (FR-7.8's own, first built for the trip's tasks) — a lift-carry-drop with no shape of its own beyond a place's name
-  and what was dropped on it. Mockup: 2026-09-22, extended by the owner directly on the canvas rather than asked for
-  in words; built once asked for outright the same day. (E2E-M6-34)
+  across the list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself
+  only dims in place) and the heading under the pointer takes the same accent frame while it could honestly hold it
+  — a tag's own heading, or *„Eingetragen"* to clear one; a packing row's own heading never frames and never takes
+  it, the same refusal a selection gives it. Letting go over a framed heading files the row under it in one act,
+  through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with
+  **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
+  lift-carry-drop with no shape of its own beyond a place's name and what was dropped on it. Mockup: 2026-09-22,
+  extended by the owner directly on the canvas rather than asked for in words; built once asked for outright the
+  same day. The frame itself was tightened 2026-09-23 to match the mockup's own blue outline on both the lifted
+  clone and the target heading, closer than the first cut's plain highlight. (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
   projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and
   raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather

@@ -1055,9 +1055,22 @@ setHeaderTitle(
 }
 
 /* The tag heading a dragged row is over — `useDragToGroup` sets the
-   attribute itself; this only says what it looks like (M25's own rule). */
+   attribute itself; this only says what it looks like (mockup's own frame,
+   `borderColor`/`wrapBg` in the "Vorschlag-Liste" canvas, 2026-09-23). */
 ion-item-group[data-drop-over] {
   --ion-item-background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-page));
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r);
+}
+
+/* The ghost is a clone of the lifted row (ADR-060: it travels, the row
+   underneath only dims) appended to `document.body` — it inherits this
+   scoped style's own attribute since it is a literal DOM clone. Same frame
+   as the mockup's floating row. */
+[data-drag-ghost] {
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r-md);
+  box-shadow: var(--jp-shadow);
 }
 
 /* `opacity`, not `display`: the divider's `end` slot lays this out itself
