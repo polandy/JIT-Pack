@@ -9,7 +9,7 @@ import {
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
-import { openTasks, tripWithRows } from './helpers/m4'
+import { openRowMenu, openTasks, tripWithRows } from './helpers/m4'
 import { visiblePage } from './helpers/page'
 
 /**
@@ -275,5 +275,53 @@ for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
     const templates = visiblePage(page).getByTestId('m7-scope-segment')
     await expect(templates).toBeVisible()
     expect(await overhang(templates), "M7's segment runs past its column").toBeLessThanOrEqual(0)
+  })
+}
+
+// E2E-G14-06 (G-14/FR-21.8): a row menu is a sheet, and looks like one. Every
+// row menu is an `ion-action-sheet`, and Material drew it as a flat, square
+// slab beside the app's own rounded sheets — two designs for one gesture
+// (owner, 2026-09-24). Compared against M5's sheet as rendered, not against
+// the stylesheet: the corner, the plane and the title's type.
+test('E2E-G14-06: a row menu wears the same sheet as M5 @local @g14', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize(MOBILE)
+
+  await tripWithRows(page, ['Zelt'], 'Samedan')
+  await openRowMenu(page, 'Zelt')
+  const menu = page.locator('ion-action-sheet')
+  const group = menu.locator('.action-sheet-group').first()
+  const fromMenu = {
+    corner: await computed(group, 'border-top-left-radius'),
+    plane: await toBytes(page, await computed(group, 'background-color')),
+    title: await typeOf(menu.locator('.action-sheet-title')),
+  }
+  await menu.getByRole('button', { name: 'Cancel' }).click()
+  await expect(menu).toHaveCount(0)
+
+  await page.getByTestId('m4-row-Zelt').click()
+  const sheet = page.getByTestId('m5-modal')
+  await expect(sheet.locator('.jp-sheet-title')).toBeVisible()
+  const corner = await sheet.evaluate((n) =>
+    getComputedStyle(n.shadowRoot!.querySelector('.modal-wrapper')!).borderTopLeftRadius.trim(),
+  )
+  const plane = await sheet.evaluate((n) =>
+    getComputedStyle(n.shadowRoot!.querySelector('.modal-wrapper')!).backgroundColor.trim(),
+  )
+
+  expect(fromMenu.corner).toBe(corner)
+  expect(fromMenu.corner).not.toBe('0px')
+  expect(fromMenu.plane).toEqual(await toBytes(page, plane))
+  expect(fromMenu.title).toEqual(await typeOf(sheet.locator('.jp-sheet-title')))
+})
+
+/** The type a title was rendered in. */
+function typeOf(el: Locator) {
+  return el.evaluate((n) => {
+    const cs = getComputedStyle(n)
+    return { family: cs.fontFamily, size: cs.fontSize, weight: cs.fontWeight }
   })
 }
