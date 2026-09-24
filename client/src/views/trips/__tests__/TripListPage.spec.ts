@@ -37,7 +37,12 @@ let segment = 'planned'
 
 const { pushed, sheets } = vi.hoisted(() => ({
   pushed: [] as string[],
-  sheets: [] as { header?: string; buttons: SheetButton[]; dismiss: () => void }[],
+  sheets: [] as {
+    header?: string
+    buttons: SheetButton[]
+    leave: () => void
+    dismiss: () => void
+  }[],
 }))
 
 vi.mock('vue-router', () => ({
@@ -54,8 +59,9 @@ vi.mock('vue-router', () => ({
  * What the row menu was asked to render, and a seam to close it with — the
  * AppHeader spec's shape. The sheet is an Ionic overlay whose DOM jsdom is
  * not where to assert; what the row owes is the *list*, and that a tap while
- * the sheet is up does not also open the trip. `dismiss` is the sheet going
- * away, in the test's hand rather than on a clock.
+ * the sheet is up does not also open the trip. `leave` starts the sheet's
+ * leave animation and `dismiss` is the sheet gone, both in the test's hand
+ * rather than on a clock.
  */
 interface SheetButton {
   text: string
@@ -70,10 +76,20 @@ vi.mock('@ionic/vue', async () => {
     ...actual,
     actionSheetController: {
       create: async (opts: { header?: string; buttons: SheetButton[] }) => {
-        let dismiss = () => {}
-        const gone = new Promise<void>((resolve) => (dismiss = resolve))
-        sheets.push({ header: opts.header, buttons: opts.buttons, dismiss })
-        return { present: async () => {}, onDidDismiss: () => gone.then(() => ({})) }
+        let leave = () => {}
+        let gone = () => {}
+        const leaving = new Promise<void>((resolve) => (leave = resolve))
+        const left = new Promise<void>((resolve) => (gone = resolve))
+        const dismiss = () => {
+          leave()
+          gone()
+        }
+        sheets.push({ header: opts.header, buttons: opts.buttons, leave, dismiss })
+        return {
+          present: async () => {},
+          onWillDismiss: () => leaving.then(() => ({})),
+          onDidDismiss: () => left.then(() => ({})),
+        }
       },
     },
   }
@@ -401,6 +417,51 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     await row.trigger('click')
 
     expect(pushed).toEqual(['/trips/t1'])
+  })
+
+  it('opens a new menu while the last one is still leaving', async () => {
+    // E2E-M2-05 on a slow runner: the delete confirm was cancelled before the
+    // menu that led to it had finished its leave animation, and the next
+    // right-click opened nothing.
+    seedTrip('planning')
+    const page = mountPage()
+    const row = page.find('[data-testid="trip-row-Samedan"]')
+
+    await row.trigger('contextmenu')
+    await flushPromises()
+    sheets[0]!.leave()
+    await flushPromises()
+    await row.trigger('contextmenu')
+    await flushPromises()
+
+    expect(sheets).toHaveLength(2)
+
+    // The first one going away leaves the second in charge: taps still wait,
+    // and a third request is still one too many.
+    sheets[0]!.dismiss()
+    await flushPromises()
+    await row.trigger('click')
+    await row.trigger('contextmenu')
+    await flushPromises()
+    expect(pushed).toEqual([])
+    expect(sheets).toHaveLength(2)
+
+    sheets[1]!.dismiss()
+    await flushPromises()
+    await row.trigger('click')
+    expect(pushed).toEqual(['/trips/t1'])
+  })
+
+  it('opens one menu for a touch hold, which fires the timer and contextmenu both', async () => {
+    seedTrip('planning')
+    const page = mountPage()
+    const row = page.find('[data-testid="trip-row-Samedan"]')
+
+    await row.trigger('contextmenu')
+    await row.trigger('contextmenu')
+    await flushPromises()
+
+    expect(sheets).toHaveLength(1)
   })
 })
 

@@ -634,15 +634,16 @@ const heroActions = computed<HeroAction[]>(() => {
 const hold = useLongPress<Trip>(openRowMenu)
 
 /**
- * Row taps are ignored while the menu lives — set before the overlay
- * attaches and cleared on dismiss, so the release-click of a hold cannot also
- * open the trip. M7's `rowMenuActive`, and a state for the same reason: a
- * one-shot "swallow the next click" would go stale and eat a real tap.
+ * Row taps are ignored while a menu lives — counted from before the overlay
+ * attaches until it is gone, so the release-click of a hold cannot also open
+ * the trip. M7's `rowMenuActive`, and a state for the same reason: a one-shot
+ * "swallow the next click" would go stale and eat a real tap. A count, since
+ * a second menu can open while the first is still leaving.
  */
-let rowMenuActive = false
+let rowMenusAlive = 0
 
 function openTrip(trip: Trip) {
-  if (rowMenuActive) return
+  if (rowMenusAlive > 0) return
   router.push(tripPath(trip.id))
 }
 
@@ -651,14 +652,23 @@ function openTrip(trip: Trip) {
  * stop the link itself: the release-click of a hold lands while the menu is up.
  */
 function onHeroClick(event: MouseEvent) {
-  if (rowMenuActive) event.preventDefault()
+  if (rowMenusAlive > 0) event.preventDefault()
 }
+
+/**
+ * A sheet is up and not yet leaving. Narrower than `rowMenusAlive`: a long
+ * press on touch fires `contextmenu` as well as the timer, and only the first
+ * may open a sheet — but a menu asked for during the last one's leave
+ * animation is a new request, and waiting for `onDidDismiss` swallowed it.
+ */
+let rowMenuShowing: symbol | null = null
 
 async function openRowMenu(trip: Trip) {
   hold.cancel()
-  // A long press on touch fires `contextmenu` as well as the timer.
-  if (rowMenuActive) return
-  rowMenuActive = true
+  if (rowMenuShowing) return
+  const mine = Symbol(trip.id)
+  rowMenuShowing = mine
+  rowMenusAlive++
   try {
     const sheet = await actionSheetController.create({
       header: trip.name,
@@ -674,10 +684,14 @@ async function openRowMenu(trip: Trip) {
       ],
     })
     await sheet.present()
+    await sheet.onWillDismiss()
+    if (rowMenuShowing === mine) rowMenuShowing = null
     await sheet.onDidDismiss()
   } finally {
-    // finally: a failed present() must not leave the list tap-dead.
-    rowMenuActive = false
+    // finally: a failed present() must not leave the list tap-dead — nor
+    // clear the flag of a menu opened since.
+    if (rowMenuShowing === mine) rowMenuShowing = null
+    rowMenusAlive--
   }
 }
 

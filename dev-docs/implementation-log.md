@@ -433,6 +433,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A bar that never came back: Ionic had moved the modal it was inserted before (2026-09-24)](#a-bar-that-never-came-back-ionic-had-moved-the-modal-it-was-inserted-before-2026-09-24) — ADR-075: a `v-if` inserted before a moved `ion-modal` threw; `SheetModal` became a fragment.
 - [M9 takes the shared list: a heading that takes focus nudges the scroll (2026-09-24)](#m9-takes-the-shared-list-a-heading-that-takes-focus-nudges-the-scroll-2026-09-24) — ADR-075 amended: why M9 has no grip, and a jump case that became a race.
 - [M23 and M11 select: a batch keeps the refusals, and a new glyph passed the baseline (2026-09-24)](#m23-and-m11-select-a-batch-keeps-the-refusals-and-a-new-glyph-passed-the-baseline-2026-09-24) — ADR-075 amended: why a batch restore prompts for no collision, and the app-bar icon the pixel budget let through.
+- [A menu asked for while the last one was leaving opened nothing (2026-09-25)](#a-menu-asked-for-while-the-last-one-was-leaving-opened-nothing-2026-09-25) — M2's row menu swallowed a reopen during the 480 ms leave; E2E-M2-05 flaked on it.
 
 ## Deviations
 
@@ -17455,3 +17456,21 @@ stayed green. A 24 px outline icon is fewer pixels than the 658-pixel budget in 
 control in the app bar can land without the visual suite noticing. The baselines were rewritten on purpose, and
 `--update-snapshots` alone did nothing: Playwright's default is `changed`, which skips a screenshot inside the
 budget. It takes `--update-snapshots=all -g …`.
+
+## A menu asked for while the last one was leaving opened nothing (2026-09-25)
+
+E2E-M2-05 went red on #587's `e2e-server` leg, and then locally on two runs in three, in a PR that did not touch M2.
+The M2 row menu from #586 had one guard for two jobs: it refused a second open *until the sheet was gone*
+(`onDidDismiss`), to fold a touch hold's timer and `contextmenu` into one sheet. An action sheet takes about 480 ms
+to leave. A delete confirm answered faster than that (Cancel), followed by a right-click, fell into the gap. The request
+was swallowed, the leaving sheet still passed the helper's `toBeVisible`, and the click then waited for an entry
+that never came, until the 180 s test timeout.
+
+The guard now ends at `onWillDismiss`. The tap guard still ends at `onDidDismiss`, because Ionic sets
+`pointer-events: none` on a leaving sheet and a click can then fall through to the row. It is a count now, since two
+sheets can be alive at once. The M2 helpers address the *newest* sheet (`.last()`), because the leaving one is still
+in the DOM.
+
+**The trap:** a guard held until an overlay is *gone* covers its leave animation too, and that is a window a fast
+user or a fast test can act in. Hold such a guard until the overlay starts leaving (`onWillDismiss`) unless the
+animation itself is what must be protected.
