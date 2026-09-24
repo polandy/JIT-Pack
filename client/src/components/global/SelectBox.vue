@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A row's selection checkbox at its leading edge, in the grip's own place
- * while a list is selecting (`useRowSelection`) — M6 and M25 alike.
+ * while a list is selecting (`useRowSelection`) — M6, M25 and M9 alike.
  *
  * `off` is a row the selection cannot take: dashed and dimmed, the same
  * refusal `DragGrip`'s `off` draws for a row with nothing to drag.

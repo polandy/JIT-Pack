@@ -3,7 +3,8 @@
  * What a selection can be acted on with — the floating bar at the foot of a
  * selecting list, above where the FAB stands (M9's shape, then M6's; M25's
  * since 2026-09-24). The actions are the screen's: each is a button in the
- * slot, an icon over a word.
+ * slot, an icon over a word; `class="danger"` marks the one that removes
+ * (M9's retire).
  */
 </script>
 
@@ -39,6 +40,10 @@
   color: var(--ct-subtext1);
   font-size: var(--jp-text-xs);
   cursor: pointer;
+}
+
+.bulkbar :slotted(button.danger) {
+  color: var(--ion-color-danger);
 }
 
 .bulkbar :slotted(button ion-icon) {

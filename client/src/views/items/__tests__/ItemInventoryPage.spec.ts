@@ -48,7 +48,7 @@ import { createMasterDataActions } from '@/composables/sync/actions/masterData'
 import { createDependencyActions } from '@/composables/sync/actions/dependencies'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { PATH } from '@/router/paths'
+import { PATH, itemPath } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -696,16 +696,12 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
 
-    // Off: the rows are links into M10, and there is no box to tick.
-    const rowLink = () =>
-      page
-        .findAllComponents({ name: 'IonItem' })
-        .find((row) => row.attributes('data-testid') === 'm9-row')!
-        .props('routerLink') as unknown
-    // Which row sorts first does not matter; that it *is* a link does.
-    // Ionic fills an unset prop with a Symbol sentinel rather than undefined,
-    // so the question is asked as "is it a path".
-    expect(typeof rowLink()).toBe('string')
+    // Off: a tap on a row opens it in M10, and there is no box to tick.
+    const row = (name: string) =>
+      page.findAll('[data-testid="m9-row"]').find((r) => r.text().includes(name))!
+    routerPush.mockClear()
+    await row('Sonnencreme').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith(itemPath('i1'))
     expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
     expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(false)
 
@@ -713,15 +709,44 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
     // On: the same tap picks instead of leaving the screen.
-    expect(typeof rowLink()).not.toBe('string')
+    routerPush.mockClear()
+    await row('Sonnencreme').trigger('pointerdown')
+    await row('Sonnencreme').trigger('click')
+    expect(routerPush).not.toHaveBeenCalled()
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 1 }))
     expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(true)
+    await row('Sonnencreme').trigger('pointerdown')
+    await row('Sonnencreme').trigger('click')
 
     await page.find('[data-testid="m9-select-all"]').trigger('click')
     expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
 
     // The same control clears, so it undoes itself.
     await page.find('[data-testid="m9-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('items.selectedNone'))
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.none'))
+  })
+
+  it('a hold (here its right-click twin) starts the selection with that row, and opens nothing (ADR-075)', async () => {
+    seedThree()
+    const page = mountPage()
+    await flushPromises()
+    const row = (name: string) =>
+      page.findAll('[data-testid="m9-row"]').find((r) => r.text().includes(name))!
+    routerPush.mockClear()
+
+    await row('Sonnenbrille').trigger('contextmenu')
+    // The release's own click, with no press of its own: spent on the hold.
+    await row('Sonnenbrille').trigger('click')
+
+    expect(routerPush).not.toHaveBeenCalled()
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 1 }))
+    expect(page.get('[data-testid="m9-row-check-Sonnenbrille"]').classes()).toContain('on')
+
+    // A real tap after it picks another row.
+    await row('Taschenmesser').trigger('pointerdown')
+    await row('Taschenmesser').trigger('click')
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('counts one picked row as one, and none as none', async () => {
@@ -737,14 +762,14 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     await enterSelection()
 
     const bar = () => page.find('[data-testid="m9-select-count"]').text()
-    expect(bar()).toBe(t('items.selectedNone'))
+    expect(bar()).toBe(t('selection.none'))
 
     await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
-    expect(bar()).toBe(t('items.selectedCount', { n: 1 }))
-    expect(bar()).not.toBe(t('items.selectedNone'))
+    expect(bar()).toBe(t('selection.count', { n: 1 }))
+    expect(bar()).not.toBe(t('selection.none'))
 
     await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
-    expect(bar()).toBe(t('items.selectedCount', { n: 2 }))
+    expect(bar()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('“Alle N” means what the filter and the search left, not the inventory', async () => {
@@ -1318,9 +1343,8 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     const row = page.findAllComponents(ItemMark).find((m) => m.props('surface') === 'inventory')!
     expect(row.props('tagMark')).toBe('🧼')
     expect(row.props('mark')).toBeNull()
-    expect(page.get('[data-testid="m9-group-head"]').findComponent(ItemMark).props('mark')).toBe(
-      '🧼',
-    )
+    const heading = page.findAllComponents(ItemMark).find((m) => m.props('surface') === 'plain')!
+    expect(heading.props('mark')).toBe('🧼')
   })
 
   it('hands a move straight to the orchestrator, by axis index', async () => {

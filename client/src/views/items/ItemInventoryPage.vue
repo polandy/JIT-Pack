@@ -45,9 +45,7 @@ import {
 import {
   addOutline,
   checkboxOutline,
-  checkmarkOutline,
   sparklesOutline,
-  chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
   cloudUploadOutline,
@@ -75,7 +73,12 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import { useInventoryHygiene } from '@/composables/useInventoryHygiene'
+import { useRowSelection } from '@/composables/useRowSelection'
+import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import ListGroup from '@/components/global/ListGroup.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
@@ -189,12 +192,13 @@ const itemsKnown = computed(() => orchestrator.masterDataLoaded())
 const knownEmpty = computed(() => isEmpty.value && itemsKnown.value)
 
 /**
- * FR-24.9: the selection, by item id. Empty *and* `selecting` is a real
- * state — the mode is armed and nothing is picked yet — so the mode is its
- * own flag rather than „the set is not empty".
+ * FR-24.9: the selection, by item id — the gesture M6 and M25 share (a hold
+ * or a right-click on a row, or the app bar's icon; ADR-075). Empty *and*
+ * `selecting` is a real state — the mode is armed and nothing is picked yet.
+ * Named `rows` because `selection` is already the tag filter's.
  */
-const selecting = ref(false)
-const selected = ref<Set<string>>(new Set())
+const rows = useRowSelection()
+const { selecting, selected } = rows
 const bulkSheet = ref<BulkTagMode | null>(null)
 const assigneeSheet = ref(false)
 /** FR-24.15: which of the picked rows stays. */
@@ -289,17 +293,14 @@ setHeaderActions(() => {
     icon: checkboxOutline,
     label: t('items.select'),
     active: selecting.value,
-    onClick: () => (selecting.value ? endSelecting() : (selecting.value = true)),
+    onClick: () => (selecting.value ? endSelecting() : rows.start()),
   }
   return masterStore.tagList.length > 0
     ? [eye, sortAction, select, manageTags, cleanup]
     : [eye, sortAction, select, cleanup]
 })
 
-function endSelecting() {
-  selecting.value = false
-  selected.value = new Set()
-}
+const endSelecting = rows.end
 
 /** The rows the list is showing, in the order it shows them (FR-24.9). */
 const shownItems = computed<MasterItem[]>(() =>
@@ -310,21 +311,23 @@ const selectedItems = computed<MasterItem[]>(() =>
   shownItems.value.filter((item) => selected.value.has(item.id)),
 )
 
-function toggleSelected(itemId: string) {
-  const next = new Set(selected.value)
-  if (next.has(itemId)) next.delete(itemId)
-  else next.add(itemId)
-  selected.value = next
-}
-
 /**
  * „Alle N" takes what is *on screen*, filter and search included — which is
  * what makes the mode worth having: narrow to „Diverses", take all 49, act
  * once. Pressing it again clears, so the same control undoes itself.
  */
 function toggleAll() {
-  const all = shownItems.value.length > 0 && selectedItems.value.length === shownItems.value.length
-  selected.value = all ? new Set() : new Set(shownItems.value.map((item) => item.id))
+  rows.toggleAll(shownItems.value.map((item) => item.id))
+}
+
+/**
+ * A tap on a row: while selecting it picks the row, otherwise it opens the
+ * item (FR-24.9). A navigation in code rather than a `routerLink`, so the
+ * release after a hold — spent by `rows.click` — never opens the editor.
+ */
+function onRowClick(item: MasterItem) {
+  if (rows.click(item.id, true)) return
+  void router.push(itemPath(item.id))
 }
 
 /** Every tag name of every item, in one pass — the primary is what groups a row. */
@@ -1071,7 +1074,9 @@ const canJump = computed(
  */
 const sections = new Map<string, HTMLElement>()
 
-function registerSection(key: string, el: Element | null) {
+function registerSection(key: string, ref: unknown) {
+  // A component ref: the group's element is behind `$el`.
+  const el = (ref as ComponentPublicInstance | null)?.$el
   if (el instanceof HTMLElement) sections.set(key, el)
   else sections.delete(key)
 }
@@ -1199,32 +1204,18 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <IonPage>
     <IonContent ref="content">
-      <!-- FR-24.9: while the mode is on, the bar says what it will act on. -->
-      <div v-if="selecting" class="selbar" data-testid="m9-selbar">
-        <button
-          type="button"
-          class="chip"
-          :aria-label="t('items.selectExit')"
-          data-testid="m9-select-exit"
-          @click="endSelecting"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
-        <!-- Zero is its own sentence, not a plural form: this catalogue has
-             two forms and `n === 1` takes the first, so „Nichts ausgewählt |
-             {n} ausgewählt" said exactly the wrong one at both ends — nothing
-             for one row, „0 ausgewählt" for none. -->
-        <span class="selcount jp-num" data-testid="m9-select-count">
-          {{
-            selected.size === 0
-              ? t('items.selectedNone')
-              : t('items.selectedCount', { n: selected.size })
-          }}
-        </span>
-        <button type="button" class="chip" data-testid="m9-select-all" @click="toggleAll">
-          {{ t('items.selectAll', { n: shownItems.length }) }}
-        </button>
-      </div>
+      <!-- FR-24.9: while the mode is on, the bar says what it will act on —
+           above the tools rather than replacing them, so search and the tag
+           chips stay reachable to narrow what „Alle N" takes. -->
+      <SelectionBar
+        v-if="selecting"
+        class="selbar"
+        :count="selected.size"
+        :total="shownItems.length"
+        testid="m9"
+        @exit="endSelecting"
+        @all="toggleAll"
+      />
 
       <!-- FR-24.6: the tools stay while the list moves. -->
       <div
@@ -1355,122 +1346,107 @@ onBeforeUnmount(() => observer?.disconnect())
         </IonButton>
       </EmptyState>
 
-      <template v-else>
-        <section
+      <IonList v-else class="groups" :style="{ '--list-group-top': `${toolsHeight}px` }">
+        <!-- FR-24.8: the heading is the jump control. The axis was used to
+             *get somewhere*, not to filter — 3 of 184 items carry a second
+             tag — so the navigation is named as navigation and the list
+             stays whole. It stays under the tool bar while its rows scroll
+             (FR-24.6). -->
+        <ListGroup
           v-for="[key, groupItems] in searching ? resultGroups : groups"
           :key="key"
-          :ref="(el) => registerSection(key as string, el as Element | null)"
-          class="tag-group"
+          :ref="(el) => registerSection(key as string, el)"
+          :title="searching ? reasonLabel(key as MatchReason) : groupLabel(key)"
+          :count="groupItems.length"
+          sticky
+          :jumpable="canJump"
+          head-testid="m9-group-head"
+          jump-testid="m9-jump-open"
+          @jump="openJump"
         >
-          <!-- FR-24.8: the heading is the jump control. The axis was used to
-               *get somewhere*, not to filter — 3 of 184 items carry a second
-               tag — so the navigation is named as navigation and the list
-               stays whole. -->
-          <component
-            :is="canJump ? 'button' : 'h2'"
-            :type="canJump ? 'button' : undefined"
-            class="group-head jp-eyebrow"
-            :class="{ jumpable: canJump }"
-            :style="{ '--m9-tools-height': `${toolsHeight}px` }"
-            :data-testid="canJump ? 'm9-jump-open' : undefined"
-            @click="canJump && openJump()"
+          <template v-if="groupMark(key)" #mark>
+            <ItemMark :mark="groupMark(key)" surface="plain" :size="16" />
+          </template>
+          <IonItem
+            v-for="item in groupItems"
+            :key="item.id"
+            button
+            :detail="false"
+            :data-selected="selecting && selected.has(item.id) ? 'true' : undefined"
+            data-testid="m9-row"
+            @click="onRowClick(item)"
+            @pointerdown="(e: PointerEvent) => rows.press(item.id, e)"
+            @pointermove="rows.move"
+            @pointerup="rows.release"
+            @pointercancel="rows.release"
+            @contextmenu.prevent="rows.contextMenu(item.id)"
           >
-            <span data-testid="m9-group-head" class="group-name">
-              <ItemMark :mark="groupMark(key)" surface="plain" :size="16" />
-              {{ searching ? reasonLabel(key as MatchReason) : groupLabel(key) }}
-            </span>
-            <span class="group-count">{{ groupItems.length }}</span>
-            <IonIcon v-if="canJump" :icon="chevronDownOutline" class="group-jump" />
-          </component>
+            <!-- FR-24.9: a tap opens the item, a hold (or right-click) starts
+                 a selection with it; while selecting, the same tap picks the
+                 row. The whole row is the surface — M9 has no grip to share
+                 it with (ADR-075). No `routerLink`: its shadow anchor, left
+                 with an empty href while selecting, reloaded the app on a
+                 tap — which every bulk case, tapping rows in the mode, would
+                 see. -->
+            <SelectBox
+              v-if="selecting"
+              slot="start"
+              :on="selected.has(item.id)"
+              :data-testid="`m9-row-check-${item.name}`"
+            />
+            <!-- FR-28.4 + FR-24.13: photo → mark → the primary tag's mark →
+                 the tag initial. The inventory is
+                 where an item is identified, so this ladder never ends in
+                 nothing and the column stays aligned. -->
+            <ItemMark
+              slot="start"
+              :mark="item.icon ?? null"
+              :tag-mark="primaryTagMark(item)"
+              surface="inventory"
+              :photo-item="item"
+              :initial="avatarGlyph(item)"
+              :size="34"
+              class="row-mark"
+            />
 
-          <IonList class="jp-card group-card" lines="full">
-            <IonItem
-              v-for="item in groupItems"
-              :key="`${item.id}-${selecting}`"
-              button
-              :detail="false"
-              :router-link="selecting ? undefined : itemPath(item.id)"
-              :data-selected="selecting && selected.has(item.id) ? 'true' : undefined"
-              data-testid="m9-row"
-              @click="selecting && toggleSelected(item.id)"
-            >
-              <!-- FR-24.9: the row stops navigating while the mode is on, so
-                   the same tap that opened an item now picks it.
-
-                   **The key carries the mode**, and that is load-bearing:
-                   dropping `routerLink` leaves `ion-item`'s shadow anchor in
-                   place with an *empty* href, which a click resolves against
-                   the current URL — a full page load, the selection gone and
-                   the app re-booted. Re-keying builds the row again without
-                   an anchor at all. jsdom renders no shadow root, so only a
-                   browser can see this: E2E-M9-26 is the case that does. -->
-              <span
-                v-if="selecting"
-                slot="start"
-                class="rowbox"
-                :class="{ on: selected.has(item.id) }"
-                :data-testid="`m9-row-check-${item.name}`"
-              >
-                <IonIcon v-if="selected.has(item.id)" :icon="checkmarkOutline" />
-              </span>
-              <!-- FR-28.4 + FR-24.13: photo → mark → the primary tag's mark →
-                   the tag initial. The inventory is
-                   where an item is identified, so this ladder never ends in
-                   nothing and the column stays aligned. -->
-              <ItemMark
-                slot="start"
-                :mark="item.icon ?? null"
-                :tag-mark="primaryTagMark(item)"
-                surface="inventory"
-                :photo-item="item"
-                :initial="avatarGlyph(item)"
-                :size="34"
-                class="row-mark"
-              />
-
-              <IonLabel>
-                <h2>
-                  {{ item.name }}
-                  <span v-if="item.id === freshId" class="row-new" data-testid="m9-row-new">{{
-                    t('items.rowNew')
-                  }}</span>
-                </h2>
-                <!-- FR-24.7: a row that matched through something other than
-                     its name says what, or it reads as a bug. -->
-                <p v-if="searching && viaOf.get(item.id)" class="row-via" data-testid="m9-row-via">
-                  {{ t('items.matchVia', { via: viaOf.get(item.id)! }) }}
-                </p>
-                <!-- FR-1.9: whose job this usually is, where the device asked
-                     for it and there is an account to name (G-8). -->
-                <p v-if="assigneeOf(item)" class="row-assignee" data-testid="m9-row-assignee">
-                  <IonIcon :icon="personOutline" />
-                  {{ assigneeOf(item) }}
-                </p>
-                <!-- FR-24.4: only when the device asked for them. -->
-                <div v-if="props.isShown('tags')" class="row-tags">
-                  <span
-                    v-for="tag in masterStore.getItemTags(item.id)"
-                    :key="tag.id"
-                    class="row-tag"
-                  >
-                    {{ tag.name }}
-                  </span>
-                </div>
-              </IonLabel>
-
-              <div v-if="extrasFor(item).length > 0" slot="end" class="row-extras">
-                <span v-for="extra in extrasFor(item)" :key="extra">{{ extra }}</span>
+            <IonLabel>
+              <h2>
+                {{ item.name }}
+                <span v-if="item.id === freshId" class="row-new" data-testid="m9-row-new">{{
+                  t('items.rowNew')
+                }}</span>
+              </h2>
+              <!-- FR-24.7: a row that matched through something other than
+                   its name says what, or it reads as a bug. -->
+              <p v-if="searching && viaOf.get(item.id)" class="row-via" data-testid="m9-row-via">
+                {{ t('items.matchVia', { via: viaOf.get(item.id)! }) }}
+              </p>
+              <!-- FR-1.9: whose job this usually is, where the device asked
+                   for it and there is an account to name (G-8). -->
+              <p v-if="assigneeOf(item)" class="row-assignee" data-testid="m9-row-assignee">
+                <IonIcon :icon="personOutline" />
+                {{ assigneeOf(item) }}
+              </p>
+              <!-- FR-24.4: only when the device asked for them. -->
+              <div v-if="props.isShown('tags')" class="row-tags">
+                <span v-for="tag in masterStore.getItemTags(item.id)" :key="tag.id" class="row-tag">
+                  {{ tag.name }}
+                </span>
               </div>
-              <IonIcon
-                v-if="!selecting"
-                slot="end"
-                :icon="chevronForwardOutline"
-                class="row-chevron"
-              />
-            </IonItem>
-          </IonList>
-        </section>
-      </template>
+            </IonLabel>
+
+            <div v-if="extrasFor(item).length > 0" slot="end" class="row-extras">
+              <span v-for="extra in extrasFor(item)" :key="extra">{{ extra }}</span>
+            </div>
+            <IonIcon
+              v-if="!selecting"
+              slot="end"
+              :icon="chevronForwardOutline"
+              class="row-chevron"
+            />
+          </IonItem>
+        </ListGroup>
+      </IonList>
 
       <!--
         The foot of the list: what the screen is *not* showing, in two
@@ -1513,12 +1489,7 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
 
       <!-- FR-24.9: what the selection can be acted on with. -->
-      <div
-        v-if="selecting && selected.size > 0"
-        class="bulkbar"
-        slot="fixed"
-        data-testid="m9-bulkbar"
-      >
+      <BulkBar v-if="selecting && selected.size > 0" data-testid="m9-bulkbar">
         <button type="button" data-testid="m9-bulk-give" @click="bulkSheet = 'give'">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('items.bulkGive') }}
@@ -1535,7 +1506,7 @@ onBeforeUnmount(() => observer?.disconnect())
           <IonIcon :icon="trashOutline" />
           {{ t('items.bulkRetire') }}
         </button>
-      </div>
+      </BulkBar>
 
       <BulkTagSheet
         :is-open="bulkSheet !== null"
@@ -1667,74 +1638,12 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
-/* FR-24.9: the selection's own bar, above the tools rather than replacing
-   them — narrowing the list is what „Alle N" is worth having, so the search
-   and the tag chips have to stay reachable while the mode is on. */
+/* FR-24.9: the selection's own bar stays at the top while the list scrolls,
+   above the tools (which it covers only while it is there). */
 .selbar {
   position: sticky;
   top: 0;
   z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: color-mix(in srgb, var(--jp-action) 16%, var(--jp-surface-page));
-  border-bottom: 1px solid var(--ct-surface0);
-}
-
-.selcount {
-  font-weight: var(--jp-weight-semibold);
-}
-
-.rowbox {
-  width: 20px;
-  height: 20px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  margin-inline-end: 12px;
-  border: 1.5px solid var(--ct-surface2);
-  border-radius: var(--jp-r-xs);
-  color: transparent;
-}
-
-.rowbox.on {
-  background: var(--jp-action);
-  border-color: var(--jp-action);
-  color: var(--ct-crust);
-}
-
-/* Above the tab bar, like the snackbars, and inset so the list's card edges
-   stay visible under it. */
-.bulkbar {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  background: var(--jp-surface-card);
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r);
-  box-shadow: var(--jp-shadow);
-}
-
-.bulkbar button {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-  cursor: pointer;
-}
-
-.bulkbar button ion-icon {
-  font-size: var(--jp-icon-md);
 }
 
 /* A note, not a row: it reports on what the list does *not* contain, so it
@@ -1758,10 +1667,6 @@ onBeforeUnmount(() => observer?.disconnect())
   border: 0;
   padding: 10px 14px;
   color: var(--ct-overlay2);
-}
-
-.bulkbar button.danger {
-  color: var(--ion-color-danger);
 }
 
 .row-new {
@@ -1835,60 +1740,6 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .chip ion-icon {
   font-size: var(--jp-icon-xs);
-}
-
-.tag-group {
-  margin: 0 0 18px;
-}
-
-.group-card {
-  /* Inset like M7's section card, so the radius reads as a card edge
-     instead of bleeding into the page (G-14). */
-  margin: 0 8px 8px;
-}
-
-/* The tag's mark beside its name (FR-24.13); the heading's own baseline
-   alignment would drop an emoji below the letters. */
-.group-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.group-head {
-  /* Sticky *under* the tool bar, whose height is measured rather than
-     guessed — see the note on `toolsHeight` (FR-24.6). */
-  position: sticky;
-  top: var(--m9-tools-height, 0px);
-  z-index: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  padding: 6px 20px;
-  background: var(--jp-surface-page);
-  color: var(--ion-color-medium);
-}
-
-.group-count {
-  color: var(--ion-color-medium);
-}
-
-/* The heading is a control when it can jump (FR-24.8), and has to look like
-   one without becoming a second kind of chip: the caret is the affordance,
-   the row keeps the eyebrow's own weight and inset. */
-.group-head.jumpable {
-  width: 100%;
-  border: none;
-  background: var(--jp-surface-page);
-  text-align: start;
-  cursor: pointer;
-}
-
-.group-jump {
-  color: var(--jp-action);
-  font-size: var(--jp-icon-xs);
-  margin-inline-start: 2px;
 }
 
 /* The tile itself now lives in ItemMark with the ladder that decides when

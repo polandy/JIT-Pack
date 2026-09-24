@@ -1,7 +1,8 @@
 # ADR-075: A hold selects on every list, and only the grip drags — vs. keeping M25's hold-to-drag, vs. sharing only the look
 
 **Status:** Accepted
-**Related:** FR-7.8, FR-30.9, ADR-060, ADR-066, UI-Spec M6 and M25, `client/src/composables/useRowSelection.ts`,
+**Related:** FR-7.8, FR-30.9, FR-24.9, ADR-060, ADR-066, UI-Spec M6, M25 and M9,
+`client/src/composables/useRowSelection.ts`,
 `client/src/components/global/{DragGrip,SelectBox,SelectionBar,BulkBar,ListGroup}.vue`
 
 **Context.** M6 (the shopping list, FR-30.9) and M25 (a trip's tasks, FR-7.8) are the same shape: tag headings, rows
@@ -101,3 +102,24 @@ component each, rendered by both screens.
 
 A third list takes the selection and needs an act the bar cannot hold as one more button — then the bar becomes a
 menu, and the question of what a hold means is asked again for all of them at once.
+
+## Amendment 2026-09-24 — M9 joins, without the grip
+
+The owner asked for the inventory (M9, FR-24.9) to take the same patterns. It was the third list of the shape and the
+one where a hold did nothing: its selection was armed from the app bar only, and FR-24.9 had rejected the long press
+because the row was a router link. M9 now renders `useRowSelection`, `SelectBox`, `SelectionBar`, `BulkBar` and
+`ListGroup`: a hold or a right-click on a row selects it, a tap opens the item outside the mode and picks inside it,
+and the row navigates in code so the release after a hold never opens M10.
+
+Two parts of the decision do not carry over, each weighed with the owner:
+
+- **No grip, so no drag.** M9's groups are the *primary* tag. A drop would have to decide, invisibly, whether the tag
+  the row leaves stays as a secondary one or goes; the alphabetical order and a search have no groups to drop on at
+  all; and on a list of 184 rows a drag across screens is slower than *Tag geben* with its refiling switch, which
+  already moves any number of rows. The hold and the tap therefore own the whole row, not only its words.
+- **A tap opens a page, not a sheet.** M10 carries too much for a sheet; what is shared is that a tap *opens*.
+
+`ListGroup` gained three opt-in extras only M9 uses — the count, a heading that sticks under a measured offset, and the
+heading as the jump control (FR-24.8) — and `useRowSelection.toggleAll` now judges „every" by the keys on screen rather
+than by a count, which M9's filter needs and M6/M25 do not notice. The revisit trigger above has not fired: M9's bar
+already holds its fourth act behind ⋯ *Mehr*.

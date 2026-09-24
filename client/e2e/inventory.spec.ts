@@ -234,21 +234,19 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.getByTestId('m9-jump-sheet')).toHaveAttribute('data-presented', 'true')
     await page.getByTestId('m9-jump-Zuletzt').click()
 
-    // The list moved — the positive signal that the jump did anything at all.
-    await expect.poll(offset).toBeGreaterThan(0)
-
-    // ...and it moved *to the group asked for*, which „scrolled a bit" would
+    // The list moved *to the group asked for*, which „scrolled a bit" would
     // equally satisfy: while the sheet is up Ionic locks the scroll host, and
     // a jump issued into that lock moved the list 120 px of the 9 000 it
-    // owed. The heading sits directly under the tool bar, within a row's
-    // height of it.
+    // owed. The heading settles directly under the tool bar, within a row's
+    // height of it. Polled on that position rather than on „the offset moved":
+    // the sheet hands focus back to the heading as it closes, which nudges the
+    // list a few pixels before the jump itself lands.
     const tools = (await list.getByTestId('m9-tools').boundingBox())!
-    const target = (await list
-      .getByTestId('m9-group-head')
-      .filter({ hasText: 'Zuletzt' })
-      .boundingBox())!
-    expect(target.y).toBeGreaterThanOrEqual(tools.y + tools.height - 2)
-    expect(target.y).toBeLessThan(tools.y + tools.height + 60)
+    const targetY = async () =>
+      (await list.getByTestId('m9-group-head').filter({ hasText: 'Zuletzt' }).boundingBox())!.y
+    await expect.poll(targetY).toBeLessThan(tools.y + tools.height + 60)
+    expect(await targetY()).toBeGreaterThanOrEqual(tools.y + tools.height - 2)
+    expect(await offset()).toBeGreaterThan(0)
     // ...and it is still the whole inventory: a jump is not a filter.
     await expect(list.getByTestId('m9-row')).toHaveCount(12)
     await expect(list.getByTestId('m9-tools')).toBeVisible()
@@ -402,6 +400,54 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // one undo is one batch, and the section is rendered either way.
     await expect(visiblePage(page).getByTestId('m10-companion-Stativ')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m10-companion-Regenhuelle')).toHaveCount(0)
+    await backToInventory(page)
+  })
+
+  /**
+   * E2E-M9-31 (FR-24.9, ADR-075): the inventory selects the way M6 and M25
+   * do. A hold on a row — here its desktop twin, a *real* right-click, whose
+   * own pointerdown is what once re-fired the hold and ate the next tap —
+   * starts the selection with that row and opens nothing; a tap then picks
+   * and unpicks; leaving the mode gives the tap back to opening the item.
+   *
+   * Every assertion that the editor stayed shut is paired with the positive
+   * signal that the tap did land (the count moved), so none is an absence.
+   */
+  test('E2E-M9-31: a hold selects a row, a tap picks, and outside the mode a tap opens', async ({
+    page,
+  }) => {
+    test.slow()
+    await createItem(page, 'Kamera', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Stativ', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Zelt', { tags: ['Camping'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    const row = (name: string) => list.getByTestId('m9-row').filter({ hasText: name })
+
+    // The heading wears its count and is still the jump control (FR-24.8).
+    await expect(list.getByTestId('m9-jump-open').filter({ hasText: 'Foto' })).toContainText('2')
+
+    await row('Kamera').click({ button: 'right' })
+    await expect(list.getByTestId('m9-selbar')).toBeVisible()
+    await expect(list.getByTestId('m9-select-count')).toHaveText('One selected')
+    await expect(list.getByTestId('m9-row-check-Kamera')).toHaveClass(/\bon\b/)
+    await expect(page.getByTestId('header-title')).not.toHaveText('Kamera')
+
+    // The very next tap is a tap, not the hold's ghost click.
+    await row('Zelt').click()
+    await expect(list.getByTestId('m9-select-count')).toHaveText('2 selected')
+    await row('Kamera').click()
+    await expect(list.getByTestId('m9-select-count')).toHaveText('One selected')
+    await expect(list.getByTestId('m9-row-check-Kamera')).not.toHaveClass(/\bon\b/)
+    await expect(list.getByTestId('m9-bulkbar')).toBeVisible()
+
+    await list.getByTestId('m9-select-exit').click()
+    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await row('Stativ').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Stativ')
     await backToInventory(page)
   })
 

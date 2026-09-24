@@ -431,6 +431,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
 - [A cropped screenshot found a corner that was not there (2026-09-24)](#a-cropped-screenshot-found-a-corner-that-was-not-there-2026-09-24) — M25's and M7's segments overflowed their column; a Safari-seam fix was shipped and reverted first.
 - [A bar that never came back: Ionic had moved the modal it was inserted before (2026-09-24)](#a-bar-that-never-came-back-ionic-had-moved-the-modal-it-was-inserted-before-2026-09-24) — ADR-075: a `v-if` inserted before a moved `ion-modal` threw; `SheetModal` became a fragment.
+- [M9 takes the shared list: a heading that takes focus nudges the scroll (2026-09-24)](#m9-takes-the-shared-list-a-heading-that-takes-focus-nudges-the-scroll-2026-09-24) — ADR-075 amended: why M9 has no grip, and a jump case that became a race.
 
 ## Deviations
 
@@ -17416,3 +17417,23 @@ the wrapper on unmount and would have orphaned the moved modal in the app root.
 **The trap:** a production-only render failure with no visible error. Vue swallows the exception into
 `console.error` in a production build, so the page simply stops updating part of itself; capture the console in the
 failing case before reasoning about state.
+
+## M9 takes the shared list: a heading that takes focus nudges the scroll (2026-09-24)
+
+The owner asked for the inventory to take M6's and M25's patterns. The differences were listed first and decided one
+by one: the hold, the tap and the shared bars and headings came over; **the grip did not**. M9's groups are the
+*primary* tag, so a drop would have to decide silently whether the tag the row leaves stays as a secondary one, the
+alphabetical order and a search have no groups to drop on, and on a 184-row list *Tag geben* with its refiling switch
+already moves any number of rows. The tap keeps opening M10 as a page, not a sheet. ADR-075 carries the amendment.
+
+**The trap:** E2E-M9-15 went red with the jump itself working. The heading is now `ListGroup`'s divider with
+`tabindex="0"` (it is the jump control), and the jump sheet hands focus back to it as it closes; the browser scrolls
+the focused heading into view, which moved the list 10 px *before* the jump landed. The case's first signal was
+„the offset is above zero", so it passed on the nudge and read the heading's position one frame too early. It now
+polls the heading's settled position under the tool bar. Anything that receives focus back from an overlay can move
+the scroll host, so „it moved" is no evidence that the intended scroll happened.
+
+Two smaller ones on the way: a suite reading an `ion-label`'s `textContent` under jsdom gets `''`, because Stencil
+patches it on its own elements (the handle sits on a plain span inside the label); and `scripts/testid-gate.mjs`
+recognises a template id only when the backtick follows the attribute directly, so an id built inside a ternary is
+invisible to it — `ListGroup` therefore takes its heading ids whole (`head-testid`, `jump-testid`).

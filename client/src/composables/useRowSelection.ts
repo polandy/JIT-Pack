@@ -1,6 +1,7 @@
 /**
- * Selecting several rows of a list in place — the gesture M6 (FR-30.9) and
- * M25 (FR-7.8) share, so a long press means the same thing on both.
+ * Selecting several rows of a list in place — the gesture M6 (FR-30.9), M25
+ * (FR-7.8) and M9 (FR-24.9) share, so a long press means the same thing on
+ * all three.
  *
  * It was M6's own code until the owner asked for the two lists to behave
  * alike (2026-09-24); moved rather than copied, `useTaskActs`'s reason: two
@@ -61,9 +62,13 @@ export function useRowSelection() {
     selected.value = next
   }
 
-  /** „Alle N": every eligible key — the same act, repeated, clears them again. */
+  /**
+   * „Alle N": every eligible key — the same act, repeated, clears them again.
+   * „Every" is judged by the keys on screen, not by a count: M9's filter can
+   * hide a chosen row, and a count would then clear where it should take.
+   */
   function toggleAll(keys: readonly string[]) {
-    const all = keys.length > 0 && selected.value.size === keys.length
+    const all = keys.length > 0 && keys.every((key) => selected.value.has(key))
     selected.value = all ? new Set() : new Set(keys)
   }
 

@@ -1783,6 +1783,7 @@ These patterns apply to every screen and are specified once.
   **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the keys
   and the hold, `SelectBox`, `SelectionBar` and `BulkBar` draw the box, the bar and the floating bar, and
   `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart. (E2E-M6-32)
+  M9 renders the same pieces since 2026-09-24, without the grip (see M9).
 * **One entry, dragged into another heading (FR-30.9, built 2026-09-22):** while nothing is selected, an own row carries
   a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried across the
   list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims in
@@ -2063,6 +2064,16 @@ These patterns apply to every screen and are specified once.
   back. All three raise the same snackbar with one **Rückgängig**, and a link's result sentence names what it skipped.
   A batch that writes **nothing** — every item already named that person, or every edge already there or circular — is
   a plain toast instead, with no *Rückgängig* to offer, and the selection stays armed so the choice can be made again.
+  **Since 2026-09-24 M9 selects the way M6 and M25 do** (ADR-075, amended): a **hold** on a row (500 ms, or a
+  right-click) starts the mode with that row picked, besides the app bar's glyph; a tap opens the item outside the mode
+  and picks the row inside it — the whole row is the surface, since M9 has no grip to share it with. The row navigates
+  in code rather than through a router link, so the release that ends a hold never opens M10. The bars, the box and the
+  headings are the shared components (`SelectionBar`, `BulkBar` with *Stilllegen* as its `danger` button, `SelectBox`,
+  `ListGroup`); the selection bar stays pinned above the tools, as it did. **M9 does not drag**, by decision: its groups
+  are the *primary* tag, so a drop would have to decide silently what happens to the tag the row leaves, and neither the
+  alphabetical order nor a search has a group to drop on — *Tag geben* with its refiling switch stays the way to move
+  rows. *„Alle N"* compares the rows on screen with the chosen ones rather than counting, so a chosen row the filter now
+  hides does not make it clear instead of take. (E2E-M9-31)
 * **The hidden items are named (2026-09-15, FR-24.3):** below the last row, M9 says how many items are **retired**
   and the sentence is the way to M23. A retired item stays out of the list by design (ADR-032), but until now nothing
   on the screen admitted the hidden ones existed, so the head's „N Artikel" read as the whole collection and M23 was
@@ -2108,6 +2119,11 @@ These patterns apply to every screen and are specified once.
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
   dismissed, because an overlay locks the scroll host while it is up.
+  **The heading is drawn by `ListGroup` since 2026-09-24** (ADR-075, amended), M6's and M25's heading, so the three
+  lists look alike: the row divider with the tag's mark before the name. M9 switches on the three extras only it needs —
+  the group's **count** at the trailing edge, the heading **sticking under the tool bar** (`--list-group-top`, the
+  measured bar height) and the **jump** (a chevron in the accent colour; the whole heading is the control). The groups
+  no longer sit in one card each: the list is one run of rows under its headings, as on M6 and M25.
 * **Searching (2026-09-13, FR-24.7):** the field matches **name, tags, mark keywords and — since 2026-09-20, where
   FR-1.9 applies — the default assignee's name**, folding both spellings of an umlaut; while a query is running the
   list leaves its tag groups: the results are grouped by **why** they matched, the assignee last, and a row that

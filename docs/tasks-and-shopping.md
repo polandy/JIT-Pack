@@ -31,6 +31,16 @@ without doing anything.
 
 On the task list, done tasks are folded away and are not part of a selection.
 
+## The inventory selects the same way
+
+**Artikel** (the inventory) starts a selection with the same hold, right-click or checkbox icon. There the whole row
+is what you hold and tap: outside a selection a tap opens the item, inside one it adds or removes the row. The bar at
+the bottom offers **Tag geben**, **Tag nehmen**, **⋯ Mehr** and **Stilllegen**, and **Alle** takes every row the
+search and the tag filter leave on screen.
+
+The inventory has no grip: its groups are each item's *main* tag, so moving rows between them is **Tag geben** with
+**Als primären Tag setzen** switched on.
+
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging and selecting all happen on your device.
