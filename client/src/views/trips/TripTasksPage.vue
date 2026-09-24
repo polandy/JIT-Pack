@@ -36,24 +36,38 @@ import {
   IonContent,
   IonIcon,
   IonLabel,
+  IonList,
   IonPage,
   IonSegment,
   IonSegmentButton,
 } from '@ionic/vue'
-import { personOutline } from 'ionicons/icons'
+import {
+  arrowBackOutline,
+  arrowForwardOutline,
+  checkboxOutline,
+  personOutline,
+  pricetagsOutline,
+} from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
+import BulkBar from '@/components/global/BulkBar.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
+import ListGroup from '@/components/global/ListGroup.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import TripNoteList from '@/components/trips/TripNoteList.vue'
 import TripNoteSheet from '@/components/trips/TripNoteSheet.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
+import { useRowSelection } from '@/composables/useRowSelection'
 import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
@@ -231,9 +245,59 @@ function groupAt(place: DropPlace): TaskGroup | null {
   return groups.find((group) => group.key === key) ?? null
 }
 
-/** A row was pressed: the gesture decides whether that becomes a lift. */
-function onLift(ev: PointerEvent, task: TripTask, row: HTMLElement, immediate: boolean) {
-  drag.down(ev, task, row, immediate)
+/** A grip was pressed: it lifts at once — the hold on a row selects instead (M6's gesture). */
+function onLift(ev: PointerEvent, task: TripTask, row: HTMLElement) {
+  if (selection.selecting.value) return
+  drag.down(ev, task, row, true)
+}
+
+/**
+ * Several tasks at once (2026-09-24) — M6's selection, so a hold means the
+ * same on both lists: a hold on a task's words, a right-click, or the app
+ * bar's icon. It reaches every open task shown, in both phases and across
+ * both kinds; a resolved one is folded away and not in it.
+ */
+const selection = useRowSelection()
+const selectable = computed(() => shown.value.filter((task) => task.task_state === 'open'))
+const selectedTasks = computed(() =>
+  selectable.value.filter((task) => selection.selected.value.has(task.id)),
+)
+
+// A selection belongs to the task list it was made in; the notes are another place.
+watch(segment, () => selection.end())
+
+setHeaderActions(() => {
+  const select: HeaderAction = {
+    id: 'm25-select',
+    icon: checkboxOutline,
+    label: t('tasks.select'),
+    active: selection.selecting.value,
+    onClick: () => (selection.selecting.value ? selection.end() : selection.start()),
+  }
+  const offer = segment.value === TASKS_SEGMENT && selectable.value.length > 0
+  return offer || selection.selecting.value ? [select] : []
+})
+
+const bulkTagOpen = ref(false)
+
+/** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
+function afterBatch(written: number) {
+  selection.end()
+  if (written === 0) void announceAct(t('tasks.bulkNothingToDo'))
+}
+
+function bulkTag(taskTagId: string | null) {
+  bulkTagOpen.value = false
+  afterBatch(acts.retagMany(selectedTasks.value, taskTagId))
+}
+
+function bulkNewTag(name: string) {
+  const id = orchestrator.createTaskTag(name, masterStore.taskTagList.length)
+  bulkTag(id)
+}
+
+function bulkMove(phase: TaskPhase) {
+  afterBatch(acts.moveMany(selectedTasks.value, phase))
 }
 
 /** The picker's list, plus the „no tag" entry named after where the task is from. */
@@ -320,6 +384,7 @@ function onSheetRemove() {
     <IonContent
       ref="contentEl"
       class="tasks-content"
+      :class="{ 'with-bulkbar': selection.selecting.value && selectedTasks.length > 0 }"
       data-testid="m25-page"
       @pointermove="drag.move"
       @pointerup="drag.up"
@@ -339,8 +404,19 @@ function onSheetRemove() {
         </IonSegmentButton>
       </IonSegment>
 
+      <!-- While selecting, the bar replaces the filter chip and the composers —
+           M6's rule: typing a new task mid-batch is a different act. -->
+      <SelectionBar
+        v-if="selection.selecting.value"
+        :count="selectedTasks.length"
+        :total="selectable.length"
+        testid="m25"
+        @exit="selection.end()"
+        @all="selection.toggleAll(selectable.map((task) => task.id))"
+      />
+
       <IonChip
-        v-if="segment === TASKS_SEGMENT && assignable"
+        v-else-if="segment === TASKS_SEGMENT && assignable"
         :outline="!mineOnly"
         class="mine"
         data-testid="m25-mine"
@@ -357,36 +433,34 @@ function onSheetRemove() {
           <InlineHint v-if="groupsBefore.length === 0" class="hint-wide">{{
             t('tasks.emptyBefore')
           }}</InlineHint>
-          <div
-            v-for="group in groupsBefore"
-            :key="group.key"
-            class="group"
-            :data-drop-target="dropKey(TASK_PHASE_BEFORE, group)"
-            :data-testid="`m25-group-${group.key}`"
-          >
-            <h3 class="group-head jp-section-count">
-              <ItemMark
-                v-if="group.tag?.icon"
-                :mark="group.tag.icon"
-                surface="plain"
-                :size="MARK_SIZE"
+          <IonList v-if="groupsBefore.length > 0" class="groups">
+            <ListGroup
+              v-for="group in groupsBefore"
+              :key="group.key"
+              :title="groupName(group)"
+              :drop-target="dropKey(TASK_PHASE_BEFORE, group)"
+              :data-testid="`m25-group-${group.key}`"
+            >
+              <template v-if="group.tag?.icon" #mark>
+                <ItemMark :mark="group.tag.icon" surface="plain" :size="MARK_SIZE" />
+              </template>
+              <TripTodoList
+                :trip-id="tripId"
+                :tasks="group.tasks"
+                :assignable="assignable"
+                :name-of="nameOf"
+                :lift="onLift"
+                :selection="selection"
+                variant="list"
+                @toggle="acts.toggle"
+                @remove="acts.remove"
+                @assign="acts.assign"
+                @open="openTask"
               />
-              <span class="grow">{{ groupName(group) }}</span>
-              <span class="drop-hint">{{ t('tasks.dropHere') }}</span>
-            </h3>
-            <TripTodoList
-              :trip-id="tripId"
-              :tasks="group.tasks"
-              :assignable="assignable"
-              :name-of="nameOf"
-              :lift="onLift"
-              @toggle="acts.toggle"
-              @remove="acts.remove"
-              @assign="acts.assign"
-              @open="openTask"
-            />
-          </div>
+            </ListGroup>
+          </IonList>
           <TripTodoList
+            v-if="!selection.selecting.value"
             :trip-id="tripId"
             :tasks="[]"
             :composer-phase="TASK_PHASE_BEFORE"
@@ -400,36 +474,34 @@ function onSheetRemove() {
           <InlineHint v-if="groupsDuring.length === 0" class="hint-wide">{{
             t('tasks.emptyDuring')
           }}</InlineHint>
-          <div
-            v-for="group in groupsDuring"
-            :key="group.key"
-            class="group"
-            :data-drop-target="dropKey(TASK_PHASE_DURING, group)"
-            :data-testid="`m25-group-${group.key}`"
-          >
-            <h3 class="group-head jp-section-count">
-              <ItemMark
-                v-if="group.tag?.icon"
-                :mark="group.tag.icon"
-                surface="plain"
-                :size="MARK_SIZE"
+          <IonList v-if="groupsDuring.length > 0" class="groups">
+            <ListGroup
+              v-for="group in groupsDuring"
+              :key="group.key"
+              :title="groupName(group)"
+              :drop-target="dropKey(TASK_PHASE_DURING, group)"
+              :data-testid="`m25-group-${group.key}`"
+            >
+              <template v-if="group.tag?.icon" #mark>
+                <ItemMark :mark="group.tag.icon" surface="plain" :size="MARK_SIZE" />
+              </template>
+              <TripTodoList
+                :trip-id="tripId"
+                :tasks="group.tasks"
+                :assignable="assignable"
+                :name-of="nameOf"
+                :lift="onLift"
+                :selection="selection"
+                variant="list"
+                @toggle="acts.toggle"
+                @remove="acts.remove"
+                @assign="acts.assign"
+                @open="openTask"
               />
-              <span class="grow">{{ groupName(group) }}</span>
-              <span class="drop-hint">{{ t('tasks.dropHere') }}</span>
-            </h3>
-            <TripTodoList
-              :trip-id="tripId"
-              :tasks="group.tasks"
-              :assignable="assignable"
-              :name-of="nameOf"
-              :lift="onLift"
-              @toggle="acts.toggle"
-              @remove="acts.remove"
-              @assign="acts.assign"
-              @open="openTask"
-            />
-          </div>
+            </ListGroup>
+          </IonList>
           <TripTodoList
+            v-if="!selection.selecting.value"
             :trip-id="tripId"
             :tasks="[]"
             :composer-phase="TASK_PHASE_DURING"
@@ -449,6 +521,45 @@ function onSheetRemove() {
           @open="openNote"
         />
       </section>
+
+      <!-- What the selection can be acted on with: a tag, or a phase. -->
+      <BulkBar
+        v-if="selection.selecting.value && selectedTasks.length > 0"
+        data-testid="m25-bulkbar"
+      >
+        <button type="button" data-testid="m25-bulk-tag" @click="bulkTagOpen = true">
+          <IonIcon :icon="pricetagsOutline" />
+          {{ t('tasks.bulkTag') }}
+        </button>
+        <button type="button" data-testid="m25-bulk-before" @click="bulkMove(TASK_PHASE_BEFORE)">
+          <IonIcon :icon="arrowBackOutline" />
+          {{ t('tasks.bulkToBefore') }}
+        </button>
+        <button type="button" data-testid="m25-bulk-during" @click="bulkMove(TASK_PHASE_DURING)">
+          <IonIcon :icon="arrowForwardOutline" />
+          {{ t('tasks.bulkToDuring') }}
+        </button>
+      </BulkBar>
+
+      <!-- The task sheet's own tag choice, titled for the batch. Guarded by
+           its own flag like M6's bulk sheet, so a stubbed modal in a spec
+           cannot leave a second chooser mounted. -->
+      <SheetModal :is-open="bulkTagOpen" testid="m25-bulk-sheet" @dismiss="bulkTagOpen = false">
+        <section v-if="bulkTagOpen" class="bulk-sheet">
+          <SheetHead
+            :title="t('tasks.bulkTagTitle', { n: selectedTasks.length })"
+            title-testid="m25-bulk-title"
+            close-testid="m25-bulk-close"
+            @close="bulkTagOpen = false"
+          />
+          <TaskTagChooser
+            :task-tags="taskTags"
+            :no-tag-label="t('tasks.noTag')"
+            @tag="bulkTag"
+            @new-tag="bulkNewTag"
+          />
+        </section>
+      </SheetModal>
 
       <SheetModal :is-open="opened !== null" testid="m25-task-modal" @dismiss="openedId = null">
         <TripTaskSheet
@@ -515,41 +626,18 @@ ion-segment {
   margin: 4px 18px 8px;
 }
 
-/* A group is a drop target, so it says where it ends — a border that is only
-   there while something is over it would make the list move on hover. */
-.group {
-  margin: 2px 12px;
-  padding: 2px 0;
-  border: 1px solid transparent;
-  border-radius: var(--jp-r-md);
+/* The groups sit in one list per phase, full width like M6's (2026-09-24). */
+.groups {
+  padding: 0;
+  background: transparent;
 }
 
-.group[data-drop-over] {
-  border-color: var(--jp-action);
-  background: var(--jp-surface-sunken);
+.bulk-sheet {
+  padding: 4px 18px 22px;
 }
 
-.group[data-drop-over] .drop-hint {
-  display: inline;
-}
-
-.group-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 0;
-  padding: 0 6px;
-}
-
-.group-head .grow {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.drop-hint {
-  display: none;
-  flex: none;
-  color: var(--jp-action);
+/* Clear of the bulk bar, like M6's list is of its FAB. */
+.tasks-content.with-bulkbar {
+  --padding-bottom: 96px;
 }
 </style>

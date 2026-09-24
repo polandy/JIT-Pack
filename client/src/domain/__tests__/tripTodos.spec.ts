@@ -8,6 +8,8 @@ import {
   tagForGroup,
   taskGroups,
   taskPhaseOf,
+  tasksToMove,
+  tasksToRetag,
   tasksInPhase,
   tasksOfAssignee,
   tripTasks,
@@ -477,5 +479,36 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
         limit: 4,
       }),
     ).toEqual({ rows: [], open: 0, rest: 0 })
+  })
+})
+
+describe('a batch of tasks (FR-7.8): only what changes is written', () => {
+  const task = (id: string, over: { tag?: string | null; phase?: TaskPhase } = {}): TripTask => ({
+    id,
+    body: id,
+    task_state: 'open',
+    item: null,
+    assignee_user_id: null,
+    phase: over.phase ?? TASK_PHASE_BEFORE,
+    author_id: 'someone',
+    created_at: null,
+    resolved_at: null,
+    resolved_by_user_id: null,
+    task_tag_id: over.tag ?? null,
+  })
+
+  it.each([
+    { name: 'a tag nobody carries yet', to: 'haus', want: ['a', 'b', 'c'] },
+    { name: 'a tag one already carries', to: 'apo', want: ['b', 'c'] },
+    { name: 'no tag at all', to: null, want: ['a', 'c'] },
+  ])('retags to $name', ({ to, want }) => {
+    const tasks = [task('a', { tag: 'apo' }), task('b'), task('c', { tag: 'haus-old' })]
+    expect(tasksToRetag(tasks, to).map((t) => t.id)).toEqual(want)
+  })
+
+  it('moves only the tasks not already in the phase', () => {
+    const tasks = [task('a'), task('b', { phase: TASK_PHASE_DURING }), task('c')]
+    expect(tasksToMove(tasks, TASK_PHASE_DURING).map((t) => t.id)).toEqual(['a', 'c'])
+    expect(tasksToMove(tasks, TASK_PHASE_BEFORE).map((t) => t.id)).toEqual(['b'])
   })
 })

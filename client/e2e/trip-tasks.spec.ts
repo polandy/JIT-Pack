@@ -540,6 +540,77 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
+   * E2E-M25-12 (FR-7.8, 2026-09-24): several tasks in one act — M6's own
+   * selection, on M25, so a hold means the same on both lists.
+   *
+   *  - **A hold selects, it no longer lifts.** The right-click is the hold's
+   *    deterministic twin (`useRowSelection`); `data-drag` stays `idle`,
+   *    the positive signal that nothing was picked up.
+   *  - **A tap then chooses**, rather than opening the task's sheet.
+   *  - **The batch reaches across groups**, and one tag files it under one
+   *    heading. The second round takes „Alle" instead.
+   *  - **A phase is a batch act too**, and it survives a reload.
+   */
+  test('E2E-M25-12: several tasks are selected by a hold, then tagged and moved in one act @m25', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Salbe holen')
+    await addTripTodo(page, 'Pflanzen giessen')
+
+    const before = await openTasks(page, 'before')
+    const host = visible(page).getByTestId('m25-page')
+    // A real right-click, not a dispatched `contextmenu`: its own pointerdown
+    // arrives first, and once armed a hold that nothing disarmed re-selected
+    // the row half a second later and swallowed the next tap.
+    await before.getByTestId('trip-todo-open-Salbe holen').click({ button: 'right' })
+
+    await expect(visible(page).getByTestId('m25-selbar')).toBeVisible()
+    await expect(before.getByTestId('trip-todo-check-Salbe holen')).toHaveClass(/on/)
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    // The grip and the composer step aside while choosing.
+    await expect(before.getByTestId('trip-todo-grip-Salbe holen')).toHaveCount(0)
+    await expect(before.getByTestId('trip-todo-input')).toHaveCount(0)
+
+    // A tap on another task's words now chooses it instead of opening its sheet.
+    await before.getByTestId('trip-todo-open-Pflanzen giessen').click()
+    await expect(before.getByTestId('trip-todo-check-Pflanzen giessen')).toHaveClass(/on/)
+    await expect(visible(page).getByTestId('m25-select-count')).toContainText('2')
+    await expect(page.getByTestId('task-sheet')).toHaveCount(0)
+
+    await visible(page).getByTestId('m25-bulk-tag').click()
+    await expect(page.getByTestId('m25-bulk-title')).toContainText('2')
+    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
+    await page.getByTestId('task-sheet-tag-add').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The mode ends with the batch; both tasks now stand under one heading.
+    await expect(visible(page).getByTestId('m25-selbar')).toHaveCount(0)
+    const haus = before.locator('[data-testid^="m25-group-"]').filter({ hasText: 'Haus' })
+    await expect(haus).toContainText('Salbe holen')
+    await expect(haus).toContainText('Pflanzen giessen')
+
+    // Again, and this time into the other phase.
+    await before
+      .getByTestId('trip-todo-Salbe holen')
+      .locator('ion-label')
+      .dispatchEvent('contextmenu')
+    await visible(page).getByTestId('m25-select-all').click()
+    await visible(page).getByTestId('m25-bulk-during').click()
+
+    const during = visible(page).getByTestId('m25-during')
+    await expect(during).toContainText('Salbe holen')
+    await expect(during).toContainText('Pflanzen giessen')
+    await expect(before.getByTestId('trip-todo-Salbe holen')).toHaveCount(0)
+
+    await writesLanded(page)
+    await page.reload()
+    const afterReload = await openTasks(page, 'during')
+    await expect(afterReload).toContainText('Salbe holen')
+    await expect(afterReload).toContainText('Pflanzen giessen')
+  })
+
+  /**
    * E2E-M25-04 (FR-7.7): the salve. A preparation that will not happen before
    * departure is moved to *Während der Reise* from the task's own sheet — and
    * the move is what takes it **off the packing list**, which is the whole

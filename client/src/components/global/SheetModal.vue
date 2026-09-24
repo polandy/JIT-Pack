@@ -24,6 +24,19 @@
 import { ref } from 'vue'
 import { IonModal } from '@ionic/vue'
 
+/*
+ * Two roots on purpose — a hidden marker, then the modal. Ionic moves a
+ * presented inline modal out to the app root and does not put it back, so a
+ * sheet that has been open once no longer stands where Vue left it. A
+ * sibling that appears later with `v-if` is inserted *before* the next
+ * sibling's element, and if that element is the moved modal the insert
+ * throws (`insertBefore … not a child of this node`) and the whole patch is
+ * lost: found 2026-09-24 when M25's selection bar never came back after its
+ * batch sheet. With two roots the component is a fragment whose start marker
+ * stays in place, and on unmount Vue still removes the modal wherever it is.
+ */
+defineOptions({ inheritAttrs: false })
+
 import { PRESENTED_ATTRIBUTE } from '@/lib/presented'
 
 withDefaults(
@@ -61,7 +74,9 @@ function onDismiss() {
 </script>
 
 <template>
+  <span class="sheet-marker" hidden></span>
   <IonModal
+    v-bind="$attrs"
     :is-open="isOpen"
     class="sheet-modal"
     :style="{ '--height': height }"

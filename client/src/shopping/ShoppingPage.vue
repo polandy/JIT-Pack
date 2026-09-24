@@ -23,8 +23,6 @@ import {
   IonSegmentButton,
   IonLabel,
   IonList,
-  IonItemGroup,
-  IonItemDivider,
   IonItem,
   IonCheckbox,
   IonInput,
@@ -37,23 +35,26 @@ import {
   addOutline,
   bagHandleOutline,
   checkboxOutline,
-  checkmarkOutline,
   closeOutline,
   pricetagsOutline,
 } from 'ionicons/icons'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 
+import BulkBar from '@/components/global/BulkBar.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import ListGroup from '@/components/global/ListGroup.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useLongPress } from '@/composables/useLongPress'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useRowSelection } from '@/composables/useRowSelection'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
@@ -192,79 +193,22 @@ async function buyLine(line: ShoppingLine) {
  * header's icon (`select`, mirroring M9's `m9-select`); a packing-projected
  * line — `!line.edit` — never carries a tag and is never selectable.
  */
-const selecting = ref(false)
-const selected = ref<Set<string>>(new Set())
+const selection = useRowSelection()
+const { selecting, selected } = selection
 
 /** The lines a selection can act on: the open tab's own entries, spanning every tag group. */
 const ownOpenLines = computed(() => open.value.own)
 
-function endSelecting() {
-  selecting.value = false
-  selected.value = new Set()
-}
-
-function toggleSelected(key: string) {
-  const next = new Set(selected.value)
-  if (next.has(key)) next.delete(key)
-  else next.add(key)
-  selected.value = next
-}
+const endSelecting = selection.end
 
 /** „Alle N" takes every own line on the open tab — the same act undoes it (FR-30.9, M9's `toggleAll`). */
 function toggleAllSelected() {
-  const all = ownOpenLines.value.length > 0 && selected.value.size === ownOpenLines.value.length
-  selected.value = all ? new Set() : new Set(ownOpenLines.value.map((line) => line.key))
+  selection.toggleAll(ownOpenLines.value.map((line) => line.key))
 }
 
-/**
- * Consumed by the very next click after a hold fires, so the ghost click the
- * browser sends on release does not immediately toggle the row it just
- * selected off again. Self-clearing: if the pointer drifted off the row (or
- * Ionic's own re-render swapped the element under it) before that click
- * fires — or it never fires at all — the flag must not outlive it and
- * silently swallow an unrelated later tap.
- */
-let justSelected = false
-
-function startSelectingWith(line: ShoppingLine) {
-  selecting.value = true
-  selected.value = new Set([line.key])
-  justSelected = true
-  setTimeout(() => {
-    justSelected = false
-  }, 400)
-}
-
-const hold = useLongPress<ShoppingLine>(startSelectingWith)
-
-function onRowPress(line: ShoppingLine, event: PointerEvent) {
-  if (!line.edit || selecting.value) return
-  hold.down(line, event.clientX, event.clientY)
-}
-
-function onRowMove(event: PointerEvent) {
-  hold.move(event.clientX, event.clientY)
-}
-
-function onRowRelease() {
-  hold.cancel()
-}
-
-/** The desktop-equivalent entry point (M4/M9's `contextmenu`), and e2e's deterministic seam for it. */
-function onRowContextMenu(line: ShoppingLine) {
-  if (!line.edit || selecting.value) return
-  startSelectingWith(line)
-}
-
+/** Not selecting → a tap on an own entry's name opens its sheet; selecting → it toggles the row. */
 function onRowClick(line: ShoppingLine) {
-  if (justSelected) {
-    justSelected = false
-    return
-  }
-  if (selecting.value) {
-    if (line.edit) toggleSelected(line.key)
-    return
-  }
+  if (selection.click(line.key, !!line.edit)) return
   openEditSheet(line)
 }
 
@@ -274,7 +218,7 @@ setHeaderActions(() => {
     icon: checkboxOutline,
     label: t('shopping.select'),
     active: selecting.value,
-    onClick: () => (selecting.value ? endSelecting() : (selecting.value = true)),
+    onClick: () => (selecting.value ? endSelecting() : selection.start()),
   }
   return ownOpenLines.value.length > 0 || selecting.value ? [select] : []
 })
@@ -570,50 +514,30 @@ setHeaderTitle(
 
       <!-- FR-30.9: while a selection is on, it replaces the add row and the
            chips — typing a new entry mid-batch is a different act. -->
-      <div v-else class="selbar" data-testid="m6-selbar">
-        <button
-          type="button"
-          class="chip"
-          :aria-label="t('shopping.selectExit')"
-          data-testid="m6-select-exit"
-          @click="endSelecting"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
-        <span class="selcount" data-testid="m6-select-count">
-          {{
-            selected.size === 0
-              ? t('shopping.selectedNone')
-              : t('shopping.selectedCount', { n: selected.size })
-          }}
-        </span>
-        <button type="button" class="chip" data-testid="m6-select-all" @click="toggleAllSelected">
-          {{ t('shopping.selectAll', { n: ownOpenLines.length }) }}
-        </button>
-      </div>
+      <SelectionBar
+        v-else
+        :count="selected.size"
+        :total="ownOpenLines.length"
+        testid="m6"
+        @exit="endSelecting"
+        @all="toggleAllSelected"
+      />
 
       <IonList v-if="sections.length > 0">
-        <IonItemGroup
+        <ListGroup
           v-for="section in sections"
           :key="section.key"
-          :data-drop-target="section.key"
-          :data-droppable="dropTag(section) !== undefined"
+          :title="
+            section.packing
+              ? t('shopping.packingList')
+              : section.own
+                ? t('shopping.ownEntries')
+                : (section.name ?? '')
+          "
+          :drop-target="section.key"
+          :droppable="dropTag(section) !== undefined"
           :data-testid="`m6-group-${section.packing ? 'packing' : section.own ? 'own' : `tag-${section.name}`}`"
         >
-          <IonItemDivider>
-            <IonLabel>{{
-              section.packing
-                ? t('shopping.packingList')
-                : section.own
-                  ? t('shopping.ownEntries')
-                  : section.name
-            }}</IonLabel>
-            <!-- FR-30.9's single-row drag: shown only while this section is
-                 the one under the pointer — `[data-drop-over]`, set by
-                 `useDragToGroup` itself, is the only gate this needs (M25's
-                 own `.drop-hint`, `TripTasksPage.vue`). -->
-            <span slot="end" class="group-over-label">{{ t('shopping.dropHere') }}</span>
-          </IonItemDivider>
           <!-- FR-25.11j: a bought row leaves rather than vanishes — M4's
                FR-25.2 `pack-out` recipe, kept to this list's own class names
                since a scoped style cannot reach across components anyway. -->
@@ -626,17 +550,15 @@ setHeaderTitle(
               data-testid="m6-row"
             >
               <!-- FR-30.9: a selection checkbox at the leading edge, like M9's
-                 `rowbox` — a dashed, dimmed slot for a packing-projected line,
+                 `SelectBox` — a dashed, dimmed slot for a packing-projected line,
                  which never carries a tag and so is never selectable. -->
-              <span
+              <SelectBox
                 v-if="selecting"
                 slot="start"
-                class="rowbox"
-                :class="{ on: !!line.edit && selected.has(line.key), off: !line.edit }"
+                :on="selected.has(line.key)"
+                :off="!line.edit"
                 :data-testid="`m6-row-check-${line.name}`"
-              >
-                <IonIcon v-if="!!line.edit && selected.has(line.key)" :icon="checkmarkOutline" />
-              </span>
+              />
               <!-- FR-30.9's single-row drag: a grip lifts one own entry onto
                  another own section — `useDragToGroup`'s own rule, it lifts
                  at once. Not selecting, own entries only — the same
@@ -651,7 +573,7 @@ setHeaderTitle(
               />
               <!-- FR-30.9: a packing-projected line has nothing to drag either
                  (owner feedback 2026-09-23: an empty gap here read as broken,
-                 not as absent) — a dashed placeholder, `.rowbox.off`'s own
+                 not as absent) — a dashed placeholder, `SelectBox`'s `off`, the
                  language for the same refusal on the checkbox. -->
               <DragGrip v-else slot="start" off />
               <!-- FR-30.9: not selecting → a tap on an own entry's name files it
@@ -664,11 +586,11 @@ setHeaderTitle(
                 data-testid="m6-row-label"
                 @click="onRowClick(line)"
                 @keyup.enter="onRowClick(line)"
-                @pointerdown="(e: PointerEvent) => onRowPress(line, e)"
-                @pointermove="onRowMove"
-                @pointerup="onRowRelease"
-                @pointercancel="onRowRelease"
-                @contextmenu.prevent="onRowContextMenu(line)"
+                @pointerdown="(e: PointerEvent) => line.edit && selection.press(line.key, e)"
+                @pointermove="selection.move"
+                @pointerup="selection.release"
+                @pointercancel="selection.release"
+                @contextmenu.prevent="line.edit && selection.contextMenu(line.key)"
               >
                 <h3>{{ line.name }}</h3>
                 <p v-if="line.quantity > 1">{{ line.quantity }}×</p>
@@ -705,7 +627,7 @@ setHeaderTitle(
               </template>
             </IonItem>
           </TransitionGroup>
-        </IonItemGroup>
+        </ListGroup>
       </IonList>
 
       <EmptyState
@@ -746,17 +668,12 @@ setHeaderTitle(
       </p>
 
       <!-- FR-30.9: what the selection can be acted on with. -->
-      <div
-        v-if="selecting && selected.size > 0"
-        class="bulkbar"
-        slot="fixed"
-        data-testid="m6-bulkbar"
-      >
+      <BulkBar v-if="selecting && selected.size > 0" data-testid="m6-bulkbar">
         <button type="button" data-testid="m6-bulk-tag" @click="bulkSheetOpen = true">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('shopping.bulkTag') }}
         </button>
-      </div>
+      </BulkBar>
 
       <!-- FR-30.9: the same search-or-create mask as a single entry's sheet,
            titled for the batch and applying the pick to all of it at once.
@@ -1007,116 +924,10 @@ setHeaderTitle(
   user-select: none;
 }
 
-/* FR-30.9: the selection bar, above the list — M9's `.selbar` shape. */
-.selbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: color-mix(in srgb, var(--jp-action) 16%, var(--jp-surface-page));
-  border-bottom: 1px solid var(--ct-surface0);
-}
-
-.selcount {
-  font-weight: var(--jp-weight-semibold);
-}
-
-/* A selected row's checkbox, at the leading edge — M9's `.rowbox` shape. */
-.rowbox {
-  width: 20px;
-  height: 20px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  margin-inline-end: 12px;
-  border: 1.5px solid var(--ct-surface2);
-  border-radius: var(--jp-r-xs);
-  color: transparent;
-}
-
-.rowbox.on {
-  background: var(--jp-action);
-  border-color: var(--jp-action);
-  color: var(--ct-crust);
-}
-
-/* A packing-projected line never carries a tag, so it is never selectable. */
-.rowbox.off {
-  border-style: dashed;
-  opacity: 0.5;
-}
-
 .select-hint {
   padding: 4px 16px 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
-}
-
-/* A heading a drag can never land on (`dropTag` says so at render time, not
-   only `useDragToGroup`'s live hit-test) dims for as long as something is in
-   the air — the same feedback `DragGrip`'s `off` gives per row, given once per
-   heading instead of forcing a read of every row under it (owner feedback
-   2026-09-23: a heading that just sits there looked broken, not ineligible). */
-.shop-content[data-drag='dragging'] ion-item-group[data-droppable='false'] {
-  opacity: 0.5;
-}
-
-/* The tag heading a dragged row is over — `useDragToGroup` sets the
-   attribute itself; this only says what it looks like (mockup's own frame,
-   `borderColor`/`wrapBg` in the "Vorschlag-Liste" canvas, 2026-09-23). */
-ion-item-group[data-drop-over] {
-  --ion-item-background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-page));
-  border: 1px solid var(--jp-action);
-  border-radius: var(--jp-r);
-  /* Without this the rows' own square corners sit past the frame's rounded
-     ones, poking out from behind it. */
-  overflow: hidden;
-}
-
-/* `opacity`, not `display`: the divider's `end` slot lays this out itself
-   (Ionic's own shadow-part styling), and a `display` toggle here lost that
-   fight silently while `opacity` does not. */
-.group-over-label {
-  opacity: 0;
-  color: var(--jp-action);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-semibold);
-}
-
-ion-item-group[data-drop-over] .group-over-label {
-  opacity: 1;
-}
-
-/* Above the FAB's footprint, like M9's `.bulkbar`. */
-.bulkbar {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  background: var(--jp-surface-card);
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r);
-  box-shadow: var(--jp-shadow);
-}
-
-.bulkbar button {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-  cursor: pointer;
-}
-
-.bulkbar button ion-icon {
-  font-size: var(--jp-icon-md);
 }
 
 .tag-chip {

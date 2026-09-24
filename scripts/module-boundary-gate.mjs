@@ -67,6 +67,9 @@ const KERNEL_PATHS = [
   // `data-drop-target` string, never a tag or a task (FR-7.8's own gesture,
   // reused for FR-30.9's single-row retag — no packing shape either).
   'composables/useDragToGroup',
+  // Selecting rows in place (ADR-075): string keys and the hold, no row shape —
+  // M6 and M25 share it so a hold means one thing on both lists.
+  'composables/useRowSelection',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

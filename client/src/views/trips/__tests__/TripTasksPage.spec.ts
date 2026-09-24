@@ -24,12 +24,14 @@ import TripTodoList from '@/components/trips/TripTodoList.vue'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import type { RowUndo } from '@/composables/useRowUndo'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 
 /**
  * What the person picker answers. It is mocked rather than driven, because
@@ -535,6 +537,121 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
  * FR-7.9: the second segment. `mountPage`'s `fetchMe` answers `u-andy`, so a
  * note by `u-sia` is new and a note by `u-andy` is mine.
  */
+/**
+ * Several tasks at once (2026-09-24): M6's selection, on M25. A hold (its
+ * right-click twin is the deterministic seam) or the app bar's icon enters
+ * it; the bar can give the selection a tag or send it to a phase, only what
+ * changes is written, and one undo takes the whole batch back.
+ */
+describe('M25 — several tasks at once (FR-7.8)', () => {
+  /** The app bar's actions as the page last registered them. */
+  function headerActions(): HeaderAction[] {
+    const calls = vi.mocked(setHeaderActions).mock.calls
+    return (calls.at(-1)![0] as () => HeaderAction[])()
+  }
+
+  beforeEach(() => vi.mocked(setHeaderActions).mockClear())
+
+  it('offers the app bar icon while there is an open task to select', async () => {
+    seedTrip()
+    mountPage()
+    await flushPromises()
+    expect(headerActions().map((a) => a.id)).not.toContain('m25-select')
+
+    seedTask('Salbe holen', {})
+    mountPage()
+    await flushPromises()
+    expect(headerActions().map((a) => a.id)).toContain('m25-select')
+  })
+
+  it('a hold on a task selects it; while selecting a tap toggles instead of opening the sheet', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    seedTask('Pflanzen giessen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+
+    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(true)
+    expect(page.get('[data-testid="trip-todo-check-Salbe holen"]').classes()).toContain('on')
+    // The grip, the tick and the composers step aside for the mode.
+    expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-todo-input"]').exists()).toBe(false)
+
+    // A tap is its own press, then its click — the press is what tells it
+    // from the ghost click a hold leaves behind.
+    await page.get('[data-testid="trip-todo-Pflanzen giessen"] ion-label').trigger('pointerdown')
+    await page.get('[data-testid="trip-todo-open-Pflanzen giessen"]').trigger('click')
+    await flushPromises()
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(false)
+    expect(page.get('[data-testid="trip-todo-check-Pflanzen giessen"]').classes()).toContain('on')
+    expect(page.get('[data-testid="m25-select-count"]').text()).toBe('2 selected')
+
+    await page.get('[data-testid="m25-select-exit"]').trigger('click')
+    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(true)
+  })
+
+  it('gives the whole selection one tag, writes only what changes, and takes it back whole', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedRow('ti-1', 'Kulturbeutel')
+    seedTask('Salbe holen', { task_tag_id: 'apo' })
+    seedTask('Akku laden', { trip_item_id: 'ti-1' })
+    seedTask('Pflanzen giessen', { phase: 'during' })
+
+    const page = mountPage()
+    await flushPromises()
+    headerActions()
+      .find((a) => a.id === 'm25-select')!
+      .onClick()
+    await flushPromises()
+    await page.get('[data-testid="m25-select-all"]').trigger('click')
+    await page.get('[data-testid="m25-bulk-tag"]').trigger('click')
+    await flushPromises()
+    expect(page.get('[data-testid="m25-bulk-title"]').text()).toBe('Tag for 3 tasks')
+    await page.get('[data-testid="task-sheet-tag-Apotheke"]').trigger('click')
+    await flushPromises()
+
+    // Salbe already carried it: two writes, across both phases and both kinds.
+    expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
+    const tagged = acts.setTaskTag.mock.calls.map((call) => (call[1] as { id: string }).id)
+    expect(tagged.sort()).toEqual(['Akku laden', 'Pflanzen giessen'])
+    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(false)
+
+    acts.setTaskTag.mockClear()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
+    for (const call of acts.setTaskTag.mock.calls) expect(call[2]).toBeNull()
+  })
+
+  it('sends the selection to a phase, and says so when nothing had to move', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    seedTask('Zug abklären', { phase: 'during' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await page.get('[data-testid="m25-bulk-during"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.setTaskPhase).toHaveBeenCalledTimes(1)
+    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Salbe holen' }),
+      'during',
+    )
+
+    acts.setTaskPhase.mockClear()
+    await page.get('[data-testid="trip-todo-Zug abklären"] ion-label').trigger('contextmenu')
+    await page.get('[data-testid="m25-bulk-during"]').trigger('click')
+    await flushPromises()
+    expect(acts.setTaskPhase).not.toHaveBeenCalled()
+  })
+})
+
 describe('M25 — the notes segment (FR-7.9)', () => {
   it('switches from tasks to notes, and lists a note there', async () => {
     seedTrip()

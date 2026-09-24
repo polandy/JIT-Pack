@@ -893,7 +893,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     expect(page.find('[data-testid="m6-row-check-Sonnencreme"]').classes()).toContain('off')
     const rows = page.findAll('[data-testid="m6-row"]')
     const sunscreenRow = rows.find((r) => r.text().includes('Sonnencreme'))!
-    expect(sunscreenRow.find('.rowbox').classes()).toContain('off')
+    expect(sunscreenRow.find('.select-box').classes()).toContain('off')
     expect(page.find('[data-testid="m6-select-hint"]').text()).toBe(t('shopping.selectHint'))
 
     // It cannot be toggled into the selection either.
@@ -907,16 +907,14 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     const page = mountPage()
 
     await enterSelectionViaHeader()
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('shopping.selectedNone'))
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.none'))
 
     await page.find('[data-testid="m6-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(
-      t('shopping.selectedCount', { n: 2 }),
-    )
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.count', { n: 2 }))
     expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(true)
 
     await page.find('[data-testid="m6-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('shopping.selectedNone'))
+    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.none'))
     expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
   })
 

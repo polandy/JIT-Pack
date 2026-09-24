@@ -5540,9 +5540,17 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **The phase stays the outer split** (variant A): *Vor der Reise* and *Während der Reise* first, the tag groups
     inside each. „What is still open before we leave" remains one look, which is what M25 was built for (FR-7.7) —
     and the crossing between phases keeps a target to drag to.
-  * **Dragging moves it**, by the grip or by holding the row (500 ms, 8 px — `useLongPress`'s own values, so a finger
-    can still scroll). The group under the pointer says *hier ablegen* before the drop. **A movement may change the
-    tag and the phase at once**, because a drop across both is what the reader meant, and the snackbar names it.
+  * **Dragging moves it, by the grip.** The group under the pointer says *hier ablegen* before the drop. **A movement
+    may change the tag and the phase at once**, because a drop across both is what the reader meant, and the snackbar
+    names it. *Revised 2026-09-24 (ADR-075):* holding the row used to lift it too; a hold now **selects**, as it does
+    on the shopping list (FR-30.9), and only the grip drags.
+  * **Several tasks at once (added 2026-09-24, owner request: the task list should look and behave like the shopping
+    list — ADR-075).** A hold on a task's words (500 ms, 8 px — `useLongPress`'s own values, so a finger can still
+    scroll), a right-click or the app bar's icon selects, exactly as on M6; *„Alle N"* takes every open task shown, in
+    both phases and of both kinds. The selection can be given **one tag** (the task sheet's own list, *no tag*
+    included) or sent to **one phase**. Only what changes is written, one undo takes the whole batch back, and a batch
+    that changes nothing says so. Both lists draw the selection, the grip and the grouped rows with the same client
+    components, so the two cannot drift apart again.
   * **An empty group is not drawn**, and is therefore not a target. Losing a tag is the task sheet's job — *Ohne Tag*
     is a choice in a list there, not a place to find. The first prototype did the opposite, bringing empty groups out
     when a task was lifted, and the list moved under the finger that had just lifted it (ADR-060).
@@ -5567,8 +5575,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **The portable format does not carry the tag**, exactly as it does not carry the phase (FR-7.7): `trip_tasks` is
     a list of words. An imported task arrives untagged and can be filed afterwards. Reading a tag out of a document
     that never stated one would be a claim, not an import — and `docs/backup.md` says so.
-  * **Surfaces:** M25 (the groups, the drag, the sheet's tag list), M8 and M4 unchanged — the packing list's window
-    is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09.
+  * **Surfaces:** M25 (the groups, the drag, the sheet's tag list, the selection), M8 and M4 unchanged — the packing
+    list's window is a handful of row-bound lines and has nothing to sort into. UI-Spec M25; E2E-M25-07/08/09/12.
 
 * **FR-7.9 (Trip Notes — Written by One Traveller, Read by All, Ticked per Person — new 2026-09-21, owner request,
   decided from an interactive prototype; *built in the same round*):** a traveller can leave information for the
