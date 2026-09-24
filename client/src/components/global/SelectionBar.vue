@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * The bar a list shows while it is selecting (`useRowSelection`): leave, how
- * many, „Alle N". M6's own until M25 learned the same mode (2026-09-24).
+ * many, „Alle N". M9's shape first, copied by M6; one bar for M6, M25 and M9
+ * since 2026-09-24.
  *
  * The `testid` prefix keeps each screen's own handles (`m6-selbar`,
  * `m6-select-exit`, …), which the suites already address.

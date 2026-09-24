@@ -88,6 +88,16 @@ describe('useRowSelection', () => {
     expect(sel.selected.value.size).toBe(0)
   })
 
+  it('„Alle" judges by the rows on screen, not by how many are chosen (M9: a filter hides some)', () => {
+    const sel = useRowSelection()
+    sel.start()
+    // Two chosen, one of them since filtered out of view: the screen's two
+    // rows are not all chosen, so „Alle" takes them rather than clearing.
+    sel.toggleAll(['a', 'hidden'])
+    sel.toggleAll(['a', 'b'])
+    expect([...sel.selected.value].sort()).toEqual(['a', 'b'])
+  })
+
   it('leaving the mode forgets the choice', () => {
     const sel = useRowSelection()
     sel.contextMenu('a')

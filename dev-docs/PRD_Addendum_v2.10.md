@@ -1730,6 +1730,14 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   M4's rows use — the inventory row is a router link, and a hold that must not also navigate is a gesture fight worth
   having only once somebody misses the entrance in the app bar.
 
+  **A hold selects here too (amended 2026-09-24, ADR-075).** The rejection above is reversed: once M6 and M25 answered a
+  hold with a selection, M9 was the one list of that shape where the same finger did nothing, and the owner asked for
+  the three to behave alike. A hold on a row (or a right-click) starts the mode with that row picked; the app bar's
+  glyph stays. The router link it was weighed against is gone instead — the row navigates in code, and the release after
+  a hold is spent on the selection rather than opening M10. **M9 does not take the drag** the other two have: its groups
+  are the primary tag, and a drop would have to decide silently whether the tag the row leaves stays as a secondary one;
+  *Tag geben* with its refiling switch already moves any number of rows and says so.
+
   **Giving creates the tag it did not find (amended 2026-09-19 with FR-24.12).** The give sheet was search and pick only
   — „a tag that does not exist is M10's business" — which turned tagging forty untagged items with a new category into a
   detour through M10 first. A query that names no tag under the **uniqueness** fold (`findNameCollision`, so „diverses"

@@ -1931,6 +1931,12 @@ test body under it separates a wrong number from a missing test.**
   on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names the loser,
   so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own units
   cannot make, because they never wire the page.
+* **E2E-M9-31** `local` (FR-24.9, ADR-075 amended) — **implemented 2026-09-24** (`e2e/inventory.spec.ts`): M9 selects
+  the way M6 and M25 do. A **real right-click** on a row — the hold's desktop twin, whose own pointerdown once re-armed
+  the hold and ate the next tap — starts the mode with that row picked and leaves M9 on screen; the very next tap on
+  another row picks it (the count moves to two), a tap on the first unpicks it; leaving through the bar's ✕ gives the
+  tap back to opening the item, read on M10's title. The grouped heading still carries its count and is still the jump
+  control. The long press itself is `useRowSelection`'s unit (fake timers), not this case's.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name
