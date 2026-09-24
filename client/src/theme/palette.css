@@ -490,6 +490,19 @@ ion-toggle {
 }
 
 /* Progress is headway, so it runs the done ramp end to end. */
+/* An action sheet is painted like SheetModal (shape in surfaces.css): the
+   sheet plane, the title in text colour rather than Material's grey, the
+   glyphs one step back from their labels. */
+ion-action-sheet.md {
+  --background: var(--ct-mantle);
+  --button-color: var(--ct-text);
+  --color: var(--ct-subtext0);
+}
+
+ion-action-sheet.md .action-sheet-title {
+  color: var(--ct-text);
+}
+
 ion-progress-bar {
   --progress-background: linear-gradient(90deg, var(--jp-done-far), var(--jp-done));
   --background: var(--ct-surface0);

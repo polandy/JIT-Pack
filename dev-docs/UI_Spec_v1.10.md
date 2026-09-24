@@ -623,6 +623,10 @@ These patterns apply to every screen and are specified once.
   * **Every sheet leaves the same way (added 2026-09-07).** The round close control is one design, drawn once: a
     filled circle on the sunken plane with a rim, at the round-control size. Nine sheets used to draw it themselves,
     in two designs split four against four — the same control, two appearances, and nothing recording which was meant.
+  * **A row menu is a sheet (added 2026-09-24).** Every hold/right-click menu is an `ion-action-sheet`, and it wears
+    the bottom sheet's shape: the sheet radius on its top corners, the handle, the sheet plane and cast, and its
+    header in the sheet title's type. Told once in the theme files rather than per call site, so a new menu cannot
+    miss it; Material's flat, square slab beside the app's rounded sheets read as two designs for one gesture.
   * **A dashed edge means *not yet* (added 2026-09-08, FR-21.22).** It marks a place where something is missing and
     could be put: the empty picker slot, the quick-add invitation, the hand-over into the full inventory. A control
     that acts on content which exists is a solid, filled button — which is what the three reveal bars (FR-25.2,

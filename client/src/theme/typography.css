@@ -297,6 +297,16 @@ body {
   line-height: var(--jp-leading-tight);
 }
 
+/* An action sheet's header is a sheet's title (surfaces.css has why). Stated
+   rather than applied as a class: Ionic renders the header itself. */
+ion-action-sheet.md .action-sheet-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-sm);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-tight);
+}
+
 /*
  * The head above a block, and the count beside it (G-13). Fifty-five heads
  * across twelve screens carried `.section-title jp-eyebrow`, and the pairing

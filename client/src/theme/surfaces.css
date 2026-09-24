@@ -243,3 +243,44 @@ ion-checkbox {
 ion-header.header-md::after {
   display: none;
 }
+
+/*
+ * An action sheet is a bottom sheet, so it wears SheetModal's shape: the
+ * large top corners, the handle, the rising cast and the dimmer backdrop.
+ * Every row menu in the app is an `ion-action-sheet` (thirteen call sites),
+ * and Material's flat, square slab beside the app's own sheets read as two
+ * designs (owner, 2026-09-24). Told once here rather than per call site with
+ * a `cssClass`, so a new menu cannot forget it. The title's type is in
+ * typography.css, its colour and the sheet's in palette.css.
+ */
+ion-action-sheet.md {
+  --backdrop-opacity: 0.62;
+}
+
+ion-action-sheet.md .action-sheet-group:first-child {
+  border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
+  box-shadow: var(--jp-shadow-sheet);
+}
+
+ion-action-sheet.md .action-sheet-group:first-child::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 10px auto 4px;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface1);
+}
+
+ion-action-sheet.md .action-sheet-title {
+  min-height: 0;
+  padding: 10px 20px 12px;
+}
+
+ion-action-sheet.md .action-sheet-button {
+  padding-inline: 20px;
+}
+
+ion-action-sheet.md .action-sheet-icon {
+  margin-inline-end: 20px;
+}
