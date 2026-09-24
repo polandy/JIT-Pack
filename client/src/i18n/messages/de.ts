@@ -1510,6 +1510,7 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.resolved': '{n} erledigt',
   'tripTodos.add': 'Aufgabe hinzufügen…',
   'tripTodos.remove': 'Aufgabe entfernen',
+  'tripTodos.drag': '{body} in einen anderen Tag oder eine andere Phase ziehen',
   'tripTodos.forItem': 'Gehört zu {name}',
 
   // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.

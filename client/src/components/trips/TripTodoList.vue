@@ -27,11 +27,12 @@
  * screen handed it.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
-import { chevronForwardOutline, reorderTwoOutline } from 'ionicons/icons'
+import { chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import DragGrip from '@/components/global/DragGrip.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -149,15 +150,13 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
       <!-- FR-7.8: the grip exists only to be dragged, so it lifts without the
            hold. It is drawn only where this list sits in something that can
            be dragged between. -->
-      <span
+      <DragGrip
         v-if="lift"
         slot="start"
-        class="grip"
+        :label="t('tripTodos.drag', { body: task.body })"
         :data-testid="`trip-todo-grip-${task.body}`"
         @pointerdown.stop="onLift($event, task, true)"
-      >
-        <IonIcon :icon="reorderTwoOutline" />
-      </span>
+      />
       <!-- FR-7.7: the words are the way into the task's own sheet, where the
            facts that do not fit a line live — and where it is moved between
            the phases. A button rather than the label itself, so the target is
@@ -284,18 +283,6 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
 
 .todo-row {
   --min-height: 36px;
-}
-
-/* The one control that exists only to be dragged, so it says so and takes
-   the pointer for itself — `touch-action: none` is what stops the page
-   scrolling out from under a finger that meant to lift. */
-.grip {
-  flex: none;
-  margin-inline-end: 2px;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-sm);
-  cursor: grab;
-  touch-action: none;
 }
 
 .todo-row.resolved ion-label {

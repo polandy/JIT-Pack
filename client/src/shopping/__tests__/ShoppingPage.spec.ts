@@ -776,7 +776,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
     const row = page.find('[data-testid="m6-row"]')
     expect(row.find('[data-testid^="m6-row-grip-"]').exists()).toBe(false)
-    const placeholder = row.find('.rowgrip.off')
+    const placeholder = row.find('.drag-grip.off')
     expect(placeholder.exists()).toBe(true)
     expect(placeholder.attributes('aria-hidden')).toBe('true')
     const group = page.find('[data-testid="m6-group-packing"]')

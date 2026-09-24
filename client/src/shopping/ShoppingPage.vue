@@ -40,10 +40,10 @@ import {
   checkmarkOutline,
   closeOutline,
   pricetagsOutline,
-  reorderThreeOutline,
 } from 'ionicons/icons'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 
+import DragGrip from '@/components/global/DragGrip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -642,21 +642,18 @@ setHeaderTitle(
                  at once. Not selecting, own entries only — the same
                  eligibility the selection checkbox uses, since a
                  packing-projected line carries no tag to drag either way. -->
-              <span
+              <DragGrip
                 v-else-if="line.edit"
                 slot="start"
-                class="rowgrip"
-                :aria-label="t('shopping.dragToRetag', { name: line.name })"
+                :label="t('shopping.dragToRetag', { name: line.name })"
                 :data-testid="`m6-row-grip-${line.name}`"
                 @pointerdown.stop="(e: PointerEvent) => onGripDown(line, e)"
-              >
-                <IonIcon :icon="reorderThreeOutline" aria-hidden="true" />
-              </span>
+              />
               <!-- FR-30.9: a packing-projected line has nothing to drag either
                  (owner feedback 2026-09-23: an empty gap here read as broken,
                  not as absent) — a dashed placeholder, `.rowbox.off`'s own
                  language for the same refusal on the checkbox. -->
-              <span v-else slot="start" class="rowgrip off" aria-hidden="true"></span>
+              <DragGrip v-else slot="start" off />
               <!-- FR-30.9: not selecting → a tap on an own entry's name files it
                  under a tag; a long press (or right-click) on one starts a
                  selection. Selecting → the same tap toggles the row instead. -->
@@ -1055,40 +1052,9 @@ setHeaderTitle(
   font-size: var(--jp-text-xs);
 }
 
-/* FR-30.9's single-row drag: the grip, at the leading edge like `.rowbox` —
-   `touch-action: none` unconditionally, since grabbing it always means the
-   drag, never a list scroll (M25's own `.grip`, `TripTodoList.vue`). */
-.rowgrip {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  margin-inline-start: -12px;
-  color: var(--ct-subtext0);
-  cursor: grab;
-  touch-action: none;
-}
-
-/* A packing-projected line's own placeholder — `.rowbox.off`'s dashed
-   language, for the same refusal, at the grip's own size (owner feedback
-   2026-09-23: the empty gap it replaces read as a bug, not as an absence). */
-.rowgrip.off {
-  cursor: default;
-}
-
-.rowgrip.off::after {
-  content: '';
-  width: 20px;
-  height: 20px;
-  border: 1.5px dashed var(--ct-surface2);
-  border-radius: var(--jp-r-pill);
-  opacity: 0.5;
-}
-
 /* A heading a drag can never land on (`dropTag` says so at render time, not
    only `useDragToGroup`'s live hit-test) dims for as long as something is in
-   the air — the same feedback `.rowgrip.off` gives per row, given once per
+   the air — the same feedback `DragGrip`'s `off` gives per row, given once per
    heading instead of forcing a read of every row under it (owner feedback
    2026-09-23: a heading that just sits there looked broken, not ineligible). */
 .shop-content[data-drag='dragging'] ion-item-group[data-droppable='false'] {
