@@ -1007,6 +1007,15 @@ taken straight from a phone camera never reaches the server unprocessed.
   component now (`TripChangeChips`) rather than a block written into each of the two representations. The hero also
   asks for its own trip partition: it is not a row and never enters M2's intersection observer (ADR-033), so without
   that it would say „items loading" forever on the one trip the screen exists to answer for.
+
+  **Amended 2026-09-24 — M2's row actions are a hold menu, not a swipe.** The swipe named above is gone: a trip row's
+  actions open on a **hold or a right-click** as an action sheet headed by the trip's name, the way M4's (FR-5.5) and
+  M7's (FR-18.2) rows already did. M2 was the last list hiding its row actions behind a swipe, and the owner asked for
+  the UI to be as consistent as possible. The actions and their conditions are unchanged — export (FR-18.3); share
+  only with a second account to share with (G-8); clone from the archive only (FR-12.1); the one lifecycle step;
+  delete, Owner-only and confirmed (FR-4.5) — and the row menu and the hero now read **one list** (`tripRowActions`),
+  where the hero used to re-derive the swipe's predicates beside it. Tap still opens the trip, and the tap that ends a
+  hold does not also open it. UI-Spec M2, E2E-M2-19.
 * **FR-21.16 (A Cluster Names Its Item Louder Than Its People — added 2026-09-07):** In a per-person cluster (FR-25.1)
   the head names the **item** and the rows under it name **people**, so the head is set at the row's own size and in
   the page's text colour, and a child row steps one size down and recessive. The person qualifies the item; the item is

@@ -342,8 +342,10 @@ stable references for the traceability matrix.
   rendered. Until then: UI-Spec M2 removed the presence facepile on 2026-08-28 and left the words *„and participant
   avatars"* standing beside it; whether the trip's travellers belong on the row is an owner decision, not a test that is
   missing.
-* **E2E-M2-04** `local` (FR-12.1) — **covered, and the gesture in this sentence never existed**: ~~long-press → context
-  menu~~ — M2's row actions are a **slide**, and *Clone* is offered on an archived trip only. That the clone opens with
+* **E2E-M2-04** `local` (FR-12.1) — **covered**: M2's row actions open on a **hold or a right-click** as an action
+  sheet (2026-09-24, E2E-M2-19) — the long-press this line always named, which until that day was a **slide** instead —
+  and *Clone* is offered on an archived trip only (unit-owned in `trips.spec.ts`, `tripRowActions`). That the clone
+  opens with
   the source's rows is E2E-M2-11 (`single`, ADR-033, the case that found ClonePage summing a partition the device did
   not hold); that ClonePage opens on a year of its own with empty dates is unit-owned in `ClonePage.spec.ts` — a *fresh*
   date is the absence of the source's, which is the shape a rendered case asserts worst.
@@ -356,7 +358,7 @@ stable references for the traceability matrix.
 * **E2E-M2-06** `local` (G-8/FR-17.3) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-30): a device with no session
   is offered no *Share*, asserted against the row's other options so an empty menu cannot satisfy the absence. The
   positive half is E2E-FLOW-01's, on `server`.
-* **E2E-M2-07** `local` (FR-18.3) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-30): the slide's *Export trip*
+* **E2E-M2-07** `local` (FR-18.3) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-30): the row menu's *Export trip*
   asks progress-or-clean and the answer reaches the file — the same trip and the same row both times, `packed_count: 1`
   in one and no `packed_count` at all in the other. Both branches, because one alone cannot tell a working choice from a
   constant.
@@ -370,12 +372,21 @@ stable references for the traceability matrix.
   list and comes back to it. ~~overflow →~~ the entry is a button in M2's own title row beside M15's, not an overflow
   menu; the sentence described a menu M2 does not have.
 * **E2E-M2-17** `all` (FR-21.15, new 2026-09-07): M2's *Active* segment draws the running trip that departs **soonest**
-  as a hero card, does not also list it as a row, leaves the later departure a row, and still exports from the card.
+  as a hero card, does not also list it as a row, leaves the later departure a row, opens the rows' menu on a
+  right-click (its *Archive* entry shown, then cancelled — added 2026-09-24), and still exports from the card.
   Two running trips, because with one the choice cannot be told from the only trip there was — and the two are ordered
   so that M2's own newest-first list would name the *other* one, which is what makes the shared rule falsifiable
   (mutation-proved 2026-09-07: replacing `heroTripOf` with the head of the screen's list turns the case red naming
-  Kreta). The export is the clause that carries the lift: a card cannot be swiped, and the actions being gone is the
-  cost FR-21.13 deferred the card over.
+  Kreta). The export and the menu are the clauses that carry the lift: the actions being gone is the cost FR-21.13
+  deferred the card over, and until 2026-09-24 the card had no row menu at all.
+* **E2E-M2-19** `local` (FR-4.5/FR-9.1/FR-18.3, new 2026-09-24): **a right-click on a trip row opens its row menu** —
+  the M4/M7 shape that replaced M2's swipe — headed by the trip's name and listing exactly *Export trip*, *Start trip*,
+  *Delete trip*, *Cancel* for a planned trip on a device with no second account. Choosing *Start trip* closes the sheet
+  and moves the trip off *Planned* (the row is gone, *Active* counts one) while M2 stays on screen — the choice did not
+  also navigate. A second row's menu, cancelled, leaves that row a door: a plain tap then renders M4 with that trip's
+  name in the page head. `contextmenu` rather than a held pointer, the suite's convention (`helpers/m4.ts`): the 500 ms
+  are `useLongPress`'s, and the hold's wiring to it is unit-owned in `TripListPage.spec.ts` with fake timers, as is the
+  guard that ignores a tap while the sheet is up.
 * **E2E-M2-16** `all` (G-7, new 2026-08-31): M2's empty state states which segment is empty and offers **no CTA of its
   own** — the FAB is the way out, on screen either way (owner, 2026-08-31, M7's reasoning). Its own number rather than a
   second definition of E2E-G7-01, whose case tests the Dashboard's half: the gate allows one definition per id, and a

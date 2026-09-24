@@ -10,7 +10,9 @@ import {
   localIsoDate,
   nextLifecycleStep,
   tripOrderKey,
+  tripRowActions,
   type LifecycleStep,
+  type TripRowAction,
 } from '../trips'
 import {
   TRIP_STATUS_ACTIVE,
@@ -113,6 +115,57 @@ describe('nextLifecycleStep', () => {
       expect(nextLifecycleStep(trip)).toBe(expected)
     })
   }
+})
+
+/**
+ * M2's row menu (hold or right-click, 2026-09-24) and the hero's action row
+ * read one list, so a trip can never be offered a step on one surface that
+ * the other refuses. What a trip's status and the session allow is the whole
+ * rule; the order is the order the sheet shows.
+ */
+describe('tripRowActions (M2, FR-4.5/FR-12.1/FR-18.3)', () => {
+  const everything = { collaborative: true, canDelete: true }
+  const cases: Array<{
+    name: string
+    status: TripStatus
+    ctx: { collaborative: boolean; canDelete: boolean }
+    want: TripRowAction[]
+  }> = [
+    {
+      name: 'a planning trip can be started, not archived or cloned',
+      status: TRIP_STATUS_PLANNING,
+      ctx: everything,
+      want: ['export', 'share', 'start', 'delete'],
+    },
+    {
+      name: 'a running trip can be archived, not started or cloned',
+      status: TRIP_STATUS_ACTIVE,
+      ctx: everything,
+      want: ['export', 'share', 'archive', 'delete'],
+    },
+    {
+      name: 'an archived trip can be cloned, and has no lifecycle step left',
+      status: TRIP_STATUS_ARCHIVED,
+      ctx: everything,
+      want: ['export', 'share', 'clone', 'delete'],
+    },
+    {
+      name: 'share is omitted without a second account to share with (G-8)',
+      status: TRIP_STATUS_ACTIVE,
+      ctx: { collaborative: false, canDelete: true },
+      want: ['export', 'archive', 'delete'],
+    },
+    {
+      name: 'delete is omitted for a member who is not the owner (FR-4.5)',
+      status: TRIP_STATUS_ARCHIVED,
+      ctx: { collaborative: true, canDelete: false },
+      want: ['export', 'share', 'clone'],
+    },
+  ]
+
+  it.each(cases)('$name', ({ status, ctx, want }) => {
+    expect(tripRowActions({ status }, ctx)).toEqual(want)
+  })
 })
 
 describe('isActive', () => {
