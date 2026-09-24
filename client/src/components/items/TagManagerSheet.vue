@@ -22,16 +22,19 @@ import {
   arrowDownOutline,
   arrowUpOutline,
   checkboxOutline,
-  checkmarkOutline,
   gitMergeOutline,
   searchOutline,
   trashOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
+import BulkBar from '@/components/global/BulkBar.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
+import { useRowSelection } from '@/composables/useRowSelection'
 import { searchMatches } from '@/domain/search'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
@@ -65,15 +68,13 @@ const emit = defineEmits<{
 const query = ref('')
 
 /**
- * FR-24.14: picking several tags to merge in one act.
- *
- * Its own mode rather than a second control on every row, the reason M9's
- * own selection (FR-24.9) is one: a row that carries a checkbox *and* four
- * acts asks four questions at once, and the rename control is the one a
- * thumb finds by accident.
+ * FR-24.14: picking several tags to merge in one act — the list selection
+ * M6, M25 and M9 share (ADR-075): a hold or right-click on a row, or the
+ * head's checkbox icon. While picking, a row's acts are gone: a row that
+ * carries a checkbox *and* four acts asks four questions at once.
  */
-const selecting = ref(false)
-const picked = ref<Set<string>>(new Set())
+const selection = useRowSelection()
+const { selecting, selected: picked } = selection
 
 // A query outlives nothing, for TagFilterSheet's reason: the next opening is
 // a new question. Neither does a selection.
@@ -82,31 +83,27 @@ watch(
   (open) => {
     if (!open) {
       query.value = ''
-      endPicking()
+      selection.end()
     }
   },
 )
 
-function endPicking(): void {
-  selecting.value = false
-  picked.value = new Set()
-}
-
-function togglePicked(tagId: string): void {
-  const next = new Set(picked.value)
-  if (!next.delete(tagId)) next.add(tagId)
-  picked.value = next
+function toggleSelecting(): void {
+  if (selecting.value) selection.end()
+  else selection.start()
 }
 
 /**
- * The picked tags in **axis order**, not in the order they were tapped: the
- * merge prompt lists them again, and a list that reorders itself between two
- * screens reads as a different list.
- *
- * A tag stays picked while the search narrows it away — two names for one
- * idea are rarely one query, so „Sommerurlaub" is picked, „Sommersachen" is
- * typed, and both have to survive to the prompt.
+ * Captured before the row's own buttons see it: a tap spent on the selection
+ * — the ghost click of the hold that started it, or a pick — must not also
+ * rename or move the tag it landed on.
  */
+function onRowClick(event: MouseEvent, tag: Tag): void {
+  if (!selection.click(tag.id, true)) return
+  event.stopPropagation()
+  event.preventDefault()
+}
+
 const pickedTags = computed(() => props.tags.filter((tag) => picked.value.has(tag.id)))
 
 const searching = computed(() => query.value.trim() !== '')
@@ -117,6 +114,11 @@ const rows = computed(() =>
     .map((tag, index) => ({ tag, index }))
     .filter(({ tag }) => searchMatches(tag.name, query.value)),
 )
+
+/** „Alle" takes the rows the search leaves on screen, like M9's own. */
+function toggleAll(): void {
+  selection.toggleAll(rows.value.map(({ tag }) => tag.id))
+}
 </script>
 
 <template>
@@ -128,7 +130,23 @@ const rows = computed(() =>
         title-testid="m9-tags-title"
         close-testid="m9-tags-close"
         @close="emit('dismiss')"
-      />
+      >
+        <!-- The same way in M9's app bar offers: a checkbox icon, which
+             leaves the mode again while it is on. -->
+        <template v-if="tags.length > 1" #trail>
+          <button
+            type="button"
+            class="select"
+            :class="{ on: selecting }"
+            :aria-label="t('items.tagsSelect')"
+            :aria-pressed="selecting"
+            data-testid="m9-tags-select"
+            @click="toggleSelecting()"
+          >
+            <IonIcon :icon="checkboxOutline" />
+          </button>
+        </template>
+      </SheetHead>
 
       <div v-if="tags.length > 0" class="search">
         <IonIcon :icon="searchOutline" />
@@ -140,44 +158,15 @@ const rows = computed(() =>
         />
       </div>
 
-      <!-- FR-24.14: the way into picking several, and the bar that acts on
-           them. The bar replaces the entrance rather than sitting beside it,
-           so the head carries one control either way. -->
-      <div v-if="tags.length > 1" class="selection">
-        <button
-          v-if="!selecting"
-          type="button"
-          class="select"
-          data-testid="m9-tags-select"
-          @click="selecting = true"
-        >
-          <IonIcon :icon="checkboxOutline" />
-          {{ t('items.tagsSelect') }}
-        </button>
-
-        <template v-else>
-          <span class="selcount" data-testid="m9-tags-selected">
-            {{ t('items.tagsSelected', { n: pickedTags.length }) }}
-          </span>
-          <button
-            type="button"
-            class="merge"
-            :disabled="pickedTags.length < 2"
-            data-testid="m9-tags-merge-many"
-            @click="emit('mergeMany', pickedTags)"
-          >
-            {{ t('items.tagsMergeMany') }}
-          </button>
-          <button
-            type="button"
-            class="cancel"
-            data-testid="m9-tags-select-cancel"
-            @click="endPicking()"
-          >
-            {{ t('common.cancel') }}
-          </button>
-        </template>
-      </div>
+      <SelectionBar
+        v-if="selecting"
+        class="selbar"
+        :count="pickedTags.length"
+        :total="rows.length"
+        testid="m9-tags"
+        @exit="selection.end()"
+        @all="toggleAll()"
+      />
 
       <ul class="tags">
         <li
@@ -185,21 +174,18 @@ const rows = computed(() =>
           :key="tag.id"
           :data-testid="`m9-tag-row-${tag.name}`"
           :data-picked="selecting && picked.has(tag.id) ? 'true' : undefined"
+          @click.capture="onRowClick($event, tag)"
+          @pointerdown="selection.press(tag.id, $event)"
+          @pointermove="selection.move($event)"
+          @pointerup="selection.release()"
+          @pointercancel="selection.release()"
+          @contextmenu.prevent="selection.contextMenu(tag.id)"
         >
-          <!-- FR-24.14: while picking, the whole row is the checkbox — the
-               acts are gone, so there is nothing else a tap could mean. -->
-          <button
+          <SelectBox
             v-if="selecting"
-            type="button"
-            class="pick"
-            :class="{ on: picked.has(tag.id) }"
-            :aria-pressed="picked.has(tag.id)"
-            :aria-label="t('items.tagPick', { tag: tag.name })"
+            :on="picked.has(tag.id)"
             :data-testid="`m9-tag-pick-${tag.name}`"
-            @click="togglePicked(tag.id)"
-          >
-            <IonIcon v-if="picked.has(tag.id)" :icon="checkmarkOutline" />
-          </button>
+          />
           <!--
             The order controls are gone while a search is narrowing the list:
             the arrows move a tag on the *axis*, and offering them beside two
@@ -255,8 +241,8 @@ const rows = computed(() =>
             v-else
             type="button"
             class="name"
+            :aria-pressed="picked.has(tag.id)"
             :data-testid="`m9-tag-name-${tag.name}`"
-            @click="togglePicked(tag.id)"
           >
             <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="22" />
             {{ tag.name }}
@@ -292,6 +278,22 @@ const rows = computed(() =>
           {{ t('items.tagsNoMatch') }}
         </li>
       </ul>
+
+      <BulkBar
+        v-if="selecting && picked.size > 0"
+        class="sheet-bulkbar"
+        data-testid="m9-tags-bulkbar"
+      >
+        <button
+          type="button"
+          :disabled="pickedTags.length < 2"
+          data-testid="m9-tags-merge-many"
+          @click="emit('mergeMany', pickedTags)"
+        >
+          <IonIcon :icon="gitMergeOutline" />
+          {{ t('items.tagsMergeMany') }}
+        </button>
+      </BulkBar>
     </section>
   </SheetModal>
 </template>
@@ -329,46 +331,46 @@ const rows = computed(() =>
   outline: none;
 }
 
-/* FR-24.14: the entrance to picking several, and the bar that acts on the
-   picked ones — one line either way, so the list below does not move as the
-   mode goes on. */
-.selection {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  margin-top: 10px;
-}
-
-.selection button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r-sm);
+/* The head's way into picking several; lit while the mode is on. */
+.select {
+  display: grid;
+  place-items: center;
+  width: var(--jp-control-round);
+  height: var(--jp-control-round);
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: 50%;
   background: var(--jp-surface-sunken);
-  color: var(--ct-text);
-}
-
-.selection ion-icon {
+  color: var(--ct-subtext0);
   font-size: var(--jp-icon-sm);
+  cursor: pointer;
 }
 
-.selcount {
-  flex: 1;
-  font-weight: var(--jp-weight-semibold);
-}
-
-.selection .merge {
-  background: var(--jp-action);
+.select.on {
+  color: var(--jp-action);
   border-color: var(--jp-action);
-  color: var(--ct-crust);
+}
+
+/* The bar stands in the sheet's own inset, not edge to edge like a page's. */
+.selbar {
+  margin-top: 10px;
+  border-radius: var(--jp-r-sm);
+}
+
+/* A sheet has no `fixed` slot to float the bar in: it rides the foot of the
+   sheet's own scroll box instead. */
+.sheet-body .sheet-bulkbar {
+  position: sticky;
+  left: auto;
+  right: auto;
+  bottom: 0;
+  margin-top: 12px;
 }
 
 /* Dimmed rather than gone: one tag picked is a selection on its way to two,
    and a button that disappears between the two taps reads as a refusal. */
-.selection .merge:disabled {
+.sheet-body .sheet-bulkbar button:disabled {
   opacity: 0.45;
 }
 
@@ -377,29 +379,6 @@ const rows = computed(() =>
    easy to miscount. */
 .tags li[data-picked] {
   background: color-mix(in srgb, var(--jp-action) 12%, transparent);
-}
-
-.pick {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1.5px solid var(--ct-surface2);
-  border-radius: var(--jp-r-xs);
-  background: none;
-  color: transparent;
-}
-
-.pick.on {
-  background: var(--jp-action);
-  border-color: var(--jp-action);
-  color: var(--ct-crust);
-}
-
-.pick ion-icon {
-  font-size: var(--jp-icon-xs);
 }
 
 .tags {

@@ -117,10 +117,12 @@ import { UNTAGGED_KEY } from '@/domain/tags'
 import type { BrowseRowSummary } from '@/domain/browseRows'
 import { itemPath } from '@/router/paths'
 import type { MasterItem, Traveler } from '@/types/domain'
+import ListGroup from '@/components/global/ListGroup.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 
 const props = defineProps<{
@@ -840,6 +842,14 @@ const subtitle = computed(() => {
 })
 
 /** The heading a group renders — the untagged bucket is not a tag name. */
+/** Tags by name — a group's key is its tag's name, and its heading carries the mark. */
+const tagByName = computed(() => new Map(masterStore.tagList.map((tag) => [tag.name, tag])))
+
+/** The mark a heading shows: its tag's (FR-24.13), none for the untagged bucket. */
+function groupMark(key: string): string | null {
+  return tagByName.value.get(key)?.icon ?? null
+}
+
 function groupLabel(key: string): string {
   return key === UNTAGGED_KEY ? t('items.untagged') : key
 }
@@ -977,10 +987,19 @@ function groupLabel(key: string): string {
       </button>
     </p>
 
-    <section v-for="[key, groupItems] in groups" :key="key" class="tag-group">
-      <h2 class="group-head jp-eyebrow" data-testid="browse-group-head">
-        {{ groupLabel(key) }}
-      </h2>
+    <!-- M9's own heading (ListGroup): the same name, mark and count the
+         inventory files these items under, so the two lists read as one. -->
+    <ListGroup
+      v-for="[key, groupItems] in groups"
+      :key="key"
+      class="tag-group"
+      :title="groupLabel(key)"
+      :count="groupItems.length"
+      head-testid="browse-group-head"
+    >
+      <template v-if="groupMark(key)" #mark>
+        <ItemMark :mark="groupMark(key)" surface="plain" :size="16" />
+      </template>
 
       <ul class="rows">
         <li v-for="{ item, view } in groupItems" :key="item.id">
@@ -1181,7 +1200,7 @@ function groupLabel(key: string): string {
           </div>
         </li>
       </ul>
-    </section>
+    </ListGroup>
 
     <!-- Free text, demoted to an explicit line: it hands back to the
          composer's field rather than growing a second input here. -->
@@ -1304,9 +1323,10 @@ function groupLabel(key: string): string {
   margin: 0 0 12px;
 }
 
-.group-head {
-  margin: 0 0 2px;
-  color: var(--ct-subtext0);
+/* The heading's words start where the rows' names do: the rows here are
+   plain lines, not Ionic items with an item's inset. */
+.tag-group :deep(ion-item-divider) {
+  --padding-start: 2px;
 }
 
 .rows {

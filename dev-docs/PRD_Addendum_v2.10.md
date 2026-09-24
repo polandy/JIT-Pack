@@ -1962,6 +1962,11 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     against the axis, and they are no longer on it.
   * **While picking, a row asks one question.** The rename control, the arrows, the mark and the two per-row acts
     withdraw, so the only thing a tap can mean is *pick this one* — FR-24.9's rule for M9's own rows, one screen in.
+  * **It selects the way every list does (amended 2026-09-24, ADR-075).** The manager's own entrance, bar and
+    checkbox gave way to the shared pieces: a **hold** (or right-click) on a tag row picks it and starts the mode, the
+    head's checkbox icon starts it empty and ends it, the bar is the lists' own (*✕*, *„N ausgewählt"*, *„Alle N"* —
+    the rows the search leaves), and *„Zusammenführen"* waits in the same bulk bar at the sheet's foot, dimmed under
+    two. The release that ends a hold is spent on the pick, so a hold that lands on the name never also renames.
 * **FR-24.15 (Merging Duplicate Items — added and implemented 2026-09-20; the trade is **ADR-069**):** two
   inventory rows that are the same thing — *„Stirnlampe"* and *„Stirnlampe Petzl"*, typed a year apart on two
   devices — are **merged into one**: the user names the survivor, and the other rows' references move to it before

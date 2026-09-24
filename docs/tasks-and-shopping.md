@@ -41,6 +41,11 @@ search and the tag filter leave on screen.
 The inventory has no grip: its groups are each item's *main* tag, so moving rows between them is **Tag geben** with
 **Als primären Tag setzen** switched on.
 
+**Manage tags** (in the inventory's ⋮ menu) selects the same way too: hold a tag, or tap the checkbox icon beside the
+sheet's ✕, and the bar at the bottom offers **Zusammenführen** once two tags are picked. The sheet that browses the
+inventory from a packing list or a template (**Mehr aus dem Inventar…**) heads its groups the way the inventory does,
+with each tag's mark and the number of items under it.
+
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging and selecting all happen on your device.

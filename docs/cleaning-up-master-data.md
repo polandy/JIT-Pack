@@ -9,8 +9,9 @@ tags are the exception, and the [note below](#task-tags-cannot-be-cleaned-up-yet
     **Inventory → ⋮ → Manage tags** renames, merges, reorders and deletes tags, and it is
     the only place that can *merge* tags into one. Merging is usually what you want
     when a tag was typed twice — it keeps every item filed, which deleting does not. Several
-    at once: **Select several**, tick the tags that mean the same thing, then **Merge** and
-    pick the one that stays (the tags are offered with their item counts, biggest first). See
+    at once: hold one of the tags (or right-click it, or tap the checkbox icon beside the
+    sheet's ✕), tap the others that mean the same thing, then **Merge** in the bar at the
+    bottom and pick the one that stays (the tags are offered with their item counts, biggest first). See
     [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
 
 !!! tip "Two items that are the same thing"

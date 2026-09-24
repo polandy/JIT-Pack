@@ -623,7 +623,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-tag-pick-Sommer').click()
     await page.getByTestId('m9-tag-pick-Sommerurlaub').click()
     await page.getByTestId('m9-tag-pick-Sommersachen').click()
-    await expect(page.getByTestId('m9-tags-selected')).toContainText('3')
+    await expect(page.getByTestId('m9-tags-select-count')).toContainText('3')
 
     await page.getByTestId('m9-tags-merge-many').click()
     // Largest first, and it is the one this act keeps.
@@ -649,6 +649,46 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.getByTestId('m9-tag-row-Sommer')).toContainText('3')
     await expect(page.getByTestId('m9-tag-row-Sommerurlaub')).toHaveCount(0)
     await expect(page.getByTestId('m9-tag-row-Sommersachen')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M9-32 (FR-24.14, ADR-075): the tag manager selects the way every
+   * list does — a hold (its right-click twin) on a row picks it, a tap picks
+   * the next, and the merge waits in the same bulk bar M9's own list uses.
+   *
+   * The right-click lands on the name, which outside the mode is the rename
+   * control: the row's hold has to take it wherever on the row it lands.
+   * That a *touch* hold's release click does not then rename is the unit
+   * spec's (`TagManagerSheet.spec.ts`) — a right-click sends no click, so an
+   * absence asserted here would hold whatever the guard did.
+   */
+  test('E2E-M9-32: a hold on a tag starts picking, and the merge waits in the bulk bar', async ({
+    page,
+  }) => {
+    await createItem(page, 'Kamera', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Zelt', { tags: ['Camping'] })
+    await backToInventory(page)
+
+    await openTagManager(page)
+    await expect(page.getByTestId('m9-tags-selbar')).toHaveCount(0)
+    await page.getByTestId('m9-tag-rename-Foto').click({ button: 'right' })
+
+    await expect(page.getByTestId('m9-tags-selbar')).toBeVisible()
+    await expect(page.getByTestId('m9-tags-select-count')).toHaveText('One selected')
+    await expect(page.getByTestId('m9-tag-row-Foto')).toHaveAttribute('data-picked', 'true')
+    // One tag is a selection on its way to two: the bar is there, the merge
+    // in it is not yet live.
+    await expect(page.getByTestId('m9-tags-merge-many')).toBeDisabled()
+
+    await page.getByTestId('m9-tag-name-Camping').click()
+    await expect(page.getByTestId('m9-tags-select-count')).toHaveText('2 selected')
+    await expect(page.getByTestId('m9-tags-merge-many')).toBeEnabled()
+
+    // Leaving the mode gives the rows their acts back.
+    await page.getByTestId('m9-tags-select-exit').click()
+    await expect(page.getByTestId('m9-tags-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m9-tag-rename-Foto')).toBeVisible()
   })
 
   /**

@@ -184,6 +184,34 @@ test.describe('M4 — the composer adds through the inventory @local @m4', () =>
     await page.goto(PATH.items)
     await expect(visible(page).getByTestId('m9-row')).toHaveCount(3)
   })
+
+  /**
+   * E2E-M4-147 (FR-25.13d, ADR-075): the browse sheet files the inventory
+   * under the headings M9 draws — the primary tag's name with the number of
+   * items under it, in the shared list heading rather than a caption of its
+   * own. The count is the part a caption never had, so it is what says the
+   * heading is the shared one.
+   */
+  test('E2E-M4-147: the browse sheet heads its groups the way the inventory does', async ({
+    page,
+  }) => {
+    await page.goto(PATH.items)
+    await createItem(page, 'Kamera', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Stativ', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Zelt', { tags: ['Camping'] })
+    await createTripViaWizard(page, M4_TRIP)
+    await openQuickAdd(page)
+
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const foto = sheet.locator('.list-group').filter({
+      has: page.getByTestId('browse-group-head').getByText('Foto', { exact: true }),
+    })
+    await expect(foto.locator('ion-item-divider .count')).toHaveText('2')
+    await expect(foto.getByTestId('browse-row-name')).toHaveText(['Kamera', 'Stativ'])
+  })
 })
 
 /**
