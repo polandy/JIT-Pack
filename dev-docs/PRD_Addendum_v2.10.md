@@ -1808,6 +1808,9 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   with no room between neighbours, and the axis routinely arrives flat, because `createTag` has always taken
   `tagList.length` while a restore and the dev seed produce all-zero orders. The order controls **withdraw while a
   search is narrowing the list** — „hoch" between two rows eleven apart on the axis is an ordering nobody can predict.
+  *Amended 2026-09-24 (ADR-075):* the order is set by the **drag grip** M6 and M25 use, not by *hoch/runter* arrows —
+  the tag is dragged to the gap it belongs in, any distance in one move, and the grip is drawn dashed (inert) while a
+  search narrows the list, for the same reason the arrows withdrew.
 * **FR-24.11 (The Search Creates What It Did Not Find — added 2026-09-18, implemented the same day):** while M9's
   search holds a query that **no active item carries as its exact name**, the top of the results offers
   *„‚{Name}' anlegen"*. A tap opens a sheet with the **name** (the query, trimmed) and the **tags** — nothing else;
@@ -1969,6 +1972,11 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     against the axis, and they are no longer on it.
   * **While picking, a row asks one question.** The rename control, the arrows, the mark and the two per-row acts
     withdraw, so the only thing a tap can mean is *pick this one* — FR-24.9's rule for M9's own rows, one screen in.
+  * **It selects the way every list does (amended 2026-09-24, ADR-075).** The manager's own entrance, bar and
+    checkbox gave way to the shared pieces: a **hold** (or right-click) on a tag row picks it and starts the mode, the
+    head's checkbox icon starts it empty and ends it, the bar is the lists' own (*✕*, *„N ausgewählt"*, *„Alle N"* —
+    the rows the search leaves), and *„Zusammenführen"* waits in the same bulk bar at the sheet's foot, dimmed under
+    two. The release that ends a hold is spent on the pick, so a hold that lands on the name never also renames.
 * **FR-24.15 (Merging Duplicate Items — added and implemented 2026-09-20; the trade is **ADR-069**):** two
   inventory rows that are the same thing — *„Stirnlampe"* and *„Stirnlampe Petzl"*, typed a year apart on two
   devices — are **merged into one**: the user names the survivor, and the other rows' references move to it before

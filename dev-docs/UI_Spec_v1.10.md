@@ -1414,9 +1414,11 @@ These patterns apply to every screen and are specified once.
     autocomplete either; typing hides the chips and the suggestions take over. **Since FR-25.13d (2026-08-22)** the
     empty composer also
     carries the *„Mehr aus dem Inventar…"* line, opening the **inventory browse-sheet**: the whole inventory in a bottom
-    sheet, grouped like M9 by primary tag and filtered along the M9 tag axis (any of an item's tags), one-tap rows that
-    stay open for runs, a carried item stating *„schon drin"* in place of its add control and flipping to that state
-    right after a tap, and free text demoted to an explicit footer line that hands back to the composer's field. **Since
+    sheet, grouped like M9 by primary tag — **under M9's own heading since 2026-09-24** (`ListGroup`: the tag's mark,
+    its name and the number of lines under it) — and filtered along the M9 tag axis (any of an item's tags), one-tap
+    rows that stay open for runs, a carried item stating *„schon drin"* in place of its add control and flipping to that
+    state right after a tap, and free text demoted to an explicit footer line that hands back to the composer's field.
+    **Since
     FR-25.13e (2026-08-29) the sheet can also put the carried rows away:** one line under the tag axis — the count on
     the left (*„14 schon drin“* → *„14 ausgeblendet“*), a switch labelled *„ausblenden“* on the right — hides everything
     the scope carried **at the moment the switch was flipped**, so a row added during the run stays in place and reads
@@ -2094,7 +2096,10 @@ These patterns apply to every screen and are specified once.
   in the same alert; merging asks for the target, confirms with the number of items moving, and deletes the source
   once it is empty. **The arrows at the ends are dimmed, not removed**, so the column does not reflow as a tag reaches
   the top or the bottom, and they **withdraw entirely while a search is narrowing the list** — the arrows move a tag
-  on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict.
+  on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict. **Since
+  2026-09-24 (ADR-075) the arrows are a drag grip** at the row's leading edge, M6's and M25's: it lifts at once, a
+  line in the action colour marks the gap the tag would land in, and the drop moves it there in one act. While a
+  search narrows the list the grip is dashed and inert; while picking, the selection box takes its place.
 * **Several tags merged in one act (2026-09-20, FR-24.14).** Above the list sits *„Mehrere wählen"*; it turns the
   rows into a **selection** — a checkbox at the leading edge, the whole row picking it, and the per-row acts, the
   arrows and the mark control withdrawn, so a tap can mean one thing. A bar replaces the entrance while the mode is
@@ -2103,7 +2108,11 @@ These patterns apply to every screen and are specified once.
   **largest first**; the confirm names the survivor, how many items move and how many tags go, and the toast counts
   the **items** that ended up under the survivor. A picked tag **stays picked while a search narrows it away** — two
   names for one idea are rarely one query — and after the merge the manager stays open with the mode on, the merged
-  tags simply gone from the axis the selection is read against.
+  tags simply gone from the axis the selection is read against. **Since 2026-09-24 (ADR-075) the manager selects like
+  the lists:** a hold or right-click on a tag row starts the mode with that row picked; the text entrance became a
+  checkbox icon in the sheet's head (lit while the mode is on, a second tap leaves it); the bar is `SelectionBar`
+  (*✕*, *„N ausgewählt"*, *„Alle N"* over the rows the search leaves) and *„Zusammenführen"* sits in `BulkBar` at the
+  sheet's foot, dimmed under two.
 * **A tag carries a mark (2026-09-19, FR-24.13).** The tag chips, the group headings, the filter sheet and the give/take
   sheet show it beside the tag's name, rendered through `ItemMark` (G-15). The tag manager gives every row a **mark
   control** before the name — the mark, or a dashed empty slot — which opens the item mark's own picker (FR-28.2) over

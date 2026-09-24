@@ -41,6 +41,12 @@ search and the tag filter leave on screen.
 The inventory has no grip: its groups are each item's *main* tag, so moving rows between them is **Tag geben** with
 **Als primären Tag setzen** switched on.
 
+**Manage tags** (in the inventory's ⋮ menu) selects the same way too: hold a tag, or tap the checkbox icon beside the
+sheet's ✕, and the bar at the bottom offers **Zusammenführen** once two tags are picked. To change the order of the tags,
+drag one by the grip at its left edge, the same grip the tasks and the shopping list use. The sheet that browses the
+inventory from a packing list or a template (**Mehr aus dem Inventar…**) heads its groups the way the inventory does,
+with each tag's mark and the number of items under it.
+
 ## Hidden master data and luggage too
 
 Two more lists select with the same hold, right-click or checkbox icon. Neither has a grip or headings.
