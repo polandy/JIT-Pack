@@ -2156,7 +2156,8 @@ E2E-M23-04.
   collision refusal. Three hidden items; an active item then takes the second one's name. A **real right-click** on
   the first starts the mode — the rows' own buttons step aside — and a tap picks the second. *Wiederherstellen* on the
   bar restores the first with **no alert**, and leaves the colliding row listed **and still selected** (count *one*)
-  beside the unpicked third, which is not; the inventory then lists the restored item. The batch delete, its one
+  beside the unpicked third, which is not; the app bar's glyph leaves the mode and the rows' buttons return; the
+  inventory then lists the restored item. The batch delete, its one
   confirmation and its refusal of still-used rows are `RetiredMasterPage.spec.ts`'s.
 * **E2E-M23-03** `all` (FR-24.3) — **new 2026-08-25**: a retired row does not become undeletable. While the group still
   holds it, M23 offers the restore and **no** *Endgültig löschen* — asserted as an absence beside the restore button's
@@ -2303,7 +2304,8 @@ case saying which layer keeps what.
   the mode with it picked and opens **no** picker; the next tap on another row picks it (the count reads two) and
   still opens no picker; the bar's *In Gepäckstück …* opens the picker once, its subject line naming the two
   positions, and choosing the container leaves **exactly the unpicked row** in the bucket, the mode ended and the ＋
-  FAB back. The single-tap path is E2E-M11-06's, unchanged.
+  FAB back. The app bar's checkbox glyph then arms the mode with nothing picked. The single-tap path is
+  E2E-M11-06's, unchanged.
 * **E2E-M11-07** `all` (UX-8, 2026-08-27) — **implemented** (`e2e/containers.spec.ts`): with zero containers and nothing
   unassigned, the unassigned section is **absent** — "everything is assigned to a container" must not stand under "no
   containers yet". Creating the first container brings the section back with its (0) count and hint, which is the

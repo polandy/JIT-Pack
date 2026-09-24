@@ -245,6 +245,11 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(list.getByTestId('m23-select-count')).toHaveText('One selected')
     await expect(row('Stativ')).toHaveAttribute('data-selected', 'true')
     await expect(row('Blitz')).not.toHaveAttribute('data-selected', 'true')
+
+    // The app bar's glyph leaves the mode as well as entering it.
+    await page.getByTestId('m23-select').click()
+    await expect(list.getByTestId('m23-selbar')).toHaveCount(0)
+    await expect(list.getByTestId('m23-restore')).toHaveCount(2)
     await localWriteSettled(page)
 
     await page.goto(PATH.items)

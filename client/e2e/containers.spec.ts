@@ -376,5 +376,11 @@ test.describe('M11 containers @local @m11', () => {
     await expect(list.getByTestId('m11-unassigned-row')).toContainText('Stirnlampe')
     await expect(list.getByTestId('m11-selbar')).toHaveCount(0)
     await expect(list.getByTestId('m11-fab')).toBeVisible()
+
+    // The app bar's glyph is the other way in: the mode, with nothing picked.
+    await page.getByTestId('m11-select').click()
+    await expect(list.getByTestId('m11-select-count')).toHaveText('Nothing selected')
+    await list.getByTestId('m11-select-exit').click()
+    await expect(list.getByTestId('m11-selbar')).toHaveCount(0)
   })
 })
