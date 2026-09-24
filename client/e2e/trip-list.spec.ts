@@ -428,7 +428,7 @@ test.describe('M2 hero @local @m2', () => {
     await seed(page, { mode: 'local' })
   })
 
-  test('E2E-M2-17: the trip being packed is a card, and keeps the actions it left the row menu with', async ({
+  test('E2E-M2-17: the trip being packed is a card, keeps the row menu and states its actions', async ({
     page,
   }) => {
     // Two running trips, so „the card" is a choice the screen makes rather
@@ -451,8 +451,15 @@ test.describe('M2 hero @local @m2', () => {
     await expect(visiblePage(page).getByTestId('trip-hero-Kreta')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
 
-    // FR-18.3's export, from the card. The card has no row menu of its own,
-    // so its action row is the only way to these from here.
+    // The card answers a right-click with the rows' menu, like any row: it is
+    // the trip a person holds most often (2026-09-24).
+    await hero.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu.getByTestId('m2-menu-archive')).toBeVisible()
+    await menu.getByRole('button', { name: 'Cancel' }).click()
+    await expect(menu).toHaveCount(0)
+
+    // FR-18.3's export, from the card's own action row as well.
     const written = page.waitForEvent('download')
     await visiblePage(page).getByTestId('m2-hero-export-Elba').click()
     await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()

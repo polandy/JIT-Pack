@@ -371,12 +371,13 @@ stable references for the traceability matrix.
   list and comes back to it. ~~overflow →~~ the entry is a button in M2's own title row beside M15's, not an overflow
   menu; the sentence described a menu M2 does not have.
 * **E2E-M2-17** `all` (FR-21.15, new 2026-09-07): M2's *Active* segment draws the running trip that departs **soonest**
-  as a hero card, does not also list it as a row, leaves the later departure a row, and still exports from the card.
+  as a hero card, does not also list it as a row, leaves the later departure a row, opens the rows' menu on a
+  right-click (its *Archive* entry shown, then cancelled — added 2026-09-24), and still exports from the card.
   Two running trips, because with one the choice cannot be told from the only trip there was — and the two are ordered
   so that M2's own newest-first list would name the *other* one, which is what makes the shared rule falsifiable
   (mutation-proved 2026-09-07: replacing `heroTripOf` with the head of the screen's list turns the case red naming
-  Kreta). The export is the clause that carries the lift: a card has no row menu (a swipe, until 2026-09-24), and the
-  actions being gone is the cost FR-21.13 deferred the card over.
+  Kreta). The export and the menu are the clauses that carry the lift: the actions being gone is the cost FR-21.13
+  deferred the card over, and until 2026-09-24 the card had no row menu at all.
 * **E2E-M2-19** `local` (FR-4.5/FR-9.1/FR-18.3, new 2026-09-24): **a right-click on a trip row opens its row menu** —
   the M4/M7 shape that replaced M2's swipe — headed by the trip's name and listing exactly *Export trip*, *Start trip*,
   *Delete trip*, *Cancel* for a planned trip on a device with no second account. Choosing *Start trip* closes the sheet

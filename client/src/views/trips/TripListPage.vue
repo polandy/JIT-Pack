@@ -646,8 +646,18 @@ function openTrip(trip: Trip) {
   router.push(tripPath(trip.id))
 }
 
+/**
+ * The hero is a link rather than a row, so the guard `openTrip` keeps has to
+ * stop the link itself: the release-click of a hold lands while the menu is up.
+ */
+function onHeroClick(event: MouseEvent) {
+  if (rowMenuActive) event.preventDefault()
+}
+
 async function openRowMenu(trip: Trip) {
   hold.cancel()
+  // A long press on touch fires `contextmenu` as well as the timer.
+  if (rowMenuActive) return
   rowMenuActive = true
   try {
     const sheet = await actionSheetController.create({
@@ -717,8 +727,8 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- FR-21.15: the trip you are on, as a card rather than as one row
-           among five. It carries its own actions because it left the row
-           menu behind when it left the list. -->
+           among five. A hold or right-click opens the rows' menu on it too;
+           its foot states the same actions besides. -->
       <TripHero
         v-if="heroTrip"
         class="hero-card"
@@ -729,6 +739,12 @@ async function handleRefresh(event: CustomEvent) {
         :progress="tripDataKnown(heroTrip) ? itemSummary(heroTrip) : t('trips.itemsUnknown')"
         :to="tripPath(heroTrip.id)"
         :testid="`trip-hero-${heroTrip.name}`"
+        @click.capture="onHeroClick"
+        @contextmenu.prevent="openRowMenu(heroTrip!)"
+        @pointerdown="(e: PointerEvent) => hold.down(heroTrip!, e.clientX, e.clientY)"
+        @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+        @pointerup="hold.cancel()"
+        @pointercancel="hold.cancel()"
       >
         <TripChangeChips
           :trip-id="heroTrip.id"
@@ -970,6 +986,8 @@ ion-segment-button {
 .hero-card {
   display: block;
   margin: 0 8px 12px;
+  /* A hold is the row menu here, not the browser's link preview. */
+  -webkit-touch-callout: none;
 }
 
 /* Rows inside a card still need a seam between them: the card gives the

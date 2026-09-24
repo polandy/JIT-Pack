@@ -1003,7 +1003,8 @@ These patterns apply to every screen and are specified once.
   the one lifecycle step the trip's status offers — *Start* on a planned trip, *Archive* on a running one (FR-9.1/9.2) —
   and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series header → M16. In Single-User Mode (Addendum
   FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with. The tap that
-  ends a hold does not also open the trip. The hero card (FR-21.15) states the same list as its own action row.
+  ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or right-click, and
+  states the same list as its own action row besides.
   *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**, not
   overflow entries (corrected 2026-08-30, backlog item 6 — the screen has carried them there since the import work
   landed; see M15's *Navigation*). **The list opens on the segment a caller names** (`?status=active|planned|archived`,

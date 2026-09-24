@@ -703,6 +703,52 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     expect(orchestratorFake.archiveTrip).toHaveBeenCalledWith('t1')
   })
 
+  it('opens the rows’ menu on a right-click too — a card is not an exception to the hold', async () => {
+    segment = 'active'
+    seedTrip('active')
+    const page = mountPage()
+
+    await page.find('[data-testid="trip-hero-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+
+    expect(sheets).toHaveLength(1)
+    expect(sheets[0]!.header).toBe('Samedan')
+    expect(sheets[0]!.buttons.map((b) => b.text)).toEqual([
+      t('trips.actionExport'),
+      t('trips.actionArchive'),
+      t('trips.actionDelete'),
+      t('common.cancel'),
+    ])
+  })
+
+  it('opens it on a hold, and the release does not follow the card’s link', async () => {
+    vi.useFakeTimers()
+    try {
+      segment = 'active'
+      seedTrip('active')
+      const page = mountPage()
+      const hero = page.find('[data-testid="trip-hero-Samedan"]')
+
+      await hero.trigger('pointerdown')
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+      await flushPromises()
+      expect(sheets).toHaveLength(1)
+
+      const release = new MouseEvent('click', { bubbles: true, cancelable: true })
+      hero.find('[data-testid="hero-name"]').element.dispatchEvent(release)
+      expect(release.defaultPrevented).toBe(true)
+
+      sheets[0]!.dismiss()
+      await flushPromises()
+      // Once the menu is gone the card is a door again.
+      const tap = new MouseEvent('click', { bubbles: true, cancelable: true })
+      hero.find('[data-testid="hero-name"]').element.dispatchEvent(tap)
+      expect(tap.defaultPrevented).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('offers export and delete on the card, and no step the lifecycle refuses', async () => {
     segment = 'active'
     seedTrip('active')
