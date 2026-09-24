@@ -59,10 +59,11 @@ describe('useRowSelection', () => {
     // Chromium's order: the right button's pointerdown, then contextmenu.
     sel.press('a', at(0, 0, 2))
     sel.contextMenu('a')
-    vi.advanceTimersByTime(LONG_PRESS_MS)
-    // The next tap is a toggle, not swallowed as a ghost click.
+    // The next tap is a toggle, not swallowed as a ghost click …
     sel.press('b', at())
     expect(sel.click('b', true)).toBe(true)
+    // … and no hold fires late to wipe it back to the right-clicked row alone.
+    vi.advanceTimersByTime(LONG_PRESS_MS)
     expect([...sel.selected.value].sort()).toEqual(['a', 'b'])
   })
 
