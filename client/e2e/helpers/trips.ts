@@ -1,6 +1,6 @@
 /**
  * A trip, from the outside: made through M3, opened, acted on from M2's menu
- * or its swipe. Spec §2.4 requires preconditions to be built through the
+ * or its row menu. Spec §2.4 requires preconditions to be built through the
  * app's own paths rather than injected, so every unit that needs a trip comes
  * through here.
  */
@@ -358,74 +358,58 @@ export async function expectTripActionAbsent(page: Page, action: keyof typeof TR
 }
 
 /**
- * M2's per-row actions live behind the slide gesture (FR-4.5, FR-18.3), and
- * until 2026-08-30 no test had ever operated one — the Share entry was
- * asserted as present in the DOM and nothing else. Opened through the
- * element's own `open()` rather than by simulating a drag: how far and how
- * fast a swipe has to travel is the animation's business, and a test that
- * has to guess it is a test that can miss for reasons that are not the rule.
+ * The ids of M2's row-menu entries. Written out rather than interpolated,
+ * like `TRIP_VIEW`: the app declares each as a whole literal, and restating
+ * them keeps the suite reading the app from the outside.
  */
-export async function openTripSwipe(page: Page, trip: string) {
-  const sliding = visiblePage(page)
-    .locator('ion-item-sliding')
-    .filter({ has: page.getByTestId(`trip-row-${trip}`) })
-  await expect(sliding).toHaveCount(1)
-  /*
-   * Two settles the count does not give, both paid for by E2E-M2-07 on
-   * WebKit (T-8, 2026-09-04). `open()` resolves whether or not it opened
-   * anything: called on an element that is in the DOM but not yet hydrated,
-   * or before its `ion-item-options` child is registered, it returns and the
-   * row stays shut. The failure then lands 60 s later on the click, and the
-   * screenshot shows a perfectly ordinary closed row — which is why it was
-   * read as a flake twice.
-   */
-  await expect(sliding).toHaveClass(/hydrated/)
-  await expect(sliding.locator('ion-item-options')).toHaveCount(1)
-  /*
-   * Neither of those two is enough, and E2E-M2-07 kept proving it on WebKit
-   * (2026-09-04). Reading `ion-item-sliding`'s own source says why:
-   * `open(side)` looks the options up in `rightOptions`, a field its
-   * `connectedCallback` fills only after awaiting each `ion-item-options`
-   * child's `componentOnReady()` — so the child can be in the DOM, and the
-   * parent hydrated, while the parent still has no idea the child exists.
-   * `open()` then returns, silently, having done nothing.
-   *
-   * So the readiness is awaited **in the page**, where these are real
-   * promises rather than something to poll from outside, and one frame is
-   * taken afterwards: a `requestAnimationFrame` callback runs after the
-   * microtask queue drains, which is where the component's own registration
-   * is waiting. The second frame is for `open()` itself — it schedules the
-   * slide in a `requestAnimationFrame` and returns *before* it, so awaiting
-   * the call has never proved anything on its own.
-   */
-  await sliding.evaluate(async (el) => {
-    type Ready = { componentOnReady?: () => Promise<unknown> }
-    const options = el.querySelector('ion-item-options') as (Element & Ready) | null
-    await options?.componentOnReady?.()
-    await (el as Element & Ready).componentOnReady?.()
-    await new Promise(requestAnimationFrame)
-    await (el as unknown as { open(side: string): Promise<void> }).open('end')
-    await new Promise(requestAnimationFrame)
-  })
-  /*
-   * And the helper's own postcondition, in two halves. The class is what the
-   * component renders when it believes it is open, so a silent no-op fails
-   * here rather than sixty seconds later on a click; the visible option is
-   * that belief having reached the screen.
-   */
-  await expect(sliding).toHaveClass(/item-sliding-active-options-end/)
-  await expect(sliding.locator('ion-item-option').first()).toBeVisible()
-  return sliding
+export const TRIP_ROW_ACTION = {
+  export: 'm2-menu-export',
+  share: 'm2-menu-share',
+  clone: 'm2-menu-clone',
+  start: 'm2-menu-start',
+  archive: 'm2-menu-archive',
+  delete: 'm2-menu-delete',
+} as const
+
+/**
+ * Open a trip row's action sheet on M2 (FR-4.5, FR-12.1, FR-18.3) — the hold
+ * or right-click menu M4 and M7 already had, which replaced M2's swipe on
+ * 2026-09-24. `contextmenu` rather than a held pointer, as `openRowMenu` in
+ * `helpers/m4.ts`: it is the handler the hold fires into, and the hold's
+ * 500 ms are `useLongPress`'s unit-tested business, not a timing to guess.
+ */
+export async function openTripRowMenu(page: Page, trip: string): Promise<Locator> {
+  await visiblePage(page).getByTestId(`trip-row-${trip}`).dispatchEvent('contextmenu')
+  const sheet = page.locator('ion-action-sheet')
+  await expect(sheet).toBeVisible()
+  return sheet
 }
 
 /**
- * What that row offers right now, by the names the user reads. Returns the
- * whole list so an *absence* — G-8's omitted Share, a non-owner's missing
- * Delete — is asserted against options that are demonstrably there.
+ * Choose one entry of a row's menu. The sheet's teardown is *not* awaited
+ * here, because several entries open a sheet or an alert of their own
+ * (export asks progress-or-clean, delete confirms); the caller's next
+ * assertion is on whatever that entry leads to.
  */
-export async function tripSwipeActions(page: Page, trip: string): Promise<string[]> {
-  const sliding = await openTripSwipe(page, trip)
-  return sliding
-    .locator('ion-item-option')
-    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label') ?? ''))
+export async function chooseTripRowAction(
+  page: Page,
+  trip: string,
+  action: keyof typeof TRIP_ROW_ACTION,
+): Promise<void> {
+  await openTripRowMenu(page, trip)
+  await page.getByTestId(TRIP_ROW_ACTION[action]).click()
+}
+
+/**
+ * What that row's menu offers right now, by the names the user reads, with
+ * *Cancel* left out. The whole list, so an *absence* — G-8's omitted Share, a
+ * non-owner's missing Delete — is asserted against a menu that demonstrably
+ * opened. Closed through its own *Cancel* for the reason `tripActions` gives.
+ */
+export async function tripRowMenuActions(page: Page, trip: string): Promise<string[]> {
+  const sheet = await openTripRowMenu(page, trip)
+  const labels = await sheet.locator('.action-sheet-button-inner').allInnerTexts()
+  await sheet.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  return labels.map((l) => l.trim()).filter((l) => l !== 'Cancel')
 }

@@ -2,7 +2,7 @@ import {
   test,
   expect,
   createTripViaWizard,
-  openTripSwipe,
+  chooseTripRowAction,
   seed,
   visiblePage,
   PRESENTED_POPOVER,
@@ -459,12 +459,11 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
       await expect(alice.locator(PRESENTED_POPOVER)).toHaveCount(0)
     }
 
-    /** M2 → the row's slide → Share, which is how a person reaches the roster. */
+    /** M2 → the row's menu → Share, which is how a person reaches the roster. */
     async function openRoster() {
       await alice.getByTestId('rail-trips').click()
       await visiblePage(alice).getByTestId('trips-filter-planned').click()
-      await openTripSwipe(alice, trip)
-      await visiblePage(alice).getByTestId(`m2-share-${trip}`).click()
+      await chooseTripRowAction(alice, trip, 'share')
       await expect(
         visiblePage(alice).getByTestId(`member-row-${ACCOUNT_NAMES.alice}`),
       ).toBeVisible()

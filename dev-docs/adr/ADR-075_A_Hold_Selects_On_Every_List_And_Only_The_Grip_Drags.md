@@ -146,6 +146,20 @@ The owner asked for the UI to be as consistent as it can be. Two more surfaces t
 screen's shape from the closed concept prototype. Drawing them as `ListGroup` would restyle the central screen, a
 design decision of its own rather than a consistency fix; its hold stays the row menu (FR-5.5), as above.
 
+## Amendment 2026-09-24 — where a hold opens a row menu instead
+
+The decision above is about **tag-grouped lists whose rows are acted on in batches** — M6, M25, M9. It does not reach
+the lists whose rows are acted on one at a time and whose tap navigates: **M2** (the trip list), **M7** (the templates)
+and **M4** (the packing rows, FR-5.5). On those a hold — or a right-click — opens **the row's own action sheet**, and
+there is no selection mode to enter. M2 joined that shape on 2026-09-24 (UI-Spec M2, E2E-M2-19): it was the last list
+hiding its row actions behind a swipe, and the owner asked for one gesture across the app.
+
+The two meanings do not collide, because no list offers both: a list either has a batch act worth a selection, or its
+rows' acts differ per row (a trip's lifecycle step, a template's rename) and are read one at a time. The guard is the
+same in both shapes — the row navigates in code, and a tap is ignored while the hold's result is on screen, so the
+release after a hold never also opens the row. The revisit trigger above extends to this: a list of the second kind
+that gains a batch act asks the question again for itself, rather than growing a second meaning for the hold.
+
 ## Amendment 2026-09-24 — M23 and M11 join, as flat lists
 
 The owner asked for the remaining lists that acted one row at a time to select the same way: M23 (hidden master data,
