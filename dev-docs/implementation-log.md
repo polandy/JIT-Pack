@@ -429,7 +429,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
 - [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
 - [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
-- [A segment's checked corner was a hair off the track's, and only Safari drew it (2026-09-23)](#a-segments-checked-corner-was-a-hair-off-the-tracks-and-only-safari-drew-it-2026-09-23) — `ion-segment` clips to its own shape; the seam was invisible in every render this project has automated.
+- [A cropped screenshot found a corner that was not there (2026-09-24)](#a-cropped-screenshot-found-a-corner-that-was-not-there-2026-09-24) — M25's and M7's segments overflowed their column; a Safari-seam fix was shipped and reverted first.
 
 ## Deviations
 
@@ -17368,31 +17368,27 @@ so lost the same line. `E2E-VIS-13`'s baseline moved with the shorter rows and t
 (`make visual-update`); no other baseline did, since none of M4's own visual cases happen to seed a
 todo with the facts that would have drawn a stamp in the first place.
 
-## A segment's checked corner was a hair off the track's, and only Safari drew it (2026-09-23)
+## A cropped screenshot found a corner that was not there (2026-09-24)
 
-Testing the row fixes above on an iPad, the owner reported M25's Tasks/Notes segment looking "cut off"
-on its right edge. Three rounds of screenshots — including one at 2× device-scale, matching the iPad's
-own pixel density — showed nothing wrong to me: Chromium, at every viewport and locale tried, drew a
-clean nested pair of rounded corners, track and checked pill concentric. The owner's own annotated
-screenshot (Markup arrow, precisely on the corner) settled it: the defect is real, and it does not exist
-in any render this project can automate.
+The owner reported M25's Tasks/Notes segment "cut off on the right" on an iPad. The investigation cropped and
+zoomed the corner of the checked pill out of the owner's screenshots, found a hair of mismatch between the pill's
+radius and the track's, could not reproduce it in Chromium at any viewport, and concluded it was a WebKit-only
+sub-pixel seam. `overflow: hidden` on `ion-segment` was shipped for it (63ae2d58) with a case asserting the
+property computes — which passed, because it asserted the fix rather than the defect.
 
-**The shape was never wrong, only where WebKit draws its edge.** `ion-segment`'s track and
-`ion-segment-button`'s checked pill both round to the same `var(--jp-r-pill)` token, and the geometry
-nests exactly (the track's padding is 3px, and its clamped radius at 40px tall is 20px against the
-button's clamped 17px at 34px tall — 20 − 3 = 17, an exact fit). The math says the two curves should
-trace one continuous arc, and on Chromium they do. On Safari, at the corner where the *last* button's
-own edge coincides with the track's rounded end, the two independently-rasterised curves apparently
-disagree by a sub-pixel amount too small for a screenshot's JPEG compression to keep — visible live,
-smoothed away by the time it reaches a file. Nothing about this was reachable by rendering harder;
-`overflow: hidden` on the track makes the exact cause moot, since a checked pill can never be the
-track's own shape *plus* a stray corner once the track itself clips it.
+The owner looked again and it was unchanged. The full, uncropped screenshot showed what the crops had cut away:
+the whole segment ran 14 px past the right edge of every other block in the column, and its rounded end was
+sliced off straight by the scroller. Ionic sizes `ion-segment` `width: 100%`; M25 gives it `margin: 4px 14px`, so
+its margin box is the column plus 28 px wide. Measuring the element against its parent showed it at once — and on a 390 px
+phone too (14 → 404 px), in Chromium, in every render this project had taken. The earlier screenshots had it;
+nobody measured, and the crops were chosen around the wrong hypothesis. M7's scope segment had the same margin
+and the same overflow.
 
-**Fix:** `client/src/theme/surfaces.css`'s `ion-segment` rule gains `overflow: hidden`. Covered on two
-sides, deliberately not the one that found the bug: the unit half
-(`theme/__tests__/surfaces.spec.ts`) asserts the declaration is still there, and the rendered half
-(`e2e/surfaces.spec.ts`, `E2E-G14-05`) asserts the property actually computes on a live segment —
-neither can assert the sub-pixel seam itself closed, because neither runs WebKit. That gap stays open
-on purpose: `dev-docs/e2e-tests.md` names it, and closing it for real needs a WebKit run this project
-does not have wired up yet.
+The fix is `width: auto` on the two screens that give the segment a margin, not globally: the import wizards'
+merge segments sit in an `ion-item` row, where `auto` would shrink them to their content. The Safari fix was
+reverted with its log entry and ledger paragraph. E2E-G14-05 now measures the overhang against the parent at a
+phone and a tablet width; before the fix it read +14 px at both.
 
+**The trap:** a layout complaint ("cut off") was read as a rendering one, and the evidence was cropped to fit the
+reading. Measure the box against its container before zooming into pixels — and a case that asserts the fix's
+declaration, rather than the symptom, is green against the bug.

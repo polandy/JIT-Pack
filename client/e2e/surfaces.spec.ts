@@ -1,4 +1,12 @@
-import { addInComposer, test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import {
+  addInComposer,
+  backToTemplateList,
+  createTemplate,
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+} from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 import { openTasks, tripWithRows } from './helpers/m4'
@@ -231,22 +239,41 @@ async function closeControl(page: Page, testid: string) {
   })
 }
 
-// E2E-G14-05 (G-14/FR-21.8): a segment's checked pill never draws past the
-// track's own rounded end. Safari renders the last button's own corner a
-// hair off the track's radius exactly where it meets the track's rounded
-// end — invisible in Chromium, found on an iPad testing M25's Tasks/Notes
-// segment (owner, 2026-09-23). The fix is `overflow: hidden` on the track;
-// this asserts the property actually computes, since the sub-pixel seam it
-// closes cannot be proven from a browser that never drew it.
-test('E2E-G14-05: a segment clips its checked pill to the track’s own shape', async ({
-  page,
-  seedMode,
-}) => {
-  await seedMode({ mode: 'local' })
-  await page.setViewportSize(MOBILE)
-  await tripWithRows(page, ['Zelt'], 'Samedan')
-  const section = await openTasks(page, 'before')
-  const segment = section.page().getByTestId('m25-segment')
-  await visiblePage(page).getByTestId('m25-segment-notes').click()
-  expect(await computed(segment, 'overflow')).toBe('hidden')
-})
+/** How far `el` pokes past the right edge of its parent, in CSS pixels. */
+function overhang(el: Locator) {
+  return el.evaluate((n) => {
+    const own = n.getBoundingClientRect()
+    const column = n.parentElement!.getBoundingClientRect()
+    return own.right - column.right
+  })
+}
+
+// E2E-G14-05 (G-14/FR-21.8): a segment given a side margin stays inside its
+// column. Ionic sizes `ion-segment` `width: 100%`, so M25's and M7's margins
+// pushed it past the column by the margin's width and the scroller cut its
+// right end off straight — found on an iPad (owner, 2026-09-24), but 14 px
+// past a 390 px phone screen too. Both viewports, because the tablet column
+// is where it read as a defect and the phone is where it was first missed.
+for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
+  test(`E2E-G14-05: a segment with a margin stays inside its column at ${viewport.width}px @local @g14`, async ({
+    page,
+    seedMode,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.setViewportSize(viewport)
+
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await openTasks(page, 'before')
+    const tasks = visiblePage(page).getByTestId('m25-segment')
+    await expect(tasks).toBeVisible()
+    expect(await overhang(tasks), "M25's segment runs past its column").toBeLessThanOrEqual(0)
+
+    // M7 only draws its segment once there is something to filter.
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'template', 'Fotoreise')
+    await backToTemplateList(page)
+    const templates = visiblePage(page).getByTestId('m7-scope-segment')
+    await expect(templates).toBeVisible()
+    expect(await overhang(templates), "M7's segment runs past its column").toBeLessThanOrEqual(0)
+  })
+}

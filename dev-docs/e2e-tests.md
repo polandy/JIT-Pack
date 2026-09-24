@@ -748,18 +748,6 @@ card asked for `--ct-mantle`, a real palette token, and passed the colour
 invariant and its unit suite while being the same colour as the page. A
 rendered pixel was the only witness.
 
-**A rendered pixel is only a witness for what the browser it runs in draws.**
-E2E-G14-05 (2026-09-23) closes an `ion-segment` corner defect found on an
-iPad — Safari drew the checked button's own corner a hair off the track's
-radius exactly where it meets the track's rounded end — that no amount of
-re-rendering in Chromium, at any viewport, locale or device-scale factor,
-ever reproduced. The case asserts the fix's `overflow: hidden` computes on a
-live segment, which is real coverage against a regression, but it cannot
-assert the sub-pixel seam itself closed, because this suite runs no WebKit
-project. That gap is open on purpose, not by oversight: closing it for real
-needs a WebKit leg wired into `playwright.config.ts`, which nothing here has
-asked for yet.
-
 **What the colour unit does *not* prove.** That the palette is *pleasant* —
 only that each role landed on the component it belongs to and that the three
 stay apart. It also asserts nothing about contrast: the ratios *were*

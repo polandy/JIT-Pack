@@ -574,8 +574,13 @@ async function shareTemplate(tpl: Template) {
 </template>
 
 <style scoped>
+/* Ionic sizes the segment `width: 100%`, so a side margin pushes it past its
+   column by the margin's width and the scroller cuts its right end off
+   (owner, 2026-09-24, on an iPad). `auto` lets a block fill what the margins
+   leave. */
 ion-segment {
   margin: 0 12px 4px;
+  width: auto;
 }
 
 .section-card {

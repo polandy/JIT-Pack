@@ -218,13 +218,6 @@ ion-segment {
   border-radius: var(--jp-r-pill);
   border: 1px solid var(--jp-surface-border);
   padding: 3px;
-  /* Safari draws the checked button's own corner a hair off the track's
-     radius at the edge it shares with the track (FR-21.8 hunt, 2026-09-23):
-     invisible on Chromium, visible on an iPad as a squared-off sliver where
-     the last button meets the track's rounded end. Clipping to the track's
-     own shape is correct regardless of cause — a checked pill can never be
-     the track's shape plus a stray corner. */
-  overflow: hidden;
 }
 
 ion-segment-button {

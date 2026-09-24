@@ -487,8 +487,13 @@ function onSheetRemove() {
   --padding-bottom: 24px;
 }
 
+/* Ionic sizes the segment `width: 100%`, so a side margin pushes it past its
+   column by the margin's width and the scroller cuts its right end off
+   (owner, 2026-09-24, on an iPad). `auto` lets a block fill what the margins
+   leave. */
 ion-segment {
   margin: 4px 14px 2px;
+  width: auto;
 }
 
 .mine {
