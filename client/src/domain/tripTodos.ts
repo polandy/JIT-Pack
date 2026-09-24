@@ -377,3 +377,19 @@ export function groupAccepts(
 export function tagForGroup(key: string): string | null {
   return (TASK_ORIGINS as readonly string[]).includes(key) ? null : key
 }
+
+/**
+ * FR-7.8's batch: the selected tasks a retag would actually change. The raw
+ * column is compared, not `filedTagOf`'s reading — a task carrying an id this
+ * device has no tag for is filed as untagged, but writing null over that id
+ * is still a change, and skipping it would leave the batch half-applied on
+ * the device that does know the tag.
+ */
+export function tasksToRetag(tasks: readonly TripTask[], taskTagId: string | null): TripTask[] {
+  return tasks.filter((task) => task.task_tag_id !== taskTagId)
+}
+
+/** FR-7.8's batch: the selected tasks not already in the phase they are sent to. */
+export function tasksToMove(tasks: readonly TripTask[], phase: TaskPhase): TripTask[] {
+  return tasks.filter((task) => task.phase !== phase)
+}

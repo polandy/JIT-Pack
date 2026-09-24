@@ -33,10 +33,12 @@ import { computed, ref } from 'vue'
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import type { RowSelection } from '@/composables/useRowSelection'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripItemPath } from '@/router/paths'
@@ -68,16 +70,27 @@ const props = defineProps<{
   /** What to say when the list is empty. Absent renders nothing. */
   emptyText?: string
   /**
-   * FR-7.8: how a row is picked up, where this list is inside something that
-   * can be dragged between. A function rather than an event, because the
-   * gesture has to start *during* the pointerdown — an emit would arrive
-   * after the browser has already decided the press is a scroll.
+   * FR-7.8: how a row is picked up by its grip, where this list is inside
+   * something that can be dragged between. A function rather than an event,
+   * because the gesture has to start *during* the pointerdown — an emit would
+   * arrive after the browser has already decided the press is a scroll.
    *
    * Absent means the rows are not draggable and no grip is drawn, which is
    * how M4's window renders them: its window is a handful of lines with
    * nothing to sort them into.
    */
-  lift?: (ev: PointerEvent, task: TripTask, row: HTMLElement, immediate: boolean) => void
+  lift?: (ev: PointerEvent, task: TripTask, row: HTMLElement) => void
+  /**
+   * M25's selection (`useRowSelection`, 2026-09-24): a hold on an open row
+   * selects it, the way it does on M6. Absent — M4's window — a hold does
+   * nothing.
+   */
+  selection?: RowSelection
+  /**
+   * `list`: the rows sit in M25's grouped list and look like M6's rows.
+   * `window` (default): M4's compact window of a handful of lines.
+   */
+  variant?: 'list' | 'window'
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -122,19 +135,33 @@ function assigneeOf(task: TripTask) {
 }
 
 /**
- * FR-7.8: the grip lifts at once; anywhere else on the row the press has to
- * be held, so a finger can still scroll. The row element is handed over with
- * it, because the gesture clones it.
+ * FR-7.8: the grip lifts at once — it exists only to be dragged. The row
+ * element is handed over with it, because the gesture clones it.
  */
-function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
+function onLift(ev: PointerEvent, task: TripTask) {
   if (!props.lift) return
   const row = (ev.currentTarget as HTMLElement).closest('.todo-row') as HTMLElement | null
-  if (row) props.lift(ev, task, row, immediate)
+  if (row) props.lift(ev, task, row)
+}
+
+const selecting = computed(() => props.selection?.selecting.value ?? false)
+
+/** The hold's desktop twin — only where this list selects at all; elsewhere the browser's menu stays. */
+function onContextMenu(ev: MouseEvent, task: TripTask) {
+  if (!props.selection) return
+  ev.preventDefault()
+  props.selection.contextMenu(task.id)
+}
+
+/** Selecting → a tap on the words toggles the row; otherwise it opens the task's sheet. */
+function onOpen(task: TripTask) {
+  if (props.selection?.click(task.id, true)) return
+  emit('open', task)
 }
 </script>
 
 <template>
-  <div class="trip-todo-list" data-testid="trip-todo-list">
+  <div class="trip-todo-list" :class="variant ?? 'window'" data-testid="trip-todo-list">
     <InlineHint v-if="emptyText && tasks.length === 0" data-testid="trip-todo-empty">
       {{ emptyText }}
     </InlineHint>
@@ -142,36 +169,53 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
     <IonItem
       v-for="task in open"
       :key="task.id"
-      lines="none"
+      :lines="variant === 'list' ? undefined : 'none'"
       class="todo-row"
+      :data-selected="selecting && selection?.selected.value.has(task.id) ? 'true' : undefined"
       :data-testid="`trip-todo-${task.body}`"
-      @pointerdown="lift && onLift($event, task, false)"
     >
-      <!-- FR-7.8: the grip exists only to be dragged, so it lifts without the
-           hold. It is drawn only where this list sits in something that can
-           be dragged between. -->
+      <!-- M6's leading edge (2026-09-24): the selection box while selecting,
+           the grip otherwise. The grip exists only to be dragged, so it lifts
+           without a hold; it is drawn only where this list sits in something
+           that can be dragged between. -->
+      <SelectBox
+        v-if="selecting"
+        slot="start"
+        :on="selection?.selected.value.has(task.id)"
+        :data-testid="`trip-todo-check-${task.body}`"
+      />
       <DragGrip
-        v-if="lift"
+        v-else-if="lift"
         slot="start"
         :label="t('tripTodos.drag', { body: task.body })"
         :data-testid="`trip-todo-grip-${task.body}`"
-        @pointerdown.stop="onLift($event, task, true)"
+        @pointerdown.stop="onLift($event, task)"
       />
       <!-- FR-7.7: the words are the way into the task's own sheet, where the
            facts that do not fit a line live — and where it is moved between
            the phases. A button rather than the label itself, so the target is
            the words and not the whole row: the tick is the row's own edge. -->
-      <IonLabel>
+      <!-- A hold on the words selects, M6's gesture (and its right-click
+           twin); the tick and the ✕ are left to their own taps. -->
+      <IonLabel
+        @pointerdown="selection?.press(task.id, $event)"
+        @pointermove="selection?.move($event)"
+        @pointerup="selection?.release()"
+        @pointercancel="selection?.release()"
+        @contextmenu="onContextMenu($event, task)"
+      >
         <button
           type="button"
           class="body"
           :data-testid="`trip-todo-open-${task.body}`"
-          @click="emit('open', task)"
+          @click="onOpen(task)"
         >
           {{ task.body }}
         </button>
       </IonLabel>
-      <span slot="end" class="todo-end">
+      <!-- While selecting, the row's own controls step aside, as M6's do: a
+           tap there would act on one task in the middle of choosing several. -->
+      <span v-if="!selecting" slot="end" class="todo-end">
         <!-- FR-7.6: the chip stands where the trip's own task carries its
              ✕ — one line, one place that says what the task belongs to. -->
         <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
@@ -200,7 +244,13 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
            under the same thumb. It is a sibling of the cluster rather than
            part of it: the cluster's width budget is the chip's, and a tick
            inside it would be paid for out of the row's name. -->
-      <IonCheckbox slot="end" class="tick" :checked="false" @ionChange="emit('toggle', task)" />
+      <IonCheckbox
+        v-if="!selecting"
+        slot="end"
+        class="tick"
+        :checked="false"
+        @ionChange="emit('toggle', task)"
+      />
     </IonItem>
 
     <!-- Resolved ones fold away but stay reachable: unticking is the only
@@ -221,7 +271,7 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
         <IonItem
           v-for="task in resolved"
           :key="task.id"
-          lines="none"
+          :lines="variant === 'list' ? undefined : 'none'"
           class="todo-row resolved"
           :data-testid="`trip-todo-${task.body}`"
         >
@@ -277,12 +327,30 @@ function onLift(ev: PointerEvent, task: TripTask, immediate: boolean) {
 </template>
 
 <style scoped>
-.trip-todo-list {
+.trip-todo-list.window {
   padding: 0 4px 12px;
 }
 
-.todo-row {
+/* M4's window is a handful of compact lines; M25's list rows keep Ionic's own
+   height, the one M6's rows have. */
+.window .todo-row {
   --min-height: 36px;
+}
+
+.todo-row[data-selected='true'] {
+  --background: color-mix(in srgb, var(--jp-action) 10%, transparent);
+}
+
+/* In M25's list a task's words are a row's name, set in the role
+   `typography.css` gives `ion-label h3` — M6's entries wear it. A button
+   cannot hold a heading, so the role's two values are asked for here. */
+.list .body {
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.list .resolved-toggle {
+  padding-inline: 16px;
 }
 
 .todo-row.resolved ion-label {

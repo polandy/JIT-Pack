@@ -17,7 +17,7 @@ import type { Ref } from 'vue'
 
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { RowUndo } from '@/composables/useRowUndo'
-import type { TripTask } from '@/domain/tripTodos'
+import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemTodo, TaskPhase, TripTodo } from '@/types/domain'
@@ -224,5 +224,73 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     void announceAct(t('tasks.movedToast', { body: todo.body }))
   }
 
-  return { toggle, added, assign, remove, move, retag, liveTripTodo, liveItemTodo }
+  /**
+   * FR-7.8's batch, from a selection: several tasks under one tag, or into one
+   * phase, in one act. Only what changes is written (`tasksToRetag`,
+   * `tasksToMove`), and **one undo takes the whole batch back** — the undo
+   * record holds one action at a time, so a batch armed task by task would
+   * leave all but the last without a way home. Each task's own previous value
+   * is what the undo writes, never „the opposite".
+   *
+   * Returns how many were written, so the screen can say when a batch changed
+   * nothing instead of announcing a non-event.
+   */
+  function retagMany(tasks: readonly TripTask[], taskTagId: string | null): number {
+    return writeBatch(
+      tasksToRetag(tasks, taskTagId),
+      (todo) => todo.task_tag_id,
+      (todo, value) => orchestrator.setTaskTag(tripId(), todo, value),
+      taskTagId,
+      (n) => t('tasks.bulkRetagged', { n }),
+    )
+  }
+
+  function moveMany(tasks: readonly TripTask[], phase: TaskPhase): number {
+    return writeBatch(
+      tasksToMove(tasks, phase),
+      (todo) => todo.phase,
+      (todo, value) => orchestrator.setTaskPhase(tripId(), todo, value),
+      phase,
+      (n) =>
+        t(phase === TASK_PHASE_DURING ? 'tasks.bulkMovedToDuring' : 'tasks.bulkMovedToBefore', {
+          n,
+        }),
+    )
+  }
+
+  function writeBatch<V>(
+    changing: readonly TripTask[],
+    read: (todo: ItemTodo | TripTodo) => V,
+    write: (todo: ItemTodo | TripTodo, value: V) => void,
+    value: V,
+    message: (n: number) => string,
+  ): number {
+    const writes = changing.flatMap((task) => {
+      const todo = liveTask(task)
+      return todo ? [{ task, todo, previous: read(todo) }] : []
+    })
+    if (writes.length === 0) return 0
+    rowUndo.armAction(message(writes.length), () => {
+      for (const { task, previous } of writes) {
+        const live = liveTask(task)
+        if (live) write(live, previous)
+      }
+    })
+    for (const { todo } of writes) write(todo, value)
+    void announceAct(message(writes.length))
+    return writes.length
+  }
+
+  return {
+    toggle,
+    added,
+    assign,
+    remove,
+    move,
+    retag,
+    retagMany,
+    moveMany,
+    liveTripTodo,
+    liveItemTodo,
+  }
 }

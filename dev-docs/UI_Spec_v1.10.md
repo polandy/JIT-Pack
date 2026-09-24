@@ -1780,26 +1780,28 @@ These patterns apply to every screen and are specified once.
   this sheet applies the instant a chip is chosen, to more than one. Choosing files every selected entry at once;
   the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under the tag it carried before.
   The header's icon is offered only while the open tab holds an own entry to select. Mockup: 2026-09-22 review.
-  (E2E-M6-32)
-* **One entry, dragged into another heading (FR-30.9, built 2026-09-22):** while nothing is selected, an own row
-  carries a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried
-  across the list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself
-  only dims in place) and the heading under the pointer takes the same accent frame while it could honestly hold it
-  — a tag's own heading, or *„Eingetragen"* to clear one; the packing list's combined heading never frames and never
-  takes it, the same refusal a selection gives it. Letting go over a framed heading files the row under it in one
-  act, through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast
-  with **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
-  lift-carry-drop with no shape of its own beyond a place's name and what was dropped on it. Mockup: 2026-09-22,
-  extended by the owner directly on the canvas rather than asked for in words; built once asked for outright the
-  same day. The frame itself was tightened 2026-09-23 to match the mockup's own blue outline on both the lifted
-  clone and the target heading, closer than the first cut's plain highlight. A packing row has nothing to give
-  the gesture either — its grip slot carries a dashed placeholder instead of standing empty, and the packing list's
-  heading dims for as long as something is being dragged, the same refusal `.rowbox.off` already gives the checkbox
-  one slot over; a line below the list also says so once in words, next to the checkbox's own hint (owner feedback
-  2026-09-23: an empty gap and an inert heading read as broken, not as absent). The lifted clone's frame and the
-  dimmed row it left behind are drawn once, in `composables/dragToGroup.css`, and reach every screen that lifts
-  something with `useDragToGroup` — M25's own drag (FR-7.8) draws the identical frame for the same reason,
-  unified 2026-09-23 rather than left as two screens describing the same gesture differently. (E2E-M6-34)
+  **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the keys
+  and the hold, `SelectBox`, `SelectionBar` and `BulkBar` draw the box, the bar and the floating bar, and
+  `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart. (E2E-M6-32)
+* **One entry, dragged into another heading (FR-30.9, built 2026-09-22):** while nothing is selected, an own row carries
+  a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried across the
+  list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims in
+  place) and the heading under the pointer takes the same accent frame while it could honestly hold it — a tag's own
+  heading, or *„Eingetragen"* to clear one; the packing list's combined heading never frames and never takes it, the
+  same refusal a selection gives it. Letting go over a framed heading files the row under it in one act, through the
+  same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with **Rückgängig**.
+  The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a lift-carry-drop with no
+  shape of its own beyond a place's name and what was dropped on it. Mockup: 2026-09-22, extended by the owner directly
+  on the canvas rather than asked for in words; built once asked for outright the same day. The frame itself was
+  tightened 2026-09-23 to match the mockup's own blue outline on both the lifted clone and the target heading, closer
+  than the first cut's plain highlight. A packing row has nothing to give the gesture either — its grip slot carries a
+  dashed placeholder instead of standing empty, and the packing list's heading dims for as long as something is being
+  dragged, the same refusal `SelectBox`'s `off` already gives the checkbox one slot over; a line below the list also
+  says so once in words, next to the checkbox's own hint (owner feedback 2026-09-23: an empty gap and an inert heading
+  read as broken, not as absent). The lifted clone's frame and the dimmed row it left behind are drawn once, in
+  `composables/dragToGroup.css`, and reach every screen that lifts something with `useDragToGroup` — M25's own drag
+  (FR-7.8) draws the identical frame for the same reason, unified 2026-09-23 rather than left as two screens describing
+  the same gesture differently. (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, built 2026-09-22):** checking a row off — an own entry's or a packing row's
   projection alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and
   raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather
@@ -2855,8 +2857,8 @@ token would prove nothing there is anything to prove.
   rows follow. The grip sits in the item's own `slot="start"` and **is M6's own grip** — one component,
   `DragGrip.vue`, since 2026-09-24 (owner feedback: M25's two-line glyph at a smaller size read as a stray dash
   beside the words; the week before, the two had already drifted to a different gap despite drawing one gesture).
-  * **The grip** (FR-7.8) lifts the task at once; anywhere else on the row a **hold** does, at `useLongPress`'s own
-    500 ms and 8 px, so a finger can still scroll. While a task is in the air the group under the pointer says
+  * **The grip** (FR-7.8) lifts the task at once, and **only the grip does** — since 2026-09-24 a hold on the row
+    selects it instead, M6's gesture (ADR-075). While a task is in the air the group under the pointer says
     *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
     row would move every row below it under the finger that pressed one (ADR-060). The gesture's state is on the
     page as `data-drag`, always set, and returns to `idle` only once the write has landed. The travelling clone and
@@ -2870,6 +2872,20 @@ token would prove nothing there is anything to prove.
     trip's own task carries the seat and a ✕. A preparation has no ✕ — it is removed in M5, the one place that shows
     what else its row still owes.
   * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
+* **Several tasks at once (FR-7.8, built 2026-09-24 — owner request: the tasks should behave like the shopping list,
+  ADR-075).** M6's selection, drawn by the same components (`useRowSelection`, `SelectBox`, `SelectionBar`,
+  `BulkBar`): a **hold on a task's words** (`useLongPress`'s 500 ms and 8 px, so a finger can still scroll), a
+  right-click, or the app bar's own icon (`m25-select`, offered while an open task is shown) enters it. While
+  selecting, the selection box stands where the grip was, the row's seat, ✕ and tick step aside, a tap on the words
+  toggles the row instead of opening its sheet, and the *Meine* chip and both composers give way to the selection bar
+  (✕, *„N ausgewählt"*, *„Alle N"*). *„Alle N"* takes every **open** task shown, in both phases and of both kinds; a
+  resolved one is folded away and not in it. The floating bar offers **Tag vergeben** — the task sheet's own tag list,
+  titled for the batch — and **Vor der Reise** / **Während der Reise**. Only what changes is written, one snackbar
+  undo takes the whole batch back, and the mode ends with the batch; a batch that changes nothing says so instead.
+  Switching to *Notizen* ends the mode. M4's window has no selection: a hold there does nothing.
+* **The rows look like M6's (2026-09-24).** Each tag group is a `ListGroup` — the heading and drop frame M6's tag
+  headings wear — and its rows are full-width list items with M6's separators and height, the task's words set in the
+  row-name role (`ion-label h3`'s size and weight). M4's window keeps its compact lines.
 * **The task sheet** opens by tapping a task's words, on this screen and on M4's window. It carries the head (the
   task's words, with its phase as the meta), the facts that do not fit a line — the row it prepares, who wrote it and
   when, who finished it and when — **the tag list** (FR-7.8: every task tag as a chip, exactly one selectable, plus

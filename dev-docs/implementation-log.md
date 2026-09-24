@@ -430,6 +430,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
 - [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
 - [A cropped screenshot found a corner that was not there (2026-09-24)](#a-cropped-screenshot-found-a-corner-that-was-not-there-2026-09-24) — M25's and M7's segments overflowed their column; a Safari-seam fix was shipped and reverted first.
+- [A bar that never came back: Ionic had moved the modal it was inserted before (2026-09-24)](#a-bar-that-never-came-back-ionic-had-moved-the-modal-it-was-inserted-before-2026-09-24) — ADR-075: a `v-if` inserted before a moved `ion-modal` threw; `SheetModal` became a fragment.
 
 ## Deviations
 
@@ -17392,3 +17393,26 @@ phone and a tablet width; before the fix it read +14 px at both.
 **The trap:** a layout complaint ("cut off") was read as a rendering one, and the evidence was cropped to fit the
 reading. Measure the box against its container before zooming into pixels — and a case that asserts the fix's
 declaration, rather than the symptom, is green against the bug.
+
+## A bar that never came back: Ionic had moved the modal it was inserted before (2026-09-24)
+
+M25 took M6's selection (ADR-075). E2E-M25-12 selects two tasks, gives them a tag through the batch sheet, then
+selects again — and the second time the rows grew their checkboxes but neither the selection bar nor the floating
+bulk bar appeared. Only the production build showed it: the dev server, driven the same way, rendered both.
+
+The console said why: `insertBefore … The node before which the new node is to be inserted is not a child of this
+node`, then a `parentNode` of null. Ionic moves a presented inline `ion-modal` out to the app root and does not put
+it back when it is dismissed. Vue inserts a sibling that appears later (`v-if`) *before the next sibling's element*
+— and the bulk bar's next sibling was the batch sheet's modal, which by then lived somewhere else. The insert threw
+and took the whole patch with it, so the selection bar, which had nothing to do with the modal, was lost too.
+
+The same shape was already in M6 (its bulk bar also stands before its batch sheet) and waited only for the first
+case to select a second time. It is not specific to bulk bars: any `v-if` directly before any `SheetModal` fails
+once that sheet has been opened. The fix is therefore in `SheetModal`, not in the screens: it renders two roots, a
+hidden marker and the modal, so the component is a fragment whose start marker stays where Vue left it, while
+unmounting still removes the modal wherever Ionic moved it. A single wrapper element was rejected: Vue removes only
+the wrapper on unmount and would have orphaned the moved modal in the app root.
+
+**The trap:** a production-only render failure with no visible error. Vue swallows the exception into
+`console.error` in a production build, so the page simply stops updating part of itself; capture the console in the
+failing case before reasoning about state.
