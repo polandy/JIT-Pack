@@ -377,7 +377,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     // refusal named once in words below the list.
     const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
     await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
-    await expect(sunscreenRow.locator('.rowgrip.off')).toBeVisible()
+    await expect(sunscreenRow.locator('.drag-grip.off')).toBeVisible()
     await expect(host.getByTestId('m6-drag-hint')).toBeVisible()
 
     // Refused: the packing row's own combined heading carries no tag of its own.

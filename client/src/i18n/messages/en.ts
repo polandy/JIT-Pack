@@ -1502,6 +1502,7 @@ export const en = {
   'tripTodos.resolved': '{n} done',
   'tripTodos.add': 'Add a task…',
   'tripTodos.remove': 'Remove task',
+  'tripTodos.drag': 'Drag {body} to another tag or phase',
   'tripTodos.forItem': 'Belongs to {name}',
 
   // FR-7.7 — M25, a trip's tasks on a screen of their own.

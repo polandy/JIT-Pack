@@ -2852,8 +2852,9 @@ token would prove nothing there is anything to prove.
     in one line **and keeps its field** — a trip with no tasks at all is exactly the reader the two fields are for, so
     there is no screen-wide empty state.
 * **A task's line:** a grip, the words, then the cluster and the tick at the row's own edge — the rule M4's packing
-  rows follow. The grip sits in the item's own `slot="start"`, matching M6's own grip (owner feedback 2026-09-23: the
-  two had drifted to a different gap between the icon and the words despite drawing the same gesture).
+  rows follow. The grip sits in the item's own `slot="start"` and **is M6's own grip** — one component,
+  `DragGrip.vue`, since 2026-09-24 (owner feedback: M25's two-line glyph at a smaller size read as a stray dash
+  beside the words; the week before, the two had already drifted to a different gap despite drawing one gesture).
   * **The grip** (FR-7.8) lifts the task at once; anywhere else on the row a **hold** does, at `useLongPress`'s own
     500 ms and 8 px, so a finger can still scroll. While a task is in the air the group under the pointer says
     *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
