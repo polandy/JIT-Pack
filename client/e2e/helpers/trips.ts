@@ -380,7 +380,10 @@ export const TRIP_ROW_ACTION = {
  */
 export async function openTripRowMenu(page: Page, trip: string): Promise<Locator> {
   await visiblePage(page).getByTestId(`trip-row-${trip}`).dispatchEvent('contextmenu')
-  const sheet = page.locator('ion-action-sheet')
+  // The newest sheet: the last menu may still be in its leave animation when
+  // a confirm that followed it was answered quickly (E2E-M2-05), and M2 opens
+  // the new one meanwhile rather than swallowing the request.
+  const sheet = page.locator('ion-action-sheet').last()
   await expect(sheet).toBeVisible()
   return sheet
 }
@@ -396,8 +399,8 @@ export async function chooseTripRowAction(
   trip: string,
   action: keyof typeof TRIP_ROW_ACTION,
 ): Promise<void> {
-  await openTripRowMenu(page, trip)
-  await page.getByTestId(TRIP_ROW_ACTION[action]).click()
+  const sheet = await openTripRowMenu(page, trip)
+  await sheet.getByTestId(TRIP_ROW_ACTION[action]).click()
 }
 
 /**
