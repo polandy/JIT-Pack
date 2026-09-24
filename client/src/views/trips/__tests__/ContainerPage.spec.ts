@@ -196,6 +196,22 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
     expect(page.find('[data-testid="m11-selbar"]').exists()).toBe(false)
   })
 
+  it('ends the mode after a batch of one, as after any batch', async () => {
+    seedBucket()
+    const page = mountPage()
+    await flushPromises()
+
+    await rowNamed(page, 'Kocher').trigger('contextmenu')
+    await rowNamed(page, 'Kocher').trigger('click')
+    await page.get('[data-testid="m11-bulk-assign"]').trigger('click')
+    await flushPromises()
+    await page.get('[data-testid="m11-picker-option"]').trigger('click')
+    await flushPromises()
+
+    expect(assigned()).toEqual([['ti-3', 'c1']])
+    expect(page.find('[data-testid="m11-selbar"]').exists()).toBe(false)
+  })
+
   it('arms from the app bar only while the bucket holds something, and „Alle" takes it all', async () => {
     const trips = seedTrip()
     tripScreen.loadedTrips.add('t1')

@@ -145,7 +145,9 @@ function assignTo(containerId: string) {
   for (const item of pickingItems.value) {
     orchestrator.assignContainer(props.tripId, item, containerId)
   }
-  if (pickingIds.value !== null && pickingIds.value.length > 1) selection.end()
+  // A tap in the mode picks rather than opening this picker, so the picker
+  // was opened by the bar whenever the mode is on — a batch of one included.
+  if (selecting.value) selection.end()
   pickingIds.value = null
 }
 
