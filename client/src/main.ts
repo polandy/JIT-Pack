@@ -29,6 +29,10 @@ import './theme/typography.css'
 import './theme/surfaces.css'
 import { initTheme } from './theme/theme'
 
+/* `useDragToGroup`'s own visual contract (ADR-060) — the dragged clone and
+ * the row it left behind look the same wherever the gesture is offered. */
+import './composables/dragToGroup.css'
+
 /* Language (NFR-4.12): English default, German fully supported. Resolved
  * before mount for the same reason as the theme — the first paint should
  * already be in the user's language, not switch under them. */

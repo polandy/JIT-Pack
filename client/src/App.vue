@@ -537,4 +537,27 @@ async function saveBackup() {
   position: relative;
   min-height: 0;
 }
+
+/*
+ * The app's one undo snackbar (FR-25.2 and every act that reuses its shape —
+ * FR-7.3/7.4's task toasts, FR-27.16's rename, FR-30.9's bulk tag, FR-25.11j's
+ * purchase). Lives here rather than on the screen that first needed it: every
+ * route below `App.vue` is a lazy chunk (M4's `PackingListPage.vue`, M6's
+ * `ShoppingPage.vue`, …), and Ionic renders a toast into the app root —
+ * unscoped CSS living in a chunk that has not loaded yet never reaches it.
+ * `App.vue` itself is not lazy, so this is the one place the rule is always
+ * present regardless of which screen raised the toast (found 2026-09-22: a
+ * shopping-list undo landed in Ionic's stock palette, unreadable, because
+ * PackingListPage.vue's own copy of this rule had never loaded).
+ */
+.pack-toast {
+  --background: var(--ct-surface1);
+  --color: var(--ct-text);
+  --border-color: var(--ct-surface2);
+  --border-width: 1px;
+  --border-style: solid;
+  --border-radius: var(--jp-r-md);
+  --box-shadow: var(--jp-shadow);
+  --button-color: var(--jp-brand);
+}
 </style>

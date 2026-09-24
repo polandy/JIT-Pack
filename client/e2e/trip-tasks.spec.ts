@@ -481,6 +481,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.mouse.down()
     await page.mouse.move(g.x + 12, g.y + 12, { steps: 3 })
     await expect(host).toHaveAttribute('data-drag', 'dragging')
+    // The clone travelling under the pointer carries `useDragToGroup`'s own
+    // shared frame (`composables/dragToGroup.css`) — this screen never drew
+    // one of its own before it, so a lost import would silently drop it back
+    // to no frame at all rather than change a colour.
+    await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
     await page.mouse.move(t.x + t.width / 2, t.y + 10, { steps: 8 })
     // It says where it will land before it lands.
     await expect(target).toHaveAttribute('data-drop-over', '')

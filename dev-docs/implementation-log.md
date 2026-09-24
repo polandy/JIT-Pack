@@ -424,6 +424,12 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A mockup drew a date the data does not have (2026-09-21)](#a-mockup-drew-a-date-the-data-does-not-have-2026-09-21) — FR-7.10: an approved mockup showed due dates no task has; and the phase word `listInFocus` gets wrong.
 - [`e2e` stops running on `ci-remote`, and on a markdown-only diff (2026-09-22)](#e2e-stops-running-on-ci-remote-and-on-a-markdown-only-diff-2026-09-22) — the accepted cost: no e2e signal on a feature branch until a PR exists; `visual` skips a docs-only patch too.
 - [A landing rule was specified for a trip whose card was about to stop being one link (2026-09-22)](#a-landing-rule-was-specified-for-a-trip-whose-card-was-about-to-stop-being-one-link-2026-09-22) — FR-6.4/ADR-073 withdrawn before build: the premise a concurrent PR had already answered differently.
+- [One `TransitionGroup` per heading animated the wrong departures (2026-09-22)](#one-transitiongroup-per-heading-animated-the-wrong-departures-2026-09-22) — a retag read as a leave; the fix a render caught, not a test.
+- [A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)](#a-toasts-contrast-lived-in-a-route-that-had-not-loaded-and-an-undo-repeated-a-fixed-bug-2026-09-22) — `.pack-toast` moved to `App.vue`; drag-retag's undo now reuses `bulkSetTag`.
+- [A heading per packing category was the wrong shape for M6 (2026-09-23)](#a-heading-per-packing-category-was-the-wrong-shape-for-m6-2026-09-23) — a category read as a tag; combined into one heading.
+- [Two screens drew two frames around one gesture (2026-09-23)](#two-screens-drew-two-frames-around-one-gesture-2026-09-23) — M6's drag frame and M25's own diverged; unified into `dragToGroup.css`.
+- [A grip without `slot="start"` was never going to match one with it (2026-09-23)](#a-grip-without-slotstart-was-never-going-to-match-one-with-it-2026-09-23) — M25's grip gap fixed; the row's date line moved to the task's sheet.
+- [A cropped screenshot found a corner that was not there (2026-09-24)](#a-cropped-screenshot-found-a-corner-that-was-not-there-2026-09-24) — M25's and M7's segments overflowed their column; a Safari-seam fix was shipped and reverted first.
 
 ## Deviations
 
@@ -17199,3 +17205,190 @@ proposed it.
 until it is checked against what else is in flight for the same trigger — not the same file, the
 same *screen state*. Two sessions each building a correct answer to a different owner remark can
 still collide on the one place both answers have to render.
+
+## One `TransitionGroup` per heading animated the wrong departures (2026-09-22)
+
+FR-30.9 gained the owner's second round on M6: the „＋ Tag" line repeated under every untagged row
+was replaced with a tap-to-open sheet and nothing else, and several own entries — already tagged or
+not — can now be retagged in one act, entered by a long press on a row or the header's own icon
+(mirroring M9's `m9-select`, FR-24.9), spanning every tag heading rather than a filtered subset. In
+the same pass, checking a row off (FR-25.11j) was given the packing list's own shape: the row leaves
+with a wash-collapse-fade rather than vanishing, and a toast with an undo offers the way back before
+the reveal is ever opened, the same `presentToast` shape M4 already uses rather than the dashboard
+card's inline panel — that one exists only because several cards share M1's page and a toast could
+not say which one it was for.
+
+**The trap.** M6 renders one `IonItemGroup` per tag heading, each with its own rows, because a
+heading's rows are not siblings of another heading's — there is no single flat list to hand one
+`TransitionGroup`. Copying M4's `pack-out` recipe (`onRowLeave` calling the shared `collapseRow`)
+onto each heading's own `TransitionGroup` looked like the direct port it was, and the vitest suite —
+jsdom runs no real CSS transition — stayed green. Rendering it said otherwise: retagging an entry
+moves it out of one heading's list and into another's, which is exactly a "leave" as far as the old
+heading's `TransitionGroup` is concerned, and the collapse animated it there while the row had
+already reappeared under its new heading — a duplicate row hanging in the vacated heading for the
+length of the collapse. A tab switch recomputes every heading's contents the same way, so the same
+defect would have fired on every tab change too, not only a retag.
+
+**The fix mirrors one already in the file it was copied from.** `PackingListPage.vue`'s own
+`onRowLeave` finishes at once, uninanimated, when the row's cluster key says the item only changed
+*shape* rather than actually leaving (`isReshaped`) — a retag is this screen's version of a reshape.
+M6's fix is a `Set` of the keys currently mid-purchase (`buying`, filled by `buyLine` and drained by
+the leave hook): a row's `@leave` animates only when its key is in that set, and finishes immediately
+for any other reason a row leaves a heading's list. No unit test pins this — the failure mode is a
+real browser's transition timing, which is exactly the gap `dev-docs/CODING_PRINCIPLES.md`'s render-
+it-and-look rule exists to close, and the screenshots that caught it were taken for that reason
+before this shipped, not after a bug report.
+
+**A smaller mismatch, the same way.** The bulk sheet reuses `ShoppingTagChooser` as-is, per FR-30.9's
+own reasoning for the single-entry sheet — but that component's trailing summary sentence
+(*„the entry is listed under…"*) is written for exactly one entry that stays staged until *Speichern*,
+and the bulk sheet applies the instant a chip is chosen, to more than one entry. Rendering the sheet
+showed the mismatch immediately; the fix is a `summary` prop, defaulted on so the existing sheet is
+unchanged, off for the batch.
+
+## A toast's contrast lived in a route that had not loaded, and an undo repeated a fixed bug (2026-09-22)
+
+Two more defects the owner's own manual test of the shipped feature (above) found — one a wrong
+premise, one the same trap already written down once.
+
+**The premise.** `PackingListPage.vue` carries `.pack-toast`, the app's one undo-snackbar style,
+in an *unscoped* `<style>` block — deliberately unscoped, since Ionic presents a toast into the app
+root and a scoped rule never reaches it. What that comment did not say is that `PackingListPage.vue`
+is also a lazy route chunk. A reader who opens the shopping tab straight from a link, never having
+visited the packing list first, never loads that chunk — and M6's own new toasts (FR-25.11j's
+purchase, FR-30.9's bulk and, moments later, single-row retag) rendered in Ionic's stock palette,
+the exact defect `.pack-toast` was written to close, because the rule closing it had never arrived.
+The fix moves `.pack-toast` into `App.vue`'s own unscoped block — the one component that is never
+lazy — so it is present regardless of which screen raises the toast first. The two e2e cases that
+already asserted these toasts' text were tightened to scope through `ion-toast.pack-toast` rather
+than a bare role query, and reverting the fix turns both red, which they would not have before.
+
+**The trap.** `actions.ts`'s `bulkSetTag` already carries a long comment on why its own undo cannot
+hand `updateEntry` the pre-batch snapshot: `updateEntry`'s "only write what changed" guard diffs the
+target against the entry it is given, and asking it to restore the very value that snapshot already
+holds looks like no change and writes nothing. FR-30.9's own drag-to-retag — added the same day, once
+the owner asked for the mockup's drag gesture in words — first went through `ShoppingLine.edit`
+directly rather than through `bulkSetTag`: apply the drop with one `edit()` call, undo it with a
+second `edit()` call closed over the *same* stale `ShoppingLine`. The second call diffed against the
+first call's own starting point, saw the tag it was being asked to restore, and silently wrote
+nothing — the identical failure shape, one layer up, on code written after the comment describing it.
+Caught by a driving e2e case (`E2E-M6-34`) rather than by rendering, this time — the write itself is
+wrong, not the paint, so a mounted assertion on where the entry ended up was enough. The fix is not a
+second copy of the workaround: the drag's drop is exactly a batch of one, so `onDrop` now calls
+`bulkSetTag` with a singleton set and hands its own already-correct `undo` to the toast, rather than
+re-deriving a second one.
+
+## A heading per packing category was the wrong shape for M6 (2026-09-23)
+
+FR-30.2's original cut filed the packing list's rows on M6 under the heading their `buildBuyRows`
+category already grouped them by on M4 — one section per category, same as the packing screen
+itself. It read as reuse: the packing list already had the grouping, so M6 rendered it rather than
+inventing a second one.
+
+**The premise was wrong the moment real data used it.** The dev seed's Sonnencreme carries the
+category *Bad*; once FR-30.9 gave the list's own entries tags, a packing category and an entry's tag
+sat in identical headings, drawn with the identical chip styling, telling two different stories —
+one names what a master item *is*, the other names where a person decided to buy it — and the owner
+read the *Bad* heading as a shopping-list tag on first use, tried to drag into and out of it, and got
+the refusal FR-30.9's drag gesture gives any heading that carries no tag of its own (`dropTag`
+already returned `undefined` for it — the mechanics were correct throughout; the heading itself was
+the wrong idea). A tag namespace and a category namespace happening to share a spelling was always
+possible — *Bad* being both a real inventory tag and dev-seed category is not a contrived case — and
+nothing on screen said which one a given heading was.
+
+**The fix drops the distinction the screen never needed to draw.** `buildSections` no longer groups
+`sourced` by heading at all: every source's lines file into one combined section (`packing: true` on
+`ShoppingSection`), placed first — ahead of the own entries' tag sections — and present only while a
+source has something open. `ShoppingLine.section`, the field that carried a packing row's category
+across the module boundary, is retired along with it: nothing downstream of `packingShoppingSource.ts`
+read it once the heading it fed was gone. `buildBuyRows`'s own category-scoped row aggregation
+(`internal` to the packing side, `domain/buyRows.ts`) is untouched — the category still decides which
+packing rows aggregate into one row there; it simply stops surfacing as an M6 heading. The drag
+refusal, the dashed grip placeholder and the dimmed-heading feedback built earlier the same day
+(above) carry over unchanged: they were already keyed off `dropTag`'s own `undefined` case, never off
+a category name, so collapsing every source heading into one changed nothing they depended on.
+
+## Two screens drew two frames around one gesture (2026-09-23)
+
+M6's drag (FR-30.9, above) and M25's own (FR-7.8, built 2026-09-21) both sit on `useDragToGroup`, and
+the composable's own doc comment says the attributes it sets are "for the screen to style" — a
+deliberate choice, since what a *target* looks like while something hangs over it is a screen's own
+call (a tag heading is not a task group). But two of the four attributes never carry a meaning that
+differs by screen: `data-drag-source` marks the row a clone left behind, and `data-drag-ghost` marks
+the clone itself, wherever `document.body` it lands in. Read against each other, `ShoppingPage.vue`
+had grown a mockup-verified frame for both — border, radius, shadow on the ghost; `opacity: 0.4` on
+the source — while `TripTasksPage.vue`'s own `TripTodoList.vue` had only the dimming, at the same
+`0.4`, and no ghost frame at all: a task mid-drag floated as an unstyled clone, because M6's polish
+pass (above, and the two before it) never had a reason to look at M25's code.
+
+**The owner asked directly**: which of #576's own gestures could unify for the app's UX rather than
+staying two hand-rolled copies of the same idea. The answer here was narrower than "unify the drag" —
+`data-drop-over`'s target styling stays split (Shopping's tinted `ion-item-group` background and
+corner-clip fix has no clean equivalent on M25's plain `<div>` group, and rebuilding M25's already
+green, already screenshot-baselined section for a cosmetic match risked more than a shared file was
+worth this round) — but the ghost and the source dim were an exact, unconditional duplicate in one
+case and a real gap in the other, not a difference in kind.
+
+**Fix:** `client/src/composables/dragToGroup.css`, imported once in `main.ts`, owns `[data-drag-ghost]`
+and `[data-drag-source]` globally — not scoped to a component, because the ghost is a DOM clone moved
+outside any component's own tree, and a scoped rule only ever reached it by the accident of Vue
+copying the clone's `data-v-*` attribute along with it. `ShoppingPage.vue` and `TripTodoList.vue` each
+lost their own copy of the same two rules; M25 gained the frame it never had. Mutation-tested by
+reverting the new file and its import: both `E2E-M25-08` and `E2E-M6-34` fail on the ghost's
+`border-style`, restored to `solid` once the file is back — the case that used to only prove Shopping
+kept its own frame now also proves neither screen quietly loses the shared one.
+
+## A grip without `slot="start"` was never going to match one with it (2026-09-23)
+
+Asked to test the unified drag frame (above), the owner noticed a second gap: M6's grip sits at a
+generous distance from the row's words, M25's own sat almost flush against them, even though both are
+`useDragToGroup`'s own grip and, by the owner's read, "the same component." They are not, quite —
+`ShoppingPage.vue`'s `.rowgrip` and `TripTodoList.vue`'s `.grip` are two independent templates that
+happen to offer the same gesture — but the visible gap between the icon and the words is exactly the
+kind of thing that should not depend on which screen drew it.
+
+**The cause was a missing slot, not a missing margin.** `ShoppingPage.vue`'s grip carries
+`slot="start"` on its `IonItem`; Ionic's own item layout puts its automatic spacing between a
+`[slot=start]` element and the item's default-slot content. `TripTodoList.vue`'s grip had no slot at
+all — a plain child ahead of `<IonLabel>` — so it got none of that spacing, and a hand-picked
+`margin-inline-end: 2px` was standing in for what Ionic already does for every other slotted control in
+the app (`.rowgrip`, `.rowbox`, the `end` slot's own chips and buttons). Adding `slot="start"` closed
+the gap to the same look without inventing a new number to match by eye.
+
+**The same conversation surfaced a second, unrelated ask**: the row's own provenance line — Q3 B's
+*„erstellt von Andy · heute 14:32"* / *„erledigt von Sia · gestern 09:15"* — was more than the overview
+needed, now that every task also has a sheet of its own (FR-7.7, built 2026-09-21) that already carries
+both facts as their own lines. Removed from `TripTodoList.vue`'s row entirely, in both the open and
+resolved sections; `taskSubline()` (the function that picked which of the two sentences a row's line
+was) had no other caller once the row stopped needing it, so it was deleted from `lib/taskFacts.ts`
+along with its own test — `createdStampText`/`resolvedStampText`, which `TripTaskSheet.vue` calls
+directly, stay. Both changes touch `TripTodoList.vue` itself, so both apply wherever it is mounted —
+M4's own prep window included, which has no grip (`lift` is absent there) but shares the same row and
+so lost the same line. `E2E-VIS-13`'s baseline moved with the shorter rows and the wider grip gap
+(`make visual-update`); no other baseline did, since none of M4's own visual cases happen to seed a
+todo with the facts that would have drawn a stamp in the first place.
+
+## A cropped screenshot found a corner that was not there (2026-09-24)
+
+The owner reported M25's Tasks/Notes segment "cut off on the right" on an iPad. The investigation cropped and
+zoomed the corner of the checked pill out of the owner's screenshots, found a hair of mismatch between the pill's
+radius and the track's, could not reproduce it in Chromium at any viewport, and concluded it was a WebKit-only
+sub-pixel seam. `overflow: hidden` on `ion-segment` was shipped for it (63ae2d58) with a case asserting the
+property computes — which passed, because it asserted the fix rather than the defect.
+
+The owner looked again and it was unchanged. The full, uncropped screenshot showed what the crops had cut away:
+the whole segment ran 14 px past the right edge of every other block in the column, and its rounded end was
+sliced off straight by the scroller. Ionic sizes `ion-segment` `width: 100%`; M25 gives it `margin: 4px 14px`, so
+its margin box is the column plus 28 px wide. Measuring the element against its parent showed it at once — and on a 390 px
+phone too (14 → 404 px), in Chromium, in every render this project had taken. The earlier screenshots had it;
+nobody measured, and the crops were chosen around the wrong hypothesis. M7's scope segment had the same margin
+and the same overflow.
+
+The fix is `width: auto` on the two screens that give the segment a margin, not globally: the import wizards'
+merge segments sit in an `ion-item` row, where `auto` would shrink them to their content. The Safari fix was
+reverted with its log entry and ledger paragraph. E2E-G14-05 now measures the overhang against the parent at a
+phone and a tablet width; before the fix it read +14 px at both.
+
+**The trap:** a layout complaint ("cut off") was read as a rendering one, and the evidence was cropped to fit the
+reading. Measure the box against its container before zooming into pixels — and a case that asserts the fix's
+declaration, rather than the symptom, is green against the bug.

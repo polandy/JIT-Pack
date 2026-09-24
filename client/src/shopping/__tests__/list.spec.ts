@@ -1,25 +1,20 @@
 /**
- * How one shopping list reads (FR-30.2): own entries first under their own
- * heading, a source's lines after them under the headings the source chose,
- * and no line merged with another across the two.
+ * How one shopping list reads (FR-30.2): every source's lines first, combined
+ * under one heading, then the own entries under their own, and no line
+ * merged with another across the two.
  */
 import { describe, expect, it } from 'vitest'
 
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { buildSections, listInFocus, openCount } from '../list'
+import { buildSections, dropTag, listInFocus, openCount } from '../list'
 
-function line(
-  name: string,
-  section: string | null = null,
-  tag: string | null = null,
-): ShoppingLine {
+function line(name: string, tag: string | null = null): ShoppingLine {
   return {
     key: name,
     name,
     quantity: 1,
     recipients: [],
-    section,
     tag,
     buy: () => {},
     unbuy: () => {},
@@ -27,25 +22,28 @@ function line(
 }
 
 describe('buildSections', () => {
-  it('puts the own entries first, then the sourced lines by heading, in arrival order', () => {
+  it('combines every sourced line under one heading, ahead of the own entries', () => {
     const sections = buildSections(
       [line('Milch')],
-      [line('Sonnencreme', 'Pflege'), line('Hut', 'Kleidung'), line('Duschgel', 'Pflege')],
+      [line('Sonnencreme'), line('Hut'), line('Duschgel')],
     )
-    expect(sections.map((s) => [s.own, s.name, s.lines.map((l) => l.name)])).toEqual([
-      [true, null, ['Milch']],
-      [false, 'Pflege', ['Sonnencreme', 'Duschgel']],
-      [false, 'Kleidung', ['Hut']],
+    expect(sections.map((s) => [s.packing, s.own, s.lines.map((l) => l.name)])).toEqual([
+      [true, false, ['Sonnencreme', 'Hut', 'Duschgel']],
+      [false, true, ['Milch']],
     ])
   })
 
-  it('leaves the own section out, not empty, when nothing was typed', () => {
-    expect(buildSections([], [line('Hut', 'Kleidung')]).map((s) => s.own)).toEqual([false])
+  it('leaves the packing section out, not empty, when nothing is sourced', () => {
+    expect(buildSections([line('Milch')], []).map((s) => s.packing)).toEqual([false])
   })
 
-  it('keeps a sourced line without a heading apart from the own entries', () => {
+  it('leaves the own section out, not empty, when nothing was typed', () => {
+    expect(buildSections([], [line('Hut')]).map((s) => s.own)).toEqual([false])
+  })
+
+  it('keeps a sourced line apart from an own entry of the same name', () => {
     const sections = buildSections([line('Brot')], [line('Brot')])
-    expect(sections.map((s) => [s.own, s.lines.length])).toEqual([
+    expect(sections.map((s) => [s.packing, s.lines.length])).toEqual([
       [true, 1],
       [false, 1],
     ])
@@ -54,27 +52,42 @@ describe('buildSections', () => {
 })
 
 describe('buildSections — tags (FR-30.9)', () => {
-  it('files the own entries under a section per tag, A–Z, then the untagged, then the sources', () => {
+  it('puts the packing section first, then a section per tag A–Z, then the untagged', () => {
     const sections = buildSections(
       [
-        line('Pasta', null, 'Supermarkt'),
+        line('Pasta', 'Supermarkt'),
         line('Batterien'),
-        line('Spray', null, 'Apotheke'),
-        line('Brot', null, 'Supermarkt'),
+        line('Spray', 'Apotheke'),
+        line('Brot', 'Supermarkt'),
       ],
-      [line('Hut', 'Kleidung')],
+      [line('Hut')],
     )
-    expect(sections.map((s) => [s.tagged, s.own, s.name, s.lines.map((l) => l.name)])).toEqual([
-      [true, false, 'Apotheke', ['Spray']],
-      [true, false, 'Supermarkt', ['Pasta', 'Brot']],
-      [false, true, null, ['Batterien']],
-      [false, false, 'Kleidung', ['Hut']],
+    expect(
+      sections.map((s) => [s.packing, s.tagged, s.own, s.name, s.lines.map((l) => l.name)]),
+    ).toEqual([
+      [true, false, false, null, ['Hut']],
+      [false, true, false, 'Apotheke', ['Spray']],
+      [false, true, false, 'Supermarkt', ['Pasta', 'Brot']],
+      [false, false, true, null, ['Batterien']],
     ])
   })
+})
 
-  it('never lets a source heading collide with a tag of the same name', () => {
-    const sections = buildSections([line('Brot', null, 'Kleidung')], [line('Hut', 'Kleidung')])
-    expect(new Set(sections.map((s) => s.key)).size).toBe(2)
+/** FR-30.9's single-row drag: what dropping onto a section would set. */
+describe('dropTag', () => {
+  it('is the section’s own tag for a tagged section', () => {
+    const sections = buildSections([line('Spray', 'Apotheke')], [])
+    expect(dropTag(sections[0]!)).toBe('Apotheke')
+  })
+
+  it('is null for the untagged own section', () => {
+    const sections = buildSections([line('Batterien')], [])
+    expect(dropTag(sections[0]!)).toBeNull()
+  })
+
+  it('is undefined for the packing section — never a drop target', () => {
+    const sections = buildSections([], [line('Hut')])
+    expect(dropTag(sections[0]!)).toBeUndefined()
   })
 })
 

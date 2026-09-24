@@ -1,0 +1,32 @@
+/**
+ * `useDragToGroup`'s own visual contract (ADR-060): the two attributes that
+ * never mean something different per screen — `data-drag-source` on the row
+ * that stayed behind, `data-drag-ghost` on the clone that travels — get one
+ * look here, so every consumer has it without redrawing it.
+ *
+ * Global on purpose, not scoped to a component: the ghost is a DOM clone
+ * moved to `document.body`, outside any component's own tree, and two
+ * screens drawing two different frames around the same gesture reads as two
+ * different features rather than one (found 2026-09-23 comparing
+ * `ShoppingPage.vue`'s drag against `TripTasksPage.vue`'s — the shopping list
+ * had a mockup-verified frame the tasks screen never grew).
+ *
+ * `data-drop-over` stays out of this file on purpose: what a *target* looks
+ * like while something hangs over it is still a screen's own call (a tag
+ * heading is not a task group), the same way `useDragToGroup.ts` never reads
+ * what its own attributes are styled to mean.
+ */
+
+/* The row stays where it was while its clone travels (ADR-060); it is only
+   dimmed, so the list does not close up under the finger. */
+[data-drag-source] {
+  opacity: 0.4;
+}
+
+/* The floating clone — mockup's own floating-row frame ("Vorschlag-Liste"
+   canvas, 2026-09-23). */
+[data-drag-ghost] {
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r-md);
+  box-shadow: var(--jp-shadow);
+}

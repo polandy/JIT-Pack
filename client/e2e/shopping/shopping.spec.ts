@@ -75,7 +75,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await m6(page).getByTestId('m6-tab-local').click()
     await addEntry(page, 'Milch')
 
-    // Its own section, first; the packing row after it under its own heading.
+    // Its own section, named; the packing row sits in the combined heading.
     await expect(m6(page).getByTestId('m6-group-own')).toContainText('Added here')
     await expect(
       m6(page).getByTestId('m6-group-own').getByTestId('m6-row').locator('h3'),
@@ -244,6 +244,187 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       'Pasta',
     ])
     await expect(m6(page).getByTestId('m6-group-tag-Baumarkt')).toBeVisible()
+  })
+
+  /**
+   * E2E-M6-32 (FR-30.9): several own entries — already tagged or not — are
+   * retagged in one act, entered inline on the list itself rather than
+   * through a separate selection screen like M9's own (FR-24.9): a shopping
+   * row is not a navigation link, so a long press fights no tap the way it
+   * would there. `contextmenu` stands in for the hold, the same substitution
+   * M4's own row-menu case makes (`helpers/m4.ts`'s `openRowMenu`).
+   */
+  test('E2E-M6-32: several entries, already tagged or not, are retagged in one act (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Mückenspray')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    // A long press on the untagged row enters the mode with it pre-selected.
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Brot' })
+      .getByTestId('m6-row-label')
+      .dispatchEvent('contextmenu')
+    await expect(m6(page).getByTestId('m6-selbar')).toBeVisible()
+    await expect(m6(page).getByTestId('m6-row-check-Brot')).toHaveClass(/on/)
+
+    // „Alle N" takes the already-tagged one too — the reach FR-30.9 added
+    // over M9's own selection mode, which never offered a retag.
+    await m6(page).getByTestId('m6-select-all').click()
+    await expect(m6(page).getByTestId('m6-select-count')).toContainText('2')
+
+    await m6(page).getByTestId('m6-bulk-tag').click()
+    await expect(page.getByTestId('m6-bulk-sheet')).toHaveAttribute('data-presented', 'true')
+    await expect(page.getByTestId('m6-bulk-title')).toContainText('2')
+    await page.getByTestId('m6-tag-search').locator('input').fill('Reise')
+    await page.getByTestId('m6-tag-create').click()
+
+    // The mode ends with the batch, and both now share the new tag.
+    await expect(m6(page).getByTestId('m6-selbar')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-group-tag-Reise').locator('h3')).toHaveText([
+      'Brot',
+      'Mückenspray',
+    ])
+
+    // The toast's undo puts both back exactly where they were. Scoped to
+    // `.pack-toast`, the app's one undo-snackbar style (found 2026-09-22: a
+    // shopping toast without it silently fell back to Ionic's stock, barely
+    // readable palette, and no assertion here would have caught it).
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-group-tag-Apotheke').locator('h3')).toHaveText([
+      'Mückenspray',
+    ])
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
+  })
+
+  /**
+   * E2E-M6-33 (FR-25.11j): a bought row leaves the open list with a smooth
+   * effect rather than vanishing, and its own toast — not a trip through the
+   * reveal bar — is the fast way to take a mistap back. M4's own shape
+   * (`presentToast` with a button), not the dashboard card's inline panel,
+   * which exists only because several cards share that page.
+   */
+  test('E2E-M6-33: a bought row leaves smoothly, with its own undo (FR-25.11j)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Kaffee')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Kaffee' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
+
+    // Scoped to `.pack-toast`, the app's one undo-snackbar style — see the
+    // same note on E2E-M6-32.
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('“Kaffee” bought')
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
+    // Brought back by the toast alone — the reveal was never opened.
+    await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M6-34 (FR-30.9): one own entry, lifted by its grip and dropped onto
+   * another own section, is retagged in one act — the gesture the bulk sheet
+   * gives a batch of one. The mechanics are `useDragToGroup`'s own (FR-7.8,
+   * `TripTasksPage.vue`'s `E2E-M25-08`/`E2E-M25-09`); this only proves the
+   * shopping list wired it up: which section a drop lands in, and which one
+   * it never can — a packing-projected line's own heading files nothing
+   * under a tag, so it is never a target either.
+   */
+  test('E2E-M6-34: a grip drags one entry into another tag, and refuses a heading it cannot honestly hold (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await addBuyRowOnM4(page, 'Sonnencreme', 'Buy before')
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Mückenspray')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    const host = m6(page)
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+
+    // A packing row has nothing to drag either — a dashed placeholder
+    // rather than an empty gap (owner feedback 2026-09-23), and the same
+    // refusal named once in words below the list.
+    const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
+    await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
+    await expect(sunscreenRow.locator('.rowgrip.off')).toBeVisible()
+    await expect(host.getByTestId('m6-drag-hint')).toBeVisible()
+
+    // Refused: the packing row's own combined heading carries no tag of its own.
+    const grip = host.getByTestId('m6-row-grip-Brot')
+    const fromPacking = host.getByTestId('m6-group-packing')
+    await expect(fromPacking).toHaveAttribute('data-droppable', 'false')
+    let g = (await grip.boundingBox())!
+    let target = (await fromPacking.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await expect(host).toHaveAttribute('data-drag', 'dragging')
+    // A heading that can never take this drop dims for as long as one is
+    // in the air, rather than sitting inert next to the one that lit up.
+    await expect(fromPacking).toHaveCSS('opacity', '0.5')
+    await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
+    await expect(fromPacking).not.toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(fromPacking).toHaveCSS('opacity', '1')
+    await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
+
+    // Accepted: dropped onto the already-tagged group, it takes that tag.
+    const apotheke = host.getByTestId('m6-group-tag-Apotheke')
+    g = (await grip.boundingBox())!
+    target = (await apotheke.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    // The shared frame (`composables/dragToGroup.css`, unified with
+    // `TripTasksPage.vue`'s own drag 2026-09-23) still reaches this page's
+    // ghost now that it moved out of this component's own scoped style.
+    await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
+    await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
+    await expect(apotheke).toHaveAttribute('data-drop-over', '')
+    // The heading says so out loud, too — not only the highlight the CSS
+    // gate would already catch.
+    await expect(apotheke.getByText('drop here')).toHaveCSS('opacity', '1')
+    await expect(fromPacking.getByText('drop here')).toHaveCSS('opacity', '0')
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(apotheke.locator('h3')).toHaveText(['Brot', 'Mückenspray'])
+
+    // The toast's own undo puts it back where it was.
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('“Brot” → Apotheke')
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
+    await expect(apotheke.locator('h3')).toHaveText(['Mückenspray'])
   })
 
   /**
@@ -501,10 +682,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M6-01: two tabs, grouped by category, each counting things to buy', async ({
+  test('E2E-M6-01: two tabs, the packing list combined ahead of the own entries, each counting things to buy', async ({
     page,
   }) => {
-    // A tagged master item, so the trip row carries a real category (FR-24.2).
+    // A tagged master item; its category must not surface as a heading here
+    // (revised 2026-09-23) — a packing category is not this list's tag.
     await page.goto(PATH.items)
     await createItem(page, 'Sonnencreme', { tags: ['Drogerie'] })
     await createTripViaWizard(page, TRIP)
@@ -522,13 +704,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(m6(page).getByTestId('m6-group-own').getByTestId('m6-row')).toContainText(
       'Kaugummi',
     )
-    await expect(m6(page).getByTestId('m6-group-Drogerie').getByTestId('m6-row')).toContainText(
-      'Sonnencreme',
-    )
-    await expect(m6(page).getByTestId('m6-group-none').getByTestId('m6-row')).toContainText(
-      'Batterien',
-    )
-    await expect(m6(page).getByTestId('m6-group-none')).toContainText('Uncategorized')
+    const packing = m6(page).getByTestId('m6-group-packing')
+    await expect(packing).toContainText('Packing list')
+    await expect(packing.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
+    await expect(packing.getByTestId('m6-row').filter({ hasText: 'Batterien' })).toBeVisible()
+    await expect(m6(page).getByTestId('m6-group-Drogerie')).toHaveCount(0)
 
     // The label counts things to buy (FR-25.6), and the other tab is its own
     // list — a shared list would show three here.

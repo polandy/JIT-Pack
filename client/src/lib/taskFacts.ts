@@ -68,23 +68,3 @@ function stampSentence(
   if (who) return t(keys.withWho, { who, when })
   return when ? t(keys.withoutWho, { when }) : null
 }
-
-/**
- * FR-7.7 with Q3 B: the one line a task carries under its words, and which of
- * the two it is depends on where the task stands.
- *
- * An open task is a promise, so it says who made it; a resolved one is a
- * record, so it says who kept it. Showing both would double every line in the
- * list to say, on the open ones, nothing that is not already true of all of
- * them — and the finished ones are folded away, where the second line costs
- * nothing to reach.
- */
-export function taskSubline(
-  task: TaskStamps & { task_state: string },
-  nameOf: NameOf,
-  now: Date = new Date(),
-): string | null {
-  return task.task_state === 'resolved'
-    ? resolvedStampText(task, nameOf, now)
-    : createdStampText(task, nameOf, now)
-}

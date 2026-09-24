@@ -172,7 +172,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
 | E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
 | E2E-VIS-12 | Visual M1 below the hero | all | **New 2026-09-09** (FR-21.28). M1's only baseline is of the hero card, so the blocks under it — the following trip and the planned lookahead — had never been photographed, and that is where the screen had kept Ionic's card: another radius, another inset, another shadow, none of which a stylesheet gate can see, because it is not our stylesheet. Three trips, each with a departure date, so which one is the hero is the rule (`byDepartureSoonestFirst`) rather than the fixture. |
-| E2E-VIS-13 | Visual M25 — a trip's tasks | all | **New 2026-09-21** (FR-7.7; regrouped by tag for FR-7.8, and the shot is taken after a reload so the tag's own snackbar is not part of a layout baseline). The screen that did not exist before, and the one place where both kinds of task and both phases stand together: a preparation with the chip of its row under *Vor der Reise*, a chore of the trip under *Während der Reise*, each with the provenance line the list gained, and the section heads' open counts. It is photographed because three of its decisions are pixels — the chip beside a seat in one cluster, the subtitle under the words, and the third pill above it, which is the row ADR-051 amendment 1 measured. |
+| E2E-VIS-13 | Visual M25 — a trip's tasks | all | **New 2026-09-21, updated 2026-09-23** (FR-7.7; regrouped by tag for FR-7.8, and the shot is taken after a reload so the tag's own snackbar is not part of a layout baseline). The screen that did not exist before, and the one place where both kinds of task and both phases stand together: a preparation with the chip of its row under *Vor der Reise*, a chore of the trip under *Während der Reise*, and the section heads' open counts. The provenance line the list first gained moved to the task's own sheet 2026-09-23, so the baseline no longer carries it. It is photographed because three of its decisions are pixels — the chip beside a seat in one cluster, the grip's own gap to the words, and the third pill above it, which is the row ADR-051 amendment 1 measured. |
 | E2E-VIS-11 | Visual M2 with the hero card | all | **New 2026-09-07.** The `trips` tab-root baseline is an *empty* state, so the segment carrying the hero (FR-21.15) had no picture of itself. It is the one thing on that screen a stylesheet cannot be read for: a card inside a list of cards, which is exactly the collision G-14 exists for. Captured with a second trip of the same series below it, so the hero *and* the group it was lifted out of are in one frame, and with rows on the trip — a ring reading 0/0 is a picture of the card rather than of what the card says. |
 | E2E-VIS-10 | Visual M1 with the hero card | all | **New 2026-09-07.** The four tab-root baselines are all *empty* states, so until this one the screen every rebuild lands on had no picture of itself with data — and the hero (FR-21.13) is exactly what an empty dashboard cannot show. The trip is **started** first: a trip out of the wizard is planned, and M1 lists what is active, which is why the tab-root baseline shows an empty state at all. |
 | E2E-VIS-09 | Visual M16 series profile | all | **New 2026-08-31.** The screen that had no coverage at any layer until 2026-08-30, and whose first render found FR-13.3's checklist input at **width 0** — Ionic gives `ion-select` `width: 100%`, and as a flex item that is a basis of the whole row. That is the class this gate exists for: every assertion passed, the element was in the DOM with the right computed flex and height, and only the pixel said the box was empty. The row is captured **with content on both sides**, a select carrying a value beside an input carrying text, because an empty row of the same geometry would not show the collapse coming back. |
@@ -187,6 +187,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G14-01 | G-14 A card is a plane, not a hairline | all | The M4 group card's painted background differs from the page behind it, and it carries the elevation token and the card radius. This is the defect the pattern exists for: before it, both were `--ct-mantle` and this assertion compared *equal* — a card that passed every colour rule while being invisible as a card. Compared as bytes through a canvas, since a `--background` custom property and a computed `background-color` are the same paint in different notations. Also asserts the **list behind the cards** is not painted the card plane: Ionic reads `--ion-item-background` for `ion-list` too, so naming the card plane there gave every card a slab of its own colour to cast its shadow onto — the card/page comparison stays green throughout that. That assertion is also the only coverage of `ion-list:has(.jp-card)`, i.e. of `:has()` resolving alike in Chromium and WebKit; proved red in both. |
 | E2E-G14-02 | G-14 Elevation follows the flavour | all | In Tag the card still casts a readable shadow. The assertion is that the shadow's ink is darker than the palette's **darkest surface plane**, not merely darker than the card — the first version made the weaker claim and passed with Nacht's ink substituted in, which is exactly the regression it was written to catch. Asserts the flavour actually switched first. |
 | E2E-G14-04 | G-14 Two sheets present the same way out | all | The close control of the sync sheet and of the M5 item sheet compare equal in size, radius, fill and rim, and the fill is not transparent. The two sheets are chosen because they were on **opposite sides** of the four-against-four split the shared head resolved — a single sheet's rendering would have been green either way. |
+| E2E-G14-05 | G-14 A segment with a side margin stays inside its column | all | M25's Tasks/Notes segment and M7's scope segment each end at or before their parent's right edge, at a 390 px phone and a 1180 px tablet viewport. Ionic sizes `ion-segment` `width: 100%`, so a screen's side margin pushed it past the column by the margin's width and the scroller cut its right end off straight — found on an iPad (owner, 2026-09-24), and 14 px past a phone screen too. The two screens are the two that give the segment a margin. |
 | E2E-G14-03 | G-14 A card bounds the group, not its entries | all | Three trips in one M2 card: the first two draw a seam, the last does not (its seam *is* the card's bottom edge). Measured off the rendered `border-bottom-width` inside `ion-item`'s shadow root — the first version read `--inner-border-width` on the host and **passed against `lines="none"`**, the exact defect it was written for, because Ionic drives the line from an attribute selector and the custom property is simply unset on a row nobody styled. |
 | E2E-G13-01 | G-13 Type reaches the screen | all | The UI face carries an Ionic control (through `--ion-font-family`, not merely inherited from `body`) and the display face carries the page title, **and both faces report `loaded`** — a missing asset leaves the computed style intact and silently paints the fallback. |
 | E2E-G13-02 | G-13 Fonts are self-hosted | all | No request to any font CDN during a boot, and every `.woff2` the page did fetch came from the page's own origin (Addendum FR-21.6). The regression it guards is the prototype's Google Fonts link finding its way into the app, which would break Local Mode on a device with no network. |
@@ -1339,13 +1340,14 @@ the way a person does — added on M4, its mode chosen in M5 (`addBuyRowOnM4`) �
 rows; the cases live in `client/e2e/shopping/`. The composer's cases on M6 (E2E-M6-21, E2E-M6-25) are retired with the
 composer.
 
-* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30** (`e2e/shopping/shopping.spec.ts`): two tabs (Before
-  departure / At destination), rows grouped by category, each tab's label counting the **things to buy** rather than
-  rows (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
-  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and would
-  now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one entry is
-  typed into M6's own field, and the case asserts the entry under *„Eingetragen"* before the packing rows' category
-  groups.
+* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-23** (`e2e/shopping/shopping.spec.ts`): two
+  tabs (Before departure / At destination), each tab's label counting the **things to buy** rather than rows
+  (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
+  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and
+  would now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one
+  entry is typed into M6's own field, and the case asserts the entry under *„Eingetragen"*. **Revised 2026-09-23:**
+  a tagged master item's category must not surface as a heading — the packing rows are combined under one
+  *„Packing list"* heading now, asserted by name, and the old per-category heading is asserted absent.
 * **E2E-M6-02** `all` (FR-3.3) — **implemented 2026-08-30, inside E2E-M6-17 and E2E-M6-22** rather than as a case of its
   own: both halves of this promise were already asserted there — the row leaving the list, and the reveal note naming
   where it went — so a third case would have re-run them for an id's sake. What was genuinely missing is one assertion,
@@ -1445,6 +1447,25 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
+* **E2E-M6-32** `local` (FR-30.9, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): several own
+  entries, already tagged or not, are retagged in one act. A long press (`contextmenu`, its deterministic seam) on an
+  untagged entry enters an inline selection with that entry pre-selected; *„Alle N"* takes an already-tagged one too —
+  the reach this added over M9's own selection screen (FR-24.9), which never offered a retag. The bulk bar's *Tag
+  vergeben* opens the same search-or-create sheet a single entry's does, titled for the batch; choosing a tag files
+  both at once, the mode ends with the batch, and the toast's undo puts each back under the tag it carried before.
+* **E2E-M6-33** `local` (FR-25.11j, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): a bought row
+  leaves the open list smoothly rather than vanishing, and raises its own toast with an undo — M4's shape
+  (`presentToast` with a button), not the dashboard card's inline panel, which exists only because several cards share
+  that page. The undo puts the row back without the reveal ever being opened.
+* **E2E-M6-34** `local` (FR-30.9, added 2026-09-22, extended 2026-09-23) — **implemented**
+  (`shopping/shopping.spec.ts`): one own entry, lifted by its grip (`useDragToGroup`, FR-7.8's own gesture) and
+  dropped onto another own section, is retagged in one act — a batch of one, through the same `bulkSetTag` a
+  selection's *Tag vergeben* uses, so its undo diffs against the entry as the drop actually left it rather than the
+  pre-drop snapshot. The packing list's combined heading refuses the drop — it never highlights and never takes it —
+  since it carries no tag of its own to file under; while a drag is in the air, that heading dims rather than
+  sitting inert (owner feedback 2026-09-23: an untouched heading read as broken, not as ineligible), and the packing
+  line's own grip slot carries a dashed placeholder rather than standing empty. Also asserts the travelling clone's
+  border, now drawn from `composables/dragToGroup.css` (revised 2026-09-23) rather than this screen's own style.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3421,13 +3442,14 @@ moved, so the M4 entries are struck in place and say where each went.
   grouping is read back after a reload — a heading that only repainted proves the component and not the write — and
   the tag is then taken off again, which puts the task back under *Ohne Tag* and takes the now-empty heading away
   with it.
-* **E2E-M25-08** `local` (FR-7.8, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): the drag. A task is
-  lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the gesture fails on its
-  own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the write has resolved —
-  waiting on the animation is what E2E-M4-135 paid for; **the group under the pointer says so** while the task is in
-  the air, or the drop is made blind; and **the list's scroll position is read before the lift and after it**,
-  because a list that grew a drop target under the finger would have shifted every row below it (ADR-060). Run in
-  both browsers and repeated four times before it was trusted.
+* **E2E-M25-08** `local` (FR-7.8, added 2026-09-21, extended 2026-09-23) — **implemented** (`trip-tasks.spec.ts`): the
+  drag. A task is lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the
+  gesture fails on its own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the
+  write has resolved — waiting on the animation is what E2E-M4-135 paid for; **the group under the pointer says so**
+  while the task is in the air, or the drop is made blind; and **the list's scroll position is read before the lift
+  and after it**, because a list that grew a drop target under the finger would have shifted every row below it
+  (ADR-060). Run in both browsers and repeated four times before it was trusted. Also asserts the travelling clone's
+  border — this screen drew none of its own before `composables/dragToGroup.css` unified it with M6's (2026-09-23).
 * **E2E-M25-09** `local` (FR-7.8, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): a heading that would
   not be true of the task in hand neither lights up nor takes it — *Aus Packliste* under a chore of the trip. The
   refusal is asserted with its positive half beside it: the gesture still reaches `idle`, because a refused drop is

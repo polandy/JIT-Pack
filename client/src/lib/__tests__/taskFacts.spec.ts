@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { setLocale } from '@/i18n'
 import { nameFrom } from '@/lib/rowFacts'
-import { createdStampText, resolvedStampText, taskSubline } from '@/lib/taskFacts'
+import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
 
 const NOW = new Date('2026-09-21T18:00:00')
 
@@ -75,44 +75,5 @@ describe('createdStampText / resolvedStampText (FR-7.7)', () => {
     expect(resolvedStampText(task({ resolved_at: '2026-09-21T09:15:00' }), nameOf, NOW)).toBe(
       'erledigt · heute 09:15',
     )
-  })
-})
-
-/**
- * Q3 B of the 2026-09-20 round: one line, and which of the two it is depends
- * on where the task stands. An open task is a promise, so it says who made
- * it; a finished one is a record, so it says who kept it.
- */
-describe('taskSubline (FR-7.7, Q3 B)', () => {
-  beforeEach(() => {
-    setLocale('de')
-  })
-
-  it('reads as the writing while the task is open', () => {
-    expect(taskSubline({ ...task(), task_state: 'open' }, nameOf, NOW)).toBe(
-      'erstellt von Andy · heute 14:32',
-    )
-  })
-
-  it('reads as the finishing once it is done', () => {
-    expect(
-      taskSubline(
-        {
-          ...task({ resolved_at: '2026-09-21T16:00:00', resolved_by_user_id: 'u-sia' }),
-          task_state: 'resolved',
-        },
-        nameOf,
-        NOW,
-      ),
-    ).toBe('erledigt von Sia · heute 16:00')
-  })
-
-  /*
-   * A task finished on a device that pushed nothing about it: the line falls
-   * silent rather than falling back to who wrote it, which would read as „Sia
-   * did this" about the person who only asked for it.
-   */
-  it('says nothing rather than naming the author of a finished task', () => {
-    expect(taskSubline({ ...task(), task_state: 'resolved' }, nameOf, NOW)).toBeNull()
   })
 })

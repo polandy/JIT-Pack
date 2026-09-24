@@ -10,9 +10,10 @@
  * changed, and a finished todo names but offers nothing.
  *
  * **Since FR-7.7 the seat is on both kinds** (the owner's request of
- * 2026-09-20: a task is handed over like a pack item), each line carries the
- * one stamp of Q3 B, and the composer belongs to the screen rather than the
- * list — M4's window has none, because everything it shows hangs off a row.
+ * 2026-09-20: a task is handed over like a pack item), and the composer
+ * belongs to the screen rather than the list — M4's window has none, because
+ * everything it shows hangs off a row. Q3 B's own stamp lived on the line
+ * until 2026-09-23; it is the task's own sheet's to show now.
  */
 import { RouterLinkStub, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -268,23 +269,30 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
 })
 
 /**
- * FR-7.7 on the line: the one stamp Q3 B asks for, and the way into the
- * task's own sheet.
+ * FR-7.7 on the line: the way into the task's own sheet, where Q3 B's
+ * provenance line now lives (moved off the row itself 2026-09-23).
  */
 describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  const written = { ...FACTS, author_id: 'u-sia', created_at: '2026-09-20T14:32:00Z' }
+  it('reports the words being tapped, so the screen can open the sheet', async () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
+
+    await wrapper.get('[data-testid="trip-todo-open-Pflanzen giessen"]').trigger('click')
+
+    const opened = wrapper.emitted('open') ?? []
+    expect(opened.map(([task]) => (task as TripTask).id)).toEqual(['Pflanzen giessen'])
+  })
 
   /*
-   * An open task is a promise, so its line says who made it; a resolved one
-   * is a record, so it says who kept it. One line either way — two would
-   * double the height of every row in the list to say, on the open ones,
-   * nothing that is not true of all of them.
+   * Owner feedback 2026-09-23: the row is an overview, not the record — who
+   * wrote or finished a task is worth a line in its own sheet, not doubled
+   * onto every row of a list read at a glance.
    */
-  it('names who wrote an open task, and who finished a resolved one', async () => {
+  it('never draws a provenance line on the row, open or resolved, facts or none', async () => {
+    const written = { ...FACTS, author_id: 'u-sia', created_at: '2026-09-20T14:32:00Z' }
     const wrapper = mountList([
       { ...ownTask('Pflanzen giessen', 'open'), ...written },
       {
@@ -295,43 +303,9 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
       },
     ])
 
-    expect(wrapper.get('[data-testid="trip-todo-stamp-Pflanzen giessen"]').text()).toContain(
-      'written by Sia',
-    )
-    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
-    expect(wrapper.get('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').text()).toContain(
-      'done by Sia',
-    )
-  })
-
-  /*
-   * G-8: Local Mode has nobody to name, and the line then states the moment
-   * alone rather than inventing a person or falling silent about both.
-   */
-  it('keeps the moment where nobody can be named', () => {
-    const wrapper = mountList(
-      [{ ...ownTask('Pflanzen giessen', 'open'), ...written, author_id: 'u-nobody' }],
-      false,
-    )
-
-    const stamp = wrapper.get('[data-testid="trip-todo-stamp-Pflanzen giessen"]').text()
-    expect(stamp).toContain('written')
-    expect(stamp).not.toContain('by')
-  })
-
-  it('says nothing where the task carries no facts at all', () => {
-    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
-
     expect(wrapper.find('[data-testid="trip-todo-stamp-Pflanzen giessen"]').exists()).toBe(false)
-  })
-
-  it('reports the words being tapped, so the screen can open the sheet', async () => {
-    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
-
-    await wrapper.get('[data-testid="trip-todo-open-Pflanzen giessen"]').trigger('click')
-
-    const opened = wrapper.emitted('open') ?? []
-    expect(opened.map(([task]) => (task as TripTask).id)).toEqual(['Pflanzen giessen'])
+    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
+    expect(wrapper.find('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').exists()).toBe(false)
   })
 
   /*

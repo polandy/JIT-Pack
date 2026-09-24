@@ -84,16 +84,6 @@ describe('createPackingShoppingSource (FR-30.2)', () => {
     expect(source.open('t1', 'buy_local').map((l) => l.name)).toEqual(['Brot'])
   })
 
-  it('files a line under its category, and a line without one under null', () => {
-    const { source } = sourceWith({
-      buyLocal: [item({ name: 'Brot', category_name: null }), item({ name: 'Duschgel' })],
-    })
-    expect(source.open('t1', 'buy_local').map((l) => [l.name, l.section])).toEqual([
-      ['Brot', null],
-      ['Duschgel', 'Pflege'],
-    ])
-  })
-
   it('a per-person item is one line, and buying it settles every instance from that list', () => {
     const forAndy = item({ name: 'Hut', source_item_id: 'm1', assigned_traveler_id: andy.id })
     const forMia = item({ name: 'Hut', source_item_id: 'm1', assigned_traveler_id: mia.id })

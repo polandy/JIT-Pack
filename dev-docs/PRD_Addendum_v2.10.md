@@ -2552,6 +2552,13 @@ locked.
     and dropped with it, because where a row was bought is a fact about this trip's progress and not about its
     composition — read back only from `mode`'s own vocabulary, and written onto the restored row by the one importer M18
     and the FR-18.7 command share. Additive key, no `schema_version` bump (FR-18.5). E2E-M18-12.
+    * **M6's own undo, ahead of the reveal (owner request 2026-09-22):** checking a row off no longer only leaves it
+      to the reveal bar — the row leaves the open list with a wash-collapse-fade rather than vanishing, and a toast
+      with **Rückgängig** offers the way back immediately, M4's own shape (`presentToast` with a button, anchored
+      clear of the FAB) rather than the dashboard card's inline panel, which exists only because several cards share
+      M1's page and a toast could not say which one it was for. The reveal (above) is unchanged and still the way
+      back once the toast has gone. Applies to an own entry and a packing row's projection alike, since both check
+      off through `buy()`.
   * **FR-25.11h (Nothing may sit permanently under the FAB — 2026-08-07):** the floating ＋ hovers over the list, so
     every scrollable list must be able to scroll **clear of its whole footprint**. Otherwise the last row is permanently
     underneath it and whatever sits at that row's right edge — the assignee mark in M6 (FR-25.12), the packer avatar in
@@ -4487,9 +4494,11 @@ as for the packing rows.
   the packing row, the reveal says where it went. A packing row leaves the list by being bought or by changing mode on
   M4/M5 — M6 offers no remove for it. **M6 no longer adds packing rows**: the shared composer (FR-25.13) is gone from
   M6, and an inventory item to buy is put on the packing list in M4 with its mode chosen there — in M5, or for *vor Ort
-  kaufen* straight from the row's menu (FR-5.9). The list shows its own entries first under their own heading, then the
-  packing rows under their categories; an entry and a packing row of the same name are **not merged** — they are two
-  decisions, and the list does not guess that they are one.
+  kaufen* straight from the row's menu (FR-5.9). The list shows the packing rows first, **combined under one heading
+  regardless of category** (revised 2026-09-23: a packing category is not this list's tag, and a heading per category
+  read as more shopping-list structure than it was), then the own entries under their own heading, a section per tag;
+  an entry and a packing row of the same name are **not merged** — they are two decisions, and the list does not guess
+  that they are one.
 * **FR-30.3 (Module Boundary):** The shopping list's client code is a feature module under `client/src/shopping/`
   (store, actions, screen, specs), its Playwright cases under `client/e2e/shopping/` — the layout FR-29.9 names for the
   planner, used here first. Packing code never imports the module and the module never imports packing views, stores,
@@ -4555,9 +4564,10 @@ as for the packing rows.
   tags are made up on the spot for one trip, and a table of them — or a reach into the inventory's tags (FR-24), which
   classify what a thing *is* and not where it is bought — would be a second list to keep beside the entries. The
   tags on offer are read off the trip's open entries, so one whose last entry was bought is not offered again.
-  * **The open list is grouped by it:** one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*, then
-    the packing list's rows under their categories as before (FR-30.2). **What is bought is not grouped** — the reveal
-    (FR-25.11j) stays one flat list, and each row says its tag, because the heading that named it is gone.
+  * **The open list is grouped by it:** the packing list's rows first, combined under one heading (FR-30.2, revised
+    2026-09-23), then one heading per tag, A–Z, then the untagged entries under *„Eingetragen"*. **What is bought is
+    not grouped** — the reveal (FR-25.11j) stays one flat list, and each row says its tag, because the heading that
+    named it is gone.
   * **Set in two places:** a chip row under M6's field — the trip's tags and *＋ Tag* — files the *next* entry and
     holds until the reader taps the chip again, so the things for one shop are typed one after another; and the
     **entry sheet**, which *＋ Tag* and a tap on an own entry's name both open. It is the packing list's creation
@@ -4570,6 +4580,25 @@ as for the packing rows.
     entry's tag but offers no way to choose one.
   * **The check-off sits at the end of the row**, on M6 and on the dashboard card: the thumb rests on the right, and the
     remove (✕) of an own entry stands beside it, to its left.
+  * **Several entries retagged at once (owner request 2026-09-22):** the per-row *＋ Tag* label under an untagged
+    entry — a line of clutter repeated once per row — is gone; a tap on any own entry's name still opens the entry
+    sheet, with no label to announce it. In its place, an entry can be **selected** — long-pressing an own row, or the
+    app bar's own icon (mirroring M9's `m9-select`, FR-24.9) — and the mode reaches **every own entry on the open
+    tab, already tagged or not**: the reach this adds over M9's own screen, which offers no *retag*, only a first
+    assignment. Inline on the list itself rather than a separate screen, because unlike M9's rows a shopping row is
+    not a navigation link, so a long press fights no tap the way it would there. A packing row's projection carries
+    no tag and is never selectable, named once below the list rather than dashed out on every row it excludes.
+    *„Alle N"* takes the open tab's own entries, filtered by nothing since M6 has no filter. The bar's *Tag vergeben*
+    opens the same search-or-create sheet a single entry's does, titled for the batch; choosing a tag files every
+    selected entry under it at once — only what changes is written, so an entry already carrying that tag is
+    untouched — the mode ends with the batch, and the toast's undo puts each entry back under the tag it carried
+    before.
+  * **One entry, dragged into another heading (owner request 2026-09-22):** a grip at the leading edge of an own row,
+    shown while nothing is selected, lifts it and carries it over the open list; the heading under the pointer lights
+    up while it could honestly hold the row, and lets go of it into that tag — or into *„Eingetragen"* to clear one.
+    The write is the same batch-of-one `bulkSetTag` a selection's *Tag vergeben* uses, so its undo is exactly as
+    correct as a bulk retag's. A packing row's projection is refused the way it is refused a selection: its own
+    heading never lights up and never takes the drop, since it carries no tag of its own to file under.
   * *Not carried:* the portable backup, like the entries themselves; trip cloning.
 
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like

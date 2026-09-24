@@ -3073,28 +3073,6 @@ setHeaderTitle(
   </IonPage>
 </template>
 
-<style>
-/*
- * FR-25.2's snackbar. Unscoped on purpose: Ionic renders overlays in the app
- * root, so a scoped rule never reaches them — which is why the toast first
- * shipped in Ionic's stock palette with an undo nobody could read.
- *
- * The shape follows the concept prototype's `.snack`: a raised surface with
- * a rim, and the action in the brand colour, because undo is the only thing
- * on it worth tapping.
- */
-.pack-toast {
-  --background: var(--ct-surface1);
-  --color: var(--ct-text);
-  --border-color: var(--ct-surface2);
-  --border-width: 1px;
-  --border-style: solid;
-  --border-radius: var(--jp-r-md);
-  --box-shadow: var(--jp-shadow);
-  --button-color: var(--jp-brand);
-}
-</style>
-
 <style scoped>
 /* FR-25.24's popover holds one control and its name, so it is padded like
    a card rather than like a screen. */

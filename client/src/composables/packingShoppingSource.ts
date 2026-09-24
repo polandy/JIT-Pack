@@ -51,7 +51,6 @@ export function createPackingShoppingSource(
         name: row.name,
         quantity: row.quantity,
         recipients: row.recipients.map((traveler) => ({ id: traveler.id, name: traveler.name })),
-        section: group.name,
         // Read off the row rather than off the list: a BUY_BEFORE purchase is
         // on the packing list, a BUY_LOCAL one is packed, and a row whose
         // mode changed again since says so (FR-25.11j).

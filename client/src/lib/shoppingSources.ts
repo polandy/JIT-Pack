@@ -35,11 +35,6 @@ export interface ShoppingLine {
   /** Who it is for; empty where the source does not say (FR-25.6). */
   recipients: readonly ShoppingRecipient[]
   /**
-   * The heading the source files it under, or null for its uncategorised
-   * bucket. The list renders the headings; it never invents one.
-   */
-  section: string | null
-  /**
    * The tag the line carries (FR-30.9); null or absent for none. Only the
    * list's own entries have one — a packing line is filed by its category.
    */
