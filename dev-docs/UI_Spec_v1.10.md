@@ -2822,8 +2822,9 @@ token would prove nothing there is anything to prove.
 * **Delete for good** is offered on a row **only where the delete would actually be physical** — i.e. where FR-24.3's
   second branch now applies because whatever kept the row alive is itself gone. Without it a retire would become
   permanent by omission: the row would be unreferenced and undeletable forever. Where the row is still referenced the
-  button is absent and the usage count says why, rather than a control that silently re-retires. The confirm carries
-  M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
+  button is absent and the usage count says why, rather than a control that silently re-retires. The bin stands
+  **before** *Wiederherstellen*, so the restore button ends at the same edge on every row (2026-09-24). The confirm
+  carries M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
 * **Several at once (2026-09-24, FR-24.3, ADR-075 amended):** M23 selects the way M6, M25, M9 and M11 do. A **hold** on
   a row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox glyph — offered
   while the segment shown has a row. While selecting, the shared `SelectionBar` (✕, count, *„Alle N"* over the segment

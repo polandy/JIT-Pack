@@ -457,15 +457,8 @@ function hiddenOn(row: RetiredRow): string {
 
           <!-- A press on a button is the button's, not the start of a hold. -->
           <div v-if="!selecting" slot="end" class="row-actions" @pointerdown.stop>
-            <IonButton
-              fill="outline"
-              size="small"
-              data-testid="m23-restore"
-              @click="onRestore(row)"
-            >
-              <IonIcon slot="start" :icon="arrowUndoOutline" />
-              {{ t('retired.restore') }}
-            </IonButton>
+            <!-- The bin before the restore, so every row's restore ends at the
+                 same edge whether or not the row has a bin. -->
             <IonButton
               v-if="row.removable"
               fill="clear"
@@ -476,6 +469,15 @@ function hiddenOn(row: RetiredRow): string {
               @click="onPurge(row)"
             >
               <IonIcon slot="icon-only" :icon="trashOutline" />
+            </IonButton>
+            <IonButton
+              fill="outline"
+              size="small"
+              data-testid="m23-restore"
+              @click="onRestore(row)"
+            >
+              <IonIcon slot="start" :icon="arrowUndoOutline" />
+              {{ t('retired.restore') }}
             </IonButton>
           </div>
         </IonItem>
