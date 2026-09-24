@@ -130,10 +130,13 @@ The owner asked for the UI to be as consistent as it can be. Two more surfaces t
 
 - **M9's tag manager (FR-24.14)** had the last selection of its own — a text entrance, its own bar and checkbox, no
   hold. It renders `useRowSelection`, `SelectBox`, `SelectionBar` and `BulkBar` now; its entrance is a checkbox icon
-  in the sheet's head, the way M9's is in the app bar. A tag row carries buttons of its own (rename, the arrows), so
+  in the sheet's head, the way M9's is in the app bar. A tag row carries buttons of its own (rename, merge), so
   the row takes the click in the capture phase: a tap spent on the selection never reaches them. „Alle" is kept,
   although merging every tag is rarely meant, because a bar that differs on one screen is the drift this ADR ends.
-  The arrows stay: they reorder one axis, which a grip between headings does not do.
+  Its *hoch/runter* arrows became the grip too (owner, after trying it): the axis is one drop target whose rows carry
+  `data-drop-index`, so `useDragToGroup` reports the gap and `reorderTarget` (`domain/tags.ts`) turns it into an
+  index — the within-one-list half the composable was written with, used for the first time. The arrows were the
+  keyboard's way to reorder; the grip, like M6's and M25's, has none, which is the cost of the one look.
 - **The inventory browse sheet (FR-25.13d)** was grouped like M9 and headed with a caption of its own. It renders
   `ListGroup` with the mark and count, so the same items are filed under the same heading wherever they are read.
   Its hold keeps its own meanings (the name's tooltip, 👥's traveller menu): a sheet built for runs of single taps

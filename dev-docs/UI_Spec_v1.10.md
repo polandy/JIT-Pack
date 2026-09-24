@@ -2095,7 +2095,10 @@ These patterns apply to every screen and are specified once.
   in the same alert; merging asks for the target, confirms with the number of items moving, and deletes the source
   once it is empty. **The arrows at the ends are dimmed, not removed**, so the column does not reflow as a tag reaches
   the top or the bottom, and they **withdraw entirely while a search is narrowing the list** — the arrows move a tag
-  on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict.
+  on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict. **Since
+  2026-09-24 (ADR-075) the arrows are a drag grip** at the row's leading edge, M6's and M25's: it lifts at once, a
+  line in the action colour marks the gap the tag would land in, and the drop moves it there in one act. While a
+  search narrows the list the grip is dashed and inert; while picking, the selection box takes its place.
 * **Several tags merged in one act (2026-09-20, FR-24.14).** Above the list sits *„Mehrere wählen"*; it turns the
   rows into a **selection** — a checkbox at the leading edge, the whole row picking it, and the per-row acts, the
   arrows and the mark control withdrawn, so a tap can mean one thing. A bar replaces the entrance while the mode is

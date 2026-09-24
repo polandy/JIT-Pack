@@ -608,8 +608,7 @@ export const de: Record<keyof typeof en, string> = {
   'items.tagsMergeManyConfirmBody':
     'Ein Artikel bekommt „{target}“. Die anderen {m} Tags werden danach gelöscht. | {n} Artikel bekommen „{target}“. Die anderen {m} Tags werden danach gelöscht.',
   'items.tagsMergeManyCount': '{name} ({n})',
-  'items.tagUp': '„{tag}“ nach oben',
-  'items.tagDown': '„{tag}“ nach unten',
+  'items.tagDrag': '„{tag}“ verschieben',
   'items.tagRenameAria': '„{tag}“ umbenennen',
   'items.tagMerge': '„{tag}“ zusammenführen',
   'items.tagDelete': '„{tag}“ löschen',

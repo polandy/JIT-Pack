@@ -1946,6 +1946,10 @@ test body under it separates a wrong number from a missing test.**
   opens the shared bar with that row picked and the merge in the bulk bar dimmed; a tap on another row picks it and
   lights the merge; the bar's ✕ gives the rows their acts back. That a touch hold's release click does not also
   rename is `TagManagerSheet.spec.ts`'s: a right-click sends no click, so the absence would be vacuous here.
+* **E2E-M9-33** `local` (FR-24.10, ADR-075 amended) — **implemented 2026-09-24** (`e2e/inventory.spec.ts`): a tag is
+  moved on the axis by its grip. The pointer lifts *Navigation* by the grip, the gap before *Foto* is marked while it
+  hangs there, and after the drop `data-drag` returns to `idle`; the order is read on M9's own headings once the sheet
+  is closed — *Navigation* first — not in the sheet that was dragged.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name

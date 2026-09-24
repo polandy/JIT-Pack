@@ -42,7 +42,8 @@ The inventory has no grip: its groups are each item's *main* tag, so moving rows
 **Als primären Tag setzen** switched on.
 
 **Manage tags** (in the inventory's ⋮ menu) selects the same way too: hold a tag, or tap the checkbox icon beside the
-sheet's ✕, and the bar at the bottom offers **Zusammenführen** once two tags are picked. The sheet that browses the
+sheet's ✕, and the bar at the bottom offers **Zusammenführen** once two tags are picked. To change the order of the tags,
+drag one by the grip at its left edge, the same grip the tasks and the shopping list use. The sheet that browses the
 inventory from a packing list or a template (**Mehr aus dem Inventar…**) heads its groups the way the inventory does,
 with each tag's mark and the number of items under it.
 

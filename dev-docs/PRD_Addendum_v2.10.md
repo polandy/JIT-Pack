@@ -1801,6 +1801,9 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   with no room between neighbours, and the axis routinely arrives flat, because `createTag` has always taken
   `tagList.length` while a restore and the dev seed produce all-zero orders. The order controls **withdraw while a
   search is narrowing the list** — „hoch" between two rows eleven apart on the axis is an ordering nobody can predict.
+  *Amended 2026-09-24 (ADR-075):* the order is set by the **drag grip** M6 and M25 use, not by *hoch/runter* arrows —
+  the tag is dragged to the gap it belongs in, any distance in one move, and the grip is drawn dashed (inert) while a
+  search narrows the list, for the same reason the arrows withdrew.
 * **FR-24.11 (The Search Creates What It Did Not Find — added 2026-09-18, implemented the same day):** while M9's
   search holds a query that **no active item carries as its exact name**, the top of the results offers
   *„‚{Name}' anlegen"*. A tap opens a sheet with the **name** (the query, trimmed) and the **tags** — nothing else;

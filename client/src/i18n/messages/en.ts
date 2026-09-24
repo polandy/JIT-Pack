@@ -602,8 +602,7 @@ export const en = {
   'items.tagsMergeManyConfirmBody':
     'One item gets “{target}”. The other {m} tags are deleted afterwards. | {n} items get “{target}”. The other {m} tags are deleted afterwards.',
   'items.tagsMergeManyCount': '{name} ({n})',
-  'items.tagUp': 'Move “{tag}” up',
-  'items.tagDown': 'Move “{tag}” down',
+  'items.tagDrag': 'Move “{tag}”',
   'items.tagRenameAria': 'Rename “{tag}”',
   'items.tagMerge': 'Merge “{tag}”',
   'items.tagDelete': 'Delete “{tag}”',

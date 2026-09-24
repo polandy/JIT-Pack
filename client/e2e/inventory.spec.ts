@@ -692,6 +692,46 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   /**
+   * E2E-M9-33 (FR-24.10, ADR-075): a tag is moved on the axis by the grip M6
+   * and M25 drag with, not by arrows. The drag waits on `data-drag` returning
+   * to `idle`, which `useDragToGroup` holds until the write is enqueued, and
+   * the order is read where it matters — M9's own headings, after the sheet
+   * is closed — rather than in the sheet that was just dragged.
+   */
+  test('E2E-M9-33: a tag is dragged by its grip to another place on the axis', async ({ page }) => {
+    await createItem(page, 'Kamera', { tags: ['Foto'] })
+    await backToInventory(page)
+    await createItem(page, 'Zelt', { tags: ['Camping'] })
+    await backToInventory(page)
+    await createItem(page, 'Karte', { tags: ['Navigation'] })
+    await backToInventory(page)
+    const list = visiblePage(page)
+    expect(await groupHeadings(list)).toEqual(['foto', 'camping', 'navigation'])
+
+    await openTagManager(page)
+    const host = page.getByTestId('m9-tags-body')
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    const grip = page.getByTestId('m9-tag-grip-Navigation')
+    const target = page.getByTestId('m9-tag-row-Foto')
+    const g = (await grip.boundingBox())!
+    const t = (await target.boundingBox())!
+
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(g.x + g.width / 2, g.y + 4, { steps: 3 })
+    await expect(host).toHaveAttribute('data-drag', 'dragging')
+    // Above the middle of the first row: the gap before it.
+    await page.mouse.move(t.x + t.width / 2, t.y + 6, { steps: 8 })
+    await expect(target).toHaveClass(/gap-before/)
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await writesLanded(page)
+
+    await page.getByTestId('m9-tags-close').click()
+    await expect.poll(() => groupHeadings(list)).toEqual(['navigation', 'foto', 'camping'])
+  })
+
+  /**
    * E2E-M9-30 (FR-24.15): two rows that are the same thing become one.
    *
    * The whole point of the act is what the survivor ends up holding, so the

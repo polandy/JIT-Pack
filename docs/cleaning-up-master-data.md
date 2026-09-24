@@ -6,7 +6,7 @@ you want to work from a spreadsheet, JIT-Pack gives you a delete endpoint per ro
 tags are the exception, and the [note below](#task-tags-cannot-be-cleaned-up-yet) says why.
 
 !!! tip "For tags, try the app first"
-    **Inventory → ⋮ → Manage tags** renames, merges, reorders and deletes tags, and it is
+    **Inventory → ⋮ → Manage tags** renames, merges, reorders (drag a tag by its grip) and deletes tags, and it is
     the only place that can *merge* tags into one. Merging is usually what you want
     when a tag was typed twice — it keeps every item filed, which deleting does not. Several
     at once: hold one of the tags (or right-click it, or tap the checkbox icon beside the

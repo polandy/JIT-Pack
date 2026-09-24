@@ -70,35 +70,22 @@ describe('TagManagerSheet (FR-24.10)', () => {
     expect(sheet.emitted('mark')?.[0]).toEqual([tags[1]])
   })
 
-  it('moves a tag by its index on the axis, not by its place in the list', async () => {
+  it('offers a grip on every row, dashed while a search is narrowing the list (ADR-075)', async () => {
     const sheet = mountSheet()
-
-    await sheet.get('[data-testid="m9-tag-up-Elektronisches Zubehör"]').trigger('click')
-
-    expect(sheet.emitted('move')?.[0]).toEqual([2, 1])
-  })
-
-  it('does not offer to move the first tag up or the last one down', () => {
-    const sheet = mountSheet()
-
-    expect(sheet.get('[data-testid="m9-tag-up-Diverses"]').attributes('disabled')).toBeDefined()
-    expect(
-      sheet.get('[data-testid="m9-tag-down-Elektronisches Zubehör"]').attributes('disabled'),
-    ).toBeDefined()
-    // And the ones in between are live — otherwise the assertion above would
-    // pass against a sheet that disabled every arrow it has.
-    expect(sheet.get('[data-testid="m9-tag-up-Hygiene"]').attributes('disabled')).toBeUndefined()
-  })
-
-  it('withdraws the order controls while a search is narrowing the list', async () => {
-    const sheet = mountSheet()
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(true)
+    expect(sheet.findAll('[data-testid^="m9-tag-grip-"]')).toHaveLength(3)
+    expect(sheet.get('[data-testid="m9-tag-grip-Hygiene"]').classes()).not.toContain('off')
+    // The rows number the axis, which is what the drag reports a gap in.
+    expect(sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-drop-index')).toBe('1')
 
     await sheet.get('[data-testid="m9-tags-search"]').setValue('hyg')
 
-    // Two rows eleven apart on the axis would make „up" mean nothing.
+    // Two rows eleven apart on the axis would make a drop between them mean nothing.
     expect(sheet.findAll('[data-testid^="m9-tag-row-"]')).toHaveLength(1)
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(false)
+    expect(sheet.get('[data-testid="m9-tag-grip-Hygiene"]').classes()).toContain('off')
+    expect(
+      sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-drop-index'),
+    ).toBeUndefined()
+    expect(sheet.get('ul.tags').attributes('data-drop-target')).toBeUndefined()
   })
 
   it('finds a tag typed without its umlaut', async () => {
@@ -147,7 +134,7 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
 
     expect(sheet.find('[data-testid="m9-tag-merge-Hygiene"]').exists()).toBe(false)
     expect(sheet.find('[data-testid="m9-tag-delete-Hygiene"]').exists()).toBe(false)
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="m9-tag-grip-Hygiene"]').exists()).toBe(false)
     // The name stops being a button: a tap picks the row now.
     expect(sheet.find('[data-testid="m9-tag-rename-Hygiene"]').exists()).toBe(false)
   })
