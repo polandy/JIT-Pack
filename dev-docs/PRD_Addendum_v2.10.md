@@ -30,6 +30,13 @@ packing ships first.
   rule per type, an icon per type — rather than merely display it.
 * **FR-10.2 (Item-to-Container Assignment):** Every item on an active packing list can optionally be assigned to exactly
   one container. Unassigned items appear in a dedicated "Unassigned" bucket to keep them visible.
+
+  **Several at once (amended 2026-09-24, ADR-075).** The bucket selects like the app's other lists: a hold on a row
+  (or a right-click, or the app bar's checkbox icon) starts a selection, a tap then picks rows, and the bar's *In
+  Gepäckstück …* opens the one container picker once and assigns every selected row to the container chosen. Outside
+  the mode a tap still opens the picker for that one row. Only the bucket selects — assigned positions are not rows on
+  M11, re-assigning one stays M5's (FR-10.2's other half). Like the single assignment, the batch has no undo: the rows
+  leaving the bucket and the card's load are the confirmation, and a wrong bag is one tap in M5 away.
 * **FR-10.3 (Weight Budgets & Warnings):** The system displays the live cumulative weight per container and issues a
   visual warning when a container exceeds its maximum weight (e.g., airline baggage limit) or when paired containers
   (e.g., left/right pannier) diverge beyond an imbalance threshold. **Threshold: a fixed 15 % weight difference.**
@@ -2077,6 +2084,16 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     applies to it again, and M23 offers *delete for good* on exactly those rows — absent, with the usage count saying
     why, on the rows still referenced. Without it the retire would be permanent by omission, which is not what "logical
     delete" was supposed to mean.
+  * **Several at once (amended 2026-09-24, ADR-075).** M23 selects like the app's other lists — a hold, a right-click
+    or the app bar's checkbox icon — and a bar restores or deletes the selection with the same per-row acts, looped. A
+    batch keeps both refusals the single act has. **Restore:** every row whose name is free comes back in one go; a
+    row whose name is taken is *not* prompted for — it stays selected and the toast says how many did not come back,
+    because a queue of rename dialogs, each about a name the reader has to recall, is worse than a list of what is
+    left. A selection of one *is* the single-row restore, prompt included, so the way to a new name is unchanged. The
+    rows restore in order, so two hidden rows of one name collide with each other and the second stays. **Delete:**
+    only the rows the single delete is offered on; one confirmation names how many go for good and how many stay
+    because something still uses them, and those stay selected. A selection with nothing deletable asks nothing and
+    says why. Neither act gains an undo — the single ones have none — and switching the segment ends the selection.
 
 * **FR-24.4 (A Master Row Has A Delete Endpoint — new and implemented 2026-08-30):** Deleting a master row from outside
   the app is one authenticated request — `DELETE /api/v1/master/{tags|items|templates|template-items}/{id}` — rather

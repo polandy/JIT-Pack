@@ -1,7 +1,7 @@
 # ADR-075: A hold selects on every list, and only the grip drags — vs. keeping M25's hold-to-drag, vs. sharing only the look
 
 **Status:** Accepted
-**Related:** FR-7.8, FR-30.9, FR-24.9, ADR-060, ADR-066, UI-Spec M6, M25 and M9,
+**Related:** FR-7.8, FR-30.9, FR-24.9, FR-24.3, FR-10.2, ADR-060, ADR-066, UI-Spec M6, M25, M9, M11 and M23,
 `client/src/composables/useRowSelection.ts`,
 `client/src/components/global/{DragGrip,SelectBox,SelectionBar,BulkBar,ListGroup}.vue`
 
@@ -123,3 +123,18 @@ Two parts of the decision do not carry over, each weighed with the owner:
 heading as the jump control (FR-24.8) — and `useRowSelection.toggleAll` now judges „every" by the keys on screen rather
 than by a count, which M9's filter needs and M6/M25 do not notice. The revisit trigger above has not fired: M9's bar
 already holds its fourth act behind ⋯ *Mehr*.
+
+## Amendment 2026-09-24 — M23 and M11 join, as flat lists
+
+The owner asked for the remaining lists that acted one row at a time to select the same way: M23 (hidden master data,
+FR-24.3), whose rows each carried *Wiederherstellen* and a delete, and M11's unassigned bucket (FR-10.2), where every
+row was one trip through the container picker. Both render `useRowSelection`, `SelectBox`, `SelectionBar` and
+`BulkBar`, and an app bar glyph beside the hold and the right-click. **Neither takes the grip, the drag or
+`ListGroup`**: both are flat lists with nothing to drop a row into.
+
+What each batch does is the single-row act looped, refusals included. On M11 the one picker opens once and assigns
+every selected row. On M23 the two acts keep their refusals: a restore whose name is taken is not prompted for in a
+batch — the row stays selected, since a queue of rename dialogs is worse than a list of what is left — and a selection
+of one is the single-row restore, prompt and all; a delete touches only the rows that have a delete of their own and
+leaves the rest selected. Assigned positions are not selectable on M11, because they are not rows there. The revisit
+trigger has not fired: M23's bar holds two acts and M11's one.

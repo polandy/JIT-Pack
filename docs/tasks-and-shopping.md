@@ -41,6 +41,26 @@ search and the tag filter leave on screen.
 The inventory has no grip: its groups are each item's *main* tag, so moving rows between them is **Tag geben** with
 **Als primären Tag setzen** switched on.
 
+## Hidden master data and luggage too
+
+Two more lists select with the same hold, right-click or checkbox icon. Neither has a grip or headings.
+
+**Hidden master data** (Settings → *Ausgeblendete Stammdaten*): while you select, each row's own buttons step aside
+and the bar offers **Wiederherstellen** and **Löschen**.
+
+- **Wiederherstellen** brings back every selected row whose name is still free. If an active item or template has
+  taken a row's name in the meantime, that row is not restored: it stays selected, and a message says how many names
+  are taken. Restore such a row on its own — select only it, or use its own button — and you are asked for a new name.
+- **Löschen** removes for good only the rows that have a delete button of their own, i.e. nothing uses them any more.
+  One confirmation says how many go; rows that are still used stay hidden and stay selected.
+
+Switching between *Artikel* and *Vorlagen* ends the selection. Neither act can be undone from a snackbar — a restored
+row is hidden again by deleting it, as before.
+
+**Gepäck** (a trip's luggage): the rows under *Nicht zugeordnet* select. **In Gepäckstück …** on the bar opens the
+usual "which bag?" picker once and puts every selected row into the bag you choose. Outside a selection, tapping a row
+still opens the picker for that one row.
+
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging and selecting all happen on your device.

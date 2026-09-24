@@ -205,6 +205,54 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     ).toHaveCount(1)
   })
 
+  /*
+   * E2E-M23-06 (FR-24.3, ADR-075): M23 selects like every other list, and a
+   * batch restore is the single restore looped — collision refusal included.
+   * A *real* right-click starts the selection, a tap picks a second row whose
+   * name an active item holds by now; the bar restores what it can and leaves
+   * exactly the collision selected. A third, unpicked row is the control that
+   * the batch acted on the selection and not the list.
+   */
+  test('E2E-M23-06: a right-click selects hidden rows, a batch restores the free names and keeps the taken one', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await retireItemViaGroup(page, 'Fotografie', 'Kamera')
+    await retireItemViaGroup(page, 'Stative', 'Stativ')
+    await retireItemViaGroup(page, 'Licht', 'Blitz')
+    // An active row takes Stativ's name while the old one is hidden.
+    await createItemOnDevice(page, 'Stativ')
+
+    await openRetired(page)
+    const list = visiblePage(page)
+    const row = (name: string) => list.getByTestId('m23-row').filter({ hasText: name })
+    await expect(list.getByTestId('m23-row')).toHaveCount(3)
+
+    await row('Kamera').click({ button: 'right' })
+    await expect(list.getByTestId('m23-selbar')).toBeVisible()
+    await expect(list.getByTestId('m23-select-count')).toHaveText('One selected')
+    // The rows' own buttons step aside for the bar's.
+    await expect(list.getByTestId('m23-restore')).toHaveCount(0)
+    await row('Stativ').click()
+    await expect(list.getByTestId('m23-select-count')).toHaveText('2 selected')
+
+    await list.getByTestId('m23-bulk-restore').click()
+    // No prompt: a batch leaves the collision selected instead.
+    await expect(page.locator('ion-alert')).toHaveCount(0)
+    await expect(row('Kamera')).toHaveCount(0)
+    await expect(list.getByTestId('m23-row')).toHaveCount(2)
+    await expect(list.getByTestId('m23-select-count')).toHaveText('One selected')
+    await expect(row('Stativ')).toHaveAttribute('data-selected', 'true')
+    await expect(row('Blitz')).not.toHaveAttribute('data-selected', 'true')
+    await localWriteSettled(page)
+
+    await page.goto(PATH.items)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
+  })
+
   test('E2E-M23-04: a Vorlage a trip used is hidden too, listed on its own segment, and restored', async ({
     seedMode,
     page,

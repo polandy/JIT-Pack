@@ -432,6 +432,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A cropped screenshot found a corner that was not there (2026-09-24)](#a-cropped-screenshot-found-a-corner-that-was-not-there-2026-09-24) — M25's and M7's segments overflowed their column; a Safari-seam fix was shipped and reverted first.
 - [A bar that never came back: Ionic had moved the modal it was inserted before (2026-09-24)](#a-bar-that-never-came-back-ionic-had-moved-the-modal-it-was-inserted-before-2026-09-24) — ADR-075: a `v-if` inserted before a moved `ion-modal` threw; `SheetModal` became a fragment.
 - [M9 takes the shared list: a heading that takes focus nudges the scroll (2026-09-24)](#m9-takes-the-shared-list-a-heading-that-takes-focus-nudges-the-scroll-2026-09-24) — ADR-075 amended: why M9 has no grip, and a jump case that became a race.
+- [M23 and M11 select: a batch keeps the refusals, and a new glyph passed the baseline (2026-09-24)](#m23-and-m11-select-a-batch-keeps-the-refusals-and-a-new-glyph-passed-the-baseline-2026-09-24) — ADR-075 amended: why a batch restore prompts for no collision, and the app-bar icon the pixel budget let through.
 
 ## Deviations
 
@@ -17437,3 +17438,20 @@ Two smaller ones on the way: a suite reading an `ion-label`'s `textContent` unde
 patches it on its own elements (the handle sits on a plain span inside the label); and `scripts/testid-gate.mjs`
 recognises a template id only when the backtick follows the attribute directly, so an id built inside a ternary is
 invisible to it — `ListGroup` therefore takes its heading ids whole (`head-testid`, `jump-testid`).
+
+## M23 and M11 select: a batch keeps the refusals, and a new glyph passed the baseline (2026-09-24)
+
+The owner asked for the last two lists that acted one row at a time — M23 and M11's unassigned bucket — to select
+like M6, M25 and M9. Each batch is the single-row act looped, and the one real decision was what a batch restore does
+with a name that is taken. **Rejected:** a rename prompt per collision, chained. `promptText` resolves when the alert
+is *presented*, not dismissed, so chaining needed a new awaitable seam, and the result is a queue of dialogs each
+asking about a name the reader has to recall. **Chosen:** the free names come back, the colliding rows stay selected,
+and a selection of one *is* the single-row restore with its prompt — so the rename path is the one it always was. The
+batch delete keeps the single delete's refusal the same way: a row still in use has no delete button, so the batch
+skips it and leaves it selected.
+
+**The trap:** the app-bar checkbox glyph on M11 changed the `m11-list` and `m11-sheet` baselines, and `make visual`
+stayed green. A 24 px outline icon is fewer pixels than the 658-pixel budget in `playwright.config.ts`, so a new
+control in the app bar can land without the visual suite noticing. The baselines were rewritten on purpose, and
+`--update-snapshots` alone did nothing: Playwright's default is `changed`, which skips a screenshot inside the
+budget. It takes `--update-snapshots=all -g …`.

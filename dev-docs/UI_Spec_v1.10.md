@@ -1783,7 +1783,8 @@ These patterns apply to every screen and are specified once.
   **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the keys
   and the hold, `SelectBox`, `SelectionBar` and `BulkBar` draw the box, the bar and the floating bar, and
   `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart. (E2E-M6-32)
-  M9 renders the same pieces since 2026-09-24, without the grip (see M9).
+  M9 renders the same pieces since 2026-09-24, without the grip (see M9); so do M11's unassigned bucket and M23 (see
+  there), flat lists with neither grip nor headings.
 * **One entry, dragged into another heading (FR-30.9, built 2026-09-22):** while nothing is selected, an own row carries
   a **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried across the
   list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims in
@@ -2286,6 +2287,14 @@ These patterns apply to every screen and are specified once.
 * **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its
   current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks
   packing (FR-25.5).
+* **Several at once (2026-09-24, FR-10.2, ADR-075 amended):** the bucket selects the way M6, M25 and M9 do. A **hold**
+  on an unassigned row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox
+  glyph — offered only while the bucket holds a row. While selecting, the shared `SelectionBar` (✕, count, *„Alle N"*
+  over the bucket) sits pinned at the top, each row carries a `SelectBox` in place of its chevron, a tap picks, and the
+  ＋ FAB gives way to a `BulkBar` with one act, **In Gepäckstück …**. It opens the same picker once, its subject line
+  reading *„N Positionen"*, and the chosen container takes every selected row; the mode ends with it. No grip, no drag
+  and no headings — the bucket is one flat run. Assigned positions are not selectable here: they are not rows on M11.
+  No undo, like the single assignment. (E2E-M11-08)
 * **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
@@ -2806,6 +2815,20 @@ token would prove nothing there is anything to prove.
   permanent by omission: the row would be unreferenced and undeletable forever. Where the row is still referenced the
   button is absent and the usage count says why, rather than a control that silently re-retires. The confirm carries
   M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
+* **Several at once (2026-09-24, FR-24.3, ADR-075 amended):** M23 selects the way M6, M25, M9 and M11 do. A **hold** on
+  a row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox glyph — offered
+  while the segment shown has a row. While selecting, the shared `SelectionBar` (✕, count, *„Alle N"* over the segment
+  shown) is pinned at the top, each row carries a `SelectBox` and **its own two buttons step aside**, a tap picks, and a
+  `BulkBar` offers **Wiederherstellen** and **Löschen** (the `danger` button). Outside the mode a tap on the row does
+  nothing, as before. Switching the segment ends the selection — it belongs to the list it was made in.
+  * *Wiederherstellen* restores every selected row whose name is free, in one go, and **leaves the colliding rows
+    selected**; the toast says how many came back and how many names are taken (*„2 Einträge sind wieder sichtbar. Ein
+    Name ist vergeben — …"*). A selection of **one** is the single-row restore, so a collision there meets the rename
+    alert above. No alert per collision in a batch: a queue of prompts is worse than a list of what is left.
+  * *Löschen* deletes for good only the selected rows that carry their own delete button; one confirmation names the
+    count (*„2 Einträge endgültig löschen?"*) and, where some are still used, adds that those stay hidden — they stay
+    selected. A selection with nothing deletable asks nothing and says so in a toast. Neither act has an undo, like the
+    single ones. No grip, drag or headings. (E2E-M23-06)
 * **Modes:** all three. The screen is master data, so it is not gated on `authed`; in Local Mode the client's name check
   is the only thing between the user and two indistinguishable rows.
 * **Navigation:** M17 → M23; the row carries the count of hidden rows and is silent when there are none. Back returns

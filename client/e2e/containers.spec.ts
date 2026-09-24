@@ -333,4 +333,48 @@ test.describe('M11 containers @local @m11', () => {
     await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m4-row-Kocher')).toBeVisible()
   })
+
+  // E2E-M11-08 (FR-10.2, ADR-075): the bucket selects like every other list.
+  // A *real* right-click — the hold's desktop twin — starts the selection and
+  // opens no picker; a tap picks a second row; the bar's one picker assigns
+  // both. Rendered result: exactly the unpicked row is left in the bucket,
+  // which the two picked rows can only leave by being assigned.
+  test('E2E-M11-08: a right-click selects unassigned rows, and one pick puts them all in a bag', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    for (const name of ['Zelt', 'Kocher', 'Stirnlampe']) {
+      await addInComposer(page, name)
+      await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
+    }
+
+    await openLuggage(page)
+    await createContainer(page, 'Kiste')
+
+    const list = visiblePage(page)
+    const row = (name: string) => list.getByTestId('m11-unassigned-row').filter({ hasText: name })
+    await expect(list.getByTestId('m11-unassigned-row')).toHaveCount(3)
+
+    await row('Zelt').click({ button: 'right' })
+    await expect(list.getByTestId('m11-selbar')).toBeVisible()
+    await expect(list.getByTestId('m11-select-count')).toHaveText('One selected')
+    await expect(page.getByTestId('m11-picker')).toHaveCount(0)
+
+    // The very next tap picks, and still opens no picker.
+    await row('Kocher').click()
+    await expect(list.getByTestId('m11-select-count')).toHaveText('2 selected')
+    await expect(page.getByTestId('m11-picker')).toHaveCount(0)
+
+    await list.getByTestId('m11-bulk-assign').click()
+    await expect(page.getByTestId('m11-picker')).toBeVisible()
+    await expect(page.getByTestId('m11-picker-subject')).toHaveText('2 positions')
+    await page.getByTestId('m11-picker-option').filter({ hasText: 'Kiste' }).click()
+    await expect(page.getByTestId('m11-picker')).toHaveCount(0)
+
+    await expect(list.getByTestId('m11-unassigned-row')).toHaveCount(1)
+    await expect(list.getByTestId('m11-unassigned-row')).toContainText('Stirnlampe')
+    await expect(list.getByTestId('m11-selbar')).toHaveCount(0)
+    await expect(list.getByTestId('m11-fab')).toBeVisible()
+  })
 })
