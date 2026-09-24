@@ -16,6 +16,7 @@ import {
   tagDeletion,
   planTagMergeMany,
   planTagReorder,
+  reorderTarget,
   TAG_DELETE_ALLOWED,
   TAG_DELETE_REFUSED,
 } from '@/domain/tags'
@@ -647,5 +648,24 @@ describe('planTagReorder (FR-24.10)', () => {
   it('answers an index outside the axis with no writes at all', () => {
     expect(planTagReorder(axis, 5, 0)).toEqual([])
     expect(planTagReorder(axis, 0, 9)).toEqual([])
+  })
+})
+
+describe("reorderTarget (FR-24.10, the tag manager's drag)", () => {
+  it.each([
+    ['up past one row', 2, 1, 1],
+    ['to the very top', 2, 0, 0],
+    ['down past one row: the gap after the next row', 0, 2, 1],
+    ['past the last row', 0, 3, 2],
+  ])('%s', (_name, from, gap, to) => {
+    expect(reorderTarget(from, gap)).toBe(to)
+  })
+
+  it.each([
+    ['the gap before the row itself', 1, 1],
+    ['the gap after the row itself', 1, 2],
+    ['no gap at all', 1, null],
+  ])('moves nothing for %s', (_name, from, gap) => {
+    expect(reorderTarget(from, gap)).toBeNull()
   })
 })

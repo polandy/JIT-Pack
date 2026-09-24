@@ -28,7 +28,12 @@ const counts = new Map([
 function mountSheet(props: Partial<InstanceType<typeof TagManagerSheet>['$props']> = {}) {
   return mount(TagManagerSheet, {
     props: { isOpen: true, tags, counts, ...props },
-    global: { stubs: { SheetModal: { template: '<div><slot /></div>' }, SheetHead: true } },
+    global: {
+      stubs: {
+        SheetModal: { template: '<div><slot /></div>' },
+        SheetHead: { template: '<div><slot name="trail" /></div>' },
+      },
+    },
   })
 }
 
@@ -65,35 +70,22 @@ describe('TagManagerSheet (FR-24.10)', () => {
     expect(sheet.emitted('mark')?.[0]).toEqual([tags[1]])
   })
 
-  it('moves a tag by its index on the axis, not by its place in the list', async () => {
+  it('offers a grip on every row, dashed while a search is narrowing the list (ADR-075)', async () => {
     const sheet = mountSheet()
-
-    await sheet.get('[data-testid="m9-tag-up-Elektronisches Zubehör"]').trigger('click')
-
-    expect(sheet.emitted('move')?.[0]).toEqual([2, 1])
-  })
-
-  it('does not offer to move the first tag up or the last one down', () => {
-    const sheet = mountSheet()
-
-    expect(sheet.get('[data-testid="m9-tag-up-Diverses"]').attributes('disabled')).toBeDefined()
-    expect(
-      sheet.get('[data-testid="m9-tag-down-Elektronisches Zubehör"]').attributes('disabled'),
-    ).toBeDefined()
-    // And the ones in between are live — otherwise the assertion above would
-    // pass against a sheet that disabled every arrow it has.
-    expect(sheet.get('[data-testid="m9-tag-up-Hygiene"]').attributes('disabled')).toBeUndefined()
-  })
-
-  it('withdraws the order controls while a search is narrowing the list', async () => {
-    const sheet = mountSheet()
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(true)
+    expect(sheet.findAll('[data-testid^="m9-tag-grip-"]')).toHaveLength(3)
+    expect(sheet.get('[data-testid="m9-tag-grip-Hygiene"]').classes()).not.toContain('off')
+    // The rows number the axis, which is what the drag reports a gap in.
+    expect(sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-drop-index')).toBe('1')
 
     await sheet.get('[data-testid="m9-tags-search"]').setValue('hyg')
 
-    // Two rows eleven apart on the axis would make „up" mean nothing.
+    // Two rows eleven apart on the axis would make a drop between them mean nothing.
     expect(sheet.findAll('[data-testid^="m9-tag-row-"]')).toHaveLength(1)
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(false)
+    expect(sheet.get('[data-testid="m9-tag-grip-Hygiene"]').classes()).toContain('off')
+    expect(
+      sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-drop-index'),
+    ).toBeUndefined()
+    expect(sheet.get('ul.tags').attributes('data-drop-target')).toBeUndefined()
   })
 
   it('finds a tag typed without its umlaut', async () => {
@@ -142,7 +134,7 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
 
     expect(sheet.find('[data-testid="m9-tag-merge-Hygiene"]').exists()).toBe(false)
     expect(sheet.find('[data-testid="m9-tag-delete-Hygiene"]').exists()).toBe(false)
-    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="m9-tag-grip-Hygiene"]').exists()).toBe(false)
     // The name stops being a button: a tap picks the row now.
     expect(sheet.find('[data-testid="m9-tag-rename-Hygiene"]').exists()).toBe(false)
   })
@@ -166,7 +158,7 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
     await sheet.get('[data-testid="m9-tags-search"]').setValue('hyg')
     await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
 
-    expect(sheet.get('[data-testid="m9-tags-selected"]').text()).toContain('2')
+    expect(sheet.get('[data-testid="m9-tags-select-count"]').text()).toContain('2')
     await sheet.get('[data-testid="m9-tags-merge-many"]').trigger('click')
     expect(sheet.emitted('mergeMany')?.[0]).toEqual([[tags[0], tags[1]]])
   })
@@ -176,9 +168,49 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
 
     await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
     await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
-    await sheet.get('[data-testid="m9-tags-select-cancel"]').trigger('click')
+    await sheet.get('[data-testid="m9-tags-select-exit"]').trigger('click')
     await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
 
-    expect(sheet.get('[data-testid="m9-tags-selected"]').text()).toContain('0')
+    expect(sheet.get('[data-testid="m9-tags-select-count"]').text()).not.toMatch(/\d/)
+  })
+
+  it('a hold (its right-click twin) starts picking with that row, and its ghost click is spent (ADR-075)', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tag-row-Hygiene"]').trigger('contextmenu')
+    expect(sheet.find('[data-testid="m9-tags-selbar"]').exists()).toBe(true)
+    expect(sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-picked')).toBe('true')
+
+    // The click the release sends lands on the row it picked: it neither
+    // un-picks it nor reaches a control underneath.
+    await sheet.get('[data-testid="m9-tag-name-Hygiene"]').trigger('click')
+    expect(sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-picked')).toBe('true')
+
+    // The next deliberate tap picks.
+    await sheet.get('[data-testid="m9-tag-row-Diverses"]').trigger('pointerdown')
+    await sheet.get('[data-testid="m9-tag-name-Diverses"]').trigger('click')
+    expect(sheet.get('[data-testid="m9-tags-select-count"]').text()).toContain('2')
+  })
+
+  it('a hold that lands on the name does not also rename the tag', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tag-row-Hygiene"]').trigger('contextmenu')
+    await sheet.get('[data-testid="m9-tag-row-Hygiene"]').trigger('click')
+
+    expect(sheet.emitted('rename')).toBeUndefined()
+  })
+
+  it('„Alle" takes the rows the search leaves, and the merge bar appears once one is picked', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+    expect(sheet.find('[data-testid="m9-tags-bulkbar"]').exists()).toBe(false)
+    await sheet.get('[data-testid="m9-tags-search"]').setValue('e')
+    const shown = sheet.findAll('[data-testid^="m9-tag-row-"]').length
+    await sheet.get('[data-testid="m9-tags-select-all"]').trigger('click')
+
+    expect(sheet.findAll('[data-picked="true"]')).toHaveLength(shown)
+    expect(sheet.find('[data-testid="m9-tags-bulkbar"]').exists()).toBe(true)
   })
 })

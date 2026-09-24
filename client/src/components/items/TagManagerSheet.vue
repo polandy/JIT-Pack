@@ -19,20 +19,24 @@
 import { IonIcon } from '@ionic/vue'
 import {
   addOutline,
-  arrowDownOutline,
-  arrowUpOutline,
   checkboxOutline,
-  checkmarkOutline,
   gitMergeOutline,
   searchOutline,
   trashOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
+import BulkBar from '@/components/global/BulkBar.vue'
+import DragGrip from '@/components/global/DragGrip.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
+import { useDragToGroup } from '@/composables/useDragToGroup'
+import { useRowSelection } from '@/composables/useRowSelection'
 import { searchMatches } from '@/domain/search'
+import { reorderTarget } from '@/domain/tags'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
 
@@ -65,15 +69,13 @@ const emit = defineEmits<{
 const query = ref('')
 
 /**
- * FR-24.14: picking several tags to merge in one act.
- *
- * Its own mode rather than a second control on every row, the reason M9's
- * own selection (FR-24.9) is one: a row that carries a checkbox *and* four
- * acts asks four questions at once, and the rename control is the one a
- * thumb finds by accident.
+ * FR-24.14: picking several tags to merge in one act — the list selection
+ * M6, M25 and M9 share (ADR-075): a hold or right-click on a row, or the
+ * head's checkbox icon. While picking, a row's acts are gone: a row that
+ * carries a checkbox *and* four acts asks four questions at once.
  */
-const selecting = ref(false)
-const picked = ref<Set<string>>(new Set())
+const selection = useRowSelection()
+const { selecting, selected: picked } = selection
 
 // A query outlives nothing, for TagFilterSheet's reason: the next opening is
 // a new question. Neither does a selection.
@@ -82,31 +84,27 @@ watch(
   (open) => {
     if (!open) {
       query.value = ''
-      endPicking()
+      selection.end()
     }
   },
 )
 
-function endPicking(): void {
-  selecting.value = false
-  picked.value = new Set()
-}
-
-function togglePicked(tagId: string): void {
-  const next = new Set(picked.value)
-  if (!next.delete(tagId)) next.add(tagId)
-  picked.value = next
+function toggleSelecting(): void {
+  if (selecting.value) selection.end()
+  else selection.start()
 }
 
 /**
- * The picked tags in **axis order**, not in the order they were tapped: the
- * merge prompt lists them again, and a list that reorders itself between two
- * screens reads as a different list.
- *
- * A tag stays picked while the search narrows it away — two names for one
- * idea are rarely one query, so „Sommerurlaub" is picked, „Sommersachen" is
- * typed, and both have to survive to the prompt.
+ * Captured before the row's own buttons see it: a tap spent on the selection
+ * — the ghost click of the hold that started it, or a pick — must not also
+ * rename or move the tag it landed on.
  */
+function onRowClick(event: MouseEvent, tag: Tag): void {
+  if (!selection.click(tag.id, true)) return
+  event.stopPropagation()
+  event.preventDefault()
+}
+
 const pickedTags = computed(() => props.tags.filter((tag) => picked.value.has(tag.id)))
 
 const searching = computed(() => query.value.trim() !== '')
@@ -117,18 +115,82 @@ const rows = computed(() =>
     .map((tag, index) => ({ tag, index }))
     .filter(({ tag }) => searchMatches(tag.name, query.value)),
 )
+
+/**
+ * FR-24.10's order, by the grip M6 and M25 drag with (ADR-075) — it lifts at
+ * once, while a hold on the rest of the row selects. The list is one drop
+ * target whose rows number the axis, so the gesture reports the gap the
+ * pointer is in and `reorderTarget` turns it into an index.
+ */
+const sheetBody = ref<HTMLElement | null>(null)
+/** The row in the air and the gap under the pointer: what draws the insert line. */
+const lifted = ref<number | null>(null)
+const gap = ref<number | null>(null)
+const drag = useDragToGroup<number>({
+  onHover: (place) => (gap.value = place?.index ?? null),
+  onDrop: (from, place) => {
+    const to = reorderTarget(from, place.index)
+    if (to !== null) emit('move', from, to)
+  },
+})
+watch(sheetBody, (el) => drag.bindHost(el), { immediate: true })
+
+function onLift(event: PointerEvent, index: number): void {
+  const row = (event.currentTarget as HTMLElement | null)?.closest('li')
+  if (!row || searching.value || selecting.value) return
+  lifted.value = index
+  drag.down(event, index, row, true)
+}
+
+function onDragEnd(): void {
+  lifted.value = null
+  gap.value = null
+}
+
+/** The insert line is drawn only where a drop would move something. */
+function showsGap(at: number): boolean {
+  return lifted.value !== null && gap.value === at && reorderTarget(lifted.value, at) !== null
+}
+
+/** „Alle" takes the rows the search leaves on screen, like M9's own. */
+function toggleAll(): void {
+  selection.toggleAll(rows.value.map(({ tag }) => tag.id))
+}
 </script>
 
 <template>
   <SheetModal :is-open="isOpen" testid="m9-tags-sheet" @dismiss="emit('dismiss')">
-    <section class="sheet-body">
+    <section
+      ref="sheetBody"
+      class="sheet-body"
+      data-testid="m9-tags-body"
+      @pointermove="drag.move"
+      @pointerup="(e: PointerEvent) => (drag.up(e), onDragEnd())"
+      @pointercancel="(drag.cancel(), onDragEnd())"
+    >
       <SheetHead
         :title="t('items.tagsTitle')"
         :meta="t('items.tagsHint', { n: tags.length })"
         title-testid="m9-tags-title"
         close-testid="m9-tags-close"
         @close="emit('dismiss')"
-      />
+      >
+        <!-- The same way in M9's app bar offers: a checkbox icon, which
+             leaves the mode again while it is on. -->
+        <template v-if="tags.length > 1" #trail>
+          <button
+            type="button"
+            class="select"
+            :class="{ on: selecting }"
+            :aria-label="t('items.tagsSelect')"
+            :aria-pressed="selecting"
+            data-testid="m9-tags-select"
+            @click="toggleSelecting()"
+          >
+            <IonIcon :icon="checkboxOutline" />
+          </button>
+        </template>
+      </SheetHead>
 
       <div v-if="tags.length > 0" class="search">
         <IonIcon :icon="searchOutline" />
@@ -140,91 +202,52 @@ const rows = computed(() =>
         />
       </div>
 
-      <!-- FR-24.14: the way into picking several, and the bar that acts on
-           them. The bar replaces the entrance rather than sitting beside it,
-           so the head carries one control either way. -->
-      <div v-if="tags.length > 1" class="selection">
-        <button
-          v-if="!selecting"
-          type="button"
-          class="select"
-          data-testid="m9-tags-select"
-          @click="selecting = true"
-        >
-          <IonIcon :icon="checkboxOutline" />
-          {{ t('items.tagsSelect') }}
-        </button>
+      <SelectionBar
+        v-if="selecting"
+        class="selbar"
+        :count="pickedTags.length"
+        :total="rows.length"
+        testid="m9-tags"
+        @exit="selection.end()"
+        @all="toggleAll()"
+      />
 
-        <template v-else>
-          <span class="selcount" data-testid="m9-tags-selected">
-            {{ t('items.tagsSelected', { n: pickedTags.length }) }}
-          </span>
-          <button
-            type="button"
-            class="merge"
-            :disabled="pickedTags.length < 2"
-            data-testid="m9-tags-merge-many"
-            @click="emit('mergeMany', pickedTags)"
-          >
-            {{ t('items.tagsMergeMany') }}
-          </button>
-          <button
-            type="button"
-            class="cancel"
-            data-testid="m9-tags-select-cancel"
-            @click="endPicking()"
-          >
-            {{ t('common.cancel') }}
-          </button>
-        </template>
-      </div>
-
-      <ul class="tags">
+      <!-- The axis is a drop target only while it is whole: a search narrows
+           it to rows eleven apart, and a gap between them is no place. -->
+      <ul class="tags" :data-drop-target="searching ? undefined : 'tags'">
         <li
           v-for="{ tag, index } in rows"
           :key="tag.id"
+          class="tag-row"
           :data-testid="`m9-tag-row-${tag.name}`"
           :data-picked="selecting && picked.has(tag.id) ? 'true' : undefined"
+          :data-drop-index="searching ? undefined : index"
+          :class="{
+            'gap-before': showsGap(index),
+            'gap-after': showsGap(index + 1) && index === tags.length - 1,
+          }"
+          @click.capture="onRowClick($event, tag)"
+          @pointerdown="selection.press(tag.id, $event)"
+          @pointermove="selection.move($event)"
+          @pointerup="selection.release()"
+          @pointercancel="selection.release()"
+          @contextmenu.prevent="selection.contextMenu(tag.id)"
         >
-          <!-- FR-24.14: while picking, the whole row is the checkbox — the
-               acts are gone, so there is nothing else a tap could mean. -->
-          <button
+          <SelectBox
             v-if="selecting"
-            type="button"
-            class="pick"
-            :class="{ on: picked.has(tag.id) }"
-            :aria-pressed="picked.has(tag.id)"
-            :aria-label="t('items.tagPick', { tag: tag.name })"
+            :on="picked.has(tag.id)"
             :data-testid="`m9-tag-pick-${tag.name}`"
-            @click="togglePicked(tag.id)"
-          >
-            <IonIcon v-if="picked.has(tag.id)" :icon="checkmarkOutline" />
-          </button>
-          <!--
-            The order controls are gone while a search is narrowing the list:
-            the arrows move a tag on the *axis*, and offering them beside two
-            rows that are eleven apart on it is an ordering nobody can predict.
-          -->
-          <span v-if="!searching && !selecting" class="order">
-            <button
-              type="button"
-              :disabled="index === 0"
-              :aria-label="t('items.tagUp', { tag: tag.name })"
-              :data-testid="`m9-tag-up-${tag.name}`"
-              @click="emit('move', index, index - 1)"
-            >
-              <IonIcon :icon="arrowUpOutline" />
-            </button>
-            <button
-              type="button"
-              :disabled="index === tags.length - 1"
-              :aria-label="t('items.tagDown', { tag: tag.name })"
-              :data-testid="`m9-tag-down-${tag.name}`"
-              @click="emit('move', index, index + 1)"
-            >
-              <IonIcon :icon="arrowDownOutline" />
-            </button>
-          </span>
+          />
+          <!-- The grip is dashed while a search narrows the list: it moves a
+               tag on the *axis*, and two rows eleven apart on it are no order
+               anyone can predict. -->
+          <DragGrip
+            v-else
+            :off="searching"
+            :label="t('items.tagDrag', { tag: tag.name })"
+            :data-testid="`m9-tag-grip-${tag.name}`"
+            @pointerdown.stop="onLift($event, index)"
+          />
 
           <!-- FR-24.13: the mark is set where the tag is fixed. The control shows
                the mark it would change, or an empty dashed slot that says a
@@ -255,8 +278,8 @@ const rows = computed(() =>
             v-else
             type="button"
             class="name"
+            :aria-pressed="picked.has(tag.id)"
             :data-testid="`m9-tag-name-${tag.name}`"
-            @click="togglePicked(tag.id)"
           >
             <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="22" />
             {{ tag.name }}
@@ -292,6 +315,22 @@ const rows = computed(() =>
           {{ t('items.tagsNoMatch') }}
         </li>
       </ul>
+
+      <BulkBar
+        v-if="selecting && picked.size > 0"
+        class="sheet-bulkbar"
+        data-testid="m9-tags-bulkbar"
+      >
+        <button
+          type="button"
+          :disabled="pickedTags.length < 2"
+          data-testid="m9-tags-merge-many"
+          @click="emit('mergeMany', pickedTags)"
+        >
+          <IonIcon :icon="gitMergeOutline" />
+          {{ t('items.tagsMergeMany') }}
+        </button>
+      </BulkBar>
     </section>
   </SheetModal>
 </template>
@@ -329,46 +368,46 @@ const rows = computed(() =>
   outline: none;
 }
 
-/* FR-24.14: the entrance to picking several, and the bar that acts on the
-   picked ones — one line either way, so the list below does not move as the
-   mode goes on. */
-.selection {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  margin-top: 10px;
-}
-
-.selection button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r-sm);
+/* The head's way into picking several; lit while the mode is on. */
+.select {
+  display: grid;
+  place-items: center;
+  width: var(--jp-control-round);
+  height: var(--jp-control-round);
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: 50%;
   background: var(--jp-surface-sunken);
-  color: var(--ct-text);
-}
-
-.selection ion-icon {
+  color: var(--ct-subtext0);
   font-size: var(--jp-icon-sm);
+  cursor: pointer;
 }
 
-.selcount {
-  flex: 1;
-  font-weight: var(--jp-weight-semibold);
-}
-
-.selection .merge {
-  background: var(--jp-action);
+.select.on {
+  color: var(--jp-action);
   border-color: var(--jp-action);
-  color: var(--ct-crust);
+}
+
+/* The bar stands in the sheet's own inset, not edge to edge like a page's. */
+.selbar {
+  margin-top: 10px;
+  border-radius: var(--jp-r-sm);
+}
+
+/* A sheet has no `fixed` slot to float the bar in: it rides the foot of the
+   sheet's own scroll box instead. */
+.sheet-body .sheet-bulkbar {
+  position: sticky;
+  left: auto;
+  right: auto;
+  bottom: 0;
+  margin-top: 12px;
 }
 
 /* Dimmed rather than gone: one tag picked is a selection on its way to two,
    and a button that disappears between the two taps reads as a refusal. */
-.selection .merge:disabled {
+.sheet-body .sheet-bulkbar button:disabled {
   opacity: 0.45;
 }
 
@@ -379,39 +418,18 @@ const rows = computed(() =>
   background: color-mix(in srgb, var(--jp-action) 12%, transparent);
 }
 
-.pick {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1.5px solid var(--ct-surface2);
-  border-radius: var(--jp-r-xs);
-  background: none;
-  color: transparent;
-}
-
-.pick.on {
-  background: var(--jp-action);
-  border-color: var(--jp-action);
-  color: var(--ct-crust);
-}
-
-.pick ion-icon {
-  font-size: var(--jp-icon-xs);
-}
-
 .tags {
   list-style: none;
   margin: 12px 0 0;
   padding: 0;
 }
 
-/* 54 px so the two stacked order controls are 27 px each. They were 14 at
-   a glyph size that looked right in the stylesheet and was not reachable
-   with a thumb on the rendered screen. */
-.tags li {
+/* 54 px: a row a thumb can hit, and the grip's 44 px target with room. */
+/* On the row itself rather than under `.tags`: the drag's ghost is a clone
+   of it on `document.body`, outside the list, and has to keep its shape. */
+.tag-row {
+  list-style: none;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -419,29 +437,29 @@ const rows = computed(() =>
   border-bottom: 1px solid var(--ct-surface0);
 }
 
-.order {
-  display: flex;
-  flex-direction: column;
+.tag-row[data-drag-ghost] {
+  background: var(--jp-surface-card);
+  padding-inline: 8px;
 }
 
-.order button {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: 0;
-  padding: 4px 6px;
-  color: var(--ct-overlay2);
+/* Where the dragged tag would land: a line in the action colour on the gap,
+   laid over the row's edge so no row moves under the finger (ADR-060). */
+.tags li.gap-before::before,
+.tags li.gap-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--jp-action);
 }
 
-/* An arrow that would do nothing is dimmed rather than hidden: the two
-   controls keep their places, so the column does not reflow as a tag
-   reaches either end of the axis. */
-.order button:disabled {
-  opacity: 0.25;
+.tags li.gap-before::before {
+  top: -1px;
 }
 
-.order ion-icon {
-  font-size: var(--jp-icon-sm);
+.tags li.gap-after::after {
+  bottom: -1px;
 }
 
 .mark {
