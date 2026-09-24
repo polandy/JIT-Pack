@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.19.0](https://github.com/polandy/JIT-Pack/compare/v0.18.0...v0.19.0) (2026-09-24)
+
+
+### Features
+
+* **client:** every row menu wears the bottom sheet's shape (G-14) ([#588](https://github.com/polandy/JIT-Pack/issues/588)) ([178b6d9](https://github.com/polandy/JIT-Pack/commit/178b6d9b751a595c7b80870bf5ae17a297a8e185))
+* **client:** hidden master data and luggage select like the other lists (FR-24.3, FR-10.2, ADR-075) ([#587](https://github.com/polandy/JIT-Pack/issues/587)) ([03b4381](https://github.com/polandy/JIT-Pack/commit/03b4381cac28373799e298862bab4ac6dc0eb22a))
+* **client:** M2 opens a trip's actions on a hold or right-click, like M4 and M7 — the hero card too (FR-4.5, FR-9.1, FR-18.3, ADR-075) ([#586](https://github.com/polandy/JIT-Pack/issues/586)) ([08cc02a](https://github.com/polandy/JIT-Pack/commit/08cc02a3836ef11dd6a95c2137c0c330c69c2d5e))
+* **client:** tasks and shopping share one list — a hold selects, the grip drags ([#583](https://github.com/polandy/JIT-Pack/issues/583)) ([4035246](https://github.com/polandy/JIT-Pack/commit/4035246b42516854b7b91a97ebd8dc148fec88db))
+* **client:** the inventory selects like the shopping list and the tasks (FR-24.9, ADR-075) ([#584](https://github.com/polandy/JIT-Pack/issues/584)) ([674065f](https://github.com/polandy/JIT-Pack/commit/674065fa8ff55b55648dcf3b7504a70bfdbf959f))
+* **client:** the tag manager selects and reorders like the lists, and the browse sheet heads its groups like M9 (FR-24.10, FR-24.14, FR-25.13d, ADR-075) ([#585](https://github.com/polandy/JIT-Pack/issues/585)) ([fc02f78](https://github.com/polandy/JIT-Pack/commit/fc02f780177da4d0a8828fb2183a87e7689ae57e))
+* **shopping:** retag several entries at once, drag an entry to retag it, and undo a bought row (FR-30.9/FR-25.11j) ([#576](https://github.com/polandy/JIT-Pack/issues/576)) ([c3cb4c7](https://github.com/polandy/JIT-Pack/commit/c3cb4c7e8c1ce7def54b95508c27626a66964a7d))
+
+
+### Bug Fixes
+
+* **client:** M2 opens a row menu asked for while the last one is leaving ([#589](https://github.com/polandy/JIT-Pack/issues/589)) ([48ff4dc](https://github.com/polandy/JIT-Pack/commit/48ff4dca061172fbd757cc1eb054f11dee2c729d))
+
 ## [0.18.0](https://github.com/polandy/JIT-Pack/compare/v0.17.0...v0.18.0) (2026-09-22)
 
 
