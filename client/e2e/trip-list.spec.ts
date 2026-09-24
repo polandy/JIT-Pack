@@ -155,10 +155,10 @@ test.describe('M2 opening segment @local @m2', () => {
 /**
  * M2's row actions (UI-Test-Spec §4, unit "M2 row actions", 2026-08-30).
  *
- * The whole slide menu was unoperated until this block: E2E-FLOW-01 asserts
- * *Share* is in the DOM and nothing had ever opened the row. What is written
- * here is what the screen actually offers — the wording of the spec's cases
- * („long-press → context menu") describes a gesture M2 has never had.
+ * The row's actions were a slide menu nobody had operated until this block
+ * (2026-08-30). Since 2026-09-24 they are the hold / right-click row menu M4
+ * and M7 use — the „long-press → context menu" the spec had always named —
+ * and these cases open it through `contextmenu` (E2E-M2-19).
  */
 test.describe('M2 row actions @local @m2', () => {
   test.beforeEach(async ({ page }) => {
