@@ -3,8 +3,8 @@ import {
   expect,
   createTripViaWizard,
   expectTripOpen,
-  openTripSwipe,
-  tripSwipeActions,
+  chooseTripRowAction,
+  tripRowMenuActions,
   visiblePage,
   itemDetail,
   tripAction,
@@ -77,12 +77,11 @@ test.describe('Two accounts on one instance @server', () => {
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await quickAddItem(alice, item)
 
-    // G-8's positive half: with a real session the trip offers Share at all.
-    // Presence in the DOM, not visibility — the option lives behind M2's
-    // slide gesture, and what is asserted here is the `collaborative` gate.
+    // G-8's positive half: with a real session the trip's row menu offers
+    // Share at all — what is asserted here is the `collaborative` gate.
     await alice.goto(PATH.trips)
     await visiblePage(alice).getByTestId('trips-filter-planned').click()
-    await expect(visiblePage(alice).getByTestId(`m2-share-${trip}`)).toHaveCount(1)
+    expect(await tripRowMenuActions(alice, trip)).toContain('Share')
 
     await alice.goto(`${tripPath}/members`)
     // Alice's own row proves the JIT provisioning carried the IdP's display
@@ -249,25 +248,23 @@ test.describe('Two accounts on one instance @server', () => {
     await bob.goto(PATH.trips)
     await visiblePage(bob).getByTestId('trips-filter-planned').click()
     await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toBeVisible()
-    const bobsOptions = await tripSwipeActions(bob, trip)
+    const bobsOptions = await tripRowMenuActions(bob, trip)
     expect(bobsOptions).toContain('Export trip')
     expect(bobsOptions).not.toContain('Delete trip')
 
     await alice.goto(PATH.trips)
     await visiblePage(alice).getByTestId('trips-filter-planned').click()
-    expect(await tripSwipeActions(alice, trip)).toContain('Delete trip')
+    expect(await tripRowMenuActions(alice, trip)).toContain('Delete trip')
 
     // Cancelled first: a destructive action that was not confirmed has to
     // leave the trip exactly where it was, or the confirm below proves
     // nothing about the confirming.
-    await openTripSwipe(alice, trip)
-    await visiblePage(alice).getByTestId(`m2-delete-${trip}`).click()
+    await chooseTripRowAction(alice, trip, 'delete')
     await alice.locator('ion-alert').getByRole('button', { name: 'Cancel' }).click()
     await expect(alice.locator('ion-alert')).toHaveCount(0)
     await expect(visiblePage(alice).getByTestId(`trip-row-${trip}`)).toBeVisible()
 
-    await openTripSwipe(alice, trip)
-    await visiblePage(alice).getByTestId(`m2-delete-${trip}`).click()
+    await chooseTripRowAction(alice, trip, 'delete')
     await alice.locator('ion-alert').getByRole('button', { name: 'Delete' }).click()
     await expect(visiblePage(alice).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
 

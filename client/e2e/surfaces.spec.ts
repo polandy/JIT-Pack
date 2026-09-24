@@ -122,7 +122,7 @@ test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @loc
   }
   await page.getByTestId('trips-filter-planned').click({ force: true })
 
-  const rows = page.locator('.trip-card ion-item-sliding ion-item')
+  const rows = page.locator('.trip-card > ion-item')
   await expect(rows).toHaveCount(3)
 
   /**
