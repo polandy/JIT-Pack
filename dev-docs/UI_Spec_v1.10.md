@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-24 — **M2**: a trip row's actions open on a **hold or a right-click** as an action sheet, the way M4's and
+  M7's rows do; the swipe that carried them is gone. Same actions, same conditions (see M2 *Actions*).
 * 2026-09-21 — **M1**: once the packing is finished the hero drops *„Packen abgeschlossen“* for the phase in the date
   line, a day counter and two blocks — *Aufgaben* (four) and *Einkauf* (seven) — that are checked off, added to and
   folded in place, with *Packliste öffnen* under them (FR-7.10, ADR-074). The hero is no longer one link.
@@ -978,9 +980,9 @@ These patterns apply to every screen and are specified once.
   claim a trip is being packed that is not. The trip is **lifted out** of the grouped list rather than drawn twice, so
   the series header below counts what it lists — which is what it has always counted, a search having shrunk it since
   the screen shipped. The hero states the series it came out of, in front of who the trip is for. Because a card
-  cannot be swiped, the row's slide actions are **stated on it**: export, share (G-8), the one lifecycle step and
-  delete, derived from the same predicates as the swipe. It carries the FR-27.4 and FR-16.2 chips with it, and asks
-  for its own trip partition — no observer would ever ask for a card (ADR-033).
+  has no row menu, the row's actions are **stated on it**: export, share (G-8), the one lifecycle step and delete,
+  read from the same list as the row menu (`tripRowActions`; a swipe until 2026-09-24). It carries the FR-27.4 and
+  FR-16.2 chips with it, and asks for its own trip partition — no observer would ever ask for a card (ADR-033).
 * **Default ordering (concept-review 2026-07-17, realised and refined 2026-08-08):** **one flat list, not grouped by
   Trip Series.** M2 is the app's main entry since the phase hub was dropped, and what belongs on top is the trip you are
   packing for, not a taxonomy of your holidays. Ordering is by usefulness rather than literally newest-first: the
@@ -996,14 +998,20 @@ These patterns apply to every screen and are specified once.
   on the row**, and the opening segment is FR-2.8's derived one. The 2026-08-08 reasoning is kept above rather than
   deleted because it was a real decision and its premise — that the list is short — is what a year of use disproved; a
   spec that adopts whatever the code does has stopped being a decision, so this one records that the code was *chosen*.
-* **Actions:** Tap → M4; FAB "New trip" → M3; long-press → context menu (Clone per FR-12.1, Archive, Share, Export per
-  Addendum FR-18.3, Delete — destructive actions require confirmation and Owner role per FR-4.5); tap series header →
-  M16. In Single-User Mode (Addendum FR-17.3), *Share* is omitted from this menu — there is no second account to share
-  with. *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**,
-  not overflow entries (corrected 2026-08-30, backlog item 6 — the screen has carried them there since the import work
+* **Actions:** Tap → M4; FAB "New trip" → M3; **hold or right-click a trip row → its row menu**, an action sheet
+  headed by the trip's name: *Export* (Addendum FR-18.3), *Share* (FR-4.5), *Clone* on an archived trip only (FR-12.1),
+  the one lifecycle step the trip's status offers — *Start* on a planned trip, *Archive* on a running one (FR-9.1/9.2) —
+  and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series header → M16. In Single-User Mode (Addendum
+  FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with. The tap that
+  ends a hold does not also open the trip. The hero card (FR-21.15) states the same list as its own action row.
+  *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**, not
+  overflow entries (corrected 2026-08-30, backlog item 6 — the screen has carried them there since the import work
   landed; see M15's *Navigation*). **The list opens on the segment a caller names** (`?status=active|planned|archived`,
   added 2026-08-17) — M18 uses it to land a restore where its own result is; an absent or unknown value never resets the
-  segment the user last chose.
+  segment the user last chose. *Revised 2026-09-24:* the row menu **replaces the swipe** that carried these actions
+  since the screen shipped — M2 was the last list hiding its row actions behind one, while M4 (FR-5.5) and M7 (FR-18.2)
+  answered a hold with a sheet; the owner asked for one gesture across the app. The long-press this line always named
+  is now what the screen does.
 * **The opening segment is derived, not fixed (FR-2.8, built 2026-08-29):** on entering the screen, a segment showing
   nothing is left for the first one that does, in the order *Active → Planned → Archived*; a segment that still holds
   trips is never taken away from the user, `?status=` still wins over the walk, and all three empty leaves the list on
@@ -2943,10 +2951,11 @@ token would prove nothing there is anything to prove.
 
 **Implemented 2026-08-19** (Addendum §3.27, FR-27.5) — the concept closed 2026-08-08 and was mocked in
 `UI_Concept_Prototype.html`. Three notes from building it: the entry needed a **lifecycle step that did not exist**
-(nothing user-facing moved a trip to *active*, so nothing could archive one — M4's app bar and M2's swipe now offer
-*Reise starten* on a planning trip); a row generated from the old **Ferien-Vorlage's own** positions is treated as loose
-rather than recognised, because FR-27.1 forbids a Vorlage including another one, and it says so differently from an
-ad-hoc row; and the *„Auf der Reise ergänzt"* wording describes a path the app cannot walk — see FR-27.5's build note.
+(nothing user-facing moved a trip to *active*, so nothing could archive one — M4's app bar and M2's swipe, a row
+menu since 2026-09-24, now offer *Reise starten* on a planning trip); a row generated from the old
+**Ferien-Vorlage's own** positions is treated as loose rather than recognised, because FR-27.1 forbids a Vorlage
+including another one, and it says so differently from an ad-hoc row; and the *„Auf der Reise ergänzt"* wording
+describes a path the app cannot walk — see FR-27.5's build note.
 
 * **Purpose:** Turn a finished trip back into a reusable template, so the year's learning ends up in the templates
   instead of in the archive. The screen exists because the naive "save as template" (copy everything flat) destroys

@@ -137,6 +137,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
 - [Two case ids kept their number and changed their promise (2026-09-20)](#two-case-ids-kept-their-number-and-changed-their-promise-2026-09-20) — what FR-7.6's one task list cost the suite, and the undo-window trap E2E-M4-137 holds.
 - [The navigation that raced the write, closed as a class (2026-09-20)](#the-navigation-that-raced-the-write-closed-as-a-class-2026-09-20) — why the fixture now settles the outbox, and how a flake was made deterministic first.
+- [M2's swipe became a row menu, and its WebKit helper went with it (2026-09-24)](#m2s-swipe-became-a-row-menu-and-its-webkit-helper-went-with-it-2026-09-24) — E2E-M2-19, and why the M2 cases now open the menu through `contextmenu`.
 
 ## The rule that comes before the units
 
@@ -280,7 +281,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07, E2E-M12-08 (several bars picked into one facet) | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5), E2E-M2-08 (the *Imported* chip), E2E-M2-03 (the traveller pile), E2E-M2-02 (series grouping → M16), E2E-M2-16 (the empty state) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 hero (FR-21.15) | E2E-M2-17 (the running trip is a card, keeps its actions, and is not also a row) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
-| M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
+| M2 row actions (the hold / right-click menu; a slide until 2026-09-24) | **E2E-M2-19** (a right-click opens the menu, *Start* moves the trip off *Planned*, and a tap still opens a trip — since 2026-09-24), E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18, E2E-M3-21 (FR-2.5b empty roster), E2E-M3-23 (FR-7.4 trip tasks deduplicated, and no preparation) | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
@@ -5569,3 +5570,32 @@ a case that asserts persisted state *without* navigating still needs
 `writesLanded`, and that is why the helper stays. And `navigateWhileWriting`
 exists for the case whose subject is the interrupted write; nothing uses it
 today, which is the honest state to leave it in rather than inventing a caller.
+
+## M2's swipe became a row menu, and its WebKit helper went with it (2026-09-24)
+
+**E2E-M2-19** is new, and every M2 case that operated a row action was rewritten
+with it. M2 was the last list whose row actions sat behind an `ion-item-sliding`;
+they now open on a hold or a right-click as an action sheet, M4's and M7's shape
+(UI-Spec M2 *Actions*, PRD Addendum FR-21.15's 2026-09-24 amendment).
+
+**`openTripSwipe` is gone, and it was the expensive helper.** It called the
+element's own `open('end')` and still needed three settles — hydration, the
+options child registered in the parent (`componentOnReady`, awaited in the page)
+and two animation frames — because on WebKit `open()` returned silently having
+done nothing (E2E-M2-07, 2026-09-04). The replacements (`openTripRowMenu`,
+`chooseTripRowAction`, `tripRowMenuActions`) dispatch `contextmenu` on the row,
+the seam `helpers/m4.ts` has always used, and wait on the sheet being visible:
+an Ionic overlay presents or it does not, and there is no second component whose
+readiness the first one silently depends on.
+
+**The entries carry whole-literal ids** (`m2-menu-export` … `m2-menu-delete`,
+`TRIP_ROW_ACTION` in the helper) rather than the old `m2-export-${name}`: a menu
+is one at a time, so the trip's name bought nothing, and a literal is what
+`scripts/testid-gate.mjs` can hold a spec against.
+
+**What the case does not own.** Which actions a status earns is `tripRowActions`'
+table in `domain/__tests__/trips.spec.ts`; the 500 ms hold reaching the same menu,
+and a tap being ignored while the sheet is up, are `TripListPage.spec.ts`' — both
+with a clock in the test's hand rather than a wait in the browser. E2E-M2-19 owns
+what only a rendered screen can say: the right-click reaches a sheet, the chosen
+entry acts, and the row is a door again once the sheet is gone.

@@ -123,3 +123,17 @@ Two parts of the decision do not carry over, each weighed with the owner:
 heading as the jump control (FR-24.8) — and `useRowSelection.toggleAll` now judges „every" by the keys on screen rather
 than by a count, which M9's filter needs and M6/M25 do not notice. The revisit trigger above has not fired: M9's bar
 already holds its fourth act behind ⋯ *Mehr*.
+
+## Amendment 2026-09-24 (2) — where a hold opens a row menu instead
+
+The decision above is about **tag-grouped lists whose rows are acted on in batches** — M6, M25, M9. It does not reach
+the lists whose rows are acted on one at a time and whose tap navigates: **M2** (the trip list), **M7** (the templates)
+and **M4** (the packing rows, FR-5.5). On those a hold — or a right-click — opens **the row's own action sheet**, and
+there is no selection mode to enter. M2 joined that shape on 2026-09-24 (UI-Spec M2, E2E-M2-19): it was the last list
+hiding its row actions behind a swipe, and the owner asked for one gesture across the app.
+
+The two meanings do not collide, because no list offers both: a list either has a batch act worth a selection, or its
+rows' acts differ per row (a trip's lifecycle step, a template's rename) and are read one at a time. The guard is the
+same in both shapes — the row navigates in code, and a tap is ignored while the hold's result is on screen, so the
+release after a hold never also opens the row. The revisit trigger above extends to this: a list of the second kind
+that gains a batch act asks the question again for itself, rather than growing a second meaning for the hold.

@@ -18,9 +18,6 @@ import {
   IonFabButton,
   IonRefresher,
   IonRefresherContent,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
   IonButton,
   actionSheetController,
   onIonViewWillEnter,
@@ -63,7 +60,14 @@ import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { useIdentity } from '@/composables/useTripIdentity'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { heroTripOf, isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
+import {
+  heroTripOf,
+  isActive,
+  tripOrderKey,
+  tripRowActions,
+  type TripRowAction,
+} from '@/domain/trips'
+import { useLongPress } from '@/composables/useLongPress'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatTripPeriod } from '@/lib/format'
@@ -532,65 +536,140 @@ async function exportTrip(trip: Trip) {
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }
 
+/** How one of M2's per-trip actions looks and what it does. */
+interface TripActionView {
+  icon: string
+  labelKey: MessageKey
+  /**
+   * The row menu's entry id. Whole literals rather than one template, so
+   * `scripts/testid-gate.mjs` can see each of them.
+   */
+  menuTestid: string
+  /** Ionic's sheet role; the destructive entry is drawn as one (M7's shape). */
+  role?: 'destructive'
+  run: (trip: Trip) => void
+}
+
+const TRIP_ACTION_VIEW: Record<TripRowAction, TripActionView> = {
+  // FR-18.3: portable YAML export with progress choice
+  export: {
+    icon: downloadOutline,
+    labelKey: 'trips.actionExport',
+    menuTestid: 'm2-menu-export',
+    run: (trip) => void exportTrip(trip),
+  },
+  // FR-4.5: member management
+  share: {
+    icon: peopleOutline,
+    labelKey: 'trips.actionShare',
+    menuTestid: 'm2-menu-share',
+    run: (trip) => void router.push(tripSubPath(trip.id, 'members')),
+  },
+  // FR-12.1: clone from the archive
+  clone: {
+    icon: copyOutline,
+    labelKey: 'trips.actionClone',
+    menuTestid: 'm2-menu-clone',
+    run: (trip) => void router.push(tripSubPath(trip.id, 'clone')),
+  },
+  // planning → active, the step that makes archiving (and M14/M21) reachable
+  start: {
+    icon: playOutline,
+    labelKey: 'trips.actionStart',
+    menuTestid: 'm2-menu-start',
+    run: (trip) => startTrip(trip.id),
+  },
+  // → M14 review (FR-9.2)
+  archive: {
+    icon: archiveOutline,
+    labelKey: 'trips.actionArchive',
+    menuTestid: 'm2-menu-archive',
+    run: (trip) => archiveTrip(trip.id),
+  },
+  // destructive, Owner-only (FR-4.5)
+  delete: {
+    icon: trashOutline,
+    labelKey: 'trips.actionDelete',
+    menuTestid: 'm2-menu-delete',
+    role: 'destructive',
+    run: (trip) => void deleteTrip(trip),
+  },
+}
+
+function actionsOf(trip: Trip): TripRowAction[] {
+  return tripRowActions(trip, { collaborative, canDelete: canDelete(trip) })
+}
+
 /** One entry of the hero's action row (FR-21.15). */
 interface HeroAction {
-  id: string
+  id: TripRowAction
   icon: string
   label: string
   run: () => void
 }
 
 /**
- * The hero's actions, derived from the same predicates as the row's slide
- * menu rather than from „it is active, so it can be archived": a hero over a
- * trip whose lifecycle says otherwise would offer a step the swipe does not,
- * which is the drift `nextLifecycleStep` was written to end.
- *
- * Clone is absent because it is FR-12.1's archive-only step, and the hero is
- * only ever a running trip — the row keeps it for the segment it belongs to.
+ * The hero's actions, from the same list as the row's menu rather than from
+ * „it is active, so it can be archived": a hero over a trip whose lifecycle
+ * says otherwise would offer a step the row does not. Clone and start never
+ * appear because the hero is only ever a running trip.
  */
 const heroActions = computed<HeroAction[]>(() => {
   const trip = heroTrip.value
   if (!trip) return []
-  return [
-    {
-      id: 'export',
-      icon: downloadOutline,
-      label: t('trips.actionExport'),
-      run: () => void exportTrip(trip),
-    },
-    ...(collaborative
-      ? [
-          {
-            id: 'share',
-            icon: peopleOutline,
-            label: t('trips.actionShare'),
-            run: () => void router.push(tripSubPath(trip.id, 'members')),
-          },
-        ]
-      : []),
-    ...(nextLifecycleStep(trip) === 'archive'
-      ? [
-          {
-            id: 'archive',
-            icon: archiveOutline,
-            label: t('trips.actionArchive'),
-            run: () => archiveTrip(trip.id),
-          },
-        ]
-      : []),
-    ...(canDelete(trip)
-      ? [
-          {
-            id: 'delete',
-            icon: trashOutline,
-            label: t('trips.actionDelete'),
-            run: () => void deleteTrip(trip),
-          },
-        ]
-      : []),
-  ]
+  return actionsOf(trip).map((id) => ({
+    id,
+    icon: TRIP_ACTION_VIEW[id].icon,
+    label: t(TRIP_ACTION_VIEW[id].labelKey),
+    run: () => TRIP_ACTION_VIEW[id].run(trip),
+  }))
 })
+
+// --- Row menu: hold / right-click (M4, M7 shape) ---------------------------
+//
+// A swipe until 2026-09-24; M2 was the last list that hid its actions behind
+// one, and M4 and M7 already answered a hold with a sheet. The 500 ms live in
+// useLongPress; `contextmenu` covers desktop and is the seam the e2e drives.
+
+const hold = useLongPress<Trip>(openRowMenu)
+
+/**
+ * Row taps are ignored while the menu lives — set before the overlay
+ * attaches and cleared on dismiss, so the release-click of a hold cannot also
+ * open the trip. M7's `rowMenuActive`, and a state for the same reason: a
+ * one-shot "swallow the next click" would go stale and eat a real tap.
+ */
+let rowMenuActive = false
+
+function openTrip(trip: Trip) {
+  if (rowMenuActive) return
+  router.push(tripPath(trip.id))
+}
+
+async function openRowMenu(trip: Trip) {
+  hold.cancel()
+  rowMenuActive = true
+  try {
+    const sheet = await actionSheetController.create({
+      header: trip.name,
+      buttons: [
+        ...actionsOf(trip).map((id) => ({
+          text: t(TRIP_ACTION_VIEW[id].labelKey),
+          icon: TRIP_ACTION_VIEW[id].icon,
+          role: TRIP_ACTION_VIEW[id].role,
+          htmlAttributes: { 'data-testid': TRIP_ACTION_VIEW[id].menuTestid },
+          handler: () => TRIP_ACTION_VIEW[id].run(trip),
+        })),
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    // finally: a failed present() must not leave the list tap-dead.
+    rowMenuActive = false
+  }
+}
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
@@ -638,7 +717,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- FR-21.15: the trip you are on, as a card rather than as one row
-           among five. It carries its own actions because it left the sliding
+           among five. It carries its own actions because it left the row
            menu behind when it left the list. -->
       <TripHero
         v-if="heroTrip"
@@ -662,8 +741,8 @@ async function handleRefresh(event: CustomEvent) {
         />
 
         <template #foot>
-          <!-- The same actions the row keeps behind its swipe, stated. A
-               card is not swipeable, and the trip a person packs daily is
+          <!-- The same actions the row keeps behind its hold, stated. The
+               trip a person packs daily is
                the last one whose export and share should be the hidden
                ones (FR-21.15). -->
           <IonButton
@@ -739,141 +818,86 @@ async function handleRefresh(event: CustomEvent) {
             </IonLabel>
           </IonItem>
           <div class="jp-card trip-card">
-            <IonItemSliding v-for="trip in group.trips" :key="trip.id">
-              <IonItem
-                :ref="(el) => watchRow(el as Element | ComponentPublicInstance | null, trip.id)"
-                button
-                :data-testid="`trip-row-${trip.name}`"
-                :router-link="tripPath(trip.id)"
-                :class="{ archived: trip.status === TRIP_STATUS_ARCHIVED }"
-              >
-                <div slot="start" class="progress-ring">
-                  <svg viewBox="0 0 36 36" class="ring-svg">
-                    <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
-                    <circle
-                      class="ring-fg"
-                      cx="18"
-                      cy="18"
-                      r="15.5"
-                      fill="none"
-                      stroke-width="3"
-                      :stroke="progressColor(trip)"
-                      :stroke-dasharray="`${tripDataKnown(trip) ? progressPercent(trip) : 0} 100`"
-                      stroke-linecap="round"
-                    />
-                    <!-- font-size is an SVG attribute, not CSS: inside viewBox="0 0 36 36"
+            <IonItem
+              v-for="trip in group.trips"
+              :key="trip.id"
+              :ref="(el) => watchRow(el as Element | ComponentPublicInstance | null, trip.id)"
+              button
+              :data-testid="`trip-row-${trip.name}`"
+              :class="{ archived: trip.status === TRIP_STATUS_ARCHIVED }"
+              @click="openTrip(trip)"
+              @contextmenu.prevent="openRowMenu(trip)"
+              @pointerdown="(e: PointerEvent) => hold.down(trip, e.clientX, e.clientY)"
+              @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+              @pointerup="hold.cancel()"
+              @pointercancel="hold.cancel()"
+            >
+              <div slot="start" class="progress-ring">
+                <svg viewBox="0 0 36 36" class="ring-svg">
+                  <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
+                  <circle
+                    class="ring-fg"
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke-width="3"
+                    :stroke="progressColor(trip)"
+                    :stroke-dasharray="`${tripDataKnown(trip) ? progressPercent(trip) : 0} 100`"
+                    stroke-linecap="round"
+                  />
+                  <!-- font-size is an SVG attribute, not CSS: inside viewBox="0 0 36 36"
                        it is 9 *user units*, a proportion of the ring, and a px token
                        from the type scale would be meaningless here. -->
-                    <text x="18" y="20.5" font-size="9" class="ring-text">
-                      {{ tripDataKnown(trip) ? `${progressPercent(trip)}%` : '·' }}
-                    </text>
-                  </svg>
-                </div>
-                <IonLabel>
-                  <h2>{{ trip.name }}</h2>
-                  <!-- FR-2.1b: a trip may have both dates, one, or neither.
+                  <text x="18" y="20.5" font-size="9" class="ring-text">
+                    {{ tripDataKnown(trip) ? `${progressPercent(trip)}%` : '·' }}
+                  </text>
+                </svg>
+              </div>
+              <IonLabel>
+                <h2>{{ trip.name }}</h2>
+                <!-- FR-2.1b: a trip may have both dates, one, or neither.
                      With neither, its year is what it is called by. -->
-                  <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
-                  <p data-testid="trip-item-summary">
-                    {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
-                  </p>
-                  <TripChangeChips
-                    :trip-id="trip.id"
-                    :name="trip.name"
-                    :imported="trip.imported"
-                    :proposed="proposedCount(trip)"
-                    :applied="appliedChanges(trip)"
-                    :expanded="expandedApplied === trip.id"
-                    @toggle="toggleApplied(trip.id)"
-                  />
-                </IonLabel>
-                <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
+                <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
+                <p data-testid="trip-item-summary">
+                  {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
+                </p>
+                <TripChangeChips
+                  :trip-id="trip.id"
+                  :name="trip.name"
+                  :imported="trip.imported"
+                  :proposed="proposedCount(trip)"
+                  :applied="appliedChanges(trip)"
+                  :expanded="expandedApplied === trip.id"
+                  @toggle="toggleApplied(trip.id)"
+                />
+              </IonLabel>
+              <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
                      presence facepile G-10 removed from here on 2026-08-28,
                      whose words were left standing in the spec. -->
-                <div
-                  v-if="travelersOf(trip).length > 0"
-                  slot="end"
-                  class="traveler-faces"
-                  :data-testid="`m2-travelers-${trip.name}`"
+              <div
+                v-if="travelersOf(trip).length > 0"
+                slot="end"
+                class="traveler-faces"
+                :data-testid="`m2-travelers-${trip.name}`"
+              >
+                <UserAvatar
+                  v-for="traveler in shownTravelers(trip)"
+                  :key="traveler.id"
+                  :name="traveler.name"
+                  :seed="traveler.id"
+                  :size="20"
+                  data-testid="m2-traveler-face"
+                />
+                <span
+                  v-if="hiddenTravelers(trip) > 0"
+                  class="traveler-more"
+                  data-testid="m2-traveler-more"
                 >
-                  <UserAvatar
-                    v-for="traveler in shownTravelers(trip)"
-                    :key="traveler.id"
-                    :name="traveler.name"
-                    :seed="traveler.id"
-                    :size="20"
-                    data-testid="m2-traveler-face"
-                  />
-                  <span
-                    v-if="hiddenTravelers(trip) > 0"
-                    class="traveler-more"
-                    data-testid="m2-traveler-more"
-                  >
-                    {{ t('trips.travelersMore', { n: hiddenTravelers(trip) }) }}
-                  </span>
-                </div>
-              </IonItem>
-
-              <IonItemOptions side="end">
-                <!-- FR-18.3: portable YAML export with progress choice -->
-                <IonItemOption
-                  color="tertiary"
-                  :data-testid="`m2-export-${trip.name}`"
-                  :aria-label="t('trips.actionExport')"
-                  @click="exportTrip(trip)"
-                >
-                  <IonIcon slot="icon-only" :icon="downloadOutline" />
-                </IonItemOption>
-                <!-- FR-4.5: member management (Share) -->
-                <IonItemOption
-                  v-if="collaborative"
-                  color="secondary"
-                  :data-testid="`m2-share-${trip.name}`"
-                  :aria-label="t('trips.actionShare')"
-                  @click="$router.push(tripSubPath(trip.id, 'members'))"
-                >
-                  <IonIcon slot="icon-only" :icon="peopleOutline" />
-                </IonItemOption>
-                <!-- FR-12.1: clone from archive -->
-                <IonItemOption
-                  v-if="trip.status === TRIP_STATUS_ARCHIVED"
-                  color="primary"
-                  :aria-label="t('trips.actionClone')"
-                  @click="$router.push(tripSubPath(trip.id, 'clone'))"
-                >
-                  <IonIcon slot="icon-only" :icon="copyOutline" />
-                </IonItemOption>
-                <!-- Start: planning → active, the step that makes archiving
-                     (and with it M14/M21) reachable at all. -->
-                <IonItemOption
-                  v-if="nextLifecycleStep(trip) === 'start'"
-                  color="primary"
-                  :aria-label="t('trips.actionStart')"
-                  @click="startTrip(trip.id)"
-                >
-                  <IonIcon slot="icon-only" :icon="playOutline" />
-                </IonItemOption>
-                <!-- Archive → M14 review (FR-9.2) -->
-                <IonItemOption
-                  v-else-if="nextLifecycleStep(trip) === 'archive'"
-                  color="medium"
-                  :aria-label="t('trips.actionArchive')"
-                  @click="archiveTrip(trip.id)"
-                >
-                  <IonIcon slot="icon-only" :icon="archiveOutline" />
-                </IonItemOption>
-                <!-- Delete (destructive, Owner-only FR-4.5) -->
-                <IonItemOption
-                  v-if="canDelete(trip)"
-                  color="danger"
-                  :data-testid="`m2-delete-${trip.name}`"
-                  :aria-label="t('trips.actionDelete')"
-                  @click="deleteTrip(trip)"
-                >
-                  <IonIcon slot="icon-only" :icon="trashOutline" />
-                </IonItemOption>
-              </IonItemOptions>
-            </IonItemSliding>
+                  {{ t('trips.travelersMore', { n: hiddenTravelers(trip) }) }}
+                </span>
+              </div>
+            </IonItem>
           </div>
         </template>
       </IonList>
@@ -952,7 +976,7 @@ ion-segment-button {
    group an edge, not its entries. The last one's line is the card's own
    bottom edge, so Ionic's is removed — `ion-list` does this itself for a
    direct child, which a row inside a card is not. */
-.trip-card ion-item-sliding:last-child ion-item {
+.trip-card ion-item:last-child {
   --inner-border-width: 0;
 }
 

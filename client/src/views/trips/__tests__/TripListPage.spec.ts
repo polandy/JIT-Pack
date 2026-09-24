@@ -19,6 +19,7 @@ import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
+import { LONG_PRESS_MS } from '@/composables/useLongPress'
 import type { AppliedChange } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
@@ -34,6 +35,11 @@ vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 // at all.
 let segment = 'planned'
 
+const { pushed, sheets } = vi.hoisted(() => ({
+  pushed: [] as string[],
+  sheets: [] as { header?: string; buttons: SheetButton[]; dismiss: () => void }[],
+}))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     get query() {
@@ -41,8 +47,37 @@ vi.mock('vue-router', () => ({
     },
     params: {},
   }),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: (path: string) => pushed.push(path), replace: vi.fn() }),
 }))
+
+/**
+ * What the row menu was asked to render, and a seam to close it with — the
+ * AppHeader spec's shape. The sheet is an Ionic overlay whose DOM jsdom is
+ * not where to assert; what the row owes is the *list*, and that a tap while
+ * the sheet is up does not also open the trip. `dismiss` is the sheet going
+ * away, in the test's hand rather than on a clock.
+ */
+interface SheetButton {
+  text: string
+  role?: string
+  htmlAttributes?: Record<string, string>
+  handler?: () => void
+}
+
+vi.mock('@ionic/vue', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@ionic/vue')
+  return {
+    ...actual,
+    actionSheetController: {
+      create: async (opts: { header?: string; buttons: SheetButton[] }) => {
+        let dismiss = () => {}
+        const gone = new Promise<void>((resolve) => (dismiss = resolve))
+        sheets.push({ header: opts.header, buttons: opts.buttons, dismiss })
+        return { present: async () => {}, onDidDismiss: () => gone.then(() => ({})) }
+      },
+    },
+  }
+})
 
 const master = masterDataStub()
 
@@ -110,6 +145,8 @@ function mountPage() {
 
 beforeEach(() => {
   segment = 'planned'
+  pushed.length = 0
+  sheets.length = 0
   orchestratorFake.refreshProposals.value = {}
   orchestratorFake.loadedTrips = new Set<string>()
   master.masterLoaded.value = true
@@ -254,50 +291,116 @@ describe('TripListPage — the FR-27.4 proposal chip', () => {
   })
 })
 
-describe('TripListPage — the lifecycle swipe options', () => {
-  // The status a trip is in decides which single step it is offered. Worth a
-  // test of its own because *start* is the step that made archiving — and
-  // therefore M14 and M21 — reachable at all, and because the two options are
-  // written as separate `v-if`s that could both render or neither.
-  it('offers start on a planning trip, and not archive', async () => {
-    segment = 'planned'
+/**
+ * M2's row menu (2026-09-24): a hold or a right-click opens the trip's
+ * actions as a sheet, the way M4 and M7 do, where a swipe used to. *Which*
+ * actions a status earns is `tripRowActions`' table in the domain spec; what
+ * is asserted here is the wiring — the gesture reaches the sheet, the sheet
+ * reaches the orchestrator, and the tap that ends a hold does not also open
+ * the trip.
+ */
+describe('TripListPage — the row menu (hold / right-click)', () => {
+  function labels(sheet: { buttons: SheetButton[] }): string[] {
+    return sheet.buttons.map((b) => b.text)
+  }
+
+  function button(label: string): SheetButton {
+    const found = sheets[0]!.buttons.find((b) => b.text === label)
+    if (!found) throw new Error(`no „${label}" in ${labels(sheets[0]!).join(', ')}`)
+    return found
+  }
+
+  it('opens on a right-click, headed by the trip, with the step its status earns', async () => {
     seedTrip('planning')
     const page = mountPage()
-    await page.vm.$nextTick()
 
-    expect(page.find('[aria-label="Start trip"]').exists()).toBe(true)
-    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(false)
+    await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+
+    expect(sheets).toHaveLength(1)
+    expect(sheets[0]!.header).toBe('Samedan')
+    expect(labels(sheets[0]!)).toEqual([
+      t('trips.actionExport'),
+      t('trips.actionStart'),
+      t('trips.actionDelete'),
+      t('common.cancel'),
+    ])
   })
 
-  it('offers archive on a running trip, and not start', async () => {
+  it('opens on a hold too — the touch entry, through the same timer as M7', async () => {
+    vi.useFakeTimers()
+    try {
+      seedTrip('planning')
+      const page = mountPage()
+      const row = page.find('[data-testid="trip-row-Samedan"]')
+
+      await row.trigger('pointerdown')
+      expect(sheets).toHaveLength(0)
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+      await flushPromises()
+
+      expect(sheets).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('offers the archive step on a running row, and archiving asks the orchestrator', async () => {
     segment = 'active'
-    seedTrip('active')
+    // Two running trips: the one departing first is lifted into the hero, so
+    // the other one stays a row with a menu of its own.
+    seedTrip('active', { start_date: '2026-11-02' })
+    seedTrip('active', { name: 'Elba', start_date: '2026-09-20' }, 't2')
     const page = mountPage()
-    await page.vm.$nextTick()
 
-    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(true)
-    expect(page.find('[aria-label="Start trip"]').exists()).toBe(false)
-  })
+    await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    button(t('trips.actionArchive')).handler!()
 
-  it('offers neither on an archived trip — its lifecycle is over', async () => {
-    segment = 'archived'
-    seedTrip('archived')
-    const page = mountPage()
-    await page.vm.$nextTick()
-
-    expect(page.find('[aria-label="Start trip"]').exists()).toBe(false)
-    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(false)
+    expect(orchestratorFake.archiveTrip).toHaveBeenCalledWith('t1')
+    expect(labels(sheets[0]!)).not.toContain(t('trips.actionStart'))
   })
 
   it('starting the trip asks the orchestrator to activate it', async () => {
-    segment = 'planned'
     seedTrip('planning')
     const page = mountPage()
-    await page.vm.$nextTick()
 
-    await page.find('[aria-label="Start trip"]').trigger('click')
+    await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    button(t('trips.actionStart')).handler!()
 
     expect(orchestratorFake.activateTrip).toHaveBeenCalledWith('t1')
+  })
+
+  it('offers clone from the archive, and marks delete as the destructive entry', async () => {
+    segment = 'archived'
+    seedTrip('archived')
+    const page = mountPage()
+
+    await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    button(t('trips.actionClone')).handler!()
+
+    expect(pushed).toEqual(['/trips/t1/clone'])
+    expect(button(t('trips.actionDelete')).role).toBe('destructive')
+    expect(button(t('common.cancel')).role).toBe('cancel')
+  })
+
+  it('ignores a tap while the menu is up, and opens the trip once it is gone', async () => {
+    seedTrip('planning')
+    const page = mountPage()
+    const row = page.find('[data-testid="trip-row-Samedan"]')
+
+    await row.trigger('contextmenu')
+    await flushPromises()
+    await row.trigger('click')
+    expect(pushed).toEqual([])
+
+    sheets[0]!.dismiss()
+    await flushPromises()
+    await row.trigger('click')
+
+    expect(pushed).toEqual(['/trips/t1'])
   })
 })
 

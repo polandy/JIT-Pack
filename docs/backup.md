@@ -331,7 +331,8 @@ It requires you to be a member of the trip; anyone else gets `403 forbidden`,
 The **portable YAML** format — one template or one trip, environment-agnostic, meant to be
 read and hand-edited — is not served by the instance. There is no
 `/api/v1/templates/{id}/export` and no `/api/v1/trips/{id}/export.yaml`; you export a
-template or a trip **in the app**, from the list screen, and a whole device from
+template or a trip **in the app**, from the list screen — hold a trip on the trip list (or
+right-click it on a computer) and choose **Export trip** — and a whole device from
 **Settings → Backup**.
 
 On a phone, a template's menu also offers **Share template…**, which hands the same document

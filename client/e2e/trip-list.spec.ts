@@ -5,9 +5,12 @@ import {
   seed,
   createTripViaWizard,
   openQuickAdd,
-  openTripSwipe,
+  chooseTripRowAction,
+  expectTripOpen,
+  openTripRowMenu,
   tripAction,
-  tripSwipeActions,
+  tripRowMenuActions,
+  TRIP_ROW_ACTION,
   expectTripActionOffered,
   visiblePage,
 } from './fixtures'
@@ -191,7 +194,7 @@ test.describe('M2 row actions @local @m2', () => {
     await createTripViaWizard(page, { name: TRIP })
     await page.goto(PATH.trips)
 
-    const offered = await tripSwipeActions(page, TRIP)
+    const offered = await tripRowMenuActions(page, TRIP)
     // Against a populated list: an empty menu would satisfy the absence.
     expect(offered).toContain('Export trip')
     expect(offered).not.toContain('Share')
@@ -205,9 +208,8 @@ test.describe('M2 row actions @local @m2', () => {
   }) => {
     await tripWithAPackedRow(page)
 
-    await openTripSwipe(page, TRIP)
     const withProgress = page.waitForEvent('download')
-    await visiblePage(page).getByTestId(`m2-export-${TRIP}`).click()
+    await chooseTripRowAction(page, TRIP, 'export')
     await page.locator('ion-action-sheet').getByText('With pack progress').click()
     const carried = await withProgress
     expect(carried.suggestedFilename()).toBe('Elba.yaml')
@@ -215,14 +217,56 @@ test.describe('M2 row actions @local @m2', () => {
     expect(full).toContain(`name: ${ITEM}`)
     expect(full).toContain('packed_count: 1')
 
-    await openTripSwipe(page, TRIP)
+    // The first choice's sheets are gone before the row is held again: one
+    // still on screen would swallow the right-click.
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
     const clean = page.waitForEvent('download')
-    await visiblePage(page).getByTestId(`m2-export-${TRIP}`).click()
+    await chooseTripRowAction(page, TRIP, 'export')
     await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()
     const bare = await readFile((await (await clean).path())!, 'utf8')
     // The same trip, the same row — and no record of anyone having packed it.
     expect(bare).toContain(`name: ${ITEM}`)
     expect(bare).not.toContain('packed_count')
+  })
+
+  // E2E-M2-19 (FR-4.5/FR-9.1/FR-18.3, 2026-09-24): M2's row actions open the
+  // way M4's and M7's do — a hold, or a right-click — where they used to sit
+  // behind a swipe. The menu carries what the status earns, choosing an
+  // entry acts, and the tap is still the way into the trip once the sheet is
+  // gone: the release of a hold must not also navigate, and the guard that
+  // stops it must not outlive the menu.
+  test('E2E-M2-19: a right-click opens the row menu, its entry acts, and a tap still opens the trip', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Kreta' })
+    await createTripViaWizard(page, { name: 'Elba' })
+    await page.goto(`${PATH.trips}?status=planned`)
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
+
+    const sheet = await openTripRowMenu(page, 'Kreta')
+    await expect(sheet.locator('.action-sheet-title')).toHaveText('Kreta')
+    // Local Mode: no Share (G-8); planning: Start rather than Archive or Clone.
+    await expect(sheet.locator('.action-sheet-button-inner')).toHaveText([
+      'Export trip',
+      'Start trip',
+      'Delete trip',
+      'Cancel',
+    ])
+    await page.getByTestId(TRIP_ROW_ACTION.start).click()
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+
+    // Started, so it leaves *Planned* — and the menu did not also open it.
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trips-filter-active')).toContainText('(1)')
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
+
+    // A menu closed without a choice leaves the row a door, not a dead end.
+    const again = await openTripRowMenu(page, 'Elba')
+    await again.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    await visiblePage(page).getByTestId('trip-row-Elba').click()
+    await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
+    await expectTripOpen(page, 'Elba')
   })
 })
 
@@ -384,7 +428,7 @@ test.describe('M2 hero @local @m2', () => {
     await seed(page, { mode: 'local' })
   })
 
-  test('E2E-M2-17: the trip being packed is a card, and keeps the actions it left the swipe with', async ({
+  test('E2E-M2-17: the trip being packed is a card, and keeps the actions it left the row menu with', async ({
     page,
   }) => {
     // Two running trips, so „the card" is a choice the screen makes rather
@@ -407,8 +451,8 @@ test.describe('M2 hero @local @m2', () => {
     await expect(visiblePage(page).getByTestId('trip-hero-Kreta')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
 
-    // FR-18.3's export, from the card. A hero cannot be swiped, so this is
-    // the whole reason the lift was deferred in the first place.
+    // FR-18.3's export, from the card. The card has no row menu of its own,
+    // so its action row is the only way to these from here.
     const written = page.waitForEvent('download')
     await visiblePage(page).getByTestId('m2-hero-export-Elba').click()
     await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()

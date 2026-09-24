@@ -94,7 +94,7 @@ export type LifecycleStep = 'start' | 'archive' | null
 
 /**
  * FR-9.1/FR-9.2: `planning` can be started, `active` can be archived, and an
- * archived trip is done. Both M2's swipe and M4's overflow ask here — the
+ * archived trip is done. Both M2's row menu and M4's overflow ask here — the
  * rule used to be written into each of them, so a screen could offer a step
  * the other did not.
  *
@@ -105,6 +105,37 @@ export function nextLifecycleStep(trip: Pick<Trip, 'status'> | undefined | null)
   if (trip?.status === TRIP_STATUS_PLANNING) return 'start'
   if (trip?.status === TRIP_STATUS_ACTIVE) return 'archive'
   return null
+}
+
+/** One entry of M2's per-trip actions, in the order the menu shows them. */
+export type TripRowAction = 'export' | 'share' | 'clone' | 'start' | 'archive' | 'delete'
+
+/** What the session contributes to {@link tripRowActions}. */
+export interface TripRowActionContext {
+  /** An OIDC session with a second account to share with (G-8, FR-17.3). */
+  collaborative: boolean
+  /** Owner-only outside Single-User and Local Mode (FR-4.5). */
+  canDelete: boolean
+}
+
+/**
+ * M2's per-trip actions: the row's hold/right-click menu and the hero card's
+ * action row both read this list, so neither can offer a step the other
+ * refuses. Export always (FR-18.3); share only where there is someone to
+ * share with (G-8); clone only from the archive (FR-12.1); the one lifecycle
+ * step {@link nextLifecycleStep} names; delete for the owner (FR-4.5).
+ */
+export function tripRowActions(
+  trip: Pick<Trip, 'status'>,
+  ctx: TripRowActionContext,
+): TripRowAction[] {
+  const actions: TripRowAction[] = ['export']
+  if (ctx.collaborative) actions.push('share')
+  if (trip.status === TRIP_STATUS_ARCHIVED) actions.push('clone')
+  const step = nextLifecycleStep(trip)
+  if (step) actions.push(step)
+  if (ctx.canDelete) actions.push('delete')
+  return actions
 }
 
 /** Whether the trip is the one being packed right now — four screens ask. */
