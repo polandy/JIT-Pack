@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { PICKER_SEARCH_MIN_GROUPS, matchGroupsInPositions } from '@/domain/templates'
 import { MARK_INDEX } from '@/domain/itemMarks'
+import { DELETION_REMOVE } from '@/domain/masterDeletion'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -133,22 +134,31 @@ describe('seedSampleMaster (dev)', () => {
     ])
   })
 
-  it('leaves two retired items behind, one of whose names is already taken again (FR-24.3)', () => {
-    const { master } = seed()
+  it('leaves retired items behind, one name taken again and two used by nothing (FR-24.3)', () => {
+    const { orchestrator, master } = seed()
 
     // M23 opens on something rather than on its empty state, and its hard
     // case — a restore whose name an active row holds — is one tap away.
     expect(master.retiredItemList.map((i) => i.name).sort()).toEqual([
+      'Duschhaube',
+      'Ohrstöpsel',
       'Reisewecker',
       'Sonnenbrille',
+      'Wärmflasche',
     ])
+    // The two released ones carry a permanent delete; the rest are still used.
+    const removable = master.retiredItemList
+      .filter((i) => orchestrator.masterItemDeletionOutlook(i.id).kind === DELETION_REMOVE)
+      .map((i) => i.name)
+      .sort()
+    expect(removable).toEqual(['Ohrstöpsel', 'Wärmflasche'])
     expect(master.activeItemList.filter((i) => i.name === 'Sonnenbrille')).toHaveLength(1)
     expect(master.activeItemList.filter((i) => i.name === 'Reisewecker')).toHaveLength(0)
-    // The group that kept them alive still holds all three positions: a
+    // The group that kept them alive still holds its four positions: a
     // retire keeps its children (ADR-032), and the visible one is the
     // positive signal that the group itself was not emptied.
     const wellness = master.activeTemplateList.find((t) => t.name === 'Wellness')!
-    expect(master.getTemplateItems(wellness.id)).toHaveLength(3)
+    expect(master.getTemplateItems(wellness.id)).toHaveLength(4)
   })
 
   it('tags every inventory item but the three left for M24, so M9 groups them', () => {

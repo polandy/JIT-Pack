@@ -312,14 +312,15 @@ function addPositions(
 }
 
 /**
- * FR-24.3's two retired rows, so M23 has something to show on a fresh device
- * and its hard case can be met without staging a delete by hand.
+ * FR-24.3's retired rows, so M23 has something to show on a fresh device
+ * and its hard cases can be met without staging a delete by hand.
  *
  * Both are put into a group first, because that reference is what turns a
  * delete into a *retire* rather than a removal. The second one's name is then
  * taken by a freshly created item — the collision a restore has to survive,
  * which is otherwise reachable only by deleting something, re-creating it and
- * remembering why. Everything here goes through the orchestrator's own
+ * remembering why. Two more are released from the group again, so they carry
+ * a permanent delete (ADR-075's batch has both acts to offer). Everything here goes through the orchestrator's own
  * actions, so every row is one a user could have produced.
  */
 const RETIRE_DEMO = {
@@ -328,10 +329,15 @@ const RETIRE_DEMO = {
   tag: 'Bad',
   /** Stays visible, so the group is not left looking empty. */
   keep: 'Badetuch',
-  /** Restores cleanly — its name is free. */
-  plain: 'Reisewecker',
+  /** Restore cleanly — their names are free. Two, so a batch restore has a batch. */
+  plain: ['Reisewecker', 'Duschhaube'],
   /** Its name is taken by an active twin by the time M23 offers it back. */
   contested: 'Sonnenbrille',
+  /**
+   * Retired, then dropped from the group: nothing uses them any more, so M23
+   * offers a permanent delete on each — and a batch delete has rows to take.
+   */
+  loose: ['Wärmflasche', 'Ohrstöpsel'],
 } as const
 
 function seedRetiredRows(
@@ -353,10 +359,17 @@ function seedRetiredRows(
     return itemId
   }
 
-  for (const name of [RETIRE_DEMO.plain, RETIRE_DEMO.contested]) {
+  for (const name of [...RETIRE_DEMO.plain, RETIRE_DEMO.contested]) {
     const itemId = seedItem(name, null)
     orchestrator.addTemplateItem(groupId, itemId, {})
     orchestrator.deleteMasterItem(itemId)
+  }
+
+  for (const name of RETIRE_DEMO.loose) {
+    const itemId = seedItem(name, null)
+    const positionId = orchestrator.addTemplateItem(groupId, itemId, {})
+    orchestrator.deleteMasterItem(itemId)
+    orchestrator.deleteTemplateItem(positionId)
   }
 
   // The retired row's name, now held by a different item — which is exactly

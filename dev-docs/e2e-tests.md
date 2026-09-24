@@ -275,9 +275,9 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | FR-1.9 no default assignee in Local Mode (G-8) | E2E-M10-30 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | M24 cleanup, tag marks, creating a tag where it is given | E2E-M24-01 (the untagged rule: M9's count, the reasoned suggestion, filed on M9), E2E-M24-02 (*Tag wählen* creates the tag), E2E-M24-03 (*Behalten* survives a reload), E2E-M24-04 (a rule switched off, M9's count agrees), E2E-M9-24 (FR-24.9: the give sheet creates the tag it did not find, and the undo removes it), E2E-M9-25 (FR-24.13: a tag's mark, set in the manager, on the heading and lent to a row). *Lange nicht gebraucht* is unit-only — no clock seam to date a trip months back | `local` | [`inventory-cleanup.spec.ts`](../client/e2e/inventory-cleanup.spec.ts) |
-| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half), E2E-M4-109 (FR-24.11: the composer restores a retired name instead of creating it again) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half), **E2E-M23-06** (a right-click selects, a batch restores the free names and leaves the taken one selected — ADR-075, since 2026-09-24), E2E-M4-109 (FR-24.11: the composer restores a retired name instead of creating it again) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
-| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state), **E2E-M11-08** (a right-click selects unassigned rows, one pick assigns them all — FR-10.2/ADR-075, since 2026-09-24) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07, E2E-M12-08 (several bars picked into one facet) | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5), E2E-M2-08 (the *Imported* chip), E2E-M2-03 (the traveller pile), E2E-M2-02 (series grouping → M16), E2E-M2-16 (the empty state) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 hero (FR-21.15) | E2E-M2-17 (the running trip is a card, keeps its actions and the row menu, and is not also a row) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
@@ -1090,6 +1090,7 @@ What the unit cost to learn:
 | the unassigned bucket is rows, the picker shows loads, a delete unassigns | E2E-M11-06 | FR-25.5's *„never blocks packing"* is not restated here — every M4 case that packs an unassigned row keeps it. |
 | the bucket is absent when there is nothing to say | E2E-M11-07 | UX-8. |
 | moving an item between two bags | E2E-M5-22 | M11 offers no path to it — see E2E-M11-03. |
+| several unassigned rows go into one bag in one pick | E2E-M11-08 | **New 2026-09-24 (FR-10.2, ADR-075 amended).** A real right-click, as E2E-M9-31, and every „no picker opened" is paired with a count that moved. The rendered result is the bucket keeping exactly the unpicked row — the picked two can only leave it by being assigned. Mutation-proved in both browsers twice: against a bulk act that hands the picker only the first row (red on the picker's subject line), and against an assign loop that writes only the first (red on the bucket's count). |
 
 ## E2E-M5-13 — browser back with the sheet open (2026-08-16)
 
@@ -2646,6 +2647,19 @@ holds the row, and the restore. It is mutation-proved by pointing the template
 row's `restore` callback at `restoreMasterItem` — the two have the same shape,
 so it is the copy-paste this screen is exposed to — which reddens the new case
 and leaves the three item cases green.
+
+**The sixth case, added 2026-09-24 (ADR-075 amended).** E2E-M23-06 selects on
+M23 and restores a batch, and the fixture carries the decision: of the two
+rows picked, one name is free and one an active item took meanwhile, and a
+third row stays unpicked. Green means the free one came back with **no
+alert**, the taken one is still listed *and still selected*, and the unpicked
+one is untouched — a batch that prompted, dropped the selection or acted on
+the list would each fail a different line. Mutation-proved in both browsers
+against a restore that is never called (red on the free row still listed) and
+against a batch that ends the mode instead of keeping the collision (red on
+the count). The batch delete is the unit's (`RetiredMasterPage.spec.ts`): its
+refusal is the single delete's button being absent, which E2E-M23-03 already
+renders.
 
 putting the refused row back on the device that tried to delete it — is not in
 this case and not built**; the refusal is announced, not undone.

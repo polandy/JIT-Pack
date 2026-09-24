@@ -13,6 +13,12 @@
  * each option showing its current load — "which bag?" is answered where
  * the load is visible. Assignment stays optional and never blocks
  * packing (FR-25.5).
+ *
+ * **Several at once** (FR-10.2 over ADR-075): a hold, a right-click or the
+ * app bar's icon selects unassigned rows like every other list, and the bar's
+ * „In Gepäckstück …" opens the same picker once for the whole selection.
+ * Only the bucket selects — assigned positions are not rows on this screen,
+ * they live in each container's sheet.
  */
 import {
   IonPage,
@@ -27,6 +33,7 @@ import {
 import {
   addOutline,
   bagHandleOutline,
+  checkboxOutline,
   chevronForwardOutline,
   personOutline,
   scaleOutline,
@@ -34,12 +41,17 @@ import {
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
+import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { useRowSelection } from '@/composables/useRowSelection'
 import {
   budgetLevel,
   containerWeight,
@@ -50,7 +62,7 @@ import {
 import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
-import type { Container } from '@/types/domain'
+import type { Container, TripItem } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
@@ -109,13 +121,64 @@ function createContainer() {
 
 // --- Assign picker (FR-10.2): the same sheet surface, options show load ------
 
-const pickingItemId = ref<string | null>(null)
-const pickingItem = computed(() => items.value.find((i) => i.id === pickingItemId.value))
+/**
+ * The positions the open picker assigns: one after a tap, the selection after
+ * the bar's button — one picker, whichever way it was reached. Null is closed.
+ */
+const pickingIds = ref<string[] | null>(null)
+const pickingItems = computed<TripItem[]>(() =>
+  pickingIds.value === null ? [] : items.value.filter((i) => pickingIds.value!.includes(i.id)),
+)
+const pickingLine = computed(() =>
+  pickingItems.value.length === 1
+    ? pickingItems.value[0]!.name
+    : t('container.assignCount', { n: pickingItems.value.length }),
+)
 
+/**
+ * Assign every picked position — the single-row write, once per row. No
+ * toast and no undo, as with a single tap: the rows leaving the bucket and
+ * the card's load moving are the confirmation, and a wrong bag is one tap in
+ * its sheet away.
+ */
 function assignTo(containerId: string) {
-  const item = pickingItem.value
-  if (item) orchestrator.assignContainer(props.tripId, item, containerId)
-  pickingItemId.value = null
+  for (const item of pickingItems.value) {
+    orchestrator.assignContainer(props.tripId, item, containerId)
+  }
+  // A tap in the mode picks rather than opening this picker, so the picker
+  // was opened by the bar whenever the mode is on — a batch of one included.
+  if (selecting.value) selection.end()
+  pickingIds.value = null
+}
+
+// --- Several at once (FR-10.2 over ADR-075) --------------------------------
+
+const selection = useRowSelection()
+const { selecting, selected } = selection
+
+/** The selected rows still in the bucket — one may have been assigned elsewhere. */
+const selectedItems = computed(() => unassigned.value.filter((item) => selected.value.has(item.id)))
+
+setHeaderActions(() => {
+  const select: HeaderAction = {
+    id: 'm11-select',
+    icon: checkboxOutline,
+    label: t('selection.start'),
+    active: selecting.value,
+    onClick: () => (selecting.value ? selection.end() : selection.start()),
+  }
+  return unassigned.value.length > 0 || selecting.value ? [select] : []
+})
+
+/** A tap: picks while selecting, otherwise opens the picker for that one row. */
+function onRowClick(item: TripItem) {
+  if (selection.click(item.id, true)) return
+  pickingIds.value = [item.id]
+}
+
+function assignSelected() {
+  if (selectedItems.value.length === 0) return
+  pickingIds.value = selectedItems.value.map((item) => item.id)
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -128,6 +191,16 @@ setHeaderTitle(
 <template>
   <IonPage>
     <IonContent>
+      <SelectionBar
+        v-if="selecting"
+        class="selbar"
+        :count="selectedItems.length"
+        :total="unassigned.length"
+        testid="m11"
+        @exit="selection.end"
+        @all="selection.toggleAll(unassigned.map((item) => item.id))"
+      />
+
       <div class="page-pad">
         <EmptyState
           v-if="containers.length === 0 && !rowsLoaded"
@@ -190,14 +263,28 @@ setHeaderTitle(
             data-testid="m11-unassigned-title"
           />
           <IonList v-if="unassigned.length > 0" class="unassigned-list jp-card">
+            <!-- ADR-075: a hold or a right-click selects; while selecting
+                 a tap picks, otherwise it opens the picker for this row. -->
             <IonItem
               v-for="item in unassigned"
               :key="item.id"
               button
-              :detail="true"
+              :detail="!selecting"
+              :data-selected="selecting && selected.has(item.id) ? 'true' : undefined"
               data-testid="m11-unassigned-row"
-              @click="pickingItemId = item.id"
+              @click="onRowClick(item)"
+              @pointerdown="(e: PointerEvent) => selection.press(item.id, e)"
+              @pointermove="selection.move"
+              @pointerup="selection.release"
+              @pointercancel="selection.release"
+              @contextmenu.prevent="selection.contextMenu(item.id)"
             >
+              <SelectBox
+                v-if="selecting"
+                slot="start"
+                :on="selected.has(item.id)"
+                data-testid="m11-row-check"
+              />
               <IonLabel>
                 <h3>{{ item.name }}</h3>
                 <p v-if="item.weight_grams">
@@ -212,7 +299,14 @@ setHeaderTitle(
         </template>
       </div>
 
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+      <BulkBar v-if="selecting && selectedItems.length > 0" data-testid="m11-bulkbar">
+        <button type="button" data-testid="m11-bulk-assign" @click="assignSelected">
+          <IonIcon :icon="bagHandleOutline" />
+          {{ t('container.bulkAssign') }}
+        </button>
+      </BulkBar>
+
+      <IonFab v-if="!selecting" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton
           :aria-label="t('container.new')"
           data-testid="m11-fab"
@@ -233,10 +327,10 @@ setHeaderTitle(
       </SheetModal>
 
       <!-- The same sheet surface as a container picker (FR-10.2). -->
-      <SheetModal :is-open="pickingItemId !== null" @dismiss="pickingItemId = null">
+      <SheetModal :is-open="pickingIds !== null" @dismiss="pickingIds = null">
         <section class="picker" data-testid="m11-picker">
           <h1 class="jp-sheet-title">{{ t('container.assignTitle') }}</h1>
-          <p class="picker-item">{{ pickingItem?.name }}</p>
+          <p class="picker-item" data-testid="m11-picker-subject">{{ pickingLine }}</p>
           <p v-if="containers.length === 0" class="picker-none">
             {{ t('container.assignNone') }}
           </p>
@@ -261,6 +355,12 @@ setHeaderTitle(
 <style scoped>
 .page-pad {
   padding: 16px 16px 96px;
+}
+
+.selbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 /* --- container cards --- */

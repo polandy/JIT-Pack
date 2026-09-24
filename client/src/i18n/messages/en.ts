@@ -1066,6 +1066,18 @@ export const en = {
   'retired.purge': 'Delete for good',
   'retired.purgeConfirm': 'Remove “{name}” for good?',
   'retired.purged': '“{name}” was removed for good.',
+  'retired.bulkPurge': 'Delete',
+  'retired.bulkPurgeTitle': 'Delete one entry permanently? | Delete {n} entries permanently?',
+  'retired.bulkPurgeMessage':
+    'It will be removed for good. This cannot be undone. | They will be removed for good. This cannot be undone.',
+  'retired.bulkPurgeKept':
+    'One is still in use and stays hidden. | {n} are still in use and stay hidden.',
+  'retired.bulkPurgeNone':
+    'Still in use — it can only be restored, not deleted. | All {n} are still in use — they can only be restored, not deleted.',
+  'retired.bulkPurged': 'One entry removed for good. | {n} entries removed for good.',
+  'retired.bulkRestored': 'One entry is visible again. | {n} entries are visible again.',
+  'retired.bulkNameTaken':
+    'One name is taken — that entry stays selected; restore it on its own to rename it. | {n} names are taken — those entries stay selected; restore them one at a time to rename them.',
   'settings.apiTokens': 'API tokens',
   'settings.apiTokensHint':
     'A token lets a script or another tool act as you. It is shown once and cannot be taken back on its own.',
@@ -1120,6 +1132,8 @@ export const en = {
   'container.assignTitle': 'Which bag?',
   'container.assignNone': 'Create a container first, then assign items to it.',
   'container.notFound': 'This container does not exist.',
+  'container.bulkAssign': 'Into luggage …',
+  'container.assignCount': 'One position | {n} positions',
 
   // M12 — Analytics (FR-8.2/14.3).
   'analytics.hint': 'Weight: packed / planned · tap bars to pick one or more',
@@ -1731,6 +1745,7 @@ export const en = {
   'selection.none': 'Nothing selected',
   'selection.count': 'One selected | {n} selected',
   'selection.all': 'All {n}',
+  'selection.start': 'Select',
   'shopping.selectHint': 'Packing-list positions never carry a tag — not selectable.',
   'shopping.bulkTag': 'Give a tag',
   'shopping.bulkTagTitle': 'Tag for one entry | Tag for {n} entries',

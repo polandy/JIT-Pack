@@ -1071,6 +1071,18 @@ export const de: Record<keyof typeof en, string> = {
   'retired.purge': 'Endgültig löschen',
   'retired.purgeConfirm': '„{name}“ endgültig entfernen?',
   'retired.purged': '„{name}“ wurde endgültig entfernt.',
+  'retired.bulkPurge': 'Löschen',
+  'retired.bulkPurgeTitle': 'Einen Eintrag endgültig löschen? | {n} Einträge endgültig löschen?',
+  'retired.bulkPurgeMessage':
+    'Er wird endgültig entfernt. Das lässt sich nicht rückgängig machen. | Sie werden endgültig entfernt. Das lässt sich nicht rückgängig machen.',
+  'retired.bulkPurgeKept':
+    'Einer wird noch verwendet und bleibt ausgeblendet. | {n} werden noch verwendet und bleiben ausgeblendet.',
+  'retired.bulkPurgeNone':
+    'Wird noch verwendet — lässt sich nicht löschen, nur wiederherstellen. | Alle {n} werden noch verwendet — sie lassen sich nicht löschen, nur wiederherstellen.',
+  'retired.bulkPurged': 'Ein Eintrag endgültig entfernt. | {n} Einträge endgültig entfernt.',
+  'retired.bulkRestored': 'Ein Eintrag ist wieder sichtbar. | {n} Einträge sind wieder sichtbar.',
+  'retired.bulkNameTaken':
+    'Ein Name ist vergeben — der Eintrag bleibt ausgewählt; einzeln wiederherstellen, um ihn umzubenennen. | {n} Namen sind vergeben — diese Einträge bleiben ausgewählt; einzeln wiederherstellen, um sie umzubenennen.',
   'settings.apiTokens': 'API-Token',
   'settings.apiTokensHint':
     'Mit einem Token handelt ein Skript oder ein anderes Werkzeug in deinem Namen. Es wird einmal angezeigt und lässt sich nicht einzeln zurücknehmen.',
@@ -1125,6 +1137,8 @@ export const de: Record<keyof typeof en, string> = {
   'container.assignTitle': 'In welche Tasche?',
   'container.assignNone': 'Zuerst ein Gepäckstück anlegen, dann Positionen zuordnen.',
   'container.notFound': 'Dieses Gepäckstück gibt es nicht.',
+  'container.bulkAssign': 'In Gepäckstück …',
+  'container.assignCount': 'Eine Position | {n} Positionen',
 
   // M12 — Auswertung (FR-8.2/14.3).
   'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen, auch mehrere',
@@ -1741,6 +1755,7 @@ export const de: Record<keyof typeof en, string> = {
   'selection.none': 'Nichts ausgewählt',
   'selection.count': 'Einer ausgewählt | {n} ausgewählt',
   'selection.all': 'Alle {n}',
+  'selection.start': 'Auswählen',
   'shopping.selectHint': 'Packlisten-Positionen tragen nie ein Tag — nicht wählbar.',
   'shopping.bulkTag': 'Tag vergeben',
   'shopping.bulkTagTitle': 'Tag für einen Eintrag | Tag für {n} Einträge',

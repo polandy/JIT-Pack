@@ -2176,6 +2176,14 @@ E2E-M23-04.
   screens: the Vorlage retire branch and the second half of M23. Mutation-proved by pointing M23's template row at
   `restoreMasterItem` — a plausible copy-paste, since the two callbacks have the same shape — which reddens this case
   and leaves the three item cases green.
+* **E2E-M23-06** `local` (FR-24.3, ADR-034, ADR-075 amended) — **implemented 2026-09-24**
+  (`e2e/restore-retired.spec.ts`): M23 selects like the other lists, and a batch restore keeps the single restore's
+  collision refusal. Three hidden items; an active item then takes the second one's name. A **real right-click** on
+  the first starts the mode — the rows' own buttons step aside — and a tap picks the second. *Wiederherstellen* on the
+  bar restores the first with **no alert**, and leaves the colliding row listed **and still selected** (count *one*)
+  beside the unpicked third, which is not; the app bar's glyph leaves the mode and the rows' buttons return; the
+  inventory then lists the restored item. The batch delete, its one
+  confirmation and its refusal of still-used rows are `RetiredMasterPage.spec.ts`'s.
 * **E2E-M23-03** `all` (FR-24.3) — **new 2026-08-25**: a retired row does not become undeletable. While the group still
   holds it, M23 offers the restore and **no** *Endgültig löschen* — asserted as an absence beside the restore button's
   presence, so it is a statement about the row and not about an empty page. The group is then deleted, which makes the
@@ -2316,6 +2324,13 @@ case saying which layer keeps what.
   assertions sit on the same line of the case. Red-proved with a Save button added to the sheet. (What FR-25.15 actually
   got wrong on this sheet was the *signal* the indicator is handed, and that is `saveIndicatorWiring.spec.ts`'s — a scan
   over all four call sites, see E2E-M5-07.)
+* **E2E-M11-08** `local` (FR-10.2, ADR-075 amended) — **implemented 2026-09-24** (`e2e/containers.spec.ts`): the
+  unassigned bucket selects like the other lists. Three rows, one container. A **real right-click** on a row starts
+  the mode with it picked and opens **no** picker; the next tap on another row picks it (the count reads two) and
+  still opens no picker; the bar's *In Gepäckstück …* opens the picker once, its subject line naming the two
+  positions, and choosing the container leaves **exactly the unpicked row** in the bucket, the mode ended and the ＋
+  FAB back. The app bar's checkbox glyph then arms the mode with nothing picked. The single-tap path is
+  E2E-M11-06's, unchanged.
 * **E2E-M11-07** `all` (UX-8, 2026-08-27) — **implemented** (`e2e/containers.spec.ts`): with zero containers and nothing
   unassigned, the unassigned section is **absent** — "everything is assigned to a container" must not stand under "no
   containers yet". Creating the first container brings the section back with its (0) count and hint, which is the

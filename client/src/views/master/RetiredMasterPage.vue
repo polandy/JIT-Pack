@@ -19,6 +19,13 @@
  * are partial over the active rows — so an active row may hold it by now.
  * The collision is met here, before the mutation is enqueued, and the way
  * out is a new name written in the same mutation (`domain/masterRestore.ts`).
+ *
+ * **Several at once** (FR-24.3 over ADR-075): a hold, a right-click or the
+ * app bar's icon selects rows like every other list, and the bar restores or
+ * deletes the selection through the same per-row acts. A batch never opens a
+ * prompt per collision: the rows whose name is free come back in one go, the
+ * colliding ones stay selected, and a selection of one *is* the single-row
+ * restore, prompt included — so the way to a new name is the one it was.
  */
 import {
   IonPage,
@@ -31,10 +38,13 @@ import {
   IonSegment,
   IonSegmentButton,
 } from '@ionic/vue'
-import { archiveOutline, arrowUndoOutline, trashOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { archiveOutline, arrowUndoOutline, checkboxOutline, trashOutline } from 'ionicons/icons'
+import { computed, ref, watch } from 'vue'
 
+import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import SelectBox from '@/components/global/SelectBox.vue'
+import SelectionBar from '@/components/global/SelectionBar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
@@ -50,6 +60,8 @@ import {
   deletionOutlookKey,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { useRowSelection } from '@/composables/useRowSelection'
 
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
@@ -251,6 +263,101 @@ async function onPurge(row: RetiredRow) {
   void presentToast({ message: t('retired.purged', { name: row.name }) })
 }
 
+// --- Several at once (FR-24.3 over ADR-075) ---------------------------------
+
+const selection = useRowSelection()
+const { selecting, selected } = selection
+
+/** The selected rows still on screen — a restore elsewhere may have taken one. */
+const selectedRows = computed(() => rows.value.filter((row) => selected.value.has(row.id)))
+
+// A selection belongs to the segment it was made in; the other is another list.
+watch(segment, () => selection.end())
+
+setHeaderActions(() => {
+  const select: HeaderAction = {
+    id: 'm23-select',
+    icon: checkboxOutline,
+    label: t('selection.start'),
+    active: selecting.value,
+    onClick: () => (selecting.value ? selection.end() : selection.start()),
+  }
+  return rows.value.length > 0 || selecting.value ? [select] : []
+})
+
+/** A tap on a row does nothing outside the mode; inside it, it picks. */
+function onRowClick(row: RetiredRow) {
+  selection.click(row.id, true)
+}
+
+/**
+ * What a batch leaves selected: the rows it could not act on, so the user
+ * sees which and can take them one at a time. Nothing left ends the mode.
+ */
+function keepSelected(ids: readonly string[]) {
+  if (ids.length === 0) {
+    selection.end()
+    return
+  }
+  selected.value = new Set(ids)
+}
+
+/**
+ * Restore the selection. A selection of one is the single-row restore, so a
+ * collision meets the same prompt it always did; a larger one restores every
+ * row whose name is free and keeps the rest selected — N prompts in a row
+ * would be a queue of dialogs, each about a name the reader has to recall.
+ * Sequential on purpose: two retired rows of one name collide with each
+ * other, and the second sees the first already restored.
+ */
+async function restoreSelected() {
+  const chosen = selectedRows.value
+  if (chosen.length === 0) return
+  if (chosen.length === 1) {
+    selection.end()
+    await onRestore(chosen[0]!)
+    return
+  }
+  const taken = chosen.filter((row) => !row.restore()).map((row) => row.id)
+  const restored = chosen.length - taken.length
+  keepSelected(taken)
+  const parts = [
+    ...(restored > 0 ? [t('retired.bulkRestored', { n: restored })] : []),
+    ...(taken.length > 0 ? [t('retired.bulkNameTaken', { n: taken.length })] : []),
+  ]
+  await presentToast({ message: parts.join(' ') })
+}
+
+/**
+ * Delete the selection for good — only the rows the single delete would
+ * offer it on. A row something still uses has no delete of its own (the
+ * button is not rendered), so the batch leaves it selected and says so in
+ * the one confirmation, rather than retiring what is already retired.
+ */
+async function purgeSelected() {
+  const chosen = selectedRows.value
+  const removable = chosen.filter((row) => row.removable)
+  const kept = chosen.filter((row) => !row.removable).map((row) => row.id)
+  if (removable.length === 0) {
+    await presentToast({ message: t('retired.bulkPurgeNone', { n: chosen.length }) })
+    return
+  }
+  const message = [
+    t('retired.bulkPurgeMessage', { n: removable.length }),
+    ...(kept.length > 0 ? [t('retired.bulkPurgeKept', { n: kept.length })] : []),
+  ].join(' ')
+  const confirmed = await confirmDestructive({
+    header: t('retired.bulkPurgeTitle', { n: removable.length }),
+    message,
+    confirmLabel: t('retired.purge'),
+    testid: 'm23-bulk-purge-confirm',
+  })
+  if (!confirmed) return
+  for (const row of removable) row.purge()
+  keepSelected(kept)
+  void presentToast({ message: t('retired.bulkPurged', { n: removable.length }) })
+}
+
 function hiddenOn(row: RetiredRow): string {
   return row.retiredAt === null
     ? ''
@@ -261,6 +368,16 @@ function hiddenOn(row: RetiredRow): string {
 <template>
   <IonPage>
     <IonContent>
+      <SelectionBar
+        v-if="selecting"
+        class="selbar"
+        :count="selectedRows.length"
+        :total="rows.length"
+        testid="m23"
+        @exit="selection.end"
+        @all="selection.toggleAll(rows.map((row) => row.id))"
+      />
+
       <!-- No <h1>: the route carries `titleKey`, so the one header bar
            already names this screen (ADR-011). A second copy of the same
            words cost two lines of a 430 px page. -->
@@ -292,8 +409,31 @@ function hiddenOn(row: RetiredRow): string {
         testid="m23-empty"
       />
 
-      <IonList v-else class="jp-card list-card" lines="full">
-        <IonItem v-for="row in rows" :key="row.id" data-testid="m23-row">
+      <IonList v-else class="jp-card list-card" :class="{ selecting }" lines="full">
+        <!-- ADR-075: a hold or a right-click on a row selects it; while
+             selecting, a tap picks and the row's own buttons step aside for
+             the bar's. Outside the mode a tap on the row does nothing, as
+             before — its acts are its buttons. -->
+        <IonItem
+          v-for="row in rows"
+          :key="row.id"
+          :button="selecting"
+          :detail="false"
+          :data-selected="selecting && selected.has(row.id) ? 'true' : undefined"
+          data-testid="m23-row"
+          @click="onRowClick(row)"
+          @pointerdown="(e: PointerEvent) => selection.press(row.id, e)"
+          @pointermove="selection.move"
+          @pointerup="selection.release"
+          @pointercancel="selection.release"
+          @contextmenu.prevent="selection.contextMenu(row.id)"
+        >
+          <SelectBox
+            v-if="selecting"
+            slot="start"
+            :on="selected.has(row.id)"
+            data-testid="m23-row-check"
+          />
           <ItemMark
             slot="start"
             :mark="row.mark"
@@ -315,16 +455,10 @@ function hiddenOn(row: RetiredRow): string {
             </p>
           </IonLabel>
 
-          <div slot="end" class="row-actions">
-            <IonButton
-              fill="outline"
-              size="small"
-              data-testid="m23-restore"
-              @click="onRestore(row)"
-            >
-              <IonIcon slot="start" :icon="arrowUndoOutline" />
-              {{ t('retired.restore') }}
-            </IonButton>
+          <!-- A press on a button is the button's, not the start of a hold. -->
+          <div v-if="!selecting" slot="end" class="row-actions" @pointerdown.stop>
+            <!-- The bin before the restore, so every row's restore ends at the
+                 same edge whether or not the row has a bin. -->
             <IonButton
               v-if="row.removable"
               fill="clear"
@@ -336,9 +470,29 @@ function hiddenOn(row: RetiredRow): string {
             >
               <IonIcon slot="icon-only" :icon="trashOutline" />
             </IonButton>
+            <IonButton
+              fill="outline"
+              size="small"
+              data-testid="m23-restore"
+              @click="onRestore(row)"
+            >
+              <IonIcon slot="start" :icon="arrowUndoOutline" />
+              {{ t('retired.restore') }}
+            </IonButton>
           </div>
         </IonItem>
       </IonList>
+
+      <BulkBar v-if="selecting && selectedRows.length > 0" data-testid="m23-bulkbar">
+        <button type="button" data-testid="m23-bulk-restore" @click="restoreSelected">
+          <IonIcon :icon="arrowUndoOutline" />
+          {{ t('retired.restore') }}
+        </button>
+        <button type="button" class="danger" data-testid="m23-bulk-purge" @click="purgeSelected">
+          <IonIcon :icon="trashOutline" />
+          {{ t('retired.bulkPurge') }}
+        </button>
+      </BulkBar>
     </IonContent>
   </IonPage>
 </template>
@@ -352,6 +506,17 @@ function hiddenOn(row: RetiredRow): string {
 
 .list-card {
   margin: 12px 8px 8px;
+}
+
+/* The bar floats over the foot of the list; the last row stays reachable. */
+.list-card.selecting {
+  margin-bottom: 88px;
+}
+
+.selbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .row-mark {
