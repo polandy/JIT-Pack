@@ -507,6 +507,18 @@ export interface TagOrdering {
 }
 
 /**
+ * Where a row dropped into a gap ends up, as an index into the list it left
+ * (FR-24.10's drag): gap `g` lies before row `g`, so a gap past the row's own
+ * place is one lower once the row has left it. `null` is a drop that moves
+ * nothing — either gap beside the row itself, or no gap at all.
+ */
+export function reorderTarget(from: number, gap: number | null): number | null {
+  if (gap === null) return null
+  const to = gap > from ? gap - 1 : gap
+  return to === from ? null : to
+}
+
+/**
  * The writes that move the tag at `from` to `to` on the axis (FR-24.10).
  *
  * The whole axis is renumbered `0…N-1` from the order the user is *looking

@@ -575,7 +575,6 @@ export const en = {
   'items.tagsSearch': 'Find a tag …',
   'items.tagsEmpty': 'There is no tag yet.',
   'items.tagsNoMatch': 'No tag matches that search.',
-  'items.tagPick': 'Select “{tag}”',
   'items.mergeTitle': 'Which item stays?',
   'items.mergeMeta': 'Merging {n} items',
   'items.mergeHint':
@@ -598,14 +597,12 @@ export const en = {
   'items.field.default_assignee_id': 'assignee',
   'items.field.photo': 'photo',
   'items.tagsSelect': 'Select several',
-  'items.tagsSelected': '{n} selected',
   'items.tagsMergeMany': 'Merge',
   'items.tagsMergeManyTitle': 'Which tag stays?',
   'items.tagsMergeManyConfirmBody':
     'One item gets “{target}”. The other {m} tags are deleted afterwards. | {n} items get “{target}”. The other {m} tags are deleted afterwards.',
   'items.tagsMergeManyCount': '{name} ({n})',
-  'items.tagUp': 'Move “{tag}” up',
-  'items.tagDown': 'Move “{tag}” down',
+  'items.tagDrag': 'Move “{tag}”',
   'items.tagRenameAria': 'Rename “{tag}”',
   'items.tagMerge': 'Merge “{tag}”',
   'items.tagDelete': 'Delete “{tag}”',

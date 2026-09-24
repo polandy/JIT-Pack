@@ -123,3 +123,25 @@ Two parts of the decision do not carry over, each weighed with the owner:
 heading as the jump control (FR-24.8) — and `useRowSelection.toggleAll` now judges „every" by the keys on screen rather
 than by a count, which M9's filter needs and M6/M25 do not notice. The revisit trigger above has not fired: M9's bar
 already holds its fourth act behind ⋯ *Mehr*.
+
+## Amendment 2026-09-24 — the tag manager and the browse sheet
+
+The owner asked for the UI to be as consistent as it can be. Two more surfaces take the pieces:
+
+- **M9's tag manager (FR-24.14)** had the last selection of its own — a text entrance, its own bar and checkbox, no
+  hold. It renders `useRowSelection`, `SelectBox`, `SelectionBar` and `BulkBar` now; its entrance is a checkbox icon
+  in the sheet's head, the way M9's is in the app bar. A tag row carries buttons of its own (rename, merge), so
+  the row takes the click in the capture phase: a tap spent on the selection never reaches them. „Alle" is kept,
+  although merging every tag is rarely meant, because a bar that differs on one screen is the drift this ADR ends.
+  Its *hoch/runter* arrows became the grip too (owner, after trying it): the axis is one drop target whose rows carry
+  `data-drop-index`, so `useDragToGroup` reports the gap and `reorderTarget` (`domain/tags.ts`) turns it into an
+  index — the within-one-list half the composable was written with, used for the first time. The arrows were the
+  keyboard's way to reorder; the grip, like M6's and M25's, has none, which is the cost of the one look.
+- **The inventory browse sheet (FR-25.13d)** was grouped like M9 and headed with a caption of its own. It renders
+  `ListGroup` with the mark and count, so the same items are filed under the same heading wherever they are read.
+  Its hold keeps its own meanings (the name's tooltip, 👥's traveller menu): a sheet built for runs of single taps
+  selects nothing.
+
+**M4's group headings stay M4's.** They fold, count *open* or *done/total*, and head a card per group — the packing
+screen's shape from the closed concept prototype. Drawing them as `ListGroup` would restyle the central screen, a
+design decision of its own rather than a consistency fix; its hold stays the row menu (FR-5.5), as above.

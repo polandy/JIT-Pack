@@ -579,7 +579,6 @@ export const de: Record<keyof typeof en, string> = {
   'items.tagsSearch': 'Tag suchen …',
   'items.tagsEmpty': 'Es gibt noch keinen Tag.',
   'items.tagsNoMatch': 'Kein Tag passt zur Suche.',
-  'items.tagPick': '„{tag}“ auswählen',
   'items.mergeTitle': 'Welcher Artikel bleibt?',
   'items.mergeMeta': '{n} Artikel zusammenführen',
   'items.mergeHint':
@@ -604,14 +603,12 @@ export const de: Record<keyof typeof en, string> = {
   'items.field.default_assignee_id': 'Zuständigkeit',
   'items.field.photo': 'Foto',
   'items.tagsSelect': 'Mehrere wählen',
-  'items.tagsSelected': '{n} gewählt',
   'items.tagsMergeMany': 'Zusammenführen',
   'items.tagsMergeManyTitle': 'Welcher Tag soll bleiben?',
   'items.tagsMergeManyConfirmBody':
     'Ein Artikel bekommt „{target}“. Die anderen {m} Tags werden danach gelöscht. | {n} Artikel bekommen „{target}“. Die anderen {m} Tags werden danach gelöscht.',
   'items.tagsMergeManyCount': '{name} ({n})',
-  'items.tagUp': '„{tag}“ nach oben',
-  'items.tagDown': '„{tag}“ nach unten',
+  'items.tagDrag': '„{tag}“ verschieben',
   'items.tagRenameAria': '„{tag}“ umbenennen',
   'items.tagMerge': '„{tag}“ zusammenführen',
   'items.tagDelete': '„{tag}“ löschen',

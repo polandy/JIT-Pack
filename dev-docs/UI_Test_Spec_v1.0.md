@@ -1089,6 +1089,10 @@ in WebKit.
   ends on the revealed row wearing *deliberately skipped*, which is what makes the count more than arithmetic: without
   it, a bar reading „2 done" over two packed rows would pass just as well.
 
+* **E2E-M4-147** `local` (FR-25.13d, ADR-075) — **implemented 2026-09-24** (`e2e/packing-list-adding.spec.ts`): the
+  browse sheet heads its groups with M9's heading — the primary tag's name and the number of lines under it, in the
+  shared `ListGroup` rather than a caption of its own. The count is what the old caption never had, so it is what
+  says the heading is the shared one.
 * **E2E-M4-146** `local` (FR-5.11, added 2026-09-21) — **implemented** (`close-packing.spec.ts`): once the packing is
   closed the composer asks *packed* or *forgotten*. Before the close there is no choice; after it *Eingepackt* is
   selected, and choosing *Vergessen* changes the hint to say what will be recorded. After the add the figure is still
@@ -1937,6 +1941,15 @@ test body under it separates a wrong number from a missing test.**
   another row picks it (the count moves to two), a tap on the first unpicks it; leaving through the bar's ✕ gives the
   tap back to opening the item, read on M10's title. The grouped heading still carries its count and is still the jump
   control. The long press itself is `useRowSelection`'s unit (fake timers), not this case's.
+* **E2E-M9-32** `local` (FR-24.14, ADR-075 amended) — **implemented 2026-09-24** (`e2e/inventory.spec.ts`): the tag
+  manager selects like the lists. A real right-click on a tag's **name** — the rename control outside the mode —
+  opens the shared bar with that row picked and the merge in the bulk bar dimmed; a tap on another row picks it and
+  lights the merge; the bar's ✕ gives the rows their acts back. That a touch hold's release click does not also
+  rename is `TagManagerSheet.spec.ts`'s: a right-click sends no click, so the absence would be vacuous here.
+* **E2E-M9-33** `local` (FR-24.10, ADR-075 amended) — **implemented 2026-09-24** (`e2e/inventory.spec.ts`): a tag is
+  moved on the axis by its grip. The pointer lifts *Navigation* by the grip, the gap before *Foto* is marked while it
+  hangs there, and after the drop `data-drag` returns to `idle`; the order is read on M9's own headings once the sheet
+  is closed — *Navigation* first — not in the sheet that was dragged.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name
