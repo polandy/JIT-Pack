@@ -327,10 +327,17 @@ export async function tripActionFromList(page: Page, name: string, action: TripW
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
 }
 
-/** Back into the trip from M2, the way a user goes: its card. */
+/**
+ * Back into the trip from M2, through its own card. Dispatched on the card
+ * rather than clicked at a point: right after *Start trip* M2 is still laying
+ * out — the trip moves segments and a hero can arrive above the rows — and a
+ * pointer click at the card's last position opened the trip beside it
+ * (e2e-server, #598).
+ */
 async function reopenFromM2(page: Page, name: string) {
+  await pageSettled(page)
   const card = await tripCardOnM2(page, name)
-  await card.click()
+  await card.dispatchEvent('click')
   await expectTripOpen(page, name)
 }
 
