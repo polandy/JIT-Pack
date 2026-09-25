@@ -14,6 +14,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
 import { setActionsFor, clearActionsFor } from '@/composables/useHeaderActions'
+import { setSelectionFor } from '@/composables/useHeaderSelection'
 import { enteredFrom } from '@/router/backTarget'
 import { PATH } from '@/router/paths'
 
@@ -292,14 +293,14 @@ describe('AppHeader — the trip views the switcher does not show', () => {
    */
   it('puts the destinations ahead of what the page does to the trip', async () => {
     route.meta = { parent: '/tabs/trips', tripView: 'packing' }
-    setActionsFor(M4_PATH, [action('m4-search'), action('m4-edit', true)])
+    setActionsFor(M4_PATH, [action('m4-search'), action('m4-close-packing', true)])
 
     const { buttons } = await openMenu(mountHeader())
 
     expect(buttons.map((b) => b.htmlAttributes?.['data-testid'])).toEqual([
       'trip-view-luggage',
       'trip-view-analytics',
-      'm4-edit',
+      'm4-close-packing',
       undefined, // Cancel, which carries no id
     ])
   })
@@ -336,6 +337,23 @@ describe('AppHeader — the trip views the switcher does not show', () => {
     expect(pushed).toEqual(['/trips/trip-1/containers'])
   })
 
+  // A ⋮ acts on its own context (owner, 2026-09-25): the luggage and the
+  // analytics are the packing list's, and the pill row reaches packing.
+  it('offers none of packing’s views on the shopping list or the tasks', () => {
+    for (const [path, tripView] of [
+      [M6_PATH, 'shopping'],
+      ['/trips/trip-1/tasks', 'tasks'],
+    ]) {
+      route.path = path!
+      route.meta = { parent: M4_PATH, tripView }
+
+      const wrapper = mountHeader()
+
+      expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(false)
+    }
+  })
+
   it('offers none of this outside a trip, where there is no view to leave', () => {
     route.path = PATH.items
     route.meta = {}
@@ -361,5 +379,64 @@ describe('AppHeader — the G-2 waiting-update dot (NFR-4.13)', () => {
 
     expect(wrapper.find('[data-testid="sync-indicator"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="sync-indicator-update"]').exists()).toBe(false)
+  })
+})
+
+describe('AppHeader — a selection wears the bar (G-20)', () => {
+  const onExit = vi.fn()
+  const onAll = vi.fn()
+
+  beforeEach(() => {
+    route.path = M6_PATH
+    route.meta = { parent: M4_PATH, tripView: 'shopping' }
+    onExit.mockReset()
+    onAll.mockReset()
+    setActionsFor(M6_PATH, [{ id: 'm6-select', icon: 'x', label: 'Select', onClick: vi.fn() }])
+  })
+
+  it('is the ordinary bar while the page is not selecting', () => {
+    setSelectionFor(M6_PATH, null)
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+  })
+
+  it('says how many, offers „Alle N" and the way out — and nothing of the page’s', async () => {
+    setSelectionFor(M6_PATH, { count: 2, total: 5, testid: 'm6', onExit, onAll })
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.get('[data-testid="m6-select-count"]').text()).toBe('2 selected')
+    expect(wrapper.get('[data-testid="m6-select-all"]').text()).toBe('All 5')
+    // Every control that would leave or change the screen under a half-made
+    // batch gives way; the sync glyph is G-2's and stays.
+    for (const gone of ['header-back', 'm6-select', 'header-overflow', 'header-settings']) {
+      expect(wrapper.find(`[data-testid="${gone}"]`).exists()).toBe(false)
+    }
+    expect(wrapper.findComponent({ name: 'SyncIndicator' }).exists()).toBe(true)
+
+    await wrapper.get('[data-testid="m6-select-all"]').trigger('click')
+    await wrapper.get('[data-testid="m6-select-exit"]').trigger('click')
+    expect(onAll).toHaveBeenCalledOnce()
+    expect(onExit).toHaveBeenCalledOnce()
+  })
+
+  it('says nothing is chosen, rather than „0 selected"', () => {
+    setSelectionFor(M6_PATH, { count: 0, total: 5, testid: 'm6', onExit, onAll })
+
+    expect(mountHeader().get('[data-testid="m6-select-count"]').text()).toBe('Nothing selected')
+  })
+
+  it('belongs to the page that registered it: another screen keeps its own bar', () => {
+    setSelectionFor(M6_PATH, { count: 1, total: 5, testid: 'm6', onExit, onAll })
+    route.path = M4_PATH
+    route.meta = { parent: '/tabs/trips', tripView: 'packing' }
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(true)
   })
 })

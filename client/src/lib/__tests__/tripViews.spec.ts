@@ -14,6 +14,7 @@ import {
   TRIP_VIEW_IDS,
   tripViewEntry,
   tripViewMenu,
+  PACKING_VIEWS,
   tripViewPills,
   type TripViewId,
 } from '@/lib/tripViews'
@@ -37,11 +38,18 @@ describe('the trip views that earn a pill', () => {
     expect(tripViewPills('analytics')).toEqual(['packing', 'shopping', 'tasks', 'analytics'])
   })
 
-  it('offers the rest in the bar, so every view is reachable from every view', () => {
-    for (const current of TRIP_VIEW_IDS) {
+  it('offers the rest in the bar from inside packing, so every view is reachable from there', () => {
+    for (const current of PACKING_VIEWS) {
       const offered = [...tripViewPills(current), ...tripViewMenu(current)]
       expect([...offered].sort()).toEqual([...TRIP_VIEW_IDS].sort())
     }
+  })
+
+  // A ⋮ acts on its own context (owner, 2026-09-25): the luggage and the
+  // analytics are packing's, and the packing pill is the way to them.
+  it('offers nothing in the bar from the shopping list or the tasks', () => {
+    expect(tripViewMenu('shopping')).toEqual([])
+    expect(tripViewMenu('tasks')).toEqual([])
   })
 
   it('never offers the packing list in the menu — it is the row’s first pill', () => {

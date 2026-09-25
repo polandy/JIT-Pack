@@ -42,7 +42,6 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  archiveOutline,
   bagHandleOutline,
   contrastOutline,
   closeCircleOutline,
@@ -52,14 +51,12 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   contractOutline,
-  createOutline,
   expandOutline,
   funnelOutline,
   layersOutline,
   locationOutline,
   lockOpenOutline,
   peopleOutline,
-  playOutline,
   textOutline,
   timeOutline,
   trashOutline,
@@ -170,7 +167,13 @@ import {
   TRIP_STATUS_ARCHIVED,
   type TaskPhase,
 } from '@/types/domain'
-import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
+import {
+  CLOSING_QUERY_PARAM,
+  ITEM_QUERY_PARAM,
+  tripItemPath,
+  tripPath,
+  tripSubPath,
+} from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
 import { removalSentence } from '@/lib/removalLabels'
 import { removalNeedsConfirm } from '@/domain/rowRemoval'
@@ -1382,20 +1385,10 @@ setHeaderActions(() => {
   // would be two doors into a room you are standing in. Search, filter and
   // fold stay: they are why the pass is a mode of M4 at all.
   if (closingPass.value) return items
-  // The trip's other three views are the switcher under the page's name now
-  // (FR-21.21, ADR-051), so what is left behind the ⋮ is what *changes* the
-  // trip rather than where you can go with it.
-  //
-  // FR-2.7: the trip's own properties, before the lifecycle steps — it is
-  // the one action here that changes the trip instead of advancing it. As
-  // words in the menu they say what they do, which a glyph could not.
-  items.push({
-    id: 'm4-edit',
-    icon: createOutline,
-    label: t('tripEdit.title'),
-    overflow: true,
-    onClick: () => router.push(tripSubPath(props.tripId, 'edit')),
-  })
+  // What is left behind the ⋮ is packing's own (owner, 2026-09-25): the
+  // trip's properties and its lifecycle steps change the whole trip, so they
+  // are M2's — the trip's row and hero — and the bar here does not repeat
+  // them. The luggage and the analytics head the sheet (AppHeader).
   // FR-27.16: offered only while there is something to take over, and on a
   // past trip too — renaming history is the user's call, not a prompt.
   if (inventoryRenames.value.length > 0) {
@@ -1419,29 +1412,6 @@ setHeaderActions(() => {
       label: t('packing.closeAction'),
       overflow: true,
       onClick: onClosePacking,
-    })
-  }
-  // The two lifecycle steps, each offered only where it is the next one.
-  // Without the first, *active* was unreachable in the whole app — and with
-  // it the archive action below, FR-9.1's Missing flagging and everything
-  // downstream of an archived trip (M14, M21).
-  const step = nextLifecycleStep(trip.value)
-  if (step === 'start') {
-    items.push({
-      id: 'm4-start',
-      icon: playOutline,
-      label: t('packing.start'),
-      overflow: true,
-      onClick: onStart,
-    })
-  }
-  if (step === 'archive') {
-    items.push({
-      id: 'm4-archive',
-      icon: archiveOutline,
-      label: t('packing.archive'),
-      overflow: true,
-      onClick: onArchive,
     })
   }
   return items
@@ -2238,11 +2208,6 @@ async function onQuickAddGroup(templateId: string) {
  * plain status change here, not the richer departure ritual the North-Star
  * Plan/During phases own.
  */
-async function onStart() {
-  orchestrator.activateTrip(props.tripId)
-  await presentToast({ message: t('packing.startedToast') })
-}
-
 /**
  * Archiving completes the trip and opens the M14 review (FR-9.2).
  * With no FR-9.1 flags there is nothing to judge, so the assistant is
@@ -2258,6 +2223,25 @@ async function onStart() {
 function onArchive() {
   closingPass.value = true
 }
+
+/**
+ * The pass's one door is M2's *Reise abschliessen* since 2026-09-25, which
+ * arrives here as `?closing=1`. Taken only while archiving is the trip's next
+ * step — a stale link to an archived or planning trip opens the list — and
+ * the flag is dropped from the URL at once, so a reload or a back does not
+ * reopen a pass the user has left.
+ */
+watch(
+  [() => route.query[CLOSING_QUERY_PARAM], () => nextLifecycleStep(trip.value)],
+  ([asked, step]) => {
+    if (asked === undefined) return
+    if (step === 'archive') onArchive()
+    // Waits for the trip: before it has loaded there is no step to read.
+    if (step === null && !trip.value) return
+    void router.replace(tripPath(props.tripId))
+  },
+  { immediate: true },
+)
 
 /** Leaves the pass without archiving — the door asks, so it can be closed. */
 function onCancelClosingPass() {
@@ -2470,7 +2454,11 @@ setHeaderTitle(
         <!-- Where the trip stands, and who else is here. Tabular throughout:
              the weight under the share changes on the same tap as the share
              itself, and proportional digits shift both as it does. -->
-        <div class="trip-stats" :class="{ paired: tripTodoState !== 'none' }">
+        <div
+          class="trip-stats jp-card"
+          :class="{ paired: tripTodoState !== 'none' }"
+          data-testid="m4-progress-card"
+        >
           <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
                note below declines to give, in the form a reader trusts most.
                It waits for the partition; 0/0 is honest once measured. -->
@@ -3144,21 +3132,23 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 .trip-line {
   display: flex;
   gap: 2px;
+  /* The page's gutter, so the card inside lines up with the cards below it
+     (G-14). The line itself is page, not card: sticky, it has to hide the
+     rows scrolling under it, margins included. */
   padding: 8px 12px;
-  border-bottom: 1px solid var(--ct-surface0);
   /* An explicit token, not --ion-background-color: inside ion-content that
      one resolves to nothing, so the sticky line was transparent and the
      rows scrolled *through* the trip's progress figure. */
-  background: var(--ct-base);
+  background: var(--jp-surface-page);
   position: sticky;
   top: 0;
   /* Above the rows: ion-item-sliding is a positioned, transformed element,
      so at z-index 2 the list painted straight over the trip's figures. */
   z-index: 10;
   overflow: hidden;
-  /* The figure's own height plus the padding: ring, share, what qualifies
-     it, and the track under them (FR-21.23). */
-  max-height: 96px;
+  /* The figure's own height plus the line's and the card's padding: ring,
+     share, what qualifies it, and the track under them (FR-21.23). */
+  max-height: 118px;
   /* Clipped, never faded: a half-transparent sticky line reads as two
      lines printed on top of each other while the list slides past it. */
   transition:
@@ -3173,22 +3163,24 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;
-  border-bottom-color: transparent;
 }
 
+/* A card the width of the cards below it (G-14), with one figure or two. */
 .trip-stats {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: stretch;
   gap: 10px;
+  /* 8 px sideways, not the card's usual 12: on a 390 px phone that is what
+     keeps a pair on one line at the 10.5rem basis below. */
+  padding: 10px 8px;
 }
 
-/* A lone share keeps its own width; a pair takes the line and wraps to two
-   rows where two columns would ellipsize a sentence — the basis is the
-   header ring, its gap and the longest sentence measured (*„118/118
-   gepackt"*), as on M1's hero (FR-7.4). */
+/* A pair wraps to two rows where two columns would ellipsize a sentence —
+   the basis is the header ring, its gap and the longest sentence measured
+   (*„118/118 gepackt"*), as on M1's hero (FR-7.4). */
 .trip-stats.paired {
-  flex: 1;
-  min-width: 0;
   flex-wrap: wrap;
   row-gap: 8px;
 }
@@ -3201,7 +3193,7 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 /* Two stacked figures are taller than the one the line was sized for;
    `:not(.collapsed)` so scrolling down still takes the whole line. */
 .trip-line.paired:not(.collapsed) {
-  max-height: 136px;
+  max-height: 158px;
 }
 
 /* Stretched so a paired figure's two tracks share a level (FR-7.4); the
@@ -3210,12 +3202,11 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   align-self: center;
 }
 
-/* The ring is punched in the colour it sits on, and the header line is the
-   one place that is not a card. */
+/* The ring is punched in the colour it sits on: the card's. */
 .figure {
   flex: 1;
   min-width: 0;
-  --ring-hole: var(--ct-base);
+  --ring-hole: var(--jp-surface-card);
 }
 
 .filter-count {
@@ -3467,6 +3458,6 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   color: inherit;
   text-align: start;
   cursor: pointer;
-  --ring-hole: var(--ct-base);
+  --ring-hole: var(--jp-surface-card);
 }
 </style>

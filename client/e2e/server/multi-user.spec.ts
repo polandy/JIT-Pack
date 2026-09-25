@@ -1280,7 +1280,7 @@ test.describe('Two accounts on one instance @server', () => {
 
     await alice.getByTestId('m9-select').click()
     for (const name of items) await list.getByTestId(`m9-row-check-${name}`).click()
-    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+    await expect(alice.getByTestId('m9-select-count')).toContainText('2')
 
     await list.getByTestId('m9-bulk-more').click()
     await alice.locator('ion-action-sheet').getByText('Usually assigned to').click()
@@ -1289,7 +1289,7 @@ test.describe('Two accounts on one instance @server', () => {
       'true',
     )
     await alice.getByTestId(`m9-bulk-assignee-${ACCOUNT_NAMES.bob}`).click()
-    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await expect(alice.getByTestId('m9-selbar')).toHaveCount(0)
     await writesLanded(alice)
 
     for (const name of items) {

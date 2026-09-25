@@ -33,9 +33,14 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { presentToast } from '@/lib/toast'
+import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
 
 const tripScreen = tripScreenStub()
@@ -869,18 +874,38 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     const page = mountPage()
 
     await page.find('[data-testid="m6-row-label"]').trigger('contextmenu')
-    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
     // Already selected by the press that started the mode — an entry that
     // already carries a tag is exactly what FR-30.9 added over M9's own
     // selection screen, which never offered a *retag*.
     expect(page.find(`[data-testid="m6-row-check-Brot"]`).classes()).toContain('on')
 
-    await page.find('[data-testid="m6-select-exit"]').trigger('click')
-    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+    await barExit()
+    expect(barSelection()).toBeNull()
 
     await enterSelectionViaHeader()
-    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
     expect(page.find(`[data-testid="m6-row-check-Brot"]`).classes()).not.toContain('on')
+  })
+
+  // G-20: the bar that counts the selection is the app bar's, so the field
+  // and its chips stay where they were — at rest, never removed, or every
+  // row under them would move up the moment the selection begins.
+  it('keeps the field and its chips in place while selecting, at rest rather than gone', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage()
+    const composer = () => page.get('[data-testid="m6-composer"]')
+    expect(composer().attributes('inert')).toBeUndefined()
+
+    await enterSelectionViaHeader()
+
+    expect(page.find('[data-testid="m6-add-input"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-tag-chips"]').exists()).toBe(true)
+    expect(composer().attributes('inert')).toBeDefined()
+    expect(composer().classes()).toContain('resting')
+
+    await barExit()
+    expect(composer().attributes('inert')).toBeUndefined()
   })
 
   it('excludes a packing-projected line — dashed, dimmed, named in the hint below the list', async () => {
@@ -907,14 +932,14 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     const page = mountPage()
 
     await enterSelectionViaHeader()
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.none'))
+    expect(barCount()).toBe(t('selection.none'))
 
-    await page.find('[data-testid="m6-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.count', { n: 2 }))
+    await barAll()
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
     expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(true)
 
-    await page.find('[data-testid="m6-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m6-select-count"]').text()).toBe(t('selection.none'))
+    await barAll()
+    expect(barCount()).toBe(t('selection.none'))
     expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
   })
 
@@ -924,7 +949,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     const page = mountPage()
 
     await enterSelectionViaHeader()
-    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    await barAll()
     await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
 
     expect(page.find('[data-testid="m6-bulk-title"]').text()).toBe(
@@ -940,7 +965,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     expect(written).toHaveLength(1)
     expect(written[0]).toMatchObject({ id: 'e1', fields: { tag: 'Apotheke' } })
     // The mode itself ends with the batch (M9's own rule).
-    expect(page.find('[data-testid="m6-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
 
     const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
     expect(toast.message).toBe(t('shopping.bulkTagged', { n: 1, tag: 'Apotheke' }))
@@ -957,7 +982,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     const page = mountPage()
 
     await enterSelectionViaHeader()
-    await page.find('[data-testid="m6-select-all"]').trigger('click')
+    await barAll()
     await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
     await page.find('[data-testid="m6-tag-offer-Apotheke"]').trigger('click')
 

@@ -278,13 +278,13 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .filter({ hasText: 'Brot' })
       .getByTestId('m6-row-label')
       .dispatchEvent('contextmenu')
-    await expect(m6(page).getByTestId('m6-selbar')).toBeVisible()
+    await expect(page.getByTestId('m6-selbar')).toBeVisible()
     await expect(m6(page).getByTestId('m6-row-check-Brot')).toHaveClass(/on/)
 
     // „Alle N" takes the already-tagged one too — the reach FR-30.9 added
     // over M9's own selection mode, which never offered a retag.
-    await m6(page).getByTestId('m6-select-all').click()
-    await expect(m6(page).getByTestId('m6-select-count')).toContainText('2')
+    await page.getByTestId('m6-select-all').click()
+    await expect(page.getByTestId('m6-select-count')).toContainText('2')
 
     await m6(page).getByTestId('m6-bulk-tag').click()
     await expect(page.getByTestId('m6-bulk-sheet')).toHaveAttribute('data-presented', 'true')
@@ -293,7 +293,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await page.getByTestId('m6-tag-create').click()
 
     // The mode ends with the batch, and both now share the new tag.
-    await expect(m6(page).getByTestId('m6-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m6-selbar')).toHaveCount(0)
     await expect(m6(page).getByTestId('m6-group-tag-Reise').locator('h3')).toHaveText([
       'Brot',
       'Mückenspray',

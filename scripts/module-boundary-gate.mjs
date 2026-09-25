@@ -59,6 +59,9 @@ const KERNEL_PATHS = [
   // no packing shape in sight; M9's own selection mode is what a module's
   // FR-30.9-style selection mode mirrors.
   'composables/useHeaderActions',
+  // The app bar's selection mode (G-20) — the same keyed map as the cluster,
+  // holding a count and two callbacks; no row shape of anyone's.
+  'composables/useHeaderSelection',
   // Press-and-hold: pure timer logic templated over the payload, imported by
   // packing screens today but with no packing shape of its own (FR-30.9's
   // shopping-list selection is its first use outside one).

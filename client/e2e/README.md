@@ -191,10 +191,16 @@ them.
   note articles carry `id="comment-<uuid>"` because that is production's own
   scroll target for the G-4 `?comment=` deep link. The addressable handle sits
   beside it as `m5-note-<body>`.
-- **An archived trip takes two clicks.** `m4-archive` opens the closing pass;
-  **`m4-pass-finish` is what archives** (FR-9.3). Every case needing an archived
-  trip goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass
-  without marking anything is a supported path.
+- **An archived trip takes two clicks.** _Finish trip_ opens the closing pass;
+  **`m4-pass-finish` is what archives** (FR-9.3). Since 2026-09-25 the trip's
+  properties and lifecycle steps are M2's alone (`m2-menu-edit`, `m2-menu-start`,
+  `m2-menu-archive`): `tripAction(page, 'start' | 'archive' | 'edit')` takes the
+  case there from the open trip and back, so every case needing an archived trip
+  still goes `tripAction('start')` → `tripAction('archive')` → `m4-pass-finish`.
+  Skipping the pass without marking anything is a supported path.
+- **A selection's bar is the app bar** (G-20): `mN-selbar`, `mN-select-count`,
+  `mN-select-all` and `mN-select-exit` live outside the router outlet, so they
+  are reached from `page`, never from `visiblePage(page)`.
 - **A case id in a title is a coverage claim.** `scripts/case-id-gate.mjs`
   refuses a duplicate definition; when two collided, the loser is struck through
   in the ledger in place and says where its promise went, never renumbered.

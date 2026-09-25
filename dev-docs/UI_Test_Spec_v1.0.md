@@ -199,13 +199,14 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G9-12 | G-9/§7 A flow returns to the origin it was entered from | all | M18 opened from M2 returns to the trip list, where the declared parent is `/tabs/settings` (M18 is entered from M2, M7 and Settings). §7's *flows* row promised this behaviour and nothing implemented it. Asserted on the **pathname**: the first version compared `toHaveURL(/\/tabs\/trips$/)` and was false-green against the unfixed build, because the URL now carries `?from=/tabs/trips` and the regex matched the query's tail. |
 | E2E-G9-13 | G-9/§7 The same contract for M15 | all | The spreadsheet import opened from M2 returns to the trip list, where its declared parent is `/tabs/items` (it is entered from M2 and from M9's empty state). Added 2026-08-23 with M15's first e2e coverage of any kind — until then nothing would have noticed the flow class regressing on this screen. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
-| E2E-G12-07 | G-12 The trip's places are named in the page | all | **Implemented 2026-08-31; the clause has now been reversed twice and is met a third way.** As written: ~~Shopping (with open-item count), Luggage and Analytics sit on the trip title line and each lands in one tap~~ / ~~**No ⋯ exists**~~. The second fell on 2026-08-25 to UX-13 — M4 *does* carry a ⋮ for its once-per-trip actions (E2E-M4-57) — and the first on 2026-09-06 to ADR-050, which put the three destinations in that same menu. FR-21.21/ADR-051 paid that cost back on 2026-09-08 with **four** pills under the page's name — and ADR-051 amendment 1 split them on 2026-09-20. As pinned now: *Packliste* and *Einkaufen* are pills named as words, *Gepäck* and *Auswertung* are words in the bar's ⋮ (asserted absent from the row and present in the sheet), the current view is marked with `aria-current` — including when it is one of the two, which join the row while you stand in them — and the sideways step the ADR-050 menu never offered still holds: shopping → luggage → analytics without the packing list in between. M6's app-bar cluster is search + filter, plus the ⋮ the frame now fills. |
+| E2E-G12-07 | G-12 The trip's places are named in the page | all | **Implemented 2026-08-31; the clause has now been reversed twice and is met a third way.** As written: ~~Shopping (with open-item count), Luggage and Analytics sit on the trip title line and each lands in one tap~~ / ~~**No ⋯ exists**~~. The second fell on 2026-08-25 to UX-13 — M4 *does* carry a ⋮ for its once-per-trip actions (E2E-M4-57) — and the first on 2026-09-06 to ADR-050, which put the three destinations in that same menu. FR-21.21/ADR-051 paid that cost back on 2026-09-08 with **four** pills under the page's name — and ADR-051 amendment 1 split them on 2026-09-20. As pinned now: *Packliste* and *Einkaufen* are pills named as words, *Gepäck* and *Auswertung* are words in the bar's ⋮ (asserted absent from the row and present in the sheet), the current view is marked with `aria-current` — including when it is one of the two, which join the row while you stand in them — and every view is reachable from every one — **since 2026-09-25 (ADR-051 amendment 2) the luggage and the analytics through the packing list**: M6 and M25 have no ⋮ (asserted on both, on a rendered screen), so shopping → packing → luggage → analytics. The sideways step amendment 1 kept is gone by the owner's decision. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | **Implemented 2026-08-31, and it found two icons with no name.** Read against the screen the subject is smaller than it sounds: the four anchors carry visible labels in both presentations, so the unlabelled icons are the bar's own cluster — since ADR-050 M4's three destinations are words in its menu, and the case reads search, filter, fold-all and the ⋮ instead. `header-back` and `header-settings` carried `aria-label` and **no `title`**, so a pointer resting on the back arrow or the gear was told nothing; fixed with the case. The two names are asserted to agree, and the accessible one is read as a name rather than off the attribute — Ionic relays `aria-label` into its shadow button. A plain tap **navigates**. ~~and a long-press shows it as a bubble on touch~~ — **struck by the owner 2026-08-31**, not built and not to be: G-12's own ⋮ already answers it on touch, and in words. **And the `title` half is narrower than the case makes it look**: measured over the source, only **9 of 62** icon-only buttons carry one, and the owner **narrowed the rule to the app bar** the same day, where the label was dropped to buy room. This case asserts the bar's names at runtime; the standing guarantee is `iconButtonLabels.spec.ts`, which reads the toolbar and whatever is slotted into it out of `AppHeader.vue` rather than from a list. |
 | E2E-G12-03 | G-12 Actions survive the collapsing header | all | **Implemented 2026-08-31.** Scrolling M4 down collapses its sub-header, and search and filter still **act** from the collapsed state — the search narrows the list, the filter panel opens. The collapse itself was already driven by E2E-M4-45, which asserts what the list does with its offset; nothing had ever reached for the bar afterwards. Tappability is asserted through the outcome, because a button that is present and inert satisfies a visibility check. This is the reason the cluster lives there rather than on the status line. |
 | E2E-G12-04 | G-12 The header line | all | **Implemented 2026-08-31, corrected against the screen, and true again since 2026-09-06.** *renders a single line* was false for as long as the line also carried the trip's name and its three destinations — it was **two rows on a phone** and one only above the G-9 breakpoint. ADR-050 took both off it, so the line states figures alone at every width and the case measures its height at both. **Amended 2026-09-08 (FR-21.23):** the figures are a ring, a sentence and a track — the figure is two lines tall by itself, so the measurement is that nothing is stacked *beside* it, not that the line is one row. ~~the filter chip row appears only when active~~ — reversed by FR-25.11a/b, which made that row the place the grouping is stated, so it is always present (E2E-M4-15). The clause that survives unchanged is the **search field**, absent until it is opened, and that is what nothing asserted. |
 | E2E-G12-05 | G-12 Literal icons | all | **Implemented 2026-08-31; read off the trip switcher since 2026-09-08 (FR-21.21), where a pill wears its glyph beside its word from 480 px up — so the case reads at the desktop width. Since ADR-051 amendment 1 (2026-09-20) two of the four are read inside the bar's ⋮ instead, which is the sharper version of the same rule: a reader who learned a glyph on a pill must not meet a different one in the menu.** Shopping, Luggage, Analytics and the Inventory anchor render four different glyphs — asserted as pairwise distinctness of the icon each button actually carries, including against the rail, because the trip's three neighbours are not the only glyphs the reader is holding in their head. Guards the regression where one generic glyph stood for several destinations, which defeats dropping the labels. |
 | E2E-G15-01 | G-15 The mark's slot and ladder | all | **Implemented 2026-08-22** (`item-mark.spec.ts`). One item with a mark and one with neither, in the same list: M9 falls back to the **tag initial**, M4 to an **empty slot** and never to a letter, and the two slots measure the same width — which is the alignment promise, asserted on the painted boxes rather than on a class. *(The photo rung is the component unit's — see E2E-M5-15.)* |
 | E2E-G15-02 | G-15 The mark is presentational | all | **Implemented 2026-08-22** (`item-mark.spec.ts`). A marked row's accessible name is the **item name alone** — the mark carries `aria-hidden` and contributes no text (FR-28.5). Asserted against the row's `ariaSnapshot()`, not the DOM, since the failure mode is a screen reader announcing "tent Zelt". |
+| E2E-G20-01 | G-20 A selection wears the app bar | local | **New 2026-09-25** (`global-nav.spec.ts`). On M6, entering a selection turns the app bar into the selection's bar — *„Nothing selected"*, *„All 1"*, ✕ — with back gone from it, and the first row's top is **measured** equal before, during and after: the in-page bar used to push every row down. The field stays in place and is `inert` while selecting. |
 
 ---
 
@@ -424,6 +425,10 @@ stable references for the traceability matrix.
   positive line saying what the screen is doing instead, and it is the pair that separates "guarded" from "rendered
   nothing at all". Before the guard, `m2-empty` was present in exactly that window, which is what the case was written
   against.
+* **E2E-M2-34** `local` (FR-2.7, FR-9.3, G-12) — **new 2026-09-25** (`trip-list.spec.ts`): the trip's properties and
+  lifecycle steps are M2's alone. The row menu's *„Trip properties"* renders M22; *„Start trip"* moves the trip off the
+  planned segment; on the running trip's hero *„Finish trip"* renders M4 **in the closing pass** (the banner), with the
+  `closing` flag gone from the URL, and the trip is still running — the pass is what archives.
 
 ### M3 — Trip Creation Wizard
 * **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips
@@ -1101,6 +1106,9 @@ in WebKit.
   ends on the revealed row wearing *deliberately skipped*, which is what makes the count more than arithmetic: without
   it, a bar reading „2 done" over two packed rows would pass just as well.
 
+* **E2E-M4-148** `local` (G-14, added 2026-09-25) — **implemented** (`packing-list-shape.spec.ts`): the header line's
+  figures are a card — a non-zero corner radius — whose left and right edges are the tasks card's below it, measured
+  on the painted boxes. Found wanting on its first run at desktop width: a lone figure had kept its own width.
 * **E2E-M4-147** `local` (FR-25.13d, ADR-075) — **implemented 2026-09-24** (`e2e/packing-list-adding.spec.ts`): the
   browse sheet heads its groups with M9's heading — the primary tag's name and the number of lines under it, in the
   shared `ListGroup` rather than a caption of its own. The count is what the old caption never had, so it is what
@@ -2263,6 +2271,9 @@ E2E-M23-04.
   is not marked „per person". The choice surviving the create is asserted on the saved item.
 * **E2E-M10-30** `local` (FR-1.9, G-8) — **new 2026-09-18** (`inventory.spec.ts`): Local Mode has no accounts, so the
   editor renders no assignee control; the name field and the „Mehr" row beside it are the positive signal.
+* **E2E-M10-31** `local` (FR-20.1) — **new 2026-09-25** (`inventory.spec.ts`): a dependency's name is a link. From the
+  dependent's *„Depends on"* the main item's M10 renders (its name in the head, the dependent in its companions), and
+  from there the companion's name leads back.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two
@@ -3189,10 +3200,11 @@ landed, that no test has ever rendered.
   trip — M4's default grouping heads it with the tag, while an untagged position beside it stays in the leftover bucket.
   That second row is the positive signal: one heading for everything would satisfy the first assertion on its own, and
   the bucket is also what the whole list used to fall into.
-* **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
-  rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
-  *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a
-  decoration: an entry that opens nothing would satisfy every assertion above it.
+* **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27, revised 2026-09-25): the bar keeps *Suchen*, *Filter* and
+  *Zuklappen* and carries the rest behind the ⋮, which **names** packing's entries in words — *Luggage*, *Analytics*,
+  *Finish packing* — and, since 2026-09-25, not the trip-wide ones (*Trip properties*, *Start trip*: M2's, E2E-M2-34).
+  Picking *„Luggage"* lands on the rendered M11, reached by role as well as by id. The last step is what separates the
+  menu from a decoration: an entry that opens nothing would satisfy every assertion above it.
 * **E2E-M4-45** `all` (UI-Spec M4 / ADR-012's overlay revision, added 2026-08-21, revised 2026-09-05 by ADR-046): M4
   scrolled mid-list, an item opened and closed again — the list is at the same offset **and** the header line is still
   folded, which is the other half of the position. Asserted on the rendered scroll offset of `ion-content`, never on the
@@ -3368,14 +3380,15 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   considered. **Tightened 2026-08-30:** *„deletes rather than unassigns"* had no assertion that could tell the two apart
   — an unassigned row carries neither Zoe's name nor a child test id, so it satisfies *„Zoe's row is not there"* just as
   well. The number of Regenhose rows left is asserted now.
-* **E2E-M22-06** `all` (UI-Spec M22 / G-9/G-12, in `global-nav.spec.ts`): reaching the editor from M4's cluster and
-  getting the trip back from its chevron. It lives with the global patterns rather than in the M22 unit because that is
-  where the four navigation defects of 2026-08-13 were missed — a route that changes without repainting, and a back that
-  leaves the previous screen on the display. Asserted on the painted page, and the return is checked against M4's own
-  actions rather than against the absence of the editor alone. *(Extended 2026-09-08: the return also asserts that the
-  page head names the trip. Until ADR-050 M4 was the one screen registering no title below the G-9 breakpoint — 54 px
-  beside six glyphs rendered "Samedan Sommer" as "S…" — so the actions had to stand in for a name the screen was
-  designed not to show. The name is now there at every width, and this is the case that says so.)*
+* **E2E-M22-06** `all` (UI-Spec M22 / G-9/G-12, in `global-nav.spec.ts`): reaching the editor from the trip's menu —
+  M4's cluster until 2026-09-25, M2's row menu since (G-12) — and getting the trip back from its chevron. It lives with
+  the global patterns rather than in the M22 unit because that is where the four navigation defects of 2026-08-13 were
+  missed — a route that changes without repainting, and a back that leaves the previous screen on the display. Asserted
+  on the painted page, and the return is checked against M4's own actions rather than against the absence of the editor
+  alone. *(Extended 2026-09-08: the return also asserts that the page head names the trip. Until ADR-050 M4 was the one
+  screen registering no title below the G-9 breakpoint — 54 px beside six glyphs rendered "Samedan Sommer" as "S…" — so
+  the actions had to stand in for a name the screen was designed not to show. The name is now there at every width, and
+  this is the case that says so.)*
 * **E2E-M22-04** `all` (FR-2.7): a trip that has started keeps its roster and offers **no** removal control — the ✕ is
   gone, the reason is rendered under the list, and adding still works. *(Revised 2026-08-21: the case first asserted
   `aria-disabled` on a control that stayed on screen; the owner overruled that in the hand — see UI-Spec M22.)* Two
@@ -3718,7 +3731,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, corrected to the FR-27.4 model 2026-08-30); the M10 usage count is asserted in M10-14/15 (M10-02 retired 2026-08-30 — its „delete blocked" half was reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
-| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said. |
+| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said.; M2-34 (reached from M2's row menu since 2026-09-25) |
 | FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
@@ -3750,6 +3763,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
 | FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant, asserted since 2026-08-30), **FLOW-04** (the harvest read back where it is supposed to arrive — the next trip generated from the group); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
+| FR-9.3 | E2E | M4-51…55 (the closing pass and its *unused* marks, `closing-pass.spec.ts`), M14-08; M2-34 (its one door, M2's *Reise abschliessen*, since 2026-09-25) |
 | FR-10.1 | E2E+UNIT | M11-01 (via M11-05/06); ContainerSheet.spec.ts (the carrier is optional — clearing it) |
 | FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment) |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts — **the threshold is a fixed 15 % since 2026-08-31**, the per-trip override struck together with its dead reader (see the M11 block) |
@@ -3790,7 +3804,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-19.5 | E2E | FLOW-07 (backup → restore on a server device → a third device that only ever talked to the server); the *first* step, leaving Local Mode on the same device, is FR-19.8's (M17-14) since 2026-09-02 |
 | FR-19.6 | E2E | G2-02, NFR-03 |
 | FR-19.8 | E2E+UNIT | M17-14 (the move, end to end, read back from the server), M17-14b (the guard, both directions), M17-14c (skip is not restore); the guard's rule and the card's absence outside Local Mode are unit-owned |
-| FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words — written 2026-08-30), M5-23; dependencies.ts |
+| FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words — written 2026-08-30), M5-23; dependencies.ts; M10-31 (a name in either list leads to that item) |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts (incl. the anchor rule: a per-person twin or a second main item keeps a companion, 2026-09-18) |
 | FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
 | FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
@@ -3841,8 +3855,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
 | FR-25.11l | E2E+UNIT | M4-85 (panel wiring, override); `packingView.spec.ts` (bucketing, whole-set counts) |
-| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs); G12-07 and M4-57 (since 2026-09-25: a ⋮ holds its own context — none on M6/M25, no trip-wide entries on M4) |
 | G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
+| G-20 | E2E+UNIT | G20-01 (M6: the app bar carries the selection and the first row stays put, measured); `AppHeader.spec.ts` (what the bar shows and hides while selecting), each list page's spec (the selection it registers) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
 | FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
 | FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |

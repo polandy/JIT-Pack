@@ -43,7 +43,7 @@ import {
   warningOutline,
 } from 'ionicons/icons'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
 import { mergedIdsOf } from '@/domain/itemMerge'
@@ -830,7 +830,18 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
           <IonList v-if="dependsOn.length > 0">
             <IonItem v-for="dep in dependsOn" :key="dep.id">
-              <IonLabel>{{ itemName(dep.depends_on_item_id) }}</IonLabel>
+              <!-- A link on the name, not a button row: the row also holds
+                   the mode select and the remove button, and a tap on either
+                   must not navigate. -->
+              <IonLabel>
+                <RouterLink
+                  :to="itemPath(dep.depends_on_item_id)"
+                  class="dep-link"
+                  :data-testid="`m10-dependency-open-${itemName(dep.depends_on_item_id)}`"
+                >
+                  {{ itemName(dep.depends_on_item_id) }}
+                </RouterLink>
+              </IonLabel>
               <IonSelect
                 :value="dep.mode"
                 interface="popover"
@@ -930,7 +941,13 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           <IonList v-if="companions.length > 0">
             <IonItem v-for="dep in companions" :key="dep.id">
               <IonLabel :data-testid="`m10-companion-${itemName(dep.item_id)}`">
-                {{ itemName(dep.item_id) }}
+                <RouterLink
+                  :to="itemPath(dep.item_id)"
+                  class="dep-link"
+                  :data-testid="`m10-companion-open-${itemName(dep.item_id)}`"
+                >
+                  {{ itemName(dep.item_id) }}
+                </RouterLink>
               </IonLabel>
               <IonSelect
                 :value="dep.mode"
@@ -1278,5 +1295,12 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   color: var(--ct-overlay0);
   font-size: var(--jp-icon-md);
   cursor: pointer;
+}
+
+/* FR-20.1: a dependency's name leads to that item (owner, 2026-09-24). The
+   action role, so it reads as a way somewhere rather than as a label. */
+.dep-link {
+  color: var(--jp-action);
+  text-decoration: none;
 }
 </style>

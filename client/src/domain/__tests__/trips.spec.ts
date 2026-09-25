@@ -123,8 +123,10 @@ describe('nextLifecycleStep', () => {
  * the other refuses. What a trip's status and the session allow is the whole
  * rule; the order is the order the sheet shows.
  */
-describe('tripRowActions (M2, FR-4.5/FR-12.1/FR-18.3)', () => {
+describe('tripRowActions (M2, FR-2.7/FR-4.5/FR-12.1/FR-18.3)', () => {
   const everything = { collaborative: true, canDelete: true }
+  // FR-2.7: the properties lead every trip's menu — M4's ⋮ gave them up to
+  // M2 (owner, 2026-09-25), so this is the one door to them.
   const cases: Array<{
     name: string
     status: TripStatus
@@ -135,31 +137,31 @@ describe('tripRowActions (M2, FR-4.5/FR-12.1/FR-18.3)', () => {
       name: 'a planning trip can be started, not archived or cloned',
       status: TRIP_STATUS_PLANNING,
       ctx: everything,
-      want: ['export', 'share', 'start', 'delete'],
+      want: ['edit', 'export', 'share', 'start', 'delete'],
     },
     {
       name: 'a running trip can be archived, not started or cloned',
       status: TRIP_STATUS_ACTIVE,
       ctx: everything,
-      want: ['export', 'share', 'archive', 'delete'],
+      want: ['edit', 'export', 'share', 'archive', 'delete'],
     },
     {
       name: 'an archived trip can be cloned, and has no lifecycle step left',
       status: TRIP_STATUS_ARCHIVED,
       ctx: everything,
-      want: ['export', 'share', 'clone', 'delete'],
+      want: ['edit', 'export', 'share', 'clone', 'delete'],
     },
     {
       name: 'share is omitted without a second account to share with (G-8)',
       status: TRIP_STATUS_ACTIVE,
       ctx: { collaborative: false, canDelete: true },
-      want: ['export', 'archive', 'delete'],
+      want: ['edit', 'export', 'archive', 'delete'],
     },
     {
       name: 'delete is omitted for a member who is not the owner (FR-4.5)',
       status: TRIP_STATUS_ARCHIVED,
       ctx: { collaborative: true, canDelete: false },
-      want: ['export', 'share', 'clone'],
+      want: ['edit', 'export', 'share', 'clone'],
     },
   ]
 

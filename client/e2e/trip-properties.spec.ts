@@ -4,6 +4,7 @@ import {
   expectTripOpen,
   setDateField,
   tripAction,
+  tripActionFromList,
   expectTripActionOffered,
   createTripViaWizard,
   chooseInSelect,
@@ -138,11 +139,11 @@ async function openTripEdit(page: Page) {
   await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
 }
 
-/** The same screen, reached from M2 rather than from inside the trip. */
+/** The same screen, from M2's own menu with the list freshly loaded. */
 async function openTripEditFromList(page: Page, name: string) {
   await page.goto(PATH.trips)
-  await visible(page).getByTestId(`trip-row-${name}`).click()
-  await openTripEdit(page)
+  await tripActionFromList(page, name, 'edit')
+  await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
 }
 
 test.describe('FR-2.7 — a trip can be edited after it is created', () => {

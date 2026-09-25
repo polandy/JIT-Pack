@@ -153,8 +153,21 @@ export function tripViewPills(current: TripViewId): TripViewId[] {
   return pills.includes(current) ? pills : [...pills, current]
 }
 
-/** The views the bar's ⋮ offers — the ones the switcher is not showing. */
+/**
+ * The views that belong to packing: the list itself and the two read off it.
+ * A ⋮ acts on the context it sits in (owner, 2026-09-25), and the luggage and
+ * the analytics are the packing list's — offered from the shopping list or
+ * the tasks they were a way out of the place the user stood in.
+ */
+export const PACKING_VIEWS: readonly TripViewId[] = ['packing', 'luggage', 'analytics']
+
+/**
+ * The views the bar's ⋮ offers: the packing context's views the switcher is
+ * not showing, and only from inside that context. From the shopping list or
+ * the tasks the packing pill is the way there.
+ */
 export function tripViewMenu(current: TripViewId): TripViewId[] {
+  if (!PACKING_VIEWS.includes(current)) return []
   const shown = tripViewPills(current)
-  return TRIP_VIEW_IDS.filter((id) => !shown.includes(id))
+  return PACKING_VIEWS.filter((id) => !shown.includes(id))
 }

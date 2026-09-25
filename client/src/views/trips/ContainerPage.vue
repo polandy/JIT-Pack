@@ -44,13 +44,13 @@ import { computed, ref } from 'vue'
 import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { useRowSelection } from '@/composables/useRowSelection'
 import {
   budgetLevel,
@@ -159,6 +159,19 @@ const { selecting, selected } = selection
 /** The selected rows still in the bucket — one may have been assigned elsewhere. */
 const selectedItems = computed(() => unassigned.value.filter((item) => selected.value.has(item.id)))
 
+// G-20: the selection's bar is the app bar's while it lasts.
+setHeaderSelection(() =>
+  selecting.value
+    ? {
+        count: selectedItems.value.length,
+        total: unassigned.value.length,
+        testid: 'm11',
+        onExit: selection.end,
+        onAll: () => selection.toggleAll(unassigned.value.map((item) => item.id)),
+      }
+    : null,
+)
+
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm11-select',
@@ -191,16 +204,6 @@ setHeaderTitle(
 <template>
   <IonPage>
     <IonContent>
-      <SelectionBar
-        v-if="selecting"
-        class="selbar"
-        :count="selectedItems.length"
-        :total="unassigned.length"
-        testid="m11"
-        @exit="selection.end"
-        @all="selection.toggleAll(unassigned.map((item) => item.id))"
-      />
-
       <div class="page-pad">
         <EmptyState
           v-if="containers.length === 0 && !rowsLoaded"
@@ -355,12 +358,6 @@ setHeaderTitle(
 <style scoped>
 .page-pad {
   padding: 16px 16px 96px;
-}
-
-.selbar {
-  position: sticky;
-  top: 0;
-  z-index: 3;
 }
 
 /* --- container cards --- */

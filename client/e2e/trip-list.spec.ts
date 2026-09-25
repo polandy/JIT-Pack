@@ -13,6 +13,7 @@ import {
   TRIP_ROW_ACTION,
   expectTripActionOffered,
   visiblePage,
+  writesLanded,
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
@@ -245,8 +246,10 @@ test.describe('M2 row actions @local @m2', () => {
 
     const sheet = await openTripRowMenu(page, 'Kreta')
     await expect(sheet.locator('.action-sheet-title')).toHaveText('Kreta')
-    // Local Mode: no Share (G-8); planning: Start rather than Archive or Clone.
+    // Local Mode: no Share (G-8); planning: Start rather than Archive or Clone;
+    // the trip's properties lead, being M2's alone since 2026-09-25.
     await expect(sheet.locator('.action-sheet-button-inner')).toHaveText([
+      'Trip properties',
       'Export trip',
       'Start trip',
       'Delete trip',
@@ -267,6 +270,41 @@ test.describe('M2 row actions @local @m2', () => {
     await visiblePage(page).getByTestId('trip-row-Elba').click()
     await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
     await expectTripOpen(page, 'Elba')
+  })
+
+  /*
+   * E2E-M2-34 (FR-2.7, FR-9.3, owner 2026-09-25): the steps that change the
+   * whole trip are M2's alone — M4's ⋮ holds packing and nothing else — so
+   * both reach the screen they lead to from here. The properties open the
+   * edit screen; *Finish trip* opens the packing list in its closing pass,
+   * the one door into it, instead of archiving past it as M2's used to.
+   */
+  test('E2E-M2-34: the trip’s properties and the finishing step are the row’s, and finishing opens the closing pass', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: TRIP })
+    await page.goto(`${PATH.trips}?status=planned`)
+
+    await chooseTripRowAction(page, TRIP, 'edit')
+    await expect(visiblePage(page).getByTestId('trip-edit-name')).toBeVisible()
+
+    await page.goto(`${PATH.trips}?status=planned`)
+    await chooseTripRowAction(page, TRIP, 'start')
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId(`trip-row-${TRIP}`)).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.goto(`${PATH.trips}?status=active`)
+    await visiblePage(page).getByTestId(`trip-hero-${TRIP}`).dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet').last()
+    await expect(menu.getByTestId('m2-menu-edit')).toBeVisible()
+    await menu.getByTestId('m2-menu-archive').click()
+
+    // The pass, rendered — and not yet archived: *Fertig* is what archives.
+    await expect(visiblePage(page).getByTestId('m4-pass-banner')).toBeVisible()
+    await expect(page).not.toHaveURL(/closing=/)
+    await page.goto(`${PATH.trips}?status=active`)
+    await expect(visiblePage(page).getByTestId(`trip-hero-${TRIP}`)).toBeVisible()
   })
 })
 

@@ -49,9 +49,14 @@ import { createDependencyActions } from '@/composables/sync/actions/dependencies
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { PATH, itemPath } from '@/router/paths'
+import { barAll, barCount, barSelection } from '@/__tests__/headerSelection'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/confirm', () => ({
   confirmDestructive: vi.fn().mockResolvedValue(true),
@@ -702,28 +707,28 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     routerPush.mockClear()
     await row('Sonnencreme').trigger('click')
     expect(routerPush).toHaveBeenCalledWith(itemPath('i1'))
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
     expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(false)
 
     await enterSelection()
 
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
     // On: the same tap picks instead of leaving the screen.
     routerPush.mockClear()
     await row('Sonnencreme').trigger('pointerdown')
     await row('Sonnencreme').trigger('click')
     expect(routerPush).not.toHaveBeenCalled()
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 1 }))
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(true)
     await row('Sonnencreme').trigger('pointerdown')
     await row('Sonnencreme').trigger('click')
 
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
+    await barAll()
+    expect(barCount()).toContain('3')
 
     // The same control clears, so it undoes itself.
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.none'))
+    await barAll()
+    expect(barCount()).toBe(t('selection.none'))
   })
 
   it('a hold (here its right-click twin) starts the selection with that row, and opens nothing (ADR-075)', async () => {
@@ -739,14 +744,14 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     await row('Sonnenbrille').trigger('click')
 
     expect(routerPush).not.toHaveBeenCalled()
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 1 }))
+    expect(barSelection()).not.toBeNull()
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(page.get('[data-testid="m9-row-check-Sonnenbrille"]').classes()).toContain('on')
 
     // A real tap after it picks another row.
     await row('Taschenmesser').trigger('pointerdown')
     await row('Taschenmesser').trigger('click')
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('selection.count', { n: 2 }))
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('counts one picked row as one, and none as none', async () => {
@@ -761,15 +766,14 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     await flushPromises()
     await enterSelection()
 
-    const bar = () => page.find('[data-testid="m9-select-count"]').text()
-    expect(bar()).toBe(t('selection.none'))
+    expect(barCount()).toBe(t('selection.none'))
 
     await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
-    expect(bar()).toBe(t('selection.count', { n: 1 }))
-    expect(bar()).not.toBe(t('selection.none'))
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
+    expect(barCount()).not.toBe(t('selection.none'))
 
     await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
-    expect(bar()).toBe(t('selection.count', { n: 2 }))
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('“Alle N” means what the filter and the search left, not the inventory', async () => {
@@ -780,10 +784,10 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     await typeSearch(page, 'sonnen')
     await enterSelection()
 
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
 
     // Two of three rows match — the batch is the screen, not the database.
-    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('2')
+    expect(barCount()).toContain('2')
   })
 
   it('gives the tag only to the items missing it, and refiles them when asked', async () => {
@@ -792,7 +796,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: true })
     await flushPromises()
 
@@ -802,7 +806,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     // Primary means *below every sibling*, which is what refiles the row.
     expect(writes.assigned.every((w) => w.position < 0)).toBe(true)
     // The mode ends with the batch; leaving it armed invites a second press.
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 
   it('writes nothing, and says so, when the selection is already as asked', async () => {
@@ -813,7 +817,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-div', primary: true })
     await flushPromises()
 
@@ -836,7 +840,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     page.findComponent(BulkTagSheet).vm.$emit('create', { name: 'Wasser', primary: true })
     await flushPromises()
 
@@ -875,7 +879,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: false })
     await flushPromises()
 
@@ -897,7 +901,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     await page.find('[data-testid="m9-bulk-retire"]').trigger('click')
     await flushPromises()
 
@@ -950,9 +954,9 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   }
 
   /** Arm the mode over every row on screen — what all three actions start from. */
-  async function selectAll(page: ReturnType<typeof mountPage>) {
+  async function selectAll() {
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
   }
 
   it('offers the merge only once two rows are picked (FR-24.15)', async () => {
@@ -984,7 +988,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'merge')
     page.getComponent(MergeItemsSheet).vm.$emit('pick', 'i1')
     await flushPromises()
@@ -1005,7 +1009,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'merge')
     page.getComponent(MergeItemsSheet).vm.$emit('pick', 'i1')
     await flushPromises()
@@ -1022,7 +1026,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
 
     // Local and Single-User Mode answer with an empty directory, and so does
     // an instance of one: a „default" between one person is no decision. The
@@ -1047,7 +1051,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
 
     // The other half of G-8: with accounts on the instance, it is offered.
     expect((await chooseMore(page, 'assignee')).map((b) => b.text)).toContain(
@@ -1064,7 +1068,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
       t('items.bulkAssigned', { n: 2, name: 'Sia' }),
     )
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 
   it('puts each item’s own previous assignee back, not one value for the batch', async () => {
@@ -1080,7 +1084,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'assignee')
     page.findComponent(BulkAssigneeSheet).vm.$emit('pick', { userId: 'u-sia' })
     await flushPromises()
@@ -1104,7 +1108,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'main')
 
     page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'suggested' })
@@ -1123,7 +1127,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'companion')
 
     page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'required' })
@@ -1145,7 +1149,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await selectAll(page)
+    await selectAll()
     await chooseMore(page, 'main')
     page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'required' })
     await flushPromises()
@@ -1175,7 +1179,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     expect(toast.message).toBe(t('items.bulkLinkedNothing'))
     expect(toast.buttons).toBeUndefined()
     // Still armed: nothing happened, so the selection is still the user's.
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
   })
 
   it('writes nothing when the confirm is declined', async () => {
@@ -1185,13 +1189,13 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     const page = mountPage()
     await flushPromises()
     await enterSelection()
-    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await barAll()
     await page.find('[data-testid="m9-bulk-retire"]').trigger('click')
     await flushPromises()
 
     expect(writes.deleted).toEqual([])
     // Still armed with the selection intact, so the user can act again.
-    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
+    expect(barCount()).toContain('3')
   })
 })
 
@@ -1729,7 +1733,7 @@ describe('M9 — what the search did not find, it offers to create (FR-24.11)', 
       .onClick()
     await flushPromises()
 
-    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
     expect(page.find('[data-testid="m9-offer"]').exists()).toBe(false)
   })
 

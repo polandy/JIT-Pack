@@ -20,13 +20,20 @@ import {
   actionSheetController,
   useIonRouter,
 } from '@ionic/vue'
-import { chevronBackOutline, ellipsisVerticalOutline, settingsOutline } from 'ionicons/icons'
+import {
+  chevronBackOutline,
+  closeOutline,
+  ellipsisVerticalOutline,
+  settingsOutline,
+} from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
 import { backTarget, enteredFrom } from '@/router/backTarget'
 import { actionsFor, type HeaderAction } from '@/composables/useHeaderActions'
+import { selectionFor } from '@/composables/useHeaderSelection'
+import { selectionLabel } from '@/lib/selectionLabel'
 import { TRIP_VIEW_COUNTS, tripViewEntry, tripViewMenu } from '@/lib/tripViews'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
@@ -52,6 +59,14 @@ const router = useRouter()
 const ionRouter = useIonRouter()
 
 const back = computed(() => backTarget(route))
+
+/**
+ * G-20: while the page is selecting, the bar is the selection's — ✕, the
+ * count and „Alle N" — and nothing else of the page's. The sync glyph stays
+ * (G-2 is unconditional); back, the cluster, the ⋮ and the gear give way,
+ * because each would leave or change the screen under a half-made batch.
+ */
+const selection = computed(() => selectionFor(route.path))
 
 /**
  * How many glyphs the bar will show beside the ⋮ (ADR-050). The count is a
@@ -212,7 +227,39 @@ function goBack() {
 
 <template>
   <IonHeader>
-    <IonToolbar>
+    <IonToolbar v-if="selection" class="selecting" :data-testid="`${selection.testid}-selbar`">
+      <IonButtons slot="start">
+        <IonButton
+          :aria-label="t('selection.exit')"
+          :title="t('selection.exit')"
+          :data-testid="`${selection.testid}-select-exit`"
+          @click="selection.onExit"
+        >
+          <IonIcon slot="icon-only" :icon="closeOutline" />
+        </IonButton>
+      </IonButtons>
+      <span class="selcount" aria-live="polite" :data-testid="`${selection.testid}-select-count`">
+        {{ selectionLabel(selection.count) }}
+      </span>
+      <IonButtons slot="end">
+        <button
+          type="button"
+          class="select-all"
+          :data-testid="`${selection.testid}-select-all`"
+          @click="selection.onAll"
+        >
+          {{ t('selection.all', { n: selection.total }) }}
+        </button>
+        <SyncIndicator
+          :state="syncState"
+          :pending-count="syncPendingCount"
+          :label="syncLabel"
+          :update-ready="syncUpdateReady"
+          @tap="emit('syncTap')"
+        />
+      </IonButtons>
+    </IonToolbar>
+    <IonToolbar v-else>
       <IonButtons v-if="back" slot="start">
         <IonButton
           data-testid="header-back"
@@ -285,6 +332,34 @@ function goBack() {
 </template>
 
 <style scoped>
+/* The selection's bar is tinted, so the mode reads at a glance — the same
+   wash the in-page bar wore before G-20 moved it up here. */
+.selecting {
+  --background: color-mix(in srgb, var(--jp-action) 16%, var(--jp-surface-page));
+}
+
+.selcount {
+  display: block;
+  padding-inline: 4px;
+  font-weight: var(--jp-weight-semibold);
+}
+
+.select-all {
+  margin-inline-end: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.select-all:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
+}
+
 .app-logo {
   cursor: pointer;
 }

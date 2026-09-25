@@ -268,7 +268,6 @@ export const en = {
   'packing.luggage': 'Luggage',
   'packing.analytics': 'Analytics',
   'packing.tripViews': "This trip's views",
-  'packing.archive': 'Finish trip',
 
   // FR-5.10 — finishing the packing: whatever stays open is a decision.
   'packing.closeAction': 'Finish packing',
@@ -340,10 +339,9 @@ export const en = {
   'packing.resetSearch': 'Clear search',
   'packing.resetAll': 'Clear search and filter',
 
-  // FR-27.5 — the closing card on an archived trip.
-  'packing.start': 'Start trip',
   'packing.startedToast':
     'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
+  // FR-27.5 — the closing card on an archived trip.
   'packing.tripFinished': 'Trip finished',
   'packing.reviewTeaser': 'For example: {names}',
   'packing.reviewTeaserNone': 'Nothing to review — every flag has been dealt with.',
@@ -1395,7 +1393,7 @@ export const en = {
   'trips.actionShare': 'Share',
   'trips.actionClone': 'Clone trip',
   'trips.actionStart': 'Start trip',
-  'trips.actionArchive': 'Archive trip',
+  'trips.actionArchive': 'Finish trip',
   'trips.actionDelete': 'Delete trip',
   'trips.deleteTitle': 'Delete "{name}"?',
   'trips.deleteMessage':

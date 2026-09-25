@@ -3,7 +3,8 @@
 **Status:** Accepted
 **Related:** FR-7.8, FR-30.9, FR-24.9, FR-24.3, FR-10.2, ADR-060, ADR-066, UI-Spec M6, M25, M9, M11 and M23,
 `client/src/composables/useRowSelection.ts`,
-`client/src/components/global/{DragGrip,SelectBox,SelectionBar,BulkBar,ListGroup}.vue`
+`client/src/components/global/{DragGrip,SelectBox,BulkBar,ListGroup}.vue`,
+`client/src/composables/useHeaderSelection.ts` (UI-Spec G-20)
 
 **Context.** M6 (the shopping list, FR-30.9) and M25 (a trip's tasks, FR-7.8) are the same shape: tag headings, rows
 under them, a grip at the leading edge that drags a row into another heading, a tick at the trailing edge. They were
@@ -174,3 +175,13 @@ batch — the row stays selected, since a queue of rename dialogs is worse than 
 of one is the single-row restore, prompt and all; a delete touches only the rows that have a delete of their own and
 leaves the rest selected. Assigned positions are not selectable on M11, because they are not rows there. The revisit
 trigger has not fired: M23's bar holds two acts and M11's one.
+
+## Amendment 2026-09-25 — the count moves into the app bar (G-20)
+
+`SelectionBar`, the strip that said *„N ausgewählt"* with its ✕ and *„Alle N"*, was inserted into each list's flow
+when a selection began — and every row under it moved down, so the row just held left the finger (owner,
+2026-09-24). It is gone: the page registers its selection with the frame (`setHeaderSelection`) and the **app bar**
+turns into that strip while the selection lasts, which moves nothing. The tools above a list stay in place — a
+filter live, an input at rest — instead of being swapped for the strip. The tag manager is a sheet with no app bar;
+its head carries the count instead. What this ADR decided is untouched: one gesture, one set of components, the grip
+alone drags.

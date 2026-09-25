@@ -87,6 +87,19 @@ export function tripSubPath(tripId: string, screen: TripSubScreen): string {
 export const ITEM_QUERY_PARAM = 'item'
 /** The comment a notification deep link (G-4) names, so M5 can scroll to and flash it. */
 export const COMMENT_QUERY_PARAM = 'comment'
+/**
+ * Asks the packing list to open in FR-9.3's closing pass. A query for the
+ * reason `?item=` is one: the pass is a mode of M4, not a screen of its own.
+ */
+export const CLOSING_QUERY_PARAM = 'closing'
+
+/**
+ * The packing list in its closing pass (FR-9.3) — where *Reise abschliessen*
+ * leads from M2, now that the trip's lifecycle steps are M2's alone.
+ */
+export function tripClosingPath(tripId: string): string {
+  return `${tripPath(tripId)}?${new URLSearchParams({ [CLOSING_QUERY_PARAM]: '1' }).toString()}`
+}
 
 /**
  * The item sheet or panel over the packing list (M5): the trip's own route

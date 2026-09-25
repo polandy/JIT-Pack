@@ -108,7 +108,7 @@ export function nextLifecycleStep(trip: Pick<Trip, 'status'> | undefined | null)
 }
 
 /** One entry of M2's per-trip actions, in the order the menu shows them. */
-export type TripRowAction = 'export' | 'share' | 'clone' | 'start' | 'archive' | 'delete'
+export type TripRowAction = 'edit' | 'export' | 'share' | 'clone' | 'start' | 'archive' | 'delete'
 
 /** What the session contributes to {@link tripRowActions}. */
 export interface TripRowActionContext {
@@ -121,15 +121,18 @@ export interface TripRowActionContext {
 /**
  * M2's per-trip actions: the row's hold/right-click menu and the hero card's
  * action row both read this list, so neither can offer a step the other
- * refuses. Export always (FR-18.3); share only where there is someone to
- * share with (G-8); clone only from the archive (FR-12.1); the one lifecycle
- * step {@link nextLifecycleStep} names; delete for the owner (FR-4.5).
+ * refuses. The trip's properties always (FR-2.7) — and, like the lifecycle
+ * step, only here since the owner's call of 2026-09-25 that M4's ⋮ holds
+ * packing and nothing else; export always (FR-18.3); share only where there
+ * is someone to share with (G-8); clone only from the archive (FR-12.1); the
+ * one lifecycle step {@link nextLifecycleStep} names; delete for the owner
+ * (FR-4.5).
  */
 export function tripRowActions(
   trip: Pick<Trip, 'status'>,
   ctx: TripRowActionContext,
 ): TripRowAction[] {
-  const actions: TripRowAction[] = ['export']
+  const actions: TripRowAction[] = ['edit', 'export']
   if (ctx.collaborative) actions.push('share')
   if (trip.status === TRIP_STATUS_ARCHIVED) actions.push('clone')
   const step = nextLifecycleStep(trip)

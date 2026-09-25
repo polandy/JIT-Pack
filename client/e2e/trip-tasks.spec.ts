@@ -565,17 +565,19 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // the row half a second later and swallowed the next tap.
     await before.getByTestId('trip-todo-open-Salbe holen').click({ button: 'right' })
 
-    await expect(visible(page).getByTestId('m25-selbar')).toBeVisible()
+    await expect(page.getByTestId('m25-selbar')).toBeVisible()
     await expect(before.getByTestId('trip-todo-check-Salbe holen')).toHaveClass(/on/)
     await expect(host).toHaveAttribute('data-drag', 'idle')
-    // The grip and the composer step aside while choosing.
+    // The grip steps aside while choosing; the composer stays where it is, at
+    // rest, so the list under it does not move (G-20).
     await expect(before.getByTestId('trip-todo-grip-Salbe holen')).toHaveCount(0)
-    await expect(before.getByTestId('trip-todo-input')).toHaveCount(0)
+    await expect(before.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(before.getByTestId('m25-composer-before')).toHaveAttribute('inert', '')
 
     // A tap on another task's words now chooses it instead of opening its sheet.
     await before.getByTestId('trip-todo-open-Pflanzen giessen').click()
     await expect(before.getByTestId('trip-todo-check-Pflanzen giessen')).toHaveClass(/on/)
-    await expect(visible(page).getByTestId('m25-select-count')).toContainText('2')
+    await expect(page.getByTestId('m25-select-count')).toContainText('2')
     await expect(page.getByTestId('task-sheet')).toHaveCount(0)
 
     await visible(page).getByTestId('m25-bulk-tag').click()
@@ -585,7 +587,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The mode ends with the batch; both tasks now stand under one heading.
-    await expect(visible(page).getByTestId('m25-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m25-selbar')).toHaveCount(0)
     const haus = before.locator('[data-testid^="m25-group-"]').filter({ hasText: 'Haus' })
     await expect(haus).toContainText('Salbe holen')
     await expect(haus).toContainText('Pflanzen giessen')
@@ -595,7 +597,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
       .getByTestId('trip-todo-Salbe holen')
       .locator('ion-label')
       .dispatchEvent('contextmenu')
-    await visible(page).getByTestId('m25-select-all').click()
+    await page.getByTestId('m25-select-all').click()
     await visible(page).getByTestId('m25-bulk-during').click()
 
     const during = visible(page).getByTestId('m25-during')

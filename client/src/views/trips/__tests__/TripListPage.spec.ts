@@ -25,6 +25,7 @@ import type { AppliedChange } from '@/types/domain'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { tripClosingPath, tripSubPath } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -336,6 +337,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     expect(sheets).toHaveLength(1)
     expect(sheets[0]!.header).toBe('Samedan')
     expect(labels(sheets[0]!)).toEqual([
+      t('tripEdit.title'),
       t('trips.actionExport'),
       t('trips.actionStart'),
       t('trips.actionDelete'),
@@ -361,7 +363,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     }
   })
 
-  it('offers the archive step on a running row, and archiving asks the orchestrator', async () => {
+  it('offers the finish step on a running row, which opens the closing pass rather than archiving (FR-9.3)', async () => {
     segment = 'active'
     // Two running trips: the one departing first is lifted into the hero, so
     // the other one stays a row with a menu of its own.
@@ -373,7 +375,9 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     await flushPromises()
     button(t('trips.actionArchive')).handler!()
 
-    expect(orchestratorFake.archiveTrip).toHaveBeenCalledWith('t1')
+    // The pass is what archives, so nothing is archived from here.
+    expect(pushed).toContain(tripClosingPath('t1'))
+    expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
     expect(labels(sheets[0]!)).not.toContain(t('trips.actionStart'))
   })
 
@@ -754,14 +758,27 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
   })
 
-  it('archives from the card — the actions came with the trip out of the swipe', async () => {
+  it('finishes from the card through the closing pass — the actions came with the trip out of the swipe', async () => {
     segment = 'active'
     seedTrip('active')
 
     const page = mountPage()
     await page.find('[data-testid="m2-hero-archive-Samedan"]').trigger('click')
 
-    expect(orchestratorFake.archiveTrip).toHaveBeenCalledWith('t1')
+    expect(pushed).toContain(tripClosingPath('t1'))
+    expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
+  })
+
+  // The trip's properties are M2's alone since M4's ⋮ holds packing only
+  // (owner, 2026-09-25), so both of M2's doors carry them.
+  it('opens the trip’s properties from the card', async () => {
+    segment = 'active'
+    seedTrip('active')
+
+    const page = mountPage()
+    await page.find('[data-testid="m2-hero-edit-Samedan"]').trigger('click')
+
+    expect(pushed).toContain(tripSubPath('t1', 'edit'))
   })
 
   it('opens the rows’ menu on a right-click too — a card is not an exception to the hold', async () => {
@@ -775,6 +792,7 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     expect(sheets).toHaveLength(1)
     expect(sheets[0]!.header).toBe('Samedan')
     expect(sheets[0]!.buttons.map((b) => b.text)).toEqual([
+      t('tripEdit.title'),
       t('trips.actionExport'),
       t('trips.actionArchive'),
       t('trips.actionDelete'),

@@ -44,7 +44,6 @@ import { computed, ref, watch } from 'vue'
 import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
@@ -61,6 +60,7 @@ import {
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { useRowSelection } from '@/composables/useRowSelection'
 
 const masterStore = useMasterStore()
@@ -274,6 +274,19 @@ const selectedRows = computed(() => rows.value.filter((row) => selected.value.ha
 // A selection belongs to the segment it was made in; the other is another list.
 watch(segment, () => selection.end())
 
+// G-20: the selection's bar is the app bar's while it lasts.
+setHeaderSelection(() =>
+  selecting.value
+    ? {
+        count: selectedRows.value.length,
+        total: rows.value.length,
+        testid: 'm23',
+        onExit: selection.end,
+        onAll: () => selection.toggleAll(rows.value.map((row) => row.id)),
+      }
+    : null,
+)
+
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm23-select',
@@ -368,16 +381,6 @@ function hiddenOn(row: RetiredRow): string {
 <template>
   <IonPage>
     <IonContent>
-      <SelectionBar
-        v-if="selecting"
-        class="selbar"
-        :count="selectedRows.length"
-        :total="rows.length"
-        testid="m23"
-        @exit="selection.end"
-        @all="selection.toggleAll(rows.map((row) => row.id))"
-      />
-
       <!-- No <h1>: the route carries `titleKey`, so the one header bar
            already names this screen (ADR-011). A second copy of the same
            words cost two lines of a 430 px page. -->
@@ -511,12 +514,6 @@ function hiddenOn(row: RetiredRow): string {
 /* The bar floats over the foot of the list; the last row stays reachable. */
 .list-card.selecting {
   margin-bottom: 88px;
-}
-
-.selbar {
-  position: sticky;
-  top: 0;
-  z-index: 3;
 }
 
 .row-mark {
