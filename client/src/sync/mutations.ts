@@ -129,7 +129,6 @@ export type GeneratedTripItemEdit = Partial<
   >
 >
 
-/** Addendum §3.20's companion link. Both item ids are the edge itself. */
 /**
  * FR-7.14: what a new task may be filed under as it is written — its one tag
  * and its due day. Both optional: absent means the task has none.
@@ -139,6 +138,7 @@ export interface TaskFiling {
   dueDate?: string | null
 }
 
+/** Addendum §3.20's companion link. Both item ids are the edge itself. */
 export type ItemDependencyEdit = Partial<Pick<ItemDependency, 'mode' | 'quantity'>>
 
 /**
