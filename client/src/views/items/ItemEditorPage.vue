@@ -1113,7 +1113,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                       [
                         authorName(entry.authorId),
                         entry.tripName,
-                        entry.createdAt ? formatDay(entry.createdAt) : null,
+                        entry.writtenOn ? formatDay(entry.writtenOn) : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')
