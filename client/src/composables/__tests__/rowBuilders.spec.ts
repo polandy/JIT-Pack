@@ -628,6 +628,7 @@ const CASES: BuilderCase[] = [
         comment_id: 'note-1',
         user_id: 'u-anna',
         acked: 1,
+        seen_through: '2026-09-20T10:00:00Z',
       })
     },
     read: () => useTripStore().getNoteAcks(TRIP_ID)[0] as unknown as Record<string, unknown>,
@@ -635,7 +636,11 @@ const CASES: BuilderCase[] = [
       {
         // The only writer beyond the insert: un-ticking flips `acked` back
         // rather than deleting the row (NFR-4.2a never deletes).
-        act: (a: NoteAck) => newOrch().toggleNoteTick(TRIP_ID, a.comment_id, a.user_id, a),
+        act: (a: NoteAck) =>
+          newOrch().toggleNoteTick(TRIP_ID, a.comment_id, a.user_id, a, {
+            ticked: true,
+            seenThrough: null,
+          }),
         changed: 'acked',
         becomes: false,
       },
@@ -646,6 +651,7 @@ const CASES: BuilderCase[] = [
       comment_id: 'note-1',
       user_id: 'u-anna',
       acked: true,
+      seen_through: '2026-09-20T10:00:00Z',
     } satisfies Record<keyof NoteAck, unknown>,
   },
 ]
@@ -715,6 +721,9 @@ describe('commentRow', () => {
     author_id: 'user-a',
     body: 'Reissverschluss klemmt',
     created_at: '2026-08-20T10:00:00Z',
+    parent_id: null,
+    title: null,
+    edited_at: null,
   } satisfies Record<keyof ItemComment, unknown>
 
   it('the seed reaches the store whole, so this fixture cannot go stale', () => {

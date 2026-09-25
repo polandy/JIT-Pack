@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
- * One note, looked at properly (FR-7.9) — the sheet behind a note's words on
- * M25. Everyone who has ticked the note is named here and only here
- * (decision 3): the list itself stays a list, not a read-receipt board.
+ * One entry of a thread, looked at properly (FR-7.9, FR-7.13) — the sheet
+ * behind an entry's words on M26. Everyone who has ticked the thread is named
+ * on its first note's sheet and only there (decision 3): the list itself
+ * stays a list, not a read-receipt board. Deleting a first note deletes its
+ * thread, so the button says how many replies go with it.
  *
  * Presentation only, per §6 of the concept: a phone number in the body reads
  * as a `tel:` link, and holding a press on the text copies it verbatim — the
@@ -25,8 +27,10 @@ import type { ItemComment } from '@/types/domain'
 
 const props = defineProps<{
   note: ItemComment
-  /** Every user id that has ticked this note (decision 3). */
+  /** Every user id that has ticked this thread (decision 3); empty for a reply. */
   ackedBy: ReadonlySet<string>
+  /** FR-7.13: the replies a delete of this first note takes with it. */
+  replyCount: number
   nameOf: NameOf
 }>()
 
@@ -34,6 +38,13 @@ const emit = defineEmits<{
   close: []
   remove: []
 }>()
+
+const isReply = computed(() => props.note.parent_id !== null)
+const removeLabel = computed(() => {
+  if (isReply.value) return t('notes.removeReply')
+  if (props.replyCount > 0) return t('notes.removeWithReplies', { n: props.replyCount })
+  return t('notes.remove')
+})
 
 const stamp = computed(() =>
   createdStampText({ ...props.note, resolved_at: null, resolved_by_user_id: null }, props.nameOf),
@@ -53,7 +64,7 @@ const press = useLongPress<string>(async (text) => {
 <template>
   <div class="sheet" data-testid="note-sheet">
     <SheetHead
-      :title="t('notes.sheetTitle')"
+      :title="isReply ? t('notes.replySheetTitle') : note.title || t('notes.sheetTitle')"
       :meta="stamp"
       title-testid="note-sheet-title"
       close-testid="note-sheet-close"
@@ -94,7 +105,7 @@ const press = useLongPress<string>(async (text) => {
         @click="emit('remove')"
       >
         <IonIcon slot="start" :icon="trashOutline" />
-        {{ t('notes.remove') }}
+        {{ removeLabel }}
       </IonButton>
     </div>
   </div>

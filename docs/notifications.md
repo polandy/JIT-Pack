@@ -12,12 +12,14 @@ a notification, and only these:
 - **Row taken over** — you had started packing a row and somebody else took it over (see [Two people, one row](multi-user-setup.md#6-two-people-one-row)).
 - **Note** — a co-traveller writes a trip note (a key-box code, a courier's phone number — see
   [Trip notes](trip-notes.md)). Everyone on the trip is notified except whoever wrote it, whether or not the note
-  names anyone by `@display-name`.
+  names anyone by `@display-name`. Tapping it opens the note.
+- **Reply to a note** — somebody answers a note you wrote or answered yourself. Only the people who took part in
+  that thread are told, never the whole trip, and never whoever answered. Tapping it opens the thread.
 - **Task due** — a task is due tomorrow or today. Nobody sets this one off: the server sends it once a day at the time
   you configure (see [Task reminders](configuration.md#task-reminders)), to the person the task is handed to, or to
   everyone on the trip when it is nobody's in particular. Tapping it opens the trip's **Aufgaben**.
 
-The first five exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
+The first six exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
 concern you. **Task due is the exception**: a single-user instance reminds its one user too, and Settings there shows
 just that switch and the push toggle. Local Mode has no server at all; instead, the app says once when you open it how
 many tasks are due (*„2 Aufgaben fällig"*).
@@ -46,7 +48,7 @@ Push is off until someone turns it on, and the choice is **per device** — a ph
 
 Where the browser cannot do push, the toggle is disabled and says *Not supported by this browser*. The case that surprises people is the iPhone: **iOS delivers Web Push only to web apps installed on the home screen** (iOS 16.4 or later), so in a plain Safari tab the toggle stays disabled. Install the app to the home screen via the share sheet first, open it from there, and then enable push in Settings.
 
-Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes / tasks due). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
+Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes / replies to notes / tasks due). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
 
 ## Verifying delivery end to end
 

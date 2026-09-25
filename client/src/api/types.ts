@@ -366,6 +366,8 @@ export interface NotificationPrefs {
   lock_taken: boolean
   // FR-7.9: a co-traveller wrote a new trip note.
   note: boolean
+  // FR-7.13: somebody else replied in a thread this user took part in.
+  note_reply: boolean
   // FR-7.11: a task this user is to do is due tomorrow or today.
   task_due: boolean
 }

@@ -1,11 +1,13 @@
 # Concept — trip notes become threads: a titled note, one level of replies, its participants told
 
-**Status:** **every question decided 2026-09-25 (owner: the recommendation everywhere; question 6 after two renders),
-nothing built.** Built in two PRs: the trip-view switcher goes to icons first (ADR-051 amendment 3), then the threads
-with notes as a view of their own. The interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. This
-file is the reasoning; the result becomes **FR-7.13** in PRD Addendum §3.7a beside FR-7.9, and the FR is authoritative.
-It builds on FR-7.9 as built (`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless
-§2 says so.
+**Status:** **every question decided 2026-09-25 (owner: the recommendation everywhere; question 6 after two renders);
+built the same day in two PRs** — the trip-view switcher went to icons first (ADR-051 amendment 3, #601), then the
+threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of their own (**M26**). The FR and UI-Spec M26 are
+authoritative; where this file's §4 still describes M25's segment, it is the reasoning before question 6 was decided.
+Two details moved in the build: the edit is a ✎ on the entry itself rather than an entry in the sheet (the mockup's
+shape), and the reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a rule). The
+interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. It builds on FR-7.9 as built
+(`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
 
 **Asked for** (owner, 2026-09-25, translated): notes should work like a forum with threads. One note can have
 several notes attached to it, one level only. The parent note can have a title, and the overview shows that title.

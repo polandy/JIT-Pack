@@ -10,6 +10,8 @@
  */
 import { commentRow, noteAckRow, todoRow, tripTodoRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { cascadeChanges } from '@/sync/cascade'
+import { TABLE } from '@/types/tables'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
@@ -18,20 +20,25 @@ import { isPackingClosed } from '@/lib/tripPhase'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, tripStore } = ctx
+  const { mutations, enqueueAndDrain, tripStore, masterStore } = ctx
 
   /** FR-7.12: never into a *before* the finished packing has closed. */
   function newTaskPhase(tripId: string, asked: TaskPhase): TaskPhase {
     return phaseForNewTask(asked, isPackingClosed(tripStore.getTrip(tripId)))
   }
 
+  /**
+   * FR-7.13: `thread` opens a titled thread or answers one — see
+   * `mutations.addComment`.
+   */
   function addComment(
     tripId: string,
     tripItemId: string | null,
     authorId: string,
     body: string,
+    thread?: { title?: string | null; parentId?: string | null },
   ): string {
-    const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body)
+    const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body, thread)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -49,32 +56,57 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /** A first note goes with its thread (FR-7.13), as the server's cascade does. */
   function deleteComment(tripId: string, commentId: string) {
     const mutation = mutations.deleteComment(commentId)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: optimisticDelete(mutation),
+      optimistic: [
+        ...cascadeChanges(TABLE.comments, commentId, { tripStore, masterStore }),
+        optimisticDelete(mutation),
+      ],
     })
   }
 
   /**
-   * FR-7.9: tick or un-tick a note. `existing` is this reader's own
+   * FR-7.13: the author changes an entry's words. `title` only for a first
+   * note — `undefined` leaves a reply's (absent) title alone.
+   */
+  function editNote(tripId: string, note: ItemComment, body: string, title?: string | null) {
+    const mut = mutations.editNote(note.id, body, title)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, commentRow(note)),
+    })
+  }
+
+  /**
+   * FR-7.9/FR-7.13: tick or un-tick a thread. `existing` is this reader's own
    * `note_acks` row, if `domain/tripNotes.ts`'s `myAckFor` found one — the
-   * first tick inserts a fresh row (one per (note, person), ADR-073),
-   * every later tap flips the row that already exists.
+   * first tick inserts a fresh row (one per (note, person), ADR-073), every
+   * later tap writes the row that already exists.
+   *
+   * What the tap means is the thread's, not the row's: a thread ticked last
+   * week with a reply since shows unticked, and its tap ticks it again
+   * through the newest entry rather than taking the old tick away. So the
+   * caller says whether the thread reads `ticked` now, and `seenThrough` is
+   * how far a new tick reaches.
    */
   function toggleNoteTick(
     tripId: string,
     noteId: string,
     userId: string,
     existing: NoteAck | null,
+    seen: { ticked: boolean; seenThrough: string | null },
   ) {
     if (!existing) {
-      const { mutation } = mutations.tickNote(tripId, noteId, userId)
+      const { mutation } = mutations.tickNote(tripId, noteId, userId, seen.seenThrough)
       enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
       return
     }
-    const mut = mutations.setNoteAcked(existing.id, !existing.acked)
+    const mut = seen.ticked
+      ? mutations.setNoteAcked(existing.id, false)
+      : mutations.setNoteAcked(existing.id, true, seen.seenThrough)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, noteAckRow(existing)),
@@ -232,6 +264,7 @@ export function createCommentActions(ctx: SyncContext) {
     addComment,
     flagCommentAsTask,
     deleteComment,
+    editNote,
     toggleNoteTick,
     addPrepTodo,
     resolvePrepTodo,

@@ -164,9 +164,11 @@ async function readMirror() {
  * plainer sentence.
  */
 function bodyName(kind, payload) {
-  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note', 'task_due']
+  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note', 'note_reply', 'task_due']
   if (known.indexOf(kind) === -1) return 'generic'
-  const named = kind === 'mention' || kind === 'note' ? payload.preview : payload.item_name
+  // FR-7.13: a reply, like a note and a mention, is about its own words.
+  const quoted = kind === 'mention' || kind === 'note' || kind === 'note_reply'
+  const named = quoted ? payload.preview : payload.item_name
   // FR-7.11: a reminder's day picks one of two sentences.
   const body = kind === 'task_due' && payload.due === 'tomorrow' ? 'task_dueTomorrow' : kind
   return named ? body : body + 'Plain'
@@ -189,6 +191,7 @@ function notificationBody(data, mirror) {
     actor: payload.actor_name || mirror.bodies.actorUnknown || '',
     item: payload.item_name || '',
     preview: payload.preview || '',
+    thread: payload.thread || '',
   })
 }
 
@@ -203,6 +206,11 @@ function notificationUrl(payload, kind) {
   let url = `/trips/${payload.trip_id}`
   // FR-7.11: a reminder opens the trip's tasks (M25).
   if (kind === 'task_due') return url + '/tasks'
+  // FR-7.13: a note or a reply opens its thread on the trip's notes.
+  if (kind === 'note' || kind === 'note_reply') {
+    const thread = payload.thread_id || payload.comment_id
+    return url + '/notes' + (thread ? `?thread=${thread}` : '')
+  }
   if (payload.item_id) {
     url += `?item=${payload.item_id}`
     if (payload.comment_id) url += `&comment=${payload.comment_id}`

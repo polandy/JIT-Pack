@@ -30,6 +30,17 @@ describe('describeNotification', () => {
       want: 'Sarah mentioned you: check @andy please',
     },
     {
+      // FR-7.13: a reply names the thread it answers and quotes itself.
+      name: 'a reply in a note thread',
+      n: notif('note_reply', { actor_name: 'Chris', preview: 'Danke!', thread: 'Schlüsselbox' }),
+      want: 'Chris replied to “Schlüsselbox”: Danke!',
+    },
+    {
+      name: 'a reply without its words',
+      n: notif('note_reply', { actor_name: 'Chris' }),
+      want: 'Chris replied to a note',
+    },
+    {
       name: 'task on item',
       n: notif('task', { actor_name: 'Sarah', item_name: 'Kocher' }),
       want: 'Sarah opened a task on “Kocher”',
@@ -82,6 +93,15 @@ describe('notificationRoute (G-4)', () => {
 
   it('returns null without a trip', () => {
     expect(notificationRoute(notif('mention', {}))).toBeNull()
+  })
+
+  it('opens a note on its own thread, and a reply on the thread it answers (FR-7.13)', () => {
+    expect(notificationRoute(notif('note', { trip_id: 't1', comment_id: 'c9' }))).toBe(
+      '/trips/t1/notes?thread=c9',
+    )
+    expect(
+      notificationRoute(notif('note_reply', { trip_id: 't1', comment_id: 'c10', thread_id: 'c9' })),
+    ).toBe('/trips/t1/notes?thread=c9')
   })
 })
 

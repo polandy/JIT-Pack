@@ -1181,6 +1181,11 @@ taken straight from a phone camera never reaches the server unprocessed.
   vocabulary is unchanged and now carries meaning alone, so E2E-G12-05's pairwise distinctness is load-bearing; a
   held glyph naming itself is E2E-G12-08. *Revised:* the pills were words on a phone and words with glyphs from
   480 px up.
+
+  **The notes join as the fourth pill (amended 2026-09-25, FR-7.13).** Their badge counts the entries new for me, never
+  the total, and wears the colour a new thing wears (`--jp-action`) where the shopping count is grey; the word, when the
+  badge is not a pill's, is *„Notizen · 2 neu"*. Standing on *Gepäck* or *Auswertung* the row holds five pills, measured
+  at 360 px by E2E-G12-07.
 * **FR-21.22 (A Dashed Edge Means *Not Yet* — added 2026-09-08):** A dashed outline marks a place where something is
   not there: the empty picker slot (M9), the quick-add invitation, the browse hand-over. A control that acts on
   content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} Erledigte
@@ -5644,14 +5649,20 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     somebody else, and this reader has no `acked` row that says true. Own notes are never new and never carry a
     tick — a tick on your own words would say nothing. The rule is the same shape as FR-7.3's open-prep derivation
     applied again.
+    **Amended 2026-09-25 (FR-7.13):** "new" is the thread's, and a tick records how far it reached — a later entry by
+    somebody else makes the thread new again. `isNoteNewForMe` became `noteThreads`.
   * **Where a note lives on the screen: a second segment inside M25**, not a fourth pill and not a card above the
     packing list. A fourth pill would reopen ADR-051 amendment 1's three-word measurement; a card would compete
     with the list being worked. The segment carries the count of *new* notes, not the whole list's count.
+    **Amended 2026-09-25 (FR-7.13): the segment is struck** — notes are threads and have a view of their own, M26, the
+    fourth pill ADR-051 amendment 3 made room for.
   * **M1's one deliberate exception.** A *Neue Notizen* card lists the latest three notes by others I have not
     ticked, across active trips, each with its trip's name and **its own tick** — the words lead into the trip, the
     tick is a control beside them. This amends FR-7.4's *„M1 takes no actions"* for notes only: the owner's reading
     is that *„gesehen"* is exactly what one says at the dashboard, and the ruling that ruled it out was made against
     an empty composer standing above every card, which a tick is not.
+    **Amended 2026-09-25 (FR-7.13):** the card lists threads, quoting each one's newest unseen entry, and its words open
+    the thread on M26.
   * **Everyone sees who ticked a note, in the note's own sheet only** — never a line per note in the list, which
     would turn the list into a read-receipt board.
   * **Push.** A new note reaches every member but its author — a new `note` notification kind
@@ -5671,6 +5682,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     author's own tick.
   * **Surfaces:** M25 (the notes segment, the composer, the sheet), M1 (the *Neue Notizen* card). UI-Spec M25/M1;
     E2E-M25-10/11, E2E-M1-14.
+    **Amended 2026-09-25 (FR-7.13):** M26 replaces M25's segment; E2E-M25-10/11 moved to E2E-M26-01/03.
 * **FR-7.10 (The dashboard once the packing is done — owner request and decision 2026-09-21, decided from an interactive
   mockup, `dev-docs/UI_Concept_DashboardAfterPacking.html`; *built the same day*):** FR-5.10 made a finished packing
   recede into one line, *„Packen abgeschlossen“*. The owner found that line takes too much room for what it says
@@ -5810,6 +5822,57 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     asked for *before* — a row's preparation from M5, a group added late, a comment made a task — is written for
     *during*, and M5 no longer offers *Vor der Abreise kaufen* for a row not already there.
   * **Reopening the packing lifts the lock** (FR-5.10) and moves nothing back: reopening is not an undo.
+* **FR-7.13 (Trip notes become threads — owner request and decisions 2026-09-25, decided from an interactive mockup,
+  `dev-docs/UI_Concept_TripNoteThreads_variants.html`, reasoning in `dev-docs/trip-note-threads-concept.md`; *built the
+  same day*):** the owner asked for notes to work like a forum: several notes attached to one note, one level only; the
+  first note may carry a title the overview shows; notes can be edited; the newest entry on top; notes can be expanded;
+  a new note also on the dashboard; and when somebody else responds, everyone who took part is notified. It builds on
+  FR-7.9 and changes only what the bullets below say.
+  * **A thread is a first note with replies.** A reply is a `comments` row of the note shape with **`parent_id`** naming
+    the thread's first note. It is written once — the server drops it from every later op, like `author_id` — and **one
+    level is a server rule**: an insert naming a parent that is itself a reply, is not a note, or is another trip's is
+    refused (`constraint_violated`), as is a reply that is a task or hangs off a packing row, because a `CHECK` cannot
+    see another row. Deleting the first note deletes its thread (`ON DELETE CASCADE`, tombstoned like every cascade).
+  * **A title, optional, on a first note only** (`comments.title`); the server drops it from a reply. Without one a
+    thread is named by its first line — *„Pizza Bella 079 555 12 34"* is its own title.
+  * **Only the author edits an entry** (question 2), in place behind a ✎, the first note's title with it. An entry
+    carries its author's name, and words changed by somebody else would still be signed by them — so the server refuses
+    a change to a note's `body`, `title` or `edited_at` pushed by anybody else (`not_authorized`). A task's words stay
+    everybody's. **`edited_at`** is named by the device, like `resolved_at`, because an edit happens offline too, and
+    the entry says *bearbeitet*. An edit sends no push.
+  * **Ordered by latest activity** (question 1): a reply lifts its thread; inside a thread the replies stand newest
+    first, under the reply field, so what I wrote lands where I wrote it. Collapsed, a thread is one card — its name,
+    who wrote it or how many answered and when, the avatars of those who took part, a *Neu* count and the tick; expanded
+    in place, several at once. A thread new for me is not opened by itself, and expanding is not seeing.
+  * **"New for me" moves from the note to the thread.** The tick stays one `note_acks` row per (first note, person) and
+    now records how far it reached: **`seen_through`**, the stamp of the thread's newest entry when it was ticked. An
+    entry by somebody else created or edited after that — or after the reader's own latest entry, since what I answered
+    is behind me (question 4: replying is not ticking) — is unseen, and its count is the thread's *Neu* count. So a
+    reply after my tick makes the thread new again, and **an edit by somebody else re-opens it** (question 3): a
+    corrected key-box code must not go unseen by everyone who ticked the wrong one. A tick from before threads has no
+    reach and covers the first note as it was. Derived in `noteThreads` (`client/src/domain/tripNotes.ts`), never
+    stored. FR-7.9's *„ticked notes sink and are muted"* is struck: a ticked thread keeps its place, only its marker
+    goes. My own thread carries a tick once somebody else has written in it.
+  * **A view of its own, M26** (question 6), not M25's second segment: a note is not work, and a thread is a place
+    people write in — ADR-051's revisit trigger. It is the fourth pill (`chatbubblesOutline`), which ADR-051 amendment
+    3's icon row made room for; its badge counts the entries new for me, never the total, in the colour a new thing
+    wears (FR-21.21). M25 is one list again.
+  * **M1's *Neue Notizen* shows threads:** one row per thread with something new for me, up to three, the newest unseen
+    entry first — the thread's name, then *„Chris: Danke! Parkplatz ist Nr. 12"* and *+n* when more are unseen, the
+    trip, and the tick (FR-7.9 decision 2, now ticking through the newest entry). The words open M26 on that thread,
+    expanded.
+  * **Push.** A new first note: unchanged (`note`, every member but its author). A reply: a new kind, **`note_reply`**,
+    to the thread's **participants** — the first note's author and everyone who has replied, still on the trip, never
+    the replier (question 4: a tick does not make a participant; it would subscribe a reader to the discussion). It has
+    **its own switch** in the settings (question 5): a person who wants new codes need not want the discussion. Its
+    sentence names the thread: *„Chris hat auf „Schlüsselbox“ geantwortet: …"*. A note's or a reply's notification opens
+    M26 on its thread (`?thread=`).
+  * **Modes.** Server: everything. Single-User: one author, so nothing is ever new and no push is sent; threads, titles
+    and edits work as a scratchpad. Local: the same, and no `note_acks` row, as FR-7.9 already had it.
+  * **Not in the portable backup** (NFR-4.11), like FR-7.9's notes. Migration `006_note_threads.sql` adds the four
+    columns; a database from before reads every note as a first note and every tick as reaching its first note.
+  * **Surfaces:** M26 (new), M1's card, M25 (segment removed), the switcher (FR-21.21), M17's switch. UI-Spec M26/M1;
+    E2E-M26-01..04, E2E-M1-14. ADR-073 carries an amendment note; ADR-051 amendment 3 recorded the row.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

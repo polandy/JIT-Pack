@@ -731,12 +731,20 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   // --- Comment mutations (FR-7.1/7.2) ---
 
-  /** addComment creates a plain comment; tripItemId null anchors it to the trip. */
+  /**
+   * addComment creates a plain comment; tripItemId null anchors it to the
+   * trip. FR-7.13: a trip note may open a thread with a `title`, or answer
+   * one by naming its first note as `parentId` — never both, since a reply
+   * carries no title (the server drops it). `created_at` is the device's,
+   * because a thread is ordered by it and Local Mode has no server to
+   * default it.
+   */
   function addComment(
     tripId: string,
     tripItemId: string | null,
     authorId: string,
     body: string,
+    thread: { title?: string | null; parentId?: string | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.comments, id, {
@@ -745,8 +753,25 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       author_id: authorId,
       body,
       is_task: 0,
+      created_at: nowIso(),
+      ...(thread.parentId ? { parent_id: thread.parentId } : {}),
+      ...(!thread.parentId && thread.title ? { title: thread.title } : {}),
     })
     return { mutation, id }
+  }
+
+  /**
+   * FR-7.13: an entry's words changed by its author — the body, and on a
+   * first note the title (`undefined` leaves it alone; `null` takes it off).
+   * `edited_at` is the device's clock, named like `resolved_at`, because an
+   * edit happens offline too.
+   */
+  function editNote(noteId: string, body: string, title?: string | null): Mutation {
+    return make('upsert', TABLE.comments, noteId, {
+      body,
+      ...(title !== undefined ? { title } : {}),
+      edited_at: nowIso(),
+    })
   }
 
   /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
@@ -776,6 +801,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     tripId: string,
     commentId: string,
     userId: string,
+    seenThrough: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.noteAcks, id, {
@@ -783,6 +809,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       comment_id: commentId,
       user_id: userId,
       acked: 1,
+      seen_through: seenThrough,
     })
     return { mutation, id }
   }
@@ -791,9 +818,15 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * Flip an existing tick — the row already names its person, so the field
    * is the whole change, the same shape as `moveTag`. Un-ticking sets
    * `acked` back rather than deleting the row (NFR-4.2a never deletes).
+   * FR-7.13: a tick also says how far it reached — the stamp of the
+   * thread's newest entry — so a later reply makes the thread new again;
+   * an un-tick leaves that mark alone, it no longer counts.
    */
-  function setNoteAcked(ackId: string, acked: boolean): Mutation {
-    return make('upsert', TABLE.noteAcks, ackId, { acked: dbBool(acked) })
+  function setNoteAcked(ackId: string, acked: boolean, seenThrough?: string | null): Mutation {
+    return make('upsert', TABLE.noteAcks, ackId, {
+      acked: dbBool(acked),
+      ...(acked && seenThrough !== undefined ? { seen_through: seenThrough } : {}),
+    })
   }
 
   // --- Trip mutations ---
@@ -1512,6 +1545,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     reopenTodo,
     deleteTodo,
     addComment,
+    editNote,
     flagCommentAsTask,
     deleteComment,
     tickNote,

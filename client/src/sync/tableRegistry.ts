@@ -366,6 +366,9 @@ function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
     author_id: row['author_id'] as string,
     body: row['body'] as string,
     created_at: (row['created_at'] as string) ?? null,
+    parent_id: (row['parent_id'] as string) ?? null,
+    title: (row['title'] as string) ?? null,
+    edited_at: (row['edited_at'] as string) ?? null,
   }
 }
 
@@ -376,6 +379,7 @@ function rowToNoteAck(id: string, row: Record<string, unknown>): NoteAck {
     comment_id: row['comment_id'] as string,
     user_id: row['user_id'] as string,
     acked: Boolean(row['acked']),
+    seen_through: (row['seen_through'] as string) ?? null,
   }
 }
 

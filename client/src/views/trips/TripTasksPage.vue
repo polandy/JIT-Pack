@@ -23,24 +23,11 @@
  * a filter for „mine" on a list where everything is everybody's would hide
  * things for no reason.
  *
- * **FR-7.9's notes are a second segment**, not a third section: decision 1 of
- * `dev-docs/trip-notes-concept.md` (owner, 2026-09-21) chose it over a fourth
- * pill (ADR-051 amendment 1's three-word row) and over a card competing with
- * the list being worked. Unlike the phase split above, tasks and notes really
- * are two places you stand — a note is not read the way a task is worked —
- * which is why this one *is* an `IonSegment`, the shape the header comment
- * just rejected for the phases.
+ * FR-7.9's notes were a second segment here until FR-7.13 made them threads
+ * and gave them a view of their own (M26): a note is not work, and a place
+ * people write in earns its own pill (ADR-051 amendment 3).
  */
-import {
-  IonChip,
-  IonContent,
-  IonIcon,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonSegment,
-  IonSegmentButton,
-} from '@ionic/vue'
+import { IonChip, IonContent, IonIcon, IonLabel, IonList, IonPage } from '@ionic/vue'
 import {
   arrowBackOutline,
   arrowForwardOutline,
@@ -58,8 +45,6 @@ import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
-import TripNoteList from '@/components/trips/TripNoteList.vue'
-import TripNoteSheet from '@/components/trips/TripNoteSheet.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -82,19 +67,13 @@ import {
   type TaskGroup,
   type TripTask,
 } from '@/domain/tripTodos'
-import { isNoteNewForMe, noteAckState } from '@/domain/tripNotes'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { useTripStore } from '@/stores/tripStore'
-import {
-  TASK_PHASE_BEFORE,
-  TASK_PHASE_DURING,
-  type ItemComment,
-  type TaskPhase,
-} from '@/types/domain'
+import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 /** The size a group's heading wears its tag's mark at (G-15's scale). */
 const MARK_SIZE = 15
@@ -156,46 +135,6 @@ const before = computed(() => tasksInPhase(shown.value, TASK_PHASE_BEFORE))
  */
 const beforeLocked = computed(() => isPackingClosed(trip.value))
 const during = computed(() => tasksInPhase(shown.value, TASK_PHASE_DURING))
-
-// --- FR-7.9: the notes segment ---
-
-const NOTES_SEGMENT = 'notes'
-const TASKS_SEGMENT = 'tasks'
-const segment = ref<typeof TASKS_SEGMENT | typeof NOTES_SEGMENT>(TASKS_SEGMENT)
-
-/** Every note of the trip (FR-7.1's shape, `is_task = 0`) — decision 6: the trip only. */
-const notes = computed(() => tripStore.getTripComments(props.tripId))
-const noteAcks = computed(() => tripStore.getNoteAcks(props.tripId))
-
-/** The segment's own count (decision 1): new notes, not the whole list. */
-const newNotesCount = computed(
-  () => notes.value.filter((note) => isNoteNewForMe(note, noteAcks.value, myUserId.value)).length,
-)
-const notesTabLabel = computed(() =>
-  newNotesCount.value > 0
-    ? t('tasks.segmentNotesCount', { n: newNotesCount.value })
-    : t('tasks.segmentNotes'),
-)
-
-const openedNoteId = ref<string | null>(null)
-const openedNote = computed(
-  () => notes.value.find((note) => note.id === openedNoteId.value) ?? null,
-)
-const openedNoteAckedBy = computed(() =>
-  openedNote.value
-    ? noteAckState(openedNote.value.id, noteAcks.value, myUserId.value).ackedBy
-    : new Set<string>(),
-)
-
-function openNote(note: ItemComment) {
-  openedNoteId.value = note.id
-}
-
-function onNoteSheetRemove() {
-  const note = openedNote.value
-  openedNoteId.value = null
-  if (note) orchestrator.deleteComment(props.tripId, note.id)
-}
 
 /**
  * FR-7.8: the headings, per phase. The phase stays the outer split (the
@@ -279,9 +218,6 @@ const selectedTasks = computed(() =>
   selectable.value.filter((task) => selection.selected.value.has(task.id)),
 )
 
-// A selection belongs to the task list it was made in; the notes are another place.
-watch(segment, () => selection.end())
-
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm25-select',
@@ -290,7 +226,7 @@ setHeaderActions(() => {
     active: selection.selecting.value,
     onClick: () => (selection.selecting.value ? selection.end() : selection.start()),
   }
-  const offer = segment.value === TASKS_SEGMENT && selectable.value.length > 0
+  const offer = selectable.value.length > 0
   return offer || selection.selecting.value ? [select] : []
 })
 
@@ -423,25 +359,11 @@ function onSheetRemove() {
       @pointerup="drag.up"
       @pointercancel="drag.cancel"
     >
-      <!-- FR-7.9 decision 1: notes are a second segment, not a fourth pill. -->
-      <IonSegment
-        :value="segment"
-        data-testid="m25-segment"
-        @ionChange="(e: CustomEvent) => (segment = e.detail.value)"
-      >
-        <IonSegmentButton :value="TASKS_SEGMENT" data-testid="m25-segment-tasks">
-          <IonLabel>{{ t('tasks.segmentTasks') }}</IonLabel>
-        </IonSegmentButton>
-        <IonSegmentButton :value="NOTES_SEGMENT" data-testid="m25-segment-notes">
-          <IonLabel>{{ notesTabLabel }}</IonLabel>
-        </IonSegmentButton>
-      </IonSegment>
-
       <!-- G-20: the selection's bar is the app bar's, so the filter chip
            stays where it is — and stays a filter, since narrowing to one's
            own tasks is a way to choose them. -->
       <IonChip
-        v-if="segment === TASKS_SEGMENT && assignable"
+        v-if="assignable"
         :outline="!mineOnly"
         class="mine"
         data-testid="m25-mine"
@@ -452,7 +374,7 @@ function onSheetRemove() {
         <IonLabel>{{ t('tasks.mine') }}</IonLabel>
       </IonChip>
 
-      <template v-if="segment === TASKS_SEGMENT && loaded">
+      <template v-if="loaded">
         <section class="phase" data-testid="m25-before">
           <SectionHead :title="t('tasks.before')" :count="openCount(before)" />
           <InlineHint v-if="beforeLocked" class="hint-wide" data-testid="m25-before-locked">{{
@@ -560,17 +482,6 @@ function onSheetRemove() {
         </section>
       </template>
 
-      <section v-if="segment === NOTES_SEGMENT && loaded" data-testid="m25-notes">
-        <TripNoteList
-          :trip-id="tripId"
-          :notes="notes"
-          :acks="noteAcks"
-          :my-user-id="myUserId"
-          :name-of="nameOf"
-          @open="openNote"
-        />
-      </section>
-
       <!-- What the selection can be acted on with: a tag, or a phase. -->
       <BulkBar
         v-if="selection.selecting.value && selectedTasks.length > 0"
@@ -630,21 +541,6 @@ function onSheetRemove() {
           @new-tag="onSheetNewTag"
         />
       </SheetModal>
-
-      <SheetModal
-        :is-open="openedNote !== null"
-        testid="m25-note-modal"
-        @dismiss="openedNoteId = null"
-      >
-        <TripNoteSheet
-          v-if="openedNote"
-          :note="openedNote"
-          :acked-by="openedNoteAckedBy"
-          :name-of="nameOf"
-          @close="openedNoteId = null"
-          @remove="onNoteSheetRemove"
-        />
-      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
@@ -652,15 +548,6 @@ function onSheetRemove() {
 <style scoped>
 .tasks-content {
   --padding-bottom: 24px;
-}
-
-/* Ionic sizes the segment `width: 100%`, so a side margin pushes it past its
-   column by the margin's width and the scroller cuts its right end off
-   (owner, 2026-09-24, on an iPad). `auto` lets a block fill what the margins
-   leave. */
-ion-segment {
-  margin: 4px 14px 2px;
-  width: auto;
 }
 
 .mine {

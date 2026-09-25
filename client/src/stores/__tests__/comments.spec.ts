@@ -136,9 +136,34 @@ describe('comment mutations', () => {
     expect(mutation.fields).toMatchObject({ is_task: 1, task_state: 'open' })
   })
 
+  /** FR-7.13: a reply names its thread and carries no title; a first note may. */
+  it('addComment opens a titled thread, or answers one without a title', () => {
+    const opened = mutations.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
+    expect(opened.mutation.fields).toMatchObject({ title: 'Schlüsselbox', is_task: 0 })
+    expect(opened.mutation.fields).not.toHaveProperty('parent_id')
+    expect(opened.mutation.fields?.['created_at']).toEqual(expect.any(String))
+
+    const answered = mutations.addComment('t1', null, 'u1', 'Danke', {
+      parentId: 'note-1',
+      title: 'ignored',
+    })
+    expect(answered.mutation.fields).toMatchObject({ parent_id: 'note-1' })
+    expect(answered.mutation.fields).not.toHaveProperty('title')
+  })
+
+  /** FR-7.13: an edit carries its moment; a reply's edit leaves the title alone. */
+  it('editNote writes the words and when they changed', () => {
+    const first = mutations.editNote('note-1', 'Code 4712', 'Box')
+    expect(first.op).toBe('upsert')
+    expect(first.fields).toMatchObject({ body: 'Code 4712', title: 'Box' })
+    expect(first.fields?.['edited_at']).toEqual(expect.any(String))
+
+    expect(mutations.editNote('reply-1', 'Danke!').fields).not.toHaveProperty('title')
+  })
+
   /** FR-7.9: the first tick is an insert — its own row, ADR-073. */
   it('tickNote builds a note_acks insert', () => {
-    const { mutation, id } = mutations.tickNote('t1', 'note-1', 'u1')
+    const { mutation, id } = mutations.tickNote('t1', 'note-1', 'u1', '2026-09-20T11:00:00Z')
 
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('note_acks')
@@ -148,6 +173,7 @@ describe('comment mutations', () => {
       comment_id: 'note-1',
       user_id: 'u1',
       acked: 1,
+      seen_through: '2026-09-20T11:00:00Z',
     })
   })
 
@@ -159,6 +185,17 @@ describe('comment mutations', () => {
     expect(mutation.table).toBe('note_acks')
     expect(mutation.id).toBe('ack-1')
     expect(mutation.fields).toEqual({ acked: 0 })
+  })
+
+  /** FR-7.13: a tick given again reaches the thread's newest entry. */
+  it('setNoteAcked carries how far a tick reaches, and an un-tick does not', () => {
+    expect(mutations.setNoteAcked('ack-1', true, '2026-09-21T09:00:00Z').fields).toEqual({
+      acked: 1,
+      seen_through: '2026-09-21T09:00:00Z',
+    })
+    expect(mutations.setNoteAcked('ack-1', false, '2026-09-21T09:00:00Z').fields).toEqual({
+      acked: 0,
+    })
   })
 })
 
@@ -190,14 +227,64 @@ describe('orchestrator comment actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', null)
+    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+      ticked: false,
+      seenThrough: '2026-09-20T10:00:00Z',
+    })
     const acks = tripStore.getNoteAcks('t1')
     expect(acks).toHaveLength(1)
-    expect(acks[0]).toMatchObject({ comment_id: 'note-1', user_id: 'u1', acked: true })
+    expect(acks[0]).toMatchObject({
+      comment_id: 'note-1',
+      user_id: 'u1',
+      acked: true,
+      seen_through: '2026-09-20T10:00:00Z',
+    })
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!)
+    orch.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!, { ticked: true, seenThrough: null })
     const flipped = tripStore.getNoteAcks('t1')
     expect(flipped).toHaveLength(1)
     expect(flipped[0]).toMatchObject({ id: acks[0]!.id, acked: false })
+  })
+
+  /**
+   * FR-7.13: a thread re-opened by a reply shows unticked while my row still
+   * says acked — so the tap ticks it again, further, instead of flipping it
+   * off.
+   */
+  it('toggleNoteTick re-ticks a re-opened thread through its newest entry', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+      ticked: false,
+      seenThrough: '2026-09-20T10:00:00Z',
+    })
+    const ack = tripStore.getNoteAcks('t1')[0]!
+    orch.toggleNoteTick('t1', 'note-1', 'u1', ack, {
+      ticked: false,
+      seenThrough: '2026-09-21T09:00:00Z',
+    })
+    expect(tripStore.getNoteAcks('t1')[0]).toMatchObject({
+      id: ack.id,
+      acked: true,
+      seen_through: '2026-09-21T09:00:00Z',
+    })
+  })
+
+  /** FR-7.13: deleting a first note takes its thread, as the server's cascade does. */
+  it('deleteComment on a first note removes its replies and its ticks', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    const root = orch.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
+    orch.addComment('t1', null, 'u2', 'Danke', { parentId: root })
+    const other = orch.addComment('t1', null, 'u2', 'Fähre um 8')
+    orch.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
+    expect(tripStore.getTripComments('t1')).toHaveLength(3)
+
+    orch.deleteComment('t1', root)
+
+    expect(tripStore.getTripComments('t1').map((c) => c.id)).toEqual([other])
+    expect(tripStore.getNoteAcks('t1')).toEqual([])
   })
 })

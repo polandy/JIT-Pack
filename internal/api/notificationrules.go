@@ -45,6 +45,23 @@ type travelerResolver func(travelerID string) (linkedUserID string, ok bool)
 // assignment made after the todo was written carries no body of its own.
 type todoResolver func(commentID string) (body string, ok bool)
 
+// noteThreadFacts is what FR-7.13's reply rule needs to know about a
+// thread: what to call it, and who has taken part in it.
+type noteThreadFacts struct {
+	// Title is the first note's title, empty when it has none.
+	Title string
+	// Body is the first note's words — its first line names an untitled
+	// thread.
+	Body string
+	// Participants are the first note's author and every replier, in any
+	// order and possibly repeated; the rule dedupes.
+	Participants []string
+}
+
+// threadResolver answers a thread by its first note's id, reporting false
+// when it cannot be read.
+type threadResolver func(rootID string) (noteThreadFacts, bool)
+
 // planNotifications turns one push's mutations into the notifications they
 // earn, in the order they should be delivered. It reads nothing and writes
 // nothing: every input is a parameter.
@@ -60,6 +77,7 @@ func planNotifications(
 	resolve itemResolver,
 	resolveTraveler travelerResolver,
 	resolveTodo todoResolver,
+	resolveThread threadResolver,
 ) []plannedNotification {
 	if len(members) < 2 {
 		return nil
@@ -81,12 +99,18 @@ func planNotifications(
 			assigned := planTodoAssignment(tripID, actor, actorName, m, members, resolveTodo)
 			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
-				if isTripNote(m) {
+				switch {
+				case isTripNote(m) && isNoteReply(m):
+					// FR-7.13: a reply is for the thread's participants,
+					// not the whole trip — the first note already reached
+					// everyone.
+					plan = append(plan, planNoteReply(tripID, actor, actorName, m, members, resolveThread)...)
+				case isTripNote(m):
 					// FR-7.9 decision 5: a note is written *for* every
 					// co-traveller, not addressed to whoever it names, so it
 					// takes the broadcast rather than planComment's mention scan.
 					plan = append(plan, planNote(tripID, actor, actorName, m, members)...)
-				} else {
+				default:
 					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
 				}
 			}
@@ -292,6 +316,58 @@ func planNote(
 		plan = append(plan, plannedNotification{UserID: member.UserID, Kind: store.NotifyNote, Payload: payload})
 	}
 	return plan
+}
+
+// isNoteReply reports whether a note insert is FR-7.13's reply: it names
+// the thread's first note.
+func isNoteReply(m syncpkg.Mutation) bool {
+	parent, _ := m.Fields[columnParentID].(string)
+	return parent != ""
+}
+
+// planNoteReply fires FR-7.13's reply push: to every participant of the
+// thread — its first note's author and everyone who has replied — who is
+// still on the trip, but never to the replier. A tick does not make a
+// participant (question 4): it would subscribe a reader to a discussion.
+func planNoteReply(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, resolveThread threadResolver,
+) []plannedNotification {
+	root, _ := m.Fields[columnParentID].(string)
+	thread, ok := resolveThread(root)
+	if !ok {
+		return nil
+	}
+	body, _ := m.Fields["body"].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadCommentID: m.ID, payloadThreadID: root,
+		payloadActorID: actor, payloadActorName: actorName,
+		payloadPreview: truncate(body, previewLen), payloadThread: truncate(threadName(thread), previewLen),
+	}
+	onTrip := map[string]bool{}
+	for _, member := range members {
+		onTrip[member.UserID] = true
+	}
+	notified := map[string]bool{actor: true}
+	var plan []plannedNotification
+	for _, target := range thread.Participants {
+		if notified[target] || !onTrip[target] {
+			continue
+		}
+		notified[target] = true
+		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyNoteReply, Payload: payload})
+	}
+	return plan
+}
+
+// threadName is what a thread is called: its title, or else its first
+// line (FR-7.13).
+func threadName(thread noteThreadFacts) string {
+	if thread.Title != "" {
+		return thread.Title
+	}
+	first, _, _ := strings.Cut(thread.Body, "\n")
+	return first
 }
 
 // displayNameOf resolves one member's display name. An id that is not on

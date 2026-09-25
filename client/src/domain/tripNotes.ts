@@ -1,10 +1,12 @@
 /**
- * FR-7.9's trip notes — pure over rows the device already holds, like every
- * other rule in this directory (invariant 4: Local Mode has no server to
- * derive it there instead).
+ * FR-7.9's trip notes, as FR-7.13's threads — pure over rows the device
+ * already holds, like every other rule in this directory (invariant 4: Local
+ * Mode has no server to derive it there instead).
  *
  * A note is a trip-level `comments` row (FR-7.1's shape, `trip_item_id`
- * null, `is_task = 0`); its per-person tick is `note_acks`. "New for me" is
+ * null, `is_task = 0`); a reply is one that names its thread's first note in
+ * `parent_id`, one level deep. The per-person tick is `note_acks`, on the
+ * first note, and says how far it reached (`seen_through`). "New for me" is
  * derived, never stored — the same lesson `packingView.ts`'s `isDone`
  * already carries for a packed row with open prep.
  */
@@ -20,18 +22,134 @@ export interface NoteAckState {
 }
 
 /**
- * A note is new to a reader when somebody else wrote it and the reader has
- * not ticked it. Own notes are never new (FR-7.9 decision 4) — a tick on
- * your own words would say nothing — and without an identity (Single-User,
- * Local) there is no other author, so nothing is ever new.
+ * When an entry last changed: its edit if it has one, else its writing. What
+ * a tick is compared with — an edit by somebody else after my tick re-opens
+ * the thread (FR-7.13 question 3). ISO strings compare as time.
  */
-export function isNoteNewForMe(
-  note: ItemComment,
+export function entryStamp(entry: ItemComment): string {
+  const created = entry.created_at ?? ''
+  const edited = entry.edited_at ?? ''
+  return edited > created ? edited : created
+}
+
+/** What a thread is called: its title, or else the first line of its first note. */
+export function threadName(root: ItemComment): string {
+  return root.title?.trim() || (root.body.split('\n')[0] ?? '')
+}
+
+/** One thread, as M25's notes view and M1 read it (FR-7.13). */
+export interface NoteThread {
+  root: ItemComment
+  /** Newest first — the owner's order, with the reply field above them. */
+  replies: ItemComment[]
+  /** The latest stamp in the thread, which is what orders the list. */
+  lastActivity: string
+  /**
+   * Entries by somebody else I have not seen, newest first. Their number is
+   * the thread's *neu* count.
+   */
+  unseen: ItemComment[]
+  /** My tick stands and nothing has come since — the checkbox's state. */
+  ticked: boolean
+  /** There is somebody to tell apart: an identity, and an entry not mine. */
+  tickable: boolean
+  /** What a tick given now records: the newest stamp in the thread. */
+  seenThrough: string
+  /** The first note's author, then each replier once, in the order they joined. */
+  participants: string[]
+}
+
+const newestFirst = (a: ItemComment, b: ItemComment) => entryStamp(b).localeCompare(entryStamp(a))
+
+/**
+ * How far I have read a thread: my tick's reach, if it stands, and anything
+ * I wrote myself — replying is not ticking (question 4), but what I answered
+ * is behind me. A tick from before threads carries no reach, and covers the
+ * first note as it was then. Null is „nothing read yet", which is not the
+ * same as the earliest moment: an entry with no stamp is still unread.
+ */
+function readMark(
+  root: ItemComment,
+  entries: readonly ItemComment[],
+  mine: NoteAck | null,
+  myUserId: string,
+): string | null {
+  let mark = mine?.acked ? (mine.seen_through ?? root.created_at ?? '') : null
+  for (const entry of entries) {
+    const written = entry.created_at
+    if (entry.author_id === myUserId && written && (mark === null || written > mark)) {
+      mark = written
+    }
+  }
+  return mark
+}
+
+function threadOf(
+  root: ItemComment,
+  replies: ItemComment[],
   acks: readonly NoteAck[],
   myUserId: string | null,
-): boolean {
-  if (!myUserId || note.author_id === myUserId) return false
-  return !acks.some((a) => a.comment_id === note.id && a.user_id === myUserId && a.acked)
+): NoteThread {
+  const entries = [root, ...replies]
+  const stamps = entries.map(entryStamp)
+  const lastActivity = stamps.reduce((a, b) => (b > a ? b : a), '')
+  const participants = [...new Set(entries.map((e) => e.author_id))]
+  const othersWrote = myUserId !== null && entries.some((e) => e.author_id !== myUserId)
+
+  let unseen: ItemComment[] = []
+  const mine = myAckFor(root.id, acks, myUserId)
+  if (myUserId && othersWrote) {
+    const mark = readMark(root, entries, mine, myUserId)
+    unseen = entries
+      .filter((e) => e.author_id !== myUserId && (mark === null || entryStamp(e) > mark))
+      .sort(newestFirst)
+  }
+  return {
+    root,
+    replies: [...replies].sort(newestFirst),
+    lastActivity,
+    unseen,
+    ticked: othersWrote && mine?.acked === true && unseen.length === 0,
+    tickable: othersWrote,
+    seenThrough: lastActivity,
+    participants,
+  }
+}
+
+/**
+ * Every thread of a trip, the one with the latest activity first (FR-7.13
+ * question 1: a reply lifts its thread). `notes` are the trip-level comments
+ * — first notes and replies alike; a reply whose first note this device does
+ * not hold has nothing to hang on and is left out.
+ */
+export function noteThreads(
+  notes: readonly ItemComment[],
+  acks: readonly NoteAck[],
+  myUserId: string | null,
+): NoteThread[] {
+  const replies = new Map<string, ItemComment[]>()
+  for (const note of notes) {
+    if (!note.parent_id) continue
+    const list = replies.get(note.parent_id) ?? []
+    list.push(note)
+    replies.set(note.parent_id, list)
+  }
+  return notes
+    .filter((note) => !note.parent_id)
+    .map((root) => threadOf(root, replies.get(root.id) ?? [], acks, myUserId))
+    .sort(
+      (a, b) => b.lastActivity.localeCompare(a.lastActivity) || a.root.id.localeCompare(b.root.id),
+    )
+}
+
+/** What the notes view's pill counts: the entries new for me, across threads. */
+export function newNoteCount(
+  notes: readonly ItemComment[],
+  acks: readonly NoteAck[],
+  myUserId: string | null,
+): number {
+  if (!myUserId) return 0
+  return noteThreads(notes, acks, myUserId).reduce((n, thread) => n + thread.unseen.length, 0)
 }
 
 /** This device's ack row for one note, if any — insert vs. upsert reads this. */
@@ -56,38 +174,6 @@ export function noteAckState(
   return { mine: myAckFor(noteId, acks, myUserId), ackedBy }
 }
 
-/** One M25 row: the note, whether it is new, and whether I have ticked it. */
-export interface TripNoteRow {
-  note: ItemComment
-  isNew: boolean
-  ackedByMe: boolean
-}
-
-/**
- * M25's notes segment (FR-7.9 §4): new ones first and marked, ticked ones
- * below and muted — read order rather than store order, which is why this
- * exists beside `isNoteNewForMe` and not only as a `.filter()` at the call
- * site. Within each of the two groups, newest first.
- */
-export function tripNoteRows(
-  notes: readonly ItemComment[],
-  acks: readonly NoteAck[],
-  myUserId: string | null,
-): TripNoteRow[] {
-  return notes
-    .map((note) => ({
-      note,
-      isNew: isNoteNewForMe(note, acks, myUserId),
-      ackedByMe: myAckFor(note.id, acks, myUserId)?.acked === true,
-    }))
-    .sort(
-      (a, b) =>
-        Number(a.ackedByMe) - Number(b.ackedByMe) ||
-        Number(b.isNew) - Number(a.isNew) ||
-        (b.note.created_at ?? '').localeCompare(a.note.created_at ?? ''),
-    )
-}
-
 /** One trip's notes, as M1's cross-trip card needs them. */
 export interface DashboardNoteTrip {
   tripId: string
@@ -96,16 +182,20 @@ export interface DashboardNoteTrip {
   acks: readonly NoteAck[]
 }
 
-/** A note on M1's *Neue Notizen* card (FR-7.9 decision 1/2), with its trip. */
+/** A thread on M1's *Neue Notizen* card (FR-7.13 §4), with its trip. */
 export interface DashboardNoteRow {
   tripId: string
   tripName: string
-  note: ItemComment
+  thread: NoteThread
+  /** The newest entry I have not seen — what the row quotes. */
+  latest: ItemComment
+  /** How many more unseen entries stand behind it — the row's *+n*. */
+  more: number
 }
 
 /**
- * The latest notes by others, not yet ticked by me, across active trips
- * (FR-7.9 decision 1) — M1's counterpart of `dashboardSections.ts`'s
+ * One row per thread with something new for me, across active trips, the
+ * newest unseen entry first — M1's counterpart of `dashboardSections.ts`'s
  * `delegatedToMe`. `limit` defaults to the three the card shows.
  */
 export function newTripNotes(
@@ -116,12 +206,13 @@ export function newTripNotes(
   if (!myUserId) return []
   const out: DashboardNoteRow[] = []
   for (const trip of trips) {
-    for (const note of trip.notes) {
-      if (!isNoteNewForMe(note, trip.acks, myUserId)) continue
-      out.push({ tripId: trip.tripId, tripName: trip.tripName, note })
+    for (const thread of noteThreads(trip.notes, trip.acks, myUserId)) {
+      const [latest, ...rest] = thread.unseen
+      if (!latest) continue
+      out.push({ tripId: trip.tripId, tripName: trip.tripName, thread, latest, more: rest.length })
     }
   }
   return out
-    .sort((a, b) => (b.note.created_at ?? '').localeCompare(a.note.created_at ?? ''))
+    .sort((a, b) => entryStamp(b.latest).localeCompare(entryStamp(a.latest)))
     .slice(0, limit)
 }

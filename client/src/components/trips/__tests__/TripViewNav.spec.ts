@@ -84,7 +84,10 @@ function seed() {
   return tripStore
 }
 
-function mountNav(current: 'packing' | 'shopping' | 'luggage' | 'analytics' = 'packing') {
+function mountNav(
+  current: 'packing' | 'shopping' | 'notes' | 'luggage' | 'analytics' = 'packing',
+  notes = 0,
+) {
   // App.vue's wiring: the packing list as the shopping list's source.
   const source = createPackingShoppingSource(useTripStore(), {
     buyItem: vi.fn(),
@@ -92,7 +95,11 @@ function mountNav(current: 'packing' | 'shopping' | 'luggage' | 'analytics' = 'p
   })
   return mount(TripViewNav, {
     props: { tripId: TRIP, current },
-    global: { provide: { [TRIP_VIEW_COUNTS]: { shopping: shoppingCount([source]) } } },
+    global: {
+      provide: {
+        [TRIP_VIEW_COUNTS]: { shopping: shoppingCount([source]), notes: () => notes },
+      },
+    },
   })
 }
 
@@ -103,12 +110,26 @@ beforeEach(() => {
 })
 
 describe('TripViewNav', () => {
-  it('offers the three views a trip is worked in, in the order it is worked through', () => {
+  it('offers the four views a trip is worked in, in the order it is worked through', () => {
     seed()
     const labels = mountNav()
       .findAll('button')
       .map((b) => b.attributes('aria-label'))
-    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks'])
+    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks', 'Notes'])
+  })
+
+  // FR-7.13: the notes pill counts what is new, in the colour a new thing wears.
+  it('badges the notes with what is new, marked apart from the shopping count', () => {
+    seed()
+    const nav = mountNav('packing', 2)
+    expect(label(nav, 'notes')).toBe('Notes · 2 new')
+    const badge = nav.get('[data-testid="trip-view-notes-count"]')
+    expect(badge.text()).toBe('2')
+    expect(badge.classes()).toContain('count-new')
+    expect(nav.get('[data-testid="trip-view-shopping-count"]').classes()).not.toContain('count-new')
+    expect(mountNav('packing', 0).find('[data-testid="trip-view-notes-count"]').exists()).toBe(
+      false,
+    )
   })
 
   /*
@@ -116,12 +137,12 @@ describe('TripViewNav', () => {
    * row still has to say where you are — so the view being looked at stands
    * in it while you are there, and leaves again when you go.
    */
-  it('makes room for the view being looked at when it is none of the three', () => {
+  it('makes room for the view being looked at when it is none of the four', () => {
     seed()
     const labels = mountNav('luggage')
       .findAll('button')
       .map((b) => b.attributes('aria-label'))
-    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks', 'Luggage'])
+    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks', 'Notes', 'Luggage'])
     expect(mountNav('luggage').find('[data-testid="trip-view-analytics"]').exists()).toBe(false)
   })
 

@@ -43,6 +43,7 @@ export interface CascadeStores {
   tripStore: {
     childRows(tripId: string): CascadeRow[]
     itemChildRows(tripItemId: string): CascadeRow[]
+    commentChildRows(commentId: string): CascadeRow[]
     templateSourceRows(templateId: string): CascadeRow[]
   }
   masterStore: {
@@ -69,6 +70,9 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
       // A row's comments and FR-7.3 todos hang off it; trip-level comments
       // carry a null trip_item_id and are untouched.
       return tripStore.itemChildRows(id)
+    case TABLE.comments:
+      // FR-7.13: a first note takes its thread — the replies and the ticks.
+      return tripStore.commentChildRows(id)
     case TABLE.templates:
       // The master half, plus the trip-partition table a group's delete ends:
       // FR-27.4's source registry lives in the trip store but travels the

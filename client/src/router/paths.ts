@@ -63,6 +63,7 @@ export type TripSubScreen =
   | 'members'
   | 'shopping'
   | 'tasks'
+  | 'notes'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {
@@ -99,6 +100,20 @@ export const CLOSING_QUERY_PARAM = 'closing'
  */
 export function tripClosingPath(tripId: string): string {
   return `${tripPath(tripId)}?${new URLSearchParams({ [CLOSING_QUERY_PARAM]: '1' }).toString()}`
+}
+
+/**
+ * FR-7.13: the thread a notes link opens — M1's row and a note's
+ * notification land on it expanded. A query, because it opens something on
+ * the notes view rather than a screen of its own.
+ */
+export const THREAD_QUERY_PARAM = 'thread'
+
+/** The trip's notes (M26), optionally opened on one thread. */
+export function tripNotesPath(tripId: string, threadId?: string): string {
+  const path = tripSubPath(tripId, 'notes')
+  if (!threadId) return path
+  return `${path}?${new URLSearchParams({ [THREAD_QUERY_PARAM]: threadId }).toString()}`
 }
 
 /**

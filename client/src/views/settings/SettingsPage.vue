@@ -202,6 +202,7 @@ const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: Messag
   { kind: 'task', label: 'settings.prefTask', hint: 'settings.prefTaskHint' },
   { kind: 'lock_taken', label: 'settings.prefLockTaken', hint: 'settings.prefLockTakenHint' },
   { kind: 'note', label: 'settings.prefNote', hint: 'settings.prefNoteHint' },
+  { kind: 'note_reply', label: 'settings.prefNoteReply', hint: 'settings.prefNoteReplyHint' },
   { kind: 'task_due', label: 'settings.prefTaskDue', hint: 'settings.prefTaskDueHint' },
 ]
 

@@ -167,18 +167,29 @@ export function seedSampleTrip(
 }
 
 /**
- * FR-7.9: two trip notes, so M25's *Notizen* segment opens with something
- * in it rather than the empty state. Both are written under the same
- * `SEED_AUTHOR_ID` placeholder — a fresh device has only ever the one
- * (real or dev-seed) identity, so this shows the list and the sheet's
- * shape only. "New for me" and the tick need a genuine second traveller,
- * which is what `E2E-M25-11` (server, two real identities) exercises.
+ * FR-7.9/FR-7.13: M26 opens with threads rather than the empty state — an
+ * untitled quick number, and a titled thread with two replies, so the
+ * collapsed card's count and the expanded order both have something to show.
+ * Every entry is written under the same `SEED_AUTHOR_ID` placeholder (the
+ * server stamps the pusher anyway): a fresh device has only ever the one
+ * identity, so this shows the shape only. "New for me", the tick and the
+ * reply push need a genuine second traveller, which is what `E2E-M26-11`
+ * (server, two real identities) exercises.
  */
-const SEED_TRIP_NOTES = ['Schlüsselfach: 4711', 'Pizzakurier: 044 555 01 00, ab 18 Uhr'] as const
+const SEED_QUICK_NOTE = 'Pizzakurier: 044 555 01 00, ab 18 Uhr'
+const SEED_THREAD = {
+  title: 'Schlüsselbox',
+  body: 'Code 4711, links neben der Haustür',
+  replies: ['Klemmt etwas, fest drücken', 'Parkplatz ist Nr. 12'],
+} as const
 
 function seedTripNotes(tripId: string, orchestrator: Orchestrator): void {
-  for (const body of SEED_TRIP_NOTES) {
-    orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, body)
+  orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, SEED_QUICK_NOTE)
+  const root = orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, SEED_THREAD.body, {
+    title: SEED_THREAD.title,
+  })
+  for (const reply of SEED_THREAD.replies) {
+    orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, reply, { parentId: root })
   }
 }
 

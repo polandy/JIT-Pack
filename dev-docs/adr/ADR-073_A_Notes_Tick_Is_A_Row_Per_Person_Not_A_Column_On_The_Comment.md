@@ -124,6 +124,16 @@ later re-tick came first — the row's own history stays legible instead of disa
   `client/src/domain/portable.ts` never names `ItemComment` or `NoteAck` among what it serialises, so there is
   nothing to add or omit deliberately — the absence is inherited from FR-7.3/7.4's own todos, not decided here again.
 
+**Amendment note (2026-09-25, FR-7.13) — the tick is the thread's, and says how far it reached.** Notes became threads:
+a reply names its first note, and the tick stays exactly this table — one row per (first note, person) — read one way
+further. A nullable **`seen_through`** records the stamp of the thread's newest entry at the moment of the tick, so an
+entry by somebody else created or edited after it makes the thread new again, compared data against data rather than
+clock against clock. Nothing here is re-decided: the per-person row is what makes a per-person reach possible at all,
+where a column on the comment could have held neither. A row written before the column has no reach and reads as
+covering the first note as it was, which is what it was given for. `isNoteNewForMe` became `noteThreads`, which also
+treats the reader's own latest entry as read — replying is not ticking, but what one answered is behind one. Reasoning:
+`dev-docs/trip-note-threads-concept.md` §3; no new tradeoff, so no new ADR.
+
 ## Revisit trigger
 
 * **A note ticked by dozens of people on one trip.** `note_acks` grows one row per (note, person); a trip with an

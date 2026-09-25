@@ -69,11 +69,14 @@ func TestStampActor_UpsertCannotForgeCommentAuthor(t *testing.T) {
 	pushOne(t, srv.URL, userA, map[string]any{
 		"mutation_id": "fa-1", "op": "insert", "table": "comments", "id": "com-forge",
 		"fields": map[string]any{
-			"trip_id": trip, "trip_item_id": nil, "body": "Ventil prüfen", "is_task": 0,
+			"trip_id": trip, "trip_item_id": nil, "body": "Ventil prüfen", "is_task": 1, "task_state": "open",
 		},
 		"hlc": "0000000001000-0000-aaaaaaaa",
 	})
 
+	// A task rather than a note: a note's words are its author's alone
+	// (FR-7.13), while a task's stay everybody's to edit — which is what
+	// lets this edit land and the forged author be the only thing at stake.
 	// user-b edits the comment and claims it was written by the stranger.
 	pushOne(t, srv.URL, userB, map[string]any{
 		"mutation_id": "fa-2", "op": "upsert", "table": "comments", "id": "com-forge",

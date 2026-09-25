@@ -436,6 +436,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A menu asked for while the last one was leaving opened nothing (2026-09-25)](#a-menu-asked-for-while-the-last-one-was-leaving-opened-nothing-2026-09-25) — M2's row menu swallowed a reopen during the 480 ms leave; E2E-M2-05 flaked on it.
 - [A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)](#a-selection-wears-the-app-bar-and-m2-had-been-archiving-past-the-closing-pass-2026-09-25) — three owner calls in one batch; `inert="false"` is inert, and a mock factory that imports its own mock deadlocks.
 - [A due day, a morning reminder, and a *before* that stays closed (2026-09-25)](#a-due-day-a-morning-reminder-and-a-before-that-stays-closed-2026-09-25) — Single-User's reminder had no push toggle; the claim accepts *never* for one window; `time.Local` hides `TZ`.
+- [Trip notes become threads on a view of their own (2026-09-25)](#trip-notes-become-threads-on-a-view-of-their-own-2026-09-25) — „nothing read" is not the earliest moment; a green test that assumed anyone may edit a note; replying is reading.
 
 ## Deviations
 
@@ -17545,3 +17546,29 @@ earn.
 - **`payloads.map(notificationUrl)` passes the index as the second argument.** The worker's URL function gained a
   `kind` parameter, and every existing call through `map` was now handing it `0`, `1`, `2`. It was harmless only
   because no kind is a number. The type-check found it, not a test.
+
+## Trip notes become threads on a view of their own (2026-09-25)
+
+FR-7.13, from the concept and mockup the owner decided the same day (`dev-docs/trip-note-threads-concept.md`); the
+switcher that made room for the fourth pill was #601. What the code does not show:
+
+**A wrong premise, caught by a unit test before a screen showed it.** The first `noteThreads` compared every entry's
+stamp with a read mark that started as the empty string for „nothing read yet". An entry with no `created_at` stamps as
+the empty string too, and `'' > ''` is false — so a note nobody had read was not new. It looked harmless because the
+server always fills `created_at`, but the client never sent one for a comment (only for a task), so every optimistic
+note on the writer's device, and every note in Local Mode, had none. The read mark is now `null` for „nothing read", and
+`addComment` sends `created_at` like `addTodo` does — a thread is ordered by it.
+
+**A test that pinned the opposite of the new rule.** `TestStampActor_UpsertCannotForgeCommentAuthor` let a second user
+rewrite a *note's* body to prove the author stays put. FR-7.13 makes a note's words its author's, so the edit is now
+refused and the test's own guard (*„the edit itself has to land"*) failed. The test now edits a task, whose words stay
+everybody's, which is what its subject — authorship, not edit rights — needed all along.
+
+**A rule made explicit that the concept only argued.** §3 said replying needs no special case because „the newest entry
+is then mine". That is true of the newest entry only: with a tick-only read mark, the unseen entries *before* my reply
+would still count. So the reader's own latest entry is part of the read mark — what I answered is behind me — and
+E2E-M26-04 asserts exactly the one entry after it as unseen.
+
+**Rejected in the build: editing from the sheet.** The concept put *Bearbeiten* in the note's sheet; the mockup put a ✎
+on the entry. The ✎ won: the sheet is where one reads and copies, and an edit in place keeps the thread in view with the
+answer that asked for the correction.

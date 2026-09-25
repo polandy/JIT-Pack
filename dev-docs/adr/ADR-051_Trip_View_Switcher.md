@@ -180,6 +180,11 @@ comes back here and only here, by that ruling's own revisit trigger — *a glyph
 are the destinations that left the ⋮. The collision it feared was two holds on one element; a pill carries no other
 hold. E2E-G12-08 pins the hold and that it goes nowhere.
 
+**Built with the notes (2026-09-25, FR-7.13).** *Notizen* joined as the fourth pill (`chatbubblesOutline`), after
+*Aufgaben*. Its badge is the one count that says what is *new* rather than how much there is — the entries new for me,
+never the total — so it wears the action colour where the shopping count is grey (`TripViewEntry.countIsNew`). The
+five-pill row, standing on the luggage, is what E2E-G12-07 measures at 360 px.
+
 ## Consequences
 
 **Positive**

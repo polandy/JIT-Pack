@@ -120,16 +120,21 @@ describe('seedSampleTrip (dev)', () => {
   })
 
   /**
-   * FR-7.9: M25's *Notizen* segment opens with more than one note, hanging
-   * off the trip itself rather than a row — `getTripComments` is exactly
-   * what a note is (trip_item_id null, is_task 0), so this also pins that
-   * the seed does not accidentally write them as tasks.
+   * FR-7.9/FR-7.13: M26 opens with more than one thread, hanging off the
+   * trip itself rather than a row — `getTripComments` is exactly what a note
+   * is (trip_item_id null, is_task 0), so this also pins that the seed does
+   * not accidentally write them as tasks — and one of them titled, with
+   * replies.
    */
-  it('leaves a fresh device with more than one trip note (FR-7.9)', () => {
+  it('leaves a fresh device with trip notes, one a titled thread with replies (FR-7.13)', () => {
     const { tripId, trip } = seed()
 
     const notes = trip.getTripComments(tripId)
-    expect(notes.length).toBeGreaterThan(1)
     for (const note of notes) expect(note.trip_item_id).toBeNull()
+    const roots = notes.filter((note) => note.parent_id === null)
+    expect(roots.length).toBeGreaterThan(1)
+    const titled = roots.find((note) => note.title !== null)
+    expect(titled).toBeDefined()
+    expect(notes.filter((note) => note.parent_id === titled?.id).length).toBeGreaterThan(1)
   })
 })

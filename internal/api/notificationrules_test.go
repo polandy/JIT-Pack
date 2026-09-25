@@ -52,6 +52,19 @@ func todoBodiesFor(bodies map[string]string) todoResolver {
 	}
 }
 
+// noThreads is the resolver for every case that is not about FR-7.13's
+// reply rule.
+func noThreads(string) (noteThreadFacts, bool) { return noteThreadFacts{}, false }
+
+// threadsFor answers from a map and reports false for anything else, which
+// is how a case says "this thread could not be read".
+func threadsFor(threads map[string]noteThreadFacts) threadResolver {
+	return func(rootID string) (noteThreadFacts, bool) {
+		f, ok := threads[rootID]
+		return f, ok
+	}
+}
+
 // allApplied is the result vector for n mutations that all landed, so a case
 // that is not about outcomes does not have to spell one out.
 func allApplied(n int) []MutationResult {
@@ -297,7 +310,7 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			if results == nil {
 				results = allApplied(len(tc.muts))
 			}
-			got := recipients(planNotifications("trip-1", "u-actor", tc.muts, results, members, resolverFor(tc.items), noTravelerLinks, noTodoBodies))
+			got := recipients(planNotifications("trip-1", "u-actor", tc.muts, results, members, resolverFor(tc.items), noTravelerLinks, noTodoBodies, noThreads))
 			if len(got) != len(tc.want) {
 				t.Fatalf("plan = %v, want %v", got, tc.want)
 			}
@@ -321,7 +334,7 @@ func TestPlanRosterAssignment_LinkedTravelerNotifiesTheirAccount(t *testing.T) {
 
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
-		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies)
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies, noThreads)
 
 	if got := recipients(plan); len(got) != 1 || got[0] != "u-sarah/"+store.NotifyDelegation {
 		t.Fatalf("plan = %v, want one delegation to u-sarah", got)
@@ -337,7 +350,7 @@ func TestPlanRosterAssignment_DedupsAgainstDelegation_WhenPackerIsTheSameLinkedU
 		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{
 			"assigned_traveler_id": traveler, "packer_user_id": "u-sarah",
 		})},
-		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies)
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies, noThreads)
 
 	if got := recipients(plan); len(got) != 1 || got[0] != "u-sarah/"+store.NotifyDelegation {
 		t.Fatalf("plan = %v, want exactly one delegation to u-sarah, not two", got)
@@ -350,7 +363,7 @@ func TestPlanRosterAssignment_UnlinkedTraveler_NoOp(t *testing.T) {
 
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
-		allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies)
+		allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies, noThreads)
 
 	if got := recipients(plan); len(got) != 0 {
 		t.Fatalf("plan = %v, want nothing for an unlinked traveler", got)
@@ -364,7 +377,7 @@ func TestPlanRosterAssignment_TargetNotATripMember_NoOp(t *testing.T) {
 
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
-		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies)
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies, noThreads)
 
 	if got := recipients(plan); len(got) != 0 {
 		t.Fatalf("plan = %v, want nothing for a linked user who left the trip", got)
@@ -378,7 +391,7 @@ func TestPlanRosterAssignment_TargetIsActor_NoOp(t *testing.T) {
 
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
-		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies)
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler, noTodoBodies, noThreads)
 
 	if got := recipients(plan); len(got) != 0 {
 		t.Fatalf("plan = %v, want nothing when the actor assigns themselves", got)
@@ -396,7 +409,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 	t.Run("delegation", func(t *testing.T) {
 		plan := planNotifications("trip-1", "u-actor",
 			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
-			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies, noThreads)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one delegation", recipients(plan))
 		}
@@ -411,7 +424,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 			[]syncpkg.Mutation{commentMutation(comment, map[string]any{
 				"body": "seal the seams", "trip_item_id": zelt, "is_task": true,
 			})},
-			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies, noThreads)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one task", recipients(plan))
 		}
@@ -429,7 +442,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 		twoMembers := notificationRuleMembers[:2]
 		plan := planNotifications("trip-1", "u-actor",
 			[]syncpkg.Mutation{commentMutation(comment, map[string]any{"body": "Schlüsselfach: 4711"})},
-			allApplied(1), twoMembers, resolve, noTravelerLinks, noTodoBodies)
+			allApplied(1), twoMembers, resolve, noTravelerLinks, noTodoBodies, noThreads)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one note", recipients(plan))
 		}
@@ -443,7 +456,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 	t.Run("an actor who has left the trip is unnamed, not missing", func(t *testing.T) {
 		plan := planNotifications("trip-1", "u-ghost",
 			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
-			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks, noTodoBodies, noThreads)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one delegation", recipients(plan))
 		}
@@ -478,7 +491,7 @@ func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
 	// the broadcast would otherwise land one payload per other member.
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body})},
-		allApplied(1), notificationRuleMembers[:2], resolverFor(nil), noTravelerLinks, noTodoBodies)
+		allApplied(1), notificationRuleMembers[:2], resolverFor(nil), noTravelerLinks, noTodoBodies, noThreads)
 	if len(plan) != 1 {
 		t.Fatalf("plan = %v, want one note", recipients(plan))
 	}
@@ -558,7 +571,7 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got := recipients(planNotifications("trip-1", "u-actor", []syncpkg.Mutation{tc.mut},
-				allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks, tc.bodies))
+				allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks, tc.bodies, noThreads))
 			if strings.Join(got, ",") != strings.Join(tc.want, ",") {
 				t.Fatalf("plan = %v, want %v", got, tc.want)
 			}
@@ -574,12 +587,91 @@ func TestPlanTodoAssignment_PayloadNamesTheTask(t *testing.T) {
 		[]syncpkg.Mutation{{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: "c-todo",
 			Fields: map[string]any{"assignee_user_id": "u-sarah"}}},
 		allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks,
-		todoBodiesFor(map[string]string{"c-todo": "Pflanzen giessen"}))
+		todoBodiesFor(map[string]string{"c-todo": "Pflanzen giessen"}), noThreads)
 	if len(plan) != 1 {
 		t.Fatalf("plan = %v, want one delegation", recipients(plan))
 	}
 	wantPayload(t, plan[0].Payload, map[string]any{
 		payloadTripID: "trip-1", payloadCommentID: "c-todo", payloadItemName: "Pflanzen giessen",
 		payloadActorID: "u-actor", payloadActorName: "Andy",
+	})
+}
+
+// FR-7.13: a reply tells the thread's participants — the first note's
+// author and everyone who has replied — and nobody else on the trip.
+func TestPlanNotifications_NoteReply_ReachesTheParticipantsOnly_FR7_13(t *testing.T) {
+	const root = "note-root"
+	members := append([]store.MemberName{{UserID: "u-chris", DisplayName: "Chris"}}, notificationRuleMembers...)
+	reply := func(body string) syncpkg.Mutation {
+		return commentMutation("c-reply", map[string]any{"body": body, "parent_id": root})
+	}
+	tests := []struct {
+		name    string
+		threads map[string]noteThreadFacts
+		want    []string
+	}{
+		{
+			name: "the first note's author and an earlier replier are told, a bystander is not",
+			threads: map[string]noteThreadFacts{root: {
+				Title: "Schlüsselbox", Participants: []string{"u-sarah", "u-max"},
+			}},
+			want: []string{"u-sarah/" + store.NotifyNoteReply, "u-max/" + store.NotifyNoteReply},
+		},
+		{
+			name: "the replier is never told of their own reply",
+			threads: map[string]noteThreadFacts{root: {
+				Participants: []string{"u-actor", "u-sarah", "u-actor"},
+			}},
+			want: []string{"u-sarah/" + store.NotifyNoteReply},
+		},
+		{
+			name: "a participant who has left the trip is not told",
+			threads: map[string]noteThreadFacts{root: {
+				Participants: []string{"u-gone", "u-sarah"},
+			}},
+			want: []string{"u-sarah/" + store.NotifyNoteReply},
+		},
+		{
+			name:    "a thread that cannot be read costs its notification and nothing else",
+			threads: map[string]noteThreadFacts{},
+			want:    nil,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := recipients(planNotifications("trip-1", "u-actor", []syncpkg.Mutation{reply("Danke!")},
+				allApplied(1), members, resolverFor(nil), noTravelerLinks, noTodoBodies, threadsFor(tc.threads)))
+			if strings.Join(got, ",") != strings.Join(tc.want, ",") {
+				t.Fatalf("plan = %v, want %v", got, tc.want)
+			}
+		})
+	}
+
+	t.Run("the payload names the thread and opens it", func(t *testing.T) {
+		threads := threadsFor(map[string]noteThreadFacts{root: {
+			Body: "Code 4711\nhinter dem Haus", Participants: []string{"u-sarah"},
+		}})
+		plan := planNotifications("trip-1", "u-actor", []syncpkg.Mutation{reply("Danke!")},
+			allApplied(1), members, resolverFor(nil), noTravelerLinks, noTodoBodies, threads)
+		if len(plan) != 1 {
+			t.Fatalf("plan = %v, want one reply", recipients(plan))
+		}
+		// Untitled, so the thread is named by its first line (FR-7.13).
+		wantPayload(t, plan[0].Payload, map[string]any{
+			payloadTripID: "trip-1", payloadCommentID: "c-reply", payloadThreadID: root,
+			payloadActorID: "u-actor", payloadActorName: "Andy",
+			payloadPreview: "Danke!", payloadThread: "Code 4711",
+		})
+	})
+
+	t.Run("an edit notifies nobody", func(t *testing.T) {
+		edit := syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: "c-reply",
+			Fields: map[string]any{"body": "Danke!!", "edited_at": "2026-09-25T10:00:00Z"}}
+		plan := planNotifications("trip-1", "u-actor", []syncpkg.Mutation{edit},
+			allApplied(1), members, resolverFor(nil), noTravelerLinks, noTodoBodies,
+			threadsFor(map[string]noteThreadFacts{root: {Participants: []string{"u-sarah"}}}))
+		if len(plan) != 0 {
+			t.Fatalf("plan = %v, want none", recipients(plan))
+		}
 	})
 }

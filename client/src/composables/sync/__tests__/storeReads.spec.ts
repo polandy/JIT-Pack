@@ -49,6 +49,7 @@ function fakeTripReads(asked: string[] = []): TripReads {
     getGeneratedPositions: () => [],
     childRows: () => [],
     itemChildRows: () => [],
+    commentChildRows: () => [],
     templateSourceRows: () => [],
   }
 }

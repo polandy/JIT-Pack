@@ -112,8 +112,11 @@ func tripPartition(tripID, userID string) partition {
 			if !belongsToTrip(tripID, *m, row.Fields, row.Exists) {
 				return ReasonOutOfScope, nil
 			}
-			if m.Table == TableTravelers {
+			switch m.Table {
+			case TableTravelers:
 				return validTravelerLink(ctx, tx, tripID, row.Fields, m)
+			case TableComments:
+				return validNoteThread(ctx, tx, tripID, userID, row, m)
 			}
 			return ReasonNone, nil
 		},

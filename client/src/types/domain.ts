@@ -264,6 +264,15 @@ export interface ItemComment {
   author_id: string
   body: string
   created_at: string | null
+  /**
+   * FR-7.13: a reply names its thread's first note; null on a first note and
+   * on every comment that is not a trip note. One level deep, by server rule.
+   */
+  parent_id: string | null
+  /** FR-7.13: a thread's optional title, on a first note only. */
+  title: string | null
+  /** FR-7.13: when the author last changed the words; null if never. */
+  edited_at: string | null
 }
 
 /**
@@ -279,6 +288,12 @@ export interface NoteAck {
   comment_id: string
   user_id: string
   acked: boolean
+  /**
+   * FR-7.13: how far the tick reaches — the stamp of the thread's newest
+   * entry when it was ticked. Null on a tick from before threads, which
+   * reads as „the first note as it was".
+   */
+  seen_through: string | null
 }
 
 // --- Preparation Todos (FR-7.3) ---

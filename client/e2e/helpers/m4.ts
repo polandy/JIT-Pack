@@ -296,31 +296,43 @@ export async function openTasks(page: Page, phase: 'before' | 'during'): Promise
 }
 
 /**
- * FR-7.9: M25's notes segment, reached the way a reader reaches it — the
- * same pill as the tasks, then the *Notizen* button beside *Aufgaben*.
- * Returns the list's own container.
+ * FR-7.13: the trip's notes (M26), reached the way a reader reaches them —
+ * their own pill. Returns the page, the threads and the composer in it.
  */
 export async function openNotes(page: Page): Promise<Locator> {
-  await openTripView(page, 'tasks')
-  await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
-  await visiblePage(page).getByTestId('m25-segment-notes').click()
-  const section = visiblePage(page).getByTestId('m25-notes')
-  await expect(section).toBeVisible()
-  return section
+  await openTripView(page, 'notes')
+  const notes = visiblePage(page).getByTestId('m26-page')
+  await expect(notes.getByTestId('m26-composer')).toBeVisible()
+  return notes
 }
 
 /**
- * FR-7.9: write a trip note from M25's notes segment. Ends with the write
- * landed, so a caller may reload or switch identity straight after.
+ * The thread whose collapsed card names `name` — its title, or its first
+ * line. A thread's testid carries the note's id, which a case cannot know.
  */
-export async function addTripNote(page: Page, body: string): Promise<void> {
-  const section = await openNotes(page)
-  await section.getByTestId('trip-note-input').locator('textarea').fill(body)
-  await section.getByTestId('trip-note-add').click()
-  // The row's own testid carries the note's server id, not its words, so
-  // the write is read back by its text instead — scoped to the row's own
-  // button, since the composer's field can still carry the same text.
-  await expect(section.getByRole('button', { name: body })).toBeVisible()
+export function threadNamed(notes: Locator, name: string): Locator {
+  // Each thread is an `<article>`; the inner locator is read inside each one.
+  return notes.getByRole('article').filter({
+    has: notes.page().getByTestId('note-thread-name').getByText(name, { exact: true }),
+  })
+}
+
+/**
+ * FR-7.9/FR-7.13: write a trip note from M26's composer — with a title
+ * behind *+ Titel* when one is given. Ends with the write landed, so a
+ * caller may reload or switch identity straight after.
+ */
+export async function addTripNote(page: Page, body: string, title?: string): Promise<void> {
+  const notes = await openNotes(page)
+  const composer = notes.getByTestId('m26-composer')
+  if (title) {
+    await composer.getByTestId('m26-add-title').click()
+    await composer.getByTestId('m26-title-input').locator('input').fill(title)
+  }
+  await composer.getByTestId('m26-input').locator('textarea').fill(body)
+  await composer.getByTestId('m26-add').click()
+  const name = title ?? body.split('\n')[0]!
+  await expect(notes.getByTestId('note-thread-name').getByText(name, { exact: true })).toBeVisible()
   await writesLanded(page)
 }
 

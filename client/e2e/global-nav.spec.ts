@@ -874,6 +874,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       'header-overflow',
       'trip-view-shopping',
       'trip-view-tasks',
+      'trip-view-notes',
     ]) {
       const el = page.getByTestId(testid)
       await expect(el).toBeVisible()
@@ -922,6 +923,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       ['trip-view-packing', 'Packing list'],
       ['trip-view-shopping', 'Shopping'],
       ['trip-view-tasks', 'Tasks'],
+      ['trip-view-notes', 'Notes'],
     ] as const) {
       await expect(page.getByTestId(id)).toHaveAccessibleName(name)
     }
@@ -930,7 +932,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     // The row is measured rather than assumed — at the **narrowest** phone the
     // app targets, and in its widest shape, standing on a view that joins the
-    // row (four pills). Two clauses, because a row can fail either way: every
+    // row (five pills since FR-7.13 made the notes the fourth). Two clauses, because a row can fail either way: every
     // pill inside the viewport, and all on one line, since a row that wrapped
     // would have „fitted" by every width assertion on its own.
     const viewport = page.viewportSize()!
@@ -938,9 +940,13 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
     await page.setViewportSize({ width: 360, height: 780 })
     const boxes = await Promise.all(
-      ['trip-view-packing', 'trip-view-shopping', 'trip-view-tasks', 'trip-view-luggage'].map(
-        async (id) => (await page.getByTestId(id).boundingBox())!,
-      ),
+      [
+        'trip-view-packing',
+        'trip-view-shopping',
+        'trip-view-tasks',
+        'trip-view-notes',
+        'trip-view-luggage',
+      ].map(async (id) => (await page.getByTestId(id).boundingBox())!),
     )
     for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(360 - 16)
     expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
@@ -990,9 +996,19 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The tasks are a context of their own too: no ⋮ there either, read on a
     // screen that demonstrably rendered.
     await openTripView(page, 'tasks')
-    await expect(onVisibleScreen(page, 'm25-segment')).toBeVisible()
+    await expect(onVisibleScreen(page, 'm25-before')).toBeVisible()
     await expect(page.getByTestId('header-back')).toBeVisible()
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+
+    // And so are the notes (FR-7.13): their own view, one tap from the tasks,
+    // marked where you stand, no ⋮, and back is the packing list.
+    await openTripView(page, 'notes')
+    await expect(onVisibleScreen(page, 'm26-composer')).toBeVisible()
+    await expect(page.getByTestId('trip-view-notes')).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByTestId('trip-view-notes')).toHaveText('Notes')
+    await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+    await page.getByTestId('header-back').click()
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
   })
 
   /*

@@ -67,6 +67,9 @@ const CASES: ServerNotification[] = [
   notif('lock_taken', { actor_name: 'Sarah' }),
   notif('note', { actor_name: 'Sarah', preview: 'Schlüsselfach: 4711' }),
   notif('note', { actor_name: 'Sarah' }),
+  // FR-7.13: a reply quotes itself and names its thread.
+  notif('note_reply', { actor_name: 'Chris', preview: 'Danke!', thread: 'Schlüsselbox' }),
+  notif('note_reply', { actor_name: 'Chris' }),
   // FR-7.11: the server's own reminder names no actor, and its day picks the sentence.
   notif('task_due', { item_name: 'Pass holen', due: 'today' }),
   notif('task_due', { item_name: 'Pass holen', due: 'tomorrow' }),
@@ -115,6 +118,14 @@ describe('the worker renders the same body as the app', () => {
       notificationRoute(notif('task_due', { trip_id: 't1', comment_id: 'c9' })),
     )
     expect(notificationUrl({ trip_id: 't1' }, 'task_due')).toBe('/trips/t1/tasks')
+    // FR-7.13: a note and a reply land on their thread, in both renderers.
+    for (const [kind, payload] of [
+      ['note', { trip_id: 't1', comment_id: 'c9' }],
+      ['note_reply', { trip_id: 't1', comment_id: 'c10', thread_id: 'c9' }],
+    ] as const) {
+      expect(notificationUrl(payload, kind)).toBe(notificationRoute(notif(kind, payload)))
+      expect(notificationUrl(payload, kind)).toBe('/trips/t1/notes?thread=c9')
+    }
   })
 
   it('falls back to one sentence when the mirror is not there', () => {

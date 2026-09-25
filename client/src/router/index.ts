@@ -225,6 +225,14 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // M26 (FR-7.13): the trip's notes, as threads — a view of their own.
+    path: tripSubPath(TRIP_ID_PARAM, 'notes'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'notes' },
+    name: 'trip-notes',
+    component: () => import('@/views/trips/TripNotesPage.vue'),
+    props: true,
+  },
+  {
     path: templatePath(TEMPLATE_ID_PARAM),
     meta: { parent: PATH.templates, titleKey: 'nav.title.template' },
     name: 'template-editor',
