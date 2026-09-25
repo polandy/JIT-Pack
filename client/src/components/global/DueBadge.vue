@@ -1,24 +1,25 @@
 <script setup lang="ts">
 /**
- * FR-7.11: when a task is due, on its line — the same small pill wherever a
- * task is listed (M25, M4's window), so „überfällig" reads the same on both.
+ * FR-7.11 / FR-30.10: when something is due, on its line — the same small
+ * pill wherever a task or a purchase is listed (M25, M4's window, M6, M1), so
+ * „überfällig" reads the same everywhere.
  *
  * Overdue is the one loud state (the owner asked for red); today and soon
  * wear the action colour, a date further out stays quiet.
  */
 import { computed } from 'vue'
 
-import type { DueFacts } from '@/domain/taskDue'
 import { dueLabel } from '@/lib/taskDueText'
 
 const props = defineProps<{
-  task: DueFacts
+  /** The day it is due, or null for none — and null for a thing already done. */
+  day: string | null
   /** Today as the device reckons it (`orchestrator.today()`). */
   today: string
   testid?: string
 }>()
 
-const label = computed(() => dueLabel(props.task, props.today))
+const label = computed(() => dueLabel(props.day, props.today))
 </script>
 
 <template>

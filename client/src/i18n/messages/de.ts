@@ -949,6 +949,9 @@ export const de: Record<keyof typeof en, string> = {
     'Jemand hat in einer Notiz geantwortet, in der du mitgeschrieben hast',
   'settings.prefTaskDue': 'Fällige Aufgaben',
   'settings.prefTaskDueHint': 'Eine Aufgabe für dich ist morgen oder heute fällig',
+  'settings.prefShoppingDue': 'Fällige Einkäufe',
+  'settings.prefShoppingDueHint':
+    'Etwas auf der Einkaufsliste einer Reise ist morgen oder heute fällig',
   'settings.push': 'Push auf diesem Gerät',
   'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
   'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
@@ -1578,6 +1581,8 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.dueSetToast': '„{body}" fällig am {date}',
   'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
   'tasks.dueHint': '{n} Aufgabe fällig | {n} Aufgaben fällig',
+  'tasks.dueCount': '{n} Aufgabe | {n} Aufgaben',
+  'tasks.dueHintBoth': '{tasks} und {purchases} fällig',
   'tasks.beforeLocked':
     'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
 
@@ -1755,6 +1760,10 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.wentToPacking': 'auf der Packliste',
   'shopping.wentPacked': 'eingepackt',
   'shopping.listUnknown': 'Einkaufsliste wird geladen …',
+  // FR-30.10 — der Tag, an dem ein Einkauf fällig ist.
+  'shopping.dueField': 'Fällig',
+  'shopping.dueCount': '{n} Einkauf | {n} Einkäufe',
+  'shopping.dueHint': '{n} Einkauf fällig | {n} Einkäufe fällig',
   'shopping.beforeLocked':
     'Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise gekauft wurde.',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
@@ -1888,6 +1897,10 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.task_duePlain': 'Eine Aufgabe ist heute fällig',
   'notify.body.task_dueTomorrow': '„{item}“ ist morgen fällig',
   'notify.body.task_dueTomorrowPlain': 'Eine Aufgabe ist morgen fällig',
+  'notify.body.shopping_due': '„{item}“ heute kaufen',
+  'notify.body.shopping_duePlain': 'Ein Einkauf ist heute fällig',
+  'notify.body.shopping_dueTomorrow': '„{item}“ bis morgen kaufen',
+  'notify.body.shopping_dueTomorrowPlain': 'Ein Einkauf ist morgen fällig',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.actorUnknown': 'Jemand',
 }

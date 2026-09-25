@@ -1502,6 +1502,13 @@ composer.
   sitting inert (owner feedback 2026-09-23: an untouched heading read as broken, not as ineligible), and the packing
   line's own grip slot carries a dashed placeholder rather than standing empty. Also asserts the travelling clone's
   border, now drawn from `composables/dragToGroup.css` (revised 2026-09-23) rather than this screen's own style.
+* **E2E-M6-35** `local` (FR-30.10, added 2026-09-25) — **implemented** (`shopping/shopping.spec.ts`): a due day on an
+  own entry. On a running trip, *Pasta* gets tomorrow in the entry sheet through the app's date control, written on
+  *Save*. On the list it wears *Tomorrow* (the *soon* state), *Brot* wears nothing, and *Pasta* leads the untagged
+  section ahead of *Brot*, which the list's name order would put first — read back after a reload. Then M1: a fresh
+  load says *„1 purchase due"* once (Local Mode's stand-in for the push), and the trip's shopping card lists *Pasta*
+  first with the same pill. The server's `shopping_due` reminder is held by Go tables (`TestPlanShoppingDue_*`,
+  `TestRemindDueTasks_*`), not driven here: its time is a wall clock.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3939,6 +3946,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-28.10 | UNIT | `internal/portable` and `internal/store` round-trip with and without `icon` on all three levels (document, group, item); the client's `domain/portable.ts` and `commitPortableImport` likewise; an export from before the field imports unmarked (FR-18.4 tolerance) |
 | FR-28.11 | E2E | M10-11 runs in `local` — the picker, the search and the suggestion work with no server present |
 | FR-30.1 | E2E+UNIT | M6-26 (reaches no packing figure), M6-27 (buy, reveal, put back, remove, reload), M6-01/03 (one entry per tab); `shopping/__tests__/ShoppingPage.spec.ts`, `sync.spec.ts` (routing, trip cascade, restart); Go: `shopping_entries_test.go` |
+| FR-30.10 | E2E+UNIT | M6-35 (set in the sheet, the pill, the order, a reload, M1's card and Local Mode's hint); `shopping/__tests__/list.spec.ts` (due order, pressing sections first), `ShoppingPage.spec.ts` (pill, sheet), `ShoppingDashboardCard.spec.ts` (pressing lead on card and block), `sync.spec.ts` (the field's writes, the count), `useDueTaskHint.spec.ts`; Go: `TestDueShoppingEntries_*`, `TestPlanShoppingDue_*`, `TestRemindDueTasks_*` |
 | FR-30.9 | E2E+UNIT | M6-31 (the entry sheet with name and search-or-create tag, grouped open list, flat reveal with the tag, check-off at the end, reload); `shopping/__tests__/ShoppingPage.spec.ts` (grouping order, chips, sheet, source lines offer none); Go: `shopping_entries_test.go` (push path, per-field merge, 1–40 bound) |
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |

@@ -1,6 +1,7 @@
 // Package api — taskdue.go is FR-7.11's reminder: once a day, at a time the
 // operator chooses, everybody a task is for hears that it is due tomorrow or
-// today. It is the one notification no push sets off — every other kind is a
+// today — and, in the same run, every member of a trip hears about its
+// shopping entries due then (FR-30.10). It is the one notification no push sets off — every other kind is a
 // person's act (notificationrules.go) — so it has a clock of its own. The
 // schedule and the recipient rule are pure functions; the loop and the
 // store reads around them are the I/O. See ADR-076.
@@ -31,6 +32,21 @@ const (
 
 // payloadDue is the task_due payload key saying which of the two it is.
 const payloadDue = "due"
+
+// payloadEntryID names the shopping entry a shopping_due reminder is about.
+const payloadEntryID = "entry_id"
+
+// dueWord is the payload's answer for a day, and false for a day the
+// reminder is not sent for.
+func dueWord(day, today, tomorrow string) (string, bool) {
+	switch day {
+	case today:
+		return dueToday, true
+	case tomorrow:
+		return dueTomorrow, true
+	}
+	return "", false
+}
 
 // reminderDue reports whether the reminder for now's day is due at all —
 // whether the clock has passed the day's reminder time.
@@ -70,13 +86,8 @@ func planTaskDue(
 ) []plannedNotification {
 	var plan []plannedNotification
 	for _, task := range tasks {
-		var due string
-		switch task.DueDate {
-		case today:
-			due = dueToday
-		case tomorrow:
-			due = dueTomorrow
-		default:
+		due, ok := dueWord(task.DueDate, today, tomorrow)
+		if !ok {
 			continue
 		}
 		payload := map[string]any{
@@ -95,7 +106,32 @@ func planTaskDue(
 	return plan
 }
 
-// remindDueTasks sends the day's reminders if the day's time has come and
+// planShoppingDue decides who hears about which shopping entry (FR-30.10):
+// every member of its trip, because a purchase is nobody's in particular —
+// the rule planTaskDue applies to a task nobody was handed. FR-17.3's
+// two-member rule does not apply, for planTaskDue's reason.
+func planShoppingDue(
+	entries []store.DueShoppingEntry, today, tomorrow string,
+	members func(tripID string) []store.MemberName,
+) []plannedNotification {
+	var plan []plannedNotification
+	for _, entry := range entries {
+		due, ok := dueWord(entry.DueDate, today, tomorrow)
+		if !ok {
+			continue
+		}
+		payload := map[string]any{
+			payloadTripID: entry.TripID, payloadEntryID: entry.ID,
+			payloadItemName: truncate(entry.Name, previewLen), payloadDue: due,
+		}
+		for _, m := range members(entry.TripID) {
+			plan = append(plan, plannedNotification{UserID: m.UserID, Kind: store.NotifyShoppingDue, Payload: payload})
+		}
+	}
+	return plan
+}
+
+// remindDueTasks sends the day's reminders — tasks and shopping entries — if the day's time has come and
 // they have not been sent yet, and reports whether it sent them. Safe to
 // call as often as the loop likes: the claim in the store is what makes it
 // once a day, across restarts too — a server started after the time still
@@ -121,6 +157,11 @@ func (s *Server) remindDueTasks(ctx context.Context, at time.Duration) bool {
 		slog.Error("task reminder lookup", "day", today, "error", err)
 		return false
 	}
+	entries, err := s.store.DueShoppingEntries(ctx, today, tomorrow)
+	if err != nil {
+		slog.Error("shopping reminder lookup", "day", today, "error", err)
+		return false
+	}
 	byTrip := map[string][]store.MemberName{}
 	members := func(tripID string) []store.MemberName {
 		if list, ok := byTrip[tripID]; ok {
@@ -133,7 +174,9 @@ func (s *Server) remindDueTasks(ctx context.Context, at time.Duration) bool {
 		byTrip[tripID] = list
 		return list
 	}
-	for _, n := range planTaskDue(tasks, today, tomorrow, members) {
+	plan := planTaskDue(tasks, today, tomorrow, members)
+	plan = append(plan, planShoppingDue(entries, today, tomorrow, members)...)
+	for _, n := range plan {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 	return true

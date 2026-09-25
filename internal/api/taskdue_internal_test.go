@@ -84,6 +84,38 @@ func TestPlanTaskDue_FR7_11_AssigneeElseEveryMember(t *testing.T) {
 	}
 }
 
+func TestPlanShoppingDue_FR30_10_EveryMember(t *testing.T) {
+	members := map[string][]store.MemberName{
+		"trip-1":    {{UserID: "u-andy", DisplayName: "Andy"}, {UserID: "u-sia", DisplayName: "Sia"}},
+		"trip-solo": {{UserID: "u-local", DisplayName: "Ich"}},
+	}
+	lookup := func(tripID string) []store.MemberName { return members[tripID] }
+	entries := []store.DueShoppingEntry{
+		{ID: "e-milk", TripID: "trip-1", Name: "Milch", DueDate: "2026-07-08"},
+		{ID: "e-solo", TripID: "trip-solo", Name: "Brot", DueDate: "2026-07-09"},
+		{ID: "e-later", TripID: "trip-1", Name: "Später", DueDate: "2026-07-12"},
+	}
+	type sent struct{ user, entry, name, due string }
+	var got []sent
+	for _, n := range planShoppingDue(entries, "2026-07-08", "2026-07-09", lookup) {
+		if n.Kind != store.NotifyShoppingDue {
+			t.Errorf("kind = %q", n.Kind)
+		}
+		if _, named := n.Payload[payloadActorID]; named {
+			t.Errorf("a reminder names no actor: %v", n.Payload)
+		}
+		got = append(got, sent{n.UserID, n.Payload[payloadEntryID].(string), n.Payload[payloadItemName].(string), n.Payload[payloadDue].(string)})
+	}
+	want := []sent{
+		{"u-andy", "e-milk", "Milch", dueToday}, {"u-sia", "e-milk", "Milch", dueToday},
+		// Single-User: one member, and still reminded.
+		{"u-local", "e-solo", "Brot", dueTomorrow},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("plan = %v\nwant %v", got, want)
+	}
+}
+
 func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
@@ -96,6 +128,8 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip-1', 'u-local', 'owner')`,
 		`INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, due_date)
 			VALUES ('c-1', 'trip-1', 'u-local', 'Pass holen', 1, 'open', '2026-07-09')`,
+		// FR-30.10: a purchase due the same day rides the same run.
+		`INSERT INTO shopping_entries (id, trip_id, name, due_date) VALUES ('e-1', 'trip-1', 'Milch', '2026-07-09')`,
 	} {
 		if _, err := st.DB().Exec(q); err != nil {
 			t.Fatalf("seed %q: %v", q, err)
@@ -121,34 +155,41 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 		t.Fatal("reminded before the configured time")
 	}
 	clock = clock.Add(time.Minute)
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 1 {
-		t.Fatalf("at 06:00: want one reminder, have %d", count())
+	// One for the task, one for the purchase.
+	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 2 {
+		t.Fatalf("at 06:00: want two reminders, have %d", count())
 	}
 	// The loop waking again, or the server restarting, the same day.
 	clock = clock.Add(3 * time.Hour)
-	if s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 1 {
+	if s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 2 {
 		t.Fatal("reminded twice in one day")
 	}
 	// The due day itself: the second and last reminder.
 	clock = clock.Add(24 * time.Hour)
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 2 {
-		t.Fatalf("on the due day: want two reminders, have %d", count())
+	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 4 {
+		t.Fatalf("on the due day: want four reminders, have %d", count())
 	}
 	list, _ := st.ListNotifications(ctx, "u-local", false, 50)
-	dues := map[any]bool{}
+	dues := map[string]map[any]bool{store.NotifyTaskDue: {}, store.NotifyShoppingDue: {}}
 	for _, n := range list {
-		if n.Kind != store.NotifyTaskDue || n.Payload[payloadCommentID] != "c-1" {
+		switch {
+		case n.Kind == store.NotifyTaskDue && n.Payload[payloadCommentID] == "c-1":
+		case n.Kind == store.NotifyShoppingDue && n.Payload[payloadEntryID] == "e-1":
+		default:
 			t.Errorf("unexpected notification %+v", n)
+			continue
 		}
-		dues[n.Payload[payloadDue]] = true
+		dues[n.Kind][n.Payload[payloadDue]] = true
 	}
-	if !dues[dueToday] || !dues[dueTomorrow] {
-		t.Errorf("want one of each day, have %v", dues)
+	for kind, days := range dues {
+		if !days[dueToday] || !days[dueTomorrow] {
+			t.Errorf("%s: want one of each day, have %v", kind, days)
+		}
 	}
 	// Overdue: no repeat reminder (owner, 2026-09-25).
 	clock = clock.Add(24 * time.Hour)
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 2 {
-		t.Fatal("an overdue task was reminded again")
+	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 4 {
+		t.Fatal("an overdue task or purchase was reminded again")
 	}
 }
 

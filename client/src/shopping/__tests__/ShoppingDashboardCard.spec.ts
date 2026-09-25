@@ -69,6 +69,7 @@ function entry(
   name: string,
   list: ShoppingMode = 'buy_local',
   tag: string | null = null,
+  due: string | null = null,
 ) {
   useShoppingStore().applyChanges([
     {
@@ -76,10 +77,13 @@ function entry(
       table: 'shopping_entries',
       id,
       deleted: false,
-      row: { trip_id: 't1', name, list, bought: 0, tag },
+      row: { trip_id: 't1', name, list, bought: 0, tag, due_date: due },
     },
   ])
 }
+
+/** The device's today in these cases (FR-30.10). */
+const TODAY = '2026-07-08'
 
 function mountCard(
   opts: {
@@ -103,6 +107,7 @@ function mountCard(
         [ORCHESTRATOR]: {
           moduleHost: fakeHost(),
           tripDataLoaded: (id: string) => loadedTrips.has(id),
+          today: () => TODAY,
         },
         [SHOPPING_SOURCES]: opts.sources ?? [],
       },
@@ -330,5 +335,36 @@ describe('ShoppingDashboardCard as a block of the hero (FR-7.10)', () => {
     await card.get('[data-testid="dashboard-shopping-Elba-fold"]').trigger('click')
     expect(localStorage.getItem('jp_dash_fold_shopping')).toBe('folded')
     expect(localStorage.getItem('jp_dash_fold_tasks')).toBeNull()
+  })
+})
+
+/*
+ * FR-30.10, M1's rule for a task (FR-7.11): what is pressing leads the card
+ * and the hero's block, earliest first, and wears the same pill as on M6; a
+ * day further out is shown but moves nothing.
+ */
+describe('due purchases on M1 (FR-30.10)', () => {
+  it('leads the card with what is pressing and wears its pill', () => {
+    entry('e1', 'Brot')
+    entry('e2', 'Kerzen', 'buy_local', null, '2026-07-30')
+    entry('e3', 'Spray', 'buy_local', null, '2026-07-09')
+    entry('e4', 'Eier', 'buy_local', null, '2026-07-06')
+    const card = mountCard({ sources: [source({ buy_local: [line('Sonnencreme')] })] })
+
+    expect(rows(card)).toEqual(['Eier', 'Spray', 'Brot', 'Kerzen', 'Sonnencreme'])
+    expect(card.get('[data-testid="dash-shop-due-Eier"]').attributes('data-due')).toBe('overdue')
+    expect(card.get('[data-testid="dash-shop-due-Spray"]').text()).toBe(t('tasks.dueTomorrow'))
+    expect(card.get('[data-testid="dash-shop-due-Kerzen"]').attributes('data-due')).toBe('later')
+    expect(card.find('[data-testid="dash-shop-due-Brot"]').exists()).toBe(false)
+  })
+
+  it('leads the hero’s block the same way, the pill on the row’s second line', () => {
+    entry('e1', 'Brot')
+    entry('e2', 'Spray', 'buy_local', 'Apotheke', '2026-07-08')
+    const card = mountCard({ embedded: true, packingClosed: true })
+
+    const titles = card.findAll('[data-testid="dash-shop-row"]').map((r) => r.find('.title').text())
+    expect(titles).toEqual(['Spray', 'Brot'])
+    expect(card.get('[data-testid="dash-shop-due-Spray"]').text()).toBe(t('tasks.dueToday'))
   })
 })

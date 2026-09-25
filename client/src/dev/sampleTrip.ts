@@ -298,20 +298,23 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
  * so M6 shows its own section beside the packing list's buy rows and its
  * reveal holds an entry as well as a packing row. Through the module's own
  * actions, for the reason `buyOneShoppingRow` gives.
+ *
+ * FR-30.10: `due` is days from today, or null, as for the tasks — one due
+ * today (its tag moves up) and one later, the rest undated.
  */
 export const SEED_SHOPPING_ENTRIES = [
-  { name: 'Brot', tag: 'Supermarkt' },
-  { name: 'Milch', tag: 'Supermarkt' },
-  { name: 'Pasta', tag: 'Supermarkt' },
-  { name: 'Mückenspray', tag: 'Apotheke' },
-  { name: 'Mineralwasser', tag: null },
+  { name: 'Brot', tag: 'Supermarkt', due: null },
+  { name: 'Milch', tag: 'Supermarkt', due: 5 },
+  { name: 'Pasta', tag: 'Supermarkt', due: null },
+  { name: 'Mückenspray', tag: 'Apotheke', due: 0 },
+  { name: 'Mineralwasser', tag: null, due: null },
 ] as const
 const SEED_BOUGHT_ENTRY = 'Mineralwasser'
 
 function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
   const actions = createShoppingActions(orchestrator.moduleHost)
-  for (const { name, tag } of SEED_SHOPPING_ENTRIES) {
-    actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name, tag)
+  for (const { name, tag, due } of SEED_SHOPPING_ENTRIES) {
+    actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name, tag, due === null ? null : localDay(due))
   }
   const bought = useShoppingStore()
     .getEntries(tripId)

@@ -63,10 +63,11 @@ import { createPackingShoppingSource } from '@/composables/packingShoppingSource
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
-import { TRIP_CARDS } from '@/lib/tripCards'
+import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
 import { useTripStore } from '@/stores/tripStore'
 import {
   createShoppingActions,
+  duePurchaseCount,
   ShoppingDashboardCard,
   shoppingCloseCrossing,
   shoppingCount,
@@ -219,6 +220,8 @@ provide(TRIP_VIEW_COUNTS, {
 })
 // FR-30.7: the shopping list, workable on the dashboard under each trip.
 provide(TRIP_CARDS, orchestrator ? [ShoppingDashboardCard] : [])
+// FR-30.10: Local Mode's opening hint counts the due purchases too.
+if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())
 // FR-7.12: closing the packing ends *before departure* on the shopping list too.
 provide(
   PACKING_CLOSE_CROSSINGS,

@@ -77,3 +77,42 @@ func TestClaimTaskReminderDay_FR7_11_OncePerDay(t *testing.T) {
 		}
 	}
 }
+
+func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date, status)
+		VALUES ('trip-old', 'Alt', 2025, '2025-07-10', '2025-07-20', 'archived')`)
+	entry := func(id, trip string, bought int, due string) {
+		t.Helper()
+		var dueDate any
+		if due != "" {
+			dueDate = due
+		}
+		mustExec(t, s, `INSERT INTO shopping_entries (id, trip_id, name, bought, due_date) VALUES (?, ?, ?, ?, ?)`,
+			id, trip, "name "+id, bought, dueDate)
+	}
+	entry("e-today", testTrip, 0, "2026-07-08")
+	entry("e-tomorrow", testTrip, 0, "2026-07-09")
+	entry("e-later", testTrip, 0, "2026-07-12")
+	entry("e-undated", testTrip, 0, "")
+	entry("e-bought", testTrip, 1, "2026-07-08")
+	entry("e-archived", "trip-old", 0, "2026-07-08")
+
+	got, err := s.DueShoppingEntries(ctx, "2026-07-08", "2026-07-09")
+	if err != nil {
+		t.Fatalf("DueShoppingEntries: %v", err)
+	}
+	want := []DueShoppingEntry{
+		{ID: "e-today", TripID: testTrip, Name: "name e-today", DueDate: "2026-07-08"},
+		{ID: "e-tomorrow", TripID: testTrip, Name: "name e-tomorrow", DueDate: "2026-07-09"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueShoppingEntries = %+v\nwant %+v", got, want)
+	}
+
+	none, err := s.DueShoppingEntries(ctx)
+	if err != nil || none != nil {
+		t.Errorf("DueShoppingEntries() = %v, %v; want nil, nil", none, err)
+	}
+}

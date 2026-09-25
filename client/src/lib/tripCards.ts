@@ -27,3 +27,15 @@ export interface TripCardProps {
 
 /** The cards the composition root provides, in the order M1 renders them. */
 export const TRIP_CARDS = Symbol('tripCards') as InjectionKey<readonly Component[]>
+
+/**
+ * FR-30.10: how many of a trip's purchases are due by tomorrow, the overdue
+ * ones included — what Local Mode's opening hint counts beside the tasks
+ * (FR-7.11), since it has no server to send the morning's push. The count is
+ * the shopping module's; M1 asks through this key, bound by the composition
+ * root, and a build without the module simply counts nothing.
+ */
+export type DuePurchaseCount = (tripId: string, today: string) => number
+
+/** The injection key M1 reads the due purchases from. */
+export const DUE_PURCHASE_COUNT = Symbol('duePurchaseCount') as InjectionKey<DuePurchaseCount>

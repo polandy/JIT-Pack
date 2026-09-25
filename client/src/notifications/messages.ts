@@ -11,8 +11,10 @@
 import type { MessageKey } from '@/i18n'
 import type { NotificationEntry } from '@/api/types'
 
-/** FR-7.11's reminder — the one kind whose body depends on its payload's day, and whose link is M25. */
+/** FR-7.11's reminder — a kind whose body depends on its payload's day, and whose link is M25. */
 export const NOTIFY_TASK_DUE = 'task_due'
+/** FR-30.10's reminder for a purchase — the same day rule, and its link is M6. */
+export const NOTIFY_SHOPPING_DUE = 'shopping_due'
 
 /** FR-7.9's new note and FR-7.13's reply — the two kinds whose link is a thread on M26. */
 export const NOTIFY_NOTE = 'note'
@@ -27,6 +29,7 @@ export const NOTIFICATION_KINDS = [
   NOTIFY_NOTE,
   NOTIFY_NOTE_REPLY,
   NOTIFY_TASK_DUE,
+  NOTIFY_SHOPPING_DUE,
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
@@ -46,8 +49,19 @@ export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic
  * translated in the worker, which holds no words of its own).
  */
 const TASK_DUE_TOMORROW = 'task_dueTomorrow'
-type BodyKind = NotificationKind | typeof TASK_DUE_TOMORROW
-const BODY_KINDS: readonly BodyKind[] = [...NOTIFICATION_KINDS, TASK_DUE_TOMORROW]
+const SHOPPING_DUE_TOMORROW = 'shopping_dueTomorrow'
+type BodyKind = NotificationKind | typeof TASK_DUE_TOMORROW | typeof SHOPPING_DUE_TOMORROW
+const BODY_KINDS: readonly BodyKind[] = [
+  ...NOTIFICATION_KINDS,
+  TASK_DUE_TOMORROW,
+  SHOPPING_DUE_TOMORROW,
+]
+
+/** A reminder kind's tomorrow sentence (FR-7.11, FR-30.10). */
+const TOMORROW_BODIES: Readonly<Record<string, BodyKind>> = {
+  [NOTIFY_TASK_DUE]: TASK_DUE_TOMORROW,
+  [NOTIFY_SHOPPING_DUE]: SHOPPING_DUE_TOMORROW,
+}
 
 /** The kinds whose sentence quotes the body rather than naming an item. */
 const PREVIEW_KINDS: readonly string[] = ['mention', NOTIFY_NOTE, NOTIFY_NOTE_REPLY]
@@ -97,7 +111,7 @@ export function notificationBodyName(
   // FR-7.9/FR-7.13: a note and a reply are about their own words, like a
   // mention — they name no item, only the body's preview.
   const named = PREVIEW_KINDS.includes(kind) ? detail.preview : detail.item
-  const body = kind === NOTIFY_TASK_DUE && detail.due === DUE_TOMORROW ? TASK_DUE_TOMORROW : kind
+  const body = (detail.due === DUE_TOMORROW && TOMORROW_BODIES[kind]) || kind
   return (named ? body : `${body}Plain`) as NotificationBodyName
 }
 

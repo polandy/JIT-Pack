@@ -584,6 +584,11 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     -- taken back.
     bought_at         TEXT,
     bought_by_user_id TEXT REFERENCES users(id),
+    -- FR-30.10: the day the purchase is due, FR-7.11's shape for a task —
+    -- a calendar date (YYYY-MM-DD), no time and no zone, NULL for none (the
+    -- normal state of an entry). No CHECK, for field-level LWW's sake; the
+    -- reminder scheduler compares strings.
+    due_date          TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

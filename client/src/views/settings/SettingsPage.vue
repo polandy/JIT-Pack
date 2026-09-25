@@ -123,7 +123,7 @@ const collaborative = hasCollaborativeSession()
  */
 const notifiable = mode === 'server'
 /** The kinds a person alone can receive: none is anybody's act (FR-17.3's reason). */
-const SOLO_KINDS: ReadonlySet<keyof NotificationPrefs> = new Set(['task_due'])
+const SOLO_KINDS: ReadonlySet<keyof NotificationPrefs> = new Set(['task_due', 'shopping_due'])
 
 const nameDraft = ref('')
 const nameSaved = ref(false)
@@ -204,9 +204,11 @@ const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: Messag
   { kind: 'note', label: 'settings.prefNote', hint: 'settings.prefNoteHint' },
   { kind: 'note_reply', label: 'settings.prefNoteReply', hint: 'settings.prefNoteReplyHint' },
   { kind: 'task_due', label: 'settings.prefTaskDue', hint: 'settings.prefTaskDueHint' },
+  // FR-30.10: a purchase's reminder, its own switch.
+  { kind: 'shopping_due', label: 'settings.prefShoppingDue', hint: 'settings.prefShoppingDueHint' },
 ]
 
-/** The rows this instance can actually send (FR-7.11: Single-User only the reminder). */
+/** The rows this instance can actually send (FR-7.11, FR-30.10: Single-User only the reminders). */
 const shownPrefRows = collaborative ? prefRows : prefRows.filter((row) => SOLO_KINDS.has(row.kind))
 
 async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {

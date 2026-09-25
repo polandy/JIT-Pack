@@ -4659,6 +4659,33 @@ cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still u
 rather than packing rows. **Revisit trigger** for the missing fields: an owner asking for an amount, a category or a
 buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it would then apply to both kinds of line.
 
+* **FR-30.10 (A shopping entry may name the day it is due — owner request 2026-09-25, decided the same evening;
+  *built the same day*):** the owner asked for an optional due date on the shopping list, highlighted there and on the
+  dashboard, *like the tasks* — FR-7.11's model, applied to an entry:
+  * **Only the list's own entries** carry a day (`shopping_entries.due_date`, `YYYY-MM-DD`, nullable, one field so a
+    day and a tag set on two devices both stand — NFR-4.2a). The packing list's buy rows stay undated: their moment is
+    the list they sit on (FR-3.2), and a date there would be a second column on `trip_items` for a question the mode
+    already answers. Decided against with the owner: dating those rows too.
+  * **Set in the entry's sheet** (FR-30.9's name-and-tag sheet, M6): a *Fällig* date field, the app's date control
+    (ADR-035), cleared with its own *Löschen*; written with the sheet's *Speichern* / *Hinzufügen* like the name and
+    the tag. The quick field above the list adds an undated entry, as before.
+  * **The same four readings and the same pill** as a task (FR-7.11): *Überfällig* (red), *Heute*, *Morgen* / *In 2
+    Tagen*, a short date further out. A bought entry is never overdue and wears no pill.
+  * **Order on M6, M25's rule:** inside every section the dated entries come first, earliest first, the undated ones in
+    the list's order after them; **a section holding an overdue, today or soon entry moves above the others**, the
+    packing list's combined heading included — the owner chose M25's behaviour over a pill-only highlight.
+  * **On M1:** the trip card under a trip (FR-30.7) and the hero's *Einkauf* block (FR-7.10) wear the pill beside the
+    entry, and **the pressing ones lead** — overdue, today, the next two days, earliest first — with everything else
+    in the order it had.
+  * **The reminder.** The server's FR-7.11 run sends a second kind, **`shopping_due`**, the day before and on the due
+    day, at the same `JITPACK_TASK_REMINDER_TIME` and under the same once-a-day claim. **Recipient: every member of the
+    trip** — an entry has no assignee, and a purchase nobody in particular was handed is everybody's, the rule a task
+    without an assignee already follows. Single-User is reminded too (FR-17.3 does not apply, FR-7.11's reason). The
+    payload names the entry (`item_name`, `entry_id`) and the day; a tap opens M6. **Its own M17 toggle, *Fällige
+    Einkäufe*** — a person reminded of their chores need not want the groceries. **Local Mode:** M1's opening hint
+    counts the due purchases beside the tasks (*„1 Aufgabe und 2 Einkäufe fällig"*, or either alone).
+  * Like every entry, a due day is not in the portable backup (item 25).
+
 ## Part B — Clarifications & Extensions to Existing Sections
 
 ### 3.1 Template & Master Data Management
@@ -5804,6 +5831,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     reminded too. **Local Mode** has no server: when the app opens, M1 says once, as a toast, ***„N Aufgaben fällig“***
     — the open tasks due by tomorrow, the overdue ones included, across the active trips; nothing when there are none.
   * Like every task, a due date is not in the portable backup (item 24).
+  * **Amended 2026-09-25 (FR-30.10):** the shopping list's own entries may carry a day too; the same daily run
+    reminds every member of a trip of them, as a kind of its own (`shopping_due`).
 
 * **FR-7.12 (A finished packing closes *before the trip* — owner request and decisions 2026-09-25, *built the same
   day*, ADR-076):** FR-7.7 moves the open *before* tasks to *during* when the packing is closed. The owner asked for

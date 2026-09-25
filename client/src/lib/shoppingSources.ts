@@ -39,6 +39,12 @@ export interface ShoppingLine {
    * list's own entries have one — a packing line is filed by its category.
    */
   tag?: string | null
+  /**
+   * The day an open line is due (FR-30.10), `YYYY-MM-DD`; null or absent for
+   * none — and for a bought line, which is never overdue. Only the list's own
+   * entries carry one: a packing line's moment is the list it sits on.
+   */
+  dueDate?: string | null
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
   /** For a bought line: when it was bought, an ISO instant (FR-30.4). */
@@ -56,11 +62,12 @@ export interface ShoppingLine {
   /** Removes the line; only a line the list itself owns offers this. */
   remove?(): void
   /**
-   * Changes the line's name and/or tag (FR-30.9); only a line the list owns
-   * offers this. What did not change is not written, so two people editing
-   * different fields of one entry do not overwrite each other.
+   * Changes the line's name, tag (FR-30.9) and/or due day (FR-30.10); only a
+   * line the list owns offers this. What did not change is not written, so
+   * two people editing different fields of one entry do not overwrite each
+   * other — and a `dueDate` left out is not a change either.
    */
-  edit?(fields: { name: string; tag: string | null }): void
+  edit?(fields: { name: string; tag: string | null; dueDate?: string | null }): void
 }
 
 /** Something that contributes lines to a trip's two shopping lists. */

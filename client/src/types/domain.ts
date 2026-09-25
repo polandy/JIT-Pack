@@ -384,6 +384,8 @@ export interface ShoppingEntry {
   bought_at: string | null
   /** FR-30.4: who bought it, stamped by the server (invariant 3); null in Local Mode. */
   bought_by_user_id: string | null
+  /** FR-30.10: the day it is due (`YYYY-MM-DD`), FR-7.11's shape; null for none. */
+  due_date: string | null
 }
 
 // --- Master data ---

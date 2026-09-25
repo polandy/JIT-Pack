@@ -46,6 +46,7 @@ export function createShoppingActions(host: ModuleHost) {
     list: ShoppingMode,
     name: string,
     tag: string | null = null,
+    dueDate: string | null = null,
   ): void {
     const trimmed = name.trim()
     if (trimmed === '') return
@@ -55,20 +56,29 @@ export function createShoppingActions(host: ModuleHost) {
       list,
       bought: dbBool(false),
       tag: normalizeTag(tag),
+      due_date: dueDate,
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
 
   /**
    * FR-30.9: renames an entry and/or files it under a tag, or takes it out of
-   * one with null. Only what differs is written — a blank name is no rename.
+   * one with null; FR-30.10: gives it a due day, or takes it off with null.
+   * Only what differs is written — a blank name is no rename, and a
+   * `dueDate` left out leaves the day alone.
    */
-  function updateEntry(entry: ShoppingEntry, fields: { name: string; tag: string | null }): void {
+  function updateEntry(
+    entry: ShoppingEntry,
+    fields: { name: string; tag: string | null; dueDate?: string | null },
+  ): void {
     const patch: Record<string, unknown> = {}
     const name = fields.name.trim()
     if (name !== '' && name !== entry.name) patch['name'] = name
     const tag = normalizeTag(fields.tag)
     if (tag !== entry.tag) patch['tag'] = tag
+    if (fields.dueDate !== undefined && fields.dueDate !== entry.due_date) {
+      patch['due_date'] = fields.dueDate
+    }
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, patch)
     host.writeTrip(entry.trip_id, {
@@ -195,6 +205,7 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       quantity: 1,
       recipients: [],
       tag: entry.tag,
+      dueDate: entry.bought ? null : entry.due_date,
       boughtAt: entry.bought ? entry.bought_at : undefined,
       boughtBy: entry.bought ? entry.bought_by_user_id : undefined,
       buy: () => actions.setBought(entry, true),

@@ -12,7 +12,8 @@ import {
 } from '../fixtures'
 import { PATH } from '../routes'
 import { createItem } from '../helpers/m9'
-import { addBuyRowOnM4, setMemberInM5 } from '../helpers/m4'
+import { addBuyRowOnM4, setMemberInM5, startTrip } from '../helpers/m4'
+import { setDateField } from '../helpers/ionic'
 
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
@@ -425,6 +426,69 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await toast.getByRole('button', { name: 'Undo' }).click()
     await expect(host.getByTestId('m6-group-own')).toContainText('Brot')
     await expect(apotheke.locator('h3')).toHaveText(['Mückenspray'])
+  })
+
+  /**
+   * E2E-M6-35 (FR-30.10): an entry names the day it is due — FR-7.11's day
+   * for a task, on the shopping list.
+   *
+   * The day is set in the entry's own sheet and written on *Save*, so the
+   * promises are asserted on the list: the line wears the day in words
+   * (*Tomorrow*), and the dated entry leads its section ahead of one it would
+   * otherwise follow (the list sorts by name, and *Brot* comes before
+   * *Pasta*). A reload proves the write, not the repaint. Then M1: the card
+   * under the trip leads with it and wears the same pill, and Local Mode's
+   * stand-in for the push says once, when the app opens, that it is due — the
+   * trip is started first, because M1 counts the active trips.
+   */
+  test('E2E-M6-35: a due day is set in the sheet, leads the list and the dashboard, and is said when the app opens (FR-30.10)', async ({
+    page,
+  }) => {
+    const name = 'Samedan Fällig'
+    await createTripViaWizard(page, { ...TRIP, name })
+    await startTrip(page)
+    await openTripView(page, 'shopping')
+    // Running: at the destination is the list M1's card reads (FR-30.8).
+    await m6(page).getByTestId('m6-tab-local').click()
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Pasta')
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const iso = [
+      tomorrow.getFullYear(),
+      String(tomorrow.getMonth() + 1).padStart(2, '0'),
+      String(tomorrow.getDate()).padStart(2, '0'),
+    ].join('-')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Pasta' })
+      .getByTestId('m6-row-label')
+      .click()
+    await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await setDateField(page, 'm6-entry-due', iso)
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    const pill = m6(page).getByTestId('m6-row-due-Pasta')
+    await expect(pill).toHaveText('Tomorrow')
+    await expect(pill).toHaveAttribute('data-due', 'soon')
+    await expect(m6(page).getByTestId('m6-row-due-Brot')).toHaveCount(0)
+    const own = m6(page).getByTestId('m6-group-own')
+    await expect(own.locator('h3')).toHaveText(['Pasta', 'Brot'])
+    await writesLanded(page)
+
+    await page.reload()
+    await expect(m6(page).getByTestId('m6-row-due-Pasta')).toHaveText('Tomorrow')
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Pasta', 'Brot'])
+
+    // M1: the trip's card leads with it, and the app says it once on opening.
+    await page.goto(PATH.dashboard)
+    await expect(page.locator('ion-toast').filter({ hasText: '1 purchase due' })).toBeVisible()
+    const card = visible(page).getByTestId(`dashboard-shopping-${name}`)
+    await expect(card.getByTestId('dash-shop-row').locator('.name')).toHaveText(['Pasta', 'Brot'])
+    await expect(card.getByTestId('dash-shop-due-Pasta')).toHaveText('Tomorrow')
   })
 
   /**

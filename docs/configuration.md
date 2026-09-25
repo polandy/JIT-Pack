@@ -22,7 +22,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
 | `JITPACK_WEB_ROOT` | no | — | Directory holding the built client, served on the same origin as the API. The published image sets it to `/srv/web`, so a container needs nothing here. Unset, the server answers the API alone — the shape for a deployment whose own web server or CDN serves the static files. A path with no `index.html` in it is a **startup error**, not a white page. |
 | `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance contacts nothing. See [Release check](#release-check). |
-| `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
+| `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
@@ -172,8 +172,8 @@ Four things worth knowing:
 
 ## Task reminders
 
-A task can carry the day it is due. Once a day the server reminds whoever the task is for: **the day before, and on
-the day itself**. Nothing is sent again once the day has passed — the task then shows as *Überfällig* in the app.
+A task can carry the day it is due, and so can an entry on a trip's shopping list. Once a day the server reminds
+whoever the task is for — and everyone on the trip of a due purchase: **the day before, and on the day itself**. Nothing is sent again once the day has passed — the task then shows as *Überfällig* in the app.
 
 ```bash
 JITPACK_TASK_REMINDER_TIME=07:30   # default 06:00

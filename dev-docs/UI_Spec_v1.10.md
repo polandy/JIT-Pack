@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-25 — **M6**, **M1** and **M17**: a shopping entry may name the day it is due — M25's pill and order on M6,
+  the pressing ones leading M1's card and block, a *Fällige Einkäufe* reminder toggle (FR-30.10).
 * 2026-09-25 — **M26** added: *Notizen*, a trip's notes as threads — a titled first note, replies one level deep,
   edited by their author, new again when somebody else writes (FR-7.13). Reworked the same day after a UX review: cards
   that show their words, a thread's own view read top to bottom with the field at the bottom, *Gelesen* as a button,
@@ -879,7 +881,8 @@ These patterns apply to every screen and are specified once.
     finished packing closes *before*).
   * **Local Mode's reminder (FR-7.11):** with no server to send the morning's push, M1 says once per app start, as a
     toast, *„N Aufgaben fällig"* — the open tasks due by tomorrow across the active trips, the overdue included —
-    once their rows are on the device, and nothing when there are none.
+    once their rows are on the device, and nothing when there are none. **Since FR-30.10** the due purchases are
+    counted beside them: *„1 Aufgabe und 2 Einkäufe fällig"*, or *„2 Einkäufe fällig"* alone.
   * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
     fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
     field; its rows leave the tab order. Both start open, and the state is remembered per block on this device.
@@ -981,7 +984,10 @@ These patterns apply to every screen and are specified once.
   check-off shows *„„Brot" gekauft · Rückgängig"* inside the card. Last line: *„Zur Einkaufsliste →"*, or *„Alle 7
   anzeigen →"* past five. No remove, no reveal, no stamps — those are M6's. A running trip always has the card (with
   *„Vor Ort ist nichts zu kaufen"* when empty, once the rows are here, ADR-033); a planned trip has it only while
-  something is left. Supersedes FR-30.5's pill, whose way onto M6 the card now carries.
+  something is left. Supersedes FR-30.5's pill, whose way onto M6 the card now carries. **Since FR-30.10
+  (2026-09-25)** a dated entry wears M6's due pill after its name, and the pressing ones — overdue, today, the next
+  two days — lead the lines, earliest first; the hero's *Einkauf* block (FR-7.10) does the same, the pill leading the
+  row's second line as a task's does. (E2E-M6-35)
 * **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in
   Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep,
   until the user had visited each trip in that page session. Local Mode never showed it, because everything there is
@@ -1846,6 +1852,12 @@ These patterns apply to every screen and are specified once.
   clutter at any real list length); the row's own tappability is the whole affordance, exactly as a tagged row's is.
   **The reveal of what was bought is not grouped:** its rows say their tag as a small label under the name, and its
   check (which puts the line back) is at the end like the open rows'. Mockup: 2026-09-21 review. (E2E-M6-31)
+* **The day an entry is due (FR-30.10, built 2026-09-25):** the entry sheet carries a ***Fällig*** date field (the
+  app's date control, ADR-035, with its *Löschen*) between the name and the tag mask, written with the sheet's button
+  like the other two. An open entry with a day wears **M25's due pill** at the end of its row, before the ✕:
+  *Überfällig* (red), *Heute*, *Morgen*, *In 2 Tagen*, a short date further out. Inside a section the dated entries
+  lead, earliest first; **a section holding an overdue, today or soon entry moves above the others**, the combined
+  *Packliste* heading included. A packing line carries no day; a bought entry wears no pill. (E2E-M6-35)
 * **Several entries retagged at once (FR-30.9, built 2026-09-22):** a long press on an own row, or the app bar's own
   icon (`checkboxOutline`, mirroring M9's `m9-select`, FR-24.9) — active state on while the mode is on — arms an
   inline **selection**, reaching every own entry on the open tab, tagged or not; unlike M9's, this selection offers a
@@ -2637,7 +2649,8 @@ token would prove nothing there is anything to prove.
   managed elsewhere; notification preferences per event type: delegation, mention, task assigned, **items taken
   over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) and
   **trip notes** (FR-7.9, the fifth, 2026-09-22) and **tasks due** (FR-7.11, the sixth, 2026-09-25 — the server's
-  morning reminder) with channel status (push registered via VAPID/UnifiedPush,
+  morning reminder) and **purchases due** (FR-30.10, *Fällige Einkäufe*, the same run for the shopping list) with
+  channel status (push registered via VAPID/UnifiedPush,
   NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind
   alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
   them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
@@ -2657,10 +2670,10 @@ token would prove nothing there is anything to prove.
   greeting, which this line claimed until 2026-09-01: it is a time-of-day sentence and carries neither) — always
   rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section ~~is hidden
   entirely, since there is no second party to notify or delegate to (Addendum FR-17.3)~~ **carries only what can
-  happen to one person alone (amended 2026-09-25, FR-7.11):** the *Fällige Aufgaben* row — the reminder is nobody's
-  act, so FR-17.3's silence does not cover it — and the *Push auf diesem Gerät* toggle it needs to reach a closed
-  app; every row that needs a second party stays hidden. All other elements (data export, conflict log, app info)
-  remain, unchanged from normal mode.
+  happen to one person alone (amended 2026-09-25, FR-7.11):** the *Fällige Aufgaben* and *Fällige Einkäufe* rows
+  (FR-30.10) — a reminder is nobody's act, so FR-17.3's silence does not cover it — and the *Push auf diesem Gerät*
+  toggle they need to reach a closed app; every row that needs a second party stays hidden. All other elements (data
+  export, conflict log, app info) remain, unchanged from normal mode.
 * **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2).
   User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20
   (Addendum 3.23).

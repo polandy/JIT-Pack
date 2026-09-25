@@ -75,6 +75,11 @@ const CASES: ServerNotification[] = [
   notif('task_due', { item_name: 'Pass holen', due: 'tomorrow' }),
   notif('task_due', { due: 'tomorrow' }),
   notif('task_due', {}),
+  // FR-30.10: a purchase's reminder, the same day rule.
+  notif('shopping_due', { item_name: 'Milch', due: 'today' }),
+  notif('shopping_due', { item_name: 'Milch', due: 'tomorrow' }),
+  notif('shopping_due', { due: 'tomorrow' }),
+  notif('shopping_due', {}),
   notif('shiny_new_kind', { actor_name: 'Andy' }),
   notif('mention', {}),
   notif('delegation', null),
@@ -118,6 +123,11 @@ describe('the worker renders the same body as the app', () => {
       notificationRoute(notif('task_due', { trip_id: 't1', comment_id: 'c9' })),
     )
     expect(notificationUrl({ trip_id: 't1' }, 'task_due')).toBe('/trips/t1/tasks')
+    // FR-30.10: a purchase's reminder lands on the trip's shopping list.
+    expect(notificationUrl({ trip_id: 't1', entry_id: 'e1' }, 'shopping_due')).toBe(
+      notificationRoute(notif('shopping_due', { trip_id: 't1', entry_id: 'e1' })),
+    )
+    expect(notificationUrl({ trip_id: 't1' }, 'shopping_due')).toBe('/trips/t1/shopping')
     // FR-7.13: a note and a reply land on their thread, in both renderers.
     for (const [kind, payload] of [
       ['note', { trip_id: 't1', comment_id: 'c9' }],

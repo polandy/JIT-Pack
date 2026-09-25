@@ -1055,3 +1055,66 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     expect(toast.buttons).toBeUndefined()
   })
 })
+
+/*
+ * FR-30.10: an entry may name the day it is due — FR-7.11's day for a task,
+ * set in the entry's own sheet, worn as the same pill, and leading the list.
+ */
+describe('M6 — the day an entry is due (FR-30.10)', () => {
+  const dueField = (page: ReturnType<typeof mountPage>) => page.findComponent({ name: 'DateField' })
+  const confirmSheet = (page: ReturnType<typeof mountPage>) =>
+    page.find('[data-testid="m6-entry-confirm"]').trigger('click')
+  const labels = (page: ReturnType<typeof mountPage>) =>
+    page.findAll('[data-testid="m6-row-label"] h3').map((h) => h.text())
+
+  it('wears the pill, leads its tag, and moves its tag above the others', () => {
+    // STUB_TODAY is 2026-07-08.
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
+    seedEntry('e2', { name: 'Kerzen', tag: 'Supermarkt', due_date: '2026-07-20' })
+    seedEntry('e3', { name: 'Spray', tag: 'Apotheke', due_date: '2026-07-07' })
+    seedEntry('e4', { name: 'Pflaster', tag: 'Apotheke' })
+    seedEntry('e5', { name: 'Wasser', tag: null })
+    const page = mountPage()
+
+    expect(labels(page)).toEqual(['Spray', 'Pflaster', 'Kerzen', 'Brot', 'Wasser'])
+    expect(page.get('[data-testid="m6-row-due-Spray"]').attributes('data-due')).toBe('overdue')
+    expect(page.get('[data-testid="m6-row-due-Spray"]').text()).toBe(t('tasks.dueOverdue'))
+    expect(page.get('[data-testid="m6-row-due-Kerzen"]').attributes('data-due')).toBe('later')
+    expect(page.find('[data-testid="m6-row-due-Brot"]').exists()).toBe(false)
+  })
+
+  it('the sheet shows the day, sets a new one on Speichern, and takes it off with the clear', async () => {
+    seedEntry('e1', { name: 'Brot', tag: null, due_date: '2026-07-09' })
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    expect(dueField(page).props('value')).toBe('2026-07-09')
+    dueField(page).vm.$emit('update', '2026-07-12')
+    expect(written).toEqual([])
+    await confirmSheet(page)
+    expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { due_date: '2026-07-12' } })
+
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    dueField(page).vm.$emit('update', '')
+    await confirmSheet(page)
+    expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { due_date: null } })
+    expect(page.find('[data-testid="m6-row-due-Brot"]').exists()).toBe(false)
+  })
+
+  it('a new entry takes its day from the sheet', async () => {
+    const page = mountPage()
+    await page.find('[data-testid="m6-tag-new"]').trigger('click')
+    await page
+      .findAllComponents(IonInput)
+      .find((c) => c.attributes('data-testid') === 'm6-entry-name')!
+      .vm.$emit('ionInput', { detail: { value: 'Milch' } })
+    dueField(page).vm.$emit('update', '2026-07-08')
+    await confirmSheet(page)
+
+    expect(written.at(-1)).toMatchObject({
+      op: 'insert',
+      fields: { name: 'Milch', due_date: '2026-07-08' },
+    })
+    expect(page.get('[data-testid="m6-row-due-Milch"]').text()).toBe(t('tasks.dueToday'))
+  })
+})
