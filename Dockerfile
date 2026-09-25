@@ -13,7 +13,7 @@
 # this stage builds the bundle that ships, and a version nothing else in the
 # repo tests with would ship untested. scripts/toolchain-pins-gate.sh enforces
 # that — moving the major is one change in all three files.
-FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS client
+FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS client
 
 # The Settings "About" section (M17) names the build. This stage has no
 # `.git` (only `client/` is in its context), so the release tag and commit
