@@ -434,6 +434,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M9 takes the shared list: a heading that takes focus nudges the scroll (2026-09-24)](#m9-takes-the-shared-list-a-heading-that-takes-focus-nudges-the-scroll-2026-09-24) — ADR-075 amended: why M9 has no grip, and a jump case that became a race.
 - [M23 and M11 select: a batch keeps the refusals, and a new glyph passed the baseline (2026-09-24)](#m23-and-m11-select-a-batch-keeps-the-refusals-and-a-new-glyph-passed-the-baseline-2026-09-24) — ADR-075 amended: why a batch restore prompts for no collision, and the app-bar icon the pixel budget let through.
 - [A menu asked for while the last one was leaving opened nothing (2026-09-25)](#a-menu-asked-for-while-the-last-one-was-leaving-opened-nothing-2026-09-25) — M2's row menu swallowed a reopen during the 480 ms leave; E2E-M2-05 flaked on it.
+- [A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)](#a-selection-wears-the-app-bar-and-m2-had-been-archiving-past-the-closing-pass-2026-09-25) — three owner calls in one batch; `inert="false"` is inert, and a mock factory that imports its own mock deadlocks.
 
 ## Deviations
 
@@ -17474,3 +17475,37 @@ in the DOM.
 **The trap:** a guard held until an overlay is *gone* covers its leave animation too, and that is a window a fast
 user or a fast test can act in. Hold such a guard until the overlay starts leaving (`onWillDismiss`) unless the
 animation itself is what must be protected.
+
+## A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)
+
+One PR carried four owner requests from 2026-09-24/25, decided in one walkthrough rather than one PR each: M4's
+progress figures as a card, a dependency's name as a link, a selection that no longer shifts the list, and a ⋮ that
+holds its own context only. Two of them changed a decision on record, and the reasons are in UI-Spec G-20 and ADR-051
+amendment 2. What the code does not show:
+
+**Rejected for the selection bar:** keeping it in the page but floating it over the list (it covers the top rows and
+the tools), and reserving its height up front (a permanent empty band). **Chosen:** the app bar turns into it. The
+cost is that back, the cluster and the gear are gone for as long as the selection lasts, which is the point: each
+would leave or change the screen under a half-made batch.
+
+**A wrong premise, found by moving a menu entry:** M4's ⋮ held *Reise abschliessen*, which opens FR-9.3's closing
+pass. M2 had the same step for a running trip, and M2's version **archived straight away**, past the pass. Nobody had
+noticed because the two were never compared. Removing M4's entry would have made the pass unreachable, so M2's step
+now opens M4 in the pass (`?closing=1`, spent by `router.replace` as soon as it is read). As a result there is one
+door into the pass, and it is the one FR-9.3 describes. M4's start toast (FR-9.1: later additions count as
+forgotten) moved to M2 with the step. M2 had been starting trips without saying so.
+
+**The traps:**
+
+- **`:inert="flag"` renders `inert="false"` when the flag is false**, and `inert` is a boolean attribute: present
+  means on. The resting composers were inert all the time until a unit test asserted the attribute's absence. Bind
+  `flag || undefined`.
+- **A `vi.mock` factory must not import a module that imports the mocked module.** The spec harness
+  (`__tests__/headerSelection.ts`) imported `selectionLabel` from the very composable its factory was replacing. The
+  factory awaited the harness, the harness awaited the mocked module, and the mocked module awaited the factory. The
+  spec file then hung before collecting a single test, with no error, until the outer timeout. `selectionLabel` now
+  lives in `lib/`.
+- **E2E-M4-148 found a second gap on its first run:** at desktop width with no tasks, the lone figure kept its own
+  width (`flex: 1` was only on the paired state), so the card was 544 px beside a 968 px tasks card. The phone
+  render with tasks had looked right.
+

@@ -18,15 +18,18 @@ the grip.
 ## Changing several at once
 
 Hold a row's name for half a second (or right-click it on a computer, or tap the checkbox icon in the app bar) to
-start selecting. Every row then shows a checkbox; tap names to add or remove them, or tap **Alle** to take every row
-you can select. A bar at the bottom offers what you can do with the selection:
+start selecting. The app bar at the top turns into the selection's bar: **✕** on the left, how many are selected, and
+**Alle** on the right. Nothing on the page moves, so the row you just held stays under your finger. Every row then
+shows a checkbox; tap names to add or remove them, or tap **Alle** to take every row you can select. The field for a
+new entry stays where it is but rests (dimmed) until you are done. A bar at the bottom offers what you can do with the
+selection:
 
 | List | Actions |
 |---|---|
 | Shopping list | **Tag vergeben** — file every selected entry under one tag |
 | Tasks | **Tag vergeben**, or move the selection to **Vor der Reise** or **Während der Reise** |
 
-Only what changes is written, and one **Rückgängig** undoes the whole batch. Tap **✕** in the selection bar to leave
+Only what changes is written, and one **Rückgängig** undoes the whole batch. Tap **✕** in the app bar to leave
 without doing anything.
 
 On the task list, done tasks are folded away and are not part of a selection.
@@ -42,7 +45,8 @@ The inventory has no grip: its groups are each item's *main* tag, so moving rows
 **Als primären Tag setzen** switched on.
 
 **Manage tags** (in the inventory's ⋮ menu) selects the same way too: hold a tag, or tap the checkbox icon beside the
-sheet's ✕, and the bar at the bottom offers **Zusammenführen** once two tags are picked. To change the order of the tags,
+sheet's ✕. The line under the sheet's title then counts the selection, **Alle** appears beside the checkbox icon, and
+the bar at the bottom offers **Zusammenführen** once two tags are picked. Tap the checkbox icon again to leave. To change the order of the tags,
 drag one by the grip at its left edge, the same grip the tasks and the shopping list use. The sheet that browses the
 inventory from a packing list or a template (**Mehr aus dem Inventar…**) heads its groups the way the inventory does,
 with each tag's mark and the number of items under it.
@@ -66,6 +70,17 @@ row is hidden again by deleting it, as before.
 **Gepäck** (a trip's luggage): the rows under *Nicht zugeordnet* select. **In Gepäckstück …** on the bar opens the
 usual "which bag?" picker once and puts every selected row into the bag you choose. Outside a selection, tapping a row
 still opens the picker for that one row.
+
+## Which menu holds what
+
+A **⋮** menu only holds what belongs to the screen it sits on:
+
+- **Packliste**: **Gepäck**, **Auswertung**, **Packen abschliessen**, and *Namen aus dem Inventar* when the inventory
+  has renamed something on the list.
+- **Einkaufen** and **Aufgaben** have no ⋮. Reach the luggage and the analytics through the packing list.
+- **The trip itself**: *Reise-Eigenschaften*, **Reise starten** and **Reise abschliessen** are on the trip list. Hold
+  the trip (or right-click it); the card of the trip you are packing also shows them as buttons. **Reise abschliessen**
+  opens the packing list in its closing pass, where you mark what went unused; **Fertig** there finishes the trip.
 
 ## Single-User and Local Mode
 

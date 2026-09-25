@@ -15,6 +15,7 @@ import PackingListPage from '../PackingListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
+import { tripPath } from '@/router/paths'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
@@ -22,9 +23,13 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+const { route, replaced } = vi.hoisted(() => ({
+  route: { query: {} as Record<string, string>, params: {} },
+  replaced: [] as string[],
+}))
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useRoute: () => ({ query: {}, params: {} }),
+  useRouter: () => ({ push: vi.fn(), replace: (path: string) => replaced.push(path) }),
+  useRoute: () => route,
 }))
 
 /*
@@ -51,14 +56,14 @@ const orchestratorFake = {
   lockHolder: vi.fn(() => null),
 }
 
-function seedTrip(rows: Record<string, unknown>[] = []) {
+function seedTrip(rows: Record<string, unknown>[] = [], status = 'active') {
   const trips = useTripStore()
   trips.applyChange({
     seq: 0,
     table: TABLE.trips,
     id: 't1',
     deleted: false,
-    row: { name: 'Samedan', year: 2026, status: 'active' },
+    row: { name: 'Samedan', year: 2026, status },
   })
   for (const [i, row] of rows.entries()) {
     trips.applyChange({
@@ -91,6 +96,8 @@ beforeEach(() => {
 
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  route.query = {}
+  replaced.length = 0
   tripScreen.loadedTrips.clear()
 })
 
@@ -170,5 +177,50 @@ describe('M4 packing list — an absence it has not read yet (ADR-033, G-7)', ()
     await flushPromises()
 
     expect(page.find('[data-testid="m4-header"]').classes()).not.toContain('collapsed')
+  })
+})
+
+/*
+ * FR-9.3's closing pass has one door since M4's ⋮ gave the trip's lifecycle
+ * steps to M2 (owner, 2026-09-25): M2's *Reise abschliessen*, arriving here as
+ * `?closing=1`. The flag is spent at once, so a reload or a back does not
+ * reopen a pass the user has left.
+ */
+describe('M4 packing list — the closing pass, asked for by M2 (FR-9.3)', () => {
+  it('opens the pass on a running trip and drops the flag from the URL', async () => {
+    seedTrip([{ name: 'Zelt' }])
+    tripScreen.loadedTrips.add('t1')
+    route.query = { closing: '1' }
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-pass-banner"]').exists()).toBe(true)
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+
+  it('opens the list, not a pass, on a trip that is not running', async () => {
+    seedTrip([{ name: 'Zelt' }], 'planning')
+    tripScreen.loadedTrips.add('t1')
+    route.query = { closing: '1' }
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The positive half: the list rendered, it simply is not in the pass.
+    expect(page.find('[data-testid="m4-list-loading"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m4-pass-banner"]').exists()).toBe(false)
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+
+  it('stays the list without the flag', async () => {
+    seedTrip([{ name: 'Zelt' }])
+    tripScreen.loadedTrips.add('t1')
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-pass-banner"]').exists()).toBe(false)
+    expect(replaced).toEqual([])
   })
 })

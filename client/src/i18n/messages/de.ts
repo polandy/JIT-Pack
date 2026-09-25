@@ -259,7 +259,6 @@ export const de: Record<keyof typeof en, string> = {
   'packing.luggage': 'Gepäck',
   'packing.analytics': 'Auswertung',
   'packing.tripViews': 'Ansichten dieser Reise',
-  'packing.archive': 'Reise abschliessen',
 
   // FR-5.10 — Packen abschliessen: was offen bleibt, ist entschieden.
   'packing.closeAction': 'Packen abschliessen',
@@ -335,10 +334,9 @@ export const de: Record<keyof typeof en, string> = {
   'packing.resetSearch': 'Suche löschen',
   'packing.resetAll': 'Suche und Filter zurücksetzen',
 
-  // FR-27.5 — die Abschlusskarte auf einer archivierten Reise.
-  'packing.start': 'Reise starten',
   'packing.startedToast':
     'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
+  // FR-27.5 — die Abschlusskarte auf einer archivierten Reise.
   'packing.tripFinished': 'Reise abgeschlossen',
   'packing.reviewTeaser': 'Zum Beispiel: {names}',
   'packing.reviewTeaserNone': 'Nichts zu prüfen — alle Markierungen sind erledigt.',
@@ -1403,7 +1401,7 @@ export const de: Record<keyof typeof en, string> = {
   'trips.actionShare': 'Teilen',
   'trips.actionClone': 'Reise klonen',
   'trips.actionStart': 'Reise starten',
-  'trips.actionArchive': 'Reise archivieren',
+  'trips.actionArchive': 'Reise abschliessen',
   'trips.actionDelete': 'Reise löschen',
   'trips.deleteTitle': '„{name}“ löschen?',
   'trips.deleteMessage':

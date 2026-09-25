@@ -78,7 +78,6 @@ import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
@@ -92,6 +91,7 @@ import MarkPicker from '@/components/items/MarkPicker.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   inventoryProperties,
@@ -319,6 +319,19 @@ const selectedItems = computed<MasterItem[]>(() =>
 function toggleAll() {
   rows.toggleAll(shownItems.value.map((item) => item.id))
 }
+
+// G-20: the selection's bar is the app bar's while it lasts.
+setHeaderSelection(() =>
+  selecting.value
+    ? {
+        count: selected.value.size,
+        total: shownItems.value.length,
+        testid: 'm9',
+        onExit: endSelecting,
+        onAll: toggleAll,
+      }
+    : null,
+)
 
 /**
  * A tap on a row: while selecting it picks the row, otherwise it opens the
@@ -1204,19 +1217,6 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <IonPage>
     <IonContent ref="content">
-      <!-- FR-24.9: while the mode is on, the bar says what it will act on —
-           above the tools rather than replacing them, so search and the tag
-           chips stay reachable to narrow what „Alle N" takes. -->
-      <SelectionBar
-        v-if="selecting"
-        class="selbar"
-        :count="selected.size"
-        :total="shownItems.length"
-        testid="m9"
-        @exit="endSelecting"
-        @all="toggleAll"
-      />
-
       <!-- FR-24.6: the tools stay while the list moves. -->
       <div
         v-if="!knownEmpty"
@@ -1638,14 +1638,6 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
-/* FR-24.9: the selection's own bar stays at the top while the list scrolls,
-   above the tools (which it covers only while it is there). */
-.selbar {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-
 /* A note, not a row: it reports on what the list does *not* contain, so it
    must not read as one more item in it.
 

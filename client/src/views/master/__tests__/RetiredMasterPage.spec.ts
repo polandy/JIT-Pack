@@ -19,9 +19,14 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { presentToast } from '@/lib/toast'
 import { confirmDestructive, promptText } from '@/lib/confirm'
+import { barCount, barSelection } from '@/__tests__/headerSelection'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/confirm', () => ({
   confirmDestructive: vi.fn().mockResolvedValue(true),
@@ -193,7 +198,6 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
   type Page = ReturnType<typeof mountPage>
   const rowNamed = (page: Page, name: string) =>
     page.findAll('[data-testid="m23-row"]').find((r) => r.text().includes(name))!
-  const count = (page: Page) => page.find('[data-testid="m23-select-count"]').text()
 
   function headerActions(): HeaderAction[] {
     const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
@@ -217,11 +221,11 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     const page = mountPage()
     await flushPromises()
     expect(page.findAll('[data-testid="m23-restore"]')).toHaveLength(3)
-    expect(page.find('[data-testid="m23-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
 
     await pick(page, 'Sonnencreme')
 
-    expect(count(page)).toBe(t('selection.count', { n: 1 }))
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(page.findAll('[data-testid="m23-restore"]')).toHaveLength(0)
     expect(page.find('[data-testid="m23-bulkbar"]').exists()).toBe(true)
     // The gesture itself restored nothing.
@@ -229,11 +233,11 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
 
     await rowNamed(page, 'Zelt').trigger('pointerdown')
     await rowNamed(page, 'Zelt').trigger('click')
-    expect(count(page)).toBe(t('selection.count', { n: 2 }))
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('offers the app bar entry only while there is a row to select', async () => {
-    const page = mountPage()
+    mountPage()
     await flushPromises()
     expect(headerActions().map((a) => a.id)).not.toContain('m23-select')
 
@@ -244,7 +248,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
 
     select.onClick()
     await flushPromises()
-    expect(count(page)).toBe(t('selection.none'))
+    expect(barCount()).toBe(t('selection.none'))
   })
 
   it('restores every free name at once and keeps the colliding row selected', async () => {
@@ -261,7 +265,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     )
     // No prompt per collision: a batch never opens a queue of dialogs.
     expect(promptText).not.toHaveBeenCalled()
-    expect(count(page)).toBe(t('selection.count', { n: 1 }))
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(rowNamed(page, 'Zelt').attributes('data-selected')).toBe('true')
     expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
       `${t('retired.bulkRestored', { n: 2 })} ${t('retired.bulkNameTaken', { n: 1 })}`,
@@ -280,7 +284,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     expect(orchestratorFake.restoreMasterItem.mock.calls.map(([id]) => id)).toEqual([TAKEN])
     expect(promptText).toHaveBeenCalledTimes(1)
     expect(vi.mocked(promptText).mock.calls[0]![0].testid).toBe('m23-name-taken')
-    expect(page.find('[data-testid="m23-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 
   it('ends the mode when every row came back', async () => {
@@ -292,7 +296,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     await page.find('[data-testid="m23-bulk-restore"]').trigger('click')
     await flushPromises()
 
-    expect(page.find('[data-testid="m23-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
     expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
       t('retired.bulkRestored', { n: 2 }),
     )
@@ -319,7 +323,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
       ['i-a', TAKEN].sort(),
     )
     // …and stays, selected, so the user sees which one.
-    expect(count(page)).toBe(t('selection.count', { n: 1 }))
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(rowNamed(page, 'Stirnlampe').attributes('data-selected')).toBe('true')
   })
 
@@ -335,7 +339,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
 
     expect(confirmDestructive).toHaveBeenCalledTimes(1)
     expect(orchestratorFake.deleteMasterItem).not.toHaveBeenCalled()
-    expect(count(page)).toBe(t('selection.count', { n: 2 }))
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
   })
 
   it('asks nothing when every selected row is still used, and says why', async () => {
@@ -359,13 +363,13 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     const page = mountPage()
     await flushPromises()
     await pick(page, 'Sonnencreme')
-    expect(page.find('[data-testid="m23-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
 
     page
       .findComponent({ name: 'IonSegment' })
       .vm.$emit('ionChange', { detail: { value: 'templates' } })
     await flushPromises()
 
-    expect(page.find('[data-testid="m23-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 })

@@ -567,7 +567,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * green screen suites: a route that changes without repainting, and a back
    * chevron that leaves the previous screen on the display.
    */
-  test('E2E-M22-06: the trip editor is reached from M4 and gives the trip back', async ({
+  test('E2E-M22-06: the trip editor is reached from the trip’s menu and gives the trip back', async ({
     page,
   }) => {
     await page.setViewportSize(MOBILE)
@@ -580,8 +580,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('header-title')).toHaveText('Trip properties')
 
     await page.getByTestId('header-back').click()
-    // Back leads to the trip it was opened from — the ADR-011 declared parent,
-    // not whatever the history happens to hold.
+    // Back leads to the trip — the ADR-011 declared parent, not whatever the
+    // history happens to hold: since 2026-09-25 the editor is opened from M2's
+    // menu, and it still gives back the trip rather than the list.
     await expect(page).toHaveURL(new RegExp(`${trip}$`))
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
     // And the head names the trip again rather than the editor it just left.
@@ -897,8 +898,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * it back with four pills; amendment 1 keeps two of them, because a row of
    * four made the two views read once a trip as loud as the two worked in
    * daily. What this pins is what survived all of it: every view named as a
-   * **word**, where you are marked, and the step from a sibling to a sibling
-   * **not** going back through M4 first.
+   * **word**, where you are marked, and every view reachable from every one —
+   * since 2026-09-25 the luggage and the analytics through the packing list,
+   * whose views they are.
    */
   test("E2E-G12-07: the trip's views are named as words, and reachable from each other", async ({
     page,
@@ -953,9 +955,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
 
-    // … and sideways, without the packing list in between: the luggage is
-    // reached from the shopping list, which is what the ⋮ of ADR-050 never
-    // offered — its entries were M4's, so a sibling was two screens away.
+    // … but not sideways into packing's own views (owner, 2026-09-25, ADR-051
+    // amendment 2): a ⋮ acts on the context it sits in, so the shopping list
+    // has none, and the luggage is reached through the packing pill.
+    await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+    await openTripView(page, 'packing')
     await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
     // Standing in a view the row does not otherwise show, it says so: the
@@ -968,6 +972,51 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // And back to the list it all belongs to.
     await openTripView(page, 'packing')
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+
+    // The tasks are a context of their own too: no ⋮ there either, read on a
+    // screen that demonstrably rendered.
+    await openTripView(page, 'tasks')
+    await expect(onVisibleScreen(page, 'm25-segment')).toBeVisible()
+    await expect(page.getByTestId('header-back')).toBeVisible()
+    await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G20-01 (G-20, owner 2026-09-24): a selection wears the app bar, so
+   * starting one moves nothing on the page. The bar that counted it used to be
+   * inserted above the list and pushed every row down — the user lost the row
+   * they had just held. Measured, not eyeballed: the first row's top before
+   * and after, on the shopping list, where the field and its chips also stay.
+   */
+  test('E2E-G20-01: starting a selection moves nothing — the count is in the app bar', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    const live = visiblePage(page)
+    await live.getByTestId('m6-add-input').locator('input').fill('Brot')
+    await live.getByTestId('m6-add-submit').click()
+    const row = live.getByTestId('m6-row').filter({ hasText: 'Brot' })
+    await expect(row).toBeVisible()
+    const before = (await row.boundingBox())!.y
+
+    await page.getByTestId('m6-select').click()
+
+    // The bar is the selection's: its count, „Alle", the way out — and the
+    // page's own controls gone from it.
+    await expect(page.getByTestId('m6-select-count')).toHaveText('Nothing selected')
+    await expect(page.getByTestId('m6-select-all')).toHaveText('All 1')
+    await expect(page.getByTestId('header-back')).toHaveCount(0)
+    await expect(live.getByTestId('m6-row-check-Brot')).toBeVisible()
+    expect((await row.boundingBox())!.y).toBe(before)
+    // The field stays where it was, at rest.
+    await expect(live.getByTestId('m6-add-input')).toBeVisible()
+    await expect(live.getByTestId('m6-composer')).toHaveAttribute('inert', '')
+
+    await page.getByTestId('m6-select-exit').click()
+    await expect(page.getByTestId('header-back')).toBeVisible()
+    await expect(page.getByTestId('m6-select-count')).toHaveCount(0)
+    expect((await row.boundingBox())!.y).toBe(before)
   })
 
   /*

@@ -29,13 +29,13 @@ import { computed, ref, watch } from 'vue'
 import BulkBar from '@/components/global/BulkBar.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useDragToGroup } from '@/composables/useDragToGroup'
 import { useRowSelection } from '@/composables/useRowSelection'
 import { searchMatches } from '@/domain/search'
+import { selectionLabel } from '@/lib/selectionLabel'
 import { reorderTarget } from '@/domain/tags'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
@@ -175,9 +175,24 @@ function toggleAll(): void {
         close-testid="m9-tags-close"
         @close="emit('dismiss')"
       >
+        <!-- G-20 in a sheet, which has no app bar: its head is the bar. The
+             line under the title counts the selection, „Alle N" joins the
+             checkbox — and nothing under the head moves. -->
+        <template v-if="selecting" #meta>
+          <span data-testid="m9-tags-select-count">{{ selectionLabel(pickedTags.length) }}</span>
+        </template>
         <!-- The same way in M9's app bar offers: a checkbox icon, which
              leaves the mode again while it is on. -->
         <template v-if="tags.length > 1" #trail>
+          <button
+            v-if="selecting"
+            type="button"
+            class="select-all"
+            data-testid="m9-tags-select-all"
+            @click="toggleAll()"
+          >
+            {{ t('selection.all', { n: rows.length }) }}
+          </button>
           <button
             type="button"
             class="select"
@@ -201,16 +216,6 @@ function toggleAll(): void {
           autocomplete="off"
         />
       </div>
-
-      <SelectionBar
-        v-if="selecting"
-        class="selbar"
-        :count="pickedTags.length"
-        :total="rows.length"
-        testid="m9-tags"
-        @exit="selection.end()"
-        @all="toggleAll()"
-      />
 
       <!-- The axis is a drop target only while it is whole: a search narrows
            it to rows eleven apart, and a gap between them is no place. -->
@@ -389,10 +394,15 @@ function toggleAll(): void {
   border-color: var(--jp-action);
 }
 
-/* The bar stands in the sheet's own inset, not edge to edge like a page's. */
-.selbar {
-  margin-top: 10px;
-  border-radius: var(--jp-r-sm);
+.select-all {
+  margin-inline-end: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
 }
 
 /* A sheet has no `fixed` slot to float the bar in: it rides the foot of the

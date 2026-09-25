@@ -55,7 +55,6 @@ import BulkBar from '@/components/global/BulkBar.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
@@ -64,6 +63,7 @@ import TripNoteSheet from '@/components/trips/TripNoteSheet.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
@@ -278,6 +278,18 @@ setHeaderActions(() => {
   return offer || selection.selecting.value ? [select] : []
 })
 
+setHeaderSelection(() =>
+  selection.selecting.value
+    ? {
+        count: selectedTasks.value.length,
+        total: selectable.value.length,
+        testid: 'm25',
+        onExit: () => selection.end(),
+        onAll: () => selection.toggleAll(selectable.value.map((task) => task.id)),
+      }
+    : null,
+)
+
 const bulkTagOpen = ref(false)
 
 /** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
@@ -404,19 +416,11 @@ function onSheetRemove() {
         </IonSegmentButton>
       </IonSegment>
 
-      <!-- While selecting, the bar replaces the filter chip and the composers —
-           M6's rule: typing a new task mid-batch is a different act. -->
-      <SelectionBar
-        v-if="selection.selecting.value"
-        :count="selectedTasks.length"
-        :total="selectable.length"
-        testid="m25"
-        @exit="selection.end()"
-        @all="selection.toggleAll(selectable.map((task) => task.id))"
-      />
-
+      <!-- G-20: the selection's bar is the app bar's, so the filter chip
+           stays where it is — and stays a filter, since narrowing to one's
+           own tasks is a way to choose them. -->
       <IonChip
-        v-else-if="segment === TASKS_SEGMENT && assignable"
+        v-if="segment === TASKS_SEGMENT && assignable"
         :outline="!mineOnly"
         class="mine"
         data-testid="m25-mine"
@@ -459,14 +463,22 @@ function onSheetRemove() {
               />
             </ListGroup>
           </IonList>
-          <TripTodoList
-            v-if="!selection.selecting.value"
-            :trip-id="tripId"
-            :tasks="[]"
-            :composer-phase="TASK_PHASE_BEFORE"
-            :composer-label="t('tasks.addBefore')"
-            @added="acts.added"
-          />
+          <!-- G-20: in place while selecting, at rest — M6's rule: typing a
+               new task mid-batch is a different act. -->
+          <div
+            class="phase-composer"
+            :class="{ resting: selection.selecting.value }"
+            :inert="selection.selecting.value || undefined"
+            data-testid="m25-composer-before"
+          >
+            <TripTodoList
+              :trip-id="tripId"
+              :tasks="[]"
+              :composer-phase="TASK_PHASE_BEFORE"
+              :composer-label="t('tasks.addBefore')"
+              @added="acts.added"
+            />
+          </div>
         </section>
 
         <section class="phase" data-testid="m25-during">
@@ -500,14 +512,22 @@ function onSheetRemove() {
               />
             </ListGroup>
           </IonList>
-          <TripTodoList
-            v-if="!selection.selecting.value"
-            :trip-id="tripId"
-            :tasks="[]"
-            :composer-phase="TASK_PHASE_DURING"
-            :composer-label="t('tasks.addDuring')"
-            @added="acts.added"
-          />
+          <!-- G-20: in place while selecting, at rest — M6's rule: typing a
+               new task mid-batch is a different act. -->
+          <div
+            class="phase-composer"
+            :class="{ resting: selection.selecting.value }"
+            :inert="selection.selecting.value || undefined"
+            data-testid="m25-composer-during"
+          >
+            <TripTodoList
+              :trip-id="tripId"
+              :tasks="[]"
+              :composer-phase="TASK_PHASE_DURING"
+              :composer-label="t('tasks.addDuring')"
+              @added="acts.added"
+            />
+          </div>
         </section>
       </template>
 
@@ -639,5 +659,10 @@ ion-segment {
 /* Clear of the bulk bar, like M6's list is of its FAB. */
 .tasks-content.with-bulkbar {
   --padding-bottom: 96px;
+}
+
+/* G-20: at rest while a selection is on — in place, so nothing moves. */
+.phase-composer.resting {
+  opacity: 0.45;
 }
 </style>

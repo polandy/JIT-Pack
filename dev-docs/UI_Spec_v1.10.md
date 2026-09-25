@@ -7,6 +7,11 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-25 — **G-20** added: a selection wears the app bar — ✕, the count and *„Alle N"* replace back, the cluster,
+  the ⋮ and the gear while it lasts, and nothing on the page moves (owner, 2026-09-24). **G-12**: a ⋮ holds its own
+  context only — *Gepäck* and *Auswertung* only on packing's views, none on M6 or M25 (ADR-051 amendment 2); the
+  trip's properties and lifecycle steps left M4's ⋮ for **M2**, whose *„Reise abschliessen"* opens M4's closing pass.
+  **M4**: the figures are a card in the page gutter (G-14). **M10**: a dependency's name links to that item.
 * 2026-09-24 — **M2**: a trip row's actions open on a **hold or a right-click** as an action sheet, the way M4's and
   M7's rows do; the swipe that carried them is gone. Same actions, same conditions (see M2 *Actions*).
 * 2026-09-21 — **M1**: once the packing is finished the hero drops *„Packen abgeschlossen“* for the phase in the date
@@ -484,6 +489,12 @@ These patterns apply to every screen and are specified once.
   switcher under the page head, and **two of them came back on 2026-09-20** (ADR-051 amendment 1): *Gepäck* and
   *Auswertung* are ⋮ entries again, contributed by the frame rather than by the page, and they **head** the sheet —
   where you can go first, what you do to the trip after. The page's own entries keep their order among themselves.
+  **A ⋮ holds its own context and nothing else (owner, 2026-09-25, ADR-051 amendment 2).** *Gepäck* and *Auswertung*
+  are packing's, so the frame offers them only on packing's views (M4, M11, M12) — **M6 and M25 have no ⋮ at all**,
+  and the packing pill is the way from there. And M4's ⋮ gave up what changes the whole trip rather than the packing:
+  *„Reise-Eigenschaften"*, *„Reise starten"* and *„Reise abschliessen"* are **M2's alone** (the row's hold menu and the
+  hero's buttons). What M4's ⋮ keeps is packing's: the two views, *„Packen abschliessen"* (FR-5.10) and *„Namen aus dem
+  Inventar"* (FR-27.16).
   **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
   router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
   then renders and responds to every tap while being absent from the accessibility tree.
@@ -788,6 +799,19 @@ These patterns apply to every screen and are specified once.
   reports that it did nothing — M19's clone of a trip that has since been deleted writes nothing, navigates nowhere, and
   leaves a screen that must stay usable. Sites today: M3 step 4, M19's clone. Not a rule for a control that stays on its
   screen — a quick-add writes a row and the screen is still the answer, and pressing it twice means two rows on purpose.
+* **G-20 (A Selection Wears The App Bar — new 2026-09-25, owner 2026-09-24):** While a list is selecting
+  (`useRowSelection`, ADR-075), the app bar **is** the selection's bar: ✕ on the left, *„Nichts ausgewählt"* /
+  *„N ausgewählt"* beside it, *„Alle N"* on the right, and the sync glyph (G-2, unconditional). Back, the G-12
+  cluster, the ⋮ and the gear give way, since each would leave or change the screen under a half-made batch. The page
+  registers the selection (`setHeaderSelection`, keyed by route path like the cluster); the bar renders it. **Why the
+  bar and not the page:** the counting bar used to be inserted into the list's flow on entry, above the rows, and every
+  row under it moved down — the user lost the row they had just held (M6, M25, M9; M11 and M23 alike). G-19's rule for
+  banners, applied to a bar the user summons: **starting a selection moves nothing on the page.** The tools above a
+  list stay where they are: a **filter** (M9's search and tag chips, M25's *Meine*) stays live, because narrowing is a
+  way to choose; an **input** (M6's field and its tag chips, M25's composers) stays in place **at rest** — dimmed and
+  `inert` — because typing a new entry mid-batch is a different act. The actions stay in the floating bottom bar. A
+  **sheet** has no app bar (the tag manager, M9): there the sheet's head is the bar — the line under the title counts
+  the selection, *„Alle N"* joins the checkbox icon, and the checkbox icon, lit while the mode is on, is the way out.
 * **G-19 (A Banner That Can Arrive Never Moves The Page — new 2026-09-13, ADR-060):** The frame's banners sit under the
   app bar, and which of the two kinds a banner is decides where it lives. A banner that can appear **while the screen is
   in use** — FR-19.7's update offer, flipped by a worker that finished installing — renders in the frame's own layer
@@ -1005,7 +1029,12 @@ These patterns apply to every screen and are specified once.
 * **Actions:** Tap → M4; FAB "New trip" → M3; **hold or right-click a trip row → its row menu**, an action sheet
   headed by the trip's name: *Export* (Addendum FR-18.3), *Share* (FR-4.5), *Clone* on an archived trip only (FR-12.1),
   the one lifecycle step the trip's status offers — *Start* on a planned trip, *Archive* on a running one (FR-9.1/9.2) —
-  and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series header → M16. In Single-User Mode (Addendum
+  and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series header → M16. **Since 2026-09-25 the menu
+  leads with *„Reise-Eigenschaften"*** (FR-2.7, → M22), and the trip's properties and its lifecycle steps are **M2's
+  alone** — M4's ⋮ holds packing's entries only (G-12). Starting says what it changes in a toast (FR-9.1: later
+  additions count as forgotten). The running trip's step reads *„Reise abschliessen"* and **opens M4 in its closing
+  pass** (FR-9.3, `?closing=1`) instead of archiving here: the pass is what archives, with *Fertig*, and archiving
+  straight from M2 had skipped it. (E2E-M2-34) In Single-User Mode (Addendum
   FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with. The tap that
   ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or right-click, and
   states the same list as its own action row besides.
@@ -1157,7 +1186,10 @@ These patterns apply to every screen and are specified once.
     beside it, FR-7.6), and — once the trip has a task — **the tasks' own figure** as the share's pair (FR-7.4, every
     task of the trip since FR-7.6): same ring, *„1/4 Aufgaben"*, *„3 offen"*, a
     track; side by side, or on two rows where the line is too narrow for both sentences (the line's height allows
-    for it). A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else. It stays
+    for it). **The figures are a card** (`.jp-card`, 2026-09-25, G-14): the line itself is page-coloured with the
+    page's gutter, so the card has the same radius and width as the cards below it — it was the one full-width,
+    square-cornered band on the screen. A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else.
+    It stays
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
     hides and any upward scroll brings it back — and so does a list the hiding itself made fit its screen (fixed
     2026-09-18): with nothing left to scroll, no upward gesture could, and the view switcher above stayed gone.
@@ -1541,24 +1573,24 @@ These patterns apply to every screen and are specified once.
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.
-  * **Packen abschliessen (FR-5.10 — built 2026-09-20).** A ⋮ entry, above *Reise starten* / *Reise abschliessen* and
-    worded to stay one word away from the latter: finishing the packing is not finishing the trip. Offered while the
-    trip is not archived and its packing is open, a list with nothing left open included. It asks once, in **the app's
-    own sheet** (U-3's chrome, head + lead + the exceptions on the sunken plane + one primary): the count of what is
-    about to be left behind, then how many rows are started, due on departure day (FR-5.1) or held by somebody else
-    (G-3), each on its own line. **When the last open row is packed, the step appears in the *„Alles erledigt"*
-    empty state** the list shows at that moment (FR-25.11e), and the sheet opens from it, headed *„Das war das letzte
-    offene Packelement."* There rather than in a band of its own, because nothing may enter the flow above a list
-    somebody is tapping (ADR-060) and an unasked-for modal takes the screen from the tap that follows it — both
-    measured, at seventeen and four e2e flows. Once per trip per visit, on the transition only, never over a list that
-    has not arrived, and gone again as soon as the list reopens. The snackbar's one *Rückgängig* takes the whole batch
-    back, the stamp with it (FR-25.31). A row
-    nothing was packed of becomes FR-5.5's *weggelassen* with its claim released; a half-packed row keeps what is in
-    the bag, its amount shrinking to the count (variant P1). Afterwards **M4 leads with a card** naming the moment and
-    how many rows are *nicht mitgenommen*, carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a
-    single row still comes back through the *Erledigte* reveal. The list stays workable: the composer is where it was,
-    and while the packing is closed what is typed into it lands **packed**, its hint saying so instead of FR-9.1's.
-    (E2E-M4-139, E2E-M4-140, E2E-M4-141, E2E-M4-142, E2E-M4-143)
+  * **Packen abschliessen (FR-5.10 — built 2026-09-20).** A ⋮ entry — above *Reise starten* / *Reise abschliessen* until
+    2026-09-25, when those two left for M2 (G-12) — and worded to stay one word away from the latter: finishing the
+    packing is not finishing the trip. Offered while the trip is not archived and its packing is open, a list with
+    nothing left open included. It asks once, in **the app's own sheet** (U-3's chrome, head + lead + the exceptions on
+    the sunken plane + one primary): the count of what is about to be left behind, then how many rows are started, due
+    on departure day (FR-5.1) or held by somebody else (G-3), each on its own line. **When the last open row is packed,
+    the step appears in the *„Alles erledigt"* empty state** the list shows at that moment (FR-25.11e), and the sheet
+    opens from it, headed *„Das war das letzte offene Packelement."* There rather than in a band of its own, because
+    nothing may enter the flow above a list somebody is tapping (ADR-060) and an unasked-for modal takes the screen from
+    the tap that follows it — both measured, at seventeen and four e2e flows. Once per trip per visit, on the transition
+    only, never over a list that has not arrived, and gone again as soon as the list reopens. The snackbar's one
+    *Rückgängig* takes the whole batch back, the stamp with it (FR-25.31). A row nothing was packed of becomes FR-5.5's
+    *weggelassen* with its claim released; a half-packed row keeps what is in the bag, its amount shrinking to the count
+    (variant P1). Afterwards **M4 leads with a card** naming the moment and how many rows are *nicht mitgenommen*,
+    carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a single row still comes back through the
+    *Erledigte* reveal. The list stays workable: the composer is where it was, and while the packing is closed what is
+    typed into it lands **packed**, its hint saying so instead of FR-9.1's. (E2E-M4-139, E2E-M4-140, E2E-M4-141,
+    E2E-M4-142, E2E-M4-143)
   * **Packed or forgotten (FR-5.11 — built 2026-09-21).** Once the packing is closed the composer carries a
     two-way choice above its hint (`role=radiogroup`): ***Eingepackt*** — *stand nicht auf der Liste* — and
     ***Vergessen*** — *blieb zuhause*. *Eingepackt* is selected each time the composer opens and is exactly the add
@@ -1784,7 +1816,9 @@ These patterns apply to every screen and are specified once.
   inline **selection**, reaching every own entry on the open tab, tagged or not; unlike M9's, this selection offers a
   *retag*, so an already-tagged entry is as selectable as an untagged one. Entering it replaces the field and the chip
   row with a **selbar** — a ✕ to leave, *„Nichts ausgewählt"* at zero and *„N ausgewählt"* from one (the same two-form
-  split as M9's own bar, since one entry is not a plural), and *„Alle N"* over the open tab's own entries — and each
+  split as M9's own bar, since one entry is not a plural), and *„Alle N"* over the open tab's own entries — **in the
+  app bar since 2026-09-25 (G-20), and the field and chip row stay in place at rest rather than being replaced** — and
+  each
   row grows a leading checkbox (a dashed, dimmed slot for a packing row's projection, which never carries a tag and
   is named once below the list rather than repeated per row: *„Packlisten-Positionen tragen nie ein Tag — nicht
   wählbar."*); the row's own tap toggles it instead of opening the entry sheet. A row selected by the long press that
@@ -1796,7 +1830,7 @@ These patterns apply to every screen and are specified once.
   the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under the tag it carried before.
   The header's icon is offered only while the open tab holds an own entry to select. Mockup: 2026-09-22 review.
   **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the keys
-  and the hold, `SelectBox`, `SelectionBar` and `BulkBar` draw the box, the bar and the floating bar, and
+  and the hold, `SelectBox` and `BulkBar` draw the box and the floating bar (the count is the app bar's, G-20), and
   `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart. (E2E-M6-32)
   M9 renders the same pieces since 2026-09-24, without the grip (see M9); so do M11's unassigned bucket and M23 (see
   there), flat lists with neither grip nor headings.
@@ -2084,12 +2118,12 @@ These patterns apply to every screen and are specified once.
   right-click) starts the mode with that row picked, besides the app bar's glyph; a tap opens the item outside the mode
   and picks the row inside it — the whole row is the surface, since M9 has no grip to share it with. The row navigates
   in code rather than through a router link, so the release that ends a hold never opens M10. The bars, the box and the
-  headings are the shared components (`SelectionBar`, `BulkBar` with *Stilllegen* as its `danger` button, `SelectBox`,
-  `ListGroup`); the selection bar stays pinned above the tools, as it did. **M9 does not drag**, by decision: its groups
-  are the *primary* tag, so a drop would have to decide silently what happens to the tag the row leaves, and neither the
-  alphabetical order nor a search has a group to drop on — *Tag geben* with its refiling switch stays the way to move
-  rows. *„Alle N"* compares the rows on screen with the chosen ones rather than counting, so a chosen row the filter now
-  hides does not make it clear instead of take. (E2E-M9-31)
+  headings are the shared components (`BulkBar` with *Stilllegen* as its `danger` button, `SelectBox`, `ListGroup`);
+  the count, ✕ and *„Alle N"* are the app bar's since 2026-09-25 (G-20), and the tools stay live beneath it. **M9 does
+  not drag**, by decision: its groups are the *primary* tag, so a drop would have to decide silently what happens to the
+  tag the row leaves, and neither the alphabetical order nor a search has a group to drop on — *Tag geben* with its
+  refiling switch stays the way to move rows. *„Alle N"* compares the rows on screen with the chosen ones rather than
+  counting, so a chosen row the filter now hides does not make it clear instead of take. (E2E-M9-31)
 * **The hidden items are named (2026-09-15, FR-24.3):** below the last row, M9 says how many items are **retired**
   and the sentence is the way to M23. A retired item stays out of the list by design (ADR-032), but until now nothing
   on the screen admitted the hidden ones existed, so the head's „N Artikel" read as the whole collection and M23 was
@@ -2123,9 +2157,9 @@ These patterns apply to every screen and are specified once.
   names for one idea are rarely one query — and after the merge the manager stays open with the mode on, the merged
   tags simply gone from the axis the selection is read against. **Since 2026-09-24 (ADR-075) the manager selects like
   the lists:** a hold or right-click on a tag row starts the mode with that row picked; the text entrance became a
-  checkbox icon in the sheet's head (lit while the mode is on, a second tap leaves it); the bar is `SelectionBar`
-  (*✕*, *„N ausgewählt"*, *„Alle N"* over the rows the search leaves) and *„Zusammenführen"* sits in `BulkBar` at the
-  sheet's foot, dimmed under two.
+  checkbox icon in the sheet's head (lit while the mode is on, a second tap leaves it); since 2026-09-25 the head is the
+  bar (G-20) — the line under the title reads *„N ausgewählt"*, *„Alle N"* over the rows the search leaves joins the
+  checkbox icon — and *„Zusammenführen"* sits in `BulkBar` at the sheet's foot, dimmed under two.
 * **A tag carries a mark (2026-09-19, FR-24.13).** The tag chips, the group headings, the filter sheet and the give/take
   sheet show it beside the tag's name, rendered through `ItemMark` (G-15). The tag manager gives every row a **mark
   control** before the name — the mark, or a dashed empty slot — which opens the item mark's own picker (FR-28.2) over
@@ -2252,7 +2286,9 @@ These patterns apply to every screen and are specified once.
   *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **The two lists are symmetric since 2026-09-12:**
   *Begleitartikel* was read-only and sat below the delete card; it now carries the same add-picker, mode toggle and
   removal as *„Hängt ab von"* and sits directly beneath it, because an editable section under the destructive one is
-  read as part of it. **Since 2026-09-18 the companion picker creates what it did not find** (FR-24.11): a query no
+  read as part of it. **Since 2026-09-25 each name in either list is a link to that item's M10** (owner, 2026-09-24):
+  the name alone, in the action role, not the whole row, because the row also holds the mode select and the remove
+  button. **Since 2026-09-18 the companion picker creates what it did not find** (FR-24.11): a query no
   active item carries as its exact name shows M9's dashed offer above the hits — *„‚{Name}' anlegen"*, hint *„Neuer
   Artikel — hängt danach von {Name} ab"* — and opens M9's creation sheet (name + tags, this item's tags offered
   first). *„Anlegen"* writes the item and the companion row together and leaves the user here, picker closed; a
@@ -2311,8 +2347,8 @@ These patterns apply to every screen and are specified once.
   packing (FR-25.5).
 * **Several at once (2026-09-24, FR-10.2, ADR-075 amended):** the bucket selects the way M6, M25 and M9 do. A **hold**
   on an unassigned row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox
-  glyph — offered only while the bucket holds a row. While selecting, the shared `SelectionBar` (✕, count, *„Alle N"*
-  over the bucket) sits pinned at the top, each row carries a `SelectBox` in place of its chevron, a tap picks, and the
+  glyph — offered only while the bucket holds a row. While selecting, the app bar carries ✕, the count and *„Alle N"*
+  over the bucket (G-20), each row carries a `SelectBox` in place of its chevron, a tap picks, and the
   ＋ FAB gives way to a `BulkBar` with one act, **In Gepäckstück …**. It opens the same picker once, its subject line
   reading *„N Positionen"*, and the chosen container takes every selected row; the mode ends with it. No grip, no drag
   and no headings — the bucket is one flat run. Assigned positions are not selectable here: they are not rows on M11.
@@ -2840,8 +2876,8 @@ token would prove nothing there is anything to prove.
   carries M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
 * **Several at once (2026-09-24, FR-24.3, ADR-075 amended):** M23 selects the way M6, M25, M9 and M11 do. A **hold** on
   a row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox glyph — offered
-  while the segment shown has a row. While selecting, the shared `SelectionBar` (✕, count, *„Alle N"* over the segment
-  shown) is pinned at the top, each row carries a `SelectBox` and **its own two buttons step aside**, a tap picks, and a
+  while the segment shown has a row. While selecting, the app bar carries ✕, the count and *„Alle N"* over the segment
+  shown (G-20), each row carries a `SelectBox` and **its own two buttons step aside**, a tap picks, and a
   `BulkBar` offers **Wiederherstellen** and **Löschen** (the `danger` button). Outside the mode a tap on the row does
   nothing, as before. Switching the segment ends the selection — it belongs to the list it was made in.
   * *Wiederherstellen* restores every selected row whose name is free, in one go, and **leaves the colliding rows
@@ -2935,13 +2971,14 @@ token would prove nothing there is anything to prove.
     what else its row still owes.
   * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
 * **Several tasks at once (FR-7.8, built 2026-09-24 — owner request: the tasks should behave like the shopping list,
-  ADR-075).** M6's selection, drawn by the same components (`useRowSelection`, `SelectBox`, `SelectionBar`,
-  `BulkBar`): a **hold on a task's words** (`useLongPress`'s 500 ms and 8 px, so a finger can still scroll), a
+  ADR-075).** M6's selection, drawn by the same components (`useRowSelection`, `SelectBox`, `BulkBar`, and the app
+  bar's G-20 mode): a **hold on a task's words** (`useLongPress`'s 500 ms and 8 px, so a finger can still scroll), a
   right-click, or the app bar's own icon (`m25-select`, offered while an open task is shown) enters it. While
   selecting, the selection box stands where the grip was, the row's seat, ✕ and tick step aside, a tap on the words
-  toggles the row instead of opening its sheet, and the *Meine* chip and both composers give way to the selection bar
-  (✕, *„N ausgewählt"*, *„Alle N"*). *„Alle N"* takes every **open** task shown, in both phases and of both kinds; a
-  resolved one is folded away and not in it. The floating bar offers **Tag vergeben** — the task sheet's own tag list,
+  toggles the row instead of opening its sheet, and the app bar carries ✕, *„N ausgewählt"* and *„Alle N"* (G-20):
+  since 2026-09-25 the *Meine* chip stays live and both composers stay in place at rest, rather than giving way.
+  *„Alle N"* takes every **open** task shown, in both phases and of both kinds; a resolved one is folded away and not
+  in it. The floating bar offers **Tag vergeben** — the task sheet's own tag list,
   titled for the batch — and **Vor der Reise** / **Während der Reise**. Only what changes is written, one snackbar
   undo takes the whole batch back, and the mode ends with the batch; a batch that changes nothing says so instead.
   Switching to *Notizen* ends the mode. M4's window has no selection: a hold there does nothing.

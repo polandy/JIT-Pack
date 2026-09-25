@@ -5792,7 +5792,11 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     the user is thinking about the whole trip at once. **Packed rows only, deliberately:** an
     unpacked row is either FR-5.5-skipped — already a judgement, and the opposite one — or it
     was forgotten, and neither is *unused*. The pass is skippable and produces no flags when
-    skipped; it must never become a gate in front of archiving.
+    skipped; it must never become a gate in front of archiving. **Its door is M2's since
+    2026-09-25** (owner: a ⋮ holds its own context, and the trip's lifecycle steps are the
+    trip's, not the packing's): *„Reise abschliessen"* on the trip's row or hero opens M4 in
+    the pass (`?closing=1`). Before, M4's ⋮ was the door and M2's own *archive* skipped the
+    pass altogether — so the move also closed a way round it.
   * **The window stays open on the archived trip.** FR-9.1's `active`-only gate is dropped for
     *unused*: the flag stays settable and revocable on an archived trip, because that is where M14 shows what it did.
     *Missing* keeps its automatic stamp and needs no manual path afterwards — a thing bought after the trip is not a

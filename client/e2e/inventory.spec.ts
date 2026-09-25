@@ -279,8 +279,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await list.getByTestId('m9-tag-chip-Diverses').click()
     await expect(list.getByTestId('m9-row')).toHaveCount(3)
     await page.getByTestId('m9-select').click()
-    await list.getByTestId('m9-select-all').click()
-    await expect(list.getByTestId('m9-select-count')).toContainText('3')
+    await page.getByTestId('m9-select-all').click()
+    await expect(page.getByTestId('m9-select-count')).toContainText('3')
 
     await list.getByTestId('m9-bulk-give').click()
     await expect(page.getByTestId('m9-bulk-tag-sheet')).toHaveAttribute('data-presented', 'true')
@@ -294,7 +294,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // which is the difference between *moving* an item and *retagging* it.
     await expect(list.getByTestId('m9-row')).toHaveCount(3)
     // ...and the mode ended with the batch.
-    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m9-selbar')).toHaveCount(0)
 
     // With the filter dropped, all four rows are under one heading: the three
     // are filed under Sonnenschutz now, so „Diverses" heads nothing and is
@@ -344,7 +344,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-select').click()
     await list.getByTestId('m9-row-check-Ersatzakku').click()
     await list.getByTestId('m9-row-check-Ladegeraet').click()
-    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+    await expect(page.getByTestId('m9-select-count')).toContainText('2')
 
     await list.getByTestId('m9-bulk-more').click()
     await page.locator('ion-action-sheet').getByText('Depends on').click()
@@ -356,7 +356,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-bulk-dep-pick-Kamera').click()
 
     // The mode ends with the batch, exactly as a tag batch does.
-    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m9-selbar')).toHaveCount(0)
     await writesLanded(page)
 
     // Both rows now depend on the camera, in the mode the sheet was set to.
@@ -381,7 +381,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
       await page.locator('ion-action-sheet').getByText('Companion item').click()
       await page.getByTestId('m9-bulk-dep-search').fill(companion)
       await page.getByTestId(`m9-bulk-dep-pick-${companion}`).click()
-      await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+      await expect(page.getByTestId('m9-selbar')).toHaveCount(0)
       await writesLanded(page)
     }
 
@@ -431,21 +431,21 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-jump-open').filter({ hasText: 'Foto' })).toContainText('2')
 
     await row('Kamera').click({ button: 'right' })
-    await expect(list.getByTestId('m9-selbar')).toBeVisible()
-    await expect(list.getByTestId('m9-select-count')).toHaveText('One selected')
+    await expect(page.getByTestId('m9-selbar')).toBeVisible()
+    await expect(page.getByTestId('m9-select-count')).toHaveText('One selected')
     await expect(list.getByTestId('m9-row-check-Kamera')).toHaveClass(/\bon\b/)
     await expect(page.getByTestId('header-title')).not.toHaveText('Kamera')
 
     // The very next tap is a tap, not the hold's ghost click.
     await row('Zelt').click()
-    await expect(list.getByTestId('m9-select-count')).toHaveText('2 selected')
+    await expect(page.getByTestId('m9-select-count')).toHaveText('2 selected')
     await row('Kamera').click()
-    await expect(list.getByTestId('m9-select-count')).toHaveText('One selected')
+    await expect(page.getByTestId('m9-select-count')).toHaveText('One selected')
     await expect(list.getByTestId('m9-row-check-Kamera')).not.toHaveClass(/\bon\b/)
     await expect(list.getByTestId('m9-bulkbar')).toBeVisible()
 
-    await list.getByTestId('m9-select-exit').click()
-    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await page.getByTestId('m9-select-exit').click()
+    await expect(page.getByTestId('m9-selbar')).toHaveCount(0)
     await row('Stativ').click()
     await expect(page.getByTestId('header-title')).toHaveText('Stativ')
     await backToInventory(page)
@@ -671,10 +671,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await backToInventory(page)
 
     await openTagManager(page)
-    await expect(page.getByTestId('m9-tags-selbar')).toHaveCount(0)
+    await expect(page.getByTestId('m9-tags-select-count')).toHaveCount(0)
     await page.getByTestId('m9-tag-rename-Foto').click({ button: 'right' })
 
-    await expect(page.getByTestId('m9-tags-selbar')).toBeVisible()
+    // G-20 in a sheet: the head's line under the title is the count.
     await expect(page.getByTestId('m9-tags-select-count')).toHaveText('One selected')
     await expect(page.getByTestId('m9-tag-row-Foto')).toHaveAttribute('data-picked', 'true')
     // One tag is a selection on its way to two: the bar is there, the merge
@@ -685,9 +685,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.getByTestId('m9-tags-select-count')).toHaveText('2 selected')
     await expect(page.getByTestId('m9-tags-merge-many')).toBeEnabled()
 
-    // Leaving the mode gives the rows their acts back.
-    await page.getByTestId('m9-tags-select-exit').click()
-    await expect(page.getByTestId('m9-tags-selbar')).toHaveCount(0)
+    // Leaving the mode — the head's checkbox, lit while it is on — gives the
+    // rows their acts back.
+    await page.getByTestId('m9-tags-select').click()
+    await expect(page.getByTestId('m9-tags-select-count')).toHaveCount(0)
     await expect(page.getByTestId('m9-tag-rename-Foto')).toBeVisible()
   })
 
@@ -791,7 +792,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-select').click()
     await list.getByTestId('m9-row-check-Stirnlampe').click()
     await list.getByTestId('m9-row-check-Stirnlampe Petzl').click()
-    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+    await expect(page.getByTestId('m9-select-count')).toContainText('2')
 
     await list.getByTestId('m9-bulk-more').click()
     await page.locator('ion-action-sheet').getByText('Merge').click()
@@ -1345,6 +1346,34 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     await visiblePage(page).getByTestId('m10-dependency-cancel').click()
     await expect(visiblePage(page).getByTestId('m10-dependency-mode-Ersatzakku')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+  })
+
+  /*
+   * E2E-M10-31 (FR-20.1, owner 2026-09-24): a name in either list is the way
+   * to that item. Inspecting a dependent meant finding it again by hand in
+   * the inventory; the name is a link now, and only the name — the row's
+   * mode select and remove button must not navigate.
+   */
+  test('E2E-M10-31: a dependency’s name leads to that item, from either list', async ({ page }) => {
+    test.slow() // both items are built through M10's own form (§2.4)
+
+    await createItem(page, 'Kamera')
+    await backToInventory(page)
+    await createItem(page, 'Ersatzakku')
+    await visiblePage(page).getByTestId('m10-add-dependency').click()
+    await visiblePage(page).getByTestId('m10-dependency-main-Kamera').click()
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
+    await writesLanded(page)
+
+    // „Hängt ab von" → the main item's own editor, rendered, not only routed.
+    await visiblePage(page).getByTestId('m10-dependency-open-Kamera').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Kamera')
+    await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+
+    // And back the other way: „Begleitartikel" → the dependent.
+    await visiblePage(page).getByTestId('m10-companion-open-Ersatzakku').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Ersatzakku')
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
   })
 
   /*

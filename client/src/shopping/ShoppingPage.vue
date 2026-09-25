@@ -46,12 +46,12 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
-import SelectionBar from '@/components/global/SelectionBar.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useRowSelection } from '@/composables/useRowSelection'
@@ -205,6 +205,18 @@ const endSelecting = selection.end
 function toggleAllSelected() {
   selection.toggleAll(ownOpenLines.value.map((line) => line.key))
 }
+
+setHeaderSelection(() =>
+  selecting.value
+    ? {
+        count: selected.value.size,
+        total: ownOpenLines.value.length,
+        testid: 'm6',
+        onExit: endSelecting,
+        onAll: toggleAllSelected,
+      }
+    : null,
+)
 
 /** Not selecting → a tap on an own entry's name opens its sheet; selecting → it toggles the row. */
 function onRowClick(line: ShoppingLine) {
@@ -465,7 +477,17 @@ setHeaderTitle(
         </IonSegmentButton>
       </IonSegment>
 
-      <template v-if="!selecting">
+      <!-- G-20: the add row and its chips stay where they are while a
+           selection is on — the selection's bar is the app bar's, so nothing
+           under the finger moves — but they rest: typing a new entry
+           mid-batch is a different act, and a chip here only files the
+           next entry. -->
+      <div
+        class="composer"
+        :class="{ resting: selecting }"
+        :inert="selecting || undefined"
+        data-testid="m6-composer"
+      >
         <form class="add" data-testid="m6-add" @submit.prevent="addEntry">
           <IonInput
             ref="field"
@@ -510,18 +532,7 @@ setHeaderTitle(
             {{ t('shopping.tagAdd') }}
           </button>
         </div>
-      </template>
-
-      <!-- FR-30.9: while a selection is on, it replaces the add row and the
-           chips — typing a new entry mid-batch is a different act. -->
-      <SelectionBar
-        v-else
-        :count="selected.size"
-        :total="ownOpenLines.length"
-        testid="m6"
-        @exit="endSelecting"
-        @all="toggleAllSelected"
-      />
+      </div>
 
       <IonList v-if="sections.length > 0">
         <ListGroup
@@ -863,6 +874,11 @@ setHeaderTitle(
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* G-20: at rest while a selection is on — in place, so nothing moves. */
+.composer.resting {
+  opacity: 0.45;
 }
 
 .add {

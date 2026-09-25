@@ -29,9 +29,14 @@ import type { RowUndo } from '@/composables/useRowUndo'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
+import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 
 /**
  * What the person picker answers. It is mocked rather than driven, because
@@ -573,11 +578,15 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
 
-    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(true)
+    expect(barSelection()).not.toBeNull()
     expect(page.get('[data-testid="trip-todo-check-Salbe holen"]').classes()).toContain('on')
-    // The grip, the tick and the composers step aside for the mode.
+    // The grip and the tick step aside for the mode; the composers stay in
+    // place at rest (G-20), so nothing under the finger moves.
     expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(false)
-    expect(page.find('[data-testid="trip-todo-input"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-todo-input"]').exists()).toBe(true)
+    for (const composer of page.findAll('[data-testid^="m25-composer-"]')) {
+      expect(composer.attributes('inert')).toBeDefined()
+    }
 
     // A tap is its own press, then its click — the press is what tells it
     // from the ghost click a hold leaves behind.
@@ -586,11 +595,15 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await flushPromises()
     expect(page.find('[data-testid="task-sheet"]').exists()).toBe(false)
     expect(page.get('[data-testid="trip-todo-check-Pflanzen giessen"]').classes()).toContain('on')
-    expect(page.get('[data-testid="m25-select-count"]').text()).toBe('2 selected')
+    expect(barCount()).toBe('2 selected')
 
-    await page.get('[data-testid="m25-select-exit"]').trigger('click')
-    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(false)
+    await barExit()
+    expect(barSelection()).toBeNull()
     expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(true)
+    expect(page.findAll('[data-testid^="m25-composer-"]')).toHaveLength(2)
+    for (const composer of page.findAll('[data-testid^="m25-composer-"]')) {
+      expect(composer.attributes('inert')).toBeUndefined()
+    }
   })
 
   it('gives the whole selection one tag, writes only what changes, and takes it back whole', async () => {
@@ -607,7 +620,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
       .find((a) => a.id === 'm25-select')!
       .onClick()
     await flushPromises()
-    await page.get('[data-testid="m25-select-all"]').trigger('click')
+    await barAll()
     await page.get('[data-testid="m25-bulk-tag"]').trigger('click')
     await flushPromises()
     expect(page.get('[data-testid="m25-bulk-title"]').text()).toBe('Tag for 3 tasks')
@@ -618,7 +631,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
     const tagged = acts.setTaskTag.mock.calls.map((call) => (call[1] as { id: string }).id)
     expect(tagged.sort()).toEqual(['Akku laden', 'Pflanzen giessen'])
-    expect(page.find('[data-testid="m25-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
 
     acts.setTaskTag.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()

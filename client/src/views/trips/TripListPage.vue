@@ -30,6 +30,7 @@ import {
   playOutline,
   cloudUploadOutline,
   copyOutline,
+  createOutline,
   documentTextOutline,
   downloadOutline,
   peopleOutline,
@@ -75,7 +76,7 @@ import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { PATH, seriesPath, tripPath, tripSubPath } from '@/router/paths'
+import { PATH, seriesPath, tripClosingPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
@@ -502,14 +503,22 @@ async function deleteTrip(trip: Trip) {
 }
 
 /** Start moves a planning trip into packing — see M4's onStart. */
-function startTrip(tripId: string) {
+async function startTrip(tripId: string) {
   orchestrator.activateTrip(tripId)
+  // What starting changes is invisible on this screen — the list's later
+  // additions count as forgotten (FR-9.1) — so it is said once, here.
+  await presentToast({ message: t('packing.startedToast'), positionAnchor: FAB_ANCHOR.m2 })
 }
 
-/** Archive completes the trip and launches the M14 review (FR-9.2). */
+/**
+ * *Reise abschliessen* opens the packing list in FR-9.3's closing pass rather
+ * than archiving here: the pass is the one point where the user looks at the
+ * whole trip at once, and it is what archives — *Fertig* archives and opens
+ * M14. It was M4's own door until M4's ⋮ gave up the trip-wide steps (owner,
+ * 2026-09-25); archiving straight from M2 had skipped it all along.
+ */
 function archiveTrip(tripId: string) {
-  orchestrator.archiveTrip(tripId)
-  router.push(tripSubPath(tripId, 'review'))
+  router.push(tripClosingPath(tripId))
 }
 
 /** FR-18.3: the user chooses progress vs clean; generated client-side. */
@@ -551,6 +560,13 @@ interface TripActionView {
 }
 
 const TRIP_ACTION_VIEW: Record<TripRowAction, TripActionView> = {
+  // FR-2.7: the trip's own properties
+  edit: {
+    icon: createOutline,
+    labelKey: 'tripEdit.title',
+    menuTestid: 'm2-menu-edit',
+    run: (trip) => void router.push(tripSubPath(trip.id, 'edit')),
+  },
   // FR-18.3: portable YAML export with progress choice
   export: {
     icon: downloadOutline,
@@ -577,9 +593,9 @@ const TRIP_ACTION_VIEW: Record<TripRowAction, TripActionView> = {
     icon: playOutline,
     labelKey: 'trips.actionStart',
     menuTestid: 'm2-menu-start',
-    run: (trip) => startTrip(trip.id),
+    run: (trip) => void startTrip(trip.id),
   },
-  // → M14 review (FR-9.2)
+  // → M4's closing pass (FR-9.3), whose *Fertig* archives and opens M14
   archive: {
     icon: archiveOutline,
     labelKey: 'trips.actionArchive',

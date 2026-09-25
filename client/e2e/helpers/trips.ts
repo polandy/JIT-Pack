@@ -230,10 +230,11 @@ export async function createTripFollowingGroup(
 }
 
 /**
- * The M4 bar's once-per-trip actions live behind the ⋮ since UX-13 (G-12):
- * *Trip properties* and the one lifecycle step. Six specs used to click
- * their glyphs directly, so the move is absorbed here rather than in each
- * of them — and the next change to the cluster has one caller again.
+ * The once-per-trip actions, by the words the user reads. *Finish packing*
+ * is M4's ⋮ (FR-5.10); the other three change the whole trip and are M2's
+ * alone since 2026-09-25 — the trip's row menu, or its hero card's — because
+ * a ⋮ acts on the context it sits in (G-12). Specs name the action, and this
+ * helper takes them to whichever menu holds it, so they read as before.
  */
 export const TRIP_ACTION = {
   edit: 'Trip properties',
@@ -244,6 +245,13 @@ export const TRIP_ACTION = {
   archive: 'Finish trip',
 } as const
 
+/** The actions M2 carries rather than M4's ⋮. */
+type TripWideAction = Exclude<keyof typeof TRIP_ACTION, 'closePacking'>
+
+function isTripWide(action: keyof typeof TRIP_ACTION): action is TripWideAction {
+  return action !== 'closePacking'
+}
+
 /** Open the bar's ⋮ and return it, settled and readable. */
 async function openTripMenu(page: Page) {
   await page.getByTestId('header-overflow').click()
@@ -252,13 +260,99 @@ async function openTripMenu(page: Page) {
   return sheet
 }
 
-/** Run one of M4's overflow actions through the menu the user sees. */
-export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
-  const sheet = await openTripMenu(page)
+/** The M2 segment each lifecycle state is listed on (FR-2.8). */
+const SEGMENTS = ['planned', 'active', 'archived'] as const
+
+/** M2's anchor, whichever of the two navigations the width renders (G-9). */
+function tripsAnchor(page: Page): Locator {
+  return page
+    .locator('[data-testid="tab-trips"]:visible, [data-testid="rail-trips"]:visible')
+    .first()
+}
+
+/**
+ * The trip's card on M2 — its row, or the hero when it is the running trip —
+ * on whichever segment lists it. Found rather than assumed, because the
+ * trip's status is exactly what these actions change; each segment is judged
+ * only once M2 knows its lists (ADR-033), so an absence is a fact.
+ *
+ * In-SPA throughout, never `page.goto`: a case may be offline, and a reload
+ * there boots an app with no list to show.
+ */
+async function tripCardOnM2(page: Page, name: string): Promise<Locator> {
+  const live = visiblePage(page)
+  await expect(live.getByTestId('m2-list-loading')).toHaveCount(0)
+  for (const segment of SEGMENTS) {
+    await live.getByTestId(`trips-filter-${segment}`).click()
+    // The checked state is a class on the host — the idiom E2E-M2-33 uses.
+    await expect(live.getByTestId(`trips-filter-${segment}`)).toHaveClass(/segment-button-checked/)
+    const card = live.getByTestId(`trip-row-${name}`).or(live.getByTestId(`trip-hero-${name}`))
+    if ((await card.count()) > 0) return card.first()
+  }
+  throw new Error(`no trip „${name}" on any of M2's segments`)
+}
+
+/**
+ * Leave the open trip for its own row menu on M2 and return the sheet. The
+ * trip's name is read off the page head, so a spec does not repeat it.
+ */
+async function openTripMenuOnM2(page: Page) {
+  const name = (await page.getByTestId('header-title').innerText()).trim()
+  await pageSettled(page)
+  // The anchor where the width shows one; inside a trip on a phone the tab
+  // bar yields, and M4's back is M2 — its declared parent (ADR-011).
+  const anchor = tripsAnchor(page)
+  if ((await anchor.count()) > 0) await anchor.click()
+  else await page.getByTestId('header-back').click()
+  await expect(visiblePage(page).getByTestId('trips-filter-planned')).toBeVisible()
+  return { sheet: await openCardMenu(page, name), name }
+}
+
+/** The trip's own menu, from its card on M2. */
+async function openCardMenu(page: Page, name: string): Promise<Locator> {
+  const card = await tripCardOnM2(page, name)
+  await card.dispatchEvent('contextmenu')
+  const sheet = page.locator('ion-action-sheet').last()
+  await expect(sheet).toBeVisible()
+  return sheet
+}
+
+/**
+ * One of the trip-wide actions for a case already standing on M2 — the menu
+ * of the named trip's card, on whichever segment lists it.
+ */
+export async function tripActionFromList(page: Page, name: string, action: TripWideAction) {
+  const sheet = await openCardMenu(page, name)
   await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
-  // The dismissal belongs to the interaction: a sheet still on screen
-  // swallows the next click, which surfaces as an unrelated timeout.
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+}
+
+/** Back into the trip from M2, the way a user goes: its card. */
+async function reopenFromM2(page: Page, name: string) {
+  const card = await tripCardOnM2(page, name)
+  await card.click()
+  await expectTripOpen(page, name)
+}
+
+/**
+ * Run one of the trip's once-per-trip actions through the menu the user
+ * sees. The trip-wide ones leave the case where their own destination is —
+ * the closing pass for *Finish trip*, the properties for *Trip properties* —
+ * and *Start trip*, which has none, brings it back to the trip it came from.
+ */
+export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
+  if (!isTripWide(action)) {
+    const sheet = await openTripMenu(page)
+    await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
+    // The dismissal belongs to the interaction: a sheet still on screen
+    // swallows the next click, which surfaces as an unrelated timeout.
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    return
+  }
+  const { sheet, name } = await openTripMenuOnM2(page)
+  await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  if (action === 'start') await reopenFromM2(page, name)
 }
 
 /**
@@ -342,17 +436,35 @@ export async function tripActions(page: Page): Promise<string[]> {
 }
 
 /**
+ * What the open trip's M2 menu offers, and back to the trip. The same
+ * reading as `tripActions`, for the actions that live there.
+ */
+async function tripWideActions(page: Page): Promise<string[]> {
+  const { sheet, name } = await openTripMenuOnM2(page)
+  const labels = await sheet.locator('.action-sheet-button-inner').allInnerTexts()
+  await sheet.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  await reopenFromM2(page, name)
+  return labels.map((l) => l.trim())
+}
+
+/** Whichever menu holds the action, read whole. */
+function menuFor(page: Page, action: keyof typeof TRIP_ACTION): Promise<string[]> {
+  return isTripWide(action) ? tripWideActions(page) : tripActions(page)
+}
+
+/**
  * That an action is offered — the settled signal the lifecycle cases used
  * to take from the glyph pair swapping. Reads the whole menu, so the
  * assertion sits on a list that is demonstrably there.
  */
 export async function expectTripActionOffered(page: Page, action: keyof typeof TRIP_ACTION) {
-  expect(await tripActions(page)).toContain(TRIP_ACTION[action])
+  expect(await menuFor(page, action)).toContain(TRIP_ACTION[action])
 }
 
 /** And that one is not — against the same populated list. */
 export async function expectTripActionAbsent(page: Page, action: keyof typeof TRIP_ACTION) {
-  const offered = await tripActions(page)
+  const offered = await menuFor(page, action)
   expect(offered.length).toBeGreaterThan(0)
   expect(offered).not.toContain(TRIP_ACTION[action])
 }
@@ -363,6 +475,7 @@ export async function expectTripActionAbsent(page: Page, action: keyof typeof TR
  * them keeps the suite reading the app from the outside.
  */
 export const TRIP_ROW_ACTION = {
+  edit: 'm2-menu-edit',
   export: 'm2-menu-export',
   share: 'm2-menu-share',
   clone: 'm2-menu-clone',

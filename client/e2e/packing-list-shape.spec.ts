@@ -682,4 +682,27 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await bar.click()
     await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
   })
+
+  /*
+   * E2E-M4-148 (G-14, owner 2026-09-24): the progress figures are a card, the
+   * same shape and width as the cards below them. The line holding them was
+   * the one full-width, square-cornered band on the screen, and wider than
+   * everything under it. Measured against the tasks card, which is the
+   * neighbour the owner compared it with.
+   */
+  test('E2E-M4-148: the progress figures are a card lined up with the cards below', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, M4_TRIP)
+    const card = visible(page).getByTestId('m4-progress-card')
+    const tasks = visible(page).getByTestId('m4-trip-todos')
+    await expect(card).toBeVisible()
+    await expect(tasks).toBeVisible()
+
+    const radius = await card.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius))
+    expect(radius).toBeGreaterThan(0)
+    const [a, b] = [(await card.boundingBox())!, (await tasks.boundingBox())!]
+    expect(Math.round(a.x)).toBe(Math.round(b.x))
+    expect(Math.round(a.x + a.width)).toBe(Math.round(b.x + b.width))
+  })
 })

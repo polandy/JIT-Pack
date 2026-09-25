@@ -31,7 +31,7 @@ function mountSheet(props: Partial<InstanceType<typeof TagManagerSheet>['$props'
     global: {
       stubs: {
         SheetModal: { template: '<div><slot /></div>' },
-        SheetHead: { template: '<div><slot name="trail" /></div>' },
+        SheetHead: { template: '<div><slot name="meta" /><slot name="trail" /></div>' },
       },
     },
   })
@@ -168,7 +168,8 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
 
     await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
     await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
-    await sheet.get('[data-testid="m9-tags-select-exit"]').trigger('click')
+    // The head's checkbox leaves the mode — the sheet's ✕ is G-20's in a page.
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
     await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
 
     expect(sheet.get('[data-testid="m9-tags-select-count"]').text()).not.toMatch(/\d/)
@@ -178,7 +179,7 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
     const sheet = mountSheet()
 
     await sheet.get('[data-testid="m9-tag-row-Hygiene"]').trigger('contextmenu')
-    expect(sheet.find('[data-testid="m9-tags-selbar"]').exists()).toBe(true)
+    expect(sheet.find('[data-testid="m9-tags-select-count"]').exists()).toBe(true)
     expect(sheet.get('[data-testid="m9-tag-row-Hygiene"]').attributes('data-picked')).toBe('true')
 
     // The click the release sends lands on the row it picked: it neither

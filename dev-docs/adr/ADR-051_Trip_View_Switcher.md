@@ -1,6 +1,6 @@
 # ADR-051: The trip's views are a switcher in the page — vs. entries behind the bar's ⋮
 
-**Status:** Accepted (2026-09-08)
+**Status:** Accepted (2026-09-08); amended 2026-09-20 and 2026-09-25
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
 contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
 FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-07, E2E-M4-11, E2E-M6-04
@@ -125,6 +125,20 @@ What changes about the decision, and what does not:
 Accepted cost: the luggage and the analytics are two taps rather than one, and behind an unlabelled glyph — the
 exact shape ADR-050 was criticised for. It is affordable here and was not there because it is now **two** entries
 rather than five, and because the two it holds are the two nobody reaches while packing.
+
+**Amendment 2 (2026-09-25) — a ⋮ holds its own context; the luggage and the analytics are packing's.** The owner's
+call, from using the app: the three-dot menu on a screen should act on *that* screen's area — packing, shopping,
+tasks — and may not be needed at all in some. So the frame offers *Gepäck* and *Auswertung* only on packing's views
+(M4, M11, M12), and **M6 and M25 have no ⋮**; `tripViewMenu` returns nothing there. In the same move M4's ⋮ gave up
+what changes the whole trip — *Reise-Eigenschaften* and the lifecycle step — which now live on M2 only, the trip's
+row menu and its hero; M2's *Reise abschliessen* opens M4 in FR-9.3's closing pass (`?closing=1`) rather than
+archiving past it.
+
+What this reverses, stated: **driver 4's sideways step** — shopping → luggage in one tap plus the menu — which this
+ADR bought and Amendment 1 kept. From the shopping list or the tasks the luggage is now the packing pill, then the
+⋮: one screen further. Accepted, because the alternative the owner rejected is the one this ADR's Context started
+from — a menu whose entries have nothing to do with the screen it opens on reads as a junk drawer, and every entry
+in it costs the reader a thought about whether it applies here. The E2E-G12-07 walk now goes through M4.
 
 ## Consequences
 

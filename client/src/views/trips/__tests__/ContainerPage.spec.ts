@@ -18,9 +18,14 @@ import { t } from '@/i18n'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { barAll, barCount, barSelection } from '@/__tests__/headerSelection'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 
 const tripScreen = tripScreenStub()
 const orchestratorFake = {
@@ -135,7 +140,6 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
 
   const rowNamed = (page: Page, name: string) =>
     page.findAll('[data-testid="m11-unassigned-row"]').find((r) => r.text().includes(name))!
-  const count = (page: Page) => page.find('[data-testid="m11-select-count"]').text()
   const assigned = () =>
     orchestratorFake.assignContainer.mock.calls.map(([, item, container]) => [
       (item as { id: string }).id,
@@ -156,7 +160,7 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
     await rowNamed(page, 'Zelt').trigger('click')
     await flushPromises()
 
-    expect(page.find('[data-testid="m11-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
     expect(page.get('[data-testid="m11-picker-subject"]').text()).toBe('Zelt')
     await page.get('[data-testid="m11-picker-option"]').trigger('click')
     expect(assigned()).toEqual([['ti-1', 'c1']])
@@ -174,7 +178,7 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
     await rowNamed(page, 'Kocher').trigger('click')
     await flushPromises()
 
-    expect(count(page)).toBe(t('selection.count', { n: 2 }))
+    expect(barCount()).toBe(t('selection.count', { n: 2 }))
     // Tapping a row in the mode picks it; it does not open the picker.
     expect(page.find('[data-testid="m11-picker-subject"]').exists()).toBe(false)
     expect(page.find('[data-testid="m11-fab"]').exists()).toBe(false)
@@ -193,7 +197,7 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
         ['ti-3', 'c1'],
       ].sort(),
     )
-    expect(page.find('[data-testid="m11-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 
   it('ends the mode after a batch of one, as after any batch', async () => {
@@ -209,13 +213,13 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
     await flushPromises()
 
     expect(assigned()).toEqual([['ti-3', 'c1']])
-    expect(page.find('[data-testid="m11-selbar"]').exists()).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 
   it('arms from the app bar only while the bucket holds something, and „Alle" takes it all', async () => {
     const trips = seedTrip()
     tripScreen.loadedTrips.add('t1')
-    const page = mountPage()
+    mountPage()
     await flushPromises()
     expect(headerActions().map((a) => a.id)).not.toContain('m11-select')
 
@@ -231,9 +235,9 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
       .find((a) => a.id === 'm11-select')!
       .onClick()
     await flushPromises()
-    expect(count(page)).toBe(t('selection.none'))
+    expect(barCount()).toBe(t('selection.none'))
 
-    await page.get('[data-testid="m11-select-all"]').trigger('click')
-    expect(count(page)).toBe(t('selection.count', { n: 1 }))
+    await barAll()
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
   })
 })
