@@ -46,7 +46,11 @@ const emit = defineEmits<{ close: [] }>()
   <header class="head">
     <slot name="lead" />
     <div class="titles">
-      <h1 class="jp-sheet-title" :data-testid="titleTestid">{{ title }}</h1>
+      <!-- A caller may make the title a control (FR-7.14: a task's words are
+           edited where they are read); the role stays the same. -->
+      <slot name="title">
+        <h1 class="jp-sheet-title" :data-testid="titleTestid">{{ title }}</h1>
+      </slot>
       <p v-if="$slots.meta || meta" class="meta jp-meta">
         <slot name="meta">{{ meta }}</slot>
       </p>

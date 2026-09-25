@@ -18,10 +18,10 @@ import { RouterLinkStub } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripTasksPage from '../TripTasksPage.vue'
+import TaskComposer from '@/components/trips/TaskComposer.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
-import TripTodoList from '@/components/trips/TripTodoList.vue'
 import { identityStub } from '@/composables/__tests__/identityStub'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { STUB_TODAY, tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import type { RowUndo } from '@/composables/useRowUndo'
@@ -66,6 +66,7 @@ const acts = {
   assignPrepTodo: vi.fn(),
   setTaskPhase: vi.fn(),
   setTaskDueDate: vi.fn(),
+  setTaskBody: vi.fn(),
 }
 
 function mountPage() {
@@ -201,20 +202,53 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     expect(page.get('[data-testid="m25-before"]').text()).toContain('Salbe holen')
   })
 
-  it('writes what is typed into a section as a task of that section’s phase', async () => {
+  it('writes what is typed on top, in the phase its chip names (FR-7.14)', async () => {
     seedTrip()
     const page = mountPage()
     await flushPromises()
 
-    const during = page.findAllComponents(TripTodoList)[1]!
-    await during.findComponent(IonInput).setValue('Zugverbindung abklären')
-    await during.get('[data-testid="trip-todo-add"]').trigger('click')
+    const composer = page.findComponent(TaskComposer)
+    await composer.get('[data-testid="m25-phase-during"]').trigger('click')
+    await composer.findComponent(IonInput).setValue('Zugverbindung abklären')
+    await composer.get('form').trigger('submit')
 
     expect(acts.addTripTodo).toHaveBeenCalledWith(
       't1',
       expect.any(String),
       'Zugverbindung abklären',
       'during',
+      { taskTagId: null, dueDate: null },
+    )
+  })
+
+  it('files a new task under its tag and day in the one write, and keeps the tag for the next (FR-7.14)', async () => {
+    seedTrip()
+    seedTaskTag('tag-apo', 'Apotheke', 0)
+    const page = mountPage()
+    await flushPromises()
+
+    const composer = page.findComponent(TaskComposer)
+    await composer.get('[data-testid="m25-composer-tag-Apotheke"]').trigger('click')
+    await composer.findComponent(IonInput).setValue('Salbe holen')
+    await composer.get('[data-testid="due-chip-today"]').trigger('click')
+    await composer.get('form').trigger('submit')
+
+    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+      't1',
+      expect.any(String),
+      'Salbe holen',
+      'before',
+      { taskTagId: 'tag-apo', dueDate: STUB_TODAY },
+    )
+    // The tag stays chosen for the next task of the same errand; the day does not.
+    await composer.findComponent(IonInput).setValue('Rezept abholen')
+    await composer.get('form').trigger('submit')
+    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+      't1',
+      expect.any(String),
+      'Rezept abholen',
+      'before',
+      { taskTagId: 'tag-apo', dueDate: null },
     )
   })
 
@@ -233,14 +267,57 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
    * covering the screen would be a dead end on the one screen that writes
    * tasks — the two composers are exactly what that reader needs.
    */
-  it('keeps both sections and their fields on a trip with no tasks at all', async () => {
+  it('keeps both sections and the one field on a trip with no tasks at all', async () => {
     seedTrip()
 
     const page = mountPage()
     await flushPromises()
 
-    expect(page.findAll('[data-testid="trip-todo-input"]')).toHaveLength(2)
+    expect(page.findAll('[data-testid="trip-todo-input"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m25-during"]').exists()).toBe(true)
     expect(page.get('[data-testid="m25-before"]').text()).toContain('Nothing left to do')
+  })
+})
+
+describe('M25 — the sheet in the order acts are wanted (FR-7.14)', () => {
+  it('corrects a task’s words and takes the correction back whole', async () => {
+    seedTrip()
+    seedTask('Pas holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Pas holen"]').trigger('click')
+    await flushPromises()
+    page.findComponent(TripTaskSheet).vm.$emit('rename', 'Pass holen')
+    await flushPromises()
+
+    expect(acts.setTaskBody).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Pas holen' }),
+      'Pass holen',
+    )
+    acts.setTaskBody.mockClear()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.setTaskBody).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Pas holen' }),
+      'Pas holen',
+    )
+  })
+
+  it('ticks a task off from its sheet, and the sheet goes with it', async () => {
+    seedTrip()
+    seedTask('Pass holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Pass holen"]').trigger('click')
+    await flushPromises()
+    await page.get('[data-testid="task-sheet-done"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.resolveTripTodo).toHaveBeenCalledWith(expect.objectContaining({ id: 'Pass holen' }))
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(false)
   })
 })
 
@@ -553,13 +630,12 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
 
     expect(barSelection()).not.toBeNull()
     expect(page.get('[data-testid="trip-todo-check-Salbe holen"]').classes()).toContain('on')
-    // The grip and the tick step aside for the mode; the composers stay in
+    // The grip and the tick step aside for the mode; the composer stays in
     // place at rest (G-20), so nothing under the finger moves.
     expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(false)
     expect(page.find('[data-testid="trip-todo-input"]').exists()).toBe(true)
-    for (const composer of page.findAll('[data-testid^="m25-composer-"]')) {
-      expect(composer.attributes('inert')).toBeDefined()
-    }
+    const slot = () => page.get('[data-testid="m25-composer"]').element.parentElement!
+    expect(slot().hasAttribute('inert')).toBe(true)
 
     // A tap is its own press, then its click — the press is what tells it
     // from the ghost click a hold leaves behind.
@@ -573,10 +649,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await barExit()
     expect(barSelection()).toBeNull()
     expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(true)
-    expect(page.findAll('[data-testid^="m25-composer-"]')).toHaveLength(2)
-    for (const composer of page.findAll('[data-testid^="m25-composer-"]')) {
-      expect(composer.attributes('inert')).toBeUndefined()
-    }
+    expect(slot().hasAttribute('inert')).toBe(false)
   })
 
   it('gives the whole selection one tag, writes only what changes, and takes it back whole', async () => {
@@ -630,11 +703,93 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
       'during',
     )
 
+    // FR-7.14: a selection already in one phase is offered only the other.
     acts.setTaskPhase.mockClear()
     await page.get('[data-testid="trip-todo-Zug abklären"] ion-label').trigger('contextmenu')
-    await page.get('[data-testid="m25-bulk-during"]').trigger('click')
+    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(false)
+    await page.get('[data-testid="m25-bulk-before"]').trigger('click')
     await flushPromises()
-    expect(acts.setTaskPhase).not.toHaveBeenCalled()
+    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Zug abklären' }),
+      'before',
+    )
+  })
+
+  it('ticks the whole selection off in one act, and one undo reopens exactly those (FR-7.14)', async () => {
+    seedTrip()
+    seedRow('ti-1', 'Kulturbeutel')
+    seedTask('Salbe holen', {})
+    seedTask('Akku laden', { trip_item_id: 'ti-1' })
+    seedTask('Zug abklären', { phase: 'during' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await page.get('[data-testid="trip-todo-Akku laden"] ion-label').trigger('pointerdown')
+    await page.get('[data-testid="trip-todo-open-Akku laden"]').trigger('click')
+    await page.get('[data-testid="m25-bulk-done"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.resolveTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.resolvePrepTodo).toHaveBeenCalledTimes(1)
+    expect(barSelection()).toBeNull()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    // The store still reads them open (the stub wrote nothing), so the undo
+    // has nothing to reopen — it must not reopen anything else either.
+    expect(acts.reopenTripTodo).not.toHaveBeenCalled()
+  })
+
+  it('dates the whole selection from one sheet of chips (FR-7.14)', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    seedTask('Pass holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await barAll()
+    await page.get('[data-testid="m25-bulk-due"]').trigger('click')
+    await flushPromises()
+    expect(page.get('[data-testid="m25-bulk-due-title"]').text()).toBe('Due date for 2 tasks')
+    await page
+      .get('[data-testid="m25-bulk-when-chips"] [data-testid="due-chip-tomorrow"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(acts.setTaskDueDate).toHaveBeenCalledTimes(2)
+    for (const call of acts.setTaskDueDate.mock.calls) expect(call[2]).toBe('2026-07-09')
+  })
+
+  it('deletes the trip’s own tasks of a selection, and offers no delete for a preparation (FR-7.14)', async () => {
+    seedTrip()
+    seedRow('ti-1', 'Kulturbeutel')
+    seedTask('Salbe holen', {})
+    seedTask('Pass holen', {})
+    seedTask('Akku laden', { trip_item_id: 'ti-1' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await barAll()
+    expect(barCount()).toBe('3 selected')
+    expect(page.find('[data-testid="m25-bulk-remove"]').exists()).toBe(false)
+    await barExit()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await page.get('[data-testid="trip-todo-Pass holen"] ion-label').trigger('pointerdown')
+    await page.get('[data-testid="trip-todo-open-Pass holen"]').trigger('click')
+    expect(barCount()).toBe('2 selected')
+    await page.get('[data-testid="m25-bulk-remove"]').trigger('click')
+    await flushPromises()
+
+    // Hidden at once, deleted when the undo lapses — and one undo brings both back.
+    expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-todo-Pass holen"]').exists()).toBe(false)
+    expect(acts.deleteTripTodo).not.toHaveBeenCalled()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    await flushPromises()
+    expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(true)
+    expect(page.find('[data-testid="trip-todo-Pass holen"]').exists()).toBe(true)
   })
 })
 
@@ -655,25 +810,40 @@ function closeThePacking() {
 }
 
 describe('M25 — the day a task is due (FR-7.11)', () => {
-  it('wears the day on the line, and a group holding something overdue is read first', async () => {
+  it('reads what is pressing on top, across both phases, and out of its group (FR-7.14)', async () => {
     seedTrip()
     seedTaskTag('apo', 'Apotheke', 0)
     seedTaskTag('amt', 'Amt', 1)
     seedTask('Salbe holen', { task_tag_id: 'apo' })
     // STUB_TODAY is 2026-07-08: this one is a week late.
     seedTask('Pass holen', { task_tag_id: 'amt', due_date: '2026-07-01' })
+    seedTask('Zug abklären', { phase: 'during', due_date: '2026-07-08' })
+    seedTask('Karte kaufen', { due_date: '2026-07-30' })
 
     const page = mountPage()
     await flushPromises()
 
+    const due = page.get('[data-testid="m25-due"]')
+    const rows = due.findAll('[data-testid^="trip-todo-open-"]').map((row) => row.text())
+    expect(rows).toEqual(['Pass holen', 'Zug abklären'])
     expect(page.get('[data-testid="trip-todo-due-Pass holen"]').attributes('data-due')).toBe(
       'overdue',
     )
-    const groups = page
-      .get('[data-testid="m25-before"]')
-      .findAll('[data-testid^="m25-group-"]')
-      .map((group) => group.attributes('data-testid'))
-    expect(groups).toEqual(['m25-group-amt', 'm25-group-apo'])
+    // Named by its tag, since it stands outside its group.
+    expect(due.get('[data-testid="trip-todo-tag-Pass holen"]').text()).toBe('Amt')
+    // Nowhere else: the group it left is not drawn, and a later day stays put.
+    expect(page.find('[data-testid="m25-group-amt"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m25-before"]').text()).toContain('Karte kaufen')
+    expect(page.get('[data-testid="m25-during"]').text()).not.toContain('Zug abklären')
+  })
+
+  it('draws no due block when nothing is pressing', async () => {
+    seedTrip()
+    seedTask('Karte kaufen', { due_date: '2026-07-30' })
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="m25-due"]').exists()).toBe(false)
+    expect(page.get('[data-testid="trip-todo-due-Karte kaufen"]').text()).not.toBe('')
   })
 
   it('sets the day from the task’s sheet, keeps the sheet up, and takes it back whole', async () => {
@@ -684,7 +854,7 @@ describe('M25 — the day a task is due (FR-7.11)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Pass holen"]').trigger('click')
     await flushPromises()
-    page.findComponent({ name: 'DateField' }).vm.$emit('update', '2026-07-09')
+    await page.get('[data-testid="task-sheet"] [data-testid="due-chip-tomorrow"]').trigger('click')
     await flushPromises()
 
     expect(acts.setTaskDueDate).toHaveBeenCalledWith(
@@ -705,17 +875,28 @@ describe('M25 — the day a task is due (FR-7.11)', () => {
 })
 
 describe('M25 — *before* is closed once the packing is finished (FR-7.12)', () => {
-  it('keeps the section as history: a hint instead of the field, and no tick', async () => {
+  it('moves the history to the end, folded to one line, with no tick in it (FR-7.14)', async () => {
     seedTrip()
     seedTask('Pass holen', { task_state: 'resolved' })
+    seedTask('Salbe holen', {})
+    seedTask('Zug abklären', { phase: 'during' })
     closeThePacking()
 
     const page = mountPage()
     await flushPromises()
 
+    // During first, then the folded line; the field writes for the road.
+    const sections = page
+      .findAll('section[data-testid="m25-during"], section[data-testid="m25-before"]')
+      .map((section) => section.attributes('data-testid'))
+    expect(sections).toEqual(['m25-during', 'm25-before'])
+    expect(page.find('[data-testid="m25-composer-phase"]').exists()).toBe(false)
+    const fold = page.get('[data-testid="m25-before-fold"]')
+    expect(fold.text()).toBe('Before the trip · 1 done')
+    expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(false)
+
+    await fold.trigger('click')
     expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m25-composer-during"]').exists()).toBe(true)
     // No drop lands here either: the heading says so while a task is carried.
     expect(
       page.get('[data-testid="m25-before"] [data-drop-target]').attributes('data-droppable'),
@@ -744,7 +925,10 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
     // „All" is the two for the road; the one left in *before* is not in it.
     expect(barCount()).toBe('2 selected')
     expect(page.find('[data-testid="m25-bulk-before"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(true)
+    // Both are already for the road, so no phase button at all — but the bar is up.
+    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-bulk-done"]').exists()).toBe(true)
+    await page.get('[data-testid="m25-before-fold"]').trigger('click')
     expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(false)
   })
 
@@ -753,12 +937,12 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
     closeThePacking()
     const page = mountPage()
     await flushPromises()
-    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-phase-before"]').exists()).toBe(false)
 
     seedTrip()
     await flushPromises()
-    expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m25-before-fold"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-phase-before"]').exists()).toBe(true)
   })
 })
 

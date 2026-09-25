@@ -47,7 +47,9 @@ const props = withDefaults(
      * list — the preparations still due before the trip — and a figure that
      * counted more than the section it opens would be reporting on a screen
      * the reader is not looking at. M1 passes nothing and counts everything,
-     * because its card lists everything.
+     * because its card lists everything. FR-7.14: the figure then says so —
+     * *Beim Packen 0/2* — so three screens stop counting „Aufgaben" three
+     * ways under one word.
      */
     tasks?: readonly TripTask[]
   }>(),
@@ -65,7 +67,12 @@ const shown = computed(() => tripTodoStatus(progress.value) !== 'none')
     v-if="shown"
     class="trip-todo-figure"
     :percent="tripTodoPercent(progress)"
-    :headline="t('tripTodos.figure', { done: progress.done, total: progress.total })"
+    :headline="
+      t(tasks ? 'tripTodos.figurePacking' : 'tripTodos.figure', {
+        done: progress.done,
+        total: progress.total,
+      })
+    "
     :detail="progress.open > 0 ? t('tripTodos.open', { n: progress.open }) : null"
     :ring-size="ringSize"
     :paired="ringSize !== undefined"

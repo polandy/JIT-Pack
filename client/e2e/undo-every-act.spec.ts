@@ -4,6 +4,7 @@ import {
   chooseInRowMenu,
   openRowMenu,
   openTasks,
+  removeTaskFromSheet,
   addTripTodo,
   packRow,
   row,
@@ -182,14 +183,14 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     const section = await openTasks(page, 'before')
     const task = section.getByTestId('trip-todo-Pass erneuern')
 
-    await section.getByTestId('trip-todo-remove-Pass erneuern').click()
+    await removeTaskFromSheet(page, 'Pass erneuern')
     await expect(task).toHaveCount(0)
     await undo(page, /deleted/i)
     await expect(task).toBeVisible()
 
     // Left alone, the lapse is the delete. Its toast going is the signal
     // waited on — the lapse itself changes nothing on screen here.
-    await section.getByTestId('trip-todo-remove-Pass erneuern').click()
+    await removeTaskFromSheet(page, 'Pass erneuern')
     const toast = snackbar(page, /deleted/i)
     await expect(toast).toBeVisible()
     await expect(toast).toBeHidden()
@@ -198,7 +199,9 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     const reloaded = await openTasks(page, 'before')
     // The input rendering is the positive signal that the list is there —
     // without it, „the task is gone" is also what an empty screen says.
-    await expect(reloaded.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(
+      visiblePage(page).getByTestId('m25-composer').getByTestId('trip-todo-input'),
+    ).toBeVisible()
     await expect(reloaded.getByTestId('trip-todo-Pass erneuern')).toHaveCount(0)
   })
 

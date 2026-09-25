@@ -12,9 +12,18 @@
  * bar icon. What a row *is* and whether it may be selected is the screen's
  * business; this holds only the keys.
  */
+import { checkmarkDoneOutline } from 'ionicons/icons'
 import { ref } from 'vue'
 
 import { useLongPress } from './useLongPress'
+
+/**
+ * The app bar's icon for entering a selection (G-20), one for every list
+ * that selects. Not `checkboxOutline`: that glyph is the *Aufgaben* view's
+ * own, and on M6 and M25 the two stood one above the other meaning different
+ * things (FR-7.14, owner 2026-09-25).
+ */
+export const SELECTION_ICON = checkmarkDoneOutline
 
 /** `PointerEvent.button` for a mouse's main button, a touch and a pen tip. */
 const PRIMARY_BUTTON = 0

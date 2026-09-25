@@ -265,17 +265,21 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(m6.getByTestId('m6-before-locked')).toBeVisible()
     await expect(m6.getByTestId('m6-composer')).toHaveCount(0)
 
+    // FR-7.14: the closed *before* is one folded line at the end, and the
+    // composer writes for the road only.
     const before = await openTasks(page, 'before')
+    await expect(visiblePage(page).getByTestId('m25-composer')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m25-phase-before')).toHaveCount(0)
+    await before.getByTestId('m25-before-fold').click()
     await expect(before.getByTestId('m25-before-locked')).toBeVisible()
-    await expect(before.getByTestId('m25-composer-before')).toHaveCount(0)
 
     // Reopened: both places take entries again, and nothing moved back.
     await openTripView(page, 'packing')
     await visiblePage(page).getByTestId('m4-reopen-packing').click()
     await writesLanded(page)
     const reopened = await openTasks(page, 'before')
-    await expect(reopened.getByTestId('m25-composer-before')).toBeVisible()
-    await expect(reopened.getByTestId('m25-before-locked')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m25-phase-before')).toBeVisible()
+    await expect(reopened.getByTestId('m25-before-fold')).toHaveCount(0)
     await openTripView(page, 'shopping')
     await m6.getByTestId('m6-tab-before').click()
     await expect(m6.getByTestId('m6-composer')).toBeVisible()

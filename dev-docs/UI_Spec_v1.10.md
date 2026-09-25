@@ -7,6 +7,11 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-25 — **M25** reworked after a UX review (FR-7.14): a *Fällig* block on top across phases and tags, one
+  composer with phase, tag and day chips plus a FAB, two-line rows without ✕, one *erledigt* fold per phase, a closed
+  *before* folded at the end, a sheet with editable words and *Erledigt* first, and *Erledigt* / *Fällig* / *Löschen*
+  in the selection's bar. **G-20**: every list's select icon is `SELECTION_ICON`, no longer the *Aufgaben* glyph.
+  **M4**: the task figure reads *„Beim Packen 0/2"*.
 * 2026-09-25 — **M6**, **M1** and **M17**: a shopping entry may name the day it is due — M25's pill and order on M6,
   the pressing ones leading M1's card and block, a *Fällige Einkäufe* reminder toggle (FR-30.10).
 * 2026-09-25 — **M26** added: *Notizen*, a trip's notes as threads — a titled first note, replies one level deep,
@@ -1214,15 +1219,15 @@ These patterns apply to every screen and are specified once.
   now:
   * **The header line** — packed/total · weight with the presence facepile (the open-prep count moved into the figure
     beside it, FR-7.6), and — once the trip has a task — **the tasks' own figure** as the share's pair (FR-7.4, every
-    task of the trip since FR-7.6): same ring, *„1/4 Aufgaben"*, *„3 offen"*, a
-    track; side by side, or on two rows where the line is too narrow for both sentences (the line's height allows
-    for it). **The figures are a card** (`.jp-card`, 2026-09-25, G-14): the line itself is page-coloured with the
-    page's gutter, so the card has the same radius and width as the cards below it — it was the one full-width,
-    square-cornered band on the screen. A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else.
-    It stays
-    **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
-    hides and any upward scroll brings it back — and so does a list the hiding itself made fit its screen (fixed
-    2026-09-18): with nothing left to scroll, no upward gesture could, and the view switcher above stayed gone.
+    task of the trip since FR-7.6; the window's since FR-7.7): same ring, *„Beim Packen 1/4"* (FR-7.14 — it counts the
+    window, and three screens saying *Aufgaben* with three numbers read as a defect), *„3 offen"*, a track; side by
+    side, or on two rows where the line is too narrow for both sentences (the line's height allows for it). **The
+    figures are a card** (`.jp-card`, 2026-09-25, G-14): the line itself is page-coloured with the page's gutter, so the
+    card has the same radius and width as the cards below it — it was the one full-width, square-cornered band on the
+    screen. A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else. It stays **unfiltered**, so
+    real progress is visible whatever the current view shows. On scroll-**down** the whole line hides and any upward
+    scroll brings it back — and so does a list the hiding itself made fit its screen (fixed 2026-09-18): with nothing
+    left to scroll, no upward gesture could, and the view switcher above stayed gone.
   * **~~Where the trip's name lives: the width decides (owner, 2026-08-19; re-decided 2026-08-30)~~ — superseded
     2026-09-06 by ADR-050, and this bullet folded 2026-09-08.** The ruling was: below the G-9 breakpoint the name leads
     the header line in display type and **M4 registers no app-bar title**, the one screen in the app without one; at and
@@ -2976,7 +2981,7 @@ token would prove nothing there is anything to prove.
 * **Navigation:** M9 → M24 (the ⋮ word or the foot sentence); back returns to M9. The one header bar names it from the
   route's `titleKey`.
 
-### M25 — Aufgaben (A Trip's Tasks, FR-7.7) — *built 2026-09-21*
+### M25 — Aufgaben (A Trip's Tasks, FR-7.7) — *built 2026-09-21, reworked 2026-09-25 (FR-7.14)*
 
 * **Purpose:** every task of one trip, in the two phases a trip has. *„Eine Salbe in der Apotheke holen"* is for
   before it; *„am Bahnhof die Zugverbindung abklären"* can only happen during it. The screen exists because the tasks
@@ -2987,77 +2992,110 @@ token would prove nothing there is anything to prove.
   declared on a packing row (FR-7.3) and a chore of the trip itself (FR-7.4), which FR-7.6 already made one list. M4
   shows a *window* of the same list. Nothing is filed twice, which is what gives the phase its meaning: moving a task
   to *Während der Reise* takes it off the packing list.
+* **Reworked 2026-09-25 (FR-7.14, the owner's UX round).** The owner found the screen hard to use; a review ranked what
+  hurt, and the owner took the recommendation on all seven questions (FR-7.14 records them). What changed, in one line
+  each: what is due now leads in its own block; one composer on top with chips, and the FAB; two-line rows with no ✕;
+  one *erledigt* fold per phase; a finished packing's *before* at the end, folded; the sheet ordered by how often each
+  act is wanted; the selection's bar gains *Erledigt*, *Fällig* and *Löschen*. What did not change: G-20's selection,
+  the due day and its pill (FR-7.11), the two phases (FR-7.7) and the closed *before* (FR-7.12).
 * **Elements, top to bottom:**
   * **The *Meine* chip**, off by default — the whole list is the screen's subject. It narrows to the tasks handed to
     the viewer. **Absent where nobody can be named** (Local Mode, Single-User Mode, a trip with no second member,
     G-8): with nobody to hand a task to, every task is everybody's.
-  * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is what is still open
-    there — a finished section says nothing rather than „0". Sections are **not** a segment: the shopping list's two
-    tabs are two places you stand, while the two phases of a trip are one thing read top to bottom.
-  * **Inside each section, the tag groups** (FR-7.8 — built 2026-09-21). One heading per task tag that holds
-    something, in the tags' own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names
-    where the task came from, and both are the same state in the data. **An empty heading is not drawn**, and is
-    therefore not a drop target: a tag is removed in the task's sheet, where *Ohne Tag* is a choice rather than a
-    place to find. Each group is a drop target carrying its phase *and* its tag, so one movement may change both.
-  * **Per section, the task list** (the component M4 shares) and **its own composer**, whose placeholder names the
-    phase it writes: *„Aufgabe für vor der Reise…"* / *„Aufgabe für unterwegs…"*. A section with nothing in it says so
-    in one line **and keeps its field** — a trip with no tasks at all is exactly the reader the two fields are for, so
-    there is no screen-wide empty state.
-* **A task's line:** a grip, the words, then the cluster and the tick at the row's own edge — the rule M4's packing
-  rows follow. The grip sits in the item's own `slot="start"` and **is M6's own grip** — one component,
-  `DragGrip.vue`, since 2026-09-24 (owner feedback: M25's two-line glyph at a smaller size read as a stray dash
-  beside the words; the week before, the two had already drifted to a different gap despite drawing one gesture).
-  * **The grip** (FR-7.8) lifts the task at once, and **only the grip does** — since 2026-09-24 a hold on the row
-    selects it instead, M6's gesture (ADR-075). While a task is in the air the group under the pointer says
-    *hier ablegen*; the row stays in the list, dimmed, and a clone travels — a list that closed up around the lifted
-    row would move every row below it under the finger that pressed one (ADR-060). The gesture's state is on the
-    page as `data-drag`, always set, and returns to `idle` only once the write has landed. The travelling clone and
-    the dimmed row share one frame with M6's own drag (`composables/dragToGroup.css`), unified 2026-09-23 — this
-    screen had none of its own before that.
-  * **The provenance line moved off the row** (owner feedback 2026-09-23: an overview read at a glance does not need
-    who wrote or finished a task, only the task's own sheet does). It still changes role there, per Q3 B: *„erstellt
-    von Andy · heute 14:32"* while a task is open, *„erledigt von Sia · gestern 09:15"* once it is done, each its own
-    fact line in the sheet rather than one line that swaps meaning.
-  * The **cluster**: a preparation carries the chip of its row (FR-7.6) *and*, since FR-7.7, an assignment seat; a
-    trip's own task carries the seat and a ✕. A preparation has no ✕ — it is removed in M5, the one place that shows
-    what else its row still owes.
-  * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
-  * **The due pill (FR-7.11 — built 2026-09-25)** leads the cluster of an open task that has a date: *Überfällig* in
-    the danger ink on its tint, *Heute* / *Morgen* / *In 2 Tagen* in the action ink, a short date (*„Fr., 17.7."*)
-    quiet on the sunken plane further out. Short on purpose — the pill must never be what squeezes the task's words.
-    Inside a group the dated open tasks lead, earliest first; **a group holding an overdue, today or soon task is
-    drawn above the others** (`taskGroups`, `domain/taskDue.ts`).
-* **Before the trip, closed (FR-7.12 — built 2026-09-25).** Once the packing is finished, *Vor der Reise* is history:
-  the section carries one line in place of its field (*„Die Packliste ist abgeschlossen — hier steht, was vor der
-  Reise erledigt wurde."*, `m25-before-locked`), its ticks are disabled, its rows have no grip, seat or ✕, it is no
-  drop target, it is not in *„Alle N"* and the floating bar offers no *Vor der Reise*; the sheet offers no move back
-  into it. Reopening the packing on M4 lifts all of it.
-* **Several tasks at once (FR-7.8, built 2026-09-24 — owner request: the tasks should behave like the shopping list,
-  ADR-075).** M6's selection, drawn by the same components (`useRowSelection`, `SelectBox`, `BulkBar`, and the app
-  bar's G-20 mode): a **hold on a task's words** (`useLongPress`'s 500 ms and 8 px, so a finger can still scroll), a
-  right-click, or the app bar's own icon (`m25-select`, offered while an open task is shown) enters it. While
-  selecting, the selection box stands where the grip was, the row's seat, ✕ and tick step aside, a tap on the words
-  toggles the row instead of opening its sheet, and the app bar carries ✕, *„N ausgewählt"* and *„Alle N"* (G-20):
-  since 2026-09-25 the *Meine* chip stays live and both composers stay in place at rest, rather than giving way.
-  *„Alle N"* takes every **open** task shown, in both phases and of both kinds; a resolved one is folded away and not
-  in it. The floating bar offers **Tag vergeben** — the task sheet's own tag list,
-  titled for the batch — and **Vor der Reise** / **Während der Reise**. Only what changes is written, one snackbar
-  undo takes the whole batch back, and the mode ends with the batch; a batch that changes nothing says so instead.
-  M4's window has no selection: a hold there does nothing.
+  * **The composer** (`TaskComposer`, `m25-composer`, a card) — M6's shape: the field and its ＋, then chips that
+    file the task as it is typed. **The phase**: *Vor der Reise* / *Unterwegs*, *Vor der Reise* chosen until the
+    packing is finished; then the row goes and the field says *„Aufgabe für unterwegs…"*, since *before* is closed.
+    **The tag**: every task tag, and *＋ Tag*, which opens a small field that creates one (FR-7.8's „created where it
+    is needed"). **The day**: `TaskDueChips`, shown once something is typed — *Heute*, *Morgen*, *Vor Abreise* and
+    *Datum…*. The task is written in **one insert** with its phase, tag and day. Phase and tag stay chosen for the next
+    task, as M6's tag does — the things for one errand are typed one after another; the day does not.
+  * **The *Fällig* block** (`m25-due`), drawn only when something is pressing: every open task that is overdue, due
+    today or in the next two days (FR-7.11's *soon*), **from both phases and every tag**, earliest first, as one
+    `ListGroup` headed *Fällig* with its count and tinted faintly in the overdue ink. **A task in it leaves its group**
+    — listed twice, it would be ticked in one place and still open in the other. Its rows name their tag on the second
+    line, since they stand outside their group (an untagged row names nothing: a preparation's chip already says
+    where it came from). It is not a drop target:
+    what makes a task pressing is its day, not where it was put. A task left open in a closed *before* is history and
+    not in it (`domain/taskBoard.ts`).
+  * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is **what stands under
+    it** — a task up in the *Fällig* block is not counted twice — and a finished section says nothing rather than
+    „0". Sections are **not** a segment: the shopping list's two tabs are two places you stand, while the two phases
+    of a trip are one thing read top to bottom. A section says it is empty in one line only when the phase has no
+    open task anywhere.
+  * **Inside each section, the tag groups** (FR-7.8). One heading per task tag that holds something, in the tags'
+    own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names where the task came
+    from, and both are the same state in the data. **An empty heading is not drawn**, and is therefore not a drop
+    target. Each group is a drop target carrying its phase *and* its tag, so one movement may change both. The groups
+    hold open tasks only.
+  * **One *erledigt* fold per phase**, at the section's end (*„N erledigt"*, `trip-todos-resolved`) — the finished
+    tasks used to fold under every tag group, where a *„1 erledigt"* between two headings read like a heading. Its
+    rows name their tag on the second line and can be unticked.
+  * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`), the one M4, M6 and M26 carry: it scrolls to the top and focuses the
+    composer's field. Hidden while selecting; the snackbar clears it.
+* **A task's line (FR-7.14): two lines.** The first is the grip and the words; the second, where there is anything to
+  say, is what is known about the task — the **due pill**, the **row it prepares** (the chip leading to it), the
+  **tag** where the row stands outside its group, and the **person** (the seat in Server Mode, an avatar where the
+  task can no longer be handed over). The tick stands at the row's own edge — the rule M4's packing rows follow.
+  **No ✕ on the row**: *done* and *delete* were same-sized neighbours a finger-width apart; a task is removed from its
+  sheet or from a selection. A fact never squeezes the words: they take the row's width. M4's window keeps its compact
+  one-line rows.
+  * **The grip** (FR-7.8) is M6's own `DragGrip.vue`; it lifts the task at once, and **only the grip does** — a hold
+    on the words selects instead (ADR-075). While a task is in the air the group under the pointer says *hier
+    ablegen*; the row stays in the list, dimmed, and a clone travels (ADR-060), in the shared frame of
+    `composables/dragToGroup.css`. The gesture's state is on the page as `data-drag`, always set, and returns to `idle`
+    only once the write has landed. A row in the *Fällig* block is lifted into a group the same way.
+  * **The provenance line is not on the row** (owner feedback 2026-09-23): *„erstellt von Andy · heute 14:32"* and
+    *„erledigt von Sia · gestern 09:15"* are fact lines in the task's sheet.
+  * **The due pill (FR-7.11)**: *Überfällig* in the danger ink on its tint, *Heute* / *Morgen* / *In 2 Tagen* in the
+    action ink, a short date (*„Fr., 17.7."*) quiet on the sunken plane further out. It stays visible while
+    selecting — when a task is due is part of choosing it. Inside a group the dated open tasks lead, earliest first.
+* **Before the trip, closed (FR-7.12, placed by FR-7.14).** Once the packing is finished, *Vor der Reise* is history,
+  and history comes after the work: *Während der Reise* is the first section, and *Vor der Reise* is **one folded line
+  at the end** (`m25-before-fold`, a card): *„Vor der Reise · N erledigt"*, or *„· abgeschlossen"* with nothing done.
+  Unfolded it carries the lock line (*„Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt
+  wurde."*, `m25-before-locked`) and the phase's groups and fold read-only: ticks disabled, no grip, no seat, no drop.
+  The composer has no *Vor der Reise* chip, *„Alle N"* leaves those tasks out, and the sheet offers no move back.
+  Reopening the packing on M4 lifts all of it.
+* **Several tasks at once (FR-7.8/ADR-075, extended by FR-7.14).** M6's selection, drawn by the same components
+  (`useRowSelection`, `SelectBox`, `BulkBar`, and the app bar's G-20 mode): a **hold on a task's words** (500 ms,
+  8 px), a right-click, or the app bar's icon (`m25-select`) enters it. **The icon is `SELECTION_ICON`**
+  (`checkmarkDoneOutline`, one constant for every list that selects) — it used to be the *Aufgaben* pill's own ☑,
+  directly under it. While selecting, the selection box stands where the grip was, the seat and the tick step aside,
+  a tap on the words toggles the row, and the app bar carries ✕, *„N ausgewählt"* and *„Alle N"*; the *Meine* chip
+  stays live and the composer stays in place at rest. *„Alle N"* takes every **open** task shown, in both phases and
+  of both kinds. The floating bar offers, left to right: **Erledigt** (every selected task ticked off, in the done
+  ink), **Fällig** (a sheet of the same day chips, titled for the batch; *Vor Abreise* only where every selected task
+  is for before the trip), **Tag** (the task sheet's tag list, titled for the batch), **the other phase** — one button
+  per phase the batch would actually move something into, never back into a closed *before* — and **Löschen**, only
+  when every selected task is the trip's own (a preparation is removed on its row, FR-7.3). Only what changes is
+  written, one snackbar undo takes the whole batch back (a deletion is hidden at once and written when the undo
+  lapses, as a single one is), and the mode ends with the batch; a batch that changes nothing says so instead.
+  Switching views ends the mode. M4's window has no selection.
 * **The rows look like M6's (2026-09-24).** Each tag group is a `ListGroup` — the heading and drop frame M6's tag
-  headings wear — and its rows are full-width list items with M6's separators and height, the task's words set in the
-  row-name role (`ion-label h3`'s size and weight). M4's window keeps its compact lines.
-* **The task sheet** opens by tapping a task's words, on this screen and on M4's window. It carries the head (the
-  task's words, with its phase as the meta), the facts that do not fit a line — the row it prepares, who wrote it and
-  when, who finished it and when — **the tag list** (FR-7.8: every task tag as a chip, exactly one selectable, plus
-  the *no tag* entry under the name of the group it would return to, and a field that creates a tag the list does
-  not have yet), and two actions: ***Auf „Während der Reise" schieben*** / ***Zurück auf „Vor der
-  Reise"***, and *Aufgabe entfernen* for the trip's own kind only. **Since FR-7.11 a *Fällig* date field** sits under
-  the facts on an open task (`task-sheet-due`, the app's `DateField`, ADR-035), its calendar offering *Löschen*; a
-  picked day is written at once, the sheet stays up, and the snackbar's undo writes the day the task had before.
+  headings wear — and its rows are full-width list items with M6's separators, the task's words set in the row-name
+  role (`ion-label h3`'s size and weight).
+* **The task sheet** opens by tapping a task's words, on this screen and on M4's window. **Ordered by how often each
+  act is wanted (FR-7.14):**
+  * **The head**: the task's words **are its title and are edited in place** (`task-sheet-title-input`, the title
+    role, a dashed underline): leaving the field or Enter writes the correction as one act with its own undo; emptied,
+    the field returns to the words it had. Any member may reword a task (it is shared work; the author-only rule is a
+    note's, FR-7.13). Its phase is the meta.
+  * **Erledigt** — the one primary button, in the done ink; the sheet closes with it. On a finished task it is
+    *Wieder öffnen*, outlined.
+  * **Fällig** (an open task only): `TaskDueChips` — the day in force as its own chip with ✕ (*„Sa., 26.9. ·
+    Morgen"*), then *Heute*, *Morgen*, *Vor Abreise* (the day before the trip's start, for a task before the trip,
+    when that day is later than tomorrow) and *Datum…*, which opens the app's calendar (`DateField`'s bare shape,
+    ADR-035). A picked day is written at once, the sheet stays up, and the undo writes the day the task had before.
+  * **Tag** (FR-7.8) — every task tag as a chip, exactly one selectable, the *no tag* entry under the name of the
+    group it would return to, and a field that creates a tag.
+  * **The phase move** as a secondary, outlined row: *Auf „Während der Reise" schieben* / *Zurück auf „Vor der
+    Reise"*.
+  * **The facts** on the sunken plane: the row it prepares, who wrote it and when, who finished it and when.
+  * ***Aufgabe entfernen*** last, quiet, in the danger ink — the trip's own kind only.
+  * A task left open in a closed *before* is read, not worked: no *Erledigt*, no editable words, no day.
 * **Every act raises the screen's one snackbar with *Rückgängig*** (FR-25.31): the tick, the add, the removal, the
-  assignment, the phase move and the due date. The move's undo writes back the phase the task actually had, which for
-  a task written before FR-7.7 is none at all.
+  assignment, the phase move, the due date, the correction of the words, and each batch. The move's undo writes back
+  the phase the task actually had, which for a task written before FR-7.7 is none at all.
 * **Modes:** all three. Local and Single-User lose the seat, the chip and the *who* of each stamp (G-8) and keep
   everything else — the phases, the move and the moments are client-side rules. **Before the trip partition has
   arrived** the screen shows nothing rather than an empty list (ADR-033).

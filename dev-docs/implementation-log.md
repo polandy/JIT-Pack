@@ -441,6 +441,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two equal readings are not a settled scroll (2026-09-25)](#two-equal-readings-are-not-a-settled-scroll-2026-09-25) — E2E-M4-45's WebKit flake: a smooth wheel stalls while the head yields, and `scrollend` is the signal.
 - [M26's baseline held a minute and a ripple (2026-09-25)](#m26s-baseline-held-a-minute-and-a-ripple-2026-09-25) — E2E-VIS-14 red on `main`: `toLocaleTimeString` escapes the pinned hour, and `md`'s ripple outlives `ion-activated`.
 - [A purchase's due day, and why the day rules left `domain/` (2026-09-25)](#a-purchases-due-day-and-why-the-day-rules-left-domain-2026-09-25) — FR-30.10: a module reaches only the kernel, so the day rules moved to `lib/dueDay.ts`; buy rows stay undated.
+- [M25 reworked from a UX review (2026-09-25)](#m25-reworked-from-a-ux-review-2026-09-25) — FR-7.14: an in-budget baseline survives `--update-snapshots`; a role class on `ion-textarea` misses its field.
 
 ## Deviations
 
@@ -17661,3 +17662,20 @@ M5, and the projection would have to carry it — for a question the row's mode 
 
 **Local Mode's hint** is packing-side (M1) and could not ask the shopping store either; the count crosses through a
 new key in `lib/tripCards.ts` (`DUE_PURCHASE_COUNT`), bound in `App.vue`, the same shape as the switcher's counts.
+
+## M25 reworked from a UX review (2026-09-25)
+
+FR-7.14. The owner found M25 not user-friendly; a review of the rendered screen ranked ten findings and put seven
+questions with rendered mockups, and the owner took the recommendation on each. The decisions and the options rejected
+are in the FR. Two traps from the build are worth keeping.
+
+**`--update-snapshots` does not rewrite a baseline that already passes.** The first E2E-VIS-13 update photographed a
+second line with *„From the packing list"* beside the preparation's own chip. The fix was made, `make visual-update`
+ran green, and the baseline still showed the words: the removed text was about 150 × 12 px, under the 658-pixel budget
+(`maxDiffPixels`), so the old image passed the new render and was kept. A baseline meant to show a change is deleted
+before it is regenerated, and then looked at.
+
+**A type role class on `ion-textarea` does not reach the text.** The task sheet's editable title carried
+`jp-sheet-title` on the `IonTextarea`, and rendered in the body face: Ionic's own host rule sets the font and wins, and
+the native `textarea` inherits from the host. The role now sits on a wrapping `div`, and the host and its field are set
+to `font: inherit`, which keeps the design-token gate's rule that only the theme files declare type.

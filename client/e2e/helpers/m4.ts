@@ -395,7 +395,14 @@ export async function addTripTodo(
 ): Promise<void> {
   const cameFrom = page.url()
   const section = await openTasks(page, phase)
-  const field = section.getByTestId('trip-todo-input')
+  // FR-7.14: one composer on top, whose chip names the phase it writes.
+  const composer = visiblePage(page).getByTestId('m25-composer')
+  const chip = composer.getByTestId(`m25-phase-${phase}`)
+  if ((await chip.count()) > 0) {
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
+  }
+  const field = composer.getByTestId('trip-todo-input')
   await fillIonic(field, body)
   await field.locator('input').press('Enter')
   await expect(section.getByTestId(`trip-todo-${body}`)).toBeVisible()
@@ -404,6 +411,18 @@ export async function addTripTodo(
     await page.goto(cameFrom)
     await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
   }
+}
+
+/**
+ * FR-7.14: a task of the trip removed the way M25 removes one — from its own
+ * sheet, since no ✕ stands on the row any more. Ends with the sheet gone.
+ */
+export async function removeTaskFromSheet(page: Page, body: string): Promise<void> {
+  await visiblePage(page).getByTestId(`trip-todo-open-${body}`).click()
+  const sheet = page.getByTestId('task-sheet')
+  await expect(sheet).toBeVisible()
+  await sheet.getByTestId('task-sheet-remove').click()
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 }
 
 /**

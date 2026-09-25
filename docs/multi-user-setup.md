@@ -49,7 +49,7 @@ Master data — items, tags, templates — is **instance-wide**: everyone sees a
 
 ### Who usually packs what
 
-An inventory item can name the person it is usually somebody's job for — open the item and choose **Usually assigned to**. It is optional; most items have nobody. For several items at once, use the inventory's selection mode: the checkbox icon in the app bar, tick the rows, then **⋯ More → Usually assigned to …**. The same sheet carries **Nobody**, which takes the assignment off again. It only appears once at least two accounts have signed in — there is nothing to choose between before that.
+An inventory item can name the person it is usually somebody's job for — open the item and choose **Usually assigned to**. It is optional; most items have nobody. For several items at once, use the inventory's selection mode: the select icon (two ticks) in the app bar, tick the rows, then **⋯ More → Usually assigned to …**. The same sheet carries **Nobody**, which takes the assignment off again. It only appears once at least two accounts have signed in — there is nothing to choose between before that.
 
 The inventory can show it, too: **⋮ → Shown properties → Assignee** puts the name on every row that has one (rows with nobody stay blank), and typing an account's name into the inventory search finds the items assigned to them. Like the setting itself, the switch only appears once at least two accounts have signed in, and it is remembered per device rather than for the account.
 

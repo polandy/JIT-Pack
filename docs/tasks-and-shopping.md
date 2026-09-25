@@ -3,6 +3,29 @@
 A trip's tasks (**Aufgaben**) and its shopping list (**Einkaufen**) work the same way: each is grouped under tags,
 and the same gestures file, move and tick off what is on it.
 
+## The task list
+
+**Aufgaben** reads top to bottom in the order you need it:
+
+- **The field on top** writes a new task. Under it, chips file the task as you type: **Vor der Reise** or
+  **Unterwegs**, one of your task tags (or **＋ Tag** to make a new one), and — once you have typed something — a day:
+  **Heute**, **Morgen**, **Vor Abreise** (the day before the trip starts, for a task before the trip) or **Datum…**
+  for the calendar. The phase and the tag stay chosen for the next task, so an errand's tasks are typed one after
+  another; the day does not. The orange **＋** at the bottom right takes you back to the field from anywhere on the
+  list.
+- **Fällig** comes next, when anything is pressing: every task that is overdue, due today or in the next two days,
+  from both phases and every tag, earliest first. Each row names its tag underneath, since it is not under its heading
+  while it is up here.
+- Then **Vor der Reise** and **Während der Reise**, each grouped under its tags. A task shows its words and, on a
+  second line, its due label, the packing-list row it belongs to and who has it. Tick it at the right edge. Finished
+  tasks fold away under one **N erledigt** line at the end of each phase.
+
+To change a task, tap its words. The sheet shows the words themselves, which you can correct in place; **Erledigt**
+as its main button (**Wieder öffnen** on a finished task); **Fällig** with the same day chips; the task's **Tag**; the
+button that moves it to the other phase; who wrote and finished it; and **Aufgabe entfernen**. A task has no ✕ on its
+line: remove it from this sheet, or select several and use **Löschen**. A task that belongs to a packing-list row is
+removed on that row.
+
 ## Moving one entry
 
 Every row you can file carries a grip (three short lines) at its left edge. Press it and drag the row onto another
@@ -17,7 +40,8 @@ the grip.
 
 ## Changing several at once
 
-Hold a row's name for half a second (or right-click it on a computer, or tap the checkbox icon in the app bar) to
+Hold a row's name for half a second (or right-click it on a computer, or tap the select icon — two ticks — in the app
+bar) to
 start selecting. The app bar at the top turns into the selection's bar: **✕** on the left, how many are selected, and
 **Alle** on the right. Nothing on the page moves, so the row you just held stays under your finger. Every row then
 shows a checkbox; tap names to add or remove them, or tap **Alle** to take every row you can select. The field for a
@@ -27,7 +51,7 @@ selection:
 | List | Actions |
 |---|---|
 | Shopping list | **Tag vergeben** — file every selected entry under one tag |
-| Tasks | **Tag vergeben**, or move the selection to **Vor der Reise** or **Während der Reise** |
+| Tasks | **Erledigt** — tick them all off; **Fällig** — one day for all; **Tag**; the other phase (**Vor der Reise** or **Unterwegs**, shown only where it would move something); **Löschen** — only when every selected task is the trip's own |
 
 Only what changes is written, and one **Rückgängig** undoes the whole batch. Tap **✕** in the app bar to leave
 without doing anything.
@@ -36,7 +60,7 @@ On the task list, done tasks are folded away and are not part of a selection.
 
 ## The inventory selects the same way
 
-**Artikel** (the inventory) starts a selection with the same hold, right-click or checkbox icon. There the whole row
+**Artikel** (the inventory) starts a selection with the same hold, right-click or select icon. There the whole row
 is what you hold and tap: outside a selection a tap opens the item, inside one it adds or removes the row. The bar at
 the bottom offers **Tag geben**, **Tag nehmen**, **⋯ Mehr** and **Stilllegen**, and **Alle** takes every row the
 search and the tag filter leave on screen.
@@ -53,7 +77,7 @@ with each tag's mark and the number of items under it.
 
 ## Hidden master data and luggage too
 
-Two more lists select with the same hold, right-click or checkbox icon. Neither has a grip or headings.
+Two more lists select with the same hold, right-click or select icon. Neither has a grip or headings.
 
 **Hidden master data** (Settings → *Ausgeblendete Stammdaten*): while you select, each row's own buttons step aside
 and the bar offers **Wiederherstellen** and **Löschen**.
@@ -73,12 +97,13 @@ still opens the picker for that one row.
 
 ## When a task is due
 
-Tap a task's words to open it, and set **Fällig** to the day it has to be done by — a day, no time. **Löschen** in
-the calendar takes the date off again. A task with a date wears a small label on its line: **Überfällig** in red once
+Tap a task's words to open it, and pick the day it has to be done by under **Fällig** — **Heute**, **Morgen**,
+**Vor Abreise**, or any day from **Datum…**. A day, no time. The chosen day is its own chip; tap it to take the date
+off again. A task with a date wears a small label on its line: **Überfällig** in red once
 the day has passed, **Heute**, **Morgen** or **In 2 Tagen** when it is close, and the date itself further out.
 
-What is due comes first: inside a group the dated tasks lead, earliest first, and a group holding an overdue task or
-one due within two days moves to the top. The packing list's task window and the task block on the overview put
+What is due comes first: overdue tasks and those due within two days stand in the **Fällig** block at the top of the
+task list, and inside a group the dated tasks lead, earliest first. The packing list's task window and the task block on the overview put
 them first too.
 
 On the morning before and on the day itself, the person the task is handed to is reminded — or everyone on the trip,
@@ -103,9 +128,10 @@ and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkä
 - Every open task for **Vor der Reise** moves to **Während der Reise**, and everything still to buy **Vor der
   Abreise** moves to **Vor Ort** on the shopping list. The confirmation says how many; **Rückgängig** takes all of it
   back.
-- Afterwards both *before* lists are a record: **Vor der Reise** on the tasks and **Vor der Abreise** on the shopping
-  list say so at the top, and nothing can be added to them, ticked or unticked there, or moved into them. New tasks
-  land in **Während der Reise**.
+- Afterwards both *before* lists are a record, and nothing can be added to them, ticked or unticked there, or moved
+  into them. On the task list, **Während der Reise** comes first and **Vor der Reise** is one folded line at the end
+  (*Vor der Reise · 3 erledigt*); open it to read what was done. New tasks land in **Während der Reise**. On the
+  shopping list, **Vor der Abreise** says so at the top.
 - **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
 
 ## Moving between a trip's lists

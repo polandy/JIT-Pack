@@ -309,20 +309,6 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
     expect(wrapper.find('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').exists()).toBe(false)
   })
 
-  /*
-   * M4's window shows only what hangs off a packing row, so a trip task typed
-   * there would be written into a list that cannot show it. The composer is
-   * therefore the screen's to offer, not the list's to have.
-   */
-  it('offers no composer until a screen names the phase one would write', () => {
-    expect(mountList([]).find('[data-testid="trip-todo-input"]').exists()).toBe(false)
-    expect(
-      mountList([], true, { composerPhase: 'during' })
-        .find('[data-testid="trip-todo-input"]')
-        .exists(),
-    ).toBe(true)
-  })
-
   it('says what an empty list means, where the screen gave it words', () => {
     const wrapper = mountList([], true, { emptyText: 'Nothing left to do before the trip.' })
 
@@ -387,5 +373,37 @@ describe('TripTodoList — a closed phase is history (FR-7.12)', () => {
 
     await list.get('[data-testid="trip-todo-open-Pflanzen"]').trigger('click')
     expect(list.emitted('open')).toHaveLength(1)
+  })
+})
+
+describe('TripTodoList — M25’s two-line rows (FR-7.14)', () => {
+  const TODAY = '2026-07-08'
+  const list = (tasks: TripTask[], extra: Record<string, unknown> = {}) =>
+    mountList(tasks, true, { variant: 'list', today: TODAY, ...extra })
+
+  it('puts what is known about a task under its words, and no ✕ beside the tick', () => {
+    const wrapper = list([{ ...ownTask('Pass holen', 'open'), due_date: '2026-07-01' }])
+    const facts = wrapper.get('[data-testid="trip-todo-facts-Pass holen"]')
+    expect(facts.find('[data-testid="trip-todo-due-Pass holen"]').exists()).toBe(true)
+    expect(facts.find('[data-testid="trip-todo-assign-Pass holen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-todo-remove-Pass holen"]').exists()).toBe(false)
+  })
+
+  it('names the row a preparation belongs to on the second line', () => {
+    const wrapper = list([preparation('Akkus laden', 'Kamera')])
+    expect(wrapper.get('[data-testid="trip-todo-facts-Akkus laden"]').text()).toContain('Kamera')
+  })
+
+  it('names its tag where the screen asks, the way a row outside its group must', () => {
+    const wrapper = list([ownTask('Salbe', 'open')], { tagOf: () => 'Apotheke' })
+    expect(wrapper.get('[data-testid="trip-todo-tag-Salbe"]').text()).toBe('Apotheke')
+  })
+
+  it('draws no second line for a task with nothing to say, where nobody can be named', () => {
+    const wrapper = mountList([ownTask('Blumen', 'open')], false, {
+      variant: 'list',
+      today: TODAY,
+    })
+    expect(wrapper.find('[data-testid="trip-todo-facts-Blumen"]').exists()).toBe(false)
   })
 })

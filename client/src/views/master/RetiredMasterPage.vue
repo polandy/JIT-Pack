@@ -38,7 +38,7 @@ import {
   IonSegment,
   IonSegmentButton,
 } from '@ionic/vue'
-import { archiveOutline, arrowUndoOutline, checkboxOutline, trashOutline } from 'ionicons/icons'
+import { archiveOutline, arrowUndoOutline, trashOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
@@ -61,7 +61,7 @@ import {
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
@@ -290,7 +290,7 @@ setHeaderSelection(() =>
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm23-select',
-    icon: checkboxOutline,
+    icon: SELECTION_ICON,
     label: t('selection.start'),
     active: selecting.value,
     onClick: () => (selecting.value ? selection.end() : selection.start()),

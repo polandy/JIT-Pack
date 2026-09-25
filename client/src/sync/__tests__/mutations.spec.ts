@@ -479,6 +479,31 @@ describe('createMutations', () => {
     expect(m.setTaskDueDate('todo1', null).table).toBe(TABLE.comments)
   })
 
+  // FR-7.14: the words alone, with no note's edit stamp — a task is shared
+  // work, not a signed entry.
+  it('setTaskBody writes the words alone', () => {
+    const m = createMutations(mockHLC())
+    expect(m.setTaskBody('todo1', 'Pass verlängern').fields).toEqual({ body: 'Pass verlängern' })
+    expect(m.setTaskBody('todo1', 'x').table).toBe(TABLE.comments)
+  })
+
+  // FR-7.14: a task filed as it is typed carries its tag and day in the one
+  // insert; one typed without them is written exactly as before.
+  it('addTodo files a tag and a day only where they were named', () => {
+    const m = createMutations(mockHLC())
+    const filed = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+      taskTagId: 'tt-apo',
+      dueDate: '2026-07-09',
+    }).mutation.fields
+    expect(filed).toMatchObject({ task_tag_id: 'tt-apo', due_date: '2026-07-09' })
+    const plain = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+      taskTagId: null,
+      dueDate: null,
+    }).mutation.fields
+    expect(plain).not.toHaveProperty('task_tag_id')
+    expect(plain).not.toHaveProperty('due_date')
+  })
+
   // FR-7.12: a promoted comment names a phase only when the caller says so.
   it('flagCommentAsTask writes a phase only when one is named', () => {
     const m = createMutations(mockHLC())

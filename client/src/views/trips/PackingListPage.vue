@@ -1963,6 +1963,18 @@ function onTaskDue(dueDate: string | null) {
   if (openedTask.value) taskActs.setDue(openedTask.value, dueDate)
 }
 
+/** FR-7.14: finished from the sheet, which closes as the line leaves the window. */
+function onTaskToggleFromSheet() {
+  const task = openedTask.value
+  openedTaskId.value = null
+  if (task) taskActs.toggle(task)
+}
+
+/** FR-7.14: the words, corrected on the sheet. */
+function onTaskRename(body: string) {
+  if (openedTask.value) taskActs.rename(openedTask.value, body)
+}
+
 function onTaskRemoveFromSheet() {
   const task = openedTask.value
   openedTaskId.value = null
@@ -3038,10 +3050,14 @@ setHeaderTitle(
           :task="openedTask"
           :name-of="nameOf"
           :before-locked="packingClosed"
+          :today="orchestrator.today()"
+          :trip-start="trip?.start_date ?? null"
           @close="openedTaskId = null"
           @due="onTaskDue"
           @move="onTaskMove"
           @remove="onTaskRemoveFromSheet"
+          @toggle="onTaskToggleFromSheet"
+          @rename="onTaskRename"
         />
       </SheetModal>
 

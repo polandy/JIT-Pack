@@ -1524,6 +1524,8 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.progress': '{done} von {total} erledigt',
   'tripTodos.allDone': '✓ Alle Aufgaben erledigt',
   'tripTodos.figure': '{done}/{total} Aufgaben',
+  // FR-7.14: M4's figure counts its window, and says so.
+  'tripTodos.figurePacking': 'Beim Packen {done}/{total}',
   'tripTodos.open': '{n} offen',
   'tripTodos.resolved': '{n} erledigt',
   'tripTodos.add': 'Aufgabe hinzufügen…',
@@ -1557,12 +1559,12 @@ export const de: Record<keyof typeof en, string> = {
   // FR-7.8 — das eine Tag einer Aufgabe und die Gruppen daraus.
   'tasks.fromPacking': 'Aus Packliste',
   'tasks.noTag': 'Ohne Tag',
-  'tasks.tagLabel': 'Tag — genau eines',
+  'tasks.tagLabel': 'Tag',
   'tasks.select': 'Auswählen',
   'tasks.bulkTag': 'Tag vergeben',
   'tasks.bulkTagTitle': 'Tag für eine Aufgabe | Tag für {n} Aufgaben',
   'tasks.bulkToBefore': 'Vor der Reise',
-  'tasks.bulkToDuring': 'Während der Reise',
+  'tasks.bulkToDuring': 'Unterwegs',
   'tasks.bulkRetagged': 'Tag einer Aufgabe geändert | Tag von {n} Aufgaben geändert',
   'tasks.bulkMovedToBefore':
     'Eine Aufgabe auf „Vor der Reise“ geschoben | {n} Aufgaben auf „Vor der Reise“ geschoben',
@@ -1585,6 +1587,32 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.dueHintBoth': '{tasks} und {purchases} fällig',
   'tasks.beforeLocked':
     'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
+
+  // FR-7.14 — M25 überarbeitet: Fälliges oben, ein Eingabefeld mit Chips,
+  // zweizeilige Zeilen, ein Blatt nach Häufigkeit geordnet.
+  'tasks.addPlaceholder': 'Neue Aufgabe…',
+  'tasks.duringShort': 'Unterwegs',
+  'tasks.phaseLabel': 'Wann',
+  'tasks.tagAdd': '＋ Tag',
+  'tasks.quickBeforeDeparture': 'Vor Abreise',
+  'tasks.quickPick': 'Datum…',
+  'tasks.dueClear': 'Fällig {day} – entfernen',
+  'tasks.dueGroup': 'Fällig',
+  'tasks.beforeHistory': 'Vor der Reise · {n} erledigt',
+  'tasks.beforeHistoryEmpty': 'Vor der Reise · abgeschlossen',
+  'tasks.wordsLabel': 'Aufgabe',
+  'tasks.markDone': 'Erledigt',
+  'tasks.reopen': 'Wieder öffnen',
+  'tasks.renamedToast': '„{body}" geändert',
+  'tasks.bulkDone': 'Erledigt',
+  'tasks.bulkTagShort': 'Tag',
+  'tasks.bulkRemove': 'Löschen',
+  'tasks.bulkResolved': 'Eine Aufgabe erledigt | {n} Aufgaben erledigt',
+  'tasks.bulkDueSet': 'Eine Aufgabe fällig am {date} | {n} Aufgaben fällig am {date}',
+  'tasks.bulkDueCleared':
+    'Fälligkeit einer Aufgabe entfernt | Fälligkeit von {n} Aufgaben entfernt',
+  'tasks.bulkRemoved': 'Eine Aufgabe entfernt | {n} Aufgaben entfernt',
+  'tasks.bulkDueTitle': 'Fällig für eine Aufgabe | Fällig für {n} Aufgaben',
 
   // FR-7.9 — Notizen einer Reise: von einer Person geschrieben, von allen
   // gelesen, pro Person abgehakt. Keine Geheimnis-Ablage (§6 des Konzepts) —

@@ -31,13 +31,7 @@ import {
   IonFab,
   IonFabButton,
 } from '@ionic/vue'
-import {
-  addOutline,
-  bagHandleOutline,
-  checkboxOutline,
-  closeOutline,
-  pricetagsOutline,
-} from 'ionicons/icons'
+import { addOutline, bagHandleOutline, closeOutline, pricetagsOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
@@ -57,7 +51,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
@@ -240,7 +234,7 @@ function onRowClick(line: ShoppingLine) {
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm6-select',
-    icon: checkboxOutline,
+    icon: SELECTION_ICON,
     label: t('shopping.select'),
     active: selecting.value,
     onClick: () => (selecting.value ? endSelecting() : selection.start()),

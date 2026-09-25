@@ -21,7 +21,7 @@ import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemTodo, TaskPhase, TripTodo } from '@/types/domain'
+import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_DURING } from '@/types/domain'
 
 /** What a screen lends the acts: its undo, its voice, its pickers. */
@@ -279,6 +279,86 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     )
   }
 
+  /**
+   * FR-7.14: the selection's *Erledigt* — every selected open task ticked off
+   * in one act, with one undo that reopens exactly those. Only open tasks
+   * reach a selection, so every one of them changes.
+   */
+  function resolveMany(tasks: readonly TripTask[]): number {
+    return writeBatch(
+      tasks.filter((task) => task.task_state === 'open'),
+      (todo) => todo.task_state,
+      (todo, state) => writeState(todo, state),
+      'resolved' as TodoState,
+      (n) => t('tasks.bulkResolved', { n }),
+    )
+  }
+
+  /** FR-7.14: the selection's *Fällig* — one day for all of them, or none. */
+  function dueMany(tasks: readonly TripTask[], dueDate: string | null): number {
+    return writeBatch(
+      tasks.filter((task) => task.due_date !== dueDate),
+      (todo) => todo.due_date,
+      (todo, value) => orchestrator.setTaskDueDate(tripId(), todo, value),
+      dueDate,
+      (n) =>
+        dueDate === null
+          ? t('tasks.bulkDueCleared', { n })
+          : t('tasks.bulkDueSet', { n, date: shortDueDay(dueDate) }),
+    )
+  }
+
+  /**
+   * FR-7.14: the selection's *Löschen*, for the trip's own tasks (a
+   * preparation is removed on its row, FR-7.3). Hidden now and deleted when
+   * the undo lapses, as one removal is — and one undo brings them all back.
+   */
+  function removeMany(tasks: readonly TripTask[]): number {
+    const ids = tasks.filter((task) => task.item === null).map((task) => task.id)
+    if (ids.length === 0) return 0
+    const message = t('tasks.bulkRemoved', { n: ids.length })
+    rowUndo.armAction(
+      message,
+      () => ids.forEach((id) => removing.value.delete(id)),
+      () => {
+        for (const id of ids) {
+          const live = liveTripTodo(id)
+          if (live) orchestrator.deleteTripTodo(live)
+          removing.value.delete(id)
+        }
+      },
+    )
+    ids.forEach((id) => removing.value.add(id))
+    void announceAct(message)
+    return ids.length
+  }
+
+  /**
+   * FR-7.14: a task's words, corrected on its sheet. The undo writes back the
+   * words it had.
+   */
+  function rename(task: TripTask, body: string) {
+    const todo = liveTask(task)
+    if (!todo || todo.body === body) return
+    const previous = todo.body
+    rowUndo.armAction(body, () => {
+      const live = liveTask(task)
+      if (live) orchestrator.setTaskBody(tripId(), live, previous)
+    })
+    orchestrator.setTaskBody(tripId(), todo, body)
+    void announceAct(t('tasks.renamedToast', { body }))
+  }
+
+  /** Resolve or reopen either kind, to the state asked for. */
+  function writeState(todo: ItemTodo | TripTodo, state: TodoState) {
+    if (todo.task_state === state) return
+    if ('trip_item_id' in todo) {
+      if (state === 'resolved') orchestrator.resolvePrepTodo(tripId(), todo)
+      else orchestrator.reopenPrepTodo(tripId(), todo)
+    } else if (state === 'resolved') orchestrator.resolveTripTodo(todo)
+    else orchestrator.reopenTripTodo(todo)
+  }
+
   function writeBatch<V>(
     changing: readonly TripTask[],
     read: (todo: ItemTodo | TripTodo) => V,
@@ -312,6 +392,10 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     retag,
     retagMany,
     moveMany,
+    resolveMany,
+    dueMany,
+    removeMany,
+    rename,
     liveTripTodo,
     liveItemTodo,
   }

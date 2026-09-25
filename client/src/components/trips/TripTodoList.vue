@@ -1,32 +1,30 @@
 <script setup lang="ts">
 /**
- * The trip's tasks (FR-7.6/FR-7.7), editable: the list M25 renders twice —
- * once per phase — and the window M4 keeps of what is to be done while
- * packing. Open ones are ticked off in place, resolved ones fold away but
- * stay reachable to untick.
+ * The trip's tasks (FR-7.6/FR-7.7), editable: the rows M25 draws in its
+ * *Fällig* block, its tag groups and its folds, and the window M4 keeps of
+ * what is to be done while packing. Open ones are ticked off in place,
+ * resolved ones fold away but stay reachable to untick.
  *
- * Two kinds of task share the list. The trip's own (FR-7.4) carry a ✕; a
- * row's preparation (FR-7.3) carries the chip of the row it belongs to
- * instead and is removed where it lives, which is the row. The chip is what
- * says which is which.
+ * Two kinds of task share the list. A row's preparation (FR-7.3) carries the
+ * chip of the row it belongs to; the trip's own (FR-7.4) does not. **Since
+ * FR-7.7 both kinds carry a seat** (the owner's request of 2026-09-20: *a
+ * task can be assigned to somebody like a pack item*).
  *
- * **Since FR-7.7 both kinds carry a seat** (the owner's request of
- * 2026-09-20: *a task can be assigned to somebody like a pack item*). Q3 B's
- * own line — who wrote it while it is open, who finished it once it is done —
- * lived on the row itself until 2026-09-23; the overview reads the words and
- * the seat now, and the provenance moved to the task's own sheet
- * (`TripTaskSheet.vue`), the only place it was still worth a line each.
+ * **Two shapes (FR-7.14, owner 2026-09-25).** M25's `list` rows are two
+ * lines — the words, and under them what is known about the task: its due
+ * pill, the row it prepares, its tag where the row stands outside its group,
+ * and the person. A fact never squeezes the words, and **no ✕ stands beside
+ * the tick**: a task is removed from its sheet or from a selection, never one
+ * finger-width from the control that finishes it. M4's `window` keeps its
+ * compact one-line rows, which only ever hold preparations.
  *
  * The trip is where these are written (owner, 2026-09-18): M1 only reports
- * them, because the dashboard takes no actions.
- *
- * Every act is *emitted*: both kinds are written through different actions
- * and both undone through the screen's one snackbar (FR-25.31), so the writer
- * is the screen and this list reports the tap. The composer is the exception —
- * it can only write the trip's own kind, so it writes it, in the phase the
- * screen handed it.
+ * them, because the dashboard takes no actions. Every act is *emitted*: both
+ * kinds are written through different actions and both undone through the
+ * screen's one snackbar (FR-25.31), so the writer is the screen and this list
+ * reports the tap. Writing a new task is M25's composer's (`TaskComposer`).
  */
-import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
+import { IonCheckbox, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
@@ -38,19 +36,16 @@ import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { RowSelection } from '@/composables/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripItemPath } from '@/router/paths'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import type { TaskPhase } from '@/types/domain'
 
 const props = defineProps<{
   /** The trip whose tasks these are. */
   tripId: string
-  /** Its tasks, in FR-7.6's order — the screen counts the same list. */
+  /** Its tasks, in the order the screen reads them. */
   tasks: readonly TripTask[]
   /**
    * FR-7.5: whether there is anybody to hand a task to. Absent in Local and
@@ -60,15 +55,6 @@ const props = defineProps<{
   assignable?: boolean
   /** A member's display name, for the avatar's initials. */
   nameOf?: (userId: string | null) => string | null
-  /**
-   * FR-7.7: the phase a task typed into the composer is written in, or null
-   * for a list without one. M4's window has none — everything it shows hangs
-   * off a packing row, and a trip task typed there would vanish as it was
-   * written.
-   */
-  composerPhase?: TaskPhase | null
-  /** What the composer's empty field says; the screen knows which list it is. */
-  composerLabel?: string
   /** What to say when the list is empty. Absent renders nothing. */
   emptyText?: string
   /**
@@ -77,9 +63,7 @@ const props = defineProps<{
    * because the gesture has to start *during* the pointerdown — an emit would
    * arrive after the browser has already decided the press is a scroll.
    *
-   * Absent means the rows are not draggable and no grip is drawn, which is
-   * how M4's window renders them: its window is a handful of lines with
-   * nothing to sort them into.
+   * Absent means the rows are not draggable and no grip is drawn.
    */
   lift?: (ev: PointerEvent, task: TripTask, row: HTMLElement) => void
   /**
@@ -89,30 +73,34 @@ const props = defineProps<{
    */
   selection?: RowSelection
   /**
-   * `list`: the rows sit in M25's grouped list and look like M6's rows.
-   * `window` (default): M4's compact window of a handful of lines.
+   * `list`: M25's two-line rows (FR-7.14). `window` (default): M4's compact
+   * window of a handful of lines.
    */
   variant?: 'list' | 'window'
   /**
-   * FR-7.11: today as the device reckons it, for the due badge. Absent
-   * draws no badge — the composer-only instance lists no tasks.
+   * FR-7.11: today as the device reckons it, for the due pill. Absent draws
+   * no pill.
    */
   today?: string
   /**
    * FR-7.12: the list is history — the *before* phase once the packing is
    * finished. Nothing is ticked, reopened, handed over or removed here; the
-   * words still open the task's sheet, which is the way out of the phase.
+   * words still open the task's sheet.
    */
   readonly?: boolean
+  /**
+   * FR-7.14: the tag a row names on its second line, where the row is read
+   * outside its tag's group — M25's *Fällig* block and its folds. Absent (or
+   * null for a task) names none: inside a group the heading already does.
+   */
+  tagOf?: (task: TripTask) => string | null
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
 const emit = defineEmits<{
-  /** A task was written — its id, for the undo that takes it out again. */
-  added: [id: string, body: string]
   /** A task's checkbox was operated; the screen writes it and arms the undo. */
   toggle: [task: TripTask]
-  /** Asked to go — the screen hides it and deletes it once the undo lapses. */
+  /** Asked to go — M4's window only; M25 removes from the sheet (FR-7.14). */
   remove: [task: TripTask]
   /** FR-7.5: the seat was tapped — the screen asks whose job it is. */
   assign: [task: TripTask]
@@ -120,26 +108,11 @@ const emit = defineEmits<{
   open: [task: TripTask]
 }>()
 
-const orchestrator = useOrchestrator()
-
 const open = computed(() => props.tasks.filter((task) => task.task_state === 'open'))
 const resolved = computed(() => props.tasks.filter((task) => task.task_state === 'resolved'))
 
-const draft = ref('')
 const showResolved = ref(false)
-
-function add() {
-  const body = draft.value.trim()
-  if (!body || !props.composerPhase) return
-  const id = orchestrator.addTripTodo(
-    props.tripId,
-    CLIENT_ACTOR_PLACEHOLDER,
-    body,
-    props.composerPhase,
-  )
-  draft.value = ''
-  emit('added', id, body)
-}
+const isList = computed(() => props.variant === 'list')
 
 /** The avatar a task's seat shows, or null for the empty seat. */
 function assigneeOf(task: TripTask) {
@@ -171,6 +144,22 @@ function onOpen(task: TripTask) {
   if (props.selection?.click(task.id, true)) return
   emit('open', task)
 }
+
+/** Whether an open list row's seat is the control, rather than a plain avatar. */
+function seatOffered(): boolean {
+  return !!props.assignable && !props.readonly && !selecting.value
+}
+
+/** Whether a list row has anything to say under its words. */
+function hasFacts(task: TripTask): boolean {
+  return (
+    (!!props.today && openDueDay(task) !== null) ||
+    task.item !== null ||
+    !!props.tagOf?.(task) ||
+    !!task.assignee_user_id ||
+    (task.task_state === 'open' && seatOffered())
+  )
+}
 </script>
 
 <template>
@@ -182,15 +171,13 @@ function onOpen(task: TripTask) {
     <IonItem
       v-for="task in open"
       :key="task.id"
-      :lines="variant === 'list' ? undefined : 'none'"
+      :lines="isList ? undefined : 'none'"
       class="todo-row"
       :data-selected="selecting && selection?.selected.value.has(task.id) ? 'true' : undefined"
       :data-testid="`trip-todo-${task.body}`"
     >
       <!-- M6's leading edge (2026-09-24): the selection box while selecting,
-           the grip otherwise. The grip exists only to be dragged, so it lifts
-           without a hold; it is drawn only where this list sits in something
-           that can be dragged between. -->
+           the grip otherwise. -->
       <SelectBox
         v-if="selecting"
         slot="start"
@@ -204,41 +191,73 @@ function onOpen(task: TripTask) {
         :data-testid="`trip-todo-grip-${task.body}`"
         @pointerdown.stop="onLift($event, task)"
       />
-      <!-- FR-7.7: the words are the way into the task's own sheet, where the
-           facts that do not fit a line live — and where it is moved between
-           the phases. A button rather than the label itself, so the target is
-           the words and not the whole row: the tick is the row's own edge. -->
-      <!-- A hold on the words selects, M6's gesture (and its right-click
-           twin); the tick and the ✕ are left to their own taps. -->
-      <IonLabel
-        @pointerdown="selection?.press(task.id, $event)"
-        @pointermove="selection?.move($event)"
-        @pointerup="selection?.release()"
-        @pointercancel="selection?.release()"
-        @contextmenu="onContextMenu($event, task)"
-      >
-        <button
-          type="button"
-          class="body"
-          :data-testid="`trip-todo-open-${task.body}`"
-          @click="onOpen(task)"
+      <div class="text">
+        <!-- FR-7.7: the words are the way into the task's own sheet. A hold
+             on them selects, M6's gesture (and its right-click twin). -->
+        <IonLabel
+          @pointerdown="selection?.press(task.id, $event)"
+          @pointermove="selection?.move($event)"
+          @pointerup="selection?.release()"
+          @pointercancel="selection?.release()"
+          @contextmenu="onContextMenu($event, task)"
         >
-          {{ task.body }}
-        </button>
-      </IonLabel>
-      <!-- While selecting, the row's own controls step aside, as M6's do: a
-           tap there would act on one task in the middle of choosing several. -->
-      <span v-if="!selecting" slot="end" class="todo-end">
-        <!-- FR-7.11: when it is due, first — it is what decides whether the
-             line is read now. -->
+          <button
+            type="button"
+            class="body"
+            :data-testid="`trip-todo-open-${task.body}`"
+            @click="onOpen(task)"
+          >
+            {{ task.body }}
+          </button>
+        </IonLabel>
+        <!-- FR-7.14: the second line — what is known about the task. The pill
+             stays while selecting: when a task is due is part of choosing it. -->
+        <div
+          v-if="isList && hasFacts(task)"
+          class="facts"
+          :data-testid="`trip-todo-facts-${task.body}`"
+        >
+          <DueBadge
+            v-if="today"
+            :day="openDueDay(task)"
+            :today="today"
+            :testid="`trip-todo-due-${task.body}`"
+          />
+          <TaskItemChip
+            v-if="task.item"
+            :item="task.item"
+            :to="tripItemPath(tripId, task.item.id)"
+          />
+          <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+            tagOf(task)
+          }}</span>
+          <AssigneeSeat
+            v-if="seatOffered()"
+            :avatar="assigneeOf(task)"
+            :data-testid="`trip-todo-assign-${task.body}`"
+            @assign="emit('assign', task)"
+          />
+          <span
+            v-else-if="task.assignee_user_id"
+            class="person"
+            :data-testid="`trip-todo-assignee-${task.body}`"
+          >
+            <UserAvatar
+              variant="assignee"
+              :name="nameOf?.(task.assignee_user_id)"
+              :seed="task.assignee_user_id"
+            />
+          </span>
+        </div>
+      </div>
+      <!-- M4's window keeps its one-line cluster at the row's edge. -->
+      <span v-if="!isList && !selecting" slot="end" class="todo-end">
         <DueBadge
           v-if="today"
           :day="openDueDay(task)"
           :today="today"
           :testid="`trip-todo-due-${task.body}`"
         />
-        <!-- FR-7.6: the chip stands where the trip's own task carries its
-             ✕ — one line, one place that says what the task belongs to. -->
         <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
         <AssigneeSeat
           v-if="assignable && !readonly"
@@ -261,10 +280,8 @@ function onOpen(task: TripTask) {
         />
       </span>
       <!-- The tick is last, so its outer edge is the row's — the same rule a
-           packing row's control follows (UI-Spec M4), and the reason both land
-           under the same thumb. It is a sibling of the cluster rather than
-           part of it: the cluster's width budget is the chip's, and a tick
-           inside it would be paid for out of the row's name. -->
+           packing row's control follows (UI-Spec M4). While selecting it
+           steps aside, as M6's does. -->
       <IonCheckbox
         v-if="!selecting"
         slot="end"
@@ -293,28 +310,55 @@ function onOpen(task: TripTask) {
         <IonItem
           v-for="task in resolved"
           :key="task.id"
-          :lines="variant === 'list' ? undefined : 'none'"
+          :lines="isList ? undefined : 'none'"
           class="todo-row resolved"
           :data-testid="`trip-todo-${task.body}`"
         >
-          <IonLabel>
-            <button
-              type="button"
-              class="body"
-              :data-testid="`trip-todo-open-${task.body}`"
-              @click="emit('open', task)"
+          <div class="text">
+            <IonLabel>
+              <button
+                type="button"
+                class="body"
+                :data-testid="`trip-todo-open-${task.body}`"
+                @click="emit('open', task)"
+              >
+                {{ task.body }}
+              </button>
+            </IonLabel>
+            <div
+              v-if="isList && hasFacts(task)"
+              class="facts"
+              :data-testid="`trip-todo-facts-${task.body}`"
             >
-              {{ task.body }}
-            </button>
-          </IonLabel>
-          <span slot="end" class="todo-end">
+              <TaskItemChip
+                v-if="task.item"
+                :item="task.item"
+                :to="tripItemPath(tripId, task.item.id)"
+              />
+              <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+                tagOf(task)
+              }}</span>
+              <!-- Done is done: who had it is still worth reading, but handing
+                   over a finished task decides nothing. -->
+              <span
+                v-if="task.assignee_user_id"
+                class="person"
+                :data-testid="`trip-todo-assignee-${task.body}`"
+              >
+                <UserAvatar
+                  variant="assignee"
+                  :name="nameOf?.(task.assignee_user_id)"
+                  :seed="task.assignee_user_id"
+                />
+              </span>
+            </div>
+          </div>
+          <span v-if="!isList" slot="end" class="todo-end">
             <TaskItemChip
               v-if="task.item"
               :item="task.item"
               :to="tripItemPath(tripId, task.item.id)"
             />
-            <!-- Done is done: who had it is still worth reading, but handing
-                 over a finished task decides nothing. -->
             <UserAvatar
               v-if="task.assignee_user_id"
               variant="assignee"
@@ -339,18 +383,6 @@ function onOpen(task: TripTask) {
         </IonItem>
       </template>
     </template>
-
-    <div v-if="composerPhase" class="composer">
-      <IonInput
-        v-model="draft"
-        :placeholder="composerLabel ?? t('tripTodos.add')"
-        data-testid="trip-todo-input"
-        @keydown.enter="add"
-      />
-      <IonButton size="small" :disabled="!draft.trim()" data-testid="trip-todo-add" @click="add">
-        {{ t('common.add') }}
-      </IonButton>
-    </div>
   </div>
 </template>
 
@@ -369,12 +401,49 @@ function onOpen(task: TripTask) {
   --background: color-mix(in srgb, var(--jp-action) 10%, transparent);
 }
 
+/* The words and, in M25's rows, the facts under them. The column takes the
+   row's width, so a fact never pushes the words into a second line. */
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-block: 8px;
+}
+
+.window .text {
+  padding-block: 0;
+}
+
+.text ion-label {
+  margin: 0;
+}
+
 /* In M25's list a task's words are a row's name, set in the role
    `typography.css` gives `ion-label h3` — M6's entries wear it. A button
    cannot hold a heading, so the role's two values are asked for here. */
 .list .body {
   font-size: var(--jp-text-md);
   font-weight: var(--jp-weight-semibold);
+  white-space: normal;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.facts .tag {
+  white-space: nowrap;
+}
+
+.person {
+  display: inline-flex;
 }
 
 .list .resolved-toggle {
@@ -408,16 +477,12 @@ function onOpen(task: TripTask) {
   align-items: center;
   gap: 6px;
   /* The chip is the one thing here that carries text, so it is the one thing
-     that can outgrow the row; everything else keeps its box. Since FR-7.7 a
-     preparation carries a seat beside its chip, so the cluster is given the
-     width that seat costs and the chip shrinks first. */
+     that can outgrow the row; everything else keeps its box. */
   min-width: 0;
   max-width: 62%;
 }
 
 .tick {
-  /* A destructive ✕ stands next to the tick: the extra step keeps a mis-tap
-     from deleting what it meant to finish. */
   margin-inline-start: 4px;
 }
 
@@ -439,19 +504,5 @@ function onOpen(task: TripTask) {
 
 .resolved-toggle.open .caret {
   transform: rotate(90deg);
-}
-
-.composer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 14px 0;
-}
-
-.composer ion-input {
-  --background: var(--ct-surface0);
-  --padding-start: 12px;
-  --padding-end: 12px;
-  border-radius: var(--jp-r-md);
 }
 </style>

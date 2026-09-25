@@ -5906,6 +5906,51 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Surfaces:** M26 (new), M1's card, M25 (segment removed), the switcher (FR-21.21), M17's switch. UI-Spec M26/M1;
     E2E-M26-01..04, E2E-M1-14. ADR-073 carries an amendment note; ADR-051 amendment 3 recorded the row.
 
+* **FR-7.14 (M25 reworked for use — owner verdict and decisions 2026-09-25, decided from a UX review with rendered
+  mockups; *built the same day*):** after using it, the owner found the tasks screen not user-friendly and asked for a
+  rework as a UX expert would do it. A review of the rendered screen ranked ten findings by how much each hurt, and put
+  seven open questions to the owner; **the owner chose the recommendation on every one.** Not re-opened, only built
+  around: G-20's selection, the due day and its pill (FR-7.11), the two phases (FR-7.7) and the closed *before*
+  (FR-7.12). Pure client work: no schema, wire or server change.
+  1. **What is due now leads.** A *Fällig* block on top holds every open task that is overdue, due today or in the next
+     two days — FR-7.11's pressing states — **across both phases and every tag**, earliest first. A task in it
+     **leaves its tag group** while it is there, so nothing is listed twice; its row names its tag instead. The block
+     is not drawn when nothing is pressing. Rejected: a *by tag / by day* switch (one more control, and the drag between
+     groups has nowhere to go in the day view), and keeping the groups with a *„2 fällig"* head (the pressing rows stay
+     scattered, which was the finding). A task left open in a closed *before* is history and not in the block.
+  2. **One composer on top, in M6's shape**, and the FAB the sibling lists carry, which focuses it. Its chips file the
+     task as it is typed: the **phase** (*Vor der Reise* / *Unterwegs*, gone once *before* is closed), the **tag**
+     (with *＋ Tag* to create one) and the **day** — *Heute*, *Morgen*, *Vor Abreise*, *Datum…*. One insert carries
+     all three. Phase and tag stay chosen for the next task; the day does not. Rejected: an add sheet behind the FAB
+     (M26's way — it covers the list while you write) and a composer per section moved to its top.
+  3. **Two-line rows, no ✕.** The words, then under them the due pill, the row a preparation belongs to and the
+     person. *Done* and *delete* were same-sized neighbours a finger-width apart; a task is now removed from its sheet
+     or from a selection. M4's compact window is unchanged.
+  4. **After the packing is closed, *Während der Reise* comes first** and *Vor der Reise* is one folded line at the
+     end — its lock line inside the fold. Before, the history stood above the live work with empty headings.
+  5. **One *erledigt* fold per phase**, at the section's end, rather than one under every tag group.
+  6. **The task sheet is ordered by how often each act is wanted**: the words are its title and are **edited in
+     place** (one act, one undo; any member may reword a task — the author-only rule is a note's, FR-7.13);
+     ***Erledigt*** is the primary button (*Wieder öffnen* on a finished task); then the due day as the same chips;
+     then the tag (labelled *Tag*, no longer *„Tag — genau eines"*); the phase move as a secondary row; the facts; the
+     removal last.
+  7. **Local Mode and travellers: left as it is.** A task's seat stays an account (G-8), though Local Mode names
+     travellers on packing rows; letting a task name a traveller in every mode was the alternative, not taken.
+  * **No decision needed, built alongside:** the selection's icon is its own glyph (`SELECTION_ICON`,
+    `checkmarkDoneOutline`, on every list that selects) — it was the *Aufgaben* pill's ☑, directly under it on M6 and
+    M25; the selection's bar gains **Erledigt**, **Fällig** and **Löschen** (the trip's own tasks only) and offers a
+    phase only where it would move something; and M4's task figure says what it counts, *„Beim Packen 0/2"*, where
+    three screens said *Aufgaben* with three different numbers.
+  * **Decided in the build, for the owner to see:** *Vor Abreise* is the **day before the trip's start**, offered only
+    for a task before the trip and only when that day is later than tomorrow (earlier it would duplicate *Heute* or
+    *Morgen*, or be past); a phase chip in the composer reads *Unterwegs* rather than *Während der Reise*, to fit the
+    row; the *Fällig* block wears a faint tint of the overdue ink; the phase button in the selection's bar reads
+    *Unterwegs* for the same reason. M1's *Aufgaben* card is unchanged.
+  * **Modes.** All three; nothing here reaches the server. The seat and *Meine* stay Server-only (G-8).
+  * **Surfaces:** M25 (composer, *Fällig* block, rows, folds, closed *before*, sheet, selection bar, FAB), M4 (the
+    figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..16, with
+    E2E-M25-01/03/06/12/13 and E2E-M4-97/149 revised.
+
 ### 3.9 Trip Feedback & Post-Trip Review
 
 * **FR-9.3 (Capturing Trip Feedback Without Visiting Every Row — new 2026-08-22, owner request):**
