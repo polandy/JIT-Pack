@@ -1135,14 +1135,14 @@ taken straight from a phone camera never reaches the server unprocessed.
 
   Reported by the owner off a render, like FR-21.19 the same day. The list has one name column, and every kind of
   line that names an item — plain row, lone per-person row, cluster head — now stands in it.
-* **FR-21.21 (A Trip's Views Are Named in the Page — added 2026-09-08, amended 2026-09-20):** Every screen that is
-  one of a trip's four views — the packing list (M4), the shopping list (M6), the luggage (M11) and the analytics
-  (M12) — carries a row of pills under the page's name (G-9) and, for the views the row leaves out, entries in the
-  bar's ⋮. The one being looked at is marked (`aria-current="page"`) and inert; every other view is reachable
-  **from any of the four**, so the step from the shopping list to the luggage no longer goes back through M4 first.
-  Which view a screen is comes from the route table (`meta.tripView`), like the content measure of FR-21.18 — a
-  screen that had to remember to offer its siblings is a screen that will forget. The same applies to the ⋮: the
-  frame fills it, so none of the four screens registers those entries and none of them can forget to.
+* **FR-21.21 (A Trip's Views Are Named in the Page — added 2026-09-08, amended 2026-09-20 and 2026-09-25):** Every
+  screen that is one of a trip's four views — the packing list (M4), the shopping list (M6), the luggage (M11) and the
+  analytics (M12) — carries a row of pills under the page's name (G-9) and, for the views the row leaves out, entries in
+  the bar's ⋮. The one being looked at is marked (`aria-current="page"`) and inert; every other view is reachable **from
+  any of the four**, so the step from the shopping list to the luggage no longer goes back through M4 first. Which view
+  a screen is comes from the route table (`meta.tripView`), like the content measure of FR-21.18 — a screen that had to
+  remember to offer its siblings is a screen that will forget. The same applies to the ⋮: the frame fills it, so none of
+  the four screens registers those entries and none of them can forget to.
 
   **Which views stand in the row (amended 2026-09-20, ADR-051 amendment 1).** *Packliste* and *Einkaufen (n)* — the
   two a trip is **worked** in — plus the view being looked at when it is neither of them, so the row never stops
@@ -1162,20 +1162,25 @@ taken straight from a phone camera never reaches the server unprocessed.
   **The count is things to buy, not rows** (FR-25.6), which is the arithmetic M6's own segments use. The menu entry
   it replaced counted rows, and nothing noticed for as long as the two numbers were never on one screen: the pill
   said *Einkaufen (3)* above segments saying *(1)* and *(1)* the first time it rendered. `buyRowCount` is now one
-  function in `domain/shoppingView.ts`, read by both. A count lives **in the word** rather than in a badge, because
-  an action-sheet entry can render no badge (ADR-050) — which is what lets a view carry its number into either shape.
+  function in `domain/shoppingView.ts`, read by both. A count lives **in the label** (*„Einkaufen (12)"*), because an
+  action-sheet entry can render no badge (ADR-050) — which is what lets a view carry its number into either shape.
+  Since amendment 3 a glyph-only pill also shows it as a badge, and the label is its name.
 
   **A view is described once.** Its word, its glyph and its destination are one table (`lib/tripViews.ts`), read by
   the switcher and by the bar's ⋮, and a view keeps the same id in both — so a case that knows where to click does
   not have to know which shape the view is wearing today. Written twice, a view could be renamed in one shape and
   not in the other with nothing failing.
 
-  **The pills are words on a phone and words with glyphs from 480 px up.** Four words filled a 390 px row to within
-  six pixels (measured: 352 of 358) and the glyphs take 90 more. The amendment's widest row is three — the luggage or
-  the analytics standing as the current view, in German *Packliste · Einkaufen (3) · Auswertung*, 286 px of words in
-  358 — which the glyphs still overrun, so the breakpoint stays where it was. The glyph vocabulary itself is
-  unchanged; E2E-G12-05 reads it off the shopping pill at the desktop width and off the other two inside the ⋮, where
-  the same glyph has to be the one the reader learned.
+  **Only the current view is a word (amended 2026-09-25, ADR-051 amendment 3).** The one you stand on shows its glyph
+  and its word; every other view is its glyph alone, its count a badge, its label its `aria-label` and `title`.
+  Holding a glyph shows the label in a bubble, and the release does not navigate; a tap does. The owner chose it off
+  a measured render when the notes were to become a view of their own (FR-7.13): four words with their counts
+  overran a 390 px phone by 12 px in German, and the three-pill row as built already overran it by 20 px while
+  standing on *Gepäck* or *Auswertung* — the 286 px of the previous paragraph's version was measured with a one-digit
+  count and before *Aufgaben* joined. With glyphs the widest row, four pills, fits 360 px (E2E-G12-07). The glyph
+  vocabulary is unchanged and now carries meaning alone, so E2E-G12-05's pairwise distinctness is load-bearing; a
+  held glyph naming itself is E2E-G12-08. *Revised:* the pills were words on a phone and words with glyphs from
+  480 px up.
 * **FR-21.22 (A Dashed Edge Means *Not Yet* — added 2026-09-08):** A dashed outline marks a place where something is
   not there: the empty picker slot (M9), the quick-add invitation, the browse hand-over. A control that acts on
   content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} Erledigte
