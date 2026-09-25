@@ -3731,7 +3731,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, corrected to the FR-27.4 model 2026-08-30); the M10 usage count is asserted in M10-14/15 (M10-02 retired 2026-08-30 — its „delete blocked" half was reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
-| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said. |
+| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said.; M2-34 (reached from M2's row menu since 2026-09-25) |
 | FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
@@ -3763,6 +3763,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
 | FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant, asserted since 2026-08-30), **FLOW-04** (the harvest read back where it is supposed to arrive — the next trip generated from the group); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
+| FR-9.3 | E2E | M4-51…55 (the closing pass and its *unused* marks, `closing-pass.spec.ts`), M14-08; M2-34 (its one door, M2's *Reise abschliessen*, since 2026-09-25) |
 | FR-10.1 | E2E+UNIT | M11-01 (via M11-05/06); ContainerSheet.spec.ts (the carrier is optional — clearing it) |
 | FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment) |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts — **the threshold is a fixed 15 % since 2026-08-31**, the per-trip override struck together with its dead reader (see the M11 block) |
@@ -3803,7 +3804,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-19.5 | E2E | FLOW-07 (backup → restore on a server device → a third device that only ever talked to the server); the *first* step, leaving Local Mode on the same device, is FR-19.8's (M17-14) since 2026-09-02 |
 | FR-19.6 | E2E | G2-02, NFR-03 |
 | FR-19.8 | E2E+UNIT | M17-14 (the move, end to end, read back from the server), M17-14b (the guard, both directions), M17-14c (skip is not restore); the guard's rule and the card's absence outside Local Mode are unit-owned |
-| FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words — written 2026-08-30), M5-23; dependencies.ts |
+| FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words — written 2026-08-30), M5-23; dependencies.ts; M10-31 (a name in either list leads to that item) |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts (incl. the anchor rule: a per-person twin or a second main item keeps a companion, 2026-09-18) |
 | FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
 | FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
@@ -3854,8 +3855,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
 | FR-25.11l | E2E+UNIT | M4-85 (panel wiring, override); `packingView.spec.ts` (bucketing, whole-set counts) |
-| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs); G12-07 and M4-57 (since 2026-09-25: a ⋮ holds its own context — none on M6/M25, no trip-wide entries on M4) |
 | G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
+| G-20 | E2E+UNIT | G20-01 (M6: the app bar carries the selection and the first row stays put, measured); `AppHeader.spec.ts` (what the bar shows and hides while selecting), each list page's spec (the selection it registers) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
 | FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
 | FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
