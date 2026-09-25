@@ -60,7 +60,11 @@ export function tripDay(
  * taskPhaseInFront is the phase of task the dashboard leads with (FR-7.10): a
  * trip that has not started is still in *before*; once it has — and once it
  * is over, or is undated with its packing shut — what is left is for the road.
+ *
+ * **Since FR-7.12 a finished packing closes *before* outright**, whatever the
+ * calendar says: the phase is read-only then, so the block's composer must
+ * not write into it.
  */
-export function taskPhaseInFront(day: TripDay): TaskPhase {
-  return day.kind === 'before' ? TASK_PHASE_BEFORE : TASK_PHASE_DURING
+export function taskPhaseInFront(day: TripDay, packingClosed = false): TaskPhase {
+  return day.kind === 'before' && !packingClosed ? TASK_PHASE_BEFORE : TASK_PHASE_DURING
 }

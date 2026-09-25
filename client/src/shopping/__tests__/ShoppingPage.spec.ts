@@ -314,6 +314,69 @@ describe('M6 — lines from a source (FR-30.2)', () => {
   })
 })
 
+/*
+ * FR-7.12: once the packing is finished, *before departure* is over. The tab
+ * is still there — it is the record of what was bought before the trip — but
+ * nothing new lands on it and nothing bought is put back onto it.
+ */
+describe('M6 — before departure is closed once the packing is finished (FR-7.12)', () => {
+  function seedTrip(row: Record<string, unknown>) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active', ...row },
+    })
+  }
+
+  async function showBefore(page: ReturnType<typeof mountPage>) {
+    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
+      detail: { value: 'buy_before' },
+    })
+    await flushPromises()
+  }
+
+  it('keeps the tab as a record: a hint for the field, no ＋, no purchase put back', async () => {
+    seedTrip({ packing_closed_at: '2026-07-08T06:00:00.000Z' })
+    const bought = line({ name: 'Sonnenhut' })
+    const page = mountPage([source({}, { buy_before: [bought] })])
+    await flushPromises()
+    await showBefore(page)
+
+    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(false)
+    // Nothing is open here, and the empty state's „add it above" would
+    // contradict the lock.
+    expect(page.find('[data-testid="m6-empty"]').exists()).toBe(false)
+
+    await page.get('[data-testid="m6-bought-bar"]').trigger('click')
+    const tick = page.get('[data-testid="m6-bought-row"] ion-checkbox')
+    expect((tick.element as HTMLInputElement).disabled).toBe(true)
+  })
+
+  it('leaves the list at the destination as it is', async () => {
+    seedTrip({ packing_closed_at: '2026-07-08T06:00:00.000Z' })
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.findComponent({ name: 'IonSegment' }).props('value')).toBe('buy_local')
+    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+  })
+
+  it('is open while the packing is', async () => {
+    seedTrip({ status: 'planning' })
+    const page = mountPage()
+    await flushPromises()
+    await showBefore(page)
+
+    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+  })
+})
+
 describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
   it('offers no reveal while nothing has been bought', () => {
     const page = mountPage([source({ buy_before: [line()] })])

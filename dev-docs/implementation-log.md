@@ -435,6 +435,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M23 and M11 select: a batch keeps the refusals, and a new glyph passed the baseline (2026-09-24)](#m23-and-m11-select-a-batch-keeps-the-refusals-and-a-new-glyph-passed-the-baseline-2026-09-24) — ADR-075 amended: why a batch restore prompts for no collision, and the app-bar icon the pixel budget let through.
 - [A menu asked for while the last one was leaving opened nothing (2026-09-25)](#a-menu-asked-for-while-the-last-one-was-leaving-opened-nothing-2026-09-25) — M2's row menu swallowed a reopen during the 480 ms leave; E2E-M2-05 flaked on it.
 - [A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)](#a-selection-wears-the-app-bar-and-m2-had-been-archiving-past-the-closing-pass-2026-09-25) — three owner calls in one batch; `inert="false"` is inert, and a mock factory that imports its own mock deadlocks.
+- [A due day, a morning reminder, and a *before* that stays closed (2026-09-25)](#a-due-day-a-morning-reminder-and-a-before-that-stays-closed-2026-09-25) — Single-User's reminder had no push toggle; the claim accepts *never* for one window; `time.Local` hides `TZ`.
 
 ## Deviations
 
@@ -17509,3 +17510,38 @@ forgotten) moved to M2 with the step. M2 had been starting trips without saying 
   width (`flex: 1` was only on the paired state), so the card was 544 px beside a 968 px tasks card. The phone
   render with tasks had looked right.
 
+
+## A due day, a morning reminder, and a *before* that stays closed (2026-09-25)
+
+FR-7.11 and FR-7.12, one PR, from one walkthrough with the owner (the decisions are in the Addendum and ADR-076).
+What the code does not show:
+
+**A wrong premise, found by reading M17 before writing the docs.** The owner decided that a Single-User instance is
+reminded too, and the server side did it on the first try: FR-17.3's two-member rule lives in `planNotifications`,
+and the reminder never goes through it. But M17 hid the whole notification section on a server without a session,
+**push toggle included**, so a Single-User reminder could only ever be a toast in an app already open, which is
+not a reminder. The in-app fetch had never been gated on the session, which is why nothing looked broken. M17 now
+shows a Single-User server the one row it can receive and the push toggle.
+
+**Rejected for the overdue pill:** naming the date (*„Überfällig · Do., 24. September"*). The first render squeezed
+the task's words until *Briefkasten* broke mid-word, at 390 px, on the seed's own data. The pill says *Überfällig*
+alone, and a date further out is short (*„Fr., 17.7."*); the sheet shows the whole day.
+
+**A cost knowingly accepted:** the reminder claims the day before it sends. If the process dies between the claim
+and the last send, the rest of that day's reminders are lost. The claim is the guarantee against *twice*, and a
+lease that also guaranteed *at least once* would need state per task, which one household's instance does not
+earn.
+
+**The traps:**
+
+- **`time.Local.String()` is always `"Local"`,** whatever `TZ` says, so the first startup line (*„task reminders
+  daily at 06:00, Local"*) could not tell an operator whether `TZ` took. It logs the zone's abbreviation now. The
+  image carries no zoneinfo either: without `import _ "time/tzdata"`, `TZ=Europe/Zurich` would silently be UTC.
+- **The testid gate reads only a template's edges.** `` `${testid}-due-${task.body}` `` has a literal middle and
+  none at either end, so the gate refused it as unfindable. It is `` `due-${testid}-${task.body}` ``.
+- **`findComponent(IonInput)` finds the first input in the sheet.** When the date field arrived above the tag
+  chooser, a tag spec typed its new tag into the date field. It still went green against the chooser's own mock
+  until the call count was read.
+- **`payloads.map(notificationUrl)` passes the index as the second argument.** The worker's URL function gained a
+  `kind` parameter, and every existing call through `map` was now handing it `0`, `1`, `2`. It was harmless only
+  because no kind is a number. The type-check found it, not a test.

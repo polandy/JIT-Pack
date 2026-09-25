@@ -64,7 +64,8 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { ITEM_MODES, isShoppingMode } from '@/types/domain'
+import { isPackingClosed } from '@/lib/tripPhase'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
@@ -95,6 +96,8 @@ const orchestrator = useOrchestrator()
 
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 const trip = computed(() => tripStore.getTrip(props.tripId))
+/** FR-7.12: the packing is finished, so *before departure* takes nothing new. */
+const beforeClosed = computed(() => isPackingClosed(trip.value))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 /** FR-25.28: the strip is absent where there is no membership to distribute (G-8). */
 const offersForWhom = computed(() => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON)
@@ -673,7 +676,14 @@ const packedStamp = computed(() => {
           data-testid="m5-mode"
           @ion-change="(e: CustomEvent) => onModeChange(e.detail.value)"
         >
-          <IonSelectOption v-for="m in ITEM_MODES" :key="m" :value="m">
+          <!-- FR-7.12: nothing new goes onto a *before departure* the
+               finished packing has closed. -->
+          <IonSelectOption
+            v-for="m in ITEM_MODES"
+            :key="m"
+            :value="m"
+            :disabled="m === ITEM_MODE_BUY_BEFORE && beforeClosed && item.mode !== m"
+          >
             {{ modeLabel(m) }}
           </IonSelectOption>
         </IonSelect>

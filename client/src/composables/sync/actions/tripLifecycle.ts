@@ -21,7 +21,12 @@ import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/opt
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import { planPackingClose, type ClosingTask } from '@/domain/closePacking'
-import { TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
+  TASK_PHASE_DURING,
+  type TaskPhase,
+} from '@/types/domain'
 
 /**
  * FR-7.7: one task the close moved, with the phase it had before.
@@ -39,6 +44,8 @@ export interface TaskPhaseRecord {
 export interface ClosePackingEffect {
   rows: TripItem[]
   tasks: TaskPhaseRecord[]
+  /** FR-7.12: the rows moved from *before departure* to *at the destination*. */
+  buyRows: TripItem[]
 }
 import { followsGroups } from '@/domain/trips'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
@@ -428,7 +435,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     opts: { isClaimed?: (item: TripItem) => boolean } = {},
   ): ClosePackingEffect {
     const trip = tripStore.getTrip(tripId)
-    if (!trip) return { rows: [], tasks: [] }
+    if (!trip) return { rows: [], tasks: [], buyRows: [] }
     const plan = planPackingClose(tripStore.getItems(tripId), {
       ...opts,
       tasks: tasksOf(tripId),
@@ -450,9 +457,12 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     // so nothing it claims may still be in flight when it lands.
     const moved = plan.tasks.map((task) => ({ task, phase: task.phase }))
     for (const { task } of moved) commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+    // FR-7.12: the shopping rows cross with the tasks, for the same reason
+    // and in the same place — before the stamp that says the phase is over.
+    for (const row of plan.buyRows) packingActions.setMode(tripId, row, ITEM_MODE_BUY_LOCAL)
 
     stampPackingClosed(tripId, nowIso())
-    return { rows: plan.rows, tasks: moved }
+    return { rows: plan.rows, tasks: moved, buyRows: plan.buyRows }
   }
 
   /** Every task of the trip, both kinds, as the close reads them (FR-7.7). */
@@ -495,8 +505,16 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     tripId: string,
     records: { itemId: string; quantity: number; packedCount: number; state: string }[],
     tasks: readonly TaskPhaseRecord[] = [],
+    buyRows: readonly TripItem[] = [],
   ) {
     packingActions.restoreSkip(tripId, records)
+    // FR-7.12: back to *before departure* — only a row still where the close
+    // put it; one somebody bought or moved in the meantime keeps that.
+    for (const row of buyRows) {
+      const live = tripStore.getItems(tripId).find((item) => item.id === row.id)
+      if (live?.mode === ITEM_MODE_BUY_LOCAL)
+        packingActions.setMode(tripId, live, ITEM_MODE_BUY_BEFORE)
+    }
     // The phase each task actually had, not a hard-coded *before*: a task
     // written before FR-7.7 carries none at all, and inventing one would be
     // an undo that changed something.

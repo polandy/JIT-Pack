@@ -43,6 +43,7 @@ import { computed, inject, onMounted, ref, watch } from 'vue'
 import BulkBar from '@/components/global/BulkBar.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
@@ -113,6 +114,14 @@ const tab = computed<ShoppingMode>(() => {
     packingClosed: isPackingClosed(trip.value),
   })
 })
+
+/**
+ * FR-7.12: once the packing is finished *before departure* is over — its tab
+ * stays readable as the record of what was bought, and takes nothing new:
+ * no field, no ＋, no purchase put back onto it. Reopening the packing lifts
+ * it (FR-5.10).
+ */
+const tabLocked = computed(() => tab.value === ITEM_MODE_BUY_BEFORE && isPackingClosed(trip.value))
 
 // FR-30.4: a purchase is named from the trip's participants, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
@@ -482,7 +491,11 @@ setHeaderTitle(
            under the finger moves — but they rest: typing a new entry
            mid-batch is a different act, and a chip here only files the
            next entry. -->
+      <InlineHint v-if="tabLocked" class="locked-hint" data-testid="m6-before-locked">{{
+        t('shopping.beforeLocked')
+      }}</InlineHint>
       <div
+        v-else
         class="composer"
         :class="{ resting: selecting }"
         :inert="selecting || undefined"
@@ -647,9 +660,10 @@ setHeaderTitle(
         testid="m6-list-loading"
       />
 
-      <!-- Empty state (G-7) -->
+      <!-- Empty state (G-7). Not on a closed tab (FR-7.12): its hint asks
+           for an entry the tab no longer takes, and the lock says the rest. -->
       <EmptyState
-        v-else
+        v-else-if="!tabLocked"
         :icon="bagHandleOutline"
         :title="t(tab === ITEM_MODE_BUY_BEFORE ? 'shopping.emptyBefore' : 'shopping.emptyLocal')"
         :hint="t('shopping.emptyHint')"
@@ -742,7 +756,7 @@ setHeaderTitle(
             </p>
           </IonLabel>
           <IonButton
-            v-if="line.remove"
+            v-if="line.remove && !tabLocked"
             slot="end"
             fill="clear"
             :aria-label="t('shopping.remove', { name: line.name })"
@@ -754,6 +768,7 @@ setHeaderTitle(
           <IonCheckbox
             slot="end"
             :checked="true"
+            :disabled="tabLocked"
             :aria-label="t('shopping.undoBought', { name: line.name })"
             @ionChange="line.unbuy()"
           />
@@ -804,7 +819,13 @@ setHeaderTitle(
            top of the list, so the screen still has one way to add. Hidden
            while selecting (FR-30.9, M9's own rule): the bulk bar sits where
            it would, and there is nothing to add to a batch mid-selection. -->
-      <IonFab v-if="!selecting" :id="FAB_ANCHOR.m6" slot="fixed" vertical="bottom" horizontal="end">
+      <IonFab
+        v-if="!selecting && !tabLocked"
+        :id="FAB_ANCHOR.m6"
+        slot="fixed"
+        vertical="bottom"
+        horizontal="end"
+      >
         <IonFabButton data-testid="m6-fab" :aria-label="t('common.add')" @click="goToField">
           <IonIcon :icon="addOutline" aria-hidden="true" />
         </IonFabButton>
@@ -814,6 +835,11 @@ setHeaderTitle(
 </template>
 
 <style scoped>
+/* FR-7.12: where the field would be, at the list's own inset. */
+.locked-hint {
+  margin: 8px 18px 4px;
+}
+
 /* FR-25.11h's rule, for M6's FAB (FR-30.6): the list scrolls clear of its
    footprint, so the last row is never under the ＋. M4's measure. */
 .shop-content {

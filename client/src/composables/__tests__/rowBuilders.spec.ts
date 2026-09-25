@@ -555,6 +555,7 @@ const CASES: BuilderCase[] = [
       // anything about.
       task_tag_id: null,
       phase: null,
+      due_date: null,
       created_at: null,
       assignee_user_id: null,
       resolved_at: null,
@@ -745,6 +746,7 @@ describe('commentRow', () => {
         // asked for (`taskPhaseOf`) rather than written here.
         task_tag_id: null,
         phase: null,
+        due_date: null,
         assignee_user_id: null,
         resolved_at: null,
         resolved_by_user_id: null,

@@ -303,7 +303,7 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       mode: 'pack',
     })
 
-    expect(build(ctx).closePacking(TRIP_ID)).toEqual({ rows: [], tasks: [] })
+    expect(build(ctx).closePacking(TRIP_ID)).toEqual({ rows: [], tasks: [], buyRows: [] })
     // The one write is the stamp: finishing a list with nothing left open is
     // the ordinary case, not a no-op.
     expect(tablesQueued()).toEqual([TABLE.trips])
@@ -354,6 +354,65 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     expect(tablesQueued()).toEqual([TABLE.tripItems, TABLE.trips])
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ quantity: 1, state: 'open' })
     expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ packing_closed_at: null })
+  })
+
+  /*
+   * FR-7.12: closing the packing ends *before departure* on the shopping list
+   * too. A row still to buy there moves to *at the destination*; a bought one
+   * (FR-3.3 made it a packing row) and a row already local stay where they
+   * are. The move is written before the stamp, like the tasks' crossing.
+   */
+  it('closePacking moves what is still to buy before departure to the destination (FR-7.12)', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    const buyRow = (id: string, mode: string) =>
+      pullIn(ctx.tripStore, TABLE.tripItems, id, {
+        trip_id: TRIP_ID,
+        name: id,
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode,
+      })
+    buyRow('hat', 'buy_before')
+    buyRow('sunscreen', 'buy_local')
+
+    const effect = build(ctx).closePacking(TRIP_ID)
+
+    expect(effect.buyRows.map((row) => row.id)).toEqual(['hat'])
+    expect(tablesQueued()).toEqual([TABLE.tripItems, TABLE.trips])
+    expect(queued[0]!.muts[0]!.mutation).toMatchObject({ id: 'hat', fields: { mode: 'buy_local' } })
+  })
+
+  it('restorePackingClose puts a crossed row back before departure — only where the close left it', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    pullIn(ctx.tripStore, TABLE.tripItems, 'hat', {
+      trip_id: TRIP_ID,
+      name: 'Hut',
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'buy_local',
+    })
+    // Bought at the destination in the meantime: it is a packing row now.
+    pullIn(ctx.tripStore, TABLE.tripItems, 'map', {
+      trip_id: TRIP_ID,
+      name: 'Karte',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+      mode: 'pack',
+    })
+    const crossed = ['hat', 'map'].map((id) =>
+      ctx.tripStore.getItems(TRIP_ID).find((i) => i.id === id)!,
+    )
+
+    build(ctx).restorePackingClose(TRIP_ID, [], [], crossed)
+
+    const modes = queued
+      .flatMap((q) => q.muts)
+      .filter((m) => m.mutation.table === TABLE.tripItems)
+      .map((m) => [m.mutation.id, m.mutation.fields])
+    expect(modes).toEqual([['hat', { mode: 'buy_before' }]])
   })
 
   it('deleteTrip tombstones on the master partition', () => {

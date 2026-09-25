@@ -12,6 +12,7 @@ import { computed, ref } from 'vue'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
+import TaskDueBadge from '@/components/trips/TaskDueBadge.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import { useTaskActs } from '@/composables/useTaskActs'
@@ -58,6 +59,7 @@ const picked = computed(() =>
     phaseInFront: props.phaseInFront,
     myUserId: myUserId.value,
     limit: MAX_TASKS,
+    today: orchestrator.today(),
   }),
 )
 
@@ -116,6 +118,14 @@ function add(text: string) {
       :check-label="t('dashboard.taskCheck', { body: task.body })"
       :testid="`${testid}-row`"
       @check="acts.toggle(task)"
-    />
+    >
+      <template #lead>
+        <TaskDueBadge
+          :task="task"
+          :today="orchestrator.today()"
+          :testid="`due-${testid}-${task.body}`"
+        />
+      </template>
+    </DashboardBlockRow>
   </DashboardBlock>
 </template>

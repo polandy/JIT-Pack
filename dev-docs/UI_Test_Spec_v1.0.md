@@ -1106,6 +1106,13 @@ in WebKit.
   ends on the revealed row wearing *deliberately skipped*, which is what makes the count more than arithmetic: without
   it, a bar reading „2 done" over two packed rows would pass just as well.
 
+* **E2E-M4-149** `local` (FR-7.12, added 2026-09-25) — **implemented** (`close-packing.spec.ts`): finishing the packing
+  ends *before*. A packing row bought *before departure* and the shopping list's own entry both cross — the second
+  travels the kernel contract the composition root binds, so a close that moved only its own rows fails here. The
+  sheet counts both (*„2 open purchases"*), the one undo brings both back to *before departure*, and after the second
+  close both stand *at the destination* while M6's *Vor der Abreise* and M25's *Vor der Reise* each carry their lock
+  line and no field. *Wieder öffnen* gives both fields back and moves nothing. Mutation-proved: with the module's
+  crossing skipped the case goes red at the own entry.
 * **E2E-M4-148** `local` (G-14, added 2026-09-25) — **implemented** (`packing-list-shape.spec.ts`): the header line's
   figures are a card — a non-zero corner radius — whose left and right edges are the tasks card's below it, measured
   on the painted boxes. Found wanting on its first run at desktop width: a lone figure had kept its own width.
@@ -3520,6 +3527,13 @@ moved, so the M4 entries are struck in place and say where each went.
   stand under its heading while the mode has ended. A second selection sends both to *Während der Reise*, read back
   after a reload. The second round is not decoration: it is what found `SheetModal`'s moved-modal insert failure
   (implementation log, 2026-09-24).
+* **E2E-M25-13** `local` (FR-7.11, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): a due day. It is set
+  on the task's own sheet through the app's date control, and the sheet stays up with the day in its field. On the
+  list the line wears *Tomorrow* (the *soon* state), the undated task wears nothing, and the dated one leads its group
+  ahead of an undated one it would otherwise follow by its words — read back after a reload, since a line that only
+  repainted proves the component. Then Local Mode's stand-in for the push: with the trip running, a fresh load of M1
+  says *„1 task due"* once. The server's reminder itself is not driven here — its time is a wall clock — and is held
+  by `TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime` against an injected one.
 * **E2E-M25-10** `local` (FR-7.9, added 2026-09-22) — **implemented** (`trip-tasks.spec.ts`): the notes segment on
   one identity. The empty state, a note written and read back by its own row (not the composer's field, which the
   same text can still carry), no tick on the writer's own note — Local Mode has nobody else either way, so this
@@ -3759,6 +3773,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.4 | E2E+UNIT | M4-96 (add, tick, reopen, remove), M4-97 (above the list, open while owed, header figure), M1-10 (reported read-only), M1-11 (independent of packing), M3-23 (template tasks, dedup, no prep), M8-26 (the template editor, both scopes); `tripTodos.spec.ts` (the store's own bucket), `instantiate.spec.ts` (dedup), `portable.spec.ts` (`trip_tasks`) |
 | FR-7.5 | E2E+UNIT | M4-133 (the seat hands a todo over, the assignee is told and sees it on M4 and M1), M4-134 (no seat without a second account); `TripTodoList.spec.ts` (seat, read-only avatar, resolved), `comments.seam.spec.ts` (one field on the wire), `notificationrules_test.go` (who is told) |
 | FR-7.6 | E2E+UNIT | M4-136 (both kinds in one list and one figure, the chip leads to the row, the header stops saying the prep count), M4-137 (the task goes with the row, and comes back with it), M1-02 (one card on M1), M1-07 (the chip is the way into the row); `tripTodos.spec.ts` (`tripTasks`: order, the chip's facts, a preparation whose row is gone), `TripTodoList.spec.ts` (chip vs. seat and ✕, one toggle for both kinds) |
+| FR-7.11 | E2E+UNIT | M25-13 (set on the sheet, the pill, the order, a reload, Local Mode's hint on M1); `taskDue.spec.ts` (the four states, `byDue`, `pressingFirst`, the hint's count), `tripTodos.spec.ts` (groups, M4's window, M1's block), `TripTaskSheet.spec.ts`, `TripTodoList.spec.ts`, `useDueTaskHint.spec.ts`, `taskdue_internal_test.go` (schedule, recipients, once a day), `taskdue_test.go` (the store's reads and the claim), `config_test.go` (`JITPACK_TASK_REMINDER_TIME`), `SettingsPage.spec.ts` (the row, and Single-User's section) |
+| FR-7.12 | E2E+UNIT | M4-149 (both kinds of purchase cross under one undo, both *before* places locked, reopening lifts it); `closePacking.spec.ts` (`rowsCrossingToLocal`, `phaseForNewTask`), `tripLifecycle.seam.spec.ts` (the close's write and its undo), `comments.seam.spec.ts` (every writer of a new task), `sync.spec.ts` in `shopping/` (the module's crossing), `PackingClosed.spec.ts` (the sheet's line, the undo), `TripTasksPage.spec.ts`, `ShoppingPage.spec.ts`, `ItemDetailSheet.spec.ts` |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |

@@ -5169,7 +5169,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       they were left alone, and it still holds for the *rows* this step writes — but finishing the packing is the
       moment „before the trip" ends, so every task still open and still due before it crosses to *during* in the same
       batch, under the same undo, and the question above names how many will move. See FR-7.7 for the rule, and for
-      why a decision may move a task where a date may not.
+      why a decision may move a task where a date may not. **Amended 2026-09-25 (FR-7.12):** the buy rows are not
+      untouched either — the ones still to buy *before departure* move to *at the destination* in the same act, with
+      the shopping list's own entries, and *before* stays closed until the packing is reopened.
   * **One question, one undo** (variant **A** of the round). A single confirmation — **a sheet, not a system dialogue**
     (revised 2026-09-20 on seeing it rendered: an `ion-alert` was the cheap way to ask and looked it, on the one moment
     in a trip where the app should look like itself) — states the count and then the three things a count hides, each on
@@ -5695,7 +5697,11 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       (`compareTasks`). **A task has a phase, not a date** (FR-7.7): nothing here is *overdue*, *today* or *tomorrow*,
       and a task whose moment has passed is not shown as late — closing the packing already moves it to *during*
       (FR-5.10). (The first mockup drew due dates; they were invented, the data has none, and they were struck on
-      2026-09-21 before anything was built.) Single-User and Local have no assignee and no *„meine zuerst“* in the head.
+      2026-09-21 before anything was built.) **Amended 2026-09-25 (FR-7.11):** a task now may carry a due day, and
+      what is due — overdue, today, the next two days — leads the block ahead of the phase rule, earliest first; an
+      undated task keeps the order above. The block's composer writes *during* once the packing is finished, which is
+      the only time the block is shown (FR-7.12). Single-User and Local have no assignee and no *„meine zuerst“* in
+      the head.
       Below the rows, *„+ 8 weitere · alle Aufgaben ›“* names the remainder and leads into M25.
     * **Einkauf** lists the **next seven** open lines of the list that is *now* (`listInFocus`, FR-30.8) with the
       quantity on the second line, and *„+ 7 weitere · zur Einkaufsliste ›“* leads onto M6. Packing lines keep FR-30.7's
@@ -5754,6 +5760,51 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     * **Decided while building (2026-09-21):** (1) a synced per-user fold state would follow the person to a second
       device — built device-local; (2) FR-30.7's chip per list is not in the shopping block, which reads the list in
       focus.
+
+* **FR-7.11 (A task may name the day it is due — owner request and decisions 2026-09-25, decided in an interactive
+  walkthrough; *built the same day*, ADR-076):** FR-7.7 gave a task a phase and deliberately no date. The owner asked
+  for a date after all — optional, and a **day, never a time**:
+  * **Set on the task's own sheet** (M25 and M4's window open the same one): a *Fällig* date field, the app's date
+    control (ADR-035), with *Löschen* to take the date off again. Both kinds of task can carry one. A finished task
+    offers no date field — its date says when it was meant, nothing is left to set. One field on the row
+    (`comments.due_date`, `YYYY-MM-DD`), so a date set on one device and a tag on another both stand (NFR-4.2a).
+  * **Four readings against the device's today:** ***Überfällig*** (the day has passed, a red pill), ***Heute***,
+    ***Morgen*** / ***In 2 Tagen*** (*soon* — the next two days, owner) and a short date further out (*„Fr., 17.7.“*).
+    A resolved task is never overdue. The pill sits on the task's line on M25, in M4's window and in M1's block.
+  * **Order.** Inside every M25 group the open tasks with a date come first, earliest first — which reads overdue,
+    today, soon, later — and the undated ones keep FR-7.6's order after them. **A group holding an overdue, today or
+    soon task moves above the others**, keeping the tag order inside both halves. M4's window leads with what is due;
+    M1's block leads with the pressing ones ahead of FR-7.10's phase rule.
+  * **The reminder.** The server sends a notification, kind `task_due`, **the day before and on the due day** — never
+    again once the day has passed. Once a day at **`JITPACK_TASK_REMINDER_TIME`** (`HH:MM`, default **06:00**, owner) in
+    the server's own time zone (`TZ`). A server started after that time sends the day's reminders late rather than not
+    at all, and never twice in a day (the day is claimed in `server_keys`). Tasks of an archived trip are history and
+    are not reminded of. **Recipient:** the assignee (FR-7.5); a task nobody has been handed — or whose assignee has
+    left the trip — goes to every member. The payload names the task and whether it is *today* or *tomorrow*; a tap
+    opens M25. M17 carries a toggle for the kind (*Fällige Aufgaben*).
+  * **Three modes.** FR-17.3's rule that a trip of fewer than two people stays silent **does not apply** here: it
+    exists so nobody is told about their own act, and a reminder is nobody's act — so a **Single-User** instance is
+    reminded too. **Local Mode** has no server: when the app opens, M1 says once, as a toast, ***„N Aufgaben fällig“***
+    — the open tasks due by tomorrow, the overdue ones included, across the active trips; nothing when there are none.
+  * Like every task, a due date is not in the portable backup (item 24).
+
+* **FR-7.12 (A finished packing closes *before the trip* — owner request and decisions 2026-09-25, *built the same
+  day*, ADR-076):** FR-7.7 moves the open *before* tasks to *during* when the packing is closed. The owner asked for
+  the shopping list to follow, and for *before* to stay closed afterwards:
+  * **The trigger is closing the packing** (FR-5.10), never a date: a person saying they are done, as FR-7.7 argued.
+  * **In the same act**, every open purchase still *before departure* moves to ***Vor Ort*** — the packing rows in
+    `buy_before` and the shopping list's own entries alike — and FR-5.10's confirmation names the number (*„2 offene
+    Einkäufe wandern von „Vor der Abreise“ zu „Vor Ort“.“*). What was bought stays where it was bought (FR-25.11j).
+    The close's one snackbar undo takes all of it back. The shopping list is a module (FR-30.3), so the packing side
+    reaches its entries through a kernel contract the composition root binds (`lib/packingClose.ts`).
+  * **Afterwards *before* is read-only**, as history. M25's *Vor der Reise* keeps its tasks and says why
+    (*„Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.“*); it has no field, its ticks do
+    not move, nothing is handed over or removed there, nothing can be dragged into it, it is not in a selection and
+    no batch or sheet offers a move into it. M6's *Vor der Abreise* keeps its bought reveal and says so
+    (*„… diese Liste zeigt jetzt, was vor der Abreise gekauft wurde.“*); no field, no ＋, nothing put back. A new task
+    asked for *before* — a row's preparation from M5, a group added late, a comment made a task — is written for
+    *during*, and M5 no longer offers *Vor der Abreise kaufen* for a row not already there.
+  * **Reopening the packing lifts the lock** (FR-5.10) and moves nothing back: reopening is not an undo.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

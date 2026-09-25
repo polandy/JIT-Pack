@@ -837,3 +837,42 @@ describe('M5 preparation — the tick stands at the end of the line', () => {
     expect(line?.firstElementChild?.textContent).toBe('impraegnieren')
   })
 })
+
+/*
+ * FR-7.12: once the packing is finished, *before departure* takes nothing
+ * new — a row cannot be sent there from its sheet. A row already there keeps
+ * its choice, so the select still reads true.
+ */
+describe('M5 mode choice once the packing is finished (FR-7.12)', () => {
+  function modeOption(wrapper: ReturnType<typeof mountSheet>, mode: string) {
+    return wrapper
+      .findAll('ion-select-option')
+      .find((option) => (option.element as HTMLElement & { value?: string }).value === mode)!
+  }
+  const disabled = (option: { element: Element }) =>
+    (option.element as HTMLElement & { disabled?: boolean }).disabled === true
+
+  function closePacking(tripStore: ReturnType<typeof useTripStore>) {
+    const trip = tripStore.getTrip('t1')!
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trips',
+      id: 't1',
+      deleted: false,
+      row: { ...trip, packing_closed_at: '2026-07-08T06:00:00Z' },
+    })
+  }
+
+  it('offers no *before departure* for a row that is not there already', async () => {
+    closePacking(seedTrip('active'))
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(true)
+    expect(disabled(modeOption(wrapper, 'buy_local'))).toBe(false)
+  })
+
+  it('offers it while the packing is open', async () => {
+    seedTrip('active')
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(false)
+  })
+})

@@ -17,7 +17,7 @@ import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
-import { createShoppingActions } from '../actions'
+import { createShoppingActions, shoppingCloseCrossing } from '../actions'
 import { shoppingFeatureStore, useShoppingStore } from '../store'
 
 let harness: Harness
@@ -121,6 +121,48 @@ describe('The module host', () => {
       op: 'upsert',
       fields: { bought: 1, bought_at: new Date(at).toISOString() },
     })
+  })
+})
+
+/*
+ * FR-7.12: the shopping list's share of closing the packing. The packing
+ * side cannot import the module, so it runs this crossing through the
+ * composition root; what is pinned here is that the crossing moves the
+ * list's own open entries before departure — and only those — and that its
+ * undo puts back exactly what it moved.
+ */
+describe('The close of the packing (FR-7.12)', () => {
+  it('moves the open entries before departure to the destination, and takes them back', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const actions = createShoppingActions(orch.moduleHost)
+    actions.addEntry('t1', 'buy_before', 'Sonnenhut')
+    actions.addEntry('t1', 'buy_before', 'Kaffee')
+    actions.addEntry('t1', 'buy_local', 'Brot')
+    const shoppingStore = useShoppingStore()
+    const coffee = shoppingStore.getEntries('t1').find((entry) => entry.name === 'Kaffee')!
+    actions.setBought(coffee, true)
+
+    const crossing = shoppingCloseCrossing(shoppingStore, actions)
+    expect(crossing.pending('t1')).toBe(1)
+
+    const effect = crossing.cross('t1')
+    expect(effect.count).toBe(1)
+    const listOf = (name: string) =>
+      shoppingStore.getEntries('t1').find((e) => e.name === name)!.list
+    expect(listOf('Sonnenhut')).toBe('buy_local')
+    // Bought before departure: it stays where it was bought.
+    expect(listOf('Kaffee')).toBe('buy_before')
+    expect(crossing.pending('t1')).toBe(0)
+
+    await orch.drainTrip('t1')
+    expect(harness.pushedMutations().at(-1)).toMatchObject({
+      op: 'upsert',
+      fields: { list: 'buy_local' },
+    })
+
+    effect.undo()
+    expect(listOf('Sonnenhut')).toBe('buy_before')
   })
 })
 

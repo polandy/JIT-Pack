@@ -17,6 +17,7 @@ import { IonButton, IonIcon } from '@ionic/vue'
 import {
   alarmOutline,
   arrowForwardOutline,
+  cartOutline,
   checkmarkDoneOutline,
   hourglassOutline,
   lockClosedOutline,
@@ -30,6 +31,12 @@ const props = defineProps<{
   plan: ClosePackingPlan
   /** Whether the reader arrived here by packing the last row (FR-5.10). */
   prompted?: boolean
+  /**
+   * FR-7.12: how many open purchases move from *before departure* to *at the
+   * destination* — the plan's packing rows plus the shopping list's own
+   * entries, which the plan cannot see (the list is a module, ADR-066).
+   */
+  shopping?: number
 }>()
 
 const emit = defineEmits<{ close: []; confirm: [] }>()
@@ -68,6 +75,11 @@ const facts = () =>
     <p v-if="props.plan.tasks.length > 0" class="crossing" data-testid="m4-close-sheet-tasks">
       <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
       <span>{{ t('packing.closeConfirmTasks', { n: props.plan.tasks.length }) }}</span>
+    </p>
+
+    <p v-if="(props.shopping ?? 0) > 0" class="crossing" data-testid="m4-close-sheet-shopping">
+      <IonIcon :icon="cartOutline" aria-hidden="true" />
+      <span>{{ t('packing.closeConfirmShopping', { n: props.shopping ?? 0 }) }}</span>
     </p>
 
     <ul v-if="facts().length > 0" class="facts" data-testid="m4-close-sheet-facts">

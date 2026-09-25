@@ -22,6 +22,7 @@ import {
 } from 'ionicons/icons'
 import { computed } from 'vue'
 
+import DateField from '@/components/global/DateField.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import { filedTagOf, type TripTask } from '@/domain/tripTodos'
@@ -36,6 +37,11 @@ const props = defineProps<{
   nameOf: NameOf
   /** FR-7.8: the tags a task may carry, in their own order. */
   taskTags?: readonly TaskTag[]
+  /**
+   * FR-7.12: the *before* phase is closed — the packing is finished — so a
+   * task cannot be moved back into it. The move is then not offered.
+   */
+  beforeLocked?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +52,8 @@ const emit = defineEmits<{
   tag: [taskTagId: string | null]
   /** A word the list does not have yet — created where it is needed. */
   newTag: [name: string]
+  /** FR-7.11: the day it is due, `YYYY-MM-DD`, or null to take the date off. */
+  due: [dueDate: string | null]
 }>()
 
 /**
@@ -57,6 +65,19 @@ const emit = defineEmits<{
  */
 const chosenTag = computed(() => filedTagOf(props.task, props.taskTags ?? []))
 const noTagLabel = computed(() => (props.task.item ? t('tasks.fromPacking') : t('tasks.noTag')))
+
+/**
+ * FR-7.11: the date field's answer. The picker's clear hands back an empty
+ * string, which is „no date" and is written as null; picking the day it
+ * already has is no change and writes nothing.
+ */
+function onDue(iso: string) {
+  const next = iso === '' ? null : iso
+  if (next !== props.task.due_date) emit('due', next)
+}
+
+/** Whether the phase move is offered: never back into a closed *before* (FR-7.12). */
+const canMove = computed(() => !(props.beforeLocked && otherPhase.value === TASK_PHASE_BEFORE))
 
 /** Where the task would go — the other phase, always. */
 const otherPhase = computed<TaskPhase>(() =>
@@ -104,6 +125,17 @@ function factLine(key: string, icon: string, text: string | null) {
       </li>
     </ul>
 
+    <!-- FR-7.11: a day, not a time — and only while the task is open: a
+         finished task's date says when it was meant, nothing more to set. -->
+    <div v-if="task.task_state === 'open'" class="due">
+      <DateField
+        :label="t('tasks.dueField')"
+        :value="task.due_date ?? ''"
+        testid="task-sheet-due"
+        @update="onDue"
+      />
+    </div>
+
     <TaskTagChooser
       v-if="taskTags"
       :task-tags="taskTags"
@@ -114,7 +146,12 @@ function factLine(key: string, icon: string, text: string | null) {
     />
 
     <div class="actions">
-      <IonButton expand="block" data-testid="task-sheet-move" @click="emit('move', otherPhase)">
+      <IonButton
+        v-if="canMove"
+        expand="block"
+        data-testid="task-sheet-move"
+        @click="emit('move', otherPhase)"
+      >
         <IonIcon
           slot="start"
           :icon="otherPhase === TASK_PHASE_DURING ? arrowForwardOutline : arrowBackOutline"
@@ -167,6 +204,10 @@ function factLine(key: string, icon: string, text: string | null) {
   flex: none;
   font-size: var(--jp-icon-sm);
   color: var(--ct-overlay2);
+}
+
+.due {
+  margin-top: 12px;
 }
 
 .actions {

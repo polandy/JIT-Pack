@@ -115,6 +115,16 @@ const pictureEditable = mode === 'server'
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = hasCollaborativeSession()
 
+/**
+ * FR-7.11: a server with no session is Single-User — and it still sends the
+ * one kind nobody sets off, the due-task reminder. So the section exists
+ * there too, with only the rows that can happen to one person alone, and the
+ * push toggle the reminder needs to reach a closed app.
+ */
+const notifiable = mode === 'server'
+/** The kinds a person alone can receive: none is anybody's act (FR-17.3's reason). */
+const SOLO_KINDS: ReadonlySet<keyof NotificationPrefs> = new Set(['task_due'])
+
 const nameDraft = ref('')
 const nameSaved = ref(false)
 const avatarVersion = ref(0)
@@ -126,7 +136,7 @@ onMounted(async () => {
   // notification section behind a request that is allowed to time out.
   void loadInstanceUpdate()
   nameDraft.value = me.value?.display_name ?? ''
-  if (collaborative) {
+  if (notifiable) {
     prefs.value = await orchestrator.fetchNotificationPrefs()
     pushOn.value = await pushRegistered()
   }
@@ -192,7 +202,11 @@ const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: Messag
   { kind: 'task', label: 'settings.prefTask', hint: 'settings.prefTaskHint' },
   { kind: 'lock_taken', label: 'settings.prefLockTaken', hint: 'settings.prefLockTakenHint' },
   { kind: 'note', label: 'settings.prefNote', hint: 'settings.prefNoteHint' },
+  { kind: 'task_due', label: 'settings.prefTaskDue', hint: 'settings.prefTaskDueHint' },
 ]
+
+/** The rows this instance can actually send (FR-7.11: Single-User only the reminder). */
+const shownPrefRows = collaborative ? prefRows : prefRows.filter((row) => SOLO_KINDS.has(row.kind))
 
 async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {
   if (!prefs.value) return
@@ -697,14 +711,19 @@ async function exportTripCSV() {
         </IonItem>
       </IonList>
 
-      <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
-      <template v-if="collaborative">
+      <!-- Notifications (FR-6.2 / NFR-4.6) — every server; Single-User sees
+           only what can happen to one person (FR-7.11), Local nothing (G-8). -->
+      <template v-if="notifiable">
         <SectionHead
           :title="t('settings.notifications')"
           data-testid="settings-section-notifications"
         />
         <IonList v-if="prefs">
-          <IonItem v-for="p in prefRows" :key="p.kind">
+          <IonItem
+            v-for="p in shownPrefRows"
+            :key="p.kind"
+            :data-testid="`settings-pref-${p.kind}`"
+          >
             <IonLabel>
               <h3>{{ t(p.label) }}</h3>
               <p>{{ t(p.hint) }}</p>

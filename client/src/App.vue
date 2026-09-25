@@ -64,7 +64,15 @@ import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { TRIP_CARDS } from '@/lib/tripCards'
 import { useTripStore } from '@/stores/tripStore'
-import { ShoppingDashboardCard, shoppingCount, shoppingFeatureStore } from '@/shopping'
+import {
+  createShoppingActions,
+  ShoppingDashboardCard,
+  shoppingCloseCrossing,
+  shoppingCount,
+  shoppingFeatureStore,
+  useShoppingStore,
+} from '@/shopping'
+import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -199,6 +207,13 @@ provide(SHOPPING_SOURCES, shoppingSources)
 provide(TRIP_VIEW_COUNTS, { shopping: shoppingCount(shoppingSources) })
 // FR-30.7: the shopping list, workable on the dashboard under each trip.
 provide(TRIP_CARDS, orchestrator ? [ShoppingDashboardCard] : [])
+// FR-7.12: closing the packing ends *before departure* on the shopping list too.
+provide(
+  PACKING_CLOSE_CROSSINGS,
+  orchestrator
+    ? [shoppingCloseCrossing(useShoppingStore(), createShoppingActions(orchestrator.moduleHost))]
+    : [],
+)
 
 const syncStatus = orchestrator?.syncStatus ?? null
 

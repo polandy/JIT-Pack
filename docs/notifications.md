@@ -1,6 +1,7 @@
 # Notifications & Push
 
-JIT-Pack notifies people when someone else's action concerns them. Five things trigger a notification, and only these:
+JIT-Pack notifies people when someone else's action concerns them, and reminds them of what is due. Six things trigger
+a notification, and only these:
 
 - **Delegation** — someone hands you the responsibility for packing an item, either directly or by assigning the
   item to a traveler linked to your account (see [Linking a person to an account](command-line.md#linking-a-person-to-an-account)),
@@ -12,8 +13,14 @@ JIT-Pack notifies people when someone else's action concerns them. Five things t
 - **Note** — a co-traveller writes a trip note (a key-box code, a courier's phone number — see
   [Trip notes](trip-notes.md)). Everyone on the trip is notified except whoever wrote it, whether or not the note
   names anyone by `@display-name`.
+- **Task due** — a task is due tomorrow or today. Nobody sets this one off: the server sends it once a day at the time
+  you configure (see [Task reminders](configuration.md#task-reminders)), to the person the task is handed to, or to
+  everyone on the trip when it is nobody's in particular. Tapping it opens the trip's **Aufgaben**.
 
-Notifications exist **only in multi-user mode**. In Single-User Mode there is no second person to notify, so the whole system is inert; Local Mode has no server at all.
+The first five exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
+concern you. **Task due is the exception**: a single-user instance reminds its one user too, and Settings there shows
+just that switch and the push toggle. Local Mode has no server at all; instead, the app says once when you open it how
+many tasks are due (*„2 Aufgaben fällig"*).
 
 Every notification arrives in-app (a toast while the app is open, and the notification list). **Web Push** additionally delivers it to a device while the app is closed — that is the part with operational requirements, and the rest of this page.
 
@@ -39,7 +46,7 @@ Push is off until someone turns it on, and the choice is **per device** — a ph
 
 Where the browser cannot do push, the toggle is disabled and says *Not supported by this browser*. The case that surprises people is the iPhone: **iOS delivers Web Push only to web apps installed on the home screen** (iOS 16.4 or later), so in a plain Safari tab the toggle stays disabled. Install the app to the home screen via the share sheet first, open it from there, and then enable push in Settings.
 
-Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
+Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes / tasks due). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
 
 ## Verifying delivery end to end
 
@@ -48,6 +55,9 @@ The realistic test needs two accounts and one shared trip:
 1. On device A, log in as person A, enable push in Settings, then **close the app** (on iOS: actually close the installed app, don't just background the tab).
 2. On device B, log in as person B, open the shared trip, and assign an item to person A.
 3. Device A should show an OS notification within a few seconds.
+
+To check a reminder instead, give a task a due date of tomorrow and restart the server after the configured reminder
+time: it sends the day's reminders at start-up — unless it has already sent them that day.
 
 If nothing arrives:
 

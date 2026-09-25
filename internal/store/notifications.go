@@ -25,10 +25,14 @@ const (
 	// unlike NotifyMention it needs no @name in the body, because a note
 	// is written for every co-traveller by default.
 	NotifyNote = "note"
+	// NotifyTaskDue is FR-7.11's reminder: a task is due tomorrow or today.
+	// The only kind no person sets in motion — the server's daily clock
+	// does — so its payload names no actor.
+	NotifyTaskDue = "task_due"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyTaskDue}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

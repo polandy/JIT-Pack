@@ -11,12 +11,19 @@
 import { commentRow, noteAckRow, todoRow, tripTodoRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
-import { TASK_PHASE_BEFORE } from '@/types/domain'
+import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
+import { phaseForNewTask } from '@/domain/closePacking'
+import { isPackingClosed } from '@/lib/tripPhase'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain } = ctx
+  const { mutations, enqueueAndDrain, tripStore } = ctx
+
+  /** FR-7.12: never into a *before* the finished packing has closed. */
+  function newTaskPhase(tripId: string, asked: TaskPhase): TaskPhase {
+    return phaseForNewTask(asked, isPackingClosed(tripStore.getTrip(tripId)))
+  }
 
   function addComment(
     tripId: string,
@@ -34,7 +41,8 @@ export function createCommentActions(ctx: SyncContext) {
 
   /** Promote a plain comment into an open ticket (FR-7.2). */
   function flagCommentAsTask(tripId: string, comment: ItemComment) {
-    const mut = mutations.flagCommentAsTask(comment.id)
+    const closed = isPackingClosed(tripStore.getTrip(tripId))
+    const mut = mutations.flagCommentAsTask(comment.id, closed ? TASK_PHASE_DURING : undefined)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, commentRow(comment)),
@@ -85,7 +93,13 @@ export function createCommentActions(ctx: SyncContext) {
     body: string,
     phase: TaskPhase = TASK_PHASE_BEFORE,
   ) {
-    const { mutation } = mutations.addTodo(tripId, tripItemId, authorId, body, phase)
+    const { mutation } = mutations.addTodo(
+      tripId,
+      tripItemId,
+      authorId,
+      body,
+      newTaskPhase(tripId, phase),
+    )
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -116,7 +130,13 @@ export function createCommentActions(ctx: SyncContext) {
     body: string,
     phase: TaskPhase = TASK_PHASE_BEFORE,
   ): string {
-    const { mutation, id } = mutations.addTodo(tripId, null, authorId, body, phase)
+    const { mutation, id } = mutations.addTodo(
+      tripId,
+      null,
+      authorId,
+      body,
+      newTaskPhase(tripId, phase),
+    )
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -190,6 +210,16 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-7.11: the day a task is due, set, moved or taken off — one field. */
+  function setTaskDueDate(tripId: string, todo: ItemTodo | TripTodo, dueDate: string | null) {
+    const mut = mutations.setTaskDueDate(todo.id, dueDate)
+    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, { ...row, due_date: dueDate }),
+    })
+  }
+
   function deleteTripTodo(todo: TripTodo) {
     const mutation = mutations.deleteTodo(todo.id)
     enqueueAndDrain('trip', todo.trip_id, {
@@ -213,6 +243,7 @@ export function createCommentActions(ctx: SyncContext) {
     assignPrepTodo,
     setTaskPhase,
     setTaskTag,
+    setTaskDueDate,
     deleteTripTodo,
   }
 }

@@ -63,4 +63,8 @@ describe('taskPhaseInFront (FR-7.10): the phase of task the dashboard leads with
   ] as const)('%s', (_name, day, want) => {
     expect(taskPhaseInFront(day)).toBe(want)
   })
+
+  it('FR-7.12: a finished packing closes before, even ahead of the start', () => {
+    expect(taskPhaseInFront({ kind: 'before', daysUntil: 2 }, true)).toBe(TASK_PHASE_DURING)
+  })
 })

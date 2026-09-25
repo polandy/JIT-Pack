@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 // The configuration surface follows the session-brokering model (ADR-007):
@@ -10,6 +11,9 @@ import (
 // the OIDC group — issuer, client id, client secret — configures the login
 // broker on top. The issuer is the only OIDC endpoint the operator provides;
 // authorize/token/JWKS/userinfo all come from its discovery document.
+// defaultReminder is FR-7.11's reminder time when nothing sets it.
+const defaultReminder = 6 * time.Hour
+
 func TestLoadConfig(t *testing.T) {
 	oidc := map[string]string{
 		"JITPACK_SESSION_SECRET":     "s3cret",
@@ -28,9 +32,10 @@ func TestLoadConfig(t *testing.T) {
 			name: "multi-user with defaults",
 			env:  map[string]string{"JITPACK_SESSION_SECRET": "s3cret"},
 			want: Config{
-				Listen:        ":8080",
-				DBPath:        "jitpack.db",
-				SessionSecret: "s3cret",
+				TaskReminderAt: defaultReminder,
+				Listen:         ":8080",
+				DBPath:         "jitpack.db",
+				SessionSecret:  "s3cret",
 			},
 		},
 		{
@@ -41,9 +46,10 @@ func TestLoadConfig(t *testing.T) {
 				"JITPACK_DB_PATH":        "/data/app.db",
 			},
 			want: Config{
-				Listen:        ":9090",
-				DBPath:        "/data/app.db",
-				SessionSecret: "s3cret",
+				TaskReminderAt: defaultReminder,
+				Listen:         ":9090",
+				DBPath:         "/data/app.db",
+				SessionSecret:  "s3cret",
 			},
 		},
 		{
@@ -56,10 +62,11 @@ func TestLoadConfig(t *testing.T) {
 				"JITPACK_WEB_ROOT":       "/srv/web",
 			},
 			want: Config{
-				Listen:        ":8080",
-				DBPath:        "jitpack.db",
-				SessionSecret: "s3cret",
-				WebRoot:       "/srv/web",
+				TaskReminderAt: defaultReminder,
+				Listen:         ":8080",
+				DBPath:         "jitpack.db",
+				SessionSecret:  "s3cret",
+				WebRoot:        "/srv/web",
 			},
 		},
 		{
@@ -69,16 +76,18 @@ func TestLoadConfig(t *testing.T) {
 				"JITPACK_LOCAL_USER_ID": "solo",
 			},
 			want: Config{
-				Listen:      ":8080",
-				DBPath:      "jitpack.db",
-				SingleUser:  true,
-				LocalUserID: "solo",
+				TaskReminderAt: defaultReminder,
+				Listen:         ":8080",
+				DBPath:         "jitpack.db",
+				SingleUser:     true,
+				LocalUserID:    "solo",
 			},
 		},
 		{
 			name: "multi-user with OIDC broker",
 			env:  oidc,
 			want: Config{
+				TaskReminderAt:   defaultReminder,
 				Listen:           ":8080",
 				DBPath:           "jitpack.db",
 				SessionSecret:    "s3cret",
@@ -95,6 +104,7 @@ func TestLoadConfig(t *testing.T) {
 				"JITPACK_OIDC_ISSUER": "https://auth.example.com/",
 			}),
 			want: Config{
+				TaskReminderAt:   defaultReminder,
 				Listen:           ":8080",
 				DBPath:           "jitpack.db",
 				SessionSecret:    "s3cret",
@@ -110,10 +120,11 @@ func TestLoadConfig(t *testing.T) {
 				"JITPACK_ADMIN_EMAILS":   "andy@example.com, sarah@example.com ,,",
 			},
 			want: Config{
-				Listen:        ":8080",
-				DBPath:        "jitpack.db",
-				SessionSecret: "s3cret",
-				AdminEmails:   []string{"andy@example.com", "sarah@example.com"},
+				TaskReminderAt: defaultReminder,
+				Listen:         ":8080",
+				DBPath:         "jitpack.db",
+				SessionSecret:  "s3cret",
+				AdminEmails:    []string{"andy@example.com", "sarah@example.com"},
 			},
 		},
 		{
@@ -264,6 +275,47 @@ func TestLoadConfig_UpdateCheck(t *testing.T) {
 			}
 			if cfg.UpdateCheck != tc.want {
 				t.Errorf("UpdateCheck = %v, want %v", cfg.UpdateCheck, tc.want)
+			}
+		})
+	}
+}
+
+// FR-7.11: the reminder's time of day. A malformed value refuses to start
+// rather than reminding at an hour nobody chose.
+func TestLoadConfig_TaskReminderTime(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "unset is six in the morning", raw: "", want: 6 * time.Hour},
+		{name: "a chosen time", raw: "07:30", want: 7*time.Hour + 30*time.Minute},
+		{name: "midnight", raw: "00:00", want: 0},
+		{name: "surrounding space", raw: " 21:05 ", want: 21*time.Hour + 5*time.Minute},
+		{name: "no minutes", raw: "7", wantErr: true},
+		{name: "past the day", raw: "24:00", wantErr: true},
+		{name: "a word", raw: "morning", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":        "true",
+				"JITPACK_LOCAL_USER_ID":      "local",
+				"JITPACK_TASK_REMINDER_TIME": tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("loadConfigFrom(%q) = nil error, want one", tc.raw)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.TaskReminderAt != tc.want {
+				t.Errorf("TaskReminderAt = %v, want %v", cfg.TaskReminderAt, tc.want)
 			}
 		})
 	}

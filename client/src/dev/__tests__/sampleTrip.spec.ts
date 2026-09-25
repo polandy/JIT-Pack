@@ -13,6 +13,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { dueStateOf } from '@/domain/taskDue'
+import { localIsoDate } from '@/domain/trips'
 import { taskGroups, tripTasks } from '@/domain/tripTodos'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
@@ -83,7 +85,7 @@ describe('seedSampleTrip (dev)', () => {
 
     const rows = trip.getItems(tripId).map((item) => ({ id: item.id, name: item.name, icon: null }))
     const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
-    const groups = taskGroups(tasks, master.taskTagList)
+    const groups = taskGroups(tasks, master.taskTagList, localIsoDate(Date.now()))
 
     const byTag = groups.filter((group) => group.tag !== null)
     expect(byTag.length).toBeGreaterThan(0)
@@ -94,6 +96,18 @@ describe('seedSampleTrip (dev)', () => {
       expect(group.tasks.length).toBeGreaterThan(0)
     }
     expect(groups.map((group) => group.key)).toEqual(expect.arrayContaining(['prep', 'trip']))
+  })
+
+  // FR-7.11: a fresh device shows the due states — one overdue, one soon —
+  // beside the undated tasks that are the normal case.
+  it('dates two of its tasks: one overdue and one due tomorrow (FR-7.11)', () => {
+    const { tripId, trip } = seed()
+    const today = localIsoDate(Date.now())
+    const states = trip
+      .getTripTodos(tripId)
+      .map((todo) => dueStateOf(todo, today))
+      .filter((state) => state !== null)
+    expect(states.sort()).toEqual(['overdue', 'soon'])
   })
 
   it('hangs its preparations off a row the trip actually carries', () => {

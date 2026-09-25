@@ -8,10 +8,12 @@ import {
   openTasks,
   openTripTodos,
   openRowMenu,
+  startTrip,
   tripWithRows,
 } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
-import { fillIonic } from './helpers/ionic'
+import { fillIonic, setDateField } from './helpers/ionic'
+import { PATH } from './routes'
 
 /**
  * A trip's tasks (FR-7.4, FR-7.6, FR-7.7) — its own chores and the
@@ -666,6 +668,72 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.goto(trip)
     const back = await openTripTodos(page)
     await expect(back.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-13 (FR-7.11): a task names the day it is due.
+   *
+   * The date is set where every other fact of a task is — its sheet — and the
+   * sheet stays up: the date is one fact of several. Three promises follow
+   * from it and are asserted on the list, not the sheet: the line wears the
+   * day in words (*Tomorrow*), the dated task leads its group ahead of an
+   * undated one it would otherwise follow (FR-7.6 sorts by words, and *Buy*
+   * comes before *Renew*), and both survive a reload — a line that only
+   * repainted proves the component, not the write.
+   *
+   * Then Local Mode's stand-in for the push: the app says once, when it is
+   * opened, how many tasks are due. Opened means a fresh load of the
+   * dashboard, and the trip has to be running — M1 counts the active trips.
+   */
+  test('E2E-M25-13: a due day is set on the sheet, leads the list, and is said when the app opens', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Fällig')
+    // Running from the start: M1 counts the active trips. Started here, where
+    // the trip's name is already on screen for the helper to read — right
+    // after a fresh load WebKit showed the screen's generic title instead.
+    await startTrip(page)
+    await addTripTodo(page, 'Buy a map')
+    await addTripTodo(page, 'Renew the passport')
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const iso = [
+      tomorrow.getFullYear(),
+      String(tomorrow.getMonth() + 1).padStart(2, '0'),
+      String(tomorrow.getDate()).padStart(2, '0'),
+    ].join('-')
+
+    const before = await openTasks(page, 'before')
+    await before.getByTestId('trip-todo-open-Renew the passport').click()
+    const sheet = page.getByTestId('task-sheet')
+    await expect(sheet).toBeVisible()
+    await setDateField(page, 'task-sheet-due', iso)
+    // The sheet stays up with the day in its field.
+    await expect(sheet.getByTestId('task-sheet-due').locator('input')).not.toHaveValue('')
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+
+    const pill = before.getByTestId('trip-todo-due-Renew the passport')
+    await expect(pill).toHaveText('Tomorrow')
+    await expect(pill).toHaveAttribute('data-due', 'soon')
+    await expect(before.getByTestId('trip-todo-due-Buy a map')).toHaveCount(0)
+    const order = () =>
+      before
+        .locator('[data-testid^="trip-todo-open-"]')
+        .evaluateAll((rows) => rows.map((row) => row.textContent?.trim()))
+    await expect.poll(order).toEqual(['Renew the passport', 'Buy a map'])
+    await writesLanded(page)
+
+    await page.reload()
+    await expect(visible(page).getByTestId('trip-todo-due-Renew the passport')).toHaveText(
+      'Tomorrow',
+    )
+    await expect.poll(order).toEqual(['Renew the passport', 'Buy a map'])
+
+    // Local Mode's reminder: once, when the app opens on a running trip.
+    await page.goto(PATH.dashboard)
+    await expect(page.locator('ion-toast').filter({ hasText: '1 task due' })).toBeVisible()
   })
 
   /**

@@ -470,6 +470,26 @@ describe('createMutations', () => {
     expect(m.setTaskTag('todo1', null).table).toBe(TABLE.comments)
   })
 
+  // FR-7.11: a day or none, and nothing beside it — a date set on one device
+  // and a tag set on another must both survive the merge (NFR-4.2a).
+  it('setTaskDueDate writes the day alone, and can write it away', () => {
+    const m = createMutations(mockHLC())
+    expect(m.setTaskDueDate('todo1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
+    expect(m.setTaskDueDate('todo1', null).fields).toEqual({ due_date: null })
+    expect(m.setTaskDueDate('todo1', null).table).toBe(TABLE.comments)
+  })
+
+  // FR-7.12: a promoted comment names a phase only when the caller says so.
+  it('flagCommentAsTask writes a phase only when one is named', () => {
+    const m = createMutations(mockHLC())
+    expect(m.flagCommentAsTask('c1').fields).toEqual({ is_task: 1, task_state: 'open' })
+    expect(m.flagCommentAsTask('c1', 'during').fields).toEqual({
+      is_task: 1,
+      task_state: 'open',
+      phase: 'during',
+    })
+  })
+
   // The vocabulary is the tasks' own (ADR-072), so the row goes to task_tags
   // and never to the inventory's `tags` — where it would appear in the item
   // picker as a word no item uses.

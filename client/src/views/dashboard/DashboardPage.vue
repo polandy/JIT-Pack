@@ -61,6 +61,8 @@ import { dayText, phaseWord } from '@/lib/tripDayText'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import { useDueTaskHint } from '@/composables/useDueTaskHint'
+import { readMode } from '@/mode'
 
 const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()
@@ -90,6 +92,16 @@ function counterOf(trip: Trip) {
 const activeTrips = computed(() =>
   byDepartureSoonestFirst(tripStore.tripList.filter((t) => isActive(t))),
 )
+
+// FR-7.11: Local Mode has no server to send the morning's reminder, so the
+// app says it once when it is opened.
+useDueTaskHint({
+  local: readMode() === 'local',
+  tripIds: computed(() => activeTrips.value.map((trip) => trip.id)),
+  loaded: (tripId) => orchestrator.tripDataLoaded(tripId),
+  tasksOf,
+  today: () => orchestrator.today(),
+})
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives
@@ -494,7 +506,9 @@ async function handleRefresh(event: CustomEvent) {
         <template v-if="isPackingClosed(heroTrip)" #blocks>
           <DashboardTasksBlock
             :trip-id="heroTrip.id"
-            :phase-in-front="taskPhaseInFront(tripDay(heroTrip, new Date()))"
+            :phase-in-front="
+              taskPhaseInFront(tripDay(heroTrip, new Date()), isPackingClosed(heroTrip))
+            "
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
           <component

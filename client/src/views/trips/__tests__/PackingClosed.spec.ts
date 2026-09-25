@@ -27,6 +27,7 @@ import type { RowUndo } from '@/composables/useRowUndo'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { PACKING_CLOSE_CROSSINGS, type PackingCloseCrossing } from '@/lib/packingClose'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
@@ -52,9 +53,18 @@ const orchestratorFake = {
   isLockedByOther: vi.fn(() => false),
   lockHolder: vi.fn(() => null),
   // FR-7.7: the action reports the rows it decided *and* the tasks it moved.
-  closePacking: vi.fn(() => ({ rows: [], tasks: [] }) as { rows: unknown[]; tasks: unknown[] }),
+  // FR-7.12: and the shopping rows it moved to *at the destination*.
+  closePacking: vi.fn(
+    () =>
+      ({ rows: [], tasks: [], buyRows: [] }) as {
+        rows: unknown[]
+        tasks: unknown[]
+        buyRows: unknown[]
+      },
+  ),
   reopenPacking: vi.fn(),
   restorePackingClose: vi.fn(),
+  setTaskDueDate: vi.fn(),
   addDecidedItem: vi.fn(() => ({ id: 'new-1', companions: [] })),
   setTravelerAssignment: vi.fn(() => ({ id: 'new-1', companions: [] })),
   removeAddedItem: vi.fn(),
@@ -105,11 +115,11 @@ function seedTask(task: Record<string, unknown>) {
   })
 }
 
-function mountPage() {
+function mountPage(crossings: PackingCloseCrossing[] = []) {
   return mount(PackingListPage, {
     props: { tripId: 't1' },
     global: {
-      provide: { [ORCHESTRATOR]: orchestratorFake },
+      provide: { [ORCHESTRATOR]: orchestratorFake, [PACKING_CLOSE_CROSSINGS]: crossings },
       // The real `ion-modal` renders an empty element under jsdom, so a
       // sheet's content would be unreachable — the stub the tag sheets use.
       stubs: { SheetModal: { template: '<div><slot /></div>' } },
@@ -216,9 +226,12 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     // both — the rows travel as the snapshot the snackbar holds, the moved
     // tasks in the closure beside it.
     const moved = [{ task: { id: 'task-1', body: 'Salbe holen' }, phase: 'before' }]
+    // FR-7.12: and a shopping row it sent to *at the destination*.
+    const buyRows = [{ id: 'ti2', name: 'Sonnencreme', mode: 'buy_before' }]
     orchestratorFake.closePacking.mockReturnValue({
       rows: [{ id: 'ti1', name: 'Regenjacke', quantity: 1, packed_count: 0, state: 'open' }],
       tasks: moved,
+      buyRows,
     })
 
     const page = mountPage()
@@ -241,6 +254,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
       't1',
       [expect.objectContaining({ itemId: 'ti1', quantity: 1, state: 'open' })],
       moved,
+      buyRows,
     )
   })
 
@@ -263,6 +277,56 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     const sheet = page.findComponent(ClosePackingSheet)
     expect(sheet.props('plan').tasks.map((task: { id: string }) => task.id)).toEqual(['task-1'])
     expect(sheet.find('[data-testid="m4-close-sheet-tasks"]').text()).toContain('1 open task')
+  })
+
+  /*
+   * FR-7.12: the shopping list's *before departure* ends with the close. The
+   * sheet counts both halves — the packing rows still to buy and what the
+   * shopping module holds of its own — and the confirmed close moves both
+   * and takes both back with its one undo.
+   */
+  it('names the purchases that move to the destination, and moves them with the close', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }, { name: 'Sonnenhut', mode: 'buy_before' }])
+    const undo = vi.fn()
+    const crossing: PackingCloseCrossing = {
+      pending: vi.fn(() => 2),
+      cross: vi.fn(() => ({ count: 2, undo })),
+    }
+
+    const page = mountPage([crossing])
+    await flushPromises()
+    await headerActions()
+      .find((action) => action.id === 'm4-close-packing')
+      ?.onClick?.()
+    await flushPromises()
+
+    const sheet = page.findComponent(ClosePackingSheet)
+    expect(sheet.props('plan').buyRows.map((row: { name: string }) => row.name)).toEqual([
+      'Sonnenhut',
+    ])
+    expect(sheet.get('[data-testid="m4-close-sheet-shopping"]').text()).toContain(
+      '3 open purchases',
+    )
+
+    sheet.vm.$emit('confirm')
+    await flushPromises()
+    expect(crossing.cross).toHaveBeenCalledWith('t1')
+
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(undo).toHaveBeenCalledTimes(1)
+  })
+
+  it('says nothing of the shopping list when nothing there would move', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    await headerActions()
+      .find((action) => action.id === 'm4-close-packing')
+      ?.onClick?.()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-close-sheet-shopping"]').exists()).toBe(false)
   })
 })
 
@@ -617,5 +681,45 @@ describe('M4 — a list whose packing is finished (FR-5.10)', () => {
     await flushPromises()
 
     expect(page.findComponent(QuickAddItem).props('addsPacked')).toBe(true)
+  })
+})
+
+/*
+ * FR-7.11/FR-7.12 on M4's own copy of the task sheet: the window opens the same
+ * sheet M25 does, and its date is written through the same act — while the
+ * sheet stays up. And the sheet is told whether *before* is closed, so a
+ * finished packing offers no move back into it here either.
+ */
+describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
+  it('writes the due day and keeps the sheet up', async () => {
+    seedTrip({}, [{ name: 'Kulturbeutel' }])
+    seedTask({ id: 'task-1', body: 'Salbe holen', trip_item_id: 'ti1' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    const sheet = page.findComponent({ name: 'TripTaskSheet' })
+    expect(sheet.props('beforeLocked')).toBe(false)
+    sheet.findComponent({ name: 'DateField' }).vm.$emit('update', '2026-07-09')
+    await flushPromises()
+
+    expect(orchestratorFake.setTaskDueDate).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'task-1' }),
+      '2026-07-09',
+    )
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(true)
+  })
+
+  it('tells the sheet that before is closed once the packing is', async () => {
+    seedTrip({ packing_closed_at: '2026-07-08T06:00:00Z' }, [{ name: 'Kulturbeutel' }])
+    seedTask({ id: 'task-1', body: 'Salbe holen', trip_item_id: 'ti1' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(page.findComponent({ name: 'TripTaskSheet' }).props('beforeLocked')).toBe(true)
   })
 })

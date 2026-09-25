@@ -7,7 +7,12 @@ import type { TripScreenSource } from '@/composables/useTripScreen'
 export interface TripScreenStub extends TripScreenSource {
   /** The trips whose partition this device is pretending to hold (ADR-033). */
   loadedTrips: Set<string>
+  /** FR-7.11: the day a task's due date is read against. */
+  today: () => string
 }
+
+/** The day `tripScreenStub().today()` answers — a fixed one, so a due badge is a value. */
+export const STUB_TODAY = '2026-07-08'
 
 /**
  * The three methods every trip screen now calls on mount, for the mount specs
@@ -29,5 +34,6 @@ export function tripScreenStub(): TripScreenStub {
     subscribeTrip: vi.fn(),
     drainTrip: vi.fn(() => Promise.resolve()),
     tripDataLoaded: vi.fn((tripId: string) => loadedTrips.has(tripId)),
+    today: vi.fn(() => STUB_TODAY),
   }
 }

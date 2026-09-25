@@ -856,8 +856,14 @@ These patterns apply to every screen and are specified once.
   * **Rows** are 52 px high at body size 16: the title, and beneath it what kind of task it is (its tag, or the row it
     prepares) or the quantity at 13 px, the **check box on the right** as a 28 px box inside a 56 × 52 px target that
     reaches the card's edge. In Server Mode the assignee's name follows it. Order and counts: Aufgaben four, the phase
-    in front of the trip first, mine first; Einkauf seven of the list in focus. There are no dates: a task has a phase
-    (FR-7.7).
+    in front of the trip first, mine first; Einkauf seven of the list in focus. ~~There are no dates: a task has a
+    phase (FR-7.7).~~ **Amended 2026-09-25 (FR-7.11):** a task may carry a due day. Its pill (M25's) leads the second
+    line, and the pressing ones — overdue, today, the next two days — lead the block, earliest first, ahead of the
+    phase rule. The block's field writes *during* (FR-7.12: it is shown only once the packing is finished, and a
+    finished packing closes *before*).
+  * **Local Mode's reminder (FR-7.11):** with no server to send the morning's push, M1 says once per app start, as a
+    toast, *„N Aufgaben fällig"* — the open tasks due by tomorrow across the active trips, the overdue included —
+    once their rows are on the device, and nothing when there are none.
   * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
     fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
     field; its rows leave the tab order. Both start open, and the state is remembered per block on this device.
@@ -1590,7 +1596,12 @@ These patterns apply to every screen and are specified once.
     carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a single row still comes back through the
     *Erledigte* reveal. The list stays workable: the composer is where it was, and while the packing is closed what is
     typed into it lands **packed**, its hint saying so instead of FR-9.1's. (E2E-M4-139, E2E-M4-140, E2E-M4-141,
-    E2E-M4-142, E2E-M4-143)
+    E2E-M4-142, E2E-M4-143) **Since FR-7.12 (2026-09-25)** the sheet carries one more crossing line beside FR-7.7's
+    tasks, with the cart glyph: *„N offene Einkäufe wandern von „Vor der Abreise" zu „Vor Ort"."*
+    (`m4-close-sheet-shopping`) — the packing rows still to buy before departure plus the shopping list's own
+    entries there, which move in the same act and come back with the same undo. The task window's lines carry
+    FR-7.11's due pill, the dated ones first, and M5's mode select no longer offers *Vor der Abreise kaufen* for a row
+    not already there while the packing is closed.
   * **Packed or forgotten (FR-5.11 — built 2026-09-21).** Once the packing is closed the composer carries a
     two-way choice above its hint (`role=radiogroup`): ***Eingepackt*** — *stand nicht auf der Liste* — and
     ***Vergessen*** — *blieb zuhause*. *Eingepackt* is selected each time the composer opens and is exactly the add
@@ -1797,6 +1808,12 @@ These patterns apply to every screen and are specified once.
   and **no** remove; then the tab's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"*
   (FR-30.9)** — each with a remove (✕) and, **at the end of the row, a check-off**. An entry and a packing row of the
   same name stay two lines. FR-13.3's destination entries are not built.
+* **Before departure, closed (FR-7.12, built 2026-09-25):** once the packing is finished, the *Vor der Abreise* tab
+  is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor Ort* (M4's close
+  sheet names the number); the tab now carries one line in place of the field and its chips (*„Die Packliste ist
+  abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise gekauft wurde."*, `m6-before-locked`), no ＋, no empty
+  state, and its bought reveal can be read but not put back or removed from. *Vor Ort* is unchanged. Reopening the
+  packing lifts it.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
   made in this visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap
   on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's
@@ -2601,7 +2618,8 @@ token would prove nothing there is anything to prove.
   variant below. The note under the name names the display name specifically rather than claiming the whole profile is
   managed elsewhere; notification preferences per event type: delegation, mention, task assigned, **items taken
   over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) and
-  **trip notes** (FR-7.9, the fifth, 2026-09-22) with channel status (push registered via VAPID/UnifiedPush,
+  **trip notes** (FR-7.9, the fifth, 2026-09-22) and **tasks due** (FR-7.11, the sixth, 2026-09-25 — the server's
+  morning reminder) with channel status (push registered via VAPID/UnifiedPush,
   NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind
   alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
   them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
@@ -2619,9 +2637,12 @@ token would prove nothing there is anything to prove.
   resize/format step exposed to the user. Both controls save immediately (G-5) and are reflected wherever an avatar/name
   appears — the M17 profile row itself, the "Packed by" tag, the presence facepile per G-10 (**not** the dashboard
   greeting, which this line claimed until 2026-09-01: it is a time-of-day sentence and carries neither) — always
-  rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section is hidden
-  entirely, since there is no second party to notify or delegate to (Addendum FR-17.3). All other elements (data export,
-  conflict log, app info) remain, unchanged from normal mode.
+  rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section ~~is hidden
+  entirely, since there is no second party to notify or delegate to (Addendum FR-17.3)~~ **carries only what can
+  happen to one person alone (amended 2026-09-25, FR-7.11):** the *Fällige Aufgaben* row — the reminder is nobody's
+  act, so FR-17.3's silence does not cover it — and the *Push auf diesem Gerät* toggle it needs to reach a closed
+  app; every row that needs a second party stays hidden. All other elements (data export, conflict log, app info)
+  remain, unchanged from normal mode.
 * **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2).
   User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20
   (Addendum 3.23).
@@ -2970,6 +2991,16 @@ token would prove nothing there is anything to prove.
     trip's own task carries the seat and a ✕. A preparation has no ✕ — it is removed in M5, the one place that shows
     what else its row still owes.
   * **Resolved tasks fold away** per section, behind the *„N erledigt"* bar, and can be unticked there.
+  * **The due pill (FR-7.11 — built 2026-09-25)** leads the cluster of an open task that has a date: *Überfällig* in
+    the danger ink on its tint, *Heute* / *Morgen* / *In 2 Tagen* in the action ink, a short date (*„Fr., 17.7."*)
+    quiet on the sunken plane further out. Short on purpose — the pill must never be what squeezes the task's words.
+    Inside a group the dated open tasks lead, earliest first; **a group holding an overdue, today or soon task is
+    drawn above the others** (`taskGroups`, `domain/taskDue.ts`).
+* **Before the trip, closed (FR-7.12 — built 2026-09-25).** Once the packing is finished, *Vor der Reise* is history:
+  the section carries one line in place of its field (*„Die Packliste ist abgeschlossen — hier steht, was vor der
+  Reise erledigt wurde."*, `m25-before-locked`), its ticks are disabled, its rows have no grip, seat or ✕, it is no
+  drop target, it is not in *„Alle N"* and the floating bar offers no *Vor der Reise*; the sheet offers no move back
+  into it. Reopening the packing on M4 lifts all of it.
 * **Several tasks at once (FR-7.8, built 2026-09-24 — owner request: the tasks should behave like the shopping list,
   ADR-075).** M6's selection, drawn by the same components (`useRowSelection`, `SelectBox`, `BulkBar`, and the app
   bar's G-20 mode): a **hold on a task's words** (`useLongPress`'s 500 ms and 8 px, so a finger can still scroll), a
@@ -2990,10 +3021,12 @@ token would prove nothing there is anything to prove.
   when, who finished it and when — **the tag list** (FR-7.8: every task tag as a chip, exactly one selectable, plus
   the *no tag* entry under the name of the group it would return to, and a field that creates a tag the list does
   not have yet), and two actions: ***Auf „Während der Reise" schieben*** / ***Zurück auf „Vor der
-  Reise"***, and *Aufgabe entfernen* for the trip's own kind only.
+  Reise"***, and *Aufgabe entfernen* for the trip's own kind only. **Since FR-7.11 a *Fällig* date field** sits under
+  the facts on an open task (`task-sheet-due`, the app's `DateField`, ADR-035), its calendar offering *Löschen*; a
+  picked day is written at once, the sheet stays up, and the snackbar's undo writes the day the task had before.
 * **Every act raises the screen's one snackbar with *Rückgängig*** (FR-25.31): the tick, the add, the removal, the
-  assignment and the phase move. The move's undo writes back the phase the task actually had, which for a task written
-  before FR-7.7 is none at all.
+  assignment, the phase move and the due date. The move's undo writes back the phase the task actually had, which for
+  a task written before FR-7.7 is none at all.
 * **Modes:** all three. Local and Single-User lose the seat, the chip and the *who* of each stamp (G-8) and keep
   everything else — the phases, the move and the moments are client-side rules. **Before the trip partition has
   arrived** the screen shows nothing rather than an empty list (ADR-033).

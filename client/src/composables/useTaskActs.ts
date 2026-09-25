@@ -19,6 +19,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { RowUndo } from '@/composables/useRowUndo'
 import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
+import { shortDueDay } from '@/lib/taskDueText'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemTodo, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_DURING } from '@/types/domain'
@@ -192,6 +193,26 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   /**
+   * FR-7.11: the day a task is due, set, moved or taken off. The undo writes
+   * the date it had — null included, which is a state and not a gap.
+   */
+  function setDue(task: TripTask, dueDate: string | null) {
+    const todo = liveTask(task)
+    if (!todo || todo.due_date === dueDate) return
+    const previous = todo.due_date
+    rowUndo.armAction(todo.body, () => {
+      const live = liveTask(task)
+      if (live) orchestrator.setTaskDueDate(tripId(), live, previous)
+    })
+    orchestrator.setTaskDueDate(tripId(), todo, dueDate)
+    void announceAct(
+      dueDate === null
+        ? t('tasks.dueClearedToast', { body: todo.body })
+        : t('tasks.dueSetToast', { body: todo.body, date: shortDueDay(dueDate) }),
+    )
+  }
+
+  /**
    * FR-7.8: the task lands somewhere — a tag, a phase, or both in one motion,
    * which is what the owner asked a drag across the two to do.
    *
@@ -287,6 +308,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     assign,
     remove,
     move,
+    setDue,
     retag,
     retagMany,
     moveMany,

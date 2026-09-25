@@ -24,9 +24,12 @@ import { stateFor } from './packState'
 import { taskPhaseOf } from './tripTodos'
 
 import {
+  ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_PACK,
   STATE_SKIPPED,
   TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  type TaskPhase,
   type ItemTodo,
   type TripItem,
   type TripTodo,
@@ -60,6 +63,12 @@ export interface ClosePackingPlan {
    * while three move.
    */
   tasks: ClosingTask[]
+  /**
+   * FR-7.12: the packing rows still to buy *before departure*, which move to
+   * *at the destination* with the close — the shopping list's half of the
+   * crossing the tasks make above.
+   */
+  buyRows: TripItem[]
 }
 
 /**
@@ -100,7 +109,15 @@ export function planPackingClose(
     if (isClaimed(item)) claimed += 1
   }
 
-  return { skip, trim, rows, late, claimed, tasks: tasksCrossing(opts.tasks ?? []) }
+  return {
+    skip,
+    trim,
+    rows,
+    late,
+    claimed,
+    tasks: tasksCrossing(opts.tasks ?? []),
+    buyRows: rowsCrossingToLocal(items),
+  }
 }
 
 /**
@@ -157,4 +174,26 @@ export function packingIsFinished(items: readonly TripItem[]): boolean {
     else if (reads !== 'skipped') open += 1
   }
   return packable > 0 && open === 0 && packed > 0
+}
+
+/**
+ * FR-7.12: the phase a *new* task is written in. Once the packing is
+ * finished *before the trip* is closed — the section is history, and a task
+ * landing there would be one nobody can tick. Whatever asked for *before*
+ * (a row's preparation from M5, a group added late, a composer that still
+ * says so) is written for the road instead. Reopening the packing lifts it.
+ */
+export function phaseForNewTask(asked: TaskPhase, packingClosed: boolean): TaskPhase {
+  return packingClosed && asked === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : asked
+}
+
+/**
+ * FR-7.12: the packing rows the close moves from the shopping list's
+ * *before departure* to *at the destination*: the ones still to buy, since
+ * before the trip is now over. Buying such a row turns it into a packing row
+ * (FR-3.3), so what is still in `buy_before` is exactly what was not bought —
+ * and what was bought keeps the record of where it was (FR-25.11j).
+ */
+export function rowsCrossingToLocal(items: readonly TripItem[]): TripItem[] {
+  return items.filter((item) => item.mode === ITEM_MODE_BUY_BEFORE)
 }

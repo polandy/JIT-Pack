@@ -65,7 +65,8 @@ import {
 import { packedPercent, stateFor } from '@/domain/packState'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -1188,7 +1189,7 @@ const tasks = computed(() =>
  * that said „3 von 8" over four lines would be reporting on a screen the
  * reader is not looking at.
  */
-const windowTasks = computed(() => packingWindowTasks(tasks.value))
+const windowTasks = computed(() => packingWindowTasks(tasks.value, orchestrator.today()))
 const tripTodoCount = computed(() => tripTodoProgress(windowTasks.value))
 const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
 
@@ -1957,6 +1958,11 @@ function onTaskMove(phase: TaskPhase) {
   if (task) taskActs.move(task, phase)
 }
 
+/** FR-7.11: the sheet stays up — the date is one fact of several on it. */
+function onTaskDue(dueDate: string | null) {
+  if (openedTask.value) taskActs.setDue(openedTask.value, dueDate)
+}
+
 function onTaskRemoveFromSheet() {
   const task = openedTask.value
   openedTaskId.value = null
@@ -2264,6 +2270,19 @@ const closePlan = computed<ClosePackingPlan>(() =>
   }),
 )
 
+/**
+ * FR-7.12: what the modules move with the close (the shopping list's own
+ * entries), provided by the composition root; none in a spec that provides
+ * none.
+ */
+const closeCrossings = inject(PACKING_CLOSE_CROSSINGS, [])
+/** The sheet's shopping number: the packing rows plus every module's own. */
+const closeShoppingCount = computed(
+  () =>
+    closePlan.value.buyRows.length +
+    closeCrossings.reduce((n, crossing) => n + crossing.pending(props.tripId), 0),
+)
+
 /** Whether the question is on screen, and whether it came asked or invited. */
 const closeSheetOpen = ref(false)
 const closePrompted = ref(false)
@@ -2346,21 +2365,29 @@ function onCloseSheetDismissed() {
 function onConfirmClosePacking() {
   closeSheetOpen.value = false
   closePromptUp.value = false
-  const { rows, tasks } = orchestrator.closePacking(props.tripId, {
+  const { rows, tasks, buyRows } = orchestrator.closePacking(props.tripId, {
     isClaimed: (row: TripItem) => locked(row),
   })
+  // FR-7.12: a module's own *before* list crosses in the same act, and is
+  // taken back by the same undo.
+  const crossed = closeCrossings.map((crossing) => crossing.cross(props.tripId))
+  const shopping = buyRows.length + crossed.reduce((n, effect) => n + effect.count, 0)
   // One undo for the whole act (FR-25.31), and deliberately one *call*: the
   // rows travel as the records the snackbar snapshots, the moved tasks in the
   // closure beside them. Arming a second undo for the tasks would replace the
   // first — the record holds one action at a time, by design — and the rows
   // would quietly lose their way back.
-  rowUndo.armUndo(rows, (records) => orchestrator.restorePackingClose(props.tripId, records, tasks))
+  rowUndo.armUndo(rows, (records) => {
+    orchestrator.restorePackingClose(props.tripId, records, tasks, buyRows)
+    for (const effect of crossed) effect.undo()
+  })
   const said = [
     rows.length > 0 ? t('packing.closedToast', { n: rows.length }) : t('packing.closedToastNone'),
   ]
   // FR-7.7: the sheet said it would happen; the snackbar says it did, because
   // the tasks left a screen the reader is still looking at.
   if (tasks.length > 0) said.push(t('packing.closedToastTasks', { n: tasks.length }))
+  if (shopping > 0) said.push(t('packing.closedToastShopping', { n: shopping }))
   void announceAct(said.join(' · '))
 }
 
@@ -2554,6 +2581,7 @@ setHeaderTitle(
           :tasks="windowTasks"
           :assignable="todoAssignees.length > 1"
           :name-of="nameOf"
+          :today="orchestrator.today()"
           :empty-text="t('tripTodos.allDone')"
           @assign="taskActs.assign"
           @toggle="taskActs.toggle"
@@ -3009,7 +3037,9 @@ setHeaderTitle(
           v-if="openedTask"
           :task="openedTask"
           :name-of="nameOf"
+          :before-locked="packingClosed"
           @close="openedTaskId = null"
+          @due="onTaskDue"
           @move="onTaskMove"
           @remove="onTaskRemoveFromSheet"
         />
@@ -3023,6 +3053,7 @@ setHeaderTitle(
         <ClosePackingSheet
           v-if="closeSheetOpen"
           :plan="closePlan"
+          :shopping="closeShoppingCount"
           :prompted="closePrompted"
           @close="onCloseSheetDismissed"
           @confirm="onConfirmClosePacking"
