@@ -439,6 +439,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Trip notes become threads on a view of their own (2026-09-25)](#trip-notes-become-threads-on-a-view-of-their-own-2026-09-25) — „nothing read" is not the earliest moment; a green test that assumed anyone may edit a note; replying is reading.
 - [The notes, reworked after the owner used them (2026-09-25)](#the-notes-reworked-after-the-owner-used-them-2026-09-25) — question 1 reversed for reading order; the ✎ lost to a menu; an id the testid gate cannot see.
 - [Two equal readings are not a settled scroll (2026-09-25)](#two-equal-readings-are-not-a-settled-scroll-2026-09-25) — E2E-M4-45's WebKit flake: a smooth wheel stalls while the head yields, and `scrollend` is the signal.
+- [M26's baseline held a minute and a ripple (2026-09-25)](#m26s-baseline-held-a-minute-and-a-ripple-2026-09-25) — E2E-VIS-14 red on `main`: `toLocaleTimeString` escapes the pinned hour, and `md`'s ripple outlives `ion-activated`.
 
 ## Deviations
 
@@ -17619,3 +17620,21 @@ different promise. Rejected: a longer stability window, which only moves the sta
 
 Proven under load: 24/24 on WebKit at a load average of 26, against 2 failures in 12 before the change on an idle
 machine; both files that use the helper went 174/174 on both engines.
+
+## M26's baseline held a minute and a ripple (2026-09-25)
+
+E2E-VIS-14 went red on `main` the run after FR-7.13 landed (`m26-notes.png`, 1700 px against a 658 budget) and on
+every run since — not a flake, a baseline that could only be reproduced by the machine and minute that recorded it.
+Two causes, both removed at the source rather than masked, as the file's header asks.
+
+**The pinned hour does not pin a time.** `freeze` pins `Date.prototype.getHours` for the dashboard greeting, and the
+header claimed that was the only clock any baseline read. A note's stamp (`domain/stamp.ts`) prints its time through
+`toLocaleTimeString`, which never calls `getHours`, so the baseline said *06:58 PM* and CI rendered *07:31 PM*.
+`toLocaleTimeString` is now pinned to one instant's rendering, keeping the caller's locale and options.
+
+**A pressed back button leaves a ripple behind.** M26's list is reached by pressing `header-back` on the thread, and
+that button is the one the list shows. In `md` mode Ionic appends a `.ripple-effect` disc to its shadow root and
+removes it on its own timers — `fade-out` after 325 ms, gone 200 ms later — independently of `ion-activated`, which
+had cleared. The local recording caught the disc; CI, slower, never did. The disc leaving is the seam
+(`toHaveCount(0)` on a locator that pierces the shadow root). Mutation-proven: without that wait, the mobile shot
+fails by 1566 px locally; with it, 16/16 on repeat and the whole visual suite green twice.
