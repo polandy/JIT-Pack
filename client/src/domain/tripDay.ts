@@ -68,3 +68,17 @@ export function tripDay(
 export function taskPhaseInFront(day: TripDay, packingClosed = false): TaskPhase {
   return day.kind === 'before' && !packingClosed ? TASK_PHASE_BEFORE : TASK_PHASE_DURING
 }
+
+/**
+ * hasDeparted: the trip's first day has come (FR-7.14). From then on a task
+ * written on M25 is for the road — *before the trip* is behind the reader,
+ * and the dashboard already leads with the road's tasks from the same day
+ * ({@link taskPhaseInFront}). A trip with no start date has no day to have
+ * passed, so it keeps both phases.
+ *
+ * `today` is the reader's local `YYYY-MM-DD`, compared as a string: the ISO
+ * day orders the way the calendar does.
+ */
+export function hasDeparted(trip: { start_date: string | null }, today: string): boolean {
+  return trip.start_date !== null && trip.start_date.slice(0, 10) <= today
+}

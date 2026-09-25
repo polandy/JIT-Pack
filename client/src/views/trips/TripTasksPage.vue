@@ -80,6 +80,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { taskBoard } from '@/domain/taskBoard'
 import { quickDueDays } from '@/domain/taskQuickDays'
+import { hasDeparted } from '@/domain/tripDay'
 import {
   filedTagOf,
   groupAccepts,
@@ -161,6 +162,10 @@ const taskTags = computed(() => masterStore.taskTagList)
 /** FR-7.11: today as the device reckons it — what „due" is measured against. */
 const today = computed(() => orchestrator.today())
 const tripStart = computed(() => trip.value?.start_date ?? null)
+/** FR-7.14: from the first day on, the composer writes for the road only. */
+const forTheRoad = computed(
+  () => beforeLocked.value || (!!trip.value && hasDeparted(trip.value, today.value)),
+)
 
 /**
  * FR-7.14: the board — what is pressing on top, across both phases and every
@@ -474,7 +479,7 @@ function onSheetRemove() {
             :task-tags="taskTags"
             :today="today"
             :trip-start="tripStart"
-            :before-locked="beforeLocked"
+            :for-the-road="forTheRoad"
             @added="acts.added"
           />
         </div>

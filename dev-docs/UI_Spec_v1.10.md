@@ -3004,7 +3004,8 @@ token would prove nothing there is anything to prove.
     G-8): with nobody to hand a task to, every task is everybody's.
   * **The composer** (`TaskComposer`, `m25-composer`, a card) — M6's shape: the field and its ＋, then chips that
     file the task as it is typed. **The phase**: *Vor der Reise* / *Unterwegs*, *Vor der Reise* chosen until the
-    packing is finished; then the row goes and the field says *„Aufgabe für unterwegs…"*, since *before* is closed.
+    packing is finished **or the trip's first day has come** (`hasDeparted`; an undated trip keeps both); then the
+    row goes and the field says *„Aufgabe für unterwegs…"* — *before* is closed, or behind the reader.
     **The tag**: every task tag, and *＋ Tag*, which opens a small field that creates one (FR-7.8's „created where it
     is needed"). **The day**: `TaskDueChips`, shown once something is typed — *Heute*, *Morgen*, *Vor Abreise* and
     *Datum…*. The task is written in **one insert** with its phase, tag and day. Phase and tag stay chosen for the next

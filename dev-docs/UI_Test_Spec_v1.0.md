@@ -3561,6 +3561,9 @@ moved, so the M4 entries are struck in place and say where each went.
   acts. Two tasks are dated *Morgen* from the bar's *Fällig* sheet and both lead the screen; selected again from the
   *Fällig* block they are ticked off with the bar's *Erledigt*, which empties the block, and both are in the fold. A
   third is deleted with *Löschen* and the one undo brings it back — read after a reload.
+* **E2E-M25-17** `local` (FR-7.14, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): a trip whose first
+  day was two days ago. The composer is on screen and names no phase; a task typed there lands under *Während der
+  Reise*, and after a reload it is still there and not under *Vor der Reise*.
 * ~~**E2E-M25-10**~~ `local` (FR-7.9, added 2026-09-22) — **moved 2026-09-25 to E2E-M26-01** (FR-7.13): the notes left
   M25's segment for a view of their own; the write, the sheet's `tel:` rule and the delete are asserted there.
 * ~~**E2E-M25-11**~~ `server` (FR-7.9, added 2026-09-22) — **moved 2026-09-25 to E2E-M26-03** (FR-7.13): "new for

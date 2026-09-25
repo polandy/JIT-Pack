@@ -946,6 +946,45 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
   })
 })
 
+describe('M25 — the composer writes for the road once the trip has begun (FR-7.14)', () => {
+  function seedDated(startDate: string) {
+    useTripStore().applyChange({
+      seq: 1,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active', start_date: startDate },
+    })
+  }
+
+  it('offers no *before* from the day of departure, and files a new task for the road', async () => {
+    seedTrip()
+    seedDated(STUB_TODAY)
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-composer-phase"]').exists()).toBe(false)
+    const composer = page.findComponent(TaskComposer)
+    await composer.findComponent(IonInput).setValue('Maut zahlen')
+    await composer.get('form').trigger('submit')
+    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+      't1',
+      expect.any(String),
+      'Maut zahlen',
+      'during',
+      { taskTagId: null, dueDate: null },
+    )
+  })
+
+  it('keeps both phases the day before departure', async () => {
+    seedTrip()
+    seedDated('2026-07-09')
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="m25-phase-before"]').exists()).toBe(true)
+  })
+})
+
 describe('M25 — the notes left for a view of their own (FR-7.13)', () => {
   it('is one list again: no segment, and no note among the tasks', async () => {
     seedTrip()

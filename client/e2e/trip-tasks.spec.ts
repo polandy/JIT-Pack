@@ -10,6 +10,7 @@ import {
   startTrip,
   tripWithRows,
 } from './helpers/m4'
+import { createTripViaWizard } from './helpers/trips'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { PATH } from './routes'
@@ -886,5 +887,40 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.reload()
     const reloaded = await openTasks(page, 'before')
     await expect(reloaded.getByTestId('trip-todo-Cancel the paper')).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-17 (FR-7.14): once the trip's first day has come, a new task is
+   * for the road — the composer names no phase, and what is typed lands under
+   * *Während der Reise*. The start is two days back, computed by the case:
+   * „today" is an input here, not a race, and two days clear any time zone.
+   */
+  test('E2E-M25-17: a trip under way files a new task for the road', async ({ page }) => {
+    const started = new Date(Date.now() - 2 * 86_400_000)
+    const startDate = [
+      started.getFullYear(),
+      String(started.getMonth() + 1).padStart(2, '0'),
+      String(started.getDate()).padStart(2, '0'),
+    ].join('-')
+    await createTripViaWizard(page, { name: 'Unterwegs', startDate, travelers: ['Andy'] })
+    const during = await openTasks(page, 'during')
+
+    const composer = visible(page).getByTestId('m25-composer')
+    // The positive signal first: the composer is on screen, so the phase
+    // row's absence is read off a rendered page.
+    await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(composer.getByTestId('m25-composer-phase')).toHaveCount(0)
+    await fillIonic(composer.getByTestId('trip-todo-input'), 'Maut zahlen')
+    await composer.getByTestId('trip-todo-add').click()
+    await expect(during.getByTestId('trip-todo-Maut zahlen')).toBeVisible()
+    await writesLanded(page)
+
+    await page.reload()
+    await expect(
+      (await openTasks(page, 'during')).getByTestId('trip-todo-Maut zahlen'),
+    ).toBeVisible()
+    await expect(
+      visible(page).getByTestId('m25-before').getByTestId('trip-todo-Maut zahlen'),
+    ).toHaveCount(0)
   })
 })

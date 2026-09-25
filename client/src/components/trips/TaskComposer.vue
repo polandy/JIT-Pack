@@ -8,9 +8,9 @@
  *
  * Three rows of chips:
  *
- *  - **the phase** — *Vor der Reise* until the packing is finished, when
- *    *before* is closed (FR-7.12) and the row goes: everything written then
- *    is for the road;
+ *  - **the phase** — *Vor der Reise* until the trip's first day or the
+ *    finished packing (FR-7.12), whichever comes first; then the row goes and
+ *    everything written is for the road;
  *  - **the tag** — the task tags, and *＋ Tag* for a word that is not one
  *    yet (FR-7.8's „created where it is needed");
  *  - **the day** — `TaskDueChips`, shown once there is something to date.
@@ -47,8 +47,11 @@ const props = defineProps<{
   today: string
   /** The trip's first day, for *Vor Abreise*; null where it names none. */
   tripStart: string | null
-  /** FR-7.12: the packing is finished, so a new task is for the road. */
-  beforeLocked: boolean
+  /**
+   * A new task is for the road: the packing is finished (FR-7.12) or the
+   * trip's first day has come (FR-7.14).
+   */
+  forTheRoad: boolean
 }>()
 
 const emit = defineEmits<{
@@ -61,9 +64,7 @@ const orchestrator = useOrchestrator()
 const field = ref<{ $el: HTMLIonInputElement } | null>(null)
 const draft = ref('')
 const chosenPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
-const phase = computed<TaskPhase>(() =>
-  props.beforeLocked ? TASK_PHASE_DURING : chosenPhase.value,
-)
+const phase = computed<TaskPhase>(() => (props.forTheRoad ? TASK_PHASE_DURING : chosenPhase.value))
 const tagId = ref<string | null>(null)
 const day = ref<string | null>(null)
 
@@ -125,7 +126,7 @@ defineExpose({ focus })
         ref="field"
         v-model="draft"
         class="add-input"
-        :placeholder="beforeLocked ? t('tasks.addDuring') : t('tasks.addPlaceholder')"
+        :placeholder="forTheRoad ? t('tasks.addDuring') : t('tasks.addPlaceholder')"
         :aria-label="t('tasks.addPlaceholder')"
         enterkeyhint="done"
         data-testid="trip-todo-input"
@@ -143,7 +144,7 @@ defineExpose({ focus })
     </form>
 
     <div
-      v-if="!beforeLocked"
+      v-if="!forTheRoad"
       class="chips"
       role="group"
       :aria-label="t('tasks.phaseLabel')"

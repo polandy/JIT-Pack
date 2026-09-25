@@ -5919,10 +5919,11 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
      groups has nowhere to go in the day view), and keeping the groups with a *„2 fällig"* head (the pressing rows stay
      scattered, which was the finding). A task left open in a closed *before* is history and not in the block.
   2. **One composer on top, in M6's shape**, and the FAB the sibling lists carry, which focuses it. Its chips file the
-     task as it is typed: the **phase** (*Vor der Reise* / *Unterwegs*, gone once *before* is closed), the **tag**
-     (with *＋ Tag* to create one) and the **day** — *Heute*, *Morgen*, *Vor Abreise*, *Datum…*. One insert carries
-     all three. Phase and tag stay chosen for the next task; the day does not. Rejected: an add sheet behind the FAB
-     (M26's way — it covers the list while you write) and a composer per section moved to its top.
+     task as it is typed: the **phase** (*Vor der Reise* / *Unterwegs*, gone once *before* is closed or the trip's
+     first day has come), the **tag** (with *＋ Tag* to create one) and the **day** — *Heute*, *Morgen*, *Vor
+     Abreise*, *Datum…*. One insert carries all three. Phase and tag stay chosen for the next task; the day does not.
+     Rejected: an add sheet behind the FAB (M26's way — it covers the list while you write) and a composer per section
+     moved to its top.
   3. **Two-line rows, no ✕.** The words, then under them the due pill, the row a preparation belongs to and the
      person. *Done* and *delete* were same-sized neighbours a finger-width apart; a task is now removed from its sheet
      or from a selection. M4's compact window is unchanged.
@@ -5946,9 +5947,14 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     *Morgen*, or be past); a phase chip in the composer reads *Unterwegs* rather than *Während der Reise*, to fit the
     row; the *Fällig* block wears a faint tint of the overdue ink; the phase button in the selection's bar reads
     *Unterwegs* for the same reason. M1's *Aufgaben* card is unchanged.
+  * **Amended by the owner on the rendered build (2026-09-25):** once the trip has started, a task can no longer be
+    written *before* it. From the trip's **first day** the composer names no phase and writes for the road — the day
+    the dashboard already leads with the road's tasks (`taskPhaseInFront`), read by `hasDeparted` in
+    `domain/tripDay.ts`. An undated trip keeps both chips: it has no day to have passed. Only the composer: a task
+    still standing in *before* may be moved or reworded until the packing closes it (FR-7.12).
   * **Modes.** All three; nothing here reaches the server. The seat and *Meine* stay Server-only (G-8).
   * **Surfaces:** M25 (composer, *Fällig* block, rows, folds, closed *before*, sheet, selection bar, FAB), M4 (the
-    figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..16, with
+    figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..17, with
     E2E-M25-01/03/06/12/13 and E2E-M4-97/149 revised.
 
 ### 3.9 Trip Feedback & Post-Trip Review

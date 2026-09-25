@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { tripDay, taskPhaseInFront } from '../tripDay'
+import { hasDeparted, tripDay, taskPhaseInFront } from '../tripDay'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
 const trip = { start_date: '2026-10-12', end_date: '2026-10-18' }
@@ -66,5 +66,20 @@ describe('taskPhaseInFront (FR-7.10): the phase of task the dashboard leads with
 
   it('FR-7.12: a finished packing closes before, even ahead of the start', () => {
     expect(taskPhaseInFront({ kind: 'before', daysUntil: 2 }, true)).toBe(TASK_PHASE_DURING)
+  })
+})
+
+describe('hasDeparted (FR-7.14): from the day of departure on, a new task is for the road', () => {
+  it.each([
+    ['the day before', '2026-10-11', false],
+    ['the day of departure', '2026-10-12', true],
+    ['on the road', '2026-10-14', true],
+    ['after the trip', '2026-10-20', true],
+  ] as const)('%s', (_name, today, want) => {
+    expect(hasDeparted(trip, today)).toBe(want)
+  })
+
+  it('a trip with no start date has not departed: there is no day to have passed', () => {
+    expect(hasDeparted({ start_date: null }, '2026-10-14')).toBe(false)
   })
 })

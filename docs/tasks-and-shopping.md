@@ -11,7 +11,8 @@ and the same gestures file, move and tick off what is on it.
   **Unterwegs**, one of your task tags (or **＋ Tag** to make a new one), and — once you have typed something — a day:
   **Heute**, **Morgen**, **Vor Abreise** (the day before the trip starts, for a task before the trip) or **Datum…**
   for the calendar. The phase and the tag stay chosen for the next task, so an errand's tasks are typed one after
-  another; the day does not. The orange **＋** at the bottom right takes you back to the field from anywhere on the
+  another; the day does not. From the trip's first day on — or once you have finished packing — the phase chips
+  are gone and every new task is for the road. The orange **＋** at the bottom right takes you back to the field from anywhere on the
   list.
 - **Fällig** comes next, when anything is pressing: every task that is overdue, due today or in the next two days,
   from both phases and every tag, earliest first. Each row names its tag underneath, since it is not under its heading
