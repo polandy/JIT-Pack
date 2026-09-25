@@ -1520,7 +1520,6 @@ export const en = {
 
   // FR-7.7 — M25, a trip's tasks on a screen of their own.
   'tasks.title': 'Tasks',
-  // FR-7.9 — M25's two segments, tasks and notes.
   'tasks.before': 'Before the trip',
   'tasks.during': 'During the trip',
   'tasks.mine': 'Mine',

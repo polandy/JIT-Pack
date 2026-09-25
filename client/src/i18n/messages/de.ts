@@ -1530,7 +1530,6 @@ export const de: Record<keyof typeof en, string> = {
 
   // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
   'tasks.title': 'Aufgaben',
-  // FR-7.9 — M25s zwei Segmente, Aufgaben und Notizen.
   'tasks.before': 'Vor der Reise',
   'tasks.during': 'Während der Reise',
   'tasks.mine': 'Meine',

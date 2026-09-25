@@ -192,6 +192,48 @@ func TestNotifications_MentionInComment(t *testing.T) {
 	}
 }
 
+// FR-7.13 through the real push path: the thread is read back from the
+// store after the reply landed (emitNotifications' resolveThread), so the
+// first note's author is told and named the thread, and the replier is not.
+func TestNotifications_NoteReply_TellsTheThreadsAuthor_FR7_13(t *testing.T) {
+	srv := newTestServer(t)
+
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-root", "op": "insert", "table": "comments", "id": "note-root",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil, "body": "Code 4711", "title": "Schlüsselbox", "is_task": 0,
+		},
+		"hlc": "0000000002000-0000-aaaaaaaa",
+	})
+	pushAs(t, srv, userB, map[string]any{
+		"mutation_id": "m-reply", "op": "insert", "table": "comments", "id": "note-reply",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil, "body": "Danke!", "is_task": 0, "parent_id": "note-root",
+		},
+		"hlc": "0000000003000-0000-bbbbbbbb",
+	})
+
+	got := listNotifications(t, srv, userA, "?unread=1")
+	if len(got.Notifications) != 1 {
+		t.Fatalf("notifications for the thread's author = %d, want 1", len(got.Notifications))
+	}
+	n := got.Notifications[0]
+	if n.Kind != store.NotifyNoteReply {
+		t.Errorf("kind = %q, want %q", n.Kind, store.NotifyNoteReply)
+	}
+	if n.Payload["thread_id"] != "note-root" || n.Payload["thread"] != "Schlüsselbox" ||
+		n.Payload["comment_id"] != "note-reply" || n.Payload["preview"] != "Danke!" {
+		t.Errorf("payload = %+v", n.Payload)
+	}
+
+	// The replier hears of the first note, never of their own reply.
+	for _, mine := range listNotifications(t, srv, userB, "").Notifications {
+		if mine.Kind == store.NotifyNoteReply {
+			t.Errorf("the replier was told of their own reply: %+v", mine)
+		}
+	}
+}
+
 func TestNotifications_TaskOnDelegatedItem_SingleNotification(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")
@@ -290,6 +332,10 @@ func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	// literal and read as off on M17 for everybody.
 	if !prefs["lock_taken"] || !prefs["task_due"] {
 		t.Errorf("prefs = %v, want lock_taken and task_due on (untouched default)", prefs)
+	}
+	// FR-7.13: the same literal, one field further.
+	if !prefs["note_reply"] {
+		t.Errorf("prefs = %v, want note_reply on (untouched default)", prefs)
 	}
 
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",

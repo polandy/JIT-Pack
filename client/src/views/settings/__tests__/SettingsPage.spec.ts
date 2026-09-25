@@ -48,6 +48,7 @@ const orchestratorFake = {
       task: false,
       lock_taken: true,
       note: true,
+      note_reply: true,
       task_due: true,
     }),
   ),
@@ -93,6 +94,9 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Trip notes')
     // FR-7.11's reminder, the sixth — the one no person sets off.
     expect(wrapper.text()).toContain('Tasks due')
+    // FR-7.13's kind, its own switch: new codes without the discussion.
+    expect(wrapper.text()).toContain('Replies to notes')
+    expect(wrapper.find('[data-testid="settings-pref-note_reply"]').exists()).toBe(true)
   })
 
   it('renders them in German once the language is German', async () => {
