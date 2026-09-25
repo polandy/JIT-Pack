@@ -202,19 +202,23 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
   const box = await packList(page).boundingBox()
   if (box === null) throw new Error('M4 list has no box to scroll')
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-  const from = (await packListOffset(page)).top
+  // Settled means the browser says so. WebKit plays a wheel as a smooth
+  // scroll, and the head yielding mid-way stalls it for as long as the
+  // relayout takes — on a busy runner long enough for two equal readings,
+  // which is how E2E-M4-45 was once handed 52 for a list that came to rest
+  // at 242. `scrollend` fires once the whole sequence is over, on both
+  // engines; the listener is attached before the wheel so it cannot miss it.
+  const ended = await packList(page).evaluateHandle(async (host: HTMLIonContentElement) => {
+    const el = await host.getScrollElement()
+    return {
+      done: new Promise<void>((resolve) =>
+        el.addEventListener('scrollend', () => resolve(), { once: true }),
+      ),
+    }
+  })
   await page.mouse.wheel(0, deltaY)
-  // Settled, not merely moved: two readings alike, and both clear of where
-  // the list started. The wait is on the list holding still, never on a clock.
-  let last = from
-  await expect
-    .poll(async () => {
-      const { top } = await packListOffset(page)
-      const settled = top !== from && top === last
-      last = top
-      return settled
-    })
-    .toBe(true)
+  await ended.evaluate((signal) => signal.done)
+  await ended.dispose()
   // …and the *gesture* has ended too, which is a second thing. The list stops
   // moving first; M4's window closes on Ionic's scroll-end debounce after it
   // (FR-21.17), and until it does, a scroll nobody made still counts as the
@@ -222,10 +226,8 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
   // against that debounce — which is what made E2E-M4-135 red on a loaded
   // shard, measuring the head answering the *flick* and reading it as the
   // defect the case was written to catch. The attribute is that window.
-  await expect(visiblePage(page).locator('ion-content.pack-content')).not.toHaveAttribute(
-    'data-scroll-gesture',
-  )
-  return last
+  await expect(packList(page)).not.toHaveAttribute('data-scroll-gesture')
+  return (await packListOffset(page)).top
 }
 
 /** The `testKey` M5's for-whom strip carries; M4's carries the item's name. */

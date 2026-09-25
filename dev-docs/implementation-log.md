@@ -438,6 +438,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A due day, a morning reminder, and a *before* that stays closed (2026-09-25)](#a-due-day-a-morning-reminder-and-a-before-that-stays-closed-2026-09-25) — Single-User's reminder had no push toggle; the claim accepts *never* for one window; `time.Local` hides `TZ`.
 - [Trip notes become threads on a view of their own (2026-09-25)](#trip-notes-become-threads-on-a-view-of-their-own-2026-09-25) — „nothing read" is not the earliest moment; a green test that assumed anyone may edit a note; replying is reading.
 - [The notes, reworked after the owner used them (2026-09-25)](#the-notes-reworked-after-the-owner-used-them-2026-09-25) — question 1 reversed for reading order; the ✎ lost to a menu; an id the testid gate cannot see.
+- [Two equal readings are not a settled scroll (2026-09-25)](#two-equal-readings-are-not-a-settled-scroll-2026-09-25) — E2E-M4-45's WebKit flake: a smooth wheel stalls while the head yields, and `scrollend` is the signal.
 
 ## Deviations
 
@@ -17597,3 +17598,24 @@ first.
 `` `note-menu-${action}` ``; the gate matches interpolated ids by a literal edge, but only in the forms it knows, and
 an `htmlAttributes` object is not one. Naming each id in the menu's descriptor table is both what the gate reads and
 what CODING_PRINCIPLES §4a asks for anyway.
+
+## Two equal readings are not a settled scroll (2026-09-25)
+
+E2E-M4-45 failed on WebKit about one run in six, on `main` as well as on branches: `expected 50, received 242` —
+*before* the sheet was ever opened, so the case's subject was never in question. The offset it compared against came
+from `scrollPackList`, whose idea of settled was two equal readings of `scrollTop` on `expect.poll`'s cadence.
+
+**The trap.** WebKit plays a wheel as a smooth scroll, and M4's head yields at the first reading past its threshold.
+The relayout that yield causes stalls the animation: instrumented, one failing run scrolled to 52, sat there for
+**162 ms** while the head folded, then carried on to 242. `expect.poll`'s first interval is 100 ms, so two readings
+landed inside the stall and the helper returned a position the list was only passing through. Chromium applies the
+wheel at once, which is why the flake was WebKit's alone. Every passing run reached the same 242: the app was never
+wrong.
+
+**The signal.** `scrollend` fires once per scroll sequence on both engines (probed in the pinned image: WebKit fires it
+once after its dozen animation steps), so the helper listens for it before turning the wheel and returns the offset it
+reads after it. The wait on `data-scroll-gesture` stays behind it — Ionic's window closes later still, and that is a
+different promise. Rejected: a longer stability window, which only moves the stall a busy runner has to exceed.
+
+Proven under load: 24/24 on WebKit at a load average of 26, against 2 failures in 12 before the change on an idle
+machine; both files that use the helper went 174/174 on both engines.
