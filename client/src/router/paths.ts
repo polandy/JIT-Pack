@@ -102,18 +102,17 @@ export function tripClosingPath(tripId: string): string {
   return `${tripPath(tripId)}?${new URLSearchParams({ [CLOSING_QUERY_PARAM]: '1' }).toString()}`
 }
 
-/**
- * FR-7.13: the thread a notes link opens — M1's row and a note's
- * notification land on it expanded. A query, because it opens something on
- * the notes view rather than a screen of its own.
- */
-export const THREAD_QUERY_PARAM = 'thread'
+/** FR-7.13: the thread a notes link opens, as a route parameter. */
+export const THREAD_ID_PARAM = ':threadId'
 
-/** The trip's notes (M26), optionally opened on one thread. */
+/**
+ * The trip's notes (M26), or one thread of them. A thread is a screen of
+ * its own — a conversation with its reply field at the bottom — so a link
+ * from M1's row or a notification lands on it directly.
+ */
 export function tripNotesPath(tripId: string, threadId?: string): string {
   const path = tripSubPath(tripId, 'notes')
-  if (!threadId) return path
-  return `${path}?${new URLSearchParams({ [THREAD_QUERY_PARAM]: threadId }).toString()}`
+  return threadId ? `${path}/${threadId}` : path
 }
 
 /**

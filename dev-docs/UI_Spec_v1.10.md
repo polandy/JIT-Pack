@@ -7,8 +7,10 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
-* 2026-09-25 — **M26** added: *Notizen*, a trip's notes as threads — a titled first note, replies one level deep and
-  newest first, edited in place by their author, new again when somebody else writes (FR-7.13). It is the **G-9**
+* 2026-09-25 — **M26** added: *Notizen*, a trip's notes as threads — a titled first note, replies one level deep,
+  edited by their author, new again when somebody else writes (FR-7.13). Reworked the same day after a UX review: cards
+  that show their words, a thread's own view read top to bottom with the field at the bottom, *Gelesen* as a button,
+  a FAB and a sheet to write, an entry's menu. It is the **G-9**
   switcher's fourth pill, whose badge counts what is new in the *neu* colour. **M25** loses its notes segment and is one
   list again. **M1**'s *Neue Notizen* lists threads by their newest unseen entry and opens them on M26.
 * 2026-09-25 — **G-9**: the trip's switcher words only the view you stand on; every other view is its glyph with its
@@ -960,8 +962,8 @@ These patterns apply to every screen and are specified once.
   this reader — an entry by somebody else created or edited after their tick reached, or after their own latest entry —
   across active trips, the newest unseen entry first. Each row is the thread's name (its title, or the first line), then
   that entry as *„Chris: Danke! Parkplatz ist Nr. 12"* with *+n* when more are unseen, and the trip's name; the words
-  open **M26 on that thread, expanded** (`?thread=`) — **and, beside them, its own tick**, a control of its own rather
-  than the row's `button`, the way the shopping card's per-row check-off already is. Ticking calls the same
+  open **that thread's own view** (`/trips/:id/notes/:threadId`) — **and, beside them, its own tick**, a control of its
+  own rather than the row's `button`, the way the shopping card's per-row check-off already is. Ticking calls the same
   `toggleNoteTick` M26 uses, reaching the thread's newest entry (`seen_through`), so the row leaves the card until
   somebody writes again. **The card is absent** where it has nothing to show — or (Single-User/Local, G-8) there is no
   other author for anything to ever be new from. **Modes:** Server only; the other two never populate it, because
@@ -3052,46 +3054,56 @@ token would prove nothing there is anything to prove.
   view of their own, **M26**, the fourth pill; M25 is one list again, with no segment. E2E-M25-10/11 moved to
   E2E-M26-01/03.
 
-### M26 — Notizen (A Trip's Notes, FR-7.13) — *built 2026-09-25*
+### M26 — Notizen (A Trip's Notes, FR-7.13) — *built 2026-09-25, reworked the same day*
 
 * **What it is:** a trip's notes as threads — information one traveller leaves for the others (a key-box code, a
   courier's number) and the answers to it. A thread is a first note with replies, one level deep. Reasoning:
-  `dev-docs/trip-note-threads-concept.md`; the interactive mockup is `UI_Concept_TripNoteThreads_variants.html`.
+  `dev-docs/trip-note-threads-concept.md` (§7b is the UX rework); the interactive mockup is
+  `UI_Concept_TripNoteThreads_variants.html`.
 * **Where it lives:** the fourth pill of the G-9 switcher, after *Aufgaben*, glyph `chatbubblesOutline`
   (`/trips/:id/notes`, `meta.tripView: 'notes'`). Its badge is the number of entries new for me, in the action colour.
   No ⋮ (ADR-051 amendment 2): nothing here is packing's. Back is M4.
-* **The list:** the threads, the one with the latest activity first — a reply lifts its thread (question 1). Collapsed,
-  each is one card (`.jp-card`): the first note's author's avatar, **its name** — the title in the heading weight, or
-  else the first line in the body weight — with a ***Neu*** badge (*Neu 3* for three) where entries are new for me, a
-  line saying who wrote it (no replies yet) or *„2 Antworten"*, and when the last thing happened, the avatars of
-  everyone who took part, a chevron, and the tick. The empty trip says *„Für diese Reise gibt es noch keine Notizen."*
-* **Expanded in place** by tapping the card; several may be open. The first note in full (a phone number as a `tel:`
-  link), with *„Ben · heute 14:32 · bearbeitet"* under it; **the reply field** (*„Antworten…"*, *Senden*, Enter sends)
-  right under it; then *„2 Antworten · neueste zuerst"* and the replies, **newest first**, indented one step — so what I
-  just wrote lands where I wrote it. A reply has no reply field of its own: one level. **An entry new for me carries a
-  stroke down its side and a dot.** A thread new for me is **not** opened by itself — the badge says so, and a list that
-  opens itself moves under the thumb; opening it is not seeing it either.
-* **The tick** (FR-7.9's, per person): on a thread somebody else has written in, mine included once somebody answered.
-  Checked while my tick stands and nothing has come since; a tap on an unchecked one ticks it through the thread's
-  newest entry (`seen_through`) — also when it was ticked before and a reply re-opened it — and a tap on a checked one
-  takes the tick back. **What is new for me** is derived (`noteThreads`): an entry by somebody else created or edited
-  after my tick reached, or after my own latest entry — replying is not ticking, but what I answered is behind me.
-* **Editing:** a ✎ *Bearbeiten* on **my own entries only** (question 2; in Local Mode, with no identity, on every entry
-  — one writer) opens the entry in place — a title field on a first note, the words, *Abbrechen* / *Speichern*. Saving
-  writes the words, the title and `edited_at`; the entry says *bearbeitet*, and for everybody else the thread is new
-  again (question 3). No push.
-* **The composer** at the list's foot: *„+ Titel"* opens a title field, so a quick number stays one field; *„Eine Notiz
-  für alle — ein Code, eine Nummer…"* and *Senden*. It writes a first note with `created_at` from the device.
-* **An entry's sheet** opens on its words: the head (the thread's title, *„Notiz"* without one, *„Antwort"* for a reply)
-  with the stamp as meta, the body with its `tel:` link and the long press that copies it, **who has ticked the thread**
-  on the first note's sheet (FR-7.9 decision 3), and the delete — *„Notiz löschen, mit 2 Antworten"* on a first note
-  with replies, which takes the thread; *„Antwort löschen"* on a reply.
-* **A link naming a thread** (`?thread=<first note>`) — M1's row, a `note` or `note_reply` notification — opens that
-  thread expanded and scrolls it into view.
-* **Modes:** all three. Server: everything. Single-User and Local: one author, so nothing is new, no tick renders and no
-  push is sent; threads, titles and edits work as a scratchpad. **Before the trip partition has arrived** the screen
-  shows nothing rather than an empty list (ADR-033).
-* (E2E-M26-01/02 `local`, E2E-M26-03/04 `server`, E2E-M1-14, E2E-G12-06/07)
+* **The list:** the threads, the one with the latest activity first — a reply lifts its thread (question 1). Each is one
+  card (`.jp-card`), itself a button into the thread: the first note's author's avatar; **its name** — the title in the
+  heading weight, or else the first line in the body weight — with a ***Neu*** badge (*Neu 3* for three) where entries
+  are new for me, and the card's edge in the action colour; **what is in it** — the first note's words under a title,
+  the rest of them under a first-line name, two lines at most, with a phone number and a code marked as on the thread;
+  under a hairline **the newest reply** as *„Ben: Parkplatz ist Nr. 12"* with Ben's avatar; and *„2 Antworten · vor 5
+  Min"*, or who wrote it and when with no reply yet. No chevron and no checkbox: the notes are looked things up in, so
+  the code is readable without a tap, and *seen* is said inside the thread. The empty trip says *„Für diese Reise gibt
+  es noch keine Notizen."*
+* **Writing a note:** the FAB (＋, `FAB_ANCHOR.m26`) opens a sheet *„Neue Notiz"*: *„Titel (optional)"*, the words
+  (*„Eine Notiz für alle — ein Code, eine Nummer…"*), in Server Mode the line *„Alle Mitreisenden sehen die Notiz."*,
+  *Abbrechen* and *Teilen*. It writes a first note with `created_at` from the device; the list stays where it is.
+* **The thread view** (`/trips/:id/notes/:threadId`, `meta.parent` the list, no pills) is named by the thread, with the
+  trip as meta. **The first note is a card on top** — avatar, *„Ben · heute 14:32 · bearbeitet"*, a ⋯, the words in
+  full, and in Server Mode ***„Gesehen von Anna, Chris"*** (FR-7.9 decision 3, here rather than on the list). **Then
+  the replies in the order they were written**, as bubbles: somebody else's on the left with avatar and name, mine on
+  the right in the action colour's tint with only the time. **The reply field is fixed at the bottom** (*„Antworten…"*,
+  a send button, Enter sends), and a reply lands at the bottom, scrolled into view — the UX rework reversed question
+  1's newest-first, which had put the field between the note and its answers. A reply has no reply field of its own:
+  one level.
+* **New for me:** a divider ***„Neu seit deinem letzten Besuch"*** stands above the first unseen reply, and the view
+  opens scrolled to it; a thread new as a whole has no divider — its first note's card takes the action colour at the
+  edge. **What is new** is derived (`noteThreads`): an entry by somebody else created or edited after my tick reached,
+  or after my own latest entry — replying is not ticking, but what I answered is behind me. Opening is not seeing.
+* ***„✓ Gelesen"*** (FR-7.9's tick, per person) is a labelled button under the last entry while anything is new for
+  me; it ticks the thread through its newest entry (`seen_through`) and goes. It replaced a bare checkbox on the list,
+  which read as *done* one pill from the tasks.
+* **Words:** a phone number is a `tel:` link; **a code** — three to six digits standing alone — is a chip that copies
+  itself (*„4711 kopiert"*). On the list the chip only marks it: a card is one button already.
+* **An entry's menu** opens on a tap on the entry (the ⋯ on the first note shows it can): *Text kopieren*,
+  ***Bearbeiten* on my own entries only** (question 2; in Local Mode, with no identity, on every entry — one writer),
+  and the delete — *„Notiz löschen, mit 2 Antworten"* on a first note with replies, which takes the thread and returns
+  to the list; *„Antwort löschen"* on a reply. *Bearbeiten* opens the entry in place — a title field on a first note,
+  the words, *Abbrechen* / *Speichern*; saving writes the words, the title and `edited_at`, the entry says
+  *bearbeitet*, and for everybody else the thread is new again (question 3). No push. A thread deleted elsewhere
+  leaves its view for the list.
+* **A link naming a thread** — M1's row, a `note` or `note_reply` notification — opens its view directly.
+* **Modes:** all three. Server: everything. Single-User and Local: one author, so nothing is new, *Gelesen* and
+  *„Gesehen von"* never render and no push is sent; threads, titles and edits work as a scratchpad. **Before the trip
+  partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
+* (E2E-M26-01/02 `local`, E2E-M26-03/04 `server`, E2E-M1-14, E2E-G12-06/07, E2E-VIS-14)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

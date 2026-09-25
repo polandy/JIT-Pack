@@ -437,6 +437,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)](#a-selection-wears-the-app-bar-and-m2-had-been-archiving-past-the-closing-pass-2026-09-25) — three owner calls in one batch; `inert="false"` is inert, and a mock factory that imports its own mock deadlocks.
 - [A due day, a morning reminder, and a *before* that stays closed (2026-09-25)](#a-due-day-a-morning-reminder-and-a-before-that-stays-closed-2026-09-25) — Single-User's reminder had no push toggle; the claim accepts *never* for one window; `time.Local` hides `TZ`.
 - [Trip notes become threads on a view of their own (2026-09-25)](#trip-notes-become-threads-on-a-view-of-their-own-2026-09-25) — „nothing read" is not the earliest moment; a green test that assumed anyone may edit a note; replying is reading.
+- [The notes, reworked after the owner used them (2026-09-25)](#the-notes-reworked-after-the-owner-used-them-2026-09-25) — question 1 reversed for reading order; the ✎ lost to a menu; an id the testid gate cannot see.
 
 ## Deviations
 
@@ -17572,3 +17573,27 @@ E2E-M26-04 asserts exactly the one entry after it as unseen.
 **Rejected in the build: editing from the sheet.** The concept put *Bearbeiten* in the note's sheet; the mockup put a ✎
 on the entry. The ✎ won: the sheet is where one reads and copies, and an edit in place keeps the thread in view with the
 answer that asked for the correction.
+
+## The notes, reworked after the owner used them (2026-09-25)
+
+The same PR as the entry above, after the built M26 was served for a look. The owner found it unconvincing in use and
+asked for a UX review with mockups; every recommendation was taken (`trip-note-threads-concept.md` §7b). What the code
+does not show:
+
+**A decision reversed within a day, and why the first answer was reasonable.** Question 1 put the replies newest first
+under a field that stood between them and the note, so that what I wrote lands where I wrote it. That held on paper;
+on a screen the thread read two ways at once. A field fixed at the bottom keeps the same promise in reading order, and
+only reading order can say *where the new begins* — the divider needs it.
+
+**The ✎ that won in the build lost to the menu.** The entry above records the ✎ beating the sheet. In use, an edit
+control under every entry was the loudest thing on a thread whose edits are rare, and the sheet it beat was reached by
+tapping words that did not look tappable. One menu per entry (copy, edit, delete) replaced both.
+
+**A latent bug the reorder surfaced.** `participants` was built from the replies in the order the store handed them
+over, not the order their writers joined — invisible while the replies were sorted after it. The sort now happens
+first.
+
+**A trap: an id built from a key is invisible to the testid gate.** The menu's buttons first carried
+`` `note-menu-${action}` ``; the gate matches interpolated ids by a literal edge, but only in the forms it knows, and
+an `htmlAttributes` object is not one. Naming each id in the menu's descriptor table is both what the gate reads and
+what CODING_PRINCIPLES §4a asks for anyway.

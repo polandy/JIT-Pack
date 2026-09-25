@@ -632,6 +632,6 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
       'Chris: Danke! Parkplatz ist Nr. 12 +1',
     )
     await page.get('[data-testid="dashboard-note-open-note-1"]').trigger('click')
-    expect(routerPush).toHaveBeenCalledWith('/trips/t1/notes?thread=note-1')
+    expect(routerPush).toHaveBeenCalledWith('/trips/t1/notes/note-1')
   })
 })

@@ -6,8 +6,9 @@ threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of their own
 authoritative; where this file's §4 still describes M25's segment, it is the reasoning before question 6 was decided.
 Two details moved in the build: the edit is a ✎ on the entry itself rather than an entry in the sheet (the mockup's
 shape), and the reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a rule). The
-interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. It builds on FR-7.9 as built
-(`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
+interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. **Reworked the same day after a UX review
+(§7b)**: a thread has its own view, read top to bottom, and question 1's newest-first is reversed there. It builds on
+FR-7.9 as built (`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
 
 **Asked for** (owner, 2026-09-25, translated): notes should work like a forum with threads. One note can have
 several notes attached to it, one level only. The parent note can have a title, and the overview shows that title.
@@ -168,6 +169,39 @@ the lesson, not the label. **The bubble on a tap** (the owner's first reading) w
 every switch would cost two taps to spare a reader who already knows the icons one look at the title. And it is a
 change to the switcher for every trip view (M4, M6, M25, M11, M12), so it is ADR-051's amendment 3 and E2E-G12's
 cases, not a rider on this feature.
+
+## 7b. The UX rework — decided 2026-09-25 (owner: the recommendation everywhere)
+
+Asked for the same day, once the built M26 had been used (owner, translated): the notes module did not convince in
+use; review it as a UX expert and show the improvements in mockups. The review found three things that hit the
+module's main purpose — looking up a code, and seeing what the others wrote since:
+
+* **The words were folded away.** A collapsed card showed only a name; *4711* was a tap away on every lookup.
+* **The reading direction broke.** Inside a thread: the first note, then the reply field, then the replies newest
+  first — read downwards and upwards at once, with the field in the middle of the conversation.
+* **The tick read as *done*.** A bare checkbox beside a chevron, one pill from the tasks' checkboxes.
+
+Four questions, each decided as recommended:
+
+| # | Question | Decided | What it cost |
+|---|---|---|---|
+| a | The replies' order | **Oldest first, the field fixed at the bottom** — reverses question 1's inner order | Question 1's reason (*what I wrote lands where I wrote it*) holds either way; the divider only works in reading order |
+| b | Where a thread opens | **Its own view**, `/trips/:id/notes/:threadId` | The deep links (M1, push, service worker) and every M26 case change; an accordion cannot hold a field at the bottom |
+| c | Pinning a note | **Not now** | See below |
+| d | When | **Inside PR #602**, before it merged | The UI was built and specified twice in one PR rather than once each on `main` |
+
+What else came with it, from the mockups: the card shows the first note's words (two lines) and the newest reply
+with its writer; *Gelesen* is a labelled button at the end of what is new, with a divider *„Neu seit deinem letzten
+Besuch"* above the first unseen reply, and *„Gesehen von"* moved from the sheet to the thread's first note; a new note
+is written from a FAB and a sheet, *Teilen*, with a line saying who reads it; an entry's actions — copy, edit, delete —
+are one menu opened by tapping the entry, replacing the ✎ under every entry and the sheet behind the words; a short
+code (three to six digits standing alone) is a chip that copies itself. Nothing in the data, the sync or the push
+changed.
+
+**Pinning, parked.** A pinned note — the door code that should always stand first — is new behaviour: a column and a
+migration, a rule for who may pin, a section of its own on the list. With the words on the card the code is readable
+without a tap, which was the pain. **Revisit trigger:** a code that matters scrolls out of sight on a trip's notes in
+real use, or the owner asks for it.
 
 ## 8. What building it is
 

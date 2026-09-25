@@ -20,7 +20,8 @@ import {
   addTripTodo,
   openNotes,
   openTasks,
-  threadNamed,
+  openThread,
+  replyInThread,
 } from './helpers/m4'
 
 /**
@@ -334,33 +335,34 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   await expect(page).toHaveScreenshot('m25-tasks.png')
 })
 
-// E2E-VIS-14: M26 — a trip's notes as threads (FR-7.13). The fourth pill,
-// current; a titled thread expanded with its first note, the reply field
-// under it and two replies newest first; and an untitled one collapsed and
-// named by its first line — the two ways a thread is named, side by side.
+// E2E-VIS-14: M26 — a trip's notes as threads (FR-7.13). The list: the
+// fourth pill current, a titled thread's card with its words, its newest
+// reply and its count, and an untitled one named by its first line — the two
+// ways a thread is named, side by side. Then the titled thread's own view:
+// its first note as a card with the code as a chip, the replies top to
+// bottom, and the reply field fixed at the bottom.
 test('E2E-VIS-14: visual: M26 a trip’s notes @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Zelt'])
   await addTripNote(page, 'Pizzakurier 044 555 01 00\nab 18 Uhr')
   await addTripNote(page, 'Code 4711, links neben der Haustür', 'Schlüsselbox')
-  const box = threadNamed(await openNotes(page), 'Schlüsselbox')
-  await box.getByTestId(/^note-thread-toggle-/).click()
+  await openThread(page, 'Schlüsselbox')
   for (const reply of ['Klemmt etwas, fest drücken', 'Parkplatz ist Nr. 12']) {
-    await box
-      .getByTestId(/^note-thread-reply-input-/)
-      .locator('input')
-      .fill(reply)
-    await box.getByTestId(/^note-thread-reply-send-/).click()
-    await expect(box.getByText(reply, { exact: true })).toBeVisible()
+    await replyInThread(page, reply)
   }
   await writesLanded(page)
-  // Reloaded before the shot, so what is photographed is the thread as stored
-  // — not the optimistic writes — and no snackbar is part of the baseline.
+  // Reloaded before the shots, so what is photographed is the thread as
+  // stored — not the optimistic writes — and no snackbar is in a baseline.
   await page.reload()
-  const reopened = threadNamed(await openNotes(page), 'Schlüsselbox')
-  await reopened.getByTestId(/^note-thread-toggle-/).click()
-  await expect(reopened.getByTestId(/^note-thread-body-/)).toBeVisible()
+  const thread = visiblePage(page).getByTestId('m26-thread')
+  await expect(thread.getByTestId(/^note-entry-words-/)).toHaveCount(3)
+  await settled(page)
+  await expect(page).toHaveScreenshot('m26-thread.png')
+
+  await page.getByTestId('header-back').click()
+  const notes = await openNotes(page)
+  await expect(notes.getByTestId('note-thread-name')).toHaveCount(2)
   await settled(page)
   await expect(page).toHaveScreenshot('m26-notes.png')
 })

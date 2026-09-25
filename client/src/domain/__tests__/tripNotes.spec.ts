@@ -6,6 +6,9 @@ import { describe, it, expect } from 'vitest'
 
 import {
   entryStamp,
+  firstUnseenReply,
+  latestReply,
+  noteMenuEntries,
   myAckFor,
   newNoteCount,
   newTripNotes,
@@ -64,21 +67,41 @@ function only<T>(list: readonly T[]): T {
 }
 
 describe('noteThreads — the shape (FR-7.13)', () => {
-  it('gathers each first note with its replies, newest reply first', () => {
+  it('gathers each first note with its replies, in the order they were written', () => {
     const thread = only(
       noteThreads(
         [
           note(),
-          reply('r1', CHRIS, '2026-09-20T11:00:00Z'),
           reply('r2', ME, '2026-09-20T12:00:00Z'),
+          reply('r1', CHRIS, '2026-09-20T11:00:00Z'),
         ],
         [],
         ME,
       ),
     )
     expect(thread.root.id).toBe('note-1')
-    expect(thread.replies.map((r) => r.id)).toEqual(['r2', 'r1'])
+    expect(thread.replies.map((r) => r.id)).toEqual(['r1', 'r2'])
     expect(thread.participants).toEqual([BEN, CHRIS, ME])
+    expect(latestReply(thread)?.id).toBe('r2')
+  })
+
+  it('keeps an edited reply where it was written — an edit does not move it', () => {
+    const thread = only(
+      noteThreads(
+        [
+          note(),
+          reply('r1', CHRIS, '2026-09-20T11:00:00Z', { edited_at: '2026-09-20T13:00:00Z' }),
+          reply('r2', ME, '2026-09-20T12:00:00Z'),
+        ],
+        [],
+        ME,
+      ),
+    )
+    expect(thread.replies.map((r) => r.id)).toEqual(['r1', 'r2'])
+  })
+
+  it('has no latest reply before anyone answered', () => {
+    expect(latestReply(only(noteThreads([note()], [], ME)))).toBeNull()
   })
 
   it('orders threads by their latest activity — a reply lifts an old thread (question 1)', () => {
@@ -215,6 +238,50 @@ describe('noteThreads — new for me (FR-7.13 §3)', () => {
       ),
     )
     expect(thread.seenThrough).toBe('2026-09-23T08:00:00Z')
+  })
+})
+
+describe("firstUnseenReply — the thread view's divider (FR-7.13)", () => {
+  it('stands above the first reply I have not seen, in reading order', () => {
+    const thread = only(
+      noteThreads(
+        [
+          note(),
+          reply('r1', CHRIS, '2026-09-20T11:00:00Z'),
+          reply('r2', BEN, '2026-09-20T12:00:00Z'),
+          reply('r3', CHRIS, '2026-09-20T13:00:00Z'),
+        ],
+        [ack({ seen_through: '2026-09-20T11:00:00Z' })],
+        ME,
+      ),
+    )
+    expect(firstUnseenReply(thread)?.id).toBe('r2')
+  })
+
+  it('is absent when the whole thread is new — the first note is itself unseen', () => {
+    const thread = only(noteThreads([note(), reply('r1', CHRIS, '2026-09-20T11:00:00Z')], [], ME))
+    expect(firstUnseenReply(thread)).toBeNull()
+  })
+
+  it('is absent when nothing is new', () => {
+    const thread = only(
+      noteThreads(
+        [note(), reply('r1', CHRIS, '2026-09-20T11:00:00Z')],
+        [ack({ seen_through: '2026-09-20T11:00:00Z' })],
+        ME,
+      ),
+    )
+    expect(firstUnseenReply(thread)).toBeNull()
+  })
+})
+
+describe("noteMenuEntries — an entry's menu (FR-7.13 question 2)", () => {
+  it('offers the author copy, edit and delete', () => {
+    expect(noteMenuEntries(true)).toEqual(['copy', 'edit', 'remove'])
+  })
+
+  it('offers everyone else copy and delete, never edit', () => {
+    expect(noteMenuEntries(false)).toEqual(['copy', 'remove'])
   })
 })
 

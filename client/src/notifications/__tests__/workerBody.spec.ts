@@ -124,7 +124,7 @@ describe('the worker renders the same body as the app', () => {
       ['note_reply', { trip_id: 't1', comment_id: 'c10', thread_id: 'c9' }],
     ] as const) {
       expect(notificationUrl(payload, kind)).toBe(notificationRoute(notif(kind, payload)))
-      expect(notificationUrl(payload, kind)).toBe('/trips/t1/notes?thread=c9')
+      expect(notificationUrl(payload, kind)).toBe('/trips/t1/notes/c9')
     }
   })
 

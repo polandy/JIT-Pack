@@ -1,16 +1,24 @@
 import { test, expect, visiblePage as visible } from './fixtures'
-import { addTripNote, openNotes, threadNamed, tripWithRows } from './helpers/m4'
+import {
+  addTripNote,
+  openEntryMenu,
+  openNotes,
+  openThread,
+  replyInThread,
+  threadNamed,
+  tripWithRows,
+} from './helpers/m4'
 import { writesLanded } from './helpers/page'
 
 /**
  * M26 — a trip's notes as threads (FR-7.13), on one identity.
  *
- * Local Mode has nobody else to write for, so „new", the tick and the reply
+ * Local Mode has nobody else to write for, so „new", *Gelesen* and the reply
  * push are the server file's (`server/trip-notes.spec.ts`, two real
  * identities). What a single writer can prove is the shape: the view of its
- * own, a thread opened with a title, a reply landing on top inside it and
- * lifting it in the list, the one level, the edit, the sheet's `tel:` link,
- * and the delete that takes the thread.
+ * own, a card that shows what is in a thread, the thread's own view read top
+ * to bottom with the reply field at the bottom, the one level, the edit and
+ * the delete behind an entry's menu, and the `tel:` link and code chip.
  */
 test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -19,11 +27,13 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
 
   /**
    * E2E-M26-01: the notes are a view of their own, reached by their pill,
-   * and M25 is one list again. A titled note is named by its title, a quick
-   * one by its first line; its sheet links the phone number and keeps the
-   * short code plain; deleting the first note takes the thread.
+   * and M25 is one list again. A note is written from the FAB's sheet; a
+   * titled one is named by its title with its words on the card, a quick one
+   * by its first line. Its thread links the phone number and makes the code a
+   * chip; deleting the first note from its menu takes the thread and returns
+   * to the list.
    */
-  test('E2E-M26-01: notes have their own view, a thread is named, read in its sheet and deleted', async ({
+  test('E2E-M26-01: notes have their own view, a card shows a thread’s words, and a thread is deleted from its menu', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
@@ -45,35 +55,45 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
       'Schlüsselbox',
       'Pizza 044 555 01 00',
     ])
-    // Own notes: no tick renders (FR-7.9 decision 4) — nor could any in G-8's
-    // Local Mode.
+    // The card says what is in it — the lookup needs no tap.
+    await expect(threadNamed(notes, 'Schlüsselbox').getByTestId('note-thread-preview')).toHaveText(
+      'Code 4711, links neben der Tür',
+    )
+    await expect(
+      threadNamed(notes, 'Pizza 044 555 01 00').getByTestId('note-thread-preview'),
+    ).toHaveText('ab 18 Uhr')
+    // Own notes: nothing to tick (FR-7.9 decision 4) — nor could any be in
+    // G-8's Local Mode.
     await expect(notes.locator('ion-checkbox')).toHaveCount(0)
 
-    const pizza = threadNamed(notes, 'Pizza 044 555 01 00')
-    await pizza.getByTestId(/^note-thread-toggle-/).click()
-    await pizza.getByTestId(/^note-entry-open-/).click()
-    const sheet = page.getByTestId('note-sheet')
-    await expect(sheet).toBeVisible()
-    await expect(sheet.getByTestId('note-sheet-body').locator('a.tel')).toHaveAttribute(
-      'href',
-      'tel:0445550100',
-    )
-    await sheet.getByTestId('note-sheet-remove').click()
+    const box = await openThread(page, 'Schlüsselbox')
+    await expect(box.getByTestId('note-code')).toHaveText('4711')
+
+    await page.getByTestId('header-back').click()
+    const pizza = await openThread(page, 'Pizza 044 555 01 00')
+    await expect(pizza.locator('a.tel')).toHaveAttribute('href', 'tel:0445550100')
+
+    const menu = await openEntryMenu(page, 'Pizza 044 555 01 00')
+    await menu.getByTestId('note-menu-remove').click()
     await writesLanded(page)
+    // The thread is gone, and so is its view: back on the list.
+    const after = visible(page).getByTestId('m26-page')
+    await expect(after.getByTestId('note-thread-name')).toHaveText(['Schlüsselbox'])
 
     await page.reload()
-    const after = await openNotes(page)
-    await expect(after.getByTestId('note-thread-name')).toHaveText(['Schlüsselbox'])
+    const reloaded = await openNotes(page)
+    await expect(reloaded.getByTestId('note-thread-name')).toHaveText(['Schlüsselbox'])
   })
 
   /**
-   * E2E-M26-02: a reply lands on top inside its thread and lifts the thread
-   * in the list (question 1); a reply cannot be replied to — one field per
-   * thread, under the first note; the author's ✎ edits in place and the
-   * entry says *bearbeitet*; and deleting the first note says how many
-   * replies go with it, then takes them.
+   * E2E-M26-02: the thread reads top to bottom — the first note, then the
+   * replies in the order they were written, each landing at the bottom where
+   * it was written — and a reply lifts the thread in the list, whose card
+   * quotes it. One reply field per thread. The author edits from the menu,
+   * title included, and the entry says *bearbeitet*; deleting the first note
+   * says how many replies go with it, then takes them.
    */
-  test('E2E-M26-02: a reply lands on top and lifts its thread, one level deep, and edits in place', async ({
+  test('E2E-M26-02: a thread reads top to bottom, a reply lifts it, and the menu edits and deletes', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
@@ -82,53 +102,48 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
     const notes = await openNotes(page)
     await expect(notes.getByTestId('note-thread-name')).toHaveText(['Fähre um 8', 'Schlüsselbox'])
 
-    const box = threadNamed(notes, 'Schlüsselbox')
-    await box.getByTestId(/^note-thread-toggle-/).click()
+    const thread = await openThread(page, 'Schlüsselbox')
     for (const reply of ['Klemmt etwas', 'Parkplatz ist Nr. 12']) {
-      await box
-        .getByTestId(/^note-thread-reply-input-/)
-        .locator('input')
-        .fill(reply)
-      await box.getByTestId(/^note-thread-reply-send-/).click()
-      await expect(box.getByText(reply, { exact: true })).toBeVisible()
+      await replyInThread(page, reply)
     }
     await writesLanded(page)
-
-    // The thread with the reply is on top now, and says how many it holds.
-    await expect(notes.getByTestId('note-thread-name')).toHaveText(['Schlüsselbox', 'Fähre um 8'])
-    await expect(box.getByTestId('note-thread-meta')).toContainText('2 replies')
-    // Inside it: the first note, then the replies newest first.
-    await expect(box.getByTestId(/^note-entry-open-/)).toHaveText([
+    // Top to bottom: the first note, then the replies as they were written.
+    await expect(thread.getByTestId(/^note-entry-words-/)).toHaveText([
       'Code 4711',
-      'Parkplatz ist Nr. 12',
       'Klemmt etwas',
+      'Parkplatz ist Nr. 12',
     ])
-    // One level: the thread offers one reply field, under its first note.
-    await expect(box.getByTestId(/^note-thread-reply-input-/)).toHaveCount(1)
+    // One level: one reply field for the thread, and none on an entry.
+    await expect(visible(page).getByTestId('note-thread-reply-input')).toHaveCount(1)
 
-    // The author edits in place, title included.
-    await box
-      .getByTestId(/^note-entry-edit-/)
-      .first()
-      .click()
-    await box.getByTestId('note-edit-title').locator('input').fill('Schlüsselbox Haus')
-    await box.getByTestId('note-edit-body').locator('textarea').fill('Code 4712')
-    await box.getByTestId('note-edit-save').click()
+    // The author edits from the first note's menu, title included.
+    const menu = await openEntryMenu(page, 'Code 4711')
+    await menu.getByTestId('note-menu-edit').click()
+    await thread.getByTestId('note-edit-title').locator('input').fill('Schlüsselbox Haus')
+    await thread.getByTestId('note-edit-body').locator('textarea').fill('Code 4712')
+    await thread.getByTestId('note-edit-save').click()
     await writesLanded(page)
-    await page.reload()
 
-    const reloaded = await openNotes(page)
-    const edited = threadNamed(reloaded, 'Schlüsselbox Haus')
-    await edited.getByTestId(/^note-thread-toggle-/).click()
-    await expect(edited.getByTestId(/^note-entry-open-/).first()).toHaveText('Code 4712')
+    // Back on the list: the thread with the replies is on top, quoting the
+    // newest, and says how many it holds.
+    await page.getByTestId('header-back').click()
+    const list = visible(page).getByTestId('m26-page')
+    await expect(list.getByTestId('note-thread-name')).toHaveText([
+      'Schlüsselbox Haus',
+      'Fähre um 8',
+    ])
+    const card = threadNamed(list, 'Schlüsselbox Haus')
+    await expect(card.getByTestId('note-thread-meta')).toContainText('2 replies')
+    await expect(card.getByTestId('note-thread-last')).toContainText('Parkplatz ist Nr. 12')
+
+    await page.reload()
+    const edited = await openThread(page, 'Schlüsselbox Haus')
+    await expect(edited.getByTestId(/^note-entry-words-/).first()).toHaveText('Code 4712')
     await expect(edited.getByTestId(/^note-entry-meta-/).first()).toContainText('edited')
 
     // Deleting the first note names its replies, and takes them.
-    await edited
-      .getByTestId(/^note-entry-open-/)
-      .first()
-      .click()
-    const remove = page.getByTestId('note-sheet').getByTestId('note-sheet-remove')
+    const rootMenu = await openEntryMenu(page, 'Code 4712')
+    const remove = rootMenu.getByTestId('note-menu-remove')
     await expect(remove).toHaveText(/Delete note, with 2 replies/)
     await remove.click()
     await writesLanded(page)

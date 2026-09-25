@@ -297,40 +297,82 @@ export async function openTasks(page: Page, phase: 'before' | 'during'): Promise
 
 /**
  * FR-7.13: the trip's notes (M26), reached the way a reader reaches them —
- * their own pill. Returns the page, the threads and the composer in it.
+ * their own pill. Returns the page: the threads' cards and the FAB.
  */
 export async function openNotes(page: Page): Promise<Locator> {
   await openTripView(page, 'notes')
   const notes = visiblePage(page).getByTestId('m26-page')
-  await expect(notes.getByTestId('m26-composer')).toBeVisible()
+  await expect(notes.getByTestId('m26-fab')).toBeVisible()
   return notes
 }
 
 /**
- * The thread whose collapsed card names `name` — its title, or its first
- * line. A thread's testid carries the note's id, which a case cannot know.
+ * The thread whose card names `name` — its title, or its first line. A
+ * card's testid carries the note's id, which a case cannot know.
  */
 export function threadNamed(notes: Locator, name: string): Locator {
-  // Each thread is an `<article>`; the inner locator is read inside each one.
-  return notes.getByRole('article').filter({
-    has: notes.page().getByTestId('note-thread-name').getByText(name, { exact: true }),
-  })
+  // Each card is one button, a direct child of the list.
+  return notes
+    .getByTestId('m26-threads')
+    .locator(':scope > button')
+    .filter({
+      has: notes.page().getByTestId('note-thread-name').getByText(name, { exact: true }),
+    })
 }
 
 /**
- * FR-7.9/FR-7.13: write a trip note from M26's composer — with a title
- * behind *+ Titel* when one is given. Ends with the write landed, so a
- * caller may reload or switch identity straight after.
+ * FR-7.13: open a thread's own view from its card on M26. Returns the view,
+ * once its first note has rendered.
+ */
+export async function openThread(page: Page, name: string): Promise<Locator> {
+  const notes = await openNotes(page)
+  await threadNamed(notes, name).click()
+  const thread = visiblePage(page).getByTestId('m26-thread')
+  await expect(thread.getByTestId(/^note-entry-words-/).first()).toBeVisible()
+  return thread
+}
+
+/**
+ * Reply from the thread view's bottom field; ends once the reply is on
+ * screen. The caller settles the write (`writesLanded`) when it matters.
+ */
+export async function replyInThread(page: Page, body: string): Promise<void> {
+  const composer = visiblePage(page).getByTestId('note-thread-composer')
+  await composer.getByTestId('note-thread-reply-input').locator('input').fill(body)
+  await composer.getByTestId('note-thread-reply-send').click()
+  await expect(
+    visiblePage(page).getByTestId('m26-thread').getByText(body, { exact: true }),
+  ).toBeVisible()
+}
+
+/**
+ * Open an entry's menu on the thread view — the entry whose words are
+ * `words` — and return the action sheet.
+ */
+export async function openEntryMenu(page: Page, words: string): Promise<Locator> {
+  await visiblePage(page)
+    .getByTestId('m26-thread')
+    .getByTestId(/^note-entry-open-/)
+    .filter({ hasText: words })
+    .click()
+  const menu = page.getByTestId('note-menu')
+  await expect(menu).toBeVisible()
+  return menu
+}
+
+/**
+ * FR-7.9/FR-7.13: write a trip note from M26's FAB and its sheet — with a
+ * title when one is given. Ends with the write landed, so a caller may
+ * reload or switch identity straight after.
  */
 export async function addTripNote(page: Page, body: string, title?: string): Promise<void> {
   const notes = await openNotes(page)
-  const composer = notes.getByTestId('m26-composer')
-  if (title) {
-    await composer.getByTestId('m26-add-title').click()
-    await composer.getByTestId('m26-title-input').locator('input').fill(title)
-  }
-  await composer.getByTestId('m26-input').locator('textarea').fill(body)
-  await composer.getByTestId('m26-add').click()
+  await notes.getByTestId('m26-fab').click()
+  const sheet = page.getByTestId('m26-composer')
+  await expect(sheet.getByTestId('m26-composer-title')).toBeVisible()
+  if (title) await sheet.getByTestId('m26-title-input').locator('input').fill(title)
+  await sheet.getByTestId('m26-input').locator('textarea').fill(body)
+  await sheet.getByTestId('m26-add').click()
   const name = title ?? body.split('\n')[0]!
   await expect(notes.getByTestId('note-thread-name').getByText(name, { exact: true })).toBeVisible()
   await writesLanded(page)

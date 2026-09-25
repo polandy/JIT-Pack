@@ -9,9 +9,11 @@ import {
   SERIES_ID_PARAM,
   TEMPLATE_ID_PARAM,
   TRIP_ID_PARAM,
+  THREAD_ID_PARAM,
   itemPath,
   seriesPath,
   templatePath,
+  tripNotesPath,
   tripPath,
   tripSubPath,
 } from './paths'
@@ -230,6 +232,14 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'notes' },
     name: 'trip-notes',
     component: () => import('@/views/trips/TripNotesPage.vue'),
+    props: true,
+  },
+  {
+    // M26's thread view (FR-7.13): one conversation, returning to the list.
+    path: tripNotesPath(TRIP_ID_PARAM, THREAD_ID_PARAM),
+    meta: { parent: tripNotesPath(TRIP_ID_PARAM) },
+    name: 'trip-note-thread',
+    component: () => import('@/views/trips/TripNoteThreadPage.vue'),
     props: true,
   },
   {

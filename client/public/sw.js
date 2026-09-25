@@ -206,10 +206,10 @@ function notificationUrl(payload, kind) {
   let url = `/trips/${payload.trip_id}`
   // FR-7.11: a reminder opens the trip's tasks (M25).
   if (kind === 'task_due') return url + '/tasks'
-  // FR-7.13: a note or a reply opens its thread on the trip's notes.
+  // FR-7.13: a note or a reply opens its thread, a screen of its own.
   if (kind === 'note' || kind === 'note_reply') {
     const thread = payload.thread_id || payload.comment_id
-    return url + '/notes' + (thread ? `?thread=${thread}` : '')
+    return url + '/notes' + (thread ? `/${thread}` : '')
   }
   if (payload.item_id) {
     url += `?item=${payload.item_id}`

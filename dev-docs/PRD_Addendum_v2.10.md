@@ -5835,15 +5835,19 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     see another row. Deleting the first note deletes its thread (`ON DELETE CASCADE`, tombstoned like every cascade).
   * **A title, optional, on a first note only** (`comments.title`); the server drops it from a reply. Without one a
     thread is named by its first line — *„Pizza Bella 079 555 12 34"* is its own title.
-  * **Only the author edits an entry** (question 2), in place behind a ✎, the first note's title with it. An entry
-    carries its author's name, and words changed by somebody else would still be signed by them — so the server refuses
-    a change to a note's `body`, `title` or `edited_at` pushed by anybody else (`not_authorized`). A task's words stay
-    everybody's. **`edited_at`** is named by the device, like `resolved_at`, because an edit happens offline too, and
-    the entry says *bearbeitet*. An edit sends no push.
-  * **Ordered by latest activity** (question 1): a reply lifts its thread; inside a thread the replies stand newest
-    first, under the reply field, so what I wrote lands where I wrote it. Collapsed, a thread is one card — its name,
-    who wrote it or how many answered and when, the avatars of those who took part, a *Neu* count and the tick; expanded
-    in place, several at once. A thread new for me is not opened by itself, and expanding is not seeing.
+  * **Only the author edits an entry** (question 2), in place from the entry's menu, the first note's title with it. An
+    entry carries its author's name, and words changed by somebody else would still be signed by them — so the server
+    refuses a change to a note's `body`, `title` or `edited_at` pushed by anybody else (`not_authorized`). A task's
+    words stay everybody's. **`edited_at`** is named by the device, like `resolved_at`, because an edit happens offline
+    too, and the entry says *bearbeitet*. An edit sends no push.
+  * **Ordered by latest activity** (question 1): a reply lifts its thread. On the list a thread is one card that shows
+    what is in it — its name, the first note's words, the newest reply with its writer, a *Neu* count — and opens the
+    thread's **own view**. There the first note stands on top and the replies follow **in the order they were written**,
+    with the reply field fixed at the bottom, so what I wrote still lands where I wrote it. *Amended the same day after
+    a UX review (concept §7b):* the replies stood newest first under a field between them and the note, and a thread
+    expanded in place on the list; the reading direction broke, and the code a reader came for was behind a tap. Opening
+    a thread is not seeing it: a divider marks where the new begins, and ***Gelesen*** is a labelled button there —
+    FR-7.9's tick, which on the list had read as a task's checkbox.
   * **"New for me" moves from the note to the thread.** The tick stays one `note_acks` row per (first note, person) and
     now records how far it reached: **`seen_through`**, the stamp of the thread's newest entry when it was ticked. An
     entry by somebody else created or edited after that — or after the reader's own latest entry, since what I answered
@@ -5852,21 +5856,20 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     corrected key-box code must not go unseen by everyone who ticked the wrong one. A tick from before threads has no
     reach and covers the first note as it was. Derived in `noteThreads` (`client/src/domain/tripNotes.ts`), never
     stored. FR-7.9's *„ticked notes sink and are muted"* is struck: a ticked thread keeps its place, only its marker
-    goes. My own thread carries a tick once somebody else has written in it.
+    goes. My own thread can be marked read once somebody else has written in it.
   * **A view of its own, M26** (question 6), not M25's second segment: a note is not work, and a thread is a place
     people write in — ADR-051's revisit trigger. It is the fourth pill (`chatbubblesOutline`), which ADR-051 amendment
     3's icon row made room for; its badge counts the entries new for me, never the total, in the colour a new thing
     wears (FR-21.21). M25 is one list again.
   * **M1's *Neue Notizen* shows threads:** one row per thread with something new for me, up to three, the newest unseen
     entry first — the thread's name, then *„Chris: Danke! Parkplatz ist Nr. 12"* and *+n* when more are unseen, the
-    trip, and the tick (FR-7.9 decision 2, now ticking through the newest entry). The words open M26 on that thread,
-    expanded.
+    trip, and the tick (FR-7.9 decision 2, now ticking through the newest entry). The words open that thread's view.
   * **Push.** A new first note: unchanged (`note`, every member but its author). A reply: a new kind, **`note_reply`**,
     to the thread's **participants** — the first note's author and everyone who has replied, still on the trip, never
     the replier (question 4: a tick does not make a participant; it would subscribe a reader to the discussion). It has
     **its own switch** in the settings (question 5): a person who wants new codes need not want the discussion. Its
     sentence names the thread: *„Chris hat auf „Schlüsselbox“ geantwortet: …"*. A note's or a reply's notification opens
-    M26 on its thread (`?thread=`).
+    its thread's view (`/trips/:id/notes/:threadId`).
   * **Modes.** Server: everything. Single-User: one author, so nothing is ever new and no push is sent; threads, titles
     and edits work as a scratchpad. Local: the same, and no `note_acks` row, as FR-7.9 already had it.
   * **Not in the portable backup** (NFR-4.11), like FR-7.9's notes. Migration `006_note_threads.sql` adds the four

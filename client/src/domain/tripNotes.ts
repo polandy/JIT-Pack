@@ -40,7 +40,10 @@ export function threadName(root: ItemComment): string {
 /** One thread, as M25's notes view and M1 read it (FR-7.13). */
 export interface NoteThread {
   root: ItemComment
-  /** Newest first — the owner's order, with the reply field above them. */
+  /**
+   * Oldest first, the order a conversation is read in, with the reply field
+   * under the last one (the UX rework reversed question 1's newest-first).
+   */
   replies: ItemComment[]
   /** The latest stamp in the thread, which is what orders the list. */
   lastActivity: string
@@ -60,6 +63,9 @@ export interface NoteThread {
 }
 
 const newestFirst = (a: ItemComment, b: ItemComment) => entryStamp(b).localeCompare(entryStamp(a))
+/** A reply's place is when it was written; an edit does not move it. */
+const writtenFirst = (a: ItemComment, b: ItemComment) =>
+  (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id)
 
 /**
  * How far I have read a thread: my tick's reach, if it stands, and anything
@@ -90,7 +96,8 @@ function threadOf(
   acks: readonly NoteAck[],
   myUserId: string | null,
 ): NoteThread {
-  const entries = [root, ...replies]
+  const ordered = [...replies].sort(writtenFirst)
+  const entries = [root, ...ordered]
   const stamps = entries.map(entryStamp)
   const lastActivity = stamps.reduce((a, b) => (b > a ? b : a), '')
   const participants = [...new Set(entries.map((e) => e.author_id))]
@@ -106,7 +113,7 @@ function threadOf(
   }
   return {
     root,
-    replies: [...replies].sort(newestFirst),
+    replies: ordered,
     lastActivity,
     unseen,
     ticked: othersWrote && mine?.acked === true && unseen.length === 0,
@@ -140,6 +147,34 @@ export function noteThreads(
     .sort(
       (a, b) => b.lastActivity.localeCompare(a.lastActivity) || a.root.id.localeCompare(b.root.id),
     )
+}
+
+/** The newest reply, which a thread's card quotes — or null before anyone answered. */
+export function latestReply(thread: NoteThread): ItemComment | null {
+  return thread.replies.at(-1) ?? null
+}
+
+/**
+ * The reply the thread view's *neu seit deinem letzten Besuch* divider stands
+ * above: the first unseen one in reading order. None when the first note is
+ * itself unseen — then the whole thread is new, and its card says so.
+ */
+export function firstUnseenReply(thread: NoteThread): ItemComment | null {
+  const unseen = new Set(thread.unseen.map((entry) => entry.id))
+  if (unseen.has(thread.root.id)) return null
+  return thread.replies.find((reply) => unseen.has(reply.id)) ?? null
+}
+
+/** What an entry's menu offers on the thread view, in order. */
+export type NoteMenuAction = 'copy' | 'edit' | 'remove'
+
+/**
+ * An entry's menu: copying for everyone, editing for its author only
+ * (question 2). Deleting stays open to every member, as FR-7.9 had it: a
+ * wrong code has to be removable by whoever notices.
+ */
+export function noteMenuEntries(mine: boolean): NoteMenuAction[] {
+  return mine ? ['copy', 'edit', 'remove'] : ['copy', 'remove']
 }
 
 /** What the notes view's pill counts: the entries new for me, across threads. */

@@ -7,114 +7,81 @@
  * trigger names, and a note *is not work*: so it has a view of its own, the
  * fourth pill (ADR-051 amendment 3 made the room).
  *
- * The list is the threads, the one with the latest activity first; each
- * expands in place, several at once. The composer sits at the bottom, a
- * title behind *+ Titel* so writing a quick number stays one field. A link
- * naming a thread (M1's row, a notification) opens it expanded.
+ * The list is the threads, the one with the latest activity first, each a
+ * card that shows its words — the notes are looked things up in — and opens
+ * its own thread view. Writing a new one is the FAB and a sheet, so it is
+ * one tap away however long the list has grown.
  */
-import { IonButton, IonContent, IonInput, IonPage, IonTextarea } from '@ionic/vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import {
+  IonButton,
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonInput,
+  IonPage,
+  IonTextarea,
+} from '@ionic/vue'
+import { addOutline } from 'ionicons/icons'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import InlineHint from '@/components/global/InlineHint.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import TripNoteSheet from '@/components/trips/TripNoteSheet.vue'
-import TripNoteThread from '@/components/trips/TripNoteThread.vue'
+import TripNoteCard from '@/components/trips/TripNoteCard.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
-import { noteAckState, noteThreads } from '@/domain/tripNotes'
+import { noteThreads } from '@/domain/tripNotes'
 import { t } from '@/i18n'
-import { THREAD_QUERY_PARAM } from '@/router/paths'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { tripNotesPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import type { ItemComment } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
 const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
-const route = useRoute()
+const router = useRouter()
 
 // ADR-033: notes travel the trip partition; „no notes" is only true of a
 // partition that has arrived.
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
 
-/** Every trip-level comment that is not a task — first notes and replies alike. */
-const notes = computed(() => tripStore.getTripComments(props.tripId))
-const acks = computed(() => tripStore.getNoteAcks(props.tripId))
-const threads = computed(() => noteThreads(notes.value, acks.value, myUserId.value))
-
-// --- which threads are open ---
-
-const expanded = ref(new Set<string>())
-
-function toggle(id: string) {
-  const next = new Set(expanded.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  expanded.value = next
-}
-
-/** A link naming a thread opens it and brings it into view. */
-const linked = computed(() => {
-  const value = route.query[THREAD_QUERY_PARAM]
-  return typeof value === 'string' ? value : null
-})
-const contentEl = ref<{ $el: HTMLElement } | null>(null)
-
-watch(
-  [linked, loaded],
-  async ([id, ready]) => {
-    if (!id || !ready) return
-    expanded.value = new Set([...expanded.value, id])
-    await nextTick()
-    contentEl.value?.$el
-      .querySelector(`[data-testid="note-thread-${CSS.escape(id)}"]`)
-      ?.scrollIntoView({ block: 'start' })
-  },
-  { immediate: true },
+const threads = computed(() =>
+  noteThreads(
+    tripStore.getTripComments(props.tripId),
+    tripStore.getNoteAcks(props.tripId),
+    myUserId.value,
+  ),
 )
 
-// --- the composer ---
+function openThread(id: string) {
+  void router.push(tripNotesPath(props.tripId, id))
+}
 
+// --- a new note ---
+
+const composing = ref(false)
 const draft = ref('')
 const draftTitle = ref('')
-const titleOpen = ref(false)
+
+function closeComposer() {
+  composing.value = false
+  draft.value = ''
+  draftTitle.value = ''
+}
 
 function add() {
   const body = draft.value.trim()
   if (!body) return
   const title = draftTitle.value.trim() || null
   orchestrator.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, { title })
-  draft.value = ''
-  draftTitle.value = ''
-  titleOpen.value = false
-}
-
-// --- an entry's sheet ---
-
-const openedId = ref<string | null>(null)
-const opened = computed(() => notes.value.find((note) => note.id === openedId.value) ?? null)
-const openedAckedBy = computed(() =>
-  opened.value && !opened.value.parent_id
-    ? noteAckState(opened.value.id, acks.value, myUserId.value).ackedBy
-    : new Set<string>(),
-)
-const openedReplyCount = computed(() =>
-  opened.value ? notes.value.filter((note) => note.parent_id === opened.value?.id).length : 0,
-)
-
-function openEntry(entry: ItemComment) {
-  openedId.value = entry.id
-}
-
-function onSheetRemove() {
-  const entry = opened.value
-  openedId.value = null
-  if (entry) orchestrator.deleteComment(props.tripId, entry.id)
+  closeComposer()
 }
 
 onMounted(async () => {
@@ -130,70 +97,68 @@ setHeaderTitle(
 
 <template>
   <IonPage>
-    <IonContent ref="contentEl" class="notes-content" data-testid="m26-page">
+    <IonContent class="notes-content" data-testid="m26-page">
       <template v-if="loaded">
         <InlineHint v-if="threads.length === 0" class="hint-wide" data-testid="m26-empty">
           {{ t('notes.empty') }}
         </InlineHint>
 
         <section class="threads" data-testid="m26-threads">
-          <TripNoteThread
+          <TripNoteCard
             v-for="thread in threads"
             :key="thread.root.id"
-            :trip-id="tripId"
             :thread="thread"
-            :expanded="expanded.has(thread.root.id)"
-            :acks="acks"
-            :my-user-id="myUserId"
             :name-of="nameOf"
-            @toggle="toggle(thread.root.id)"
-            @open="openEntry"
+            @open="openThread(thread.root.id)"
           />
         </section>
+      </template>
 
-        <div class="composer jp-card" data-testid="m26-composer">
+      <IonFab :id="FAB_ANCHOR.m26" slot="fixed" vertical="bottom" horizontal="end">
+        <IonFabButton
+          :aria-label="t('notes.newNote')"
+          data-testid="m26-fab"
+          @click="composing = true"
+        >
+          <IonIcon :icon="addOutline" />
+        </IonFabButton>
+      </IonFab>
+
+      <SheetModal :is-open="composing" testid="m26-composer" @dismiss="closeComposer">
+        <div class="sheet">
+          <SheetHead
+            :title="t('notes.newNote')"
+            title-testid="m26-composer-title"
+            close-testid="m26-composer-close"
+            @close="closeComposer"
+          />
           <IonInput
-            v-if="titleOpen"
             v-model="draftTitle"
+            class="title-field"
             :placeholder="t('notes.titlePlaceholder')"
             :aria-label="t('notes.titlePlaceholder')"
             data-testid="m26-title-input"
           />
-          <button
-            v-else
-            type="button"
-            class="add-title"
-            data-testid="m26-add-title"
-            @click="titleOpen = true"
-          >
-            {{ t('notes.addTitle') }}
-          </button>
-          <div class="row">
-            <IonTextarea
-              v-model="draft"
-              :placeholder="t('notes.addPlaceholder')"
-              :aria-label="t('notes.addPlaceholder')"
-              auto-grow
-              :rows="1"
-              data-testid="m26-input"
-            />
-            <IonButton size="small" :disabled="!draft.trim()" data-testid="m26-add" @click="add">
-              {{ t('notes.send') }}
+          <IonTextarea
+            v-model="draft"
+            :placeholder="t('notes.addPlaceholder')"
+            :aria-label="t('notes.addPlaceholder')"
+            auto-grow
+            :rows="3"
+            data-testid="m26-input"
+          />
+          <!-- Who reads it, said before it is sent — there is nobody else in
+               Local Mode (G-8), so there the line says nothing. -->
+          <p v-if="myUserId !== null" class="share-hint">{{ t('notes.shareHint') }}</p>
+          <div class="actions">
+            <IonButton fill="clear" data-testid="m26-cancel" @click="closeComposer">
+              {{ t('common.cancel') }}
+            </IonButton>
+            <IonButton shape="round" :disabled="!draft.trim()" data-testid="m26-add" @click="add">
+              {{ t('notes.share') }}
             </IonButton>
           </div>
         </div>
-      </template>
-
-      <SheetModal :is-open="opened !== null" testid="m26-note-modal" @dismiss="openedId = null">
-        <TripNoteSheet
-          v-if="opened"
-          :note="opened"
-          :acked-by="openedAckedBy"
-          :reply-count="openedReplyCount"
-          :name-of="nameOf"
-          @close="openedId = null"
-          @remove="onSheetRemove"
-        />
       </SheetModal>
     </IonContent>
   </IonPage>
@@ -202,46 +167,40 @@ setHeaderTitle(
 <style scoped>
 .notes-content {
   --padding-top: 10px;
-  --padding-bottom: 24px;
+  /* Room for the FAB over the last card. */
+  --padding-bottom: 88px;
 }
 
 .hint-wide {
   margin: 4px 18px 12px;
 }
 
-.composer {
-  margin: 6px 12px 0;
-  padding: 8px 12px 10px;
+.sheet {
+  padding: 4px 16px 18px;
 }
 
-.add-title {
-  padding: 2px 0 6px;
-  border: none;
-  background: none;
-  color: var(--jp-action);
-  font: inherit;
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.composer ion-input {
+.sheet ion-input,
+.sheet ion-textarea {
   --background: var(--jp-surface-sunken);
   --padding-start: 12px;
   --padding-end: 12px;
-  margin-bottom: 6px;
+  margin-top: 10px;
   border-radius: var(--jp-r-md);
 }
 
-.row {
+.title-field {
+  font-weight: var(--jp-weight-semibold);
+}
+
+.share-hint {
+  margin: 8px 2px 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+.actions {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.row ion-textarea {
-  --background: var(--jp-surface-sunken);
-  --padding-start: 12px;
-  --padding-end: 12px;
-  border-radius: var(--jp-r-md);
+  justify-content: space-between;
+  margin-top: 12px;
 }
 </style>

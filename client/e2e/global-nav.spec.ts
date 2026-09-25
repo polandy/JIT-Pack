@@ -17,6 +17,7 @@ import {
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { backToInventory, createItem } from './helpers/m9'
+import { addTripNote, openThread } from './helpers/m4'
 
 /**
  * Global navigation and the app bar (UI-Test-Spec §3: G-1, G-9, G-12).
@@ -1001,12 +1002,18 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
 
     // And so are the notes (FR-7.13): their own view, one tap from the tasks,
-    // marked where you stand, no ⋮, and back is the packing list.
+    // marked where you stand, no ⋮. A thread is a screen of its own, named by
+    // its thread, whose back is the notes; theirs is the packing list.
     await openTripView(page, 'notes')
-    await expect(onVisibleScreen(page, 'm26-composer')).toBeVisible()
+    await expect(onVisibleScreen(page, 'm26-fab')).toBeVisible()
     await expect(page.getByTestId('trip-view-notes')).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('trip-view-notes')).toHaveText('Notes')
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+    await addTripNote(page, 'Code 4711', 'Schlüsselbox')
+    await openThread(page, 'Schlüsselbox')
+    await expect(page.getByTestId('header-title')).toHaveText('Schlüsselbox')
+    await page.getByTestId('header-back').click()
+    await expect(onVisibleScreen(page, 'm26-fab')).toBeVisible()
     await page.getByTestId('header-back').click()
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
   })

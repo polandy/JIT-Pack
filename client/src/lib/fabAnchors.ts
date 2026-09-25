@@ -29,4 +29,6 @@ export const FAB_ANCHOR = {
   m8: 'm8-fab-anchor',
   /** M9 — the inventory (FR-24.11's „created" toast carries an action). */
   m9: 'm9-fab-anchor',
+  /** M26 — a trip's notes (FR-7.13). */
+  m26: 'm26-fab-anchor',
 } as const
