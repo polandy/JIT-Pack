@@ -11,6 +11,9 @@
 import type { MessageKey } from '@/i18n'
 import type { NotificationEntry } from '@/api/types'
 
+/** FR-7.11's reminder — the one kind whose body depends on its payload's day, and whose link is M25. */
+export const NOTIFY_TASK_DUE = 'task_due'
+
 /** The kinds the server sends (Sync-API §8). */
 export const NOTIFICATION_KINDS = [
   'delegation',
@@ -18,7 +21,7 @@ export const NOTIFICATION_KINDS = [
   'task',
   'lock_taken',
   'note',
-  'task_due',
+  NOTIFY_TASK_DUE,
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
@@ -86,7 +89,7 @@ export function notificationBodyName(
   // FR-7.9: a note is about its own words, like a mention — it names no
   // item, only the body's preview.
   const named = kind === 'mention' || kind === 'note' ? detail.preview : detail.item
-  const body = kind === 'task_due' && detail.due === DUE_TOMORROW ? TASK_DUE_TOMORROW : kind
+  const body = kind === NOTIFY_TASK_DUE && detail.due === DUE_TOMORROW ? TASK_DUE_TOMORROW : kind
   return (named ? body : `${body}Plain`) as NotificationBodyName
 }
 

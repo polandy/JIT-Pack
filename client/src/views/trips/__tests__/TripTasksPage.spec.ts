@@ -748,6 +748,10 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
     expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(true)
     expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(false)
     expect(page.find('[data-testid="m25-composer-during"]').exists()).toBe(true)
+    // No drop lands here either: the heading says so while a task is carried.
+    expect(
+      page.get('[data-testid="m25-before"] [data-drop-target]').attributes('data-droppable'),
+    ).toBe('false')
     await page
       .get('[data-testid="m25-before"] [data-testid="trip-todos-resolved"]')
       .trigger('click')

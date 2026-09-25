@@ -467,6 +467,7 @@ function onSheetRemove() {
               :key="group.key"
               :title="groupName(group)"
               :drop-target="dropKey(TASK_PHASE_BEFORE, group)"
+              :droppable="!beforeLocked"
               :data-testid="`m25-group-${group.key}`"
             >
               <template v-if="group.tag?.icon" #mark>

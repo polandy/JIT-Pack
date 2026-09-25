@@ -15,11 +15,9 @@ import {
   notificationBodyName,
   notificationDetail,
   notificationParams,
+  NOTIFY_TASK_DUE,
 } from './messages'
 import { tripItemPath, tripPath, tripSubPath } from '@/router/paths'
-
-/** FR-7.11's kind — the one whose link is the trip's task screen. */
-const NOTIFY_TASK_DUE = 'task_due'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this

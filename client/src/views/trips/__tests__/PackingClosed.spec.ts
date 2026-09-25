@@ -64,6 +64,7 @@ const orchestratorFake = {
   ),
   reopenPacking: vi.fn(),
   restorePackingClose: vi.fn(),
+  setTaskDueDate: vi.fn(),
   addDecidedItem: vi.fn(() => ({ id: 'new-1', companions: [] })),
   setTravelerAssignment: vi.fn(() => ({ id: 'new-1', companions: [] })),
   removeAddedItem: vi.fn(),
@@ -680,5 +681,45 @@ describe('M4 — a list whose packing is finished (FR-5.10)', () => {
     await flushPromises()
 
     expect(page.findComponent(QuickAddItem).props('addsPacked')).toBe(true)
+  })
+})
+
+/*
+ * FR-7.11/FR-7.12 on M4's own copy of the task sheet: the window opens the same
+ * sheet M25 does, and its date is written through the same act — while the
+ * sheet stays up. And the sheet is told whether *before* is closed, so a
+ * finished packing offers no move back into it here either.
+ */
+describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
+  it('writes the due day and keeps the sheet up', async () => {
+    seedTrip({}, [{ name: 'Kulturbeutel' }])
+    seedTask({ id: 'task-1', body: 'Salbe holen', trip_item_id: 'ti1' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    const sheet = page.findComponent({ name: 'TripTaskSheet' })
+    expect(sheet.props('beforeLocked')).toBe(false)
+    sheet.findComponent({ name: 'DateField' }).vm.$emit('update', '2026-07-09')
+    await flushPromises()
+
+    expect(orchestratorFake.setTaskDueDate).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'task-1' }),
+      '2026-07-09',
+    )
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(true)
+  })
+
+  it('tells the sheet that before is closed once the packing is', async () => {
+    seedTrip({ packing_closed_at: '2026-07-08T06:00:00Z' }, [{ name: 'Kulturbeutel' }])
+    seedTask({ id: 'task-1', body: 'Salbe holen', trip_item_id: 'ti1' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(page.findComponent({ name: 'TripTaskSheet' }).props('beforeLocked')).toBe(true)
   })
 })
