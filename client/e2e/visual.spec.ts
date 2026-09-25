@@ -65,12 +65,12 @@ useReducedMotion(test)
  * The cause was **not** traced, and the obvious suspect is already ruled
  * out: `HLCGenerator.next()` handles equal timestamps correctly
  * (`if (now <= lastMillis) counter++`), so it is something else in the
- * write path. None of these baselines renders a date — only the greeting
- * reads the clock, and its hour is pinned in `freeze` below — so the full
- * freeze bought nothing and cost the one state that exercises FR-25.2; it
- * was dropped rather than investigated. If a dated screen is added here later, pin the
- * date on the *trip* rather than on the browser, and expect to find this
- * note first.
+ * write path. None of these baselines renders a date — only the greeting's
+ * hour and a note's time of day (M26) read the clock, and `freeze` below pins
+ * both — so the full freeze bought nothing and cost the one state that
+ * exercises FR-25.2; it was dropped rather than investigated. If a dated
+ * screen is added here later, pin the date on the *trip* rather than on the
+ * browser, and expect to find this note first.
  */
 async function freeze(page: Page) {
   await page.addInitScript(() => {
@@ -96,6 +96,16 @@ async function freeze(page: Page) {
     // Date.now() untouched (freezing it breaks the Local Mode write path
     // — see the header), so the seam is exactly as wide as the defect.
     Date.prototype.getHours = () => 9
+    // A note's stamp (FR-7.13, `domain/stamp.ts`) prints its time of day
+    // through `toLocaleTimeString`, which never asks `getHours` — so M26's
+    // baseline held the minute it was recorded in (06:58 PM) and failed at
+    // any other (07:31 PM, 2026-09-25). Pinned to one instant's rendering,
+    // in the caller's own locale and options, for the pin above's reason.
+    const timeOf = Date.prototype.toLocaleTimeString
+    const pinned = new Date(2026, 0, 1, 9, 0)
+    Date.prototype.toLocaleTimeString = function (...args: Parameters<Date['toLocaleTimeString']>) {
+      return timeOf.apply(pinned, args)
+    }
     // The G-2 sheet prints the browser's storage estimate, and a Chromium
     // derives its quota from the *runner's* free disk: 6,144 MB on one
     // machine and 3,072 MB on the next, for the same bundle. Both numbers
@@ -363,6 +373,18 @@ test('E2E-VIS-14: visual: M26 a trip’s notes @local @visual', async ({ page, s
   await page.getByTestId('header-back').click()
   const notes = await openNotes(page)
   await expect(notes.getByTestId('note-thread-name')).toHaveCount(2)
+  // The back button just pressed is the one M26 shows, and its press
+  // outlives the navigation: `md` mode leaves a `.ripple-effect` disc in the
+  // button's shadow root and removes it on Ionic's own timers (fade-out after
+  // 325 ms, gone 200 ms later). The first baseline caught the disc; CI, a
+  // step slower, never did — 1700 px red on every run from 2026-09-25. The
+  // disc leaving is the seam, as `ion-activated` is for M4's filter sheet
+  // above; the pointer is parked mid-page, since (0, 0) is this button's
+  // corner.
+  const back = page.getByTestId('header-back')
+  await page.mouse.move(195, 600)
+  await expect(back).not.toHaveClass(/ion-activated/)
+  await expect(back.locator('.ripple-effect')).toHaveCount(0)
   await settled(page)
   await expect(page).toHaveScreenshot('m26-notes.png')
 })
