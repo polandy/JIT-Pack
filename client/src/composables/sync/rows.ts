@@ -90,6 +90,9 @@ export function commentRow(comment: ItemComment): Record<string, unknown> {
     author_id: comment.author_id,
     body: comment.body,
     created_at: comment.created_at,
+    parent_id: comment.parent_id,
+    title: comment.title,
+    edited_at: comment.edited_at,
     is_task: dbBool(false),
   }
 }
@@ -101,6 +104,7 @@ export function noteAckRow(ack: NoteAck): Record<string, unknown> {
     comment_id: ack.comment_id,
     user_id: ack.user_id,
     acked: dbBool(ack.acked),
+    seen_through: ack.seen_through,
   }
 }
 

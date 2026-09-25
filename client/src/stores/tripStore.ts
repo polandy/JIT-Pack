@@ -317,6 +317,29 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /**
+   * commentChildRows names what a delete of one comment takes with it: a
+   * first note's replies (FR-7.13, comments.parent_id ON DELETE CASCADE), and
+   * the ticks of the note and of those replies (FR-7.9) — the same rows the
+   * server's cascade tombstones, leaf first.
+   */
+  function commentChildRows(commentId: string): Array<{ table: SyncTable; id: string }> {
+    const replies = new Set<string>()
+    for (const list of comments.value.values()) {
+      for (const c of list) if (c.parent_id === commentId) replies.add(c.id)
+    }
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    for (const list of noteAcks.value.values()) {
+      for (const a of list) {
+        if (a.comment_id === commentId || replies.has(a.comment_id)) {
+          rows.push({ table: TABLE.noteAcks, id: a.id })
+        }
+      }
+    }
+    for (const id of replies) rows.push({ table: TABLE.comments, id })
+    return rows
+  }
+
+  /**
    * templateSourceRows names the FR-27.4 registrations that point at one
    * template. The rows live here and travel the *master* partition (spec
    * P-3), which is why a deleted group's cascade has to reach into this store.
@@ -519,6 +542,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     setTrip,
     childRows,
     itemChildRows,
+    commentChildRows,
     templateSourceRows,
     removeTrip,
     applyChange,

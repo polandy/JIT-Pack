@@ -14,7 +14,15 @@ import { writesLanded } from './helpers/page'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
-import { addPrepTodo, addTripTodo, openTasks } from './helpers/m4'
+import {
+  addPrepTodo,
+  addTripNote,
+  addTripTodo,
+  openNotes,
+  openTasks,
+  openThread,
+  replyInThread,
+} from './helpers/m4'
 
 /**
  * Visual baselines (ADR-013; UI-Test-Spec §3).
@@ -325,6 +333,38 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   await openTasks(page, 'before')
   await settled(page)
   await expect(page).toHaveScreenshot('m25-tasks.png')
+})
+
+// E2E-VIS-14: M26 — a trip's notes as threads (FR-7.13). The list: the
+// fourth pill current, a titled thread's card with its words, its newest
+// reply and its count, and an untitled one named by its first line — the two
+// ways a thread is named, side by side. Then the titled thread's own view:
+// its first note as a card with the code as a chip, the replies top to
+// bottom, and the reply field fixed at the bottom.
+test('E2E-VIS-14: visual: M26 a trip’s notes @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await packingList(page, ['Zelt'])
+  await addTripNote(page, 'Pizzakurier 044 555 01 00\nab 18 Uhr')
+  await addTripNote(page, 'Code 4711, links neben der Haustür', 'Schlüsselbox')
+  await openThread(page, 'Schlüsselbox')
+  for (const reply of ['Klemmt etwas, fest drücken', 'Parkplatz ist Nr. 12']) {
+    await replyInThread(page, reply)
+  }
+  await writesLanded(page)
+  // Reloaded before the shots, so what is photographed is the thread as
+  // stored — not the optimistic writes — and no snackbar is in a baseline.
+  await page.reload()
+  const thread = visiblePage(page).getByTestId('m26-thread')
+  await expect(thread.getByTestId(/^note-entry-words-/)).toHaveCount(3)
+  await settled(page)
+  await expect(page).toHaveScreenshot('m26-thread.png')
+
+  await page.getByTestId('header-back').click()
+  const notes = await openNotes(page)
+  await expect(notes.getByTestId('note-thread-name')).toHaveCount(2)
+  await settled(page)
+  await expect(page).toHaveScreenshot('m26-notes.png')
 })
 
 test('E2E-VIS-06: visual: M11 container list @local @visual', async ({ page, seedMode }) => {

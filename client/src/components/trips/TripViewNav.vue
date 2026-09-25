@@ -153,6 +153,7 @@ onBeforeUnmount(hideBubble)
       <span
         v-else-if="view.count > 0"
         class="count jp-num"
+        :class="{ 'count-new': view.countIsNew }"
         aria-hidden="true"
         :data-testid="`${view.testid}-count`"
         >{{ view.count }}</span
@@ -243,6 +244,13 @@ onBeforeUnmount(hideBubble)
   font-weight: var(--jp-weight-bold);
   line-height: 17px;
   text-align: center;
+}
+
+/* FR-7.13: something new waits there — the colour the notes' own *neu*
+   marker wears, so the pill and the thread say it the same way. */
+.count.count-new {
+  background: var(--jp-action);
+  color: var(--ct-base);
 }
 
 .trip-view-bubble {

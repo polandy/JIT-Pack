@@ -376,6 +376,7 @@ const TRIP_VIEW = {
   packing: 'trip-view-packing',
   shopping: 'trip-view-shopping',
   tasks: 'trip-view-tasks',
+  notes: 'trip-view-notes',
   luggage: 'trip-view-luggage',
   analytics: 'trip-view-analytics',
 } as const
@@ -386,15 +387,15 @@ const TRIP_VIEW = {
  * in this file: the suite reads the app from the outside, and a helper that
  * imported the rule would agree with a wrong app.
  */
-const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = ['packing', 'shopping', 'tasks']
+const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = ['packing', 'shopping', 'tasks', 'notes']
 
 /**
- * One of the trip's five views → another (FR-21.21, ADR-051). They were
+ * One of the trip's six views → another (FR-21.21, ADR-051). They were
  * glyphs on M4's header line, then words in the bar's ⋮ (ADR-050), then four
  * pills under the page's name — and since amendment 1 the two views a trip is
  * worked in are pills and the other two are words in the ⋮ again — three
- * since FR-7.7 gave the tasks a screen. Either way this reaches them from any
- * of the five screens, so the luggage is still one step from the shopping
+ * since FR-7.7 gave the tasks a screen, four since FR-7.13 gave the notes
+ * one. Either way this reaches them from any of the six screens, so the luggage is still one step from the shopping
  * list rather than going back through M4.
  *
  * The head is scrolled back into view first, unconditionally: on M4 it yields

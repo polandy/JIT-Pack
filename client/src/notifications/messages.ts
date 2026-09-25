@@ -14,13 +14,18 @@ import type { NotificationEntry } from '@/api/types'
 /** FR-7.11's reminder — the one kind whose body depends on its payload's day, and whose link is M25. */
 export const NOTIFY_TASK_DUE = 'task_due'
 
+/** FR-7.9's new note and FR-7.13's reply — the two kinds whose link is a thread on M26. */
+export const NOTIFY_NOTE = 'note'
+export const NOTIFY_NOTE_REPLY = 'note_reply'
+
 /** The kinds the server sends (Sync-API §8). */
 export const NOTIFICATION_KINDS = [
   'delegation',
   'mention',
   'task',
   'lock_taken',
-  'note',
+  NOTIFY_NOTE,
+  NOTIFY_NOTE_REPLY,
   NOTIFY_TASK_DUE,
 ] as const
 
@@ -43,6 +48,9 @@ export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic
 const TASK_DUE_TOMORROW = 'task_dueTomorrow'
 type BodyKind = NotificationKind | typeof TASK_DUE_TOMORROW
 const BODY_KINDS: readonly BodyKind[] = [...NOTIFICATION_KINDS, TASK_DUE_TOMORROW]
+
+/** The kinds whose sentence quotes the body rather than naming an item. */
+const PREVIEW_KINDS: readonly string[] = ['mention', NOTIFY_NOTE, NOTIFY_NOTE_REPLY]
 
 /** The payload's `due` value that picks the tomorrow sentence (FR-7.11). */
 export const DUE_TOMORROW = 'tomorrow'
@@ -86,9 +94,9 @@ export function notificationBodyName(
   detail: { item: string; preview: string; due?: string },
 ): NotificationBodyName {
   if (!(NOTIFICATION_KINDS as readonly string[]).includes(kind)) return 'generic'
-  // FR-7.9: a note is about its own words, like a mention — it names no
-  // item, only the body's preview.
-  const named = kind === 'mention' || kind === 'note' ? detail.preview : detail.item
+  // FR-7.9/FR-7.13: a note and a reply are about their own words, like a
+  // mention — they name no item, only the body's preview.
+  const named = PREVIEW_KINDS.includes(kind) ? detail.preview : detail.item
   const body = kind === NOTIFY_TASK_DUE && detail.due === DUE_TOMORROW ? TASK_DUE_TOMORROW : kind
   return (named ? body : `${body}Plain`) as NotificationBodyName
 }
@@ -100,9 +108,12 @@ export function notificationParams(
 ): Record<string, string> {
   const detail = notificationDetail(entry.payload)
   const actor = entry.payload?.['actor_name']
+  const thread = entry.payload?.['thread']
   return {
     actor: typeof actor === 'string' && actor ? actor : actorFallback,
     item: detail.item,
     preview: detail.preview,
+    // FR-7.13: what the thread a reply answers is called.
+    thread: typeof thread === 'string' ? thread : '',
   }
 }

@@ -73,6 +73,7 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		Task:       prefs[store.NotifyTask],
 		LockTaken:  prefs[store.NotifyLockTaken],
 		Note:       prefs[store.NotifyNote],
+		NoteReply:  prefs[store.NotifyNoteReply],
 		TaskDue:    prefs[store.NotifyTaskDue],
 	})
 }
@@ -131,7 +132,15 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return body, true
 	}
-	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveTodo) {
+	resolveThread := func(rootID string) (noteThreadFacts, bool) {
+		thread, err := s.store.NoteThread(ctx, rootID)
+		if err != nil {
+			slog.Error("notification thread lookup", "comment", rootID, "error", err)
+			return noteThreadFacts{}, false
+		}
+		return noteThreadFacts{Title: thread.Title, Body: thread.Body, Participants: thread.Participants}, true
+	}
+	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveTodo, resolveThread) {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 }
@@ -145,7 +154,15 @@ const (
 	payloadActorName = "actor_name"
 	payloadCommentID = "comment_id"
 	payloadPreview   = "preview"
+	// FR-7.13: a reply names its thread — the first note's id, so the tap
+	// opens it, and what it is called, so the sentence can say.
+	payloadThreadID = "thread_id"
+	payloadThread   = "thread"
 )
+
+// columnParentID is FR-7.13's reference from a reply to its thread's first
+// note — the field the reply rule reads off a mutation.
+const columnParentID = "parent_id"
 
 // createAndNotify persists the notification (unless the target's prefs
 // suppress it) and pings the target's connected devices.

@@ -34,6 +34,7 @@ import {
 import {
   myAckFor,
   newTripNotes,
+  threadName,
   type DashboardNoteRow,
   type DashboardNoteTrip,
 } from '@/domain/tripNotes'
@@ -50,7 +51,8 @@ import type { Trip } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
-import { PATH, tripItemPath, tripPath } from '@/router/paths'
+import { nameFrom } from '@/lib/rowFacts'
+import { PATH, tripItemPath, tripNotesPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
@@ -67,7 +69,7 @@ import { readMode } from '@/mode'
 const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()
 const orchestrator = useOrchestrator()
-const { myUserId, load } = useIdentity(orchestrator)
+const { myUserId, directory, load } = useIdentity(orchestrator)
 const router = useRouter()
 
 onMounted(() => {
@@ -262,8 +264,8 @@ const delegated = computed(() =>
 const newDelegations = computed(() => delegated.value.filter((row) => row.isNew).length)
 
 /**
- * FR-7.9 decision 1/2: the latest notes by others, not yet ticked by me,
- * across active trips — with the card's own tick, the deliberate exception
+ * FR-7.9 decision 1/2, FR-7.13: one row per thread with something new for
+ * me, across active trips — with the card's own tick, the deliberate exception
  * to "M1 takes no actions" (the concept's decision 2 and its consequence
  * paragraph). Server Mode only, the same as `delegated` above: the other two
  * modes have nobody else to write a note (G-8).
@@ -278,16 +280,29 @@ const noteTrips = computed<DashboardNoteTrip[]>(() =>
 )
 const newNotes = computed(() => newTripNotes(noteTrips.value, myUserId.value))
 
-/** The tick itself — insert on a note's first tick, flip an existing row otherwise. */
+/** The tick itself — through the thread's newest entry, so the row leaves the card. */
 function tickNote(row: DashboardNoteRow): void {
   if (!myUserId.value) return
   const acks = noteTrips.value.find((trip) => trip.tripId === row.tripId)?.acks ?? []
+  const root = row.thread.root
   orchestrator.toggleNoteTick(
     row.tripId,
-    row.note.id,
+    root.id,
     CLIENT_ACTOR_PLACEHOLDER,
-    myAckFor(row.note.id, acks, myUserId.value),
+    myAckFor(root.id, acks, myUserId.value),
+    { ticked: false, seenThrough: row.thread.seenThrough },
   )
+}
+
+/** FR-7.13: the words lead to the thread itself, opened, on the notes view. */
+function openThread(row: DashboardNoteRow): void {
+  void router.push(tripNotesPath(row.tripId, row.thread.root.id))
+}
+
+/** „Chris: Danke! Parkplatz ist Nr. 12" — who wrote the newest unseen entry, and what. */
+function noteLine(row: DashboardNoteRow): string {
+  const who = nameFrom(directory.value, row.latest.author_id)
+  return who ? `${who}: ${row.latest.body}` : row.latest.body
 }
 
 /**
@@ -414,19 +429,23 @@ async function handleRefresh(event: CustomEvent) {
         <div class="jp-card prep-card rows-card" data-testid="dashboard-notes">
           <IonItem
             v-for="row in newNotes"
-            :key="row.note.id"
+            :key="row.thread.root.id"
             lines="none"
             class="dashboard-item is-new"
-            :data-testid="`dashboard-note-${row.note.id}`"
+            :data-testid="`dashboard-note-${row.thread.root.id}`"
           >
             <IonLabel>
               <button
                 type="button"
                 class="note-body"
-                :data-testid="`dashboard-note-open-${row.note.id}`"
-                @click="openTrip(row.tripId)"
+                :data-testid="`dashboard-note-open-${row.thread.root.id}`"
+                @click="openThread(row)"
               >
-                <h3>{{ row.note.body }}</h3>
+                <h3>{{ threadName(row.thread.root) }}</h3>
+                <p class="note-latest" :data-testid="`dashboard-note-latest-${row.thread.root.id}`">
+                  {{ noteLine(row) }}
+                  <span v-if="row.more > 0" class="note-more">+{{ row.more }}</span>
+                </p>
                 <p>{{ row.tripName }}</p>
               </button>
             </IonLabel>
@@ -434,7 +453,7 @@ async function handleRefresh(event: CustomEvent) {
               slot="end"
               :checked="false"
               :aria-label="t('dashboard.newNotesTick')"
-              :data-testid="`dashboard-note-tick-${row.note.id}`"
+              :data-testid="`dashboard-note-tick-${row.thread.root.id}`"
               @ionChange="tickNote(row)"
             />
           </IonItem>
@@ -827,6 +846,20 @@ async function handleRefresh(event: CustomEvent) {
 .note-body h3,
 .note-body p {
   margin: 0;
+}
+
+/* FR-7.13: the newest unseen entry — the thing that is new, under the
+   thread's name, clipped to one line on a phone. */
+.note-latest {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-more {
+  margin-inline-start: 4px;
+  color: var(--jp-action);
+  font-weight: var(--jp-weight-semibold);
 }
 
 /* FR-7.4: a statement under the packing figure, not a part of it. */

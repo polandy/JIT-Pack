@@ -22,10 +22,12 @@ import {
 const TRIP = 'trip-1'
 
 describe('the trip views that earn a pill', () => {
-  it('shows the three a trip is worked in, in the order it is worked through', () => {
-    expect(tripViewPills('packing')).toEqual(['packing', 'shopping', 'tasks'])
-    expect(tripViewPills('shopping')).toEqual(['packing', 'shopping', 'tasks'])
-    expect(tripViewPills('tasks')).toEqual(['packing', 'shopping', 'tasks'])
+  // FR-7.13: the notes are the fourth view worked in — written in, not read once.
+  it('shows the four a trip is worked in, in the order it is worked through', () => {
+    const worked = ['packing', 'shopping', 'tasks', 'notes']
+    for (const current of ['packing', 'shopping', 'tasks', 'notes'] as const) {
+      expect(tripViewPills(current)).toEqual(worked)
+    }
   })
 
   /*
@@ -34,8 +36,14 @@ describe('the trip views that earn a pill', () => {
    * answering the half of its job that is "where am I".
    */
   it('adds the view being looked at when it is none of them', () => {
-    expect(tripViewPills('luggage')).toEqual(['packing', 'shopping', 'tasks', 'luggage'])
-    expect(tripViewPills('analytics')).toEqual(['packing', 'shopping', 'tasks', 'analytics'])
+    expect(tripViewPills('luggage')).toEqual(['packing', 'shopping', 'tasks', 'notes', 'luggage'])
+    expect(tripViewPills('analytics')).toEqual([
+      'packing',
+      'shopping',
+      'tasks',
+      'notes',
+      'analytics',
+    ])
   })
 
   it('offers the rest in the bar from inside packing, so every view is reachable from there', () => {
@@ -47,9 +55,10 @@ describe('the trip views that earn a pill', () => {
 
   // A ⋮ acts on its own context (owner, 2026-09-25): the luggage and the
   // analytics are packing's, and the packing pill is the way to them.
-  it('offers nothing in the bar from the shopping list or the tasks', () => {
+  it('offers nothing in the bar from the shopping list, the tasks or the notes', () => {
     expect(tripViewMenu('shopping')).toEqual([])
     expect(tripViewMenu('tasks')).toEqual([])
+    expect(tripViewMenu('notes')).toEqual([])
   })
 
   it('never offers the packing list in the menu — it is the row’s first pill', () => {
@@ -94,6 +103,19 @@ describe('what a view is called and where it goes', () => {
     expect(tripViewEntry('shopping', TRIP, counts).label).toBe('Shopping (3)')
     expect(tripViewEntry('shopping', TRIP, { shopping: () => 0 }).label).toBe('Shopping')
     expect(tripViewEntry('shopping', TRIP).label).toBe('Shopping')
+  })
+
+  // FR-7.13: the notes count only what is new, and say so by colour.
+  it('marks the notes’ count as new, and no other view’s', () => {
+    const counts = { shopping: () => 3, notes: () => 2 }
+    expect(tripViewEntry('notes', TRIP, counts)).toMatchObject({
+      label: 'Notes · 2 new',
+      count: 2,
+      countIsNew: true,
+      path: `/trips/${TRIP}/notes`,
+    })
+    expect(tripViewEntry('shopping', TRIP, counts).countIsNew).toBe(false)
+    expect(tripViewEntry('notes', TRIP).label).toBe('Notes')
   })
 
   it('counts for the trip it was asked about', () => {

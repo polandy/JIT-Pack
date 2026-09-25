@@ -2,6 +2,7 @@ import type { InjectionKey } from 'vue'
 import {
   briefcaseOutline,
   cartOutline,
+  chatbubblesOutline,
   checkboxOutline,
   listOutline,
   statsChartOutline,
@@ -11,7 +12,7 @@ import { t, type MessageKey } from '@/i18n'
 import { tripPath, tripSubPath } from '@/router/paths'
 
 /**
- * The trip's five views, named once (FR-21.21, ADR-051).
+ * The trip's six views, named once (FR-21.21, ADR-051).
  *
  * The ids are the vocabulary three places share: the route table says which
  * view a route *is*, the switcher decides which pill is current from that,
@@ -21,9 +22,16 @@ import { tripPath, tripSubPath } from '@/router/paths'
  * The order is the one a trip is worked through, and it is the order the two
  * readers below render in — the switcher's pills and the bar's ⋮ entries.
  */
-export const TRIP_VIEW_IDS = ['packing', 'shopping', 'tasks', 'luggage', 'analytics'] as const
+export const TRIP_VIEW_IDS = [
+  'packing',
+  'shopping',
+  'tasks',
+  'notes',
+  'luggage',
+  'analytics',
+] as const
 
-/** One of the trip's five views — see TRIP_VIEW_IDS. */
+/** One of the trip's six views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -51,8 +59,11 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  * returned to across a trip, not read once. It re-opens the measurement the
  * amendment made — three words against the four that did not fit — so the
  * row is measured again at 360 px rather than assumed (UI-Test-Spec, M25).
+ *
+ * FR-7.13 adds the fourth: the trip's notes, a place people write in. Four
+ * words did not fit a phone; four glyphs and one word do (amendment 3).
  */
-export const TRIP_VIEW_PILLS: readonly TripViewId[] = ['packing', 'shopping', 'tasks']
+export const TRIP_VIEW_PILLS: readonly TripViewId[] = ['packing', 'shopping', 'tasks', 'notes']
 
 /** What one view is called, where it lives, and the glyph it wears (G-12). */
 interface TripViewSpec {
@@ -64,6 +75,12 @@ interface TripViewSpec {
    * for both (ADR-050) — which is also why it survives the move between them.
    */
   countKey?: MessageKey
+  /**
+   * FR-7.13: the count is what is *new* rather than what is there, and wears
+   * the colour a new thing wears — the notes count their unseen entries,
+   * never their total.
+   */
+  countIsNew?: boolean
   path: (tripId: string) => string
 }
 
@@ -80,6 +97,13 @@ const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
     nameKey: 'packing.tasks',
     countKey: 'packing.tasksCount',
     path: (tripId) => tripSubPath(tripId, 'tasks'),
+  },
+  notes: {
+    icon: chatbubblesOutline,
+    nameKey: 'notes.title',
+    countKey: 'notes.viewCount',
+    countIsNew: true,
+    path: (tripId) => tripSubPath(tripId, 'notes'),
   },
   luggage: {
     icon: briefcaseOutline,
@@ -103,6 +127,8 @@ export interface TripViewEntry {
    * badge beside a glyph that has no word to put it in (ADR-051 amendment 3).
    */
   count: number
+  /** The count says what is new (FR-7.13's notes), not how much there is. */
+  countIsNew: boolean
   path: string
   /**
    * What the suite reaches this view by, in either shape — the bar gives a
@@ -137,6 +163,7 @@ export function tripViewEntry(
     // and one with nothing to report does not pretend otherwise.
     label: spec.countKey && n > 0 ? t(spec.countKey, { n }) : t(spec.nameKey),
     count: spec.countKey ? n : 0,
+    countIsNew: spec.countIsNew === true,
     path: spec.path(tripId),
     testid: `trip-view-${id}`,
   }

@@ -7,6 +7,8 @@
  * cannot report, and the surface says so rather than pretending completeness.
  */
 
+import { localIsoDate } from './trips'
+
 /** A template position, reduced to what containment needs. */
 export interface PositionRef {
   template_id: string
@@ -105,6 +107,12 @@ export interface ItemComment {
   authorId: string
   body: string
   createdAt: string | null
+  /**
+   * The calendar day the comment was written, on this device's clock
+   * (`YYYY-MM-DD`), or null without a stamp. `createdAt` is an instant, and a
+   * day formatter reading one as a day renders nothing at all.
+   */
+  writtenOn: string | null
 }
 
 /**
@@ -128,6 +136,11 @@ export interface ItemComment {
  * top; treating it as *now* would put it on top. Last, and the row says the
  * date is unknown.
  */
+function writtenOn(createdAt: string | null): string | null {
+  const at = createdAt ? Date.parse(createdAt) : Number.NaN
+  return Number.isNaN(at) ? null : localIsoDate(at)
+}
+
 export function commentsOnItem(
   itemIds: readonly string[],
   trips: readonly TripComments[],
@@ -150,6 +163,7 @@ export function commentsOnItem(
         authorId: comment.author_id,
         body: comment.body,
         createdAt: comment.created_at,
+        writtenOn: writtenOn(comment.created_at),
       })
     }
   }

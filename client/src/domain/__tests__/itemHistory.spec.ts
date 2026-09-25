@@ -163,6 +163,26 @@ describe('commentsOnItem (FR-27.9)', () => {
     expect(commentsOnItem(['i-helm'], trips).map((c) => c.body)).toEqual(['Helm ist zu klein'])
   })
 
+  // A stamp is an instant; M10 formats a day. Reading the instant as a day
+  // threw inside the formatter and rendered the remark empty (FR-7.13 made
+  // every client-written comment carry one).
+  it('names the day a comment was written, and none without a stamp', () => {
+    const [first] = commentsOnItem(['i-kamera'], trips)
+    expect(first?.writtenOn).toBe('2025-08-02')
+    const unstamped = commentsOnItem(
+      ['i-x'],
+      [
+        {
+          tripId: 't',
+          tripName: 'T',
+          items: [{ id: 'r', source_item_id: 'i-x' }],
+          comments: [{ id: 'c', trip_item_id: 'r', author_id: 'u', body: 'b', created_at: null }],
+        },
+      ],
+    )
+    expect(unstamped[0]?.writtenOn).toBeNull()
+  })
+
   it('never picks up a trip-level comment, which belongs to no item', () => {
     const bodies = trips.flatMap((t) => commentsOnItem(['i-kamera'], [t])).map((c) => c.body)
     expect(bodies).not.toContain('Zug war pünktlich')

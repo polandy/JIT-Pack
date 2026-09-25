@@ -459,12 +459,20 @@ var tableSpecs = map[string]tableSpec{
 			// DEFAULT still covers a mutation that omits it — the same shape
 			// as trip_items.packed_at.
 			"created_at",
+			// FR-7.13: a reply's thread (written once — the trip scope rule
+			// drops it from every later op), a first note's title, and when
+			// an entry was edited, which the client names like resolved_at.
+			"parent_id", "title", "edited_at",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
-		// is a column on the same row, unlike a note's tick.
+		// is a column on the same row, unlike a note's tick. FR-7.13: so do a
+		// first note's replies (comments.parent_id ON DELETE CASCADE), and
+		// their ticks a hop further down, should one ever carry any.
 		cascades: []childQuery{
-			{TableNoteAcks, `SELECT id FROM note_acks WHERE comment_id = ?`},
+			{TableComments, `SELECT id FROM comments WHERE parent_id = ?`},
+			{TableNoteAcks, `SELECT id FROM note_acks WHERE comment_id = ?1
+				OR comment_id IN (SELECT id FROM comments WHERE parent_id = ?1)`},
 		},
 		export: exportQuery{query: `SELECT x.* FROM comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -474,7 +482,7 @@ var tableSpecs = map[string]tableSpec{
 	// for why this is a table and not a column on comments.
 	TableNoteAcks: {
 		partition: partitionTrip,
-		columns:   toSet("trip_id", "comment_id", "user_id", "acked"),
+		columns:   toSet("trip_id", "comment_id", "user_id", "acked", "seen_through"),
 		export: exportQuery{query: `SELECT x.* FROM note_acks x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},

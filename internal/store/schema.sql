@@ -445,6 +445,21 @@ CREATE TABLE comments (
     -- reopened — a record must not outlive what it describes.
     resolved_at  TEXT,
     resolved_by_user_id TEXT REFERENCES users(id),
+    -- FR-7.13: a reply to a trip note names the thread's first note. Written
+    -- once — the server ignores it on every later op, as it does author_id —
+    -- and one level deep, which a CHECK cannot say because it cannot see the
+    -- parent row: the push path refuses a parent that is itself a reply, is
+    -- not a note, or is another trip's. Deleting the first note deletes its
+    -- thread.
+    parent_id    TEXT REFERENCES comments(id) ON DELETE CASCADE,
+    -- FR-7.13: a thread's optional title, meaningful on a first note only
+    -- (the server drops it from a reply). Without one, a thread is shown by
+    -- its first line.
+    title        TEXT,
+    -- FR-7.13: when the entry's words were last changed. Named by the client
+    -- like resolved_at, because an edit happens offline too; NULL is „never
+    -- edited".
+    edited_at    TEXT,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
@@ -468,10 +483,19 @@ CREATE TABLE note_acks (
     comment_id  TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
     user_id     TEXT NOT NULL REFERENCES users(id),
     acked       INTEGER NOT NULL DEFAULT 1 CHECK (acked IN (0,1)),
+    -- FR-7.13: how far the tick reaches — the created_at/edited_at of the
+    -- thread's newest entry when it was ticked. Compared with the entries' own
+    -- stamps, so it is data against data and no two devices' clocks meet.
+    -- NULL, on a tick from before threads, reads as „the first note as it
+    -- was", which is what it was given for.
+    seen_through TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT '',
     UNIQUE (comment_id, user_id)
 );
+
+-- FR-7.13: a thread is read by its first note's id.
+CREATE INDEX idx_comments_parent ON comments(parent_id);
 
 -- ---------------------------------------------------------------------------
 -- FR-27.4 planning refresh (ADR-016)

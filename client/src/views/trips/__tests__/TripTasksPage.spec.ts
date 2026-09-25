@@ -12,9 +12,8 @@
  * (`domain/__tests__/tripTodos.spec.ts`, `lib/__tests__/taskFacts.spec.ts`).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { IonInput, IonTextarea } from '@ionic/vue'
+import { IonInput } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
-import type { VueWrapper } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -67,10 +66,6 @@ const acts = {
   assignPrepTodo: vi.fn(),
   setTaskPhase: vi.fn(),
   setTaskDueDate: vi.fn(),
-  // FR-7.9
-  addComment: vi.fn(() => 'new-note'),
-  deleteComment: vi.fn(),
-  toggleNoteTick: vi.fn(),
 }
 
 function mountPage() {
@@ -157,29 +152,6 @@ function seedTask(id: string, row: Record<string, unknown>) {
       ...row,
     },
   })
-}
-
-/** FR-7.9: a note — a trip-level comment, `is_task = 0`. */
-function seedNote(id: string, authorId: string, body: string) {
-  useTripStore().applyChange({
-    seq: 0,
-    table: TABLE.comments,
-    id,
-    deleted: false,
-    row: { trip_id: 't1', trip_item_id: null, author_id: authorId, body, is_task: 0 },
-  })
-}
-
-/**
- * FR-7.9: `ion-segment`'s `ionChange` is a custom event a plain DOM click
- * does not raise under jsdom — `ShoppingPage.spec.ts`'s M6 tabs read the
- * same way, through the component rather than the element.
- */
-async function switchToNotes(page: VueWrapper): Promise<void> {
-  await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-    detail: { value: 'notes' },
-  })
-  await flushPromises()
 }
 
 beforeEach(() => {
@@ -544,10 +516,6 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
 })
 
 /**
- * FR-7.9: the second segment. `mountPage`'s `fetchMe` answers `u-andy`, so a
- * note by `u-sia` is new and a note by `u-andy` is mine.
- */
-/**
  * Several tasks at once (2026-09-24): M6's selection, on M25. A hold (its
  * right-click twin is the deterministic seam) or the app bar's icon enters
  * it; the bar can give the selection a tag or send it to a phase, only what
@@ -794,109 +762,23 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
   })
 })
 
-describe('M25 — the notes segment (FR-7.9)', () => {
-  it('switches from tasks to notes, and lists a note there', async () => {
+describe('M25 — the notes left for a view of their own (FR-7.13)', () => {
+  it('is one list again: no segment, and no note among the tasks', async () => {
     seedTrip()
     seedTask('Salbe holen', {})
-    seedNote('note-1', 'u-sia', 'Schlüsselfach: 4711')
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.comments,
+      id: 'note-1',
+      deleted: false,
+      row: { trip_id: 't1', trip_item_id: null, author_id: 'u-sia', body: 'Code 4711', is_task: 0 },
+    })
 
     const page = mountPage()
     await flushPromises()
 
     expect(page.get('[data-testid="m25-before"]').text()).toContain('Salbe holen')
-    expect(page.find('[data-testid="m25-notes"]').exists()).toBe(false)
-
-    await switchToNotes(page)
-    await flushPromises()
-
-    expect(page.find('[data-testid="m25-before"]').exists()).toBe(false)
-    expect(page.get('[data-testid="m25-notes"]').text()).toContain('Schlüsselfach: 4711')
-  })
-
-  it('marks a note by someone else as new, and counts it on the segment', async () => {
-    seedTrip()
-    seedNote('note-1', 'u-sia', 'Schlüsselfach: 4711')
-
-    const page = mountPage()
-    await flushPromises()
-
-    expect(page.get('[data-testid="m25-segment-notes"]').text()).toContain('1')
-
-    await switchToNotes(page)
-    await flushPromises()
-
-    const row = page.get('[data-testid="trip-note-note-1"]')
-    expect(row.find('[data-testid="trip-note-new"]').exists()).toBe(true)
-    expect(row.find('ion-checkbox.tick').exists()).toBe(true)
-  })
-
-  it('never marks or ticks my own note (decision 4)', async () => {
-    seedTrip()
-    seedNote('note-1', 'u-andy', 'Schlüsselfach: 4711')
-
-    const page = mountPage()
-    await flushPromises()
-
-    // The segment's own count is new notes, never the list's total.
-    expect(page.get('[data-testid="m25-segment-notes"]').text()).not.toContain('1')
-
-    await switchToNotes(page)
-    await flushPromises()
-
-    const row = page.get('[data-testid="trip-note-note-1"]')
-    expect(row.find('[data-testid="trip-note-new"]').exists()).toBe(false)
-    expect(row.find('ion-checkbox.tick').exists()).toBe(false)
-  })
-
-  it('ticks a note that is not mine, from the list', async () => {
-    seedTrip()
-    seedNote('note-1', 'u-sia', 'Schlüsselfach: 4711')
-
-    const page = mountPage()
-    await flushPromises()
-    await switchToNotes(page)
-    await flushPromises()
-
-    await page.get('[data-testid="trip-note-tick-note-1"]').trigger('ionChange')
-
-    // No existing ack row yet — the caller (myAckFor) decides insert vs.
-    // upsert from it, so `null` here is what a first tick looks like.
-    expect(acts.toggleNoteTick).toHaveBeenCalledWith('t1', 'note-1', expect.any(String), null)
-  })
-
-  it('writes a note from the composer', async () => {
-    seedTrip()
-
-    const page = mountPage()
-    await flushPromises()
-    await switchToNotes(page)
-    await flushPromises()
-
-    await page.findComponent(IonTextarea).setValue('Pizzakurier: 044 555 01 00')
-    await page.get('[data-testid="trip-note-add"]').trigger('click')
-
-    expect(acts.addComment).toHaveBeenCalledWith(
-      't1',
-      null,
-      expect.any(String),
-      'Pizzakurier: 044 555 01 00',
-    )
-  })
-
-  it('opens a note’s sheet and deletes it', async () => {
-    seedTrip()
-    seedNote('note-1', 'u-sia', 'Schlüsselfach: 4711')
-
-    const page = mountPage()
-    await flushPromises()
-    await switchToNotes(page)
-    await flushPromises()
-    await page.get('[data-testid="trip-note-open-note-1"]').trigger('click')
-    await flushPromises()
-
-    expect(page.get('[data-testid="note-sheet-body"]').text()).toContain('Schlüsselfach: 4711')
-    await page.get('[data-testid="note-sheet-remove"]').trigger('click')
-
-    expect(acts.deleteComment).toHaveBeenCalledWith('t1', 'note-1')
+    expect(page.find('ion-segment').exists()).toBe(false)
+    expect(page.text()).not.toContain('Code 4711')
   })
 })

@@ -9,7 +9,7 @@ import {
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
-import { openRowMenu, openTasks, tripWithRows } from './helpers/m4'
+import { openRowMenu, tripWithRows } from './helpers/m4'
 import { visiblePage } from './helpers/page'
 
 /**
@@ -254,6 +254,7 @@ function overhang(el: Locator) {
 // right end off straight — found on an iPad (owner, 2026-09-24), but 14 px
 // past a 390 px phone screen too. Both viewports, because the tablet column
 // is where it read as a defect and the phone is where it was first missed.
+// M25's segment left with the notes (FR-7.13, M26); M7's is the one left.
 for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
   test(`E2E-G14-05: a segment with a margin stays inside its column at ${viewport.width}px @local @g14`, async ({
     page,
@@ -261,12 +262,6 @@ for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
   }) => {
     await seedMode({ mode: 'local' })
     await page.setViewportSize(viewport)
-
-    await tripWithRows(page, ['Zelt'], 'Samedan')
-    await openTasks(page, 'before')
-    const tasks = visiblePage(page).getByTestId('m25-segment')
-    await expect(tasks).toBeVisible()
-    expect(await overhang(tasks), "M25's segment runs past its column").toBeLessThanOrEqual(0)
 
     // M7 only draws its segment once there is something to filter.
     await page.goto(PATH.templates)

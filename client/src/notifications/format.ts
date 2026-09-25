@@ -15,9 +15,11 @@ import {
   notificationBodyName,
   notificationDetail,
   notificationParams,
+  NOTIFY_NOTE,
+  NOTIFY_NOTE_REPLY,
   NOTIFY_TASK_DUE,
 } from './messages'
-import { tripItemPath, tripPath, tripSubPath } from '@/router/paths'
+import { tripItemPath, tripNotesPath, tripPath, tripSubPath } from '@/router/paths'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this
@@ -50,6 +52,11 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (!tripId) return null
   // FR-7.11: a reminder is about the trip's tasks, which live on M25.
   if (n.kind === NOTIFY_TASK_DUE) return tripSubPath(tripId, 'tasks')
+  // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
+  if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
+    const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')
+    return tripNotesPath(tripId, thread || undefined)
+  }
   const itemId = str(n.payload, 'item_id')
   if (!itemId) return tripPath(tripId)
   return tripItemPath(tripId, itemId, str(n.payload, 'comment_id') || undefined)

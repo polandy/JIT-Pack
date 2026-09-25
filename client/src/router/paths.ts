@@ -63,6 +63,7 @@ export type TripSubScreen =
   | 'members'
   | 'shopping'
   | 'tasks'
+  | 'notes'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {
@@ -99,6 +100,19 @@ export const CLOSING_QUERY_PARAM = 'closing'
  */
 export function tripClosingPath(tripId: string): string {
   return `${tripPath(tripId)}?${new URLSearchParams({ [CLOSING_QUERY_PARAM]: '1' }).toString()}`
+}
+
+/** FR-7.13: the thread a notes link opens, as a route parameter. */
+export const THREAD_ID_PARAM = ':threadId'
+
+/**
+ * The trip's notes (M26), or one thread of them. A thread is a screen of
+ * its own — a conversation with its reply field at the bottom — so a link
+ * from M1's row or a notification lands on it directly.
+ */
+export function tripNotesPath(tripId: string, threadId?: string): string {
+  const path = tripSubPath(tripId, 'notes')
+  return threadId ? `${path}/${threadId}` : path
 }
 
 /**

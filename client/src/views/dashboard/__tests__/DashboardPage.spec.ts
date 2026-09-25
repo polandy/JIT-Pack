@@ -27,8 +27,9 @@ import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+const routerPush = vi.fn()
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
 }))
 
@@ -540,13 +541,19 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
     })
   }
 
-  function seedNote(id: string, tripId: string, authorId: string, body: string) {
+  function seedNote(
+    id: string,
+    tripId: string,
+    authorId: string,
+    body: string,
+    row: Record<string, unknown> = {},
+  ) {
     useTripStore().applyChange({
       seq: 0,
       table: TABLE.comments,
       id,
       deleted: false,
-      row: { trip_id: tripId, trip_item_id: null, author_id: authorId, body, is_task: 0 },
+      row: { trip_id: tripId, trip_item_id: null, author_id: authorId, body, is_task: 0, ...row },
     })
   }
 
@@ -593,6 +600,38 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
       'note-1',
       CLIENT_ACTOR_PLACEHOLDER,
       null,
+      { ticked: false, seenThrough: '' },
     )
+  })
+
+  /**
+   * FR-7.13: one row per thread — its name, then the newest entry I have not
+   * seen with who wrote it, and how many more stand behind it; the words
+   * open the thread itself on the notes view.
+   */
+  it('shows a thread by its newest unseen entry, and opens it on the notes view', async () => {
+    seedActiveTrip('t1', 'Samedan')
+    vi.mocked(orchestratorFake.fetchUsers).mockResolvedValueOnce([
+      { user_id: 'u2', display_name: 'Chris' },
+    ])
+    seedNote('note-1', 't1', 'u2', 'Code 4711', {
+      title: 'Schlüsselbox',
+      created_at: '2026-09-20T10:00:00Z',
+    })
+    seedNote('r1', 't1', 'u2', 'Danke! Parkplatz ist Nr. 12', {
+      parent_id: 'note-1',
+      created_at: '2026-09-20T11:00:00Z',
+    })
+
+    const page = mountPage()
+    await flushPromises()
+
+    const row = page.get('[data-testid="dashboard-note-note-1"]')
+    expect(row.text()).toContain('Schlüsselbox')
+    expect(page.get('[data-testid="dashboard-note-latest-note-1"]').text()).toBe(
+      'Chris: Danke! Parkplatz ist Nr. 12 +1',
+    )
+    await page.get('[data-testid="dashboard-note-open-note-1"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith('/trips/t1/notes/note-1')
   })
 })

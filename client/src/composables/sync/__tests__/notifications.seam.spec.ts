@@ -124,6 +124,7 @@ describe('notification endpoints', () => {
       mention: true,
       task: true,
       lock_taken: false,
+      note_reply: true,
       note: true,
       task_due: true,
     })

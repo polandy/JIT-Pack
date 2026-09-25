@@ -62,6 +62,7 @@ import { resolveHead } from '@/composables/useHeaderTitle'
 import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { newNoteCount } from '@/domain/tripNotes'
 import { TRIP_CARDS } from '@/lib/tripCards'
 import { useTripStore } from '@/stores/tripStore'
 import {
@@ -204,7 +205,18 @@ const shoppingSources = orchestrator
   ? [createPackingShoppingSource(useTripStore(), orchestrator)]
   : []
 provide(SHOPPING_SOURCES, shoppingSources)
-provide(TRIP_VIEW_COUNTS, { shopping: shoppingCount(shoppingSources) })
+provide(TRIP_VIEW_COUNTS, {
+  shopping: shoppingCount(shoppingSources),
+  // FR-7.13: what is new for me in the trip's notes, never their total.
+  notes: (tripId) => {
+    const trips = useTripStore()
+    return newNoteCount(
+      trips.getTripComments(tripId),
+      trips.getNoteAcks(tripId),
+      useIdentityStore().myUserId,
+    )
+  },
+})
 // FR-30.7: the shopping list, workable on the dashboard under each trip.
 provide(TRIP_CARDS, orchestrator ? [ShoppingDashboardCard] : [])
 // FR-7.12: closing the packing ends *before departure* on the shopping list too.

@@ -436,6 +436,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A menu asked for while the last one was leaving opened nothing (2026-09-25)](#a-menu-asked-for-while-the-last-one-was-leaving-opened-nothing-2026-09-25) — M2's row menu swallowed a reopen during the 480 ms leave; E2E-M2-05 flaked on it.
 - [A selection wears the app bar, and M2 had been archiving past the closing pass (2026-09-25)](#a-selection-wears-the-app-bar-and-m2-had-been-archiving-past-the-closing-pass-2026-09-25) — three owner calls in one batch; `inert="false"` is inert, and a mock factory that imports its own mock deadlocks.
 - [A due day, a morning reminder, and a *before* that stays closed (2026-09-25)](#a-due-day-a-morning-reminder-and-a-before-that-stays-closed-2026-09-25) — Single-User's reminder had no push toggle; the claim accepts *never* for one window; `time.Local` hides `TZ`.
+- [Trip notes become threads on a view of their own (2026-09-25)](#trip-notes-become-threads-on-a-view-of-their-own-2026-09-25) — „nothing read" is not the earliest moment; a green test that assumed anyone may edit a note; replying is reading.
+- [The notes, reworked after the owner used them (2026-09-25)](#the-notes-reworked-after-the-owner-used-them-2026-09-25) — question 1 reversed for reading order; the ✎ lost to a menu; an id the testid gate cannot see.
 
 ## Deviations
 
@@ -17545,3 +17547,53 @@ earn.
 - **`payloads.map(notificationUrl)` passes the index as the second argument.** The worker's URL function gained a
   `kind` parameter, and every existing call through `map` was now handing it `0`, `1`, `2`. It was harmless only
   because no kind is a number. The type-check found it, not a test.
+
+## Trip notes become threads on a view of their own (2026-09-25)
+
+FR-7.13, from the concept and mockup the owner decided the same day (`dev-docs/trip-note-threads-concept.md`); the
+switcher that made room for the fourth pill was #601. What the code does not show:
+
+**A wrong premise, caught by a unit test before a screen showed it.** The first `noteThreads` compared every entry's
+stamp with a read mark that started as the empty string for „nothing read yet". An entry with no `created_at` stamps as
+the empty string too, and `'' > ''` is false — so a note nobody had read was not new. It looked harmless because the
+server always fills `created_at`, but the client never sent one for a comment (only for a task), so every optimistic
+note on the writer's device, and every note in Local Mode, had none. The read mark is now `null` for „nothing read", and
+`addComment` sends `created_at` like `addTodo` does — a thread is ordered by it.
+
+**A test that pinned the opposite of the new rule.** `TestStampActor_UpsertCannotForgeCommentAuthor` let a second user
+rewrite a *note's* body to prove the author stays put. FR-7.13 makes a note's words its author's, so the edit is now
+refused and the test's own guard (*„the edit itself has to land"*) failed. The test now edits a task, whose words stay
+everybody's, which is what its subject — authorship, not edit rights — needed all along.
+
+**A rule made explicit that the concept only argued.** §3 said replying needs no special case because „the newest entry
+is then mine". That is true of the newest entry only: with a tick-only read mark, the unseen entries *before* my reply
+would still count. So the reader's own latest entry is part of the read mark — what I answered is behind me — and
+E2E-M26-04 asserts exactly the one entry after it as unseen.
+
+**Rejected in the build: editing from the sheet.** The concept put *Bearbeiten* in the note's sheet; the mockup put a ✎
+on the entry. The ✎ won: the sheet is where one reads and copies, and an edit in place keeps the thread in view with the
+answer that asked for the correction.
+
+## The notes, reworked after the owner used them (2026-09-25)
+
+The same PR as the entry above, after the built M26 was served for a look. The owner found it unconvincing in use and
+asked for a UX review with mockups; every recommendation was taken (`trip-note-threads-concept.md` §7b). What the code
+does not show:
+
+**A decision reversed within a day, and why the first answer was reasonable.** Question 1 put the replies newest first
+under a field that stood between them and the note, so that what I wrote lands where I wrote it. That held on paper;
+on a screen the thread read two ways at once. A field fixed at the bottom keeps the same promise in reading order, and
+only reading order can say *where the new begins* — the divider needs it.
+
+**The ✎ that won in the build lost to the menu.** The entry above records the ✎ beating the sheet. In use, an edit
+control under every entry was the loudest thing on a thread whose edits are rare, and the sheet it beat was reached by
+tapping words that did not look tappable. One menu per entry (copy, edit, delete) replaced both.
+
+**A latent bug the reorder surfaced.** `participants` was built from the replies in the order the store handed them
+over, not the order their writers joined — invisible while the replies were sorted after it. The sort now happens
+first.
+
+**A trap: an id built from a key is invisible to the testid gate.** The menu's buttons first carried
+`` `note-menu-${action}` ``; the gate matches interpolated ids by a literal edge, but only in the forms it knows, and
+an `htmlAttributes` object is not one. Naming each id in the menu's descriptor table is both what the gate reads and
+what CODING_PRINCIPLES §4a asks for anyway.

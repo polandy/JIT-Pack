@@ -64,9 +64,10 @@ export interface TripReads {
   getTripTodos(tripId: string): TripTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
-  /** The three `cascade.ts` asks for, since a group hands it this store. */
+  /** The four `cascade.ts` asks for, since a group hands it this store. */
   childRows(tripId: string): CascadeRow[]
   itemChildRows(tripItemId: string): CascadeRow[]
+  commentChildRows(commentId: string): CascadeRow[]
   templateSourceRows(templateId: string): CascadeRow[]
 }
 
