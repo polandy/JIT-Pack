@@ -97,6 +97,12 @@ a reminder, the app says how many tasks are due when you open it.
   land in **Während der Reise**.
 - **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
 
+## Moving between a trip's lists
+
+Under the trip's name is a row of buttons for its lists: the packing list, the shopping list and the tasks. The list
+you are on shows its name; the others show only their icon, with a small number when something is open there. Tap an
+icon to go there. Not sure which icon is which? Hold it (on a computer, point at it) and its name appears.
+
 ## Which menu holds what
 
 A **⋮** menu only holds what belongs to the screen it sits on:

@@ -98,6 +98,11 @@ export interface TripViewEntry {
   id: TripViewId
   icon: string
   label: string
+  /**
+   * The number the label carries, or 0 — the icon-only pill wears it as a
+   * badge beside a glyph that has no word to put it in (ADR-051 amendment 3).
+   */
+  count: number
   path: string
   /**
    * What the suite reaches this view by, in either shape — the bar gives a
@@ -131,6 +136,7 @@ export function tripViewEntry(
     // exists either way — a view whose count is the reason to tap it says so,
     // and one with nothing to report does not pretend otherwise.
     label: spec.countKey && n > 0 ? t(spec.countKey, { n }) : t(spec.nameKey),
+    count: spec.countKey ? n : 0,
     path: spec.path(tripId),
     testid: `trip-view-${id}`,
   }

@@ -827,11 +827,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       return icon.evaluate((el) => (el as unknown as { icon?: string }).icon ?? '')
     }
 
-    // The shopping list wears its glyph on the trip's switcher — beside the
-    // word, and only from 480 px up, which is where the pills stop costing
-    // the row a word. So the vocabulary is read at the desktop width, off the
-    // element Ionic renders.
-    await page.setViewportSize(DESKTOP)
+    // The shopping list wears its glyph on the trip's switcher — at every
+    // width since ADR-051 amendment 3, where the glyph is all a view you are
+    // not standing on shows. Read off the element Ionic renders.
     const glyphs = [await glyph('trip-view-shopping')]
 
     // The other two are words in the bar's ⋮ since ADR-051 amendment 1, and
@@ -860,16 +858,23 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * `aria-label` and no `title`, so a pointer hovering them was told
    * nothing; fixed with this case.
    *
-   * The clause about a long-press bubble on touch is **not** asserted: no
-   * such bubble is built anywhere, and it is an open owner decision rather
-   * than a missing test.
+   * Since ADR-051 amendment 3 the trip's switcher has unlabelled glyphs of
+   * its own — every view but the current one — so its pills are read here
+   * too. Their bubble on a held press is E2E-G12-08's.
    */
   test('E2E-G12-06: every unlabelled icon names itself, and a plain tap just navigates', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
 
-    for (const testid of ['m4-search', 'm4-filter', 'm4-fold-all', 'header-overflow']) {
+    for (const testid of [
+      'm4-search',
+      'm4-filter',
+      'm4-fold-all',
+      'header-overflow',
+      'trip-view-shopping',
+      'trip-view-tasks',
+    ]) {
       const el = page.getByTestId(testid)
       await expect(el).toBeVisible()
       const title = (await el.getAttribute('title')) ?? ''
@@ -887,9 +892,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G12-07 (G-12, ADR-050, ADR-051 and its amendment 1): the trip's
-   * destinations are words — the two it is worked in on the screen, the other
-   * two in the bar's ⋮ — and every one of them is reachable from every one.
+   * E2E-G12-07 (G-12, ADR-050, ADR-051 and its amendments): the trip's
+   * destinations are named — the ones it is worked in on the screen, the
+   * other two as words in the bar's ⋮ — and every one of them is reachable
+   * from every one.
    *
    * The clause this case was written for read "one tap each. No ⋯ exists",
    * and both halves had been reversed by a decision: UX-13 gave M4 a ⋮, and
@@ -897,42 +903,50 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * glyphs — with §3.25's directive written down as the cost. FR-21.21 paid
    * it back with four pills; amendment 1 keeps two of them, because a row of
    * four made the two views read once a trip as loud as the two worked in
-   * daily. What this pins is what survived all of it: every view named as a
-   * **word**, where you are marked, and every view reachable from every one —
-   * since 2026-09-25 the luggage and the analytics through the packing list,
-   * whose views they are.
+   * daily. Amendment 3 (2026-09-25) took the words off every pill but the
+   * current one, because the row with its counts no longer fitted a 390 px
+   * phone. What this pins is what survived all of it: every view **named**,
+   * the one you stand on in a word, where you are marked, and every view
+   * reachable from every one — since 2026-09-25 the luggage and the
+   * analytics through the packing list, whose views they are.
    */
-  test("E2E-G12-07: the trip's views are named as words, and reachable from each other", async ({
+  test("E2E-G12-07: the trip's views are named, and reachable from each other", async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
 
-    // Named, not merely present: a glyph-only entry is what the move away
-    // from the bar was supposed to end, and both shapes inherit that.
+    // Named, not merely present — a glyph is read by its name — and the view
+    // you stand on says its word on screen, because a row of glyphs that
+    // marked nothing in words would have stopped saying where you are.
     for (const [id, name] of [
       ['trip-view-packing', 'Packing list'],
       ['trip-view-shopping', 'Shopping'],
       ['trip-view-tasks', 'Tasks'],
     ] as const) {
-      await expect(page.getByTestId(id)).toHaveText(name)
+      await expect(page.getByTestId(id)).toHaveAccessibleName(name)
     }
+    await expect(page.getByTestId('trip-view-packing')).toHaveText('Packing list')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveText('')
 
-    // FR-7.7's third pill re-opens the measurement amendment 1 was made from,
-    // so the row is measured rather than assumed — and at the **narrowest**
-    // phone the app targets, not at the one the baselines happen to use. Two
-    // clauses, because a row can fail either way: every pill inside the
-    // viewport, and all three on one line, since a row that wrapped would
-    // have „fitted" by every width assertion on its own.
+    // The row is measured rather than assumed — at the **narrowest** phone the
+    // app targets, and in its widest shape, standing on a view that joins the
+    // row (four pills). Two clauses, because a row can fail either way: every
+    // pill inside the viewport, and all on one line, since a row that wrapped
+    // would have „fitted" by every width assertion on its own.
     const viewport = page.viewportSize()!
+    await openTripView(page, 'luggage')
+    await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
     await page.setViewportSize({ width: 360, height: 780 })
     const boxes = await Promise.all(
-      ['trip-view-packing', 'trip-view-shopping', 'trip-view-tasks'].map(
+      ['trip-view-packing', 'trip-view-shopping', 'trip-view-tasks', 'trip-view-luggage'].map(
         async (id) => (await page.getByTestId(id).boundingBox())!,
       ),
     )
-    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(360)
+    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(360 - 16)
     expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
     await page.setViewportSize(viewport)
+    await openTripView(page, 'packing')
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
     // The two the row leaves out are not gone: they are words in the ⋮, which
     // is the half of the amendment that keeps them reachable at all.
     await expect(page.getByTestId('trip-view-luggage')).toHaveCount(0)
@@ -979,6 +993,40 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm25-segment')).toBeVisible()
     await expect(page.getByTestId('header-back')).toBeVisible()
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G12-08 (G-12, ADR-051 amendment 3): a glyph on the trip's switcher
+   * says its name when it is held, and the hold is not a tap.
+   *
+   * A phone has no hover, so the `title` E2E-G12-06 reads is a desktop's
+   * answer; the held press is the finger's. The release that ends a hold
+   * still fires a click, which is the defect this case exists for: a reader
+   * who asked "what is this" must not be taken there.
+   */
+  test('E2E-G12-08: holding a glyph on the switcher shows its name and goes nowhere', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
+
+    const box = (await page.getByTestId('trip-view-shopping').boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await expect(page.getByTestId('trip-view-bubble')).toHaveText('Shopping')
+    await page.mouse.up()
+
+    // The bubble lingers and then goes on its own; by the time it has gone,
+    // a navigation the release had started would long have landed — so the
+    // packing list still being current is a settled answer, not an early one.
+    await expect(page.getByTestId('trip-view-bubble')).toHaveCount(0)
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+    await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
+
+    // And a plain tap on the same glyph is still the navigation.
+    await openTripView(page, 'shopping')
+    await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
+    await expect(page.getByTestId('trip-view-bubble')).toHaveCount(0)
   })
 
   /*
