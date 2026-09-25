@@ -440,6 +440,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The notes, reworked after the owner used them (2026-09-25)](#the-notes-reworked-after-the-owner-used-them-2026-09-25) — question 1 reversed for reading order; the ✎ lost to a menu; an id the testid gate cannot see.
 - [Two equal readings are not a settled scroll (2026-09-25)](#two-equal-readings-are-not-a-settled-scroll-2026-09-25) — E2E-M4-45's WebKit flake: a smooth wheel stalls while the head yields, and `scrollend` is the signal.
 - [M26's baseline held a minute and a ripple (2026-09-25)](#m26s-baseline-held-a-minute-and-a-ripple-2026-09-25) — E2E-VIS-14 red on `main`: `toLocaleTimeString` escapes the pinned hour, and `md`'s ripple outlives `ion-activated`.
+- [A purchase's due day, and why the day rules left `domain/` (2026-09-25)](#a-purchases-due-day-and-why-the-day-rules-left-domain-2026-09-25) — FR-30.10: a module reaches only the kernel, so the day rules moved to `lib/dueDay.ts`; buy rows stay undated.
 
 ## Deviations
 
@@ -17638,3 +17639,25 @@ removes it on its own timers — `fade-out` after 325 ms, gone 200 ms later — 
 had cleared. The local recording caught the disc; CI, slower, never did. The disc leaving is the seam
 (`toHaveCount(0)` on a locator that pierces the shadow root). Mutation-proven: without that wait, the mobile shot
 fails by 1566 px locally; with it, 16/16 on repeat and the whole visual suite green twice.
+
+## A purchase's due day, and why the day rules left `domain/` (2026-09-25)
+
+FR-30.10 gives a shopping entry FR-7.11's due day, pill, order and morning reminder. Decided with the owner up front,
+each on a recommendation: every member is reminded (an entry has no assignee), only the list's own entries carry a
+day, M6 orders by M25's rule, and M1 highlights on both the card and the hero's block.
+
+**The trap: the rules were unreachable.** FR-7.11 put the day arithmetic in `domain/taskDue.ts`, and the shopping
+module may import only the kernel (`scripts/module-boundary-gate.mjs` — `domain/` is not in it). Copying the four
+states into `shopping/` would have been the second definition of *overdue* ADR-025 warns about. The arithmetic moved
+to `lib/dueDay.ts` in terms of a bare day (`string | null`, where the caller passes null for a thing that is done), and
+`domain/taskDue.ts` kept its task API as thin wrappers that decide *done* by `task_state` — so every task caller and
+spec stayed as it was. The pill moved with it, `components/trips/TaskDueBadge.vue` → `components/global/DueBadge.vue`,
+taking a day instead of a task. Rejected: adding `domain/taskDue` to the gate's `KERNEL_PATHS`, which would have opened
+a packing-named file to every module for the sake of four constants.
+
+**Rejected: a day on the packing list's buy rows.** It would be a second nullable column on `trip_items`, a field in
+M5, and the projection would have to carry it — for a question the row's mode already answers (*before departure* or
+*at the destination*). Revisit if an owner asks to date a packing purchase in particular.
+
+**Local Mode's hint** is packing-side (M1) and could not ask the shopping store either; the count crosses through a
+new key in `lib/tripCards.ts` (`DUE_PURCHASE_COUNT`), bound in `App.vue`, the same shape as the switcher's counts.

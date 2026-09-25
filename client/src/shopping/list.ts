@@ -11,6 +11,7 @@
  * — „Brot" typed here and „Brot" on the packing list are two decisions,
  * and the list says so rather than guessing that they are one (ADR-066).
  */
+import { isPressingDay, pressingGroupsFirst, sortByDue } from '@/lib/dueDay'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/types/domain'
@@ -54,14 +55,37 @@ const OWN_SECTION = 'own'
 /** Every source's lines, combined under this one heading. */
 const PACKING_SECTION = 'packing'
 
+/** A line's due day, or null for none (FR-30.10). */
+function dueDayOf(line: ShoppingLine): string | null {
+  return line.dueDate ?? null
+}
+
 /**
  * buildSections files the lines under their headings: every source's lines
  * first, combined under one heading regardless of category, since none of
  * them are this list's own tags to file separately by (revised 2026-09-23)
  * — then the own entries, a section per tag A–Z, then the untagged ones
  * (FR-30.9). A section is absent, not empty, when nothing is filed under it.
+ *
+ * FR-30.10, M25's rule for a task (FR-7.11): inside a section the dated lines
+ * come first, earliest first, and a section holding something overdue, due
+ * today or in the next two days moves above the others, keeping this order
+ * inside both halves. Without `today` nothing moves.
  */
-export function buildSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSection[] {
+export function buildSections(
+  own: ShoppingLine[],
+  sourced: ShoppingLine[],
+  today?: string,
+): ShoppingSection[] {
+  const sections = fileSections(own, sourced)
+  if (today === undefined) return sections
+  return pressingGroupsFirst(
+    sections.map((section) => ({ ...section, lines: sortByDue(section.lines, today, dueDayOf) })),
+    (section) => section.lines.some((line) => isPressingDay(dueDayOf(line), today)),
+  )
+}
+
+function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSection[] {
   const sections: ShoppingSection[] = []
   if (sourced.length > 0) {
     sections.push({

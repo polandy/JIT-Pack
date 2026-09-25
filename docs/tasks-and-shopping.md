@@ -85,6 +85,17 @@ On the morning before and on the day itself, the person the task is handed to is
 if nobody has it yet (see [Notifications & Push](notifications.md)). In Local Mode, where there is no server to send
 a reminder, the app says how many tasks are due when you open it.
 
+## When a purchase is due
+
+Something on the shopping list can have a day too. Tap an entry's name, set **Fällig** in the sheet and tap
+**Speichern** (or **Hinzufügen** for a new entry). The entry wears the same label a task does, leads its heading, and
+a heading with something overdue or due within two days moves to the top of the list. The shopping card on the
+overview puts those entries first as well.
+
+Only entries typed into the shopping list take a date; what comes from the packing list does not. On the morning
+before and on the day itself, everyone on the trip is reminded of it (see [Notifications & Push](notifications.md)),
+and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkäufe fällig"*).
+
 ## When the packing is finished
 
 **Packen abschliessen** on the packing list ends *before the trip*:

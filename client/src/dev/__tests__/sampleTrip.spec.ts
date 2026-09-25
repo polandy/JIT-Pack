@@ -72,6 +72,13 @@ describe('seedSampleTrip (dev)', () => {
     expect(tags).toContain(null)
   })
 
+  /* FR-30.10: a due entry and an undated one, so M6's pill and its order show on a fresh device. */
+  it('dates one entry today and leaves most undated (FR-30.10)', () => {
+    const dues = SEED_SHOPPING_ENTRIES.map((entry) => entry.due)
+    expect(dues).toContain(0)
+    expect(dues.filter((due) => due === null).length).toBeGreaterThan(dues.length / 2)
+  })
+
   /*
    * FR-7.8: the seed has to show the grouping with all three shapes of
    * heading in it, because those are what a reader has to tell apart — a

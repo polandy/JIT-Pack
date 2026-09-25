@@ -341,6 +341,9 @@ type NotificationPrefs struct {
 	NoteReply bool `json:"note_reply"`
 	// FR-7.11: a task this user is to do is due tomorrow or today.
 	TaskDue bool `json:"task_due"`
+	// FR-30.10: a shopping entry of one of this user's trips is due
+	// tomorrow or today.
+	ShoppingDue bool `json:"shopping_due"`
 }
 
 // --- Web Push (NFR-4.6) ---

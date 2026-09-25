@@ -127,6 +127,7 @@ describe('notification endpoints', () => {
       note_reply: true,
       note: true,
       task_due: true,
+      shopping_due: true,
     })
 
     expect(client.calls[0]).toMatchObject({

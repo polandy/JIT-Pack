@@ -20,13 +20,19 @@ const TODAY = '2026-07-08'
 const task = (id: string, due: string | null): TripTask =>
   ({ id, body: id, task_state: 'open', due_date: due }) as TripTask
 
-function setup(opts: { local: boolean; loaded?: () => boolean; tasks?: TripTask[] }) {
+function setup(opts: {
+  local: boolean
+  loaded?: () => boolean
+  tasks?: TripTask[]
+  purchases?: number
+}) {
   const tripIds = ref<string[]>(['t1'])
   useDueTaskHint({
     local: opts.local,
     tripIds,
     loaded: opts.loaded ?? (() => true),
     tasksOf: () => opts.tasks ?? [task('Pass', '2026-07-01'), task('Velo', '2026-07-09')],
+    purchasesDue: opts.purchases === undefined ? undefined : () => opts.purchases!,
     today: () => TODAY,
   })
   return tripIds
@@ -72,5 +78,18 @@ describe('useDueTaskHint (FR-7.11, Local Mode)', () => {
     setup({ local: false })
     await flushPromises()
     expect(toasts).toEqual([])
+  })
+})
+
+// FR-30.10: the shopping module's count rides the same sentence.
+describe('useDueTaskHint — purchases (FR-30.10)', () => {
+  it.each([
+    [[task('Pass', '2026-07-08')], 2, '1 Aufgabe und 2 Einkäufe fällig'],
+    [[], 1, '1 Einkauf fällig'],
+    [[task('Pass', '2026-07-08')], 0, '1 Aufgabe fällig'],
+  ])('names what there is: %#', async (tasks, purchases, want) => {
+    setup({ local: true, tasks, purchases })
+    await flushPromises()
+    expect(toasts).toEqual([want])
   })
 })

@@ -20,7 +20,7 @@ import {
 } from '@ionic/vue'
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
-import { TRIP_CARDS } from '@/lib/tripCards'
+import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { useRouter } from 'vue-router'
 
@@ -96,12 +96,13 @@ const activeTrips = computed(() =>
 )
 
 // FR-7.11: Local Mode has no server to send the morning's reminder, so the
-// app says it once when it is opened.
+// app says it once when it is opened — FR-30.10's purchases included.
 useDueTaskHint({
   local: readMode() === 'local',
   tripIds: computed(() => activeTrips.value.map((trip) => trip.id)),
   loaded: (tripId) => orchestrator.tripDataLoaded(tripId),
   tasksOf,
+  purchasesDue: inject(DUE_PURCHASE_COUNT, undefined),
   today: () => orchestrator.today(),
 })
 

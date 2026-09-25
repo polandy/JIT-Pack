@@ -17,7 +17,8 @@ import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
-import { createShoppingActions, shoppingCloseCrossing } from '../actions'
+import { createShoppingActions, ownEntriesSource, shoppingCloseCrossing } from '../actions'
+import { duePurchaseCount } from '..'
 import { shoppingFeatureStore, useShoppingStore } from '../store'
 
 let harness: Harness
@@ -96,6 +97,66 @@ describe('Server Mode', () => {
     ])
     const [pushTo] = harness.fetch.mock.calls.map((call) => String(call[0]))
     expect(pushTo).toContain('/trips/t1/')
+  })
+})
+
+/*
+ * FR-30.10: an entry's due day travels as one field of its own, so a day set
+ * on one device and a tag on another both stand (NFR-4.2a) — and an edit
+ * that leaves the day alone does not write it.
+ */
+describe('The due day (FR-30.10)', () => {
+  it('is written with a new entry, changed alone, and taken off with null', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const actions = createShoppingActions(orch.moduleHost)
+    actions.addEntry('t1', 'buy_local', 'Milch', null, '2026-07-09')
+    const shoppingStore = useShoppingStore()
+    const milk = () => shoppingStore.getEntries('t1')[0]!
+    expect(milk().due_date).toBe('2026-07-09')
+
+    actions.updateEntry(milk(), { name: 'Milch', tag: 'Supermarkt' })
+    actions.updateEntry(milk(), { name: 'Milch', tag: 'Supermarkt', dueDate: '2026-07-09' })
+    actions.updateEntry(milk(), { name: 'Milch', tag: 'Supermarkt', dueDate: null })
+    expect(milk().due_date).toBeNull()
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations().map((m) => m.fields)).toMatchObject([
+      { name: 'Milch', due_date: '2026-07-09' },
+      { tag: 'Supermarkt' },
+      { due_date: null },
+    ])
+    // The tag's edit named no day, and the same day again wrote nothing.
+    expect(harness.pushedMutations()[1]!.fields).not.toHaveProperty('due_date')
+    expect(harness.pushedMutations()).toHaveLength(3)
+  })
+
+  it('counts the open entries due by tomorrow on both lists for Local Mode’s hint', () => {
+    const actions = createShoppingActions(serverOrch().moduleHost)
+    actions.addEntry('t1', 'buy_before', 'Hut', null, '2026-07-01')
+    actions.addEntry('t1', 'buy_local', 'Milch', null, '2026-07-09')
+    actions.addEntry('t1', 'buy_local', 'Kerzen', null, '2026-07-10')
+    actions.addEntry('t1', 'buy_local', 'Brot')
+    actions.addEntry('t1', 'buy_local', 'Eier', null, '2026-07-08')
+    actions.setBought(
+      useShoppingStore()
+        .getEntries('t1')
+        .find((e) => e.name === 'Eier')!,
+      true,
+    )
+
+    expect(duePurchaseCount()('t1', '2026-07-08')).toBe(2)
+  })
+
+  it('a bought entry’s line carries no day — a purchase made is never overdue', () => {
+    const orch = serverOrch()
+    const actions = createShoppingActions(orch.moduleHost)
+    actions.addEntry('t1', 'buy_local', 'Milch', null, '2026-07-01')
+    const shoppingStore = useShoppingStore()
+    const own = ownEntriesSource(shoppingStore, actions)
+    expect(own.open('t1', 'buy_local')[0]!.dueDate).toBe('2026-07-01')
+    actions.setBought(shoppingStore.getEntries('t1')[0]!, true)
+    expect(own.bought('t1', 'buy_local')[0]!.dueDate).toBeNull()
   })
 })
 

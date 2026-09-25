@@ -1,26 +1,28 @@
 /**
  * FR-7.11 — when a task is due, and what that does to where it is shown.
  *
- * A due date is a *day* (`YYYY-MM-DD`), never a moment: the owner asked for
- * a day, and a day read on the other side of a time zone must stay the same
- * day. So nothing here parses a `Date` from it — two days are compared as
- * calendar days, and „today" arrives from the caller (`orchestrator.today()`),
- * which is what keeps every rule below testable without a clock.
- *
- * The three states that matter are the ones a person acts on: **overdue**,
- * **today**, and **soon** (the next two days, owner 2026-09-25). A date
- * further out is *later* — it is shown, but it does not move anything up.
+ * The day arithmetic is the kernel's (`lib/dueDay.ts`, shared with FR-30.10's
+ * shopping entries); what is a task's own is which task has a day worth
+ * reading — an open one. A resolved task is never overdue.
  */
+import {
+  DUE_LATER,
+  DUE_OVERDUE,
+  DUE_SOON,
+  DUE_SOON_DAYS,
+  DUE_TODAY,
+  daysBetween,
+  dueState,
+  isDueByTomorrow,
+  isPressingDay,
+  pressingGroupsFirst,
+  sortByDue,
+  type DueState,
+} from '@/lib/dueDay'
 import type { TodoState } from '@/types/domain'
 
-export const DUE_OVERDUE = 'overdue'
-export const DUE_TODAY = 'today'
-export const DUE_SOON = 'soon'
-export const DUE_LATER = 'later'
-export type DueState = typeof DUE_OVERDUE | typeof DUE_TODAY | typeof DUE_SOON | typeof DUE_LATER
-
-/** How many days ahead still count as *soon* (owner, 2026-09-25). */
-export const DUE_SOON_DAYS = 2
+export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY, daysBetween }
+export type { DueState }
 
 /** What the rules read off a task. */
 export interface DueFacts {
@@ -28,17 +30,9 @@ export interface DueFacts {
   task_state: TodoState
 }
 
-/** The days from `today` to `day`, both `YYYY-MM-DD`; negative in the past. */
-export function daysBetween(today: string, day: string): number {
-  return Math.round((utcDay(day) - utcDay(today)) / MS_PER_DAY)
-}
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
-/** A calendar day as UTC midnight — a count of days that no DST can bend. */
-function utcDay(iso: string): number {
-  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
-  return Date.UTC(year, month - 1, day)
+/** The day that counts: an open task's date, and none for a finished one. */
+export function openDueDay(task: DueFacts): string | null {
+  return task.task_state === 'open' ? task.due_date : null
 }
 
 /**
@@ -47,18 +41,12 @@ function utcDay(iso: string): number {
  * never overdue, whatever its date says.
  */
 export function dueStateOf(task: DueFacts, today: string): DueState | null {
-  if (task.due_date === null || task.task_state !== 'open') return null
-  const days = daysBetween(today, task.due_date)
-  if (days < 0) return DUE_OVERDUE
-  if (days === 0) return DUE_TODAY
-  if (days <= DUE_SOON_DAYS) return DUE_SOON
-  return DUE_LATER
+  return dueState(openDueDay(task), today)
 }
 
 /** Whether a task is one somebody should look at now: overdue, today or soon. */
 export function isDuePressing(task: DueFacts, today: string): boolean {
-  const state = dueStateOf(task, today)
-  return state !== null && state !== DUE_LATER
+  return isPressingDay(openDueDay(task), today)
 }
 
 /**
@@ -68,12 +56,7 @@ export function isDuePressing(task: DueFacts, today: string): boolean {
  * too.
  */
 export function byDue<T extends DueFacts>(tasks: readonly T[], today: string): T[] {
-  const rank = (task: T) =>
-    dueStateOf(task, today) === null ? Number.POSITIVE_INFINITY : daysBetween(today, task.due_date!)
-  return tasks
-    .map((task, index) => ({ task, index, rank: rank(task) }))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map(({ task }) => task)
+  return sortByDue(tasks, today, openDueDay)
 }
 
 /**
@@ -85,8 +68,9 @@ export function pressingFirst<G extends { tasks: readonly DueFacts[] }>(
   groups: readonly G[],
   today: string,
 ): G[] {
-  const pressing = (group: G) => group.tasks.some((task) => isDuePressing(task, today))
-  return [...groups.filter(pressing), ...groups.filter((group) => !pressing(group))]
+  return pressingGroupsFirst(groups, (group) =>
+    group.tasks.some((task) => isDuePressing(task, today)),
+  )
 }
 
 /**
@@ -95,8 +79,5 @@ export function pressingFirst<G extends { tasks: readonly DueFacts[] }>(
  * same two days a push would have named.
  */
 export function dueByTomorrowCount(tasks: readonly DueFacts[], today: string): number {
-  return tasks.filter((task) => {
-    const state = dueStateOf(task, today)
-    return state !== null && daysBetween(today, task.due_date!) <= 1
-  }).length
+  return tasks.filter((task) => isDueByTomorrow(openDueDay(task), today)).length
 }

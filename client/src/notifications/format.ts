@@ -17,6 +17,7 @@ import {
   notificationParams,
   NOTIFY_NOTE,
   NOTIFY_NOTE_REPLY,
+  NOTIFY_SHOPPING_DUE,
   NOTIFY_TASK_DUE,
 } from './messages'
 import { tripItemPath, tripNotesPath, tripPath, tripSubPath } from '@/router/paths'
@@ -52,6 +53,8 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (!tripId) return null
   // FR-7.11: a reminder is about the trip's tasks, which live on M25.
   if (n.kind === NOTIFY_TASK_DUE) return tripSubPath(tripId, 'tasks')
+  // FR-30.10: a purchase's reminder opens the trip's shopping list (M6).
+  if (n.kind === NOTIFY_SHOPPING_DUE) return tripSubPath(tripId, 'shopping')
   // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
   if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
     const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')

@@ -355,6 +355,7 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     tag: (row['tag'] as string) ?? null,
     bought_at: (row['bought_at'] as string) ?? null,
     bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
+    due_date: (row['due_date'] as string | null | undefined) ?? null,
   }
 }
 

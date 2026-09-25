@@ -498,6 +498,9 @@ var tableSpecs = map[string]tableSpec{
 			"tag",
 			// FR-30.4, stamped by stampActor.
 			"bought_at", "bought_by_user_id",
+			// FR-30.10: the day it is due — the client's to choose, like a
+			// task's (FR-7.11); the reminder scheduler only reads it.
+			"due_date",
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

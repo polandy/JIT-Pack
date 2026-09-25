@@ -50,6 +50,7 @@ const orchestratorFake = {
       note: true,
       note_reply: true,
       task_due: true,
+      shopping_due: true,
     }),
   ),
   saveNotificationPrefs: vi.fn(),
@@ -132,7 +133,7 @@ describe('M17 notifications on a Single-User server (FR-7.11)', () => {
     session.on = true
   })
 
-  it('offers the reminder and the push, and nothing a second person would set off', async () => {
+  it('offers the reminders and the push, and nothing a second person would set off', async () => {
     const wrapper = mountSettings()
     await flushPromises()
 
@@ -140,7 +141,8 @@ describe('M17 notifications on a Single-User server (FR-7.11)', () => {
     const rows = wrapper
       .findAll('[data-testid^="settings-pref-"]')
       .map((r) => r.attributes('data-testid'))
-    expect(rows).toEqual(['settings-pref-task_due'])
+    // FR-7.11 and FR-30.10: the two kinds nobody sets off.
+    expect(rows).toEqual(['settings-pref-task_due', 'settings-pref-shopping_due'])
     expect(wrapper.find('[data-testid="settings-push"]').exists()).toBe(true)
   })
 

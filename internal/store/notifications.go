@@ -33,10 +33,14 @@ const (
 	// The only kind no person sets in motion — the server's daily clock
 	// does — so its payload names no actor.
 	NotifyTaskDue = "task_due"
+	// NotifyShoppingDue is FR-30.10's reminder, sent by the same daily run:
+	// a shopping entry is due tomorrow or today. Its own switch, because a
+	// person reminded of their chores need not want the groceries.
+	NotifyShoppingDue = "shopping_due"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue, NotifyShoppingDue}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

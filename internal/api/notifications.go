@@ -68,13 +68,14 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, NotificationPrefs{
-		Delegation: prefs[store.NotifyDelegation],
-		Mention:    prefs[store.NotifyMention],
-		Task:       prefs[store.NotifyTask],
-		LockTaken:  prefs[store.NotifyLockTaken],
-		Note:       prefs[store.NotifyNote],
-		NoteReply:  prefs[store.NotifyNoteReply],
-		TaskDue:    prefs[store.NotifyTaskDue],
+		Delegation:  prefs[store.NotifyDelegation],
+		Mention:     prefs[store.NotifyMention],
+		Task:        prefs[store.NotifyTask],
+		LockTaken:   prefs[store.NotifyLockTaken],
+		Note:        prefs[store.NotifyNote],
+		NoteReply:   prefs[store.NotifyNoteReply],
+		TaskDue:     prefs[store.NotifyTaskDue],
+		ShoppingDue: prefs[store.NotifyShoppingDue],
 	})
 }
 

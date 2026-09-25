@@ -4,7 +4,9 @@
  * through (the router's lazy page import aside). The dev seed uses it too, to
  * write its entries through the module's own actions.
  */
+import { isDueByTomorrow } from '@/lib/dueDay'
 import type { ShoppingSource } from '@/lib/shoppingSources'
+import type { DuePurchaseCount } from '@/lib/tripCards'
 import { SHOPPING_MODES } from '@/types/domain'
 import { openCount } from './list'
 import { shoppingFeatureStore, useShoppingStore } from './store'
@@ -24,4 +26,22 @@ export function shoppingCount(sources: readonly ShoppingSource[]): (tripId: stri
   return (tripId) =>
     SHOPPING_MODES.reduce((n, list) => n + shoppingStore.openEntries(tripId, list).length, 0) +
     openCount(tripId, sources)
+}
+
+/**
+ * FR-30.10: the own entries still to buy, on either list, that are due by
+ * tomorrow — overdue ones included — for Local Mode's opening hint. Only
+ * the list's own entries carry a day.
+ */
+export function duePurchaseCount(): DuePurchaseCount {
+  const shoppingStore = useShoppingStore()
+  return (tripId, today) =>
+    SHOPPING_MODES.reduce(
+      (n, list) =>
+        n +
+        shoppingStore
+          .openEntries(tripId, list)
+          .filter((entry) => isDueByTomorrow(entry.due_date, today)).length,
+      0,
+    )
 }

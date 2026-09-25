@@ -41,6 +41,7 @@ import {
 import { computed, inject, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
+import DateField from '@/components/global/DateField.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
@@ -49,6 +50,7 @@ import RevealBar from '@/components/global/RevealBar.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import DueBadge from '@/components/global/DueBadge.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -144,7 +146,9 @@ function openLines(list: ShoppingMode) {
 }
 
 const open = computed(() => openLines(tab.value))
-const sections = computed(() => buildSections(open.value.own, open.value.sourced))
+/** Today as the device reckons it — what a due day is read against (FR-30.10). */
+const today = computed(() => orchestrator.today())
+const sections = computed(() => buildSections(open.value.own, open.value.sourced, today.value))
 
 /**
  * FR-25.11j: a bought row leaves the open list rather than vanishing —
@@ -418,27 +422,30 @@ function addEntry() {
 
 /**
  * The entry sheet (FR-30.9): the name and the tag, like the packing list's
- * creation sheet. One mask for two acts — adding an entry (opened from the
- * composer's ＋ Tag, carrying what was typed there) and editing one that
- * exists (a tap on its name) — so `line` is what tells them apart.
+ * creation sheet, and the due day (FR-30.10). One mask for two acts — adding
+ * an entry (opened from the composer's ＋ Tag, carrying what was typed there)
+ * and editing one that exists (a tap on its name) — so `line` is what tells
+ * them apart.
  */
 const entrySheet = ref<{
   line: ShoppingLine | null
   name: string
   tag: string | null
+  /** `YYYY-MM-DD`, or null for none — the date field's clear hands back null. */
+  due: string | null
 } | null>(null)
 
 /** Tags made in this visit, kept as chips even while no entry carries them yet. */
 const madeTags = ref<string[]>([])
 
 function openAddSheet() {
-  entrySheet.value = { line: null, name: draft.value, tag: draftTag.value }
+  entrySheet.value = { line: null, name: draft.value, tag: draftTag.value, due: null }
 }
 
 /** An existing entry, from a tap on its name; a source's line has nothing to edit. */
 function openEditSheet(line: ShoppingLine) {
   if (!line.edit) return
-  entrySheet.value = { line, name: line.name, tag: line.tag ?? null }
+  entrySheet.value = { line, name: line.name, tag: line.tag ?? null, due: line.dueDate ?? null }
 }
 
 function chooseSheetTag(tag: string | null) {
@@ -446,13 +453,18 @@ function chooseSheetTag(tag: string | null) {
   if (tag !== null && !madeTags.value.includes(tag)) madeTags.value.push(tag)
 }
 
+/** FR-30.10: the date field's answer; its clear hands back an empty string, which is no date. */
+function chooseSheetDue(iso: string) {
+  if (entrySheet.value) entrySheet.value.due = iso === '' ? null : iso
+}
+
 function confirmEntrySheet() {
   const sheet = entrySheet.value
   if (!sheet || sheet.name.trim() === '') return
   if (sheet.line?.edit) {
-    sheet.line.edit({ name: sheet.name, tag: sheet.tag })
+    sheet.line.edit({ name: sheet.name, tag: sheet.tag, dueDate: sheet.due })
   } else {
-    actions.addEntry(props.tripId, tab.value, sheet.name, sheet.tag)
+    actions.addEntry(props.tripId, tab.value, sheet.name, sheet.tag, sheet.due)
     draft.value = ''
     draftTag.value = sheet.tag
   }
@@ -631,6 +643,13 @@ setHeaderTitle(
                 </p>
               </IonLabel>
               <template v-if="!selecting">
+                <!-- FR-30.10: when it is due, first — M25's place for a task's day. -->
+                <DueBadge
+                  slot="end"
+                  :day="line.dueDate ?? null"
+                  :today="today"
+                  :testid="`m6-row-due-${line.name}`"
+                />
                 <IonButton
                   v-if="line.remove"
                   slot="end"
@@ -799,6 +818,15 @@ setHeaderTitle(
             "
             @keyup.enter="confirmEntrySheet"
           />
+          <!-- FR-30.10: a day, not a time — FR-7.11's field for a task. -->
+          <div class="entry-sheet-due">
+            <DateField
+              :label="t('shopping.dueField')"
+              :value="entrySheet.due ?? ''"
+              testid="m6-entry-due"
+              @update="chooseSheetDue"
+            />
+          </div>
           <ShoppingTagChooser
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="entrySheet.tag"
@@ -982,6 +1010,10 @@ setHeaderTitle(
 
 .entry-sheet {
   padding: 4px 18px 22px;
+}
+
+.entry-sheet-due {
+  margin-top: 12px;
 }
 
 .entry-sheet-actions {

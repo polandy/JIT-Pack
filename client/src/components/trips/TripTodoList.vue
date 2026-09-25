@@ -31,7 +31,7 @@ import { chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
-import TaskDueBadge from '@/components/trips/TaskDueBadge.vue'
+import DueBadge from '@/components/global/DueBadge.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
@@ -40,6 +40,7 @@ import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import type { RowSelection } from '@/composables/useRowSelection'
+import { openDueDay } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripItemPath } from '@/router/paths'
@@ -230,9 +231,9 @@ function onOpen(task: TripTask) {
       <span v-if="!selecting" slot="end" class="todo-end">
         <!-- FR-7.11: when it is due, first — it is what decides whether the
              line is read now. -->
-        <TaskDueBadge
+        <DueBadge
           v-if="today"
-          :task="task"
+          :day="openDueDay(task)"
           :today="today"
           :testid="`trip-todo-due-${task.body}`"
         />

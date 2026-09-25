@@ -22,10 +22,12 @@ import { computed, inject, ref } from 'vue'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
+import DueBadge from '@/components/global/DueBadge.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
+import { isPressingDay, sortByDue } from '@/lib/dueDay'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import { presentToast } from '@/lib/toast'
 import type { TripCardProps } from '@/lib/tripCards'
@@ -55,14 +57,24 @@ const list = ref<ShoppingMode>(
   listInFocus({ planned: props.planned, packingClosed: props.packingClosed }),
 )
 
-/** Own entries first, as on M6; a source's lines after them. */
+/** Today as the device reckons it — what a due day is read against (FR-30.10). */
+const today = computed(() => orchestrator.today())
+
+/**
+ * Own entries first, as on M6; a source's lines after them. FR-30.10, M1's
+ * rule for a task (FR-7.11): what is pressing — overdue, today, the next two
+ * days — leads, earliest first; everything else keeps that order.
+ */
 function linesOf(which: ShoppingMode): { line: ShoppingLine; own: boolean }[] {
-  return [
+  const all = [
     ...own.open(props.tripId, which).map((line) => ({ line, own: true })),
     ...sources.flatMap((source) =>
       source.open(props.tripId, which).map((line) => ({ line, own: false })),
     ),
   ]
+  return sortByDue(all, today.value, ({ line }) =>
+    isPressingDay(line.dueDate ?? null, today.value) ? (line.dueDate ?? null) : null,
+  )
 }
 
 const before = computed(() => linesOf(ITEM_MODE_BUY_BEFORE))
@@ -157,7 +169,11 @@ function switchTo(which: ShoppingMode) {
         :check-label="t('shopping.bought', { name: line.name })"
         testid="dash-shop-row"
         @check="buy(line)"
-      />
+      >
+        <template v-if="line.dueDate" #lead>
+          <DueBadge :day="line.dueDate" :today="today" :testid="`dash-shop-due-${line.name}`" />
+        </template>
+      </DashboardBlockRow>
     </DashboardBlock>
     <div v-if="lastBought" class="undo" data-testid="dash-shop-undo">
       <span>{{ t('shopping.boughtUndoable', { name: lastBought.name }) }}</span>
@@ -221,6 +237,12 @@ function switchTo(which: ShoppingMode) {
         <span v-if="line.quantity > 1" class="qty">{{ line.quantity }}×</span>
         <span v-if="!isOwn" class="tag">{{ t('shopping.fromPacking') }}</span>
         <span v-else-if="line.tag" class="tag" data-testid="dash-shop-row-tag">{{ line.tag }}</span>
+        <!-- FR-30.10: when it is due, beside what it is. -->
+        <DueBadge
+          :day="line.dueDate ?? null"
+          :today="today"
+          :testid="`dash-shop-due-${line.name}`"
+        />
         <!-- FR-30.9: the check-off sits at the end, where the thumb rests. -->
         <IonCheckbox
           :checked="false"

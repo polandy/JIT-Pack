@@ -12,12 +12,13 @@ import { computed, ref } from 'vue'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
-import TaskDueBadge from '@/components/trips/TaskDueBadge.vue'
+import DueBadge from '@/components/global/DueBadge.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
+import { openDueDay } from '@/domain/taskDue'
 import { dashboardTasks, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripSubPath } from '@/router/paths'
@@ -120,8 +121,8 @@ function add(text: string) {
       @check="acts.toggle(task)"
     >
       <template #lead>
-        <TaskDueBadge
-          :task="task"
+        <DueBadge
+          :day="openDueDay(task)"
           :today="orchestrator.today()"
           :testid="`due-${testid}-${task.body}`"
         />

@@ -943,6 +943,8 @@ export const en = {
   'settings.prefNoteReplyHint': 'Somebody replied in a note you wrote in',
   'settings.prefTaskDue': 'Tasks due',
   'settings.prefTaskDueHint': 'A task of yours is due tomorrow or today',
+  'settings.prefShoppingDue': 'Purchases due',
+  'settings.prefShoppingDueHint': 'Something on a trip’s shopping list is due tomorrow or today',
   'settings.push': 'Push on this device',
   'settings.pushHint': 'OS notifications while the app is closed',
   'settings.pushUnsupported': 'Not supported by this browser',
@@ -1567,6 +1569,8 @@ export const en = {
   'tasks.dueSetToast': '“{body}” due {date}',
   'tasks.dueClearedToast': '“{body}” has no due date any more',
   'tasks.dueHint': '{n} task due | {n} tasks due',
+  'tasks.dueCount': '{n} task | {n} tasks',
+  'tasks.dueHintBoth': '{tasks} and {purchases} due',
   'tasks.beforeLocked': 'The packing is finished — this is what was done before the trip.',
 
   // FR-7.9 — a trip's notes: written by one traveller, read by all, ticked
@@ -1741,6 +1745,9 @@ export const en = {
   'shopping.wentToPacking': 'on the packing list',
   'shopping.wentPacked': 'packed',
   'shopping.listUnknown': 'Loading the shopping list …',
+  'shopping.dueField': 'Due',
+  'shopping.dueCount': '{n} purchase | {n} purchases',
+  'shopping.dueHint': '{n} purchase due | {n} purchases due',
   'shopping.beforeLocked':
     'The packing is finished — this list is now the record of what was bought before departure.',
   'shopping.emptyBefore': 'Nothing to buy before departure',
@@ -1872,6 +1879,10 @@ export const en = {
   'notify.body.task_duePlain': 'A task is due today',
   'notify.body.task_dueTomorrow': '“{item}” is due tomorrow',
   'notify.body.task_dueTomorrowPlain': 'A task is due tomorrow',
+  'notify.body.shopping_due': 'Buy “{item}” today',
+  'notify.body.shopping_duePlain': 'A purchase is due today',
+  'notify.body.shopping_dueTomorrow': 'Buy “{item}” by tomorrow',
+  'notify.body.shopping_dueTomorrowPlain': 'A purchase is due tomorrow',
   'notify.body.generic': '{actor} sent you a notification',
   'notify.actorUnknown': 'Someone',
 } as const

@@ -9,13 +9,18 @@ import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { buildSections, dropTag, listInFocus, openCount } from '../list'
 
-function line(name: string, tag: string | null = null): ShoppingLine {
+function line(
+  name: string,
+  tag: string | null = null,
+  dueDate: string | null = null,
+): ShoppingLine {
   return {
     key: name,
     name,
     quantity: 1,
     recipients: [],
     tag,
+    dueDate,
     buy: () => {},
     unbuy: () => {},
   }
@@ -128,5 +133,56 @@ describe('listInFocus', () => {
     // because nobody tapped *Reise starten*. Shopping before departure is
     // over all the same.
     expect(listInFocus({ planned: true, packingClosed: true })).toBe('buy_local')
+  })
+})
+
+/*
+ * FR-30.10, M25's rule for a task (FR-7.11): dated lines lead their section,
+ * earliest first, and a section holding something pressing moves up.
+ */
+describe('buildSections — due days (FR-30.10)', () => {
+  const TODAY = '2026-07-08'
+
+  it('puts the dated lines first inside a section, earliest first, the rest in their order', () => {
+    const [section] = buildSections(
+      [
+        line('Brot', 'Supermarkt'),
+        line('Milch', 'Supermarkt', '2026-07-20'),
+        line('Pasta', 'Supermarkt'),
+        line('Eier', 'Supermarkt', '2026-07-05'),
+      ],
+      [],
+      TODAY,
+    )
+    expect(section!.lines.map((l) => l.name)).toEqual(['Eier', 'Milch', 'Brot', 'Pasta'])
+  })
+
+  it('moves a section with something overdue, today or soon above the others', () => {
+    const sections = buildSections(
+      [
+        line('Spray', 'Apotheke', '2026-07-08'),
+        line('Brot', 'Supermarkt'),
+        line('Wasser'),
+        line('Kerzen', 'Baumarkt', '2026-07-30'),
+      ],
+      [line('Sonnencreme')],
+      TODAY,
+    )
+    // Apotheke is due today; Baumarkt's day is far off and moves nothing.
+    expect(sections.map((s) => s.key)).toEqual([
+      'tag:Apotheke',
+      'packing',
+      'tag:Baumarkt',
+      'tag:Supermarkt',
+      'own',
+    ])
+  })
+
+  it('moves nothing without a today to read against', () => {
+    const sections = buildSections(
+      [line('Spray', 'Apotheke', '2026-07-08'), line('Brot')],
+      [line('Hut')],
+    )
+    expect(sections.map((s) => s.key)).toEqual(['packing', 'tag:Apotheke', 'own'])
   })
 })
