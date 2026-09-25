@@ -71,6 +71,32 @@ row is hidden again by deleting it, as before.
 usual "which bag?" picker once and puts every selected row into the bag you choose. Outside a selection, tapping a row
 still opens the picker for that one row.
 
+## When a task is due
+
+Tap a task's words to open it, and set **Fällig** to the day it has to be done by — a day, no time. **Löschen** in
+the calendar takes the date off again. A task with a date wears a small label on its line: **Überfällig** in red once
+the day has passed, **Heute**, **Morgen** or **In 2 Tagen** when it is close, and the date itself further out.
+
+What is due comes first: inside a group the dated tasks lead, earliest first, and a group holding an overdue task or
+one due within two days moves to the top. The packing list's task window and the task block on the overview put
+them first too.
+
+On the morning before and on the day itself, the person the task is handed to is reminded — or everyone on the trip,
+if nobody has it yet (see [Notifications & Push](notifications.md)). In Local Mode, where there is no server to send
+a reminder, the app says how many tasks are due when you open it.
+
+## When the packing is finished
+
+**Packen abschliessen** on the packing list ends *before the trip*:
+
+- Every open task for **Vor der Reise** moves to **Während der Reise**, and everything still to buy **Vor der
+  Abreise** moves to **Vor Ort** on the shopping list. The confirmation says how many; **Rückgängig** takes all of it
+  back.
+- Afterwards both *before* lists are a record: **Vor der Reise** on the tasks and **Vor der Abreise** on the shopping
+  list say so at the top, and nothing can be added to them, ticked or unticked there, or moved into them. New tasks
+  land in **Während der Reise**.
+- **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
+
 ## Which menu holds what
 
 A **⋮** menu only holds what belongs to the screen it sits on:
@@ -84,4 +110,6 @@ A **⋮** menu only holds what belongs to the screen it sits on:
 
 ## Single-User and Local Mode
 
-Both work the same in every mode: grouping, dragging and selecting all happen on your device.
+Both work the same in every mode: grouping, dragging, selecting, due dates and the finished packing all happen on your
+device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode says what is due when
+the app opens.

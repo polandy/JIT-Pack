@@ -286,6 +286,11 @@ export const de: Record<keyof typeof en, string> = {
     '{n} offene Aufgabe wandert zu den Aufgaben für unterwegs. | {n} offene Aufgaben wandern zu den Aufgaben für unterwegs.',
   'packing.closedToastTasks':
     '{n} Aufgabe ist jetzt für unterwegs | {n} Aufgaben sind jetzt für unterwegs',
+  // FR-7.12 — was auf der Einkaufsliste „Vor der Abreise" offen ist, wandert
+  // mit dem Abschluss zu „Vor Ort".
+  'packing.closeConfirmShopping':
+    '{n} offener Einkauf wandert von „Vor der Abreise" zu „Vor Ort". | {n} offene Einkäufe wandern von „Vor der Abreise" zu „Vor Ort".',
+  'packing.closedToastShopping': '{n} Einkauf jetzt vor Ort | {n} Einkäufe jetzt vor Ort',
   'packing.closedTitle': 'Packen abgeschlossen',
   'packing.closedStamp': '{when} · {n} nicht mitgenommen | {when} · {n} nicht mitgenommen',
   'packing.closedStampNone': '{when}',
@@ -939,6 +944,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.prefLockTakenHint': 'Jemand hat einen Artikel übernommen, den du gerade gepackt hast',
   'settings.prefNote': 'Reisenotizen',
   'settings.prefNoteHint': 'Ein Mitreisender hat eine neue Notiz geschrieben',
+  'settings.prefTaskDue': 'Fällige Aufgaben',
+  'settings.prefTaskDueHint': 'Eine Aufgabe für dich ist morgen oder heute fällig',
   'settings.push': 'Push auf diesem Gerät',
   'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
   'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
@@ -1563,6 +1570,17 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.newTag': 'Neues Tag…',
   'tasks.movedToast': '„{body}" verschoben',
   'tasks.whilePacking': 'Beim Packen zu erledigen',
+  // FR-7.11 — das Fälligkeitsdatum einer Aufgabe: nur ein Tag, keine Zeit.
+  'tasks.dueOverdue': 'Überfällig',
+  'tasks.dueToday': 'Heute',
+  'tasks.dueTomorrow': 'Morgen',
+  'tasks.dueInDays': 'In {n} Tagen',
+  'tasks.dueField': 'Fällig',
+  'tasks.dueSetToast': '„{body}" fällig am {date}',
+  'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
+  'tasks.dueHint': '{n} Aufgabe fällig | {n} Aufgaben fällig',
+  'tasks.beforeLocked':
+    'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
 
   // FR-7.9 — Notizen einer Reise: von einer Person geschrieben, von allen
   // gelesen, pro Person abgehakt. Keine Geheimnis-Ablage (§6 des Konzepts) —
@@ -1721,6 +1739,8 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.wentToPacking': 'auf der Packliste',
   'shopping.wentPacked': 'eingepackt',
   'shopping.listUnknown': 'Einkaufsliste wird geladen …',
+  'shopping.beforeLocked':
+    'Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise gekauft wurde.',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
   'shopping.emptyHint':
@@ -1846,6 +1866,10 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.lock_takenPlain': '{actor} hat einen Artikel von dir übernommen',
   'notify.body.note': '{actor} hat eine Notiz geschrieben: {preview}',
   'notify.body.notePlain': '{actor} hat eine neue Notiz geschrieben',
+  'notify.body.task_due': '„{item}“ ist heute fällig',
+  'notify.body.task_duePlain': 'Eine Aufgabe ist heute fällig',
+  'notify.body.task_dueTomorrow': '„{item}“ ist morgen fällig',
+  'notify.body.task_dueTomorrowPlain': 'Eine Aufgabe ist morgen fällig',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.actorUnknown': 'Jemand',
 }

@@ -41,6 +41,7 @@ const FACTS = {
   created_at: null,
   resolved_at: null,
   resolved_by_user_id: null,
+  due_date: null,
 } as const
 
 /** A row's preparation (FR-7.3), as FR-7.6 lists it. */
@@ -328,5 +329,63 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
     expect(wrapper.get('[data-testid="trip-todo-empty"]').text()).toBe(
       'Nothing left to do before the trip.',
     )
+  })
+})
+
+describe('TripTodoList — when a task is due (FR-7.11)', () => {
+  const TODAY = '2026-07-08'
+  const dated = (body: string, due: string, state: 'open' | 'resolved' = 'open'): TripTask => ({
+    ...ownTask(body, state),
+    due_date: due,
+  })
+
+  it('wears the day on an open task, red once it has passed', () => {
+    const list = mountList(
+      [dated('Pass holen', '2026-07-01'), dated('Katze', TODAY), dated('Velo', '2026-07-09')],
+      true,
+      { today: TODAY },
+    )
+    const badge = (body: string) => list.get(`[data-testid="trip-todo-due-${body}"]`)
+    expect(badge('Pass holen').attributes('data-due')).toBe('overdue')
+    expect(badge('Katze').attributes('data-due')).toBe('today')
+    expect(badge('Velo').attributes('data-due')).toBe('soon')
+  })
+
+  it('draws nothing for a task without a date, or where the screen gives no today', () => {
+    expect(
+      mountList([ownTask('Blumen', 'open')], true, { today: TODAY })
+        .find('[data-testid="trip-todo-due-Blumen"]')
+        .exists(),
+    ).toBe(false)
+    expect(
+      mountList([dated('Pass holen', '2026-07-01')])
+        .find('[data-testid="trip-todo-due-Pass holen"]')
+        .exists(),
+    ).toBe(false)
+  })
+})
+
+describe('TripTodoList — a closed phase is history (FR-7.12)', () => {
+  it('offers no seat, no ✕ and no tick that works — the words still open the sheet', async () => {
+    const list = mountList(
+      [ownTask('Pflanzen', 'open', 'u-sia'), ownTask('Post', 'resolved')],
+      true,
+      {
+        readonly: true,
+      },
+    )
+    expect(list.find('[data-testid="trip-todo-assign-Pflanzen"]').exists()).toBe(false)
+    // The person is still named, where nothing can be changed.
+    expect(list.find('[data-testid="trip-todo-assignee-Pflanzen"]').exists()).toBe(true)
+    expect(list.find('[data-testid="trip-todo-remove-Pflanzen"]').exists()).toBe(false)
+    // A custom element takes `disabled` as a property, not an attribute.
+    const boxes = list.findAll('ion-checkbox')
+    expect(boxes.length).toBeGreaterThan(0)
+    expect(boxes.every((box) => (box.element as unknown as { disabled: boolean }).disabled)).toBe(
+      true,
+    )
+
+    await list.get('[data-testid="trip-todo-open-Pflanzen"]').trigger('click')
+    expect(list.emitted('open')).toHaveLength(1)
   })
 })

@@ -138,6 +138,7 @@ function taskFactRow(task: TaskFacts): Record<string, unknown> {
   return {
     task_tag_id: task.task_tag_id,
     phase: task.phase,
+    due_date: task.due_date,
     created_at: task.created_at,
     assignee_user_id: task.assignee_user_id,
     resolved_at: task.resolved_at,

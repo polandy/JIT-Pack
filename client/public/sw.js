@@ -164,10 +164,12 @@ async function readMirror() {
  * plainer sentence.
  */
 function bodyName(kind, payload) {
-  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note']
+  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note', 'task_due']
   if (known.indexOf(kind) === -1) return 'generic'
   const named = kind === 'mention' || kind === 'note' ? payload.preview : payload.item_name
-  return named ? kind : kind + 'Plain'
+  // FR-7.11: a reminder's day picks one of two sentences.
+  const body = kind === 'task_due' && payload.due === 'tomorrow' ? 'task_dueTomorrow' : kind
+  return named ? body : body + 'Plain'
 }
 
 /** `{slot}` substitution, as `t()` does it. An unknown slot is left alone. */
@@ -196,9 +198,11 @@ function notificationBody(data, mirror) {
  * `&comment=` (ADR-046) — and the worker spec holds the two together, so a
  * changed key in `router/paths.ts` fails a test rather than a tap.
  */
-function notificationUrl(payload) {
+function notificationUrl(payload, kind) {
   if (!payload.trip_id) return '/'
   let url = `/trips/${payload.trip_id}`
+  // FR-7.11: a reminder opens the trip's tasks (M25).
+  if (kind === 'task_due') return url + '/tasks'
   if (payload.item_id) {
     url += `?item=${payload.item_id}`
     if (payload.comment_id) url += `&comment=${payload.comment_id}`
@@ -215,7 +219,7 @@ self.addEventListener('push', (event) => {
   }
   const payload = data.payload || {}
 
-  const url = notificationUrl(payload)
+  const url = notificationUrl(payload, data.kind)
 
   event.waitUntil(
     (async () => {

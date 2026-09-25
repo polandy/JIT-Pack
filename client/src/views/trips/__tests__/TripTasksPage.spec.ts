@@ -66,6 +66,7 @@ const acts = {
   assignTripTodo: vi.fn(),
   assignPrepTodo: vi.fn(),
   setTaskPhase: vi.fn(),
+  setTaskDueDate: vi.fn(),
   // FR-7.9
   addComment: vi.fn(() => 'new-note'),
   deleteComment: vi.fn(),
@@ -525,7 +526,11 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    await page.findComponent({ name: 'TripTaskSheet' }).findComponent(IonInput).setValue('Apotheke')
+    // The tag chooser's own field — the sheet's first input is FR-7.11's date.
+    await page
+      .findComponent({ name: 'TaskTagChooser' })
+      .findComponent(IonInput)
+      .setValue('Apotheke')
     await page.get('[data-testid="task-sheet-tag-add"]').trigger('click')
     await flushPromises()
 
@@ -662,6 +667,126 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-during"]').trigger('click')
     await flushPromises()
     expect(acts.setTaskPhase).not.toHaveBeenCalled()
+  })
+})
+
+/** FR-7.12: the packing of the seeded trip is declared finished. */
+function closeThePacking() {
+  useTripStore().applyChange({
+    seq: 1,
+    table: TABLE.trips,
+    id: 't1',
+    deleted: false,
+    row: {
+      name: 'Samedan',
+      year: 2026,
+      status: 'active',
+      packing_closed_at: '2026-07-08T06:00:00Z',
+    },
+  })
+}
+
+describe('M25 — the day a task is due (FR-7.11)', () => {
+  it('wears the day on the line, and a group holding something overdue is read first', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedTaskTag('amt', 'Amt', 1)
+    seedTask('Salbe holen', { task_tag_id: 'apo' })
+    // STUB_TODAY is 2026-07-08: this one is a week late.
+    seedTask('Pass holen', { task_tag_id: 'amt', due_date: '2026-07-01' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.get('[data-testid="trip-todo-due-Pass holen"]').attributes('data-due')).toBe(
+      'overdue',
+    )
+    const groups = page
+      .get('[data-testid="m25-before"]')
+      .findAll('[data-testid^="m25-group-"]')
+      .map((group) => group.attributes('data-testid'))
+    expect(groups).toEqual(['m25-group-amt', 'm25-group-apo'])
+  })
+
+  it('sets the day from the task’s sheet, keeps the sheet up, and takes it back whole', async () => {
+    seedTrip()
+    seedTask('Pass holen', {})
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Pass holen"]').trigger('click')
+    await flushPromises()
+    page.findComponent({ name: 'DateField' }).vm.$emit('update', '2026-07-09')
+    await flushPromises()
+
+    expect(acts.setTaskDueDate).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Pass holen' }),
+      '2026-07-09',
+    )
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(true)
+
+    acts.setTaskDueDate.mockClear()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.setTaskDueDate).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Pass holen' }),
+      null,
+    )
+  })
+})
+
+describe('M25 — *before* is closed once the packing is finished (FR-7.12)', () => {
+  it('keeps the section as history: a hint instead of the field, and no tick', async () => {
+    seedTrip()
+    seedTask('Pass holen', { task_state: 'resolved' })
+    closeThePacking()
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-composer-during"]').exists()).toBe(true)
+    await page
+      .get('[data-testid="m25-before"] [data-testid="trip-todos-resolved"]')
+      .trigger('click')
+    const tick = page.get('[data-testid="trip-todo-Pass holen"] ion-checkbox')
+    expect((tick.element as HTMLInputElement).disabled).toBe(true)
+  })
+
+  it('selects nothing in it and offers no batch into it', async () => {
+    seedTrip()
+    // Open in *before* after the close — written on a device that had not
+    // heard of it yet. It stays readable, and it is not a batch's to move.
+    seedTask('Salbe holen', {})
+    seedTask('Zug abklären', { phase: 'during' })
+    seedTask('Karte kaufen', { phase: 'during' })
+    closeThePacking()
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Zug abklären"] ion-label').trigger('contextmenu')
+    await barAll()
+
+    // „All" is the two for the road; the one left in *before* is not in it.
+    expect(barCount()).toBe('2 selected')
+    expect(page.find('[data-testid="m25-bulk-before"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(true)
+    expect(page.find('[data-testid="trip-todo-grip-Salbe holen"]').exists()).toBe(false)
+  })
+
+  it('lifts once the packing is reopened', async () => {
+    seedTrip()
+    closeThePacking()
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(false)
+
+    seedTrip()
+    await flushPromises()
+    expect(page.find('[data-testid="m25-before-locked"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-composer-before"]').exists()).toBe(true)
   })
 })
 

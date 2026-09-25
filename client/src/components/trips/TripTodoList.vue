@@ -31,6 +31,7 @@ import { chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
+import TaskDueBadge from '@/components/trips/TaskDueBadge.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
@@ -91,6 +92,17 @@ const props = defineProps<{
    * `window` (default): M4's compact window of a handful of lines.
    */
   variant?: 'list' | 'window'
+  /**
+   * FR-7.11: today as the device reckons it, for the due badge. Absent
+   * draws no badge — the composer-only instance lists no tasks.
+   */
+  today?: string
+  /**
+   * FR-7.12: the list is history — the *before* phase once the packing is
+   * finished. Nothing is ticked, reopened, handed over or removed here; the
+   * words still open the task's sheet, which is the way out of the phase.
+   */
+  readonly?: boolean
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -216,11 +228,19 @@ function onOpen(task: TripTask) {
       <!-- While selecting, the row's own controls step aside, as M6's do: a
            tap there would act on one task in the middle of choosing several. -->
       <span v-if="!selecting" slot="end" class="todo-end">
+        <!-- FR-7.11: when it is due, first — it is what decides whether the
+             line is read now. -->
+        <TaskDueBadge
+          v-if="today"
+          :task="task"
+          :today="today"
+          :testid="`trip-todo-due-${task.body}`"
+        />
         <!-- FR-7.6: the chip stands where the trip's own task carries its
              ✕ — one line, one place that says what the task belongs to. -->
         <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
         <AssigneeSeat
-          v-if="assignable"
+          v-if="assignable && !readonly"
           :avatar="assigneeOf(task)"
           :data-testid="`trip-todo-assign-${task.body}`"
           @assign="emit('assign', task)"
@@ -233,7 +253,7 @@ function onOpen(task: TripTask) {
           :data-testid="`trip-todo-assignee-${task.body}`"
         />
         <RemoveButton
-          v-if="!task.item"
+          v-if="!task.item && !readonly"
           :label="t('tripTodos.remove')"
           :data-testid="`trip-todo-remove-${task.body}`"
           @click="emit('remove', task)"
@@ -249,6 +269,7 @@ function onOpen(task: TripTask) {
         slot="end"
         class="tick"
         :checked="false"
+        :disabled="readonly"
         @ionChange="emit('toggle', task)"
       />
     </IonItem>
@@ -301,13 +322,19 @@ function onOpen(task: TripTask) {
               :data-testid="`trip-todo-assignee-${task.body}`"
             />
             <RemoveButton
-              v-if="!task.item"
+              v-if="!task.item && !readonly"
               :label="t('tripTodos.remove')"
               :data-testid="`trip-todo-remove-${task.body}`"
               @click="emit('remove', task)"
             />
           </span>
-          <IonCheckbox slot="end" class="tick" :checked="true" @ionChange="emit('toggle', task)" />
+          <IonCheckbox
+            slot="end"
+            class="tick"
+            :checked="true"
+            :disabled="readonly"
+            @ionChange="emit('toggle', task)"
+          />
         </IonItem>
       </template>
     </template>

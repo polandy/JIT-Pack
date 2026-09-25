@@ -13,6 +13,7 @@
  */
 import type { ItemTodo, TaskPhase, TaskTag, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
+import { byDue, daysBetween, isDuePressing, pressingFirst } from './taskDue'
 
 /** How far a trip's todos are, as the two figures M1 states. */
 export interface TripTodoProgress {
@@ -106,6 +107,8 @@ export interface TripTask {
   resolved_by_user_id: string | null
   /** FR-7.8: the one tag it carries, or null for none. */
   task_tag_id: string | null
+  /** FR-7.11: the day it is due, `YYYY-MM-DD`, or null for none. */
+  due_date: string | null
 }
 
 /**
@@ -174,6 +177,7 @@ export function tripTasks(
 function factsOf(todo: ItemTodo | TripTodo) {
   return {
     task_tag_id: todo.task_tag_id,
+    due_date: todo.due_date,
     assignee_user_id: todo.assignee_user_id,
     phase: taskPhaseOf(todo),
     author_id: todo.author_id,
@@ -192,8 +196,13 @@ function factsOf(todo: ItemTodo | TripTodo) {
  * the salve to *during* therefore takes it off the packing list, which is what
  * moving it means.
  */
-export function packingWindowTasks(tasks: readonly TripTask[]): TripTask[] {
-  return tasks.filter((task) => task.item !== null && task.phase === TASK_PHASE_BEFORE)
+export function packingWindowTasks(tasks: readonly TripTask[], today: string): TripTask[] {
+  // FR-7.11: what is due comes first here too — the window is where a task
+  // due tomorrow is most likely to be done.
+  return byDue(
+    tasks.filter((task) => task.item !== null && task.phase === TASK_PHASE_BEFORE),
+    today,
+  )
 }
 
 /** FR-7.7: the tasks of one phase, for M25's two sections. */
@@ -225,23 +234,27 @@ export interface DashboardTasks {
 
 /**
  * dashboardTasks picks the tasks M1's block lists (FR-7.10): the open ones,
- * the phase in front of the trip first, and in Server Mode the tasks handed to
- * this person before the rest.
+ * **what is due first** (FR-7.11 — overdue, today, the next two days, earliest
+ * first), then the phase in front of the trip, and in Server Mode the tasks
+ * handed to this person before the rest.
  *
- * A task has a phase and no date (FR-7.7), so there is no *overdue* to lead
- * with; the phase the trip is in is the closest thing the data has to *now*.
- * `tasks` arrives in FR-7.6's order and the sort is stable, so inside each
- * group that order stands — the block and M25 never rank two tasks
+ * The phase the trip is in stays the closest thing an *undated* task has to
+ * *now*. `tasks` arrives in FR-7.6's order and the sort is stable, so inside
+ * each rank that order stands — the block and M25 never rank two tasks
  * differently.
  */
 export function dashboardTasks(
   tasks: readonly TripTask[],
-  opts: { phaseInFront: TaskPhase; myUserId: string | null; limit: number },
+  opts: { phaseInFront: TaskPhase; myUserId: string | null; limit: number; today: string },
 ): DashboardTasks {
   const open = tasks.filter((task) => task.task_state === 'open')
+  // A pressing task ranks by its date alone, below zero so it leads; the
+  // rest keep FR-7.10's phase-then-mine rank.
   const rank = (task: TripTask) =>
-    Number(task.phase !== opts.phaseInFront) * 2 +
-    Number(opts.myUserId === null || task.assignee_user_id !== opts.myUserId)
+    isDuePressing(task, opts.today)
+      ? daysBetween(opts.today, task.due_date!) - DUE_RANK_LEAD
+      : Number(task.phase !== opts.phaseInFront) * 2 +
+        Number(opts.myUserId === null || task.assignee_user_id !== opts.myUserId)
   const ordered = open
     .map((task, index) => ({ task, index }))
     .sort((a, b) => rank(a.task) - rank(b.task) || a.index - b.index)
@@ -249,6 +262,13 @@ export function dashboardTasks(
   const rows = ordered.slice(0, opts.limit)
   return { rows, open: open.length, rest: open.length - rows.length }
 }
+
+/**
+ * How far below the undated ranks a pressing task's rank starts: more than
+ * any overdue count a trip will see, so even the oldest overdue task sorts
+ * ahead of every undated one.
+ */
+const DUE_RANK_LEAD = 100_000
 
 /** The order FR-7.6 states, written once because only `tripTasks` may decide it. */
 function compareTasks(a: TripTask, b: TripTask): number {
@@ -325,7 +345,9 @@ export function filedTagOf(
 /**
  * taskGroups files a phase's tasks under their headings, in reading order:
  * the tags in the order the tags themselves carry, then what came from the
- * packing list, then what has no tag and never did.
+ * packing list, then what has no tag and never did — except that since
+ * FR-7.11 a group holding an overdue or soon task moves above the rest, and
+ * inside every group the dated open tasks lead (`today` is the device's).
  *
  * **An empty heading is not drawn.** A group with nothing in it says nothing
  * while reading, and it is not a drop target either — losing a tag happens in
@@ -335,7 +357,11 @@ export function filedTagOf(
  * that had just lifted it. That is ADR-060, broken by the feature meant to
  * help.
  */
-export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[]): TaskGroup[] {
+export function taskGroups(
+  tasks: readonly TripTask[],
+  tags: readonly TaskTag[],
+  today: string,
+): TaskGroup[] {
   // Filed once, up front: every task lands in exactly one bucket, and a task
   // whose tag this device does not know lands in the untagged one rather than
   // in none. Filtering twice over the raw column — once per tag, once for
@@ -357,7 +383,14 @@ export function taskGroups(tasks: readonly TripTask[], tags: readonly TaskTag[])
         .map((f) => f.task),
     })
   }
-  return groups.filter((group) => group.tasks.length > 0)
+  // FR-7.11: inside a group what is due comes first, and a group holding
+  // something overdue or soon is read before the others.
+  return pressingFirst(
+    groups
+      .filter((group) => group.tasks.length > 0)
+      .map((group) => ({ ...group, tasks: byDue(group.tasks, today) })),
+    today,
+  )
 }
 
 /**

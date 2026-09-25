@@ -30,7 +30,7 @@ import { currentMirror, writeNotificationMirror } from '../mirror'
  */
 function loadWorker(): {
   notificationBody: (data: unknown, mirror: unknown) => string
-  notificationUrl: (payload: Record<string, unknown>) => string
+  notificationUrl: (payload: Record<string, unknown>, kind?: string) => string
   readMirror: () => Promise<unknown>
   FALLBACK_BODY: string
   source: string
@@ -67,6 +67,11 @@ const CASES: ServerNotification[] = [
   notif('lock_taken', { actor_name: 'Sarah' }),
   notif('note', { actor_name: 'Sarah', preview: 'Schlüsselfach: 4711' }),
   notif('note', { actor_name: 'Sarah' }),
+  // FR-7.11: the server's own reminder names no actor, and its day picks the sentence.
+  notif('task_due', { item_name: 'Pass holen', due: 'today' }),
+  notif('task_due', { item_name: 'Pass holen', due: 'tomorrow' }),
+  notif('task_due', { due: 'tomorrow' }),
+  notif('task_due', {}),
   notif('shiny_new_kind', { actor_name: 'Andy' }),
   notif('mention', {}),
   notif('delegation', null),
@@ -101,10 +106,15 @@ describe('the worker renders the same body as the app', () => {
       { trip_id: 't1', item_id: 'i1', comment_id: 'c9' },
     ]
 
-    expect(payloads.map(notificationUrl)).toEqual(
+    expect(payloads.map((payload) => notificationUrl(payload))).toEqual(
       payloads.map((payload) => notificationRoute(notif('mention', payload))),
     )
     expect(notificationUrl({})).toBe('/')
+    // FR-7.11: a reminder lands on the trip's tasks, in both renderers.
+    expect(notificationUrl({ trip_id: 't1', comment_id: 'c9' }, 'task_due')).toBe(
+      notificationRoute(notif('task_due', { trip_id: 't1', comment_id: 'c9' })),
+    )
+    expect(notificationUrl({ trip_id: 't1' }, 'task_due')).toBe('/trips/t1/tasks')
   })
 
   it('falls back to one sentence when the mirror is not there', () => {

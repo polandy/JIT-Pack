@@ -2,10 +2,11 @@
 /**
  * M17's notification section follows the language choice (NFR-4.12).
  *
- * A component test rather than e2e, and the reason is the gating: the section
- * exists only on a multi-user instance (`mode === 'server'` *and* an OIDC
- * session, FR-17.3/FR-19.3), and neither Playwright project reaches that —
- * `local` has no server and `single` has no tokens. So the one section of the
+ * A component test rather than e2e, and the reason is the gating: the full
+ * section exists only on a multi-user instance (`mode === 'server'` *and* an
+ * OIDC session, FR-17.3/FR-19.3; Single-User shows only FR-7.11's row), and
+ * neither Playwright project reaches that — `local` has no server and
+ * `single` has no tokens. So the one section of the
  * screen that carried its labels in a **module-level constant**, the exact
  * shape that made the nav anchors unreachable by a language switch, is
  * covered here or nowhere.
@@ -26,8 +27,11 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
-// A session is what makes the notification section exist at all.
-vi.mock('@/auth/tokens', () => ({ loadTokens: () => ({ access_token: 'a' }) }))
+// A session is what makes the section a multi-user one; none is Single-User.
+const session = vi.hoisted(() => ({ on: true }))
+vi.mock('@/auth/tokens', () => ({
+  loadTokens: () => (session.on ? { access_token: 'a' } : null),
+}))
 vi.mock('@/notifications/push', () => ({
   pushSupported: () => false,
   pushRegistered: () => Promise.resolve(false),
@@ -38,7 +42,14 @@ vi.mock('@/notifications/push', () => ({
 const orchestratorFake = {
   ...identityStub(),
   fetchNotificationPrefs: vi.fn(() =>
-    Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true, note: true }),
+    Promise.resolve({
+      delegation: true,
+      mention: true,
+      task: false,
+      lock_taken: true,
+      note: true,
+      task_due: true,
+    }),
   ),
   saveNotificationPrefs: vi.fn(),
   drainAll: vi.fn(() => Promise.resolve()),
@@ -80,6 +91,8 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Items taken over')
     // FR-7.9's kind, the fifth.
     expect(wrapper.text()).toContain('Trip notes')
+    // FR-7.11's reminder, the sixth — the one no person sets off.
+    expect(wrapper.text()).toContain('Tasks due')
   })
 
   it('renders them in German once the language is German', async () => {
@@ -92,8 +105,47 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Aufgaben')
     expect(wrapper.text()).toContain('Übernommene Artikel')
     expect(wrapper.text()).toContain('Reisenotizen')
+    expect(wrapper.text()).toContain('Fällige Aufgaben')
     // And the English is gone rather than merely joined by the German.
     expect(wrapper.text()).not.toContain('Delegations')
+  })
+})
+
+/*
+ * FR-7.11: a Single-User server sends one kind — the due-task reminder,
+ * which is nobody's act — so its M17 carries that row and the push toggle,
+ * and nothing that needs a second person.
+ */
+describe('M17 notifications on a Single-User server (FR-7.11)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.setItem('jitpack_mode', 'server')
+    session.on = false
+  })
+
+  afterEach(() => {
+    localStorage.removeItem('jitpack_mode')
+    session.on = true
+  })
+
+  it('offers the reminder and the push, and nothing a second person would set off', async () => {
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-section-notifications"]').exists()).toBe(true)
+    const rows = wrapper
+      .findAll('[data-testid^="settings-pref-"]')
+      .map((r) => r.attributes('data-testid'))
+    expect(rows).toEqual(['settings-pref-task_due'])
+    expect(wrapper.find('[data-testid="settings-push"]').exists()).toBe(true)
+  })
+
+  it('offers nothing in Local Mode, which has no server to send anything', async () => {
+    localStorage.setItem('jitpack_mode', 'local')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-section-notifications"]').exists()).toBe(false)
   })
 })
 

@@ -22,6 +22,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
 | `JITPACK_WEB_ROOT` | no | — | Directory holding the built client, served on the same origin as the API. The published image sets it to `/srv/web`, so a container needs nothing here. Unset, the server answers the API alone — the shape for a deployment whose own web server or CDN serves the static files. A path with no `index.html` in it is a **startup error**, not a white page. |
 | `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance contacts nothing. See [Release check](#release-check). |
+| `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
@@ -75,6 +76,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | Single-user mode without a local user id | `config: JITPACK_LOCAL_USER_ID is required in single-user mode` |
 | Multi-user mode without a session secret | `config: JITPACK_SESSION_SECRET is required in multi-user mode (it signs the sessions JIT-Pack issues, see ADR-007)` |
 | One or two of the three OIDC variables set | `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` |
+| `JITPACK_TASK_REMINDER_TIME` is not a time of day such as `06:00` | `config: JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset` |
 | The database file cannot be opened or migrated | `store: …` |
 | Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
 | Discovery document's `issuer` differs from the configured one | `oidc discovery: OIDC discovery issuer mismatch: document says "…", configured "…"` |
@@ -167,6 +169,29 @@ Four things worth knowing:
 - **What GitHub gets to see.** The request asks a public question about a public repository, and carries nothing about your data or the people using it. It does identify itself the way HTTP clients do — `User-Agent: jitpackd/<your version>` — so what is visible on the other side is that an address running this version asked, once a day.
 - **It only works on a released image.** The check compares the release tag the image was built from, so `ghcr.io/polandy/jit-pack:0.7.0` can answer and a server you built yourself from a working copy cannot — that one simply shows no line. The startup log names the build so you can see which case you are in.
 - **The version in the app is not this.** The banner that offers to apply a waiting update is about the app in your browser catching up with the server you already run. This line is about the server itself being behind.
+
+## Task reminders
+
+A task can carry the day it is due. Once a day the server reminds whoever the task is for: **the day before, and on
+the day itself**. Nothing is sent again once the day has passed — the task then shows as *Überfällig* in the app.
+
+```bash
+JITPACK_TASK_REMINDER_TIME=07:30   # default 06:00
+TZ=Europe/Zurich                   # the zone that time is read in; the image is UTC without it
+```
+
+- **Who is reminded.** The person the task is handed to; a task nobody has been handed goes to everyone on the trip.
+  Tasks of an archived trip are not reminded of.
+- **Single-User instances are reminded too** — the reminder is nobody's act, so it is the one notification a
+  single-user instance sends. It reaches a closed app through push like any other notification (see
+  [Notifications & Push](notifications.md)).
+- **A restart does not repeat or lose it.** The server records the day it last sent the reminder. Started after the
+  time, it sends that day's reminder at once; restarted again the same day, it sends nothing more.
+- **The startup log says when**, e.g. `task reminders daily at 06:00 CEST (FR-7.11)` — the zone is whatever `TZ`
+  resolved to, `UTC` when it is unset, so this line tells you whether `TZ` took.
+
+The app itself has no setting for this: the time is the instance's. Each person can switch the reminder off in
+**Settings** (*Fällige Aufgaben*).
 
 ## Instance admins
 

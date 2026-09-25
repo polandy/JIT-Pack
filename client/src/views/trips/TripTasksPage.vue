@@ -87,6 +87,7 @@ import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { useTripStore } from '@/stores/tripStore'
 import {
   TASK_PHASE_BEFORE,
@@ -147,6 +148,13 @@ const shown = computed(() =>
 )
 
 const before = computed(() => tasksInPhase(shown.value, TASK_PHASE_BEFORE))
+
+/**
+ * FR-7.12: once the packing is finished, *before the trip* is over — its
+ * section stays as history and takes nothing new: no composer, no drop, no
+ * tick, no batch sent into it. Reopening the packing lifts it (FR-5.10).
+ */
+const beforeLocked = computed(() => isPackingClosed(trip.value))
 const during = computed(() => tasksInPhase(shown.value, TASK_PHASE_DURING))
 
 // --- FR-7.9: the notes segment ---
@@ -199,8 +207,10 @@ function onNoteSheetRemove() {
  * one motion, which is what the owner asked for.
  */
 const masterStore = useMasterStore()
-const groupsBefore = computed(() => taskGroups(before.value, masterStore.taskTagList))
-const groupsDuring = computed(() => taskGroups(during.value, masterStore.taskTagList))
+/** FR-7.11: today as the device reckons it — what „due" is measured against. */
+const today = computed(() => orchestrator.today())
+const groupsBefore = computed(() => taskGroups(before.value, masterStore.taskTagList, today.value))
+const groupsDuring = computed(() => taskGroups(during.value, masterStore.taskTagList, today.value))
 
 /**
  * `before/apotheke` — the phase and the group, which is what a drop decides.
@@ -229,6 +239,7 @@ const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
 const drag = useDragToGroup<TripTask>({
   accepts: (task, place) => {
+    if (beforeLocked.value && readDropKey(place).phase === TASK_PHASE_BEFORE) return false
     const group = groupAt(place)
     return group !== null && groupAccepts(group, task)
   },
@@ -258,7 +269,12 @@ function onLift(ev: PointerEvent, task: TripTask, row: HTMLElement) {
  * both kinds; a resolved one is folded away and not in it.
  */
 const selection = useRowSelection()
-const selectable = computed(() => shown.value.filter((task) => task.task_state === 'open'))
+const selectable = computed(() =>
+  shown.value.filter(
+    (task) =>
+      task.task_state === 'open' && !(beforeLocked.value && task.phase === TASK_PHASE_BEFORE),
+  ),
+)
 const selectedTasks = computed(() =>
   selectable.value.filter((task) => selection.selected.value.has(task.id)),
 )
@@ -384,6 +400,11 @@ function onSheetMove(phase: TaskPhase) {
   if (task) acts.move(task, phase)
 }
 
+/** FR-7.11: the sheet stays up — the date is one fact of several on it. */
+function onSheetDue(dueDate: string | null) {
+  if (opened.value) acts.setDue(opened.value, dueDate)
+}
+
 function onSheetRemove() {
   const task = opened.value
   openedId.value = null
@@ -434,7 +455,10 @@ function onSheetRemove() {
       <template v-if="segment === TASKS_SEGMENT && loaded">
         <section class="phase" data-testid="m25-before">
           <SectionHead :title="t('tasks.before')" :count="openCount(before)" />
-          <InlineHint v-if="groupsBefore.length === 0" class="hint-wide">{{
+          <InlineHint v-if="beforeLocked" class="hint-wide" data-testid="m25-before-locked">{{
+            t('tasks.beforeLocked')
+          }}</InlineHint>
+          <InlineHint v-else-if="groupsBefore.length === 0" class="hint-wide">{{
             t('tasks.emptyBefore')
           }}</InlineHint>
           <IonList v-if="groupsBefore.length > 0" class="groups">
@@ -453,8 +477,10 @@ function onSheetRemove() {
                 :tasks="group.tasks"
                 :assignable="assignable"
                 :name-of="nameOf"
-                :lift="onLift"
-                :selection="selection"
+                :lift="beforeLocked ? undefined : onLift"
+                :selection="beforeLocked ? undefined : selection"
+                :readonly="beforeLocked"
+                :today="today"
                 variant="list"
                 @toggle="acts.toggle"
                 @remove="acts.remove"
@@ -466,6 +492,7 @@ function onSheetRemove() {
           <!-- G-20: in place while selecting, at rest — M6's rule: typing a
                new task mid-batch is a different act. -->
           <div
+            v-if="!beforeLocked"
             class="phase-composer"
             :class="{ resting: selection.selecting.value }"
             :inert="selection.selecting.value || undefined"
@@ -504,6 +531,7 @@ function onSheetRemove() {
                 :name-of="nameOf"
                 :lift="onLift"
                 :selection="selection"
+                :today="today"
                 variant="list"
                 @toggle="acts.toggle"
                 @remove="acts.remove"
@@ -551,7 +579,12 @@ function onSheetRemove() {
           <IonIcon :icon="pricetagsOutline" />
           {{ t('tasks.bulkTag') }}
         </button>
-        <button type="button" data-testid="m25-bulk-before" @click="bulkMove(TASK_PHASE_BEFORE)">
+        <button
+          v-if="!beforeLocked"
+          type="button"
+          data-testid="m25-bulk-before"
+          @click="bulkMove(TASK_PHASE_BEFORE)"
+        >
           <IonIcon :icon="arrowBackOutline" />
           {{ t('tasks.bulkToBefore') }}
         </button>
@@ -587,7 +620,9 @@ function onSheetRemove() {
           :task="opened"
           :name-of="nameOf"
           :task-tags="taskTags"
+          :before-locked="beforeLocked"
           @close="openedId = null"
+          @due="onSheetDue"
           @move="onSheetMove"
           @remove="onSheetRemove"
           @tag="onSheetTag"

@@ -431,6 +431,13 @@ CREATE TABLE comments (
     -- has until somebody says otherwise) and, like every other column here,
     -- it carries no CHECK for field-level LWW's sake.
     phase        TEXT,
+    -- FR-7.11: the day a task is due, as a calendar date (YYYY-MM-DD) with
+    -- no time and no zone — the owner asked for a day, and a day read on the
+    -- other side of a time zone must stay the same day. NULL is „no date",
+    -- the normal state of a task. Free of a CHECK like `phase`, for
+    -- field-level LWW's sake; the client writes only what its date field
+    -- produces, and the reminder scheduler compares strings.
+    due_date     TEXT,
     -- FR-7.7: the resolution record, the FR-25.17 packing record's shape
     -- applied to a task. The *when* may be named by the client, because a
     -- task is ticked off away from a network; the *who* is stamped by the

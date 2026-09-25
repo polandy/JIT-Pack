@@ -293,6 +293,10 @@ export const en = {
     '{n} open task moves to the tasks for the trip itself. | {n} open tasks move to the tasks for the trip itself.',
   'packing.closedToastTasks':
     '{n} task is now for the trip itself | {n} tasks are now for the trip itself',
+  'packing.closeConfirmShopping':
+    '{n} open purchase moves from “Before departure” to “At the destination”. | {n} open purchases move from “Before departure” to “At the destination”.',
+  'packing.closedToastShopping':
+    '{n} purchase now at the destination | {n} purchases now at the destination',
   'packing.closedTitle': 'Packing finished',
   'packing.closedStamp': '{when} · {n} left behind | {when} · {n} left behind',
   'packing.closedStampNone': '{when}',
@@ -935,6 +939,8 @@ export const en = {
   'settings.prefLockTakenHint': 'Somebody took over an item you were packing',
   'settings.prefNote': 'Trip notes',
   'settings.prefNoteHint': 'A co-traveller wrote a new note',
+  'settings.prefTaskDue': 'Tasks due',
+  'settings.prefTaskDueHint': 'A task of yours is due tomorrow or today',
   'settings.push': 'Push on this device',
   'settings.pushHint': 'OS notifications while the app is closed',
   'settings.pushUnsupported': 'Not supported by this browser',
@@ -1555,6 +1561,15 @@ export const en = {
   'tasks.newTag': 'New tag…',
   'tasks.movedToast': '“{body}” moved',
   'tasks.whilePacking': 'To do while packing',
+  'tasks.dueOverdue': 'Overdue',
+  'tasks.dueToday': 'Today',
+  'tasks.dueTomorrow': 'Tomorrow',
+  'tasks.dueInDays': 'In {n} days',
+  'tasks.dueField': 'Due',
+  'tasks.dueSetToast': '“{body}” due {date}',
+  'tasks.dueClearedToast': '“{body}” has no due date any more',
+  'tasks.dueHint': '{n} task due | {n} tasks due',
+  'tasks.beforeLocked': 'The packing is finished — this is what was done before the trip.',
 
   // FR-7.9 — a trip's notes: written by one traveller, read by all, ticked
   // per person. The note itself is not a secret store (§6 of the concept) —
@@ -1711,6 +1726,8 @@ export const en = {
   'shopping.wentToPacking': 'on the packing list',
   'shopping.wentPacked': 'packed',
   'shopping.listUnknown': 'Loading the shopping list …',
+  'shopping.beforeLocked':
+    'The packing is finished — this list is now the record of what was bought before departure.',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
   'shopping.emptyHint':
@@ -1834,6 +1851,10 @@ export const en = {
   'notify.body.lock_takenPlain': '{actor} took an item over from you',
   'notify.body.note': '{actor} wrote a note: {preview}',
   'notify.body.notePlain': '{actor} wrote a new note',
+  'notify.body.task_due': '“{item}” is due today',
+  'notify.body.task_duePlain': 'A task is due today',
+  'notify.body.task_dueTomorrow': '“{item}” is due tomorrow',
+  'notify.body.task_dueTomorrowPlain': 'A task is due tomorrow',
   'notify.body.generic': '{actor} sent you a notification',
   'notify.actorUnknown': 'Someone',
 } as const

@@ -12,7 +12,14 @@ import type { MessageKey } from '@/i18n'
 import type { NotificationEntry } from '@/api/types'
 
 /** The kinds the server sends (Sync-API §8). */
-export const NOTIFICATION_KINDS = ['delegation', 'mention', 'task', 'lock_taken', 'note'] as const
+export const NOTIFICATION_KINDS = [
+  'delegation',
+  'mention',
+  'task',
+  'lock_taken',
+  'note',
+  'task_due',
+] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
 
@@ -22,12 +29,25 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
  * `generic` answers a kind this client does not know — a newer server is not
  * an error, and a notification with no text at all would be.
  */
-export type NotificationBodyName = `${NotificationKind}` | `${NotificationKind}Plain` | 'generic'
+export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic'
+
+/**
+ * FR-7.11: what a body is chosen by — the kind, and for a reminder also the
+ * day it names, because „due tomorrow" and „due today" are two sentences
+ * rather than one with a word filled in (the word would have to be
+ * translated in the worker, which holds no words of its own).
+ */
+const TASK_DUE_TOMORROW = 'task_dueTomorrow'
+type BodyKind = NotificationKind | typeof TASK_DUE_TOMORROW
+const BODY_KINDS: readonly BodyKind[] = [...NOTIFICATION_KINDS, TASK_DUE_TOMORROW]
+
+/** The payload's `due` value that picks the tomorrow sentence (FR-7.11). */
+export const DUE_TOMORROW = 'tomorrow'
 
 /** Every body name, which is also every row the mirror must carry. */
 export const NOTIFICATION_BODY_NAMES: readonly NotificationBodyName[] = [
-  ...NOTIFICATION_KINDS.map((kind) => kind as NotificationBodyName),
-  ...NOTIFICATION_KINDS.map((kind) => `${kind}Plain` as NotificationBodyName),
+  ...BODY_KINDS.map((kind) => kind as NotificationBodyName),
+  ...BODY_KINDS.map((kind) => `${kind}Plain` as NotificationBodyName),
   'generic',
 ]
 
@@ -43,12 +63,14 @@ export function bodyMessageKey(name: NotificationBodyName): MessageKey {
 export function notificationDetail(payload: Record<string, unknown> | null): {
   item: string
   preview: string
+  /** FR-7.11: which day a reminder names — `today` or `tomorrow`. */
+  due: string
 } {
   const str = (key: string) => {
     const value = payload?.[key]
     return typeof value === 'string' ? value : ''
   }
-  return { item: str('item_name'), preview: str('preview') }
+  return { item: str('item_name'), preview: str('preview'), due: str('due') }
 }
 
 /**
@@ -58,13 +80,14 @@ export function notificationDetail(payload: Record<string, unknown> | null): {
  */
 export function notificationBodyName(
   kind: string,
-  detail: { item: string; preview: string },
+  detail: { item: string; preview: string; due?: string },
 ): NotificationBodyName {
   if (!(NOTIFICATION_KINDS as readonly string[]).includes(kind)) return 'generic'
   // FR-7.9: a note is about its own words, like a mention — it names no
   // item, only the body's preview.
   const named = kind === 'mention' || kind === 'note' ? detail.preview : detail.item
-  return (named ? kind : `${kind}Plain`) as NotificationBodyName
+  const body = kind === 'task_due' && detail.due === DUE_TOMORROW ? TASK_DUE_TOMORROW : kind
+  return (named ? body : `${body}Plain`) as NotificationBodyName
 }
 
 /** The slots a body may name; unused ones are simply not referenced. */

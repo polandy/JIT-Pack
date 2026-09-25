@@ -10,7 +10,7 @@ import { openCount } from './list'
 import { shoppingFeatureStore, useShoppingStore } from './store'
 
 export { shoppingFeatureStore, useShoppingStore }
-export { createShoppingActions } from './actions'
+export { createShoppingActions, shoppingCloseCrossing } from './actions'
 
 /** FR-30.7: the trip's shopping card on the dashboard, handed to M1 by `App.vue`. */
 export { default as ShoppingDashboardCard } from './ShoppingDashboardCard.vue'

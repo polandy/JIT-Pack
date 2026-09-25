@@ -10,6 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	// The image carries no zoneinfo, and FR-7.11's reminder runs at a time
+	// of day in the zone TZ names: without this, TZ=Europe/Zurich would be
+	// silently UTC.
+	_ "time/tzdata"
 
 	"jitpack/internal/api"
 	"jitpack/internal/store"
@@ -128,6 +132,14 @@ func main() {
 	// Graceful shutdown on SIGINT/SIGTERM.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	// FR-7.11: the daily task reminder, stopped by the same signal.
+	go srv.RunTaskReminders(ctx, cfg.TaskReminderAt)
+	// The zone's abbreviation rather than time.Local, whose name is always
+	// "Local" and would not tell an operator whether TZ took.
+	zone, _ := time.Now().Zone()
+	log.Printf("task reminders daily at %02d:%02d %s (FR-7.11)",
+		int(cfg.TaskReminderAt/time.Hour), int(cfg.TaskReminderAt%time.Hour/time.Minute), zone)
 
 	go func() {
 		log.Printf("listening on %s", cfg.Listen)

@@ -286,6 +286,11 @@ func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	if !prefs["note"] {
 		t.Errorf("prefs = %v, want note on (untouched default)", prefs)
 	}
+	// The same trap, found by FR-7.11: lock_taken was missing from the
+	// literal and read as off on M17 for everybody.
+	if !prefs["lock_taken"] || !prefs["task_due"] {
+		t.Errorf("prefs = %v, want lock_taken and task_due on (untouched default)", prefs)
+	}
 
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))

@@ -185,7 +185,7 @@ func TestTravelerLinkedUser(t *testing.T) {
 // the returned slice would widen what SetNotificationPrefs accepts without
 // the contract noticing, so the accessor hands out a copy.
 func TestNotificationKinds_IsAClosedSetAndACopy(t *testing.T) {
-	want := []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote}
+	want := []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyTaskDue}
 	got := NotificationKinds()
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("NotificationKinds() = %v, want %v", got, want)

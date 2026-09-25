@@ -218,6 +218,84 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
   })
 
+  it('setTaskDueDate writes the day alone, and takes it off again (FR-7.11)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pass holen',
+      is_task: 1,
+      task_state: 'open',
+      phase: 'before',
+      task_tag_id: 'tt-amt',
+    })
+
+    const actions = createCommentActions(ctx)
+    actions.setTaskDueDate(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, '2026-07-09')
+
+    const { mutation } = queued[0]!.muts[0]!
+    expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
+    // One field: a date set here and a tag set on another device both stand.
+    expect(mutation.fields).toEqual({ due_date: '2026-07-09' })
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
+      body: 'Pass holen',
+      phase: 'before',
+      task_tag_id: 'tt-amt',
+      due_date: '2026-07-09',
+    })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBe('2026-07-09')
+
+    actions.setTaskDueDate(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBeNull()
+  })
+
+  /*
+   * FR-7.12: once the packing is finished *before the trip* takes nothing
+   * new. Every writer of a new task — M5's preparation, a composer, a comment
+   * promoted to a task — lands in *during* instead, whatever it asked for.
+   */
+  describe('once the packing is finished (FR-7.12)', () => {
+    beforeEach(() => {
+      pullIn(ctx.tripStore, TABLE.trips, TRIP_ID, {
+        name: 'Samedan',
+        year: 2026,
+        packing_closed_at: '2026-07-08T06:00:00Z',
+      })
+    })
+
+    it('writes a new trip task for the road', () => {
+      createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Post holen', 'before')
+      expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
+    })
+
+    it('writes a new preparation for the road', () => {
+      createCommentActions(ctx).addPrepTodo(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
+      expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
+    })
+
+    it('files a comment promoted to a task for the road', () => {
+      pullIn(ctx.tripStore, TABLE.comments, 'cm-1', {
+        trip_id: TRIP_ID,
+        trip_item_id: 'ti-1',
+        author_id: AUTHOR,
+        body: 'Akku?',
+        is_task: 0,
+      })
+      const comment = ctx.tripStore.getItemComments(TRIP_ID, 'ti-1')[0] as ItemComment
+      createCommentActions(ctx).flagCommentAsTask(TRIP_ID, comment)
+      expect(queued[0]!.muts[0]!.mutation.fields).toEqual({
+        is_task: 1,
+        task_state: 'open',
+        phase: 'during',
+      })
+    })
+
+    it('leaves a task already asked for the road alone', () => {
+      createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Karte kaufen', 'during')
+      expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
+    })
+  })
+
   it('setTaskTag reaches a preparation through its own row shape (FR-7.8)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'td-1', {
       trip_id: TRIP_ID,

@@ -15,7 +15,9 @@ import { describe, it, expect } from 'vitest'
 
 import {
   packingIsFinished,
+  phaseForNewTask,
   planPackingClose,
+  rowsCrossingToLocal,
   tasksCrossing,
   type ClosingTask,
 } from '../closePacking'
@@ -268,5 +270,27 @@ describe('tasksCrossing (FR-7.7): what stops being a task for before the trip', 
 
     expect(plan.tasks.map((t) => t.id)).toEqual(['Salbe holen'])
     expect(plan.rows.map((row) => row.name)).toEqual(['Regenjacke'])
+  })
+})
+
+describe('FR-7.12: the close ends *before* for the shopping list and for new tasks', () => {
+  it('moves only what is still to buy before departure', () => {
+    const rows = [
+      item({ name: 'Hut', mode: 'buy_before' }),
+      item({ name: 'Sonnencreme', mode: 'buy_local' }),
+      // Bought before departure: FR-3.3 made it a packing row, and it stays.
+      item({ name: 'Kaffee', mode: 'pack', bought_from: 'buy_before' }),
+    ]
+    expect(namesOf(rowsCrossingToLocal(rows))).toEqual(['Hut'])
+    // The plan carries them, so the sheet's sentence and the write read one rule.
+    expect(namesOf(planPackingClose(rows).buyRows)).toEqual(['Hut'])
+  })
+
+  it.each([
+    ['before, while the packing is open', 'before', false, 'before'],
+    ['before, once the packing is finished', 'before', true, 'during'],
+    ['during, either way', 'during', true, 'during'],
+  ] as const)('writes a new task asked for %s', (_name, asked, closed, want) => {
+    expect(phaseForNewTask(asked as TaskPhase, closed)).toBe(want)
   })
 })

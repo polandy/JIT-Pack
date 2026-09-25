@@ -1,6 +1,7 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { localIsoDate } from '@/domain/trips'
 import {
   PORTABLE_SCHEMA_VERSION,
   type PortableDocument,
@@ -71,6 +72,13 @@ function row(name: string, category: string, over: Partial<PortableItem> = {}): 
     bought_from: null,
     ...over,
   }
+}
+
+/** Today plus `days` as a local calendar day — what a due date is (FR-7.11). */
+function localDay(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return localIsoDate(date.getTime())
 }
 
 /** Today plus `days`, as `YYYY-MM-DD`. */
@@ -184,25 +192,32 @@ const SEED_TRIP_TODOS = [
   // FR-7.8: `tag` names one of `sampleMaster`'s task tags, or none — so a
   // fresh device shows the grouping with something in it *and* the two
   // untagged headings, which are the halves a reader has to tell apart.
-  { body: 'Briefkasten leeren lassen', phase: TASK_PHASE_BEFORE, tag: 'Haus' },
-  { body: 'Kühlschrank leeren', phase: TASK_PHASE_BEFORE, tag: null },
+  // FR-7.11: `due` is days from today, or null — one overdue (its group moves
+  // up, red), one due tomorrow, and the rest undated, which is most tasks.
+  { body: 'Briefkasten leeren lassen', phase: TASK_PHASE_BEFORE, tag: 'Haus', due: -1 },
+  { body: 'Kühlschrank leeren', phase: TASK_PHASE_BEFORE, tag: null, due: null },
+  { body: 'Pass verlängern', phase: TASK_PHASE_BEFORE, tag: null, due: 1 },
   {
     body: 'Am Bahnhof die Zugverbindung nach Pontresina abklären',
     phase: TASK_PHASE_DURING,
     tag: 'Bahn',
+    due: null,
   },
 ] as const
 
 function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
   const tags = new Map(useMasterStore().taskTagList.map((tag) => [tag.name, tag.id]))
-  for (const { body, phase, tag } of SEED_TRIP_TODOS) {
+  for (const { body, phase, tag, due } of SEED_TRIP_TODOS) {
     const id = orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+    const live = () =>
+      useTripStore()
+        .getTripTodos(tripId)
+        .find((row) => row.id === id)
     const tagId = tag === null ? null : (tags.get(tag) ?? null)
-    if (tagId === null) continue
-    const todo = useTripStore()
-      .getTripTodos(tripId)
-      .find((row) => row.id === id)
-    if (todo) orchestrator.setTaskTag(tripId, todo, tagId)
+    const tagged = live()
+    if (tagId !== null && tagged) orchestrator.setTaskTag(tripId, tagged, tagId)
+    const dated = live()
+    if (due !== null && dated) orchestrator.setTaskDueDate(tripId, dated, localDay(due))
   }
   const done = useTripStore()
     .getTripTodos(tripId)

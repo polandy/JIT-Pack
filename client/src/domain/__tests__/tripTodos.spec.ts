@@ -22,6 +22,9 @@ import {
 import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
+/** FR-7.11: the day every due rule below is read against. */
+const TODAY = '2026-07-08'
+
 describe('tripTodoProgress (FR-7.4)', () => {
   it.each([
     { name: 'no todos', states: [], want: { open: 0, done: 0, total: 0 } },
@@ -236,6 +239,7 @@ describe('the two windows on one list (FR-7.7)', () => {
       phase?: TaskPhase
       assignee?: string | null
       state?: TodoState
+      due?: string | null
     } = {},
   ) => ({
     id,
@@ -249,6 +253,7 @@ describe('the two windows on one list (FR-7.7)', () => {
     resolved_at: null,
     resolved_by_user_id: null,
     task_tag_id: null,
+    due_date: opts.due ?? null,
   })
 
   const camera = { id: 'i1', name: 'Camera', icon: null }
@@ -266,7 +271,20 @@ describe('the two windows on one list (FR-7.7)', () => {
       task('own-before'),
       task('own-during', { phase: TASK_PHASE_DURING }),
     ]
-    expect(packingWindowTasks(tasks).map((t) => t.id)).toEqual(['prep-before'])
+    expect(packingWindowTasks(tasks, TODAY).map((t) => t.id)).toEqual(['prep-before'])
+  })
+
+  it('FR-7.11: leads with what is due', () => {
+    const tasks = [
+      task('undated', { item: camera }),
+      task('tomorrow', { item: camera, due: '2026-07-09' }),
+      task('overdue', { item: camera, due: '2026-07-01' }),
+    ]
+    expect(packingWindowTasks(tasks, TODAY).map((t) => t.id)).toEqual([
+      'overdue',
+      'tomorrow',
+      'undated',
+    ])
   })
 
   it('splits M25 by phase, both kinds together', () => {
@@ -308,6 +326,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
     over: {
       tag?: string | null
       item?: { id: string; name: string; icon: string | null } | null
+      due?: string | null
     } = {},
   ) =>
     ({
@@ -322,13 +341,14 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
       resolved_at: null,
       resolved_by_user_id: null,
       task_tag_id: over.tag ?? null,
+      due_date: over.due ?? null,
     }) as TripTask
 
   const camera = { id: 'i1', name: 'Kamera', icon: null }
   const tags = [tag('apo', 'Apotheke', 0), tag('haus', 'Haus', 1)]
 
   it('files each task under its tag, in the order the tags carry', () => {
-    const groups = taskGroups([t('a', { tag: 'haus' }), t('b', { tag: 'apo' })], tags)
+    const groups = taskGroups([t('a', { tag: 'haus' }), t('b', { tag: 'apo' })], tags, TODAY)
     expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
       ['apo', ['b']],
       ['haus', ['a']],
@@ -343,7 +363,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
    * describing a task it is not true of.
    */
   it('splits the untagged ones by where they came from', () => {
-    const groups = taskGroups([t('prep', { item: camera }), t('own')], tags)
+    const groups = taskGroups([t('prep', { item: camera }), t('own')], tags, TODAY)
     expect(groups.map((g) => [g.key, g.origin, g.tasks.map((x) => x.id)])).toEqual([
       ['prep', 'prep', ['prep']],
       ['trip', 'trip', ['own']],
@@ -357,7 +377,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
    * the sheet's job instead.
    */
   it('draws no heading for a group with nothing in it', () => {
-    expect(taskGroups([t('a', { tag: 'apo' })], tags).map((g) => g.key)).toEqual(['apo'])
+    expect(taskGroups([t('a', { tag: 'apo' })], tags, TODAY).map((g) => g.key)).toEqual(['apo'])
   })
 
   it('refuses a task the heading would not be true of', () => {
@@ -386,10 +406,28 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
     const groups = taskGroups(
       [t('stranger', { tag: 'gone' }), t('prep', { tag: 'gone', item: camera })],
       tags,
+      TODAY,
     )
     expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
       ['prep', ['prep']],
       ['trip', ['stranger']],
+    ])
+  })
+
+  it('FR-7.11: a group with something overdue or soon moves up, and inside a group the dated lead', () => {
+    const groups = taskGroups(
+      [
+        t('apo-undated', { tag: 'apo' }),
+        t('haus-undated', { tag: 'haus' }),
+        t('haus-later', { tag: 'haus', due: '2026-07-30' }),
+        t('haus-soon', { tag: 'haus', due: '2026-07-10' }),
+      ],
+      tags,
+      TODAY,
+    )
+    expect(groups.map((g) => [g.key, g.tasks.map((x) => x.id)])).toEqual([
+      ['haus', ['haus-soon', 'haus-later', 'haus-undated']],
+      ['apo', ['apo-undated']],
     ])
   })
 
@@ -410,7 +448,12 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
 describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', () => {
   const task = (
     id: string,
-    opts: { phase?: TaskPhase; assignee?: string | null; state?: TodoState } = {},
+    opts: {
+      phase?: TaskPhase
+      assignee?: string | null
+      state?: TodoState
+      due?: string | null
+    } = {},
   ): TripTask => ({
     id,
     body: id,
@@ -423,13 +466,14 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
     resolved_at: null,
     resolved_by_user_id: null,
     task_tag_id: null,
+    due_date: opts.due ?? null,
   })
   const ids = (list: TripTask[]) => list.map((entry) => entry.id)
 
   it('lists only open tasks and counts them all, whatever the limit', () => {
     const got = dashboardTasks(
       [task('a'), task('b', { state: 'resolved' }), task('c'), task('d'), task('e')],
-      { phaseInFront: TASK_PHASE_BEFORE, myUserId: null, limit: 2 },
+      { phaseInFront: TASK_PHASE_BEFORE, myUserId: null, limit: 2, today: TODAY },
     )
     expect(ids(got.rows)).toEqual(['a', 'c'])
     expect(got.open).toBe(4)
@@ -444,7 +488,7 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
         task('before-2'),
         task('during-2', { phase: TASK_PHASE_DURING }),
       ],
-      { phaseInFront: TASK_PHASE_DURING, myUserId: null, limit: 10 },
+      { phaseInFront: TASK_PHASE_DURING, myUserId: null, limit: 10, today: TODAY },
     )
     expect(ids(got.rows)).toEqual(['during-1', 'during-2', 'before-1', 'before-2'])
   })
@@ -457,7 +501,7 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
         task('mine-during', { phase: TASK_PHASE_DURING, assignee: 'me' }),
         task('other-before'),
       ],
-      { phaseInFront: TASK_PHASE_DURING, myUserId: 'me', limit: 10 },
+      { phaseInFront: TASK_PHASE_DURING, myUserId: 'me', limit: 10, today: TODAY },
     )
     expect(ids(got.rows)).toEqual(['mine-during', 'other-during', 'mine-before', 'other-before'])
   })
@@ -467,8 +511,23 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
       phaseInFront: TASK_PHASE_BEFORE,
       myUserId: null,
       limit: 10,
+      today: TODAY,
     })
     expect(ids(got.rows)).toEqual(['a', 'b'])
+  })
+
+  it('FR-7.11: leads with what is due — overdue, today, soon — ahead of phase and of mine', () => {
+    const got = dashboardTasks(
+      [
+        task('mine-during', { phase: TASK_PHASE_DURING, assignee: 'me' }),
+        task('later', { phase: TASK_PHASE_BEFORE, due: '2026-07-30' }),
+        task('soon', { phase: TASK_PHASE_BEFORE, due: '2026-07-10' }),
+        task('long-overdue', { phase: TASK_PHASE_BEFORE, due: '2025-01-01' }),
+        task('today', { phase: TASK_PHASE_DURING, due: TODAY }),
+      ],
+      { phaseInFront: TASK_PHASE_DURING, myUserId: 'me', limit: 10, today: TODAY },
+    )
+    expect(ids(got.rows)).toEqual(['long-overdue', 'today', 'soon', 'mine-during', 'later'])
   })
 
   it('says nothing is left when nothing is open', () => {
@@ -477,6 +536,7 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
         phaseInFront: TASK_PHASE_BEFORE,
         myUserId: null,
         limit: 4,
+        today: TODAY,
       }),
     ).toEqual({ rows: [], open: 0, rest: 0 })
   })
@@ -495,6 +555,7 @@ describe('a batch of tasks (FR-7.8): only what changes is written', () => {
     resolved_at: null,
     resolved_by_user_id: null,
     task_tag_id: over.tag ?? null,
+    due_date: null,
   })
 
   it.each([

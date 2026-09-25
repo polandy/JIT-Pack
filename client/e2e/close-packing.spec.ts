@@ -14,6 +14,7 @@ import {
 } from './fixtures'
 import { PATH } from './routes'
 import {
+  addBuyRowOnM4,
   addPrepTodo,
   openTasks,
   openTripTodos,
@@ -210,6 +211,75 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     const during = await openTasks(page, 'during')
     await expect(during.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
     await page.goto(trip)
+  })
+
+  /**
+   * E2E-M4-149 (FR-7.12): finishing the packing ends *before the trip* for the
+   * shopping list too, and keeps it closed.
+   *
+   * Both kinds of purchase cross in the act — a packing row bought *before
+   * departure* and the list's own entry — because the list is a module and the
+   * second half travels a different contract; a close that moved only its own
+   * rows would pass a case with one of them. The sheet counts both, the one
+   * undo brings both back, and after the second close the two *before* places
+   * are records: M6's tab and M25's section each say why they take nothing,
+   * and neither has its field. *Wieder öffnen* lifts both.
+   */
+  test('E2E-M4-149: finishing the packing moves the purchases and closes before', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Vorher zu')
+    await addBuyRowOnM4(page, 'Sun hat', 'Buy before')
+    const m6 = visiblePage(page).getByTestId('m6-page')
+    await openTripView(page, 'shopping')
+    expect(await openList(page)).toBe('buy_before')
+    await m6.getByTestId('m6-add-input').locator('input').fill('Coffee')
+    await m6.getByTestId('m6-add-submit').click()
+    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Coffee' })).toBeVisible()
+    await writesLanded(page)
+
+    await openTripView(page, 'packing')
+    await tripAction(page, 'closePacking')
+    await expect(page.getByTestId('m4-close-sheet-shopping')).toContainText('2 open purchases')
+    await confirmClose(page)
+    // Taken back from the frame that armed it: both purchases are before
+    // departure again.
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: /undo/i }).click()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    await writesLanded(page)
+    await openTripView(page, 'shopping')
+    expect(await openList(page)).toBe('buy_before')
+    await expect(m6.getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
+
+    // Closed for good: both wait at the destination, and before departure is
+    // the record of what was bought there.
+    await openTripView(page, 'packing')
+    await tripAction(page, 'closePacking')
+    await confirmClose(page)
+    await writesLanded(page)
+    await openTripView(page, 'shopping')
+    expect(await openList(page)).toBe('buy_local')
+    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Sun hat' })).toBeVisible()
+    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Coffee' })).toBeVisible()
+    await m6.getByTestId('m6-tab-before').click()
+    await expect(m6.getByTestId('m6-before-locked')).toBeVisible()
+    await expect(m6.getByTestId('m6-composer')).toHaveCount(0)
+
+    const before = await openTasks(page, 'before')
+    await expect(before.getByTestId('m25-before-locked')).toBeVisible()
+    await expect(before.getByTestId('m25-composer-before')).toHaveCount(0)
+
+    // Reopened: both places take entries again, and nothing moved back.
+    await openTripView(page, 'packing')
+    await visiblePage(page).getByTestId('m4-reopen-packing').click()
+    await writesLanded(page)
+    const reopened = await openTasks(page, 'before')
+    await expect(reopened.getByTestId('m25-composer-before')).toBeVisible()
+    await expect(reopened.getByTestId('m25-before-locked')).toHaveCount(0)
+    await openTripView(page, 'shopping')
+    await m6.getByTestId('m6-tab-before').click()
+    await expect(m6.getByTestId('m6-composer')).toBeVisible()
+    await expect(m6.getByTestId('m6-row')).toHaveCount(0)
   })
 
   /**

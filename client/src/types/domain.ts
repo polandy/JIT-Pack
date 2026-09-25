@@ -315,6 +315,11 @@ export interface TaskFacts {
    */
   task_tag_id: string | null
   phase: TaskPhase | null
+  /**
+   * FR-7.11: the day it is due, `YYYY-MM-DD`, or null for none — a day and
+   * not a moment, so it reads the same wherever it is read.
+   */
+  due_date: string | null
   created_at: string | null
   /** FR-7.7: whose job it is — since FR-7.7 on both kinds, not only the trip's own. */
   assignee_user_id: string | null

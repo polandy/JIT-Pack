@@ -4,6 +4,9 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"time"
+
+	"jitpack/internal/api"
 )
 
 // currencyCodeLen is ISO 4217's alphabetic code length.
@@ -61,6 +64,11 @@ type Config struct {
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
 	AdminEmails []string // JITPACK_ADMIN_EMAILS
+
+	// TaskReminderAt is when FR-7.11's daily reminder runs, as a time of
+	// day in the server's own time zone (the TZ variable): "HH:MM",
+	// default 06:00 (api.DefaultTaskReminderAt).
+	TaskReminderAt time.Duration // JITPACK_TASK_REMINDER_TIME
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -97,6 +105,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	c.Currency = currency
+
+	at, err := parseReminderTime(getenv("JITPACK_TASK_REMINDER_TIME"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.TaskReminderAt = at
 
 	if c.SingleUser {
 		if c.LocalUserID == "" {
@@ -140,6 +154,21 @@ func parseCurrency(raw string) (string, error) {
 		}
 	}
 	return code, nil
+}
+
+// parseReminderTime reads "HH:MM" as an offset from midnight; unset is the
+// default. A malformed value is an error for parseCurrency's reason: the
+// fallback's only visible effect would be a reminder at the wrong hour.
+func parseReminderTime(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return api.DefaultTaskReminderAt, nil
+	}
+	t, err := time.Parse("15:04", raw)
+	if err != nil {
+		return 0, errors.New("JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset")
+	}
+	return time.Duration(t.Hour())*time.Hour + time.Duration(t.Minute())*time.Minute, nil
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

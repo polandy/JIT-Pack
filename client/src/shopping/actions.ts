@@ -7,11 +7,13 @@
  * it is bound into the line by the packing side (`lib/shoppingSources.ts`).
  */
 import { newId } from '@/lib/ids'
+import type { PackingCloseCrossing } from '@/lib/packingClose'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { TABLE_CODECS } from '@/sync/tableRegistry'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
@@ -125,7 +127,29 @@ export function createShoppingActions(host: ModuleHost) {
     }
   }
 
-  return { addEntry, updateEntry, setBought, removeEntry, bulkSetTag }
+  /**
+   * FR-7.12: entries moved to another list — the close of the packing sends
+   * what is still open *before departure* to *at the destination*. One
+   * field; the undo writes each entry's own list back, and only where the
+   * entry is still on the list this put it on.
+   */
+  function moveEntries(entries: readonly ShoppingEntry[], list: ShoppingMode): () => void {
+    const moving = entries.filter((entry) => entry.list !== list)
+    for (const entry of moving) writeList(entry, list)
+    return () => {
+      for (const entry of moving) writeList({ ...entry, list }, entry.list)
+    }
+  }
+
+  function writeList(entry: ShoppingEntry, list: ShoppingMode): void {
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, { list })
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encode(entry)),
+    })
+  }
+
+  return { addEntry, updateEntry, setBought, removeEntry, bulkSetTag, moveEntries }
 }
 
 export type ShoppingActions = ReturnType<typeof createShoppingActions>
@@ -187,5 +211,24 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
         reads.openEntries(tripId, list).filter((entry) => keys.has(LINE_KEY_PREFIX + entry.id)),
         tag,
       ),
+  }
+}
+
+/**
+ * FR-7.12: the shopping list's share of closing the packing — its own open
+ * entries *before departure* move to *at the destination*. The packing
+ * rows in a buy mode are not in here: they are the packing side's, and it
+ * moves them itself (`domain/closePacking`).
+ */
+export function shoppingCloseCrossing(
+  reads: Pick<EntryReads, 'openEntries'>,
+  actions: Pick<ShoppingActions, 'moveEntries'>,
+): PackingCloseCrossing {
+  return {
+    pending: (tripId) => reads.openEntries(tripId, ITEM_MODE_BUY_BEFORE).length,
+    cross(tripId) {
+      const entries = reads.openEntries(tripId, ITEM_MODE_BUY_BEFORE)
+      return { count: entries.length, undo: actions.moveEntries(entries, ITEM_MODE_BUY_LOCAL) }
+    },
   }
 }

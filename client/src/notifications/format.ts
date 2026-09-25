@@ -16,7 +16,10 @@ import {
   notificationDetail,
   notificationParams,
 } from './messages'
-import { tripItemPath, tripPath } from '@/router/paths'
+import { tripItemPath, tripPath, tripSubPath } from '@/router/paths'
+
+/** FR-7.11's kind — the one whose link is the trip's task screen. */
+const NOTIFY_TASK_DUE = 'task_due'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this
@@ -47,6 +50,8 @@ function str(payload: Record<string, unknown> | null, key: string): string {
 export function notificationRoute(n: ServerNotification): string | null {
   const tripId = str(n.payload, 'trip_id')
   if (!tripId) return null
+  // FR-7.11: a reminder is about the trip's tasks, which live on M25.
+  if (n.kind === NOTIFY_TASK_DUE) return tripSubPath(tripId, 'tasks')
   const itemId = str(n.payload, 'item_id')
   if (!itemId) return tripPath(tripId)
   return tripItemPath(tripId, itemId, str(n.payload, 'comment_id') || undefined)

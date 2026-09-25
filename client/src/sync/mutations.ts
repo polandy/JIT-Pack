@@ -750,8 +750,14 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
-  function flagCommentAsTask(commentId: string): Mutation {
-    return make('upsert', TABLE.comments, commentId, { is_task: 1, task_state: 'open' })
+  /**
+   * FR-7.2: a comment becomes an open task. `phase` is written only when the
+   * caller names one — FR-7.12's *during*, once *before* is closed; without
+   * it the task reads as *before*, as every task without a phase does.
+   */
+  function flagCommentAsTask(commentId: string, phase?: TaskPhase): Mutation {
+    const fields = { is_task: 1, task_state: 'open' }
+    return make('upsert', TABLE.comments, commentId, phase ? { ...fields, phase } : fields)
   }
 
   function deleteComment(commentId: string): Mutation {
@@ -1313,6 +1319,15 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('upsert', TABLE.comments, todoId, { task_tag_id: taskTagId })
   }
 
+  /**
+   * FR-7.11: the day a task is due, `YYYY-MM-DD`, or `null` for none. One
+   * field, like the tag: a date set on one device and a tag on another
+   * both stand (NFR-4.2a).
+   */
+  function setTaskDueDate(todoId: string, dueDate: string | null): Mutation {
+    return make('upsert', TABLE.comments, todoId, { due_date: dueDate })
+  }
+
   // --- Tag mutations (FR-24.1) ---
 
   function createTag(
@@ -1492,6 +1507,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     setTodoAssignee,
     setTaskPhase,
     setTaskTag,
+    setTaskDueDate,
     createTaskTag,
     reopenTodo,
     deleteTodo,

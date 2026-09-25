@@ -22,7 +22,12 @@ const emit = defineEmits<{ check: [] }>()
   <li class="row" :data-testid="testid">
     <span class="words">
       <span class="title">{{ title }}</span>
-      <span v-if="sub" class="sub">{{ sub }}</span>
+      <!-- `lead`: a mark the kind of thing is read after — a task's due
+           date (FR-7.11), which is why it sits before the words of `sub`. -->
+      <span v-if="sub || $slots.lead" class="sub">
+        <slot name="lead" />
+        {{ sub }}
+      </span>
     </span>
     <button
       type="button"

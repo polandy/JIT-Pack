@@ -43,6 +43,7 @@ const orchestratorFake = {
   resolvePrepTodo: vi.fn(),
   reopenPrepTodo: vi.fn(),
   tripDataLoaded: vi.fn(() => true),
+  today: vi.fn(() => '2026-07-08'),
   addTripTodo: vi.fn(() => 'new-task'),
   resolveTripTodo: vi.fn(),
   reopenTripTodo: vi.fn(),
@@ -440,7 +441,10 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
       )
     })
 
-    it('files a task added before the trip starts under *before*, and labels the field so', async () => {
+    // FR-7.12 amends FR-7.10 here: the block is shown only once the packing
+    // is finished, and a finished packing closes *before* — so even ahead of
+    // the start a new task is written for the road, and the field says so.
+    it('files a task added before the trip starts under *during* once the packing is finished (FR-7.12)', async () => {
       today('2026-10-01')
       seedActiveTrip({
         packing_closed_at: CLOSED,
@@ -451,7 +455,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
       const page = mountPage()
       await flushPromises()
       const input = page.find('[data-testid="dashboard-tasks-Samedan-add-input"]')
-      expect(input.attributes('placeholder')).toBe(t('tasks.addBefore'))
+      expect(input.attributes('placeholder')).toBe(t('tasks.addDuring'))
       await input.setValue('Post nachsenden')
       await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
@@ -459,7 +463,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
         't1',
         expect.anything(),
         'Post nachsenden',
-        'before',
+        'during',
       )
     })
 
@@ -482,6 +486,26 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
         expect.stringContaining('before-task'),
       ])
     })
+  })
+
+  // FR-7.11: what is due leads the block, and says so on its line. The fake
+  // orchestrator's today is 2026-07-08.
+  it('leads with what is due and wears the day on the line (FR-7.11)', async () => {
+    seedActiveTrip({ packing_closed_at: CLOSED })
+    seedTask('Karte kaufen')
+    seedTask('Pass holen', { due_date: '2026-07-01' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    const rows = page.findAll('[data-testid="dashboard-tasks-Samedan-row"]')
+    expect(rows[0]!.text()).toContain('Pass holen')
+    expect(
+      page.get('[data-testid="due-dashboard-tasks-Samedan-Pass holen"]').attributes('data-due'),
+    ).toBe('overdue')
+    expect(page.find('[data-testid="due-dashboard-tasks-Samedan-Karte kaufen"]').exists()).toBe(
+      false,
+    )
   })
 
   it('draws no preview of open packing rows in the worked hero, and keeps it while packing is open', async () => {

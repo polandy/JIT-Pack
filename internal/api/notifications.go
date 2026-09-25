@@ -71,7 +71,9 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		Delegation: prefs[store.NotifyDelegation],
 		Mention:    prefs[store.NotifyMention],
 		Task:       prefs[store.NotifyTask],
+		LockTaken:  prefs[store.NotifyLockTaken],
 		Note:       prefs[store.NotifyNote],
+		TaskDue:    prefs[store.NotifyTaskDue],
 	})
 }
 
