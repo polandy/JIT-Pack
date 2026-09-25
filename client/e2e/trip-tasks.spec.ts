@@ -688,7 +688,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   test('E2E-M25-13: a due day is set on the sheet, leads the list, and is said when the app opens', async ({
     page,
   }) => {
-    const trip = await tripWithRows(page, ['Zelt'], 'Fällig')
+    await tripWithRows(page, ['Zelt'], 'Fällig')
+    // Running from the start: M1 counts the active trips. Started here, where
+    // the trip's name is already on screen for the helper to read — right
+    // after a fresh load WebKit showed the screen's generic title instead.
+    await startTrip(page)
     await addTripTodo(page, 'Buy a map')
     await addTripTodo(page, 'Renew the passport')
 
@@ -728,8 +732,6 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect.poll(order).toEqual(['Renew the passport', 'Buy a map'])
 
     // Local Mode's reminder: once, when the app opens on a running trip.
-    await page.goto(trip)
-    await startTrip(page)
     await page.goto(PATH.dashboard)
     await expect(page.locator('ion-toast').filter({ hasText: '1 task due' })).toBeVisible()
   })
