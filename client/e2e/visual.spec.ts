@@ -68,9 +68,9 @@ useReducedMotion(test)
  * write path. None of these baselines renders a date — only the greeting's
  * hour and a note's time of day (M26) read the clock, and `freeze` below pins
  * both — so the full freeze bought nothing and cost the one state that
- * exercises FR-25.2; it was dropped rather than investigated. If a dated screen is added here later, pin the
- * date on the *trip* rather than on the browser, and expect to find this
- * note first.
+ * exercises FR-25.2; it was dropped rather than investigated. If a dated
+ * screen is added here later, pin the date on the *trip* rather than on the
+ * browser, and expect to find this note first.
  */
 async function freeze(page: Page) {
   await page.addInitScript(() => {
