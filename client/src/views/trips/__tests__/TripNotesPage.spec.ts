@@ -288,4 +288,25 @@ describe('M26 — writing a note (FR-7.13)', () => {
     expect(page.find('[data-testid="m26-add"]').exists()).toBe(true)
     expect(page.text()).not.toContain('Everyone on the trip sees the note.')
   })
+
+  it('says nothing about readers on a trip nobody shares (Single-User, a solo trip)', async () => {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Solo', year: 2026, status: 'active' },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.tripMembers,
+      id: 'mem-0',
+      deleted: false,
+      row: { trip_id: 't1', user_id: 'u-andy', role: 'owner' },
+    })
+    const page = await mounted()
+    expect(page.find('[data-testid="m26-add"]').exists()).toBe(true)
+    expect(page.text()).not.toContain('Everyone on the trip sees the note.')
+  })
 })

@@ -52,6 +52,15 @@ const router = useRouter()
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
 
+/**
+ * Whether anybody else reads what is written here: an identity to tell
+ * writers apart and another member of this trip. Not in Local Mode, not in
+ * Single-User Mode, not on a trip nobody shares (G-8).
+ */
+const othersRead = computed(
+  () => myUserId.value !== null && tripStore.getMembers(props.tripId).length > 1,
+)
+
 const threads = computed(() =>
   noteThreads(
     tripStore.getTripComments(props.tripId),
@@ -147,9 +156,9 @@ setHeaderTitle(
             :rows="3"
             data-testid="m26-input"
           />
-          <!-- Who reads it, said before it is sent — there is nobody else in
-               Local Mode (G-8), so there the line says nothing. -->
-          <p v-if="myUserId !== null" class="share-hint">{{ t('notes.shareHint') }}</p>
+          <!-- Who reads it, said before it is sent — and only where somebody
+               else does. -->
+          <p v-if="othersRead" class="share-hint">{{ t('notes.shareHint') }}</p>
           <div class="actions">
             <IonButton fill="clear" data-testid="m26-cancel" @click="closeComposer">
               {{ t('common.cancel') }}

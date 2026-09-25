@@ -3073,7 +3073,8 @@ token would prove nothing there is anything to prove.
   the code is readable without a tap, and *seen* is said inside the thread. The empty trip says *„Für diese Reise gibt
   es noch keine Notizen."*
 * **Writing a note:** the FAB (＋, `FAB_ANCHOR.m26`) opens a sheet *„Neue Notiz"*: *„Titel (optional)"*, the words
-  (*„Eine Notiz für alle — ein Code, eine Nummer…"*), in Server Mode the line *„Alle Mitreisenden sehen die Notiz."*,
+  (*„Eine Notiz für alle — ein Code, eine Nummer…"*), where another member shares the trip the line *„Alle
+  Mitreisenden sehen die Notiz."*,
   *Abbrechen* and *Teilen*. It writes a first note with `created_at` from the device; the list stays where it is.
 * **The thread view** (`/trips/:id/notes/:threadId`, `meta.parent` the list, no pills) is named by the thread, with the
   trip as meta. **The first note is a card on top** — avatar, *„Ben · heute 14:32 · bearbeitet"*, a ⋯, the words in
