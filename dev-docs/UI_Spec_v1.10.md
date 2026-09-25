@@ -7,6 +7,9 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-25 — **G-9**: the trip's switcher words only the view you stand on; every other view is its glyph with its
+  count as a badge, named on a held press (ADR-051 amendment 3). **G-12**: that bubble is the one exception to the
+  struck long-press rule.
 * 2026-09-25 — **G-20** added: a selection wears the app bar — ✕, the count and *„Alle N"* replace back, the cluster,
   the ⋮ and the gear while it lasts, and nothing on the page moves (owner, 2026-09-24). **G-12**: a ⋮ holds its own
   context only — *Gepäck* and *Auswertung* only on packing's views, none on M6 or M25 (ADR-051 amendment 2); the
@@ -337,15 +340,18 @@ These patterns apply to every screen and are specified once.
   roots had each written into their own content by hand. Accepted cost: the head is a fixed band rather than part of
   the scroller, so it does not scroll away; the revisit trigger is in ADR-050.
 * **A trip's screen names the trip's other screens (added 2026-09-08, amended 2026-09-20; FR-21.21, ADR-051 and its
-  amendment 1).** Under the page head, and inside it — so it yields with the name where a screen collapses its head
-  (FR-21.17) — the views a trip is *worked* in are a row of pills: *Packliste* and *Einkaufen (n)*, plus the view
-  being looked at when it is neither of them, so the row always marks where you are. The current one is marked and
-  inert; the others are one tap, from any of the four screens. *Gepäck* and *Auswertung* are words in the bar's ⋮
-  instead — the frame puts them there, from the same `meta.tripView` the row comes from, so the four screens decide
-  nothing in either shape and a view cannot be named differently in the two. Pills are words alone below 480 px and
-  words with their G-12 glyphs above it; the widest row the amendment produces is three pills, which the glyphs
-  still overrun at 390 px. Together this keeps what ADR-050 spent — §3.25's "one tap each" for the two views that
-  earn it — while the ⋮ holds two destinations rather than five, ahead of what *changes* the trip.
+  amendments 1 and 3).** Under the page head, and inside it — so it yields with the name where a screen collapses its
+  head (FR-21.17) — the views a trip is *worked* in are a row of pills: *Packliste*, *Einkaufen (n)* and *Aufgaben
+  (n)*, plus the view being looked at when it is none of them, so the row always marks where you are. **The current
+  one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word); every other view is
+  its G-12 glyph at `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label (*„Einkaufen (12)"*)
+  its `aria-label` and `title`. **Holding a glyph shows that label in a bubble** below it, which stays a moment after
+  the release and does not navigate; a tap is one tap, from any of the trip's screens. *Gepäck* and *Auswertung* are
+  words in the bar's ⋮ instead — the frame puts them there, from the same `meta.tripView` the row comes from, so the
+  screens decide nothing in either shape and a view cannot be named differently in the two. The widest row, four
+  pills while standing on one of the ⋮'s views, fits 360 px (E2E-G12-07 measures it). *Revised 2026-09-25 (ADR-051
+  amendment 3):* every pill was a word, with glyphs only from 480 px up; four words and their counts did not fit a
+  390 px phone, and the row as built already overran it on *Gepäck* and *Auswertung*.
 * **The bar's cluster is capped at three glyphs (added 2026-09-06, ADR-050).** A page describes its actions in
   registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts everything after
   them into the menu, ahead of the actions the page marked itself. M4 stood at seven glyphs, each of which had arrived
@@ -544,8 +550,10 @@ These patterns apply to every screen and are specified once.
     name on sight moved there. A bubble would be a second, weaker answer — and a *third* meaning for a gesture the app
     already spends twice (FR-5.5's row menu, G-6's stepper holds), whose collision was this week's headline defect.
     **Revisit trigger:** a bar glyph that turns out to be unlearnable moves behind the ⋮; if one ever cannot, the bubble
-    is back on the table. Note also that the *four navigation anchors* are not subject to the naming rule at all: both
-    the rail and the tab bar render a visible label.
+    is back on the table. **Fired once, 2026-09-25 (ADR-051 amendment 3):** the trip switcher's glyphs are the
+    destinations that *left* the ⋮, so a held glyph there shows its name (E2E-G12-08). The rule stands everywhere else;
+    a switcher pill carries no other hold for the gesture to collide with. Note also that the *four navigation
+    anchors* are not subject to the naming rule at all: both the rail and the tab bar render a visible label.
   * **What stays out of the cluster:** identity and progress. ~~The screen's own header line keeps the trip name,~~
     ~~packed/total, weight and open-prep~~ — **corrected 2026-09-08:** identity is the **page head** since ADR-050, not
     the header line, and the line carries the figures alone. The rule the bullet is making is unchanged and is the

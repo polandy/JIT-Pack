@@ -1,9 +1,10 @@
 # ADR-051: The trip's views are a switcher in the page — vs. entries behind the bar's ⋮
 
-**Status:** Accepted (2026-09-08); amended 2026-09-20 and 2026-09-25
+**Status:** Accepted (2026-09-08); amended 2026-09-20 and twice on 2026-09-25
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
 contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
-FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-07, E2E-M4-11, E2E-M6-04
+FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,
+`dev-docs/trip-note-threads-concept.md` §7a, `dev-docs/UI_Concept_TripNoteThreads_variants.html`
 
 **Context.** ADR-050 capped the bar at three glyphs and sent M4's shopping, luggage and analytics entries into the ⋮,
 recording the cost in its own consequences: *"§3.25's 'one tap each' for the trip's three views is spent."* The M4
@@ -139,6 +140,45 @@ ADR bought and Amendment 1 kept. From the shopping list or the tasks the luggage
 ⋮: one screen further. Accepted, because the alternative the owner rejected is the one this ADR's Context started
 from — a menu whose entries have nothing to do with the screen it opens on reads as a junk drawer, and every entry
 in it costs the reader a thought about whether it applies here. The E2E-G12-07 walk now goes through M4.
+
+**Amendment 3 (2026-09-25) — the word stays where you stand; every other view is its glyph.** The trip's notes
+are to become a view of their own (FR-7.9's threads, `dev-docs/trip-note-threads-concept.md`), which is the revisit
+trigger's own case — a view worked in rather than read. The row was measured before deciding, in the concept's
+mockup with this component's own metrics in headless Chromium (German, *Einkaufen (12)*, *Aufgaben (7)*, two new
+notes; negative is overflow):
+
+| Row | 360 px | 390 px | 430 px |
+|---|---|---|---|
+| Three word pills, on M4 (as built) | +47 | +77 | +117 |
+| Three word pills, standing on *Auswertung* (as built) | −50 | −20 | +20 |
+| Four word pills, on M4 | −42 | −12 | +28 |
+| One word and three glyphs, on M4 | +70 | +100 | +140 |
+| One word and four glyphs, standing on *Auswertung* | −1 | +29 | +69 |
+
+Four words do not fit a 390 px phone once the fourth has something to say, and **the row as built already
+overflowed there** while standing on the luggage or the analytics: Amendment 1's 286 px was measured with a
+one-digit shopping count and before *Aufgaben* joined the row. The owner proposed glyphs instead of words and chose
+from the render:
+
+- **The current view keeps its word** (and its glyph at `--jp-icon-sm`). A row of glyphs that marked nothing in words
+  would have stopped saying where you are, which Amendment 1 established is half of what the row is for.
+- **Every other view is its glyph** at `--jp-icon-md`, the step for an icon that is its own tap target, and **its count
+  is a badge**. The name is still the whole label (*„Einkaufen (12)"*) as `aria-label` and as `title`, so a screen
+  reader and a hovering pointer are told the count the eye reads off the badge. The 480 px breakpoint is gone: it
+  hid glyphs to save room, and glyphs are now what saves it.
+- **A held press shows the name in a bubble; a tap navigates.** A phone has no hover. The owner's first reading, a
+  tap that shows the bubble and a second that goes, was drawn and not taken: it charges every switch a tap to spare
+  a reader one look at the page title the switch lands on. The release that ends a hold swallows its click.
+
+What this reverses, stated. **Driver 1 is re-weighted a second time**: ADR-051 read discoverability as *every view
+visible*, Amendment 1 as *every worked-in view visible*, and this as *every worked-in view visible and named on
+demand*. The glyphs now carry meaning alone, so E2E-G12-05's pairwise-distinct vocabulary is load-bearing rather than
+decorative — and the one pair a reader may confuse is the packing list's list and the tasks' checkbox, both of which
+are checklists. Accepted; if it proves unlearnable, one of the two changes its glyph, not the row its shape.
+**And UI-Spec G-12's struck bubble** (2026-08-31: *"a third meaning for a gesture the app already spends twice"*)
+comes back here and only here, by that ruling's own revisit trigger — *a glyph that cannot move behind the ⋮*: these
+are the destinations that left the ⋮. The collision it feared was two holds on one element; a pill carries no other
+hold. E2E-G12-08 pins the hold and that it goes nowhere.
 
 ## Consequences
 

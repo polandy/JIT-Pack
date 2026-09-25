@@ -82,7 +82,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     ).toHaveText(['Milch'])
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(2)')
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (2)')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping (2)')
 
     // The packing list did not grow: one row, still the one it had.
     await page.getByTestId('header-back').click()
@@ -456,7 +456,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await m6(page).getByTestId('m6-tab-local').click()
     await expect(m6(page).getByTestId('m6-empty')).toBeVisible()
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping')
   })
 })
 
@@ -726,15 +726,16 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await createTripViaWizard(page, TRIP)
 
     // The destination exists either way — hiding the entry would strand M6 on
-    // a trip that has yet to need it. Only the count answers to the count, and
-    // it is part of the word rather than a badge (ADR-050, kept by FR-21.21's
-    // switcher).
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
+    // a trip that has yet to need it. Only the count answers to the count —
+    // part of the word where the view is the current one, a badge beside its
+    // glyph everywhere else (ADR-051 amendment 3); the name carries it both
+    // ways.
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping')
 
     await openTripView(page, 'shopping')
     await expect(m6(page)).toBeVisible()
     await addEntry(page, 'Batterien')
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping (1)')
   })
 })
 

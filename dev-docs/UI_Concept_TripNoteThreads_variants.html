@@ -1,0 +1,701 @@
+<title>Notiz-Threads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #f1f2ec; --card: #fbfbf8; --ink: #1c2629; --ink2: #56635f; --line: #d6dad2;
+  --accent: #9e5a10; --pine: #2e7d4e; --chip: #e4e8df; --bad: #b93a2e;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e1417; --card: #172025; --ink: #e8ebe6; --ink2: #9aa6a3; --line: #2a353b;
+    --accent: #f0a44e; --pine: #7fc084; --chip: #232e34; --bad: #ee7a6e;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1417; --card: #172025; --ink: #e8ebe6; --ink2: #9aa6a3; --line: #2a353b;
+  --accent: #f0a44e; --pine: #7fc084; --chip: #232e34; --bad: #ee7a6e;
+}
+/* The phone screens are the app's own Nacht flavour in every viewer theme. */
+.phone, .pvscreen {
+  --n-crust: #0e1417; --n-mantle: #131a1d; --n-base: #1b2327; --n-s0: #2a353b; --n-s1: #37444b;
+  --n-o1: #6b7a78; --n-sub0: #9aa6a3; --n-sub1: #bcc5c1; --n-text: #e8ebe6;
+  --n-larch: #f0a44e; --n-glacier: #6fb6da; --n-pine: #7fc084; --n-heather: #b49bd6;
+  --n-lupine: #9fb0e8; --n-rose: #e39ab8; --n-ember: #ee7a6e;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 "Hanken Grotesk", system-ui, sans-serif; margin: 0; }
+main { max-width: 1120px; margin: 0 auto; padding-block: 32px 64px; padding-inline: 16px; }
+h1 { font: 700 30px/1.15 "Hanken Grotesk", system-ui, sans-serif; margin: 0 0 8px; text-wrap: balance; }
+h2 { font: 700 20px/1.25 "Hanken Grotesk", system-ui, sans-serif; margin: 44px 0 6px; text-wrap: balance; }
+p { max-width: 70ch; margin: 0 0 12px; }
+ul { max-width: 70ch; padding-left: 20px; margin: 0 0 12px; }
+li { margin-bottom: 4px; }
+.lede { color: var(--ink2); font-size: 16px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+.muted { color: var(--ink2); }
+code { font: 13px "JetBrains Mono", ui-monospace, monospace; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+.rec { color: var(--pine); font-weight: 700; }
+.stage { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; margin-bottom: 18px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ctl > span { font-size: 13px; color: var(--ink2); margin-right: 2px; }
+.ctl button {
+  font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--ink); border: 1px solid var(--line);
+}
+.ctl button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.cap { font-size: 13px; color: var(--ink2); margin-top: 8px; max-width: 340px; }
+.log { flex: 1 1 260px; min-width: 0; max-width: 360px; }
+.log h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); margin: 0 0 8px; }
+.log ol { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.log li { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; margin: 0; }
+.log li b { display: block; }
+.log .to { color: var(--ink2); font-size: 12px; }
+.log .kind { font: 11px "JetBrains Mono", ui-monospace, monospace; color: var(--accent); }
+.log .none { color: var(--ink2); font-size: 13px; }
+.reset { margin-top: 12px; font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* ---- phone ---- */
+.phone { width: 350px; max-width: 100%; background: var(--n-mantle); color: var(--n-text); border-radius: 30px;
+  border: 6px solid #05090b; overflow: hidden; font: 14px/1.4 "Hanken Grotesk", system-ui, sans-serif; }
+.phone button { font: inherit; color: inherit; }
+.bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px 4px; font-size: 12px; color: var(--n-sub0); }
+.bar b { color: var(--n-text); font-size: 13px; }
+.title { padding: 6px 16px 10px; font-size: 20px; font-weight: 700; }
+.pills { display: flex; gap: 6px; padding: 0 16px 10px; }
+.pill { padding: 5px 11px; border-radius: 999px; background: var(--n-base); color: var(--n-sub1); font-size: 13px; }
+.pill.on { background: var(--n-larch); color: var(--n-crust); font-weight: 700; }
+.seg { display: flex; margin: 0 16px 12px; background: var(--n-crust); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; font-size: 13px; color: var(--n-sub1); }
+.seg span.on { background: var(--n-s0); color: var(--n-text); font-weight: 700; }
+.seg em { font-style: normal; color: var(--n-larch); margin-left: 4px; font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 12px; }
+.av { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--n-crust); }
+.av.s { width: 18px; height: 18px; font-size: 9px; }
+.avs { display: flex; }
+.avs .av { border: 2px solid var(--n-base); margin-left: -5px; }
+.avs .av:first-child { margin-left: 0; }
+
+.thread { background: var(--n-base); border-radius: 14px; transition: box-shadow .3s; }
+.thread.flash { box-shadow: 0 0 0 2px var(--n-larch); }
+.thead { display: flex; gap: 10px; align-items: flex-start; padding: 10px 8px 10px 12px; }
+.thead .hit { flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; display: flex; gap: 10px; }
+.thead .hb { flex: 1; min-width: 0; }
+.ttl { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ttl.untitled { font-weight: 500; }
+.tmeta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--n-sub0); margin-top: 4px; flex-wrap: wrap; }
+.chev { flex: none; color: var(--n-sub0); font-size: 12px; margin-top: 3px; transition: transform .15s; }
+.thread.open .chev { transform: rotate(90deg); }
+.new { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--n-larch); color: var(--n-crust); margin-right: 6px; vertical-align: 1px; }
+.tick { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--n-o1); background: transparent; color: transparent;
+  display: grid; place-items: center; cursor: pointer; font-size: 15px; padding: 0; }
+.tick[aria-pressed="true"] { background: var(--n-pine); border-color: var(--n-pine); color: var(--n-crust); }
+.tick:focus-visible { outline: 2px solid var(--n-larch); outline-offset: 2px; }
+.tickgap { flex: none; width: 32px; }
+
+.tbody { padding: 0 12px 12px; border-top: 1px solid var(--n-s0); }
+.entry { display: flex; gap: 8px; padding: 10px 0 0; }
+.entry .eb { flex: 1; min-width: 0; }
+.entry .txt { overflow-wrap: anywhere; white-space: pre-wrap; }
+.entry .em { font-size: 12px; color: var(--n-sub0); margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.entry.first .txt { font-size: 15px; }
+.entry.unseen .eb { border-left: 2px solid var(--n-larch); padding-left: 8px; margin-left: -10px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--n-larch); display: inline-block; }
+.edit { background: none; border: 0; color: var(--n-glacier); cursor: pointer; padding: 0 2px; font-size: 12px; }
+.tel { color: var(--n-glacier); text-decoration: underline; text-underline-offset: 2px; }
+.code { font: 700 13px "JetBrains Mono", ui-monospace, monospace; background: var(--n-crust); padding: 1px 6px; border-radius: 6px; letter-spacing: .08em; }
+.replies-h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--n-sub0); margin: 12px 0 0; }
+.reply { display: flex; gap: 6px; margin-top: 10px; }
+.reply input, .comp input, .comp textarea, .editor input, .editor textarea {
+  flex: 1; min-width: 0; background: var(--n-crust); border: 1px solid var(--n-s0); border-radius: 10px; padding: 8px 10px;
+  color: var(--n-text); font: inherit; font-size: 14px; }
+.reply input::placeholder, .comp input::placeholder, .comp textarea::placeholder { color: var(--n-o1); }
+.btn { background: var(--n-larch); color: var(--n-crust) !important; border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+.btn:disabled { background: var(--n-s0); color: var(--n-o1) !important; cursor: default; }
+.btn.ghost { background: var(--n-s0); color: var(--n-text) !important; }
+.editor { display: flex; flex-direction: column; gap: 6px; }
+.editor textarea { resize: vertical; min-height: 60px; }
+.editor .row { display: flex; gap: 6px; justify-content: flex-end; }
+.comp { display: flex; flex-direction: column; gap: 6px; margin: 4px 10px 14px; padding-top: 10px; border-top: 1px solid var(--n-s0); }
+.comp .row { display: flex; gap: 6px; align-items: flex-end; }
+.comp textarea { resize: none; height: 40px; }
+.addtitle { align-self: flex-start; background: none; border: 0; color: var(--n-glacier); cursor: pointer; font-size: 13px; padding: 0; }
+
+.hero { margin: 0 12px 12px; padding: 12px; border-radius: 16px; background: var(--n-base); }
+.hero .h1 { font-size: 17px; font-weight: 700; }
+.hero .h2 { font-size: 12px; color: var(--n-sub0); }
+.card { margin: 0 12px 12px; background: var(--n-base); border-radius: 16px; padding: 12px; }
+.card h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--n-sub0); }
+.nrow { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--n-s0); }
+.nrow:first-of-type { border-top: 0; }
+.nrow .hit { flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.nrow .l1 { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nrow .l2 { font-size: 13px; color: var(--n-sub1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nrow .l3 { font-size: 11px; color: var(--n-sub0); margin-top: 2px; }
+.chip { font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--n-s0); color: var(--n-sub1); }
+.more { font-weight: 700; color: var(--n-larch); }
+.emptyc { color: var(--n-sub0); padding: 6px 0; font-size: 13px; }
+.ghostcard { margin: 0 12px 12px; border-radius: 16px; border: 1px dashed var(--n-s0); padding: 12px; color: var(--n-o1); font-size: 13px; }
+.nums label { font-size: 13px; color: var(--ink2); display: inline-flex; gap: 4px; align-items: center; }
+.nums input { width: 56px; font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.pvgrid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.pvcol { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+.pvlabel { font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.pvscreen { max-width: 100%; overflow: hidden; background: var(--n-mantle); color: var(--n-text); border-radius: 18px; border: 5px solid #05090b; }
+.pvhead { padding: 6px 16px 12px; }
+.pvtitle { font: 600 24px/1.2 "Fraunces", Georgia, serif; }
+.pvrow { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+.pvrow::-webkit-scrollbar { display: none; }
+.pvpill { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 5px 10px; border: 1px solid var(--n-s1);
+  border-radius: 999px; background: var(--n-s0); color: var(--n-sub0); font: 400 13px/1.4 "Hanken Grotesk", system-ui, sans-serif; white-space: nowrap; }
+.pvpill.current { border-color: var(--n-glacier); color: var(--n-glacier); }
+.pvlist { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+.pvlist span { height: 10px; border-radius: 5px; background: var(--n-base); }
+.pvscreen { position: relative; }
+.pvpill svg { width: 17px; height: 17px; flex: none; }
+.pvpill { gap: 5px; cursor: pointer; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.pvpill.iconly { padding: 5px 12px; }
+.pvpill.iconly svg { width: 22px; height: 22px; }
+.pvbadge { position: absolute; top: -5px; right: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+  background: var(--n-s1); color: var(--n-sub1); font: 700 10px/17px "Hanken Grotesk", system-ui, sans-serif; text-align: center; font-variant-numeric: tabular-nums; }
+.pvbadge.hot { background: var(--n-larch); color: var(--n-crust); }
+.pvpill:focus-visible { outline: 2px solid var(--n-larch); outline-offset: 2px; }
+.pvbubble { position: absolute; z-index: 2; padding: 5px 10px; border-radius: 10px; background: var(--n-text); color: var(--n-crust);
+  font: 500 13px/1.3 "Hanken Grotesk", system-ui, sans-serif; white-space: nowrap; pointer-events: none; transform: translateX(-50%); }
+.pvbubble::before { content: ""; position: absolute; top: -5px; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top: 0; border-bottom-color: var(--n-text); }
+.pvrow { padding-top: 6px; margin-top: 4px; }
+.fit { font-weight: 700; }
+.fit.ok { color: var(--pine); }
+.fit.over { color: var(--bad); }
+@media (prefers-reduced-motion: reduce) { .chev, .thread { transition: none; } }
+</style>
+
+<main>
+  <div class="eyebrow">Konzept · Vorschlag 25.09.2026 · nichts gebaut</div>
+  <h1>Notizen als Threads</h1>
+  <p class="lede">Eine Notiz bekommt Antworten, eine Ebene tief. Die erste Notiz kann einen Titel tragen, die Liste zeigt ihn. Aufgeklappt steht die neueste Antwort oben. Wer im Thread mitgeschrieben hat, erfährt, wenn jemand anderes antwortet.</p>
+
+  <h2>Zum Ausprobieren</h2>
+  <p>Wechsle die Person, klapp einen Thread auf, antworte, bearbeite deine eigenen Einträge. Das Push-Protokoll rechts zeigt, wer benachrichtigt würde. Ein Tipp auf eine Zeile im Dashboard öffnet den Thread in der Liste.</p>
+  <div class="stage">
+    <div class="controls">
+      <div class="ctl" id="who" role="group" aria-label="Person wählen"><span>Ich bin</span></div>
+      <div class="ctl" id="order" role="group" aria-label="Reihenfolge der Threads"><span>Frage 1 · Reihenfolge</span>
+        <button type="button" data-v="activity" aria-pressed="true">Letzte Aktivität</button>
+        <button type="button" data-v="created" aria-pressed="false">Erstellt</button>
+      </div>
+      <div class="ctl" id="editnew" role="group" aria-label="Macht eine Bearbeitung den Thread neu"><span>Frage 3 · Bearbeitung macht neu</span>
+        <button type="button" data-v="yes" aria-pressed="true">Ja</button>
+        <button type="button" data-v="no" aria-pressed="false">Nein</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div>
+        <div class="phone" id="m1"></div>
+        <div class="cap"><b>M1 Dashboard.</b> Pro Thread eine Zeile, wenn darin etwas Neues von anderen steht: Titel, der neueste ungelesene Eintrag, „+n“ für weitere. Das Häkchen bleibt (FR-7.9 Entscheid 2).</div>
+      </div>
+      <div>
+        <div class="phone" id="m25"></div>
+        <div class="cap"><b>M25 · Notizen.</b> Zugeklappte Threads, der mit der jüngsten Aktivität oben. Aufgeklappt: die erste Notiz, darunter das Antwortfeld, dann die Antworten, neueste zuerst. Ungelesenes trägt einen Strich.</div>
+      </div>
+      <div class="log">
+        <h3>Push-Protokoll</h3>
+        <ol id="log"></ol>
+        <button type="button" class="reset" id="reset">Beispiel zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="frage6">Frage 6 · Notizen als eigener Punkt?</h2>
+  <p>Die Leiste unter dem Seitentitel, mit den Maßen und Symbolen aus <code>TripViewNav.vue</code>: 13 px Hanken Grotesk, 10 px Innenabstand, 6 px Lücke, 16 px Seitenrand, keine Symbole unter 480 px. Die Zeile bricht nie um, sie scrollt. Gemessen wird hier in deinem Browser, nicht geschätzt. Stellst du dich auf <i>Gepäck</i> oder <i>Auswertung</i>, kommt diese Ansicht als weiterer Punkt dazu (ADR-051 Nachtrag 1). Das ist der breiteste Fall. Die Punkte sind antippbar.</p>
+  <p><b>Nur Symbole:</b> die Ansicht, auf der du stehst, behält ihr Wort, weil die Leiste sonst nicht sagt, wo du bist. Die anderen zeigen ihr Symbol und die Zahl als Abzeichen. Halte einen Punkt gedrückt (am Computer: mit der Maus darüber), dann erscheint sein Name. Stell auf „Antippen“, um die andere Lesart zu spüren: der erste Tipp zeigt den Namen, erst der zweite wechselt.</p>
+  <div class="stage">
+    <div class="controls">
+      <div class="ctl" id="pv-variant" role="group" aria-label="Variante"><span>Variante</span>
+        <button type="button" data-v="today" aria-pressed="false">Heute: 3 Punkte</button>
+        <button type="button" data-v="four" aria-pressed="false">4 Punkte mit Wort</button>
+        <button type="button" data-v="icons" aria-pressed="true">4 Punkte, nur Symbole</button>
+      </div>
+      <div class="ctl" id="pv-bubble" role="group" aria-label="Wann erscheint die Bubble"><span>Bubble mit Namen bei</span>
+        <button type="button" data-v="hold" aria-pressed="true">Halten</button>
+        <button type="button" data-v="tap" aria-pressed="false">Antippen</button>
+      </div>
+      <div class="ctl" id="pv-current" role="group" aria-label="Aktuelle Ansicht"><span>Ich stehe auf</span>
+        <button type="button" data-v="packing" aria-pressed="true">Packliste</button>
+        <button type="button" data-v="notes" aria-pressed="false">Notizen</button>
+        <button type="button" data-v="luggage" aria-pressed="false">Gepäck</button>
+        <button type="button" data-v="analytics" aria-pressed="false">Auswertung</button>
+      </div>
+      <div class="ctl" id="pv-lang" role="group" aria-label="Sprache"><span>Sprache</span>
+        <button type="button" data-v="de" aria-pressed="true">de</button>
+        <button type="button" data-v="en" aria-pressed="false">en</button>
+      </div>
+      <div class="ctl nums"><span>Zahlen</span>
+        <label>Einkauf <input id="pv-shop" type="number" min="0" max="999" value="12"></label>
+        <label>Aufgaben <input id="pv-tasks" type="number" min="0" max="999" value="7"></label>
+        <label>neue Notizen <input id="pv-notes" type="number" min="0" max="99" value="2"></label>
+      </div>
+    </div>
+    <div class="pvgrid" id="pv"></div>
+    <p class="cap" style="max-width:70ch">Grün: passt, mit so viel Luft. Rot: so viele Pixel laufen über den Rand; der letzte Punkt ist angeschnitten und die Zeile muss gewischt werden. Die Zahl an „Notizen“ zählt nur neue Threads. Bei „nur Symbole“ trägt das Abzeichen für Neues die Farbe der Markierung „neu“, die übrigen Zahlen sind grau.</p>
+  </div>
+
+  <h2>Was sich gegenüber heute ändert</h2>
+  <ul>
+    <li><b>„Neu“ gilt für den Thread.</b> Das Häkchen merkt sich, bis wohin ich gelesen habe. Schreibt danach jemand anderes etwas, ist der Thread wieder neu. Meine eigenen Einträge machen ihn für mich nie neu.</li>
+    <li><b>Abgehakte Threads bleiben an ihrem Platz.</b> Die Reihenfolge folgt der Aktivität; heute sinkt eine abgehakte Notiz nach unten und wird gedämpft. Nur die Markierung verschwindet.</li>
+    <li><b>Bearbeiten nur für den Verfasser.</b> Ein Eintrag trägt den Namen dessen, der ihn schrieb. Bearbeitet steht klein daneben.</li>
+    <li><b>Beteiligte sind:</b> wer die erste Notiz schrieb, und wer geantwortet hat. Eine Antwort erreicht nur sie, nicht die ganze Reise. Eine neue erste Notiz erreicht weiterhin alle.</li>
+    <li><b>Antworten ist nicht Abhaken.</b> Nach meiner Antwort ist der neueste Eintrag meiner, also ist der Thread für mich nicht neu. Das folgt aus der Regel, ohne Sonderfall.</li>
+    <li><b>Einzel-Nutzer und Lokal:</b> Threads, Titel und Bearbeiten funktionieren als Notizblock. Neu wird nie etwas, Push gibt es keinen.</li>
+  </ul>
+
+  <h2>Offene Fragen</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Frage</th><th>Empfehlung</th><th>Alternative und ihr Preis</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Reihenfolge der Threads</td><td class="rec">Nach letzter Aktivität: eine Antwort hebt den Thread nach oben</td><td>Nach Erstellung: ein alter Thread mit frischer Antwort bleibt unter neueren begraben</td></tr>
+      <tr><td>2</td><td>Wer darf bearbeiten</td><td class="rec">Nur der Verfasser, nur eigene Einträge</td><td>Alle: die Änderung steht unter dem Namen von jemandem, der sie nicht schrieb</td></tr>
+      <tr><td>3</td><td>Macht eine Bearbeitung den Thread für andere neu</td><td class="rec">Ja</td><td>Nein: ein korrigierter Schlüsselbox-Code bleibt ungesehen bei allen, die den falschen abgehakt haben</td></tr>
+      <tr><td>4</td><td>Wer ist beteiligt</td><td class="rec">Verfasser der ersten Notiz und alle, die geantwortet haben</td><td>Auch wer abgehakt hat: ein Häkchen würde die ganze Diskussion abonnieren</td></tr>
+      <tr><td>5</td><td>Eigener Schalter für Antwort-Push</td><td class="rec">Ja, <code>note_reply</code> neben <code>note</code></td><td>Gemeinsam mit <code>note</code>: wer neue Codes will, aber nicht die Diskussion, kann es nicht sagen</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Datenmodell</h2>
+  <p>Eine Antwort ist eine Notiz wie heute (eine <code>comments</code>-Zeile ohne Packlisten-Zeile, <code>is_task = 0</code>) mit einem Verweis auf ihren Thread. Sync, Verfasser-Stempel, Export und Löschen kommen mit der Tabelle.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Spalte</th><th>Bedeutung</th></tr></thead>
+    <tbody>
+      <tr><td><code>comments.parent_id</code></td><td>Die erste Notiz des Threads. Einmal geschrieben, danach vom Server ignoriert. Der Server lehnt einen Parent ab, der selbst eine Antwort ist: eine Ebene ist eine Server-Regel. Löschen der ersten Notiz löscht den Thread.</td></tr>
+      <tr><td><code>comments.title</code></td><td>Optional, nur auf der ersten Notiz. Ohne Titel zeigt die Liste die erste Zeile.</td></tr>
+      <tr><td><code>comments.edited_at</code></td><td>Wann zuletzt bearbeitet; vom Gerät benannt wie <code>resolved_at</code>, weil offline bearbeitet wird.</td></tr>
+      <tr><td><code>note_acks.seen_through</code></td><td>Der Zeitstempel des neuesten Eintrags beim Abhaken. Vergleicht Daten mit Daten, nie zwei Geräteuhren. Bestehende Häkchen ohne Wert gelten für die erste Notiz, wie sie war.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Migration <code>006_note_threads.sql</code> neben der Änderung an <code>schema.sql</code>. Begründung und Aufwand stehen in <code>dev-docs/trip-note-threads-concept.md</code>.</p>
+</main>
+
+<script>
+(() => {
+  const USERS = {
+    anna: { name: 'Anna', color: 'var(--n-rose)' },
+    ben: { name: 'Ben', color: 'var(--n-glacier)' },
+    chris: { name: 'Chris', color: 'var(--n-heather)' },
+  };
+  const NOW = 10000;
+
+  function seed() {
+    return {
+      clock: NOW,
+      me: 'anna',
+      order: 'activity',
+      editNew: true,
+      open: new Set(),
+      editing: null,
+      titleOpen: false,
+      entries: [
+        { id: 't1', parent: null, author: 'anna', title: 'Schlüsselbox Ferienwohnung', body: 'Code 4711. Box links neben der Haustür, der Schlüssel ist für Wohnung 3.', created: NOW - 1500, edited: null },
+        { id: 'r1', parent: 't1', author: 'ben', title: null, body: 'Die Box klemmt, fest nach unten drücken.', created: NOW - 600, edited: null },
+        { id: 'r2', parent: 't1', author: 'chris', title: null, body: 'Danke! Parkplatz ist die Nr. 12 hinter dem Haus.', created: NOW - 35, edited: null },
+        { id: 't2', parent: null, author: 'ben', title: null, body: 'Pizza Bella 079 555 12 34, liefert bis 22 Uhr, bar oder Twint.', created: NOW - 300, edited: null },
+        { id: 't3', parent: null, author: 'chris', title: 'Fähre Samstag', body: 'Check-in bis 7:30 in Hirtshals. Die Tickets habe ich per Mail.', created: NOW - 900, edited: null },
+        { id: 'r3', parent: 't3', author: 'anna', title: null, body: 'Wer fährt die erste Etappe? Ich kann bis Hamburg.', created: NOW - 120, edited: null },
+        { id: 't4', parent: null, author: 'anna', title: 'Einkauf Ankunft', body: 'Ich hole am Freitag Brot und Kaffee für den ersten Morgen.', created: NOW - 2000, edited: null },
+      ],
+      // user|thread -> seen_through; absent = never ticked
+      acks: {
+        'anna|t2': NOW - 300, 'anna|t3': NOW - 900, 'anna|t1': NOW - 1500,
+        'ben|t1': NOW - 1500, 'ben|t4': NOW - 2000,
+        'chris|t1': NOW - 600, 'chris|t4': NOW - 2000,
+      },
+      log: [],
+    };
+  }
+  let S = seed();
+
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function richText(body) {
+    let h = esc(body);
+    h = h.replace(/\b(0\d{2} \d{3} \d{2} \d{2})\b/g, '<span class="tel">$1</span>');
+    h = h.replace(/\bCode (\d{3,6})\b/g, 'Code <span class="code">$1</span>');
+    return h;
+  }
+  function ago(t) {
+    const m = S.clock - t;
+    if (m < 1) return 'gerade eben';
+    if (m < 60) return `vor ${m} Min.`;
+    if (m < 24 * 60) return `vor ${Math.floor(m / 60)} Std.`;
+    if (m < 48 * 60) return 'gestern';
+    return `vor ${Math.floor(m / 1440)} Tagen`;
+  }
+  const av = (uid, small) => `<span class="av${small ? ' s' : ''}" style="background:${USERS[uid].color}" title="${USERS[uid].name}">${USERS[uid].name[0]}</span>`;
+
+  const threads = () => S.entries.filter((e) => !e.parent);
+  const entriesOf = (tid) => S.entries.filter((e) => e.id === tid || e.parent === tid);
+  const repliesOf = (tid) => S.entries.filter((e) => e.parent === tid).sort((a, b) => b.created - a.created);
+  const stampOf = (e) => (S.editNew && e.edited ? Math.max(e.created, e.edited) : e.created);
+  const lastActivity = (tid) => Math.max(...entriesOf(tid).map((e) => e.created));
+  const hasOthers = (tid, me) => entriesOf(tid).some((e) => e.author !== me);
+
+  function unseen(tid, me) {
+    const key = `${me}|${tid}`;
+    const seen = key in S.acks ? S.acks[key] : -Infinity;
+    return entriesOf(tid).filter((e) => e.author !== me && stampOf(e) > seen);
+  }
+  const isTicked = (tid, me) => `${me}|${tid}` in S.acks && unseen(tid, me).length === 0;
+  function participants(tid) {
+    const set = new Set(entriesOf(tid).map((e) => e.author));
+    return [...set];
+  }
+  function sortedThreads() {
+    const key = S.order === 'activity' ? (t) => lastActivity(t.id) : (t) => t.created;
+    return threads().sort((a, b) => key(b) - key(a));
+  }
+  const labelOf = (t) => t.title || t.body.split('\n')[0];
+
+  function tick(tid) {
+    const me = S.me;
+    if (isTicked(tid, me)) delete S.acks[`${me}|${tid}`];
+    else S.acks[`${me}|${tid}`] = Math.max(...entriesOf(tid).map(stampOf));
+    render();
+  }
+
+  function push(kind, to, text) {
+    S.log.unshift({ kind, to, text });
+    S.log = S.log.slice(0, 6);
+  }
+
+  function addReply(tid, body) {
+    S.clock += 1;
+    const t = S.entries.find((e) => e.id === tid);
+    const recipients = participants(tid).filter((u) => u !== S.me);
+    S.entries.push({ id: 'x' + S.clock, parent: tid, author: S.me, title: null, body, created: S.clock, edited: null });
+    const who = USERS[S.me].name;
+    push('note_reply', recipients, `${who} hat auf „${labelOf(t)}“ geantwortet: ${body.slice(0, 40)}${body.length > 40 ? '…' : ''}`);
+    render();
+  }
+  function addThread(title, body) {
+    S.clock += 1;
+    const id = 'x' + S.clock;
+    S.entries.push({ id, parent: null, author: S.me, title: title || null, body, created: S.clock, edited: null });
+    const recipients = Object.keys(USERS).filter((u) => u !== S.me);
+    push('note', recipients, `${USERS[S.me].name} hat eine Notiz geschrieben: ${title || body.slice(0, 40)}`);
+    S.titleOpen = false;
+    render();
+  }
+  function saveEdit(id, title, body) {
+    S.clock += 1;
+    const e = S.entries.find((x) => x.id === id);
+    e.body = body;
+    if (!e.parent) e.title = title || null;
+    e.edited = S.clock;
+    S.editing = null;
+    push(null, [], `${USERS[S.me].name} hat einen Eintrag bearbeitet: kein Push${S.editNew ? ', der Thread ist für die anderen wieder neu' : ''}.`);
+    render();
+  }
+
+  function entryHtml(e, tid, first) {
+    const me = S.me;
+    const unseenIds = new Set(unseen(tid, me).map((x) => x.id));
+    if (S.editing === e.id) {
+      return `<div class="entry${first ? ' first' : ''}">${av(e.author, !first)}<div class="eb editor" data-editor="${e.id}">
+        ${first ? `<input id="ed-title-${e.id}" type="text" placeholder="Titel (optional)" value="${esc(e.title || '')}">` : ''}
+        <textarea id="ed-body-${e.id}">${esc(e.body)}</textarea>
+        <div class="row"><button type="button" class="btn ghost" data-act="cancel">Abbrechen</button><button type="button" class="btn" data-act="save" data-id="${e.id}">Speichern</button></div>
+      </div></div>`;
+    }
+    const mine = e.author === me;
+    return `<div class="entry${first ? ' first' : ''}${unseenIds.has(e.id) ? ' unseen' : ''}">
+      ${av(e.author, !first)}
+      <div class="eb">
+        <div class="txt">${richText(e.body)}</div>
+        <div class="em">${USERS[e.author].name} · ${ago(e.created)}${e.edited ? ' · bearbeitet' : ''}
+          ${unseenIds.has(e.id) ? '<span class="dot" aria-label="neu"></span>' : ''}
+          ${mine ? `<button type="button" class="edit" data-act="edit" data-id="${e.id}" aria-label="Bearbeiten">✎ bearbeiten</button>` : ''}</div>
+      </div></div>`;
+  }
+
+  function threadHtml(t) {
+    const me = S.me;
+    const open = S.open.has(t.id);
+    const n = unseen(t.id, me).length;
+    const replies = repliesOf(t.id);
+    const tickable = hasOthers(t.id, me);
+    const ticked = isTicked(t.id, me);
+    const parts = participants(t.id);
+    const meta = `${replies.length === 0 ? USERS[t.author].name : `${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'}`} · ${ago(lastActivity(t.id))}`;
+    let body = '';
+    if (open) {
+      body = `<div class="tbody">
+        ${entryHtml(t, t.id, true)}
+        <div class="reply"><input id="reply-${t.id}" type="text" placeholder="Antworten…" aria-label="Antwort schreiben"><button type="button" class="btn" data-act="reply" data-id="${t.id}">Senden</button></div>
+        ${replies.length ? `<div class="replies-h">${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'} · neueste zuerst</div>` : ''}
+        ${replies.map((r) => entryHtml(r, t.id, false)).join('')}
+      </div>`;
+    }
+    return `<div class="thread${open ? ' open' : ''}" id="th-${t.id}">
+      <div class="thead">
+        <button type="button" class="hit" data-act="toggle" data-id="${t.id}" aria-expanded="${open}">
+          ${av(t.author)}
+          <span class="hb">
+            <span class="ttl${t.title ? '' : ' untitled'}" style="display:block">${n ? `<span class="new">neu${n > 1 ? ' ' + n : ''}</span>` : ''}${esc(labelOf(t))}</span>
+            <span class="tmeta">${meta}${parts.length > 1 ? `<span class="avs">${parts.map((u) => av(u, true)).join('')}</span>` : ''}</span>
+          </span>
+          <span class="chev" aria-hidden="true">▶</span>
+        </button>
+        ${tickable ? `<button type="button" class="tick" data-act="tick" data-id="${t.id}" aria-pressed="${ticked}" aria-label="Gesehen">✓</button>` : '<span class="tickgap"></span>'}
+      </div>${body}</div>`;
+  }
+
+  function renderM25() {
+    const me = S.me;
+    const newCount = threads().reduce((s, t) => s + (unseen(t.id, me).length ? 1 : 0), 0);
+    $('#m25').innerHTML = `
+      <div class="bar"><b>‹</b> Dänemark · 12.–18. Okt</div>
+      <div class="title">Aufgaben</div>
+      <div class="pills"><span class="pill">Packliste</span><span class="pill">Einkauf</span><span class="pill on">Aufgaben</span></div>
+      <div class="seg"><span>Aufgaben</span><span class="on">Notizen${newCount ? `<em>${newCount}</em>` : ''}</span></div>
+      <div class="list">${sortedThreads().map(threadHtml).join('')}</div>
+      <div class="comp">
+        ${S.titleOpen ? '<input id="new-title" type="text" placeholder="Titel (optional)" aria-label="Titel">' : '<button type="button" class="addtitle" data-act="addtitle">+ Titel</button>'}
+        <div class="row"><textarea id="new-body" placeholder="Notiz für alle…" aria-label="Neue Notiz"></textarea><button type="button" class="btn" data-act="newthread">Senden</button></div>
+      </div>`;
+  }
+
+  function renderM1() {
+    const me = S.me;
+    const rows = threads()
+      .map((t) => ({ t, u: unseen(t.id, me).sort((a, b) => stampOf(b) - stampOf(a)) }))
+      .filter((r) => r.u.length)
+      .sort((a, b) => stampOf(b.u[0]) - stampOf(a.u[0]))
+      .slice(0, 3);
+    $('#m1').innerHTML = `
+      <div class="bar"><b>JIT-Pack</b></div>
+      <div class="title">Guten Morgen, ${USERS[me].name}</div>
+      <div class="hero"><div class="h1">Dänemark</div><div class="h2">12.–18. Okt 2026 · ● Packen · in 3 Tagen</div></div>
+      <div class="card"><h4>Neue Notizen</h4>
+        ${rows.length ? rows.map(({ t, u }) => `<div class="nrow">
+          <button type="button" class="hit" data-act="goto" data-id="${t.id}">
+            <div class="l1">${esc(labelOf(t))}</div>
+            <div class="l2">${USERS[u[0].author].name}: ${esc(u[0].body)}</div>
+            <div class="l3">${u.length > 1 ? `<span class="more">+${u.length - 1} weitere</span> · ` : ''}<span class="chip">Dänemark</span> · ${ago(stampOf(u[0]))}</div>
+          </button>
+          <button type="button" class="tick" data-act="tick" data-id="${t.id}" aria-pressed="false" aria-label="Gesehen">✓</button>
+        </div>`).join('') : '<div class="emptyc">Keine neuen Notizen. Die Karte verschwindet in der App ganz.</div>'}
+      </div>
+      <div class="ghostcard">Aufgaben · Einkauf (unverändert)</div>`;
+  }
+
+  function renderLog() {
+    $('#log').innerHTML = S.log.length
+      ? S.log.map((l) => `<li>${l.kind ? `<span class="kind">${l.kind}</span>` : ''}<b>${esc(l.text)}</b>${l.kind ? `<span class="to">an ${l.to.length ? l.to.map((u) => USERS[u].name).join(', ') : 'niemanden'}</span>` : ''}</li>`).join('')
+      : '<li class="none">Noch nichts gesendet. Antworte als Ben auf „Schlüsselbox“: Anna und Chris werden benachrichtigt.</li>';
+  }
+
+  function renderControls() {
+    $('#who').innerHTML = '<span>Ich bin</span>' + Object.entries(USERS)
+      .map(([id, u]) => `<button type="button" data-v="${id}" aria-pressed="${S.me === id}">${u.name}</button>`).join('');
+    document.querySelectorAll('#order button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.order));
+    document.querySelectorAll('#editnew button').forEach((b) => b.setAttribute('aria-pressed', (b.dataset.v === 'yes') === S.editNew));
+  }
+
+  function render() { renderControls(); renderM1(); renderM25(); renderLog(); }
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button');
+    if (!b) return;
+    if (b.closest('#who')) { S.me = b.dataset.v; S.editing = null; render(); return; }
+    if (b.closest('#order')) { S.order = b.dataset.v; render(); return; }
+    if (b.closest('#editnew')) { S.editNew = b.dataset.v === 'yes'; render(); return; }
+    if (b.id === 'reset') { S = seed(); render(); return; }
+    const id = b.dataset.id;
+    switch (b.dataset.act) {
+      case 'toggle': S.open.has(id) ? S.open.delete(id) : S.open.add(id); render(); break;
+      case 'tick': tick(id); break;
+      case 'edit': S.editing = id; render(); break;
+      case 'cancel': S.editing = null; render(); break;
+      case 'save': {
+        const body = $(`#ed-body-${id}`).value.trim();
+        const tEl = $(`#ed-title-${id}`);
+        if (body) saveEdit(id, tEl ? tEl.value.trim() : null, body);
+        break;
+      }
+      case 'reply': {
+        const v = $(`#reply-${id}`).value.trim();
+        if (v) addReply(id, v);
+        break;
+      }
+      case 'addtitle': S.titleOpen = true; render(); $('#new-title').focus(); break;
+      case 'newthread': {
+        const body = $('#new-body').value.trim();
+        const title = $('#new-title') ? $('#new-title').value.trim() : '';
+        if (body) addThread(title, body);
+        break;
+      }
+      case 'goto': {
+        S.open.add(id); render();
+        const el = $(`#th-${id}`);
+        el.classList.add('flash');
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        setTimeout(() => el.classList.remove('flash'), 1200);
+        break;
+      }
+    }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || !ev.target.id || !ev.target.id.startsWith('reply-')) return;
+    const id = ev.target.id.slice(6);
+    const v = ev.target.value.trim();
+    if (v) addReply(id, v);
+  });
+
+  render();
+})();
+</script>
+
+<script>
+(() => {
+  const WORDS = {
+    de: { packing: 'Packliste', shopping: 'Einkauf', shoppingN: 'Einkaufen ({n})', tasks: 'Aufgaben', tasksN: 'Aufgaben ({n})',
+      notes: 'Notizen', notesN: 'Notizen ({n})', notesNew: '{n} neue', luggage: 'Gepäck', analytics: 'Auswertung' },
+    en: { packing: 'Packing list', shopping: 'Shopping', shoppingN: 'Shopping ({n})', tasks: 'Tasks', tasksN: 'Tasks ({n})',
+      notes: 'Notes', notesN: 'Notes ({n})', notesNew: '{n} new', luggage: 'Luggage', analytics: 'Analytics' },
+  };
+  // The app's own glyphs (lib/tripViews.ts); chatbubbles is the candidate for the notes.
+  const ICONS = {"packing": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><path d=\"M160 144h288M160 256h288M160 368h288\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><circle cx=\"80\" cy=\"144\" r=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><circle cx=\"80\" cy=\"256\" r=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><circle cx=\"80\" cy=\"368\" r=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/></svg>", "shopping": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><circle cx=\"176\" cy=\"416\" r=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><circle cx=\"400\" cy=\"416\" r=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><path d=\"M48 80h64l48 272h256\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><path d=\"M160 288h249.44a8 8 0 0 0 7.85-6.43l28.8-144a8 8 0 0 0-7.85-9.57H128\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/></svg>", "tasks": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><path d=\"M352 176 217.6 336 160 272\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><rect width=\"384\" height=\"384\" x=\"64\" y=\"64\" rx=\"48\" ry=\"48\" fill=\"none\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"32px\"/></svg>", "notes": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><path d=\"M431 320.6c-1-3.6 1.2-8.6 3.3-12.2a34 34 0 0 1 2.1-3.1A162 162 0 0 0 464 215c.3-92.2-77.5-167-173.7-167-83.9 0-153.9 57.1-170.3 132.9a160.7 160.7 0 0 0-3.7 34.2c0 92.3 74.8 169.1 171 169.1 15.3 0 35.9-4.6 47.2-7.7s22.5-7.2 25.4-8.3a26.4 26.4 0 0 1 9.3-1.7 26 26 0 0 1 10.1 2l56.7 20.1a13.5 13.5 0 0 0 3.9 1 8 8 0 0 0 8-8 13 13 0 0 0-.5-2.7Z\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"32px\"/><path d=\"M66.46 232a146.23 146.23 0 0 0 6.39 152.67c2.31 3.49 3.61 6.19 3.21 8s-11.93 61.87-11.93 61.87a8 8 0 0 0 2.71 7.68A8.17 8.17 0 0 0 72 464a7.3 7.3 0 0 0 2.91-.6l56.21-22a15.7 15.7 0 0 1 12 .2c18.94 7.38 39.88 12 60.83 12A159.2 159.2 0 0 0 284 432.11\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"32px\"/></svg>", "luggage": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><rect width=\"448\" height=\"320\" x=\"32\" y=\"128\" rx=\"48\" ry=\"48\" fill=\"none\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><path d=\"M144 128V96a32 32 0 0 1 32-32h160a32 32 0 0 1 32 32v32M480 240H32M320 240v24a8 8 0 0 1-8 8H200a8 8 0 0 1-8-8v-24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/></svg>", "analytics": "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" class=\"ionicon\"><rect width=\"48\" height=\"160\" x=\"64\" y=\"320\" rx=\"8\" ry=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><rect width=\"48\" height=\"256\" x=\"288\" y=\"224\" rx=\"8\" ry=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><rect width=\"48\" height=\"368\" x=\"400\" y=\"112\" rx=\"8\" ry=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><rect width=\"48\" height=\"448\" x=\"176\" y=\"32\" rx=\"8\" ry=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/></svg>"};
+  const WIDTHS = [360, 390, 430];
+  const P = { variant: 'icons', current: 'packing', lang: 'de', bubble: 'hold' };
+  let armed = null; // tap mode: the pill whose name is showing, waiting for the second tap
+  const q = (s) => document.querySelector(s);
+  const count = (id) => ({ shopping: num('#pv-shop'), tasks: num('#pv-tasks'), notes: num('#pv-notes') }[id] || 0);
+  const num = (id) => Math.max(0, parseInt(q(id).value, 10) || 0);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function label(id, w) {
+    const n = count(id);
+    return n > 0 && w[id + 'N'] ? w[id + 'N'].replace('{n}', n) : w[id];
+  }
+
+  function pillHtml(id, current, w, px) {
+    const cur = id === current;
+    const n = count(id);
+    const text = label(id, w);
+    if (P.variant !== 'icons') {
+      return `<button type="button" class="pvpill${cur ? ' current' : ''}" data-view="${id}" data-px="${px}">${esc(text)}</button>`;
+    }
+    if (cur) {
+      return `<button type="button" class="pvpill current" data-view="${id}" data-px="${px}" aria-current="page">${ICONS[id]}<span>${esc(text)}</span></button>`;
+    }
+    const badge = n > 0 ? `<span class="pvbadge${id === 'notes' ? ' hot' : ''}">${n}</span>` : '';
+    return `<button type="button" class="pvpill iconly" data-view="${id}" data-px="${px}" aria-label="${esc(text)}">${ICONS[id]}${badge}</button>`;
+  }
+
+  function render() {
+    const w = WORDS[P.lang];
+    const pills = P.variant === 'today' ? ['packing', 'shopping', 'tasks'] : ['packing', 'shopping', 'tasks', 'notes'];
+    const current = P.variant === 'today' && P.current === 'notes' ? 'tasks' : P.current;
+    const row = pills.includes(current) ? pills : [...pills, current];
+    q('#pv').innerHTML = WIDTHS.map((px) => `
+      <div class="pvcol">
+        <div class="pvlabel">${px} px · <span class="fit" data-fit="${px}">misst…</span></div>
+        <div class="pvscreen" style="width:${px + 10}px" data-screen="${px}">
+          <div class="pvhead">
+            <div class="pvtitle">${w[current]}</div>
+            <div class="pvrow" data-row="${px}">${row.map((id) => pillHtml(id, current, w, px)).join('')}</div>
+          </div>
+          <div class="pvlist"><span></span><span style="width:70%"></span><span style="width:85%"></span></div>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('#pv-current button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === P.current));
+    armed = null;
+    measure();
+  }
+
+  function measure() {
+    document.querySelectorAll('[data-row]').forEach((rowEl) => {
+      const px = rowEl.dataset.row;
+      const pills = [...rowEl.children];
+      const used = pills.reduce((s, el) => s + el.getBoundingClientRect().width, 0) + 6 * (pills.length - 1);
+      const room = rowEl.clientWidth - used;
+      const out = document.querySelector(`[data-fit="${px}"]`);
+      out.className = 'fit ' + (room >= 0 ? 'ok' : 'over');
+      out.textContent = room >= 0 ? `passt, ${Math.floor(room)} px Luft` : `${Math.ceil(-room)} px zu breit`;
+    });
+  }
+
+  function hideBubbles() { document.querySelectorAll('.pvbubble').forEach((b) => b.remove()); }
+  function showBubble(pill) {
+    hideBubbles();
+    const screen = pill.closest('.pvscreen');
+    const a = pill.getBoundingClientRect();
+    const r = screen.getBoundingClientRect();
+    const b = document.createElement('div');
+    b.className = 'pvbubble';
+    b.textContent = label(pill.dataset.view, WORDS[P.lang]);
+    b.style.left = `${Math.min(Math.max(a.left - r.left + a.width / 2, 50), r.width - 50)}px`;
+    b.style.top = `${a.bottom - r.top + 8}px`;
+    screen.appendChild(b);
+  }
+  function go(view) { P.current = view; hideBubbles(); render(); }
+
+  let holdTimer = null;
+  let held = false;
+  const pv = q('#pv');
+  pv.addEventListener('pointerdown', (e) => {
+    const pill = e.target.closest('.pvpill');
+    if (!pill || P.bubble !== 'hold') return;
+    held = false;
+    holdTimer = setTimeout(() => { held = true; showBubble(pill); }, 450);
+  });
+  const endHold = () => { clearTimeout(holdTimer); if (held) setTimeout(hideBubbles, 900); };
+  pv.addEventListener('pointerup', endHold);
+  pv.addEventListener('pointercancel', endHold);
+  pv.addEventListener('contextmenu', (e) => { if (e.target.closest('.pvpill')) e.preventDefault(); });
+  pv.addEventListener('pointerover', (e) => {
+    const pill = e.target.closest('.pvpill');
+    if (pill && e.pointerType === 'mouse' && P.bubble === 'hold' && pill.classList.contains('iconly')) showBubble(pill);
+  });
+  pv.addEventListener('pointerout', (e) => { if (e.pointerType === 'mouse' && P.bubble === 'hold' && e.target.closest('.pvpill')) hideBubbles(); });
+  pv.addEventListener('click', (e) => {
+    const pill = e.target.closest('.pvpill');
+    if (!pill) return;
+    if (held) { held = false; return; }
+    const view = pill.dataset.view;
+    if (view === P.current) return;
+    if (P.bubble === 'tap' && pill.classList.contains('iconly') && armed !== `${pill.dataset.px}:${view}`) {
+      armed = `${pill.dataset.px}:${view}`;
+      showBubble(pill);
+      return;
+    }
+    go(view);
+  });
+
+  function bind(groupId, key) {
+    document.querySelectorAll(`#${groupId} button`).forEach((b) => b.addEventListener('click', () => {
+      P[key] = b.dataset.v;
+      document.querySelectorAll(`#${groupId} button`).forEach((x) => x.setAttribute('aria-pressed', x === b));
+      render();
+    }));
+  }
+  bind('pv-variant', 'variant');
+  bind('pv-current', 'current');
+  bind('pv-lang', 'lang');
+  bind('pv-bubble', 'bubble');
+  ['#pv-shop', '#pv-tasks', '#pv-notes'].forEach((id) => q(id).addEventListener('input', render));
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+})();
+</script>

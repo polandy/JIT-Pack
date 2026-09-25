@@ -720,9 +720,10 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    *
    * The entry itself is always there — M6 is a screen, not a notification — so
    * the count is the part that carries information, and a `(0)` is worse than
-   * no number at all. It rides in the word rather than in a badge: ADR-050
-   * put it there because an action sheet renders none, and FR-21.21's pill
-   * keeps it there because the word is what the reader is scanning.
+   * no number at all. ADR-050 put it in the word because an action sheet
+   * renders no badge; since ADR-051 amendment 3 the pill of a view you are
+   * not standing on is a glyph, and there the number is a badge — the name
+   * still carries it, so a screen reader hears the same count.
    */
   test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
     page,
@@ -730,7 +731,8 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Zelt'])
 
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping')
+    await expect(page.getByTestId('trip-view-shopping-count')).toHaveCount(0)
 
     // Turning the row into a purchase is what puts it on M6 (FR-3.2).
     await visible(page).getByTestId('m4-row-Zelt').click()
@@ -746,7 +748,10 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping (1)')
+    // On M4 the shopping view is a glyph (ADR-051 amendment 3): the number a
+    // reader sees is the badge, and the name above is what it is read as.
+    await expect(page.getByTestId('trip-view-shopping-count')).toHaveText('1')
   })
 
   /**

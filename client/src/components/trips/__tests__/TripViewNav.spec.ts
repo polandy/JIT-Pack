@@ -13,15 +13,19 @@
  * real wiring and not through a number the spec made up.
  */
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 
 import TripViewNav from '../TripViewNav.vue'
+import { LONG_PRESS_MS } from '@/composables/useLongPress'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
 import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { shoppingCount } from '@/shopping'
 import { useShoppingStore } from '@/shopping/store'
+
+const label = (wrapper: ReturnType<typeof mount>, id: string) =>
+  wrapper.get(`[data-testid="trip-view-${id}"]`).attributes('aria-label')
 
 const push = vi.fn()
 const navigate = vi.fn()
@@ -103,7 +107,7 @@ describe('TripViewNav', () => {
     seed()
     const labels = mountNav()
       .findAll('button')
-      .map((b) => b.text())
+      .map((b) => b.attributes('aria-label'))
     expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks'])
   })
 
@@ -116,7 +120,7 @@ describe('TripViewNav', () => {
     seed()
     const labels = mountNav('luggage')
       .findAll('button')
-      .map((b) => b.text())
+      .map((b) => b.attributes('aria-label'))
     expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Tasks', 'Luggage'])
     expect(mountNav('luggage').find('[data-testid="trip-view-analytics"]').exists()).toBe(false)
   })
@@ -127,7 +131,7 @@ describe('TripViewNav', () => {
     // below would be satisfied by a store that had simply lost one of them.
     expect(tripStore.getShoppingItems(TRIP).buyBefore).toHaveLength(2)
     // …and they are one thing to buy, because they are one item per person.
-    expect(mountNav().get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping (1)')
+    expect(label(mountNav(), 'shopping')).toBe('Shopping (1)')
   })
 
   // FR-30.1: an entry typed into the list is a thing to buy too.
@@ -142,13 +146,13 @@ describe('TripViewNav', () => {
         row: { trip_id: TRIP, name: 'Milch', list: 'buy_local', bought: 0 },
       },
     ])
-    expect(mountNav().get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping (2)')
+    expect(label(mountNav(), 'shopping')).toBe('Shopping (2)')
   })
 
   it('offers the shopping view without a count where none is provided', () => {
     seed()
     const bare = mount(TripViewNav, { props: { tripId: TRIP, current: 'packing' } })
-    expect(bare.get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping')
+    expect(label(bare, 'shopping')).toBe('Shopping')
   })
 
   it('offers the shopping view without a number while there is nothing to buy', () => {
@@ -160,7 +164,8 @@ describe('TripViewNav', () => {
       deleted: false,
       row: { name: 'Samedan', status: 'active', year: 2026 },
     })
-    expect(mountNav().get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping')
+    expect(label(mountNav(), 'shopping')).toBe('Shopping')
+    expect(mountNav().find('[data-testid="trip-view-shopping-count"]').exists()).toBe(false)
   })
 
   it('marks the view being looked at, and only it', () => {
@@ -191,5 +196,74 @@ describe('TripViewNav', () => {
     await wrapper.get('[data-testid="trip-view-shopping"]').trigger('click')
     expect(push).not.toHaveBeenCalled()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  /*
+   * ADR-051 amendment 3: the word stays where you stand, every other view is
+   * its glyph — and a glyph's number is a badge, since there is no word left
+   * to put it in.
+   */
+  it('words the view you stand on, and gives the others a glyph and a badge', () => {
+    seed()
+    const wrapper = mountNav('packing')
+    expect(wrapper.get('[data-testid="trip-view-packing"]').text()).toBe('Packing list')
+    expect(wrapper.get('[data-testid="trip-view-shopping"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="trip-view-shopping-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="trip-view-tasks"]').text()).toBe('')
+    // A hovering pointer is told the same name a screen reader is (G-12).
+    expect(wrapper.get('[data-testid="trip-view-shopping"]').attributes('title')).toBe(
+      'Shopping (1)',
+    )
+  })
+
+  describe('the name on a held press', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    const bubble = () => document.body.querySelector('[data-testid="trip-view-bubble"]')
+
+    it('shows the name after a hold, and the release does not navigate', async () => {
+      seed()
+      const wrapper = mountNav('packing')
+      const pill = wrapper.get('[data-testid="trip-view-shopping"]')
+
+      await pill.trigger('pointerdown')
+      // Not before the hold has lasted: a tap is a tap.
+      vi.advanceTimersByTime(LONG_PRESS_MS - 1)
+      await wrapper.vm.$nextTick()
+      expect(bubble()).toBeNull()
+      vi.advanceTimersByTime(1)
+      await wrapper.vm.$nextTick()
+      expect(bubble()?.textContent?.trim()).toBe('Shopping (1)')
+
+      await pill.trigger('pointerup')
+      await pill.trigger('click')
+      expect(push).not.toHaveBeenCalled()
+      wrapper.unmount()
+      expect(bubble()).toBeNull()
+    })
+
+    it('navigates on a plain tap, with no bubble in between', async () => {
+      seed()
+      const wrapper = mountNav('packing')
+      const pill = wrapper.get('[data-testid="trip-view-tasks"]')
+      await pill.trigger('pointerdown')
+      await pill.trigger('pointerup')
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+      await pill.trigger('click')
+      expect(bubble()).toBeNull()
+      expect(push).toHaveBeenCalledWith(`/trips/${TRIP}/tasks`)
+      wrapper.unmount()
+    })
+
+    it('offers no bubble on the view you stand on, which already says its word', async () => {
+      seed()
+      const wrapper = mountNav('packing')
+      await wrapper.get('[data-testid="trip-view-packing"]').trigger('pointerdown')
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+      await wrapper.vm.$nextTick()
+      expect(bubble()).toBeNull()
+      wrapper.unmount()
+    })
   })
 })
