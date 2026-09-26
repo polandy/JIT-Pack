@@ -168,6 +168,9 @@ var tableSpecs = map[string]tableSpec{
 		blockedBy: []blockingReference{
 			{TableTemplateItems, "item_id"},
 			{TableTripItems, "source_item_id"},
+			// FR-31.4: an excursion's line names the item it was made from,
+			// as a trip row does, and is history the same way.
+			{TableExcursionItems, "source_item_id"},
 		},
 		visible: visibilityRule{everyone: true},
 		export:  exportQuery{query: `SELECT * FROM items`},
@@ -415,6 +418,14 @@ var tableSpecs = map[string]tableSpec{
 			{TableTripItems, "assigned_traveler_id"},
 			{TableContainers, "carrier_traveler_id"},
 		},
+		// FR-31.3/31.5: a traveller taken off the trip is off its excursions
+		// too, with their own lines there. Unlike a trip row, whose delete
+		// is refused above, an excursion line is only ever that person's
+		// share of a small list, and nobody is left to pack it.
+		cascades: []childQuery{
+			{TableExcursionTravelers, `SELECT id FROM excursion_travelers WHERE traveler_id = ?`},
+			{TableExcursionItems, `SELECT id FROM excursion_items WHERE assigned_traveler_id = ?`},
+		},
 	},
 
 	TableContainers: {
@@ -505,6 +516,42 @@ var tableSpecs = map[string]tableSpec{
 			"assignee_user_id",
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-31.1: an excursion. Its participants and lines hang off it and go
+	// with it (ON DELETE CASCADE), leaf-first.
+	TableExcursions: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "name", "starts_on", "ends_on", "source_template_id"),
+		cascades: []childQuery{
+			{TableExcursionTravelers, `SELECT id FROM excursion_travelers WHERE excursion_id = ?`},
+			{TableExcursionItems, `SELECT id FROM excursion_items WHERE excursion_id = ?`},
+		},
+		export: exportQuery{query: `SELECT x.* FROM excursions x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-31.3: one participant of one excursion — see schema.sql for why a
+	// row per person.
+	TableExcursionTravelers: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "excursion_id", "traveler_id"),
+		export: exportQuery{query: `SELECT x.* FROM excursion_travelers x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-31.4: one line of an excursion's list. trip_item_id is ON DELETE
+	// SET NULL, so a suitcase row's delete cascades nothing here.
+	TableExcursionItems: {
+		partition: partitionTrip,
+		columns: toSet(
+			"trip_id", "excursion_id", "trip_item_id", "source_item_id",
+			"name", "category_name", "assigned_traveler_id",
+			"quantity", "packed_count", "state", "mode", "bought_at",
+			"not_in_luggage", "for_all_participants",
+		),
+		export: exportQuery{query: `SELECT x.* FROM excursion_items x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

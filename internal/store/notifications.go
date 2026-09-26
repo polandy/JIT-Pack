@@ -37,10 +37,14 @@ const (
 	// a shopping entry is due tomorrow or today. Its own switch, because a
 	// person reminded of their chores need not want the groceries.
 	NotifyShoppingDue = "shopping_due"
+	// NotifyExcursionDue is FR-31.9's reminder, sent by the same daily run:
+	// an excursion starting tomorrow or today still has things to pack. Its
+	// own switch, for NotifyShoppingDue's reason.
+	NotifyExcursionDue = "excursion_due"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue, NotifyShoppingDue}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue, NotifyShoppingDue, NotifyExcursionDue}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

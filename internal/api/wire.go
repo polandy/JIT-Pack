@@ -344,6 +344,9 @@ type NotificationPrefs struct {
 	// FR-30.10: a shopping entry of one of this user's trips is due
 	// tomorrow or today.
 	ShoppingDue bool `json:"shopping_due"`
+	// FR-31.9: an excursion of one of this user's trips starts tomorrow or
+	// today and still has things to pack.
+	ExcursionDue bool `json:"excursion_due"`
 }
 
 // --- Web Push (NFR-4.6) ---

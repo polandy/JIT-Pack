@@ -134,3 +134,54 @@ func TestShoppingEntryName_FR30_12_NamesTheEntryOrFails(t *testing.T) {
 		t.Error("ShoppingEntryName(missing) = nil error; want one")
 	}
 }
+
+// FR-31.9: an excursion is reminded of on the days asked about only while it
+// still has something to pack, and never on an archived trip. Its linked
+// participants travel with it, for the recipient rule.
+func TestDueExcursions_FR31_9_StartingOnTheAskedDaysWithSomethingOpen(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date, status)
+		VALUES ('trip-old', 'Alt', 2025, '2025-07-10', '2025-07-20', 'archived')`)
+	excursion := func(id, trip, starts, lineState string) {
+		t.Helper()
+		var startsOn any
+		if starts != "" {
+			startsOn = starts
+		}
+		mustExec(t, s, `INSERT INTO excursions (id, trip_id, name, starts_on) VALUES (?, ?, ?, ?)`,
+			id, trip, "name "+id, startsOn)
+		if lineState != "" {
+			mustExec(t, s, `INSERT INTO excursion_items (id, trip_id, excursion_id, name, state, packed_count)
+				VALUES (?, ?, ?, 'x', ?, ?)`, "line-"+id, trip, id, lineState, map[bool]int{true: 1}[lineState == "packed"])
+		}
+	}
+	excursion("x-today", testTrip, "2026-07-08", "open")
+	excursion("x-tomorrow", testTrip, "2026-07-09", "partial")
+	excursion("x-later", testTrip, "2026-07-12", "open")
+	excursion("x-undated", testTrip, "", "open")
+	excursion("x-packed", testTrip, "2026-07-08", "packed")
+	excursion("x-empty", testTrip, "2026-07-08", "")
+	excursion("x-archived", "trip-old", "2026-07-08", "open")
+	mustExec(t, s, `INSERT INTO travelers (id, trip_id, name, linked_user_id) VALUES ('tr-andy', ?, 'Andy', ?)`, testTrip, testUser)
+	mustExec(t, s, `INSERT INTO travelers (id, trip_id, name) VALUES ('tr-kid', ?, 'Lio')`, testTrip)
+	mustExec(t, s, `INSERT INTO excursion_travelers (id, trip_id, excursion_id, traveler_id) VALUES
+		('p-1', ?, 'x-tomorrow', 'tr-andy'), ('p-2', ?, 'x-tomorrow', 'tr-kid')`, testTrip, testTrip)
+
+	got, err := s.DueExcursions(ctx, "2026-07-08", "2026-07-09")
+	if err != nil {
+		t.Fatalf("DueExcursions: %v", err)
+	}
+	want := []DueExcursion{
+		{ID: "x-today", TripID: testTrip, Name: "name x-today", StartsOn: "2026-07-08"},
+		{ID: "x-tomorrow", TripID: testTrip, Name: "name x-tomorrow", StartsOn: "2026-07-09", Participants: []string{testUser}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueExcursions = %+v\nwant %+v", got, want)
+	}
+
+	none, err := s.DueExcursions(ctx)
+	if err != nil || none != nil {
+		t.Errorf("DueExcursions() = %v, %v; want nil, nil", none, err)
+	}
+}

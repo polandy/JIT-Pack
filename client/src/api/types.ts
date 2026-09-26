@@ -373,6 +373,9 @@ export interface NotificationPrefs {
   // FR-30.10: a shopping entry of one of this user's trips is due
   // tomorrow or today.
   shopping_due: boolean
+  // FR-31.9: an excursion of one of this user's trips starts tomorrow or
+  // today and still has things to pack.
+  excursion_due: boolean
 }
 
 /**
