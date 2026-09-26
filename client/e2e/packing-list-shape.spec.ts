@@ -244,6 +244,105 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   })
 
   /*
+   * E2E-M4-150 (FR-21.17): a focus moving into the list ends the reader's
+   * gesture, so the scroll it brings is nobody's.
+   *
+   * The window a gesture opens closes when the scroller comes to rest — and a
+   * wheel that cannot scroll never starts, so it never comes to rest either.
+   * An upward wheel on a list already at its top is the ordinary way to get
+   * there, and the window then stays open for whatever scrolls next: a focus
+   * moving to a control below the fold scrolled the list down as the reader's
+   * own flick, and the head yielded under a reader who had only pressed Tab.
+   * A focus is announced before the scroll it causes, so it is where the
+   * window can close exactly.
+   *
+   * The open window is asserted before the focus, or the case would pass
+   * against a build whose wheel had never armed anything.
+   */
+  test('E2E-M4-150: a focus ends the gesture, and the scroll it brings leaves the head', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, SCROLL_ROWS)
+
+    const head = page.getByTestId('page-head')
+    const list = visible(page).locator('ion-content.pack-content')
+    await expect(head).not.toHaveClass(/collapsed/)
+    // The quick-add leaves the list scrolled to its newest row. Back to the
+    // top, through the scroller rather than a wheel so no gesture is opened,
+    // and to rest: that scroll's own end would otherwise close the window the
+    // wheel below opens, and the case would pass without the fix.
+    await list.evaluate(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      if (el.scrollTop === 0) return
+      const rested = new Promise<void>((resolve) =>
+        host.addEventListener('ionScrollEnd', () => resolve(), { once: true }),
+      )
+      el.scrollTop = 0
+      await rested
+    })
+    expect((await packListOffset(page)).top).toBe(0)
+    await expect(head).not.toHaveClass(/collapsed/)
+
+    const box = await list.boundingBox()
+    if (box === null) throw new Error('M4 list has no box to wheel over')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.wheel(0, -120)
+    await expect(list).toHaveAttribute('data-scroll-gesture')
+    expect((await packListOffset(page)).top).toBe(0)
+
+    const moved = await visible(page).evaluate(async (pageEl) => {
+      const host = pageEl.querySelector('ion-content.pack-content') as HTMLIonContentElement
+      const el = await host.getScrollElement()
+      const trip = pageEl.querySelector('.trip-line') as HTMLElement
+      let flips = 0
+      new MutationObserver(() => (flips += 1)).observe(trip, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+
+      // The last row's first control: as far below the fold as the list goes,
+      // so the focus has to scroll it well past the head's threshold.
+      const rows = pageEl.querySelectorAll('[data-testid^="m4-row-"]')
+      const target = rows[rows.length - 1]?.querySelector<HTMLElement>(
+        'button, input, [tabindex]:not([tabindex="-1"])',
+      )
+      if (target == null) return null
+
+      const topBefore = el.scrollTop
+      target.focus()
+
+      // Settled the way E2E-M4-135 settles: the head's flip would arrive a
+      // frame or two after the scroll, and its transition after that.
+      const frames = () =>
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      for (let round = 0; round < 4; round += 1) {
+        await frames()
+        const running = trip.getAnimations()
+        if (running.length === 0) break
+        await Promise.all(running.map((a) => a.finished))
+      }
+
+      return {
+        flips,
+        scrolled: el.scrollTop - topBefore,
+        focused: document.activeElement === target,
+      }
+    })
+
+    expect(moved).not.toBeNull()
+    // The focus landed and scrolled the list down, far enough that a gesture
+    // would have yielded the head — without both the rest proves nothing.
+    expect(moved!.focused).toBe(true)
+    expect(moved!.scrolled).toBeGreaterThan(CLEAR_OF_THE_TOP)
+    await expect(list).not.toHaveAttribute('data-scroll-gesture')
+    expect(moved!.flips).toBe(0)
+    await expect(head).not.toHaveClass(/collapsed/)
+  })
+
+  /*
    * E2E-M4-71 (FR-21.26): on a window wide enough to have a choice, the
    * content column is one width, and every screen the reader steps to keeps
    * it.

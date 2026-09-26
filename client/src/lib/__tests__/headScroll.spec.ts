@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isScrollGesture, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
+import { gestureAfter, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
 import type { HeadScrollState, ScrollReading } from '@/lib/headScroll'
 
 /**
@@ -165,41 +165,67 @@ describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
  * the events that reach a scroller include the tap that opens a row, and the
  * scroll that follows such a tap is the browser's, not the reader's.
  */
-describe('isScrollGesture (FR-21.17)', () => {
+describe('gestureAfter (FR-21.17)', () => {
   it.each(['wheel', 'touchmove'])('reads %s as the reader scrolling', (type) => {
-    expect(isScrollGesture({ type, onScroller: false })).toBe(true)
+    expect(gestureAfter(false, { type, onScroller: false })).toBe(true)
   })
 
   it('reads a pointer on the scroller itself as a scrollbar being dragged', () => {
-    expect(isScrollGesture({ type: 'pointerdown', onScroller: true })).toBe(true)
+    expect(gestureAfter(false, { type: 'pointerdown', onScroller: true })).toBe(true)
   })
 
   it('does not read a pointer on a row as scrolling — it is the tap that causes the next scroll', () => {
-    expect(isScrollGesture({ type: 'pointerdown', onScroller: false })).toBe(false)
+    expect(gestureAfter(false, { type: 'pointerdown', onScroller: false })).toBe(false)
   })
 
   it.each(['ArrowDown', 'PageUp', 'Home', ' '])('reads the %s key as paging the list', (key) => {
-    expect(isScrollGesture({ type: 'keydown', key, onScroller: false })).toBe(true)
+    expect(gestureAfter(false, { type: 'keydown', key, onScroller: false })).toBe(true)
   })
 
   it('does not read typing as scrolling: most keys reach the list from a field inside it', () => {
-    expect(isScrollGesture({ type: 'keydown', key: 'a', onScroller: false })).toBe(false)
-    expect(isScrollGesture({ type: 'keydown', onScroller: false })).toBe(false)
+    expect(gestureAfter(false, { type: 'keydown', key: 'a', onScroller: false })).toBe(false)
+    expect(gestureAfter(false, { type: 'keydown', onScroller: false })).toBe(false)
   })
 
   it('does not read a plain click as scrolling', () => {
-    expect(isScrollGesture({ type: 'click', onScroller: true })).toBe(false)
+    expect(gestureAfter(false, { type: 'click', onScroller: true })).toBe(false)
   })
 
   /**
-   * The two lists have to be the same set. A type the caller listens for and
-   * the rule rejects is only noise; a type the rule accepts and nobody
-   * listens for is a gesture that can never arm — the head would simply stop
-   * yielding, and no case here would say so.
+   * A gesture outlives the inputs that are not one: a tap or a keystroke in
+   * the middle of a flick leaves its momentum the reader's.
    */
-  it('counts every input its caller is told to listen for', () => {
+  it.each([
+    { type: 'pointerdown', onScroller: false },
+    { type: 'keydown', key: 'a', onScroller: false },
+    { type: 'click', onScroller: true },
+  ])('keeps an armed gesture through a $type that is not one', (input) => {
+    expect(gestureAfter(true, input)).toBe(true)
+  })
+
+  /**
+   * The scroll a focus causes arrives after the focus, so the focus is where
+   * the window can close exactly — including after a wheel that could not
+   * scroll, which never comes to rest and would otherwise hold it open.
+   */
+  it.each([true, false])(
+    'ends the gesture on a focus moving inside the list (armed: %s)',
+    (armed) => {
+      expect(gestureAfter(armed, { type: 'focusin', onScroller: false })).toBe(false)
+      expect(gestureAfter(armed, { type: 'focusin', onScroller: true })).toBe(false)
+    },
+  )
+
+  /**
+   * The two lists have to be the same set. A type the caller listens for and
+   * the rule ignores is only noise; a type the rule answers and nobody
+   * listens for can never change the gesture — the head would simply stop
+   * yielding, or stop standing still, and no case here would say so.
+   */
+  it('answers every input its caller is told to listen for', () => {
     for (const type of SCROLLER_INPUTS) {
-      expect(isScrollGesture({ type, key: 'ArrowDown', onScroller: true })).toBe(true)
+      const input = { type, key: 'ArrowDown', onScroller: true }
+      expect(gestureAfter(false, input) !== false || gestureAfter(true, input) !== true).toBe(true)
     }
   })
 })

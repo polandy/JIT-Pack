@@ -445,6 +445,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [`e2e` and `visual` skip every diff that touches no app input, not just Markdown (2026-09-26)](#e2e-and-visual-skip-every-diff-that-touches-no-app-input-not-just-markdown-2026-09-26) — the list names what is *not* app input, so it goes stale only toward an extra run.
 - [A purchase handed to somebody, and a task row one line again (2026-09-26)](#a-purchase-handed-to-somebody-and-a-task-row-one-line-again-2026-09-26) — FR-30.12: a `ShoppingLine` holds the entry as it was, so an undo through the tapped line writes nothing.
 - [Vor der Reise closes when the trip is under way, on both lists (2026-09-26)](#vor-der-reise-closes-when-the-trip-is-under-way-on-both-lists-2026-09-26) — M25's spec seeded every trip `active`, hiding the gap.
+- [A wheel that could not scroll held the gesture window open (2026-09-26)](#a-wheel-that-could-not-scroll-held-the-gesture-window-open-2026-09-26) — FR-21.17: the window was unbounded, not 120–220 ms; a focus closes it, and the helper sees it open.
 
 ## Deviations
 
@@ -17742,3 +17743,25 @@ on a trip that, by the new rule, is already under way — the suite was green be
 it went red the moment the screen started reading it. The default is `planning` now; a case that needs a running trip
 says so. The e2e suite held the same belief four times over — E2E-M1-10, E2E-M1-11, E2E-M25-13 and E2E-M25-05 started a
 trip and then wrote *before* tasks on it; they write for the road now, which is what a reader of a running trip can do.
+
+
+## A wheel that could not scroll held the gesture window open (2026-09-26)
+
+FR-21.17, the two residues *„The gesture window is a residue, not an oversight"* left behind. **Its premise was
+wrong.** That entry measured the window at 120–220 ms after every gesture, since Ionic's `ionScrollEnd` watchdog closes
+it. The watchdog only starts on a scroll — and a wheel that cannot scroll starts none. An upward wheel on a list
+already at its top (a trackpad does it by habit) armed the latch and left it armed with no end at all, so the next
+scroll anybody caused — a Tab to a row below the fold — was read as the reader's flick, and the head yielded under
+them. So the residue was not only a timing window a reader could hardly hit; it was a state a reader reaches on
+purpose.
+
+**The fix is the one that entry named**: `focusin` ends the gesture (`gestureAfter` in `lib/headScroll.ts`, which now
+answers the latch's next state instead of only whether an input arms it). The focus is dispatched before the scroll it
+causes, so the window closes exactly rather than eventually. Accepted cost: a click on a row during a flick's momentum
+ends the flick's claim to the rest of that momentum — the tap stops the momentum on touch anyway. E2E-M4-150 builds
+the unbounded state deterministically (at rest at the top, a wheel up, the attribute asserted present) and is red on
+both engines against the rule without the `focusin` branch.
+
+**And the wait on an absence got its positive half.** `scrollPackList` waited for `data-scroll-gesture` to be gone,
+which is green against a build that never sets it. It now watches the attribute from before the wheel and asserts the
+window opened; deleting the mirror fails E2E-M4-70 at the helper, where it stayed green before.
