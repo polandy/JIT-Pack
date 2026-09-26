@@ -185,6 +185,15 @@ hold. E2E-G12-08 pins the hold and that it goes nowhere.
 never the total — so it wears the action colour where the shopping count is grey (`TripViewEntry.countIsNew`). The
 five-pill row, standing on the luggage, is what E2E-G12-07 measures at 360 px.
 
+**Built with the excursions (2026-09-26, FR-31, ADR-077).** *Ausflüge* joined as the fifth pill
+(`trailSignOutline`), after *Notizen* — the revisit trigger's case again, a view worked in rather than read: a trip's
+excursions are packed during it, more often then than the suitcase. Its badge counts the excursions ahead with something
+open, grey. The row is now five pills, six while standing on the luggage or the analytics. Six do not fit 360 px
+(376 px of row against 344 px of room), and the owner settled the width the row is laid out for: **the Pixel 9 Pro's,
+410 CSS px**, the phone the family packs with. E2E-G12-07 measures the widest row there; a narrower phone scrolls the
+row sideways, which it always could (the row scrolls rather than wraps), instead of every trip screen's pills being
+made denser for a phone nobody in the household holds.
+
 ## Consequences
 
 **Positive**

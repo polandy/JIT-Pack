@@ -130,20 +130,20 @@ setHeaderTitle(
               button
               detail
               class="excursion"
-              :data-testid="`m27-excursion-${excursion.id}`"
+              :data-testid="`m27-excursion-${excursion.name}`"
               @click="open(excursion)"
             >
               <IonLabel>
                 <span
                   v-if="when(excursion)"
                   class="when jp-num"
-                  :data-testid="`m27-when-${excursion.id}`"
+                  :data-testid="`m27-when-${excursion.name}`"
                   >{{ when(excursion) }}</span
                 >
                 <span class="name">{{ excursion.name }}</span>
                 <span v-if="whoLine(excursion)" class="who">{{ whoLine(excursion) }}</span>
               </IonLabel>
-              <span slot="end" class="count jp-num" :data-testid="`m27-count-${excursion.id}`">
+              <span slot="end" class="count jp-num" :data-testid="`m27-count-${excursion.name}`">
                 {{ units(excursion).done }}/{{ units(excursion).total }}
               </span>
             </IonItem>
@@ -164,7 +164,7 @@ setHeaderTitle(
               button
               detail
               class="excursion past"
-              :data-testid="`m27-excursion-${excursion.id}`"
+              :data-testid="`m27-excursion-${excursion.name}`"
               @click="open(excursion)"
             >
               <IonLabel>

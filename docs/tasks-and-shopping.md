@@ -181,8 +181,8 @@ and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkä
 
 ## Moving between a trip's lists
 
-Under the trip's name is a row of buttons for its lists: the packing list, the shopping list, the tasks and the
-[notes](trip-notes.md). The list you are on shows its name; the others show only their icon, with a small number when
+Under the trip's name is a row of buttons for its lists: the packing list, the shopping list, the tasks, the
+[notes](trip-notes.md) and the [excursions](excursions.md). The list you are on shows its name; the others show only their icon, with a small number when
 something is open there — on the notes, in blue, what is new for you. Tap an icon to go there. Not sure which icon is
 which? Hold it (on a computer, point at it) and its name appears.
 
@@ -192,7 +192,8 @@ A **⋮** menu only holds what belongs to the screen it sits on:
 
 - **Packliste**: **Gepäck**, **Auswertung**, **Packen abschliessen**, and *Namen aus dem Inventar* when the inventory
   has renamed something on the list.
-- **Einkaufen**, **Aufgaben** and **Notizen** have no ⋮. Reach the luggage and the analytics through the packing list.
+- **Einkaufen**, **Aufgaben**, **Notizen** and the list of **Ausflüge** have no ⋮; a single excursion's ⋮ holds
+  **Ausflug bearbeiten**, **Als Gruppe speichern** and **Ausflug löschen**. Reach the luggage and the analytics through the packing list.
 - **The trip itself**: *Reise-Eigenschaften*, **Reise starten** and **Reise abschliessen** are on the trip list. Hold
   the trip (or right-click it); the card of the trip you are packing also shows them as buttons. **Reise abschliessen**
   opens the packing list in its closing pass, where you mark what went unused; **Fertig** there finishes the trip.

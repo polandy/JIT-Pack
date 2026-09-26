@@ -355,6 +355,7 @@ setHeaderTitle(
             <ExcursionLine
               v-if="entry.kind === 'line'"
               :line="entry.line"
+              :test-key="entry.line.name"
               :master="masterOf(entry.line.source_item_id)"
               :from-luggage="suitcaseOf(entry.line, tripItems) !== null"
               @tick="tick(entry.line)"
@@ -366,7 +367,7 @@ setHeaderTitle(
                 type="button"
                 class="cluster-head"
                 :aria-expanded="openClusters.has(entry.key)"
-                :data-testid="`excursion-cluster-${entry.key}`"
+                :data-testid="`excursion-cluster-${entry.name}`"
                 @click="toggleCluster(entry.key)"
               >
                 <ItemMark
@@ -387,7 +388,7 @@ setHeaderTitle(
                 </span>
                 <span
                   class="cluster-count jp-num"
-                  :data-testid="`excursion-cluster-count-${entry.key}`"
+                  :data-testid="`excursion-cluster-count-${entry.name}`"
                 >
                   {{ entry.units.done }}/{{ entry.units.total }}
                 </span>
@@ -398,6 +399,7 @@ setHeaderTitle(
                   :key="line.id"
                   class="child"
                   :line="line"
+                  :test-key="`${line.name}-${personOf(line)?.name ?? ''}`"
                   :person="personOf(line)"
                   :from-luggage="suitcaseOf(line, tripItems) !== null"
                   :left-behind="line.packed_count > 0 && isLeftBehind(line, participants)"

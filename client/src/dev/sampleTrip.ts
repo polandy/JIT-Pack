@@ -177,7 +177,7 @@ export function seedSampleTrip(
 export const SEED_EXCURSION_GROUP = 'Hüttentour'
 
 function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
-  const group = useMasterStore().templateList.find((t) => t.name === SEED_EXCURSION_GROUP)
+  const group = useMasterStore().activeTemplateList.find((t) => t.name === SEED_EXCURSION_GROUP)
   const goes = useTripStore()
     .getTravelers(tripId)
     .filter((traveler) => traveler.name !== TRAVELERS[2])

@@ -36,6 +36,11 @@ const props = withDefaults(
     fromLuggage?: boolean
     /** FR-31.5: its person no longer goes, and it is in the rucksack. */
     leftBehind?: boolean
+    /**
+     * The stable half of every `data-testid`: the name for a line, the name and
+     * the person for a cluster's child — what the suite addresses it by.
+     */
+    testKey: string
   }>(),
   { master: null, person: null, fromLuggage: false, leftBehind: false },
 )
@@ -64,7 +69,7 @@ const source = computed(() => {
     :checked="skipped ? null : done"
     :done="done"
     :tick-label="line.name"
-    :data-testid="`excursion-line-${line.id}`"
+    :data-testid="`excursion-line-${testKey}`"
     @tick="emit('tick')"
   >
     <template #start>
@@ -91,7 +96,7 @@ const source = computed(() => {
       type="button"
       class="open"
       :aria-label="t('excursions.lineMenu', { item: line.name })"
-      :data-testid="`excursion-line-open-${line.id}`"
+      :data-testid="`excursion-line-open-${testKey}`"
       @click="emit('open')"
     >
       <IonLabel class="row-name">
@@ -101,25 +106,25 @@ const source = computed(() => {
     </button>
 
     <template v-if="source || missing || leftBehind" #facts>
-      <span v-if="missing" class="warn" :data-testid="`excursion-missing-${line.id}`">
+      <span v-if="missing" class="warn" :data-testid="`excursion-missing-${testKey}`">
         {{ t('excursions.notInLuggage') }}
         <IonButton
           fill="clear"
           size="small"
           class="act"
-          :data-testid="`excursion-buy-on-site-${line.id}`"
+          :data-testid="`excursion-buy-on-site-${testKey}`"
           @click="emit('buyOnSite')"
         >
           {{ t('excursions.buyOnSite') }}
         </IonButton>
       </span>
-      <span v-else-if="leftBehind" class="warn" :data-testid="`excursion-left-behind-${line.id}`">
+      <span v-else-if="leftBehind" class="warn" :data-testid="`excursion-left-behind-${testKey}`">
         {{ t('excursions.leftBehind') }}
         <IonButton
           fill="clear"
           size="small"
           class="act"
-          :data-testid="`excursion-take-out-${line.id}`"
+          :data-testid="`excursion-take-out-${testKey}`"
           @click="emit('takeOut')"
         >
           {{ t('excursions.takeOut') }}
@@ -128,7 +133,7 @@ const source = computed(() => {
       <span
         v-else-if="source"
         :class="{ local: onSite }"
-        :data-testid="`excursion-source-${line.id}`"
+        :data-testid="`excursion-source-${testKey}`"
       >
         {{ source }}
       </span>

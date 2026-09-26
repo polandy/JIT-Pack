@@ -224,16 +224,17 @@ These patterns apply to every screen and are specified once.
   revisit trigger is in ADR-050.
 * **A trip's screen names the trip's other screens (FR-21.21, ADR-051 and its amendments 1 and 3).** Under the page
   head, and inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the views a trip is
-  *worked* in are a row of pills: *Packliste*, *Einkaufen (n)*, *Aufgaben (n)* and *Notizen* (FR-7.13), plus the view
-  being looked at when it is none of them, so the row always marks where you are. **The current one is marked, inert and
-  the only one in words** (its glyph at `--jp-icon-sm` beside the word); every other view is its G-12 glyph at
-  `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label (*„Einkaufen (12)"*) its `aria-label` and
-  `title` — four words and their counts do not fit a 390 px phone. **Holding a glyph shows that label in a bubble**
-  below it, which stays a moment after the release and does not navigate; a tap is one tap, from any of the trip's
-  screens. *Gepäck* and *Auswertung* are words in the bar's ⋮ instead — the frame puts them there, from the same
-  `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view cannot be named
-  differently in the two. The widest row, five pills while standing on one of the ⋮'s views, fits 360 px (E2E-G12-07
-  measures it). **The notes' badge counts what is new for me, never the total, in the action colour** (`count-new`)
+  *worked* in are a row of pills: *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen* (FR-7.13) and *Ausflüge (n)*
+  (FR-31), plus the view being looked at when it is none of them, so the row always marks where you are. **The current
+  one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word); every other view is
+  its G-12 glyph at `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label (*„Einkaufen (12)"*)
+  its `aria-label` and `title` — five words and their counts do not fit a 390 px phone. **Holding a glyph shows that
+  label in a bubble** below it, which stays a moment after the release and does not navigate; a tap is one tap, from any
+  of the trip's screens. *Gepäck* and *Auswertung* are words in the bar's ⋮ instead — the frame puts them there, from
+  the same `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view cannot be named
+  differently in the two. The widest row, six pills while standing on one of the ⋮'s views, fits the Pixel 9 Pro's
+  410 CSS px, the width the row is laid out for (ADR-051); a narrower phone scrolls it sideways (E2E-G12-07 measures
+  it). **The notes' badge counts what is new for me, never the total, in the action colour** (`count-new`)
   where every other badge is grey.
 * **The bar's cluster is capped at three glyphs (ADR-050).** A page describes its actions in registration order (G-12);
   the bar renders the first three that are not marked for the ⋮ and puts everything after them into the menu, ahead of
@@ -615,6 +616,7 @@ These patterns apply to every screen and are specified once.
 | M24 | Aufräumen (Inventory Cleanup) | P2 | Addendum 24.12, 24.13 |
 | M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
+| M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
 
 ---
 
@@ -773,6 +775,10 @@ These patterns apply to every screen and are specified once.
   card is absent** where it has nothing to show — or (Single-User/Local, G-8) there is no other author for anything to
   ever be new from. **Modes:** Server only; the other two never populate it, because nothing is ever new without a
   second identity (FR-7.9's own reasoning, not a separate gate here). (E2E-M1-14)
+* **The *Ausflüge* block (FR-31.10 — *built*).** Under its section head, a card lists every excursion of a trip that
+  is not archived **starting today or tomorrow** while its list has something open, today's first: *„Heute:
+  Tageswanderung"* / *„Morgen: Hüttentour Supramonte"*, then *„0/8 gepackt · Samedan Sommer"*; a row opens the
+  excursion's own list (M27). Absent when there is none. All three modes. (E2E-M27-01)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built**: the preview rows are neither links nor
   sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's landing is
@@ -1392,6 +1398,10 @@ These patterns apply to every screen and are specified once.
   (FR-20.4).
 * **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open
   tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
+* **The excursions that borrow a row (FR-31.12 — *built*).** An open row — an item row or a cluster's child — that
+  lines of upcoming or undated excursions borrow carries one quiet line under its name, a signpost glyph at
+  `--jp-icon-xs` and the excursions' names (*„Hüttentour Supramonte, Bootsausflug"*, each once), so the row is not
+  skipped or left home blind. A done row does not carry it. (`m4-borrowed-<row>`, E2E-M27-01)
 * **Navigation:** From M1, M2, notifications. Deep-link anchor target (G-4). **Desktop (≥ 900 px, per G-9): two-pane
   layout** — M4's list occupies the left/main pane while M5 opens as a **persistent side panel** on the right rather
   than a bottom sheet; selecting a different row swaps the panel's content in place. Below the breakpoint, M5 remains
@@ -1679,11 +1689,16 @@ These patterns apply to every screen and are specified once.
   *„gekauft von Andy · heute 14:32"* with the buyer's avatar, or *„gekauft · heute 14:32"* where nobody can be named
   (Local Mode) — under its note. **An entry (FR-30.1)** is revealed the same way, with **no note** — it was never
   anywhere but here.
+* **A source's own heading (FR-31.8 — *built*).** A source may name the heading its lines are filed under
+  (`ShoppingLine.section`): an excursion's *vor Ort* lines stand under the excursion's name, after the combined packing
+  heading and before the own entries, A–Z, and such a heading takes no dropped entry — it is not one of this list's
+  tags. Checking one off stamps the excursion's line *vor Ort gekauft*; it stays on the excursion's list, still to go
+  into the rucksack. *Vor Ort* only. (`m6-group-source-<name>`, E2E-M27-03)
 * **States:** An empty screen, once the trip partition is here (ADR-033), shows the G-7 empty state with the hint *„Trag
   oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst."* —
   the one place the screen says where its other lines come from. Both lists empty → the G-9 switcher keeps the
   **shopping pill** and drops only its **count**: the destination exists either way.
-* **Navigation:** From the G-9 trip switcher, which carries M6's pill on all four of the trip's views (FR-21.21);
+* **Navigation:** From the G-9 trip switcher, which carries M6's pill on every one of the trip's views (FR-21.21);
   deep-linkable.
 
 ### M7 — Template List
@@ -2319,15 +2334,15 @@ token would prove nothing there is anything to prove.
   The picture control is the same one M17 offers in Single-User Mode, described in the variant below. The note under the
   name names the display name specifically rather than claiming the whole profile is managed elsewhere; notification
   preferences per event type: delegation, mention, task assigned, **items taken over** (FR-6.2, FR-5.7), **trip notes**
-  (FR-7.9), **tasks due** (FR-7.11 — the server's morning reminder) and **purchases due** (FR-30.10, *Fällige Einkäufe*,
-  the same run for the shopping list) with channel status (push registered via VAPID/UnifiedPush, NFR-4.6). **A
-  preference turned off here reaches the server's own suppression rule and silences that kind alone** (E2E-M17-01 covers
-  the wire between the two ends); data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section
-  a *server* account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written
-  client-side because there is no server to ask, plus the NFR-4.11 storage details (E2E-M17-03 covers both); conflict
-  log viewer (G-2 target); app info/version. Appearance section with a dark (default, Nacht) / light (Tag) toggle (G-11,
-  Addendum 3.21, ADR-048) — shown in every mode, device-local. An Administration row → M20, rendered only for instance
-  admins with an OIDC session (FR-23.1).
+  (FR-7.9), **tasks due** (FR-7.11 — the server's morning reminder), **purchases due** (FR-30.10, *Fällige Einkäufe*,
+  the same run for the shopping list) and **excursions** (FR-31.9, *Ausflüge*, the same run again) with channel status
+  (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own suppression
+  rule and silences that kind alone** (E2E-M17-01 covers the wire between the two ends); data section: JSON full export,
+  per-trip CSV export (NFR-4.5) — **this is the section a *server* account sees; Local Mode's data section is a
+  different one**, per-trip and per-template YAML written client-side because there is no server to ask, plus the
+  NFR-4.11 storage details (E2E-M17-03 covers both); conflict log viewer (G-2 target); app info/version. Appearance
+  section with a dark (default, Nacht) / light (Tag) toggle (G-11, Addendum 3.21, ADR-048) — shown in every mode,
+  device-local. An Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).
 * **Single-User Mode variant (Addendum 3.17):** The Profile section makes the *display name* editable too (the picture
   already is, see above), so it carries two editable controls: a display-name text field (1–50 printable characters, no
   edge whitespace per FR-17.13; the rule note appears only after the field was touched) and an avatar picture control
@@ -2337,10 +2352,10 @@ token would prove nothing there is anything to prove.
   appears — the M17 profile row itself, the "Packed by" tag, the presence facepile per G-10 (**not** the dashboard
   greeting, a time-of-day sentence that carries neither) — always rendered as a circle via a display-time mask, never
   stored as one. The *notification preferences* section **carries only what can happen to one person alone (FR-7.11):**
-  the *Fällige Aufgaben* and *Fällige Einkäufe* rows (FR-30.10) — a reminder is nobody's act, so FR-17.3's silence does
-  not cover it — and the *Push auf diesem Gerät* toggle they need to reach a closed app; every row that needs a second
-  party stays hidden (Addendum FR-17.3). All other elements (data export, conflict log, app info) remain, unchanged from
-  normal mode.
+  the *Fällige Aufgaben*, *Fällige Einkäufe* and *Ausflüge* rows (FR-30.10, FR-31.9) — a reminder is nobody's act, so
+  FR-17.3's silence does not cover it — and the *Push auf diesem Gerät* toggle they need to reach a closed app; every
+  row that needs a second party stays hidden (Addendum FR-17.3). All other elements (data export, conflict log, app
+  info) remain, unchanged from normal mode.
 * **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2).
   User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20
   (Addendum 3.23).
@@ -2800,6 +2815,66 @@ token would prove nothing there is anything to prove.
   *„Gesehen von"* never render and no push is sent; threads, titles and edits work as a scratchpad. **Before the trip
   partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
 * (E2E-M26-01/02 `local`, E2E-M26-03/04 `server`, E2E-M1-14, E2E-G12-06/07, E2E-VIS-14)
+
+### M27 — Ausflüge (A Trip's Excursions, FR-31) — *built*
+
+* **What it is:** a trip's excursions — a day hike, a hut night, a boat trip — each with **its own small packing list**
+  (Addendum §3.31, ADR-077). Reasoning: `dev-docs/excursions-concept.md`; the rendered variants, all three open points
+  decided as variant A, are `UI_Concept_Excursions_variants.html` (`node dev-docs/build-excursions-variants.mjs`).
+* **Where it lives:** the fifth pill of the G-9 switcher, after *Notizen*, glyph `trailSignOutline` — a signpost, which
+  fits a hike, a boat and a town trip alike (`/trips/:id/excursions`, `meta.tripView: 'excursions'`). Its badge counts
+  the upcoming excursions that still have something open (FR-31.10), grey. No ⋮ on the list. Back is M4.
+* **The list:** *Kommende* — by first day, a row per excursion: its days (*„So., 27.9. – Mo., 28.9."*, one day for a day
+  hike), its name in the heading weight, the participants' names where not everybody goes, and `done/total` at the end
+  with a chevron; then *Ohne Datum*, by name, the same row without the days line; then a fold *„1 vergangener Ausflug"*,
+  latest first, muted. A row opens that excursion's list. The empty trip says *„Noch keine Ausflüge. Eine
+  Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste an."* **Before the trip
+  partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
+* **The sheet** (the FAB, ＋, `FAB_ANCHOR.m27`; also *Ausflug bearbeiten* from one excursion's ⋮): *„Neuer Ausflug"* —
+  **Name** (*„z. B. Tageswanderung"*), **Von** / **Bis** as two G-2 date fields that bound each other, both optional;
+  **Wer geht mit** — *Alle* and a chip per traveller (where the trip has two or more), everybody by default, and a set
+  that reaches everybody is *Alle* again; and, new only, **Beginnen mit** — FR-27.13's group search (*„Gruppe
+  suchen…"*), the groups A–Z with their item count and *„über Kamera"* on an item match, then *Leer beginnen*. With a
+  group chosen, one line says in advance what the tap does to the packing list: *„Was noch nicht im Gepäck ist, kommt
+  auch auf die Packliste."* while the suitcase is open, *„Die Reise hat begonnen: Was nicht im Gepäck ist, wird markiert
+  statt auf die Packliste gesetzt."* once it is not (FR-31.7). *Ausflug anlegen* writes it, opens its list, and a toast
+  *„„Hüttentour" angelegt · 3 Dinge auf die Packliste"* carries *Rückgängig*, which takes back the excursion, its lines
+  and what it put into the suitcase (FR-31.4).
+* **One excursion** (`/trips/:id/excursions/:excursionId`, `meta.parent` the list, still in the excursions view, so the
+  pills stay): named by the excursion, with *„So., 27.9. – Mo., 28.9. · Sia, Andy"* (or *Alle*, or *Ohne Datum*) as the
+  meta line. Under the head a FR-21.23 figure: *„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while *vor
+  Ort* lines are unbought, *„Noch nichts auf der Liste"* on an empty one. Then the lines **by category** (G-2 group
+  heads with their unit count, lines without a category under *Ohne Kategorie*), A–Z.
+* **A line** (`ExcursionLine`): the §3.28 mark, the name and *×n* for more than one, the tick at the edge (a skipped
+  line has none and reads done). One fact line under the name:
+  * ***aus dem Gepäck*** — it borrows a trip row this device holds;
+  * ***vor Ort*** in the done colour, ***vor Ort gekauft*** once bought (FR-31.8);
+  * ***nicht im Gepäck · Vor Ort besorgen*** in the straw warning tone, the action a small text button in place
+    (FR-31.7) — the mark is never painted on (FR-28.5/G-15);
+  * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
+    the line with an undo.
+
+  A tap on the name opens the line's menu (an action sheet headed by the name): *Eins mehr*, *Eins weniger* (above one),
+  *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
+  *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
+* **A thing per person** is FR-25.1's cluster: a head with the mark, the name, a caret, *für alle* under it where the
+  set is one, and `done/total` in units; **shut by default** (FR-25.23, view state, not persisted); open, a child per
+  participant in roster order with the person's avatar and name instead of the mark, each with its own tick.
+* **The composer**, at the foot of the list: where two or more go, FR-25.28's **for-whom strip** over **the excursion's
+  participants** (*Gemeinsam*, *Alle*, an avatar each) with its sentence (*„Wird gemeinsam angelegt."* / *„Wird für 2
+  Personen angelegt, je 1."*), then a field *„Zur Liste hinzufügen…"* with ＋. A typed name that is an inventory item
+  brings its master item, category and mark; the line is linked into the suitcase like a group's (FR-31.4/31.7).
+* **The ⋮** (G-12, words only): *Ausflug bearbeiten* (the sheet above; a change of who goes rewrites the per-person sets
+  and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Als Gruppe speichern* (a prompt prefilled with the
+  excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen beginnen kannst."*;
+  a taken name is refused in a toast and the prompt stays open; FR-31.11), *Ausflug löschen* (a destructive
+  confirmation *„„Hüttentour" mit seiner Liste löschen? Die Packliste bleibt, wie sie ist."*, then back to the list).
+  An excursion deleted elsewhere leaves its view for the list.
+* **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
+  under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
+  *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
+* **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
+* (E2E-M27-01…06 `local`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

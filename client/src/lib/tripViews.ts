@@ -64,8 +64,9 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  * words did not fit a phone; four glyphs and one word do (amendment 3).
  *
  * FR-31 adds the fifth: a trip's excursions are packed during the trip, more
- * often then than the suitcase is (ADR-077). Five glyphs and one word are
- * measured at 360 px, with the sixth a ⋮ view adds (E2E-G12-07).
+ * often then than the suitcase is (ADR-077). The row is laid out for the
+ * Pixel 9 Pro's 410 px (ADR-051) and scrolls on anything narrower; E2E-G12-07
+ * measures its widest shape, the sixth pill a ⋮ view adds.
  */
 export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'packing',

@@ -79,13 +79,21 @@ function goes(id: string): boolean {
   return who.value === null || who.value.has(id)
 }
 
+/**
+ * A person tapped while everybody goes names just them — the tap says *who*,
+ * not *who not*. From there each tap adds or takes one; naming everybody, or
+ * taking the last one off, is everybody again (an excursion nobody goes on is
+ * not one).
+ */
 function toggle(id: string) {
-  const next = new Set(who.value ?? props.travelers.map((tr) => tr.id))
+  if (who.value === null) {
+    who.value = new Set([id])
+    return
+  }
+  const next = new Set(who.value)
   if (next.has(id)) next.delete(id)
   else next.add(id)
-  // Everybody named is everybody — and nobody named is not an excursion.
-  if (next.size === props.travelers.length) who.value = null
-  else if (next.size > 0) who.value = next
+  who.value = next.size === 0 || next.size === props.travelers.length ? null : next
 }
 
 /** The groups the picker offers, each with what it resolves to. */
@@ -183,7 +191,7 @@ function save() {
             v-for="traveler in travelers"
             :key="traveler.id"
             :pressed="who !== null && goes(traveler.id)"
-            :data-testid="`m27-who-${traveler.id}`"
+            :data-testid="`m27-who-${traveler.name}`"
             @click="toggle(traveler.id)"
           >
             {{ traveler.name }}
@@ -208,7 +216,7 @@ function save() {
             class="group"
             :class="{ on: templateId === entry.candidate.id }"
             :aria-pressed="templateId === entry.candidate.id"
-            :data-testid="`m27-group-${entry.candidate.id}`"
+            :data-testid="`m27-group-${entry.candidate.name}`"
             @click="templateId = templateId === entry.candidate.id ? null : entry.candidate.id"
           >
             <b>{{ entry.candidate.name }}</b>
