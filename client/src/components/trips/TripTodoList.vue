@@ -94,6 +94,12 @@ const props = defineProps<{
    * null for a task) names none: inside a group the heading already does.
    */
   tagOf?: (task: TripTask) => string | null
+  /**
+   * The finished tasks are shown without their own fold — the list already
+   * stands inside one: a section folded to its line at the screen's end
+   * (`RestLine`), whose words count them.
+   */
+  unfolded?: boolean
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -296,6 +302,7 @@ function hasFacts(task: TripTask): boolean {
          undo a mis-tap has, short of typing the task again. -->
     <template v-if="resolved.length > 0">
       <button
+        v-if="!unfolded"
         type="button"
         class="resolved-toggle"
         :class="{ open: showResolved }"
@@ -306,7 +313,7 @@ function hasFacts(task: TripTask): boolean {
         <IonIcon :icon="chevronForwardOutline" class="caret" />
         {{ t('tripTodos.resolved', { n: resolved.length }) }}
       </button>
-      <template v-if="showResolved">
+      <template v-if="showResolved || unfolded">
         <IonItem
           v-for="task in resolved"
           :key="task.id"

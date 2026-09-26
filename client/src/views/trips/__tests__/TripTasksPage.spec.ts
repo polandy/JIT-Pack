@@ -312,14 +312,55 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     ).toBe('true')
   })
 
-  it('says so where a section is empty, rather than leaving a gap', async () => {
+  /*
+   * Owner, 2026-09-26 (M6 alike): a phase with nothing open is one line at
+   * the end rather than a heading and a hint in the way — a statement, not a
+   * control, while nothing below it is done.
+   */
+  it('folds a phase with nothing open to one line at the end', async () => {
     seedTrip()
     seedTask('Salbe holen', {})
 
     const page = mountPage()
     await flushPromises()
 
-    expect(page.get('[data-testid="m25-during"]').text()).toContain('Nothing noted')
+    const sections = page
+      .findAll('section[data-testid="m25-during"], section[data-testid="m25-before"]')
+      .map((section) => section.attributes('data-testid'))
+    expect(sections).toEqual(['m25-before', 'm25-during'])
+    const line = page.get('[data-testid="m25-during-fold"]')
+    expect(line.text()).toBe('During the trip · nothing open')
+    expect(line.element.tagName).toBe('P')
+  })
+
+  it('opens the line onto the finished tasks, with no second fold, and they can be unticked', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    seedTask('Zug abklären', { phase: 'during', task_state: 'resolved' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    const line = page.get('[data-testid="m25-during-fold"]')
+    expect(line.text()).toBe('During the trip · nothing open · 1 done')
+    expect(page.find('[data-testid="trip-todo-Zug abklären"]').exists()).toBe(false)
+    await line.trigger('click')
+    expect(
+      page.find('[data-testid="m25-during"] [data-testid="trip-todos-resolved"]').exists(),
+    ).toBe(false)
+    await page.get('[data-testid="trip-todo-Zug abklären"] ion-checkbox').trigger('ionChange')
+    expect(acts.reopenTripTodo).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a phase in its place while its only open task stands in the Fällig block', async () => {
+    seedTrip()
+    seedTask('Salbe holen', { due_date: STUB_TODAY })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-before-fold"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m25-before"]').text()).toContain('Before the trip')
   })
 
   /*
@@ -334,8 +375,12 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await flushPromises()
 
     expect(page.findAll('[data-testid="trip-todo-input"]')).toHaveLength(1)
-    expect(page.find('[data-testid="m25-during"]').exists()).toBe(true)
-    expect(page.get('[data-testid="m25-before"]').text()).toContain('Nothing left to do')
+    expect(page.get('[data-testid="m25-before-fold"]').text()).toBe(
+      'Before the trip · nothing open',
+    )
+    expect(page.get('[data-testid="m25-during-fold"]').text()).toBe(
+      'During the trip · nothing open',
+    )
   })
 })
 
@@ -429,7 +474,7 @@ describe('M25 — the crossing by hand (FR-7.7)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await page.get('[data-testid="trip-todos-resolved"]').trigger('click')
+    await page.get('[data-testid="m25-before-fold"]').trigger('click')
     await page.get('[data-testid="trip-todo-open-Akkus laden"]').trigger('click')
     await flushPromises()
 
@@ -983,9 +1028,10 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
     expect(
       page.get('[data-testid="m25-before"] [data-drop-target]').attributes('data-droppable'),
     ).toBe('false')
-    await page
-      .get('[data-testid="m25-before"] [data-testid="trip-todos-resolved"]')
-      .trigger('click')
+    // The line counts the finished tasks, so they stand open under it.
+    expect(
+      page.find('[data-testid="m25-before"] [data-testid="trip-todos-resolved"]').exists(),
+    ).toBe(false)
     const tick = page.get('[data-testid="trip-todo-Pass holen"] ion-checkbox')
     expect((tick.element as HTMLInputElement).disabled).toBe(true)
   })
@@ -1021,9 +1067,14 @@ describe('M25 — *before* is closed once the packing is finished (FR-7.12)', ()
     await flushPromises()
     expect(page.find('[data-testid="m25-phase-before"]').exists()).toBe(false)
 
+    expect(page.get('[data-testid="m25-before-fold"]').text()).toBe('Before the trip · closed')
+
     seedTrip()
     await flushPromises()
-    expect(page.find('[data-testid="m25-before-fold"]').exists()).toBe(false)
+    // Open again, and empty: the plain line, with no lock behind it.
+    expect(page.get('[data-testid="m25-before-fold"]').text()).toBe(
+      'Before the trip · nothing open',
+    )
     expect(page.find('[data-testid="m25-phase-before"]').exists()).toBe(true)
   })
 })

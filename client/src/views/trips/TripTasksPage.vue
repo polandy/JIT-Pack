@@ -50,17 +50,17 @@ import {
   arrowForwardOutline,
   calendarOutline,
   checkmarkOutline,
-  chevronForwardOutline,
   personOutline,
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import DueChips from '@/components/global/DueChips.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
+import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TaskComposer from '@/components/trips/TaskComposer.vue'
@@ -154,7 +154,6 @@ const shown = computed(() =>
  * reader can act on is the road's.
  */
 const beforeLocked = computed(() => isPackingClosed(trip.value))
-const beforeHistoryOpen = ref(false)
 
 const masterStore = useMasterStore()
 const taskTags = computed(() => masterStore.taskTagList)
@@ -193,11 +192,53 @@ function tagNameOf(task: TripTask): string | null {
   return id ? (taskTags.value.find((tag) => tag.id === id)?.name ?? null) : null
 }
 
-/** How many finished tasks the closed *before* holds — its folded line. */
-const beforeHistoryLine = computed(() => {
-  const done = board.value.before.resolved.length
-  return done > 0 ? t('tasks.beforeHistory', { n: done }) : t('tasks.beforeHistoryEmpty')
+const PHASES = [TASK_PHASE_BEFORE, TASK_PHASE_DURING] as const
+
+function shelfOf(phase: TaskPhase) {
+  return phase === TASK_PHASE_BEFORE ? board.value.before : board.value.during
+}
+
+function groupsOf(phase: TaskPhase) {
+  return phase === TASK_PHASE_BEFORE ? groupsBefore.value : groupsDuring.value
+}
+
+/** FR-7.12: the finished packing's *before* — history, read and never worked. */
+function isClosed(phase: TaskPhase): boolean {
+  return phase === TASK_PHASE_BEFORE && beforeLocked.value
+}
+
+/**
+ * Owner, 2026-09-26 (M6 alike): a phase with nothing open anywhere — the
+ * *Fällig* block included — took a heading, a hint and a fold of room above
+ * the one still being worked. It leaves reading order for one line at the
+ * end, as the closed *before* already did.
+ */
+function inOrder(phase: TaskPhase): boolean {
+  return !isClosed(phase) && (shelfOf(phase).open.length > 0 || dueIn(phase) > 0)
+}
+
+const restPhases = computed(() => PHASES.filter((phase) => !inOrder(phase)))
+const restOpen = reactive<Record<TaskPhase, boolean>>({
+  [TASK_PHASE_BEFORE]: false,
+  [TASK_PHASE_DURING]: false,
 })
+
+/** *„Vor der Reise · nichts offen · 3 erledigt"* — or the closed *before*'s own words. */
+function restLabel(phase: TaskPhase): string {
+  const done = shelfOf(phase).resolved.length
+  if (isClosed(phase)) {
+    return done > 0 ? t('tasks.beforeHistory', { n: done }) : t('tasks.beforeHistoryEmpty')
+  }
+  const name = t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')
+  return done > 0
+    ? t('tasks.phaseRestDone', { phase: name, n: done })
+    : t('tasks.phaseRest', { phase: name })
+}
+
+/** The line opens where there is something below it: a finished task, or the lock's sentence. */
+function restExpandable(phase: TaskPhase): boolean {
+  return isClosed(phase) || shelfOf(phase).resolved.length > 0
+}
 
 /**
  * `before/apotheke` — the phase and the group, which is what a drop decides.
@@ -502,80 +543,60 @@ function onSheetRemove() {
           </ListGroup>
         </IonList>
 
-        <TaskPhaseSection
-          v-if="!beforeLocked"
-          :trip-id="tripId"
-          :phase="TASK_PHASE_BEFORE"
-          :shelf="board.before"
-          :groups="groupsBefore"
-          :due-elsewhere="dueIn(TASK_PHASE_BEFORE)"
-          :drop-key="dropKey(TASK_PHASE_BEFORE)"
-          :assignable="assignable"
-          :name-of="nameOf"
-          :lift="onLift"
-          :selection="selection"
-          :today="today"
-          :tag-of="tagNameOf"
-          @toggle="acts.toggle"
-          @assign="acts.assign"
-          @open="openTask"
-        />
-        <TaskPhaseSection
-          :trip-id="tripId"
-          :phase="TASK_PHASE_DURING"
-          :shelf="board.during"
-          :groups="groupsDuring"
-          :due-elsewhere="dueIn(TASK_PHASE_DURING)"
-          :drop-key="dropKey(TASK_PHASE_DURING)"
-          :assignable="assignable"
-          :name-of="nameOf"
-          :lift="onLift"
-          :selection="selection"
-          :today="today"
-          :tag-of="tagNameOf"
-          @toggle="acts.toggle"
-          @assign="acts.assign"
-          @open="openTask"
-        />
+        <template v-for="phase in PHASES" :key="phase">
+          <TaskPhaseSection
+            v-if="inOrder(phase)"
+            :trip-id="tripId"
+            :phase="phase"
+            :shelf="shelfOf(phase)"
+            :groups="groupsOf(phase)"
+            :drop-key="dropKey(phase)"
+            :assignable="assignable"
+            :name-of="nameOf"
+            :lift="onLift"
+            :selection="selection"
+            :today="today"
+            :tag-of="tagNameOf"
+            @toggle="acts.toggle"
+            @assign="acts.assign"
+            @open="openTask"
+          />
+        </template>
 
-        <!-- FR-7.12 + FR-7.14: a finished packing's *before* is history, and
-             history comes after the work — one folded line at the end. -->
-        <section v-if="beforeLocked" class="before-closed" data-testid="m25-before">
-          <button
-            type="button"
-            class="history-toggle jp-card"
-            :aria-expanded="beforeHistoryOpen ? 'true' : 'false'"
-            data-testid="m25-before-fold"
-            @click="beforeHistoryOpen = !beforeHistoryOpen"
+        <!-- Owner, 2026-09-26 (M6 alike): a phase with nothing open — or a
+             finished packing's *before*, FR-7.12 — is one line at the end. -->
+        <section
+          v-for="phase in restPhases"
+          :key="phase"
+          class="phase-rest"
+          :data-testid="phase === TASK_PHASE_BEFORE ? 'm25-before' : 'm25-during'"
+        >
+          <RestLine
+            :label="restLabel(phase)"
+            :expandable="restExpandable(phase)"
+            :open="restOpen[phase]"
+            :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-fold' : 'm25-during-fold'"
+            @toggle="restOpen[phase] = !restOpen[phase]"
           >
-            <span>{{ beforeHistoryLine }}</span>
-            <IonIcon
-              :icon="chevronForwardOutline"
-              class="caret"
-              :class="{ open: beforeHistoryOpen }"
-              aria-hidden="true"
-            />
-          </button>
-          <template v-if="beforeHistoryOpen">
-            <InlineHint class="hint-wide" data-testid="m25-before-locked">{{
+            <InlineHint v-if="isClosed(phase)" class="hint-wide" data-testid="m25-before-locked">{{
               t('tasks.beforeLocked')
             }}</InlineHint>
             <TaskPhaseSection
               headless
-              readonly
-              testid="m25-before-history"
+              :readonly="isClosed(phase)"
+              :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-history' : 'm25-during-history'"
               :trip-id="tripId"
-              :phase="TASK_PHASE_BEFORE"
-              :shelf="board.before"
-              :groups="groupsBefore"
-              :due-elsewhere="0"
-              :drop-key="dropKey(TASK_PHASE_BEFORE)"
+              :phase="phase"
+              :shelf="shelfOf(phase)"
+              :groups="groupsOf(phase)"
+              :drop-key="dropKey(phase)"
               :name-of="nameOf"
               :today="today"
               :tag-of="tagNameOf"
+              @toggle="acts.toggle"
               @open="openTask"
             />
-          </template>
+          </RestLine>
         </section>
       </template>
 
@@ -721,32 +742,6 @@ function onSheetRemove() {
 
 .hint-wide {
   margin: 4px 18px 8px;
-}
-
-.before-closed {
-  margin-top: 18px;
-}
-
-.history-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: calc(100% - 24px);
-  margin: 0 12px 8px;
-  padding: 12px 16px;
-  border: none;
-  color: var(--ct-subtext1);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.history-toggle .caret {
-  transition: transform 0.15s;
-}
-
-.history-toggle .caret.open {
-  transform: rotate(90deg);
 }
 
 .bulk-sheet {

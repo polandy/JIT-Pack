@@ -16,7 +16,6 @@
 import { IonList } from '@ionic/vue'
 import { computed } from 'vue'
 
-import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -34,13 +33,15 @@ const props = withDefaults(
     shelf: PhaseShelf
     /** Its open tasks under their headings (`taskGroups`). */
     groups: readonly TaskGroup[]
-    /** How many of its open tasks stand in the *Fällig* block instead. */
-    dueElsewhere: number
     /** The key a drop on `group` carries — the page reads it back. */
     dropKey: (group: TaskGroup) => string
     /** FR-7.12: a closed phase — no drop, no grip, no tick, no seat. */
     readonly?: boolean
-    /** The head is the page's, where the phase is drawn inside a fold. */
+    /**
+     * The head is the page's, where the phase is drawn inside its folded
+     * line at the screen's end (`RestLine`) — whose words already count the
+     * finished tasks, so they are shown without a second fold.
+     */
     headless?: boolean
     testid?: string
     assignable?: boolean
@@ -79,12 +80,6 @@ const count = computed(() => {
   return open > 0 ? t('tripTodos.open', { n: open }) : null
 })
 
-/**
- * Said only when the phase has no open task anywhere: an empty section whose
- * tasks are all in the *Fällig* block is not „nothing left to do".
- */
-const empty = computed(() => props.shelf.open.length === 0 && props.dueElsewhere === 0)
-
 /** A group's heading: its tag's name, or what the untagged group is called. */
 function groupName(group: TaskGroup): string {
   if (group.tag) return group.tag.name
@@ -102,9 +97,6 @@ function groupName(group: TaskGroup): string {
       :title="t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')"
       :count="count"
     />
-    <InlineHint v-if="empty && !readonly" class="hint-wide">{{
-      t(phase === TASK_PHASE_BEFORE ? 'tasks.emptyBefore' : 'tasks.emptyDuring')
-    }}</InlineHint>
     <IonList v-if="groups.length > 0" class="groups">
       <ListGroup
         v-for="group in groups"
@@ -139,6 +131,7 @@ function groupName(group: TaskGroup): string {
       :name-of="nameOf"
       :readonly="readonly"
       :tag-of="tagOf"
+      :unfolded="headless"
       variant="list"
       data-testid="m25-done"
       @toggle="emit('toggle', $event)"
@@ -150,11 +143,6 @@ function groupName(group: TaskGroup): string {
 <style scoped>
 .phase :deep(.section-head) {
   margin: 18px 16px 4px;
-}
-
-/* The hint sits at the group's own inset, wider than InlineHint's default. */
-.hint-wide {
-  margin: 4px 18px 8px;
 }
 
 /* The groups sit in one list per phase, full width like M6's (2026-09-24). */

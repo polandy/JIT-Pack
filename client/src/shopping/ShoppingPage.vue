@@ -31,14 +31,8 @@ import {
   IonFab,
   IonFabButton,
 } from '@ionic/vue'
-import {
-  addOutline,
-  bagHandleOutline,
-  chevronForwardOutline,
-  pricetagsOutline,
-  trashOutline,
-} from 'ionicons/icons'
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { addOutline, bagHandleOutline, pricetagsOutline, trashOutline } from 'ionicons/icons'
+import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
@@ -46,6 +40,7 @@ import DueChips from '@/components/global/DueChips.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
+import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
@@ -179,12 +174,45 @@ function tagOfDue(line: ShoppingLine): string | null {
   return line.edit ? t('shopping.ownEntries') : t('shopping.packingList')
 }
 
-/** The *before* history's folded line (FR-7.12), M25's `beforeHistoryLine`. */
-const beforeHistoryOpen = ref(false)
-const beforeHistoryLine = computed(() => {
-  const n = bought.value[ITEM_MODE_BUY_BEFORE].length
-  return n > 0 ? t('shopping.beforeHistory', { n }) : t('shopping.beforeHistoryEmpty')
+/** FR-7.12: the finished packing's *before* — the record of what was bought. */
+function isClosed(list: ShoppingMode): boolean {
+  return list === ITEM_MODE_BUY_BEFORE && beforeLocked.value
+}
+
+/**
+ * Owner, 2026-09-26 (M25 alike): a list with nothing open anywhere — the
+ * *Fällig* block included — took a heading, a hint and a fold of room above
+ * the one still being worked. It leaves reading order for one line at the
+ * end, as the closed *before* already did.
+ */
+function inOrder(list: ShoppingMode): boolean {
+  return !isClosed(list) && (board.value.lists[list].open > 0 || dueIn(list) > 0)
+}
+
+const restLists = computed(() => SHOPPING_MODES.filter((list) => !inOrder(list)))
+const restOpen = reactive<Record<ShoppingMode, boolean>>({
+  [ITEM_MODE_BUY_BEFORE]: false,
+  [ITEM_MODE_BUY_LOCAL]: false,
 })
+
+/** *„Vor der Abreise · nichts offen · 2 gekauft"* — or the closed *before*'s own words. */
+function restLabel(list: ShoppingMode): string {
+  const n = bought.value[list].length
+  if (isClosed(list)) {
+    return n > 0 ? t('shopping.beforeHistory', { n }) : t('shopping.beforeHistoryEmpty')
+  }
+  const name = t(
+    list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
+  )
+  return n > 0
+    ? t('shopping.listRestBought', { list: name, n })
+    : t('shopping.listRest', { list: name })
+}
+
+/** The line opens where there is something below it: a purchase, or the lock's sentence. */
+function restExpandable(list: ShoppingMode): boolean {
+  return isClosed(list) || bought.value[list].length > 0
+}
 
 /**
  * FR-25.11j: a bought row leaves the open list rather than vanishing —
@@ -648,73 +676,56 @@ setHeaderTitle(
           </ListGroup>
         </IonList>
 
-        <ShoppingListSection
-          v-if="!beforeLocked"
-          :list="ITEM_MODE_BUY_BEFORE"
-          :shelf="board.lists[ITEM_MODE_BUY_BEFORE]"
-          :bought="bought[ITEM_MODE_BUY_BEFORE]"
-          :due-elsewhere="dueIn(ITEM_MODE_BUY_BEFORE)"
-          :today="today"
-          :name-of="nameOf"
-          :drop-key="dropKeyOf(ITEM_MODE_BUY_BEFORE)"
-          :selection="selection"
-          :leave="onRowLeave"
-          @buy="buyLine"
-          @unbuy="(line) => line.unbuy()"
-          @open="openEditSheet"
-          @lift="onLift"
-        />
-        <ShoppingListSection
-          :list="ITEM_MODE_BUY_LOCAL"
-          :shelf="board.lists[ITEM_MODE_BUY_LOCAL]"
-          :bought="bought[ITEM_MODE_BUY_LOCAL]"
-          :due-elsewhere="dueIn(ITEM_MODE_BUY_LOCAL)"
-          :today="today"
-          :name-of="nameOf"
-          :drop-key="dropKeyOf(ITEM_MODE_BUY_LOCAL)"
-          :selection="selection"
-          :leave="onRowLeave"
-          @buy="buyLine"
-          @unbuy="(line) => line.unbuy()"
-          @open="openEditSheet"
-          @lift="onLift"
-        />
+        <template v-for="list in SHOPPING_MODES" :key="list">
+          <ShoppingListSection
+            v-if="inOrder(list)"
+            :list="list"
+            :shelf="board.lists[list]"
+            :bought="bought[list]"
+            :today="today"
+            :name-of="nameOf"
+            :drop-key="dropKeyOf(list)"
+            :selection="selection"
+            :leave="onRowLeave"
+            @buy="buyLine"
+            @unbuy="(line) => line.unbuy()"
+            @open="openEditSheet"
+            @lift="onLift"
+          />
+        </template>
 
-        <!-- FR-7.12: a finished packing's *before* is the record of what was
-             bought — history, so it comes after the work, folded (M25's). -->
-        <section v-if="beforeLocked" class="before-closed" data-testid="m6-before">
-          <button
-            type="button"
-            class="history-toggle jp-card"
-            :aria-expanded="beforeHistoryOpen ? 'true' : 'false'"
-            data-testid="m6-before-fold"
-            @click="beforeHistoryOpen = !beforeHistoryOpen"
+        <!-- Owner, 2026-09-26 (M25 alike): a list with nothing open — or a
+             finished packing's *before*, FR-7.12 — is one line at the end. -->
+        <section
+          v-for="list in restLists"
+          :key="list"
+          class="list-rest"
+          :data-testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before' : 'm6-local'"
+        >
+          <RestLine
+            :label="restLabel(list)"
+            :expandable="restExpandable(list)"
+            :open="restOpen[list]"
+            :testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before-fold' : 'm6-local-fold'"
+            @toggle="restOpen[list] = !restOpen[list]"
           >
-            <span>{{ beforeHistoryLine }}</span>
-            <IonIcon
-              :icon="chevronForwardOutline"
-              class="caret"
-              :class="{ open: beforeHistoryOpen }"
-              aria-hidden="true"
-            />
-          </button>
-          <template v-if="beforeHistoryOpen">
-            <InlineHint class="hint-wide" data-testid="m6-before-locked">{{
+            <InlineHint v-if="isClosed(list)" class="hint-wide" data-testid="m6-before-locked">{{
               t('shopping.beforeLocked')
             }}</InlineHint>
             <ShoppingListSection
               headless
-              readonly
-              testid="m6-before-history"
-              :list="ITEM_MODE_BUY_BEFORE"
-              :shelf="board.lists[ITEM_MODE_BUY_BEFORE]"
-              :bought="bought[ITEM_MODE_BUY_BEFORE]"
-              :due-elsewhere="0"
+              :readonly="isClosed(list)"
+              :testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before-history' : 'm6-local-history'"
+              :list="list"
+              :shelf="board.lists[list]"
+              :bought="bought[list]"
               :today="today"
               :name-of="nameOf"
-              :drop-key="dropKeyOf(ITEM_MODE_BUY_BEFORE)"
+              :drop-key="dropKeyOf(list)"
+              @unbuy="(line) => line.unbuy()"
+              @open="openEditSheet"
             />
-          </template>
+          </RestLine>
         </section>
       </template>
 
@@ -892,33 +903,6 @@ setHeaderTitle(
 
 .due {
   margin-top: 8px;
-}
-
-/* FR-7.12: the closed *before*, M25's fold (`TripTasksPage.vue`). */
-.before-closed {
-  margin-top: 18px;
-}
-
-.history-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: calc(100% - 24px);
-  margin: 0 12px 8px;
-  padding: 12px 16px;
-  border: none;
-  color: var(--ct-subtext1);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.history-toggle .caret {
-  transition: transform 0.15s;
-}
-
-.history-toggle .caret.open {
-  transform: rotate(90deg);
 }
 
 .hint-wide {

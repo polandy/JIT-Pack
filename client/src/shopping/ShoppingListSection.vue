@@ -7,8 +7,8 @@
  * under the other, with what is due now above both.
  *
  * A component because the page draws a list in two places: in reading
- * order, and — for *before*, once the packing is finished (FR-7.12) — inside
- * the fold at the end of the screen, as the record of what was bought.
+ * order, and — once nothing of it is open, or for *before* once the packing
+ * is finished (FR-7.12) — inside its folded line at the end of the screen.
  *
  * The acts are reported, never written: the page owns the toast and the drag.
  */
@@ -16,7 +16,6 @@ import { IonCheckbox, IonIcon, IonItem, IonLabel, IonList } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -36,15 +35,17 @@ const props = withDefaults(
     shelf: ListShelf
     /** What was bought from it and can still be put back (FR-25.11j). */
     bought: readonly ShoppingLine[]
-    /** How many of its open lines stand in the *Fällig* block instead. */
-    dueElsewhere: number
     today: string
     nameOf: NameOf
     /** The key a drop on `section` carries — the page reads it back. */
     dropKey: (section: ShoppingSection) => string
     /** FR-7.12: a closed list — no drop, no grip, no check-off, nothing put back. */
     readonly?: boolean
-    /** The head is the page's, where the list is drawn inside a fold. */
+    /**
+     * The head is the page's, where the list is drawn inside its folded line
+     * at the screen's end (`RestLine`) — whose words already count what was
+     * bought, so it is shown without a second fold.
+     */
     headless?: boolean
     testid?: string
     selection?: RowSelection
@@ -66,9 +67,6 @@ const before = computed(() => props.list === ITEM_MODE_BUY_BEFORE)
 const count = computed(() =>
   props.shelf.open > 0 ? t('shopping.openCount', { n: props.shelf.open }) : null,
 )
-
-/** Said only when nothing of the list is open anywhere — the block above included. */
-const empty = computed(() => props.shelf.open === 0 && props.dueElsewhere === 0)
 
 /**
  * FR-25.11j's reveal, M25's *erledigt* fold: off by default and not carried
@@ -95,9 +93,6 @@ function boughtStamp(line: ShoppingLine): string | null {
       :title="t(before ? 'shopping.beforeDeparture' : 'shopping.atDestination')"
       :count="count"
     />
-    <InlineHint v-if="empty && !readonly" class="hint-wide" data-testid="m6-list-empty">{{
-      t(before ? 'shopping.emptyBefore' : 'shopping.emptyLocal')
-    }}</InlineHint>
     <IonList v-if="shelf.sections.length > 0" class="groups">
       <ListGroup
         v-for="section in shelf.sections"
@@ -123,6 +118,7 @@ function boughtStamp(line: ShoppingLine): string | null {
     <!-- FR-25.11j + M25's fold: what was bought from this list, at its end. -->
     <template v-if="bought.length > 0">
       <button
+        v-if="!headless"
         type="button"
         class="bought-toggle"
         :class="{ open: showBought }"
@@ -133,7 +129,7 @@ function boughtStamp(line: ShoppingLine): string | null {
         <IonIcon :icon="chevronForwardOutline" class="caret" aria-hidden="true" />
         {{ t('shopping.boughtFold', { n: bought.length }) }}
       </button>
-      <IonList v-if="showBought" class="groups" data-testid="m6-bought-list">
+      <IonList v-if="showBought || headless" class="groups" data-testid="m6-bought-list">
         <IonItem v-for="line in bought" :key="line.key" class="bought" data-testid="m6-bought-row">
           <IonLabel
             :class="{ tappable: !!line.edit && !readonly }"
@@ -176,10 +172,6 @@ function boughtStamp(line: ShoppingLine): string | null {
 <style scoped>
 .list :deep(.section-head) {
   margin: 18px 16px 4px;
-}
-
-.hint-wide {
-  margin: 4px 18px 8px;
 }
 
 /* The groups sit in one list per section, full width, as M25's do. */

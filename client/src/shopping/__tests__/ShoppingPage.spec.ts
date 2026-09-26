@@ -198,7 +198,7 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     })
     expect(page.findAll('[data-testid="m6-row"]')).toHaveLength(0)
 
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const bought = page.findAll('[data-testid="m6-bought-row"]')
     expect(bought.map((r) => r.find('h3').text())).toEqual(['Brot'])
     // An entry was never anywhere but here, so there is nowhere to say it went.
@@ -250,6 +250,53 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
         .map((h) => h.text())
     expect(names('m6-before')).toEqual(['Milch'])
     expect(names('m6-local')).toEqual(['Brot'])
+  })
+})
+
+/*
+ * Owner, 2026-09-26 (M25 alike): a list with nothing open is one line at the
+ * end of the screen, a statement while nothing was bought, a fold once
+ * something was — and stays in its place while its only open line stands in
+ * the Fällig block.
+ */
+describe('M6 — a list with nothing open, folded to one line at the end', () => {
+  it('moves the empty list below the one still worked, as plain text', () => {
+    seedEntry('e1', { name: 'Brot', list: 'buy_local' })
+    const page = mountPage()
+
+    const sections = page
+      .findAll('section[data-testid="m6-before"], section[data-testid="m6-local"]')
+      .map((section) => section.attributes('data-testid'))
+    expect(sections).toEqual(['m6-local', 'm6-before'])
+    const line = page.get('[data-testid="m6-before-fold"]')
+    expect(line.text()).toBe(t('shopping.listRest', { list: t('shopping.beforeDeparture') }))
+    expect(line.element.tagName).toBe('P')
+  })
+
+  it('opens onto what was bought, with no second fold', async () => {
+    seedEntry('e1', { name: 'Brot', list: 'buy_local' })
+    seedEntry('e2', { name: 'Hut', bought: 1 })
+    const page = mountPage()
+
+    const line = page.get('[data-testid="m6-before-fold"]')
+    expect(line.text()).toBe(
+      t('shopping.listRestBought', { list: t('shopping.beforeDeparture'), n: 1 }),
+    )
+    await line.trigger('click')
+    expect(page.find('[data-testid="m6-before"] [data-testid="m6-bought-bar"]').exists()).toBe(
+      false,
+    )
+    expect(page.findAll('[data-testid="m6-bought-row"] h3').map((h) => h.text())).toEqual(['Hut'])
+  })
+
+  it('keeps a list in its place while its only open line stands in the Fällig block', () => {
+    seedEntry('e1', { name: 'Brot', due_date: '2026-07-08' })
+    const page = mountPage()
+
+    expect(page.find('[data-testid="m6-before-fold"]').exists()).toBe(false)
+    expect(page.get('section[data-testid="m6-before"]').text()).toContain(
+      t('shopping.beforeDeparture'),
+    )
   })
 })
 
@@ -352,7 +399,8 @@ describe('M6 — before departure is closed once the packing is finished (FR-7.1
 
     expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(true)
     const history = page.get('[data-testid="m6-before-history"]')
-    await history.get('[data-testid="m6-bought-bar"]').trigger('click')
+    // The line counts the purchases, so they stand open under it.
+    expect(history.find('[data-testid="m6-bought-bar"]').exists()).toBe(false)
     const tick = history.get('[data-testid="m6-bought-row"] ion-checkbox')
     expect((tick.element as HTMLInputElement).disabled).toBe(true)
   })
@@ -441,7 +489,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     const page = mountPage()
     await flushPromises()
 
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const stamp = page.find('[data-testid="m6-bought-stamp"]')
     // The span, not the line: the avatar beside it contributes its initials.
     expect(stamp.findAll('span').at(-1)?.text()).toMatch(/^bought by Sia · today \S/)
@@ -458,7 +506,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     const page = mountPage([source({}, { buy_before: [bought] })])
     await flushPromises()
 
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const row = page.find('[data-testid="m6-bought-row"]')
     expect(row.find('[data-testid="m6-bought-note"]').text()).toBe(t('shopping.wentToPacking'))
     expect(row.findAll('[data-testid="m6-bought-stamp"] span').at(-1)?.text()).toMatch(
@@ -471,7 +519,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     const page = mountPage()
     await flushPromises()
 
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const stamp = page.find('[data-testid="m6-bought-stamp"]')
     expect(stamp.text()).toMatch(/^bought · today \S/)
     expect(stamp.find('[data-testid="user-avatar"]').exists()).toBe(false)
@@ -480,7 +528,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
   it('says nothing where the purchase carries no record at all', async () => {
     seedEntry('e1', { name: 'Brot', bought: 1 })
     const page = mountPage()
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     // The positive signal beside the absence: the bought row itself is there.
     expect(page.findAll('[data-testid="m6-bought-row"]')).toHaveLength(1)
     expect(page.find('[data-testid="m6-bought-stamp"]').exists()).toBe(false)
@@ -724,7 +772,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     const page = mountPage()
     expect(headings(page)).toEqual([])
 
-    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
     expect(page.findAll('ion-item-group')).toHaveLength(0)
     // By name (Brot, Mückenspray), not by tag: nothing is filed under a heading.
     expect(page.findAll('[data-testid="m6-bought-tag"]').map((p) => p.text())).toEqual([
