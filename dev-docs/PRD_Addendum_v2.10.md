@@ -4271,6 +4271,14 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
 * **FR-31.12 (The Suitcase Names Who Borrows It):** On M4 an **open** trip row that lines of upcoming or undated
   excursions borrow carries one quiet line naming them (signpost glyph, *„Hüttentour, Bootsausflug"*), so it is not
   skipped or left out of the suitcase blind.
+* **FR-31.13 (Bought on the Spot, Kept):** A *vor Ort* line that was bought and is not a trip row yet offers ***Auf
+  die Packliste*** — on its fact line and in its menu. The thing then travels with the luggage (the rain cape bought at
+  the hut comes home): the trip gains a row for it, **packed** at the line's amount (it is in hand) and for the line's
+  person, linked to the **inventory item** it is — the one the line already names, else the inventory's of that exact
+  name (FR-27.5's rule), else a **new master item**, so it is in the global inventory from then on. The line keeps its
+  purchase record, now borrows that row, and reads *vor Ort gekauft · auf der Packliste*. It works on a trip under way
+  too — this is the one write into the trip's list after *before* is over, because the thing is already there. One
+  undo takes back the row, the link and an item it created.
 * **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.
   **Single-User:** everything, the reminder included (FR-7.11 sends it there). **Server:** excursions are trip data;
   every member sees, edits and ticks them. **Not in the portable backup**, like the tasks, the notes and the shopping

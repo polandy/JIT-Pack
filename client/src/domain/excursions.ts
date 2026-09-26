@@ -748,3 +748,33 @@ export function dayAfter(iso: string): string {
   const [y = 0, m = 1, d = 1] = iso.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
 }
+
+// --- Bought on the spot, kept (FR-31.13) ---
+
+/**
+ * Whether a line can be taken onto the trip's packing list: bought on the spot
+ * and not yet a suitcase row. From then on it travels with the luggage — the
+ * rain cape bought at the hut comes home.
+ */
+export function canJoinPackingList(line: ExcursionItem): boolean {
+  return (
+    line.mode === ITEM_MODE_BUY_LOCAL &&
+    line.bought_at !== null &&
+    line.state !== STATE_SKIPPED &&
+    line.trip_item_id === null
+  )
+}
+
+/**
+ * The inventory item a kept line becomes (FR-31.13): the one it already names,
+ * else one of the inventory's by the exact name (FR-27.5's rule, and its
+ * reason), else a new one under the line's name.
+ */
+export function inventoryItemFor(
+  line: Pick<ExcursionItem, 'source_item_id' | 'name'>,
+  masterItems: readonly MasterItem[],
+): { itemId: string } | { create: string } {
+  if (line.source_item_id !== null) return { itemId: line.source_item_id }
+  const match = masterItems.find((m) => normalizeName(m.name) === normalizeName(line.name))
+  return match ? { itemId: match.id } : { create: line.name.trim() }
+}

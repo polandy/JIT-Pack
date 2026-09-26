@@ -36,13 +36,15 @@ const props = withDefaults(
     fromLuggage?: boolean
     /** FR-31.5: its person no longer goes, and it is in the rucksack. */
     leftBehind?: boolean
+    /** FR-31.13: bought on the spot and not a suitcase row yet — it can join the trip. */
+    canKeep?: boolean
     /**
      * The stable half of every `data-testid`: the name for a line, the name and
      * the person for a cluster's child — what the suite addresses it by.
      */
     testKey: string
   }>(),
-  { master: null, person: null, fromLuggage: false, leftBehind: false },
+  { master: null, person: null, fromLuggage: false, leftBehind: false, canKeep: false },
 )
 
 const emit = defineEmits<{
@@ -50,6 +52,7 @@ const emit = defineEmits<{
   open: []
   buyOnSite: []
   takeOut: []
+  keep: []
 }>()
 
 const skipped = computed(() => props.line.state === STATE_SKIPPED)
@@ -59,7 +62,13 @@ const onSite = computed(() => props.line.mode === ITEM_MODE_BUY_LOCAL)
 const missing = computed(() => props.line.not_in_luggage && !onSite.value && !skipped.value)
 
 const source = computed(() => {
-  if (onSite.value) return props.line.bought_at ? t('excursions.bought') : t('excursions.onSite')
+  if (onSite.value) {
+    if (!props.line.bought_at) return t('excursions.onSite')
+    // FR-31.13: bought, and since taken onto the packing list.
+    return props.fromLuggage
+      ? `${t('excursions.bought')} · ${t('excursions.kept')}`
+      : t('excursions.bought')
+  }
   return props.fromLuggage ? t('excursions.fromLuggage') : null
 })
 </script>
@@ -137,6 +146,16 @@ const source = computed(() => {
       >
         {{ source }}
       </span>
+      <IonButton
+        v-if="canKeep"
+        fill="clear"
+        size="small"
+        class="act"
+        :data-testid="`excursion-keep-${testKey}`"
+        @click="emit('keep')"
+      >
+        {{ t('excursions.keep') }}
+      </IonButton>
     </template>
   </ListRow>
 </template>

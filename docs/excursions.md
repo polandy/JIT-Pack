@@ -41,6 +41,9 @@ The excursion's list works like the packing list, only smaller:
 - **vor Ort** means you buy it on the way — lunch at the kiosk. These lines also appear on the trip's shopping list
   (**Einkaufen**), under **Vor Ort** and the excursion's name. Tick one off there and the excursion says **vor Ort
   gekauft**; it still needs to go into the bag;
+- a thing you bought on the spot and want to keep — a rain cape from the hut — gets **Auf die Packliste** beside
+  **vor Ort gekauft**. Tap it and the thing joins the trip's packing list, already packed, and your inventory, so the
+  next trip can plan with it. **Rückgängig** in the message takes it back;
 - tap a line's name for more: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal nicht**,
   **Von der Liste nehmen**.
 

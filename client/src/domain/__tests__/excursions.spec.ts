@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest'
 import {
   arrangeExcursions,
   borrowersByTripItem,
+  canJoinPackingList,
+  inventoryItemFor,
   dayAfter,
   dueExcursions,
   draftLinesFor,
@@ -676,5 +678,31 @@ describe('planGroupFromExcursion — FR-31.11', () => {
         default_mode: 'pack',
       },
     ])
+  })
+})
+
+describe('bought on the spot, kept — FR-31.13', () => {
+  it('offers the packing list to a bought vor-Ort line that is no suitcase row yet', () => {
+    const bought = { mode: 'buy_local' as const, bought_at: '2026-07-16T08:00:00Z' }
+    expect(canJoinPackingList(line('l', 'Regencape', bought))).toBe(true)
+    expect(canJoinPackingList(line('l', 'Regencape', { mode: 'buy_local' }))).toBe(false)
+    expect(canJoinPackingList(line('l', 'Regencape', { ...bought, trip_item_id: 'ti-1' }))).toBe(
+      false,
+    )
+    expect(
+      canJoinPackingList(line('l', 'Regencape', { ...bought, quantity: 0, state: 'skipped' })),
+    ).toBe(false)
+    expect(canJoinPackingList(line('l', 'Stirnlampe'))).toBe(false)
+  })
+
+  it('keeps the item a line names, else the inventory’s of that name, else a new one', () => {
+    const inventory = [
+      { id: 'item-cape', name: 'Regencape', weight_grams: null, value_cents: null },
+    ]
+    expect(inventoryItemFor(line('l', 'x', { source_item_id: 'item-x' }), inventory)).toEqual({
+      itemId: 'item-x',
+    })
+    expect(inventoryItemFor(line('l', ' regencape'), inventory)).toEqual({ itemId: 'item-cape' })
+    expect(inventoryItemFor(line('l', 'Sonnenhut '), inventory)).toEqual({ create: 'Sonnenhut' })
   })
 })

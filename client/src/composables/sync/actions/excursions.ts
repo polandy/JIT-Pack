@@ -16,7 +16,9 @@ import type { Excursion, ExcursionItem, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
+  canJoinPackingList,
   draftLinesFromGroup,
+  inventoryItemFor,
   participantsOf,
   planGroupFromExcursion,
   planLinks,
@@ -51,6 +53,8 @@ export interface ExcursionDraft {
 /** Only the master-data writes saving as a Gruppe needs (FR-31.11). */
 export interface GroupWrites {
   createMasterItem(name: string): string
+  /** FR-31.13's undo: the item it created goes again (or retires, if something names it). */
+  deleteMasterItem(itemId: string): void
   createTemplate(name: string, kind: 'group'): string | null
   addTemplateItem(
     templateId: string,
@@ -395,6 +399,57 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
   }
 
   /**
+   * FR-31.13: something bought on the spot joins the trip — a suitcase row,
+   * packed (it is in hand), linked to the inventory item it is, which is
+   * created where the inventory has none of that name. The line keeps its
+   * record of the purchase and now borrows the row. Returns the undo, or null
+   * where the line is no bought vor-Ort line off the list.
+   */
+  function addToPackingList(tripId: string, line: ExcursionItem): (() => void) | null {
+    if (!canJoinPackingList(line)) return null
+    const target = inventoryItemFor(line, masterStore.activeItemList)
+    const createdItem = 'create' in target ? deps.groups.createMasterItem(target.create) : null
+    const itemId = 'itemId' in target ? target.itemId : createdItem!
+    const { mutation, id } = mutations.addTripItem(tripId, line.name, {
+      sourceItemId: itemId,
+      categoryName: line.category_name,
+      quantity: line.quantity,
+    })
+    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    // Each write repaints the whole row as the store now holds it — a paint
+    // built from the insert's fields alone would blank the rest (rows.ts).
+    const rowNow = () => itemRow(tripStore.getItems(tripId).find((i) => i.id === id)!)
+    const pack = mutations.packItem(id, line.quantity, 'packed')
+    enqueueAndDrain('trip', tripId, {
+      mutation: pack,
+      optimistic: optimisticUpdate(pack, rowNow()),
+    })
+    if (line.assigned_traveler_id !== null) {
+      const assign = mutations.assignTraveler(id, line.assigned_traveler_id)
+      enqueueAndDrain('trip', tripId, {
+        mutation: assign,
+        optimistic: optimisticUpdate(assign, rowNow()),
+      })
+    }
+    updateLine(tripId, line, { trip_item_id: id, source_item_id: itemId })
+
+    return () => {
+      const current = tripStore.getExcursionItems(tripId).find((l) => l.id === line.id)
+      if (current)
+        updateLine(tripId, current, { trip_item_id: null, source_item_id: line.source_item_id })
+      const deletion = mutations.deleteTripItem(id)
+      enqueueAndDrain('trip', tripId, {
+        mutation: deletion,
+        optimistic: [
+          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          optimisticDelete(deletion),
+        ],
+      })
+      if (createdItem !== null) deps.groups.deleteMasterItem(createdItem)
+    }
+  }
+
+  /**
    * FR-31.11: *Als Gruppe speichern* — master items for names the inventory
    * lacks, then the Gruppe, then its positions. Null where the name is taken.
    */
@@ -434,6 +489,7 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     removeLine,
     buyOnTheSpot,
     markBought,
+    addToPackingList,
     saveAsGroup,
   }
 }

@@ -972,7 +972,9 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function updateExcursionItem(
     itemId: string,
-    fields: Partial<Pick<ExcursionItem, 'trip_item_id' | 'mode' | 'bought_at' | 'name'>> & {
+    fields: Partial<
+      Pick<ExcursionItem, 'trip_item_id' | 'source_item_id' | 'mode' | 'bought_at' | 'name'>
+    > & {
       not_in_luggage?: boolean
     },
   ): Mutation {

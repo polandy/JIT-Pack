@@ -23,6 +23,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import {
+  canJoinPackingList,
   draftLinesFor,
   excursionView,
   isLeftBehind,
@@ -121,6 +122,16 @@ async function removeLine(line: ExcursionItem) {
   })
 }
 
+/** FR-31.13: bought on the spot, kept — with the one undo the act owes. */
+async function keep(line: ExcursionItem) {
+  const undo = orchestrator.addToPackingList(props.tripId, line)
+  if (!undo) return
+  await presentToast({
+    message: t('excursions.keptToast', { item: line.name }),
+    buttons: [{ text: t('packing.undo'), handler: undo }],
+  })
+}
+
 async function openLine(line: ExcursionItem) {
   const skipped = line.state === STATE_SKIPPED
   const buttons: Array<{ text: string; role?: string; handler?: () => void; data?: string }> = []
@@ -142,6 +153,9 @@ async function openLine(line: ExcursionItem) {
       text: bought ? t('excursions.markUnbought') : t('excursions.markBought'),
       handler: () => orchestrator.markBought(props.tripId, line, !bought),
     })
+  }
+  if (canJoinPackingList(line)) {
+    buttons.push({ text: t('excursions.keep'), handler: () => void keep(line) })
   }
   if (line.mode === ITEM_MODE_PACK && line.not_in_luggage && !skipped) {
     buttons.push({
@@ -361,6 +375,8 @@ setHeaderTitle(
               @tick="tick(entry.line)"
               @open="openLine(entry.line)"
               @buy-on-site="orchestrator.buyOnTheSpot(tripId, entry.line)"
+              :can-keep="canJoinPackingList(entry.line)"
+              @keep="keep(entry.line)"
             />
             <template v-else>
               <button
@@ -407,6 +423,8 @@ setHeaderTitle(
                   @open="openLine(line)"
                   @buy-on-site="orchestrator.buyOnTheSpot(tripId, line)"
                   @take-out="removeLine(line)"
+                  :can-keep="canJoinPackingList(line)"
+                  @keep="keep(line)"
                 />
               </template>
             </template>

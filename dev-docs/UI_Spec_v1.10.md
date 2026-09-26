@@ -2848,14 +2848,16 @@ token would prove nothing there is anything to prove.
 * **A line** (`ExcursionLine`): the §3.28 mark, the name and *×n* for more than one, the tick at the edge (a skipped
   line has none and reads done). One fact line under the name:
   * ***aus dem Gepäck*** — it borrows a trip row this device holds;
-  * ***vor Ort*** in the done colour, ***vor Ort gekauft*** once bought (FR-31.8);
+  * ***vor Ort*** in the done colour, ***vor Ort gekauft*** once bought (FR-31.8), with ***Auf die Packliste***
+    beside it until it is a trip row, and ***vor Ort gekauft · auf der Packliste*** after (FR-31.13);
   * ***nicht im Gepäck · Vor Ort besorgen*** in the straw warning tone, the action a small text button in place
     (FR-31.7) — the mark is never painted on (FR-28.5/G-15);
   * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
     the line with an undo.
 
   A tap on the name opens the line's menu (an action sheet headed by the name): *Eins mehr*, *Eins weniger* (above one),
-  *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
+  *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a bought one, FR-31.13; a toast with
+  *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
   *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
 * **A thing per person** is FR-25.1's cluster: a head with the mark, the name, a caret, *für alle* under it where the
   set is one, and `done/total` in units; **shut by default** (FR-25.23, view state, not persisted); open, a child per

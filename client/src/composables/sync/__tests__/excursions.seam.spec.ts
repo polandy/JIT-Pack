@@ -376,3 +376,67 @@ describe('saveAsGroup — FR-31.11', () => {
     expect(actions.saveAsGroup(TRIP_ID, excursionId, 'Hüttenübernachtung')).toBeNull()
   })
 })
+
+describe('addToPackingList — FR-31.13', () => {
+  function boughtLine(name: string, extra: Record<string, unknown> = {}) {
+    pullIn(ctx.tripStore, TABLE.excursions, 'ex-1', { trip_id: TRIP_ID, name: 'Hütte' })
+    pullIn(ctx.tripStore, TABLE.excursionItems, 'l-1', {
+      trip_id: TRIP_ID,
+      excursion_id: 'ex-1',
+      name,
+      quantity: 2,
+      mode: 'buy_local',
+      bought_at: '2026-07-16T08:00:00Z',
+      ...extra,
+    })
+    return lines().find((l) => l.id === 'l-1')!
+  }
+
+  it('makes a bought line a packed suitcase row of a new inventory item, and undoes all of it', () => {
+    seedTrip({ packing_closed_at: '2026-05-30T20:00:00Z' })
+    const actions = build()
+    const undo = actions.addToPackingList(
+      TRIP_ID,
+      boughtLine('Regencape', { assigned_traveler_id: 'tr-sia' }),
+    )!
+
+    const item = ctx.masterStore.itemList.find((i) => i.name === 'Regencape')!
+    const row = ctx.tripStore.getItems(TRIP_ID).find((t) => t.name === 'Regencape')!
+    expect(row).toMatchObject({
+      source_item_id: item.id,
+      quantity: 2,
+      packed_count: 2,
+      state: 'packed',
+      assigned_traveler_id: 'tr-sia',
+    })
+    expect(lines()[0]).toMatchObject({
+      trip_item_id: row.id,
+      source_item_id: item.id,
+      bought_at: '2026-07-16T08:00:00Z',
+    })
+
+    undo()
+
+    expect(ctx.tripStore.getItems(TRIP_ID).some((t) => t.name === 'Regencape')).toBe(false)
+    expect(lines()[0]).toMatchObject({ trip_item_id: null, source_item_id: null })
+    expect(ctx.masterStore.activeItemList.some((i) => i.name === 'Regencape')).toBe(false)
+  })
+
+  it('names the inventory item the trip already knows rather than a second one', () => {
+    seedTrip()
+    pullIn(ctx.masterStore, TABLE.items, 'item-cape', { name: 'Regencape' })
+    build().addToPackingList(TRIP_ID, boughtLine('regencape'))
+    expect(
+      ctx.masterStore.itemList.filter((i) => i.name.toLowerCase() === 'regencape'),
+    ).toHaveLength(1)
+    expect(ctx.tripStore.getItems(TRIP_ID)[0]!.source_item_id).toBe('item-cape')
+  })
+
+  it('refuses a line not bought, or already a suitcase row', () => {
+    seedTrip()
+    expect(
+      build().addToPackingList(TRIP_ID, boughtLine('Proviant', { bought_at: null })),
+    ).toBeNull()
+    expect(queued.some((q) => q.muts.some((m) => m.mutation.table === TABLE.tripItems))).toBe(false)
+  })
+})

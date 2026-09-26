@@ -259,4 +259,54 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
       visible(page).locator('ion-item').filter({ hasText: 'Boot' }).first(),
     ).toBeVisible()
   })
+
+  /**
+   * E2E-M27-07: something bought on the spot joins the trip. The rain cape the
+   * hut tour could not borrow is bought through M6, then taken *Auf die
+   * Packliste*: it is a packed row of the trip — shown when the packed rows
+   * are revealed — and an item of the inventory.
+   */
+  test('E2E-M27-07: a thing bought on the spot joins the packing list and the inventory', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
+    await startTrip(page)
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour' })
+    await fillIonic(visible(page).getByTestId('m27-composer-input'), 'Regencape')
+    await visible(page).getByTestId('m27-composer-add').click()
+    await visible(page).getByTestId('excursion-buy-on-site-Regencape').click()
+    await writesLanded(page)
+
+    await openTripView(page, 'shopping')
+    const heading = visible(page).getByTestId('m6-group-source-Hüttentour')
+    await heading
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Regencape' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(heading).toHaveCount(0)
+    await writesLanded(page)
+
+    await openExcursions(page)
+    await visible(page).getByTestId('m27-excursion-Hüttentour').click()
+    await visible(page).getByTestId('excursion-keep-Regencape').click()
+    await expect(
+      page.locator('ion-toast').filter({ hasText: 'is on the packing list and in the inventory' }),
+    ).toHaveCount(1)
+    await expect(visible(page).getByTestId('excursion-source-Regencape')).toHaveText(
+      'bought on the spot · on the packing list',
+    )
+    await expect(visible(page).getByTestId('excursion-keep-Regencape')).toHaveCount(0)
+    await writesLanded(page)
+
+    await openTripView(page, 'packing')
+    await visible(page).getByTestId('m4-done-bar').click()
+    await expect(visible(page).getByTestId('m4-row-Regencape')).toBeVisible()
+
+    await page.goto(PATH.items)
+    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Regencape' })).toHaveCount(
+      1,
+    )
+  })
 })
