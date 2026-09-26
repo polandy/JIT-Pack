@@ -3395,8 +3395,8 @@ not copied*; and group edits that reach **pending** trips but never touch runnin
   generation does — otherwise the same camera brings its spare battery when added alone and does not when it arrives
   inside a group. The rows are **not** written into the FR-27.4 ledger: `planRefresh` adopts a row it finds without a
   ledger entry, which is the same path a hand-added row takes, so the first refresh records them with no extra
-  mechanism. Each entry wears the generic group glyph, the same on every entry; the group's own §3.28 mark
-  (`templates.icon`, FR-28.8) is **not built** on this surface.
+  mechanism. Each entry leads with the group's own §3.28 mark (`templates.icon`, FR-28.8), and with the generic group
+  glyph when the group has none: an unmarked group must still read as a group, not as an item.
 * **FR-2.6 (The Review Step Reviews, Not Only Counts, *built*):** M3 step 4 is a review, so it lets the user correct the
   list rather than only approve it. A step that could change nothing but the *amount* — not drop a row this trip does
   not need, not „kaufen statt packen“, not who it is for, not add the thing you notice missing while reading the list —
@@ -3698,11 +3698,12 @@ not copied*; and group edits that reach **pending** trips but never touch runnin
   * **Propose, never act — the FR-27.4 lesson.** The editor shows a **non-blocking suggestion row** between the
     *Gruppen* section and the own positions: „*4 Positionen entsprechen der Gruppe «Makro Fotografie»*" with
     **Zusammenfassen** and **Ignorieren**, plus the FR-27.12 peek chevron so what the group would bring is one tap
-    away. Nothing changes until a tap. The row names the group without its §3.28 mark (`templates.icon`, FR-28.8) —
-    **not built** on this row, as on FR-27.10's group entries. *Considered and rejected:* converting automatically
-    with a one-click undo. The undo is genuinely lossless here (the include resolves back to the same items), but
-    acting silently and explaining afterwards reads as the app rewriting the user's work, and a user who typed the
-    positions loose *may have meant it* — deviating from the group is a legitimate reason to not want the include.
+    away. Nothing changes until a tap. The row leads with the group's §3.28 mark (`templates.icon`, FR-28.8), and with
+    nothing when the group has none — it names one group, so there is no column to align. *Considered and rejected:*
+    converting automatically with a one-click undo. The undo is genuinely lossless here (the include resolves back to
+    the same items), but acting silently and explaining afterwards reads as the app rewriting the user's work, and a
+    user who typed the positions loose *may have meant it* — deviating from the group is a legitimate reason to not want
+    the include.
   * **When positions deviate from the group's, the row says so before the tap** („Menge weicht bei 2 Positionen ab —
     nach dem Zusammenfassen gilt die Gruppe"): accepting means the group's own definitions apply from then on, which is
     what following a group *is* (FR-27.4), and the one thing this feature must never do is change what a trip would
@@ -3949,7 +3950,8 @@ the tail is where a symbol system is actually decided. Results:
   letter is refused everywhere.
 * **Every surface that offers the group carries the mark.** M3 step 3 lists Ferien-Vorlagen and Gruppen as **two**
   columns, and both carry it. E2E-M8-18 walks all four surfaces in one run — a screen keeping its rendering says
-  nothing about the three beside it.
+  nothing about the three beside it — and E2E-M8-28 covers the two rows that offer a group mid-edit: FR-27.15's fold
+  row and FR-27.10's quick-add card.
 * **The dev seed's trip is linked to the inventory.** `sampleTrip.ts` links every row whose name the inventory already
   knows (`source_item_id`), so marks and reference photos appear on the trip the seed button opens, and deliberately
   leaves the rest ad-hoc: that mixture is what the empty slot is for.

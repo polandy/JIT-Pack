@@ -1085,8 +1085,8 @@ These patterns apply to every screen and are specified once.
     tap that adds a dozen rows must not look like a tap that adds one item, and the summary is what lets the user decide
     without opening anything. Matching is on the **group name** — the resolved item names are FR-27.13's job on M8's
     picker. Three outcomes, three sentences: what was added and what was already there, a group that is already fully on
-    the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The entry leads with a generic
-    group glyph; the group's own mark (FR-28.8), which FR-27.10 shows there, is **not built** on this entry.
+    the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The entry leads with the
+    group's own mark (FR-28.8), and with the generic group glyph when the group has none.
   * **Full-screen:** the bottom tab bar is hidden here, the FAB drops to the screen foot, and the list scrolls clear of
     the FAB's whole footprint so nothing sits permanently underneath it (FR-25.11h).
   * Container assignment defaults to none and is de-emphasized so it never blocks packing (FR-25.5).

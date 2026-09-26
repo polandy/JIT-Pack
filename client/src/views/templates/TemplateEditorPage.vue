@@ -732,6 +732,10 @@ const mergeLines = computed(() =>
           class="fold-hint jp-card"
           :data-testid="`m8-fold-${match.templateId}`"
         >
+          <!-- FR-28.8: the row names one group, so it carries its mark —
+               and nothing when the group has none, there being no column
+               here to keep aligned. -->
+          <ItemMark :mark="groupIcon(match.templateId)" surface="plain" :size="22" />
           <div class="fold-text">
             <p class="fold-head">
               {{ t('templates.foldSuggestion', { n: match.positionIds.length, name: match.name }) }}
