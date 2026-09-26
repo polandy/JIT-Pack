@@ -57,8 +57,8 @@ describe('collapseRow', () => {
   })
 
   it('finishes when nothing animates — the row that is not laid out', () => {
-    // `transitionend` never fires here, which is how a hidden tab used to
-    // leave a packed row in the list for the rest of the session.
+    // `transitionend` never fires here; waiting for it would leave a packed
+    // row in a hidden tab's list for the rest of the session.
     const done = vi.fn()
 
     collapseRow(row([]), done, false)

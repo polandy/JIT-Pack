@@ -12,8 +12,8 @@ import type { TripMember, TripParticipant, TripRole } from '@/types/domain'
 
 /**
  * Re-exported so a caller that only deals in rosters imports one module. The
- * declaration itself is the generated one (ADR-026): this file used to carry a
- * hand-written twin of the same two fields, which `make wire` could not reach.
+ * declaration itself is the generated one (ADR-026), so `make wire` reaches
+ * it; a hand-written twin here would not be.
  */
 export type { DirectoryUser }
 

@@ -100,9 +100,9 @@ export function makeSeamContext(
       // The real one applies the optimistic changes before it queues, and a
       // group that writes twice reads its own first write back — the FR-20.4
       // companion resolution is exactly that shape. Routed by table through
-      // the same module production routes with: this double used to route by
-      // partition, which put the master partition's per-trip tables (P-3)
-      // into the wrong store the moment a group painted rows of both.
+      // the same module production routes with: routing by partition would
+      // put the master partition's per-trip tables (P-3) into the wrong store
+      // the moment a group painted rows of both.
       applyPainted(muts)
       queued.push({ type, id, muts, drained: true })
     },

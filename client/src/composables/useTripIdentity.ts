@@ -45,9 +45,8 @@ export interface TripIdentity extends Identity {
 }
 
 /**
- * The screen-side view of `identityStore`: the same four values every screen
- * that names somebody used to keep for itself, now one answer for all of them
- * (ADR-047). The `?? null` that makes "not signed in" and "not fetched yet"
+ * The screen-side view of `identityStore`: the four values every screen
+ * that names somebody needs, one answer for all of them (ADR-047). The `?? null` that makes "not signed in" and "not fetched yet"
  * the same value is deliberate and lives in the store, beside `loaded`, which
  * is what tells the two apart where it matters.
  */

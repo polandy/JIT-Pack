@@ -170,7 +170,7 @@ export type NoteMenuAction = 'copy' | 'edit' | 'remove'
 
 /**
  * An entry's menu: copying for everyone, editing for its author only
- * (question 2). Deleting stays open to every member, as FR-7.9 had it: a
+ * (question 2). Deleting stays open to every member, as FR-7.9 has it: a
  * wrong code has to be removable by whoever notices.
  */
 export function noteMenuEntries(mine: boolean): NoteMenuAction[] {

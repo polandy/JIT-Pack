@@ -12,8 +12,8 @@ export interface HistoryTrip {
   id: string
   /**
    * Sortable chronological key (`tripOrderKey`) — orders the history.
-   * Since FR-2.1b a trip need not have a date, so this is derived rather
-   * than being the end date it used to be.
+   * A trip need not have a date (FR-2.1b), so this is derived rather than
+   * being the end date.
    */
   orderKey: string
   /** The trip's year, which labels the hint ("2025: 6"). */

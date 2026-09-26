@@ -7,12 +7,12 @@
  * next computation — that is the whole resumability story (UI-Spec M14
  * "resumable if interrupted"), no session state to persist.
  *
- * FR-27.11 (concept round 2026-08-08): every proposal targets a
- * **Gruppe**, never the composed Ferien-Vorlage — the group is where the
- * knowledge belongs, because writing „Reiseadapter aufnehmen" into the
- * vacation template would teach exactly one trip shape and leave every
- * other trip using the same group none the wiser (the FR-27.5 stance).
- * A row whose provenance is a Vorlage's *own* position therefore yields
+ * FR-27.11: every proposal targets a **Gruppe**, never the composed
+ * Ferien-Vorlage — the group is where the knowledge belongs, because
+ * writing „Reiseadapter aufnehmen" into the vacation template would
+ * teach exactly one trip shape and leave every other trip using the
+ * same group none the wiser (the FR-27.5 stance). A row whose
+ * provenance is a Vorlage's *own* position therefore yields
  * no proposal: that structure feedback is M21's job.
  *
  * Runs client-side like trip generation (Addendum 3.19): write-backs are

@@ -92,9 +92,9 @@ export function findTripByIdentity(trips: Trip[], name: string, year: number): T
  *
  * One function for all three document kinds, because the reporting is one
  * sentence: a document whose subject the instance already holds adds nothing
- * and says so. A group has always linked by name (ADR-017); a Ferien-Vorlage
- * now does too, in place of the `(import)` suffix it used to land under; a trip
- * is its year and its name.
+ * and says so. A group links by name (ADR-017), and so does a Ferien-Vorlage,
+ * rather than landing beside itself under an `(import)` suffix; a trip is its
+ * year and its name.
  *
  * Exported because M18 answers the same question in its restore list *before*
  * the button is pressed — the same function rather than a second reading of
@@ -408,7 +408,7 @@ export function importPortableDocument(
   }
 
   // Trip import — the file's own status (ADR-024), fresh trip partition.
-  // FR-2.1b: neither date has to be there any more, so an absent one
+  // FR-2.1b: neither date has to be there, so an absent one
   // stays absent rather than being invented as today's date; the year
   // is what the document must yield, from its own field or its dates.
   const { mutation: tripMut, id: tripId } = env.mutations.createTrip(

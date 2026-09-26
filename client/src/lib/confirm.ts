@@ -1,13 +1,13 @@
 /**
  * The confirmation dialog, asked in one place.
  *
- * Ten call sites had written the same `alertController.create` by hand and
- * read the answer back in three different ways: the dismissal role
- * (`'destructive'`, `'confirm'`), a boolean returned from the caller's own
- * wrapper, and a `handler` that performed the action from inside the
- * alert. The third is the one that costs: the action then runs *before*
- * the alert is dismissed, so a caller that also navigates does it under a
- * dialog that is still on screen, and nothing about the call site says so.
+ * An `alertController.create` written by hand can read the answer back in
+ * three ways: the dismissal role (`'destructive'`, `'confirm'`), a boolean
+ * returned from the caller's own wrapper, and a `handler` that performs the
+ * action from inside the alert. The third is the one that costs: the action
+ * then runs *before* the alert is dismissed, so a caller that also navigates
+ * does it under a dialog that is still on screen, and nothing about the call
+ * site says so.
  *
  * One protocol here — the promise resolves to whether the user confirmed,
  * and the caller acts afterwards. `role` stays a parameter because it is

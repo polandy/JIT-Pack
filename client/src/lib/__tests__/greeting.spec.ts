@@ -1,8 +1,8 @@
 /**
- * M1's greeting buckets (UX-15, 2026-08-25 UX review): the dashboard said
- * „Guten Morgen" at 00:14, because everything below noon was morning. Night
- * gets a neutral line instead of a time-of-day claim — a greeting that names
- * the wrong part of the day is worse than one that names none.
+ * M1's greeting buckets (UX-15): if everything below noon were morning, the
+ * dashboard would say „Guten Morgen" at 00:14. Night gets a neutral line
+ * instead of a time-of-day claim — a greeting that names the wrong part of the
+ * day is worse than one that names none.
  */
 import { describe, it, expect } from 'vitest'
 

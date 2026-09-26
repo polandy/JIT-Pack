@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The shopping list on the dashboard (FR-30.7): the one card on M1 that can be
- * worked, by owner decision — check off, undo, add — with everything else left
+ * worked — check off, undo, add — with everything else left
  * to M6. What these pin: which list is *now*, the five-line cap and the way on,
  * that a check-off goes to the line's own write (an entry, or the packing
  * row's FR-3.3 through its source), and that a planned trip with nothing to

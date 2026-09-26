@@ -1,8 +1,8 @@
 /**
  * FR-25.26: what a per-person cluster's head may do to every instance under
- * it at once, and which of them a write actually reaches. Since 2026-09-19
- * that is everything a row's own menu offers, each entry reaching the
- * instances whose row would offer it.
+ * it at once, and which of them a write actually reaches. That is everything
+ * a row's own menu offers, each entry reaching the instances whose row would
+ * offer it.
  *
  * The two halves are tested apart because they fail apart: the menu can be
  * right about what to offer while the fan-out writes the wrong set, and a

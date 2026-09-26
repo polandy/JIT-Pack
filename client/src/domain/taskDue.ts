@@ -60,9 +60,9 @@ export function byDue<T extends DueFacts>(tasks: readonly T[], today: string): T
 }
 
 /**
- * pressingFirst moves the groups holding something pressing to the top
- * (owner, 2026-09-25: a group with an overdue or soon task is shown above
- * the rest), keeping the reading order inside both halves.
+ * pressingFirst moves the groups holding something pressing to the top — a
+ * group with an overdue or soon task is shown above the rest — keeping the
+ * reading order inside both halves.
  */
 export function pressingFirst<G extends { tasks: readonly DueFacts[] }>(
   groups: readonly G[],

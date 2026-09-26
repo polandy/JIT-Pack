@@ -17,9 +17,9 @@ export interface IdentitySource {
  * Who the instance knows about, fetched once per session instead of once per
  * screen (U-10, ADR-047).
  *
- * Nine views used to issue `fetchUsers()`/`fetchMe()` on their own mount, each
- * into a `ref` of its own, so the same two answers were fetched nine times and
- * every screen spent its first frames not knowing who the viewer was. The
+ * Views do not issue `fetchUsers()`/`fetchMe()` on their own mount: each into a
+ * `ref` of its own, the same two answers would be fetched once per screen and
+ * every screen would spend its first frames not knowing who the viewer is. The
  * answers are session-stable — the id for the whole session, the names until
  * somebody is renamed or deactivated — so the four writers that *can* change
  * them refresh this store instead (see `refresh`), which is what keeps the

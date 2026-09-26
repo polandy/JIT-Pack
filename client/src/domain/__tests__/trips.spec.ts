@@ -118,15 +118,15 @@ describe('nextLifecycleStep', () => {
 })
 
 /**
- * M2's row menu (hold or right-click, 2026-09-24) and the hero's action row
+ * M2's row menu (hold or right-click) and the hero's action row
  * read one list, so a trip can never be offered a step on one surface that
  * the other refuses. What a trip's status and the session allow is the whole
  * rule; the order is the order the sheet shows.
  */
 describe('tripRowActions (M2, FR-2.7/FR-4.5/FR-12.1/FR-18.3)', () => {
   const everything = { collaborative: true, canDelete: true }
-  // FR-2.7: the properties lead every trip's menu — M4's ⋮ gave them up to
-  // M2 (owner, 2026-09-25), so this is the one door to them.
+  // FR-2.7: the properties lead every trip's menu — M4's ⋮ does not hold
+  // them, so this is the one door to them.
   const cases: Array<{
     name: string
     status: TripStatus

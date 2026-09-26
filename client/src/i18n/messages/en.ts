@@ -914,9 +914,8 @@ export const en = {
   'settings.addTraveler': 'Add a traveller',
   'settings.addTravelerAccount': 'Add an existing user',
   'settings.travelerLinked': 'Linked account',
-  // M17's remaining sections (NFR-4.12, 2026-08-22): the screen was
-  // half-translated since before the migration, and a half-translated screen
-  // is worse than an untranslated one — a section is the unit.
+  // M17's remaining sections (NFR-4.12): a half-translated screen is worse
+  // than an untranslated one — a section is the unit.
   'settings.profile': 'Profile',
   'settings.profileLocalNote': 'Local Mode has no account — everything stays on this device.',
   'settings.avatarAlt': 'Avatar',

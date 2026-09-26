@@ -101,7 +101,7 @@ export default defineConfig({
   // Fail the build if test.only is committed.
   forbidOnly: !!process.env.CI,
   /*
-   * Zero, on CI as locally (T-8, 2026-09-04). A retry does not tell you a
+   * Zero, on CI as locally (T-8). A retry does not tell you a
    * test is flaky; it tells you the second run passed. Against a suite whose
    * `single` and `server` projects share one database per run, and whose
    * Local Mode projects share one browser profile per worker, a retry is
@@ -120,17 +120,17 @@ export default defineConfig({
   // server will opt into serial execution per-project when they land.
   fullyParallel: true,
   /*
-   * Chosen, not inherited. Until 2026-08-19 the suite ran on Playwright's
-   * 30 s default, which nobody had picked — and measurement showed the
-   * suite living against it: on WebKit with 2 workers, 16 of 123 tests take
-   * 20 s or more and the slowest passing one took 31.9 s. That is not a
-   * suite that is too slow, it is a budget set below the work: the §2.4
-   * units build their world through the UI (M7 -> M8 -> M3) because that is
-   * what makes them worth having, and on WebKit that costs real seconds.
+   * Chosen, not inherited. Playwright's 30 s default is nobody's pick, and
+   * measurement shows the suite living against it: on WebKit with 2 workers,
+   * 16 of 123 tests take 20 s or more and the slowest passing one takes
+   * 31.9 s. That is not a suite that is too slow, it is a budget set below the
+   * work: the §2.4 units build their world through the UI (M7 -> M8 -> M3)
+   * because that is what makes them worth having, and on WebKit that costs
+   * real seconds.
    *
    * A budget exists to bound a hang, not to police legitimate work, so this
    * is roughly 2x the measured worst case under load. The cost is stated
-   * rather than hidden: a genuinely hung test now takes a minute to say so.
+   * rather than hidden: a genuinely hung test takes a minute to say so.
    */
   timeout: 60_000,
   reporter: process.env.CI
@@ -140,8 +140,8 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     /*
-     * There is no first retry any more, so a trace has to be kept from the
-     * run that failed or there is none at all — and a failure nobody can
+     * There is no retry, so a trace has to be kept from the run that
+     * failed or there is none at all — and a failure nobody can
      * replay is what makes an intermittent one get labelled "flaky" instead
      * of being read.
      */
@@ -149,9 +149,9 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     /*
-     * The device the family actually holds (owner, 2026-08-21). The container
-     * defaults to en-US/UTC, which quietly made every date the suite rendered
-     * a US date and every "today" a UTC one — the FR-27.4 boundary is a *date*
+     * The device the family actually holds. The container defaults to
+     * en-US/UTC, which would make every date the suite renders a US date and
+     * every "today" a UTC one — the FR-27.4 boundary is a *date*
      * comparison, so a run just after midnight in Zurich was reading
      * yesterday.
      *
@@ -193,7 +193,7 @@ export default defineConfig({
        * real SW behaviour anyway — that project is chromium-only — so
        * blocking registration here removes the artifact at its source.
        * dev-docs/e2e-tests.md: "a WebKit case lost its click to the FR-19.7
-       * banner (2026-09-09)".
+       * banner".
        */
       use: { ...devices['Desktop Safari'], serviceWorkers: 'block' },
     },
@@ -274,32 +274,29 @@ export default defineConfig({
    * edge pixels is not a design change, and a suite that calls it one gets
    * ignored within a week (ADR-013, driver 1).
    *
-   * **The budget the owner set on 2026-08-19 was `maxDiffPixelRatio: 0.002`,
-   * and a ratio is not the same promise at two viewports.** 0.002 of the
-   * 390×844 phone is 658 px; of the 1280×900 desktop it is 2304, so the
-   * same change had to be three and a half times larger to be seen there.
-   * Measured 2026-09-06, when moving M4's control across the row failed the
-   * mobile shot and passed the desktop one. The number below is that same
-   * mobile budget, now written as pixels so it means one thing on both —
-   * the tolerance the owner chose, applied evenly.
+   * **The owner's budget is `maxDiffPixelRatio: 0.002` of the phone, and a
+   * ratio is not the same promise at two viewports.** 0.002 of the 390×844
+   * phone is 658 px; of the 1280×900 desktop it is 2304, so the same change
+   * would have to be three and a half times larger to be seen there — moving
+   * M4's control across the row fails the mobile shot and passes the desktop
+   * one. The number below is that mobile budget written as pixels so it
+   * means one thing on both — the tolerance the owner chose, applied evenly.
    *
-   * The consequence is unchanged and still stated rather than hidden: **this
+   * The consequence is stated rather than hidden: **this
    * gate catches layout changes, not small ones** — a change of a few
    * hundred pixels is caught by looking at the render, which is what the
    * working agreement already requires of a UI PR.
    *
-   * **`threshold: 0`, decided 2026-09-06 (ADR-048).** Playwright's default
-   * per-pixel tolerance is 0.2 in YIQ space, and that is not a small number:
-   * when the whole palette was replaced — every plane, every accent, both
-   * flavours — the suite stayed green against the *old* baselines, and even
-   * `--update-snapshots` rewrote nothing, because no token pair moved more
-   * than 0.018 of the 0.04 the threshold allows. A gate whose stated job is
-   * "a token change that moves a surface shows up as a diff" (E2E-VIS-01)
-   * could not see the largest token change the app has had. So a pixel is
-   * different when it is different, and the ratio above is the only slack
-   * — which the pinned container makes safe, since it renders the same
-   * bytes run after run (ADR-013). Proved both ways before it landed: the
-   * old baselines fail against the new bundle, the new ones pass.
+   * **`threshold: 0` (ADR-048).** Playwright's default per-pixel tolerance
+   * is 0.2 in YIQ space, and that is not a small number: replacing the whole
+   * palette — every plane, every accent, both flavours — stays green against
+   * the *old* baselines, and even `--update-snapshots` rewrites nothing,
+   * because no token pair moves more than 0.018 of the 0.04 the threshold
+   * allows. A gate whose stated job is "a token change that moves a surface
+   * shows up as a diff" (E2E-VIS-01) could not see the largest token change
+   * there is. So a pixel is different when it is different, and the ratio
+   * above is the only slack — which the pinned container makes safe, since
+   * it renders the same bytes run after run (ADR-013).
    */
   expect: {
     toHaveScreenshot: {

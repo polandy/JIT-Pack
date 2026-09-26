@@ -72,8 +72,8 @@ export interface Resolution {
  * generated row carries (FR-27.5/27.11 read that provenance back a year later).
  * Sorting by name makes it stable and gives the FR-27.2 merge report the order
  * a reader expects; the id breaks ties so two groups of one name still order
- * deterministically. Found by an e2e run that reported „in Wildlife & Makro" on
- * WebKit and „in Makro & Wildlife" on Chromium, from identical data.
+ * deterministically. Without it, identical data reads „in Wildlife & Makro" on
+ * WebKit and „in Makro & Wildlife" on Chromium.
  */
 export function includedTemplatesOf(
   templateId: string,
@@ -184,10 +184,10 @@ export interface BlastRadiusInput {
 
 /**
  * tripsReachedBy answers FR-27.4's warning surface: which trips does an edit
- * to this template reach? Since the 2026-08-18 revision that is every trip
- * that still **follows** its groups (`followsGroups`) — a running one
- * included — and never a past one. It is a *reach*, not an application: each
- * of those trips will be asked on its next open.
+ * to this template reach? Every trip that still **follows** its groups
+ * (`followsGroups`) — a running one included — and never a past one. It is a
+ * *reach*, not an application: each of those trips will be asked on its next
+ * open.
  *
  * A trip counts when one of its rows carries the template as provenance, or
  * carries a Vorlage that includes it — editing a group lands on trips
@@ -271,8 +271,7 @@ export function resolvedLines(resolution: Resolution, items: MasterItem[]): Reso
  *
  * Two, not three: at 390 px three German item names wrap onto a second line,
  * which turns a scannable row into a four-line block — and the third name buys
- * little, since the row is the *hint* and the sheet is the answer. Rendered
- * both ways before choosing.
+ * little, since the row is the *hint* and the sheet is the answer.
  */
 export const PREVIEW_ROW_NAMES = 2
 
@@ -300,9 +299,9 @@ export type ScopeTab = TemplateKind | 'all'
 
 /**
  * scopeForNewTemplate answers what the M7 ＋ should create, or `null` when the
- * question is still open (FR-27.6, amended 2026-08-17).
+ * question is still open (FR-27.6).
  *
- * Standing on a single-scope tab, the chooser had one possible answer, and a
+ * Standing on a single-scope tab, the chooser has one possible answer, and a
  * question with one answer is a tap that carries no information. `null` rather
  * than a default because the two scopes are not interchangeable (FR-27.1):
  * guessing would create the wrong kind silently, and a Gruppe promoted later

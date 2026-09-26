@@ -175,10 +175,10 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
   })
 
   /*
-   * ADR-049 amendment 1. The page used to be glass over `ion-app` as well,
-   * and the plane was painted once. It is painted twice on purpose now: a
-   * transparent page cannot occlude the one it is replacing, so the whole
-   * of the screen being left stayed legible through every transition.
+   * ADR-049 amendment 1. The plane is painted twice on purpose — on
+   * `ion-app` and on the page: a transparent page cannot occlude the one it
+   * is replacing, so the whole of the screen being left would stay legible
+   * through every transition.
    * Opacity never occludes; a background does. The rule is asserted here
    * because the visual baselines only ever catch it at rest — they record
    * the wash's truncated tail, not the thing the opacity is for.

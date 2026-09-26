@@ -200,8 +200,8 @@ describe('followsGroups — which trips still listen (FR-27.4)', () => {
   })
 
   it('follows a running trip — the freeze is the past, not the departure', () => {
-    // The owner's rule (2026-08-18) replaced the planning/active split: a
-    // running trip still hears about a group edit, it just gets asked first.
+    // Not a planning/active split: a running trip still hears about a group
+    // edit, it just gets asked first.
     expect(followsGroups(trip({ status: 'active' }), TODAY)).toBe(true)
   })
 
@@ -401,10 +401,10 @@ describe('planRefresh — changes that land (FR-27.4)', () => {
   })
 
   /**
-   * FR-24.2, 2026-09-08: generation used to hand every row `category_name:
-   * null`, so every ledger entry written before that date holds one. The
-   * first refresh after the fix therefore sees a real change — nothing to a
-   * tag — and propagates it like any other. That is the intended answer, not
+   * FR-24.2: a ledger entry written before generation carried a category
+   * holds `category_name: null`. The first refresh over such an entry
+   * therefore sees a real change — nothing to a tag — and propagates it like
+   * any other. That is the intended answer, not
    * a migration: the refresh exists to carry template-side changes onto the
    * list, the user is shown the proposal before it applies, and it happens
    * once per row. The case is here so the next reader meets it as a decision.

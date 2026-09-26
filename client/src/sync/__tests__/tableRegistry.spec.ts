@@ -13,13 +13,13 @@
  * - **Parsed and not encoded** is a column the optimistic write *blanks*:
  *   the store replaces the row rather than merging into it, so an unrelated
  *   edit drops it until the next pull — and in Local Mode no pull ever comes.
- *   `trips.source_template_id` (#158) and `bought_from` (FR-25.11j) were
- *   exactly this, both found by a person looking.
+ *   Columns like `trips.source_template_id` and `bought_from` (FR-25.11j)
+ *   fail this way where only a person looking would notice.
  * - **Encoded and not parsed** is a column written to the wire that no
- *   reader on this device will ever see again. `trips.series_name` was the
- *   inverse of it — parsed and written by nobody at all, so the FR-14.3
- *   trend heading fell back to the trip's name on every device there has
- *   ever been.
+ *   reader on this device will ever see again. Its inverse — a column
+ *   parsed and written by nobody at all, like `trips.series_name` would be —
+ *   leaves the FR-14.3 trend heading falling back to the trip's name on
+ *   every device.
  *
  * The comparison reads the source rather than calling the functions,
  * because calling them cannot tell an absent column from a null one — the

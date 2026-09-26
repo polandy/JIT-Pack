@@ -72,8 +72,7 @@ export interface PackAnnouncer {
  * A composable rather than a block in the screen because the two rules worth
  * testing here are both invisible from the outside — the ordering that keeps a
  * second pack's undo armed, and the guard that drops a snackbar whose screen
- * has been left. The second had been marked untestable while it lived in the
- * view; from here it is one unmount away.
+ * has been left. From here the second is one unmount away.
  */
 export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnnouncer {
   const rowUndo = useRowUndo()

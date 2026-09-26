@@ -13,8 +13,8 @@ import {
  * run, the „lange nicht gebraucht" window, and the findings „Behalten" was
  * pressed on.
  *
- * **Device-local**, FR-24.4's persistence class, by the owner's choice of the
- * cheaper option (2026-09-19). The honest cost is in the multi-user case: a
+ * **Device-local**, FR-24.4's persistence class, the cheaper option by
+ * choice. The honest cost is in the multi-user case: a
  * „Behalten" pressed on one phone is not seen on the other, so a household
  * member is asked about the same camping stove again. Syncing it would need a
  * column on `items` and `tags` and a reseed; the revisit trigger is that

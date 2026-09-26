@@ -3,10 +3,9 @@
  * that somebody is me.
  *
  * A `Map` of a `Map` and a `Set`, with no client, no store and no outbox
- * behind them — which is why they are here rather than in the orchestrator
- * that used to hold them: the four questions a row asks while rendering are
- * decided from this state alone, and deciding them needed the whole facade
- * built first.
+ * behind them — which is why they are here rather than in the orchestrator:
+ * the four questions a row asks while rendering are decided from this state
+ * alone, and deciding them there would need the whole facade built first.
  *
  * The two writers stay together with the readers on purpose. `item.locked`
  * arriving for a row this device holds is a *takeover*, and that rule is the

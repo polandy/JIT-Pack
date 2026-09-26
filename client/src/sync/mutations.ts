@@ -66,8 +66,8 @@ export const CLIENT_ACTOR_PLACEHOLDER = 'current-user'
  * hands over booleans and objects and the mutation renders the columns
  * (`rowFrom`). Two things follow, and both are the point of naming them:
  * a field that is not the user's to set — an actor column, a foreign key
- * another action owns — cannot be named at all, and a view can no longer
- * decide how a value is spelled on the wire.
+ * another action owns — cannot be named at all, and a view never decides
+ * how a value is spelled on the wire.
  */
 
 /** The trip fields FR-2.7's editor may change. Status and the series have
@@ -288,7 +288,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   /**
    * FR-5.10's close, on a half-packed row: the amount shrinks to what is in
-   * the bag (variant P1, owner 2026-09-20), so the row reads as packed.
+   * the bag (variant P1), so the row reads as packed.
    *
    * Deliberately **not** the skip: four of six socks travelled, and writing
    * quantity 0 would deny them — M14 would lose four packed rows it could
@@ -1342,9 +1342,9 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   // --- Task tag mutations (FR-7.8) ---
 
   /**
-   * Create a task tag. Its own table, not the inventory's (owner,
-   * 2026-09-21): a task is filed by what it is *about*, an item by what it
-   * *is*, and the two never share a picker.
+   * Create a task tag. Its own table, not the inventory's: a task is filed
+   * by what it is *about*, an item by what it *is*, and the two never share
+   * a picker.
    */
   function createTaskTag(
     name: string,

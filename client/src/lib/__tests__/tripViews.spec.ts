@@ -53,7 +53,7 @@ describe('the trip views that earn a pill', () => {
     }
   })
 
-  // A ⋮ acts on its own context (owner, 2026-09-25): the luggage and the
+  // A ⋮ acts on its own context: the luggage and the
   // analytics are packing's, and the packing pill is the way to them.
   it('offers nothing in the bar from the shopping list, the tasks or the notes', () => {
     expect(tripViewMenu('shopping')).toEqual([])
@@ -131,9 +131,9 @@ describe('what a view is called and where it goes', () => {
 
   /*
    * Every view is describable, and no two of them reach for one glyph (G-12,
-   * E2E-G12-05) — which matters more since the amendment than before it: two
-   * of the four now wear their icon in a menu, where the word is beside it,
-   * and the other two in a pill, where below 480 px the word is alone.
+   * E2E-G12-05) — some views wear their icon in a menu, where the word is
+   * beside it, and the others in a pill, where below 480 px the word is
+   * alone.
    */
   it('gives every view a word, a destination and a glyph of its own', () => {
     const entries = TRIP_VIEW_IDS.map((id: TripViewId) => tripViewEntry(id, TRIP))

@@ -25,9 +25,8 @@ import { PRESENTED_ATTRIBUTE } from './presented'
 export const TAB_BAR_ANCHOR_ID = 'jp-tab-bar'
 
 /**
- * How long a confirmation stays. Fifteen call sites had written `3000` and
- * two views a private `TOAST_MS` of the same value, so the number was a
- * decision nobody could make once. A caller that needs longer — the sync
+ * How long a confirmation stays, named once so the number is one decision
+ * rather than a literal per call site. A caller that needs longer — the sync
  * failures in `App.vue`, which carry an action — still names its own.
  */
 export const TOAST_DURATION_MS = 3000

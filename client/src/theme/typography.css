@@ -208,7 +208,7 @@
 
 body {
   font-family: var(--jp-font-ui);
-  /* The body's own size, which the browser had been deciding at 16px — a
+  /* The body's own size, which the browser would decide at 16px — a
      step the scale does not have, and larger than every heading the app
      draws below a page title. Text that reaches the screen without a role
      lands here (FR-21.14). */
@@ -277,8 +277,8 @@ body {
 
 /*
  * The line under a page's name: which trip a sub-screen belongs to, which
- * step a wizard is on (G-9, ADR-050). Four screens had been composing that
- * fact into the title itself with a middle dot, at the title's size.
+ * step a wizard is on (G-9, ADR-050) — its own line, never composed into
+ * the title with a middle dot at the title's size.
  *
  * The colour is part of the role for the same reason it is part of
  * `.jp-eyebrow`: a subordinate line that is not recessive stops being one.
@@ -308,14 +308,13 @@ ion-action-sheet.md .action-sheet-title {
 }
 
 /*
- * The head above a block, and the count beside it (G-13). Fifty-five heads
- * across twelve screens carried `.section-title jp-eyebrow`, and the pairing
- * was the tell: the role decided face, size, weight, tracking, case and
- * colour, and every screen still kept a rule of its own for the one thing the
- * role would not decide — its margin, written five different ways.
+ * The head above a block, and the count beside it (G-13). One role decides
+ * face, size, weight, tracking, case and colour *and* the margin (in
+ * SectionHead.vue) — a role that leaves the margin out gets it written by
+ * every screen, each its own way.
  *
- * The concept answers the role differently now: display face at the app-bar
- * step rather than small tracked capitals, with the section's own number set
+ * The concept answers the role with the display face at the app-bar step
+ * rather than small tracked capitals, with the section's own number set
  * beside it in the UI face rather than joined into the label with a middle
  * dot. `--jp-text-display-xs` is reused deliberately — the prototype draws
  * this head at 18px and the bar's title at 18.5px, and a sixth step half a
@@ -352,11 +351,10 @@ ion-action-sheet.md .action-sheet-title {
  * chip headings in quick-add, the word above a banner's sentence. Small,
  * tracked capitals in the UI face, recessive.
  *
- * It used to be the head above a block as well, which is how one class ended
- * up carrying two jobs at two sizes' worth of intent. The head is its own
- * role now (`.jp-section-head`); what is left here is the job the prototype
- * actually draws in capitals — a marker within a list, never a title over
- * one.
+ * It is not the head above a block: that is its own role
+ * (`.jp-section-head`), so one class never carries two jobs at two sizes'
+ * worth of intent. This is the job the prototype actually draws in capitals
+ * — a marker within a list, never a title over one.
  *
  * The colour is part of the role rather than left to the call sites: a label
  * that is not recessive stops being a label, and every call site is a chance
@@ -431,13 +429,11 @@ ion-title {
  * (G-13, FR-21.14).
  *
  * This is the app's *body copy* — the item on the packing list, the trip
- * on M2, the tag in the inventory — and until now it was the one text the
- * type scale did not carry: Ionic sets `ion-label h2` at 16px, `h3` at
- * 14px and `p` at 14px, and nothing in the app said otherwise. Two
- * consequences, both visible on the screen: the name of a row was a
- * different size depending on whether the screen happened to write `h2`
- * or `h3` for it, and the detail under it was the same size as the name
- * it qualified.
+ * on M2, the tag in the inventory — and the type scale carries it rather
+ * than Ionic, which sets `ion-label h2` at 16px, `h3` at 14px and `p` at
+ * 14px. Left to that, the name of a row would be a different size
+ * depending on whether the screen happened to write `h2` or `h3` for it,
+ * and the detail under it the same size as the name it qualifies.
  *
  * A row's name is one size and its detail is one step down, whichever
  * element carries them. The concept draws the name at 15.5px; the scale

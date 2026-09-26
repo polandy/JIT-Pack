@@ -5,8 +5,8 @@ import { PATH, tripItemPath } from '@/router/paths'
 
 /**
  * G-1/G-9: the rail and the tab bar light the same anchor, and only one.
- * The rule had a comment and no test — it compares against the anchor's own
- * `href` since U-9, where it used to rebuild `/tabs/${match}`.
+ * It compares against the anchor's own `href` (U-9) rather than rebuilding
+ * `/tabs/${match}`.
  */
 
 const anchorFor = (match: string) => NAV_ANCHORS.find((a) => a.match === match)!

@@ -5,8 +5,7 @@ import { computed, ref } from 'vue'
  *
  * The list is **lean by default**: primary-tag avatar and name, nothing
  * else. The inventory is a lookup surface, not a spreadsheet — showing
- * every tag, the weight and the price on every row was the overload the
- * 2026-08-08 UX round removed.
+ * every tag, the weight and the price on every row is overload.
  *
  * **Device-local**, the same persistence class as the FR-25.2 reveal-done
  * toggle: it needs no schema and no sync, works identically in all three

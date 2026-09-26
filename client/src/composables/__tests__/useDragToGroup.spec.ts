@@ -153,8 +153,8 @@ describe('useDragToGroup — the state the suite waits on', () => {
   /*
    * The write's failing path, which no run of the happy path reaches. An
    * `onDrop` that throws *synchronously* — a mutation raising before its
-   * first await — used to leave nothing for a `.finally` to attach to: the
-   * exception escaped, and the attribute stood at `settling` for ever.
+   * first await — leaves nothing for a `.finally` to attach to: unguarded,
+   * the exception escapes, and the attribute stands at `settling` for ever.
    */
   it('reaches idle when the write throws before it ever returns a promise', async () => {
     vi.useFakeTimers()

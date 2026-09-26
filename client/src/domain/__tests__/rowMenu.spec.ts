@@ -1,8 +1,8 @@
 /**
- * U-1.5 (design review 2026-09-02). The row menu was a nested ternary
- * inside `actionSheetController.create`, and two of its five outcomes are
- * *no menu*, which a running screen renders as nothing happening — the
- * hardest kind of rule to check by holding a row down.
+ * U-1.5. Inside `actionSheetController.create` the row menu is hard to check,
+ * and two of its five outcomes are *no menu*, which a running screen renders
+ * as nothing happening — the hardest kind of rule to check by holding a row
+ * down.
  */
 import { describe, it, expect } from 'vitest'
 

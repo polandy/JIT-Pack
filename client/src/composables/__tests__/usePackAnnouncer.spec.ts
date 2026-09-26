@@ -9,10 +9,9 @@
  *    dismissal *after* the incoming one has armed a new record, so clearing
  *    the reference in the wrong order disarms the undo the user is looking at.
  *  - **A snackbar whose screen is gone is never presented.** `create` is
- *    awaited, and leaving inside that window used to put the confirmation —
+ *    awaited, and leaving inside that window would put the confirmation —
  *    with an undo for a trip nobody is on any more — over the next screen.
- *    The view called this "guarded rather than covered by a case"; from a
- *    composable it is one `unmount()` away.
+ *    From a composable it is one `unmount()` away.
  *
  * The jsdom docblock is load-bearing: `onUnmounted` needs a mounted instance.
  */

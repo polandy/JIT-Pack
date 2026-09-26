@@ -7,9 +7,9 @@
  *
  * The one clause with a wrong answer is the half-packed row. Four of six
  * socks are in the bag; the skip M4 already has would write quantity 0 and
- * count 0, denying four socks that travelled. P1 (owner, 2026-09-20): the
- * amount shrinks to what is in the bag, so the row reads as packed and the
- * remainder is simply no longer owed.
+ * count 0, denying four socks that travelled. P1: the amount shrinks to what
+ * is in the bag, so the row reads as packed and the remainder is simply no
+ * longer owed.
  */
 import { describe, it, expect } from 'vitest'
 

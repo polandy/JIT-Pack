@@ -225,7 +225,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
  * The rows mid-purchase, by key — the animated case. Every group is its own
  * `TransitionGroup`, so a row leaving *for any other reason* — retagged into
  * a different heading, or into the *Fällig* block — fires the exact same
- * `@leave` this does, and animating that read as a duplicate row hanging in
+ * `@leave` this does, and animating that reads as a duplicate row hanging in
  * the old heading for the length of the collapse. M4's `isReshaped` guards
  * the identical case for its own `TransitionGroup`.
  */

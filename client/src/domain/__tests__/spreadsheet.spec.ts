@@ -75,10 +75,10 @@ describe('analyzeGrid (FR-16.1, NFR-4.7)', () => {
 })
 
 /*
- * The layout a decade-old family spreadsheet actually has (FR-16.1, found
- * 2026-08-23 on a real 34-column sheet): the column header is two rows —
- * the year above the trip's name — and the category is its own column,
- * forward-filled, rather than a grouping row.
+ * The layout a decade-old family spreadsheet actually has (FR-16.1, a real
+ * 34-column sheet): the column header is two rows — the year above the trip's
+ * name — and the category is its own column, forward-filled, rather than a
+ * grouping row.
  */
 const twoRowHeaderCSV = [
   ',,2016,2016,2017',
@@ -117,10 +117,10 @@ describe('analyzeGrid — two-row header and category column (FR-16.1)', () => {
 })
 
 /*
- * An inventory with no history at all (FR-16.1, added 2026-08-23): the sheet
- * is a list of things, not a matrix. Nothing distinguishes a category row from
- * an item row without a quantity column to be empty in — so the wizard must
- * claim neither, and the user ticks the categories.
+ * An inventory with no history at all (FR-16.1): the sheet is a list of
+ * things, not a matrix. Nothing distinguishes a category row from an item row
+ * without a quantity column to be empty in — so the wizard must claim neither,
+ * and the user ticks the categories.
  */
 const inventoryOnlyCSV = [
   'Kategorie,Artikel',
@@ -201,11 +201,11 @@ describe('buildImportPlan — an inventory with no trips (FR-16.1/16.2)', () => 
 })
 
 /*
- * The same thing listed twice in one sheet (FR-16.3, found 2026-08-23 on the
- * owner's file, where "Regenhosen" and "Tele" each appear under two
- * categories). `items` is UNIQUE (name), so the second row was refused at the
- * wire and its amounts were lost — silently, because the dedup step compares
- * the file against the *inventory* and never against itself.
+ * The same thing listed twice in one sheet (FR-16.3, as in a real family file,
+ * where "Regenhosen" and "Tele" each appear under two categories). `items` is
+ * UNIQUE (name), so without folding the second row is refused at the wire and
+ * its amounts are lost — silently, because the dedup step compares the file
+ * against the *inventory* and never against itself.
  */
 const repeatedNameCSV = [
   'Kategorie,Artikel,2024,2025',

@@ -38,9 +38,8 @@ describe('a row the synced state says is being packed', () => {
     expect(locks.lockHolder(TRIP, heldBy('sarah'))).toBe('sarah')
   })
 
-  // FR-5.7 / ADR-028: this asserted the opposite until 2026-08-24 — a claim
-  // older than the §7 window stopped locking the row. There is no window
-  // now, so age says nothing and the row stays held.
+  // FR-5.7 / ADR-028: there is no §7 window, so a claim's age says nothing
+  // and the row stays held.
   it('is still locked however old the claim is (FR-5.7)', () => {
     const locks = createLockState(() => 'alice')
     const old = row({

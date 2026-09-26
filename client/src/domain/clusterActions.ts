@@ -5,11 +5,11 @@
  * The head exists because an item is one thing that several people carry, and
  * `late_packer` and `packer_user_id` are the two fields that are usually a
  * statement about the *item* — everybody brushes their teeth on the morning
- * they leave. Setting them instance by instance made the list say it four
- * times, and cost four trips through M5 to say it once. Since 2026-09-19 the
- * head offers everything a row's own menu does as well (owner request): a
- * shut cluster is one line on the screen, and a press on it that could do
- * less than a press on a row taught the reader to open it first.
+ * they leave. Setting them instance by instance would make the list say it
+ * four times, and cost four trips through M5 to say it once. The head offers
+ * everything a row's own menu does as well: a shut cluster is one line on the
+ * screen, and a press on it that could do less than a press on a row would
+ * teach the reader to open it first.
  *
  * No new structure: a fan-out writes each instance's own field, exactly as the
  * row-level control does, so field-level LWW (NFR-4.2a) merges the result
@@ -189,10 +189,10 @@ export interface ClusterFanOut {
  * The plan for one fan-out: every instance nobody else is holding.
  *
  * A held instance is skipped rather than refusing the whole action — the G-3
- * lock is advisory by decision (2026-08-30), and a group action that failed
- * because one of four rows was busy would be a lock with teeth it deliberately
- * does not have. The caller owes the report: `blockedBy` is what names the
- * people whose rows were left alone.
+ * lock is advisory by decision, and a group action that failed because one of
+ * four rows was busy would be a lock with teeth it deliberately does not have.
+ * The caller owes the report: `blockedBy` is what names the people whose rows
+ * were left alone.
  */
 export function clusterFanOut(instances: readonly ClusterInstance[]): ClusterFanOut {
   const targetIds: string[] = []

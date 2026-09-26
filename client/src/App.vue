@@ -139,9 +139,9 @@ async function showConflictToast(report: ConflictReport) {
       {
         text: t('sync.conflictToastOpen'),
         handler: () => {
-          // `id` is null exactly on the master partition; the builder is
-          // what made that visible, where the template literal used to
-          // push `/trips/null/conflicts` and open an empty trip log.
+          // `id` is null exactly on the master partition; the builder makes
+          // that visible, where a template literal would push
+          // `/trips/null/conflicts` and open an empty trip log.
           router.push(
             report.type === 'trip' && report.id
               ? tripSubPath(report.id, 'conflicts')
@@ -301,10 +301,9 @@ function onResume(ev: Event) {
   orchestrator?.resume()
 }
 
-// G-2: tapping the sync indicator opens the detail behind it (FR-19.6).
-// It used to navigate straight to a trip's conflict log and do nothing at
-// all anywhere else, which left the glyph unexplained on every other screen
-// and Local Mode without the storage detail NFR-4.11 requires.
+// G-2: tapping the sync indicator opens the detail behind it (FR-19.6),
+// on every screen — the glyph needs explaining everywhere, and Local Mode
+// needs the storage detail NFR-4.11 requires.
 const route = useRoute()
 const router = useRouter()
 
@@ -360,9 +359,9 @@ async function onSyncTap() {
   // and a stale storage figure is worse than a fresh one nobody looked at.
   //
   // Before it opens, not after: an auto-height sheet is measured once at
-  // presentation, so a storage section that arrived a tick later grew the
-  // content past the box Ionic had already sized — the last line rendered
-  // under the tab bar. Found on a rendered pixel, invisible in the markup.
+  // presentation, so a storage section that arrived a tick later would grow
+  // the content past the box Ionic had already sized — the last line renders
+  // under the tab bar. Visible on a rendered pixel, invisible in the markup.
   detailNow.value = Date.now()
   // The names in the roster come from the directory; a device that has not
   // opened a screen needing it yet has none.
@@ -426,7 +425,7 @@ async function saveBackup() {
         <NavRail />
         <main class="app-content">
           <!-- G-9: the screen's name, once, for every screen that registers
-               one — including the tab roots, which used to write their own
+               one — including the tab roots, which never write their own
                (ADR-050). -->
           <PageHead
             v-if="pageHead"
@@ -576,9 +575,9 @@ async function saveBackup() {
  * `ShoppingPage.vue`, …), and Ionic renders a toast into the app root —
  * unscoped CSS living in a chunk that has not loaded yet never reaches it.
  * `App.vue` itself is not lazy, so this is the one place the rule is always
- * present regardless of which screen raised the toast (found 2026-09-22: a
- * shopping-list undo landed in Ionic's stock palette, unreadable, because
- * PackingListPage.vue's own copy of this rule had never loaded).
+ * present regardless of which screen raised the toast (a copy in
+ * PackingListPage.vue would leave a shopping-list undo in Ionic's stock
+ * palette, unreadable, until that chunk loaded).
  */
 .pack-toast {
   --background: var(--ct-surface1);

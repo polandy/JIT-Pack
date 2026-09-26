@@ -3,12 +3,11 @@
  * devices, so they must be unique across them).
  *
  * `crypto.randomUUID` exists only in a **secure context**. Self-hosting over
- * plain HTTP on a LAN — `http://192.168.1.35:3000`, which is exactly how the
- * owner reaches the app from an iPad — is not one, so the function is
- * `undefined` there and every write in the app threw
- * "crypto.randomUUID is not a function". Found 2026-08-16; localhost is a
- * secure context, which is why neither the dev machine nor the Playwright
- * suite ever saw it.
+ * plain HTTP on a LAN — `http://192.168.1.35:3000`, reached from an iPad — is
+ * not one, so the function is `undefined` there and every write in the app
+ * would throw "crypto.randomUUID is not a function". Localhost is a secure
+ * context, which is why neither the dev machine nor the Playwright suite
+ * would ever see it.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 

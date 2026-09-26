@@ -4,9 +4,9 @@
  * recomputed from current state, so already-applied ones vanish
  * (natural resumability).
  *
- * FR-27.11 (concept round 2026-08-08): proposals target the *group* an
- * item came from, never a Ferien-Vorlage — writing to the composed
- * template would teach exactly one trip shape (the FR-27.5 stance).
+ * FR-27.11: proposals target the *group* an item came from, never a
+ * Ferien-Vorlage — writing to the composed template would teach exactly
+ * one trip shape (the FR-27.5 stance).
  */
 import { describe, it, expect } from 'vitest'
 
@@ -200,7 +200,7 @@ describe('buildReviewProposals — missing flags default to the dominant group (
 
   it('breaks a tie by group name, so two devices propose the same group', () => {
     // Sync hands the rows over in whatever order it produced. With the counts
-    // equal, the first one seen used to win — which is the row order, and that
+    // equal, the first one seen would win — which is the row order, and that
     // is not a fact about the trip.
     const alpin = group('g2', { name: 'Alpin' })
     const zelten = group('g1', { name: 'Zelten' })

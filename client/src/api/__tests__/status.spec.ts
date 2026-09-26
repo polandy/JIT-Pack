@@ -3,10 +3,9 @@
  *
  * Two callers ask this question and must not answer it differently: the
  * refresher deciding whether a session is over, and the outbox deciding
- * whether a refused push can be retried. Before the table was extracted, each
- * carried its own set — and the two sets already disagreed about 401, which is
- * correct (the outbox refreshes and retries; the refresher *is* the refresh),
- * but nothing said so anywhere.
+ * whether a refused push can be retried. They act differently on 401, which
+ * is correct (the outbox refreshes and retries; the refresher *is* the
+ * refresh) — the table classifies it once and leaves the next step to each.
  */
 import { describe, it, expect } from 'vitest'
 

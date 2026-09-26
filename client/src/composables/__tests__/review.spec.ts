@@ -190,7 +190,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     expect(master.getTemplateItems('g1')).toHaveLength(1)
   })
 
-  // FR-1.6 MVP simplification (2026-08-08): no copy is made for a group
+  // FR-1.6 MVP simplification: no copy is made for a group
   // someone else created — templates are shared, so the optimisation lands
   // where the item actually came from and everyone gets it.
   it('writes to a foreign group in place, without forking (FR-1.6 MVP)', () => {

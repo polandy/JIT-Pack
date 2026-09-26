@@ -100,10 +100,8 @@ export function releasePartnersOnDelete(containers: Container[], id: string): Pa
  * IMBALANCE_THRESHOLD_PERCENT is the weight difference at which a pair of
  * containers reads as imbalanced (FR-10.3).
  *
- * It was a per-trip override until 2026-08-31. `attributes.imbalance_threshold`
- * had a reader here and no writer anywhere — the wizard writes three attributes,
- * M16 the series' defaults of the same three, M22 none — so the requirement read
- * as configurable and behaved as fixed. Owner decision: the requirement now says
- * what it does, and the branch nothing could reach is gone with it.
+ * Fixed, not a per-trip override: nothing writes a threshold attribute — the
+ * wizard writes three attributes, M16 the series' defaults of the same three,
+ * M22 none — so an override would have a reader and no writer.
  */
 export const IMBALANCE_THRESHOLD_PERCENT = 15

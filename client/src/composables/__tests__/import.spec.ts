@@ -120,11 +120,11 @@ describe('commitImport (FR-16.2)', () => {
   })
 
   /**
-   * NFR-4.12/ADR-037: the noise task's body was a hard-coded English string
-   * until 2026-08-31 — the one user-visible sentence the import wrote that no
-   * language switch could reach. Asserted against the *other* locale, because
-   * a body read through `t()` in the default language is equally satisfied by
-   * the literal it replaced.
+   * NFR-4.12/ADR-037: the noise task's body is the one user-visible sentence
+   * the import writes, and a hard-coded English string would put it out of
+   * reach of every language switch. Asserted against the *other* locale,
+   * because a body read through `t()` in the default language is equally
+   * satisfied by an English literal.
    */
   it('writes the noise task in the active language, not in English', () => {
     setLocale('de')
@@ -148,8 +148,7 @@ describe('commitImport (FR-16.2)', () => {
    * foreign key, so a server applying the batch in order refuses every one of
    * them when the link is enqueued before the row it links to — and nothing on
    * the importing device can tell, because its own store took both
-   * optimistically. The whole inventory arrived untagged (found 2026-08-23 by
-   * importing into the real instance on :3000).
+   * optimistically — the whole inventory arrives untagged.
    */
   it('enqueues every master item before the tag assignment that references it', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })

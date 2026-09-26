@@ -7,10 +7,10 @@
  * arrives with the positions a trip that still follows its groups owes them
  * (FR-2.7/FR-27.4) — and everything it writes is pushed through the ordinary
  * trip sync endpoint, landing in the change log like every other write
- * (invariant 4, ADR-025). Calling the insert mutation directly is what this
- * command used to do, and it is why a traveller added from a shell arrived on
- * an empty list while the same name typed on M22 did not. There is no REST
- * resource for travelers and this command deliberately does not ask for one.
+ * (invariant 4, ADR-025). Calling the insert mutation directly would leave a
+ * traveller added from a shell on an empty list while the same name typed on
+ * M22 gets its positions. There is no REST resource for travelers and this
+ * command deliberately does not ask for one.
  */
 
 import { APIClient } from '@/api/client'

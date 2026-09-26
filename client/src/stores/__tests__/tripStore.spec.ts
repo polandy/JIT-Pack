@@ -74,8 +74,8 @@ describe('tripStore', () => {
    * only three of them: `change_log.trip_id` cascades too, so the trip
    * partition's whole feed dies with the row it describes
    * (`internal/store/master.go`, `cascadeChildren`). Everything else the
-   * client has to drop itself, and until 2026-09-02 it dropped four of nine
-   * tables — the trip vanished from the screen while its rows stayed.
+   * client has to drop itself, all nine tables — a missed one leaves its rows
+   * in the store while the trip vanishes from the screen.
    */
   describe('a deleted trip takes its children with it (C-3a)', () => {
     function seedChildren(tripStore: ReturnType<typeof useTripStore>) {

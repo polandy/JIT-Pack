@@ -1,10 +1,10 @@
 /**
  * A refusal repairs the row it refused (Sync-API §5, ADR-031).
  *
- * Before this, a rejected mutation left the device permanently diverged:
- * the row rendered optimistically, the push was refused, the outbox dropped
- * the mutation per P-5 — and the optimistic row stayed on screen forever,
- * because the server row had not changed and its change_log entry was
+ * Without it, a rejected mutation leaves the device permanently diverged:
+ * the row renders optimistically, the push is refused, the outbox drops the
+ * mutation per P-5 — and the optimistic row stays on screen forever,
+ * because the server row has not changed and its change_log entry is
  * already behind this device's cursor.
  *
  * Two halves, split by what the server can and cannot send:

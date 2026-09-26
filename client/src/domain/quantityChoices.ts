@@ -1,11 +1,11 @@
 /**
  * What the quantity editor offers on M4 and M5 (FR-25.24).
  *
- * A trip item's `quantity` is decided once by generation and was, until
- * now, unreachable from the packing list: the G-6 stepper counts what is
- * already *packed*, and the planned amount could only be changed in M3's
- * review step, which exists once and is gone. The editor closes that, and
- * this module is the part of it that is a rule rather than a control.
+ * A trip item's `quantity` is decided once by generation, and without the
+ * editor it is unreachable from the packing list: the G-6 stepper counts what
+ * is already *packed*, and M3's review step, the other place to change the
+ * planned amount, exists once and is gone. This module is the part of it that
+ * is a rule rather than a control.
  *
  * Two of the quick amounts are the trip's own arithmetic rather than a
  * constant — "one per day" and "one each" — because those are the two

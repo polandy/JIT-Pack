@@ -4,11 +4,11 @@ import { useRoute } from 'vue-router'
 /**
  * A list's selection, shown in the app bar while it lasts (G-20).
  *
- * The bar that counted the selection used to sit in the page, above the
- * list: entering selection inserted it into the flow and every row under it
- * moved down, so the user lost the row they had just held (owner,
- * 2026-09-24). The app bar is already there and already that tall, so it
- * turns into the selection bar instead — nothing in the page moves.
+ * A bar in the page, above the list, would insert itself into the flow on
+ * entering selection and move every row under it down, so the user would
+ * lose the row they had just held. The app bar is already there and already
+ * that tall, so it turns into the selection bar instead — nothing in the
+ * page moves.
  *
  * Data, not a teleport, and keyed by route path — both for the reasons
  * `useHeaderActions` gives.

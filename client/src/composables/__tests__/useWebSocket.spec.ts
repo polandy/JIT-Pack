@@ -132,12 +132,12 @@ describe('useWebSocket', () => {
   /**
    * The token provider legitimately yields null — a Single-User instance
    * is offered no OIDC, and a `server`-mode client can be logged out.
-   * Interpolating that sent `?token=null`, and `wsAuth` only tests for a
-   * non-empty value, so the literal string became `Bearer null` and a
-   * multi-user instance answered "invalid token" where the truth was
-   * "no token". (Verified by hand 2026-08-14: single-user bypasses
-   * `authed` entirely and upgrades either way, so nothing was *broken* —
-   * what was wrong is the diagnosis the server hands back.)
+   * Interpolating it sends `?token=null`, and `wsAuth` only tests for a
+   * non-empty value, so the literal string becomes `Bearer null` and a
+   * multi-user instance answers "invalid token" where the truth is
+   * "no token". (Single-user bypasses `authed` entirely and upgrades either
+   * way, so nothing breaks — what is wrong is the diagnosis the server hands
+   * back.)
    */
   it('omits the token entirely when there is none, rather than sending "null"', async () => {
     const ws = useWebSocket(opts({ getToken: () => null }))
@@ -216,12 +216,9 @@ describe('useWebSocket', () => {
 
   /**
    * Sync-API P-1 names reconnect as one of the four things the read path
-   * serves, and the client never had one: `onclose` nulled the socket and
-   * that was the whole handling. A device whose socket died — the server
-   * restarted under it, the phone changed networks — stayed deaf to every
-   * other device's change until it wrote something itself or reloaded.
-   * Found 2026-09-01 on the family instance: a member's packs never reached
-   * the owner's open tab, while the owner's reached the member's.
+   * serves. Without it, a device whose socket died — the server restarted
+   * under it, the phone changed networks — stays deaf to every other
+   * device's change until it writes something itself or reloads.
    */
   describe('a socket that drops is dialled again (Sync-API P-1)', () => {
     beforeEach(() => {

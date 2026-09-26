@@ -2,10 +2,10 @@
  * What FR-24.3's two deletions are called, for the four surfaces that say it.
  *
  * The rule is one sentence — *retire, remove, or remove-but-this-device-cannot-
- * be-sure* — and it was written out four times: M10's delete section, M7's
- * confirm, and M23's two row builders. Three of the four spelled the `certain`
- * branch as its own ternary, so a fifth surface, or a change to what an
- * uncertain remove says, meant finding them all (§4a).
+ * be-sure* — said on four surfaces: M10's delete section, M7's confirm, and
+ * M23's two row builders. Spelled at each as its own ternary on `certain`, a
+ * fifth surface, or a change to what an uncertain remove says, would mean
+ * finding them all (§4a).
  *
  * The subject is a parameter because the two key families are the product's,
  * not this module's: an item and a Vorlage are retired for different reasons

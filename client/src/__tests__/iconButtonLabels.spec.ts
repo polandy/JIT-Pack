@@ -1,18 +1,15 @@
 /**
- * UX-13 (review 2026-08-25) — an icon-only control carries an accessible
- * name. The app bars had grown unlabeled glyphs faster than any per-screen
- * case could chase them, so the rule is asserted over the *source*, the way
+ * UX-13 — an icon-only control carries an accessible name. Unlabeled glyphs
+ * appear faster than any per-screen case could chase them, so the rule is
+ * asserted over the *source*, the way
  * markRendering.spec.ts confines the mark face: a button whose body renders
  * no text must declare `aria-label` on its opening tag. A `title` alone is
  * not accepted — it is a tooltip, and whether it becomes the accessible
  * name depends on the browser's fallback rather than on this codebase.
  *
- * **The `title` half is the app bar's alone (owner, 2026-08-31).** G-12 asked
- * for a tooltip on every icon-only control instance-wide; measured, 9 of 62
- * carried one, and the rule narrowed to the bars rather than the attribute
- * spreading to 53 more call sites. The bar is where the labels were dropped
- * to buy room, so it is where the name has to stay retrievable — everywhere
- * else an icon sits beside the text it belongs to.
+ * **The `title` half is the app bar's alone** (G-12). The bar is where the
+ * labels are dropped to buy room, so it is where the name has to stay
+ * retrievable — everywhere else an icon sits beside the text it belongs to.
  */
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

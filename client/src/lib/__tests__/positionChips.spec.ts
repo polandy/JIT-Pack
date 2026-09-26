@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * FR-27.2: what M8's collapsed position row says without being opened. The
- * derivation lived in the template editor, which has no component test, so
- * every clause below was previously carried only by an e2e assertion on the
+ * template editor has no component test, so the derivation lives here, where
+ * each clause is pinned on its own rather than by an e2e assertion on the
  * joined string.
  */
 import { describe, expect, it, afterAll } from 'vitest'

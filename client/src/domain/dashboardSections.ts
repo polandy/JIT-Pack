@@ -39,8 +39,8 @@ export interface SectionRow {
 
 /**
  * A row is *open* when it is neither packed nor deliberately skipped — the
- * same reading M1's counts and previews already use, named once because three
- * places now ask it.
+ * same reading M1's counts and previews use, named once because three places
+ * ask it.
  */
 const OPEN_STATES_EXCLUDED = ['packed', 'skipped']
 
@@ -58,10 +58,9 @@ export function isOpenRow(row: { state: string }): boolean {
  * device shown me this yet?) and answers it identically after a clock change,
  * a timezone move or a device that was off for a week.
  *
- * The dashboard is **not** filtered by person (FR-6.1's own filter clause was
- * struck 2026-08-31): this is a section beside the full aggregation, not a
- * lens over it, so the screen still says something in the two modes that have
- * no accounts.
+ * The dashboard is **not** filtered by person (FR-6.1's own filter clause is
+ * struck): this is a section beside the full aggregation, not a lens over it,
+ * so the screen still says something in the two modes that have no accounts.
  */
 export function delegatedToMe(
   trips: readonly DashboardTrip[],

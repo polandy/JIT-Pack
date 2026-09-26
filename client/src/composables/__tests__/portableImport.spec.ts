@@ -93,8 +93,8 @@ items:
 
     const result = orch.commitPortableImport(doc, new Map())
 
-    // It used to import beside itself as "Base Travel (import)"; a restore run
-    // twice therefore doubled every Vorlage in the file.
+    // Imported beside itself as "Base Travel (import)", a restore run twice
+    // would double every Vorlage in the file.
     expect(result).toMatchObject({ id: 'tpl-1', outcome: 'duplicate' })
     expect(master.templateList.map((t) => t.name)).toEqual(['Base Travel'])
   })
@@ -209,10 +209,10 @@ items:
 
   /*
    * FR-19.5: the restore *is* the migration off Local Mode, so what it
-   * pushes is what the server ends up with. It drained the master partition
-   * alone until 2026-08-31 — a trip's rows are their own partition
-   * (ADR-033), so every packing list stayed queued on the importing device,
-   * whose own screen looked right either way (E2E-FLOW-07).
+   * pushes is what the server ends up with. Draining the master partition
+   * alone is not enough — a trip's rows are their own partition (ADR-033),
+   * so every packing list would stay queued on the importing device, whose
+   * own screen looks right either way (E2E-FLOW-07).
    */
   it('pushes the partition of every trip it wrote, not the master rows alone', async () => {
     const orch = newOrch()
@@ -682,7 +682,7 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
     const writerTrips = useTripStore()
 
     // Build a device: a tagged, marked inventory item on an archived trip that
-    // no template mentions — the case that used to lose all three.
+    // no template mentions — the case that can lose all three.
     const shoes = writer.createMasterItem('Wanderschuhe', { icon: '🥾' })
     // Position is derived from what the item already carries, so the order
     // these two are added in *is* the order they come back in.

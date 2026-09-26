@@ -108,7 +108,7 @@ export function analyzeGrid(grid: string[][]): GridAnalysis {
   const width = Math.max(0, ...grid.map((r) => r.length))
   // The two answers depend on each other: which rows are header depends on
   // where the item names are, and counting those names has to skip the
-  // header. A provisional guess under the old one-row assumption breaks it.
+  // header. A provisional guess under a one-row header breaks it.
   const headerRows = countHeaderRows(grid, pickTextColumn(grid, width, 1))
   const itemColumn = pickTextColumn(grid, width, headerRows)
 

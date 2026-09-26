@@ -30,8 +30,8 @@ describe('syncPath', () => {
   })
 
   /*
-   * The id used to interpolate as the string "null" — a path the server
-   * answers 404 and the outbox then retried for ever, naming nothing. Refusing
+   * Interpolated, the id would read as the string "null" — a path the server
+   * answers 404 and the outbox then retries for ever, naming nothing. Refusing
    * it here is the difference between a wedged queue and a stack trace.
    */
   it('refuses a trip partition without a trip id rather than asking for "null"', () => {
@@ -131,10 +131,9 @@ describe('pullPartitionAll', () => {
 
   /*
    * The command line is a client (invariant 4), so §4's paging rule is its
-   * rule too — including the half that had been the app's alone until
-   * 2026-09-01: a server that claims another page and does not move the
-   * cursor. In a browser that spins a tab; here it is `jitpack import` never
-   * returning, on a machine nobody is watching.
+   * rule too — including a server that claims another page and does not move
+   * the cursor. In a browser that spins a tab; here it is `jitpack import`
+   * never returning, on a machine nobody is watching.
    *
    * The fake refuses a fourth call rather than answering for ever, so the
    * unfixed loop fails this case by name instead of exhausting the heap —

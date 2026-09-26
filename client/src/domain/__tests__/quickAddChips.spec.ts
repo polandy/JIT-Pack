@@ -3,8 +3,7 @@ import { chipSuggestions, CHIP_ROW_MAX } from '../quickAddChips'
 import type { MasterItem } from '@/types/domain'
 
 // FR-25.13c: the empty composer offers a recent-items chip row instead of a
-// keyboard. What is already chosen is never offered again (owner directive
-// 2026-08-21).
+// keyboard. What is already chosen is never offered again.
 
 function item(id: string, name: string): MasterItem {
   return { id, name, weight_grams: null, value_cents: null }

@@ -6,8 +6,8 @@
  * something to tap": recently used items from the device-local trail
  * (`local/quickAddRecents`).
  *
- * **What is already chosen is never offered** (owner directive 2026-08-21)
- * — a chip that could only earn a duplicate report is noise, not an offer.
+ * **What is already chosen is never offered** — a chip that could only earn a
+ * duplicate report is noise, not an offer.
  *
  * Pure and client-side like every other suggestion rule (CLAUDE.md
  * invariant 4): the caller passes the inventory and the recents trail in.

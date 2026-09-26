@@ -2,17 +2,12 @@
  * A sync partition as a value, and the two requests that can be made against
  * one (Sync-API §4, §5).
  *
- * Which partition a request addresses used to be carried by the *name of the
- * function*: `pullTrip` and `pullMaster` differed in one path expression,
- * `pullTripAll` and `pullMasterAll` were byte-identical apart from which of
- * those they called, and the app's drain held a third copy of all four
- * requests. A rule learned in one copy therefore had to be carried by hand to
- * the others, which is how the paging guard came to exist in the drain alone
- * until 2026-09-01 (see `pullProtocol.ts`).
- *
- * So the partition is a parameter here, the way it became one on the server
- * for the same reason: one pull, one push, and `syncPath` as the single place
- * that knows a trip's feed answers somewhere else than the master feed.
+ * The partition is a parameter, not the *name of a function*: per-partition
+ * copies of the same request drift, and a rule learned in one copy (the paging
+ * guard in `pullProtocol.ts`) would have to be carried by hand to the others.
+ * The server takes it as a parameter for the same reason: one pull, one push,
+ * and `syncPath` as the single place that knows a trip's feed answers
+ * somewhere else than the master feed.
  */
 
 import { API } from '@/api/routes'
@@ -53,9 +48,9 @@ export const PULL_PAGE_SIZE = 500
  * Where a partition's feed answers.
  *
  * The id is nullable because the master partition has none. A *trip*
- * partition without one is a programming error, and it used to interpolate as
- * the string "null" — a request the server answers 404 and the outbox retries
- * for ever, naming nothing.
+ * partition without one is a programming error and throws: interpolated as
+ * the string "null" it would be a request the server answers 404 and the
+ * outbox retries for ever, naming nothing.
  */
 export function syncPath(partition: PartitionRef): string {
   if (partition.type === 'master') return API.masterSync

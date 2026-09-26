@@ -96,8 +96,8 @@ describe('resolveHead answers what the frame renders', () => {
 
   /**
    * NFR-4.12: the route table stores a catalogue key, so the head every
-   * screen shares speaks the chosen language. It used to store the English
-   * text, which no language switch could reach.
+   * screen shares speaks the chosen language. English text stored there
+   * would be out of reach of every language switch.
    */
   it('renders the route table title in the active locale', () => {
     setLocale('de')

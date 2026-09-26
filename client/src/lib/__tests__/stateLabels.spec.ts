@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * FR-25.4/FR-7.3: what an item's state is called, and the one case where the
- * state is not the whole answer. The table used to live inline in M5 behind a
- * cast, so nothing checked either side of it.
+ * state is not the whole answer. The table lives here rather than inline in
+ * M5 behind a cast, so both sides of it are checked.
  */
 import { describe, expect, it, afterAll } from 'vitest'
 

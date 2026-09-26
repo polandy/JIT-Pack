@@ -54,10 +54,10 @@ export function localIsoDate(at: number): string {
  * followsGroups answers the one question FR-27.4 turns on: does this trip
  * still listen to the groups it was generated from?
  *
- * A trip stops listening when it is **past** — archived, or its end date
- * gone by. Everything else listens, a running trip included: the owner's
- * rule (2026-08-18) is that departure does not freeze a trip, it only
- * decides that the change is *asked about* rather than taken silently.
+ * A trip stops listening when it is **past** — archived, or its end date gone
+ * by. Everything else listens, a running trip included: departure does not
+ * freeze a trip, it only decides that the change is *asked about* rather than
+ * taken silently.
  *
  * `today` is passed in rather than read from the clock, so the boundary is
  * a value a test can stand on either side of.
@@ -94,9 +94,8 @@ export type LifecycleStep = 'start' | 'archive' | null
 
 /**
  * FR-9.1/FR-9.2: `planning` can be started, `active` can be archived, and an
- * archived trip is done. Both M2's row menu and M4's overflow ask here — the
- * rule used to be written into each of them, so a screen could offer a step
- * the other did not.
+ * archived trip is done. Both M2's row menu and M4's overflow ask here, so
+ * neither screen can offer a step the other does not.
  *
  * A trip that has not loaded offers nothing rather than the first step: an
  * absent trip is not a planning one.
@@ -122,11 +121,10 @@ export interface TripRowActionContext {
  * M2's per-trip actions: the row's hold/right-click menu and the hero card's
  * action row both read this list, so neither can offer a step the other
  * refuses. The trip's properties always (FR-2.7) — and, like the lifecycle
- * step, only here since the owner's call of 2026-09-25 that M4's ⋮ holds
- * packing and nothing else; export always (FR-18.3); share only where there
- * is someone to share with (G-8); clone only from the archive (FR-12.1); the
- * one lifecycle step {@link nextLifecycleStep} names; delete for the owner
- * (FR-4.5).
+ * step, only here, since M4's ⋮ holds packing and nothing else; export always
+ * (FR-18.3); share only where there is someone to share with (G-8); clone only
+ * from the archive (FR-12.1); the one lifecycle step {@link nextLifecycleStep}
+ * names; delete for the owner (FR-4.5).
  */
 export function tripRowActions(
   trip: Pick<Trip, 'status'>,
@@ -177,12 +175,11 @@ export function byDeparture(a: PlannableTrip, b: PlannableTrip): number {
  * It takes no status of its own precisely because "active" is the screen's
  * predicate and not this function's; what is shared is the *ordering*.
  *
- * M1's hero is the head of this list (FR-21.13), which is why the order had
- * to become a rule rather than stay whatever the store handed over. It was
- * IndexedDB's key order over random ids: with two active trips the screen
- * named a different one as *the* trip you are on depending on the browser,
- * and E2E-M1-09 found it by disagreeing with itself between Chromium and
- * WebKit.
+ * M1's hero is the head of this list (FR-21.13), which is why the order is a
+ * rule rather than whatever the store hands over. That would be IndexedDB's
+ * key order over random ids: with two active trips the screen would name a
+ * different one as *the* trip you are on depending on the browser — E2E-M1-09
+ * would disagree with itself between Chromium and WebKit.
  */
 export function byDepartureSoonestFirst<T extends PlannableTrip>(trips: readonly T[]): T[] {
   return [...trips].sort(byDeparture)

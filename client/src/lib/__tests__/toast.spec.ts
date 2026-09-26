@@ -115,14 +115,13 @@ describe('presentToast', () => {
  * Ionic's `present()` resolves once the enter animation has played, so the
  * moment after it is the first moment the toast's box is the box a reader
  * sees. Before that the wrapper is still translating and measures somewhere
- * it will not stay. The suite had been waiting on
- * `document.getAnimations().every(a => a.playState !== 'running')` instead,
- * which is true *before* the enter animation is created as well as after it
- * finishes — an assertion that cannot fail is not a wait, and it flaked on
- * `main` at roughly one run in three.
+ * it will not stay. Waiting on
+ * `document.getAnimations().every(a => a.playState !== 'running')` instead
+ * is no wait at all: it is true *before* the enter animation is created as
+ * well as after it finishes, and an assertion that cannot fail flakes.
  *
- * `SheetModal` already carried `data-presented` for exactly this reason; this
- * is the same flag on the one toast funnel.
+ * `SheetModal` carries `data-presented` for exactly this reason; this is the
+ * same flag on the one toast funnel.
  */
 describe('the toast says when it has finished arriving', () => {
   it('carries no settled flag while the enter animation is still playing', async () => {
@@ -139,9 +138,8 @@ describe('the toast says when it has finished arriving', () => {
 /**
  * The default only reaches a toast that goes through `presentToast`. M4's
  * snackbar deliberately does not — it is created, checked and armed before
- * it is presented — so it has to name a lifetime itself, and when it lost
- * one it sat over the row menu until the page moved (found by E2E-M4-39,
- * not by any unit test).
+ * it is presented — so it has to name a lifetime itself; without one it sits
+ * over the row menu until the page moves (E2E-M4-39).
  */
 describe('a toast created outside the helper names its own duration', () => {
   const sources = globSync('src/**/*.{ts,vue}', { cwd: process.cwd() })
