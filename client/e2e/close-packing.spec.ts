@@ -231,7 +231,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * rows would pass a case with one of them. The sheet counts both, the one
    * undo brings both back, and after the second close the two *before* places
    * are records: M6's and M25's *before* each fold to one line at the end
-   * that says why it takes nothing, and neither composer offers it any more.
+   * that says why it takes nothing, and neither composer offers it.
    * *Wieder öffnen* lifts both.
    */
   test('E2E-M4-149: finishing the packing moves the purchases and closes before', async ({

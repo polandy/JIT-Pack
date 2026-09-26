@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * One line of a list that is ticked off — a task on M25 (and M4's window),
- * a thing to buy on M6 (owner, 2026-09-26: one component so the two lists
- * cannot drift apart). The leading slot (the grip or the selection box), the
+ * a thing to buy on M6 (one component so the two lists cannot drift
+ * apart). The leading slot (the grip or the selection box), the
  * name, a second line with what is known about it, anything else at the
  * trailing edge, and the tick last, so its outer edge is the row's (UI-Spec
  * M4).

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * *Fällig* — what is overdue, due today or in the next two days, read above
- * a list's sections (M25's FR-7.14 block, M6's since FR-30.11; one component
- * since 2026-09-26). Tinted faintly in the overdue ink: it is the one place
+ * a list's sections (M25's FR-7.14 block, M6's FR-30.11 block; one component
+ * for both). Tinted faintly in the overdue ink: it is the one place
  * on the screen that asks to be read first. Not a drop target — what makes a
  * line pressing is its day, not where it was put.
  */

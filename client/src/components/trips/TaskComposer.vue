@@ -1,11 +1,10 @@
 <script setup lang="ts">
 /**
- * M25's one composer (FR-7.14, owner 2026-09-25): a task is written at the
- * top of the screen — `ListComposer`, `ChipRow` and `EntrySheet`, the very
- * components M6's composer is built of (owner, 2026-09-26) — the field, then chips that file it as it
- * is typed. Before, each phase had a field at its own end, the first one
- * below the fold once a trip had ten tasks, and a task could only be tagged
- * or dated afterwards, through its sheet.
+ * M25's one composer (FR-7.14): a task is written at the top of the screen —
+ * `ListComposer`, `ChipRow` and `EntrySheet`, the very components M6's
+ * composer is built of — the field, then chips that file it as it is typed,
+ * so a task is tagged and dated as it is written rather than afterwards
+ * through its sheet.
  *
  * Three rows of chips:
  *
@@ -13,8 +12,8 @@
  *    finished packing (FR-7.12), whichever comes first; then the row goes and
  *    everything written is for the road;
  *  - **the tag** — the task tags, and *＋ Tag*, which opens M6's entry sheet
- *    (owner, 2026-09-26): the words typed so far, the day and the tag chooser
- *    with its search-or-create, so a tag that is not one yet is made where
+ *    with the words typed so far, the day and the tag chooser with its
+ *    search-or-create, so a tag that is not one yet is made where
  *    it is needed (FR-7.8);
  *  - **the day** — `DueChips`, shown once there is something to date.
  *
@@ -103,7 +102,7 @@ function add() {
 }
 
 /**
- * M6's entry sheet, for a task (owner, 2026-09-26): opened from *＋ Tag*,
+ * M6's entry sheet, for a task: opened from *＋ Tag*,
  * carrying what was typed, the day and the tag chosen so far. Null while shut.
  */
 const entry = ref<{ body: string; tagId: string | null; day: string | null } | null>(null)

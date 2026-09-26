@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * The sheet a list's entry is written or edited in — M6's entry, M25's new
- * task from the composer's *＋ Tag* (owner, 2026-09-26: the dialog must be
- * the same, so it is one component). Its head, the name, the due day, the
+ * task from the composer's *＋ Tag* (one component, so the dialog is the
+ * same). Its head, the name, the due day, the
  * tag, and the buttons: *Entfernen* where the entry can go, and the one that
  * writes. Nothing is written before that button.
  *

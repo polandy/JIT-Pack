@@ -4,9 +4,8 @@
  * A source's lines (today, only the packing list's) come first, combined
  * under one heading regardless of what category each row carries — the
  * packing list's own categories are not this list's tags, and giving each
- * one its own heading here read as more shopping-list structure than it
- * was (owner feedback 2026-09-23, revising the one-heading-per-category
- * cut this module first shipped with). The list's own entries follow,
+ * one its own heading here would read as more shopping-list structure than
+ * there is. The list's own entries follow,
  * under their own heading. No line is merged with another across the two
  * — „Brot" typed here and „Brot" on the packing list are two decisions,
  * and the list says so rather than guessing that they are one (ADR-066).
@@ -41,7 +40,7 @@ export interface ShoppingSection {
   tagged: boolean
   /**
    * True for the one combined heading every source's lines are filed under
-   * (revised 2026-09-23) — never more than one of these, and absent, not
+   * — never more than one of these, and absent, not
    * empty, when no source has anything open.
    */
   packing: boolean
@@ -63,8 +62,7 @@ function dueDayOf(line: ShoppingLine): string | null {
 /**
  * buildSections files the lines under their headings: every source's lines
  * first, combined under one heading regardless of category, since none of
- * them are this list's own tags to file separately by (revised 2026-09-23)
- * — then the own entries, a section per tag A–Z, then the untagged ones
+ * them are this list's own tags to file separately by — then the own entries, a section per tag A–Z, then the untagged ones
  * (FR-30.9). A section is absent, not empty, when nothing is filed under it.
  *
  * FR-30.10, M25's rule for a task (FR-7.11): inside a section the dated lines
@@ -136,7 +134,7 @@ export interface ListShelf {
   open: number
 }
 
-/** What M6 draws, top to bottom (owner, 2026-09-26 — M25's reading). */
+/** What M6 draws, top to bottom (M25's reading). */
 export interface ShoppingBoard {
   /** The *Fällig* block: pressing open lines of both lists, earliest first. */
   due: ShoppingLine[]

@@ -81,9 +81,8 @@ const emit = defineEmits<{ close: [] }>()
 }
 
 /* The role names type and no spacing, so the browser's own h1 margin is
-   still there to decline — four sheets used to decline it separately, and
-   the one that forgot had its title start half a line below the glyph it
-   was supposed to align with. */
+   still there to decline — declined once here, since a sheet that forgets
+   it has its title start half a line below the glyph it aligns with. */
 .titles h1 {
   margin: 0;
 }

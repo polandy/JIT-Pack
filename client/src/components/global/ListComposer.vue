@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * The composer on top of a list — M25's and M6's one card (owner,
- * 2026-09-26: the two lists must look alike, and one component is what
- * guarantees it). The field and its ＋ on the first line; below, the rows of
+ * The composer on top of a list — M25's and M6's one card (one component is
+ * what keeps the two lists alike). The field and its ＋ on the first line; below, the rows of
  * chips the caller files the next entry with (`ChipRow`).
  *
  * It holds no rule of its own: what an entry is, and where it is written, is

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * One section of a two-part list — M25's phase, M6's list (owner,
- * 2026-09-26: one component so the two read alike). Its head names it and
+ * One section of a two-part list — M25's phase, M6's list (one component so
+ * the two read alike). Its head names it and
  * counts what stands under it; the caller fills the groups and the fold.
  * Headless where the page draws it inside its `RestLine`.
  */

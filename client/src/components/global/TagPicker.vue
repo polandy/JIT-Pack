@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * One tag, chosen by search-or-create — M6's entry and batch sheets, M25's
- * task, composer and batch sheets (owner, 2026-09-26: the dialog must be the
- * same, so it is one component). A search field, the chosen tag as a chip
+ * task, composer and batch sheets (one component, so the dialog is the
+ * same). A search field, the chosen tag as a chip
  * with its ✕, the matching tags as chips, a dashed *„… neu anlegen"* chip for
  * a word no tag carries, and a summary line the caller words. The matching
  * rule is the shared one (`lib/itemEditorOffers.ts`), the one M10's

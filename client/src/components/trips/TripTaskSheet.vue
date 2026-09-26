@@ -3,9 +3,9 @@
  * One task, looked at properly (FR-7.7) — the sheet behind a task's words on
  * M25 and on M4's window.
  *
- * **Ordered by how often each act is wanted (FR-7.14, owner 2026-09-25).**
- * The task's words are its title and are edited in place — a typo used to
- * cost deleting the task and typing it again, which lost its tag and day.
+ * **Ordered by how often each act is wanted (FR-7.14).**
+ * The task's words are its title and are edited in place, so fixing a typo
+ * keeps the task's tag and day.
  * *Erledigt* is the one primary act, then the due day as chips, then the tag;
  * the phase move, the rarest act, is a secondary row under them, and the
  * removal the quiet last line. The facts that do not fit a list line — the

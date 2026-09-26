@@ -2,8 +2,7 @@
  * M25's reading of a trip's tasks (FR-7.14): what is pressing on top, then
  * each phase's open tasks, then each phase's finished ones.
  *
- * The owner's rework of 2026-09-25 put *what is due now* above the tag
- * groups: a task that is overdue, due today or in the next two days is read
+ * *What is due now* stands above the tag groups: a task that is overdue, due today or in the next two days is read
  * in one block across both phases and every tag, and **leaves its group while
  * it is there** — a task listed twice is a task ticked in one place and still
  * open in the other. The finished tasks leave the groups too: one fold per

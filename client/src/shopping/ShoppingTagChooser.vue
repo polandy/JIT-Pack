@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * An entry's one tag (FR-30.9) — the shared `TagPicker` (one mask for M6 and
- * M25, owner 2026-09-26), worded for the shopping list. What this adds is
+ * M25), worded for the shopping list. What this adds is
  * the list's side of it: a shopping tag is a word on the entry rather than a
  * row, so a word is its own id, and a new one is normalised as the entry's
  * tag column is.

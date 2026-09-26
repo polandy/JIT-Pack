@@ -11,11 +11,10 @@
  * and a packing line's check-off writes FR-3.3/FR-25.11j through the write
  * its source bound into it.
  *
- * **Read as M25 reads a trip's tasks** (owner, 2026-09-26: one look and feel
- * for the two lists): the composer on top, then what is due now across both
- * lists, then each list as a section with its tag groups and one *gekauft*
- * fold. The two lists used to be tabs; a thing due tomorrow on the tab not
- * open was a thing nobody saw.
+ * **Read as M25 reads a trip's tasks** (one look and feel for the two
+ * lists): the composer on top, then what is due now across both lists, then
+ * each list as a section with its tag groups and one *gekauft* fold. Both
+ * lists stand on one screen so a thing due tomorrow on either is seen.
  *
  * The composer adds an entry of the list's own: it is on the shopping list
  * alone and counts towards no packing figure. Adding a packing row in a buy
@@ -174,10 +173,9 @@ function isClosed(list: ShoppingMode): boolean {
 }
 
 /**
- * Owner, 2026-09-26 (M25 alike): a list with nothing open under its heading
- * took a heading, a hint and a fold of room above the one still being
- * worked. It leaves reading order for one line at the end, as the closed
- * *before* already did — also while its last open lines stand in the
+ * M25 alike: a list with nothing open under its heading leaves reading order
+ * for one line at the end rather than taking a heading's worth of room above
+ * the one still being worked, as the closed *before* does — also while its last open lines stand in the
  * *Fällig* block, which is where they are read (the line counts them).
  */
 function inOrder(list: ShoppingMode): boolean {
@@ -417,7 +415,7 @@ async function goToField() {
 }
 
 /**
- * The list the next entry goes on — M25's phase chips (owner, 2026-09-26).
+ * The list the next entry goes on — M25's phase chips.
  * *Vor der Reise* until the trip is under way or its packing finished;
  * then the row goes and everything written is for the destination.
  */
@@ -457,7 +455,7 @@ function phaseOf(list: ShoppingMode) {
 }
 
 /**
- * FR-30.10: the day the next entry is due — M25's chips (owner, 2026-09-26).
+ * FR-30.10: the day the next entry is due — M25's chips.
  * Unlike the tag it does not stay after an add: two things due the same day
  * is a coincidence, not a series.
  */
@@ -480,7 +478,7 @@ function addEntry() {
  * an entry (opened from the composer's ＋ Tag, carrying what was typed there)
  * and editing one that exists (a tap on its name) — so `line` is what tells
  * them apart. An existing entry is removed here too, as a task is from its
- * sheet: the row carries no ✕ of its own (owner, 2026-09-26).
+ * sheet: the row carries no ✕ of its own.
  */
 const entrySheet = ref<{
   line: ShoppingLine | null
@@ -562,7 +560,7 @@ setHeaderTitle(
       @pointerup="drag.up"
       @pointercancel="drag.cancel"
     >
-      <!-- M25's composer (owner, 2026-09-26). G-20: in place while a
+      <!-- M25's composer. G-20: in place while a
            selection is on, at rest — typing a new entry mid-batch is a
            different act, and a chip here only files the next entry. -->
       <div class="composer-slot" :class="{ resting: selecting }" :inert="selecting || undefined">
@@ -682,7 +680,7 @@ setHeaderTitle(
           />
         </template>
 
-        <!-- Owner, 2026-09-26 (M25 alike): a list with nothing open — or a
+        <!-- M25 alike: a list with nothing open — or a
              finished packing's *before*, FR-7.12 — is one line at the end. -->
         <section
           v-for="list in restLists"
@@ -723,8 +721,7 @@ setHeaderTitle(
         {{ t('shopping.selectHint') }}
       </p>
 
-      <!-- FR-30.9: the same refusal, named once for the grip too (owner
-           feedback 2026-09-23). -->
+      <!-- FR-30.9: the same refusal, named once for the grip too. -->
       <p
         v-if="!selecting && ownOpenLines.length > 0 && hasSourced"
         class="select-hint"

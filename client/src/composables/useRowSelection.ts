@@ -3,9 +3,8 @@
  * (FR-7.8) and M9 (FR-24.9) share, so a long press means the same thing on
  * all three.
  *
- * It was M6's own code until the owner asked for the two lists to behave
- * alike (2026-09-24); moved rather than copied, `useTaskActs`'s reason: two
- * transcriptions of one gesture do not stay one gesture.
+ * Shared rather than copied, for `useTaskActs`'s reason: two transcriptions
+ * of one gesture do not stay one gesture.
  *
  * Entered by a hold on an eligible row (`useLongPress`'s 500 ms and 8 px, so
  * a finger can still scroll), by a right-click, or by the screen's own app
@@ -20,8 +19,8 @@ import { useLongPress } from './useLongPress'
 /**
  * The app bar's icon for entering a selection (G-20), one for every list
  * that selects. Not `checkboxOutline`: that glyph is the *Aufgaben* view's
- * own, and on M6 and M25 the two stood one above the other meaning different
- * things (FR-7.14, owner 2026-09-25).
+ * own, and on M6 and M25 the two would stand one above the other meaning
+ * different things (FR-7.14).
  */
 export const SELECTION_ICON = checkmarkDoneOutline
 

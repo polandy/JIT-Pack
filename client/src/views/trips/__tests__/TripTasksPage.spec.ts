@@ -165,8 +165,7 @@ beforeEach(() => {
 
 describe('M25 — the two phases of a trip (FR-7.7)', () => {
   /*
-   * The salve and the station are the owner's own two examples, and they are
-   * the two phases: one you meant to do before leaving, one that can only
+   * The salve and the station are the two phases: one you meant to do before leaving, one that can only
    * happen once you are there.
    */
   it('splits the list by phase, both kinds of task in either', async () => {
@@ -253,7 +252,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
   })
 
   /*
-   * A task tag is a word, as a shopping tag is (owner, 2026-09-26): even one
+   * A task tag is a word, as a shopping tag is: even one
    * that carries a mark from before is drawn without it — in the composer, in
    * its group's heading and in the chooser.
    */
@@ -273,7 +272,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
   })
 
   /*
-   * ＋ Tag is M6's entry sheet (owner, 2026-09-26): it carries what was typed,
+   * ＋ Tag is M6's entry sheet: it carries what was typed,
    * files the task under the tag chosen there, and leaves that tag chosen in
    * the composer for the next one.
    */
@@ -313,7 +312,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
   })
 
   /*
-   * Owner, 2026-09-26 (M6 alike): a phase with nothing open is one line at
+   * M6 alike: a phase with nothing open is one line at
    * the end rather than a heading and a hint in the way — a statement, not a
    * control, while nothing below it is done.
    */
@@ -353,7 +352,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
   })
 
   /*
-   * Owner, 2026-09-26: a phase whose last open tasks are read in the Fällig
+   * A phase whose last open tasks are read in the Fällig
    * block has nothing under its heading — it folds like an empty one, and
    * its line counts what waits up there.
    */
@@ -618,8 +617,8 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
 
   /*
    * Every group is a drop target, and its key carries the phase as well as
-   * the tag — that is what lets one movement change both, which is what the
-   * owner asked a drag across the two phases to do.
+   * the tag — that is what lets one movement change both, which is what a
+   * drag across the two phases does.
    */
   it('marks every group as a place a task can be dropped, phase included', async () => {
     seedTrip()
@@ -733,7 +732,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
 })
 
 /**
- * Several tasks at once (2026-09-24): M6's selection, on M25. A hold (its
+ * Several tasks at once: M6's selection, on M25. A hold (its
  * right-click twin is the deterministic seam) or the app bar's icon enters
  * it; the bar can give the selection a tag or send it to a phase, only what
  * changes is written, and one undo takes the whole batch back.

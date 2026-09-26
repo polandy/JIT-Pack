@@ -17,11 +17,10 @@ import { PATH } from './routes'
 
 /**
  * A trip's tasks (FR-7.4, FR-7.6, FR-7.7) — its own chores and the
- * preparations its rows owe. Split out of `packing-list.spec.ts` on
- * 2026-09-20: a task is not a packing row, and the section had grown its own
- * subject.
+ * preparations its rows owe. Its own file because a task is not a packing
+ * row.
  *
- * Since FR-7.7 the one list is read through two windows, and this file covers
+ * The one list is read through two windows (FR-7.7), and this file covers
  * both: **M4** keeps the preparations still due before the trip (the ones you
  * do as part of packing), and **M25** holds every task of the trip in its two
  * phases. The cases below are grouped by the screen that makes the promise,
@@ -59,7 +58,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await expect(figure).toHaveCount(0)
 
     // FR-7.7: the window is made of preparations — what M4 keeps is what you
-    // do as part of packing, and a trip's own chore is no longer in it.
+    // do as part of packing, and a trip's own chore is not in it.
     await addPrepTodo(page, 'Zelt', 'Water the plants')
     await addPrepTodo(page, 'Zelt', 'Empty the fridge')
 
@@ -117,8 +116,8 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await addPrepTodo(page, 'Kamera', 'Water the plants')
     await addPrepTodo(page, 'Kamera', 'Charge the battery')
 
-    // One figure for both kinds (FR-7.6), and the header no longer says the
-    // preparation count a second time in its detail line.
+    // One figure for both kinds (FR-7.6), and the header does not repeat the
+    // preparation count in its detail line.
     const fraction = visible(page).getByTestId('m4-trip-todos-progress')
     await expect(fraction).toHaveText('While packing 0/2')
     await expect(visible(page).getByTestId('m4-header')).not.toContainText('preparation')
@@ -156,9 +155,9 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
   /**
    * E2E-M4-138 (FR-7.6, UI-Spec M4): where the tick stands. The section sits
    * directly above the packing rows, whose control is at the row's own edge
-   * so that the thing you tap is under the thumb — and the tasks were ticked
-   * on the opposite side, which reads as a different kind of row and is
-   * reached across the screen (owner, 2026-09-20).
+   * so that the thing you tap is under the thumb — the tasks are ticked on
+   * the same side, since the opposite one reads as a different kind of row
+   * and is reached across the screen.
    *
    * Geometry rather than markup, because only the rendered box says which
    * edge a control ended up on (invariant 9b's point), and both kinds of task
@@ -325,7 +324,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     const reopened = await openTasks(page, 'before')
     await expect(reopened.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
     // Nothing open is left before the trip: the phase is one line at the end
-    // (owner, 2026-09-26), counting what was done, and opens onto it.
+    // counting what was done, and opens onto it.
     const line = reopened.getByTestId('m25-before-fold')
     await expect(line).toHaveText('Before the trip · nothing open · 1 done')
     await line.click()
@@ -559,10 +558,10 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
-   * E2E-M25-12 (FR-7.8, 2026-09-24): several tasks in one act — M6's own
+   * E2E-M25-12 (FR-7.8): several tasks in one act — M6's own
    * selection, on M25, so a hold means the same on both lists.
    *
-   *  - **A hold selects, it no longer lifts.** The right-click is the hold's
+   *  - **A hold selects, it does not lift.** The right-click is the hold's
    *    deterministic twin (`useRowSelection`); `data-drag` stays `idle`,
    *    the positive signal that nothing was picked up.
    *  - **A tap then chooses**, rather than opening the task's sheet.
@@ -775,7 +774,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await composer.getByTestId('due-chip-today').click()
     await expect(composer.getByTestId('m25-composer-due-current')).toBeVisible()
 
-    // ＋ Tag is M6's entry sheet (owner, 2026-09-26): it carries the words
+    // ＋ Tag is M6's entry sheet: it carries the words
     // and the day typed so far, and makes the tag by search-or-create.
     await composer.getByTestId('m25-composer-tag-new').click()
     const sheet = page.getByTestId('m25-entry-sheet')

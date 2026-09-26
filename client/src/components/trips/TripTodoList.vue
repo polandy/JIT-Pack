@@ -6,11 +6,11 @@
  * resolved ones fold away but stay reachable to untick.
  *
  * Two kinds of task share the list. A row's preparation (FR-7.3) carries the
- * chip of the row it belongs to; the trip's own (FR-7.4) does not. **Since
- * FR-7.7 both kinds carry a seat** (the owner's request of 2026-09-20: *a
- * task can be assigned to somebody like a pack item*).
+ * chip of the row it belongs to; the trip's own (FR-7.4) does not. **Both
+ * kinds carry a seat** (FR-7.7): a task can be assigned to somebody like a
+ * pack item.
  *
- * **Two shapes (FR-7.14, owner 2026-09-25).** M25's `list` rows are two
+ * **Two shapes (FR-7.14).** M25's `list` rows are two
  * lines — the words, and under them what is known about the task: its due
  * pill, the row it prepares, its tag where the row stands outside its group,
  * and the person. A fact never squeezes the words, and **no ✕ stands beside
@@ -18,7 +18,7 @@
  * finger-width from the control that finishes it. M4's `window` keeps its
  * compact one-line rows, which only ever hold preparations.
  *
- * The trip is where these are written (owner, 2026-09-18): M1 only reports
+ * The trip is where these are written: M1 only reports
  * them, because the dashboard takes no actions. Every act is *emitted*: both
  * kinds are written through different actions and both undone through the
  * screen's one snackbar (FR-25.31), so the writer is the screen and this list
@@ -68,7 +68,7 @@ const props = defineProps<{
    */
   lift?: (ev: PointerEvent, task: TripTask, row: HTMLElement) => void
   /**
-   * M25's selection (`useRowSelection`, 2026-09-24): a hold on an open row
+   * M25's selection (`useRowSelection`): a hold on an open row
    * selects it, the way it does on M6. Absent — M4's window — a hold does
    * nothing.
    */
@@ -175,7 +175,7 @@ function hasFacts(task: TripTask): boolean {
       {{ emptyText }}
     </InlineHint>
 
-    <!-- The shared row (M6's too, owner 2026-09-26): the leading slot, the
+    <!-- The shared row (M6's too): the leading slot, the
          words, the facts under them, the tick at the row's own edge. -->
     <ListRow
       v-for="task in open"
@@ -189,7 +189,7 @@ function hasFacts(task: TripTask): boolean {
       :data-testid="`trip-todo-${task.body}`"
       @tick="emit('toggle', task)"
     >
-      <!-- M6's leading edge (2026-09-24): the selection box while selecting,
+      <!-- M6's leading edge: the selection box while selecting,
            the grip otherwise. -->
       <template #start>
         <SelectBox

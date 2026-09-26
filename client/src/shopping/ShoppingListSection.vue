@@ -2,10 +2,9 @@
 /**
  * One list of M6 — *Vor der Reise* or *Vor Ort* — on `ListSection`,
  * `FoldToggle` and `ListRow`, the components M25's phase is drawn with
- * (owner, 2026-09-26: one look and feel, guaranteed by one component): its head with what is
+ * (one look and feel, guaranteed by one component): its head with what is
  * open under it, its tag groups, and **one** *gekauft* fold at its end. The
- * two lists used to be tabs, one hidden behind the other; they now stand one
- * under the other, with what is due now above both.
+ * two lists stand one under the other, with what is due now above both.
  *
  * A component because the page draws a list in two places: in reading
  * order, and — once nothing of it is open, or for *before* once the packing

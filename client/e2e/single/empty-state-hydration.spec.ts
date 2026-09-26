@@ -71,12 +71,11 @@ test.describe('M4 before its rows have arrived @single @m4', () => {
 /**
  * E2E-M6-24 (ADR-033, G-7) — nothing claims the list is empty before it is here.
  *
- * M6 once printed „Vor der Abreise (0)" over a body that was still saying the
- * list was loading. Both statements were on one screen and they disagreed;
- * the number is the one a reader believes, because a count looks settled in
- * a way a sentence does not. Since the tabs became sections (owner,
- * 2026-09-26) the claim that can run ahead of the partition is the empty
- * state and the two list heads — so while the pull is held neither stands,
+ * Guards against a count such as „Vor der Abreise (0)" standing over a body
+ * that still says the list is loading: the number is the one a reader
+ * believes, because a count looks settled in a way a sentence does not. The
+ * claims that can run ahead of the partition are the empty state and the two
+ * list heads — so while the pull is held neither stands,
  * and once it lands the empty state is owed.
  *
  * The same held pull as the case above, which is why it lives beside it.

@@ -2,7 +2,7 @@
 /**
  * *„› 3 erledigt"* / *„› 2 gekauft"* — the one fold at a section's end that
  * holds what is finished (M25's FR-7.14 fold, M6's FR-25.11j reveal; one
- * component since 2026-09-26). Its words do not change when it opens; the
+ * component for both). Its words do not change when it opens; the
  * caret and `aria-expanded` say so.
  */
 import { IonIcon } from '@ionic/vue'

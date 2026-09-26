@@ -73,8 +73,8 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
 
 /**
  * Put a row on the packing list and give it a buy mode in M5 (FR-3.1) — the
- * one way a packing row reaches the shopping list since FR-30.2: M6 no longer
- * writes packing rows, it only shows the ones in a buy mode.
+ * one way a packing row reaches the shopping list (FR-30.2): M6 does not
+ * write packing rows, it only shows the ones in a buy mode.
  *
  * `mode` is the select's label (`'Buy before'`, `'Buy there'`). Ends on M4
  * with the sheet closed and the write landed.
@@ -415,7 +415,7 @@ export async function addTripTodo(
 
 /**
  * FR-7.14: a task of the trip removed the way M25 removes one — from its own
- * sheet, since no ✕ stands on the row any more. Ends with the sheet gone.
+ * sheet, since the row carries no ✕. Ends with the sheet gone.
  */
 export async function removeTaskFromSheet(page: Page, body: string): Promise<void> {
   await visiblePage(page).getByTestId(`trip-todo-open-${body}`).click()

@@ -1,7 +1,7 @@
 /**
  * FR-7.14's quick days: the handful of due days a person actually picks,
  * offered as chips so the calendar is the last resort rather than the only
- * way (owner, 2026-09-25 — setting a day took five taps through two sheets).
+ * way.
  *
  * A day is `YYYY-MM-DD` and `today` comes from the caller, as in
  * `taskDue.ts`: no clock is read here.

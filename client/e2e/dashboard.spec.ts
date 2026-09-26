@@ -150,7 +150,7 @@ test.describe('M1 dashboard @local @m1', () => {
    * E2E-M1-02 (FR-7.3/7.6): a row's preparation is a task of the trip on M1
    * too — it is listed in the *Tasks* card, named by the chip of the row it
    * prepares, and reported without anything to tick, because M1 takes no
-   * actions (owner, 2026-09-18). Resolving it where it lives is what clears
+   * actions. Resolving it where it lives is what clears
    * the card, which is the positive signal that the card reads the todos
    * rather than a copy of them.
    *

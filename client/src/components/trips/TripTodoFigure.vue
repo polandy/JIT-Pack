@@ -35,7 +35,7 @@ const props = withDefaults(
     tripId: string
     /**
      * The ring's diameter — the packing figure beside it sets the scale.
-     * Absent where there is no figure beside it any more (FR-5.10): the
+     * Absent where there is no figure beside it (FR-5.10): the
      * tasks are then the card's one figure and take the lone size.
      */
     ringSize?: number

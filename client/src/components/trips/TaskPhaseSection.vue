@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * One phase of M25 (FR-7.7): its head, its tag groups (FR-7.8) and, since
- * FR-7.14, **one** *erledigt* fold at its end — the finished tasks used to
- * fold under every tag group, and a *1 erledigt* between two headings read as
- * a heading of its own.
+ * One phase of M25 (FR-7.7): its head, its tag groups (FR-7.8) and **one**
+ * *erledigt* fold at its end (FR-7.14) — a fold under every tag group would
+ * put a *1 erledigt* between two headings, where it reads as a heading of its
+ * own.
  *
  * A component because the page draws a phase in two places: in reading
  * order, and — for *before*, once the packing is finished — inside the fold

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
  * FR-7.14: a due day, chosen from chips — *Heute*, *Morgen*, *Vor Abreise*
- * where it applies, and *Datum…* for the calendar as the last resort. The
- * owner's rework of 2026-09-25: a day used to take five taps through two
- * stacked sheets.
+ * where it applies, and *Datum…* for the calendar as the last resort, so
+ * setting a day is one tap.
  *
  * The day in force is its own chip with a ✕, so taking a date off is one tap
- * too. Used by M25 (composer, task sheet, the selection's *Fällig*) and, since
- * 2026-09-26, by M6's composer and entry sheet (FR-30.10) — which is why it is
+ * too. Used by M25 (composer, task sheet, the selection's *Fällig*) and by
+ * M6's composer and entry sheet (FR-30.10) — which is why it is
  * a shared component and works out its chips itself: the shopping module may
  * not reach `domain/` (ADR-066).
  */

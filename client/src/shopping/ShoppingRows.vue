@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
  * M6's open lines — `ListRow`, the component M25's tasks are drawn with
- * (owner, 2026-09-26: one look and feel, guaranteed by one component): the grip or the selection box at the
- * leading edge, the name, a second line with what is known about it — the
+ * (one look and feel, guaranteed by one component): the grip or the
+ * selection box at the leading edge, the name, a second line with what is known about it — the
  * due pill, the amount, the tag where the line stands outside its group, who
  * it is for — and the check-off at the trailing edge, where the thumb rests.
  *
- * There is no ✕ on the row any more: an entry is removed from its sheet, as a
+ * There is no ✕ on the row: an entry is removed from its sheet, as a
  * task is from its own. Every act is reported; the page owns the writes, the
  * undo toast and the drag.
  */
@@ -105,8 +105,8 @@ function hasFacts(line: ShoppingLine): boolean {
           :data-testid="`m6-row-grip-${line.name}`"
           @pointerdown.stop="(e: PointerEvent) => emit('lift', line, e)"
         />
-        <!-- A packing line has nothing to drag (owner feedback 2026-09-23: an
-             empty gap here read as broken) — the dashed placeholder. -->
+        <!-- A packing line has nothing to drag (an empty gap here reads as
+             broken) — the dashed placeholder. -->
         <DragGrip v-else slot="start" off />
       </template>
       <IonLabel

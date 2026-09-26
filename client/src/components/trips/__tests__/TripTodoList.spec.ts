@@ -9,11 +9,10 @@
  * (G-8), a todo already assigned still names its person where nothing can be
  * changed, and a finished todo names but offers nothing.
  *
- * **Since FR-7.7 the seat is on both kinds** (the owner's request of
- * 2026-09-20: a task is handed over like a pack item), and the composer
- * belongs to the screen rather than the list — M4's window has none, because
- * everything it shows hangs off a row. Q3 B's own stamp lived on the line
- * until 2026-09-23; it is the task's own sheet's to show now.
+ * **The seat is on both kinds** (FR-7.7: a task is handed over like a pack
+ * item), and the composer belongs to the screen rather than the list — M4's
+ * window has none, because everything it shows hangs off a row. Q3 B's own
+ * stamp is the task's own sheet's to show, not the line's.
  */
 import { RouterLinkStub, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -238,8 +237,7 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
    * And it stands *beside* the cluster rather than inside it: the cluster is
    * capped at a share of the row so a chip can never push the task's own words
    * off the line, and a tick counted against that cap is paid for by the chip —
-   * which rendered as a bare mark with its name clipped away (owner's eyeball
-   * pass, 2026-09-20).
+   * which then renders as a bare mark with its name clipped away.
    */
   it('leaves the chip its width, standing beside the cluster and not in it', () => {
     const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
@@ -271,7 +269,7 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
 
 /**
  * FR-7.7 on the line: the way into the task's own sheet, where Q3 B's
- * provenance line now lives (moved off the row itself 2026-09-23).
+ * provenance line lives (not on the row itself).
  */
 describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   beforeEach(() => {
@@ -288,7 +286,7 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   })
 
   /*
-   * Owner feedback 2026-09-23: the row is an overview, not the record — who
+   * The row is an overview, not the record — who
    * wrote or finished a task is worth a line in its own sheet, not doubled
    * onto every row of a list read at a glance.
    */

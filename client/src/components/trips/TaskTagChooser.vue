@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
  * FR-7.8's tag choice for tasks — the composer's sheet, one task's sheet and
- * a selection's batch sheet: the shared `TagPicker` (M6's mask, owner
- * 2026-09-26), worded for a task. What this adds is the task's side of it: a
+ * a selection's batch sheet: the shared `TagPicker` (M6's mask), worded for
+ * a task. What this adds is the task's side of it: a
  * tag is a row with an id, and *no tag* is named after the group the task
  * would stand in (FR-7.8).
  *
- * „Exactly one" as the owner asked it — at most one, never two.
+ * At most one tag per task, never two.
  */
 import { computed } from 'vue'
 

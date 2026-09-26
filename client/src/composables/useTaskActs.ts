@@ -7,9 +7,8 @@
  * undo puts back, and what the snackbar says — and the first of them is a
  * question neither screen should be answering twice.
  *
- * It was M4's private code until FR-7.7 gave the tasks a screen of their own.
- * Moved rather than copied, for `rowFacts.ts`'s reason: two transcriptions of
- * one rule do not stay one rule. The seams it needs — the undo record, the
+ * Shared by M4 and M25 (FR-7.7) rather than copied, for `rowFacts.ts`'s
+ * reason: two transcriptions of one rule do not stay one rule. The seams it needs — the undo record, the
  * announcer, the assignee picker — are passed in, because they belong to the
  * screen: a snackbar is a property of the page the reader is looking at.
  */
@@ -214,7 +213,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
 
   /**
    * FR-7.8: the task lands somewhere — a tag, a phase, or both in one motion,
-   * which is what the owner asked a drag across the two to do.
+   * which is what a drag across the two does.
    *
    * **One undo for the whole movement.** The record holds a single action at
    * a time by design (`useRowUndo`), so arming one for the tag and another

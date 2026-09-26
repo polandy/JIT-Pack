@@ -188,7 +188,7 @@ describe('buildSections — due days (FR-30.10)', () => {
 })
 
 /*
- * M25's reading, on the shopping list (owner, 2026-09-26): what is due now
+ * M25's reading, on the shopping list: what is due now
  * leads in one block across both lists, and leaves its group while it is
  * there; each list is a section of its own below.
  */

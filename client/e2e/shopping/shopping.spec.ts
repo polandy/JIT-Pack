@@ -18,12 +18,12 @@ import { setDateField } from '../helpers/ionic'
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
  *
- * The shopping list is a module of its own since FR-30 (ADR-066): it holds
+ * The shopping list is a module of its own (FR-30, ADR-066): it holds
  * entries typed into it, which are on the shopping list only, and it shows the
  * packing list's rows in a buy mode, which stay packing rows. Every case here
  * reaches a packing row the way a person does — added on M4, given its mode in
- * M5 — because M6 no longer writes packing rows at all. The module's cases
- * live in this directory (FR-29.9's layout, first used here).
+ * M5 — because M6 does not write packing rows at all. The module's cases
+ * live in this directory (FR-29.9's layout).
  *
  * Local Mode throughout, like the M4 suite: everything here is client-side.
  */
@@ -44,7 +44,7 @@ function sheet(page: Page) {
   return page.getByTestId('m6-entry-sheet')
 }
 
-/** One of M6's two lists, standing one under the other since 2026-09-26. */
+/** One of M6's two lists, standing one under the other. */
 type ListKey = 'before' | 'local'
 
 /** One list's section — `m6-before` or `m6-local`. */
@@ -62,7 +62,7 @@ function head(page: Page, key: ListKey) {
 
 /**
  * A list with nothing open, folded to one line at the end of the screen
- * (owner, 2026-09-26 — M25 alike): *„Before the trip · nothing open"*.
+ * (as on M25): *„Before the trip · nothing open"*.
  */
 function restLine(page: Page, key: ListKey) {
   return list(page, key).getByTestId(`m6-${key}-fold`)
@@ -86,7 +86,7 @@ async function addEntry(page: Page, name: string, key?: ListKey) {
 }
 
 /**
- * Remove an own entry the one way M6 offers since 2026-09-26: its name opens
+ * Remove an own entry the one way M6 offers: its name opens
  * its sheet, and the sheet's *Remove* takes it — the row carries no ✕.
  */
 async function removeEntry(page: Page, name: string) {
@@ -140,8 +140,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
    * and removed — and survives a reload in between, because it is a row of
    * its own table on the device rather than a screen's state. The fold under
    * its list counts what was bought and keeps its words when opened; its
-   * state is `aria-expanded`. Removing is its sheet's, since the row lost its
-   * ✕ (owner, 2026-09-26).
+   * state is `aria-expanded`. Removing is its sheet's, since the row carries
+   * no ✕.
    */
   test('E2E-M6-27: an entry is bought, put back and removed, and survives a reload (FR-30.1)', async ({
     page,
@@ -338,9 +338,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     ])
 
     // The toast's undo puts both back exactly where they were. Scoped to
-    // `.pack-toast`, the app's one undo-snackbar style (found 2026-09-22: a
-    // shopping toast without it silently fell back to Ionic's stock, barely
-    // readable palette, and no assertion here would have caught it).
+    // `.pack-toast`, the app's one undo-snackbar style: a shopping toast
+    // without it silently falls back to Ionic's stock, barely readable
+    // palette, which only a scoped locator catches.
     await page.locator('ion-toast.pack-toast').getByRole('button', { name: 'Undo' }).click()
     await expect(m6(page).getByTestId('m6-group-tag-Apotheke').locator('h3')).toHaveText([
       'Mückenspray',
@@ -411,7 +411,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(host).toHaveAttribute('data-drag', 'idle')
 
     // A packing row has nothing to drag either — a dashed placeholder
-    // rather than an empty gap (owner feedback 2026-09-23), and the same
+    // rather than an empty gap, and the same
     // refusal named once in words below the list.
     const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
     await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
@@ -443,9 +443,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     target = (await apotheke.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
-    // The shared frame (`composables/dragToGroup.css`, unified with
-    // `TripTasksPage.vue`'s own drag 2026-09-23) still reaches this page's
-    // ghost now that it moved out of this component's own scoped style.
+    // The shared frame (`composables/dragToGroup.css`, shared with
+    // `TripTasksPage.vue`'s drag) reaches this page's ghost from outside
+    // this component's own scoped style.
     await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(apotheke).toHaveAttribute('data-drop-over', '')
@@ -471,7 +471,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
    *
    * The day is set in the entry's own sheet and written on *Save*, so the
    * promises are asserted on the list: the line wears the day in words
-   * (*Tomorrow*), and the dated entry leads the screen — since 2026-09-26 a
+   * (*Tomorrow*), and the dated entry leads the screen — a
    * line due within two days leaves its group for the *Due* block on top,
    * which names the group it left — while *Brot*, undated, stays where it
    * was. A reload proves the write, not the repaint. Then M1: the card
@@ -609,7 +609,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
       .click()
 
     // Gone from the open list — and counted by the line the emptied list
-    // folds to (owner, 2026-09-26), which is what makes the disappearance an
+    // folds to, which is what makes the disappearance an
     // outcome rather than a loss.
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
     const bar = restLine(page, 'before')
@@ -791,9 +791,8 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
 
 /**
  * M6's own spine (UI-Test-Spec E2E-M6-01/03/04/16): the two lists, their
- * headings and their counts, with both kinds of line on them. The lists were
- * tabs until 2026-09-26; they now stand one under the other, each a section
- * with its own head.
+ * headings and their counts, with both kinds of line on them. The lists
+ * stand one under the other, each a section with its own head.
  */
 test.describe('M6 shopping — the two lists and their counts @local @m6', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -804,7 +803,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     page,
   }) => {
     // A tagged master item; its category must not surface as a heading here
-    // (revised 2026-09-23) — a packing category is not this list's tag.
+    // — a packing category is not this list's tag.
     await page.goto(PATH.items)
     await createItem(page, 'Sonnencreme', { tags: ['Drogerie'] })
     await createTripViaWizard(page, TRIP)
@@ -840,17 +839,16 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
   })
 
   /**
-   * E2E-M6-36 (FR-30.8, FR-30.10; owner, 2026-09-26): M6 reads as M25 does —
-   * both lists on one screen, one under the other, and what is due now in a
-   * block above them both. The case the tabs got wrong: a thing due today on
-   * the list not open was a thing nobody saw.
+   * E2E-M6-36 (FR-30.8, FR-30.10): M6 reads as M25 does — both lists on one
+   * screen, one under the other, and what is due now in a block above them
+   * both, so a thing due today on either list is seen.
    *
    * The composer files the next entry on the list its chip names, and dates
    * it with its day chips. The entry due today stands in the *Due* block and
    * **not** under its own list — so that list has nothing under a heading and
    * folds to its line at the end, which counts the one waiting above
-   * (owner, 2026-09-26: a heading over nothing read as a list left over).
-   * The block names the group the line left. Then the row's lost ✕: an
+   * (a heading over nothing reads as a list left over). The block names
+   * the group the line left. Then removal without a ✕ on the row: an
    * entry is removed from its sheet, and stays removed across a reload.
    */
   test('E2E-M6-36: both lists stand on one screen, what is due today leads above them, and an entry is removed from its sheet', async ({

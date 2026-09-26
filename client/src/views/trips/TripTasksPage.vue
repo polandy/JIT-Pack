@@ -10,18 +10,13 @@
  * phases therefore takes it off the packing list or puts it back — which is
  * what moving it means.
  *
- * Two sections rather than a segment (owner's choice of the 2026-09-20 round,
- * variant A): the two phases of a trip are one thing read top to bottom, not
- * two lists you switch between the way the shopping list's *Vor der Reise*
- * and *Vor Ort* are — those are two places you stand, and you are only ever
- * in one of them. **And the shopping list stays its own feature** (owner:
- * *„die einkaufsliste soll separat von den tasks sein"*): nothing here reads
- * or writes it.
+ * Two sections rather than a segment: the two phases of a trip are one thing
+ * read top to bottom, not two lists you switch between. **The shopping list
+ * stays its own feature** (ADR-066): nothing here reads or writes it.
  *
- * **Reworked 2026-09-25 (FR-7.14, the owner's UX round).** What is due now
- * leads, in one *Fällig* block across both phases and every tag; the one
- * composer sits on top with its phase, tag and day chips, and the FAB takes
- * the reader to it; rows are two lines with no ✕ beside the tick; each phase
+ * **The reading order (FR-7.14).** What is due now leads, in one *Fällig*
+ * block across both phases and every tag; the one composer sits on top with
+ * its phase, tag and day chips, and the FAB takes the reader to it; rows are two lines with no ✕ beside the tick; each phase
  * folds its finished tasks once; and a finished packing's *before* moves to
  * the end, folded to one line.
  *
@@ -30,9 +25,9 @@
  * a filter for „mine" on a list where everything is everybody's would hide
  * things for no reason.
  *
- * FR-7.9's notes were a second segment here until FR-7.13 made them threads
- * and gave them a view of their own (M26): a note is not work, and a place
- * people write in earns its own pill (ADR-051 amendment 3).
+ * FR-7.9's notes are not here: they have a view of their own (M26, FR-7.13),
+ * because a note is not work, and a place people write in earns its own pill
+ * (ADR-051 amendment 3).
  */
 import { IonChip, IonContent, IonFab, IonFabButton, IonIcon, IonLabel, IonPage } from '@ionic/vue'
 import {
@@ -107,7 +102,7 @@ const {
   load: loadIdentity,
 } = useTripIdentity(props.tripId, orchestrator)
 
-// FR-7.14: M25 carries the FAB now, so its snackbar clears it as M6's does.
+// FR-7.14: M25 carries the FAB, so its snackbar clears it as M6's does.
 const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m25)
 
 /** Hidden while their removal can still be taken back (FR-25.31). */
@@ -199,10 +194,9 @@ function isClosed(phase: TaskPhase): boolean {
 }
 
 /**
- * Owner, 2026-09-26 (M6 alike): a phase with nothing open under its heading
- * took a heading, a hint and a fold of room above the one still being
- * worked. It leaves reading order for one line at the end, as the closed
- * *before* already did — also while its last open tasks stand in the
+ * M6 alike: a phase with nothing open under its heading leaves reading order
+ * for one line at the end rather than taking a heading's worth of room above
+ * the one still being worked, as the closed *before* does — also while its last open tasks stand in the
  * *Fällig* block, which is where they are read (the line counts them).
  */
 function inOrder(phase: TaskPhase): boolean {
@@ -286,7 +280,7 @@ function onLift(ev: PointerEvent, task: TripTask, row: HTMLElement) {
 }
 
 /**
- * Several tasks at once (2026-09-24) — M6's selection, so a hold means the
+ * Several tasks at once — M6's selection, so a hold means the
  * same on both lists: a hold on a task's words, a right-click, or the app
  * bar's icon. It reaches every open task shown, in both phases and across
  * both kinds; a resolved one is folded away and not in it.
@@ -564,7 +558,7 @@ function onSheetRemove() {
           />
         </template>
 
-        <!-- Owner, 2026-09-26 (M6 alike): a phase with nothing open — or a
+        <!-- M6 alike: a phase with nothing open — or a
              finished packing's *before*, FR-7.12 — is one line at the end. -->
         <section
           v-for="phase in restPhases"

@@ -214,7 +214,7 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
   })
 
   /*
-   * The row carries no ✕ (owner, 2026-09-26 — M25's rows carry none): an
+   * The row carries no ✕ (as M25's rows carry none): an
    * entry is removed from its sheet, as a task is from its own.
    */
   it('removes an entry from its sheet, as a delete of its own row', async () => {
@@ -254,7 +254,7 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
 })
 
 /*
- * Owner, 2026-09-26 (M25 alike): a list with nothing open is one line at the
+ * M25 alike: a list with nothing open is one line at the
  * end of the screen, a statement while nothing was bought, a fold once
  * something was — and stays in its place while its only open line stands in
  * the Fällig block.
@@ -1097,7 +1097,7 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     page.findAll('[data-testid="m6-row-label"] h3').map((h) => h.text())
 
   /*
-   * M25's *Fällig* block (owner, 2026-09-26): what is overdue, due today or
+   * M25's *Fällig* block: what is overdue, due today or
    * in the next two days leads, across both lists, named by its tag since it
    * stands outside its group — and leaves that group while it is there.
    */
@@ -1166,8 +1166,8 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
   })
 
   /*
-   * M25's day row under the field (owner, 2026-09-26): shown once something
-   * is typed, *Vor Abreise* on the tab bought before the trip, and the day
+   * M25's day row under the field: shown once something is typed, *Vor
+   * Abreise* on the list bought before the trip, and the day
    * gone again after the add.
    */
   it('dates the next entry from the composer’s chips, the eve of departure among them', async () => {
