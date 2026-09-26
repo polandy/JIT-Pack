@@ -74,6 +74,7 @@ import ForWhomToggles from '@/components/global/ForWhomToggles.vue'
 import InventoryBrowseSheet from '@/components/global/InventoryBrowseSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -795,7 +796,17 @@ function onKeydown(event: KeyboardEvent) {
           data-testid="quick-add-group"
           @click="selectGroup(row.template.id)"
         >
-          <IonIcon :icon="albumsOutline" />
+          <!-- FR-28.8: the group's own mark where it has one; the generic
+               glyph stays the fallback, so an unmarked group still reads as
+               a group and not as an item. -->
+          <ItemMark
+            v-if="row.template.icon"
+            :mark="row.template.icon"
+            surface="plain"
+            :size="22"
+            class="group-mark"
+          />
+          <IonIcon v-else :icon="albumsOutline" data-testid="quick-add-group-glyph" />
           <span class="group-text">
             <span class="group-name">{{ row.template.name }}</span>
             <span class="group-preview">{{ previewText(row.preview) }}</span>
@@ -1035,6 +1046,10 @@ function onKeydown(event: KeyboardEvent) {
 .group-row ion-icon {
   font-size: var(--jp-icon-md);
   color: var(--jp-brand);
+  flex-shrink: 0;
+}
+
+.group-mark {
   flex-shrink: 0;
 }
 

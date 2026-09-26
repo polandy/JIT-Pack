@@ -1662,6 +1662,10 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   Mode rebuilds its store from IndexedDB on every navigation. A group's own mark is set from the same picker beside its
   name and then renders wherever that group is offered — the M7 row, M3 step 3, M8's *Gruppen* section and the FR-27.12
   peek sheet header. One assertion per surface, because the field exists precisely so those four stop being hardcoded.
+* **E2E-M8-28** `local` (FR-28.8 on FR-27.15 and FR-27.10) — **implemented** (`template-editor.spec.ts`): a marked and
+  an unmarked group, both matched among a Vorlage's loose positions. M8's fold row for the marked group carries its
+  mark; the unmarked one's has no slot at all. On a trip that picked neither, M4's quick-add card for the marked group
+  carries the mark instead of the generic group glyph, and the unmarked group's card keeps the glyph.
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and
   **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M8-09** `all` (FR-27.4) — **implemented** (`e2e/group-refresh.spec.ts`): a group gains a
@@ -3664,7 +3668,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-28.5 | E2E+UNIT | G15-02 (accessible name excludes the mark); `markRendering.spec.ts` — no view outside `ItemMark.vue`/`MarkPicker.vue` applies the mark face or renders an `icon` value, mirroring the FR-21.7 hex-in-`client/src` test that keeps colours in one table |
 | FR-28.6 | UNIT+GATE | `scripts/mark-font-gate.mjs` (in `make client` and the CI client job): the subset's `unicode-range` covers exactly the curated index and nothing else, and the file stays under its size ceiling — a mark that would render as tofu is a build failure, not a support ticket. Measured: **103 code points, 80 KB** (NFR-4.3, ADR-021). `typography.spec.ts` pins the self-hosted `@font-face`; `sampleMaster.spec.ts` pins that the dev seed uses no glyph outside the index |
 | FR-28.7 | E2E | M9-07 (one edit, both surfaces; and both composer paths, since only the suggestion carries `source_item_id`), M5-15 (the sheet reads the master item and offers no picker) |
-| FR-28.8 | E2E | M8-18 (template mark on all four offering surfaces) |
+| FR-28.8 | E2E | M8-18 (template mark on all four offering surfaces), M8-28 (the fold row and the quick-add card) |
 | FR-28.9 | SERVER+UNIT | Go: `capMark` rejects an over-long value and touches nothing else (`itemmark_test.go`); `schema_shape_test.go` pins the column on both tables and on the sync whitelist; merge is ordinary LWW (no special case) |
 | FR-28.10 | UNIT | `internal/portable` and `internal/store` round-trip with and without `icon` on all three levels (document, group, item); the client's `domain/portable.ts` and `commitPortableImport` likewise; an export from before the field imports unmarked (FR-18.4 tolerance) |
 | FR-28.11 | E2E | M10-11 runs in `local` — the picker, the search and the suggestion work with no server present |

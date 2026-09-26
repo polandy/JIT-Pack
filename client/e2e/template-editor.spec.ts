@@ -7,6 +7,7 @@ import {
   createItemSheet,
   openQuickAdd,
   expectTripOpen,
+  createTripViaWizard,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import {
@@ -1109,6 +1110,70 @@ test.describe('M8 group marks (FR-28.8)', () => {
       'Sommer',
     )
     await expect(vorlage.getByTestId('item-mark')).toHaveText('🧴')
+  })
+})
+
+/**
+ * E2E-M8-28 — FR-28.8 on the two surfaces E2E-M8-18 does not walk: M8's
+ * FR-27.15 fold row and M4's FR-27.10 quick-add card. Each is asserted
+ * beside an unmarked group on the same surface, because "shows the mark" is
+ * only a claim about the mark when the fallback renders next to it.
+ */
+test.describe('M8/M4 group marks on the offering rows (FR-28.8)', () => {
+  test.slow()
+
+  /** Pick a mark in M8's head through the same picker M10 uses. */
+  async function setMark(page: Page, query: string, glyph: string) {
+    await visiblePage(page).getByTestId('m8-mark').click()
+    await expect(page.getByTestId('mark-picker')).toBeVisible()
+    await page.getByTestId('mark-search').fill(query)
+    await page.getByTestId('mark-tile').filter({ hasText: glyph }).click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m8-mark')).toContainText(glyph)
+  }
+
+  test('E2E-M8-28: the fold row and the quick-add card carry the group’s mark', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'group', 'Camping Basis')
+    await setMark(page, 'camping', '⛺')
+    await addPosition(page, 'Zelt')
+    await addPosition(page, 'Schlafsack')
+    await backToList(page)
+    await createTemplate(page, 'group', 'Werkzeug')
+    await addPosition(page, 'Hammer')
+    await addPosition(page, 'Zange')
+    await backToList(page)
+
+    // The fold row: both groups are recognised among the loose positions.
+    await createTemplate(page, 'template', 'Zeltwochenende')
+    for (const name of ['Zelt', 'Schlafsack', 'Hammer', 'Zange']) {
+      await addPosition(page, name)
+    }
+    const marked = visiblePage(page).locator('.fold-hint').filter({ hasText: 'Camping Basis' })
+    const plain = visiblePage(page).locator('.fold-hint').filter({ hasText: 'Werkzeug' })
+    await expect(marked.getByTestId('item-mark')).toHaveText('⛺')
+    // No slot at all: one name, no column to keep aligned (the plain ladder).
+    await expect(plain).toBeVisible()
+    await expect(plain.getByTestId('item-mark-slot')).toHaveCount(0)
+
+    // The quick-add card, on a trip that picked neither group.
+    await createTripViaWizard(page, { name: 'Wochenende' })
+    await openQuickAdd(page)
+    const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
+    await input.fill('Camping')
+    const card = visiblePage(page).getByTestId('quick-add-group')
+    await expect(card).toHaveText(/Camping Basis/)
+    await expect(card.getByTestId('item-mark')).toHaveText('⛺')
+    await expect(card.getByTestId('quick-add-group-glyph')).toHaveCount(0)
+    // An unmarked group keeps the generic glyph, so it still reads as a group.
+    await input.fill('Werkzeug')
+    await expect(card).toHaveText(/Werkzeug/)
+    await expect(card.getByTestId('quick-add-group-glyph')).toBeVisible()
+    await expect(card.getByTestId('item-mark-slot')).toHaveCount(0)
   })
 })
 
