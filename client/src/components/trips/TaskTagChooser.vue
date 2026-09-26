@@ -19,13 +19,9 @@ import { IonIcon, IonSearchbar } from '@ionic/vue'
 import { addOutline, closeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import ItemMark from '@/components/items/ItemMark.vue'
 import { t } from '@/i18n'
 import { tagOffer } from '@/lib/itemEditorOffers'
 import type { TaskTag } from '@/types/domain'
-
-/** The size a tag chip wears its mark at (G-15's scale). */
-const MARK_SIZE = 14
 
 const props = defineProps<{
   /** The tags a task may carry, in their own order. */
@@ -80,7 +76,6 @@ function commitQuery() {
       <!-- The chosen tag first and always visible, with the one act it offers. -->
       <span v-if="assigned" class="chip assigned">
         <span class="chip-name">
-          <ItemMark v-if="assigned.icon" :mark="assigned.icon" surface="plain" :size="MARK_SIZE" />
           {{ assigned.name }}
         </span>
         <button
@@ -102,7 +97,6 @@ function commitQuery() {
         :data-testid="`task-tag-${tag.name}`"
         @click="emit('tag', tag.id)"
       >
-        <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="MARK_SIZE" />
         {{ tag.name }}
       </button>
 

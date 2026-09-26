@@ -281,11 +281,7 @@ const VACATION = {
   // among them on purpose: a task is filed by what it is about, and the
   // overlap with an item tag would be the one thing variant B accepts as a
   // cost rather than something the seed should go looking for.
-  taskTags: [
-    { name: 'Apotheke', icon: '💊' },
-    { name: 'Haus', icon: '🚪' },
-    { name: 'Bahn', icon: '🚆' },
-  ] as const,
+  taskTags: [{ name: 'Apotheke' }, { name: 'Haus' }, { name: 'Bahn' }] as const,
   tripTasks: [
     { task: 'Pflanzen giessen', phase: TASK_PHASE_BEFORE },
     { task: 'Elektronische Geräte abschalten', phase: TASK_PHASE_BEFORE },
@@ -452,7 +448,7 @@ export function seedSampleMaster(
     }
     addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
     VACATION.taskTags.forEach((tag, index) => {
-      orchestrator.createTaskTag(tag.name, index, tag.icon)
+      orchestrator.createTaskTag(tag.name, index)
     })
     for (const { task, phase } of VACATION.tripTasks) {
       orchestrator.addTemplateTask(vacationTemplateId, task, phase)

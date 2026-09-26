@@ -126,13 +126,13 @@ function seedRow(id: string, name: string) {
 }
 
 /** FR-7.8: a task tag in the master store, the way a pull delivers one. */
-function seedTaskTag(id: string, name: string, sortOrder: number) {
+function seedTaskTag(id: string, name: string, sortOrder: number, icon: string | null = null) {
   useMasterStore().applyChange({
     seq: 0,
     table: TABLE.taskTags,
     id,
     deleted: false,
-    row: { name, sort_order: sortOrder },
+    row: { name, sort_order: sortOrder, icon },
   })
 }
 
@@ -250,6 +250,26 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       'before',
       { taskTagId: 'tag-apo', dueDate: null },
     )
+  })
+
+  /*
+   * A task tag is a word, as a shopping tag is (owner, 2026-09-26): even one
+   * that carries a mark from before is drawn without it — in the composer, in
+   * its group's heading and in the chooser.
+   */
+  it('draws a task tag as its name alone, never with a mark', async () => {
+    seedTrip()
+    seedTaskTag('tag-apo', 'Apotheke', 0, '💊')
+    seedTask('Salbe holen', { task_tag_id: 'tag-apo' })
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.get('[data-testid="m25-composer-tag-Apotheke"]').text()).toBe('Apotheke')
+    expect(page.get('[data-testid="m25-group-tag-apo"]').text()).not.toContain('💊')
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(page.findComponent({ name: 'TaskTagChooser' }).text()).not.toContain('💊')
+    expect(page.findComponent({ name: 'ItemMark' }).exists()).toBe(false)
   })
 
   /*

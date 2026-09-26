@@ -33,15 +33,11 @@ import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DueChips from '@/components/global/DueChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import ItemMark from '@/components/items/ItemMark.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase, type TaskTag } from '@/types/domain'
-
-/** The size a chip wears its tag's mark at (G-15's scale). */
-const MARK_SIZE = 14
 
 const props = defineProps<{
   tripId: string
@@ -205,9 +201,7 @@ defineExpose({ focus })
         :data-testid="`m25-composer-tag-${tag.name}`"
         @click="toggleTag(tag.id)"
       >
-        <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="MARK_SIZE" />{{
-          tag.name
-        }}
+        {{ tag.name }}
       </ChoiceChip>
       <ChoiceChip add data-testid="m25-composer-tag-new" @click="openEntry">
         {{ t('tasks.tagAdd') }}

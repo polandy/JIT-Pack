@@ -3118,7 +3118,7 @@ token would prove nothing there is anything to prove.
     ADR-035). A picked day is written at once, the sheet stays up, and the undo writes the day the task had before.
   * **Tag** (FR-7.8) — **M6's search-or-create mask since 2026-09-26** (`TaskTagChooser`, the shape of
     `ShoppingTagChooser`): a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕ (which
-    takes it off), the matching tags as chips with their marks, a dashed *„… neu anlegen"* chip for a word no tag
+    takes it off), the matching tags as chips, a dashed *„… neu anlegen"* chip for a word no tag
     carries, and a summary line — *„Abgelegt unter: X"*, or *„Noch kein Tag — die Aufgabe steht unter „Ohne Tag"."*
     naming the group it stands in (*Aus Packliste* for a preparation). Exactly one: choosing is the act. The batch
     sheet has no summary and offers the *no tag* group as a chip instead, since it has no one tag to ✕.

@@ -17,7 +17,6 @@ import { IonList } from '@ionic/vue'
 import { computed } from 'vue'
 
 import InlineHint from '@/components/global/InlineHint.vue'
-import ItemMark from '@/components/items/ItemMark.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -26,9 +25,6 @@ import type { PhaseShelf } from '@/domain/taskBoard'
 import { TASK_ORIGIN_PREP, type TaskGroup, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { TASK_PHASE_BEFORE, type TaskPhase } from '@/types/domain'
-
-/** The size a group's heading wears its tag's mark at (G-15's scale). */
-const MARK_SIZE = 15
 
 const props = withDefaults(
   defineProps<{
@@ -118,9 +114,6 @@ function groupName(group: TaskGroup): string {
         :droppable="!readonly"
         :data-testid="`m25-group-${group.key}`"
       >
-        <template v-if="group.tag?.icon" #mark>
-          <ItemMark :mark="group.tag.icon" surface="plain" :size="MARK_SIZE" />
-        </template>
         <TripTodoList
           :trip-id="tripId"
           :tasks="group.tasks"

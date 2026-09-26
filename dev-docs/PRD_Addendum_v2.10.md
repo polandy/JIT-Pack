@@ -5987,7 +5987,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     the words typed so far, the day chips, the tag chooser and *Hinzufügen*), and the tag chooser — here, in the task
     sheet and in the selection's batch sheet — is **M6's search-or-create mask** (a search field, the chosen tag with
     its ✕, matching chips, a dashed *„… neu anlegen"*, a summary line). M6 in turn took M25's composer and reading
-    (FR-30.11).
+    (FR-30.11). **A task tag is drawn as its name alone** — no mark in the composer's chips, the group headings or
+    the chooser, as a shopping tag has none (owner, the same day); the `task_tags.icon` column stays, unread by the
+    screen, and the dev seed sets none.
   * **Modes.** All three; nothing here reaches the server. The seat and *Meine* stay Server-only (G-8).
   * **Surfaces:** M25 (composer, *Fällig* block, rows, folds, closed *before*, sheet, selection bar, FAB), M4 (the
     figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..17, with
