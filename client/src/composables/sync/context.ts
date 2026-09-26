@@ -17,6 +17,9 @@ import type { FeatureStore } from '@/sync/featureModule'
 import type {
   Container,
   DestinationProfile,
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
   GeneratedPosition,
   ItemDependency,
   ItemTodo,
@@ -64,11 +67,17 @@ export interface TripReads {
   getTripTodos(tripId: string): TripTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
-  /** The four `cascade.ts` asks for, since a group hands it this store. */
+  /** The six `cascade.ts` asks for, since a group hands it this store. */
   childRows(tripId: string): CascadeRow[]
   itemChildRows(tripItemId: string): CascadeRow[]
   commentChildRows(commentId: string): CascadeRow[]
+  excursionChildRows(excursionId: string): CascadeRow[]
+  travelerChildRows(travelerId: string): CascadeRow[]
   templateSourceRows(templateId: string): CascadeRow[]
+  /** FR-31: a trip's excursions, their participant rows and their lines. */
+  getExcursions(tripId: string): Excursion[]
+  getExcursionTravelers(tripId: string): ExcursionTraveler[]
+  getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[]
 }
 
 /** What the action groups read off the master store — and nothing else. */

@@ -29,6 +29,9 @@ import type {
   ItemTag,
   ItemTodo,
   NoteAck,
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
   ShoppingEntry,
   TaskFacts,
   TaskTag,
@@ -62,6 +65,9 @@ import {
   masterItemRow,
   memberRow,
   noteAckRow,
+  excursionRow,
+  excursionTravelerRow,
+  excursionItemRow,
   profileRow,
   seriesRow,
   templateItemRow,
@@ -385,6 +391,46 @@ function rowToNoteAck(id: string, row: Record<string, unknown>): NoteAck {
   }
 }
 
+function rowToExcursion(id: string, row: Record<string, unknown>): Excursion {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    name: row['name'] as string,
+    starts_on: (row['starts_on'] as string | null | undefined) ?? null,
+    ends_on: (row['ends_on'] as string | null | undefined) ?? null,
+    source_template_id: (row['source_template_id'] as string | null | undefined) ?? null,
+  }
+}
+
+function rowToExcursionTraveler(id: string, row: Record<string, unknown>): ExcursionTraveler {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    excursion_id: row['excursion_id'] as string,
+    traveler_id: row['traveler_id'] as string,
+  }
+}
+
+function rowToExcursionItem(id: string, row: Record<string, unknown>): ExcursionItem {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    excursion_id: row['excursion_id'] as string,
+    trip_item_id: (row['trip_item_id'] as string | null | undefined) ?? null,
+    source_item_id: (row['source_item_id'] as string | null | undefined) ?? null,
+    name: row['name'] as string,
+    category_name: (row['category_name'] as string | null | undefined) ?? null,
+    assigned_traveler_id: (row['assigned_traveler_id'] as string | null | undefined) ?? null,
+    quantity: Number(row['quantity'] ?? 1),
+    packed_count: Number(row['packed_count'] ?? 0),
+    state: (row['state'] as ExcursionItem['state'] | undefined) ?? 'open',
+    mode: (row['mode'] as ExcursionItem['mode'] | undefined) ?? ITEM_MODE_PACK,
+    bought_at: (row['bought_at'] as string | null | undefined) ?? null,
+    not_in_luggage: Boolean(row['not_in_luggage']),
+    for_all_participants: Boolean(row['for_all_participants']),
+  }
+}
+
 function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
   return {
     id,
@@ -446,6 +492,9 @@ export const TABLE_CODECS = {
   // todo's beside it because a registry keyed by table cannot hold two.
   [TABLE.comments]: { parse: rowToComment, encode: commentRow },
   [TABLE.noteAcks]: { parse: rowToNoteAck, encode: noteAckRow },
+  [TABLE.excursions]: { parse: rowToExcursion, encode: excursionRow },
+  [TABLE.excursionTravelers]: { parse: rowToExcursionTraveler, encode: excursionTravelerRow },
+  [TABLE.excursionItems]: { parse: rowToExcursionItem, encode: excursionItemRow },
 } satisfies Record<SyncTable, TableCodec>
 
 /**

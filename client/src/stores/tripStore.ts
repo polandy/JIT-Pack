@@ -18,6 +18,9 @@ import type {
   TripKPIs,
   Traveler,
   Container,
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
   ItemComment,
   ItemTodo,
   NoteAck,
@@ -52,6 +55,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   // FR-7.4: a separate bucket rather than a filter over `todos`, so that
   // every packing figure reading `todos` cannot count a trip task by mistake.
   const tripTodos = ref<Map<string, TripTodo[]>>(new Map())
+  // FR-31 (ADR-077): an excursion, who goes on it, and its own lines —
+  // three trip-partition tables, bucketed by trip_id like the rest.
+  const excursions = ref<Map<string, Excursion[]>>(new Map())
+  const excursionTravelers = ref<Map<string, ExcursionTraveler[]>>(new Map())
+  const excursionItems = ref<Map<string, ExcursionItem[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
   // FR-27.4. Flat maps keyed by row id rather than per trip: all three are
   // read for one trip at a time, and a per-trip bucket would have to be
@@ -60,7 +68,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const generatedPositions = ref<Map<string, GeneratedPosition>>(new Map())
   const appliedChanges = ref<Map<string, AppliedChange>>(new Map())
 
-  // The eight per-trip buckets, all one shape (see bucketedRows).
+  // The eleven per-trip buckets, all one shape (see bucketedRows).
   const itemRows = bucketedRows(tripItems, (r) => r.trip_id)
   const travelerRows = bucketedRows(travelers, (r) => r.trip_id)
   const containerRows = bucketedRows(containers, (r) => r.trip_id)
@@ -69,6 +77,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const noteAckRows = bucketedRows(noteAcks, (r) => r.trip_id)
   const todoRows = bucketedRows(todos, (r) => r.trip_id)
   const tripTodoRows = bucketedRows(tripTodos, (r) => r.trip_id)
+  const excursionRows = bucketedRows(excursions, (r) => r.trip_id)
+  const excursionTravelerRows = bucketedRows(excursionTravelers, (r) => r.trip_id)
+  const excursionItemRows = bucketedRows(excursionItems, (r) => r.trip_id)
 
   // --- Getters ---
 
@@ -206,6 +217,22 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return (comments.value.get(tripId) ?? []).filter((c) => c.trip_item_id === null)
   }
 
+  /** FR-31.1: a trip's excursions. */
+  function getExcursions(tripId: string): Excursion[] {
+    return excursions.value.get(tripId) ?? []
+  }
+
+  /** FR-31.3: the participant rows of a trip's excursions — none means everybody. */
+  function getExcursionTravelers(tripId: string): ExcursionTraveler[] {
+    return excursionTravelers.value.get(tripId) ?? []
+  }
+
+  /** FR-31.4: the lines of a trip's excursions — of one excursion when it is named. */
+  function getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[] {
+    const all = excursionItems.value.get(tripId) ?? []
+    return excursionId === undefined ? all : all.filter((l) => l.excursion_id === excursionId)
+  }
+
   /** FR-7.9: every tick of a trip's notes — who has seen which one. */
   function getNoteAcks(tripId: string): NoteAck[] {
     return noteAcks.value.get(tripId) ?? []
@@ -340,6 +367,47 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /**
+   * excursionChildRows names what a delete of one excursion takes with it:
+   * its participant rows and its lines, the rows the server's cascade
+   * tombstones (FR-31.1).
+   */
+  function excursionChildRows(excursionId: string): Array<{ table: SyncTable; id: string }> {
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    for (const list of excursionTravelers.value.values()) {
+      for (const r of list) {
+        if (r.excursion_id === excursionId) rows.push({ table: TABLE.excursionTravelers, id: r.id })
+      }
+    }
+    for (const list of excursionItems.value.values()) {
+      for (const l of list) {
+        if (l.excursion_id === excursionId) rows.push({ table: TABLE.excursionItems, id: l.id })
+      }
+    }
+    return rows
+  }
+
+  /**
+   * travelerChildRows names what a traveller taken off the trip takes with
+   * them from its excursions (FR-31.5): their participant rows and their own
+   * lines — the server's cascade on travelers(id).
+   */
+  function travelerChildRows(travelerId: string): Array<{ table: SyncTable; id: string }> {
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    for (const list of excursionTravelers.value.values()) {
+      for (const r of list) {
+        if (r.traveler_id === travelerId) rows.push({ table: TABLE.excursionTravelers, id: r.id })
+      }
+    }
+    for (const list of excursionItems.value.values()) {
+      for (const l of list) {
+        if (l.assigned_traveler_id === travelerId)
+          rows.push({ table: TABLE.excursionItems, id: l.id })
+      }
+    }
+    return rows
+  }
+
+  /**
    * templateSourceRows names the FR-27.4 registrations that point at one
    * template. The rows live here and travel the *master* partition (spec
    * P-3), which is why a deleted group's cascade has to reach into this store.
@@ -380,6 +448,20 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     push(
       TABLE.comments,
       getTripTodos(tripId).map((t) => t.id),
+    )
+    // FR-31: lines and participants before the excursion they hang off, and
+    // all three before the trip items and travellers they point at.
+    push(
+      TABLE.excursionItems,
+      getExcursionItems(tripId).map((l) => l.id),
+    )
+    push(
+      TABLE.excursionTravelers,
+      getExcursionTravelers(tripId).map((r) => r.id),
+    )
+    push(
+      TABLE.excursions,
+      getExcursions(tripId).map((e) => e.id),
     )
     push(
       TABLE.tripGeneratedPositions,
@@ -426,7 +508,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       sinks[child.table]?.remove(child.id)
     }
     trips.value.delete(id)
-    // The eight per-trip buckets are keyed by trip id; the loop above emptied
+    // The eleven per-trip buckets are keyed by trip id; the loop above emptied
     // them, this drops the empty keys with the trip.
     tripItems.value.delete(id)
     travelers.value.delete(id)
@@ -435,6 +517,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     tripTodos.value.delete(id)
     comments.value.delete(id)
     noteAcks.value.delete(id)
+    excursions.value.delete(id)
+    excursionTravelers.value.delete(id)
+    excursionItems.value.delete(id)
     members.value.delete(id)
   }
 
@@ -464,6 +549,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       },
     },
     [TABLE.noteAcks]: bucketSink(noteAckRows),
+    [TABLE.excursions]: bucketSink(excursionRows),
+    [TABLE.excursionTravelers]: bucketSink(excursionTravelerRows),
+    [TABLE.excursionItems]: bucketSink(excursionItemRows),
   }
 
   /**
@@ -478,10 +566,18 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       removeTrip(id)
       return
     }
-    for (const child of table === TABLE.tripItems ? itemChildRows(id) : []) {
+    for (const child of childRowsOf(table, id)) {
       sinks[child.table]?.remove(child.id)
     }
     sinks[table]?.remove(id)
+  }
+
+  /** The rows a delete of one row of this partition takes with it. */
+  function childRowsOf(table: SyncTable, id: string): Array<{ table: SyncTable; id: string }> {
+    if (table === TABLE.tripItems) return itemChildRows(id)
+    if (table === TABLE.excursions) return excursionChildRows(id)
+    if (table === TABLE.travelers) return travelerChildRows(id)
+    return []
   }
 
   function applyChange(change: PullChange): void {
@@ -537,12 +633,17 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getItemComments,
     getTripComments,
     getNoteAcks,
+    getExcursions,
+    getExcursionTravelers,
+    getExcursionItems,
     itemsWithOpenPrep,
     kpis,
     setTrip,
     childRows,
     itemChildRows,
     commentChildRows,
+    excursionChildRows,
+    travelerChildRows,
     templateSourceRows,
     removeTrip,
     applyChange,
