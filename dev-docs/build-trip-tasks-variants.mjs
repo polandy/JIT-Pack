@@ -1,14 +1,14 @@
 /**
  * Builds UI_Concept_TripTasks_variants.html — the rendered round for the
- * owner request of 2026-09-20, second reading.
+ * trip's tasks.
  *
- * The request in one line: **the trip's tasks get a screen of their own**,
+ * In one line: **the trip's tasks get a screen of their own**,
  * beside the packing list and the shopping list — except the ones that are
  * packing work, which stay where the packing happens. A task carries a
  * phase (before the holiday / during it), an assignee like a packing row,
  * and its history: who wrote it and when, who finished it and when.
  *
- * The shopping list is **not** part of this (owner, same day): M6 keeps its
+ * The shopping list is **not** part of this: M6 keeps its
  * own two lists, and nothing here reads or writes them.
  *
  * Same rule as the other variant sheets: the CSS is lifted verbatim from

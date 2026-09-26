@@ -1,7 +1,7 @@
 /**
  * Builds UI_Concept_PerPersonRows_variants.html from the prototype's own stylesheet.
  *
- * The problem being mocked (owner, 2026-09-11): a per-person item costs one rendered
+ * The problem being mocked: a per-person item costs one rendered
  * row per traveler. FR-25.1's cluster names the item once, but it does not *save* a
  * line — the head is an extra line above N children that are always expanded. On a
  * four-person trip a toothbrush is five lines, and a list of twelve such items is

@@ -1,13 +1,13 @@
 # Concept — trip notes: written by one traveller, read by all, ticked per person
 
-**Status:** **decided 2026-09-21, built 2026-09-22, in the same PR as this concept.** Variants and an interactive
-prototype are in `dev-docs/UI_Concept_TripNotes_variants.html`. The built feature is **FR-7.9** in
-`dev-docs/PRD_Addendum_v2.10.md` §3.7a, which is now authoritative over this document; the per-person-state
+**Status:** **decided, built.** Variants and an interactive prototype are in
+`dev-docs/UI_Concept_TripNotes_variants.html`. The built feature is **FR-7.9** in
+`dev-docs/PRD_Addendum_v2.10.md` §3.7a, which is authoritative over this document; the per-person-state
 tradeoff is `dev-docs/adr/ADR-073_A_Notes_Tick_Is_A_Row_Per_Person_Not_A_Column_On_The_Comment.md`.
 
-**Asked for:** *„Auf einer Reise Notizen machen, die die anderen Mitreisenden lesen können — z.B. der Code für das
-Schlüsselfach, die Telefonnummer des Pizzakuriers. Auf dem Dashboard soll man die letzten Notizen von anderen sehen.
-Man kann sie abhaken und als erledigt deklarieren; der State gilt für den User, der es deklariert, nicht global."*
+**Scope:** notes on a trip that the other travellers can read — the key-box code, the pizza courier's phone number.
+The dashboard shows the latest notes by others. A note can be ticked as done, and the tick belongs to the person who
+sets it, not to the trip.
 
 ## 1. What a note is, and what it is not
 
@@ -49,14 +49,14 @@ concept, and it is why a note is not a task with a flag.
   deliberate exception to FR-7.4's *„M1 takes no actions"* (see decision 2) and amends it for notes only.
 * **Push.** A new note uses the existing „to all members" notification path; without it nobody reads the code in time.
 
-## 5. Decisions (owner, 2026-09-21)
+## 5. Decisions
 
 The recommended variant was taken everywhere except question 2.
 
 | # | Question | Decided | Alternatives, and what they cost |
 |---|---|---|---|
 | 1 | Where the notes live | **A — a second segment inside M25**, carrying the count of new notes | B, a fourth pill, reopens the pill-row measurement ADR-051 amendment 1 closed at three words; C, a card above the packing list, competes with the list being worked |
-| 2 | Tick on M1 | **B — yes, the card carries the tick** | A (report only) held FR-7.4's ruling; the owner chose the tick because *„gesehen"* is exactly what one says at the dashboard. The FR-7.4 ruling was made against an empty composer standing above every dashboard, which a tick is not |
+| 2 | Tick on M1 | **B — yes, the card carries the tick** | A (report only) held FR-7.4's ruling; the tick is taken because *„gesehen"* is exactly what one says at the dashboard. The FR-7.4 ruling was made against an empty composer standing above every dashboard, which a tick is not |
 | 3 | Who sees who ticked | **Everyone, in the note's sheet only** | Not in the list: a line per note about others' ticks makes the list a read-receipt board |
 | 4 | Own notes | **Never new, no tick** | A tick on my own note would say nothing |
 | 5 | Push on a new note | **Yes**, the existing „to all members" path | Without it nobody reads the code in time |

@@ -34,7 +34,7 @@ Read this file fully before touching code. It is the orientation document: what 
 | Which agent CLI reads which config? | `dev-docs/agent-tooling.md` |
 | What was built, and why that way? | `dev-docs/implementation-log.md` — append-only; opens with an index, scan it and open only what it names |
 
-Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
+Only the current version of each document is kept. Never write a "v2" of a doc — replace the text in place. A spec states the current product only: no revision notes, no dated provenance, no "amended"/"used to" narration — git holds the history. The two append-only ledgers and the ADRs are the exception, since recording history is their job.
 
 ## Documentation layout — three tiers, and they do not mix
 

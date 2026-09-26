@@ -63,7 +63,7 @@ body{padding:0;margin:0}
 </div>
 
 <script>
-/* The two photo groups from the owner's scenario, sharing the camera. */
+/* The scenario's two photo groups, sharing the camera. */
 const GROUPS = [
   { id:'g-makro', emoji:'📷', name:'Makro Fotografie',
     items:[['Kamera',1],['Makro-Objektiv',1],['Ringlicht',1],['Zwischenringe',2],['Stativ',1]] },

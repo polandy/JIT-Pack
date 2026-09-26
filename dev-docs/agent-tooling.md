@@ -20,7 +20,7 @@ reason this file exists.
 | Slash commands | `.claude/commands/*.md` | `/next`, `/review`, `/status` | surfaced as project skills under the same names |
 | MCP servers | `.mcp.json` | project servers | project servers |
 | Formatting on edit | `.claude/hooks/format-file.sh` | `PostToolUse` from the `.claude` settings | same file, same settings — see below |
-| Migrations speed bump | **Retired 2026-09-21 (ADR-067).** A schema change now *owes* a migration, so neither the `deny` rule nor the Copilot hook exists any more; what holds the pair together is the chain gate in `internal/store` (`TestSchemaChain_EndsWhereSchemaSQLDoes`). | — |
+| Migrations speed bump | **None (ADR-067).** A schema change *owes* a migration, so there is no `deny` rule and no Copilot hook; what holds the pair together is the chain gate in `internal/store` (`TestSchemaChain_EndsWhereSchemaSQLDoes`). | — |
 
 `.github/copilot-instructions.md` is deliberately a **pointer, not a second orientation document**.
 It exists because the cloud agent and code review do not read `CLAUDE.md`, and it says three things
@@ -38,11 +38,11 @@ difference is silent:
 | Edited file, in the `PostToolUse` payload | `tool_input.file_path` | `tool_input.path` |
 | Repository root in the environment | `CLAUDE_PROJECT_DIR` | not set |
 
-`format-file.sh` originally read `file_path` and branched on `$CLAUDE_PROJECT_DIR`. Under Copilot
-both were empty, so the hook exited 0 having formatted nothing — a green, quiet, entirely inert
-hook, and the only symptom would have been a `format` job failing on a branch days later. It now
-reads either spelling, normalises a relative path against the repository root and derives that root
-with `git rev-parse` when the variable is unset.
+`format-file.sh` therefore reads either spelling, normalises a relative path against the repository
+root and derives that root with `git rev-parse` when the variable is unset. A hook that read only
+`file_path` and branched on `$CLAUDE_PROJECT_DIR` would find both empty under Copilot and exit 0
+having formatted nothing — a green, quiet, entirely inert hook, whose only symptom is a `format` job
+failing on a branch days later.
 
 **The general rule this leaves behind:** a hook shared by both tools reads both spellings of the
 edited path, tolerates either an absolute or a repository-relative filename and never depends on

@@ -480,7 +480,7 @@ ok(sh.includes('zugewiesen an'), 'the sheet labels the assignment as M6 does —
 ok(sh.includes('gepackt hat es') && sh.includes('nicht wählbar'),
   'the packing record stands beside it and is explicitly not selectable');
 // Both pickers mark their selection the same way (.pk.sel — orange outline);
-// the responsible picker read a field it no longer wrote, so nothing was marked.
+// the responsible picker must read the field it writes, or nothing is marked.
 ok(await page.evaluate(() => {
   const rows = [...document.querySelectorAll('#itemSheet .assign')];
   const resp = rows.find(r => /Zugewiesen an/.test(r.textContent));

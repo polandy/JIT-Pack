@@ -1,13 +1,11 @@
 # MVP Plan — "the family packs a real vacation with it"
 
-Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for
-this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B
-`2b89504`, Track D `980ba1b`; **D's release cut followed on 2026-08-28** — `v0.2.0`, the first release with an image
-that starts against today's schema. **Wave 2 is merged too** (2026-08-21): Track C `61a790b`, Track F `46c1690`, Track G
-`2607317`. **Track E (i18n) is done** — closed 2026-08-22 with M17, the last screen; no view is without `t()` any
-more (verified 2026-09-11). **Track J is merged** (`443327d`, FR-2.7/M22) and **Track I is built** (variant A, the
-fifth route class). **What is still owed of the two waves is Track G step 3 alone**, the owner's M14 eyeball — the
-one deliverable no agent session can produce. §5 records where they touch. Written from a full-repo survey
+Status: **approved** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for this push, merges stay
+serialized with explicit go-ahead). **Wave 1 is merged**: Track A `56f15a3`, Track B `2b89504`, Track D `980ba1b`, with
+D's release cut `v0.2.0`. **Wave 2 is merged too**: Track C `61a790b`, Track F `46c1690`, Track G `2607317`. **Track E
+(i18n) is done** — no view is without `t()`. **Track J is merged** (`443327d`, FR-2.7/M22) and **Track I is built**
+(variant A, the fifth route class). **What is still owed of the two waves is Track G step 3 alone**, the owner's M14
+eyeball — the one deliverable no agent session can produce. §5 records where they touch. Written from a full-repo survey
 (client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this
 file, then only the files your track names.
 
@@ -51,30 +49,18 @@ page, Web Push with self-generated VAPID (zero config needed), WebSocket hub, sy
 - **B2 — Server Mode offline = data at risk.** The sync outbox (`client/src/composables/useSyncOutbox.ts`) queues
   mutations **in memory only**. A reload or app kill while offline loses the queue; with no app-shell cache the reload
   itself has nothing to boot from.
-- ~~**B3 — Server Mode has zero e2e coverage.**~~ **Closed 2026-08-24** by the two backend-backed projects: `single`
-  (2026-08-21) for the wire, and the mock-IdP `server` project (ADR-029) for identity — two accounts, membership,
-  attribution, the G-3 lock naming its holder and FR-5.7's takeover. Everything it left owed has since landed:
-  delegation (E2E-FLOW-02) on 2026-08-25, presence (G-10) and the admin surface (M20) on 2026-08-28 — the last two found
-  three defects nothing else could reach, recorded in `dev-docs/e2e-tests.md`. Only real-provider coverage is still
-  open, and it is not an MVP blocker. Original finding:** All 25 Playwright specs run mode `local`; E2E-G2-01 (queue +
-  conflict log) is explicitly unbuilt because no backend-backed Playwright project exists. Multi-user, presence,
-  delegation and conflict paths have never been driven through the app.
-- ~~**B4 — No deployable release.**~~ **Closed 2026-08-28.** `v0.2.0` is cut and both images are published and pulled
-  back to verify: `ghcr.io/polandy/jit-pack:0.2.0`
+- ~~**B3 — Server Mode has zero e2e coverage.**~~ **Closed** by the two backend-backed projects: `single` for the
+  wire, and the mock-IdP `server` project (ADR-029) for identity — two accounts, membership, attribution, the G-3 lock
+  naming its holder, FR-5.7's takeover, delegation (E2E-FLOW-02), presence (G-10) and the admin surface (M20). Only
+  real-provider coverage is open, and it is not an MVP blocker.
+- ~~**B4 — No deployable release.**~~ **Closed.** `v0.2.0` is cut and both images are published and pulled back to
+  verify: `ghcr.io/polandy/jit-pack:0.2.0`
   (`sha256:68081649afa76441d748b318feb0566f4a25fd1f37e9f5395e002029e66b0ba9`) and
   `ghcr.io/polandy/jit-pack-client:0.2.0` (`sha256:ea4000bd61de8ad1827bd9651f333811064516c30fc4ff5960783f6f5c635186`).
-  The eight documented references to `0.2.0`, across five files — `docs/installation.md` three times,
-  `deploy/multi-user/docker-compose.yml` twice (backend and client), `docs/upgrades.md`, `docs/index.md`, `README.md` —
-  were written ahead of the tag and became true with it. Two things the cut established that were until then only
-  asserted: the tag push does reach `docker.yml` (every prior run of it was a `workflow_dispatch`), so the PAT mechanism
-  `release.yml` describes works; and `metadata-action` renders `v0.2.0` as `0.2.0`, which is the form the docs use. One
-  wart is worth knowing: the generated changelog's BREAKING CHANGES entries quote commit bodies written before ADR-018
-  and mention schema migrations that no longer exist, so the release notes carry a box in front of them pointing at
-  `docs/upgrades.md`. Original finding:** Docs in three places instruct `ghcr.io/polandy/jit-pack:1.0.0` — that tag does
-  not exist (only `v0.1.0`, ~40 commits stale, and it would refuse today's schema via `ErrSchemaStale`). Only the
-  backend image is in the publish workflow; the client image (`client/Dockerfile`) is published nowhere. There is no
-  multi-user compose example — the one "production" Traefik snippet in `docs/installation.md` runs `JITPACK_SINGLE_USER:
-  "true"`.
+  The tag push reaches `docker.yml`, so the PAT mechanism `release.yml` describes works, and `metadata-action`
+  renders `v0.2.0` as `0.2.0`, the form the docs use. One wart is worth knowing: the generated changelog's BREAKING
+  CHANGES entries quote commit bodies written before ADR-018 and mention the pre-ADR-018 migration chain, so the
+  release notes carry a box in front of them pointing at `docs/upgrades.md`.
 - **B5 — Upgrades lose family data.** Pre-1.0 upgrade path (ADR-018) is export portable YAML → empty DB → import, and
   the portable export carries **no item photos, no avatars, no packing progress, no accounts**. For a family instance
   with history this is real loss. MVP-grade mitigation is acceptable (see Track D), a full fix is not required.
@@ -83,15 +69,14 @@ page, Web Push with self-generated VAPID (zero config needed), WebSocket hub, sy
 
 - **S1 — i18n gaps.** Fully hard-coded English: M1 Dashboard, M6 Shopping, TripMembers, M16/M20, ConflictLog, Login,
   global chrome (TabBar/NavRail/avatars); M2 mostly hard-coded; M3 steps 1/2/4 hard-coded (step 3 is done). **M15 and
-  M18 came off this list with Track F** (`46c1690` localized both while it was in there anyway) — verified in the code,
-  not assumed. Rule: a section is a coherent unit to localize — finish whole screens.
+  M18 are localized** (Track F, `46c1690`). Rule: a section is a coherent unit to localize — finish whole screens.
 - **S2 — Local Mode backup omits the three FR-27.4 tables** (`trip_template_sources`, `trip_generated_positions`,
   `trip_applied_changes` — confirmed absent from `client/src/local/backup.ts` and `domain/portable.ts`). A restored
   device re-asks answered proposals and resurrects deleted positions.
 - **S3 — M4 loses scroll position when a detail opens** (ADR-012 overlay amendment). Painful on a 40-row list on a
   phone.
-- **S4 — M14 has never been eyeballed with real proposals** (positive e2e written 2026-08-20; a rendered owner eyeball
-  is still owed). E2E-M12-03's positive half is owed-but-unwritten.
+- **S4 — M14 has never been eyeballed with real proposals** (the positive e2e exists; a rendered owner eyeball is
+  owed).
 - **S5 — Docs gaps for the operator path:** no push/notifications page (HTTPS requirement, iOS install requirement, how
   to verify), no upgrade procedure ("export *before* pulling"), no backup cron/timer example, no IdP-startup-ordering
   note (server fail-fasts if the IdP loses the boot race), no "create your family's users in the IdP" walkthrough.
@@ -135,7 +120,7 @@ Renders on real phone sizes; owner eyeball before finalizing (working agreement)
 Files: `client/playwright.config.ts` (new project), `scripts/e2e.sh`, `.github/workflows/ci.yml`, new specs under
 `client/e2e/`, `dev-docs/e2e-tests.md` ledger.
 
-**Status 2026-08-24: both projects exist.** Step 1 and E2E-G2-01 landed with `single` (`2b89504`); step 2's multi-user
+**Status: both projects exist.** Step 1 and E2E-G2-01 landed with `single` (`2b89504`); step 2's multi-user
 half is the `server` project (ADR-029), whose first run found the defect it was built to find — a takeover the loser's
 screen contradicted. Steps 3 and 4 are done for both: `e2e-server` is its own CI job, and the ledger carries every case
 with mode `server`.
@@ -173,14 +158,13 @@ Files: `client/src/composables/useSyncOutbox.ts`, a small IndexedDB persistence 
 Files: `.github/workflows/docker.yml`, `release.yml`, `Dockerfile`, `docker-compose.yml` or a new `deploy/` example,
 `docs/installation.md`, `docs/configuration.md`, new `docs/` pages, `mkdocs.yml` nav, `README.md`.
 
-1. ~~Verify `RELEASE_PLEASE_TOKEN` is configured; merge/refresh the release-please PR (#19 is open since July) and cut a
-   release so a current backend image exists on ghcr.~~ **Done 2026-08-28**: #19 merged as `v0.2.0` with all thirteen
-   checks green. The PAT was configured seven hours after the PR was opened, which is why the PR is still authored by
-   `app/github-actions` — authorship is fixed at creation and says nothing about which token release-please used
-   afterwards. The proof it was the PAT is that CI ran on the PR at all.
+1. ~~Verify `RELEASE_PLEASE_TOKEN` is configured and cut a release so a current backend image exists on ghcr.~~
+   **Done**: #19 merged as `v0.2.0` with all thirteen checks green. A release-please PR's author is fixed at creation
+   and says nothing about which token release-please uses afterwards; the proof the PAT is used is that CI runs on the
+   PR at all.
 2. ~~Add the client image (`client/Dockerfile`, nginx) to `docker.yml` — publish both on `v*` tags, digest-discipline
-   per invariant 8.~~ **Reversed 2026-09-02 (ADR-043)**: `jitpackd` serves the client itself, so there is one image and
-   no second Dockerfile. The digest discipline moved to the root `Dockerfile`'s two stages.
+   per invariant 8.~~ **Reversed (ADR-043)**: `jitpackd` serves the client itself, so there is one image and no
+   second Dockerfile. The digest discipline lives in the root `Dockerfile`'s two stages.
 3. A real multi-user compose example: the app + reverse proxy, OIDC env vars, same origin by construction since ADR-043
    (the routing table survives only for a deployment that serves the client itself; **`/ws` outside `/api/v1` is the
    documented trap** there), `Host` preserved, SPA fallback for `/auth/callback`, restart policy for the IdP boot race.
@@ -193,10 +177,10 @@ Files: `.github/workflows/docker.yml`, `release.yml`, `Dockerfile`, `docker-comp
    example (systemd timer with `sqlite3 .backup`).
 6. `mkdocs build --strict` gates all of it.
 
-### Track E — i18n completion *(S1 · effort M · no dependencies, wide but shallow)* — **✅ DONE 2026-08-22**
+### Track E — i18n completion *(S1 · effort M · no dependencies, wide but shallow)* — **✅ DONE**
 
-All three PR groups landed; M17 was the last screen. Verified 2026-09-11: no view under `client/src/views` is without
-`t()`. `CLAUDE.md`'s backlog item 4 carries the closing line.
+All three PR groups landed: no view under `client/src/views` is without `t()`. `CLAUDE.md`'s backlog item 4 carries the
+closing line.
 
 Files: the zero-`t()` views listed in §3 S1, `client/src/i18n/messages/{en,de}.ts`, catalogue-integrity test.
 
@@ -219,11 +203,11 @@ new sections (old file) still succeeds — the current behaviour becomes the doc
 Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per ADR-012), `dev-docs/e2e-tests.md`.
 
 1. ~~M4 scroll restoration when a detail sheet closes~~ ✅ done (the ADR-012 overlay amendment's carried cost).
-2. ~~Write E2E-M12-03's positive half~~ ✅ done 2026-08-21 — both halves, see `dev-docs/e2e-tests.md`.
+2. ~~Write E2E-M12-03's positive half~~ ✅ done — both halves, see `dev-docs/e2e-tests.md`.
 3. **Still owed.** Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's
    M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
-### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · **merged `443327d`**, FR-2.7 / M22)*
+### Track J — a trip cannot be edited after it is created *(**merged `443327d`**, FR-2.7 / M22)*
 
 Files (once the shape is decided): `client/src/composables/useMutations.ts`, a new trip-properties
 surface under `client/src/views/trips/`, `client/src/domain/` for the consequence rules,
@@ -266,13 +250,13 @@ also load-bearing: `instantiate.ts` expands `per_person` positions over the trav
 Until it is built, the honest workaround is the clone path (FR-12.1) — and it loses the packing
 progress, which is exactly why this is a gap and not a preference.
 
-### Track I — the back button's missing route class *(owner-found 2026-08-21 · effort S–M · **built 2026-08-21**, variant A)*
+### Track I — the back button's missing route class *(effort S–M · **built**, variant A)*
 
 Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/global/AppHeader.vue`,
 `router/__tests__/backTarget.spec.ts`, `client/e2e/global-nav.spec.ts`,
 `dev-docs/Navigation_Concept_v1.0.md` §7, `dev-docs/adr/ADR-011_*.md`.
 
-**The symptom the owner hit:** inside a trip, tap the gear, then `‹ back` — and the app lands on
+**The symptom:** inside a trip, tap the gear, then `‹ back` — and the app lands on
 the dashboard instead of the trip.
 
 **The cause is a gap in the contract, not a bug in it.** ADR-011 decoupled back from history
@@ -314,7 +298,7 @@ than left standing.
 
 ### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)*
 
-**IdP settled 2026-08-22: Authelia** (§7.3). The OIDC half of this track is therefore a configuration exercise against a
+**IdP settled: Authelia** (§7.3). The OIDC half of this track is therefore a configuration exercise against a
 provider the manual is already written for, not an integration question.
 
 Not agent work alone: deploy the released images to the homelab behind HTTPS, create the family's IdP users, set
@@ -352,15 +336,14 @@ with no dependencies), then C, with E/F/G filling in.
   tradeoff (Track A step 3 has one).
 - i18n from the first line on any new/touched surface; colours/type/shape from the three token tables (invariants 9/9b —
   the gate enforces it).
-- Schema changes edit `internal/store/schema.sql` (ADR-018, no migrations) and mean reseeding every dev database,
-  `:3000` included.
+- A schema change edits `internal/store/schema.sql` **and** adds its migration (invariant 2, ADR-067).
 
 ## 7. Open decisions for the owner
 
-1. ~~**Sign-off on this cut**~~ — **decided 2026-08-20**: approved, FR-27.13 and §3.28 wait until after the vacation.
-2. ~~**Multiple parallel open PRs**~~ — **decided 2026-08-20**: allowed for this push; merges stay serialized and each
+1. ~~**Sign-off on this cut**~~ — **decided**: approved, FR-27.13 and §3.28 wait until after the vacation.
+2. ~~**Multiple parallel open PRs**~~ — **decided**: allowed for this push; merges stay serialized and each
    still needs its own go-ahead.
-3. ~~**IdP**~~ — **decided 2026-08-22: Authelia**, the owner's own instance, over OIDC. It confirms the built assumption
+3. ~~**IdP**~~ — **decided: Authelia**, the owner's own instance, over OIDC. It confirms the built assumption
    rather than changing it: `docs/authentication.md` already names Authelia the reference provider (*where Authelia
    prescribes something, JIT-Pack conforms to it*), carries the paste-ready confidential-client block, and its three
    session-ending cases are verified against 4.39.20. `deploy/multi-user/docker-compose.yml` takes the issuer from the
@@ -368,7 +351,7 @@ with no dependencies), then C, with E/F/G filling in.
    decision.** The one thing to carry into Track H is Authelia's own asymmetry (ADR1): marking a user *disabled* there
    blocks new logins but keeps honouring refresh tokens already issued — shutting an account out means revoking its
    tokens at Authelia or deactivating it in JIT-Pack.
-4. ~~**Upgrade stance for the vacation**~~ — **decided 2026-08-28: pin the digest and freeze.** Image-export tooling is
+4. ~~**Upgrade stance for the vacation**~~ — **decided: pin the digest and freeze.** Image-export tooling is
    not built. `docs/upgrades.md` already carries the operator half of this under *"Don't upgrade mid-trip"*, so the
    decision confirms the manual rather than changing it: pin `0.2.0@sha256:…` for both images and leave it pinned until
    the family is back, because a tag can be rebuilt under a running instance and a digest cannot.
@@ -378,11 +361,10 @@ with no dependencies), then C, with E/F/G filling in.
    (invariant 2). The operator's own updater configuration is therefore where this is enforced, not the compose file.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a
    round-trip.
-6. ~~**Track I shape**~~ — **built as A** (2026-08-21): a global action carries its origin, stamped by the router rather
+6. ~~**Track I shape**~~ — **built as A**: a global action carries its origin, stamped by the router rather
    than by each link. B (Settings as an overlay) was weighed and lost in the ADR-011 amendment: it fixes Settings and
    does nothing for the two import flows, which were half the defect. Say so if you want B instead — the branch is one
    guard and one branch in `backTarget`.
-7. ~~**Track J shape**~~ — **decided 2026-08-21**: own screen from M4's cluster (M22). Merged as `443327d`.
-8. ~~**Track J consequences**~~ — **decided 2026-08-21**: adding pulls the `per_person` positions immediately; removing
-   takes the person's *untouched* rows and asks about the packed ones. FR-27.4 already specified it — the amendment
-   there changed only the timing.
+7. ~~**Track J shape**~~ — **decided**: own screen from M4's cluster (M22). Merged as `443327d`.
+8. ~~**Track J consequences**~~ — **decided**: adding pulls the `per_person` positions immediately; removing
+   takes the person's *untouched* rows and asks about the packed ones, as FR-27.4 specifies.

@@ -358,9 +358,9 @@ body{
 .fchip .x{color:var(--o1);font-weight:700}
 .freset{flex:none;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--o1);background:none;border:none;padding:5px 4px;white-space:nowrap}
 
-/* FR-25.11b (rev. 2026-08-14): facets are open chip rows, not accordions.
-   The panel used to hide every value behind a caret, which is what made it
-   read as cluttered — a filter you have to unfold twice to read. */
+/* FR-25.11b: facets are open chip rows, not accordions. Hiding every value
+   behind a caret makes the panel read as cluttered — a filter you have to
+   unfold twice to read. */
 .fsec{border-top:1px solid var(--s0);padding:13px 0}
 .fsec:first-child{border-top:none}
 .fsl{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.05em;
@@ -755,7 +755,7 @@ body{padding:0;margin:0}
 </div>
 
 <script>
-/* The two photo groups from the owner's scenario, sharing the camera. */
+/* The scenario's two photo groups, sharing the camera. */
 const GROUPS = [
   { id:'g-makro', emoji:'📷', name:'Makro Fotografie',
     items:[['Kamera',1],['Makro-Objektiv',1],['Ringlicht',1],['Zwischenringe',2],['Stativ',1]] },
