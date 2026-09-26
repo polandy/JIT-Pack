@@ -1302,6 +1302,21 @@ describe('M6 — who buys it (FR-30.12)', () => {
     expect(presentToast).not.toHaveBeenCalled()
   })
 
+  it('keeps the person while selecting, but not the control', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot', assignee_user_id: 'u-sia' })
+    const page = mountPage(undefined, asAndy)
+    await flushPromises()
+    expect(page.find('[data-testid="m6-row-assign-Brot"]').exists()).toBe(true)
+
+    headerActions()
+      .find((a) => a.id === 'm6-select')!
+      .onClick()
+    await flushPromises()
+    expect(page.find('[data-testid="m6-row-assign-Brot"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m6-row-assignee-Brot"]').attributes('slot')).toBe('end')
+  })
+
   it('*Meine* narrows the list to what I am to buy', async () => {
     seedMembers()
     seedEntry('e1', { name: 'Brot', assignee_user_id: 'u-andy' })
