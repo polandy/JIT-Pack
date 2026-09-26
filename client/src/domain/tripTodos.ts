@@ -403,6 +403,20 @@ export function groupAccepts(
   return group.origin === null || group.origin === taskOrigin(task)
 }
 
+/**
+ * Whether a phase takes this task by a drop (FR-7.12, FR-7.14). A closed
+ * *before* takes nothing; one that is over — the trip under way — takes no
+ * task from the road, while its own tasks may still change group inside it.
+ */
+export function phaseTakes(
+  phase: TaskPhase,
+  task: Pick<TripTask, 'phase'>,
+  before: { locked: boolean; over: boolean },
+): boolean {
+  if (phase !== TASK_PHASE_BEFORE) return true
+  return !before.locked && !(before.over && task.phase !== phase)
+}
+
 /** What a drop on `key` makes the task's tag: a tag id, or none. */
 export function tagForGroup(key: string): string | null {
   return (TASK_ORIGINS as readonly string[]).includes(key) ? null : key

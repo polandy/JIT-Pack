@@ -69,6 +69,7 @@ import { taskBoard } from '@/domain/taskBoard'
 import {
   filedTagOf,
   groupAccepts,
+  phaseTakes,
   tagForGroup,
   taskGroups,
   tasksOfAssignee,
@@ -253,12 +254,8 @@ const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
 const drag = useDragToGroup<TripTask>({
   accepts: (task, place) => {
-    const into = readDropKey(place).phase
-    if (
-      into === TASK_PHASE_BEFORE &&
-      (beforeLocked.value || (forTheRoad.value && task.phase !== into))
-    )
-      return false
+    const before = { locked: beforeLocked.value, over: forTheRoad.value }
+    if (!phaseTakes(readDropKey(place).phase, task, before)) return false
     const group = groupAt(place)
     return group !== null && groupAccepts(group, task)
   },
