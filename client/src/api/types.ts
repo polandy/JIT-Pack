@@ -66,9 +66,9 @@ export interface PushRequest {
 
 /**
  * MutationOutcome is the server's answer for a single mutation. The wire key
- * carrying it is `outcome`, never `status`: the client once read `status`,
- * which no response has ever contained, so every rejection read as undefined
- * and was dropped instead of parked.
+ * carrying it is `outcome`, never `status`: a client reading `status`, which
+ * no response contains, sees every rejection as undefined and drops it
+ * instead of parking it.
  */
 export type MutationOutcome = 'applied' | 'merged' | 'duplicate' | 'rejected'
 
