@@ -19,7 +19,7 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/typ
 /**
  * Which list a trip is on *now* (FR-30.8): the one still worth working.
  *
- * *Vor der Abreise* answers that only while departure is still ahead. Once
+ * *Vor der Reise* answers that only while departure is still ahead. Once
  * the trip has started — or the packing has been declared finished
  * (FR-5.10), which happens the evening before on a trip nobody has tapped
  * *Reise starten* on — the moment is past, and what is left to do is at the

@@ -2,7 +2,7 @@
 /**
  * M6 — the shopping list (FR-3.2, FR-30).
  *
- * Two lists, *Vor der Abreise* and *Vor Ort*, each read from every source
+ * Two lists, *Vor der Reise* and *Vor Ort*, each read from every source
  * the composition root provides (`lib/shoppingSources.ts`) plus the list's
  * own entries. What a line *is* — a packing row bought rather than packed, or
  * „Milch" typed here — is its source's business; this screen renders lines,
@@ -92,7 +92,7 @@ const beforeLocked = computed(() => isPackingClosed(trip.value))
 /**
  * Whether a new entry may still be for *before departure* (FR-30.8's rule):
  * only while the trip is planned and its packing open. Until the trip itself
- * is on the device, *Vor der Abreise* is the answer that cannot be wrong.
+ * is on the device, *Vor der Reise* is the answer that cannot be wrong.
  */
 const beforeOpen = computed(
   () =>
@@ -418,7 +418,7 @@ async function goToField() {
 
 /**
  * The list the next entry goes on — M25's phase chips (owner, 2026-09-26).
- * *Vor der Abreise* until the trip is under way or its packing finished;
+ * *Vor der Reise* until the trip is under way or its packing finished;
  * then the row goes and everything written is for the destination.
  */
 const chosenList = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)

@@ -272,7 +272,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await openTripView(page, 'shopping')
     await expectComposingFor(page, 'local')
     await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
-    // Before departure is one folded line at the end, and says why once open.
+    // Before the trip is one folded line at the end, and says why once open.
     const fold = m6.getByTestId('m6-before-fold')
     await expect(fold).toHaveText('Before the trip · closed')
     await expect(m6.getByTestId('m6-before-locked')).toHaveCount(0)
@@ -627,7 +627,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
 
   /**
    * E2E-M6-30 (FR-30.8): the shopping list stops filing new entries under
-   * *Before departure* once that moment is past. The trip here is still
+   * *Before the trip* once that moment is past. The trip here is still
    * *planning* — nobody tapped *Start trip* — which is exactly the case the
    * trip's phase alone gets wrong: the bag is shut the evening before. The
    * entry typed afterwards standing in *At destination* is the positive

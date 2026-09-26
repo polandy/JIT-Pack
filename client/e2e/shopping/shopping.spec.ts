@@ -62,7 +62,7 @@ function head(page: Page, key: ListKey) {
 
 /**
  * A list with nothing open, folded to one line at the end of the screen
- * (owner, 2026-09-26 — M25 alike): *„Before departure · nothing open"*.
+ * (owner, 2026-09-26 — M25 alike): *„Before the trip · nothing open"*.
  */
 function restLine(page: Page, key: ListKey) {
   return list(page, key).getByTestId(`m6-${key}-fold`)

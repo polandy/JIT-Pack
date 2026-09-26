@@ -12,7 +12,7 @@
  *
  * Two sections rather than a segment (owner's choice of the 2026-09-20 round,
  * variant A): the two phases of a trip are one thing read top to bottom, not
- * two lists you switch between the way the shopping list's *Vor der Abreise*
+ * two lists you switch between the way the shopping list's *Vor der Reise*
  * and *Vor Ort* are — those are two places you stand, and you are only ever
  * in one of them. **And the shopping list stays its own feature** (owner:
  * *„die einkaufsliste soll separat von den tasks sein"*): nothing here reads

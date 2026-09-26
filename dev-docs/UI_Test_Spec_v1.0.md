@@ -306,7 +306,7 @@ stable references for the traceability matrix.
   a figure; E2E-M1-10 keeps the line, on a list card.)
 * **E2E-M1-12** `local` (FR-30.7/30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): a running trip's
   shopping card opens on *At destination* with its *Buy there* packing row, tagged *Packing list*; a planned trip with a
-  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before departure*; a planned trip with nothing to
+  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before the trip*; a planned trip with nothing to
   buy has **no** card (asserted beside its rendered row); the card's last line leads onto M6, with the switcher's
   *Shopping* pill current. (First written the same day against FR-30.5's pill, which the card superseded.)
 * **E2E-M1-13** `local` (FR-30.7, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): the card is worked. An
@@ -1115,7 +1115,7 @@ in WebKit.
   ends *before*. A packing row bought *before departure* and the shopping list's own entry both cross — the second
   travels the kernel contract the composition root binds, so a close that moved only its own rows fails here. The sheet
   counts both (*„2 open purchases"*), the one undo brings both back to *before departure*, and after the second close
-  both stand *at the destination* while M6's *Vor der Abreise* carries its lock line and no field, and M25's *Vor der
+  both stand *at the destination* while M6's *Vor der Reise* carries its lock line and no field, and M25's *Vor der
   Reise* is one folded line at the end whose fold holds the lock line, with no *Vor der Reise* chip on the composer
   (FR-7.14). *Wieder öffnen* gives both back and moves nothing. **Revised 2026-09-26 (FR-30.11, no tabs):** M6's *Vor
   der Abreise* is read in `m6-before` before the close and is afterwards the folded line *„Before the trip · closed"*
@@ -1455,8 +1455,8 @@ composer.
   states where it went ("auf der Packliste"). Default is hidden, and the bar is **absent** while nothing has been
   bought. *(The dimmed-and-still-interactive row of the original wording described the filter-sheet design; the built
   affordance reveals the row in a section of its own.)* **Revised 2026-09-26 (FR-30.11, no tabs):** the reveal is the
-  list's own *gekauft* fold (*„1 bought"*), scoped to *Vor der Abreise*, its state read off `aria-expanded` rather than
-  a changing label. **Revised 2026-09-26 (the rest line):** the bought packing row empties *Vor der Abreise*, so its
+  list's own *gekauft* fold (*„1 bought"*), scoped to *Vor der Reise*, its state read off `aria-expanded` rather than
+  a changing label. **Revised 2026-09-26 (the rest line):** the bought packing row empties *Vor der Reise*, so its
   purchase is counted by the list's line at the end (*„Before the trip · nothing open · 1 bought"*, `aria-expanded` as
   before), and putting it back returns the list to its place.
 * **E2E-M6-24** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-16):
@@ -1501,7 +1501,7 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
-  **Revised 2026-09-26 (FR-30.11, no tabs):** the entries stay on *Vor der Abreise*, *Probe* is removed through its
+  **Revised 2026-09-26 (FR-30.11, no tabs):** the entries stay on *Vor der Reise*, *Probe* is removed through its
   sheet, and the fold is that list's.
 * **E2E-M6-32** `local` (FR-30.9, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): several own
   entries, already tagged or not, are retagged in one act. A long press (`contextmenu`, its deterministic seam) on an
@@ -1554,8 +1554,8 @@ composer.
   an entry, lists it, and buys it on the right-hand check; the hero contains **no control inside a link**, and
   *Packliste öffnen* is there.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
-  opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
-  and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
+  opening on *Vor der Reise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
+  and the list opens on *Vor der Reise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
   is read off the segment's own value, as E2E-M2-33 does, rather than off Ionic's checked class. The planning status is
   what makes the case about FR-30.8 rather than about the trip's phase alone. **Revised 2026-09-26 (FR-30.11, no
   tabs):** M6 no longer *opens* on a list; the rule decides the composer. Planned, it offers the list chips with *Vor
@@ -1565,9 +1565,9 @@ composer.
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
   own row still open. **Revised 2026-09-26 (FR-30.11, no tabs):** the two sections' folds: *Vor Ort*'s holds the row
-  noting it was packed, *Vor der Abreise* has no fold and its own row open — exactly one fold on the page. **Revised
+  noting it was packed, *Vor der Reise* has no fold and its own row open — exactly one fold on the page. **Revised
   2026-09-26 (the rest line):** with *Milch* bought, *Vor Ort* has nothing open and folds to its line at the end, *„At
-  destination · nothing open · 1 bought"*, which holds the one bought row; *Vor der Abreise* keeps its open row and has
+  destination · nothing open · 1 bought"*, which holds the one bought row; *Vor der Reise* keeps its open row and has
   no fold.
 * **E2E-M6-18** `all` (FR-25.11k) — **REMOVED (owner decision 2026-08-30)**: the surface was never built, and M6 stays
   the focused procurement checklist it is. The reasoning is one sentence per feature — a shopping list rarely runs to

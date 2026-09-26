@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A list section with nothing left open, folded to one line at the end of the
- * screen (owner, 2026-09-26 — M6 and M25 alike): *„Vor der Abreise · nichts
+ * screen (owner, 2026-09-26 — M6 and M25 alike): *„Vor der Reise · nichts
  * offen · 2 gekauft ›"*. A section that has nothing to do took a heading, a
  * hint and a fold of room above the one still being worked; it now waits
  * below it. The closed *before* of FR-7.12 wears the same line.

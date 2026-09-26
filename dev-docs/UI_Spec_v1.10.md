@@ -1873,11 +1873,11 @@ These patterns apply to every screen and are specified once.
   one, the tag (in the *Fällig* block only) and — for a per-person item — the recipients (FR-25.6). The check-off
   stands at the row's own edge. **No ✕ on the row**: an own entry is removed from its entry sheet (*Entfernen*,
   `m6-entry-remove`), as a task is from its own. A packing line offers neither.
-* **Before departure, closed (FR-7.12, built 2026-09-25, placed at the end 2026-09-26):** once the packing is finished,
+* **Before the trip, closed (FR-7.12, built 2026-09-25, placed at the end 2026-09-26):** once the packing is finished,
   *Vor der Reise* is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor
   Ort* (M4's close sheet names the number); the list is no longer drawn in reading order but **folded at the end of
   the screen**, M25's way: one line (*„Vor der Reise · N gekauft"*, or *„· abgeschlossen"*, `m6-before-fold`) that
-  opens onto the lock sentence (*„Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise
+  opens onto the lock sentence (*„Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Reise
   gekauft wurde."*, `m6-before-locked`) and the list's bought fold, which can be read but not put back. The composer
   stays, writing for *Vor Ort*. Reopening the packing lifts it.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
@@ -3273,7 +3273,7 @@ describes a path the app cannot walk — see FR-27.5's build note.
 
 1. **Happy path packing:** M1 → M4 → swipe *Packing Now* → check → real-time update on partner's device.
 2. **Delegation:** M4 → M5 → set packer → push notification → recipient taps → deep link into M4/M5 (G-4).
-3. **Purchase transition:** M6 (Before departure) → check item → appears in M4 as PACK/Open (FR-3.3).
+3. **Purchase transition:** M6 (Before the trip) → check item → appears in M4 as PACK/Open (FR-3.3).
 4. **Feedback loop:** M4 flag *Missing* → trip archived → M14 proposes template addition → next M3 run includes the
    item.
 5. **Migration:** M15 import → M2 shows archived series trips → M3 step 4 surfaces historical suggestions (FR-14.2)

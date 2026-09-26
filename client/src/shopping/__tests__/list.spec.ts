@@ -114,7 +114,7 @@ describe('openCount', () => {
 /**
  * FR-30.8 — which list M6 opens on.
  *
- * „Vor der Abreise" stops being the answer the moment that moment is past:
+ * „Vor der Reise" stops being the answer the moment that moment is past:
  * the trip has started, or the packing has been declared finished (FR-5.10).
  * The other list keeps its count in the tab label, so nothing is hidden —
  * it is one tap away and says how much is on it.
