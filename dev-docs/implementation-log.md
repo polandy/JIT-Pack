@@ -443,6 +443,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A purchase's due day, and why the day rules left `domain/` (2026-09-25)](#a-purchases-due-day-and-why-the-day-rules-left-domain-2026-09-25) — FR-30.10: a module reaches only the kernel, so the day rules moved to `lib/dueDay.ts`; buy rows stay undated.
 - [M25 reworked from a UX review (2026-09-25)](#m25-reworked-from-a-ux-review-2026-09-25) — FR-7.14: an in-budget baseline survives `--update-snapshots`; a role class on `ion-textarea` misses its field.
 - [`e2e` and `visual` skip every diff that touches no app input, not just Markdown (2026-09-26)](#e2e-and-visual-skip-every-diff-that-touches-no-app-input-not-just-markdown-2026-09-26) — the list names what is *not* app input, so it goes stale only toward an extra run.
+- [A purchase handed to somebody, and a task row one line again (2026-09-26)](#a-purchase-handed-to-somebody-and-a-task-row-one-line-again-2026-09-26) — FR-30.12: a `ShoppingLine` holds the entry as it was, so an undo through the tapped line writes nothing.
 
 ## Deviations
 
@@ -17707,3 +17708,19 @@ routinely — `docker/build-push-action`, `release-please-action` and the Pages 
 workflows on it — and a job whose need was skipped is skipped itself, so those bumps would have stopped merging
 without a single red check. Its `if` now opens with `!cancelled()` and refuses on any need that failed or was
 cancelled, so a skip passes and a failure still blocks.
+
+## A purchase handed to somebody, and a task row one line again (2026-09-26)
+
+FR-30.12 and FR-7.14's row. The owner noticed M25's rows standing taller than M6's: the seat sat in the facts line, so
+every open task was two lines, and the empty seat (27 px) outgrew the due pill besides. The seat moved to the row's
+edge, 24 px like an avatar, and the shopping list's own entries got the same seat. Mockup first, then the decisions put
+as options with a recommendation each; the ones taken and the ones rejected are in the FR. One trap from the build.
+
+**An undo through the tapped `ShoppingLine` writes nothing.** A line is a projection with its writes bound in
+(`ownEntriesSource`): `assign` closes over the entry as it was when the line was built. The single hand-over's toast
+first undid with `line.assign(previous)` — the line the reader tapped, whose entry still names the *old* assignee, so
+`assignEntry`'s „nothing changed" guard compared the undo's target with itself and wrote nothing. The page spec's undo
+clause caught it. The undo now looks the line up again (`liveOwnLine`), which is `bulkSetTag`'s lesson (its doc comment)
+met a second time in a different shape: any write through a line or a snapshot after the store has moved must be made
+against what the store holds now.
+

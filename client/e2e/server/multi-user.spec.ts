@@ -1,3 +1,5 @@
+import type { Locator, Page } from '@playwright/test'
+
 import {
   test,
   expect,
@@ -7,6 +9,7 @@ import {
   tripRowMenuActions,
   visiblePage,
   itemDetail,
+  openTripView,
   tripAction,
 } from '../fixtures'
 import {
@@ -47,6 +50,14 @@ import { PATH } from '../routes'
  * test names its trip and its items uniquely (`uniq`), exactly as the
  * `single` unit does.
  */
+/** M6, reached by its pill; returns the screen, for its rows and its composer. */
+async function openShopping(page: Page): Promise<Locator> {
+  await openTripView(page, 'shopping')
+  const m6 = visiblePage(page).getByTestId('m6-page')
+  await expect(m6.getByTestId('m6-add-input')).toBeVisible()
+  return m6
+}
+
 test.describe('Two accounts on one instance @server', () => {
   // Two logins, a wizard and a real network stack per case (§2.4's cost).
   test.slow()
@@ -854,6 +865,116 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(
       visiblePage(bob).getByTestId(`dashboard-trip-todo-assignee-${task}`),
     ).toContainText(ACCOUNT_NAMES.bob)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M6-37 (FR-30.12): a purchase is handed to the other account from its
+   * seat at the row's edge, the way a task is (E2E-M25-05) — Bob is told,
+   * sees himself named on the entry, and *Meine* keeps it for him.
+   *
+   * The packing list's own buy lines carry no seat: whose they are is the
+   * packing list's question, asked on M4.
+   */
+  test('E2E-M6-37: a purchase is handed to the other account from its seat, and they are told', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Abisko ${id}`
+    const entry = `Brot ${id}`
+    const other = `Milch ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await alice.goto(tripPath)
+    const aliceM6 = await openShopping(alice)
+    for (const name of [entry, other]) {
+      await aliceM6.getByTestId('m6-add-input').locator('input').fill(name)
+      await aliceM6.getByTestId('m6-add-submit').click()
+      await expect(aliceM6.getByTestId('m6-row').filter({ hasText: name })).toBeVisible()
+    }
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await subscribedBob
+    const bobsM6 = await openShopping(bob)
+    await expect(bobsM6.getByTestId('m6-row').filter({ hasText: entry })).toBeVisible()
+
+    // An entry nobody has yet carries the empty seat, and stays one line.
+    const seat = aliceM6.getByTestId(`m6-row-assign-${entry}`)
+    await expect(seat).toBeVisible()
+    await expect(seat.getByTestId('user-avatar')).toHaveCount(0)
+    await expect(aliceM6.getByTestId(`m6-row-facts-${entry}`)).toHaveCount(0)
+
+    await seat.click()
+    const picker = alice.locator('ion-action-sheet')
+    await expect(picker).toBeVisible()
+    await picker.getByRole('button', { name: ACCOUNT_NAMES.bob }).click()
+    await expect(picker).toHaveCount(0)
+    await expect(seat.getByTestId('user-avatar')).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
+
+    // FR-6.2: Bob is told, in the delegation's words, naming the entry.
+    const notice = bob.locator('ion-toast').filter({ hasText: entry })
+    await expect(notice).toContainText(ACCOUNT_NAMES.alice)
+
+    // His own list names him on it, from the server's copy…
+    await expect(
+      bobsM6.getByTestId(`m6-row-assign-${entry}`).getByTestId('user-avatar'),
+    ).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
+    // …and *Meine* keeps exactly what is his.
+    const mine = bobsM6.getByTestId('m6-mine')
+    await mine.click()
+    await expect(mine).toHaveAttribute('aria-pressed', 'true')
+    await expect(bobsM6.getByTestId('m6-row')).toHaveCount(1)
+    await expect(bobsM6.getByTestId('m6-row')).toContainText(entry)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M25-18 (FR-7.14): a task with nothing to say under its words is one
+   * line even where it can be handed over — the seat sits at the row's edge,
+   * as on M6, so a task row and a shopping row are the same height.
+   *
+   * Only a trip with two people shows a seat at all (G-8), so this lives in
+   * the unit with two accounts.
+   */
+  test('E2E-M25-18: a task row with its seat is as tall as a shopping row', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Kebnekaise ${id}`
+    const task = `Pass holen ${id}`
+    const entry = `Sonnencreme ${id}`
+
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await alice.goto(tripPath)
+    await addTripTodo(alice, task)
+
+    const section = await openTasks(alice, 'before')
+    const row = section.getByTestId(`trip-todo-${task}`)
+    await expect(row.getByTestId(`trip-todo-assign-${task}`)).toBeVisible()
+    await expect(row.getByTestId(`trip-todo-facts-${task}`)).toHaveCount(0)
+    const taskHeight = (await row.boundingBox())!.height
+
+    const m6 = await openShopping(alice)
+    await m6.getByTestId('m6-add-input').locator('input').fill(entry)
+    await m6.getByTestId('m6-add-submit').click()
+    const shopRow = m6.getByTestId('m6-row').filter({ hasText: entry })
+    await expect(shopRow.getByTestId(`m6-row-assign-${entry}`)).toBeVisible()
+    expect((await shopRow.boundingBox())!.height).toBe(taskHeight)
 
     await ctxAlice.close()
     await ctxBob.close()

@@ -10,13 +10,15 @@
  * kinds carry a seat** (FR-7.7): a task can be assigned to somebody like a
  * pack item.
  *
- * **Two shapes (FR-7.14).** M25's `list` rows are two
- * lines — the words, and under them what is known about the task: its due
- * pill, the row it prepares, its tag where the row stands outside its group,
- * and the person. A fact never squeezes the words, and **no ✕ stands beside
- * the tick**: a task is removed from its sheet or from a selection, never one
- * finger-width from the control that finishes it. M4's `window` keeps its
- * compact one-line rows, which only ever hold preparations.
+ * **Two shapes (FR-7.14).** M25's `list` rows put under the words what is
+ * known about the task: its due pill, the row it prepares, and its tag where
+ * the row stands outside its group. A fact never squeezes the words, and a
+ * task with none is one line, as tall as M6's. **The person sits at the
+ * row's edge**, before the tick — M4's place for it and M6's (FR-30.12) — so
+ * a seat never makes a line of its own. **No ✕ stands beside the tick**: a
+ * task is removed from its sheet or from a selection, never one finger-width
+ * from the control that finishes it. M4's `window` keeps its compact
+ * one-line rows, which only ever hold preparations.
  *
  * The trip is where these are written: M1 only reports
  * them, because the dashboard takes no actions. Every act is *emitted*: both
@@ -27,7 +29,7 @@
 import { IonLabel } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
-import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
+import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
@@ -159,13 +161,7 @@ function seatOffered(): boolean {
 
 /** Whether a list row has anything to say under its words. */
 function hasFacts(task: TripTask): boolean {
-  return (
-    (!!props.today && openDueDay(task) !== null) ||
-    task.item !== null ||
-    !!props.tagOf?.(task) ||
-    !!task.assignee_user_id ||
-    (task.task_state === 'open' && seatOffered())
-  )
+  return (!!props.today && openDueDay(task) !== null) || task.item !== null || !!props.tagOf?.(task)
 }
 </script>
 
@@ -237,27 +233,32 @@ function hasFacts(task: TripTask): boolean {
         <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
           tagOf(task)
         }}</span>
-        <AssigneeSeat
-          v-if="seatOffered()"
-          :avatar="assigneeOf(task)"
-          :data-testid="`trip-todo-assign-${task.body}`"
-          @assign="emit('assign', task)"
-        />
-        <span
-          v-else-if="task.assignee_user_id"
-          class="person"
-          :data-testid="`trip-todo-assignee-${task.body}`"
-        >
-          <UserAvatar
-            variant="assignee"
-            :name="nameOf?.(task.assignee_user_id)"
-            :seed="task.assignee_user_id"
-          />
-        </span>
       </template>
-      <!-- M4's window keeps its one-line cluster at the row's edge. -->
-      <template v-if="!isList && !selecting" #end>
-        <span slot="end" class="todo-end">
+      <!-- FR-7.14: the person at the row's edge, before the tick. Selecting
+           takes the seat away with the tick; the avatar stays, since whose a
+           task is is part of choosing it. -->
+      <template v-if="isList ? seatOffered() || !!task.assignee_user_id : !selecting" #end>
+        <template v-if="isList">
+          <AssigneeSeat
+            v-if="seatOffered()"
+            slot="end"
+            class="person"
+            :avatar="assigneeOf(task)"
+            :data-testid="`trip-todo-assign-${task.body}`"
+            @assign="emit('assign', task)"
+          />
+          <UserAvatar
+            v-else
+            slot="end"
+            class="person"
+            variant="assignee"
+            :name="nameOf?.(task.assignee_user_id ?? null)"
+            :seed="task.assignee_user_id"
+            :data-testid="`trip-todo-assignee-${task.body}`"
+          />
+        </template>
+        <!-- M4's window keeps its one-line cluster at the row's edge. -->
+        <span v-else slot="end" class="todo-end">
           <DueBadge
             v-if="today"
             :day="openDueDay(task)"
@@ -334,22 +335,20 @@ function hasFacts(task: TripTask): boolean {
             <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
               tagOf(task)
             }}</span>
-            <!-- Done is done: who had it is still worth reading, but handing
-                 over a finished task decides nothing. -->
-            <span
-              v-if="task.assignee_user_id"
-              class="person"
-              :data-testid="`trip-todo-assignee-${task.body}`"
-            >
-              <UserAvatar
-                variant="assignee"
-                :name="nameOf?.(task.assignee_user_id)"
-                :seed="task.assignee_user_id"
-              />
-            </span>
           </template>
-          <template v-if="!isList" #end>
-            <span slot="end" class="todo-end">
+          <!-- Done is done: who had it is still worth reading, but handing
+               over a finished task decides nothing. -->
+          <template v-if="!isList || task.assignee_user_id" #end>
+            <UserAvatar
+              v-if="isList"
+              slot="end"
+              class="person"
+              variant="assignee"
+              :name="nameOf?.(task.assignee_user_id)"
+              :seed="task.assignee_user_id"
+              :data-testid="`trip-todo-assignee-${task.body}`"
+            />
+            <span v-else slot="end" class="todo-end">
               <TaskItemChip
                 v-if="task.item"
                 :item="task.item"
@@ -414,8 +413,10 @@ function hasFacts(task: TripTask): boolean {
   cursor: pointer;
 }
 
+/* The person's own gap to the tick — the tick's `margin-inline-start` is
+   measured from whatever stands before it. */
 .person {
-  display: inline-flex;
+  margin-inline-start: 8px;
 }
 
 .todo-end {

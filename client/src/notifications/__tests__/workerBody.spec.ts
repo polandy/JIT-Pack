@@ -128,6 +128,12 @@ describe('the worker renders the same body as the app', () => {
       notificationRoute(notif('shopping_due', { trip_id: 't1', entry_id: 'e1' })),
     )
     expect(notificationUrl({ trip_id: 't1' }, 'shopping_due')).toBe('/trips/t1/shopping')
+    // FR-30.12: a purchase handed over lands on the shopping list too.
+    const handed = { trip_id: 't1', entry_id: 'e1', item_name: 'Brot' }
+    expect(notificationUrl(handed, 'delegation')).toBe(
+      notificationRoute(notif('delegation', handed)),
+    )
+    expect(notificationUrl(handed, 'delegation')).toBe('/trips/t1/shopping')
     // FR-7.13: a note and a reply land on their thread, in both renderers.
     for (const [kind, payload] of [
       ['note', { trip_id: 't1', comment_id: 'c9' }],

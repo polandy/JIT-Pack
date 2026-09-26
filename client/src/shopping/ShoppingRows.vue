@@ -4,7 +4,9 @@
  * (one look and feel, guaranteed by one component): the grip or the
  * selection box at the leading edge, the name, a second line with what is known about it — the
  * due pill, the amount, the tag where the line stands outside its group, who
- * it is for — and the check-off at the trailing edge, where the thumb rests.
+ * it is for — then who is to buy it (FR-30.12), and the check-off at the
+ * trailing edge, where the thumb rests. The person sits where M25's does, so
+ * a seat never adds a line to the row.
  *
  * There is no ✕ on the row: an entry is removed from its sheet, as a
  * task is from its own. Every act is reported; the page owns the writes, the
@@ -13,6 +15,7 @@
 import { IonLabel } from '@ionic/vue'
 import { computed } from 'vue'
 
+import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import ListRow from '@/components/global/ListRow.vue'
@@ -20,6 +23,7 @@ import SelectBox from '@/components/global/SelectBox.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
 import { t } from '@/i18n'
+import type { NameOf } from '@/lib/rowFacts'
 import type { ShoppingLine } from '@/lib/shoppingSources'
 
 const props = withDefaults(
@@ -33,14 +37,31 @@ const props = withDefaults(
     readonly?: boolean
     /** A bought row leaves rather than vanishes — the page decides how. */
     leave?: (el: Element, done: () => void) => void
+    /**
+     * FR-30.12: whether there is anybody to hand a line to. Absent in Local
+     * and Single-User Mode (G-8) — no seat then, rather than one with nobody
+     * behind it.
+     */
+    assignable?: boolean
+    /** A member's display name, for the assignee's initials. */
+    nameOf?: NameOf
   }>(),
-  { selection: undefined, tagOf: undefined, readonly: false, leave: undefined },
+  {
+    selection: undefined,
+    tagOf: undefined,
+    readonly: false,
+    leave: undefined,
+    assignable: false,
+    nameOf: undefined,
+  },
 )
 
 const emit = defineEmits<{
   buy: [line: ShoppingLine]
   open: [line: ShoppingLine]
   lift: [line: ShoppingLine, event: PointerEvent]
+  /** FR-30.12: the seat was tapped — the page asks who is to buy it. */
+  assign: [line: ShoppingLine]
 }>()
 
 const selecting = computed(() => props.selection?.selecting.value ?? false)
@@ -63,6 +84,17 @@ function onLeave(el: Element, done: () => void) {
 /** The recipients, named in roster order (FR-25.6). */
 function recipientNames(line: ShoppingLine): string {
   return line.recipients.map((recipient) => recipient.name).join(', ')
+}
+
+/** Whether the line's seat is the control: an own entry, somebody to hand it to, and nothing else going on. */
+function seatOffered(line: ShoppingLine): boolean {
+  return !!line.assign && props.assignable && !props.readonly && !selecting.value
+}
+
+/** The seat's avatar, or null for the empty seat. */
+function assigneeOf(line: ShoppingLine) {
+  const id = line.assignee
+  return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
 }
 
 function hasFacts(line: ShoppingLine): boolean {
@@ -142,6 +174,28 @@ function hasFacts(line: ShoppingLine): boolean {
           <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
         </span>
       </template>
+      <!-- FR-30.12: who is to buy it, at the edge before the tick — a control
+           on an own entry, the avatar alone while selecting or on a closed
+           list. -->
+      <template v-if="seatOffered(line) || line.assignee" #end>
+        <AssigneeSeat
+          v-if="seatOffered(line)"
+          slot="end"
+          class="person"
+          :avatar="assigneeOf(line)"
+          :data-testid="`m6-row-assign-${line.name}`"
+          @assign="emit('assign', line)"
+        />
+        <UserAvatar
+          v-else
+          slot="end"
+          class="person"
+          variant="assignee"
+          :name="nameOf?.(line.assignee ?? null)"
+          :seed="line.assignee"
+          :data-testid="`m6-row-assignee-${line.name}`"
+        />
+      </template>
     </ListRow>
   </TransitionGroup>
 </template>
@@ -158,6 +212,11 @@ function hasFacts(line: ShoppingLine): boolean {
 
 .selectable {
   user-select: none;
+}
+
+/* The person's own gap to the tick, M25's measure. */
+.person {
+  margin-inline-start: 8px;
 }
 
 .recipients {

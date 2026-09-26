@@ -43,6 +43,14 @@ vi.mock('@/composables/useHeaderSelection', async (actual) => ({
 }))
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
 
+/**
+ * What the person picker answers (FR-30.12) — mocked, as on M25, because a
+ * dismissed sheet (`undefined`) is a value under test and a real one would
+ * assert Ionic.
+ */
+let picked: string | null | undefined
+vi.mock('@/lib/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
+
 const tripScreen = tripScreenStub()
 
 /** Every mutation the module queued, in order. */
@@ -105,13 +113,14 @@ function source(
   }
 }
 
-function mountPage(sources?: ShoppingSource[]) {
+function mountPage(sources?: ShoppingSource[], orchestrator: Record<string, unknown> = {}) {
   const provide: Record<symbol, unknown> = {
     [ORCHESTRATOR]: {
       ...identityStub(),
       fetchUsers: async () => people,
       ...tripScreen,
       moduleHost: fakeHost(),
+      ...orchestrator,
     },
   }
   if (sources) provide[SHOPPING_SOURCES] = sources
@@ -1208,5 +1217,136 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
 
     expect(composer.find('[data-testid="due-chip-tomorrow"]').exists()).toBe(true)
     expect(composer.find('[data-testid="due-chip-beforeDeparture"]').exists()).toBe(false)
+  })
+})
+
+describe('M6 — who buys it (FR-30.12)', () => {
+  /** The viewer is Andy, so *Meine* has somebody to mean. */
+  const asAndy = {
+    fetchMe: async () => ({ user_id: 'u-andy', display_name: 'Andy', is_instance_admin: false }),
+  }
+
+  /** The trip's member rows — what makes a person somebody to hand a purchase to. */
+  function seedMembers(members: string[] = ['u-andy', 'u-sia']) {
+    const trips = useTripStore()
+    for (const [i, userId] of members.entries()) {
+      trips.applyChange({
+        seq: 0,
+        table: TABLE.tripMembers,
+        id: `mem-${i}`,
+        deleted: false,
+        row: { trip_id: 't1', user_id: userId, role: i === 0 ? 'owner' : 'member' },
+      })
+    }
+  }
+
+  function headerActions(): HeaderAction[] {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build()
+  }
+
+  it('seats an own entry at its edge — never a packing line, never with nobody to hand it to', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage([source({ buy_before: [line({ name: 'Gaskartusche' })] })], asAndy)
+    await flushPromises()
+
+    const seat = page.get('[data-testid="m6-row-assign-Brot"]')
+    expect(seat.attributes('slot')).toBe('end')
+    // The facts line stays for facts: an entry with none is one line.
+    expect(page.find('[data-testid="m6-row-facts-Brot"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-row-assign-Gaskartusche"]').exists()).toBe(false)
+
+    // Local and Single-User: no member rows, so no seat and no chip (G-8).
+    setActivePinia(createPinia())
+    seedEntry('e1', { name: 'Brot' })
+    const alone = mountPage(undefined, asAndy)
+    await flushPromises()
+    expect(alone.find('[data-testid="m6-row-assign-Brot"]').exists()).toBe(false)
+    expect(alone.find('[data-testid="m6-mine"]').exists()).toBe(false)
+  })
+
+  it('hands an entry over through the picker, names the person, and undoes it from the toast', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage(undefined, asAndy)
+    await flushPromises()
+
+    picked = 'u-sia'
+    await page.get('[data-testid="m6-row-assign-Brot"]').trigger('click')
+    await flushPromises()
+    expect(written).toEqual([
+      expect.objectContaining({ id: 'e1', fields: { assignee_user_id: 'u-sia' } }),
+    ])
+    expect(page.find('[data-testid="m6-row-assign-Brot"]').text()).toContain('S')
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('packing.assignedToast', { name: 'Brot', who: 'Sia' }))
+
+    written = []
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    expect(written).toEqual([
+      expect.objectContaining({ id: 'e1', fields: { assignee_user_id: null } }),
+    ])
+  })
+
+  it('writes nothing when the picker is dismissed', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage(undefined, asAndy)
+    await flushPromises()
+
+    picked = undefined
+    await page.get('[data-testid="m6-row-assign-Brot"]').trigger('click')
+    await flushPromises()
+    expect(written).toEqual([])
+    expect(presentToast).not.toHaveBeenCalled()
+  })
+
+  it('*Meine* narrows the list to what I am to buy', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot', assignee_user_id: 'u-andy' })
+    seedEntry('e2', { name: 'Milch', assignee_user_id: 'u-sia' })
+    seedEntry('e3', { name: 'Käse' })
+    const page = mountPage([source({ buy_before: [line({ name: 'Gaskartusche' })] })], asAndy)
+    await flushPromises()
+
+    const names = () => page.findAll('.row-name').map((el) => el.text())
+    expect(names()).toEqual(expect.arrayContaining(['Brot', 'Milch', 'Käse', 'Gaskartusche']))
+    await page.get('[data-testid="m6-mine"]').trigger('click')
+    expect(names()).toEqual(['Brot'])
+    // An empty *Meine* is not an empty list.
+    await page.get('[data-testid="m6-mine"]').trigger('click')
+    expect(names()).toHaveLength(4)
+  })
+
+  it('hands a whole selection to one person, with one undo, and says so', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot' })
+    seedEntry('e2', { name: 'Milch', assignee_user_id: 'u-sia' })
+    const page = mountPage(undefined, asAndy)
+    await flushPromises()
+
+    headerActions()
+      .find((a) => a.id === 'm6-select')!
+      .onClick()
+    await flushPromises()
+    await barAll()
+    picked = 'u-sia'
+    await page.get('[data-testid="m6-bulk-assign"]').trigger('click')
+    await flushPromises()
+
+    // Milch already was Sia's: one write, and the mode ends with the batch.
+    expect(written).toEqual([
+      expect.objectContaining({ id: 'e1', fields: { assignee_user_id: 'u-sia' } }),
+    ])
+    expect(barSelection()).toBeNull()
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('shopping.bulkAssigned', { n: 1, who: 'Sia' }))
+
+    written = []
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    expect(written).toEqual([
+      expect.objectContaining({ id: 'e1', fields: { assignee_user_id: null } }),
+    ])
   })
 })

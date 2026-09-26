@@ -51,8 +51,17 @@ const props = withDefaults(
     testid?: string
     selection?: RowSelection
     leave?: (el: Element, done: () => void) => void
+    /** FR-30.12: whether a line can be handed to somebody — `ShoppingRows`' prop. */
+    assignable?: boolean
   }>(),
-  { readonly: false, headless: false, testid: undefined, selection: undefined, leave: undefined },
+  {
+    readonly: false,
+    headless: false,
+    testid: undefined,
+    selection: undefined,
+    leave: undefined,
+    assignable: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -60,6 +69,7 @@ const emit = defineEmits<{
   unbuy: [line: ShoppingLine]
   open: [line: ShoppingLine]
   lift: [line: ShoppingLine, event: PointerEvent]
+  assign: [line: ShoppingLine]
 }>()
 
 const before = computed(() => props.list === ITEM_MODE_BUY_BEFORE)
@@ -109,9 +119,12 @@ function boughtStamp(line: ShoppingLine): string | null {
           :selection="readonly ? undefined : selection"
           :readonly="readonly"
           :leave="leave"
+          :assignable="assignable"
+          :name-of="nameOf"
           @buy="emit('buy', $event)"
           @open="emit('open', $event)"
           @lift="(line, e) => emit('lift', line, e)"
+          @assign="emit('assign', $event)"
         />
       </ListGroup>
     </IonList>

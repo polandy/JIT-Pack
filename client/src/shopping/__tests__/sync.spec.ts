@@ -160,6 +160,51 @@ describe('The due day (FR-30.10)', () => {
   })
 })
 
+describe('Who buys it (FR-30.12)', () => {
+  it('is written alone, pulled back, and taken off with null', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const actions = createShoppingActions(orch.moduleHost)
+    actions.addEntry('t1', 'buy_local', 'Milch')
+    const shoppingStore = useShoppingStore()
+    const milk = () => shoppingStore.getEntries('t1')[0]!
+    expect(milk().assignee_user_id).toBeNull()
+
+    actions.assignEntry(milk(), 'u-sia')
+    expect(milk().assignee_user_id).toBe('u-sia')
+    actions.assignEntry(milk(), 'u-sia')
+    actions.assignEntry(milk(), null)
+    await orch.drainTrip('t1')
+
+    // One field per hand-over, so a rename on another device survives it;
+    // the same person again wrote nothing.
+    expect(harness.pushedMutations().map((m) => m.fields)).toEqual([
+      expect.objectContaining({ name: 'Milch' }),
+      { assignee_user_id: 'u-sia' },
+      { assignee_user_id: null },
+    ])
+  })
+
+  it('reaches the line, and a batch hands over only what changes, with one undo for it', () => {
+    const actions = createShoppingActions(serverOrch().moduleHost)
+    actions.addEntry('t1', 'buy_local', 'Milch')
+    actions.addEntry('t1', 'buy_local', 'Brot')
+    const shoppingStore = useShoppingStore()
+    const own = ownEntriesSource(shoppingStore, actions)
+    const byName = (name: string) => shoppingStore.getEntries('t1').find((e) => e.name === name)!
+    actions.assignEntry(byName('Brot'), 'u-sia')
+
+    const keys = new Set(own.open('t1', 'buy_local').map((line) => line.key))
+    const { touched, undo } = own.bulkSetAssignee('t1', 'buy_local', keys, 'u-sia')
+    expect(touched).toBe(1)
+    expect(own.open('t1', 'buy_local').map((line) => line.assignee)).toEqual(['u-sia', 'u-sia'])
+
+    undo()
+    expect(byName('Milch').assignee_user_id).toBeNull()
+    expect(byName('Brot').assignee_user_id).toBe('u-sia')
+  })
+})
+
 describe('The module host', () => {
   // FR-30.4: the tap's time comes from the orchestrator's own clock — the one
   // the HLC reads — so a purchase and the clock that orders it cannot disagree.

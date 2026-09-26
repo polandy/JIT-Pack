@@ -40,6 +40,12 @@ export interface Identity {
 export interface TripIdentity extends Identity {
   /** Directory and member rows merged — see `tripParticipants`. */
   participants: ComputedRef<TripParticipant[]>
+  /**
+   * The participants the trip actually carries — who a task (FR-7.5) or a
+   * purchase (FR-30.12) may be handed to. Empty in Local and Single-User
+   * Mode, which have no member rows, so a screen offers no seat there (G-8).
+   */
+  assignees: ComputedRef<TripParticipant[]>
   /** `null` where nobody is named; a stamp then states the act without a who. */
   nameOf: NameOf
 }
@@ -77,9 +83,15 @@ export function useTripIdentity(tripId: string, source: IdentitySource): TripIde
     tripParticipants(identity.directory.value, tripStore.getMembers(tripId)),
   )
 
+  const assignees = computed(() => {
+    const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
+    return participants.value.filter((person) => members.has(person.user_id))
+  })
+
   return {
     ...identity,
     participants,
+    assignees,
     nameOf: (userId) => nameFrom(participants.value, userId),
   }
 }

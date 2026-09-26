@@ -20,7 +20,7 @@
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
 
-import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
+import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'

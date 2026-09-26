@@ -103,6 +103,40 @@ export function createShoppingActions(host: ModuleHost) {
     })
   }
 
+  /**
+   * FR-30.12: hands the entry to somebody to buy, or to nobody with null.
+   * One field, so it never overwrites a rename made on another device.
+   */
+  function assignEntry(entry: ShoppingEntry, userId: string | null): void {
+    if (userId === entry.assignee_user_id) return
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
+      assignee_user_id: userId,
+    })
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encode(entry)),
+    })
+  }
+
+  /**
+   * FR-30.12: hands every entry in the batch to one person at once, or to
+   * nobody. Only what changes is written, and the undo gives each entry its
+   * own assignee back — diffed against the entry as the batch left it, for
+   * `bulkSetTag`'s reason.
+   */
+  function bulkSetAssignee(entries: ShoppingEntry[], userId: string | null): BulkResult {
+    const changed = entries.filter((entry) => entry.assignee_user_id !== userId)
+    for (const entry of changed) assignEntry(entry, userId)
+    return {
+      touched: changed.length,
+      undo: () => {
+        for (const entry of changed) {
+          assignEntry({ ...entry, assignee_user_id: userId }, entry.assignee_user_id)
+        }
+      },
+    }
+  }
+
   function removeEntry(entry: ShoppingEntry): void {
     const mutation = host.mutation('delete', TABLE.shoppingEntries, entry.id)
     host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
@@ -123,7 +157,7 @@ export function createShoppingActions(host: ModuleHost) {
    * diffs against `entries` as the batch actually left them (only `tag`
    * moved; nothing here touches a name), not against the snapshot.
    */
-  function bulkSetTag(entries: ShoppingEntry[], tag: string | null): BulkTagResult {
+  function bulkSetTag(entries: ShoppingEntry[], tag: string | null): BulkResult {
     const normalized = normalizeTag(tag)
     const changed = entries.filter((entry) => entry.tag !== normalized)
     for (const entry of changed) updateEntry(entry, { name: entry.name, tag: normalized })
@@ -159,13 +193,22 @@ export function createShoppingActions(host: ModuleHost) {
     })
   }
 
-  return { addEntry, updateEntry, setBought, removeEntry, bulkSetTag, moveEntries }
+  return {
+    addEntry,
+    updateEntry,
+    setBought,
+    assignEntry,
+    removeEntry,
+    bulkSetTag,
+    bulkSetAssignee,
+    moveEntries,
+  }
 }
 
 export type ShoppingActions = ReturnType<typeof createShoppingActions>
 
-/** What a batch tag change reports (FR-30.9): how many entries it touched, and its undo. */
-export interface BulkTagResult {
+/** What a batch change reports (FR-30.9's tag, FR-30.12's assignee): how many entries it touched, and its undo. */
+export interface BulkResult {
   touched: number
   undo: () => void
 }
@@ -176,7 +219,7 @@ export interface EntryReads {
   boughtEntries(tripId: string, list: ShoppingMode): ShoppingEntry[]
 }
 
-/** What the own-entries source adds beyond a `ShoppingSource` (FR-30.9's bulk tag). */
+/** What the own-entries source adds beyond a `ShoppingSource` (FR-30.9's bulk tag, FR-30.12's bulk assignee). */
 export interface OwnEntriesSource extends ShoppingSource {
   /**
    * Files every entry a line `key` in `keys` names under one tag at once.
@@ -188,7 +231,14 @@ export interface OwnEntriesSource extends ShoppingSource {
     list: ShoppingMode,
     keys: ReadonlySet<string>,
     tag: string | null,
-  ): BulkTagResult
+  ): BulkResult
+  /** Hands every entry a line `key` in `keys` names to one person, or to nobody (FR-30.12). */
+  bulkSetAssignee(
+    tripId: string,
+    list: ShoppingMode,
+    keys: ReadonlySet<string>,
+    userId: string | null,
+  ): BulkResult
 }
 
 /**
@@ -206,22 +256,26 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       recipients: [],
       tag: entry.tag,
       dueDate: entry.bought ? null : entry.due_date,
+      assignee: entry.assignee_user_id,
       boughtAt: entry.bought ? entry.bought_at : undefined,
       boughtBy: entry.bought ? entry.bought_by_user_id : undefined,
       buy: () => actions.setBought(entry, true),
       unbuy: () => actions.setBought(entry, false),
       remove: () => actions.removeEntry(entry),
       edit: (fields) => actions.updateEntry(entry, fields),
+      assign: (userId) => actions.assignEntry(entry, userId),
     }
+  }
+  /** The open entries a selection's line keys name. */
+  function picked(tripId: string, list: ShoppingMode, keys: ReadonlySet<string>) {
+    return reads.openEntries(tripId, list).filter((entry) => keys.has(LINE_KEY_PREFIX + entry.id))
   }
   return {
     open: (tripId, list) => reads.openEntries(tripId, list).map(lineOf),
     bought: (tripId, list) => reads.boughtEntries(tripId, list).map(lineOf),
-    bulkSetTag: (tripId, list, keys, tag) =>
-      actions.bulkSetTag(
-        reads.openEntries(tripId, list).filter((entry) => keys.has(LINE_KEY_PREFIX + entry.id)),
-        tag,
-      ),
+    bulkSetTag: (tripId, list, keys, tag) => actions.bulkSetTag(picked(tripId, list, keys), tag),
+    bulkSetAssignee: (tripId, list, keys, userId) =>
+      actions.bulkSetAssignee(picked(tripId, list, keys), userId),
   }
 }
 

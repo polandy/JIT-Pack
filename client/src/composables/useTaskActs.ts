@@ -308,6 +308,23 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   /**
+   * FR-7.14: the selection's *Zuweisen* — one person for all of them, or
+   * nobody. The picker is the screen's, so the batch is handed the answer.
+   */
+  function assignMany(tasks: readonly TripTask[], userId: string | null): number {
+    return writeBatch(
+      tasks.filter((task) => task.assignee_user_id !== userId),
+      (todo) => todo.assignee_user_id,
+      (todo, value) => writeAssignee(todo, value),
+      userId,
+      (n) =>
+        userId === null
+          ? t('tasks.bulkUnassigned', { n })
+          : t('tasks.bulkAssigned', { n, who: nameOf(userId) ?? '' }),
+    )
+  }
+
+  /**
    * FR-7.14: the selection's *Löschen*, for the trip's own tasks (a
    * preparation is removed on its row, FR-7.3). Hidden now and deleted when
    * the undo lapses, as one removal is — and one undo brings them all back.
@@ -393,6 +410,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     moveMany,
     resolveMany,
     dueMany,
+    assignMany,
     removeMany,
     rename,
     liveTripTodo,

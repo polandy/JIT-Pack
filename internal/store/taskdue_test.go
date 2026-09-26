@@ -98,6 +98,8 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 	entry("e-undated", testTrip, 0, "")
 	entry("e-bought", testTrip, 1, "2026-07-08")
 	entry("e-archived", "trip-old", 0, "2026-07-08")
+	// FR-30.12: the assignee travels with the entry, for the recipient rule.
+	mustExec(t, s, `UPDATE shopping_entries SET assignee_user_id = ? WHERE id = 'e-tomorrow'`, testUser)
 
 	got, err := s.DueShoppingEntries(ctx, "2026-07-08", "2026-07-09")
 	if err != nil {
@@ -105,7 +107,7 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 	}
 	want := []DueShoppingEntry{
 		{ID: "e-today", TripID: testTrip, Name: "name e-today", DueDate: "2026-07-08"},
-		{ID: "e-tomorrow", TripID: testTrip, Name: "name e-tomorrow", DueDate: "2026-07-09"},
+		{ID: "e-tomorrow", TripID: testTrip, Name: "name e-tomorrow", DueDate: "2026-07-09", Assignee: testUser},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("DueShoppingEntries = %+v\nwant %+v", got, want)

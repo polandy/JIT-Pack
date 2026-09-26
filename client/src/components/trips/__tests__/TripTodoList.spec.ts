@@ -379,12 +379,29 @@ describe('TripTodoList — M25’s two-line rows (FR-7.14)', () => {
   const list = (tasks: TripTask[], extra: Record<string, unknown> = {}) =>
     mountList(tasks, true, { variant: 'list', today: TODAY, ...extra })
 
-  it('puts what is known about a task under its words, and no ✕ beside the tick', () => {
+  it('puts what is known about a task under its words, the person at the edge, and no ✕', () => {
     const wrapper = list([{ ...ownTask('Pass holen', 'open'), due_date: '2026-07-01' }])
     const facts = wrapper.get('[data-testid="trip-todo-facts-Pass holen"]')
     expect(facts.find('[data-testid="trip-todo-due-Pass holen"]').exists()).toBe(true)
-    expect(facts.find('[data-testid="trip-todo-assign-Pass holen"]').exists()).toBe(true)
+    // The seat is the row's, not the facts line's: it never makes a line of its own.
+    expect(facts.find('[data-testid="trip-todo-assign-Pass holen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-todo-assign-Pass holen"]').attributes('slot')).toBe(
+      'end',
+    )
     expect(wrapper.find('[data-testid="trip-todo-remove-Pass holen"]').exists()).toBe(false)
+  })
+
+  it('draws no second line for a task with nothing to say, even with a seat to offer', () => {
+    const wrapper = list([ownTask('Blumen', 'open', 'u-sia')])
+    expect(wrapper.find('[data-testid="trip-todo-facts-Blumen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-todo-assign-Blumen"]').exists()).toBe(true)
+  })
+
+  it('names who had a finished task at the edge, as an avatar that decides nothing', () => {
+    const wrapper = list([ownTask('Post', 'resolved', 'u-sia')], { unfolded: true })
+    expect(wrapper.find('[data-testid="trip-todo-facts-Post"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="trip-todo-assignee-Post"]').attributes('slot')).toBe('end')
+    expect(wrapper.find('[data-testid="trip-todo-assign-Post"]').exists()).toBe(false)
   })
 
   it('names the row a preparation belongs to on the second line', () => {

@@ -45,6 +45,13 @@ export interface ShoppingLine {
    * entries carry one: a packing line's moment is the list it sits on.
    */
   dueDate?: string | null
+  /**
+   * Who is to buy the line (FR-30.12), as a user id; null for nobody in
+   * particular. Absent where the source does not hand lines over — a packing
+   * line's person is the packing list's to name, and one line may stand for
+   * rows of several people.
+   */
+  assignee?: string | null
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
   /** For a bought line: when it was bought, an ISO instant (FR-30.4). */
@@ -68,6 +75,8 @@ export interface ShoppingLine {
    * other — and a `dueDate` left out is not a change either.
    */
   edit?(fields: { name: string; tag: string | null; dueDate?: string | null }): void
+  /** Hands the line to somebody, or to nobody with null (FR-30.12); only a line the list owns offers this. */
+  assign?(userId: string | null): void
 }
 
 /** Something that contributes lines to a trip's two shopping lists. */

@@ -589,6 +589,12 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     -- normal state of an entry). No CHECK, for field-level LWW's sake; the
     -- reminder scheduler compares strings.
     due_date          TEXT,
+    -- FR-30.12: who is to buy it — comments.assignee_user_id's shape for a
+    -- task (FR-7.5), and like it the client's to set: invariant 3 concerns
+    -- who acted, not whom a job is handed to. Nullable (nobody's in
+    -- particular, the normal state) and free of a CHECK for field-level
+    -- LWW's sake. The reminder asks it who hears about the entry.
+    assignee_user_id  TEXT REFERENCES users(id),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

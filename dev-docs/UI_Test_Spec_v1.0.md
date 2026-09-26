@@ -1438,6 +1438,11 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   line at the end, *„Before the trip · nothing open"*
   — and after a reload *Milch* is still in the block and *Brot* gone. Every clause but the removal would fail on a
   tabbed screen, and the missing-button clause on a row that carries a ✕.
+* **E2E-M6-37** `server` (FR-30.12) — **implemented** (`e2e/server/multi-user.spec.ts`): an own entry's
+  empty seat stands at the row's edge and adds no second line; it opens the task's picker, and picking the other
+  account fills the seat with them. That account is told (the toast names the entry and who handed it over), sees
+  itself on the entry on its own open M6 without a reload, and *Meine* narrows its list to that one entry. E2E-M25-05's
+  shape for a purchase; `server` because the seat is absent where nobody else can be picked (G-8).
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3282,6 +3287,10 @@ went.
 * **E2E-M25-17** `local` (FR-7.14) — **implemented** (`trip-tasks.spec.ts`): a trip whose first
   day was two days ago. The composer is on screen and names no phase; a task typed there lands under *Während der
   Reise*, and after a reload it is still there and not under *Vor der Reise*.
+* **E2E-M25-18** `server` (FR-7.14) — **implemented** (`e2e/server/multi-user.spec.ts`): on a trip
+  shared with a second account, a task with nothing to say under its words shows its empty seat and **no** facts
+  line, and its row is exactly as tall as a shopping entry's with its own seat. Fails on a build that seats the person
+  in the facts line, which makes every task row two lines. `server`, since only two people make a seat at all.
 * ~~**E2E-M25-10**~~ `local` (FR-7.9) — **moved to E2E-M26-01** (FR-7.13): the notes are a view of
   their own; the write, the sheet's `tel:` rule and the delete are asserted there.
 * ~~**E2E-M25-11**~~ `server` (FR-7.9) — **moved to E2E-M26-03** (FR-7.13): "new for another member", the

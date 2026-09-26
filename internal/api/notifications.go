@@ -125,13 +125,17 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return linkedUserID, ok
 	}
-	resolveTodo := func(commentID string) (string, bool) {
-		body, err := s.store.CommentBody(ctx, commentID)
+	resolveWords := func(table, id string) (string, bool) {
+		lookup := s.store.CommentBody
+		if table == store.TableShoppingEntries {
+			lookup = s.store.ShoppingEntryName
+		}
+		words, err := lookup(ctx, id)
 		if err != nil {
-			slog.Error("notification todo lookup", "comment", commentID, "error", err)
+			slog.Error("notification assignment lookup", "table", table, "id", id, "error", err)
 			return "", false
 		}
-		return body, true
+		return words, true
 	}
 	resolveThread := func(rootID string) (noteThreadFacts, bool) {
 		thread, err := s.store.NoteThread(ctx, rootID)
@@ -141,7 +145,7 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return noteThreadFacts{Title: thread.Title, Body: thread.Body, Participants: thread.Participants}, true
 	}
-	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveTodo, resolveThread) {
+	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveWords, resolveThread) {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 }
