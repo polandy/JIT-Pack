@@ -44,7 +44,6 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  checkboxOutline,
   sparklesOutline,
   chevronForwardOutline,
   closeOutline,
@@ -73,7 +72,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import { useInventoryHygiene } from '@/composables/useInventoryHygiene'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import BulkBar from '@/components/global/BulkBar.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
@@ -290,7 +289,7 @@ setHeaderActions(() => {
 
   const select: HeaderAction = {
     id: 'm9-select',
-    icon: checkboxOutline,
+    icon: SELECTION_ICON,
     label: t('items.select'),
     active: selecting.value,
     onClick: () => (selecting.value ? endSelecting() : rows.start()),

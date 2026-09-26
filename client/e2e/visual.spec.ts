@@ -319,7 +319,8 @@ test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) 
 // owner asked for beside the packing and shopping lists, and the one place
 // where both kinds of task and both phases are visible at once: a
 // preparation with the chip of its row under *Vor der Reise*, a chore of the
-// trip under *Während der Reise*, and the provenance line under each.
+// trip under *Während der Reise*, and the provenance line under each. Since
+// FR-7.14: the composer on top, the *Fällig* block and the two-line rows.
 test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
@@ -331,8 +332,15 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   // FR-7.8: one task carries a tag, so the baseline shows all three kinds of
   // heading — a tag, what came from the packing list, and what has none.
   await visiblePage(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
-  await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-  await page.getByTestId('task-sheet-tag-add').click()
+  await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
+  await page.getByTestId('tag-pick-create').click()
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+  // FR-7.14: one task due today, so the *Fällig* block on top is in the
+  // baseline — the preparation, named there by where it came from.
+  await visiblePage(page).getByTestId('trip-todo-open-Salbe in der Apotheke holen').click()
+  await page.getByTestId('task-sheet').getByTestId('due-chip-today').click()
+  await expect(visiblePage(page).getByTestId('m25-due')).toBeVisible()
+  await page.getByTestId('task-sheet-close').click()
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
   // Reloaded before the shot: the tag's own snackbar is a transient, and a
   // layout baseline that photographs one is a baseline that moves when the

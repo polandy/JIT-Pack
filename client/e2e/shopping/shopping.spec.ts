@@ -18,12 +18,12 @@ import { setDateField } from '../helpers/ionic'
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
  *
- * The shopping list is a module of its own since FR-30 (ADR-066): it holds
+ * The shopping list is a module of its own (FR-30, ADR-066): it holds
  * entries typed into it, which are on the shopping list only, and it shows the
  * packing list's rows in a buy mode, which stay packing rows. Every case here
  * reaches a packing row the way a person does — added on M4, given its mode in
- * M5 — because M6 no longer writes packing rows at all. The module's cases
- * live in this directory (FR-29.9's layout, first used here).
+ * M5 — because M6 does not write packing rows at all. The module's cases
+ * live in this directory (FR-29.9's layout).
  *
  * Local Mode throughout, like the M4 suite: everything here is client-side.
  */
@@ -44,14 +44,57 @@ function sheet(page: Page) {
   return page.getByTestId('m6-entry-sheet')
 }
 
+/** One of M6's two lists, standing one under the other. */
+type ListKey = 'before' | 'local'
+
+/** One list's section — `m6-before` or `m6-local`. */
+function list(page: Page, key: ListKey) {
+  return m6(page).getByTestId(`m6-${key}`)
+}
+
+/**
+ * A list's head: its name, and „N open" beside it while anything stands
+ * under it. An exact `toHaveText` on the name alone is the zero.
+ */
+function head(page: Page, key: ListKey) {
+  return list(page, key).getByRole('heading', { level: 2 })
+}
+
+/**
+ * A list with nothing open, folded to one line at the end of the screen
+ * (as on M25): *„Before the trip · nothing open"*.
+ */
+function restLine(page: Page, key: ListKey) {
+  return list(page, key).getByTestId(`m6-${key}-fold`)
+}
+
 /**
  * Type an entry into M6's own field and commit it with the button — no
- * keyboard, which is the phone case (E2E-M6-16). Lands on the open tab.
+ * keyboard, which is the phone case (E2E-M6-16). Lands on the list the
+ * composer's chip names; `key` presses that chip first, which is only there
+ * while the trip is planned and its packing open (FR-30.8).
  */
-async function addEntry(page: Page, name: string) {
+async function addEntry(page: Page, name: string, key?: ListKey) {
+  if (key) {
+    const chip = m6(page).getByTestId(`m6-list-${key}`)
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
+  }
   await m6(page).getByTestId('m6-add-input').locator('input').fill(name)
   await m6(page).getByTestId('m6-add-submit').click()
   await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toBeVisible()
+}
+
+/**
+ * Remove an own entry the one way M6 offers: its name opens
+ * its sheet, and the sheet's *Remove* takes it — the row carries no ✕.
+ */
+async function removeEntry(page: Page, name: string) {
+  await m6(page).getByTestId('m6-row').filter({ hasText: name }).getByTestId('m6-row-label').click()
+  await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+  await page.getByTestId('m6-entry-remove').click()
+  await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+  await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toHaveCount(0)
 }
 
 test.describe('M6 shopping — the list’s own entries @local @m6', () => {
@@ -73,16 +116,16 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(visible(page).getByTestId('m4-progress')).toContainText('0/1')
 
     await openTripView(page, 'shopping')
-    await m6(page).getByTestId('m6-tab-local').click()
-    await addEntry(page, 'Milch')
+    await addEntry(page, 'Milch', 'local')
 
     // Its own section, named; the packing row sits in the combined heading.
-    await expect(m6(page).getByTestId('m6-group-own')).toContainText('Added here')
+    const own = list(page, 'local').getByTestId('m6-group-own')
+    await expect(own).toContainText('Added here')
+    await expect(own.getByTestId('m6-row').locator('h3')).toHaveText(['Milch'])
     await expect(
-      m6(page).getByTestId('m6-group-own').getByTestId('m6-row').locator('h3'),
-    ).toHaveText(['Milch'])
-    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
-    await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(2)')
+      list(page, 'local').getByTestId('m6-row').filter({ hasText: 'Sonnencreme' }),
+    ).toBeVisible()
+    await expect(head(page, 'local')).toContainText('2 open')
     await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping (2)')
 
     // The packing list did not grow: one row, still the one it had.
@@ -95,7 +138,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
   /**
    * E2E-M6-27 (FR-30.1, FR-25.11j): an entry is bought, revealed, put back
    * and removed — and survives a reload in between, because it is a row of
-   * its own table on the device rather than a screen's state.
+   * its own table on the device rather than a screen's state. The fold under
+   * its list counts what was bought and keeps its words when opened; its
+   * state is `aria-expanded`. Removing is its sheet's, since the row carries
+   * no ✕.
    */
   test('E2E-M6-27: an entry is bought, put back and removed, and survives a reload (FR-30.1)', async ({
     page,
@@ -111,15 +157,18 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .locator('ion-checkbox')
       .click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
-    await expect(m6(page).getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
+    await expect(list(page, 'before').getByTestId('m6-bought-bar')).toHaveText('1 bought')
     await writesLanded(page)
 
     await page.reload()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Zucker' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
-    const bar = m6(page).getByTestId('m6-bought-bar')
-    await expect(bar).toHaveText('Show 1 bought')
+    const bar = list(page, 'before').getByTestId('m6-bought-bar')
+    await expect(bar).toHaveText('1 bought')
+    await expect(bar).toHaveAttribute('aria-expanded', 'false')
     await bar.click()
+    await expect(bar).toHaveAttribute('aria-expanded', 'true')
+    await expect(bar).toHaveText('1 bought')
     const bought = m6(page).getByTestId('m6-bought-row').filter({ hasText: 'Kaffee' })
     await expect(bought).toBeVisible()
     // It was never anywhere but here, so it names nowhere it went.
@@ -132,13 +181,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
 
-    await m6(page)
-      .getByTestId('m6-row')
-      .filter({ hasText: 'Kaffee' })
-      .getByTestId('m6-row-remove')
-      .click()
-    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
-    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+    await removeEntry(page, 'Kaffee')
+    await expect(head(page, 'before')).toContainText('1 open')
     await writesLanded(page)
     await page.reload()
     await expect(m6(page).getByTestId('m6-row').locator('h3')).toHaveText(['Zucker'])
@@ -156,22 +200,17 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
   }) => {
     await createTripViaWizard(page, TRIP)
     await openTripView(page, 'shopping')
-    await m6(page).getByTestId('m6-tab-local').click()
 
     // A tag made in the sheet stays a chip when nothing carries it: add an
     // entry under „Laden", remove it, and unselect the chip — it must remain.
     await m6(page).getByTestId('m6-tag-new').click()
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
     await page.getByTestId('m6-entry-name').locator('input').fill('Probe')
-    await page.getByTestId('m6-tag-search').locator('input').fill('Laden')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Laden')
+    await page.getByTestId('tag-pick-create').click()
     await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
-    await m6(page)
-      .getByTestId('m6-row')
-      .filter({ hasText: 'Probe' })
-      .getByTestId('m6-row-remove')
-      .click()
+    await removeEntry(page, 'Probe')
     const laden = m6(page).getByTestId('m6-tag-chip').filter({ hasText: 'Laden' })
     await expect(laden).toHaveAttribute('aria-pressed', 'true')
     await laden.click()
@@ -182,8 +221,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await m6(page).getByTestId('m6-tag-new').click()
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
     await page.getByTestId('m6-entry-name').locator('input').fill('Pasta')
-    await page.getByTestId('m6-tag-search').locator('input').fill('Supermarkt')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Supermarkt')
+    await page.getByTestId('tag-pick-create').click()
     await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Pasta' })).toBeVisible()
@@ -208,15 +247,15 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
     await expect(page.getByTestId('m6-entry-name').locator('input')).toHaveValue('Batterien')
     await page.getByTestId('m6-entry-name').locator('input').fill('Batterien AA')
-    await page.getByTestId('m6-tag-search').locator('input').fill('Baumarkt')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Baumarkt')
+    await page.getByTestId('tag-pick-create').click()
     await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
     await expect(m6(page).getByTestId('m6-group-tag-Baumarkt').locator('h3')).toHaveText([
       'Batterien AA',
     ])
     await expect(m6(page).getByTestId('m6-group-own')).toHaveCount(0)
-    await expect(m6(page).locator('ion-item-group').first()).toHaveAttribute(
+    await expect(list(page, 'before').locator('ion-item-group').first()).toHaveAttribute(
       'data-testid',
       'm6-group-tag-Baumarkt',
     )
@@ -230,7 +269,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     // Bought: leaves its group, and the flat reveal names the tag.
     await row.locator('ion-checkbox').click()
     await expect(supermarkt.locator('h3')).toHaveText(['Pasta'])
-    await m6(page).getByTestId('m6-bought-bar').click()
+    await list(page, 'before').getByTestId('m6-bought-bar').click()
     await expect(m6(page).getByTestId('m6-bought-row').getByTestId('m6-bought-tag')).toHaveText([
       'Supermarkt',
     ])
@@ -239,8 +278,6 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     // The tags survive a reload — they are a column of the row.
     await writesLanded(page)
     await page.reload()
-    // The tab is not remembered across visits (FR-30.8): the entries are at the destination.
-    await m6(page).getByTestId('m6-tab-local').click()
     await expect(m6(page).getByTestId('m6-group-tag-Supermarkt').locator('h3')).toHaveText([
       'Pasta',
     ])
@@ -268,8 +305,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .filter({ hasText: 'Mückenspray' })
       .getByTestId('m6-row-label')
       .click()
-    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
 
@@ -290,8 +327,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await m6(page).getByTestId('m6-bulk-tag').click()
     await expect(page.getByTestId('m6-bulk-sheet')).toHaveAttribute('data-presented', 'true')
     await expect(page.getByTestId('m6-bulk-title')).toContainText('2')
-    await page.getByTestId('m6-tag-search').locator('input').fill('Reise')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Reise')
+    await page.getByTestId('tag-pick-create').click()
 
     // The mode ends with the batch, and both now share the new tag.
     await expect(page.getByTestId('m6-selbar')).toHaveCount(0)
@@ -301,9 +338,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     ])
 
     // The toast's undo puts both back exactly where they were. Scoped to
-    // `.pack-toast`, the app's one undo-snackbar style (found 2026-09-22: a
-    // shopping toast without it silently fell back to Ionic's stock, barely
-    // readable palette, and no assertion here would have caught it).
+    // `.pack-toast`, the app's one undo-snackbar style: a shopping toast
+    // without it silently falls back to Ionic's stock, barely readable
+    // palette, which only a scoped locator catches.
     await page.locator('ion-toast.pack-toast').getByRole('button', { name: 'Undo' }).click()
     await expect(m6(page).getByTestId('m6-group-tag-Apotheke').locator('h3')).toHaveText([
       'Mückenspray',
@@ -365,8 +402,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
       .filter({ hasText: 'Mückenspray' })
       .getByTestId('m6-row-label')
       .click()
-    await page.getByTestId('m6-tag-search').locator('input').fill('Apotheke')
-    await page.getByTestId('m6-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await page.getByTestId('m6-entry-confirm').click()
     await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
 
@@ -374,7 +411,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(host).toHaveAttribute('data-drag', 'idle')
 
     // A packing row has nothing to drag either — a dashed placeholder
-    // rather than an empty gap (owner feedback 2026-09-23), and the same
+    // rather than an empty gap, and the same
     // refusal named once in words below the list.
     const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
     await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
@@ -406,9 +443,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     target = (await apotheke.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
-    // The shared frame (`composables/dragToGroup.css`, unified with
-    // `TripTasksPage.vue`'s own drag 2026-09-23) still reaches this page's
-    // ghost now that it moved out of this component's own scoped style.
+    // The shared frame (`composables/dragToGroup.css`, shared with
+    // `TripTasksPage.vue`'s drag) reaches this page's ghost from outside
+    // this component's own scoped style.
     await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(apotheke).toHaveAttribute('data-drop-over', '')
@@ -434,9 +471,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
    *
    * The day is set in the entry's own sheet and written on *Save*, so the
    * promises are asserted on the list: the line wears the day in words
-   * (*Tomorrow*), and the dated entry leads its section ahead of one it would
-   * otherwise follow (the list sorts by name, and *Brot* comes before
-   * *Pasta*). A reload proves the write, not the repaint. Then M1: the card
+   * (*Tomorrow*), and the dated entry leads the screen — a
+   * line due within two days leaves its group for the *Due* block on top,
+   * which names the group it left — while *Brot*, undated, stays where it
+   * was. A reload proves the write, not the repaint. Then M1: the card
    * under the trip leads with it and wears the same pill, and Local Mode's
    * stand-in for the push says once, when the app opens, that it is due — the
    * trip is started first, because M1 counts the active trips.
@@ -448,8 +486,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await createTripViaWizard(page, { ...TRIP, name })
     await startTrip(page)
     await openTripView(page, 'shopping')
-    // Running: at the destination is the list M1's card reads (FR-30.8).
-    await m6(page).getByTestId('m6-tab-local').click()
+    // Running: at the destination is the list M1's card reads (FR-30.8), and
+    // the only one the composer still files on — no list chips to press.
+    await expect(m6(page).getByTestId('m6-composer')).toBeVisible()
+    await expect(m6(page).getByTestId('m6-composer-list')).toHaveCount(0)
     await addEntry(page, 'Brot')
     await addEntry(page, 'Pasta')
 
@@ -475,13 +515,19 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(pill).toHaveText('Tomorrow')
     await expect(pill).toHaveAttribute('data-due', 'soon')
     await expect(m6(page).getByTestId('m6-row-due-Brot')).toHaveCount(0)
-    const own = m6(page).getByTestId('m6-group-own')
-    await expect(own.locator('h3')).toHaveText(['Pasta', 'Brot'])
+    const due = m6(page).getByTestId('m6-due')
+    await expect(due.locator('h3')).toHaveText(['Pasta'])
+    await expect(due.getByTestId('m6-row-tag-Pasta')).toHaveText('Added here')
+    await expect(list(page, 'local').getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
+    // On top: the block stands above the list it came from.
+    const [block, local] = [(await due.boundingBox())!, (await list(page, 'local').boundingBox())!]
+    expect(block.y + block.height).toBeLessThanOrEqual(local.y)
     await writesLanded(page)
 
     await page.reload()
     await expect(m6(page).getByTestId('m6-row-due-Pasta')).toHaveText('Tomorrow')
-    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Pasta', 'Brot'])
+    await expect(m6(page).getByTestId('m6-due').locator('h3')).toHaveText(['Pasta'])
+    await expect(list(page, 'local').getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
 
     // M1: the trip's card leads with it, and the app says it once on opening.
     await page.goto(PATH.dashboard)
@@ -494,7 +540,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
   /**
    * E2E-M6-28 (FR-30.2): a packing row reaches the shopping list by its mode,
    * and leaves it the same way — it is a projection, never a copy. Setting the
-   * row back to *Pack* on M5 empties the shopping tab; a copy would have left
+   * row back to *Pack* on M5 empties the shopping list; a copy would have left
    * it there to be bought twice.
    */
   test('E2E-M6-28: a packing row is on the shopping list exactly while its mode says so (FR-30.2)', async ({
@@ -504,10 +550,12 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await addBuyRowOnM4(page, 'Adapter', 'Buy there')
 
     await openTripView(page, 'shopping')
-    await m6(page).getByTestId('m6-tab-local').click()
-    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Adapter' })).toBeVisible()
-    // A packing row leaves by being bought or by its mode — never by a remove here.
-    await expect(m6(page).getByTestId('m6-row-remove')).toHaveCount(0)
+    const adapter = list(page, 'local').getByTestId('m6-row').filter({ hasText: 'Adapter' })
+    await expect(adapter).toBeVisible()
+    // A packing row leaves by being bought or by its mode — never by a remove
+    // here: its name opens no sheet (where an entry's *Remove* lives), so it
+    // is not offered as a button at all.
+    await expect(adapter.getByTestId('m6-row-label')).not.toHaveAttribute('role', 'button')
 
     await page.getByTestId('header-back').click()
     await visible(page).getByTestId('m4-row-Adapter').click()
@@ -517,7 +565,6 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
     await openTripView(page, 'shopping')
-    await m6(page).getByTestId('m6-tab-local').click()
     await expect(m6(page).getByTestId('m6-empty')).toBeVisible()
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
     await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping')
@@ -528,8 +575,8 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
  * FR-25.11j: checking a packing row off a shopping list must stay reversible.
  *
  * The reveal is the only way back for a BUY_BEFORE row — buying it changes
- * its mode, so it is gone from both tabs — which makes every "it disappeared"
- * assertion here worth a positive one beside it: the bar that counts what
+ * its mode, so it is gone from both lists — which makes every "it disappeared"
+ * assertion here worth a positive one beside it: the fold that counts what
  * disappeared, and the row it names once revealed.
  */
 test.describe('M6 shopping — what was bought can be found and put back @local @m6', () => {
@@ -550,7 +597,9 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
 
     // Nothing bought yet: the bar is absent, and the open row is the signal
     // that the list itself is rendered.
-    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
+    await expect(
+      list(page, 'before').getByTestId('m6-row').filter({ hasText: 'Kaffee' }),
+    ).toBeVisible()
     await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
 
     await m6(page)
@@ -559,11 +608,13 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
       .locator('ion-checkbox')
       .click()
 
-    // Gone from the open list — and counted by the bar, which is what makes
-    // the disappearance an outcome rather than a loss.
+    // Gone from the open list — and counted by the line the emptied list
+    // folds to, which is what makes the disappearance an
+    // outcome rather than a loss.
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
-    const bar = m6(page).getByTestId('m6-bought-bar')
-    await expect(bar).toHaveText('Show 1 bought')
+    const bar = restLine(page, 'before')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
+    await expect(bar).toHaveAttribute('aria-expanded', 'false')
     await expect(m6(page).getByTestId('m6-bought-list')).toHaveCount(0)
 
     await bar.click()
@@ -574,7 +625,9 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     // FR-30.4: the purchase keeps its time although the row is a packing row
     // again — the record lives beside `bought_from`, not in the mode.
     await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
-    await expect(bar).toHaveText('Hide 1 bought')
+    // Open now, and still saying what it holds rather than what it would do.
+    await expect(bar).toHaveAttribute('aria-expanded', 'true')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
 
     // E2E-M6-02 (FR-3.3), and the half the note only *claims*: the row really
     // is on the packing list now. The sentence above is a string until the
@@ -587,19 +640,21 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     // since a row that arrived packed would be hidden by FR-25.2 instead.
     await expect(visible(page).getByTestId('m4-progress')).toContainText('0/1')
     await openTripView(page, 'shopping')
-    await expect(m6(page).getByTestId('m6-bought-bar')).toBeVisible()
-    await m6(page).getByTestId('m6-bought-bar').click()
+    await expect(bar).toBeVisible()
+    await bar.click()
 
-    // And the way back: it returns to the list it was bought from.
+    // And the way back: it returns to the list it was bought from, which
+    // stands in its place again.
     await bought.locator('ion-checkbox').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
+    await expect(restLine(page, 'before')).toHaveCount(0)
   })
 
-  // E2E-M6-22 (FR-3.3/25.11j): the destination tab's half. A BUY_LOCAL row
+  // E2E-M6-22 (FR-3.3/25.11j): the destination list's half. A BUY_LOCAL row
   // never changes mode — being bought there *is* its packed state — so the
-  // record has to name that list too, or the two tabs share one reveal.
-  test('E2E-M6-22: a purchase at the destination is revealed on its own tab (FR-25.11j)', async ({
+  // record has to name that list too, or the two lists share one reveal.
+  test('E2E-M6-22: a purchase at the destination is revealed under its own list (FR-25.11j)', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -607,23 +662,22 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await addBuyRowOnM4(page, 'Milch', 'Buy there')
     await openTripView(page, 'shopping')
 
-    // The button, not the label inside it — the segment button swallows a
-    // click aimed at its own `ion-label` (packing-list.spec.ts pays for this).
-    await m6(page).getByTestId('m6-tab-local').click()
-    await m6(page)
-      .getByTestId('m6-row')
-      .filter({ hasText: 'Milch' })
-      .locator('ion-checkbox')
-      .click()
+    const local = list(page, 'local')
+    await local.getByTestId('m6-row').filter({ hasText: 'Milch' }).locator('ion-checkbox').click()
 
-    await m6(page).getByTestId('m6-bought-bar').click()
-    await expect(m6(page).getByTestId('m6-bought-row')).toContainText('Milch')
-    await expect(m6(page).getByTestId('m6-bought-note')).toHaveText('packed')
+    // Nothing open is left at the destination: its line at the end counts it.
+    const line = restLine(page, 'local')
+    await expect(line).toHaveText('At destination · nothing open · 1 bought')
+    await line.click()
+    await expect(local.getByTestId('m6-bought-row')).toContainText('Milch')
+    await expect(local.getByTestId('m6-bought-note')).toHaveText('packed')
 
-    // The other tab has its own reveal, and nothing in it.
-    await m6(page).getByTestId('m6-tab-before').click()
-    await expect(m6(page).getByTestId('m6-bought-bar')).toHaveCount(0)
-    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Brot vor Ort' })).toBeVisible()
+    // The other list has its own fold, and nothing in it: its open row is
+    // the signal that the section rendered, the fold's absence the promise.
+    const before = list(page, 'before')
+    await expect(before.getByTestId('m6-row').filter({ hasText: 'Brot vor Ort' })).toBeVisible()
+    await expect(before.getByTestId('m6-bought-bar')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-bought-row')).toHaveCount(1)
   })
 })
 
@@ -696,8 +750,8 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     // The spec promises the avatars beside the names, so they are asserted
     // rather than left to the initials the text assertion swallows.
     await expect(forWhom.getByTestId('user-avatar')).toHaveCount(3)
-    // The tab counts things to buy, so it agrees with what the list shows.
-    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+    // The head counts things to buy, so it agrees with what the list shows.
+    await expect(head(page, 'before')).toContainText('1 open')
 
     // E2E-M6-08 (FR-25.10): *for whom* is derived and there is nothing here to
     // re-enter it with. The row's only control is the check-off — asserted as
@@ -709,7 +763,7 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
 
   // E2E-M6-06 (FR-25.6/3.3): the half that matters — one act settles every
   // instance. Two instances left behind would still render a row, so the
-  // empty state is the positive signal that none was, and the restored 6×
+  // list's empty hint is the positive signal that none was, and the restored 6×
   // is the positive signal that the undo took all of them with it.
   test('E2E-M6-06: checking the aggregated row off settles every instance (FR-3.3)', async ({
     page,
@@ -719,13 +773,11 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await m6(page).getByTestId('m6-row').locator('ion-checkbox').click()
 
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
-    await expect(m6(page).locator('.empty-state')).toBeVisible()
-    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(0)')
-
-    // And it came back as one purchase, not three.
-    const bar = m6(page).getByTestId('m6-bought-bar')
-    await expect(bar).toHaveText('Show 1 bought')
-    await bar.click()
+    // With nothing open the list is one line at the end, and it counts one
+    // purchase, not three.
+    const line = restLine(page, 'before')
+    await expect(line).toHaveText('Before the trip · nothing open · 1 bought')
+    await line.click()
     const bought = m6(page).getByTestId('m6-bought-row')
     await expect(bought).toHaveCount(1)
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
@@ -739,18 +791,19 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
 
 /**
  * M6's own spine (UI-Test-Spec E2E-M6-01/03/04/16): the two lists, their
- * headings and their counts, with both kinds of line on them.
+ * headings and their counts, with both kinds of line on them. The lists
+ * stand one under the other, each a section with its own head.
  */
 test.describe('M6 shopping — the two lists and their counts @local @m6', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M6-01: two tabs, the packing list combined ahead of the own entries, each counting things to buy', async ({
+  test('E2E-M6-01: two lists, the packing list combined ahead of the own entries, each counting things to buy', async ({
     page,
   }) => {
     // A tagged master item; its category must not surface as a heading here
-    // (revised 2026-09-23) — a packing category is not this list's tag.
+    // — a packing category is not this list's tag.
     await page.goto(PATH.items)
     await createItem(page, 'Sonnencreme', { tags: ['Drogerie'] })
     await createTripViaWizard(page, TRIP)
@@ -765,25 +818,91 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
 
     // Grouped — the row sits *inside* its group, which is the assertion the
     // promise makes; two rows on one screen prove nothing about where they sit.
-    await expect(m6(page).getByTestId('m6-group-own').getByTestId('m6-row')).toContainText(
-      'Kaugummi',
-    )
-    const packing = m6(page).getByTestId('m6-group-packing')
+    const before = list(page, 'before')
+    await expect(before.getByTestId('m6-group-own').getByTestId('m6-row')).toContainText('Kaugummi')
+    const packing = before.getByTestId('m6-group-packing')
     await expect(packing).toContainText('Packing list')
     await expect(packing.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
     await expect(packing.getByTestId('m6-row').filter({ hasText: 'Batterien' })).toBeVisible()
     await expect(m6(page).getByTestId('m6-group-Drogerie')).toHaveCount(0)
 
-    // The label counts things to buy (FR-25.6), and the other tab is its own
-    // list — a shared list would show three here.
-    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(3)')
-    await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(0)')
+    // The head counts things to buy (FR-25.6), and the other section is its
+    // own list — a shared list would count three there too, and hold rows.
+    await expect(head(page, 'before')).toContainText('3 open')
+    await expect(restLine(page, 'local')).toHaveText('At destination · nothing open')
+    await expect(list(page, 'local').getByTestId('m6-row')).toHaveCount(0)
 
-    await m6(page).getByTestId('m6-tab-local').click()
-    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
-    await addEntry(page, 'Eis')
-    await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(1)')
-    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(3)')
+    await addEntry(page, 'Eis', 'local')
+    await expect(list(page, 'local').getByTestId('m6-row')).toHaveText([/Eis/])
+    await expect(head(page, 'local')).toContainText('1 open')
+    await expect(head(page, 'before')).toContainText('3 open')
+  })
+
+  /**
+   * E2E-M6-36 (FR-30.8, FR-30.10): M6 reads as M25 does — both lists on one
+   * screen, one under the other, and what is due now in a block above them
+   * both, so a thing due today on either list is seen.
+   *
+   * The composer files the next entry on the list its chip names, and dates
+   * it with its day chips. The entry due today stands in the *Due* block and
+   * **not** under its own list — so that list has nothing under a heading and
+   * folds to its line at the end, which counts the one waiting above
+   * (a heading over nothing reads as a list left over). The block names
+   * the group the line left. Then removal without a ✕ on the row: an
+   * entry is removed from its sheet, and stays removed across a reload.
+   */
+  test('E2E-M6-36: both lists stand on one screen, what is due today leads above them, and an entry is removed from its sheet', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+
+    // Planned and open: the chips offer both lists, before departure first.
+    await expect(m6(page).getByTestId('m6-list-before')).toHaveAttribute('aria-pressed', 'true')
+    await expect(m6(page).getByTestId('m6-list-local')).toHaveAttribute('aria-pressed', 'false')
+    await addEntry(page, 'Brot')
+
+    // At the destination, due today — the day row appears once something is typed.
+    const composer = m6(page).getByTestId('m6-composer')
+    await composer.getByTestId('m6-list-local').click()
+    await composer.getByTestId('m6-add-input').locator('input').fill('Milch')
+    await expect(composer.getByTestId('m6-composer-due-chips')).toBeVisible()
+    await composer.getByTestId('due-chip-today').click()
+    await composer.getByTestId('m6-add-submit').click()
+
+    const due = m6(page).getByTestId('m6-due')
+    await expect(due.getByTestId('m6-row')).toHaveText([/Milch/])
+    await expect(due.getByTestId('m6-row-due-Milch')).toHaveText('Today')
+    await expect(due.getByTestId('m6-row-tag-Milch')).toHaveText('Added here')
+
+    // Both lists render at once — no tab to switch.
+    await expect(list(page, 'before').getByTestId('m6-row')).toHaveText([/Brot/])
+    await expect(head(page, 'before')).toContainText('1 open')
+    // The local list holds no row of its own: Milch stands above, not twice,
+    // and the list is its line at the end, counting it.
+    await expect(list(page, 'local').getByTestId('m6-row')).toHaveCount(0)
+    await expect(restLine(page, 'local')).toHaveText('At destination · 1 due')
+    // Top to bottom: the block, then before the trip, then the local line.
+    const box = async (el: ReturnType<typeof list>) => (await el.boundingBox())!
+    const [block, before, local] = [
+      await box(due),
+      await box(list(page, 'before')),
+      await box(list(page, 'local')),
+    ]
+    expect(block.y + block.height).toBeLessThanOrEqual(before.y)
+    expect(before.y + before.height).toBeLessThanOrEqual(local.y)
+
+    // Removed from its sheet; the row has no ✕ of its own.
+    const brot = list(page, 'before').getByTestId('m6-row').filter({ hasText: 'Brot' })
+    await expect(brot.locator('button')).toHaveCount(0)
+    await removeEntry(page, 'Brot')
+    await expect(restLine(page, 'before')).toHaveText('Before the trip · nothing open')
+    await writesLanded(page)
+
+    await page.reload()
+    await expect(m6(page).getByTestId('m6-due').getByTestId('m6-row')).toHaveText([/Milch/])
+    await expect(restLine(page, 'before')).toHaveText('Before the trip · nothing open')
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Brot' })).toHaveCount(0)
   })
 
   test('E2E-M6-04: an empty shopping list drops M4’s count, never the entry', async ({ page }) => {

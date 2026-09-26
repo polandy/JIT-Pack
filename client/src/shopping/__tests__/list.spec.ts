@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { buildSections, dropTag, listInFocus, openCount } from '../list'
+import { buildSections, dropTag, listInFocus, openCount, shoppingBoard } from '../list'
 
 function line(
   name: string,
@@ -114,7 +114,7 @@ describe('openCount', () => {
 /**
  * FR-30.8 — which list M6 opens on.
  *
- * „Vor der Abreise" stops being the answer the moment that moment is past:
+ * „Vor der Reise" stops being the answer the moment that moment is past:
  * the trip has started, or the packing has been declared finished (FR-5.10).
  * The other list keeps its count in the tab label, so nothing is hidden —
  * it is one tap away and says how much is on it.
@@ -184,5 +184,64 @@ describe('buildSections — due days (FR-30.10)', () => {
       [line('Hut')],
     )
     expect(sections.map((s) => s.key)).toEqual(['packing', 'tag:Apotheke', 'own'])
+  })
+})
+
+/*
+ * M25's reading, on the shopping list: what is due now
+ * leads in one block across both lists, and leaves its group while it is
+ * there; each list is a section of its own below.
+ */
+describe('shoppingBoard', () => {
+  const TODAY = '2026-07-08'
+  const empty = { own: [], sourced: [] }
+
+  it('lifts what is overdue, due today or in two days out of both lists, earliest first', () => {
+    const board = shoppingBoard(
+      {
+        buy_before: {
+          own: [line('Milch', 'Laden', '2026-07-09'), line('Brot', 'Laden')],
+          sourced: [line('Sonnencreme')],
+        },
+        buy_local: {
+          own: [line('Spray', null, '2026-07-07'), line('Karte', null, '2026-07-20')],
+          sourced: [],
+        },
+      },
+      TODAY,
+    )
+    expect(board.due.map((l) => l.name)).toEqual(['Spray', 'Milch'])
+    expect(board.lists.buy_before.sections.map((s) => s.lines.map((l) => l.name))).toEqual([
+      ['Sonnencreme'],
+      ['Brot'],
+    ])
+    expect(board.lists.buy_local.sections.map((s) => s.lines.map((l) => l.name))).toEqual([
+      ['Karte'],
+    ])
+  })
+
+  it('counts what stands under a list, not what the block above holds', () => {
+    const board = shoppingBoard(
+      {
+        buy_before: { own: [line('Milch', null, TODAY), line('Brot')], sourced: [] },
+        buy_local: empty,
+      },
+      TODAY,
+    )
+    expect(board.lists.buy_before.open).toBe(1)
+    expect(board.lists.buy_local.open).toBe(0)
+  })
+
+  it('says which list a line stands on, the block above included', () => {
+    const board = shoppingBoard(
+      {
+        buy_before: { own: [line('Milch', null, TODAY)], sourced: [] },
+        buy_local: { own: [line('Brot')], sourced: [] },
+      },
+      TODAY,
+    )
+    expect(board.listOf('Milch')).toBe('buy_before')
+    expect(board.listOf('Brot')).toBe('buy_local')
+    expect(board.listOf('nothing')).toBeUndefined()
   })
 })

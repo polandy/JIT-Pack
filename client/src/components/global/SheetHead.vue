@@ -46,7 +46,11 @@ const emit = defineEmits<{ close: [] }>()
   <header class="head">
     <slot name="lead" />
     <div class="titles">
-      <h1 class="jp-sheet-title" :data-testid="titleTestid">{{ title }}</h1>
+      <!-- A caller may make the title a control (FR-7.14: a task's words are
+           edited where they are read); the role stays the same. -->
+      <slot name="title">
+        <h1 class="jp-sheet-title" :data-testid="titleTestid">{{ title }}</h1>
+      </slot>
       <p v-if="$slots.meta || meta" class="meta jp-meta">
         <slot name="meta">{{ meta }}</slot>
       </p>
@@ -77,9 +81,8 @@ const emit = defineEmits<{ close: [] }>()
 }
 
 /* The role names type and no spacing, so the browser's own h1 margin is
-   still there to decline — four sheets used to decline it separately, and
-   the one that forgot had its title start half a line below the glyph it
-   was supposed to align with. */
+   still there to decline — declined once here, since a sheet that forgets
+   it has its title start half a line below the glyph it aligns with. */
 .titles h1 {
   margin: 0;
 }

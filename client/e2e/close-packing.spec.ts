@@ -39,14 +39,22 @@ import {
 useReducedMotion(test)
 
 /**
- * Which of M6's two lists is open, read off the segment's own value — the
- * idiom E2E-M2-33 uses, because the checked state is a class on a shadow
- * part and a case that matched on it would assert Ionic's markup.
+ * Which of M6's two lists a new entry is filed on (FR-30.8), read off the
+ * composer: the pressed list chip while *before departure* still takes one,
+ * and no chips at all once it does not — then every entry is for the
+ * destination.
  */
-async function openList(page: import('@playwright/test').Page): Promise<string | undefined> {
-  const segment = visiblePage(page).getByTestId('m6-page').locator('ion-segment')
-  await expect(segment).toBeVisible()
-  return segment.evaluate((el) => (el as HTMLElement & { value?: string }).value)
+async function expectComposingFor(
+  page: import('@playwright/test').Page,
+  list: 'before' | 'local',
+): Promise<void> {
+  const m6 = visiblePage(page).getByTestId('m6-page')
+  await expect(m6.getByTestId('m6-composer')).toBeVisible()
+  if (list === 'before') {
+    await expect(m6.getByTestId('m6-list-before')).toHaveAttribute('aria-pressed', 'true')
+  } else {
+    await expect(m6.getByTestId('m6-composer-list')).toHaveCount(0)
+  }
 }
 
 /**
@@ -222,8 +230,9 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * second half travels a different contract; a close that moved only its own
    * rows would pass a case with one of them. The sheet counts both, the one
    * undo brings both back, and after the second close the two *before* places
-   * are records: M6's tab and M25's section each say why they take nothing,
-   * and neither has its field. *Wieder öffnen* lifts both.
+   * are records: M6's and M25's *before* each fold to one line at the end
+   * that says why it takes nothing, and neither composer offers it.
+   * *Wieder öffnen* lifts both.
    */
   test('E2E-M4-149: finishing the packing moves the purchases and closes before', async ({
     page,
@@ -232,7 +241,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await addBuyRowOnM4(page, 'Sun hat', 'Buy before')
     const m6 = visiblePage(page).getByTestId('m6-page')
     await openTripView(page, 'shopping')
-    expect(await openList(page)).toBe('buy_before')
+    await expectComposingFor(page, 'before')
     await m6.getByTestId('m6-add-input').locator('input').fill('Coffee')
     await m6.getByTestId('m6-add-submit').click()
     await expect(m6.getByTestId('m6-row').filter({ hasText: 'Coffee' })).toBeVisible()
@@ -248,8 +257,11 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
     await writesLanded(page)
     await openTripView(page, 'shopping')
-    expect(await openList(page)).toBe('buy_before')
-    await expect(m6.getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
+    await expectComposingFor(page, 'before')
+    await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveText([
+      /Sun hat/,
+      /Coffee/,
+    ])
 
     // Closed for good: both wait at the destination, and before departure is
     // the record of what was bought there.
@@ -258,28 +270,39 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await confirmClose(page)
     await writesLanded(page)
     await openTripView(page, 'shopping')
-    expect(await openList(page)).toBe('buy_local')
-    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Sun hat' })).toBeVisible()
-    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Coffee' })).toBeVisible()
-    await m6.getByTestId('m6-tab-before').click()
+    await expectComposingFor(page, 'local')
+    await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
+    // Before the trip is one folded line at the end, and says why once open.
+    const fold = m6.getByTestId('m6-before-fold')
+    await expect(fold).toHaveText('Before the trip · closed')
+    await expect(m6.getByTestId('m6-before-locked')).toHaveCount(0)
+    await fold.click()
     await expect(m6.getByTestId('m6-before-locked')).toBeVisible()
-    await expect(m6.getByTestId('m6-composer')).toHaveCount(0)
+    await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
 
+    // FR-7.14: the closed *before* is one folded line at the end, and the
+    // composer writes for the road only.
     const before = await openTasks(page, 'before')
+    await expect(visiblePage(page).getByTestId('m25-composer')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m25-phase-before')).toHaveCount(0)
+    await before.getByTestId('m25-before-fold').click()
     await expect(before.getByTestId('m25-before-locked')).toBeVisible()
-    await expect(before.getByTestId('m25-composer-before')).toHaveCount(0)
 
     // Reopened: both places take entries again, and nothing moved back.
     await openTripView(page, 'packing')
     await visiblePage(page).getByTestId('m4-reopen-packing').click()
     await writesLanded(page)
     const reopened = await openTasks(page, 'before')
-    await expect(reopened.getByTestId('m25-composer-before')).toBeVisible()
-    await expect(reopened.getByTestId('m25-before-locked')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m25-phase-before')).toBeVisible()
+    // Open again but empty: the plain line at the end, with no lock behind it.
+    await expect(reopened.getByTestId('m25-before-fold')).toHaveText(
+      /^Before the trip · nothing open/,
+    )
     await openTripView(page, 'shopping')
-    await m6.getByTestId('m6-tab-before').click()
-    await expect(m6.getByTestId('m6-composer')).toBeVisible()
-    await expect(m6.getByTestId('m6-row')).toHaveCount(0)
+    await expectComposingFor(page, 'before')
+    await expect(m6.getByTestId('m6-before-fold')).toHaveText('Before the trip · nothing open')
+    await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
+    await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
   })
 
   /**
@@ -603,22 +626,31 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M6-30 (FR-30.8): the shopping list stops opening on *Before
-   * departure* once that moment is past. The trip here is still *planning* —
-   * nobody tapped *Start trip* — which is exactly the case the trip's phase
-   * alone gets wrong: the bag is shut the evening before.
+   * E2E-M6-30 (FR-30.8): the shopping list stops filing new entries under
+   * *Before the trip* once that moment is past. The trip here is still
+   * *planning* — nobody tapped *Start trip* — which is exactly the case the
+   * trip's phase alone gets wrong: the bag is shut the evening before. The
+   * entry typed afterwards standing in *At destination* is the positive
+   * signal behind the list chips' absence.
    */
-  test('E2E-M6-30: M6 opens at the destination once the packing is finished', async ({ page }) => {
+  test('E2E-M6-30: M6 files new entries at the destination once the packing is finished', async ({
+    page,
+  }) => {
     await createTripViaWizard(page, { name: 'Einkauf danach', travelers: ['Andy'] })
+    const m6 = visiblePage(page).getByTestId('m6-page')
 
     await openTripView(page, 'shopping')
-    expect(await openList(page)).toBe('buy_before')
+    await expectComposingFor(page, 'before')
 
     await openTripView(page, 'packing')
     await tripAction(page, 'closePacking')
     await confirmClose(page)
 
     await openTripView(page, 'shopping')
-    expect(await openList(page)).toBe('buy_local')
+    await expectComposingFor(page, 'local')
+    await m6.getByTestId('m6-add-input').locator('input').fill('Milk')
+    await m6.getByTestId('m6-add-submit').click()
+    await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Milk/])
+    await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
   })
 })

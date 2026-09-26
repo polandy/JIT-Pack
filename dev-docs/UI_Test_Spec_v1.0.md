@@ -172,7 +172,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
 | E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
 | E2E-VIS-12 | Visual M1 below the hero | all | **New 2026-09-09** (FR-21.28). M1's only baseline is of the hero card, so the blocks under it — the following trip and the planned lookahead — had never been photographed, and that is where the screen had kept Ionic's card: another radius, another inset, another shadow, none of which a stylesheet gate can see, because it is not our stylesheet. Three trips, each with a departure date, so which one is the hero is the rule (`byDepartureSoonestFirst`) rather than the fixture. |
-| E2E-VIS-13 | Visual M25 — a trip's tasks | all | **New 2026-09-21, updated 2026-09-24** (FR-7.7; regrouped by tag for FR-7.8, and the shot is taken after a reload so the tag's own snackbar is not part of a layout baseline; re-baselined 2026-09-24 when the grip became M6's own `DragGrip`, and again the same day when the groups became M6's `ListGroup` headings with full-width rows, ADR-075). The screen that did not exist before, and the one place where both kinds of task and both phases stand together: a preparation with the chip of its row under *Vor der Reise*, a chore of the trip under *Während der Reise*, and the section heads' open counts. The provenance line the list first gained moved to the task's own sheet 2026-09-23, so the baseline no longer carries it. It is photographed because three of its decisions are pixels — the chip beside a seat in one cluster, the grip's own gap to the words, and the third pill above it, which is the row ADR-051 amendment 1 measured. |
+| E2E-VIS-13 | Visual M25 — a trip's tasks | all | **New 2026-09-21, updated 2026-09-24** (FR-7.7; regrouped by tag for FR-7.8, and the shot is taken after a reload so the tag's own snackbar is not part of a layout baseline; re-baselined 2026-09-24 when the grip became M6's own `DragGrip`, and again the same day when the groups became M6's `ListGroup` headings with full-width rows, ADR-075; re-baselined 2026-09-25 for FR-7.14: the composer card on top with its phase and tag chips, a *Fällig* block holding the preparation due today with its pill and row chip on a second line, rows without ✕, and the FAB). The screen that did not exist before, and the one place where both kinds of task and both phases stand together: a preparation with the chip of its row under *Vor der Reise*, a chore of the trip under *Während der Reise*, and the section heads' open counts. The provenance line the list first gained moved to the task's own sheet 2026-09-23, so the baseline no longer carries it. It is photographed because three of its decisions are pixels — the chip beside a seat in one cluster, the grip's own gap to the words, and the third pill above it, which is the row ADR-051 amendment 1 measured. |
 | E2E-VIS-14 | Visual M26 — a trip's notes | all | **New 2026-09-25** (FR-7.13), **re-shot the same day for the UX rework**. Two baselines. `m26-thread`: a titled thread's own view — its first note as a card on top with *4711* as a code chip, two replies below it as bubbles in the order written, the reply field fixed at the bottom. `m26-notes`: the list — the notes pill current in the switcher's fourth place, the titled thread's card with its words, the newest reply quoted and *2 replies*, and an untitled thread named by its first line with the rest of its words under it; the FAB. Photographed after a reload, so the thread is read back from storage and no snackbar is in a baseline. Its decisions are pixels: a card that shows its words, the chip, the reading direction, the field's place at the bottom. |
 | E2E-VIS-11 | Visual M2 with the hero card | all | **New 2026-09-07.** The `trips` tab-root baseline is an *empty* state, so the segment carrying the hero (FR-21.15) had no picture of itself. It is the one thing on that screen a stylesheet cannot be read for: a card inside a list of cards, which is exactly the collision G-14 exists for. Captured with a second trip of the same series below it, so the hero *and* the group it was lifted out of are in one frame, and with rows on the trip — a ring reading 0/0 is a picture of the card rather than of what the card says. |
 | E2E-VIS-10 | Visual M1 with the hero card | all | **New 2026-09-07.** The four tab-root baselines are all *empty* states, so until this one the screen every rebuild lands on had no picture of itself with data — and the hero (FR-21.13) is exactly what an empty dashboard cannot show. The trip is **started** first: a trip out of the wizard is planned, and M1 lists what is active, which is why the tab-root baseline shows an empty state at all. |
@@ -306,7 +306,7 @@ stable references for the traceability matrix.
   a figure; E2E-M1-10 keeps the line, on a list card.)
 * **E2E-M1-12** `local` (FR-30.7/30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): a running trip's
   shopping card opens on *At destination* with its *Buy there* packing row, tagged *Packing list*; a planned trip with a
-  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before departure*; a planned trip with nothing to
+  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before the trip*; a planned trip with nothing to
   buy has **no** card (asserted beside its rendered row); the card's last line leads onto M6, with the switcher's
   *Shopping* pill current. (First written the same day against FR-30.5's pill, which the card superseded.)
 * **E2E-M1-13** `local` (FR-30.7, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): the card is worked. An
@@ -908,12 +908,12 @@ in WebKit.
   nothing left to restore — no second item.
 * **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`trip-tasks.spec.ts`): with no todo the
   section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched, the
-  section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and stands
-  as the share's pair (`expectFiguresPaired`: same ring, headlines and tracks level, no sentence clipped —
-  mutation-checked: without the paired layout the tracks sat 6 px apart). Ticking one keeps it open at *„1/2 Aufgaben"*;
-  ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and the figure at *„2/2 Aufgaben"* — the
-  status line is the positive signal for the fold. After another reload it is still folded, and tapping the header
-  figure unfolds it.
+  section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* (since
+  FR-7.14 *„Beim Packen 0/2"*, which is what it counts) and stands as the share's pair (`expectFiguresPaired`: same
+  ring, headlines and tracks level, no sentence clipped — mutation-checked: without the paired layout the tracks sat 6
+  px apart). Ticking one keeps it open at *„1/2 Aufgaben"*; ticking the last folds it to *„✓ Alle Aufgaben erledigt"*
+  with the list gone and the figure at *„2/2 Aufgaben"* — the status line is the positive signal for the fold. After
+  another reload it is still folded, and tapping the header figure unfolds it.
 * **E2E-M4-103** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): two
   inventory items quick-added onto a trip, the ⋮ read without the entry, then both items renamed in M10. The trip still
   shows the old names; the ⋮ offers „Names from the inventory (2)", the sheet counts „2 of 2 selected", one untick and
@@ -1113,11 +1113,14 @@ in WebKit.
 
 * **E2E-M4-149** `local` (FR-7.12, added 2026-09-25) — **implemented** (`close-packing.spec.ts`): finishing the packing
   ends *before*. A packing row bought *before departure* and the shopping list's own entry both cross — the second
-  travels the kernel contract the composition root binds, so a close that moved only its own rows fails here. The
-  sheet counts both (*„2 open purchases"*), the one undo brings both back to *before departure*, and after the second
-  close both stand *at the destination* while M6's *Vor der Abreise* and M25's *Vor der Reise* each carry their lock
-  line and no field. *Wieder öffnen* gives both fields back and moves nothing. Mutation-proved: with the module's
-  crossing skipped the case goes red at the own entry.
+  travels the kernel contract the composition root binds, so a close that moved only its own rows fails here. The sheet
+  counts both (*„2 open purchases"*), the one undo brings both back to *before departure*, and after the second close
+  both stand *at the destination* while M6's *Vor der Reise* carries its lock line and no field, and M25's *Vor der
+  Reise* is one folded line at the end whose fold holds the lock line, with no *Vor der Reise* chip on the composer
+  (FR-7.14). *Wieder öffnen* gives both back and moves nothing. **Revised 2026-09-26 (FR-30.11, no tabs):** M6's *Vor
+  der Abreise* is read in `m6-before` before the close and is afterwards the folded line *„Before the trip · closed"*
+  at the end, whose fold holds the lock line; the composer stays and writes for *Vor Ort*. Mutation-proved: with the
+  module's crossing skipped the case goes red at the own entry.
 * **E2E-M4-148** `local` (G-14, added 2026-09-25) — **implemented** (`packing-list-shape.spec.ts`): the header line's
   figures are a card — a non-zero corner radius — whose left and right edges are the tasks card's below it, measured
   on the painted boxes. Found wanting on its first run at desktop width: a lone figure had kept its own width.
@@ -1377,13 +1380,15 @@ rows; the cases live in `client/e2e/shopping/`. The composer's cases on M6 (E2E-
 composer.
 
 * **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-23** (`e2e/shopping/shopping.spec.ts`): two
-  tabs (Before departure / At destination), each tab's label counting the **things to buy** rather than rows
-  (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
-  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and
-  would now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one
-  entry is typed into M6's own field, and the case asserts the entry under *„Eingetragen"*. **Revised 2026-09-23:**
-  a tagged master item's category must not surface as a heading — the packing rows are combined under one
-  *„Packing list"* heading now, asserted by name, and the old per-category heading is asserted absent.
+  tabs (Before departure / At destination), each tab's label counting the **things to buy** rather than rows (FR-25.6).
+  The clause about the destination tab showing **destination-checklist entries separated** is **not testable yet and
+  never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and would now pre-fill
+  entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one entry is typed into M6's
+  own field, and the case asserts the entry under *„Eingetragen"*. **Revised 2026-09-23:** a tagged master item's
+  category must not surface as a heading — the packing rows are combined under one *„Packing list"* heading now,
+  asserted by name, and the old per-category heading is asserted absent. **Revised 2026-09-26 (FR-30.11, no tabs):** the
+  two lists are sections one under the other; each head counts what is open under it (*„3 open"*, a bare head for none),
+  the empty *Vor Ort* says so in its own line, and the entry typed for it goes there through the composer's list chip.
 * **E2E-M6-02** `all` (FR-3.3) — **implemented 2026-08-30, inside E2E-M6-17 and E2E-M6-22** rather than as a case of its
   own: both halves of this promise were already asserted there — the row leaving the list, and the reveal note naming
   where it went — so a third case would have re-run them for an id's sake. What was genuinely missing is one assertion,
@@ -1394,7 +1399,8 @@ composer.
 * **E2E-M6-03** `all` (FR-5.6) — **implemented 2026-08-30, inside E2E-M6-01**: the case adds free text on both tabs and
   asserts each landed in its own list, which is this promise in full: free-text add directly into either list. **Since
   FR-30.1 (2026-09-19)** the free text is an **entry of the list's own** (`shopping_entries`), no longer a packing row;
-  E2E-M6-01 adds one on each tab, and E2E-M6-26 asserts it reaches no packing figure.
+  E2E-M6-01 adds one on each tab, and E2E-M6-26 asserts it reaches no packing figure. Since 2026-09-26 the list
+  is chosen with the composer's chip rather than a tab.
 * **E2E-M6-04** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-06** (`e2e/shopping/shopping.spec.ts`): with
   both lists empty, M4's ⋮ keeps the **shopping entry** and drops only its **count** — corrected 2026-08-30 against the
   screen, which states the reason where the count is computed: the destination exists either way. The original wording
@@ -1448,14 +1454,20 @@ composer.
   checking off changes the item's mode and would otherwise make it unreachable from the shopping side; the revealed row
   states where it went ("auf der Packliste"). Default is hidden, and the bar is **absent** while nothing has been
   bought. *(The dimmed-and-still-interactive row of the original wording described the filter-sheet design; the built
-  affordance reveals the row in a section of its own.)*
+  affordance reveals the row in a section of its own.)* **Revised 2026-09-26 (FR-30.11, no tabs):** the reveal is the
+  list's own *gekauft* fold (*„1 bought"*), scoped to *Vor der Reise*, its state read off `aria-expanded` rather than
+  a changing label. **Revised 2026-09-26 (the rest line):** the bought packing row empties *Vor der Reise*, so its
+  purchase is counted by the list's line at the end (*„Before the trip · nothing open · 1 bought"*, `aria-expanded` as
+  before), and putting it back returns the list to its place.
 * **E2E-M6-24** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-16):
   the tab labels, not the notice. With every trip pull held, M6 said „Vor der Abreise (0)" above a body saying the list
   was loading — two answers on one screen, and the number is the one a reader acts on. The case asserts both labels as
   **exact text** while the pull is held (a containment clause would pass on „(0)", which is the one thing a case added
   for this defect must not do), then asserts the counts are stated once the partition lands: the zero is deferred, not
   dropped, because a genuinely empty tab is worth naming. `single` for E2E-M4-86's reason — only a backend-backed run
-  has the moment.
+  has the moment. **Revised 2026-09-26 (FR-30.11, no tabs):** with no tabs, the promise is held by the screen's
+  states: while the pull is held M6 shows its loading line and no empty state, no list and no section; once the
+  partition lands it says *„Nothing to buy"*.
 * ~~**E2E-M6-25** `local` (FR-24.11 in the composer, FR-25.13, added 2026-09-19): an unknown name typed into M6's
   composer goes through the *„Neuer Artikel"* sheet and nothing is written before *„Anlegen"*.~~ — **retired
   2026-09-19 (FR-30.2)**, the same day: M6's field adds entries, which are no inventory items and need no sheet. The
@@ -1464,12 +1476,18 @@ composer.
   M6 is on the shopping list only. With one packing row in *Buy there* the trip reads *0/1*; after *„Milch"* is typed on
   the *Vor Ort* tab, the entry sits under *„Eingetragen"* before the packing row, the tab and the switcher pill count
   **2**, and M4 still reads *0/1* with no *Milch* row — the positive signal that the entry became no packing row.
+  **Revised 2026-09-26 (FR-30.11, no tabs):** the entry goes on *Vor Ort* by the composer's list chip, and that list's
+  head counts *„2 open"*.
 * **E2E-M6-27** `local` (FR-30.1/FR-25.11j, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): an entry
   is checked off, survives a reload **under the reveal**, is revealed with **no note** (it was never elsewhere), is put
   back by unchecking, and is removed with its ✕ — and a second reload shows only the entry that was not removed.
+  **Revised 2026-09-26 (FR-30.11, no tabs):** the row has no ✕; the entry is removed from its sheet (*Remove*), and the
+  list's fold reads *„1 bought"*.
 * **E2E-M6-28** `local` (FR-30.2, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): a packing row is on
-  the shopping list exactly while its mode says so. A *Buy there* row appears on *Vor Ort* with no ✕; set back to
-  *Pack* in M5, it is gone from the tab (empty state) and from the pill's count — a copied entry would have stayed.
+  the shopping list exactly while its mode says so. A *Buy there* row appears on *Vor Ort* with no ✕; set back to *Pack*
+  in M5, it is gone from the tab (empty state) and from the pill's count — a copied entry would have stayed. **Revised
+  2026-09-26 (FR-30.11, no tabs):** its row opens no sheet (not a button), so it offers no removal; it is read in the
+  *Vor Ort* section.
 * **E2E-M6-29** `single` (FR-30.4, added 2026-09-19) — **implemented** (`shopping/single/purchase-stamp.spec.ts`): who
   bought it, and when. An entry and a *Buy before* packing row are both checked off; a **second browser context** opens
   M6 fresh from the server and finds two stamps, each *„bought by <the Single-User account> · today …"*. `single`
@@ -1483,6 +1501,8 @@ composer.
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
   entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
+  **Revised 2026-09-26 (FR-30.11, no tabs):** the entries stay on *Vor der Reise*, *Probe* is removed through its
+  sheet, and the fold is that list's.
 * **E2E-M6-32** `local` (FR-30.9, added 2026-09-22) — **implemented** (`shopping/shopping.spec.ts`): several own
   entries, already tagged or not, are retagged in one act. A long press (`contextmenu`, its deterministic seam) on an
   untagged entry enters an inline selection with that entry pre-selected; *„Alle N"* takes an already-tagged one too —
@@ -1505,10 +1525,23 @@ composer.
 * **E2E-M6-35** `local` (FR-30.10, added 2026-09-25) — **implemented** (`shopping/shopping.spec.ts`): a due day on an
   own entry. On a running trip, *Pasta* gets tomorrow in the entry sheet through the app's date control, written on
   *Save*. On the list it wears *Tomorrow* (the *soon* state), *Brot* wears nothing, and *Pasta* leads the untagged
-  section ahead of *Brot*, which the list's name order would put first — read back after a reload. Then M1: a fresh
-  load says *„1 purchase due"* once (Local Mode's stand-in for the push), and the trip's shopping card lists *Pasta*
-  first with the same pill. The server's `shopping_due` reminder is held by Go tables (`TestPlanShoppingDue_*`,
-  `TestRemindDueTasks_*`), not driven here: its time is a wall clock.
+  section ahead of *Brot*, which the list's name order would put first — read back after a reload. Then M1: a fresh load
+  says *„1 purchase due"* once (Local Mode's stand-in for the push), and the trip's shopping card lists *Pasta* first
+  with the same pill. The server's `shopping_due` reminder is held by Go tables (`TestPlanShoppingDue_*`,
+  `TestRemindDueTasks_*`), not driven here: its time is a wall clock. **Revised 2026-09-26 (FR-30.11, no tabs):**
+  *Pasta*, due tomorrow, no longer leads its section — it stands in the **Fällig** block above both lists, named *„Added
+  here"*, while *Brot* stays alone in its group; the block's box is above *Vor Ort*'s, and the same holds after a
+  reload.
+* **E2E-M6-36** `local` (FR-30.11, added 2026-09-26) — **implemented** (`shopping/shopping.spec.ts`): both lists stand
+  on one screen, what is due today leads above them, and an entry is removed from its sheet. On a planned trip the
+  composer's *Before the trip* chip is pressed; *Brot* goes there, *Milch* goes to *At destination* by its chip with
+  *Today* from the day chips. *Milch* stands alone in the **Fällig** block with *Today* and *„Added here"*; *Vor der
+  Reise* holds *Brot* under *„1 open"*; *Vor Ort* has no row and is its line at the end, *„At destination · 1 due"*,
+  since its one open line is up in the block (revised 2026-09-26: it used to keep a bare head in place). The boxes read
+  block, then before, then local. *Brot*'s row carries no button; removed from its sheet, *Vor der Reise* folds to its
+  line at the end, *„Before the trip · nothing open"*
+  — and after a reload *Milch* is still in the block and *Brot* gone. Every clause but the removal would fail on the
+  tabbed screen, and the row's missing button on the old one.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -1521,14 +1554,21 @@ composer.
   an entry, lists it, and buys it on the right-hand check; the hero contains **no control inside a link**, and
   *Packliste öffnen* is there.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
-  opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
-  and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
+  opening on *Vor der Reise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
+  and the list opens on *Vor der Reise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
   is read off the segment's own value, as E2E-M2-33 does, rather than off Ionic's checked class. The planning status is
-  what makes the case about FR-30.8 rather than about the trip's phase alone.
+  what makes the case about FR-30.8 rather than about the trip's phase alone. **Revised 2026-09-26 (FR-30.11, no
+  tabs):** M6 no longer *opens* on a list; the rule decides the composer. Planned, it offers the list chips with *Vor
+  der Abreise* pressed; after the close the chips are gone and an entry typed lands in *Vor Ort* — the positive signal
+  beside the absence.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
-  own row still open.
+  own row still open. **Revised 2026-09-26 (FR-30.11, no tabs):** the two sections' folds: *Vor Ort*'s holds the row
+  noting it was packed, *Vor der Reise* has no fold and its own row open — exactly one fold on the page. **Revised
+  2026-09-26 (the rest line):** with *Milch* bought, *Vor Ort* has nothing open and folds to its line at the end, *„At
+  destination · nothing open · 1 bought"*, which holds the one bought row; *Vor der Reise* keeps its open row and has
+  no fold.
 * **E2E-M6-18** `all` (FR-25.11k) — **REMOVED (owner decision 2026-08-30)**: the surface was never built, and M6 stays
   the focused procurement checklist it is. The reasoning is one sentence per feature — a shopping list rarely runs to
   twenty rows, so a filter bar and a search field carry weight M4 already owns; and the composer has been the *shared*
@@ -3500,26 +3540,29 @@ here from M4** rather than being renumbered: their promise is unchanged and the 
 moved, so the M4 entries are struck in place and say where each went.
 
 * **E2E-M25-01** `local` (FR-7.7, was E2E-M4-96) — **implemented** (`trip-tasks.spec.ts`): the trip's own tasks are
-  written, ticked, reopened and removed here, each state read back **after a reload** because a list that only
-  repaints proves the component and not the write. What the id gained with the move is the phase: a task written into
-  *Während der Reise* stands in that section and **not** in the other one — a task in both would be a task filed
-  twice, which is the defect „one list, two windows" exists to prevent. The removal keeps the other section's task as
-  its positive signal, and waits for the snackbar to lapse before reloading, since that is when the delete is written
-  (FR-25.31).
+  written, ticked, reopened and removed here, each state read back **after a reload** because a list that only repaints
+  proves the component and not the write. What the id gained with the move is the phase: a task written into *Während
+  der Reise* stands in that section and **not** in the other one — a task in both would be a task filed twice, which is
+  the defect „one list, two windows" exists to prevent. Since FR-7.14 the one composer's phase chip decides the section,
+  and the removal is made from the task's sheet. The removal keeps the other section's task as its positive signal, and
+  waits for the snackbar to lapse before reloading, since that is when the delete is written (FR-25.31). **Revised
+  2026-09-26 (the rest line):** with its one task done, *Vor der Reise* is the line *„Before the trip · nothing open · 1
+  done"* at the end, which opens onto the task directly; unticked, the phase is back in its place and the line gone.
 * **E2E-M25-02** `local` (FR-7.7/FR-25.2, was E2E-M4-105) — **implemented** (`trip-tasks.spec.ts`): ticking a task off
   offers the snackbar's undo, like a pack. The tick makes the task leave the open list, so the mistap has no evidence
   left to tap again; the undo brings it back and the reopened state is read after a reload. The *„N erledigt"* fold is
   asserted **absent** afterwards, which is the positive signal that the undo reached the store rather than the paint.
 * **E2E-M25-03** `local` (FR-7.5/G-8, was E2E-M4-134) — **implemented** (`trip-tasks.spec.ts`): Local Mode has nobody
   to hand a task to, so the task carries no seat **and** the screen offers no *Meine* chip — absent, not an empty
-  picker over an empty list. The task's ✕ is the positive signal beside the two absences, rendered in the box the seat
-  would share; the seat itself is E2E-M4-133's.
+  picker over an empty list. The task's grip is the positive signal beside the two absences; the seat itself is
+  E2E-M25-05's. Since FR-7.14 the row carries no ✕ either, and the case asserts that absence too.
 * **E2E-M25-07** `local` (FR-7.8, added 2026-09-21) — **implemented** (`trip-tasks.spec.ts`): a task is tagged from
   its own sheet, and the heading it lands under appears with it. The tag is **created** rather than picked, because
   that is the first run every instance has: the list starts empty, and a word that is not in it is the next tag. The
   grouping is read back after a reload — a heading that only repainted proves the component and not the write — and
-  the tag is then taken off again, which puts the task back under *Ohne Tag* and takes the now-empty heading away
-  with it.
+  the tag is then taken off again — by the ✕ on the chosen chip in M6's search-or-create mask (since 2026-09-26),
+  whose summary line first reads *„Filed under: Apotheke"* — which puts the task back under *Ohne Tag* and takes the
+  now-empty heading away with it.
 * **E2E-M25-08** `local` (FR-7.8, added 2026-09-21, extended 2026-09-23) — **implemented** (`trip-tasks.spec.ts`): the
   drag. A task is lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the
   gesture fails on its own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the
@@ -3532,30 +3575,48 @@ moved, so the M4 entries are struck in place and say where each went.
   not be true of the task in hand neither lights up nor takes it — *Aus Packliste* under a chore of the trip. The
   refusal is asserted with its positive half beside it: the gesture still reaches `idle`, because a refused drop is
   not a hung one, and the task is still where it was.
-* **E2E-M25-12** `local` (FR-7.8/ADR-075, added 2026-09-24) — **implemented** (`trip-tasks.spec.ts`): several tasks
-  in one act, M6's selection on M25. **A hold selects and no longer lifts** — the right-click is the hold's
-  deterministic twin, and `data-drag` staying `idle` is the positive signal that nothing was picked up; the grip and
-  the composer step aside while choosing. *„Alle N"* takes both tasks, the batch sheet creates a tag, and both then
-  stand under its heading while the mode has ended. A second selection sends both to *Während der Reise*, read back
-  after a reload. The second round is not decoration: it is what found `SheetModal`'s moved-modal insert failure
-  (implementation log, 2026-09-24).
-* **E2E-M25-13** `local` (FR-7.11, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): a due day. It is set
-  on the task's own sheet through the app's date control, and the sheet stays up with the day in its field. On the
-  list the line wears *Tomorrow* (the *soon* state), the undated task wears nothing, and the dated one leads its group
-  ahead of an undated one it would otherwise follow by its words — read back after a reload, since a line that only
-  repainted proves the component. Then Local Mode's stand-in for the push: with the trip running, a fresh load of M1
-  says *„1 task due"* once. The server's reminder itself is not driven here — its time is a wall clock — and is held
+* **E2E-M25-12** `local` (FR-7.8/ADR-075, added 2026-09-24) — **implemented** (`trip-tasks.spec.ts`): several tasks in
+  one act, M6's selection on M25. **A hold selects and no longer lifts** — the right-click is the hold's deterministic
+  twin, and `data-drag` staying `idle` is the positive signal that nothing was picked up; the grip and the composer step
+  aside while choosing (the one composer stays in place, `inert`, G-20). *„Alle N"* takes both tasks, the batch sheet
+  creates a tag, and both then stand under its heading while the mode has ended. A second selection sends both to
+  *Während der Reise*, read back after a reload. The second round is not decoration: it is what found `SheetModal`'s
+  moved-modal insert failure (implementation log, 2026-09-24).
+* **E2E-M25-13** `local` (FR-7.11, added 2026-09-25, revised by FR-7.14) — **implemented** (`trip-tasks.spec.ts`): a due
+  day. It is set on the task's own sheet through the calendar behind *Datum…*, and the sheet stays up with the day as
+  its chip. On the list the line wears *Tomorrow* (the *soon* state) and the undated task wears nothing; since FR-7.14
+  the dated task stands in the *Fällig* block and **not** in its section — read back after a reload, since a line that
+  only repainted proves the component. Then Local Mode's stand-in for the push: with the trip running, a fresh load of
+  M1 says *„1 task due"* once. The server's reminder itself is not driven here — its time is a wall clock — and is held
   by `TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime` against an injected one.
+* **E2E-M25-14** `local` (FR-7.14, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): a task is filed as it is
+  typed. The composer on top takes the words and *Heute*; *＋ Tag* then opens **M6's entry sheet** (amended 2026-09-26),
+  titled *New task*, which carries the words and the day typed so far, creates the tag through the search-or-create mask
+  (its summary says *„Filed under: Apotheke"*) and adds; the task lands with all three: it stands in the *Fällig* block
+  wearing *Today* and its tag's name, it is not in its section, and the tag's group is not drawn because nothing else is
+  in it. The tag stays chosen for the next task and the day does not. Read back after a reload; then the FAB focuses the
+  field.
+* **E2E-M25-15** `local` (FR-7.14, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): the sheet's first two
+  acts. A task's words are corrected in the sheet's title field, Enter commits, the list shows the new words and the
+  snackbar's undo brings the old ones back; corrected again, the words survive a reload. *Erledigt* then finishes the
+  task, the sheet closes, and the task is in its phase's one *erledigt* fold.
+* **E2E-M25-16** `local` (FR-7.14, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): the selection's new
+  acts. Two tasks are dated *Morgen* from the bar's *Fällig* sheet and both lead the screen; selected again from the
+  *Fällig* block they are ticked off with the bar's *Erledigt*, which empties the block, and both are in the fold. A
+  third is deleted with *Löschen* and the one undo brings it back — read after a reload.
+* **E2E-M25-17** `local` (FR-7.14, added 2026-09-25) — **implemented** (`trip-tasks.spec.ts`): a trip whose first
+  day was two days ago. The composer is on screen and names no phase; a task typed there lands under *Während der
+  Reise*, and after a reload it is still there and not under *Vor der Reise*.
 * ~~**E2E-M25-10**~~ `local` (FR-7.9, added 2026-09-22) — **moved 2026-09-25 to E2E-M26-01** (FR-7.13): the notes left
   M25's segment for a view of their own; the write, the sheet's `tel:` rule and the delete are asserted there.
 * ~~**E2E-M25-11**~~ `server` (FR-7.9, added 2026-09-22) — **moved 2026-09-25 to E2E-M26-03** (FR-7.13): "new for
   another member", the count and the sheet naming the ticker are asserted on M26, the count now on the notes pill.
 
-* **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a
-  task removed with ✕ leaves the list and its undo brings it back; removed again and left alone, it is gone after a
-  reload once the snackbar has gone — the lapse is the delete. **The snackbar's disappearance is the signal waited
-  on**, because the lapse changes nothing on screen, and the composer's field is asserted after the reload as the
-  positive half: without it, „the task is gone" is also what an empty screen says.
+* **E2E-M25-06** `local` (FR-25.31 with FR-7.7, was E2E-M4-124) — **implemented** (`e2e/undo-every-act.spec.ts`): a task
+  removed (from its sheet since FR-7.14) leaves the list and its undo brings it back; removed again and left alone, it
+  is gone after a reload once the snackbar has gone — the lapse is the delete. **The snackbar's disappearance is the
+  signal waited on**, because the lapse changes nothing on screen, and the composer's field is asserted after the reload
+  as the positive half: without it, „the task is gone" is also what an empty screen says.
 * **E2E-M25-05** `server` (FR-7.5/FR-7.7, was E2E-M4-133) — **implemented** (`e2e/server/multi-user.spec.ts`): a
   task's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
   and picking the other account fills the seat with them. That account is told (the toast names the task and who

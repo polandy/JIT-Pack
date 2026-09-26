@@ -15,7 +15,7 @@ tags are the exception, and the [note below](#task-tags-cannot-be-cleaned-up-yet
     [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
 
 !!! tip "Two items that are the same thing"
-    Tick them both in the inventory's selection mode (hold one of them, or tap the checkbox icon in the app bar), then
+    Tick them both in the inventory's selection mode (hold one of them, or tap the select icon — two ticks — in the app bar), then
     **⋯ More → Merge …** and choose which one stays. The others hand it their tags, their
     template positions, their companions and any weight, price, mark or photo it does not have
     yet, and are then hidden or deleted like any other item you remove. **Past trips keep naming

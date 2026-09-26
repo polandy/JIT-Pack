@@ -15,6 +15,7 @@ import { TABLE } from '@/types/tables'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
+import type { TaskFiling } from '@/sync/mutations'
 import { phaseForNewTask } from '@/domain/closePacking'
 import { isPackingClosed } from '@/lib/tripPhase'
 
@@ -161,6 +162,7 @@ export function createCommentActions(ctx: SyncContext) {
     authorId: string,
     body: string,
     phase: TaskPhase = TASK_PHASE_BEFORE,
+    filed: TaskFiling = {},
   ): string {
     const { mutation, id } = mutations.addTodo(
       tripId,
@@ -168,6 +170,7 @@ export function createCommentActions(ctx: SyncContext) {
       authorId,
       body,
       newTaskPhase(tripId, phase),
+      filed,
     )
     enqueueAndDrain('trip', tripId, {
       mutation,
@@ -252,6 +255,16 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-7.14: a task's words, corrected — either kind, one field. */
+  function setTaskBody(tripId: string, todo: ItemTodo | TripTodo, body: string) {
+    const mut = mutations.setTaskBody(todo.id, body)
+    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, { ...row, body }),
+    })
+  }
+
   function deleteTripTodo(todo: TripTodo) {
     const mutation = mutations.deleteTodo(todo.id)
     enqueueAndDrain('trip', todo.trip_id, {
@@ -277,6 +290,7 @@ export function createCommentActions(ctx: SyncContext) {
     setTaskPhase,
     setTaskTag,
     setTaskDueDate,
+    setTaskBody,
     deleteTripTodo,
   }
 }

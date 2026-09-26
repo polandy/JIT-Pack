@@ -33,7 +33,6 @@ import {
 import {
   addOutline,
   bagHandleOutline,
-  checkboxOutline,
   chevronForwardOutline,
   personOutline,
   scaleOutline,
@@ -51,7 +50,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import {
   budgetLevel,
   containerWeight,
@@ -175,7 +174,7 @@ setHeaderSelection(() =>
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm11-select',
-    icon: checkboxOutline,
+    icon: SELECTION_ICON,
     label: t('selection.start'),
     active: selecting.value,
     onClick: () => (selecting.value ? selection.end() : selection.start()),

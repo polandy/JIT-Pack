@@ -4,9 +4,8 @@
  * A source's lines (today, only the packing list's) come first, combined
  * under one heading regardless of what category each row carries — the
  * packing list's own categories are not this list's tags, and giving each
- * one its own heading here read as more shopping-list structure than it
- * was (owner feedback 2026-09-23, revising the one-heading-per-category
- * cut this module first shipped with). The list's own entries follow,
+ * one its own heading here would read as more shopping-list structure than
+ * there is. The list's own entries follow,
  * under their own heading. No line is merged with another across the two
  * — „Brot" typed here and „Brot" on the packing list are two decisions,
  * and the list says so rather than guessing that they are one (ADR-066).
@@ -19,7 +18,7 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/typ
 /**
  * Which list a trip is on *now* (FR-30.8): the one still worth working.
  *
- * *Vor der Abreise* answers that only while departure is still ahead. Once
+ * *Vor der Reise* answers that only while departure is still ahead. Once
  * the trip has started — or the packing has been declared finished
  * (FR-5.10), which happens the evening before on a trip nobody has tapped
  * *Reise starten* on — the moment is past, and what is left to do is at the
@@ -41,7 +40,7 @@ export interface ShoppingSection {
   tagged: boolean
   /**
    * True for the one combined heading every source's lines are filed under
-   * (revised 2026-09-23) — never more than one of these, and absent, not
+   * — never more than one of these, and absent, not
    * empty, when no source has anything open.
    */
   packing: boolean
@@ -63,8 +62,7 @@ function dueDayOf(line: ShoppingLine): string | null {
 /**
  * buildSections files the lines under their headings: every source's lines
  * first, combined under one heading regardless of category, since none of
- * them are this list's own tags to file separately by (revised 2026-09-23)
- * — then the own entries, a section per tag A–Z, then the untagged ones
+ * them are this list's own tags to file separately by — then the own entries, a section per tag A–Z, then the untagged ones
  * (FR-30.9). A section is absent, not empty, when nothing is filed under it.
  *
  * FR-30.10, M25's rule for a task (FR-7.11): inside a section the dated lines
@@ -127,6 +125,53 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
     })
   }
   return sections
+}
+
+/** One list of the board (M25's phase shelf): its sections, and what stands in them. */
+export interface ListShelf {
+  sections: ShoppingSection[]
+  /** The open lines under this list's sections — the block above not counted. */
+  open: number
+}
+
+/** What M6 draws, top to bottom (M25's reading). */
+export interface ShoppingBoard {
+  /** The *Fällig* block: pressing open lines of both lists, earliest first. */
+  due: ShoppingLine[]
+  lists: Record<ShoppingMode, ListShelf>
+  /** The list a line stands on, by key — the block's lines included. */
+  listOf(key: string): ShoppingMode | undefined
+}
+
+/**
+ * shoppingBoard files every open line in exactly one place, as `taskBoard`
+ * does for M25: a line overdue, due today or in the next two days is read in
+ * the one block on top across both lists and every tag, and **leaves its
+ * section while it is there** — a line listed twice is a line bought in one
+ * place and still open in the other.
+ */
+export function shoppingBoard(
+  open: Record<ShoppingMode, { own: ShoppingLine[]; sourced: ShoppingLine[] }>,
+  today: string,
+): ShoppingBoard {
+  const pressing = (line: ShoppingLine) => isPressingDay(dueDayOf(line), today)
+  const keyed = new Map<string, ShoppingMode>()
+  const due: ShoppingLine[] = []
+  const lists = {} as Record<ShoppingMode, ListShelf>
+  for (const list of SHOPPING_MODES) {
+    const { own, sourced } = open[list]
+    for (const line of [...own, ...sourced]) keyed.set(line.key, list)
+    due.push(...own.filter(pressing), ...sourced.filter(pressing))
+    const standing = {
+      own: own.filter((l) => !pressing(l)),
+      sourced: sourced.filter((l) => !pressing(l)),
+    }
+    lists[list] = {
+      sections: buildSections(standing.own, standing.sourced, today),
+      open: standing.own.length + standing.sourced.length,
+    }
+  }
+  return { due: sortByDue(due, today, dueDayOf), lists, listOf: (key) => keyed.get(key) }
 }
 
 /**

@@ -10,40 +10,47 @@
  * phases therefore takes it off the packing list or puts it back — which is
  * what moving it means.
  *
- * Two sections rather than a segment (owner's choice of the 2026-09-20 round,
- * variant A): the two phases of a trip are one thing read top to bottom, not
- * two lists you switch between the way the shopping list's *Vor der Abreise*
- * and *Vor Ort* are — those are two places you stand, and you are only ever
- * in one of them. **And the shopping list stays its own feature** (owner:
- * *„die einkaufsliste soll separat von den tasks sein"*): nothing here reads
- * or writes it.
+ * Two sections rather than a segment: the two phases of a trip are one thing
+ * read top to bottom, not two lists you switch between. **The shopping list
+ * stays its own feature** (ADR-066): nothing here reads or writes it.
+ *
+ * **The reading order (FR-7.14).** What is due now leads, in one *Fällig*
+ * block across both phases and every tag; the one composer sits on top with
+ * its phase, tag and day chips, and the FAB takes the reader to it; rows are two lines with no ✕ beside the tick; each phase
+ * folds its finished tasks once; and a finished packing's *before* moves to
+ * the end, folded to one line.
  *
  * The one chip filters to what is yours. It exists only where somebody can be
  * named at all — Local and Single-User Mode have no second account (G-8), and
  * a filter for „mine" on a list where everything is everybody's would hide
  * things for no reason.
  *
- * FR-7.9's notes were a second segment here until FR-7.13 made them threads
- * and gave them a view of their own (M26): a note is not work, and a place
- * people write in earns its own pill (ADR-051 amendment 3).
+ * FR-7.9's notes are not here: they have a view of their own (M26, FR-7.13),
+ * because a note is not work, and a place people write in earns its own pill
+ * (ADR-051 amendment 3).
  */
-import { IonChip, IonContent, IonIcon, IonLabel, IonList, IonPage } from '@ionic/vue'
+import { IonChip, IonContent, IonFab, IonFabButton, IonIcon, IonLabel, IonPage } from '@ionic/vue'
 import {
+  addOutline,
   arrowBackOutline,
   arrowForwardOutline,
-  checkboxOutline,
+  calendarOutline,
+  checkmarkOutline,
   personOutline,
   pricetagsOutline,
+  trashOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
-import ItemMark from '@/components/items/ItemMark.vue'
 import BulkBar from '@/components/global/BulkBar.vue'
+import DueChips from '@/components/global/DueChips.vue'
+import DueBlock from '@/components/global/DueBlock.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
-import ListGroup from '@/components/global/ListGroup.vue'
-import SectionHead from '@/components/global/SectionHead.vue'
+import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import TaskComposer from '@/components/trips/TaskComposer.vue'
+import TaskPhaseSection from '@/components/trips/TaskPhaseSection.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -52,31 +59,31 @@ import { setHeaderSelection } from '@/composables/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripTasks } from '@/composables/useTripTasks'
+import { taskBoard } from '@/domain/taskBoard'
+import { hasDeparted } from '@/domain/tripDay'
 import {
+  filedTagOf,
   groupAccepts,
   tagForGroup,
-  TASK_ORIGIN_PREP,
   taskGroups,
-  tasksInPhase,
   tasksOfAssignee,
+  tasksToMove,
   type TaskGroup,
   type TripTask,
 } from '@/domain/tripTodos'
 import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { useTripStore } from '@/stores/tripStore'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
-
-/** The size a group's heading wears its tag's mark at (G-15's scale). */
-const MARK_SIZE = 15
 
 const props = defineProps<{ tripId: string }>()
 
@@ -95,8 +102,8 @@ const {
   load: loadIdentity,
 } = useTripIdentity(props.tripId, orchestrator)
 
-// No anchor: M25 carries no FAB, so the snackbar sits where a snackbar sits.
-const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(null)
+// FR-7.14: M25 carries the FAB, so its snackbar clears it as M6's does.
+const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m25)
 
 /** Hidden while their removal can still be taken back (FR-25.31). */
 const removing = ref(new Set<string>())
@@ -126,30 +133,104 @@ const shown = computed(() =>
   mineOnly.value ? tasksOfAssignee(tasks.value, myUserId.value) : tasks.value,
 )
 
-const before = computed(() => tasksInPhase(shown.value, TASK_PHASE_BEFORE))
-
 /**
- * FR-7.12: once the packing is finished, *before the trip* is over — its
- * section stays as history and takes nothing new: no composer, no drop, no
- * tick, no batch sent into it. Reopening the packing lifts it (FR-5.10).
+ * FR-7.12: once the packing is finished, *before the trip* is over — it
+ * stays as history and takes nothing new. FR-7.14 moves that history to the
+ * end of the screen, folded to one line: during the trip, everything the
+ * reader can act on is the road's.
  */
 const beforeLocked = computed(() => isPackingClosed(trip.value))
-const during = computed(() => tasksInPhase(shown.value, TASK_PHASE_DURING))
 
-/**
- * FR-7.8: the headings, per phase. The phase stays the outer split (the
- * owner's variant A) — „what is still open before we leave" remains one look
- * — and the tag groups the inner one.
- *
- * The key a drop carries is the phase and the group together, because the two
- * phases hold the same tags and a task dragged across both changes both in
- * one motion, which is what the owner asked for.
- */
 const masterStore = useMasterStore()
+const taskTags = computed(() => masterStore.taskTagList)
 /** FR-7.11: today as the device reckons it — what „due" is measured against. */
 const today = computed(() => orchestrator.today())
-const groupsBefore = computed(() => taskGroups(before.value, masterStore.taskTagList, today.value))
-const groupsDuring = computed(() => taskGroups(during.value, masterStore.taskTagList, today.value))
+const tripStart = computed(() => trip.value?.start_date ?? null)
+/** FR-7.14: from the first day on, the composer writes for the road only. */
+const forTheRoad = computed(
+  () => beforeLocked.value || (!!trip.value && hasDeparted(trip.value, today.value)),
+)
+
+/**
+ * FR-7.14: the board — what is pressing on top, across both phases and every
+ * tag, and each phase's open and finished tasks below. Every task stands in
+ * exactly one place.
+ */
+const board = computed(() =>
+  taskBoard(shown.value, today.value, { beforeLocked: beforeLocked.value }),
+)
+const groupsBefore = computed(() =>
+  taskGroups(board.value.before.open, taskTags.value, today.value),
+)
+const groupsDuring = computed(() =>
+  taskGroups(board.value.during.open, taskTags.value, today.value),
+)
+const dueIn = (phase: TaskPhase) => board.value.due.filter((task) => task.phase === phase).length
+
+/**
+ * A row read outside its tag group — in the *Fällig* block or a fold — names
+ * its tag on its second line. An untagged one names nothing: a preparation's
+ * chip already says where it came from, and „Ohne Tag" under every other row
+ * would be a word for an absence.
+ */
+function tagNameOf(task: TripTask): string | null {
+  const id = filedTagOf(task, taskTags.value)
+  return id ? (taskTags.value.find((tag) => tag.id === id)?.name ?? null) : null
+}
+
+const PHASES = [TASK_PHASE_BEFORE, TASK_PHASE_DURING] as const
+
+function shelfOf(phase: TaskPhase) {
+  return phase === TASK_PHASE_BEFORE ? board.value.before : board.value.during
+}
+
+function groupsOf(phase: TaskPhase) {
+  return phase === TASK_PHASE_BEFORE ? groupsBefore.value : groupsDuring.value
+}
+
+/** FR-7.12: the finished packing's *before* — history, read and never worked. */
+function isClosed(phase: TaskPhase): boolean {
+  return phase === TASK_PHASE_BEFORE && beforeLocked.value
+}
+
+/**
+ * M6 alike: a phase with nothing open under its heading leaves reading order
+ * for one line at the end rather than taking a heading's worth of room above
+ * the one still being worked, as the closed *before* does — also while its last open tasks stand in the
+ * *Fällig* block, which is where they are read (the line counts them).
+ */
+function inOrder(phase: TaskPhase): boolean {
+  return !isClosed(phase) && shelfOf(phase).open.length > 0
+}
+
+const restPhases = computed(() => PHASES.filter((phase) => !inOrder(phase)))
+const restOpen = reactive<Record<TaskPhase, boolean>>({
+  [TASK_PHASE_BEFORE]: false,
+  [TASK_PHASE_DURING]: false,
+})
+
+/** *„Vor der Reise · nichts offen · 3 erledigt"* (*„· 2 fällig"* while the block holds some) — or the closed *before*'s own words. */
+function restLabel(phase: TaskPhase): string {
+  const done = shelfOf(phase).resolved.length
+  if (isClosed(phase)) {
+    return done > 0 ? t('tasks.beforeHistory', { n: done }) : t('tasks.beforeHistoryEmpty')
+  }
+  const name = t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')
+  const due = dueIn(phase)
+  if (due > 0) {
+    return done > 0
+      ? t('tasks.phaseRestDueDone', { phase: name, due, n: done })
+      : t('tasks.phaseRestDue', { phase: name, due })
+  }
+  return done > 0
+    ? t('tasks.phaseRestDone', { phase: name, n: done })
+    : t('tasks.phaseRest', { phase: name })
+}
+
+/** The line opens where there is something below it: a finished task, or the lock's sentence. */
+function restExpandable(phase: TaskPhase): boolean {
+  return isClosed(phase) || shelfOf(phase).resolved.length > 0
+}
 
 /**
  * `before/apotheke` — the phase and the group, which is what a drop decides.
@@ -157,22 +238,19 @@ const groupsDuring = computed(() => taskGroups(during.value, masterStore.taskTag
  * eye is a separator that will one day be matched wrong.
  */
 const DROP_KEY_SEPARATOR = '/'
-const dropKey = (phase: TaskPhase, group: TaskGroup) => `${phase}${DROP_KEY_SEPARATOR}${group.key}`
+const dropKey = (phase: TaskPhase) => (group: TaskGroup) =>
+  `${phase}${DROP_KEY_SEPARATOR}${group.key}`
 const readDropKey = (place: DropPlace) => {
   const [phase, key] = place.target.split(DROP_KEY_SEPARATOR)
   return { phase: phase as TaskPhase, key }
 }
 
-/** A group's heading: its tag's name, or what the untagged group is called. */
-function groupName(group: TaskGroup): string {
-  if (group.tag) return group.tag.name
-  return t(group.origin === TASK_ORIGIN_PREP ? 'tasks.fromPacking' : 'tasks.noTag')
-}
-
 /**
  * FR-7.8's drag. The gesture is `useDragToGroup`, which knows nothing about
  * tasks; what this screen adds is which groups may hold what, and what a drop
- * means.
+ * means. A pressing task is lifted out of the *Fällig* block into a group
+ * the same way — the block itself is not a place to drop, since what makes a
+ * task pressing is its day, not where it was put.
  */
 const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
@@ -202,7 +280,7 @@ function onLift(ev: PointerEvent, task: TripTask, row: HTMLElement) {
 }
 
 /**
- * Several tasks at once (2026-09-24) — M6's selection, so a hold means the
+ * Several tasks at once — M6's selection, so a hold means the
  * same on both lists: a hold on a task's words, a right-click, or the app
  * bar's icon. It reaches every open task shown, in both phases and across
  * both kinds; a resolved one is folded away and not in it.
@@ -221,7 +299,7 @@ const selectedTasks = computed(() =>
 setHeaderActions(() => {
   const select: HeaderAction = {
     id: 'm25-select',
-    icon: checkboxOutline,
+    icon: SELECTION_ICON,
     label: t('tasks.select'),
     active: selection.selecting.value,
     onClick: () => (selection.selecting.value ? selection.end() : selection.start()),
@@ -243,6 +321,31 @@ setHeaderSelection(() =>
 )
 
 const bulkTagOpen = ref(false)
+const bulkDueOpen = ref(false)
+
+/**
+ * FR-7.14: the phase buttons the bar offers — each only where it would move
+ * something, and never back into a closed *before*. A selection already all
+ * in one phase is offered the other one alone.
+ */
+const bulkPhases = computed(() =>
+  ([TASK_PHASE_BEFORE, TASK_PHASE_DURING] as TaskPhase[]).filter(
+    (phase) =>
+      !(beforeLocked.value && phase === TASK_PHASE_BEFORE) &&
+      tasksToMove(selectedTasks.value, phase).length > 0,
+  ),
+)
+
+/** *Löschen* reaches the trip's own tasks only; a preparation is removed on its row. */
+const bulkRemovable = computed(
+  () => selectedTasks.value.length > 0 && selectedTasks.value.every((task) => task.item === null),
+)
+
+/** The *Fällig* sheet's phase: *Vor Abreise* only where every task is for before the trip. */
+const bulkPhase = computed(() => {
+  const phases = new Set(selectedTasks.value.map((task) => task.phase))
+  return phases.size === 1 ? [...phases][0]! : null
+})
 
 /** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
 function afterBatch(written: number) {
@@ -264,25 +367,25 @@ function bulkMove(phase: TaskPhase) {
   afterBatch(acts.moveMany(selectedTasks.value, phase))
 }
 
-/** The picker's list, plus the „no tag" entry named after where the task is from. */
-const taskTags = computed(() => masterStore.taskTagList)
+function bulkDone() {
+  afterBatch(acts.resolveMany(selectedTasks.value))
+}
+
+function bulkDue(day: string | null) {
+  bulkDueOpen.value = false
+  afterBatch(acts.dueMany(selectedTasks.value, day))
+}
+
+function bulkRemove() {
+  afterBatch(acts.removeMany(selectedTasks.value))
+}
 
 /*
  * No screen-wide empty state, deliberately. A section with nothing in it says
- * so in its own line, and keeps its composer — an empty „Vor der Reise" under
- * a full „Während der Reise" is information, and a trip with no tasks at all
- * is the case where the two fields are the whole point of the screen.
+ * so in its own line — an empty „Vor der Reise" under a full „Während der
+ * Reise" is information — and the composer on top is the whole point of the
+ * screen for a trip with no tasks yet.
  */
-
-/**
- * What a section's head counts: what is still owed there, not how much it
- * holds. A finished section says nothing rather than „0", the way M4's own
- * head falls silent when a trip has no tasks (`tripTodoStatus`).
- */
-function openCount(section: readonly TripTask[]): string | null {
-  const open = section.filter((task) => task.task_state === 'open').length
-  return open > 0 ? t('tripTodos.open', { n: open }) : null
-}
 
 onMounted(async () => {
   await ensure()
@@ -297,6 +400,13 @@ setHeaderTitle(
 /** FR-7.5's picker — the sheet M4 asks a row's question with (`lib/pickAssignee`). */
 function pickAssignee(header: string, current: string | null) {
   return pickAssigneeFrom(header, current, assignees.value)
+}
+
+/** FR-7.14: the FAB — M6's, which takes the reader to the field. */
+const composer = ref<{ focus: () => Promise<void> } | null>(null)
+async function goToComposer() {
+  await (contentEl.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
+  await composer.value?.focus()
 }
 
 /**
@@ -341,6 +451,18 @@ function onSheetDue(dueDate: string | null) {
   if (opened.value) acts.setDue(opened.value, dueDate)
 }
 
+/** FR-7.14: finished from the sheet — it closes, as the tick's row leaves the list. */
+function onSheetToggle() {
+  const task = opened.value
+  openedId.value = null
+  if (task) acts.toggle(task)
+}
+
+/** FR-7.14: the words, corrected — the sheet stays up with them. */
+function onSheetRename(body: string) {
+  if (opened.value) acts.rename(opened.value, body)
+}
+
 function onSheetRemove() {
   const task = opened.value
   openedId.value = null
@@ -375,134 +497,140 @@ function onSheetRemove() {
       </IonChip>
 
       <template v-if="loaded">
-        <section class="phase" data-testid="m25-before">
-          <SectionHead :title="t('tasks.before')" :count="openCount(before)" />
-          <InlineHint v-if="beforeLocked" class="hint-wide" data-testid="m25-before-locked">{{
-            t('tasks.beforeLocked')
-          }}</InlineHint>
-          <InlineHint v-else-if="groupsBefore.length === 0" class="hint-wide">{{
-            t('tasks.emptyBefore')
-          }}</InlineHint>
-          <IonList v-if="groupsBefore.length > 0" class="groups">
-            <ListGroup
-              v-for="group in groupsBefore"
-              :key="group.key"
-              :title="groupName(group)"
-              :drop-target="dropKey(TASK_PHASE_BEFORE, group)"
-              :droppable="!beforeLocked"
-              :data-testid="`m25-group-${group.key}`"
-            >
-              <template v-if="group.tag?.icon" #mark>
-                <ItemMark :mark="group.tag.icon" surface="plain" :size="MARK_SIZE" />
-              </template>
-              <TripTodoList
-                :trip-id="tripId"
-                :tasks="group.tasks"
-                :assignable="assignable"
-                :name-of="nameOf"
-                :lift="beforeLocked ? undefined : onLift"
-                :selection="beforeLocked ? undefined : selection"
-                :readonly="beforeLocked"
-                :today="today"
-                variant="list"
-                @toggle="acts.toggle"
-                @remove="acts.remove"
-                @assign="acts.assign"
-                @open="openTask"
-              />
-            </ListGroup>
-          </IonList>
-          <!-- G-20: in place while selecting, at rest — M6's rule: typing a
-               new task mid-batch is a different act. -->
-          <div
-            v-if="!beforeLocked"
-            class="phase-composer"
-            :class="{ resting: selection.selecting.value }"
-            :inert="selection.selecting.value || undefined"
-            data-testid="m25-composer-before"
-          >
-            <TripTodoList
-              :trip-id="tripId"
-              :tasks="[]"
-              :composer-phase="TASK_PHASE_BEFORE"
-              :composer-label="t('tasks.addBefore')"
-              @added="acts.added"
-            />
-          </div>
-        </section>
+        <!-- FR-7.14: one composer, on top, in M6's shape. G-20: in place while
+             selecting, at rest — typing a new task mid-batch is a different act. -->
+        <div
+          class="composer-slot"
+          :class="{ resting: selection.selecting.value }"
+          :inert="selection.selecting.value || undefined"
+        >
+          <TaskComposer
+            ref="composer"
+            :trip-id="tripId"
+            :task-tags="taskTags"
+            :today="today"
+            :trip-start="tripStart"
+            :for-the-road="forTheRoad"
+            @added="acts.added"
+          />
+        </div>
 
-        <section class="phase" data-testid="m25-during">
-          <SectionHead :title="t('tasks.during')" :count="openCount(during)" />
-          <InlineHint v-if="groupsDuring.length === 0" class="hint-wide">{{
-            t('tasks.emptyDuring')
-          }}</InlineHint>
-          <IonList v-if="groupsDuring.length > 0" class="groups">
-            <ListGroup
-              v-for="group in groupsDuring"
-              :key="group.key"
-              :title="groupName(group)"
-              :drop-target="dropKey(TASK_PHASE_DURING, group)"
-              :data-testid="`m25-group-${group.key}`"
-            >
-              <template v-if="group.tag?.icon" #mark>
-                <ItemMark :mark="group.tag.icon" surface="plain" :size="MARK_SIZE" />
-              </template>
-              <TripTodoList
-                :trip-id="tripId"
-                :tasks="group.tasks"
-                :assignable="assignable"
-                :name-of="nameOf"
-                :lift="onLift"
-                :selection="selection"
-                :today="today"
-                variant="list"
-                @toggle="acts.toggle"
-                @remove="acts.remove"
-                @assign="acts.assign"
-                @open="openTask"
-              />
-            </ListGroup>
-          </IonList>
-          <!-- G-20: in place while selecting, at rest — M6's rule: typing a
-               new task mid-batch is a different act. -->
-          <div
-            class="phase-composer"
-            :class="{ resting: selection.selecting.value }"
-            :inert="selection.selecting.value || undefined"
-            data-testid="m25-composer-during"
+        <!-- FR-7.14: what is due now, across both phases and every tag. -->
+        <DueBlock
+          v-if="board.due.length > 0"
+          :title="t('tasks.dueGroup')"
+          :count="board.due.length"
+          testid="m25-due"
+        >
+          <TripTodoList
+            :trip-id="tripId"
+            :tasks="board.due"
+            :assignable="assignable"
+            :name-of="nameOf"
+            :lift="onLift"
+            :selection="selection"
+            :today="today"
+            :tag-of="tagNameOf"
+            variant="list"
+            @toggle="acts.toggle"
+            @assign="acts.assign"
+            @open="openTask"
+          />
+        </DueBlock>
+
+        <template v-for="phase in PHASES" :key="phase">
+          <TaskPhaseSection
+            v-if="inOrder(phase)"
+            :trip-id="tripId"
+            :phase="phase"
+            :shelf="shelfOf(phase)"
+            :groups="groupsOf(phase)"
+            :drop-key="dropKey(phase)"
+            :assignable="assignable"
+            :name-of="nameOf"
+            :lift="onLift"
+            :selection="selection"
+            :today="today"
+            :tag-of="tagNameOf"
+            @toggle="acts.toggle"
+            @assign="acts.assign"
+            @open="openTask"
+          />
+        </template>
+
+        <!-- M6 alike: a phase with nothing open — or a
+             finished packing's *before*, FR-7.12 — is one line at the end. -->
+        <section
+          v-for="phase in restPhases"
+          :key="phase"
+          class="phase-rest"
+          :data-testid="phase === TASK_PHASE_BEFORE ? 'm25-before' : 'm25-during'"
+        >
+          <RestLine
+            :label="restLabel(phase)"
+            :expandable="restExpandable(phase)"
+            :open="restOpen[phase]"
+            :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-fold' : 'm25-during-fold'"
+            @toggle="restOpen[phase] = !restOpen[phase]"
           >
-            <TripTodoList
+            <InlineHint v-if="isClosed(phase)" class="hint-wide" data-testid="m25-before-locked">{{
+              t('tasks.beforeLocked')
+            }}</InlineHint>
+            <TaskPhaseSection
+              headless
+              :readonly="isClosed(phase)"
+              :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-history' : 'm25-during-history'"
               :trip-id="tripId"
-              :tasks="[]"
-              :composer-phase="TASK_PHASE_DURING"
-              :composer-label="t('tasks.addDuring')"
-              @added="acts.added"
+              :phase="phase"
+              :shelf="shelfOf(phase)"
+              :groups="groupsOf(phase)"
+              :drop-key="dropKey(phase)"
+              :name-of="nameOf"
+              :today="today"
+              :tag-of="tagNameOf"
+              @toggle="acts.toggle"
+              @open="openTask"
             />
-          </div>
+          </RestLine>
         </section>
       </template>
 
-      <!-- What the selection can be acted on with: a tag, or a phase. -->
+      <!-- What the selection can be acted on with (FR-7.14): the acts people
+           batch — finish, date, file, send to the other phase, remove. -->
       <BulkBar
         v-if="selection.selecting.value && selectedTasks.length > 0"
         data-testid="m25-bulkbar"
       >
+        <button type="button" class="bulk-done" data-testid="m25-bulk-done" @click="bulkDone">
+          <IonIcon :icon="checkmarkOutline" />
+          {{ t('tasks.bulkDone') }}
+        </button>
+        <button type="button" data-testid="m25-bulk-due" @click="bulkDueOpen = true">
+          <IonIcon :icon="calendarOutline" />
+          {{ t('tasks.dueField') }}
+        </button>
         <button type="button" data-testid="m25-bulk-tag" @click="bulkTagOpen = true">
           <IonIcon :icon="pricetagsOutline" />
-          {{ t('tasks.bulkTag') }}
+          {{ t('tasks.bulkTagShort') }}
         </button>
         <button
-          v-if="!beforeLocked"
+          v-for="phase in bulkPhases"
+          :key="phase"
           type="button"
-          data-testid="m25-bulk-before"
-          @click="bulkMove(TASK_PHASE_BEFORE)"
+          :data-testid="phase === TASK_PHASE_BEFORE ? 'm25-bulk-before' : 'm25-bulk-during'"
+          @click="bulkMove(phase)"
         >
-          <IonIcon :icon="arrowBackOutline" />
-          {{ t('tasks.bulkToBefore') }}
+          <IonIcon :icon="phase === TASK_PHASE_BEFORE ? arrowBackOutline : arrowForwardOutline" />
+          {{ t(phase === TASK_PHASE_BEFORE ? 'tasks.bulkToBefore' : 'tasks.bulkToDuring') }}
         </button>
-        <button type="button" data-testid="m25-bulk-during" @click="bulkMove(TASK_PHASE_DURING)">
-          <IonIcon :icon="arrowForwardOutline" />
-          {{ t('tasks.bulkToDuring') }}
+        <button
+          v-if="bulkRemovable"
+          type="button"
+          data-testid="m25-bulk-remove"
+          @click="bulkRemove"
+        >
+          <IonIcon :icon="trashOutline" />
+          {{ t('tasks.bulkRemove') }}
         </button>
       </BulkBar>
 
@@ -526,6 +654,26 @@ function onSheetRemove() {
         </section>
       </SheetModal>
 
+      <!-- FR-7.14: one day for the batch — the same chips as a single task's. -->
+      <SheetModal :is-open="bulkDueOpen" testid="m25-bulk-due-sheet" @dismiss="bulkDueOpen = false">
+        <section v-if="bulkDueOpen" class="bulk-sheet">
+          <SheetHead
+            :title="t('tasks.bulkDueTitle', { n: selectedTasks.length })"
+            title-testid="m25-bulk-due-title"
+            close-testid="m25-bulk-due-close"
+            @close="bulkDueOpen = false"
+          />
+          <DueChips
+            :value="null"
+            :today="today"
+            :phase="bulkPhase"
+            :trip-start="tripStart"
+            testid="m25-bulk-when"
+            @update="bulkDue"
+          />
+        </section>
+      </SheetModal>
+
       <SheetModal :is-open="opened !== null" testid="m25-task-modal" @dismiss="openedId = null">
         <TripTaskSheet
           v-if="opened"
@@ -533,50 +681,60 @@ function onSheetRemove() {
           :name-of="nameOf"
           :task-tags="taskTags"
           :before-locked="beforeLocked"
+          :today="today"
+          :trip-start="tripStart"
           @close="openedId = null"
           @due="onSheetDue"
           @move="onSheetMove"
           @remove="onSheetRemove"
+          @toggle="onSheetToggle"
+          @rename="onSheetRename"
           @tag="onSheetTag"
           @new-tag="onSheetNewTag"
         />
       </SheetModal>
+
+      <!-- FR-7.14: the add button every sibling list carries (M4, M6, M26). -->
+      <IonFab
+        v-if="!selection.selecting.value"
+        :id="FAB_ANCHOR.m25"
+        slot="fixed"
+        vertical="bottom"
+        horizontal="end"
+      >
+        <IonFabButton data-testid="m25-fab" :aria-label="t('common.add')" @click="goToComposer">
+          <IonIcon :icon="addOutline" aria-hidden="true" />
+        </IonFabButton>
+      </IonFab>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+/* Clear of the FAB, as M6's list is. */
 .tasks-content {
-  --padding-bottom: 24px;
+  --padding-bottom: 96px;
 }
 
 .mine {
   margin: 4px 14px 2px;
 }
 
-.phase + .phase {
-  margin-top: 18px;
-}
-
-.phase :deep(.section-head) {
-  margin: 18px 16px 4px;
-}
-
-/* The two sections' hint sits at the group's own inset, wider than
-   InlineHint's default — layout is the caller's, same as RemoveButton's
-   `.rm-gap`. */
-.hint-wide {
-  margin: 4px 18px 8px;
-}
-
-/* The groups sit in one list per phase, full width like M6's (2026-09-24). */
 .groups {
   padding: 0;
   background: transparent;
 }
 
+.hint-wide {
+  margin: 4px 18px 8px;
+}
+
 .bulk-sheet {
   padding: 4px 18px 22px;
+}
+
+.bulk-done {
+  color: var(--jp-done);
 }
 
 /* Clear of the bulk bar, like M6's list is of its FAB. */
@@ -585,7 +743,7 @@ function onSheetRemove() {
 }
 
 /* G-20: at rest while a selection is on — in place, so nothing moves. */
-.phase-composer.resting {
+.composer-slot.resting {
   opacity: 0.45;
 }
 </style>

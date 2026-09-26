@@ -577,7 +577,9 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await openTripView(page, 'shopping')
     const m6 = () => visible(page).getByTestId('m6-page')
     await m6().getByTestId('m6-row').filter({ hasText: 'Kaffee' }).locator('ion-checkbox').click()
-    await expect(m6().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
+    await expect(m6().getByTestId('m6-before-fold')).toHaveText(
+      'Before the trip · nothing open · 1 bought',
+    )
 
     await page.getByTestId('sync-indicator').click()
     const sheet = page.getByTestId('sync-detail-sheet')
@@ -609,9 +611,12 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // row, but one under the reveal, naming where it went.
     await openTripView(restored, 'shopping')
     const m6r = () => visible(restored).getByTestId('m6-page')
-    await expect(m6r().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
+    // Under the line of the list it was bought from — *before departure*,
+    // folded to the end since nothing of it is open.
+    const bar = m6r().getByTestId('m6-before-fold')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
     await expect(m6r().getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
-    await m6r().getByTestId('m6-bought-bar').click()
+    await bar.click()
     const bought = m6r().getByTestId('m6-bought-row')
     await expect(bought).toContainText('Kaffee')
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')

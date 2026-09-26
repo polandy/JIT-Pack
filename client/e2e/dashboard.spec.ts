@@ -150,7 +150,7 @@ test.describe('M1 dashboard @local @m1', () => {
    * E2E-M1-02 (FR-7.3/7.6): a row's preparation is a task of the trip on M1
    * too — it is listed in the *Tasks* card, named by the chip of the row it
    * prepares, and reported without anything to tick, because M1 takes no
-   * actions (owner, 2026-09-18). Resolving it where it lives is what clears
+   * actions. Resolving it where it lives is what clears
    * the card, which is the positive signal that the card reads the todos
    * rather than a copy of them.
    *
@@ -434,7 +434,10 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expectTripOpen(page, TRIP.name)
     const section = await openTasks(page, 'before')
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
+    // Its one task done, the phase folds to its line at the end, counting it.
+    await expect(section.getByTestId('m25-before-fold')).toHaveText(
+      'Before the trip · nothing open · 1 done',
+    )
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('1/1 tasks')
@@ -546,9 +549,9 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
     // And M6 reads the same list: Milch open, Sonnencreme under the reveal.
     await card.getByTestId('dash-shop-more').click()
     const m6 = visible(page).getByTestId('m6-page')
-    await m6.getByTestId('m6-tab-local').click()
-    await expect(m6.getByTestId('m6-row')).toHaveText([/Milch/])
-    await m6.getByTestId('m6-bought-bar').click()
-    await expect(m6.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
+    const local = m6.getByTestId('m6-local')
+    await expect(local.getByTestId('m6-row')).toHaveText([/Milch/])
+    await local.getByTestId('m6-bought-bar').click()
+    await expect(local.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
   })
 })

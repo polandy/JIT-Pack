@@ -27,8 +27,13 @@ const props = withDefaults(
      */
     min?: string
     max?: string
+    /**
+     * FR-7.14: only the calendar, no field — for a caller whose own control
+     * opens it (M25's *Datum…* chip, `DueChips`) through `openPicker`.
+     */
+    bare?: boolean
   }>(),
-  { readonly: false, min: undefined, max: undefined },
+  { readonly: false, min: undefined, max: undefined, bare: false },
 )
 
 const emit = defineEmits<{ update: [iso: string] }>()
@@ -52,6 +57,13 @@ const presented = ref(0)
 
 const display = computed(() => (props.value ? formatDay(props.value) : ''))
 
+/** Opens the calendar from a caller's own control (the `bare` shape). */
+function openPicker() {
+  if (!props.readonly) open.value = true
+}
+
+defineExpose({ openPicker })
+
 function onPicked(picked: string | string[] | null | undefined) {
   // presentation="date" still reports a full ISO datetime; the field's value
   // is the day alone.
@@ -62,6 +74,7 @@ function onPicked(picked: string | string[] | null | undefined) {
 
 <template>
   <IonInput
+    v-if="!bare"
     :label="label"
     label-placement="stacked"
     :value="display"

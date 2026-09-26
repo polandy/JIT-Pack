@@ -9,11 +9,10 @@
  * (G-8), a todo already assigned still names its person where nothing can be
  * changed, and a finished todo names but offers nothing.
  *
- * **Since FR-7.7 the seat is on both kinds** (the owner's request of
- * 2026-09-20: a task is handed over like a pack item), and the composer
- * belongs to the screen rather than the list — M4's window has none, because
- * everything it shows hangs off a row. Q3 B's own stamp lived on the line
- * until 2026-09-23; it is the task's own sheet's to show now.
+ * **The seat is on both kinds** (FR-7.7: a task is handed over like a pack
+ * item), and the composer belongs to the screen rather than the list — M4's
+ * window has none, because everything it shows hangs off a row. Q3 B's own
+ * stamp is the task's own sheet's to show, not the line's.
  */
 import { RouterLinkStub, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -238,8 +237,7 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
    * And it stands *beside* the cluster rather than inside it: the cluster is
    * capped at a share of the row so a chip can never push the task's own words
    * off the line, and a tick counted against that cap is paid for by the chip —
-   * which rendered as a bare mark with its name clipped away (owner's eyeball
-   * pass, 2026-09-20).
+   * which then renders as a bare mark with its name clipped away.
    */
   it('leaves the chip its width, standing beside the cluster and not in it', () => {
     const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
@@ -271,7 +269,7 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
 
 /**
  * FR-7.7 on the line: the way into the task's own sheet, where Q3 B's
- * provenance line now lives (moved off the row itself 2026-09-23).
+ * provenance line lives (not on the row itself).
  */
 describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   beforeEach(() => {
@@ -288,7 +286,7 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   })
 
   /*
-   * Owner feedback 2026-09-23: the row is an overview, not the record — who
+   * The row is an overview, not the record — who
    * wrote or finished a task is worth a line in its own sheet, not doubled
    * onto every row of a list read at a glance.
    */
@@ -307,20 +305,6 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
     expect(wrapper.find('[data-testid="trip-todo-stamp-Pflanzen giessen"]').exists()).toBe(false)
     await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
     expect(wrapper.find('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').exists()).toBe(false)
-  })
-
-  /*
-   * M4's window shows only what hangs off a packing row, so a trip task typed
-   * there would be written into a list that cannot show it. The composer is
-   * therefore the screen's to offer, not the list's to have.
-   */
-  it('offers no composer until a screen names the phase one would write', () => {
-    expect(mountList([]).find('[data-testid="trip-todo-input"]').exists()).toBe(false)
-    expect(
-      mountList([], true, { composerPhase: 'during' })
-        .find('[data-testid="trip-todo-input"]')
-        .exists(),
-    ).toBe(true)
   })
 
   it('says what an empty list means, where the screen gave it words', () => {
@@ -387,5 +371,37 @@ describe('TripTodoList — a closed phase is history (FR-7.12)', () => {
 
     await list.get('[data-testid="trip-todo-open-Pflanzen"]').trigger('click')
     expect(list.emitted('open')).toHaveLength(1)
+  })
+})
+
+describe('TripTodoList — M25’s two-line rows (FR-7.14)', () => {
+  const TODAY = '2026-07-08'
+  const list = (tasks: TripTask[], extra: Record<string, unknown> = {}) =>
+    mountList(tasks, true, { variant: 'list', today: TODAY, ...extra })
+
+  it('puts what is known about a task under its words, and no ✕ beside the tick', () => {
+    const wrapper = list([{ ...ownTask('Pass holen', 'open'), due_date: '2026-07-01' }])
+    const facts = wrapper.get('[data-testid="trip-todo-facts-Pass holen"]')
+    expect(facts.find('[data-testid="trip-todo-due-Pass holen"]').exists()).toBe(true)
+    expect(facts.find('[data-testid="trip-todo-assign-Pass holen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-todo-remove-Pass holen"]').exists()).toBe(false)
+  })
+
+  it('names the row a preparation belongs to on the second line', () => {
+    const wrapper = list([preparation('Akkus laden', 'Kamera')])
+    expect(wrapper.get('[data-testid="trip-todo-facts-Akkus laden"]').text()).toContain('Kamera')
+  })
+
+  it('names its tag where the screen asks, the way a row outside its group must', () => {
+    const wrapper = list([ownTask('Salbe', 'open')], { tagOf: () => 'Apotheke' })
+    expect(wrapper.get('[data-testid="trip-todo-tag-Salbe"]').text()).toBe('Apotheke')
+  })
+
+  it('draws no second line for a task with nothing to say, where nobody can be named', () => {
+    const wrapper = mountList([ownTask('Blumen', 'open')], false, {
+      variant: 'list',
+      today: TODAY,
+    })
+    expect(wrapper.find('[data-testid="trip-todo-facts-Blumen"]').exists()).toBe(false)
   })
 })

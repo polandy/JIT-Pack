@@ -912,7 +912,7 @@ test.describe('M4 packing list @local @m4', () => {
    * E2E-M4-119 (FR-5.9): a row is switched to *buy there* from its own menu.
    *
    * The mode had lived in M5 alone. The badge is the row reading its mode
-   * back; M6's *Vor Ort* tab is the same write reaching the other screen
+   * back; M6's *Vor Ort* section is the same write reaching the other screen
    * that reads it — a badge painted from the menu's own state would pass
    * the first and fail the second.
    */
@@ -928,8 +928,9 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(row.getByTitle('Buy there')).toHaveCount(1)
 
     await openTripView(page, 'shopping')
-    await page.getByTestId('m6-tab-local').click()
-    await expect(visible(page).getByTestId('m6-row')).toHaveText([/Sonnencreme/])
+    await expect(visible(page).getByTestId('m6-local').getByTestId('m6-row')).toHaveText([
+      /Sonnencreme/,
+    ])
     await page.getByTestId('header-back').click()
 
     // The way back stands in its place, read from the row rather than from

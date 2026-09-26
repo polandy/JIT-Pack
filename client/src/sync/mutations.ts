@@ -129,6 +129,15 @@ export type GeneratedTripItemEdit = Partial<
   >
 >
 
+/**
+ * FR-7.14: what a new task may be filed under as it is written — its one tag
+ * and its due day. Both optional: absent means the task has none.
+ */
+export interface TaskFiling {
+  taskTagId?: string | null
+  dueDate?: string | null
+}
+
 /** Addendum §3.20's companion link. Both item ids are the edge itself. */
 export type ItemDependencyEdit = Partial<Pick<ItemDependency, 'mode' | 'quantity'>>
 
@@ -633,6 +642,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     authorId: string,
     body: string,
     phase: TaskPhase,
+    filed: TaskFiling = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.comments, id, {
@@ -653,6 +663,12 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       // line would say nothing. A clock is not an identity claim; the author
       // beside it stays the server's (invariant 3).
       created_at: nowIso(),
+      // FR-7.14: filed as it is typed — M25's composer names a tag and a day
+      // beside the words, and one insert carries them rather than an insert
+      // and two updates that a reader could see half-applied. Only what was
+      // named: a task without them is written as it always was.
+      ...(filed.taskTagId ? { task_tag_id: filed.taskTagId } : {}),
+      ...(filed.dueDate ? { due_date: filed.dueDate } : {}),
     })
     return { mutation, id }
   }
@@ -1361,6 +1377,17 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('upsert', TABLE.comments, todoId, { due_date: dueDate })
   }
 
+  /**
+   * FR-7.14: a task's words, corrected. One field, and no `edited_at`: that
+   * stamp is a note's (FR-7.13), where it says the words are no longer the
+   * ones its author was first read saying. A task is shared work, not a
+   * signed entry, so any member may reword it — the server's author rule
+   * reaches notes only.
+   */
+  function setTaskBody(todoId: string, body: string): Mutation {
+    return make('upsert', TABLE.comments, todoId, { body })
+  }
+
   // --- Tag mutations (FR-24.1) ---
 
   function createTag(
@@ -1541,6 +1568,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     setTaskPhase,
     setTaskTag,
     setTaskDueDate,
+    setTaskBody,
     createTaskTag,
     reopenTodo,
     deleteTodo,

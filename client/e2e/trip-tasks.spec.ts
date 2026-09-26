@@ -5,21 +5,22 @@ import {
   chooseInRowMenu,
   openTasks,
   openTripTodos,
+  removeTaskFromSheet,
   openRowMenu,
   startTrip,
   tripWithRows,
 } from './helpers/m4'
+import { createTripViaWizard } from './helpers/trips'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { PATH } from './routes'
 
 /**
  * A trip's tasks (FR-7.4, FR-7.6, FR-7.7) — its own chores and the
- * preparations its rows owe. Split out of `packing-list.spec.ts` on
- * 2026-09-20: a task is not a packing row, and the section had grown its own
- * subject.
+ * preparations its rows owe. Its own file because a task is not a packing
+ * row.
  *
- * Since FR-7.7 the one list is read through two windows, and this file covers
+ * The one list is read through two windows (FR-7.7), and this file covers
  * both: **M4** keeps the preparations still due before the trip (the ones you
  * do as part of packing), and **M25** holds every task of the trip in its two
  * phases. The cases below are grouped by the screen that makes the promise,
@@ -57,7 +58,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await expect(figure).toHaveCount(0)
 
     // FR-7.7: the window is made of preparations — what M4 keeps is what you
-    // do as part of packing, and a trip's own chore is no longer in it.
+    // do as part of packing, and a trip's own chore is not in it.
     await addPrepTodo(page, 'Zelt', 'Water the plants')
     await addPrepTodo(page, 'Zelt', 'Empty the fridge')
 
@@ -65,7 +66,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(fraction).toHaveText('0/2 tasks')
+    await expect(fraction).toHaveText('While packing 0/2')
     // A pair: the packing share has no detail line and the todos do („2
     // open"), which is exactly the case that put the tracks on two levels.
     await expectFiguresPaired(visible(page).getByTestId('m4-header'))
@@ -75,11 +76,11 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
 
     // Ticking the last one folds the section to its line.
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(fraction).toHaveText('1/2 tasks')
+    await expect(fraction).toHaveText('While packing 1/2')
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await section.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
     await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
-    await expect(fraction).toHaveText('2/2 tasks')
+    await expect(fraction).toHaveText('While packing 2/2')
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
     await writesLanded(page)
@@ -115,10 +116,10 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await addPrepTodo(page, 'Kamera', 'Water the plants')
     await addPrepTodo(page, 'Kamera', 'Charge the battery')
 
-    // One figure for both kinds (FR-7.6), and the header no longer says the
-    // preparation count a second time in its detail line.
+    // One figure for both kinds (FR-7.6), and the header does not repeat the
+    // preparation count in its detail line.
     const fraction = visible(page).getByTestId('m4-trip-todos-progress')
-    await expect(fraction).toHaveText('0/2 tasks')
+    await expect(fraction).toHaveText('While packing 0/2')
     await expect(visible(page).getByTestId('m4-header')).not.toContainText('preparation')
 
     const section = await openTripTodos(page)
@@ -131,11 +132,13 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     // Ticked here, cleared on the row: one todo, read by two surfaces.
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('2')
     await prepared.locator('ion-checkbox').click()
-    await expect(fraction).toHaveText('1/2 tasks')
+    await expect(fraction).toHaveText('While packing 1/2')
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
     await writesLanded(page)
     await page.reload()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('1/2 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 1/2',
+    )
 
     // The chip is the way back to the row it names.
     const reopened = await openTripTodos(page)
@@ -152,9 +155,9 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
   /**
    * E2E-M4-138 (FR-7.6, UI-Spec M4): where the tick stands. The section sits
    * directly above the packing rows, whose control is at the row's own edge
-   * so that the thing you tap is under the thumb — and the tasks were ticked
-   * on the opposite side, which reads as a different kind of row and is
-   * reached across the screen (owner, 2026-09-20).
+   * so that the thing you tap is under the thumb — the tasks are ticked on
+   * the same side, since the opposite one reads as a different kind of row
+   * and is reached across the screen.
    *
    * Geometry rather than markup, because only the rendered box says which
    * edge a control ended up on (invariant 9b's point), and both kinds of task
@@ -235,7 +238,9 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
 
     const section = await openTripTodos(page)
     await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 0/2',
+    )
 
     const removeKamera = async () => {
       await openRowMenu(page, 'Kamera')
@@ -259,14 +264,18 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
       .click()
     await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
     await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 0/2',
+    )
 
     // Removed for good, the task goes with the row — while the other row's
     // task stays, which is what makes this about the row and not the section.
     await removeKamera()
     await expect(section.getByTestId('trip-todo-Charge the battery')).toHaveCount(0)
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 0/1',
+    )
   })
 })
 
@@ -314,16 +323,22 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.reload()
     const reopened = await openTasks(page, 'before')
     await expect(reopened.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
-    await reopened.getByTestId('trip-todos-resolved').click()
+    // Nothing open is left before the trip: the phase is one line at the end
+    // counting what was done, and opens onto it.
+    const line = reopened.getByTestId('m25-before-fold')
+    await expect(line).toHaveText('Before the trip · nothing open · 1 done')
+    await line.click()
     await expect(reopened.getByTestId('trip-todo-Water the plants')).toBeVisible()
 
-    // Unticked again: a mis-tap's only undo once the snackbar is gone.
+    // Unticked again: a mis-tap's only undo once the snackbar is gone — and
+    // the phase stands in its place again.
     await reopened.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
     await expect(reopened.getByTestId('trip-todos-resolved')).toHaveCount(0)
+    await expect(reopened.getByTestId('m25-before-fold')).toHaveCount(0)
 
     // Removed; the other section's task stays. The delete is written when the
     // snackbar lapses (FR-25.31), so its going is waited on before the reload.
-    await reopened.getByTestId('trip-todo-remove-Water the plants').click()
+    await removeTaskFromSheet(page, 'Water the plants')
     const removed = page
       .locator('ion-toast.pack-toast:not(.overlay-hidden)')
       .filter({ hasText: 'Water the plants' })
@@ -374,8 +389,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    * E2E-M25-03 (FR-7.5/G-8, was E2E-M4-134): Local Mode has nobody to hand a
    * task to, so the task carries no seat and the screen offers no *Meine*
    * chip — absent, not an empty picker over an empty list. The positive
-   * signal beside the two absences is the same task's ✕, rendered in the box
-   * the seat would share; the seat itself is E2E-M4-133's.
+   * signal beside the two absences is the same task's grip, rendered on the
+   * row the seat would sit on; the seat itself is E2E-M4-133's. And since
+   * FR-7.14 the row carries no ✕ at all: a task is removed from its sheet.
    */
   test('E2E-M25-03: no seat and no “mine” where there is nobody to assign to', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
@@ -383,7 +399,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
 
     const before = await openTasks(page, 'before')
     const task = before.getByTestId('trip-todo-Water the plants')
-    await expect(task.getByTestId('trip-todo-remove-Water the plants')).toBeVisible()
+    await expect(task.getByTestId('trip-todo-grip-Water the plants')).toBeVisible()
+    await expect(task.getByTestId('trip-todo-remove-Water the plants')).toHaveCount(0)
     await expect(task.getByTestId('trip-todo-assign-Water the plants')).toHaveCount(0)
     await expect(task.getByTestId('trip-todo-assignee-Water the plants')).toHaveCount(0)
     await expect(visible(page).getByTestId('m25-mine')).toHaveCount(0)
@@ -409,8 +426,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(before.getByTestId('m25-group-trip')).toContainText('No tag')
 
     await before.getByTestId('trip-todo-open-Salbe holen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The heading is the assertion: a tag that wrote nothing visible would
@@ -429,7 +446,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Taken back: the task is under „No tag" again, and the empty tag group
     // is gone with it — an empty heading is not drawn.
     await visible(page).getByTestId('trip-todo-open-Salbe holen').click()
-    await page.getByTestId('task-sheet-tag-none').click()
+    await expect(page.getByTestId('tag-pick-summary')).toHaveText('Filed under: Apotheke')
+    await page.getByTestId('tag-pick-assigned-Apotheke').click()
     await expect(visible(page).getByTestId('m25-group-trip')).toContainText('Salbe holen')
   })
 
@@ -457,11 +475,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Two tags to drag between, made the way the app makes them.
     const section = await openTasks(page, 'before')
     await section.getByTestId('trip-todo-open-Salbe holen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await visible(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
+    await page.getByTestId('tag-pick-create').click()
     // The sheet's own teardown, as `tripAction` waits for it: one still on
     // screen takes the pointer that was meant for the row underneath — which
     // is exactly what the first run of this case did.
@@ -540,10 +558,10 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
-   * E2E-M25-12 (FR-7.8, 2026-09-24): several tasks in one act — M6's own
+   * E2E-M25-12 (FR-7.8): several tasks in one act — M6's own
    * selection, on M25, so a hold means the same on both lists.
    *
-   *  - **A hold selects, it no longer lifts.** The right-click is the hold's
+   *  - **A hold selects, it does not lift.** The right-click is the hold's
    *    deterministic twin (`useRowSelection`); `data-drag` stays `idle`,
    *    the positive signal that nothing was picked up.
    *  - **A tap then chooses**, rather than opening the task's sheet.
@@ -571,8 +589,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // The grip steps aside while choosing; the composer stays where it is, at
     // rest, so the list under it does not move (G-20).
     await expect(before.getByTestId('trip-todo-grip-Salbe holen')).toHaveCount(0)
-    await expect(before.getByTestId('trip-todo-input')).toBeVisible()
-    await expect(before.getByTestId('m25-composer-before')).toHaveAttribute('inert', '')
+    const composer = visible(page).getByTestId('m25-composer')
+    await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(composer.locator('xpath=..')).toHaveAttribute('inert', '')
 
     // A tap on another task's words now chooses it instead of opening its sheet.
     await before.getByTestId('trip-todo-open-Pflanzen giessen').click()
@@ -582,8 +601,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
 
     await visible(page).getByTestId('m25-bulk-tag').click()
     await expect(page.getByTestId('m25-bulk-title')).toContainText('2')
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
+    await page.getByTestId('tag-pick-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The mode ends with the batch; both tasks now stand under one heading.
@@ -706,31 +725,218 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await before.getByTestId('trip-todo-open-Renew the passport').click()
     const sheet = page.getByTestId('task-sheet')
     await expect(sheet).toBeVisible()
+    // The calendar, which is still there behind *Datum…* (FR-7.14).
     await setDateField(page, 'task-sheet-due', iso)
-    // The sheet stays up with the day in its field.
-    await expect(sheet.getByTestId('task-sheet-due').locator('input')).not.toHaveValue('')
+    // The sheet stays up, with the day as its chip.
+    await expect(sheet.getByTestId('task-sheet-due-current')).toBeVisible()
     await sheet.getByTestId('task-sheet-close').click()
     await expect(sheet).toHaveCount(0)
 
-    const pill = before.getByTestId('trip-todo-due-Renew the passport')
+    // FR-7.14: due tomorrow is pressing, so it is read in the *Fällig* block
+    // on top — and not a second time in its section.
+    const due = visible(page).getByTestId('m25-due')
+    const pill = due.getByTestId('trip-todo-due-Renew the passport')
     await expect(pill).toHaveText('Tomorrow')
     await expect(pill).toHaveAttribute('data-due', 'soon')
-    await expect(before.getByTestId('trip-todo-due-Buy a map')).toHaveCount(0)
-    const order = () =>
-      before
-        .locator('[data-testid^="trip-todo-open-"]')
-        .evaluateAll((rows) => rows.map((row) => row.textContent?.trim()))
-    await expect.poll(order).toEqual(['Renew the passport', 'Buy a map'])
+    await expect(before.getByTestId('trip-todo-Renew the passport')).toHaveCount(0)
+    await expect(before.getByTestId('trip-todo-Buy a map')).toBeVisible()
+    await expect(visible(page).getByTestId('trip-todo-due-Buy a map')).toHaveCount(0)
     await writesLanded(page)
 
     await page.reload()
-    await expect(visible(page).getByTestId('trip-todo-due-Renew the passport')).toHaveText(
-      'Tomorrow',
-    )
-    await expect.poll(order).toEqual(['Renew the passport', 'Buy a map'])
+    await expect(
+      visible(page).getByTestId('m25-due').getByTestId('trip-todo-due-Renew the passport'),
+    ).toHaveText('Tomorrow')
 
     // Local Mode's reminder: once, when the app opens on a running trip.
     await page.goto(PATH.dashboard)
     await expect(page.locator('ion-toast').filter({ hasText: '1 task due' })).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-14 (FR-7.14): a task is filed as it is typed, and what is due
+   * leads. The one composer sits on top; its chips name the phase, the tag
+   * and the day, and *＋ Tag* opens M6's entry sheet with what was typed. The
+   * task lands with all three in one write — read back after a reload. Due today, it stands in the *Fällig* block, named by its
+   * tag since it is outside its group; the tag's group itself is not drawn,
+   * because nothing else is in it. The FAB takes the reader back to the field.
+   */
+  test('E2E-M25-14: a task is filed as it is typed, and what is due today leads the screen', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Water the plants')
+    const before = await openTasks(page, 'before')
+    await expect(visible(page).getByTestId('m25-due')).toHaveCount(0)
+
+    const composer = visible(page).getByTestId('m25-composer')
+    await fillIonic(composer.getByTestId('trip-todo-input'), 'Fetch the salve')
+    await composer.getByTestId('due-chip-today').click()
+    await expect(composer.getByTestId('m25-composer-due-current')).toBeVisible()
+
+    // ＋ Tag is M6's entry sheet: it carries the words
+    // and the day typed so far, and makes the tag by search-or-create.
+    await composer.getByTestId('m25-composer-tag-new').click()
+    const sheet = page.getByTestId('m25-entry-sheet')
+    await expect(sheet.getByTestId('m25-entry-title')).toHaveText('New task')
+    await expect(sheet.getByTestId('m25-entry-name').locator('input')).toHaveValue(
+      'Fetch the salve',
+    )
+    await expect(sheet.getByTestId('m25-entry-due-current')).toBeVisible()
+    await sheet.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await sheet.getByTestId('tag-pick-create').click()
+    await expect(sheet.getByTestId('tag-pick-summary')).toHaveText('Filed under: Apotheke')
+    await sheet.getByTestId('m25-entry-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    const tag = composer.getByTestId('m25-composer-tag-Apotheke')
+
+    const due = visible(page).getByTestId('m25-due')
+    await expect(due.getByTestId('trip-todo-due-Fetch the salve')).toHaveText('Today')
+    await expect(due.getByTestId('trip-todo-tag-Fetch the salve')).toHaveText('Apotheke')
+    await expect(before.getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+    await expect(
+      visible(page).locator('[data-testid^="m25-group-"]').filter({ hasText: 'Apotheke' }),
+    ).toHaveCount(0)
+    // The tag stays chosen for the next task of the errand; the day does not.
+    await expect(tag).toHaveAttribute('aria-pressed', 'true')
+    await expect(composer.getByTestId('m25-composer-due-current')).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.reload()
+    await openTasks(page, 'before')
+    await expect(
+      visible(page).getByTestId('m25-due').getByTestId('trip-todo-tag-Fetch the salve'),
+    ).toHaveText('Apotheke')
+
+    // The FAB, from further down: the field is focused and on screen.
+    await visible(page).getByTestId('m25-fab').click()
+    await expect(
+      visible(page).getByTestId('m25-composer').getByTestId('trip-todo-input').locator('input'),
+    ).toBeFocused()
+  })
+
+  /**
+   * E2E-M25-15 (FR-7.14): the sheet in the order acts are wanted. A task's
+   * words are corrected in place — read back after a reload, and the undo
+   * puts the old words back — and *Erledigt* is the sheet's first act: it
+   * finishes the task and the sheet goes with it.
+   */
+  test('E2E-M25-15: a task’s words are corrected on its sheet, and it is finished from there', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Pas holen')
+    const before = await openTasks(page, 'before')
+
+    await before.getByTestId('trip-todo-open-Pas holen').click()
+    const sheet = page.getByTestId('task-sheet')
+    const words = sheet.getByTestId('task-sheet-title-input').locator('textarea')
+    await words.fill('Pass holen')
+    await words.press('Enter')
+    await expect(before.getByTestId('trip-todo-open-Pass holen')).toBeVisible()
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'changed' })
+      .last()
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(before.getByTestId('trip-todo-open-Pas holen')).toBeVisible()
+
+    await words.fill('Pass holen')
+    await words.press('Enter')
+    await expect(before.getByTestId('trip-todo-open-Pass holen')).toBeVisible()
+    await writesLanded(page)
+    await page.reload()
+    const reloaded = await openTasks(page, 'before')
+    await reloaded.getByTestId('trip-todo-open-Pass holen').click()
+    await page.getByTestId('task-sheet-done').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(reloaded.getByTestId('trip-todo-Pass holen')).toHaveCount(0)
+    await reloaded.getByTestId('m25-before-fold').click()
+    await expect(reloaded.getByTestId('trip-todo-Pass holen')).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-16 (FR-7.14): the selection's own acts. Two tasks are dated in
+   * one go from the bar's *Fällig* — both then lead the screen — and ticked
+   * off in one more; a third is deleted from the bar and taken back whole by
+   * the one undo. Each state is read on the list, not off the bar.
+   */
+  test('E2E-M25-16: a selection is dated, ticked off and deleted in one act each', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Buy a map')
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Cancel the paper')
+    const before = await openTasks(page, 'before')
+
+    await before.getByTestId('trip-todo-open-Buy a map').click({ button: 'right' })
+    await before.getByTestId('trip-todo-open-Water the plants').click()
+    await expect(page.getByTestId('m25-select-count')).toContainText('2')
+    await visible(page).getByTestId('m25-bulk-due').click()
+    await page.getByTestId('m25-bulk-when-chips').getByTestId('due-chip-tomorrow').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    const due = visible(page).getByTestId('m25-due')
+    await expect(due.getByTestId('trip-todo-due-Buy a map')).toHaveText('Tomorrow')
+    await expect(due.getByTestId('trip-todo-due-Water the plants')).toHaveText('Tomorrow')
+
+    await due.getByTestId('trip-todo-open-Buy a map').click({ button: 'right' })
+    await due.getByTestId('trip-todo-open-Water the plants').click()
+    await visible(page).getByTestId('m25-bulk-done').click()
+    await expect(visible(page).getByTestId('m25-due')).toHaveCount(0)
+    await before.getByTestId('trip-todos-resolved').click()
+    await expect(before.getByTestId('trip-todo-Buy a map')).toBeVisible()
+    await expect(before.getByTestId('trip-todo-Water the plants')).toBeVisible()
+
+    await before.getByTestId('trip-todo-open-Cancel the paper').click({ button: 'right' })
+    await visible(page).getByTestId('m25-bulk-remove').click()
+    await expect(before.getByTestId('trip-todo-Cancel the paper')).toHaveCount(0)
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'deleted' })
+      .last()
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(before.getByTestId('trip-todo-Cancel the paper')).toBeVisible()
+    await writesLanded(page)
+    await page.reload()
+    const reloaded = await openTasks(page, 'before')
+    await expect(reloaded.getByTestId('trip-todo-Cancel the paper')).toBeVisible()
+  })
+
+  /**
+   * E2E-M25-17 (FR-7.14): once the trip's first day has come, a new task is
+   * for the road — the composer names no phase, and what is typed lands under
+   * *Während der Reise*. The start is two days back, computed by the case:
+   * „today" is an input here, not a race, and two days clear any time zone.
+   */
+  test('E2E-M25-17: a trip under way files a new task for the road', async ({ page }) => {
+    const started = new Date(Date.now() - 2 * 86_400_000)
+    const startDate = [
+      started.getFullYear(),
+      String(started.getMonth() + 1).padStart(2, '0'),
+      String(started.getDate()).padStart(2, '0'),
+    ].join('-')
+    await createTripViaWizard(page, { name: 'Unterwegs', startDate, travelers: ['Andy'] })
+    const during = await openTasks(page, 'during')
+
+    const composer = visible(page).getByTestId('m25-composer')
+    // The positive signal first: the composer is on screen, so the phase
+    // row's absence is read off a rendered page.
+    await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(composer.getByTestId('m25-composer-phase')).toHaveCount(0)
+    await fillIonic(composer.getByTestId('trip-todo-input'), 'Maut zahlen')
+    await composer.getByTestId('trip-todo-add').click()
+    await expect(during.getByTestId('trip-todo-Maut zahlen')).toBeVisible()
+    await writesLanded(page)
+
+    await page.reload()
+    await expect(
+      (await openTasks(page, 'during')).getByTestId('trip-todo-Maut zahlen'),
+    ).toBeVisible()
+    await expect(
+      visible(page).getByTestId('m25-before').getByTestId('trip-todo-Maut zahlen'),
+    ).toHaveCount(0)
   })
 })

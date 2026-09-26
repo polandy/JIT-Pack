@@ -1082,7 +1082,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     expect((await row.boundingBox())!.y).toBe(before)
     // The field stays where it was, at rest.
     await expect(live.getByTestId('m6-add-input')).toBeVisible()
-    await expect(live.getByTestId('m6-composer')).toHaveAttribute('inert', '')
+    await expect(live.getByTestId('m6-composer').locator('xpath=..')).toHaveAttribute('inert', '')
 
     await page.getByTestId('m6-select-exit').click()
     await expect(page.getByTestId('header-back')).toBeVisible()

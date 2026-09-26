@@ -352,7 +352,9 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // FR-27.7 on the trip: an ordinary FR-7.3 todo, on the row it came from,
     // counted in the header figure and listed in the trip's one task section
     // (FR-7.6), where the chip names the row it prepares.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 0/1',
+    )
     const tasks = await openTripTodos(page)
     await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
@@ -401,7 +403,9 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // stands for the window under it — the preparations still due before the
     // trip — and the two chores of the trip itself are M25's. The three are
     // read off M1 below, which lists all of them; the pair is the case.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+      'While packing 0/1',
+    )
     await tripAction(page, 'start')
 
     await page.goto(PATH.dashboard)

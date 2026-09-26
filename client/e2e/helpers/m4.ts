@@ -73,8 +73,8 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
 
 /**
  * Put a row on the packing list and give it a buy mode in M5 (FR-3.1) — the
- * one way a packing row reaches the shopping list since FR-30.2: M6 no longer
- * writes packing rows, it only shows the ones in a buy mode.
+ * one way a packing row reaches the shopping list (FR-30.2): M6 does not
+ * write packing rows, it only shows the ones in a buy mode.
  *
  * `mode` is the select's label (`'Buy before'`, `'Buy there'`). Ends on M4
  * with the sheet closed and the write landed.
@@ -395,7 +395,14 @@ export async function addTripTodo(
 ): Promise<void> {
   const cameFrom = page.url()
   const section = await openTasks(page, phase)
-  const field = section.getByTestId('trip-todo-input')
+  // FR-7.14: one composer on top, whose chip names the phase it writes.
+  const composer = visiblePage(page).getByTestId('m25-composer')
+  const chip = composer.getByTestId(`m25-phase-${phase}`)
+  if ((await chip.count()) > 0) {
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
+  }
+  const field = composer.getByTestId('trip-todo-input')
   await fillIonic(field, body)
   await field.locator('input').press('Enter')
   await expect(section.getByTestId(`trip-todo-${body}`)).toBeVisible()
@@ -404,6 +411,18 @@ export async function addTripTodo(
     await page.goto(cameFrom)
     await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
   }
+}
+
+/**
+ * FR-7.14: a task of the trip removed the way M25 removes one — from its own
+ * sheet, since the row carries no ✕. Ends with the sheet gone.
+ */
+export async function removeTaskFromSheet(page: Page, body: string): Promise<void> {
+  await visiblePage(page).getByTestId(`trip-todo-open-${body}`).click()
+  const sheet = page.getByTestId('task-sheet')
+  await expect(sheet).toBeVisible()
+  await sheet.getByTestId('task-sheet-remove').click()
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 }
 
 /**
