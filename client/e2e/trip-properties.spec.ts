@@ -24,9 +24,9 @@ import { PATH } from './routes'
  *
  * Covers E2E-M22-01 (the screen is reachable from M4 and edits the trip),
  * E2E-M22-02 (a traveller added extends the per-person positions immediately,
- * per FR-27.4's 2026-08-21 amendment) and E2E-M22-08 (an edit keeps the fields it never showed), E2E-M22-03 (a traveller removed
- * takes their own row and **never a sibling's** — the owner's requirement, and
- * the failure that would quietly empty half a packing list).
+ * per FR-27.4's amendment) and E2E-M22-08 (an edit keeps the fields it never showed), E2E-M22-03 (a traveller removed
+ * takes their own row and **never a sibling's** — the failure that would
+ * quietly empty half a packing list).
  *
  * Local Mode: the whole consequence rule runs client-side (invariant 4), so a
  * broken rule shows up here rather than behind a round trip.
@@ -124,11 +124,11 @@ async function pantsRows(page: Page): Promise<Locator> {
  * `page.goto` in this file is a full reload that reads from there rather than
  * from the optimistic store.
  *
- * Added 2026-08-30 (backlog item 6): E2E-M22-08 filled the name, blurred and
- * navigated, and under load it failed against correct code — the trip was on
- * no M2 segment because the rename had not been persisted when the reload
- * threw the store away. The screen's own repaint is not that signal; it is
- * satisfied by the optimistic row alone.
+ * Without it, a case that fills the name, blurs and navigates fails under
+ * load against correct code — the trip is on no M2 segment because the
+ * rename has not been persisted when the reload throws the store away. The
+ * screen's own repaint is not that signal; it is satisfied by the optimistic
+ * row alone.
  */
 async function localWriteSettled(page: Page) {
   await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
@@ -270,7 +270,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
      * afterwards and simply *generates her row again*, so the end state looks
      * identical while the row is a different one and everything done to it is
      * gone. Proved by mutation — detaching by position instead of by traveller
-     * left this case green until the packed state was asserted.
+     * leaves this case green without the packed state asserted.
      */
     await (await pantsRowFor(page, 'Xenia')).getByTestId('row-plus').click()
     await expect(await pantsRowFor(page, 'Xenia')).toContainText('1/2')
@@ -370,11 +370,10 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     await openTripEdit(page)
 
-    // Gone, not disabled (owner, 2026-08-21). The first version rendered a ✕
-    // that refused every tap, on the reasoning that a vanished control gets
-    // hunted for — but a control that is visibly there and does nothing is
-    // read as a broken app, and the sentence under the list already answers
-    // the question the ✕ would have raised.
+    // Gone, not disabled. A vanished control may get hunted for, but a
+    // control that is visibly there and does nothing is read as a broken
+    // app, and the sentence under the list already answers the question the
+    // ✕ would have raised.
     await expect(visible(page).getByTestId('traveler-remove-note')).toBeVisible()
     await expect(removeButtons(page)).toHaveCount(0)
     // Adding still works on a started trip — only removal is gated.
@@ -382,11 +381,10 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
   })
 
   test('E2E-M22-10: an archived trip’s properties are read-only, all of them', async ({ page }) => {
-    // UI-Spec M22's *States* line has promised this since the screen shipped
-    // — "on an archived one the whole screen is read-only, consistent with
-    // FR-27.4's 'past trips are never touched'" — and no test had ever opened
-    // the editor on an archived trip. The unit spec pins the two DateFields;
-    // the name, the roster and the add row were unasserted anywhere.
+    // UI-Spec M22's *States* line: "on an archived one the whole screen is
+    // read-only, consistent with FR-27.4's 'past trips are never touched'".
+    // The unit spec pins the two DateFields; the name, the roster and the add
+    // row are asserted here.
     await tripWithTwoTravellers(page, 'Letztes Jahr')
     await tripAction(page, 'start')
     await expectTripActionOffered(page, 'archive')
@@ -410,18 +408,17 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
       'readOnly',
       true,
     )
-    // The year joined this screen on 2026-08-31, and "read-only throughout"
-    // has to mean the whole screen or it decays into a list of what was true
-    // when the case was written. A select has no `readonly`; disabled is it.
+    // "Read-only throughout" has to mean the whole screen, the year included,
+    // or it decays into a list of what was true when the case was written. A
+    // select has no `readonly`; disabled is it.
     await expect(visible(page).getByTestId('trip-edit-year')).toHaveJSProperty('disabled', true)
     await expect(removeButtons(page)).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add')).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add-input')).toHaveCount(0)
 
-    // And it says why (built 2026-08-31). Until then an archived trip lost
-    // the ✕, the add row and the explanation together — the exact shape the
-    // owner ruled against on 2026-08-21 for the *started* trip ("a control
-    // that answers no tap reads as a broken app"), arrived at by a different
+    // And it says why: losing the ✕, the add row and the explanation
+    // together is the shape ruled out for the *started* trip ("a control that
+    // answers no tap reads as a broken app"), arrived at by a different
     // route. It is its own sentence rather than the started trip's: the
     // reason is different, and reusing that wording would say the trip has
     // not left yet.
@@ -433,10 +430,9 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
   // E2E-M22-12 (FR-2.1b/FR-2.7): the year is editable after creation.
   //
-  // `TripEdit`'s only writers were M3's wizard and the clone form, both at
-  // creation, so a typo was permanent — on the one temporal fact FR-2.1b makes
-  // required, and the one M2 sorts and groups by. Found 2026-08-30 by reading
-  // UI-Spec M22's element list against the screen.
+  // Without M22, `TripEdit`'s only writers are M3's wizard and the clone form,
+  // both at creation, so a typo would be permanent — on the one temporal fact
+  // FR-2.1b makes required, and the one M2 sorts and groups by.
   test('E2E-M22-12: a trip’s year can be corrected, and M2 moves it', async ({ page }) => {
     const thisYear = new Date().getFullYear()
     await createTripViaWizard(page, { name: 'Falsches Jahr' })
@@ -468,11 +464,11 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     page,
   }) => {
     // UI-Spec M22 names three affordances per roster row — rename in place, ＋
-    // and ✕ — and until this case only two of them had ever been operated.
-    // The rule underneath is FR-2.7's: a rename is a rename, never a removal
-    // plus an addition, which would detach every row pointing at the person.
-    // The composable asserts that on the mutation; the screen's own blur
-    // wiring reads the value off the Ionic host, which no unit test sees.
+    // and ✕ — and this case operates the rename. The rule underneath is
+    // FR-2.7's: a rename is a rename, never a removal plus an addition, which
+    // would detach every row pointing at the person. The composable asserts
+    // that on the mutation; the screen's own blur wiring reads the value off
+    // the Ionic host, which no unit test sees.
     const trip = await tripWithTwoTravellers(page, 'Namenswechsel')
 
     // Her share, part-packed: the work that a remove-plus-add would lose.

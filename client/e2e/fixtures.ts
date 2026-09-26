@@ -42,11 +42,10 @@ export interface SeedOptions {
   /**
    * Device-local theme preference (`jitpack_theme`).
    *
-   * These are the values `readTheme` actually recognises. It used to read
-   * `'dark' | 'light'`, which nothing in the app matches — anything but
-   * `'day'` (or the pre-ADR-048 `'latte'`) resolves to Nacht, so seeding a
-   * light theme silently gave a dark one and any case built on it would have
-   * been false-green.
+   * These are the values `readTheme` actually recognises — anything but
+   * `'day'` (or the pre-ADR-048 `'latte'`) resolves to Nacht, so a
+   * `'dark' | 'light'` type would let a case seed a light theme, silently get
+   * a dark one and go false-green.
    */
   theme?: Theme
   /**
@@ -87,10 +86,8 @@ interface Fixtures {
    * A leaked page is invisible from inside the case that leaks it — the URL
    * is right, the screen looks right, and the stale page underneath only
    * surfaces later, as somebody else's strict-mode violation or as a tap
-   * that goes nowhere. It has happened twice: the four navigation anchors
-   * (2026-08-31, ADR-012 amendment 3) and E2E-M5-12 on `main` at 4dab0d46,
-   * which failed with two unhidden M4s and no way to tell which navigation
-   * had produced them.
+   * that goes nowhere — two unhidden M4s, and no way to tell which navigation
+   * produced them.
    *
    * Automatic, so a case cannot forget it, and skipped when the test has
    * already failed — a failing case has its own story and this would only
@@ -103,18 +100,17 @@ export const test = base.extend<Fixtures>({
   /**
    * Every navigation waits for the device's writes to land first.
    *
-   * The defect this closes is one line long and has been written twice this
-   * week: act, then `page.goto` or `page.reload`. A write is on the device
-   * once the outbox has it, and the reload that proves it persisted is racing
-   * that persist — green when the machine is idle, red on a loaded CI shard,
-   * and red in a way that names the assertion rather than the navigation
-   * (E2E-M3-23 lost a template task once in three runs; E2E-NFR-SEC-02 lost an
-   * inventory item once in 925 cases).
+   * The defect this closes is one line long: act, then `page.goto` or
+   * `page.reload`. A write is on the device once the outbox has it, and the
+   * reload that proves it persisted is racing that persist — green when the
+   * machine is idle, red on a loaded CI shard, and red in a way that names the
+   * assertion rather than the navigation (a template task lost once in three
+   * runs, an inventory item once in 925 cases).
    *
-   * `writesLanded` has existed for exactly this since E2E-M18-08 — as
-   * something a case has to remember. Here it is what a navigation *is*, so
-   * remembering is no longer part of writing a case. A case that means to
-   * navigate mid-write calls `navigateWhileWriting`, which says so.
+   * `writesLanded` exists for exactly this, but as something a case has to
+   * remember. Here it is what a navigation *is*, so remembering is not part of
+   * writing a case. A case that means to navigate mid-write calls
+   * `navigateWhileWriting`, which says so.
    */
   page: async ({ page }, use) => {
     const goto = page.goto.bind(page)

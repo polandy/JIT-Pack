@@ -263,13 +263,12 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     seedMode,
     page,
   }) => {
-    // The half of M23 nothing had ever rendered (backlog item 6,
-    // 2026-08-30). FR-24.3 retires master items *and* Vorlagen, and the
-    // screen builds its two lists from two different row builders — but all
-    // three cases above retire an item, and one of them uses the Vorlagen
-    // segment's *emptiness* as a positive control, which only says anything
-    // if that segment can ever hold a row. The retire branch of a Vorlage
-    // had no rendered case either (E2E-M7-11 covers the remove branch and
+    // The Vorlagen half of M23. FR-24.3 retires master items *and* Vorlagen,
+    // and the screen builds its two lists from two different row builders —
+    // but all three cases above retire an item, and one of them uses the
+    // Vorlagen segment's *emptiness* as a positive control, which only says
+    // anything if that segment can ever hold a row. The retire branch of a
+    // Vorlage is rendered here too (E2E-M7-11 covers the remove branch and
     // says why it stops there); one trip pays for both.
     await seedMode({ mode: 'local' })
     await page.goto(PATH.templates)

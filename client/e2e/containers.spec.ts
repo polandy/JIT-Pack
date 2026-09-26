@@ -69,15 +69,14 @@ test.describe('M11 containers @local @m11', () => {
 
     // Carrier commits on tap; the card shows who carries it (FR-10.1).
     await openCard(page, 'Links')
-    // FR-25.15: the indicator stands *instead of* a Save button, and the
-    // traceability matrix has credited this case with saying so since the
-    // rebuild. Asserted 2026-08-30: the visible indicator is the positive
-    // signal the absence beside it is worth anything against.
+    // FR-25.15: the indicator stands *instead of* a Save button. The visible
+    // indicator is the positive signal the absence beside it is worth
+    // anything against.
     //
-    // Since 2026-09-20 the order is the assertion. The indicator is silent
-    // on a sheet that has written nothing, so it has to be read *after* the
-    // edit it confirms — which is also what makes the pair falsifiable: it
-    // was green before the tap for as long as the lamp was always lit.
+    // The order is the assertion. The indicator is silent on a sheet that
+    // has written nothing, so it has to be read *after* the edit it confirms
+    // — which is also what makes the pair falsifiable: a lamp that is always
+    // lit would be green before the tap.
     await expect(page.getByTestId('save-indicator')).toHaveCount(0)
     await sheetChip(page, 'Andy').click()
     await expect(sheetChip(page, 'Andy')).toHaveClass(/sel/)
@@ -106,11 +105,11 @@ test.describe('M11 containers @local @m11', () => {
     await expect(sheetChip(page, 'Links')).not.toHaveClass(/sel/)
   })
 
-  // E2E-M11-07 (UX pass 2026-08-25): with no containers, "everything is
-  // assigned to a container" would be a lie right under "no containers yet".
-  // The unassigned section says nothing until there is either a container to
-  // assign to or something unassigned to list — the first container is the
-  // positive signal that the section can still appear.
+  // E2E-M11-07: with no containers, "everything is assigned to a container"
+  // would be a lie right under "no containers yet". The unassigned section
+  // says nothing until there is either a container to assign to or something
+  // unassigned to list — the first container is the positive signal that the
+  // section can still appear.
   test('E2E-M11-07: with no containers the unassigned section is absent, and the first container brings it back', async ({
     page,
   }) => {
@@ -174,11 +173,10 @@ test.describe('M11 containers @local @m11', () => {
 
   // E2E-M5-22 (FR-10.2): moving an item from one bag to another. E2E-M11-06
   // covers the *first* assignment, from the unassigned bucket through M11's
-  // own picker; changing an existing one has only ever been possible from
-  // M5, and E2E-M11-03 said so in writing ("re-assignment lives in M5's
-  // container control, and belongs to that screen's cases") without the case
-  // ever being written. Until now `m5-container` was asserted visible and
-  // never operated.
+  // own picker; changing an existing one is possible only from M5, as
+  // E2E-M11-03 says ("re-assignment lives in M5's container control, and
+  // belongs to that screen's cases") — this is where `m5-container` is
+  // operated rather than only asserted visible.
   //
   // The readback is deliberately on M11 and by weight: the two cards are the
   // only surface that states where the thing actually is, and a control that
@@ -260,7 +258,7 @@ test.describe('M11 containers @local @m11', () => {
     await closeSheet(page)
 
     // All of the weight on one side: 100 % against the fixed threshold of 15.
-    // FR-10.3's per-trip override was struck 2026-08-31 — there is one value.
+    // FR-10.3 has no per-trip override — there is one value.
     await assignToContainer(page, 'Zelt', 'Links')
 
     await expect(card(page, 'Links').getByTestId('m11-imbalance')).toContainText('100 %')
@@ -299,7 +297,7 @@ test.describe('M11 containers @local @m11', () => {
     await createContainer(page, 'Kiste', '10')
 
     // One row per item, and none carries an inline assign control — the
-    // rejected wall was one ion-select per row (concept round 2026-08-08).
+    // rejected wall was one ion-select per row.
     // Not `button`: Playwright CSS pierces shadow DOM, where ion-item's
     // own tap surface is a native button.
     await expect(visiblePage(page).getByTestId('m11-unassigned-row')).toHaveCount(2)

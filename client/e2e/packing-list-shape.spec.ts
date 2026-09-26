@@ -29,8 +29,8 @@ import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * M4 — the shape of the screen: what the head, the line and the rows do with
- * the space they have (UI-Test-Spec §4). Split out of `packing-list.spec.ts`
- * on 2026-09-20.
+ * the space they have (UI-Test-Spec §4). A neighbour of
+ * `packing-list.spec.ts`.
  *
  * Every case here is a claim about rendered pixels, asserted as rendered
  * pixels: a stylesheet cannot say whether the head gave its space back, and a
@@ -38,10 +38,9 @@ import { backToInventory, createItem } from './helpers/m9'
  */
 
 /**
- * The head that never yielded (FR-21.17) and the column that had no measure
- * for a row (FR-21.18, superseded by FR-21.26) — the two halves of the M4
- * read-through of 2026-09-07 that are about the screen's shape rather than
- * its numbers.
+ * The head that yields (FR-21.17) and the measure of a row's column
+ * (FR-21.18, superseded by FR-21.26) — the two halves of the M4 read-through
+ * that are about the screen's shape rather than its numbers.
  *
  * Both are claims about rendered pixels, so both are asserted as rendered
  * pixels: a stylesheet cannot say whether the head actually gave its space
@@ -78,10 +77,9 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * The head's height once it has *settled*, polled rather than read once.
    *
    * The collapse travels over a transition, and a single `evaluate` reads
-   * whatever frame it lands on — which is how the first version of this case
-   * passed here and failed on CI with 28 px and 53 px, both mid-flight. The
-   * wait is on the rendered end state, never on a clock; this is the same
-   * seam `toHaveCSS` gives E2E-M4-45 for the header line.
+   * whatever frame it lands on — 28 px or 53 px on CI, both mid-flight. The
+   * wait is on the rendered end state, never on a clock; this is the same seam
+   * `toHaveCSS` gives E2E-M4-45 for the header line.
    */
   const headHeight = (page: Page) =>
     expect.poll(() =>
@@ -111,13 +109,13 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
    * comes back with it.
    *
-   * The third step is the one that carries the defect this case was written
-   * for. Collapsing the head hands its height to the scroll viewport, which
-   * shortens the scrollable range by the same amount; the browser clamps
-   * `scrollTop` down to fit, and that clamp arrives at the scroll handler
-   * looking exactly like an upward scroll. Measured before the fix, on a
-   * 1280×900 window, the head opened and shut on a single flick near the
-   * end of the list. Asserting at the very bottom is therefore not
+   * The third step is the one that carries the defect this case guards
+   * against. Collapsing the head hands its height to the scroll viewport,
+   * which shortens the scrollable range by the same amount; the browser
+   * clamps `scrollTop` down to fit, and that clamp arrives at the scroll
+   * handler looking exactly like an upward scroll. Unguarded, on a 1280×900
+   * window, the head opens and shuts on a single flick near the end of the
+   * list. Asserting at the very bottom is therefore not
    * thoroughness — it is the only place the bug lives.
    */
   test('E2E-M4-70: the page head yields to the list, and holds at the bottom', async ({ page }) => {
@@ -143,10 +141,10 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(line).toHaveClass(/collapsed/)
     await headHeight(page).toBeLessThan(YIELDED_PX)
 
-    // Any upward gesture brings both back — the other half of the owner's
-    // 2026-08-19 rule, and what makes the collapse a yield rather than a
-    // one-way disappearance. Upward by a little, so the list stays clear of
-    // the top: at the top the head stands whatever the direction was.
+    // Any upward gesture brings both back — the other half of the rule, and
+    // what makes the collapse a yield rather than a one-way disappearance.
+    // Upward by a little, so the list stays clear of the top: at the top the
+    // head stands whatever the direction was.
     const back = await scrollPackList(page, -120)
     expect(back).toBeGreaterThan(CLEAR_OF_THE_TOP)
     await expect(head).not.toHaveClass(/collapsed/)
@@ -165,12 +163,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    *
    * The browser produces one whenever it has to bring a control into view —
    * a keyboard focus, and every click a driver aims at a row that is off
-   * screen. Read as a gesture, an upward one of those brought the head back
-   * and pushed every row down by its height, which is a tap landing on the
-   * row below the one it was aimed at. It cost E2E-M5-19 a WebKit shard on
-   * 2026-09-20: the seat had the pointer down on it and never saw a click,
-   * because the list moved between the two. Measured here at 390×640, and on
-   * the failing build at 1280×600: a 60 px scroll, 162 px of row.
+   * screen. Read as a gesture, an upward one of those would bring the head
+   * back and push every row down by its height, which is a tap landing on
+   * the row below the one it was aimed at: the seat has the pointer down on
+   * it and never sees a click, because the list moved between the two.
+   * Measured here at 390×640; at 1280×600 it is a 60 px scroll, 162 px of
+   * row.
    *
    * The geometry is taken in one `evaluate`, either side of the scroll it is
    * about: two `boundingBox()` calls would compare two different moments.
@@ -187,7 +185,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // Yielded by a reader's own flick, which is the only thing that may, and
     // carried to the end, where rows have gone off the top: those are the
     // ones the browser has to scroll back *up* to, and up is the direction
-    // that used to recall the head.
+    // that recalls the head when a reader makes it.
     await scrollToEnd(page)
     await expect(line).toHaveClass(/collapsed/)
 
@@ -370,12 +368,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * E2E-M4-73 (FR-21.20): a cluster head is a line of the list; its people
    * are the ones stepping in.
    *
-   * The indent and its rule used to sit on the whole cluster, head included,
-   * so the item's name sat 8 px right of every other item name and only 6 px
-   * left of its own travelers — 457 against 449 and 463, measured at 1280 px.
-   * A head that close to its children reads as one of them. Both halves are
-   * asserted: an equality alone would pass on a build that had also flattened
-   * the children, and the step alone on one that had left the head inset.
+   * The indent and its rule sit on the children only: on the whole cluster,
+   * head included, the item's name would sit 8 px right of every other item
+   * name and only 6 px left of its own travelers, and a head that close to its
+   * children reads as one of them. Both halves are asserted: an equality alone
+   * would pass on a build that had also flattened the children, and the step
+   * alone on one that had left the head inset.
    */
   test('E2E-M4-73: a cluster head lines up with the item rows, its people step in', async ({
     page,
@@ -413,12 +411,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   /*
    * E2E-M4-74 (FR-21.22): the bar that reveals the packed rows is a button.
    *
-   * It was drawn with a dashed outline and no fill — this app's mark for a
-   * place where something is *not yet*, worn by the empty picker slot and the
-   * quick-add invitation. On a control that reveals rows which exist and are
-   * counted in its own label, that mark reads as a drop zone or a
-   * placeholder. Both halves are asserted: the edge it no longer wears, and
-   * the state it now tells a reader who cannot see the caret.
+   * Not a dashed outline and no fill — this app's mark for a place where
+   * something is *not yet*, worn by the empty picker slot and the quick-add
+   * invitation. On a control that reveals rows which exist and are counted
+   * in its own label, that mark reads as a drop zone or a placeholder. Both
+   * halves are asserted: the edge it does not wear, and the state it tells a
+   * reader who cannot see the caret.
    */
   test('E2E-M4-74: the reveal bar wears a button’s edge and says which way it goes', async ({
     page,
@@ -521,8 +519,8 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     // Rows are siblings of their heading, not children of it, so membership
     // is read off the heading's tally: one row under the tag, one in the
-    // leftover bucket. Before the fix there was no `Sommer` heading at all
-    // and the bucket said 0/2 — which is what makes 0/1 here falsifiable.
+    // leftover bucket. Unfiled, there is no `Sommer` heading at all and the
+    // bucket says 0/2 — which is what makes 0/1 here falsifiable.
     await expect(visible(page).getByTestId('m4-group-Sommer')).toContainText('0/1')
     await expect(visible(page).getByTestId('m4-group-none')).toContainText('0/1')
     await expect(visible(page).getByTestId('m4-row-Badehose')).toBeVisible()
@@ -663,8 +661,8 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await packRow(page, 'Zelt')
     await expect(visible(page).getByTestId('m4-reset')).toBeVisible()
 
-    // And the bars run in the order their rows do (owner, 2026-09-18): rows
-    // that still ask for something stand above rows that ask for nothing.
+    // And the bars run in the order their rows do: rows that still ask for
+    // something stand above rows that ask for nothing.
     expect(
       await visible(page)
         .locator('[data-testid="m4-late-bar"], [data-testid="m4-done-bar"]')
@@ -684,11 +682,10 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   })
 
   /*
-   * E2E-M4-148 (G-14, owner 2026-09-24): the progress figures are a card, the
-   * same shape and width as the cards below them. The line holding them was
-   * the one full-width, square-cornered band on the screen, and wider than
-   * everything under it. Measured against the tasks card, which is the
-   * neighbour the owner compared it with.
+   * E2E-M4-148 (G-14): the progress figures are a card, the same shape and
+   * width as the cards below them — not the one full-width, square-cornered
+   * band on the screen, wider than everything under it. Measured against the
+   * tasks card, its nearest neighbour.
    */
   test('E2E-M4-148: the progress figures are a card lined up with the cards below', async ({
     page,

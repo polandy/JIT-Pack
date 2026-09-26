@@ -5,12 +5,11 @@ import { PATH } from './routes'
 /**
  * E2E-M17-10 (NFR-4.12): choosing German actually changes the app.
  *
- * The migration this guards found two places where it could not: a nav
- * anchor stored its finished English label and a route stored its finished
- * English title, so the four anchors and the one header bar were English
- * whatever the user had chosen. Both are catalogue keys now — and a unit
- * test cannot see that, because the defect was in the wiring between the
- * route table, the chrome and the catalogue.
+ * Two places are easy to miss: a nav anchor storing its finished English
+ * label and a route storing its finished English title leave the four
+ * anchors and the one header bar English whatever the user has chosen. Both
+ * are catalogue keys — and a unit test cannot see that, because the defect
+ * lives in the wiring between the route table, the chrome and the catalogue.
  *
  * Everything is asserted on the **visible** page: a language change repaints
  * nothing structurally, so a stale `.ion-page` left in the outlet would
@@ -67,8 +66,8 @@ test.describe('Language choice @local @nfr412', () => {
     await page.goto(PATH.settings)
     await chooseLanguage(page, 'German')
 
-    // The chrome: the anchor label used to be a stored English string, so
-    // this is the assertion the old shape could not satisfy.
+    // The chrome: an anchor label stored as an English string could not
+    // satisfy this.
     await expect(page.getByTestId('tab-trips')).toHaveText('Reisen')
     await expect(page.getByTestId('tab-templates')).toHaveText('Vorlagen')
 

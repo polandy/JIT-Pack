@@ -23,7 +23,7 @@ import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serv
 import { PATH } from '../routes'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
-// (NFR-4.14, ADR-027), so no single prefix covers them any more.
+// (NFR-4.14, ADR-027), so no single prefix covers them.
 const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
 
 /**
@@ -49,12 +49,12 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  *    multi-context cases prove real-time convergence over the wire, not
  *    multi-identity semantics (locks, attribution) — those live in the
  *    `server` project (e2e/server/, ADR-029).
- *  - A reconnect drain exists since 2026-09-01 (Sync-API P-1): a socket
- *    that dies is dialled again with backoff, and every open after the first
- *    pulls the master partition and every subscribed trip; the `online`,
- *    `visibilitychange` and `pageshow` events do the same without waiting
- *    for the socket. E2E-G2-13/14 below drive it. The queue still moves on
- *    the app's next own action as before — that half is unchanged.
+ *  - A reconnect drain exists (Sync-API P-1): a socket that dies is dialled
+ *    again with backoff, and every open after the first pulls the master
+ *    partition and every subscribed trip; the `online`, `visibilitychange`
+ *    and `pageshow` events do the same without waiting for the socket.
+ *    E2E-G2-13/14 below drive it. The queue also moves on the app's next own
+ *    action.
  */
 
 /**
@@ -100,12 +100,12 @@ async function expectHistoryHint(page: Page, series: string, item: string, ...ex
  * is taken away.
  *
  * A page booted straight at a trip URL loads only the *trip* partition; M2's
- * list comes from the master one, and whether that pull had landed was
- * previously luck. With no reconnect drain (Track C) it may never land after
- * going offline, and `reopenTrip` then searches an empty list and reports the
- * absence as a sync failure — the documented flake that passed only on the
- * retry. Asserting the rendered row makes the precondition a fact, and
- * changes nothing about what the cases themselves prove.
+ * list comes from the master one, and whether that pull has landed is luck.
+ * If it has not, it may never land after going offline, and `reopenTrip` then
+ * searches an empty list and reports the absence as a sync failure — a flake
+ * that passes only on the retry. Asserting the rendered row makes the
+ * precondition a fact, and changes nothing about what the cases themselves
+ * prove.
  */
 async function warmTripList(page: Page, tripName: string): Promise<void> {
   await page.getByTestId('header-back').click()
@@ -242,7 +242,8 @@ test.describe('Single-User backend sync @single', () => {
     await expect(rowB.getByTestId('m4-lock-note')).toBeVisible()
     await expect(rowB.getByTestId('m4-lock-note')).toContainText(/packing this right now/i)
 
-    // One tap deeper the sheet used to hand the row over in full.
+    // One tap deeper the sheet names the holder too, and still does not
+    // hand the row over.
     await rowB.click()
     await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
     await expect(pageB.getByTestId('m5-lock')).toContainText(/packing this right now/i)
@@ -428,9 +429,9 @@ test.describe('Single-User backend sync @single', () => {
 
     /*
      * E2E-G2-07 (NFR-4.2a): the loss is *announced*, not only recorded. A
-     * `merged` push used to be indistinguishable from an applied one, so
-     * the only way to learn an edit had been overwritten was to go looking
-     * for a log nothing gave you a reason to suspect. It lives inside this
+     * `merged` push that looked like an applied one would leave no way to
+     * learn an edit had been overwritten short of going looking for a log
+     * nothing gave you a reason to suspect. It lives inside this
      * case rather than in its own because this is the one place in the
      * suite where a real server merges a real edit away.
      *
@@ -506,9 +507,9 @@ test.describe('Single-User backend sync @single', () => {
    * partition — and it has to be readable.
    *
    * Every ingredient of the trip-scoped case is unchanged; only the field
-   * moves. That is the point: the same loss, one partition over, used to be
-   * written to a log that was filtered by `trip_id` and so returned nothing
-   * for the rows that have none.
+   * moves. That is the point: the same loss, one partition over, must not
+   * land in a log filtered by `trip_id`, which returns nothing for the rows
+   * that have none.
    */
   test('E2E-G2-06: a conflict on the trip itself lands in the master log, which is reachable', async ({
     browser,
@@ -560,8 +561,8 @@ test.describe('Single-User backend sync @single', () => {
     await expect(row).toHaveCount(1)
     // What lost and what won, both rendered — the page's whole promise.
     // `toHaveText`, not `toContainText`: the column stores the JSON of the
-    // mutation field, so the unfixed page rendered `"Engadin 7 B"` quotes
-    // and all, and a containment assertion is green either way.
+    // mutation field, so a page rendering it raw shows `"Engadin 7 B"`
+    // quotes and all, and a containment assertion is green either way.
     await expect(row.getByTestId('conflict-losing')).toHaveText(`${trip} B`)
     await expect(row.getByTestId('conflict-winning')).toHaveText(`${trip} A`)
     // The timestamp follows the app's language, not the device's. The suite
@@ -575,8 +576,8 @@ test.describe('Single-User backend sync @single', () => {
 
   /**
    * E2E-G2-10 (NFR-4.2a, ADR-023): the log's second promise — the loser
-   * can be put back. The audit half shipped without it, so the page named
-   * a value it could do nothing about.
+   * can be put back, so the page never names a value it can do nothing
+   * about.
    *
    * The same scenario as E2E-G2-06, carried one step further: B loses the
    * rename, reads the loss from the master log, reverts it, and the name
@@ -678,7 +679,7 @@ test.describe('Single-User backend sync @single', () => {
     await expect(indicator).toHaveAttribute('data-state', 'offline')
     await expect(indicator.getByTestId('sync-queue-count')).toHaveText('1')
 
-    // The kill. Everything the old outbox held lived in this document.
+    // The kill. An outbox held in this document would die with it.
     await page.reload()
 
     // The app painted from the shell cache — asserted on what is rendered,
@@ -719,17 +720,16 @@ test.describe('Single-User backend sync @single', () => {
   /**
    * E2E-G2-05: a mutation the server refuses is *parked*, and G-2 says so.
    *
-   * This is the one claim the unit tests could not make. The parked surface
-   * has existed since B2, but the client read the rejection under a key no
-   * server has ever sent, so it had never once fired against a real
-   * `jitpackd` — and both suites stayed green because the client's own fakes
-   * answered that same wrong key.
+   * This is the one claim the unit tests cannot make: a client reading the
+   * rejection under a key no server sends would never fire against a real
+   * `jitpackd`, and both suites would stay green because the client's own
+   * fakes answer that same wrong key.
    *
    * The story is ordinary rather than adversarial: Mia leaves the trip while
    * Andy is on a train. Andy's phone still holds her row and queues a pack
    * for it; by the time the queue drains, the row is gone server-side. The
-   * push must answer that one mutation as a refusal — the whole batch used
-   * to fail with a 500, which the outbox retries forever — and the client
+   * push must answer that one mutation as a refusal — not fail the whole
+   * batch with a 500, which the outbox retries forever — and the client
    * must move it out of the queue and say so.
    */
   test('E2E-G2-05: parks a refused mutation and reports it on G-2', async ({ browser }) => {
@@ -882,8 +882,8 @@ test.describe('Single-User backend sync @single', () => {
     expect(asked.length).toBeGreaterThan(0)
     expect(asked.filter((c) => !served.has(c))).toEqual([])
 
-    // And A's own offline pack reached the server — the fix must not have
-    // traded one direction for the other.
+    // And A's own offline pack reached the server — the catch-up must not
+    // trade one direction for the other.
     await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeHidden()
 
     await ctxA.close()
@@ -1013,10 +1013,10 @@ test.describe('Single-User backend sync @single', () => {
   /*
    * E2E-SYNC-01 (Sync-API §4): a partition bigger than one page arrives whole.
    *
-   * The pull asked once and ignored `has_more`, so a device only ever saw the
-   * first page of the feed while the G-2 glyph read *synced*. Found on the
-   * family instance 2026-08-25: 717 master rows, the trips sitting behind the
-   * first 500 in `change_log`, and M2 saying "no archived trips".
+   * A pull that asks once and ignores `has_more` shows a device only the
+   * first page of the feed while the G-2 glyph reads *synced* — on the family
+   * instance: 717 master rows, the trips sitting behind the first 500 in
+   * `change_log`, and M2 saying "no archived trips".
    *
    * The rows are pushed straight at the API rather than built through the UI:
    * this case is about the size of a partition, and five hundred trips of
@@ -1036,8 +1036,8 @@ test.describe('Single-User backend sync @single', () => {
     const PUSH_BATCH = 200 // MAX_PUSH_BATCH (Sync-API §9)
     const last = `zz-last-${tag}`
     // An HLC's device id must be lowercase hex — `parseHLC` refuses anything
-    // else, and since the pull snapshot started carrying `updated_hlc` the
-    // client actually parses what this fixture mints. `uniq()` is not hex, so
+    // else, and the pull snapshot carries `updated_hlc`, so the client
+    // actually parses what this fixture mints. `uniq()` is not hex, so
     // it is folded into hex here rather than sliced raw.
     const device = [...tag]
       .map((c) => c.charCodeAt(0).toString(16))
@@ -1076,8 +1076,8 @@ test.describe('Single-User backend sync @single', () => {
     await seed(page, { mode: 'server' })
     await page.goto(PATH.items)
 
-    // The last row of the feed, on screen. Before the fix it was unreachable:
-    // it sits past the first page, and the pull stopped there.
+    // The last row of the feed, on screen. It sits past the first page, so a
+    // pull that stops there never reaches it.
     await expect(visiblePage(page).getByText(last, { exact: true })).toBeVisible({
       timeout: 30_000,
     })
@@ -1090,15 +1090,14 @@ test.describe('Single-User backend sync @single', () => {
 
   /**
    * E2E-G2-11 (FR-24.3, FR-9.2, Sync-API §5) — the delete a trip's provenance
-   * used to forbid.
+   * does not forbid.
    *
    * `trip_items.source_template_id` carries no ON DELETE clause on purpose:
-   * an archived trip must keep knowing which Vorlage its rows came from. Until
-   * FR-24.3 that made the delete a **refusal**, and this case asserted the
-   * divergence it left behind — the row gone here, still on the server, and
-   * only the G-2 sheet knowing. Since 2026-08-25 the same reference decides
-   * instead of declining: the Vorlage is retired, so the delete is *accepted*
-   * and there is nothing to park.
+   * an archived trip must keep knowing which Vorlage its rows came from. The
+   * reference decides instead of declining: the Vorlage is retired, so the
+   * delete is *accepted* and there is nothing to park — not a **refusal**
+   * that leaves the row gone here, still on the server, and only the G-2
+   * sheet knowing.
    *
    * The whole path runs here because only a real jitpackd produces the
    * decision: the client cannot pre-empt it (it holds the trip partitions it
@@ -1152,12 +1151,11 @@ test.describe('Single-User backend sync @single', () => {
     await expect(visiblePage(pageB).locator('ion-item', { hasText: group })).toHaveCount(0)
     await expect(indicator).toHaveAttribute('data-state', 'synced')
 
-    // Nothing was refused, so nothing is parked and the sheet says so. This
-    // is the assertion the old case made in reverse, and it is the whole
-    // behaviour change — a parked count renders whenever there is one, so
+    // Nothing was refused, so nothing is parked and the sheet says so. This is
+    // the whole behaviour — a parked count renders whenever there is one, so
     // its absence is a rendered outcome rather than an element that never
-    // existed (the hint beside it is the positive signal that the sheet is
-    // the sheet).
+    // existed (the hint beside it is the positive signal that the sheet is the
+    // sheet).
     await indicator.click()
     const detail = pageB.getByTestId('sync-detail-sheet')
     await expect(detail).toBeVisible()
@@ -1187,11 +1185,11 @@ test.describe('Single-User backend sync @single', () => {
    * survives it. That is the trip: its rows keep naming a Vorlage the user
    * deleted, so they keep their provenance, their name and their count.
    *
-   * This case previously asserted ADR-031's *refusal* repair — the row coming
-   * back on the device that removed it. FR-24.3 removed the only UI path to a
-   * refusal (a series has no delete control, and container and traveler
-   * deletes unassign their rows first), so that half is asserted where it is
-   * still reachable: `store/rejection_repair_test.go` for the re-log, and
+   * ADR-031's *refusal* repair — the row coming back on the device that
+   * removed it — has no UI path under FR-24.3 (a series has no delete control,
+   * and container and traveler deletes unassign their rows first), so that
+   * half is asserted where it is still reachable:
+   * `store/rejection_repair_test.go` for the re-log, and
    * `composables/__tests__/rejectionRepair.spec.ts` for the toast, the parked
    * reason and the repaired row. The cascade half of the same mechanism — a
    * surviving row bringing its children back — runs on the retire path here
@@ -1254,10 +1252,9 @@ test.describe('Single-User backend sync @single', () => {
    * E2E-M2-10 (ADR-033): a trip's progress on the list, without opening it.
    *
    * `trip_items` live in the trip's own partition, pulled when the trip is
-   * opened — so a device that had never opened a trip summed nothing and the
-   * row read `0/0 packed`, ring at 0 %. On the family's imported archive that
-   * was every trip: a decade of fully packed holidays, all reported as
-   * untouched.
+   * opened — so a device that has never opened a trip would sum nothing and
+   * the row read `0/0 packed`, ring at 0 %. On an imported archive that is
+   * every trip: a decade of fully packed holidays, all reported as untouched.
    *
    * The assertion is on a **second browser context**, which is a device that
    * has never opened this trip. Asserting it on the context that built the
@@ -1294,14 +1291,13 @@ test.describe('Single-User backend sync @single', () => {
     /*
      * Scrolled to, because that is the rule and not a workaround: ADR-033
      * fetches the partition of a row that is *on screen*, so a row further
-     * down a shared list has not been asked for yet. Found by the full-suite
-     * run — alone this trip is the only one and the assertion passed without
-     * the scroll, which would have made the case a promise about test
-     * isolation rather than about the app.
+     * down a shared list has not been asked for yet. Run alone, this trip is
+     * the only one and the assertion passes without the scroll, which would
+     * make the case a promise about test isolation rather than about the app.
      */
     await row.scrollIntoViewIfNeeded()
-    // The number, on the list, with nothing opened. Before ADR-033 this row
-    // said "0/0 packed" for ever.
+    // The number, on the list, with nothing opened — not "0/0 packed" for
+    // ever (ADR-033).
     await expect(row.getByTestId('trip-item-summary')).toHaveText('1/2 packed', {
       timeout: 30_000,
     })
@@ -1317,9 +1313,9 @@ test.describe('Single-User backend sync @single', () => {
    * E2E-M2-11 (ADR-033): cloning a trip the device has never opened.
    *
    * ClonePage sums the source's rows for its preview and its plan. On a
-   * device that never pulled the trip's partition both summed an absence:
-   * the preview read "0 items, 0 travellers" and the button cloned exactly
-   * that — an empty trip, silently. The page now fetches the partition,
+   * device that never pulled the trip's partition both would sum an absence:
+   * the preview would read "0 items, 0 travellers" and the button clone
+   * exactly that — an empty trip, silently. The page fetches the partition,
    * says so while it does, and the clone carries the real rows.
    *
    * Same second-context rule as E2E-M2-10: asserting on the authoring
@@ -1426,9 +1422,9 @@ test.describe('Single-User backend sync @single', () => {
 
     // The refusal is reported here and nowhere else.
     await expect(indicator).toHaveAttribute('data-state', 'offline')
-    // Two pending writes, not one: since FR-24.11 reached the composer a new
-    // name is created in the inventory first, so the add is the item *and*
-    // the row, and both are refused.
+    // Two pending writes, not one: under FR-24.11 a new name is created in the
+    // inventory first, so the add is the item *and* the row, and both are
+    // refused.
     await expect(indicator.locator('ion-badge')).toHaveText('2')
     await expect(page.locator('ion-alert')).toHaveCount(0)
     // The push really was refused — without this the case would also pass in
@@ -1522,7 +1518,7 @@ test.describe('Single-User backend sync @single', () => {
    *
    * FR-19.5 makes this one step — the backup file carries every template and
    * trip, and importing it while the app points at a server moves the lot —
-   * and since ADR-025 the server has no importer of its own: the client's
+   * and the server has no importer of its own (ADR-025): the client's
    * restore is the only implementation, so what reaches the server is
    * whatever that restore pushes.
    *
@@ -1532,11 +1528,11 @@ test.describe('Single-User backend sync @single', () => {
    * trap E2E-M15-05 and E2E-FLOW-05 are built around. A device that has only
    * ever talked to the server can see nothing the server was not told.
    *
-   * It found the restore pushing the master partition and nothing else: a
-   * trip's rows are their own partition (ADR-033), so every packing list in
-   * the file stayed queued on the importing device — whose own screen looked
-   * exactly like a migration that had worked. Fixed here; the unit that drives
-   * it is in `composables/__tests__/portableImport.spec.ts`.
+   * A restore pushing the master partition and nothing else would leave every
+   * packing list in the file queued on the importing device — a trip's rows
+   * are their own partition (ADR-033) — whose own screen looks exactly like a
+   * migration that had worked. The unit that drives it is in
+   * `composables/__tests__/portableImport.spec.ts`.
    */
   test('E2E-FLOW-07: a Local Mode device moves onto a server and its data goes along', async ({
     browser,
@@ -1671,16 +1667,15 @@ test.describe('The socket dies and the device still converges (Sync-API P-1) @si
   /**
    * E2E-G2-13 (Sync-API P-1, §9): a device whose WebSocket has died learns
    * what another device packed **without a reload and without writing
-   * anything itself**. Before 2026-09-01 the client had no reconnect at all —
-   * `onclose` nulled the socket — so a device in this state stayed deaf for
-   * the rest of the session; the family instance found it after the nightly
-   * backup restarted the backend under every open tab.
+   * anything itself**. Without a reconnect, a device in this state stays
+   * deaf for the rest of the session — as every open tab does when the
+   * nightly backup restarts the backend under it.
    *
    * The gap is held open on purpose (every redial is refused) while the
    * other device packs, so the row can only arrive through the catch-up
    * pull a reconnect runs — a `trip.changed` for it was never delivered.
    * The G-2 sheet is read on both sides of the gap, because the point of the
-   * line is that a deaf device used to look synced.
+   * line is that a deaf device must not look synced.
    */
   test("E2E-G2-13: a pack made while this device's socket was dead arrives once the socket is back", async ({
     browser,
@@ -1799,11 +1794,10 @@ test.describe('The socket dies and the device still converges (Sync-API P-1) @si
  *
  * G9-06 runs in Local Mode, where the whole database is on the device and
  * every screen is served from it whatever the URL was. In `server` mode the
- * trip partition arrives over the wire, and until 2026-09-05 exactly one
- * trip screen asked for it: M4's `onMounted` subscribed and drained, and
- * every sibling — M6, M11, M12, M14, M16, M22 — relied on having been
- * reached *through* M4. A reload or a shared link straight onto one of them
- * therefore rendered its empty state over rows that exist on the server,
+ * trip partition arrives over the wire, so every trip screen — M6, M11, M12,
+ * M14, M16, M22 as well as M4 — has to ask for it. A sibling relying on
+ * having been reached *through* M4 renders its empty state over rows that
+ * exist on the server after a reload or a shared link straight onto it,
  * which is the #208 shape: a partition that has not arrived read as an
  * empty one.
  *
@@ -1825,7 +1819,7 @@ test.describe('A trip sub-screen opened cold @single', () => {
     const pageA = await bootPage(ctxA)
     const tripPath = await createTripViaWizard(pageA, { name: trip })
 
-    // The row is made on M6 itself — an entry of the list's own since FR-30.1,
+    // The row is made on M6 itself — an entry of the list's own (FR-30.1),
     // which travels the same trip partition as a packing row — so the
     // deep-linked screen is the one that owns it.
     await pageA.goto(`${tripPath}/shopping`)

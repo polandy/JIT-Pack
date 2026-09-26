@@ -33,7 +33,7 @@ async function expectBlocked(button: Locator) {
 }
 
 // E2E-M3-01 (FR-2.1/2.1a/2.1b): step 1 takes the metadata, Next is gated
-// on the name alone — since FR-2.1b the year is the only required
+// on the name alone — under FR-2.1b the year is the only required
 // temporal fact and it arrives preselected — and the duration is computed
 // from the dates when both are given.
 test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local @m3', async ({
@@ -51,7 +51,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   // The year needs no input: it opens on the current one (FR-2.1b).
   await expect(page.getByTestId('wizard-year')).toContainText(String(new Date().getFullYear()))
 
-  // A name is now the whole gate — no date is required to leave step 1.
+  // A name is the whole gate — no date is required to leave step 1.
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
 
@@ -62,7 +62,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
 
   // ADR-035 (UX-6): the field renders the locale display through formatDay,
   // never the ISO string its state holds — the picked day proves the picker
-  // wrote through, the wording proves the browser no longer owns the text.
+  // wrote through, the wording proves the browser does not own the text.
   await expect(page.getByTestId('wizard-start-date').locator('input')).toHaveValue('Sep 13, 2026')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it

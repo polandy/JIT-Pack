@@ -11,15 +11,12 @@ import { PATH } from './routes'
 /**
  * M16 — Series & Destination Profile (UI-Test-Spec §4, unit "M16 series").
  *
- * The screen was built in July and, until this unit, had never been
- * rendered by a test at any layer — it carried no `data-testid` at all,
- * which is the signature the M20 pass named. Everything it offers is a
- * *write*: the series name (refused onto a taken one), the three
- * defaults M3 prefills from, a destination profile that does not exist
- * until something is typed into it, its checklist, and attach/detach on
- * the trip history. So each case here reads its result back somewhere
- * other than the control that made it — from the store after leaving the
- * screen, or from M3, which is what the defaults are *for*.
+ * Everything the screen offers is a *write*: the series name (refused onto a
+ * taken one), the three defaults M3 prefills from, a destination profile that
+ * does not exist until something is typed into it, its checklist, and
+ * attach/detach on the trip history. So each case here reads its result back
+ * somewhere other than the control that made it — from the store after leaving
+ * the screen, or from M3, which is what the defaults are *for*.
  */
 
 const SERIES = 'Elba'
@@ -28,10 +25,8 @@ const OTHER_SERIES = 'Ticino'
 const UNSET = '—'
 
 /**
- * M2's series header is M16's only door today. It is one locator on purpose —
- * and it is now the settled one: E2E-M2-15's flat-list alternative was struck
- * on 2026-08-31 and the grouping is what M2 keeps, so this helper is no longer
- * waiting on a decision.
+ * M2's series header is M16's only door. It is one locator on purpose: the
+ * grouping is what M2 keeps (E2E-M2-15's flat-list alternative is struck).
  */
 async function openSeries(page: Page, name: string) {
   await page.goto(PATH.trips)

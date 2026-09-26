@@ -21,12 +21,11 @@ import { PATH } from './routes'
  * of M7-07 — the "N Gruppen ·" prefix and the "enthält: …" line — is asserted in
  * the M8 unit, where the composition is built; the resolution arithmetic behind it
  * is covered in `domain/__tests__/templates`. What that case cannot see, and this
- * one does since 2026-08-30, is the row's **resolved** count: the groups it
- * composes are empty, so there the raw and the resolved count are both 0.
+ * one does, is the row's **resolved** count: the groups it composes are empty, so
+ * there the raw and the resolved count are both 0.
  *
- * Also here since that audit (backlog item 6): E2E-M7-06's second empty state and
- * the search that produces it, and E2E-M7-05's built half — the header icon into
- * M18 and the way back to M7.
+ * Also here: E2E-M7-06's second empty state and the search that produces it, and
+ * E2E-M7-05's built half — the header icon into M18 and the way back to M7.
  *
  * Local Mode throughout: M7 is backend-free, and the run mode that has no
  * server is the one where a missing client-side rule shows up.
@@ -118,13 +117,12 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
   test('E2E-M7-07: a composed row counts the resolved set, not its own positions', async ({
     page,
   }) => {
-    // The clause of M7-07 that no case asserted (found 2026-08-30, backlog
-    // item 6): M8-07 builds a composition and asserts the "N groups ·"
-    // prefix and the "contains: …" line, but every group in it is empty, so
-    // the raw count and the resolved count are both 0 there — the one
-    // arithmetic this row exists to get right is the one that case cannot
-    // see. A Vorlage with no positions of its own reading "0 items"
-    // describes the row rather than the trip it would produce.
+    // The clause of M7-07 no other case can assert: M8-07 builds a composition
+    // and asserts the "N groups ·" prefix and the "contains: …" line, but
+    // every group in it is empty, so the raw count and the resolved count are
+    // both 0 there — the one arithmetic this row exists to get right is the
+    // one that case cannot see. A Vorlage with no positions of its own reading
+    // "0 items" describes the row rather than the trip it would produce.
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -174,8 +172,8 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(commit).toHaveAttribute('aria-disabled', 'true')
 
     // Dismissing the half-finished sheet leaves the list untouched: the
-    // whole point of name-in-sheet over create-then-rename (owner decision
-    // 2026-08-15) is that no row exists before the commit.
+    // whole point of name-in-sheet over create-then-rename is that no row
+    // exists before the commit.
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('m7-kind-chooser')).toBeHidden()
     await expect(visible(page).getByTestId('m7-empty')).toBeVisible()
@@ -342,11 +340,10 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
   })
 
   test('E2E-M7-06: nothing matching is a different state from nothing at all', async ({ page }) => {
-    // M7's States line has promised both sentences since the screen was
-    // built; only the first had a case (backlog item 6, 2026-08-30). They
-    // share one element, so what tells them apart is the words in it and the
-    // segment beside it — a search narrowing to nothing still has something
-    // to widen back to, and an empty instance does not.
+    // M7's States line promises both sentences. They share one element, so
+    // what tells them apart is the words in it and the segment beside it — a
+    // search narrowing to nothing still has something to widen back to, and an
+    // empty instance does not.
     await createTemplate(page, 'group', 'Makro')
     await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
@@ -370,12 +367,11 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
   test('E2E-M7-05: the header icon opens the portable import and comes back to M7', async ({
     page,
   }) => {
-    // What survives of M7-05 (backlog item 6, 2026-08-30): the FAB "+" menu
-    // it names was never built, and import has been a header icon since. The
-    // icon had never been tapped by anything — E2E-G9-12 asserts the same
-    // return-to-origin rule for M18's *other* entrance, from M2, and the
-    // whole reason that rule exists is that M18 declares Settings as its
-    // parent, so an unasserted entrance is one that can silently land there.
+    // What survives of M7-05: import is a header icon, not the FAB "+" menu
+    // the case names. E2E-G9-12 asserts the same return-to-origin rule for
+    // M18's *other* entrance, from M2, and the whole reason that rule exists
+    // is that M18 declares Settings as its parent, so an unasserted entrance
+    // is one that can silently land there.
     await createTemplate(page, 'group', 'Makro')
     await backToList(page)
 

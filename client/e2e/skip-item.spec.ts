@@ -20,9 +20,9 @@ import {
  * "Deliberately not packed" (UI-Test-Spec §3, M4/M5; Addendum FR-5.5, FR-20.2).
  *
  * The distinction FR-5.5 exists to keep is *left behind on purpose* versus
- * *forgotten*, and until this unit there was no way to say the first: the
- * state was reachable only through a bare Ionic swipe that nothing
- * announced and whose option panel broke out of the row's card.
+ * *forgotten*, and the first has to be sayable — not only through a bare
+ * Ionic swipe that nothing announces and whose option panel breaks out of
+ * the row's card.
  *
  * The two paths are asserted separately because they are separate promises:
  * M4's press-and-hold is the fast one, the M5 sheet's control is the
@@ -218,10 +218,10 @@ test('E2E-M4-42: a per-person child row can be left behind too @local @m4', asyn
   await page.setViewportSize({ width: 390, height: 844 })
   await createTripViaWizard(page, { name: 'Cluster', travelers: ['Andy', 'Sia'] })
 
-  // One row per traveler is what makes a cluster. Since FR-24.11 reached the
-  // composer a name can only be added once — the second „Zelt" would be
-  // „schon drin" — so the cluster is made the way a person makes one: both
-  // travelers lit in the composer's for-whom strip, one add (FR-25.28).
+  // One row per traveler is what makes a cluster. Under FR-24.11 a name can
+  // only be added once — the second „Zelt" would be „schon drin" — so the
+  // cluster is made the way a person makes one: both travelers lit in the
+  // composer's for-whom strip, one add (FR-25.28).
   await openQuickAdd(page)
   for (const who of ['Andy', 'Sia']) await lightTraveler(page, 'quick-add', who)
   await addInComposer(page, 'Zelt')

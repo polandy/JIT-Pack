@@ -55,8 +55,8 @@ function onVisibleScreen(page: Page, testid: string) {
  * The *path* the app settled on, never the whole URL.
  *
  * `toHaveURL(/\/tabs\/trips$/)` also matches a URL whose **query** ends
- * that way — which is exactly how the first version of E2E-G9-12 passed
- * against the unfixed build, now that a route can carry `?from=/tabs/trips`.
+ * that way — and a route can carry `?from=/tabs/trips`, so E2E-G9-12 would
+ * pass against a build that never left the page it came from.
  * A predicate keeps Playwright's retry while comparing the one part that
  * identifies the screen.
  */
@@ -97,8 +97,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await seedMode({ mode: 'local' })
   })
 
-  // E2E-G9-09 (G-9): the desktop rail. The regression it guards left the
-  // outgoing screen painted while the URL had already moved on.
+  // E2E-G9-09 (G-9): the desktop rail. The regression it guards leaves the
+  // outgoing screen painted while the URL has already moved on.
   test('E2E-G9-09: the desktop rail navigates, and the target screen is the one rendered', async ({
     page,
   }) => {
@@ -116,12 +116,12 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * E2E-G9-17 (G-9/ADR-012): an anchor switch survives being interrupted
    * by the next one.
    *
-   * Each anchor was a plain `<router-link>`, so every switch **pushed** —
-   * and a push interrupted mid-transition leaves both pages live. Measured
-   * 2026-08-31: tapping items → trips → templates → items → trips without
-   * waiting leaves M7's page at z-index 101 over M2's at 100, while the URL
-   * says `/tabs/trips`; every tap on the screen the user is looking at goes
-   * to the one two anchors ago. Waiting for each transition hides it
+   * A plain `<router-link>` anchor makes every switch a **push** — and a
+   * push interrupted mid-transition leaves both pages live. Measured:
+   * tapping items → trips → templates → items → trips without waiting leaves
+   * M7's page at z-index 101 over M2's at 100, while the URL says
+   * `/tabs/trips`; every tap on the screen the user is looking at goes to
+   * the one two anchors ago. Waiting for each transition hides it
    * completely, which is why E2E-G9-09 and E2E-G1-01 — one settled switch
    * each — could not see it.
    *
@@ -147,8 +147,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(visiblePages(page)).toHaveCount(1)
 
     // The positive signal the count stands against: the screen the URL
-    // names is not merely alone, it still answers a tap. Against the
-    // unfixed build this click is intercepted by a page two anchors old.
+    // names is not merely alone, it still answers a tap. With a leaked page
+    // this click is intercepted by a page two anchors old.
     await page.getByTestId('m2-spreadsheet-import').click()
     await expect(page).toHaveURL(/\/import(\?|$)/)
   })
@@ -254,7 +254,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The head switches with the screen too (G-9, ADR-050): the registry is
     // keyed per path, and a stale entry would leave M11's name standing on
     // the packing list after back. M11's second line names the trip it
-    // belongs to, which is the fact the composed title used to carry.
+    // belongs to.
     await expect(page.getByTestId('header-title')).toHaveText('Luggage')
     await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
 
@@ -267,7 +267,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the
-  // user is on. It used to keep filtering the one they had left.
+  // user is on, never the one they have left.
   test('E2E-G12-01: the magnifier searches the current screen', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
     await createTripViaWizard(page, TRIP)
@@ -292,10 +292,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // E2E-G12-02: the same mechanism on a second screen, so "current
   // context" is a property of the pattern rather than of one page.
   //
-  // The second screen was M9 until FR-24.6 took the inventory's field out of
-  // the magnifier — the one exception to G-12, and a screen that no longer
-  // has the action cannot carry the case for it. M7 is the nearest
-  // equivalent: a master-data list with a header search, reached as a tab.
+  // The second screen is not M9: FR-24.6 keeps the inventory's field out of
+  // the magnifier — the one exception to G-12, and a screen without the action
+  // cannot carry the case for it. M7 is the nearest equivalent: a master-data
+  // list with a header search, reached as a tab.
   test('E2E-G12-02: the magnifier travels to the template list and searches it there', async ({
     page,
   }) => {
@@ -307,8 +307,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The trip list's field belongs to the trip list, not to this screen.
     await expect(page.getByTestId('trips-search-input')).toHaveCount(0)
 
-    // And the inventory, which no longer registers the action at all, offers
-    // its field without one — the exception, asserted where the rule is.
+    // And the inventory, which registers no action at all, offers its field
+    // without one — the exception, asserted where the rule is.
     await page.goto(PATH.items)
     await expect(page.getByTestId('search')).toHaveCount(0)
   })
@@ -383,10 +383,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('wizard-more-summary')).toContainText('Sep 20, 2026')
   })
 
-  // E2E-G2-02 (G-2/FR-19.6): the glyph used to be a symbol with nothing
-  // behind it — tapping it navigated to a trip's conflict log when a trip
-  // happened to be open, and did nothing at all anywhere else. Here there is
-  // no trip, which is exactly where it used to be silent.
+  // E2E-G2-02 (G-2/FR-19.6): the glyph names the state, so a symbol alone
+  // never has to explain itself — on every screen, not only while a trip is
+  // open. Here there is no trip, where a trip-bound glyph would be silent.
   test('E2E-G2-02: the sync glyph explains its state on any screen', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
     await page.goto(PATH.trips)
@@ -478,11 +477,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       return glyph.top - line.top
     })
 
-    // Revised 2026-09-07 (FR-21.12): the shared head sets the lead against
-    // the *top* of the title, as the concept prototype draws it — a 38px
-    // glyph beside a 27px line cannot also be centred on it. The defect the
-    // case was written for is still what it catches: a stray h1 margin
-    // pushes the line down and nothing else does.
+    // FR-21.12: the shared head sets the lead against the *top* of the
+    // title, as the concept prototype draws it — a 38px glyph beside a 27px
+    // line cannot also be centred on it. The defect this catches: a stray h1
+    // margin pushes the line down and nothing else does.
     expect(Math.abs(offset)).toBeLessThanOrEqual(2)
   })
 
@@ -509,7 +507,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(empty).toBeVisible()
     const paragraph = empty.locator('p')
     // The long sentence is the whole point: a short one would fit one line
-    // and pass against the unfixed build.
+    // and pass whatever the inset.
     await expect(paragraph).toContainText('inventory')
     await page.evaluate(() => document.fonts.ready)
 
@@ -520,8 +518,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   /*
    * E2E-G7-02 (G-7, U-8): every empty state is the same object, so the inset
-   * above is a property of all of them rather than of the screen that was
-   * repaired. Ten screens used to spell it themselves in four different ways.
+   * above is a property of all of them rather than of one screen.
    *
    * Read from the *rendered* box rather than from the source: a vitest gate
    * already refuses a screen that declares its own `.empty-state` rule, and
@@ -582,26 +579,23 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.getByTestId('header-back').click()
     // Back leads to the trip — the ADR-011 declared parent, not whatever the
-    // history happens to hold: since 2026-09-25 the editor is opened from M2's
-    // menu, and it still gives back the trip rather than the list.
+    // history happens to hold: the editor is opened from M2's menu, and it
+    // still gives back the trip rather than the list.
     await expect(page).toHaveURL(new RegExp(`${trip}$`))
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
     // And the head names the trip again rather than the editor it just left.
     // The head is keyed by route path because Ionic keeps the outgoing page
     // mounted through the transition, so "which name is showing" is the
     // question that keying answers — and this is the moment it is asked.
-    // Until ADR-050 it could not be asked here at all: M4 was the one screen
-    // registering no title below the breakpoint, so the actions below had to
-    // stand in for a name the screen was designed not to show.
     await expectTripOpen(page, TRIP.name)
     await expectTripActionOffered(page, 'edit')
     await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
   })
   /*
-   * E2E-G1-04 (G-1, ADR-011 amendment): the owner's symptom. The gear is
-   * offered on every screen, so /tabs/settings cannot name one parent that
-   * is true — it declared /tabs/dashboard, and the chevron carried the user
-   * out of their trip. The route now records where it was entered from.
+   * E2E-G1-04 (G-1, ADR-011 amendment): the gear is offered on every
+   * screen, so /tabs/settings cannot name one parent that is true — a
+   * declared /tabs/dashboard carries the user out of their trip. The route
+   * records where it was entered from.
    */
   test('E2E-G1-04: the gear opened inside a trip gives the trip back', async ({ page }) => {
     await page.setViewportSize(MOBILE)
@@ -621,7 +615,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G1-05: the other half, and the one that keeps the fix from being a
+   * E2E-G1-05: the other half, and the one that keeps the rule from being a
    * blanket "back = history". A cold start straight into settings has no
    * origin at all — the case ADR-011 decoupled back from history for — and
    * the declared parent has to answer.
@@ -640,16 +634,16 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   /*
    * E2E-G1-07 (G-1, ADR-012): the gear leaves one page behind it, not two.
    *
-   * E2E-G1-04 taps the same gear and could not see this, because it arrives
+   * E2E-G1-04 taps the same gear and cannot see this, because it arrives
    * on the trip straight out of the wizard: one page in the outlet, and one
    * page is too shallow for Ionic to disagree with itself about which one is
    * leaving. Reached the way a user reaches a trip — from the list — the
-   * outlet holds two, and the settings form came up over a still-live
-   * packing list that went on taking taps meant for it.
+   * outlet holds two, and a leak brings the settings form up over a
+   * still-live packing list that goes on taking taps meant for it.
    *
    * `m4-fab` is read off the whole page and asserted *hidden*, not absent:
    * scoping it to the visible screen would assert nothing, because a leaked
-   * page is visible, and asserting absence would fail on the fixed build
+   * page is visible, and asserting absence would fail on a correct build
    * too, because Ionic keeps the page it stacked away mounted. `oneLivePage`
    * catches this after the fact and without naming the gear; this says which
    * control owes it.
@@ -670,10 +664,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G9-12 (Navigation_Concept §7, the "flows" class): §7 promised a flow
-   * returns to the origin it was entered from and nothing implemented it.
-   * M18 is entered from M2, M7 and Settings while declaring /tabs/settings —
-   * so from the trip list the chevron used to land in Settings.
+   * E2E-G9-12 (Navigation_Concept §7, the "flows" class): a flow returns to
+   * the origin it was entered from. M18 is entered from M2, M7 and Settings
+   * while declaring /tabs/settings — without the recorded origin, the
+   * chevron from the trip list lands in Settings.
    */
   test('E2E-G9-12: the portable import entered from the trip list returns to it', async ({
     page,
@@ -698,8 +692,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   /**
    * E2E-G9-13 (Navigation_Concept §7): the same contract for the *other*
    * import. M15 is entered from M2 and from M9's empty state and declares
-   * one parent like M18 does, so it is the same shape — and until this PR
-   * touched M15 it had no e2e case of any kind to notice with.
+   * one parent like M18 does, so it is the same shape.
    */
   test('E2E-G9-13: the spreadsheet import entered from the trip list returns to it', async ({
     page,
@@ -710,8 +703,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.getByTestId('m2-spreadsheet-import').click()
     await expect(onVisibleScreen(page, 'import-paste')).toBeVisible()
-    // M15 names itself and puts its step on the head's second line, where it
-    // used to be half of a composed "Import · step 1/4" title (ADR-050).
+    // M15 names itself and puts its step on the head's second line, not into
+    // a composed "Import · step 1/4" title (ADR-050).
     await expect(page.getByTestId('header-title')).toHaveText('Import spreadsheet')
     await expect(page.getByTestId('header-meta')).toHaveText('Step 1 of 4')
 
@@ -786,8 +779,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   /*
    * E2E-G9-15 (G-9): the gear is on every screen except the one it opens.
-   * On M17 it pointed at the page the user was already on (UX review
-   * 2026-08-25, UX-16).
+   * On M17 it would point at the page the user is already on (UX-16).
    */
   test('E2E-G9-15: the settings gear is everywhere but on settings itself', async ({ page }) => {
     await page.setViewportSize(MOBILE)
@@ -829,11 +821,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     }
 
     // The shopping list wears its glyph on the trip's switcher — at every
-    // width since ADR-051 amendment 3, where the glyph is all a view you are
+    // width under ADR-051 amendment 3, where the glyph is all a view you are
     // not standing on shows. Read off the element Ionic renders.
     const glyphs = [await glyph('trip-view-shopping')]
 
-    // The other two are words in the bar's ⋮ since ADR-051 amendment 1, and
+    // The other two are words in the bar's ⋮ (ADR-051 amendment 1), and
     // carry the same glyph there — which is the point: a reader who learned
     // the icon in one shape must not meet a different one in the other.
     await page.getByTestId('header-overflow').click()
@@ -851,15 +843,14 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   /*
    * E2E-G12-06 (G-12): an icon with no label still has a name.
    *
-   * The spec sentence said "every unlabelled navigation icon", and read
+   * The spec sentence says "every unlabelled navigation icon", and read
    * against the app that is a smaller set than it sounds: the four anchors
-   * carry visible labels in both presentations, and since ADR-050 the trip's
-   * three destinations are words in a menu. What is left unlabelled is the
-   * bar's own cluster. Two icons — back and the settings gear — carried
-   * `aria-label` and no `title`, so a pointer hovering them was told
-   * nothing; fixed with this case.
+   * carry visible labels in both presentations, and the trip's three
+   * destinations are words in a menu (ADR-050). What is left unlabelled is
+   * the bar's own cluster — back and the settings gear need a `title` as
+   * well as an `aria-label`, or a pointer hovering them is told nothing.
    *
-   * Since ADR-051 amendment 3 the trip's switcher has unlabelled glyphs of
+   * Under ADR-051 amendment 3 the trip's switcher has unlabelled glyphs of
    * its own — every view but the current one — so its pills are read here
    * too. Their bubble on a held press is E2E-G12-08's.
    */
@@ -899,18 +890,13 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * other two as words in the bar's ⋮ — and every one of them is reachable
    * from every one.
    *
-   * The clause this case was written for read "one tap each. No ⋯ exists",
-   * and both halves had been reversed by a decision: UX-13 gave M4 a ⋮, and
-   * ADR-050 put the three destinations in it so the bar could stop growing
-   * glyphs — with §3.25's directive written down as the cost. FR-21.21 paid
-   * it back with four pills; amendment 1 keeps two of them, because a row of
-   * four made the two views read once a trip as loud as the two worked in
-   * daily. Amendment 3 (2026-09-25) took the words off every pill but the
-   * current one, because the row with its counts no longer fitted a 390 px
-   * phone. What this pins is what survived all of it: every view **named**,
-   * the one you stand on in a word, where you are marked, and every view
-   * reachable from every one — since 2026-09-25 the luggage and the
-   * analytics through the packing list, whose views they are.
+   * The bar holds two pills (ADR-051 amendment 1): four would make the two
+   * views read once a trip as loud as the two worked in daily. Only the
+   * current pill carries its word (amendment 3), because the row with its
+   * counts does not fit a 390 px phone. What this pins: every view
+   * **named**, the one you stand on in a word, where you are marked, and
+   * every view reachable from every one — the luggage and the analytics
+   * through the packing list, whose views they are.
    */
   test("E2E-G12-07: the trip's views are named, and reachable from each other", async ({
     page,
@@ -933,7 +919,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     // The row is measured rather than assumed — at the **narrowest** phone the
     // app targets, and in its widest shape, standing on a view that joins the
-    // row (five pills since FR-7.13 made the notes the fourth). Two clauses, because a row can fail either way: every
+    // row (five pills, the notes the fourth under FR-7.13). Two clauses, because a row can fail either way: every
     // pill inside the viewport, and all on one line, since a row that wrapped
     // would have „fitted" by every width assertion on its own.
     const viewport = page.viewportSize()!
@@ -976,9 +962,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
 
-    // … but not sideways into packing's own views (owner, 2026-09-25, ADR-051
-    // amendment 2): a ⋮ acts on the context it sits in, so the shopping list
-    // has none, and the luggage is reached through the packing pill.
+    // … but not sideways into packing's own views (ADR-051 amendment 2): a ⋮
+    // acts on the context it sits in, so the shopping list has none, and the
+    // luggage is reached through the packing pill.
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
     await openTripView(page, 'packing')
     await openTripView(page, 'luggage')
@@ -1053,11 +1039,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G20-01 (G-20, owner 2026-09-24): a selection wears the app bar, so
-   * starting one moves nothing on the page. The bar that counted it used to be
-   * inserted above the list and pushed every row down — the user lost the row
-   * they had just held. Measured, not eyeballed: the first row's top before
-   * and after, on the shopping list, where the field and its chips also stay.
+   * E2E-G20-01 (G-20): a selection wears the app bar, so starting one moves
+   * nothing on the page. A counting bar inserted above the list would push
+   * every row down, and the user would lose the row they had just held.
+   * Measured, not eyeballed: the first row's top before and after, on the
+   * shopping list, where the field and its chips also stay.
    */
   test('E2E-G20-01: starting a selection moves nothing — the count is in the app bar', async ({
     page,
@@ -1091,20 +1077,17 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G9-19 (G-9, ADR-050): a tab root is named by the frame too, and the
-   * control that used to sit beside its name is in the bar.
+   * E2E-G9-19 (G-9, ADR-050): a tab root is named by the frame too, and its
+   * control sits in the bar, not beside its name.
    *
-   * The three tab roots each wrote their own display-face `h1` into their
-   * content before ADR-050, so they are the screens where "the head comes
-   * from the registry" could silently stop being true — a title that simply
-   * vanished would break no other case, because none of them ever had a test
-   * id. The import control is the second half: it moved from beside the name
-   * into the bar's cluster, and a move is only complete if it still works.
+   * The tab roots are the screens where "the head comes from the registry"
+   * could silently stop being true — a title that simply vanished would
+   * break no other case. The import control is the second half: it sits in
+   * the bar's cluster, and it has to still work there.
    *
-   * M1 is the fourth root and joined them on 2026-09-09 (FR-21.27). It had
-   * kept its own `h1` — the greeting — which put the app's first line 26 px
-   * lower and a size smaller than the tab beside it, and left this case
-   * asserting "a tab root" while one of them was not one.
+   * M1 is the fourth root (FR-21.27): its greeting is the page head too. An
+   * `h1` of its own would put the app's first line 26 px lower and a size
+   * smaller than the tab beside it.
    */
   test('E2E-G9-19: a tab root names itself in the page head, and its control is in the bar', async ({
     page,
@@ -1126,10 +1109,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.goto(PATH.trips)
     await expect(page.getByTestId('header-title')).toHaveText('Trips')
 
-    // M1's name is its greeting and the subtitle is the meta line under it —
-    // the two lines the page used to draw into its own content. The screen
-    // itself is asserted as visible, because since the move the head would
-    // stand there unchanged if the dashboard had failed to render at all.
+    // M1's name is its greeting and the subtitle is the meta line under it,
+    // both drawn by the frame. The screen itself is asserted as visible,
+    // because the head would stand there unchanged if the dashboard had
+    // failed to render at all.
     await page.goto(PATH.dashboard)
     await expect(onVisibleScreen(page, 'dashboard')).toBeVisible()
     await expect(page.getByTestId('header-title')).not.toBeEmpty()
@@ -1140,13 +1123,13 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * E2E-G9-21 (G-9, M17): the build names itself once, and the same way in
    * both places that name it.
    *
-   * The bar's label used to be `v${__APP_VERSION__}` while the string
-   * already carried the tag's own `v` — from `git describe --tags` and from
-   * the release workflow's `APP_VERSION=${{ github.ref_name }}` alike — so
-   * every build, the shipped image included, read `vv0.10.0-…`. The unit
-   * that covered it asserted the component's own template back to itself and
-   * would have passed against any prefix; this asserts the two surfaces
-   * agree, which is what the UI-Spec actually promises.
+   * The version string already carries the tag's own `v` — from `git
+   * describe --tags` and from the release workflow's
+   * `APP_VERSION=${{ github.ref_name }}` alike — so a label that adds its own
+   * reads `vv0.10.0-…` on every build, the shipped image included. A unit
+   * asserting the component's template back to itself passes against any
+   * prefix; this asserts the two surfaces agree, which is what the UI-Spec
+   * actually promises.
    */
   test('E2E-G9-21: the header and the About block name the same build', async ({ page }) => {
     await page.goto(PATH.trips)
@@ -1163,9 +1146,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   /*
    * E2E-G9-16 (G-9): on a wide screen the content stops at a column.
-   * Edge to edge, a settings row put its label and its control 1100 px
-   * apart and the M9 tag segment spread three chips across 1176 px — a
-   * line nobody can read as one thing (UX review 2026-08-25, UX-17).
+   * Edge to edge, a settings row puts its label and its control 1100 px
+   * apart — a line nobody can read as one thing (UX-17).
    */
   test('E2E-G9-16: wide screens get a content column, narrow ones the full width', async ({
     page,
@@ -1215,7 +1197,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.setViewportSize(TABLET)
     const tablet = (await area())!.width
 
-    // Wider than the flat desktop cap — the gap is no longer inert…
+    // Wider than the flat desktop cap — the gap is not inert…
     expect(tablet).toBeGreaterThan(capped + 40)
     // …but still short of the viewport, so a gutter remains on both sides.
     expect(tablet).toBeLessThan(TABLET.width - 40)

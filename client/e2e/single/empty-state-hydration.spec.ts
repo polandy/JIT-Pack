@@ -6,9 +6,9 @@ import { bootPage, uniq } from '../serverMode'
  *
  * E2E-M2-18 drives it one partition up, where the master feed decides whether
  * the trip *list* is known. This is the case for every screen inside a trip:
- * `useTripScreen` has exposed `loaded` since U-10, and until 2026-09-13 only
- * M4's sibling `ClonePage` read it — so opening a shared link straight onto
- * M4 painted „everything is packed" over rows that were on their way.
+ * `useTripScreen` exposes `loaded` (U-10), and a screen that does not read it
+ * paints „everything is packed" over rows that are on their way when a
+ * shared link opens straight onto M4.
  *
  * `single` for the reason E2E-M2-18 is: only a backend-backed run has the
  * moment, because Local Mode hydrates the whole database before the first
@@ -47,9 +47,8 @@ test.describe('M4 before its rows have arrived @single @m4', () => {
     // above: none of M4's three empty states is asserted yet, least of all the
     // one that congratulates the user.
     await expect(visiblePage(page).getByTestId('packing-empty')).toHaveCount(0)
-    // Nor the figure above them, which said „0/0 packed" over a full track —
-    // the same verdict in the form a reader trusts over a sentence. This
-    // clause was added 2026-09-16, after a render found it standing.
+    // Nor the figure above them, which would say „0/0 packed" over a full
+    // track — the same verdict in the form a reader trusts over a sentence.
     await expect(visiblePage(page).getByTestId('m4-progress')).toHaveCount(0)
 
     holding = false
@@ -60,7 +59,7 @@ test.describe('M4 before its rows have arrived @single @m4', () => {
     await expect(visiblePage(page).getByTestId('m4-list-loading')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('packing-empty')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
-    // 0/0 is a measurement now, so the figure is owed: without this the fix
+    // 0/0 is a measurement now, so the figure is owed: without this the rule
     // above would be satisfied by a header that never comes back.
     await expect(visiblePage(page).getByTestId('m4-progress')).toBeVisible()
 

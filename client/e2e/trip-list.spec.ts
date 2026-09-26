@@ -44,7 +44,7 @@ test.describe('M2 trip list @local @m2', () => {
     })
 
     await page.goto(PATH.trips)
-    // A fresh trip is *planning*. Since FR-2.8 the list opens there by
+    // A fresh trip is *planning*. Under FR-2.8 the list opens there by
     // itself; the tap stays, so this case keeps testing the dates alone.
     await visiblePage(page).getByTestId('trips-filter-planned').click()
     const when = visiblePage(page).getByTestId('trip-row-Elba').getByTestId('trip-when')
@@ -95,7 +95,7 @@ test.describe('M2 opening segment @local @m2', () => {
     await page.goto(PATH.trips)
 
     // No tap on a segment anywhere in this case: the row being visible is
-    // the assertion, since *Active* is where the list used to open.
+    // the assertion: the list leaves an empty *Active* for the planned trip.
     await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
     await expectCount(page, 'active', '0')
     await expectCount(page, 'planned', '1')
@@ -154,12 +154,11 @@ test.describe('M2 opening segment @local @m2', () => {
 })
 
 /**
- * M2's row actions (UI-Test-Spec §4, unit "M2 row actions", 2026-08-30).
+ * M2's row actions (UI-Test-Spec §4, unit "M2 row actions").
  *
- * The row's actions were a slide menu nobody had operated until this block
- * (2026-08-30). Since 2026-09-24 they are the hold / right-click row menu M4
- * and M7 use — the „long-press → context menu" the spec had always named —
- * and these cases open it through `contextmenu` (E2E-M2-19).
+ * They are the hold / right-click row menu M4 and M7 use — the „long-press →
+ * context menu" the spec names — and these cases open it through
+ * `contextmenu` (E2E-M2-19).
  */
 test.describe('M2 row actions @local @m2', () => {
   test.beforeEach(async ({ page }) => {
@@ -230,12 +229,11 @@ test.describe('M2 row actions @local @m2', () => {
     expect(bare).not.toContain('packed_count')
   })
 
-  // E2E-M2-19 (FR-4.5/FR-9.1/FR-18.3, 2026-09-24): M2's row actions open the
-  // way M4's and M7's do — a hold, or a right-click — where they used to sit
-  // behind a swipe. The menu carries what the status earns, choosing an
-  // entry acts, and the tap is still the way into the trip once the sheet is
-  // gone: the release of a hold must not also navigate, and the guard that
-  // stops it must not outlive the menu.
+  // E2E-M2-19 (FR-4.5/FR-9.1/FR-18.3): M2's row actions open the way M4's and
+  // M7's do — a hold, or a right-click. The menu carries what the status
+  // earns, choosing an entry acts, and the tap is still the way into the trip
+  // once the sheet is gone: the release of a hold must not also navigate, and
+  // the guard that stops it must not outlive the menu.
   test('E2E-M2-19: a right-click opens the row menu, its entry acts, and a tap still opens the trip', async ({
     page,
   }) => {
@@ -247,7 +245,7 @@ test.describe('M2 row actions @local @m2', () => {
     const sheet = await openTripRowMenu(page, 'Kreta')
     await expect(sheet.locator('.action-sheet-title')).toHaveText('Kreta')
     // Local Mode: no Share (G-8); planning: Start rather than Archive or Clone;
-    // the trip's properties lead, being M2's alone since 2026-09-25.
+    // the trip's properties lead, being M2's alone.
     await expect(sheet.locator('.action-sheet-button-inner')).toHaveText([
       'Trip properties',
       'Export trip',
@@ -273,11 +271,11 @@ test.describe('M2 row actions @local @m2', () => {
   })
 
   /*
-   * E2E-M2-34 (FR-2.7, FR-9.3, owner 2026-09-25): the steps that change the
-   * whole trip are M2's alone — M4's ⋮ holds packing and nothing else — so
-   * both reach the screen they lead to from here. The properties open the
-   * edit screen; *Finish trip* opens the packing list in its closing pass,
-   * the one door into it, instead of archiving past it as M2's used to.
+   * E2E-M2-34 (FR-2.7, FR-9.3): the steps that change the whole trip are M2's
+   * alone — M4's ⋮ holds packing and nothing else — so both reach the screen
+   * they lead to from here. The properties open the edit screen; *Finish trip*
+   * opens the packing list in its closing pass, the one door into it, instead
+   * of archiving past it.
    */
   test('E2E-M2-34: the trip’s properties and the finishing step are the row’s, and finishing opens the closing pass', async ({
     page,
@@ -309,12 +307,8 @@ test.describe('M2 row actions @local @m2', () => {
 })
 
 /**
- * M2's two unbuilt row promises, built 2026-08-31 on the owner's ruling.
- *
- * Both stood in UI-Spec M2 and in E2E-M2-03/08 since the screen shipped: the
- * *„Importiert"* chip had a column written by M15 and read by nothing, and the
- * participant avatars were words left standing beside the presence facepile
- * when that was removed on 2026-08-28.
+ * M2's two row promises from UI-Spec M2 and E2E-M2-03/08: the *„Importiert"*
+ * chip, reading the column M15 writes, and the participant avatars.
  */
 test.describe('M2 — what the row says about a trip @local @m2', () => {
   test.beforeEach(async ({ page }) => {
@@ -327,8 +321,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
    *
    * The imported trip is created through M15, which is the only writer of
    * `trips.imported` — a fixture setting the column directly would assert the
-   * chip against a state the app cannot produce, which is the shape this whole
-   * audit keeps finding.
+   * chip against a state the app cannot produce.
    */
   test('E2E-M2-08: an imported trip carries the chip and a hand-made one does not', async ({
     page,
@@ -389,11 +382,8 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
    * E2E-M2-02 (FR-13.1): the list groups under series headers, and the
    * header leads to M16.
    *
-   * Writable only since 2026-08-31: the 2026-08-08 concept review had chosen
-   * a flat list, so for a year this id described the option the screen had
-   * *not* taken and no case could be written against it. The owner ruled the
-   * built screen wins (E2E-M2-15 struck), and this is the first test of the
-   * grouping the app has always done.
+   * The grouping is the built screen's, not the flat list of the concept
+   * review (E2E-M2-15 struck).
    *
    * ~~destination~~: the header carries the series name and a trip count and
    * no destination, so the clause is corrected in the spec rather than
@@ -428,13 +418,10 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
   })
 
   /*
-   * E2E-M2-16 (G-7): M2's empty state, which had no test id at all and so
-   * could not be asserted from anywhere — E2E-G7-01 names all four list
-   * screens and only ever tested the Dashboard's. A number of its own rather
-   * than a second definition of that id: the gate allows one, and a shared id
-   * is what the M5 audit spent a day undoing. It carries no CTA — the owner
-   * ruled that on 2026-08-31, for M7's reason: create is the FAB and it is on
-   * screen either way.
+   * E2E-M2-16 (G-7): M2's empty state — E2E-G7-01 names all four list
+   * screens and tests the Dashboard's. A number of its own rather than a
+   * second definition of that id: the gate allows one. It carries no CTA,
+   * for M7's reason: create is the FAB and it is on screen either way.
    */
   test('E2E-M2-16: M2 states that a segment is empty, and the FAB is the way out', async ({
     page,
@@ -490,7 +477,7 @@ test.describe('M2 hero @local @m2', () => {
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
 
     // The card answers a right-click with the rows' menu, like any row: it is
-    // the trip a person holds most often (2026-09-24).
+    // the trip a person holds most often.
     await hero.dispatchEvent('contextmenu')
     const menu = page.locator('ion-action-sheet')
     await expect(menu.getByTestId('m2-menu-archive')).toBeVisible()

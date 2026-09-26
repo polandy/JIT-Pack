@@ -121,10 +121,10 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * E2E-M4-145 (FR-25.2 with FR-5.10): the bar names what it counts. Two rows
    * stand behind it and only one of them was packed — the other was left
    * behind on purpose by the close — so a word that is true of both is the
-   * only honest one. It read „2 packed" until 2026-09-21, which FR-25.2's own
-   * sentence contradicted from the start (a skipped row *is* a done row); the
-   * close is what made the wrong half the ordinary case rather than the rare
-   * one, because it decides every remaining row in a single act.
+   * only honest one. „2 packed" would contradict FR-25.2's own sentence (a
+   * skipped row *is* a done row), and the close makes that the ordinary case
+   * rather than the rare one, because it decides every remaining row in a
+   * single act.
    *
    * Both directions are asserted. The label is built twice in the template,
    * once per direction, and the pair has drifted apart here before — the log
@@ -306,10 +306,10 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-140 (variant P1, owner 2026-09-20): four of six socks are in the
-   * bag. The skip M4 already had would write quantity 0 and deny them; the
-   * close shrinks the amount to what travelled instead, so the row reads as
-   * packed and the trip's figure completes without lying about the bag.
+   * E2E-M4-140 (variant P1): four of six socks are in the bag. The skip would
+   * write quantity 0 and deny them; the close shrinks the amount to what
+   * travelled instead, so the row reads as packed and the trip's figure
+   * completes without lying about the bag.
    *
    * A quantity above one can only come from an import (spec §2.4), which is
    * also the only way to reach a *partially* packed row without six taps.
@@ -356,10 +356,9 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-141: the list stays workable afterwards, which is the owner's own
-   * requirement (2026-09-20) — something that travelled and was never listed
-   * is added later, and it lands *packed* rather than as the one open job on
-   * an otherwise finished trip.
+   * E2E-M4-141: the list stays workable afterwards — something that
+   * travelled and was never listed is added later, and it lands *packed*
+   * rather than as the one open job on an otherwise finished trip.
    */
   test('E2E-M4-141: a finished list takes an addition as something already packed', async ({
     page,
@@ -387,7 +386,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-146 (FR-5.11, owner 2026-09-21): *„was ich vergessen habe zu
+   * E2E-M4-146 (FR-5.11): *„was ich vergessen habe zu
    * packen"*. Once the packing is closed an add answers what happened: it was
    * in the bag and not on the list (the default, E2E-M4-141), or it stayed
    * home. The second must not land *packed* (it is not in the bag) and must
@@ -430,10 +429,10 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-143 (FR-5.10, owner 2026-09-20): the step is offered where the
-   * moment is. Packing the last open row raises the same question the ⋮
-   * asks — and it is still a *question*: nothing is written until it is
-   * answered, and a reader who says *Later* is not asked again.
+   * E2E-M4-143 (FR-5.10): the step is offered where the moment is. Packing the
+   * last open row raises the same question the ⋮ asks — and it is still a
+   * *question*: nothing is written until it is answered, and a reader who says
+   * *Later* is not asked again.
    */
   test('E2E-M4-143: packing the last row offers to finish, without taking the screen', async ({
     page,
@@ -502,10 +501,10 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
 
   /**
    * E2E-M1-25 (FR-5.10 with FR-7.10 on M1): the phase has moved on, so the
-   * dashboard's loudest element about packing stands down — and, since
-   * 2026-09-21, no line takes its place. Asserted as a **pair**: the figure
-   * gone *and* the phase said in the date line, because a card
-   * that simply stopped saying anything would pass the first half.
+   * dashboard's loudest element about packing stands down — and no line takes
+   * its place. Asserted as a **pair**: the figure gone *and* the phase said in
+   * the date line, because a card that simply stopped saying anything would
+   * pass the first half.
    */
   test('E2E-M1-25: the dashboard lets a finished packing recede', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Dashboard-Phase')

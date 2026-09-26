@@ -132,7 +132,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await wizardToStepThree(page, 'Fototour 2026')
 
     // FR-27.6: two sections, each holding only its own scope. Asserted on the
-    // row titles, not on the section text: since FR-27.12 a Vorlage's row also
+    // row titles, not on the section text: under FR-27.12 a Vorlage's row also
     // *names its items*, so "Makro-Objektiv" legitimately appears under
     // Ferien-Vorlagen and a substring check would read that as a stray group.
     const vorlagen = visible(page).getByTestId('wizard-section-templates')
@@ -283,8 +283,8 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
   // E2E-M3-21 (FR-1.4/FR-2.5): a per-person position on a trip with nobody on
   // it fans out to nothing. Step 2 accepts an empty roster — it says so, and
   // it is the state a fresh device starts the wizard in — so the preview is
-  // the last place the difference is visible, and it used to show none: the
-  // count simply came out lower than the group contains.
+  // the last place the difference is visible — without it the count simply
+  // comes out lower than the group contains.
   test('E2E-M3-21: the preview names a per-person position an empty roster cannot place', async ({
     page,
   }) => {

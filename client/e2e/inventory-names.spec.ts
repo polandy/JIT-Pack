@@ -88,7 +88,7 @@ test.describe('FR-27.16 — names are taken over from the inventory on request',
     const sheet = page.getByTestId('inventory-names-sheet')
     await expect(sheet).toBeVisible()
     await expect(sheet.getByTestId('inventory-names-count')).toHaveText('2 of 2 selected')
-    // One unticked, and „All" puts it back — the control the owner asked for.
+    // One unticked, and „All" puts it back.
     await sheet.getByTestId('inventory-names-check-USB-C-Ladegerät').click()
     await expect(sheet.getByTestId('inventory-names-count')).toHaveText('1 of 2 selected')
     await sheet.getByTestId('inventory-names-all').click()

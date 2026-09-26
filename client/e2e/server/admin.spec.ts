@@ -24,14 +24,12 @@ const TINY_JPEG_BASE64 =
   'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=='
 
 /**
- * M20 — the instance admin surface (Addendum §3.23, FR-23.1–23.5), the last
- * of the three areas the `server` project was built for and had not reached.
+ * M20 — the instance admin surface (Addendum §3.23, FR-23.1–23.5), one of
+ * the three areas the `server` project is built for.
  *
  * It could not be driven anywhere else: every rule here is a rule about
  * *another account* — who may be deactivated, whose row says "(you)", who is
  * refused the overview — and `single` has one identity by construction.
- * Until this unit the whole screen carried no `data-testid` at all, which is
- * the plainest possible statement that nothing had ever driven it.
  *
  * **Why `dave` exists, and why nobody else may log in as him.** These cases
  * change the account they act on — deactivate it, take its picture, reset its
@@ -39,10 +37,9 @@ const TINY_JPEG_BASE64 =
  * `multi-user.spec.ts` free to land on two workers. Deactivating an account
  * another file is logged in as at that moment ends *its* session mid-case
  * (FR-23.3 does exactly what it promises), and every later login as that
- * account is refused until this file reaches its reactivate step. That is
- * what happened with `carol` on 2026-09-02, after E2E-M17-01 had borrowed
- * her: one red case, then three more at the login. The rule the fixture now
- * states: an account a file *changes* is logged in by that file alone.
+ * account is refused until this file reaches its reactivate step: one red
+ * case, then three more at the login. The rule the fixture states: an
+ * account a file *changes* is logged in by that file alone.
  */
 test.describe('M20 — the instance admin surface @server @m20', () => {
   // Two or three real logins through the broker per case (§2.4's cost).
@@ -83,10 +80,9 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await expect(aliceRow).toContainText(/trips?/)
     await expect(aliceRow).toContainText(/templates?/)
     // …and the date is in the *app's* language, not the device's. The suite
-    // runs a de-CH device with the app pinned to English, so the unfixed
-    // `toLocaleDateString()` printed `28.8.2026` under "Provisioned" — the
-    // same defect the conflict log had. A month abbreviation is something
-    // the numeric German form cannot produce.
+    // runs a de-CH device with the app pinned to English, so a bare
+    // `toLocaleDateString()` prints `28.8.2026` under "Provisioned". A month
+    // abbreviation is something the numeric German form cannot produce.
     await expect(aliceRow).toContainText(/Provisioned \w{3} \d{1,2}, \d{4}/)
     // The two markers that only ever belong on this row of this instance.
     await expect(aliceRow.getByTestId('admin-self')).toBeVisible()
@@ -94,8 +90,8 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     // FR-25.3: nobody in this fixture ever uploaded a picture, and the
     // avatar endpoint 404s for such an account. The circle carries the
-    // person's initials and no `<img>` at all — this row used to render the
-    // browser's torn-picture glyph.
+    // person's initials and no `<img>` at all — never the browser's
+    // torn-picture glyph.
     const face = aliceRow.getByTestId('user-avatar')
     await expect(face).toHaveText('AL')
     await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
@@ -153,10 +149,10 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    *
    * The access half is asserted on Dave's *own screen*, which is what makes
    * it worth running: FR-23.3 is enforced per request in the auth middleware,
-   * and his tokens go on looking valid in localStorage — so before this case
-   * a deactivated account's app was indistinguishable from an offline one and
-   * simply stopped syncing without a word. The client now ends the session on
-   * that one error code and the screen is the login again.
+   * and his tokens go on looking valid in localStorage — so unless the client
+   * acts on it, a deactivated account's app is indistinguishable from an
+   * offline one and simply stops syncing without a word. The client ends the
+   * session on that one error code and the screen is the login again.
    */
   test('E2E-M20-02, E2E-M20-03: a deactivated account is put out and let back in, and a display name can be reset', async ({
     browser,
@@ -233,17 +229,14 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
   })
 
   /**
-   * E2E-M20-03b: the avatar half of FR-23.4, which E2E-M20-03 has never
-   * covered — the ledger said so, and the reason it gave was that no fixture
-   * account has a picture. Reading it against the screen found a second
-   * reason underneath: **the removal changed nothing on M20 even when there
-   * was one.** The row is keyed by user id, so reloading the list hands the
+   * E2E-M20-03b: the avatar half of FR-23.4, which E2E-M20-03 does not cover.
+   * It needs an account with a picture, and **a removal that changes something
+   * on M20.** The row is keyed by user id, so reloading the list hands the
    * same `<img>` the same `src`, and the browser is never asked again — and
    * the avatar response carries `max-age=3600`, so it would not be told
-   * anything if it were. M17 had carried the cache-busting query for
-   * FR-17.13 since the profile picture shipped; M20 was written without it.
-   * Moderation whose whole point is that the picture goes has to show it
-   * going on the screen that did it.
+   * anything if it were. M17 carries the cache-busting query for FR-17.13, and
+   * M20 needs it too: moderation whose whole point is that the picture goes
+   * has to show it going on the screen that did it.
    *
    * The picture is put on Dave's account through the app's own endpoint
    * rather than through M17's control: the crop modal renders into a canvas
@@ -309,14 +302,13 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * FR-23.3's answer is that this does not bring the account back, "otherwise
    * deactivation would be meaningless under FR-23.6".
    *
-   * The clause had no case anywhere on the screen. `store/admin_test.go`
-   * proves the login does not clear `deactivated_at`, and `issueSession`
-   * refuses the exchange with `account_deactivated` — and the app said
-   * *„The server rejected the login."* to it, the same sentence a replayed
-   * code gets. This is the login-screen twin of the defect the FR's own
-   * 2026-08-28 amendment fixed inside the app: a person told nothing, left
-   * to read a permanent state as a glitch and try again. The callback now
-   * narrows on that one code, the way `client.ts` does.
+   * `store/admin_test.go` proves the login does not clear `deactivated_at`,
+   * and `issueSession` refuses the exchange with `account_deactivated`. The
+   * app must not answer that with *„The server rejected the login."*, the same
+   * sentence a replayed code gets — the login-screen twin of the defect the
+   * FR's own amendment addresses inside the app: a person told nothing, left
+   * to read a permanent state as a glitch and try again. The callback narrows
+   * on that one code, the way `client.ts` does.
    */
   test('E2E-M20-06: a deactivated account signing in again is refused, and told why', async ({
     browser,
@@ -356,7 +348,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     // The sentence, not merely a refusal: "rejected the login" is what every
     // other failed exchange says, so a regex that matched it would pass
-    // against the build this case was written for.
+    // against a build that names no reason.
     await expect(visiblePage(again).getByTestId('login-error')).toContainText(/deactivated/i)
     // …and nothing was let through behind it.
     expect(await again.evaluate(() => localStorage.getItem('jitpack_tokens'))).toBeNull()
@@ -405,17 +397,15 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * E2E-M20-07 (FR-23.3, ADR-047): a deactivation reaches the *other* screens
    * of the same session, without a reload.
    *
-   * The case exists because of what U-10 changed underneath it. The directory
-   * used to be fetched by every screen on its own mount, so it was fresh by
-   * accident — nine fetches of the same list. It is now fetched once per
-   * session, which makes freshness something the four identity writers owe.
-   * This is the one of them with a surface a person can see.
+   * The directory is fetched once per session (U-10) rather than by every
+   * screen on its own mount, which makes freshness something the four identity
+   * writers owe. This is the one of them with a surface a person can see.
    *
    * **Every step is in-app, and that is the case.** A `page.goto` reboots the
    * document, and a rebooted app fetches the directory again whatever the
-   * store does — the first version of this case navigated that way and would
-   * have passed against the very build it exists to fail. The session has to
-   * stay the same session from the first picker to the second.
+   * store does, so navigating that way would pass against the very build this
+   * case exists to fail. The session has to stay the same session from the
+   * first picker to the second.
    *
    * Bob is the standing control: he is a candidate before and after, so
    * "Dave is gone" is read off a picker that is demonstrably still offering

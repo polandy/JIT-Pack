@@ -1,8 +1,8 @@
 /**
  * Luggage (M11): the sheet, the containers in it, and what is assigned to
  * one. The sheet's fields are reached through these steps, never one at a
- * time — and they are filled with the suite's own `fillIonic`, which is what
- * the private copy that used to live here was.
+ * time — and they are filled with the suite's own `fillIonic`, not a private
+ * copy of it.
  */
 import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'

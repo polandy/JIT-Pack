@@ -5,11 +5,10 @@ import { PATH } from './routes'
 
 /**
  * M17 — the settings a device keeps to itself (UI-Test-Spec §4, unit
- * "M17 device settings", 2026-08-30).
+ * "M17 device settings").
  *
- * Written out of the backlog-item-6 reading of M17's promises. Two of the
- * three cases here cover a control that had never been pressed: every
- * existing theme assertion seeds `jitpack_theme` into `localStorage` and
+ * Two of the three cases here press a control no other case does: every
+ * other theme assertion seeds `jitpack_theme` into `localStorage` and
  * then checks the flavour, which says the *palette* works and nothing about
  * the switch the user actually has.
  */
@@ -63,8 +62,8 @@ test.describe('M17 device settings @local @m17', () => {
 
   // E2E-M17-07 (NFR-4.11): the backup the reminder is about is the *whole
   // device*, which is the G-2 sheet's export. A single trip's YAML is not
-  // it — and until 2026-08-30 it stamped the same key, so downloading one
-  // trip silenced the warning about everything the file did not contain.
+  // it — stamping the same key would let downloading one trip silence the
+  // warning about everything the file did not contain.
   test('E2E-M17-07: one trip is not a backup, and the device backup is', async ({ page }) => {
     await createTripViaWizard(page, { name: 'Elba' })
     await page.goto(PATH.settings)

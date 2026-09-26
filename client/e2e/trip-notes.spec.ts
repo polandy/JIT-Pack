@@ -38,7 +38,7 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
 
-    // M25 no longer holds the notes — asserted on a screen that rendered.
+    // M25 does not hold the notes — asserted on a screen that rendered.
     await page.getByTestId('trip-view-tasks').click()
     await expect(visible(page).getByTestId('m25-before')).toBeVisible()
     await expect(visible(page).locator('ion-segment')).toHaveCount(0)

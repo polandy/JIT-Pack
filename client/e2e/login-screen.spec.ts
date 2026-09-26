@@ -10,15 +10,14 @@ import { PATH } from '../src/router/paths'
  * that means *no login needed*. That is why this case lives here rather than
  * beside E2E-M19-02, whose whole point is a backend that does answer.
  *
- * Both non-answers — this one and a fetch that never lands at all — used to
- * be `!resp.ok` and set the same flag the 501 sets, so this screen told a
- * person whose server was broken that it did not require a login. The
- * assertion that carries the fix is an *absence*, so it is asserted beside
- * two positive signals: the failure that is genuinely true, and the sign-in
- * that must stay reachable, because attempting it is the only thing left
- * that can find out. The network-failure half of the same rule is a unit
- * case (`LoginPage.spec.ts`) — a rejected fetch is not something a preview
- * server can be asked to produce.
+ * Both non-answers — this one and a fetch that never lands at all — must not
+ * set the flag the 501 sets, or this screen tells a person whose server is
+ * broken that it does not require a login. The assertion that carries this is
+ * an *absence*, so it is asserted beside two positive signals: the failure
+ * that is genuinely true, and the sign-in that must stay reachable, because
+ * attempting it is the only thing left that can find out. The network-failure
+ * half of the same rule is a unit case (`LoginPage.spec.ts`) — a rejected
+ * fetch is not something a preview server can be asked to produce.
  */
 test('E2E-M19-05: a server that did not answer is not a server without a login @m19', async ({
   page,

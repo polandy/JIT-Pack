@@ -8,17 +8,17 @@ import { PATH } from './routes'
  *
  * `crypto.randomUUID` is defined only in a **secure context**. A self-hosted
  * instance reached over the LAN — `http://192.168.1.35:3000`, which is how the
- * owner uses it from an iPad — is not one, and every id the client mints came
- * from that function: creating an item, a trip, a tag or a template threw
- * "crypto.randomUUID is not a function" and the screen simply did nothing
- * (2026-08-16).
+ * owner uses it from an iPad — is not one. If the ids the client mints came
+ * from that function, creating an item, a trip, a tag or a template would
+ * throw "crypto.randomUUID is not a function" and the screen would simply do
+ * nothing.
  *
  * **Why this file exists rather than an assertion inside another unit:** the
  * suite serves from `localhost`, which *is* a secure context, so no ordinary
- * case can reach the broken state — the defect was invisible to a green suite
+ * case can reach the broken state — the defect is invisible to a green suite
  * on principle, not by accident. Removing `randomUUID` before the app boots
  * reproduces the LAN situation deterministically, and is the only way CI can
- * hold the fix.
+ * hold the rule.
  */
 
 /** What a plain-HTTP origin actually offers: getRandomValues, nothing else. */

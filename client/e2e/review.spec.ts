@@ -19,13 +19,10 @@ import { PATH } from './routes'
 /**
  * M14 — Post-Trip Review Assistant (UI-Test-Spec §4, unit "M14 review").
  *
- * The positive cases were blocked twice over, and both blocks are gone:
- * a proposal needs FR-9.1 flags, a flag needs an *active* trip — which
- * M21 made reachable on 2026-08-19 — and *unused*, the flag the
- * assistant is mostly about, had no control anywhere in the app until
- * this unit's PR built it into M5's Details block. So every case here
- * builds its flags the way a user does, through M5 and the quick-add,
- * and reads the result back out of M8 rather than out of the store.
+ * A proposal needs FR-9.1 flags, a flag needs an *active* trip, and *unused*,
+ * the flag the assistant is mostly about, is set in M5's Details block. So
+ * every case here builds its flags the way a user does, through M5 and the
+ * quick-add, and reads the result back out of M8 rather than out of the store.
  *
  * The list *semantics* stay pinned in
  * views/trips/__tests__/ReviewPage.spec.ts, which reaches states this
@@ -227,8 +224,9 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     await archiveThroughPass(page)
 
     // Rendered, not routed: archiving lands on the assistant itself, named
-    // over the trip it is about — the pair used to be one composed string,
-    // and a split that passed the wrong getter would swap the two (ADR-050).
+    // over the trip it is about — two strings rather than one composed
+    // title, and a split that passed the wrong getter would swap the two
+    // (ADR-050).
     await expect(page.getByTestId('header-title')).toHaveText('Review')
     await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('2')
@@ -241,11 +239,9 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
   /**
    * E2E-M14-07 (FR-9.4): the closing card *teases* the first proposals.
    *
-   * UI-Spec M14 has promised that since the screen shipped and the card read
-   * none — it rendered a heading, a hint and two buttons, so it said the same
-   * thing whether eleven suggestions were waiting or none, which is the one
-   * question the tap answers. No case id claimed the clause, so nothing was
-   * ever red (found 2026-08-30, the M14 audit).
+   * UI-Spec M14 promises it: a card with only a heading, a hint and two
+   * buttons says the same thing whether eleven suggestions are waiting or
+   * none, which is the one question the tap answers.
    *
    * Here rather than in `closing-pass.spec.ts` because a proposal needs a row
    * with **provenance**: an ad-hoc row judged *unused* proposes nothing, since
@@ -343,9 +339,9 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
 
     await row(page, 'Stativ').getByTestId('m14-skip').click()
 
-    // Skipped is a decision, not a disappearance (FR-27.11) — and since
+    // Skipped is a decision, not a disappearance (FR-27.11) — and under
     // FR-9.4 the decided row leaves *Offen* for the outcome block instead
-    // of sitting under a heading that no longer counts it.
+    // of sitting under a heading that does not count it.
     await expect(handledRow(page, 'Stativ').getByTestId('m14-state')).toContainText('skipped')
     await expect(row(page, 'Stativ')).toHaveCount(0)
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('1')

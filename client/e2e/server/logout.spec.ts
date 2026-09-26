@@ -1,10 +1,10 @@
 /**
  * E2E-M17-16 (FR-19.9): the session can be ended from the app.
  *
- * `clearTokens` was called from no view at all, so a device holding a token
- * its instance no longer accepted could only be repaired through the
- * browser's website data — and for an installed PWA by deleting it from the
- * home screen. This is the project that can carry the case: `local` has no
+ * Without a view calling `clearTokens`, a device holding a token its
+ * instance no longer accepts can only be repaired through the browser's
+ * website data — and for an installed PWA by deleting it from the home
+ * screen. This is the project that can carry the case: `local` has no
  * server and `single` has no session to end.
  */
 import { test, expect, visiblePage } from '../fixtures'

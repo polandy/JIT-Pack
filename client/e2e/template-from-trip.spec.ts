@@ -68,8 +68,8 @@ async function tripFromGroup(page: Page, name: string, positions = 2): Promise<s
 }
 
 /**
- * Quick-add a row with no group behind it — a loose row for M21. Since FR-24.11
- * reached the composer the name is created in the inventory first.
+ * Quick-add a row with no group behind it — a loose row for M21. The name is
+ * created in the inventory first (FR-24.11).
  */
 async function quickAddLoose(page: Page, name: string) {
   await openQuickAdd(page)
@@ -161,9 +161,8 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // The group is recognised from provenance and marked as reused.
     const group = visible(page).getByTestId('m21-group')
     await expect(group).toHaveCount(1)
-    // The head counts what is under it — the number is the head's count now
-    // rather than a figure joined into the label (FR-21.11), and this was
-    // the one migrated head with no assertion of any kind on it.
+    // The head counts what is under it — the number is the head's count
+    // rather than a figure joined into the label (FR-21.11).
     await expect(visible(page).getByTestId('m21-groups-head')).toContainText('Recognised groups')
     await expect(visible(page).getByTestId('m21-groups-head')).toContainText('1')
     await expect(group).toContainText('Makro')
@@ -274,10 +273,9 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     page,
   }) => {
     // The blast line promises the deviation reaches everything including the
-    // group. FR-27.4 (as revised 2026-08-18) delivers that as a *question* at
-    // each following trip, not as a silent write — so what a second, still
-    // planned trip must show afterwards is the proposal, not an applied
-    // change.
+    // group. FR-27.4 delivers that as a *question* at each following trip, not
+    // as a silent write — so what a second, still planned trip must show
+    // afterwards is the proposal, not an applied change.
     await seedGroup(page)
     const harvested = await tripFromGroup(page, 'Samedan Sommer 2026')
     await archiveTrip(page)
@@ -350,12 +348,11 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
   test('E2E-M21-05: a name another template holds is refused where it is typed', async ({
     page,
   }) => {
-    // FR-1.6 on M21's own two writers. M7's create sheet has had this case
-    // since 2026-08-25 (E2E-M7-10); M21 writes a Vorlage *and* optionally a
-    // group into the same instance-wide name space, and neither refusal had
-    // ever been rendered. The second half of the rule exists nowhere else in
-    // the app: the two names this one screen writes must also differ from
-    // each other.
+    // FR-1.6 on M21's own two writers. M7's create sheet has this case
+    // (E2E-M7-10); M21 writes a Vorlage *and* optionally a group into the same
+    // instance-wide name space. The second half of the rule exists nowhere
+    // else in the app: the two names this one screen writes must also differ
+    // from each other.
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
     await quickAddLoose(page, 'Reisefön')
@@ -553,15 +550,14 @@ test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(0)
 
     // 6 — the fold-back reaches the trip that still follows the group, as the
-    // *question* FR-27.4 has asked since 2026-08-18 rather than as the applied
-    // change the flow's own sentence still promised.
+    // *question* FR-27.4 asks rather than as an applied change.
     await page.goto(following)
     await expect(visible(page).getByTestId('m4-group-proposal')).toContainText('Makro-Objektiv')
 
-    // 6b — and never the trip it was harvested from. E2E-M21-02's note has
-    // stated that rule since M21 shipped ("a past trip is never asked to
-    // follow along") with nothing asserting it: an archived trip is a record
-    // of what was packed, and a proposal on it would offer to edit history.
+    // 6b — and never the trip it was harvested from. E2E-M21-02's note states
+    // that rule ("a past trip is never asked to follow along"), and this
+    // asserts it: an archived trip is a record of what was packed, and a
+    // proposal on it would offer to edit history.
     //
     // The change has to be one *neither* trip carries, which the fold-back
     // itself can never be: it makes the group match the harvested trip, so

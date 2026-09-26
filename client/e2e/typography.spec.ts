@@ -32,8 +32,8 @@ async function resolvedFamily(el: Locator) {
 
 // E2E-G13-01 (G-13/FR-21.5): both faces reach the screen — the UI face
 // through --ion-font-family, the display face through the role classes.
-// Until this PR the client declared no font-family at all and rendered in
-// whatever Ionic's platform stack resolved to.
+// Without a declared font-family the client renders in whatever Ionic's
+// platform stack resolves to.
 test('E2E-G13-01: the UI face carries the body and the display face the page title @local @g13', async ({
   page,
   seedMode,
@@ -49,7 +49,7 @@ test('E2E-G13-01: the UI face carries the body and the display face the page tit
   expect(
     await resolvedFamily(page.getByTestId('dashboard-plan-trip').locator('.button-native')),
   ).toContain('hanken grotesk')
-  // The page's name, which since ADR-050 the frame draws for every screen —
+  // The page's name, which the frame draws for every screen (ADR-050) —
   // outside the outlet, so it is read on the page rather than on the screen.
   expect(await resolvedFamily(page.getByTestId('header-title'))).toContain('fraunces')
 
@@ -155,8 +155,8 @@ test('E2E-G13-04: a section head renders as the display role @local @g13', async
 })
 
 // E2E-G13-05 (G-13/FR-21.11): the count is the head's number, not its voice.
-// Five heads used to join the two inside the translated string, which set the
-// figure in the display face and left it nothing to align with.
+// Joining the two inside the translated string would set the figure in the
+// display face and leave it nothing to align with.
 test('E2E-G13-05: a section count renders beside the head, in the UI face @local @g13', async ({
   page,
   seedMode,
@@ -190,10 +190,10 @@ test('E2E-G13-05: a section count renders beside the head, in the UI face @local
 })
 
 // E2E-G13-06 (G-13/FR-21.14): the list row's two lines come from this table.
-// Until this rule the app's *body copy* was the one text the scale did not
-// carry — Ionic set `ion-label h2` at 16px, `h3` at 14px and `p` at 14px, so
-// a row's name was a different size depending on which element the screen
-// happened to write, and the detail under it was the same size as the name.
+// Left to Ionic, the app's *body copy* is the one text the scale does not
+// carry — `ion-label h2` at 16px, `h3` at 14px and `p` at 14px, so a row's
+// name is a different size depending on which element the screen happens to
+// write, and the detail under it is the same size as the name.
 test('E2E-G13-06: a row names itself larger than it qualifies itself @local @g13', async ({
   page,
   seedMode,

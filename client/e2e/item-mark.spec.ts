@@ -74,10 +74,9 @@ async function addFromInventory(page: Page, name: string) {
 }
 
 /**
- * Add a row whose item carries no mark. Until FR-24.11 reached the composer
- * this was an ad-hoc row with no master item at all; now the composer's sheet
- * creates a bare item (name only), which has no mark either — the rendering
- * under test is the same, an unmarked row.
+ * Add a row whose item carries no mark. The composer's sheet creates a bare
+ * item (name only, FR-24.11), which has no mark — the rendering under test
+ * is an unmarked row.
  */
 async function addUnmarked(page: Page, name: string) {
   await openQuickAdd(page)

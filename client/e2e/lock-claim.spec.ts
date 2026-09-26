@@ -14,15 +14,14 @@ import { openRowMenu } from './helpers/m4'
  * G-3 — a packing claim can be given back, and an abandoned one says so
  * (UI-Test-Spec E2E-M4-49/50; backlog 14d).
  *
- * The claim itself has worked for a long time. What it could not do was
- * *end*: nothing but packing the row or the §7 window passing released it,
- * so a tap made by mistake held the row against everyone else for a
- * quarter of an hour, and when the window did pass the row simply became
- * operable again with nobody told why.
+ * A claim has to be able to *end*: if nothing but packing the row or the §7
+ * window passing released it, a tap made by mistake would hold the row
+ * against everyone else for a quarter of an hour, and when the window did
+ * pass the row would simply become operable again with nobody told why.
  *
- * Local Mode, deliberately: the claim is client-side (owner decision
- * 2026-08-23), so both behaviours run here with no server in the way. What
- * a *second* device sees of a claim is E2E-FLOW-01's business.
+ * Local Mode, deliberately: the claim is client-side, so both behaviours run
+ * here with no server in the way. What a *second* device sees of a claim is
+ * E2E-FLOW-01's business.
  */
 useReducedMotion(test)
 

@@ -6,12 +6,11 @@ import { PATH } from './routes'
 /**
  * G-9 / ADR-011 — the one header bar and the back-target contract.
  *
- * These exist because the previous arrangement shipped a correct
- * IonBackButton on seventeen screens that no user could reach: a second
- * header sat underneath the global one, so the control was occluded.
- * `toBeVisible()` passed throughout — Playwright does not test
- * occlusion — which is why every case here **clicks** and asserts where
- * it landed rather than asserting the control looks present.
+ * A correct IonBackButton can still be unreachable — a second header
+ * underneath the global one occludes it, and `toBeVisible()` passes throughout
+ * because Playwright does not test occlusion — which is why every case here
+ * **clicks** and asserts where it landed rather than asserting the control
+ * looks present.
  */
 
 /**
@@ -19,11 +18,10 @@ import { PATH } from './routes'
  * and the page renders — while something throws mid-transition, which a
  * URL assertion cannot see.
  *
- * **Nothing is filtered any more.** This used to exempt Ionic's
- * `classList`/`ionPageElement` error, which was thrown animating from a
- * root-outlet page back into the tabs outlet. ADR-012 removed the second
- * outlet and the error with it, so an exemption would now only hide the
- * next one.
+ * **Nothing is filtered.** Ionic's `classList`/`ionPageElement` error is
+ * thrown animating from a root-outlet page back into a tabs outlet, and
+ * ADR-012 has only the one outlet, so an exemption would only hide the next
+ * error.
  */
 function collectPageErrors(page: Page): string[] {
   const errors: string[] = []
@@ -41,7 +39,7 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
 
   await expect(page.locator('ion-header')).toHaveCount(1)
   await expect(page.getByTestId('header-title')).toHaveText('New trip')
-  // The step is the head's second line since ADR-050, not part of its name.
+  // The step is the head's second line (ADR-050), not part of its name.
   await expect(page.getByTestId('header-meta')).toHaveText('Step 1 of 4')
   await expect(page.getByTestId('header-logo')).toHaveCount(0)
 })

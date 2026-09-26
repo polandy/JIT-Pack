@@ -22,11 +22,11 @@ import { createItem } from './helpers/m9'
  * backend, and the cases that genuinely need one (remote pack attribution,
  * delegation notifications) are marked `server` in the spec and are not here.
  *
- * This file held every M4 case until 2026-09-20, when it was 960 of the
- * suite's 6249 test-seconds — one file worth 15 % of the run, which is what
- * defeats any attempt to balance the CI legs (dev-docs/implementation-log.md,
- * "The CI legs were split by counting, not by timing"). What is left here is
- * the list and its rows; its neighbours are named in that entry.
+ * M4's cases are split across several files because one file holding them
+ * all is worth 15 % of the run, which defeats any attempt to balance the CI
+ * legs (dev-docs/implementation-log.md, "The CI legs were split by counting,
+ * not by timing"). This one holds the list and its rows; its neighbours are
+ * named in that entry.
  *
  * What is deliberately *not* covered yet, and why — the ledger repeats it:
  * every facet case beyond the panel's own structure needs rows that carry a
@@ -81,9 +81,9 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(input).toHaveValue('')
   })
 
-  // E2E-M4-36 (FR-25.13a, amended 2026-08-17): the ＋ steps aside while the
-  // composer is open. M8 has the same rule and its own case (E2E-M8-17), and
-  // both are needed: the behaviour is written in each screen's own template
+  // E2E-M4-36 (FR-25.13a): the ＋ steps aside while the composer is open. M8
+  // has the same rule and its own case (E2E-M8-17), and both are needed: the
+  // behaviour is written in each screen's own template
   // (`v-if="!quickAddExpanded"`), so one screen keeping it says nothing about
   // the other. The shared `openQuickAdd` helper deliberately *tolerates* both
   // states — it would pass either way, which is why it is not the assertion.
@@ -96,7 +96,7 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-fab')).toHaveCount(0)
     // The anchor survives the button: M4 positions its FR-25.2 undo snackbar
     // against the fab *container*, so hiding the whole IonFab would drop the
-    // snackbar behind the tab bar — the M7/M8 defect of 2026-08-15.
+    // snackbar behind the tab bar.
     await expect(page.locator(`#${FAB_ANCHOR.m4}`)).toHaveCount(1)
 
     // Adding does not bring it back — the composer stays open (FR-25.13), so
@@ -111,11 +111,10 @@ test.describe('M4 packing list @local @m4', () => {
   })
 
   // E2E-G6-02 (G-6, UI-Spec M4 "tap row → M5"): the row's control counts
-  // and only the row's body opens the sheet. Reported as "wenn ich bei
-  // Taschentücher auf das + klicke, kommt item not found": Ionic wraps a
-  // router-link row in an anchor, and an anchor's jump is a *default
-  // action*, so `@click.stop` on the control never cancelled it — every
-  // tap on a stepper opened the sheet instead of packing anything.
+  // and only the row's body opens the sheet. Ionic wraps a router-link row
+  // in an anchor, and an anchor's jump is a *default action*, so
+  // `@click.stop` on the control does not cancel it — every tap on a stepper
+  // would open the sheet instead of packing anything.
   //
   // It needs a row with a quantity above one, and the only path to one
   // that goes through the app is the M18 import (spec §2.4).
@@ -163,18 +162,17 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByText('not found')).toHaveCount(0)
   })
 
-  // E2E-G6-03 (G-6, owner report 2026-09-19: "beim Packen trifft man die
-  // Checkbox zu wenig gut"): the checkbox's target was the glyph and nothing
-  // around it, and the 44 px column it sat in swallowed every tap that
-  // missed — a near miss neither packed the row nor opened it. The click
-  // lands off the glyph on purpose: at its centre the case would pass
-  // before the fix as well.
+  // E2E-G6-03 (G-6): the checkbox's target is more than the glyph — a column
+  // around it that swallowed every tap that missed would make a near miss
+  // neither pack the row nor open it. The click lands off the glyph on
+  // purpose: at its centre the case would pass against a glyph-only target
+  // as well.
   test('E2E-G6-03: a tap beside the checkbox still packs the row', async ({ page }) => {
     await tripWithRows(page, ['Zelt', 'Lampe'], 'Zielprobe')
 
-    // Two near misses: left of the glyph, into the column that used to
-    // swallow the tap, and just below the checkbox's own 44 px box, where
-    // the tap used to open M5 instead.
+    // Two near misses: left of the glyph, into the checkbox's column, and
+    // just below the checkbox's own 44 px box, where a glyph-only target
+    // opens M5 instead.
     const zelt = await page
       .getByTestId('m4-row-Zelt')
       .getByTestId('row-check')
@@ -195,9 +193,8 @@ test.describe('M4 packing list @local @m4', () => {
   })
 
   // E2E-M4-18 (FR-25.11e): "Alles erledigt" may appear only when nothing is
-  // narrowing the list. The regression this guards actually happened: the
-  // check looked at the filter count alone, so an unmatched *search*
-  // announced completion.
+  // narrowing the list. A check on the filter count alone would let an
+  // unmatched *search* announce completion.
   test('E2E-M4-18: an unmatched search says "no matches", not "all packed"', async ({ page }) => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Zelt'])
@@ -227,10 +224,10 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('packing-empty')).toContainText('🎉')
   })
 
-  // E2E-M4-21 (UI-Spec M4, reported 2026-08-14): a category heads the rows
-  // under it, so it has to *look* like their heading. It was 0.82rem
-  // uppercase micro-type — smaller than the item names it introduced — and
-  // the groups ran into each other with nothing but a gap between them.
+  // E2E-M4-21 (UI-Spec M4): a category heads the rows under it, so it has to
+  // *look* like their heading — not micro-type smaller than the item names it
+  // introduces, and not groups running into each other with nothing but a
+  // gap between them.
   test('E2E-M4-21: a group heading outranks its rows, and each group is its own block', async ({
     page,
   }) => {
@@ -316,10 +313,10 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
   })
 
-  // E2E-M4-20 (FR-25.11b, rev. 2026-08-14): the panel has no apply button,
-  // because a tap is already in force behind it. Asserted from the outside
-  // — the list changes while the sheet is still open — and from the inside:
-  // the head's outcome line follows along.
+  // E2E-M4-20 (FR-25.11b): the panel has no apply button, because a tap is
+  // already in force behind it. Asserted from the outside — the list changes
+  // while the sheet is still open — and from the inside: the head's outcome
+  // line follows along.
   //
   // Two categories are needed for a facet value that changes anything, and
   // the quick-add produces uncategorised rows, so the trip comes in through
@@ -360,10 +357,9 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('filter-sheet')).toBeVisible()
     await expect(page.getByTestId('filter-count')).toContainText('2')
     // There is no confirm affordance at all — not hidden, absent. Asserted
-    // as the list of what the header offers, because the clause that stood
-    // here named an id that has never existed anywhere in client/src: it was
-    // green before this panel was built and would have stayed green after an
-    // Apply button was added. Found by scripts/testid-gate.mjs.
+    // as the list of what the header offers, not as the absence of an id:
+    // an id nothing in client/src declares is green whatever the panel does
+    // (scripts/testid-gate.mjs refuses it).
     expect(
       await page
         .getByTestId('filter-sheet')
@@ -830,10 +826,10 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('m4-done-bar').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
-    // A real round trip: out to the shopping list and back into M4. The
-    // first version of this case only *left* M4 and asserted the row was
-    // still there — which passed for the wrong reason, because back used
-    // to leave the packing list mounted underneath the page it opened.
+    // A real round trip: out to the shopping list and back into M4. Only
+    // *leaving* M4 and asserting the row is still there can pass for the
+    // wrong reason, if back leaves the packing list mounted underneath the
+    // page it opened.
     await openTripView(page, 'shopping')
     // Ionic keeps the page it came from mounted, so this asks whether M4
     // is on *screen*, not whether it is in the DOM.
@@ -844,11 +840,9 @@ test.describe('M4 packing list @local @m4', () => {
   })
 
   // E2E-M4-44 (UI-Spec M4, G-9, ADR-050): the trip is named exactly once,
-  // in the page's own head, and at every width. It used to be named in two
-  // places depending on the viewport — the app bar above the breakpoint,
-  // M4's header line below it, because beside six icons at 390 px the name
-  // rendered as "S…". The bar no longer names any page, so the width no
-  // longer decides anything, and the header line carries figures alone.
+  // in the page's own head, and at every width. The bar names no page —
+  // beside six icons at 390 px the name would render as "S…" — so the width
+  // decides nothing, and the header line carries figures alone.
   test('E2E-M4-44: the trip is named once, in the page head, at either width', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, M4_TRIP)
@@ -865,8 +859,8 @@ test.describe('M4 packing list @local @m4', () => {
       .evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase())
     expect(family).toContain('fraunces')
 
-    // A sub-screen names itself and puts the trip on its second line — the
-    // fact the composed "Luggage · Samedan" title used to carry in one string.
+    // A sub-screen names itself and puts the trip on its second line, not
+    // into a composed "Luggage · Samedan" title.
     await openTripView(page, 'shopping')
     await expect(page.getByTestId('header-title')).toHaveText('Shopping')
     await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
@@ -975,10 +969,9 @@ test.describe('M4 packing list @local @m4', () => {
 })
 
 /**
- * FR-25.4a's quiet default. The mapping mode → glyph moved into
- * `lib/modeLabels.ts`; the dense-list rule that used to be M4's private
- * `modeIcon` became an option there, and an option can be forgotten at a
- * call site in a way a private function cannot.
+ * FR-25.4a's quiet default. The mapping mode → glyph lives in
+ * `lib/modeLabels.ts`, and the dense-list rule is an option there — an
+ * option can be forgotten at a call site in a way a private function cannot.
  */
 test.describe('M4 — the row says how an item is obtained, unless it is the usual way @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {

@@ -9,12 +9,11 @@ import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
  *
  * Presence is the one G-10 promise that cannot be faked from one identity:
  * the facepile renders only above one user, so in `single` and `local` it is
- * correctly invisible and there was nothing to assert. Which is why nothing
- * ever had — and why the faces were initialled from `PresenceUser.user_id`,
- * a random 32-hex-character primary key. The screen said who was here in a
- * code nobody can read. The name now comes from the same participant
- * directory the packing stamps use, and the assertion below is on the
- * initials themselves for that reason.
+ * correctly invisible and there is nothing to assert. Faces initialled from
+ * `PresenceUser.user_id`, a random 32-hex-character primary key, would say
+ * who is here in a code nobody can read. The name comes from the same
+ * participant directory the packing stamps use, and the assertion below is
+ * on the initials themselves for that reason.
  */
 test.describe('G-10 — who else is on this trip @server @g10', () => {
   // Two logins, a wizard and two live sockets (§2.4's cost).
@@ -119,15 +118,14 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
 
   /**
    * E2E-G10-02: the other half of the badge, and the amber ring — the state
-   * G-10 exists for, which nothing had ever produced over the wire.
+   * G-10 exists for, produced over the wire.
    *
-   * The spec entry called this half unassertable: a device is behind only
-   * while its reported cursor sits below the trip head, and the client
-   * reports one the moment its pull returns, so a case could only race it.
-   * That is true of a device that is *allowed* to pull. It stops being a
-   * race once the device cannot: `drainTrip` reports the cursor only after
-   * the pull returns, so a blocked pull leaves Bob's cursor where it was and
-   * the lagging state stands still until the block is lifted. Nothing here
+   * A device is behind only while its reported cursor sits below the trip
+   * head, and the client reports one the moment its pull returns, so a case
+   * could only race it — for a device that is *allowed* to pull. It stops
+   * being a race once the device cannot: `drainTrip` reports the cursor only
+   * after the pull returns, so a blocked pull leaves Bob's cursor where it was
+   * and the lagging state stands still until the block is lifted. Nothing here
    * waits for a duration — every assertion is on a settled state the server
    * recomputes and pushes.
    *

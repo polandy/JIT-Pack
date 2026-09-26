@@ -15,8 +15,8 @@ import { backToInventory, createItem } from './helpers/m9'
 import { M4_TRIP } from './helpers/m4'
 
 /**
- * M4 — how a row gets onto the list (UI-Test-Spec §4). Split out of
- * `packing-list.spec.ts` on 2026-09-20.
+ * M4 — how a row gets onto the list (UI-Test-Spec §4). A neighbour of
+ * `packing-list.spec.ts`.
  *
  * Two promises, one subject: every add goes through the inventory (FR-24.11),
  * and the quick-add says what it took along with it (FR-20.4, FR-9.4).
@@ -26,7 +26,7 @@ import { M4_TRIP } from './helpers/m4'
  * FR-24.11 reaches the composer: every add goes through the inventory. A name
  * it holds is added at once, any other is created first through the same
  * sheet M9 uses, and nothing is written before that sheet's „Anlegen" — the
- * composer no longer makes ad-hoc rows.
+ * composer makes no ad-hoc rows.
  */
 test.describe('M4 — the composer adds through the inventory @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -215,8 +215,8 @@ test.describe('M4 — the composer adds through the inventory @local @m4', () =>
 })
 
 /**
- * FR-20.4's missing sentence and FR-9.4's silent card, both ruled *build it*
- * by the owner on 2026-08-31.
+ * FR-20.4's sentence and FR-9.4's card: the quick-add and the closing card
+ * say what they did.
  */
 test.describe('M4 — what the quick-add says about what it took along @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -227,11 +227,9 @@ test.describe('M4 — what the quick-add says about what it took along @local @m
    * E2E-M4-66 (FR-20.4/20.2): quick-adding an item pulls its required
    * companions **and says so**.
    *
-   * `addRequiredCompanions` returned nothing and no caller raised anything, so
-   * the companions simply appeared on the list — while FR-20.2's *skip* names
-   * exactly what it took along, and it is that contrast which made the silence
-   * read as an omission rather than as a decision (E2E-M4-32's third clause,
-   * retired 2026-08-30 with the finding).
+   * Companions that simply appeared on the list would read as an omission
+   * rather than as a decision, because FR-20.2's *skip* names exactly what it
+   * took along (E2E-M4-32's third clause is struck in favour of this case).
    */
   test('E2E-M4-66: the quick-add names the required companions it pulled in', async ({ page }) => {
     // Built through M10's own form: a dependency written straight into the

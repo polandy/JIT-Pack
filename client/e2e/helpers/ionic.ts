@@ -30,10 +30,9 @@ export async function fillIonic(field: Locator, value: string): Promise<void> {
 
 /**
  * Sets a DateField (ADR-035): opens its picker sheet, walks the calendar to
- * the target month with the keyboard and confirms the day. Replaces the
- * fill() that drove the native date input the field used to be. Every hop
- * asserts the rendered month header, so the walk is bounded and observable —
- * never a wait.
+ * the target month with the keyboard and confirms the day — the field is not a
+ * native date input, so fill() cannot drive it. Every hop asserts the rendered
+ * month header, so the walk is bounded and observable — never a wait.
  */
 export async function setDateField(page: Page, testid: string, iso: string): Promise<void> {
   // Destructuring an array is `T | undefined` under `noUncheckedIndexedAccess`,

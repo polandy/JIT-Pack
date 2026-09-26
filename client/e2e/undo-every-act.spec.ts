@@ -16,12 +16,12 @@ import {
  * Every act on the packing list can be taken back (UI-Test-Spec §3, M4;
  * Addendum FR-25.31).
  *
- * FR-25.2's snackbar used to cover the pack, the skip and the untouched
- * removal; everything else a tap wrote was final unless the user found the
- * control that reverses it. These cases take the acts that had no undo, one
- * of each kind, and assert the way back — each through what the row renders
- * afterwards, never through the snackbar alone, which would be green on a
- * page whose undo wrote nothing.
+ * FR-25.2's snackbar covers the pack, the skip and the untouched removal;
+ * FR-25.31 extends it to everything else a tap writes, which would otherwise
+ * be final unless the user found the control that reverses it. These cases
+ * take those acts, one of each kind, and assert the way back — each through
+ * what the row renders afterwards, never through the snackbar alone, which
+ * would be green on a page whose undo wrote nothing.
  *
  * **Reduced motion is on**, as in pack-out.spec.ts: the production code takes
  * its own no-motion path, so what is asserted is the outcome.
@@ -66,9 +66,9 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     await page.setViewportSize({ width: 390, height: 844 })
   })
 
-  // E2E-M4-120: the reversal of E2E-M4-35. Un-packing a revealed row said
-  // nothing, because its result is on screen; the owner wants every act
-  // undoable, and a mistap among done rows costs the same to find again.
+  // E2E-M4-120: the reversal of E2E-M4-35. Un-packing a revealed row is
+  // announced even though its result is on screen: every act is undoable,
+  // and a mistap among done rows costs the same to find again.
   test('E2E-M4-120: un-checking a revealed row is announced and its undo packs it again @local @m4', async ({
     page,
   }) => {
@@ -88,7 +88,7 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
   })
 
   // E2E-M4-121: the amount, a step of the stepper, and the confirmed
-  // removal — the one delete that used to be final — each come back.
+  // removal — a delete, and still not final — each come back.
   test('E2E-M4-121: the amount, a step and a confirmed removal are each undone @local @m4', async ({
     page,
   }) => {
@@ -153,8 +153,8 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     ).toHaveCount(0)
   })
 
-  // E2E-M4-123: the closing pass's tap, which had no snackbar at all — one
-  // toast per tap was judged noise until the owner ruled otherwise.
+  // E2E-M4-123: the closing pass's tap gets its snackbar too — one toast per
+  // tap is accepted as the price of every act being undoable.
   test('E2E-M4-123: a mark in the closing pass is undone @local @m4', async ({ page }) => {
     await tripWithRows(page, ['Stativ'], 'Rückgängigprobe')
     await startTrip(page)

@@ -67,8 +67,8 @@ async function quickAddUnweighed(page: Page, name: string) {
  * The *title* is asserted here because every M12 case comes through this
  * door and the screen's own name cannot depend on which trip is open. Which
  * trip the second line names is a per-case fact, so it is asserted where the
- * trip is known — E2E-M12-01 — rather than assumed here, which is what the
- * first version of this helper got wrong against the two E2E-M12-03 cases.
+ * trip is known — E2E-M12-01 — rather than assumed here, where the two
+ * E2E-M12-03 cases would contradict it.
  */
 async function openAnalytics(page: Page) {
   await openTripView(page, 'analytics')
@@ -85,15 +85,12 @@ test.describe('M12 analytics @local @m12', () => {
   // E2E-M12-01 (FR-8.1/8.2/10.4): dimension switcher and packed-in-planned
   // bars, with the trip totals beside them.
   //
-  // Rewritten 2026-08-30 (backlog item 6): two of its clauses could not
-  // fail. The trip carried one item, packed, so "packed / planned" read
-  // "5.0 kg / 5.0 kg" — a KPI that printed the planned weight twice
-  // satisfied it. And the switch to *Gepäck* asserted `analytics-slice-none`,
-  // which the Kategorie view it started on already rendered for the same
-  // uncategorized item: the same locator was visible before and after the
-  // click, so a segment that changed nothing passed. FR-10.4 — containers
-  // are the data source of the Gepäck dimension — was credited to this case
-  // while no test had ever put an item in a bag and looked at this screen.
+  // Two items, one of them packed and in a bag, so every clause can fail: a
+  // single packed item reads "5.0 kg / 5.0 kg", which a KPI printing the
+  // planned weight twice would satisfy, and a slice the Kategorie view
+  // already renders stays visible across a *Gepäck* switch that changed
+  // nothing. FR-10.4 — containers are the data source of the Gepäck
+  // dimension — needs an item in a bag to say anything.
   test('E2E-M12-01: bars per dimension value with packed/planned weight and totals', async ({
     page,
   }) => {
@@ -116,9 +113,9 @@ test.describe('M12 analytics @local @m12', () => {
 
     await openAnalytics(page)
 
-    // The second line names the trip this screen is about — the fact the
-    // composed "Analytics · Veloferien Elba" title used to carry in one
-    // string, at one size (ADR-050). Asserted here, where the trip is known.
+    // The second line names the trip this screen is about, rather than a
+    // composed "Analytics · Veloferien Elba" title (ADR-050). Asserted here,
+    // where the trip is known.
     await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
 
     // Kategorie (the default): both items are uncategorized, so one bucket
@@ -195,13 +192,10 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visiblePage(page).getByTestId('analytics-flagged')).toHaveCount(0)
   })
 
-  // E2E-M12-03 (FR-14.3), the positive half — owed since 2026-08-19 and
-  // written 2026-08-21. It was never a test gap: the trend reads the
-  // *archived* trips of a series, and until M21 needed the same step nothing
-  // user-facing moved a trip out of *planning*, so the precondition could not
-  // be built through the app at all (spec §2.4 forbids injecting it). With
-  // M4's start action in place the whole history is now reachable: pack a
-  // weighted row, start the trip, type the thing that was missing, archive.
+  // E2E-M12-03 (FR-14.3), the positive half. The trend reads the *archived*
+  // trips of a series, and spec §2.4 forbids injecting them, so the whole
+  // history is built through the app: pack a weighted row, start the trip,
+  // type the thing that was missing, archive.
   test('E2E-M12-03: an archived trip in the series draws the trend and its flags', async ({
     page,
   }) => {
@@ -247,10 +241,10 @@ test.describe('M12 analytics @local @m12', () => {
 
     // The trend counts the weight actually *carried*: one column, the year
     // it was carried in, and the packed kilos rather than the planned ones.
-    // FR-14.3: the heading names the *series* the trend runs across. It used
-    // to read `trip.series_name` — a field no writer has ever filled — and
-    // fell through to the trip's own name, so the line said „Serie Elba 2026"
-    // about a series called Elba (C-3b, 2026-09-04).
+    // FR-14.3: the heading names the *series* the trend runs across — not
+    // `trip.series_name`, a field no writer fills, whose fallback to the
+    // trip's own name says „Serie Elba 2026" about a series called Elba
+    // (C-3b).
     await expect(visiblePage(page).getByTestId('analytics-trend-title')).toHaveText(
       'Series Elba · trend',
     )
@@ -275,8 +269,8 @@ test.describe('M12 analytics @local @m12', () => {
   // E2E-M12-04 (FR-8.2/25.11): a picked bar lands on M4 *filtered* to
   // that value — the facet is set, the removable chip names it, the
   // grouping matches the dimension, and rows outside the slice are gone.
-  // Regression guard: setting only the grouping (the pre-2026-08-08
-  // behaviour) fails every one of these assertions but the last.
+  // Regression guard: setting only the grouping fails every one of these
+  // assertions but the last.
   test('E2E-M12-04: a picked bar becomes the facet M4 opens with', async ({ page }) => {
     await createWeighedItem(page, 'Zelt', 5000)
     await createWeighedItem(page, 'Sonnenbrille', 100)
@@ -340,11 +334,11 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toContainText(total)
   })
 
-  // E2E-M12-08 (FR-8.2/25.11): bars are picked, not followed — several of
-  // one dimension at once, OR'd into the one facet, the way the sheet's
-  // chips combine. The third person's row is the positive signal that the
-  // list is narrowed at all; the two picked rows that both stay are what
-  // a single-value handoff (the pre-2026-09-19 tap) could not produce.
+  // E2E-M12-08 (FR-8.2/25.11): bars are picked, not followed — several of one
+  // dimension at once, OR'd into the one facet, the way the sheet's chips
+  // combine. The third person's row is the positive signal that the list is
+  // narrowed at all; the two picked rows that both stay are what a
+  // single-value handoff could not produce.
   test("E2E-M12-08: several picked bars become one facet, OR'd", async ({ page }) => {
     await createWeighedItem(page, 'Zelt', 5000)
     await createWeighedItem(page, 'Sonnenbrille', 100)

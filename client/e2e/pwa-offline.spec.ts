@@ -67,15 +67,15 @@ test.describe('app shell offline (NFR-4.13)', () => {
     await serviceWorkerControlsPage(page)
 
     /*
-     * The seam this case needs, and why it is not the cache read it used to
-     * be: the worker caches nothing at runtime, so "no cache entry appeared
-     * for /health" stayed true with the bypass rule deleted outright
-     * (measured 2026-09-01 — `bypassed()`'s whole body replaced by
-     * `return false`, and this case still passed). What the rule promises is
-     * that the worker never *answers* these paths, and the way to make that
-     * falsifiable is to give it something to answer with: a planted response
-     * in a cache of this test's own. `caches.match` searches every cache on
-     * the origin, so a worker that stopped bypassing would serve the plant.
+     * The seam this case needs, and why it is not a cache read: the worker
+     * caches nothing at runtime, so "no cache entry appeared for /health" stays
+     * true with the bypass rule deleted outright (measured — `bypassed()`'s
+     * whole body replaced by `return false`, and a cache-read case still
+     * passes). What the rule promises is that the worker never *answers* these
+     * paths, and the way to make that falsifiable is to give it something to
+     * answer with: a planted response in a cache of this test's own.
+     * `caches.match` searches every cache on the origin, so a worker that
+     * stopped bypassing would serve the plant.
      */
     const PLANT = 'PLANTED-BY-E2E'
     const BYPASSED = ['/health', '/api/v1/auth/config', '/ws']
@@ -213,12 +213,11 @@ test.describe('app shell offline (NFR-4.13)', () => {
     }
   })
   /**
-   * The update policy (E2E-PWA-04, NFR-4.13 / ADR-019), which had no case of
-   * any kind: a new version installs in the background, is *announced* through
-   * the G-2 glyph and its sheet, never reloads the running app, and takes over
-   * on the next launch. `registerAppServiceWorker`'s unit test drives the
-   * watcher against a fake container; nothing had ever put a second worker on
-   * the origin and read the app.
+   * The update policy (E2E-PWA-04, NFR-4.13 / ADR-019): a new version installs
+   * in the background, is *announced* through the G-2 glyph and its sheet,
+   * never reloads the running app, and takes over on the next launch.
+   * `registerAppServiceWorker`'s unit test drives the watcher against a fake
+   * container; this puts a second worker on the origin and reads the app.
    *
    * Registering a *different* script URL on the same scope is what makes this
    * drivable: a registration is keyed by scope, so the browser installs the
@@ -352,7 +351,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
     // script. Deliberately not "the bar and the dot are gone": the relaunched
     // app registers `/sw.js` again, which in this fixture is a *third* script
     // URL on the scope, so the browser installs it as a fresh waiting worker
-    // and the announcement comes back a moment later (measured 2026-09-02).
+    // and the announcement comes back a moment later (measured).
     // An absence asserted in that window is green only by being early.
     await page.waitForFunction(
       () => (window as unknown as { __jitpackAlive?: boolean }).__jitpackAlive !== true,
@@ -373,22 +372,21 @@ test.describe('app shell offline (NFR-4.13)', () => {
    * it. The banner arrives while somebody is already reaching for a control,
    * and a bar inserted above the content shifts every target below it: the
    * pointer check and the stability check both pass on the old geometry, and
-   * the dispatch lands beside the button. That is what cost `E2E-G14-01` its
-   * click on 2026-09-09 (dev-docs/e2e-tests.md) — a click Playwright reported
-   * as a success, on a page that had not moved on.
+   * the dispatch lands beside the button — a click Playwright reports as a
+   * success, on a page that has not moved on (dev-docs/e2e-tests.md,
+   * `E2E-G14-01`).
    *
    * The measurement is the content box before and after, read in the same
    * layout both times: the banner's own visibility is the settled state, so
    * nothing here waits on a clock.
    *
-   * **Three measurements, because "moves nothing" was only the first of
-   * them** (2026-09-16, the eyeball #466 owed). Rendered over a list that
-   * had rows, the layer turned out to cover the frame's own head rather
-   * than the top of the outlet — the screen's name gone, and M4's view
-   * switcher (ADR-051) sliced in half, leaving a sliver that still read as
-   * a control and took the press. And out of the column it was no longer
-   * the width of it: 1176 px of banner over a 600 px column at 1280. Both
-   * are geometry the case can hold, so it holds them.
+   * **Three measurements, because "moves nothing" is only the first of
+   * them.** Rendered over a list that has rows, a layer can cover the
+   * frame's own head rather than the top of the outlet — the screen's name
+   * gone, and M4's view switcher (ADR-051) sliced in half, leaving a sliver
+   * that still reads as a control and takes the press. And out of the column
+   * it is not the width of it: 1176 px of banner over a 600 px column at
+   * 1280. Both are geometry the case can hold, so it holds them.
    */
   test('E2E-PWA-06: the banner appears without moving the content under it', async ({ page }) => {
     await page.goto(PATH.dashboard)
@@ -464,7 +462,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
     await expect(page.getByTestId('update-banner')).toHaveCount(0)
 
     // Dismissed, not applied: the old worker still drives the page, and the
-    // offer is still reachable the way it was before FR-19.7.
+    // offer is still reachable through the G-2 sheet.
     const controller = await page.evaluate(
       () => navigator.serviceWorker.controller?.scriptURL ?? null,
     )

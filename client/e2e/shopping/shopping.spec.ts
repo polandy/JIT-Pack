@@ -106,7 +106,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
    * E2E-M6-26 (FR-30.1): an entry typed into the shopping list is on the
    * shopping list and nowhere else. The packing list's progress is the
    * positive signal for the absence of a row there — an entry that had become
-   * a packing row would count, as every free-text add on M6 did before FR-30.
+   * a packing row would count.
    */
   test('E2E-M6-26: an entry typed on M6 is on the shopping list only (FR-30.1)', async ({
     page,

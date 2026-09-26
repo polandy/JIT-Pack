@@ -92,11 +92,10 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
   /**
    * E2E-M15-08 (FR-16.1): a sheet with no trip column at all imports.
    *
-   * It used to be refused — the mapping demanded one included trip column —
-   * so the only way to bring an inventory in was to invent a trip and delete
-   * it afterwards. The landing is the other half: with no trip created, the
-   * whole result is in the inventory, and the trip list would have nothing
-   * to show for it.
+   * A mapping that demanded one included trip column would leave inventing a
+   * trip and deleting it afterwards as the only way to bring an inventory in.
+   * The landing is the other half: with no trip created, the whole result is
+   * in the inventory, and the trip list would have nothing to show for it.
    */
   test('E2E-M15-08: an inventory with no trip column imports into the inventory', async ({
     page,
@@ -125,10 +124,9 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
 
 /**
  * The classic legacy layout: category *rows* between the items, and a header
- * that names the trip columns by their year. Everything the suite drove until
- * now had its category in a column — the branch `analyzeGrid` takes when
- * `categoryColumn` is null and there is a trip column for a heading row to be
- * empty in had no rendered coverage at all.
+ * that names the trip columns by their year — the branch `analyzeGrid` takes
+ * when `categoryColumn` is null and there is a trip column for a heading row
+ * to be empty in, which a category column never reaches.
  */
 const CATEGORY_ROWS_CSV = [
   ',2016,2017',
@@ -160,8 +158,8 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
    *
    * The write half and the read half are two behaviours. Every other M15 case
    * in this file stops at the summary line, and the one that commits (M15-08)
-   * imports a sheet with no category rows and no trip at all — so the layout
-   * this wizard was built for had never produced a row anybody could see.
+   * imports a sheet with no category rows and no trip at all — so this is
+   * where the layout the wizard was built for produces a row anybody can see.
    */
   test('E2E-M15-11: category rows become tags, and the items land filed under them', async ({
     page,
@@ -204,10 +202,10 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
    * E2E-M15-12 (FR-16.1, NFR-4.7): the mapping gate, and the include toggle
    * as the way past it.
    *
-   * "Pre-validation blocks a bad file before commit" was written in 2026-07
-   * and asserted nowhere — the only case that touches the note asserts its
-   * *absence*. Both halves are here: the note that names what is missing, and
-   * the step refusing to advance while it stands.
+   * "Pre-validation blocks a bad file before commit" — the only other case
+   * that touches the note asserts its *absence*. Both halves are here: the
+   * note that names what is missing, and the step refusing to advance while it
+   * stands.
    */
   test('E2E-M15-12: an unnamed trip column blocks the step until it is unticked', async ({
     page,
@@ -226,8 +224,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
       'true',
     )
 
-    // Answering it by dropping the column: FR-16.1's per-trip include toggle,
-    // which nothing had ever clicked.
+    // Answering it by dropping the column: FR-16.1's per-trip include toggle.
     await visiblePage(page).getByTestId('import-trip-2').locator('ion-checkbox').click()
     await expect(note).toHaveCount(0)
 
@@ -287,10 +284,9 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
   /**
    * E2E-M15-03 (FR-16.3): step 3 decides the inventory.
    *
-   * The step has existed since the wizard was built and no test had ever
-   * opened it: every fixture here imports into an empty device, where there
-   * is nothing to be a duplicate *of*. The inventory is built by an import of
-   * its own — M15 is the screen that turns a sheet into master items, so the
+   * Every other fixture here imports into an empty device, where there is
+   * nothing to be a duplicate *of*. The inventory is built by an import of its
+   * own — M15 is the screen that turns a sheet into master items, so the
    * second sheet meets exactly what the first one left.
    */
   test('E2E-M15-03: merge and keep-separate decide what the inventory gets', async ({ page }) => {
@@ -303,16 +299,15 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(3)
 
     /*
-     * The reload is not decoration and not a wait: **the app cannot open M15
-     * a second time in one session** (found by this case, 2026-08-30). The
-     * commit's `router.replace` onto a tab root leaves that tab's page
-     * unhidden in the root outlet, so the next push renders M15 *underneath*
-     * it — proved by three probes: M2 → M15 on a fresh boot is fine, and the
-     * same click after any M15 commit is not, whichever screen it landed on.
-     * Open with the owner; M18's restore replaces the same way. The three
-     * rows are re-asserted after it because they are also this case's settled
-     * signal — the dedup step reads `master.itemList`, and a boot that has
-     * not finished loading would offer no duplicates at all.
+     * The reload is not decoration and not a wait: **the app cannot open M15 a
+     * second time in one session**. The commit's `router.replace` onto a tab
+     * root leaves that tab's page unhidden in the root outlet, so the next push
+     * renders M15 *underneath* it — proved by three probes: M2 → M15 on a fresh
+     * boot is fine, and the same click after any M15 commit is not, whichever
+     * screen it landed on. Open with the owner; M18's restore replaces the same
+     * way. The three rows are re-asserted after it because they are also this
+     * case's settled signal — the dedup step reads `master.itemList`, and a boot
+     * that has not finished loading would offer no duplicates at all.
      *
      * The G-2 glyph is what makes the reload safe: in Local Mode it reads
      * `syncing` while a write is still open and `local` once the device has
@@ -364,10 +359,9 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
 })
 
 /**
- * M15's three promises that the wizard has never kept (owner decision
- * 2026-08-31, backlog item 6). Each was specified, and each is about the
- * wizard *saying* something rather than doing it — the doing was already
- * built and unit-covered, which is exactly why nothing was red.
+ * M15's three promises about the wizard *saying* something rather than
+ * doing it — the doing is unit-covered, so only a rendered case can go red
+ * for these.
  */
 test.describe('M15 — what the wizard says about what it read @local @m15', () => {
   /** A sheet with a mis-parseable shape: quoted commas and a ragged row. */
