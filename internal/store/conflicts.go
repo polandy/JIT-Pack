@@ -93,9 +93,9 @@ func (s *Store) ListMasterConflicts(ctx context.Context, userID string) ([]Confl
 // Both logs need it and neither gets it from the schema: conflict_log
 // carries the two partitions' entries in one table, keyed by table name
 // and id, so it has no foreign key to the row it names and nothing
-// cascades. `trips` looked exempt only because its visibility hangs on a
-// membership that does cascade — two different behaviours per table, and
-// neither of them decided (2026-08-22 review, finding 27).
+// cascades. `trips` only looks exempt because its visibility hangs on a
+// membership that does cascade; filtering here gives every table one
+// decided behaviour instead of two accidental ones.
 //
 // Left out rather than kept, because an entry outlives its use before it
 // outlives its row: the client has no name to show for a deleted entity

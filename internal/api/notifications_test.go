@@ -106,8 +106,8 @@ func TestNotifications_SelfPackDoesNotNotify(t *testing.T) {
 	}
 }
 
-// FR-25.19: assigning is still a delegation even in the same push that
-// packs the row — the two fields are independent now.
+// FR-25.19: assigning is a delegation even in the same push that packs the
+// row — the two fields are independent.
 func TestNotifications_AssignmentAlongsidePackStillDelegates_FR25_19(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")
@@ -328,8 +328,8 @@ func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	if !prefs["note"] {
 		t.Errorf("prefs = %v, want note on (untouched default)", prefs)
 	}
-	// The same trap, found by FR-7.11: lock_taken was missing from the
-	// literal and read as off on M17 for everybody.
+	// The same trap: a kind missing from the literal reads as off on M17
+	// for everybody.
 	if !prefs["lock_taken"] || !prefs["task_due"] {
 		t.Errorf("prefs = %v, want lock_taken and task_due on (untouched default)", prefs)
 	}

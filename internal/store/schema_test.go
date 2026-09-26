@@ -157,9 +157,9 @@ func TestOpen_RejectsAStaleDatabaseAndSaysHowToFixIt(t *testing.T) {
 		t.Fatalf("close: %v", err)
 	}
 	// A database from before the chain — no schema_meta — carrying a
-	// fingerprint this build cannot name. Since ADR-067 that is the only
-	// shape that is still refused outright, and `user_version` alone is not
-	// enough to condemn one: it is a mirror now, so the table has to go too.
+	// fingerprint this build cannot name. Under ADR-067 that is the only
+	// shape refused outright, and `user_version` alone is not enough to
+	// condemn one: it is a mirror, so the table has to go too.
 	db := openRaw(t, path)
 	if _, err := db.Exec(`DROP TABLE schema_meta`); err != nil {
 		t.Fatalf("drop schema_meta: %v", err)
@@ -227,8 +227,8 @@ func TestOpen_RejectsAnUnstampedDatabaseThatAlreadyHasTables(t *testing.T) {
 }
 
 func TestOpen_AStaleDatabaseIsLeftUntouched(t *testing.T) {
-	// The owner chose "error with instructions" over "recreate": nothing the
-	// user might still want is allowed to disappear on start-up.
+	// A stale database is an error with instructions, never recreated:
+	// nothing the user might still want is allowed to disappear on start-up.
 	path := filepath.Join(t.TempDir(), "keep.db")
 	db := openRaw(t, path)
 	if _, err := db.Exec(`CREATE TABLE precious (id TEXT PRIMARY KEY); INSERT INTO precious VALUES ('keep-me')`); err != nil {
@@ -260,11 +260,9 @@ func TestSchema_IsEmbeddedAndNotEmpty(t *testing.T) {
 	}
 }
 
-// Replaces `TestSchema_HasNoMigrationsDirectoryLeftBehind`, which held
-// ADR-018's rule that no such directory may exist. ADR-067 reverses it: the
-// chain is now how an existing database reaches this schema, and a *missing*
-// chain is the defect — the directory would be silently absent from the
-// binary if the embed pattern ever stopped matching.
+// ADR-067: the chain is how an existing database reaches this schema, and a
+// *missing* chain is the defect — the directory would be silently absent
+// from the binary if the embed pattern ever stopped matching.
 func TestSchema_TheMigrationChainIsEmbedded(t *testing.T) {
 	if migrationChainErr != nil {
 		t.Fatalf("the embedded chain does not load: %v", migrationChainErr)
@@ -279,9 +277,8 @@ func TestSchema_TheMigrationChainIsEmbedded(t *testing.T) {
 
 // WAL is what makes a reader concurrent with the writer, and the backup
 // procedure in docs/backup.md is written against a database that has the
-// -wal and -shm sidecars. It used to be set by the first migration; losing
-// it with the migrations would have been silent — a database in `delete`
-// mode works, just differently.
+// -wal and -shm sidecars. Losing the setting would be silent — a database
+// in `delete` mode works, just differently.
 func TestOpen_UsesWriteAheadLogging(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "wal.db")
 	s, err := Open(path)

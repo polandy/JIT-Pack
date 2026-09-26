@@ -12,18 +12,17 @@ import (
 // `rejected` is the store's answer to five different situations — an
 // authorization denial, a mutation aimed outside its partition, the FR-27.1
 // two-level rule, an ordinary constraint failure, and a delete the rest of
-// the database still depends on. Until this file they were one indivisible
-// word on the wire, so the client parked the mutation with nothing to say
-// and the user's screen kept a row the server had refused to drop.
+// the database still depends on. As one indivisible word on the wire, they
+// leave the client parking the mutation with nothing to say and the user's
+// screen keeping a row the server has refused to drop.
 //
 // Each case below asserts the reason *and* a positive signal that the
 // refusal actually happened: the row the mutation wanted to change is
 // still, or not yet, what it was.
 
-// The refusal's remaining ground, now that FR-24.3 has taken master items
-// and Vorlagen onto the retire branch: a series a trip names. `trips.series_id`
-// carries no ON DELETE clause, the refusal is correct, and being unable to
-// name it was the defect this test was written for.
+// The refusal's remaining ground, with master items and Vorlagen on FR-24.3's
+// retire branch: a series a trip names. `trips.series_id` carries no ON DELETE
+// clause, the refusal is correct, and it must be named.
 func TestApplyMasterMutation_DeletingASeriesATripStillNames_IsRefusedAsStillReferenced(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

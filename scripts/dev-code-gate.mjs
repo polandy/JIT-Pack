@@ -3,12 +3,11 @@
  * the sample-data seed, the M14 fixture and the component gallery — are **gone
  * from a production build**, not merely hidden in it.
  *
- * It was false for weeks. `import.meta.env.DEV` guarded the *button*, while the
- * dynamic `import()` inside its handler stayed a live code path, so Rollup
- * emitted the chunks and every self-hosted instance shipped them. Nobody could
- * reach them, which is exactly why nobody noticed — a hidden surface and an
- * absent one look identical from the outside, and only the bundle can tell you
- * apart. Found reviewing the PR that added the second seed (2026-08-16).
+ * Guarding the *button* with `import.meta.env.DEV` is not enough: the dynamic
+ * `import()` inside its handler stays a live code path, so Rollup emits the
+ * chunks and every self-hosted instance ships them. Nobody can reach them,
+ * which is exactly why nobody notices — a hidden surface and an absent one look
+ * identical from the outside, and only the bundle can tell you apart.
  *
  * Run after `npm run build`; wired into `make client` and the CI client job.
  */

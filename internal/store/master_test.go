@@ -175,11 +175,10 @@ func TestApplyMutation_PartitionMismatchRejected(t *testing.T) {
 	}
 }
 
-// FR-1.6 MVP simplification (owner decision 2026-08-08, "Jeder sieht einfach
-// alles"): templates and their positions are shared instance-wide like master
-// items (the FR-22.6 governance model). owner_id survives as *creator*
-// metadata — it is stamped on insert and never rewritten by a foreign edit,
-// but it grants no exclusivity.
+// FR-1.6 MVP simplification: templates and their positions are shared
+// instance-wide like master items (the FR-22.6 governance model). owner_id is
+// *creator* metadata — it is stamped on insert and never rewritten by a
+// foreign edit, but it grants no exclusivity.
 func TestApplyMasterMutation_TemplatesSharedInstanceWide(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)

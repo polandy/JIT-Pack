@@ -10,12 +10,11 @@ import (
 	"testing"
 )
 
-// G-2 (design review 2026-09-02). Per-table knowledge used to live in five
-// registries and two switches across two files, and a table added to four of
-// them is not a build error — it is a rule that silently does not apply.
-// CLAUDE.md §4a records that a sixth switch was once simply missed.
+// G-2. Per-table knowledge kept in separate registries and switches fails
+// quietly: a table added to four of them is not a build error — it is a rule
+// that silently does not apply.
 //
-// tableSpecs is now the declaration and the maps are views of it, so most of
+// tableSpecs is the declaration and the maps are views of it, so most of
 // that class of miss is gone by construction. What is left is the first step:
 // declaring the constant and never writing the spec. This test reads the
 // `Table*` constants out of the package's own source, because the rule is

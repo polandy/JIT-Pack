@@ -49,7 +49,7 @@ CREATE TABLE sessions (
     expires_at        TEXT NOT NULL
 );
 
--- The level this database stands at (ADR-067 with its 2026-09-21 amendment).
+-- The level this database stands at (ADR-067 and its amendment).
 -- One row, written by the loader: a fresh database gets the current level with
 -- schema.sql, an existing one gets it from the migration that last ran.
 --
@@ -141,10 +141,10 @@ CREATE TABLE tags (
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
--- FR-7.8: the tags a *task* can carry — their own list, not the inventory's
--- (owner, 2026-09-21). The two vocabularies never appear in the same picker,
--- so „Technik" may exist in both without either meaning the other: an item is
--- filed by what it is, a task by what it is about.
+-- FR-7.8: the tags a *task* can carry — their own list, not the inventory's.
+-- The two vocabularies never appear in the same picker, so „Technik" may
+-- exist in both without either meaning the other: an item is filed by what it
+-- is, a task by what it is about.
 --
 -- Same shape as `tags` deliberately: a name, an order and a mark are what a
 -- heading needs, and a second answer to that question would be a second thing
@@ -412,7 +412,7 @@ CREATE TABLE comments (
     -- refuse a single-field mutation loses the user's choice.
     assignee_user_id TEXT REFERENCES users(id),
     -- FR-7.8: the one tag a task carries, or NULL for none. A column rather
-    -- than a join table because the owner asked for **exactly one** — at most
+    -- than a join table because FR-7.8 allows **exactly one** — at most
     -- one, never two — and a set that may hold one element is a set whose
     -- rule lives nowhere the database can state it.
     --
@@ -432,7 +432,7 @@ CREATE TABLE comments (
     -- it carries no CHECK for field-level LWW's sake.
     phase        TEXT,
     -- FR-7.11: the day a task is due, as a calendar date (YYYY-MM-DD) with
-    -- no time and no zone — the owner asked for a day, and a day read on the
+    -- no time and no zone — FR-7.11 names a day, and a day read on the
     -- other side of a time zone must stay the same day. NULL is „no date",
     -- the normal state of a task. Free of a CHECK like `phase`, for
     -- field-level LWW's sake; the client writes only what its date field

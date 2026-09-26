@@ -32,9 +32,8 @@ require_matching_playwright_version "${repo_root}"
 #
 # The tree lives in the user's cache, deliberately *not* in the worktree: a
 # second `node_modules` under `client/` is walked by everything that walks the
-# project. `make ci` found that within a minute of the first attempt, when
-# eslint followed it in and tried to load a dependency's own config. Ignoring
-# it in one tool would only have moved the problem to the next one.
+# project — eslint follows it in and tries to load a dependency's own config.
+# Ignoring it in one tool would only move the problem to the next one.
 cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/jitpack-visual-node_modules"
 mounts=(-v "${repo_root}:/w")
 install=""
@@ -51,8 +50,8 @@ fi
 # baseline recorded on an arm64 Mac would be judged against a rendering it
 # never saw. Naming the platform costs nothing on the runner (it is already
 # amd64) and makes an Apple-Silicon machine emulate rather than diverge —
-# which is what lets the images be *generated* anywhere. Verified 2026-08-16:
-# all 16 existing baselines reproduced byte-identically this way.
+# which is what lets the images be *generated* anywhere: the baselines
+# reproduce byte-identically this way.
 # The preview server's port is a *host* port (--network host), so two
 # worktrees recording or checking baselines at once collide on it — and
 # Playwright's message for that names the port and not the cause. The

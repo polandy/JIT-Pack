@@ -1,8 +1,7 @@
 # One image, both halves: the SPA is built here and served by the same process
 # that serves the API, so a JIT-Pack instance is a single container on a single
-# origin (ADR-043). The API sets no CORS headers on purpose, which used to make
-# a reverse proxy a hard requirement; it is now satisfied by there being only
-# one server.
+# origin (ADR-043). The API sets no CORS headers on purpose; there being only
+# one server is what lets it go without them and without a reverse proxy.
 #
 # Base images are pinned by digest (supply-chain hardening); the tag is kept
 # for readability. Dependabot (docker ecosystem) updates the digest.

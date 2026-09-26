@@ -192,8 +192,7 @@ func (r *MergeResult) drop(field string, losing, winning any) {
 // in how it was carried is not a difference.
 //
 // Anything neither numeric, textual nor null is reported as different, so an
-// unforeseen shape keeps the old behaviour of logging a conflict rather than
-// silently swallowing one.
+// unforeseen shape logs a conflict rather than silently swallowing one.
 func sameValue(a, b any) bool {
 	if na, aNum := asNumber(a); aNum {
 		nb, bNum := asNumber(b)

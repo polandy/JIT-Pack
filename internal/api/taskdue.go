@@ -16,7 +16,7 @@ import (
 )
 
 // DefaultTaskReminderAt is when the reminder runs unless the operator says
-// otherwise: 06:00, before the day's plans are made (owner, 2026-09-25).
+// otherwise: 06:00, before the day's plans are made.
 const DefaultTaskReminderAt = 6 * time.Hour
 
 // dayLayout is a calendar day as comments.due_date stores it.

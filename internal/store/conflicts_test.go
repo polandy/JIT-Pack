@@ -161,7 +161,7 @@ func TestListMasterConflicts_HidesEntitiesTheUserCannotSee(t *testing.T) {
 	mustExec(t, s, `INSERT INTO trip_members (trip_id, user_id, role) VALUES (?, ?, 'owner')`, testTrip, testUser)
 
 	// A conflict on the trip row itself: `trips` lives in the master
-	// partition, so this is the case the gap was found on.
+	// partition, so this is the case the gap shows on.
 	applyMaster(t, s, testUser, masterMut(sync.OpUpsert, TableTrips, testTrip, "mv-1",
 		map[string]any{"name": "Samedan 2026"}, "0000000002000-0000-bbbbbbbb"))
 	applyMaster(t, s, testUser, masterMut(sync.OpUpsert, TableTrips, testTrip, "mv-2",
@@ -254,9 +254,8 @@ func TestApplyMutation_UnchangedFieldsFromJSON_LogNoConflict(t *testing.T) {
 	}
 }
 
-// Fund 27 of the 2026-08-22 bug review, observed on the :3000 instance: a
-// template was deleted and its `templates · name` entry stayed in the
-// master log. The entry is unreadable and unrevertable once the row is
+// A deleted template must not leave its `templates · name` entry listed in
+// the master log. The entry is unreadable and unrevertable once the row is
 // gone — the client has no name for it (it falls back to the bare kind)
 // and a revert answers `409 row_deleted` — so listing it offers a control
 // that cannot work. The row it names is what makes an entry an audit

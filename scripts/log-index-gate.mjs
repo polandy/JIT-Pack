@@ -28,10 +28,9 @@ const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
  * that describe the file itself rather than being entries in it — the index
  * heading always counts as one.
  *
- * `e2e-tests.md` joined on 2026-09-03: it had grown 70 undated narrative
- * sections behind its status table with nothing naming them, which is the
- * failure this gate already existed for. Two documents rather than one is what
- * turned the hard-coded path into this list.
+ * `e2e-tests.md` is here because it grows undated narrative sections behind
+ * its status table, and without an index nothing names them — the failure this
+ * gate exists for.
  */
 const DOCUMENTS = [
   { path: 'dev-docs/implementation-log.md', preamble: ['What earns an entry'] },

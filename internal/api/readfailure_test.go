@@ -8,17 +8,17 @@ import (
 
 // A read that *fails* is not a read that found nothing.
 //
-// Three GETs collapsed every error into 404: a disk or database fault read
-// to the caller as "there is no photo here", "this user has no avatar",
-// "no such trip" — and to the operator as nothing at all, since the error
-// was not even logged. The distinction matters most for the two that serve
+// Three GETs must not collapse every error into 404: a disk or database
+// fault would read to the caller as "there is no photo here", "this user has
+// no avatar", "no such trip" — and to the operator as nothing at all, unless
+// the error is logged. The distinction matters most for the two that serve
 // the user's own content: a 404 invites the client to stop asking, and an
 // avatar that answers 404 while the database is unreachable is a client
 // that renders the fallback initials and never comes back.
 //
 // The seam is the database itself: closing the store mid-test makes every
 // query fail with something that is emphatically not `sql.ErrNoRows`, which
-// is the exact shape of the fault these handlers used to swallow.
+// is the exact shape of the fault these handlers must not swallow.
 
 func decodeErrorCode(t *testing.T, resp *http.Response) string {
 	t.Helper()

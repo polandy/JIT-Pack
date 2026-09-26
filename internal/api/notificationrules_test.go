@@ -172,7 +172,7 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			want:  nil,
 		},
 		{
-			// FR-7.9: trip-level and not a task is now a note, which
+			// FR-7.9: trip-level and not a task is a note, which
 			// broadcasts rather than scanning for @mentions — so a mention
 			// case has to anchor to a row to stay a mention case at all.
 			name:  "FR-6.2 a mention reaches the member it names",
@@ -487,7 +487,7 @@ func wantPayload(t *testing.T, got, want map[string]any) {
 // payload rides an OS notification, the deep link carries the rest.
 func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
 	body := strings.Repeat("ä", previewLen+10)
-	// FR-7.9: two members only — this is a note now (no trip_item_id), and
+	// FR-7.9: two members only — this is a note (no trip_item_id), and
 	// the broadcast would otherwise land one payload per other member.
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body})},

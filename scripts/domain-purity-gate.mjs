@@ -10,14 +10,13 @@
  * and it takes it away silently: the suite stays green until the day a spec
  * needs the DOM the import dragged in.
  *
- * **A type-only import counts.** The finding this gate was written for was
- * exactly that shape — `domain/portableImport.ts` named its mutation builders
- * as `ReturnType<typeof useMutations>`, reaching up into `composables/` for a
- * type. It compiled to nothing and cost no runtime dependency, which is why it
- * survived a review pass and a purity claim in the same document; what it did
- * cost was the sentence "domain imports nothing above it", which was no longer
- * true and therefore no longer load-bearing. The factory it named is Vue-free
- * and now lives in `client/src/sync/mutations.ts`.
+ * **A type-only import counts.** Naming mutation builders as
+ * `ReturnType<typeof useMutations>` reaches up into `composables/` for a type.
+ * It compiles to nothing and costs no runtime dependency, which is why it
+ * survives a review pass and a purity claim in the same document; what it
+ * does cost is the sentence "domain imports nothing above it", which stops
+ * being true and therefore load-bearing. The mutation factory is Vue-free and
+ * lives in `client/src/sync/mutations.ts`.
  *
  * Node built-ins only, so it needs no install; wired into `make client` and the
  * CI client job beside the other node gates.

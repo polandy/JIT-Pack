@@ -3,8 +3,8 @@
 // It is the single declaration of the sync envelopes, the WebSocket frame and
 // the error vocabulary; `make wire` regenerates client/src/api/types.ts
 // from it, and the CI gate fails the build when the two drift apart. Adding a
-// field here and forgetting the client is therefore no longer possible — which
-// is the defect class this file exists to close (ADR-026).
+// field here and forgetting the client is therefore not possible — which is
+// the defect class this file exists to close (ADR-026).
 //
 // Prose about *why* the protocol behaves as it does stays in
 // dev-docs/Sync_API_Spec_v1.3.md; what lives here is the shape.
@@ -65,9 +65,9 @@ type PushRequest struct {
 }
 
 // MutationOutcome is the server's answer for a single mutation. The wire key
-// carrying it is `outcome`, never `status`: the client once read `status`,
-// which no response has ever contained, so every rejection read as undefined
-// and was dropped instead of parked.
+// carrying it is `outcome`, never `status`: a client reading `status`, which
+// no response contains, sees every rejection as undefined and drops it
+// instead of parking it.
 type MutationOutcome string
 
 // The four outcomes a mutation can have. They are string literals and must

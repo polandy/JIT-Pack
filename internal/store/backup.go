@@ -20,9 +20,8 @@ type FullExport struct {
 
 // ExportFull collects all rows visible to userID, table by table. Which
 // query answers for a table is the table's own `export` rule in tables.go:
-// a backup is a promise about everything the caller can see, and the list
-// this used to keep separately had silently fallen two tables behind the
-// feed it mirrors.
+// a backup is a promise about everything the caller can see, and a list
+// kept separately silently falls behind the feed it mirrors.
 func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, error) {
 	export := FullExport{
 		Version:    1,

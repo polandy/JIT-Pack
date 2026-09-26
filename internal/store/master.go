@@ -110,8 +110,8 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		return ReasonNone, nil
 
 	case TableTemplates:
-		// Shared instance-wide like master items (FR-1.6 MVP simplification,
-		// 2026-08-08): everyone edits every template. owner_id is stamped
+		// Shared instance-wide like master items (FR-1.6 MVP simplification):
+		// everyone edits every template. owner_id is stamped
 		// once as creator metadata and never rewritten afterwards — an
 		// editor is not an owner, and the FR-1.6 stub needs the creator back
 		// if the parked ownership model returns.
@@ -338,7 +338,7 @@ func owned(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map[s
 // retireInstead turns a delete FR-24.3 will not perform into the write that
 // records the decision behind it: the row survives, the marker is stamped,
 // and the mutation keeps its own id and clock so the merge treats it as the
-// ordinary single-field write it now is.
+// ordinary single-field write it has become.
 func retireInstead(m sync.Mutation, at string) sync.Mutation {
 	m.Op = sync.OpUpsert
 	m.Fields = map[string]any{RetiredColumn: at}

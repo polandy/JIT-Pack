@@ -1,18 +1,13 @@
 // Package store — partition.go holds the one push pipeline both sync
 // partitions run, and the value that says which partition is running it.
 //
-// The trip and master paths were written out twice (Sync-API §5). They ran
-// the same twelve steps — validate, transaction, idempotency memo, load,
-// scope, merge, reference check, cascade collection, persist,
-// change_log + tombstones, conflict_log, memo + commit — and their four
-// real differences were spread through two copies rather than named
-// anywhere. The cost was paid twice already: ADR-031's re-log and FR-24.3's
-// retire-instead each had to be remembered in the other file, and "where
-// does a rejection get re-logged" had two answers.
-//
-// The partition also used to travel as `tripID any` — a string for the trip
-// feed, nil for the master one — through five helpers. That `any` was this
-// type, unwritten.
+// The trip and master paths (Sync-API §5) run the same twelve steps —
+// validate, transaction, idempotency memo, load, scope, merge, reference
+// check, cascade collection, persist, change_log + tombstones, conflict_log,
+// memo + commit — and their four real differences are named here rather than
+// spread through two copies, so a rule such as ADR-031's re-log or FR-24.3's
+// retire-instead is written once, and "where does a rejection get re-logged"
+// has one answer.
 package store
 
 import (
@@ -27,9 +22,8 @@ import (
 // the instance-wide master one (Sync-API §4).
 //
 // It wraps the nullable `trip_id` those two log tables carry, so the nil is
-// the column's rather than a missing argument: this value used to travel as
-// a bare `any` through five helpers, where "which partition" and "no value"
-// looked the same.
+// the column's rather than a missing argument: as a bare `any`, "which
+// partition" and "no value" would look the same.
 type feed struct{ tripID any }
 
 // tripFeed is one trip's change feed.

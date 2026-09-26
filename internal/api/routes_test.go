@@ -15,11 +15,10 @@ import (
 	"jitpack/internal/api"
 )
 
-// NFR-4.14 closed its last half here: a path used to be written twice — once as
-// a literal in the mux and once in the client — and agreed by two test tables.
-// wire.go now declares it once, the server registers from that declaration and
-// cmd/wiregen writes the client's builders from it (ADR-027's second revisit
-// trigger, fired). These tests hold the Go half of that: every declared route
+// NFR-4.14 for routes: a path is not written twice — once as a literal in the
+// mux and once in the client. wire.go declares it once, the server registers
+// from that declaration and cmd/wiregen writes the client's builders from it
+// (ADR-027). These tests hold the Go half of that: every declared route
 // is registered, no route is registered from anywhere else, and a placeholder
 // is a name a handler can actually read back.
 

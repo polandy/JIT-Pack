@@ -7,8 +7,7 @@
  * .toHaveCount(0)` against an id `client/src` has never contained is green
  * today, was green before the change it was written for, and stays green
  * after the control it names is added — false-green by construction, which is
- * the shape CLAUDE.md's testing rules name outright. This gate found exactly
- * one when it was written (`filter-apply`, packing-list.spec.ts).
+ * the shape CLAUDE.md's testing rules name outright.
  *
  * **What counts as declared, and why it is a substring test.** An id reaches
  * the DOM three ways in this client: as a `data-testid` attribute, as a
@@ -25,8 +24,7 @@
  * `import-file-input` is known by the suffix. A template whose id is entirely
  * interpolated would constrain nothing — none exists, and the gate says so
  * rather than silently accepting everything, because a single empty prefix
- * makes `startsWith` true for every id and the whole gate vacuous. That was
- * the first version's actual bug.
+ * makes `startsWith` true for every id and the whole gate vacuous.
  *
  * Node built-ins only; wired into `make ci` and the CI client job beside the
  * other node gates.
@@ -51,10 +49,10 @@ const NOT_THE_APPS = {
 /**
  * Strips comments, because the gate measures code and not prose. Without it
  * the gate reads its own explanation of a removed id and reports the id as
- * still in use — which is exactly how the first run after the fix failed.
+ * still in use.
  *
- * Line-based on purpose. A regex for `/* … *\/` looked obviously right and
- * silently ate 15 KB out of a single-file component, taking twenty real ids
+ * Line-based on purpose. A regex for `/* … *\/` looks obviously right and
+ * silently eats kilobytes out of a single-file component, taking real ids
  * with it: a Vue SFC is three languages, and a cross-line pattern cannot tell
  * a comment from the same characters inside a template or a style block. A
  * line whose first non-space characters open a comment is one; nothing else

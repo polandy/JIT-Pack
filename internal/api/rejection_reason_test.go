@@ -8,18 +8,18 @@ import (
 	"jitpack/internal/store"
 )
 
-// Sync-API §5 declares an `error` beside a `rejected` outcome, and until
-// this test it was written only for the two validation errors raised before
-// the store is reached. Every refusal the store itself makes — authorization,
-// a constraint, a delete the data still depends on — arrived as a bare
-// `rejected`, so the client parked the mutation with nothing to tell anyone.
+// Sync-API §5 declares an `error` beside a `rejected` outcome, and it is
+// owed not only for the two validation errors raised before the store is
+// reached. Every refusal the store itself makes — authorization, a
+// constraint, a delete the data still depends on — carries it too: a bare
+// `rejected` leaves the client parking the mutation with nothing to tell anyone.
 //
 // The motivating case is a series a trip still names: `trips.series_id` has
 // no ON DELETE clause on purpose. The user deletes the series, the client
 // removes it optimistically, the server keeps it, and the two diverge for
-// good — which nothing on screen could say while the refusal was wordless.
-// (Master items and Vorlagen used to answer here too; FR-24.3 moved them onto
-// the retire branch, where the delete succeeds as a tombstone marker.)
+// good — which nothing on screen could say were the refusal wordless.
+// (Master items and Vorlagen do not answer here: FR-24.3 puts them on the
+// retire branch, where the delete succeeds as a tombstone marker.)
 func TestPush_RefusingToDeleteAReferencedSeries_NamesTheReason(t *testing.T) {
 	srv, st := newTestServerWithStore(t)
 	if _, err := st.DB().Exec(

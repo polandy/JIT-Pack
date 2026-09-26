@@ -229,14 +229,13 @@ func TestApplyMasterMutation_ReplayingARefusedMutation_ReLogsNothingFurther(t *t
 	}
 }
 
-// Rendering the repair is what found this one. The client mirrors the
-// server's cascade when it deletes a template — the positions go with it,
-// optimistically — so re-logging the template alone put the Vorlage back on
-// screen with none of its contents. The repair has to carry back everything
-// the delete took, not only the row the mutation named. Since FR-24.3 the
-// delete this Vorlage meets is a *retire* rather than a refusal, and the
-// same debt is owed: a row that survives a delete the client already drew
-// has to bring its children with it.
+// The client mirrors the server's cascade when it deletes a template — the
+// positions go with it, optimistically — so re-logging the template alone
+// would put the Vorlage back on screen with none of its contents. The repair
+// has to carry back everything the delete took, not only the row the mutation
+// named. Under FR-24.3 the delete this Vorlage meets is a *retire* rather than
+// a refusal, and the same debt is owed: a row that survives a delete the
+// client already drew has to bring its children with it.
 func TestPullMaster_AfterARetire_OffersTheChildrenTheClientMirroredAway(t *testing.T) {
 	s := openTestStore(t)
 

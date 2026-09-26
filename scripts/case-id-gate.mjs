@@ -1,32 +1,30 @@
 /**
  * Holds every E2E case id in the UI-Test-Spec to one meaning.
  *
- * Found 2026-08-30 auditing M5 (backlog item 6): six of its ids were each
- * *defined twice*, carrying one promise from the original v1.0 catalogue and
- * a different one from the §3.25 rebuild. The suite implements one meaning
- * per number, so four **green** tests read as coverage of four promises
- * nothing asserted, and the traceability matrix pointed seven FRs at the
- * half nobody could see.
+ * An id *defined twice* — one promise from an original catalogue, a different
+ * one from a rebuild — breaks traceability silently. The suite implements one
+ * meaning per number, so a **green** test reads as coverage of a promise
+ * nothing asserts, and the traceability matrix points FRs at the half nobody
+ * can see.
  *
- * Nothing could have caught it by eye. Both commits that caused it are pure
- * additions to a long bulleted list — one of them defined the same id twice
- * inside a single commit — and every automatic signal moved the *reassuring*
- * way: the count of ids with a test went up each time. It is the shape a
- * checklist is worst at and a script is best at.
+ * Nothing catches it by eye. The commits that cause it are pure additions to
+ * a long bulleted list — the same id can be defined twice inside a single
+ * commit — and every automatic signal moves the *reassuring* way: the count of
+ * ids with a test goes up each time. It is the shape a checklist is worst at
+ * and a script is best at.
  *
  * The rule: a case id is defined by exactly one bullet. A retired entry stays
  * in the file struck through — that is deliberate, so a reader arriving from
  * an old commit finds out what happened to the id it names — but it stays as
  * the *same* entry, re-headed, never as a second definition of the number.
  *
- * **Two things it did not see until T-4 (design review 2026-09-02).** The spec
- * defines its cross-screen cases as *table rows* (§4's G-*, §6's NFR-*) and the
- * gate read only bullets, so 87 ids were outside it — a duplicate among them,
- * or between a row and a bullet, was invisible. And nothing compared the spec
- * against the suite at all: an id in a test title is a coverage claim, and six
- * of them named no entry in the spec. Both are checked here now; the second is
- * why a heading may name several ids (`E2E-M17-07/07b`), which is how the file
- * already writes an entry that defines a case and its sibling.
+ * **Table rows and the suite count too (T-4).** The spec defines its
+ * cross-screen cases as *table rows* (§4's G-*, §6's NFR-*), so a gate reading
+ * only bullets would leave those ids outside it — a duplicate among them, or
+ * between a row and a bullet, invisible. And an id in a test title is a
+ * coverage claim, so it must name an entry in the spec. Both are checked here;
+ * the second is why a heading may name several ids (`E2E-M17-07/07b`), which
+ * is how the file writes an entry that defines a case and its sibling.
  *
  * Node built-ins only, so it needs no install; wired into `make ci` beside
  * the other node gates.

@@ -37,15 +37,14 @@ const localSingleUserDefaultName = "Demo User"
 // EnsureLocalSingleUserID seeds the implicit local user under a caller-
 // supplied id (Addendum FR-17.2). The single-user server attributes every
 // request to JITPACK_LOCAL_USER_ID, so that exact row must exist or
-// owner_id foreign keys (trips, memberships) reject on first write. Unlike
-// EnsureLocalSingleUser, which mints its own id, this honours the operator's
-// configured id. Idempotent: an existing row (by id) is left untouched, so a
-// display name the user later changed is preserved across restarts.
+// owner_id foreign keys (trips, memberships) reject on first write. It
+// honours the operator's configured id. Idempotent: an existing row (by id)
+// is left untouched, so a display name the user later changed is preserved
+// across restarts.
 //
-// This is the only way the row comes into being. A second constructor that
-// minted its own id existed until 2026-09-04 (G-10) and had no production
-// caller: an id the operator did not configure is an id no request is ever
-// attributed to.
+// This is the only way the row comes into being, and nothing mints an id of
+// its own (G-10): an id the operator did not configure is an id no request is
+// ever attributed to.
 func (s *Store) EnsureLocalSingleUserID(ctx context.Context, id string) error {
 	if _, err := s.db.ExecContext(ctx,
 		`INSERT INTO users (id, is_local_singleuser, display_name)

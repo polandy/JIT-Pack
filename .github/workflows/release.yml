@@ -4,13 +4,10 @@
 #
 # The version it releases from is `.release-please-manifest.json`, stated in
 # the repository rather than derived from the tags, and release-please keeps it
-# up to date itself. The reason is no longer that the tags are broken: the
-# history was re-created on 2026-07-11 and all fifteen release tags stayed on
-# the old line, which is how release-please came to propose `0.2.0` against a
-# running `v0.9.0` — and on 2026-09-13 all fifteen were re-pointed onto `main`
-# by hand, matched by tree identity. The reason is what that episode showed:
-# **a tag is a movable label, and the repository had no other record of which
-# version it had released.** The manifest is that record, and it cannot be
+# up to date itself, because **a tag is a movable label**: when history is
+# re-created, the tags stay on a line `main` does not contain, and
+# release-please derives a version from the wrong baseline. The manifest is the
+# repository's record of which version it has released, and it cannot be
 # silently invalidated by a force-push.
 #
 # It authenticates with a PAT (secrets.RELEASE_PLEASE_TOKEN) so the release
@@ -37,6 +34,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         with:
-          # No `release-type` input: it belongs to the config file now, and the
+          # No `release-type` input: it belongs to the config file, and the
           # two together are one place too many for the same decision.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}

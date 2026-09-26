@@ -186,7 +186,7 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 			t.Errorf("%s: want one of each day, have %v", kind, days)
 		}
 	}
-	// Overdue: no repeat reminder (owner, 2026-09-25).
+	// Overdue: no repeat reminder.
 	clock = clock.Add(24 * time.Hour)
 	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 4 {
 		t.Fatal("an overdue task or purchase was reminded again")

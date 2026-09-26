@@ -29,9 +29,9 @@ type wsWriter interface {
 // shallow enough that a dead peer costs a bounded amount of memory.
 const wsSendQueue = 64
 
-// wsWriteTimeout bounds one write to one peer. It no longer delays anybody
-// else, so it is a reaper for a socket the kernel has stopped draining
-// rather than the pacing of the broadcast.
+// wsWriteTimeout bounds one write to one peer. It delays nobody else, so it
+// is a reaper for a socket the kernel has stopped draining rather than the
+// pacing of the broadcast.
 const wsWriteTimeout = 5 * time.Second
 
 // conn is a tracked WebSocket connection.
@@ -444,7 +444,7 @@ func (c *conn) drop() {
 }
 
 // pump is the only writer to this peer, which is what keeps its events in
-// order now that they are queued rather than written where they arise.
+// order while they are queued rather than written where they arise.
 func (c *conn) pump() {
 	for {
 		select {

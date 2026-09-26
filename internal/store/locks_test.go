@@ -42,8 +42,8 @@ func TestTakeOverClaim_MovesTheClaimToTheTaker(t *testing.T) {
 	// …and in *this trip's* feed. A non-zero seq alone does not say that:
 	// change_log is one table for both partitions, so an entry written to
 	// the master feed by mistake still yields a seq, and the takeover would
-	// then reach nobody in the trip. Found 2026-09-03 by mutating the feed
-	// argument, which turned nothing red (G-1).
+	// then reach nobody in the trip. This is what turns a mutated feed
+	// argument red (G-1).
 	page, err := s.Pull(ctx, testTrip, 0, 100)
 	if err != nil {
 		t.Fatalf("Pull: %v", err)

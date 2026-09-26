@@ -8,16 +8,15 @@ import (
 )
 
 // The push response is the one envelope two codebases have to agree on, and
-// they disagreed for months: the server has always written `outcome`, while
-// the TypeScript type said `status`. Nothing caught it, because each side
-// tested against its own idea of the shape — the client's fakes answered
-// `status` too, so its rejection handling looked covered and had in fact
-// never once run against a real response.
+// each side testing against its own idea of the shape cannot see them
+// disagree: a client whose fakes answer a key the server never writes has
+// rejection handling that looks covered and never runs against a real
+// response.
 //
 // testdata/push_response.json is the shared answer. This test holds the
 // server's marshalling to it; client/src/composables/__tests__/
 // pushContract.spec.ts feeds the very same file through the client. A key
-// renamed on either side now fails on that side.
+// renamed on either side fails on that side.
 func TestPushResponse_MatchesTheSharedWireFixture(t *testing.T) {
 	var resp PushResponse
 	resp.Results = []MutationResult{
