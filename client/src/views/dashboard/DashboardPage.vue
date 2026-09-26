@@ -49,7 +49,7 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
-import { byDepartureSoonestFirst, isActive, localIsoDate } from '@/domain/trips'
+import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { dueExcursions } from '@/domain/excursions'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
@@ -333,7 +333,7 @@ const excursionsDue = computed(() =>
         excursions: tripStore.getExcursions(trip.id),
         lines: tripStore.getExcursionItems(trip.id),
       })),
-    localIsoDate(Date.now()),
+    orchestrator.today(),
   ),
 )
 
