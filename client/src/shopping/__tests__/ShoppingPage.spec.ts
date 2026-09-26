@@ -155,11 +155,9 @@ beforeEach(() => {
 })
 
 describe('M6 — the list’s own entries (FR-30.1)', () => {
-  it('adds what was typed to the open tab’s list, as a shopping entry, and clears the field', async () => {
+  it('adds what was typed to the list its chip names, as a shopping entry, and clears the field', async () => {
     const page = mountPage()
-    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-      detail: { value: 'buy_local' },
-    })
+    await page.find('[data-testid="m6-list-local"]').trigger('click')
 
     const input = page.findComponent(IonInput)
     await input.setValue('  Milch  ')
@@ -215,11 +213,17 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     expect(page.findAll('[data-testid="m6-row"]').map((r) => r.find('h3').text())).toEqual(['Brot'])
   })
 
-  it('removes an entry as a delete of its own row', async () => {
+  /*
+   * The row carries no ✕ (owner, 2026-09-26 — M25's rows carry none): an
+   * entry is removed from its sheet, as a task is from its own.
+   */
+  it('removes an entry from its sheet, as a delete of its own row', async () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
+    expect(page.find('[data-testid="m6-row"] ion-button').exists()).toBe(false)
 
-    await page.find('[data-testid="m6-row-remove"]').trigger('click')
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    await page.find('[data-testid="m6-entry-remove"]').trigger('click')
 
     expect(written.at(-1)).toMatchObject({ op: 'delete', table: 'shopping_entries', id: 'e1' })
     expect(page.find('[data-testid="m6-row"]').exists()).toBe(false)
@@ -235,13 +239,17 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     ])
   })
 
-  it('keeps each list’s entries on their own tab', () => {
+  it('shows both lists one under the other, each entry under its own', () => {
     seedEntry('e1', { name: 'Brot', list: 'buy_local' })
+    seedEntry('e2', { name: 'Milch' })
     const page = mountPage()
-    expect(page.find('[data-testid="m6-row"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(
-      t('shopping.atDestinationCount', { n: 1 }),
-    )
+    const names = (testid: string) =>
+      page
+        .get(`[data-testid="${testid}"]`)
+        .findAll('[data-testid="m6-row"] h3')
+        .map((h) => h.text())
+    expect(names('m6-before')).toEqual(['Milch'])
+    expect(names('m6-local')).toEqual(['Brot'])
   })
 })
 
@@ -302,22 +310,23 @@ describe('M6 — lines from a source (FR-30.2)', () => {
     )
   })
 
-  it('the tabs count own entries and source lines alike', () => {
+  it('each list’s head counts own entries and source lines alike', () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage([source({ buy_before: [line()], buy_local: [line({ name: 'Wein' })] })])
-    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(
-      t('shopping.beforeDepartureCount', { n: 2 }),
+    expect(page.get('[data-testid="m6-before"] .section-head').text()).toContain(
+      t('shopping.openCount', { n: 2 }),
     )
-    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(
-      t('shopping.atDestinationCount', { n: 1 }),
+    expect(page.get('[data-testid="m6-local"] .section-head').text()).toContain(
+      t('shopping.openCount', { n: 1 }),
     )
   })
 })
 
 /*
- * FR-7.12: once the packing is finished, *before departure* is over. The tab
- * is still there — it is the record of what was bought before the trip — but
- * nothing new lands on it and nothing bought is put back onto it.
+ * FR-7.12: once the packing is finished, *before departure* is over. The list
+ * is still there — the record of what was bought before the trip — folded at
+ * the end of the screen as M25 folds its *before*; nothing new lands on it
+ * and nothing bought is put back onto it.
  */
 describe('M6 — before departure is closed once the packing is finished (FR-7.12)', () => {
   function seedTrip(row: Record<string, unknown>) {
@@ -330,50 +339,45 @@ describe('M6 — before departure is closed once the packing is finished (FR-7.1
     })
   }
 
-  async function showBefore(page: ReturnType<typeof mountPage>) {
-    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-      detail: { value: 'buy_before' },
-    })
-    await flushPromises()
-  }
-
-  it('keeps the tab as a record: a hint for the field, no ＋, no purchase put back', async () => {
+  it('folds the list away as a record: its lock said inside, no purchase put back', async () => {
     seedTrip({ packing_closed_at: '2026-07-08T06:00:00.000Z' })
     const bought = line({ name: 'Sonnenhut' })
     const page = mountPage([source({}, { buy_before: [bought] })])
     await flushPromises()
-    await showBefore(page)
+
+    const fold = page.get('[data-testid="m6-before-fold"]')
+    expect(fold.text()).toBe(t('shopping.beforeHistory', { n: 1 }))
+    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(false)
+    await fold.trigger('click')
 
     expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(false)
-    // Nothing is open here, and the empty state's „add it above" would
-    // contradict the lock.
-    expect(page.find('[data-testid="m6-empty"]').exists()).toBe(false)
-
-    await page.get('[data-testid="m6-bought-bar"]').trigger('click')
-    const tick = page.get('[data-testid="m6-bought-row"] ion-checkbox')
+    const history = page.get('[data-testid="m6-before-history"]')
+    await history.get('[data-testid="m6-bought-bar"]').trigger('click')
+    const tick = history.get('[data-testid="m6-bought-row"] ion-checkbox')
     expect((tick.element as HTMLInputElement).disabled).toBe(true)
   })
 
-  it('leaves the list at the destination as it is', async () => {
+  it('writes what is typed for the destination, and offers no list to choose', async () => {
     seedTrip({ packing_closed_at: '2026-07-08T06:00:00.000Z' })
     const page = mountPage()
     await flushPromises()
 
-    expect(page.findComponent({ name: 'IonSegment' }).props('value')).toBe('buy_local')
-    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-composer-list"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(true)
+    await page.findComponent(IonInput).setValue('Brot')
+    await page.find('[data-testid="m6-add"]').trigger('submit')
+    expect(written.at(-1)).toMatchObject({ op: 'insert', fields: { list: 'buy_local' } })
   })
 
   it('is open while the packing is', async () => {
     seedTrip({ status: 'planning' })
+    seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
     await flushPromises()
-    await showBefore(page)
 
-    expect(page.find('[data-testid="m6-before-locked"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-before-fold"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-before"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-composer-list"]').exists()).toBe(true)
   })
 })
 
@@ -391,7 +395,8 @@ describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
     ])
 
     const bar = page.find('[data-testid="m6-bought-bar"]')
-    expect(bar.text()).toBe(t('shopping.showBought', { n: 1 }))
+    expect(bar.text()).toBe(t('shopping.boughtFold', { n: 1 }))
+    expect(bar.attributes('aria-expanded')).toBe('false')
     expect(page.find('[data-testid="m6-bought-list"]').exists()).toBe(false)
 
     await bar.trigger('click')
@@ -399,9 +404,7 @@ describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
     const rows = page.findAll('[data-testid="m6-bought-row"]')
     expect(rows).toHaveLength(1)
     expect(rows[0]?.find('[data-testid="m6-bought-note"]').text()).toBe(t('shopping.wentToPacking'))
-    expect(page.find('[data-testid="m6-bought-bar"]').text()).toBe(
-      t('shopping.hideBought', { n: 1 }),
-    )
+    expect(page.find('[data-testid="m6-bought-bar"]').attributes('aria-expanded')).toBe('true')
 
     await rows[0]!.find('ion-checkbox').trigger('ionChange')
     expect(bought.unbuy).toHaveBeenCalledTimes(1)
@@ -505,40 +508,20 @@ describe('M6 — an absence it has not read yet (ADR-033, G-7)', () => {
 
     expect(page.find('[data-testid="m6-list-loading"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-empty"]').exists()).toBe(true)
-    expect(page.text()).toContain(t('shopping.emptyBefore'))
-  })
-
-  it('names its segments without a count until the list is on the device', async () => {
-    tripScreen.loadedTrips.clear()
-
-    const page = mountPage()
-    await flushPromises()
-
-    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(t('shopping.beforeDeparture'))
-    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(t('shopping.atDestination'))
-
-    tripScreen.loadedTrips.add('t1')
-    await flushPromises()
-
-    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(
-      t('shopping.beforeDepartureCount', { n: 0 }),
-    )
-    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(
-      t('shopping.atDestinationCount', { n: 0 }),
-    )
+    expect(page.text()).toContain(t('shopping.emptyAll'))
   })
 })
 
 /**
- * FR-30.8 — which list M6 opens on.
+ * FR-30.8 — the list that is now, as the composer's default.
  *
- * „Vor der Abreise" is the right answer only while departure is ahead. The
- * rule itself is pinned in `list.spec.ts`; what is pinned here is that the
- * screen *asks* it — and that it waits for the trip before doing so, since a
- * rule read off an absent trip would open a planned trip at the destination
- * and then move the tab under the reader (ADR-033's reasoning).
+ * With both lists on one screen there is no tab to open on; what FR-30.8's
+ * rule still decides is whether a new entry may be for *before departure* at
+ * all. The rule itself is pinned in `list.spec.ts`; what is pinned here is
+ * that the composer asks it — and that it waits for the trip, since a rule
+ * read off an absent trip would take *before* away and then give it back.
  */
-describe('M6 — the list that is now (FR-30.8)', () => {
+describe('M6 — the list a new entry goes on (FR-30.8)', () => {
   function seedTrip(row: Record<string, unknown>) {
     useTripStore().applyChange({
       seq: 0,
@@ -549,53 +532,42 @@ describe('M6 — the list that is now (FR-30.8)', () => {
     })
   }
 
-  const openTab = (page: ReturnType<typeof mountPage>) =>
-    page.findComponent({ name: 'IonSegment' }).props('value')
+  const listChips = (page: ReturnType<typeof mountPage>) =>
+    page.find('[data-testid="m6-composer-list"]')
 
-  it('opens a planned trip on the list before departure', async () => {
+  it('offers both lists on a planned trip, before departure chosen', async () => {
     seedTrip({ status: 'planning' })
-
     const page = mountPage()
     await flushPromises()
 
-    expect(openTab(page)).toBe('buy_before')
+    expect(listChips(page).exists()).toBe(true)
+    expect(page.get('[data-testid="m6-list-before"]').attributes('aria-pressed')).toBe('true')
   })
 
-  it('opens a running trip at the destination', async () => {
+  it('writes for the destination on a running trip, with no list to choose', async () => {
     seedTrip({ status: 'active' })
-
     const page = mountPage()
     await flushPromises()
 
-    expect(openTab(page)).toBe('buy_local')
+    expect(listChips(page).exists()).toBe(false)
+    await page.findComponent(IonInput).setValue('Brot')
+    await page.find('[data-testid="m6-add"]').trigger('submit')
+    expect(written.at(-1)).toMatchObject({ op: 'insert', fields: { list: 'buy_local' } })
   })
 
-  it('opens a planned trip at the destination once its packing is finished (FR-5.10)', async () => {
+  it('writes for the destination once a planned trip’s packing is finished (FR-5.10)', async () => {
     seedTrip({ status: 'planning', packing_closed_at: '2026-09-20T18:40:00.000Z' })
-
     const page = mountPage()
     await flushPromises()
 
-    expect(openTab(page)).toBe('buy_local')
+    expect(listChips(page).exists()).toBe(false)
   })
 
-  it('keeps the tab the reader picked', async () => {
-    seedTrip({ status: 'active' })
-
-    const page = mountPage()
-    await flushPromises()
-    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-      detail: { value: 'buy_before' },
-    })
-
-    expect(openTab(page)).toBe('buy_before')
-  })
-
-  it('stays on the list before departure while the trip itself is not here yet', async () => {
+  it('offers before departure while the trip itself is not here yet', async () => {
     const page = mountPage()
     await flushPromises()
 
-    expect(openTab(page)).toBe('buy_before')
+    expect(listChips(page).exists()).toBe(true)
   })
 })
 
@@ -715,7 +687,8 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     await search(page, 'Laden')
     await page.find('[data-testid="m6-tag-create"]').trigger('click')
     await confirm(page).trigger('click')
-    await page.find('[data-testid="m6-row-remove"]').trigger('click')
+    await page.find('[data-testid="m6-row-label"]').trigger('click')
+    await page.find('[data-testid="m6-entry-remove"]').trigger('click')
 
     const chip = () => page.find('[data-testid="m6-tag-chip"]')
     expect(chip().text()).toBe('Laden')
@@ -862,14 +835,15 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(ownOnly.find('[data-testid="m6-drag-hint"]').exists()).toBe(false)
   })
 
-  it('puts the check-off at the end of the row, after the remove control', () => {
-    seedEntry('e1', { name: 'Brot' })
+  it('puts the check-off alone at the end of the row, the due pill under the name', () => {
+    seedEntry('e1', { name: 'Brot', due_date: '2026-07-20' })
     const page = mountPage()
-    const slots = page
-      .find('[data-testid="m6-row"]')
-      .findAll('[slot="end"]')
-      .map((el) => el.element.tagName.toLowerCase())
-    expect(slots).toEqual(['ion-button', 'ion-checkbox'])
+    const row = page.get('[data-testid="m6-row"]')
+    const slots = row.findAll('[slot="end"]').map((el) => el.element.tagName.toLowerCase())
+    expect(slots).toEqual(['ion-checkbox'])
+    expect(
+      row.get('[data-testid="m6-row-facts-Brot"]').find('[data-testid="m6-row-due-Brot"]').exists(),
+    ).toBe(true)
     // FR-30.9's single-row drag: the leading slot is the grip, not selecting.
     const grip = page.find('[data-testid="m6-row-grip-Brot"]')
     expect(grip.exists()).toBe(true)
@@ -1067,19 +1041,35 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
   const labels = (page: ReturnType<typeof mountPage>) =>
     page.findAll('[data-testid="m6-row-label"] h3').map((h) => h.text())
 
-  it('wears the pill, leads its tag, and moves its tag above the others', () => {
+  /*
+   * M25's *Fällig* block (owner, 2026-09-26): what is overdue, due today or
+   * in the next two days leads, across both lists, named by its tag since it
+   * stands outside its group — and leaves that group while it is there.
+   */
+  it('leads with what is due now across both lists, out of its group and named by its tag', () => {
     // STUB_TODAY is 2026-07-08.
     seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
     seedEntry('e2', { name: 'Kerzen', tag: 'Supermarkt', due_date: '2026-07-20' })
     seedEntry('e3', { name: 'Spray', tag: 'Apotheke', due_date: '2026-07-07' })
     seedEntry('e4', { name: 'Pflaster', tag: 'Apotheke' })
-    seedEntry('e5', { name: 'Wasser', tag: null })
+    seedEntry('e5', { name: 'Wasser', tag: null, list: 'buy_local', due_date: '2026-07-09' })
     const page = mountPage()
 
-    expect(labels(page)).toEqual(['Spray', 'Pflaster', 'Kerzen', 'Brot', 'Wasser'])
+    const due = page.get('[data-testid="m6-due"]')
+    expect(due.findAll('[data-testid="m6-row"] h3').map((h) => h.text())).toEqual([
+      'Spray',
+      'Wasser',
+    ])
+    expect(due.get('[data-testid="m6-row-tag-Spray"]').text()).toBe('Apotheke')
+    expect(due.get('[data-testid="m6-row-tag-Wasser"]').text()).toBe(t('shopping.ownEntries'))
+    expect(labels(page)).toEqual(['Spray', 'Wasser', 'Pflaster', 'Kerzen', 'Brot'])
+    expect(page.get('[data-testid="m6-group-tag-Apotheke"]').text()).not.toContain('Spray')
+    // The list the block took it from counts only what stands under it.
+    expect(page.find('[data-testid="m6-local"] [data-testid="m6-list-empty"]').exists()).toBe(false)
     expect(page.get('[data-testid="m6-row-due-Spray"]').attributes('data-due')).toBe('overdue')
     expect(page.get('[data-testid="m6-row-due-Spray"]').text()).toBe(t('tasks.dueOverdue'))
     expect(page.get('[data-testid="m6-row-due-Kerzen"]').attributes('data-due')).toBe('later')
+    expect(page.find('[data-testid="m6-row-tag-Kerzen"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-row-due-Brot"]').exists()).toBe(false)
   })
 
@@ -1146,7 +1136,7 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     expect(composer().find('[data-testid="m6-composer-due-chips"]').exists()).toBe(false)
   })
 
-  it('offers no eve of departure on the tab bought on the road', async () => {
+  it('offers no eve of departure for the list bought on the road', async () => {
     useTripStore().applyChange({
       seq: 0,
       table: TABLE.trips,
@@ -1155,9 +1145,7 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
       row: { name: 'Samedan', year: 2026, status: 'planning', start_date: '2026-07-20' },
     })
     const page = mountPage()
-    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-      detail: { value: 'buy_local' },
-    })
+    await page.find('[data-testid="m6-list-local"]').trigger('click')
     const composer = page.get('[data-testid="m6-composer"]')
     await composer.findComponent(IonInput).setValue('Brot')
 

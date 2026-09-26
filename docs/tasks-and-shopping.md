@@ -8,12 +8,13 @@ and the same gestures file, move and tick off what is on it.
 **Aufgaben** reads top to bottom in the order you need it:
 
 - **The field on top** writes a new task. Under it, chips file the task as you type: **Vor der Reise** or
-  **Unterwegs**, one of your task tags (or **＋ Tag** to make a new one), and — once you have typed something — a day:
+  **Unterwegs**, one of your task tags, and — once you have typed something — a day:
   **Heute**, **Morgen**, **Vor Abreise** (the day before the trip starts, for a task before the trip) or **Datum…**
   for the calendar. The phase and the tag stay chosen for the next task, so an errand's tasks are typed one after
   another; the day does not. From the trip's first day on — or once you have finished packing — the phase chips
-  are gone and every new task is for the road. The orange **＋** at the bottom right takes you back to the field from anywhere on the
-  list.
+  are gone and every new task is for the road. **＋ Tag** opens the same sheet the shopping list uses: the words you
+  typed, the day, and a search field for your tags — pick one, or type a new name and tap **„…" neu anlegen** — then
+  **Hinzufügen**. The orange **＋** at the bottom right takes you back to the field from anywhere on the list.
 - **Fällig** comes next, when anything is pressing: every task that is overdue, due today or in the next two days,
   from both phases and every tag, earliest first. Each row names its tag underneath, since it is not under its heading
   while it is up here.
@@ -22,10 +23,28 @@ and the same gestures file, move and tick off what is on it.
   tasks fold away under one **N erledigt** line at the end of each phase.
 
 To change a task, tap its words. The sheet shows the words themselves, which you can correct in place; **Erledigt**
-as its main button (**Wieder öffnen** on a finished task); **Fällig** with the same day chips; the task's **Tag**; the
+as its main button (**Wieder öffnen** on a finished task); **Fällig** with the same day chips; the task's **Tag**
+(search or create one; the ✕ on the chosen tag takes it off); the
 button that moves it to the other phase; who wrote and finished it; and **Aufgabe entfernen**. A task has no ✕ on its
 line: remove it from this sheet, or select several and use **Löschen**. A task that belongs to a packing-list row is
 removed on that row.
+
+## The shopping list
+
+**Einkaufen** reads the way the task list does:
+
+- **The field on top** adds something to buy, with chips under it: **Vor der Abreise** or **Vor Ort** (only while
+  the trip is still being planned and packed — after that, everything new is for **Vor Ort**), your shopping tags
+  (**＋ Tag** opens the entry sheet), and — once you have typed something — a day, with the same chips as a task.
+- **Fällig** comes next, when anything is pressing: everything overdue, due today or in the next two days, from both
+  lists, earliest first, each row naming its tag underneath.
+- Then **Vor der Abreise** and **Vor Ort**, one under the other, each with how much is still open. Under each come
+  the packing list's own positions (under **Packliste**), then your entries under their tags, then the untagged ones
+  under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
+  end of each list, where you can untick it again.
+
+To change an entry, tap its name: the sheet holds the name, the day, the tag and **Speichern**. An entry has no ✕ on
+its line — remove it with **Entfernen** in that sheet.
 
 ## Moving one entry
 
@@ -113,9 +132,9 @@ a reminder, the app says how many tasks are due when you open it.
 
 ## When a purchase is due
 
-Something on the shopping list can have a day too. Tap an entry's name, set **Fällig** in the sheet and tap
-**Speichern** (or **Hinzufügen** for a new entry). The entry wears the same label a task does, leads its heading, and
-a heading with something overdue or due within two days moves to the top of the list. The shopping card on the
+Something on the shopping list can have a day too: pick it with the day chips under the field as you type, or tap an
+entry's name, set **Fällig** in the sheet and tap **Speichern**. The entry wears the same label a task does and leads
+its heading; one overdue or due within two days stands in the **Fällig** block on top. The shopping card on the
 overview puts those entries first as well.
 
 Only entries typed into the shopping list take a date; what comes from the packing list does not. On the morning
@@ -131,8 +150,9 @@ and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkä
   back.
 - Afterwards both *before* lists are a record, and nothing can be added to them, ticked or unticked there, or moved
   into them. On the task list, **Während der Reise** comes first and **Vor der Reise** is one folded line at the end
-  (*Vor der Reise · 3 erledigt*); open it to read what was done. New tasks land in **Während der Reise**. On the
-  shopping list, **Vor der Abreise** says so at the top.
+  (*Vor der Reise · 3 erledigt*); open it to read what was done. New tasks land in **Während der Reise**. The
+  shopping list does the same: **Vor der Abreise** is one folded line at the end (*Vor der Abreise · 4 gekauft*), and
+  new entries land in **Vor Ort**.
 - **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
 
 ## Moving between a trip's lists

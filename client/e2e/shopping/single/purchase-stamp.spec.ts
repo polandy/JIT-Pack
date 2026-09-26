@@ -43,11 +43,14 @@ test.describe('M6 — who bought it, and when (FR-30.4) @single @m6', () => {
       await expect(row).toHaveCount(0)
     }
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
-    await expect(m6(page).getByTestId('m6-bought-bar')).toHaveText('Show 2 bought')
+    // Both were bought before departure, so one fold counts them both.
+    await expect(m6(page).getByTestId('m6-before').getByTestId('m6-bought-bar')).toHaveText(
+      '2 bought',
+    )
 
     const who = await accountName(page)
     const fresh = await bootPage(await browser.newContext(), `${tripPath}/shopping`)
-    await m6(fresh).getByTestId('m6-bought-bar').click()
+    await m6(fresh).getByTestId('m6-before').getByTestId('m6-bought-bar').click()
     const stamps = m6(fresh).getByTestId('m6-bought-stamp')
     await expect(stamps).toHaveCount(2)
     for (const stamp of await stamps.all()) {

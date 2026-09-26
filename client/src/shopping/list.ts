@@ -129,6 +129,53 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
   return sections
 }
 
+/** One list of the board (M25's phase shelf): its sections, and what stands in them. */
+export interface ListShelf {
+  sections: ShoppingSection[]
+  /** The open lines under this list's sections — the block above not counted. */
+  open: number
+}
+
+/** What M6 draws, top to bottom (owner, 2026-09-26 — M25's reading). */
+export interface ShoppingBoard {
+  /** The *Fällig* block: pressing open lines of both lists, earliest first. */
+  due: ShoppingLine[]
+  lists: Record<ShoppingMode, ListShelf>
+  /** The list a line stands on, by key — the block's lines included. */
+  listOf(key: string): ShoppingMode | undefined
+}
+
+/**
+ * shoppingBoard files every open line in exactly one place, as `taskBoard`
+ * does for M25: a line overdue, due today or in the next two days is read in
+ * the one block on top across both lists and every tag, and **leaves its
+ * section while it is there** — a line listed twice is a line bought in one
+ * place and still open in the other.
+ */
+export function shoppingBoard(
+  open: Record<ShoppingMode, { own: ShoppingLine[]; sourced: ShoppingLine[] }>,
+  today: string,
+): ShoppingBoard {
+  const pressing = (line: ShoppingLine) => isPressingDay(dueDayOf(line), today)
+  const keyed = new Map<string, ShoppingMode>()
+  const due: ShoppingLine[] = []
+  const lists = {} as Record<ShoppingMode, ListShelf>
+  for (const list of SHOPPING_MODES) {
+    const { own, sourced } = open[list]
+    for (const line of [...own, ...sourced]) keyed.set(line.key, list)
+    due.push(...own.filter(pressing), ...sourced.filter(pressing))
+    const standing = {
+      own: own.filter((l) => !pressing(l)),
+      sourced: sourced.filter((l) => !pressing(l)),
+    }
+    lists[list] = {
+      sections: buildSections(standing.own, standing.sourced, today),
+      open: standing.own.length + standing.sourced.length,
+    }
+  }
+  return { due: sortByDue(due, today, dueDayOf), lists, listOf: (key) => keyed.get(key) }
+}
+
 /**
  * dropTag says what a drag onto this section would set (FR-30.9's own
  * single-row retag): the section's tag, null for the untagged own section,

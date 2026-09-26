@@ -4608,6 +4608,9 @@ as for the packing rows.
     and it makes the screen open differently as lines are checked off, so the tab you were working stops being the tab
     you come back to.
   * **It decides more than what is read first:** the open tab is also where M6's own field files an entry (FR-30.1).
+  * **Amended 2026-09-26 (FR-30.11):** M6 has no tabs any more — both lists stand on one screen. On M6 the rule now
+    decides only whether the composer still offers *Vor der Abreise* (its list chips); the dashboard card keeps it as
+    written.
 
 * **FR-30.9 (Tags on the List's Own Entries, Grouped by Them — owner request 2026-09-21):** an entry carries **at most
   one tag**, a short free-text label of the person's own — *Supermarkt*, *Apotheke*, *Baumarkt*. It is one nullable
@@ -4631,7 +4634,8 @@ as for the packing rows.
     **Only own entries carry a tag:** a packing row keeps its category, and the dashboard card (FR-30.7) shows an
     entry's tag but offers no way to choose one.
   * **The check-off sits at the end of the row**, on M6 and on the dashboard card: the thumb rests on the right, and the
-    remove (✕) of an own entry stands beside it, to its left.
+    remove (✕) of an own entry stands beside it, to its left. *Amended 2026-09-26 (FR-30.11): M6's row carries no ✕;
+    an entry is removed from its sheet.*
   * **Several entries retagged at once (owner request 2026-09-22):** the per-row *＋ Tag* label under an untagged
     entry — a line of clutter repeated once per row — is gone; a tap on any own entry's name still opens the entry
     sheet, with no label to announce it. In its place, an entry can be **selected** — long-pressing an own row, or the
@@ -4668,7 +4672,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     already answers. Decided against with the owner: dating those rows too.
   * **Set in the entry's sheet** (FR-30.9's name-and-tag sheet, M6): a *Fällig* date field, the app's date control
     (ADR-035), cleared with its own *Löschen*; written with the sheet's *Speichern* / *Hinzufügen* like the name and
-    the tag. The quick field above the list adds an undated entry, as before.
+    the tag. The quick field above the list adds an undated entry, as before. *Amended 2026-09-26 (FR-30.11): the
+    sheet and the composer both carry M25's day chips (FR-7.14 item 2) instead — Vor Abreise for the list before
+    departure only.*
   * **The same four readings and the same pill** as a task (FR-7.11): *Überfällig* (red), *Heute*, *Morgen* / *In 2
     Tagen*, a short date further out. A bought entry is never overdue and wears no pill.
   * **Order on M6, M25's rule:** inside every section the dated entries come first, earliest first, the undated ones in
@@ -4685,6 +4691,30 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     Einkäufe*** — a person reminded of their chores need not want the groceries. **Local Mode:** M1's opening hint
     counts the due purchases beside the tasks (*„1 Aufgabe und 2 Einkäufe fällig"*, or either alone).
   * Like every entry, a due day is not in the portable backup (item 25).
+
+* **FR-30.11 (M6 reads like M25 — owner request and decisions 2026-09-26, *built the same day*):** looking at the
+  reworked tasks screen (FR-7.14) beside the shopping list, the owner asked for one look and feel across the two, M25's
+  being the one kept — its composer area looked better, its *Vor Abreise* day chip was wanted on the shopping list
+  too, and *„apart from that, align the shopping list's UI with the tasks'"* (translated). Two questions were put, and
+  the owner took the recommendation on both. Pure client work: no schema, wire or server change.
+  1. **No tabs; M25's reading.** The two lists stand one under the other as sections, each with its head and what is
+     open under it, above them a ***Fällig*** block — every open line overdue, due today or in the next two days,
+     from both lists, earliest first, which **leaves its group** while it is there (`shoppingBoard` in
+     `shopping/list.ts`, `taskBoard`'s rule). Rejected: keeping the tabs and aligning only the rows — a thing due
+     tomorrow on the tab not open stays a thing nobody sees. FR-30.8's rule now only decides whether the composer
+     still offers *Vor der Abreise*.
+  2. **No ✕ on the row.** An own entry is removed from its sheet (*Entfernen*), as a task is from its own — *done*
+     and *delete* no longer same-sized neighbours. The selection keeps what it had (*Tag vergeben*), now across both
+     lists. Rejected: keeping the ✕ for the one-tap delete.
+  * **Built alongside, no decision needed:** M25's composer card with **list chips** (*Vor der Abreise* / *Vor Ort*,
+    gone when FR-30.8 names *Vor Ort*), tag chips and **day chips** (`DueChips`, moved to `components/global/` so the
+    module may use it — ADR-066); two-line rows (due pill, amount, recipients under the name); one ***gekauft* fold
+    per list**, M25's *erledigt* fold; a finished packing's *Vor der Abreise* **folded at the end** (FR-7.12, M25's
+    way), the composer staying and writing for *Vor Ort*.
+  * **And the other way round, on M25:** its *＋ Tag* opens M6's entry sheet, and the task tag chooser is M6's
+    search-or-create mask (FR-7.14's amendment of the same day).
+  * **Modes.** All three, like the list itself. **Surfaces:** M6 (UI-Spec M6), M25. E2E-M6-36, with the M6 cases that
+    read tabs, the row ✕ or the reveal's wording revised.
 
 ## Part B — Clarifications & Extensions to Existing Sections
 
@@ -5952,6 +5982,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     the dashboard already leads with the road's tasks (`taskPhaseInFront`), read by `hasDeparted` in
     `domain/tripDay.ts`. An undated trip keeps both chips: it has no day to have passed. Only the composer: a task
     still standing in *before* may be moved or reworded until the packing closes it (FR-7.12).
+  * **Amended by the owner on the rendered build (2026-09-26):** the tag dialog must be the shopping list's. The
+    composer's *＋ Tag* no longer opens a small inline field; it opens **M6's entry sheet** for a task (*Neue Aufgabe*:
+    the words typed so far, the day chips, the tag chooser and *Hinzufügen*), and the tag chooser — here, in the task
+    sheet and in the selection's batch sheet — is **M6's search-or-create mask** (a search field, the chosen tag with
+    its ✕, matching chips, a dashed *„… neu anlegen"*, a summary line). M6 in turn took M25's composer and reading
+    (FR-30.11).
   * **Modes.** All three; nothing here reaches the server. The seat and *Meine* stay Server-only (G-8).
   * **Surfaces:** M25 (composer, *Fällig* block, rows, folds, closed *before*, sheet, selection bar, FAB), M4 (the
     figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..17, with

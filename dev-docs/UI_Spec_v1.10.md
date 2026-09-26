@@ -1828,21 +1828,47 @@ These patterns apply to every screen and are specified once.
   their FR-3.3 writes bound in. The 2026-07-17 concept lines kept below describe surfaces retired on 2026-08-30
   (FR-25.11g/k, FR-25.13a's two fields, FR-25.6's per-item note) or still owed (FR-25.12's row sheet — *Zugewiesen
   an* and *Beschreibung* — which would now apply to both kinds of line); read them with that in mind.
-* **Elements:** Two tabs: *Vor der Abreise* (BUY_BEFORE) and *Vor Ort* (BUY_LOCAL), each label counting its open
-  lines. Under them a **text field** with an add button (placeholder *„Was kaufen? z. B. Milch, Brot …"*). Then the
-  list: the packing list's rows in that tab's mode first, **combined under one *„Packliste"* heading regardless of
-  category** (revised 2026-09-23 — a packing category is not this list's tag, and a heading per category read as more
-  shopping-list structure than it was; the heading is present only while that tab has a packing row open), each row
-  with its check-off at the end, its amount when above one, and — for a per-person item — the recipients (FR-25.6),
-  and **no** remove; then the tab's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"*
-  (FR-30.9)** — each with a remove (✕) and, **at the end of the row, a check-off**. An entry and a packing row of the
-  same name stay two lines. FR-13.3's destination entries are not built.
-* **Before departure, closed (FR-7.12, built 2026-09-25):** once the packing is finished, the *Vor der Abreise* tab
-  is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor Ort* (M4's close
-  sheet names the number); the tab now carries one line in place of the field and its chips (*„Die Packliste ist
-  abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise gekauft wurde."*, `m6-before-locked`), no ＋, no empty
-  state, and its bought reveal can be read but not put back or removed from. *Vor Ort* is unchanged. Reopening the
-  packing lifts it.
+* **Reworked 2026-09-26 — M25's look and feel (owner request).** The owner asked for one look and feel across the
+  two lists, M25's being the one kept. What changed: **no tabs** — both lists stand one under the other as sections,
+  with a ***Fällig*** block above them; **M25's composer** (a card, with list chips and day chips); **two-line rows
+  with no ✕** (an entry is removed from its sheet); **one *gekauft* fold per list**; a finished packing's *before*
+  **folded at the end**, as M25's is. A thing due tomorrow on the tab not open was a thing nobody saw — the tabs
+  hid one list behind the other. The sentences below are amended to match; FR-30.8's rule now only decides whether
+  the composer still offers *Vor der Abreise*.
+* **Elements, top to bottom:**
+  * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
+    kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):
+    *Vor der Abreise* / *Vor Ort*, *Vor der Abreise* chosen — offered only while FR-30.8's rule still names *before*
+    (the trip planned and its packing open); otherwise the row goes and everything written is for *Vor Ort*. **The
+    tag**: the tag chips and *＋ Tag* (below). **The day**: M25's day chips (`DueChips`), shown once something is
+    typed — *Heute*, *Morgen*, *Vor Abreise* (for *Vor der Abreise* only, while that day is later than tomorrow) and
+    *Datum…*. The list and the tag stay chosen for the next entry; the day does not.
+  * **The *Fällig* block** (`m6-due`), drawn only when something is pressing: every open line overdue, due today or
+    in the next two days, **from both lists**, earliest first, one `ListGroup` headed *Fällig* with its count. **A
+    line in it leaves its group.** Its rows name their tag on the second line — *Eingetragen* for an untagged entry,
+    *Packliste* for a packing line (which carries no day today, so it does not appear here yet).
+  * **Two sections**, *Vor der Abreise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count
+    is **what stands under it** (*„N offen"*), and one line (*„Vor der Abreise ist nichts zu kaufen"*) only when
+    nothing of that list is open anywhere. Inside each: the packing list's rows in that mode first, **combined under
+    one *„Packliste"* heading regardless of category** (revised 2026-09-23 — a packing category is not this list's
+    tag), then the list's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"*
+    (FR-30.9)**. An entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not
+    built.
+  * **One *gekauft* fold per list**, at the section's end (*„› N gekauft"*, `m6-bought-bar`, M25's *erledigt* fold)
+    — see FR-25.11j below.
+  * **The empty state** (*„Nichts zu kaufen"*, `m6-empty`) only when nothing is open and nothing bought on either list.
+* **A line (2026-09-26): two lines, as a task's.** The first is the grip (own entries; a dashed placeholder for a
+  packing line) and the name; the second, where there is anything to say, the **due pill**, the amount when above
+  one, the tag (in the *Fällig* block only) and — for a per-person item — the recipients (FR-25.6). The check-off
+  stands at the row's own edge. **No ✕ on the row**: an own entry is removed from its entry sheet (*Entfernen*,
+  `m6-entry-remove`), as a task is from its own. A packing line offers neither.
+* **Before departure, closed (FR-7.12, built 2026-09-25, placed at the end 2026-09-26):** once the packing is finished,
+  *Vor der Abreise* is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor
+  Ort* (M4's close sheet names the number); the list is no longer drawn in reading order but **folded at the end of
+  the screen**, M25's way: one line (*„Vor der Abreise · N gekauft"*, or *„· abgeschlossen"*, `m6-before-fold`) that
+  opens onto the lock sentence (*„Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise
+  gekauft wurde."*, `m6-before-locked`) and the list's bought fold, which can be read but not put back. The composer
+  stays, writing for *Vor Ort*. Reopening the packing lifts it.
 * **Tags (FR-30.9, built 2026-09-21):** under the field a **chip row** — the tags still in use on the trip, those
   made in this visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap
   on it unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's
@@ -1857,32 +1883,33 @@ These patterns apply to every screen and are specified once.
   clutter at any real list length); the row's own tappability is the whole affordance, exactly as a tagged row's is.
   **The reveal of what was bought is not grouped:** its rows say their tag as a small label under the name, and its
   check (which puts the line back) is at the end like the open rows'. Mockup: 2026-09-21 review. (E2E-M6-31)
-* **The day an entry is due (FR-30.10, built 2026-09-25):** the entry sheet carries a ***Fällig*** date field (the
-  app's date control, ADR-035, with its *Löschen*) between the name and the tag mask, written with the sheet's button
-  like the other two. An open entry with a day wears **M25's due pill** at the end of its row, before the ✕:
-  *Überfällig* (red), *Heute*, *Morgen*, *In 2 Tagen*, a short date further out. Inside a section the dated entries
-  lead, earliest first; **a section holding an overdue, today or soon entry moves above the others**, the combined
-  *Packliste* heading included. A packing line carries no day; a bought entry wears no pill. (E2E-M6-35)
+* **The day an entry is due (FR-30.10, built 2026-09-25, chips 2026-09-26):** the entry sheet carries a ***Fällig***
+  row between the name and the tag mask — **M25's day chips** (`DueChips`: *Heute*, *Morgen*, *Vor Abreise* where it
+  applies, *Datum…* for the app's date control, ADR-035; the day in force as a chip with its ✕) — written with the
+  sheet's button like the other two; the composer carries the same chips (above). An open entry with a day wears
+  **M25's due pill** on its second line: *Überfällig* (red), *Heute*, *Morgen*, *In 2 Tagen*, a short date further
+  out; one due within two days stands in the *Fällig* block instead of its group. Inside a group the dated entries
+  lead, earliest first. A packing line carries no day; a bought entry wears no pill and its sheet offers no day.
+  (E2E-M6-35)
 * **Several entries retagged at once (FR-30.9, built 2026-09-22):** a long press on an own row, or the app bar's own
-  icon (`checkboxOutline`, mirroring M9's `m9-select`, FR-24.9) — active state on while the mode is on — arms an
-  inline **selection**, reaching every own entry on the open tab, tagged or not; unlike M9's, this selection offers a
-  *retag*, so an already-tagged entry is as selectable as an untagged one. Entering it replaces the field and the chip
-  row with a **selbar** — a ✕ to leave, *„Nichts ausgewählt"* at zero and *„N ausgewählt"* from one (the same two-form
-  split as M9's own bar, since one entry is not a plural), and *„Alle N"* over the open tab's own entries — **in the
-  app bar since 2026-09-25 (G-20), and the field and chip row stay in place at rest rather than being replaced** — and
-  each
-  row grows a leading checkbox (a dashed, dimmed slot for a packing row's projection, which never carries a tag and
-  is named once below the list rather than repeated per row: *„Packlisten-Positionen tragen nie ein Tag — nicht
-  wählbar."*); the row's own tap toggles it instead of opening the entry sheet. A row selected by the long press that
-  started the mode is not toggled off by the tap the browser sends on release — the same care M4's row menu takes
-  with its own trailing click. Once at least one entry is picked, a bottom bar offers **Tag vergeben**, opening the
-  same search-or-create sheet the single entry does — titled *„Tag für einen Eintrag"* / *„Tag für N Einträge"*, and
-  with no trailing summary line, since that sentence is written for one entry staying staged until *Speichern* and
-  this sheet applies the instant a chip is chosen, to more than one. Choosing files every selected entry at once;
-  the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under the tag it carried before.
-  The header's icon is offered only while the open tab holds an own entry to select. Mockup: 2026-09-22 review.
-  **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the keys
-  and the hold, `SelectBox` and `BulkBar` draw the box and the floating bar (the count is the app bar's, G-20), and
+  icon (`checkboxOutline`, mirroring M9's `m9-select`, FR-24.9) — active state on while the mode is on — arms an inline
+  **selection**, reaching every own entry on both lists (since 2026-09-26; was the open tab), tagged or not; unlike
+  M9's, this selection offers a *retag*, so an already-tagged entry is as selectable as an untagged one. Entering it
+  replaces the field and the chip row with a **selbar** — a ✕ to leave, *„Nichts ausgewählt"* at zero and *„N
+  ausgewählt"* from one (the same two-form split as M9's own bar, since one entry is not a plural), and *„Alle N"* over
+  every own entry — **in the app bar since 2026-09-25 (G-20), and the field and chip row stay in place at
+  rest rather than being replaced** — and each row grows a leading checkbox (a dashed, dimmed slot for a packing row's
+  projection, which never carries a tag and is named once below the list rather than repeated per row:
+  *„Packlisten-Positionen tragen nie ein Tag — nicht wählbar."*); the row's own tap toggles it instead of opening the
+  entry sheet. A row selected by the long press that started the mode is not toggled off by the tap the browser sends on
+  release — the same care M4's row menu takes with its own trailing click. Once at least one entry is picked, a bottom
+  bar offers **Tag vergeben**, opening the same search-or-create sheet the single entry does — titled *„Tag für einen
+  Eintrag"* / *„Tag für N Einträge"*, and with no trailing summary line, since that sentence is written for one entry
+  staying staged until *Speichern* and this sheet applies the instant a chip is chosen, to more than one. Choosing files
+  every selected entry at once; the mode ends with the batch, and a toast with **Rückgängig** puts each entry back under
+  the tag it carried before. The header's icon is offered only while an own entry is open to select. Mockup: 2026-09-22
+  review. **Since 2026-09-24 the gesture and its chrome are shared with M25** (ADR-075): `useRowSelection` holds the
+  keys and the hold, `SelectBox` and `BulkBar` draw the box and the floating bar (the count is the app bar's, G-20), and
   `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart. (E2E-M6-32)
   M9 renders the same pieces since 2026-09-24, without the grip (see M9); so do M11's unassigned bucket and M23 (see
   there), flat lists with neither grip nor headings.
@@ -3006,8 +3033,10 @@ token would prove nothing there is anything to prove.
     file the task as it is typed. **The phase**: *Vor der Reise* / *Unterwegs*, *Vor der Reise* chosen until the
     packing is finished **or the trip's first day has come** (`hasDeparted`; an undated trip keeps both); then the
     row goes and the field says *„Aufgabe für unterwegs…"* — *before* is closed, or behind the reader.
-    **The tag**: every task tag, and *＋ Tag*, which opens a small field that creates one (FR-7.8's „created where it
-    is needed"). **The day**: `TaskDueChips`, shown once something is typed — *Heute*, *Morgen*, *Vor Abreise* and
+    **The tag**: every task tag, and *＋ Tag*, which opens **M6's entry sheet** for a task (owner, 2026-09-26: *„the
+    dialog must be the shopping list's"*, translated) — *Neue Aufgabe*, the words typed so far, the day chips and the
+    tag chooser below, and *Hinzufügen*; the tag chosen there stays chosen in the composer (FR-7.8's „created where it
+    is needed"). **The day**: `DueChips`, shown once something is typed — *Heute*, *Morgen*, *Vor Abreise* and
     *Datum…*. The task is written in **one insert** with its phase, tag and day. Phase and tag stay chosen for the next
     task, as M6's tag does — the things for one errand are typed one after another; the day does not.
   * **The *Fällig* block** (`m25-due`), drawn only when something is pressing: every open task that is overdue, due
@@ -3058,20 +3087,20 @@ token would prove nothing there is anything to prove.
   The composer has no *Vor der Reise* chip, *„Alle N"* leaves those tasks out, and the sheet offers no move back.
   Reopening the packing on M4 lifts all of it.
 * **Several tasks at once (FR-7.8/ADR-075, extended by FR-7.14).** M6's selection, drawn by the same components
-  (`useRowSelection`, `SelectBox`, `BulkBar`, and the app bar's G-20 mode): a **hold on a task's words** (500 ms,
-  8 px), a right-click, or the app bar's icon (`m25-select`) enters it. **The icon is `SELECTION_ICON`**
+  (`useRowSelection`, `SelectBox`, `BulkBar`, and the app bar's G-20 mode): a **hold on a task's words** (500 ms, 8 px),
+  a right-click, or the app bar's icon (`m25-select`) enters it. **The icon is `SELECTION_ICON`**
   (`checkmarkDoneOutline`, one constant for every list that selects) — it used to be the *Aufgaben* pill's own ☑,
-  directly under it. While selecting, the selection box stands where the grip was, the seat and the tick step aside,
-  a tap on the words toggles the row, and the app bar carries ✕, *„N ausgewählt"* and *„Alle N"*; the *Meine* chip
-  stays live and the composer stays in place at rest. *„Alle N"* takes every **open** task shown, in both phases and
-  of both kinds. The floating bar offers, left to right: **Erledigt** (every selected task ticked off, in the done
-  ink), **Fällig** (a sheet of the same day chips, titled for the batch; *Vor Abreise* only where every selected task
-  is for before the trip), **Tag** (the task sheet's tag list, titled for the batch), **the other phase** — one button
-  per phase the batch would actually move something into, never back into a closed *before* — and **Löschen**, only
-  when every selected task is the trip's own (a preparation is removed on its row, FR-7.3). Only what changes is
-  written, one snackbar undo takes the whole batch back (a deletion is hidden at once and written when the undo
-  lapses, as a single one is), and the mode ends with the batch; a batch that changes nothing says so instead.
-  Switching views ends the mode. M4's window has no selection.
+  directly under it. While selecting, the selection box stands where the grip was, the seat and the tick step aside, a
+  tap on the words toggles the row, and the app bar carries ✕, *„N ausgewählt"* and *„Alle N"*; the *Meine* chip stays
+  live and the composer stays in place at rest. *„Alle N"* takes every **open** task shown, in both phases and of both
+  kinds. The floating bar offers, left to right: **Erledigt** (every selected task ticked off, in the done ink),
+  **Fällig** (a sheet of the same day chips, titled for the batch; *Vor Abreise* only where every selected task is for
+  before the trip), **Tag** (the task sheet's tag chooser, titled for the batch), **the other phase** — one button per
+  phase the batch would actually move something into, never back into a closed *before* — and **Löschen**, only when
+  every selected task is the trip's own (a preparation is removed on its row, FR-7.3). Only what changes is written, one
+  snackbar undo takes the whole batch back (a deletion is hidden at once and written when the undo lapses, as a single
+  one is), and the mode ends with the batch; a batch that changes nothing says so instead. Switching views ends the
+  mode. M4's window has no selection.
 * **The rows look like M6's (2026-09-24).** Each tag group is a `ListGroup` — the heading and drop frame M6's tag
   headings wear — and its rows are full-width list items with M6's separators, the task's words set in the row-name
   role (`ion-label h3`'s size and weight).
@@ -3083,12 +3112,16 @@ token would prove nothing there is anything to prove.
     note's, FR-7.13). Its phase is the meta.
   * **Erledigt** — the one primary button, in the done ink; the sheet closes with it. On a finished task it is
     *Wieder öffnen*, outlined.
-  * **Fällig** (an open task only): `TaskDueChips` — the day in force as its own chip with ✕ (*„Sa., 26.9. ·
+  * **Fällig** (an open task only): `DueChips` — the day in force as its own chip with ✕ (*„Sa., 26.9. ·
     Morgen"*), then *Heute*, *Morgen*, *Vor Abreise* (the day before the trip's start, for a task before the trip,
     when that day is later than tomorrow) and *Datum…*, which opens the app's calendar (`DateField`'s bare shape,
     ADR-035). A picked day is written at once, the sheet stays up, and the undo writes the day the task had before.
-  * **Tag** (FR-7.8) — every task tag as a chip, exactly one selectable, the *no tag* entry under the name of the
-    group it would return to, and a field that creates a tag.
+  * **Tag** (FR-7.8) — **M6's search-or-create mask since 2026-09-26** (`TaskTagChooser`, the shape of
+    `ShoppingTagChooser`): a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕ (which
+    takes it off), the matching tags as chips with their marks, a dashed *„… neu anlegen"* chip for a word no tag
+    carries, and a summary line — *„Abgelegt unter: X"*, or *„Noch kein Tag — die Aufgabe steht unter „Ohne Tag"."*
+    naming the group it stands in (*Aus Packliste* for a preparation). Exactly one: choosing is the act. The batch
+    sheet has no summary and offers the *no tag* group as a chip instead, since it has no one tag to ✕.
   * **The phase move** as a secondary, outlined row: *Auf „Während der Reise" schieben* / *Zurück auf „Vor der
     Reise"*.
   * **The facts** on the sunken plane: the row it prepares, who wrote it and when, who finished it and when.

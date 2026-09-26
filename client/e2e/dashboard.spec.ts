@@ -546,9 +546,9 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
     // And M6 reads the same list: Milch open, Sonnencreme under the reveal.
     await card.getByTestId('dash-shop-more').click()
     const m6 = visible(page).getByTestId('m6-page')
-    await m6.getByTestId('m6-tab-local').click()
-    await expect(m6.getByTestId('m6-row')).toHaveText([/Milch/])
-    await m6.getByTestId('m6-bought-bar').click()
-    await expect(m6.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
+    const local = m6.getByTestId('m6-local')
+    await expect(local.getByTestId('m6-row')).toHaveText([/Milch/])
+    await local.getByTestId('m6-bought-bar').click()
+    await expect(local.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
   })
 })
