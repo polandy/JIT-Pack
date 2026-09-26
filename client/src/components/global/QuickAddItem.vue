@@ -799,13 +799,7 @@ function onKeydown(event: KeyboardEvent) {
           <!-- FR-28.8: the group's own mark where it has one; the generic
                glyph stays the fallback, so an unmarked group still reads as
                a group and not as an item. -->
-          <ItemMark
-            v-if="row.template.icon"
-            :mark="row.template.icon"
-            surface="plain"
-            :size="22"
-            class="group-mark"
-          />
+          <ItemMark v-if="row.template.icon" :mark="row.template.icon" surface="plain" :size="22" />
           <IonIcon v-else :icon="albumsOutline" data-testid="quick-add-group-glyph" />
           <span class="group-text">
             <span class="group-name">{{ row.template.name }}</span>
@@ -1046,10 +1040,6 @@ function onKeydown(event: KeyboardEvent) {
 .group-row ion-icon {
   font-size: var(--jp-icon-md);
   color: var(--jp-brand);
-  flex-shrink: 0;
-}
-
-.group-mark {
   flex-shrink: 0;
 }
 

@@ -735,12 +735,7 @@ const mergeLines = computed(() =>
           <!-- FR-28.8: the row names one group, so it carries its mark —
                and nothing when the group has none, there being no column
                here to keep aligned. -->
-          <ItemMark
-            :mark="groupIcon(match.templateId)"
-            surface="plain"
-            :size="22"
-            class="fold-mark"
-          />
+          <ItemMark :mark="groupIcon(match.templateId)" surface="plain" :size="22" />
           <div class="fold-text">
             <p class="fold-head">
               {{ t('templates.foldSuggestion', { n: match.positionIds.length, name: match.name }) }}
@@ -1127,10 +1122,6 @@ const mergeLines = computed(() =>
   margin: 0 8px 8px;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--jp-action) 40%, transparent);
-}
-
-.fold-mark {
-  flex: none;
 }
 
 .fold-text {
