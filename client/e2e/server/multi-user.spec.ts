@@ -974,7 +974,10 @@ test.describe('Two accounts on one instance @server', () => {
     await m6.getByTestId('m6-add-submit').click()
     const shopRow = m6.getByTestId('m6-row').filter({ hasText: entry })
     await expect(shopRow.getByTestId(`m6-row-assign-${entry}`)).toBeVisible()
-    expect((await shopRow.boundingBox())!.height).toBe(taskHeight)
+    // Equal to the rendered pixel, not to the float: a row that starts on a
+    // fractional y measures 47.99997 where its twin measures 48, the same
+    // height on screen.
+    expect(Math.abs((await shopRow.boundingBox())!.height - taskHeight)).toBeLessThan(0.5)
 
     await ctxAlice.close()
     await ctxBob.close()
