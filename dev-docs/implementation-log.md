@@ -17700,3 +17700,10 @@ are deliberately absent.
 **The accepted cost** is the one the suffix check was chosen to avoid: the list can go stale. It goes stale in the safe
 direction only — a forgotten non-app path costs one unnecessary e2e run. Unit tests are on it because `go` and
 `client` run them on every trigger, so no test signal is lost, only a duplicate of it through the browser.
+
+**A trap the review caught: `dependabot-merge` went quiet.** The markdown-only skip never met a Dependabot PR, so
+`dependabot-merge`'s plain `needs` on `e2e`/`visual` was never tested against a skip. The wider list meets one
+routinely — `docker/build-push-action`, `release-please-action` and the Pages actions live only in the three
+workflows on it — and a job whose need was skipped is skipped itself, so those bumps would have stopped merging
+without a single red check. Its `if` now opens with `!cancelled()` and refuses on any need that failed or was
+cancelled, so a skip passes and a failure still blocks.

@@ -396,9 +396,19 @@ jobs:
   # reports worse than the failure under it — see CLAUDE.md).
   # This job's `needs` is what makes a Dependabot merge wait for those too.
   # Major updates stay open for manual review.
+  #
+  # A skipped need counts as passed: a bump that touches no app input (an
+  # action used only in docker.yml, say) skips e2e and visual, and a plain
+  # `needs` would skip this job with them. `!cancelled()` lifts that; the
+  # result check keeps a failed or cancelled need blocking the merge.
   dependabot-merge:
     needs: [go, go-lint, client, format, visual, e2e, e2e-single, e2e-server, docker-build]
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >-
+      !cancelled()
+      && !contains(needs.*.result, 'failure')
+      && !contains(needs.*.result, 'cancelled')
+      && github.event_name == 'pull_request'
+      && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
