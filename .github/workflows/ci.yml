@@ -29,13 +29,15 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # A change that touches only `*.md` files — `docs/`, `dev-docs/`, README,
-  # CLAUDE.md, an ADR, anywhere — ships no code and touches nothing e2e or
-  # visual can see: no route, no component, no behaviour. A suffix check
-  # rather than a directory allowlist so a new doc location never needs this
-  # file updated to stay covered. Computed once here rather than with a
-  # third-party paths-filter action (NFR-4.3: a two-line diff check is not
-  # worth a new pinned dependency).
+  # A change that touches no file the running app is built from — docs,
+  # specs, unit tests, the gates, the other workflows — renders no screen
+  # and changes no behaviour, so e2e and visual have nothing to find. The
+  # list names what is *not* app input, not what is: a path it does not name
+  # (a new source directory, this workflow, client/e2e/) runs the suites, so
+  # forgetting to update it costs a run, never a missed regression. Unit
+  # tests are on it because `go` and `client` run them in every case.
+  # Computed once here rather than with a third-party paths-filter action
+  # (NFR-4.3: a short diff check is not worth a new pinned dependency).
   #
   # Runs unconditionally, on every trigger including workflow_dispatch: a
   # `needs`-job that is itself skipped skips every job that needs it, no
@@ -45,7 +47,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      markdown_only: ${{ steps.check.outputs.markdown_only }}
+      app_untouched: ${{ steps.check.outputs.app_untouched }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -66,11 +68,17 @@ jobs:
             push) base="$PUSH_BEFORE_SHA" ;;
             *) base="$(git merge-base origin/main HEAD)" ;;
           esac
+          not_app='\.md$|^docs/|^dev-docs/|^deploy/|^\.claude/'
+          not_app="$not_app|^(mkdocs|docker-compose|\.golangci)\.yml$|^LICENSE"
+          not_app="$not_app|^(release-please-config|\.release-please-manifest)\.json$"
+          not_app="$not_app|^\.github/(dependabot\.yml|workflows/(docker|docs|release)\.yml)$"
+          not_app="$not_app|^scripts/[a-z-]+-gate\.(mjs|sh)$|^scripts/ci-remote\.sh$"
+          not_app="$not_app|^client/(src|cli)/(.*/)?__tests__/|_test\.go$|/testdata/"
           changed="$(git diff --name-only "$base" "$HEAD")"
-          if [ -n "$changed" ] && [ -z "$(echo "$changed" | grep -vi '\.md$')" ]; then
-            echo "markdown_only=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$changed" ] && [ -z "$(echo "$changed" | grep -viE "$not_app")" ]; then
+            echo "app_untouched=true" >> "$GITHUB_OUTPUT"
           else
-            echo "markdown_only=false" >> "$GITHUB_OUTPUT"
+            echo "app_untouched=false" >> "$GITHUB_OUTPUT"
           fi
 
   go:
@@ -187,11 +195,11 @@ jobs:
   # job is off the critical path either way — it finishes well inside the
   # e2e window.)
   #
-  # Skipped when only *.md files changed (see `changes` above) — a baseline diff
-  # needs a rendered screen, and nothing in `docs/` renders one.
+  # Skipped when no app input changed (see `changes` above) — a baseline diff
+  # needs a rendered screen, and nothing on that list renders one.
   visual:
     needs: [changes, client]
-    if: needs.changes.outputs.markdown_only != 'true'
+    if: needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -237,10 +245,10 @@ jobs:
   # main, so it stays a pre-merge signal — just not one you pay for before a
   # PR exists. visual and docker-build are unaffected: ci-remote still checks
   # those, since they are cheap (docker-build) or not sharded (visual).
-  # Also skipped when only *.md files changed (see `changes` above).
+  # Also skipped when no app input changed (see `changes` above).
   e2e:
     needs: [changes]
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
     strategy:
       # Every shard reports, so a failure in one is not hidden by the
@@ -275,10 +283,10 @@ jobs:
   # legs deliberately do not build. Same pinned image, same drift check, via
   # scripts/e2e.sh. Not a required check, for the same reasons `e2e` is not
   # (see CLAUDE.md — branch protection stays untouched).
-  # Skipped on workflow_dispatch and when only *.md files changed — see `e2e` above.
+  # Skipped on workflow_dispatch and when no app input changed — see `e2e` above.
   e2e-single:
     needs: [changes]
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -306,10 +314,10 @@ jobs:
   # the same reason `e2e-single` is one, and separate from it because the two
   # backend configurations are mutually exclusive in one process —
   # Single-User bypasses auth entirely. Not a required check either.
-  # Skipped on workflow_dispatch and when only *.md files changed — see `e2e` above.
+  # Skipped on workflow_dispatch and when no app input changed — see `e2e` above.
   e2e-server:
     needs: [changes]
-    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.markdown_only != 'true'
+    if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -386,9 +394,19 @@ jobs:
   # reports worse than the failure under it — see CLAUDE.md).
   # This job's `needs` is what makes a Dependabot merge wait for those too.
   # Major updates stay open for manual review.
+  #
+  # A skipped need counts as passed: a bump that touches no app input (an
+  # action used only in docker.yml, say) skips e2e and visual, and a plain
+  # `needs` would skip this job with them. `!cancelled()` lifts that; the
+  # result check keeps a failed or cancelled need blocking the merge.
   dependabot-merge:
     needs: [go, go-lint, client, format, visual, e2e, e2e-single, e2e-server, docker-build]
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >-
+      !cancelled()
+      && !contains(needs.*.result, 'failure')
+      && !contains(needs.*.result, 'cancelled')
+      && github.event_name == 'pull_request'
+      && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
