@@ -857,14 +857,15 @@ in WebKit.
 * **E2E-M4-109** `local` (FR-24.11 with FR-24.3) — **implemented** (`restore-retired.spec.ts`): a
   retired item's name is offered as a restore; taking it puts the row on the list and the item back in M9, and M23 has
   nothing left to restore — no second item.
-* **E2E-M4-97** `local` (FR-7.4 visibility) — **implemented** (`trip-tasks.spec.ts`): with no todo the
-  section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched, the
-  section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* (since
-  FR-7.14 *„Beim Packen 0/2"*, which is what it counts) and stands as the share's pair (`expectFiguresPaired`: same
-  ring, headlines and tracks level, no sentence clipped — mutation-checked: without the paired layout the tracks sat 6
-  px apart). Ticking one keeps it open at *„1/2 Aufgaben"*; ticking the last folds it to *„✓ Alle Aufgaben erledigt"*
-  with the list gone and the figure at *„2/2 Aufgaben"* — the status line is the positive signal for the fold. After
-  another reload it is still folded, and tapping the header figure unfolds it.
+* **E2E-M4-97** `local` (FR-7.4 visibility) — **implemented** (`trip-tasks.spec.ts`): with no task the
+  section is closed and the header carries no task figure beside the share. With two preparations on a row (FR-7.7:
+  M4's section holds what is done as part of packing), after a reload that no helper has touched, the section is open
+  and **above the first row** (bounding boxes), and the header figure reads *„Beim Packen 0/2"* and stands as the
+  share's pair (`expectFiguresPaired`: same ring, headlines and tracks level, no sentence clipped — mutation-checked:
+  without the paired layout the tracks sat 6 px apart). Ticking one keeps it open at *„Beim Packen 1/2"*; ticking the
+  last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and the figure at *„Beim Packen 2/2"* — the status
+  line is the positive signal for the fold. After another reload it is still folded, and tapping the header figure
+  unfolds it.
 * **E2E-M4-103** `local` (FR-27.16) — **implemented** (`e2e/inventory-names.spec.ts`): two
   inventory items quick-added onto a trip, the ⋮ read without the entry, then both items renamed in M10. The trip still
   shows the old names; the ⋮ offers „Names from the inventory (2)", the sheet counts „2 of 2 selected", one untick and
@@ -1321,8 +1322,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   buy mode appears in the shopping list at all — the regression it guards decides open-ness from the item's own
   `packed`/`quantity`, which a per-person item does not carry. It renders as **one aggregated row** with
   the summed quantity ("6×", from 2 + 3 + 1), the recipients named ("for Andy, Leonardo, Mia") and their avatars —
-  **not** one row per traveler. The **tab's own count** is asserted with it: it counts things to buy, so a segment
-  reading three over a list showing one is the same lie in the other direction.
+  **not** one row per traveler. The **list's own head** (*Before the trip*) is asserted with it, reading *"1 open"*:
+  it counts things to buy, so a head reading three over a list showing one is the same lie in the other direction.
 * **E2E-M6-06** `all` (FR-25.6/3.3) — **implemented**, and the half that matters: a single aggregated row
   that settles only one instance is worse than three honest ones. Checking off that aggregated row settles **every**
   instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE
@@ -1726,8 +1727,10 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   the spreadsheet import, and the way back lands on M9 rather than on M15's *other* parent, the trip list. Its own
   describe, because every other case here creates an item first and this one must not. It is the one case rendering this
   state: elsewhere `m9-empty` appears only as E2E-G9-13's *absence* assertion, where it stands in for „not the inventory
-  screen". The G-7 half is asserted against two positive controls — the tag axis and
-  the no-match state are both absent — so „the empty state is up" cannot be satisfied by a list that painted nothing.
+  screen". The G-7 half is asserted beside two absences of elements the screen does render on a populated inventory
+  — the tool bar (`m9-tools`: the search row and the tag chips, FR-24.6) and the no-match state — so „the empty state
+  is up" cannot be satisfied by a list that painted nothing; the positive signal is `m9-empty` itself and its import
+  button landing on M15.
 * **E2E-M9-05** `all` (FR-24.4) — **implemented** (partially: the reload half is unit-tested in
   `inventoryProperties.spec.ts`, since a device-local reload assertion belongs where the storage seam is): the eye icon
   opens the „Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows

@@ -413,8 +413,9 @@ These patterns apply to every screen and are specified once.
   * **Icons must be literal.** Concept testing rejected a generic cube standing in for both Shopping and Luggage: a cart
     means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels
     away.
-  * **Budget.** With back chevron, logo, title and the cluster, M4 reaches six elements in the bar — treat that as the
-    ceiling. A screen needing more moves the surplus behind ⋯ rather than widening the cluster.
+  * **Budget.** The cluster holds at most **three glyphs** (ADR-050, `MAX_BAR_ACTIONS` in `AppHeader.vue`); a screen
+    needing more has the surplus rendered behind the ⋮ as words rather than widening the cluster. M4 fills the three
+    with search, filter and fold-all.
 * **G-13 (Typography):** The app has two faces, and which one a piece of text takes is decided by its **role**, never by
   the screen it happens to be on (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from,
   G-13 says where type does. Without it the client declares **no `font-family` at all** and renders in whatever Ionic's
@@ -1084,8 +1085,8 @@ These patterns apply to every screen and are specified once.
     tap that adds a dozen rows must not look like a tap that adds one item, and the summary is what lets the user decide
     without opening anything. Matching is on the **group name** — the resolved item names are FR-27.13's job on M8's
     picker. Three outcomes, three sentences: what was added and what was already there, a group that is already fully on
-    the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The emoji the FR shows on the
-    entry waits for §3.28, which owns the mark.
+    the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The entry leads with a generic
+    group glyph; the group's own mark (FR-28.8), which FR-27.10 shows there, is **not built** on this entry.
   * **Full-screen:** the bottom tab bar is hidden here, the FAB drops to the screen foot, and the list scrolls clear of
     the FAB's whole footprint so nothing sits permanently underneath it (FR-25.11h).
   * Container assignment defaults to none and is de-emphasized so it never blocks packing (FR-25.5).
@@ -1289,7 +1290,7 @@ These patterns apply to every screen and are specified once.
     the **for-whom strip** sits over the field — *Gemeinsam*, *Alle*, one avatar toggle per traveler, the same line a
     row unfolds on M4 — with a sentence under it stating the outcome (*„Wird gemeinsam angelegt."* / *„Wird für 2
     Personen angelegt, je 1."*). An add writes one row per lit traveler at one each, as the FR-25.1 cluster, and **opens
-    nothing**: amounts are changed on the child rows it produced. It is where FR-25.8's *Gemeinsam* / *Pro Person*
+    nothing**: amounts are changed on the child rows it produced. It is where FR-25.8's *Gemeinsam* or per-traveler
     choice is made, and no membership editor opens. The choice survives an add, because rows are entered in runs, and is
     forgotten when the composer closes. It is **absent** — not disabled — wherever there is nobody to distribute over:
     on M8, whose Vorlage has no people, and on a trip with fewer than two travelers (G-8). **The strip speaks for what
@@ -1383,10 +1384,12 @@ These patterns apply to every screen and are specified once.
   nothing and its option panel breaks out of the row's card (the M7 A2/B2 round). Skipping raises the FR-25.2 snackbar
   naming the FR-20.2 companions it took along, with one undo for the whole cascade; a revealed skipped row carries
   *"Bewusst weggelassen"* — or its reason where a cascade put it there — in the line a packed row uses for its FR-25.17
-  stamp. tap row → M5; long-press checkbox → complete item; toolbar: open shopping views (M6), archive trip (→ triggers
-  M14). **Companions (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion items, which are
-  revealed with the other done rows carrying their reason (e.g., "weggelassen: „Drohne“ ist nicht dabei", FR-20.2); a
-  quick-add that matches a master item pulls its missing required companions in automatically (FR-20.4).
+  stamp. tap row → M5; long-press checkbox → complete item. M4's bar holds no lifecycle step: M6 is the switcher's
+  *Einkaufen* pill (G-9), and archiving is M2's *Reise abschliessen* (G-12), which opens M4's closing pass (FR-9.3)
+  and continues into M14. **Companions (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion
+  items, which are revealed with the other done rows carrying their reason (e.g., "weggelassen: „Drohne“ ist nicht
+  dabei", FR-20.2); a quick-add that matches a master item pulls its missing required companions in automatically
+  (FR-20.4).
 * **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open
   tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
 * **Navigation:** From M1, M2, notifications. Deep-link anchor target (G-4). **Desktop (≥ 900 px, per G-9): two-pane

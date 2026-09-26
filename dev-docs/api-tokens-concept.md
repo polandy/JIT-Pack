@@ -27,7 +27,8 @@ something the server can recognise as a machine credential.
 ## 2. Decided: unmanaged, and what settled it
 
 The alternative was a stored token — a table, three endpoints, a management screen — which buys
-**listing** and **individual revocation**. It is rejected on two grounds:
+**listing** and **individual revocation**. It is rejected because the first of the grounds below
+removes the need for it, and the second is what it would cost for nothing:
 
 **The kill switch is cheaper than it looks.** Rotating `JITPACK_SESSION_SECRET` invalidates every
 API token at once. The assumption that this also throws everyone out of the app is **wrong, and was
@@ -35,8 +36,14 @@ measured**: refresh tokens are opaque random values stored hashed in `sessions`,
 (`internal/api/auth.go:157`). A secret rotation therefore only voids the 15-minute *access* tokens,
 and every browser silently obtains a new one at its next refresh. (One caveat, in §6.)
 
-**No table means no schema change.** A stored token would change `schema.sql` and every database
-with it (invariant 2); not paying that cost at all is better.
+**No table means nothing to carry.** A stored token is a schema change: an edit to `schema.sql` plus
+an additive step in the migration chain that every existing database is carried through at start-up
+(invariant 2, ADR-067). That keeps every database and its data, so the schema is not what decides
+this — it is a modest, ordinary cost, and on its own it would not rule the stored variant out. What
+rules it out is that the kill switch already covers the one revocation case the instance needs, so
+the table, the endpoints and the screen would buy listing and per-token revocation that nobody has
+asked for. The same fact keeps the decision cheap to reverse: should either become wanted, the
+stored variant is one additive migration away (§3), not a rebuild.
 
 ## 3. What is given up — deliberately, and permanently
 

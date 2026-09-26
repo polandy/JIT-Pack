@@ -128,8 +128,8 @@ const props = withDefaults(
     offerGroups?: boolean
     /**
      * How many travelers the scope has. It decides two things at once, which
-     * is why it is one number rather than two booleans: FR-25.8's *Pro Person*
-     * mode and FR-25.13g's „für alle" verb in the browse-sheet. A template has
+     * is why it is one number rather than two booleans: FR-25.8's for-whom
+     * strip and FR-25.13g's „für alle" verb in the browse-sheet. A template has
      * no travelers (M8) and a trip travelling alone has no membership to
      * distribute either, so below {@link MIN_TRAVELERS_FOR_PER_PERSON} both are
      * absent rather than disabled (G-8).
