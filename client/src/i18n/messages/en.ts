@@ -1655,6 +1655,7 @@ export const en = {
   'excursions.notInLuggage': 'not in the luggage',
   'excursions.buyOnSite': 'Buy on the spot',
   'excursions.leftBehind': 'no longer coming',
+  'excursions.detailsHint': 'Packed or bought on the spot',
   'excursions.keep': 'Onto the packing list',
   'excursions.kept': 'on the packing list',
   'excursions.keptToast': '“{item}” is on the packing list and in the inventory',

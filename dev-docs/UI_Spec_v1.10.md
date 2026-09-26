@@ -2859,10 +2859,18 @@ token would prove nothing there is anything to prove.
   * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
     the line with an undo.
 
-  A tap on the row (or its long press) opens the line's menu (an action sheet headed by the name): *Eins mehr*, *Eins
-  weniger* (above one), *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a bought one,
-  FR-31.13; a toast with *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* / *Doch
-  mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
+  **A tap on the row opens M5's sheet for the line** (`ExcursionItemSheet`, handle `m27-line-sheet`), laid out and
+  styled as M5 block for block: the mark, the name and its category (and person) in the head; *Menge* with the quick
+  amounts; *Einpacken*, the large stepper with the state beside it; *Nicht einpacken* / *Doch mitnehmen*; where two or
+  more go, **M5's for-whom strip over the participants** — shared, *Alle* (*für alle*), or named people; open lines of
+  those it is no longer for go, a packed one stays, and the sheet stays on the thing when its line is replaced
+  (FR-31.5); a glance row (person where the strip is absent, the mode); the line's facts with their actions
+  (`ExcursionFacts`); and *Details ▾* with the mode (*Einpacken* / *Vor Ort kaufen*) and, for a *vor Ort* line, the
+  *Gekauft* switch. What M5 has and a line has not — preparations, notes, packer, container, flags — is left out.
+  **A hold** (or a desktop's context menu) opens the line's menu, as on M4 (an action sheet headed by the name): *Eins
+  mehr*, *Eins weniger* (above one), *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a
+  bought one, FR-31.13; a toast with *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
+  *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
 * **A thing per person** is M4's `ClusterHead` (handle `m27-cluster-*`): the mark, the name, a caret; **shut by
   default** (FR-25.23, view state, not persisted) with a face per person and the open count; open, a child per
   participant in roster order, each with its own tick.

@@ -818,3 +818,65 @@ export function excursionLineAsRow(line: ExcursionItem): TripItem {
     updated_hlc: '',
   }
 }
+
+// --- For whom, changed from the line's sheet (FR-31.5) ---
+
+/** What changing a thing's *für wen* writes. */
+export interface ForWhomChange {
+  /** Open lines of people it is no longer for. */
+  remove: ExcursionItem[]
+  /** A line for each person it is newly for, or the one shared line. */
+  add: DraftLine[]
+  /** Lines that stay, whose *für alle* flag has to follow the new answer. */
+  reflag: Array<{ line: ExcursionItem; forAll: boolean }>
+}
+
+/**
+ * planForWhom answers what M5's strip means on an excursion (FR-31.5): the set
+ * of lines one thing has — shared, or one per person — becomes the chosen one.
+ * A line already in the rucksack is never taken away, for the leaver's reason;
+ * only open lines go. *Alle* marks the set *für alle*, so it follows a joiner;
+ * named people do not.
+ */
+export function planForWhom(
+  set: readonly ExcursionItem[],
+  target: LineFor,
+  participants: readonly Traveler[],
+): ForWhomChange {
+  const first = set[0]
+  if (!first) return { remove: [], add: [], reflag: [] }
+  const wanted =
+    target.kind === 'shared'
+      ? new Set<string | null>([null])
+      : new Set<string | null>(
+          target.kind === 'all' ? participants.map((p) => p.id) : target.travelerIds,
+        )
+  const forAll = target.kind === 'all'
+  const remove = set.filter((l) => !wanted.has(l.assigned_traveler_id) && l.packed_count <= 0)
+  const kept = set.filter((l) => !remove.includes(l))
+  const reflag = kept
+    .filter((l) => l.assigned_traveler_id !== null && l.for_all_participants !== forAll)
+    .map((line) => ({ line, forAll }))
+  const add: DraftLine[] = []
+  for (const who of wanted) {
+    if (kept.some((l) => l.assigned_traveler_id === who)) continue
+    add.push({
+      source_item_id: first.source_item_id,
+      name: first.name,
+      category_name: first.category_name,
+      assigned_traveler_id: who,
+      quantity: 1,
+      mode: first.mode,
+      for_all_participants: who !== null && forAll,
+      weight_grams: null,
+      value_cents: null,
+      source_template_id: null,
+    })
+  }
+  return { remove, add, reflag }
+}
+
+/** Every line of the same thing in one excursion — the set a strip acts on. */
+export function lineSetOf(line: ExcursionItem, lines: readonly ExcursionItem[]): ExcursionItem[] {
+  return lines.filter((l) => l.excursion_id === line.excursion_id && setKey(l) === setKey(line))
+}

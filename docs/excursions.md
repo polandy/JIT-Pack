@@ -44,8 +44,11 @@ The excursion's list works like the packing list, only smaller:
 - a thing you bought on the spot and want to keep — a rain cape from the hut — gets **Auf die Packliste** beside
   **vor Ort gekauft**. Tap it and the thing joins the trip's packing list, already packed, and your inventory, so the
   next trip can plan with it. **Rückgängig** in the message takes it back;
-- tap a line for more: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal nicht**,
-  **Von der Liste nehmen**.
+- tap a line to open its detail, just like on the packing list: the amount, packing, **Nicht einpacken**, who it is
+  for — turn a shared thing into one for each person there — and under **Details** whether you pack it or buy it on
+  the spot;
+- press and hold a line for its menu: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal
+  nicht**, **Von der Liste nehmen**.
 
 ### A thing for each person
 

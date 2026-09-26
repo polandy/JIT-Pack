@@ -976,12 +976,16 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       Pick<ExcursionItem, 'trip_item_id' | 'source_item_id' | 'mode' | 'bought_at' | 'name'>
     > & {
       not_in_luggage?: boolean
+      for_all_participants?: boolean
     },
   ): Mutation {
-    const { not_in_luggage, ...rest } = fields
+    const { not_in_luggage, for_all_participants, ...rest } = fields
     return make('upsert', TABLE.excursionItems, itemId, {
       ...rest,
       ...(not_in_luggage === undefined ? {} : { not_in_luggage: dbBool(not_in_luggage) }),
+      ...(for_all_participants === undefined
+        ? {}
+        : { for_all_participants: dbBool(for_all_participants) }),
     })
   }
 

@@ -309,4 +309,38 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
       1,
     )
   })
+
+  /**
+   * E2E-M27-08: a tap on a line opens M5's sheet for it — the amount, the
+   * large packing control with its state, *Nicht einpacken*, and the *für wen*
+   * strip over the people going, which turns the shared thing into one line
+   * per person without closing the sheet. A hold opens the line's menu.
+   */
+  test('E2E-M27-08: a line opens M5’s sheet, packs there, and changes for whom', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Sardinien', travelers: ['Andy', 'Sia'] })
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour' })
+    await addToExcursion(page, 'Schlafsack')
+
+    await excursionLine(page, 'Schlafsack').click()
+    const sheet = page.getByTestId('m27-line-sheet')
+    await expect(sheet.getByTestId('m27-line-name')).toHaveText('Schlafsack')
+    await expect(sheet.getByTestId('m27-line-quantity')).toBeVisible()
+    await sheet.getByTestId('m27-line-pack').locator('ion-checkbox').click()
+    await expect(sheet.getByTestId('m27-line-pack')).toContainText('packed')
+
+    await sheet.getByTestId('for-whom-all-m27-line').click()
+    await expect(sheet.getByTestId('m27-line-name')).toHaveText('Schlafsack')
+    await sheet.getByTestId('m27-line-close').click()
+    await expect(page.getByTestId('m27-line-sheet')).toHaveCount(0)
+
+    // The packed shared line stays in the rucksack; each person has a line now.
+    await visible(page).getByTestId('m27-cluster-Schlafsack').click()
+    await expect(visible(page).locator('[data-testid^="m27-child-Schlafsack-"]')).toHaveCount(2)
+
+    await excursionLine(page, 'Schlafsack').dispatchEvent('contextmenu')
+    await expect(page.getByTestId('excursion-line-menu')).toBeVisible()
+  })
 })

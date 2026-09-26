@@ -10,6 +10,8 @@ import {
   borrowersByTripItem,
   canJoinPackingList,
   inventoryItemFor,
+  lineSetOf,
+  planForWhom,
   dayAfter,
   dueExcursions,
   excursionLineAsRow,
@@ -732,5 +734,51 @@ describe('excursionLineAsRow — M4’s row (FR-31.6)', () => {
       packing_now_by: null,
       late_packer: false,
     })
+  })
+})
+
+describe('planForWhom — the sheet’s strip (FR-31.5)', () => {
+  const shared = line('s', 'Schlafsack', { source_item_id: 'item-bag' })
+  const andys = line('a', 'Schlafsack', {
+    source_item_id: 'item-bag',
+    assigned_traveler_id: 'tr-andy',
+    for_all_participants: true,
+  })
+  const sias = line('b', 'Schlafsack', {
+    source_item_id: 'item-bag',
+    assigned_traveler_id: 'tr-sia',
+    for_all_participants: true,
+    packed_count: 1,
+    state: 'packed',
+  })
+
+  it('makes a shared thing one line per participant, für alle, and drops the open shared line', () => {
+    const change = planForWhom([shared], { kind: 'all' }, [andy, sia])
+    expect(change.remove.map((l) => l.id)).toEqual(['s'])
+    expect(change.add.map((d) => [d.assigned_traveler_id, d.for_all_participants])).toEqual([
+      ['tr-andy', true],
+      ['tr-sia', true],
+    ])
+  })
+
+  it('makes a per-person set shared, keeping a line already in the rucksack', () => {
+    const change = planForWhom([andys, sias], { kind: 'shared' }, [andy, sia])
+    expect(change.remove.map((l) => l.id)).toEqual(['a'])
+    expect(change.add.map((d) => d.assigned_traveler_id)).toEqual([null])
+  })
+
+  it('narrows to named people and takes the für-alle flag off what stays', () => {
+    const change = planForWhom([andys, sias], { kind: 'named', travelerIds: ['tr-sia'] }, [
+      andy,
+      sia,
+    ])
+    expect(change.remove.map((l) => l.id)).toEqual(['a'])
+    expect(change.add).toEqual([])
+    expect(change.reflag).toEqual([{ line: sias, forAll: false }])
+  })
+
+  it('finds the set by master item within one excursion', () => {
+    const other = line('o', 'Schlafsack', { source_item_id: 'item-bag', excursion_id: 'ex-2' })
+    expect(lineSetOf(andys, [shared, andys, sias, other]).map((l) => l.id)).toEqual(['s', 'a', 'b'])
   })
 })

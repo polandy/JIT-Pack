@@ -17,6 +17,9 @@ import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
   canJoinPackingList,
+  lineSetOf,
+  planForWhom,
+  type LineFor,
   draftLinesFromGroup,
   inventoryItemFor,
   participantsOf,
@@ -420,6 +423,38 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     updateLine(tripId, line, { mode: ITEM_MODE_BUY_LOCAL, bought_at: null })
   }
 
+  /**
+   * FR-31.5 from the line's sheet: the thing becomes shared, *für alle*, or
+   * named people's — open lines of others go, a packed one stays, new people
+   * get a line linked into the suitcase like any other. One undo for all of it.
+   */
+  function setForWhom(tripId: string, line: ExcursionItem, target: LineFor): () => void {
+    const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
+    const change = planForWhom(set, target, participants(tripId, line.excursion_id))
+    for (const gone of change.remove) removeRow(tripId, TABLE.excursionItems, gone.id)
+    for (const { line: kept, forAll } of change.reflag) {
+      updateLine(tripId, kept, { for_all_participants: forAll })
+    }
+    const written = writeLines(tripId, line.excursion_id, change.add)
+    return () => {
+      written.undo()
+      for (const gone of change.remove) restoreLine(tripId, gone)
+      for (const { line: kept } of change.reflag) {
+        const now = tripStore.getExcursionItems(tripId).find((l) => l.id === kept.id)
+        if (now) updateLine(tripId, now, { for_all_participants: kept.for_all_participants })
+      }
+    }
+  }
+
+  /**
+   * FR-31.8: how a line is had — packed, or bought on the spot. Back to packing
+   * drops the purchase record, which only a vor-Ort line can carry.
+   */
+  function setLineMode(tripId: string, line: ExcursionItem, mode: ExcursionItem['mode']): void {
+    if (mode === line.mode) return
+    updateLine(tripId, line, mode === ITEM_MODE_BUY_LOCAL ? { mode } : { mode, bought_at: null })
+  }
+
   /** FR-31.8: bought on the spot, or put back on the list. */
   function markBought(tripId: string, line: ExcursionItem, bought: boolean): void {
     updateLine(tripId, line, { bought_at: bought ? nowIso() : null })
@@ -516,6 +551,8 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     unskipLine,
     removeLine,
     buyOnTheSpot,
+    setLineMode,
+    setForWhom,
     markBought,
     addToPackingList,
     saveAsGroup,

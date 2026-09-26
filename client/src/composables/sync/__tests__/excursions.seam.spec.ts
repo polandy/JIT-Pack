@@ -467,3 +467,37 @@ describe('addGroupLines — FR-31.2 on an existing excursion', () => {
     expect(lines().filter((l) => l.name === 'Hüttenschlafsack')).toHaveLength(2)
   })
 })
+
+describe('setForWhom — FR-31.5 from the line’s sheet', () => {
+  it('makes a shared line one per participant, and undoes it as one', () => {
+    seedTrip()
+    const actions = build()
+    const { excursionId } = actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: null,
+    })!
+    pullIn(ctx.tripStore, TABLE.excursionItems, 'l-bag', {
+      trip_id: TRIP_ID,
+      excursion_id: excursionId,
+      name: 'Schlafsack',
+    })
+
+    const undo = actions.setForWhom(TRIP_ID, lines()[0]!, { kind: 'all' })
+
+    expect(
+      lines()
+        .map((l) => [l.assigned_traveler_id, l.for_all_participants])
+        .sort(),
+    ).toEqual([
+      ['tr-andy', true],
+      ['tr-sia', true],
+    ])
+
+    undo()
+
+    expect(lines().map((l) => [l.id, l.assigned_traveler_id])).toEqual([['l-bag', null]])
+  })
+})

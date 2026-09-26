@@ -33,11 +33,14 @@ import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddI
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
+import ExcursionItemSheet from '@/components/trips/ExcursionItemSheet.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useLongPress } from '@/composables/useLongPress'
 import { useTripScreen } from '@/composables/useTripScreen'
 import {
   canJoinPackingList,
@@ -203,6 +206,28 @@ async function keep(line: ExcursionItem) {
   })
 }
 
+/**
+ * The line whose sheet is open (M5's idiom: a tap opens the detail, a hold
+ * opens the menu). The sheet stays on the thing when its strip replaces the line.
+ */
+const openLineId = ref<string | null>(null)
+
+/**
+ * M4's press-and-hold for a line's menu (`useLongPress`; `contextmenu` on a
+ * desktop). While the menu lives, the tap its release lands as is ignored,
+ * for M4's reason — the release falls on the overlay, not the row.
+ */
+let menuActive = false
+const hold = useLongPress<ExcursionItem>((line) => void openLine(line))
+function openSheet(line: ExcursionItem) {
+  if (!menuActive) openLineId.value = line.id
+}
+
+async function keepOpenLine() {
+  const line = lines.value.find((l) => l.id === openLineId.value)
+  if (line) await keep(line)
+}
+
 async function openLine(line: ExcursionItem) {
   const skipped = line.state === STATE_SKIPPED
   const buttons: Array<{ text: string; role?: string; handler?: () => void; data?: string }> = []
@@ -247,6 +272,8 @@ async function openLine(line: ExcursionItem) {
   buttons.push({ text: t('common.cancel'), role: 'cancel' })
   const sheet = await actionSheetController.create({ header: line.name, buttons })
   sheet.setAttribute('data-testid', 'excursion-line-menu')
+  menuActive = true
+  void sheet.onDidDismiss().then(() => (menuActive = false))
   await sheet.present()
 }
 
@@ -477,8 +504,11 @@ setHeaderTitle(
                   :closing-pass="false"
                   :notes="NO_NOTES"
                   :master="masterOf(entry.line.source_item_id)"
-                  @open="openLine(entry.line)"
+                  @open="openSheet(entry.line)"
                   @menu="openLine(entry.line)"
+                  @press-start="(e: PointerEvent) => hold.down(entry.line, e.clientX, e.clientY)"
+                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                  @press-end="hold.cancel()"
                   @edit-quantity="openLine(entry.line)"
                   @increment="count(entry.line, entry.line.packed_count + 1)"
                   @decrement="count(entry.line, entry.line.packed_count - 1)"
@@ -526,8 +556,11 @@ setHeaderTitle(
                       :closing-pass="false"
                       :notes="NO_NOTES"
                       :traveler="personOf(line)"
-                      @open="openLine(line)"
+                      @open="openSheet(line)"
                       @menu="openLine(line)"
+                      @press-start="(e: PointerEvent) => hold.down(line, e.clientX, e.clientY)"
+                      @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                      @press-end="hold.cancel()"
                       @edit-quantity="openLine(line)"
                       @increment="count(line, line.packed_count + 1)"
                       @decrement="count(line, line.packed_count - 1)"
@@ -569,6 +602,22 @@ setHeaderTitle(
         @dismiss="editing = false"
         @save="saveEdit"
       />
+
+      <!-- M5's sheet, for an excursion's line (FR-31.6). -->
+      <SheetModal
+        :is-open="openLineId !== null"
+        testid="m27-line-modal"
+        @dismiss="openLineId = null"
+      >
+        <ExcursionItemSheet
+          v-if="openLineId"
+          :trip-id="tripId"
+          :line-id="openLineId"
+          :participants="participants"
+          @close="openLineId = null"
+          @keep="keepOpenLine"
+        />
+      </SheetModal>
 
       <IonFab :id="FAB_ANCHOR.m27Excursion" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton

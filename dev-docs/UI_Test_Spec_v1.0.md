@@ -3372,6 +3372,10 @@ went.
   gives a joiner a line of every *für alle* set; the one toast's undo takes the people and the lines back.
 * **E2E-M27-06** `local` (FR-31.11/31.1) — **implemented** (`excursions.spec.ts`): the ⋮'s *Als Gruppe speichern*
   writes a group the template list shows; the ⋮'s delete returns to M27 and leaves the packing list as it was.
+* **E2E-M27-08** `local` (FR-31.5/31.6) — **implemented** (`excursions.spec.ts`): a tap on a line opens M5's sheet
+  for it — the name, the amount, the large packing control packs it; the sheet's *Alle* turns the shared thing into
+  a line per person without closing the sheet, the packed shared line stays; a hold (context menu) opens the line's
+  menu.
 * **E2E-M27-07** `local` (FR-31.13) — **implemented** (`excursions.spec.ts`): on a trip under way, a line not in the
   luggage is bought through M6, then taken *Auf die Packliste*: the toast says so, the line reads *vor Ort gekauft · auf
   der Packliste* and offers the action no more, the packed row is on M4 once the packed rows are revealed, and the item
@@ -3723,6 +3727,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-31.9 | UNIT+SERVER | `workerBody.spec.ts` (body and link), Go: `TestDueExcursions_FR31_9_*`, `TestPlanExcursionDue_FR31_9_*`, `TestRemindDueTasks_*` |
 | FR-31.10–31.12 | E2E+UNIT | M27-01 (M4's borrowed line), M27-06 (saved as a group); `excursions.spec.ts` (`arrangeExcursions`, `pendingExcursionCount`, `dueExcursions`, `borrowersByTripItem`, `planGroupFromExcursion`), `excursions.seam.spec.ts` (`saveAsGroup`) |
 | FR-31.13 | E2E+UNIT | M27-07 (bought through M6, taken onto the packing list, on M4 and in M9); `excursions.spec.ts` (`canJoinPackingList`, `inventoryItemFor`), `excursions.seam.spec.ts` (`addToPackingList`, its undo) |
+| FR-31.5/31.6 (the sheet) | E2E+UNIT | M27-08; `excursions.spec.ts` (`planForWhom`, `lineSetOf`), `excursions.seam.spec.ts` (`setForWhom`, its undo) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
 | FR-30.5 | E2E | M1-12 (the card's way onto M6) |

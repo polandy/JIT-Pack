@@ -4232,7 +4232,9 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   * **somebody leaves** → their **open** lines go; a line of theirs already ticked **stays**, marked *nicht mehr dabei*
     with *Herausnehmen*, because the thing is in the rucksack and a list that forgot it would hide exactly that.
 
-  The change of people and its lines are **one undo**.
+  The change of people and its lines are **one undo**. A thing can also be turned from shared to per person and back
+  from its line's sheet, with M5's strip over the participants; open lines of those it is no longer for go, a packed
+  one stays.
 * **FR-31.6 (The Packing List, Smaller):** An excursion's list **reads and works like M4, from M4's own parts**: its
   progress card and per-person strip (filtering as on M4), collapsible group heads by category, M4's row with its
   stepper and glyphs, the per-person cluster that starts shut, the §3.28 mark, and the orange ＋ opening M4's quick-add

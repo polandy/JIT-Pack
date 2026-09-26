@@ -1671,6 +1671,7 @@ export const de: Record<keyof typeof en, string> = {
   'excursions.notInLuggage': 'nicht im Gepäck',
   'excursions.buyOnSite': 'Vor Ort besorgen',
   'excursions.leftBehind': 'nicht mehr dabei',
+  'excursions.detailsHint': 'Einpacken oder vor Ort kaufen',
   'excursions.keep': 'Auf die Packliste',
   'excursions.kept': 'auf der Packliste',
   'excursions.keptToast': '„{item}“ ist auf der Packliste und im Inventar',
