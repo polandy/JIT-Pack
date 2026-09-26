@@ -118,3 +118,19 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 		t.Errorf("DueShoppingEntries() = %v, %v; want nil, nil", none, err)
 	}
 }
+
+// FR-30.12: an assignment notification names the entry by its stored name,
+// and an entry that is not there is an error, never an empty name.
+func TestShoppingEntryName_FR30_12_NamesTheEntryOrFails(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO shopping_entries (id, trip_id, name) VALUES ('e-bread', ?, 'Brot')`, testTrip)
+
+	name, err := s.ShoppingEntryName(ctx, "e-bread")
+	if err != nil || name != "Brot" {
+		t.Fatalf("ShoppingEntryName = %q, %v; want Brot", name, err)
+	}
+	if _, err := s.ShoppingEntryName(ctx, "e-missing"); err == nil {
+		t.Error("ShoppingEntryName(missing) = nil error; want one")
+	}
+}
