@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.21.0](https://github.com/polandy/JIT-Pack/compare/v0.20.0...v0.21.0) (2026-09-26)
+
+
+### Features
+
+* a purchase can be handed to somebody, and a task row is one line again (FR-30.12, FR-7.14) ([#612](https://github.com/polandy/JIT-Pack/issues/612)) ([ab47665](https://github.com/polandy/JIT-Pack/commit/ab476656e983a59ae154fe09e9110c3e84e59f4e))
+* **client:** the fold row and the quick-add card carry the group's mark (FR-28.8) ([#610](https://github.com/polandy/JIT-Pack/issues/610)) ([ae9b4c9](https://github.com/polandy/JIT-Pack/commit/ae9b4c9af44d907814190341dde9099d06151374))
+* **client:** Vor der Reise takes nothing new once the trip is under way, on both lists (FR-7.14, FR-30.8) ([#613](https://github.com/polandy/JIT-Pack/issues/613)) ([a42b6ee](https://github.com/polandy/JIT-Pack/commit/a42b6ee0d822f69e70a1e27e6c73dab6ece39671))
+
 ## [0.20.0](https://github.com/polandy/JIT-Pack/compare/v0.19.0...v0.20.0) (2026-09-26)
 
 
