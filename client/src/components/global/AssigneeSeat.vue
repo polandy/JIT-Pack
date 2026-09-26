@@ -2,8 +2,9 @@
 /**
  * Whose job something is, as the control that decides it: the assignee's
  * avatar, or an empty seat while it is nobody's (FR-25.25). A packing row's
- * right edge and a trip todo (FR-7.5) both end in it — one idiom for one
- * question, so the two cannot drift apart.
+ * right edge, a task (FR-7.5) and a shopping entry (FR-30.12) all end in it —
+ * one idiom for one question, so they cannot drift apart. Shared, because
+ * the shopping module may reach only `components/global/` (ADR-066).
  *
  * `.stop.prevent` on the click because a packing row is an anchor Ionic
  * wraps, and an anchor's jump is a default action that stopping propagation
@@ -53,8 +54,10 @@ const emit = defineEmits<{ assign: [event: MouseEvent] }>()
   cursor: pointer;
 }
 
+/* The empty seat is the avatar's size — 14 + 2 × 4 + 2 × 1 = 24 px — so a
+   row reads the same height handed over or not. */
 .assign-empty {
-  font-size: var(--jp-icon-sm);
+  font-size: var(--jp-icon-xs);
   color: var(--ct-overlay0);
   border: 1px dashed var(--ct-surface2);
   border-radius: 50%;

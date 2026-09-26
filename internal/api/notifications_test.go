@@ -297,6 +297,35 @@ func TestNotifications_TripTodoAssignedLater_NamesTheTask(t *testing.T) {
 	}
 }
 
+// FR-30.12 end to end through a push: the entry is written first and
+// handed to somebody later, so the assignment carries no name and the words
+// come from the stored entry — and the assignee survives the round trip.
+func TestNotifications_ShoppingEntryAssigned_NamesTheEntry_FR30_12(t *testing.T) {
+	srv := newTestServer(t)
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-entry", "op": "insert", "table": store.TableShoppingEntries, "id": "e-bread",
+		"fields": map[string]any{"trip_id": trip, "name": "Brot", "list": "buy_local", "bought": 0},
+		"hlc":    "0000000002000-0000-aaaaaaaa",
+	})
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-assign", "op": "upsert", "table": store.TableShoppingEntries, "id": "e-bread",
+		"fields": map[string]any{"assignee_user_id": userB},
+		"hlc":    "0000000003000-0000-aaaaaaaa",
+	})
+
+	if row := pulledRow(t, srv.URL, "e-bread"); row["assignee_user_id"] != userB {
+		t.Errorf("assignee_user_id = %v, want %s", row["assignee_user_id"], userB)
+	}
+	got := listNotifications(t, srv, userB, "")
+	if len(got.Notifications) != 1 {
+		t.Fatalf("notifications = %+v, want one delegation", got.Notifications)
+	}
+	n := got.Notifications[0]
+	if n.Kind != "delegation" || n.Payload["item_name"] != "Brot" || n.Payload["entry_id"] != "e-bread" {
+		t.Errorf("notification = %+v, want a delegation naming the entry", n)
+	}
+}
+
 func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")

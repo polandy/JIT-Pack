@@ -62,12 +62,13 @@ func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error)
 }
 
 // DueShoppingEntry is one open shopping entry due on a day the reminder
-// asks about (FR-30.10). It has no assignee: a purchase is the trip's.
+// asks about (FR-30.10).
 type DueShoppingEntry struct {
-	ID      string
-	TripID  string
-	Name    string
-	DueDate string
+	ID       string
+	TripID   string
+	Name     string
+	DueDate  string
+	Assignee string // FR-30.12; empty: nobody's in particular, so everybody's
 }
 
 // DueShoppingEntries returns the entries not yet bought, of every trip that
@@ -84,7 +85,7 @@ func (s *Store) DueShoppingEntries(ctx context.Context, days ...string) ([]DueSh
 		args = append(args, d)
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT e.id, e.trip_id, e.name, e.due_date
+		`SELECT e.id, e.trip_id, e.name, e.due_date, COALESCE(e.assignee_user_id, '')
 		   FROM shopping_entries e JOIN trips t ON t.id = e.trip_id
 		  WHERE e.bought = 0 AND t.status <> ?
 		    AND e.due_date IN (?`+strings.Repeat(", ?", len(days)-1)+`)
@@ -97,7 +98,7 @@ func (s *Store) DueShoppingEntries(ctx context.Context, days ...string) ([]DueSh
 	var out []DueShoppingEntry
 	for rows.Next() {
 		var d DueShoppingEntry
-		if err := rows.Scan(&d.ID, &d.TripID, &d.Name, &d.DueDate); err != nil {
+		if err := rows.Scan(&d.ID, &d.TripID, &d.Name, &d.DueDate, &d.Assignee); err != nil {
 			return nil, fmt.Errorf("due shopping entries: %w", err)
 		}
 		out = append(out, d)

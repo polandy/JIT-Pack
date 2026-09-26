@@ -40,10 +40,11 @@ type itemResolver func(itemID string) (itemFacts, bool)
 // ADR-058), reporting false when the traveler has none or cannot be read.
 type travelerResolver func(travelerID string) (linkedUserID string, ok bool)
 
-// todoResolver answers a comment's body — the words an FR-7.5 assignment
-// notification names — reporting false when it cannot be read. An
-// assignment made after the todo was written carries no body of its own.
-type todoResolver func(commentID string) (body string, ok bool)
+// wordsResolver answers what an assignment notification names — a task's
+// body (FR-7.5) or a shopping entry's name (FR-30.12), by the row's table —
+// reporting false when it cannot be read. An assignment made after the row
+// was written carries no words of its own.
+type wordsResolver func(table, id string) (words string, ok bool)
 
 // noteThreadFacts is what FR-7.13's reply rule needs to know about a
 // thread: what to call it, and who has taken part in it.
@@ -76,7 +77,7 @@ func planNotifications(
 	members []store.MemberName,
 	resolve itemResolver,
 	resolveTraveler travelerResolver,
-	resolveTodo todoResolver,
+	resolveWords wordsResolver,
 	resolveThread threadResolver,
 ) []plannedNotification {
 	if len(members) < 2 {
@@ -96,7 +97,7 @@ func planNotifications(
 			plan = append(plan, planDelegation(tripID, actor, actorName, m, resolve)...)
 			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, resolve, resolveTraveler, plan)...)
 		case store.TableComments:
-			assigned := planTodoAssignment(tripID, actor, actorName, m, members, resolveTodo)
+			assigned := planAssignment(tripID, actor, actorName, m, members, resolveWords)
 			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
 				switch {
@@ -114,6 +115,8 @@ func planNotifications(
 					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
 				}
 			}
+		case store.TableShoppingEntries:
+			plan = append(plan, planAssignment(tripID, actor, actorName, m, members, resolveWords)...)
 		}
 	}
 	return plan
@@ -189,23 +192,28 @@ func planRosterAssignment(
 	}}
 }
 
-// planTodoAssignment fires when a push hands a trip todo to somebody else
-// (FR-7.5): the task's counterpart of planDelegation, and the same kind,
-// because the delegation body („{actor} hat dir „{item}" zugewiesen")
-// already says the sentence. The recipient must be on the trip — the
-// payload's deep link is into it (ADR-058's driver 1).
-func planTodoAssignment(
+// planAssignment fires when a push hands a task (FR-7.5) or a shopping entry
+// (FR-30.12) to somebody else: planDelegation's counterpart, and the same
+// kind, because the delegation body („{actor} hat dir „{item}" zugewiesen")
+// already says the sentence. The payload names the row by the key its
+// table's deep link reads. The recipient must be on the trip — the link is
+// into it (ADR-058's driver 1).
+func planAssignment(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolveTodo todoResolver,
+	members []store.MemberName, resolveWords wordsResolver,
 ) []plannedNotification {
-	target, _ := m.Fields["assignee_user_id"].(string)
+	target, _ := m.Fields[columnAssignee].(string)
 	if target == "" || target == actor || displayNameOf(members, target) == "" {
 		return nil
 	}
-	body, _ := m.Fields["body"].(string)
-	if body == "" {
+	idKey, wordsColumn := payloadCommentID, "body"
+	if m.Table == store.TableShoppingEntries {
+		idKey, wordsColumn = payloadEntryID, "name"
+	}
+	words, _ := m.Fields[wordsColumn].(string)
+	if words == "" {
 		var ok bool
-		if body, ok = resolveTodo(m.ID); !ok {
+		if words, ok = resolveWords(m.Table, m.ID); !ok {
 			return nil
 		}
 	}
@@ -213,8 +221,8 @@ func planTodoAssignment(
 		UserID: target,
 		Kind:   store.NotifyDelegation,
 		Payload: map[string]any{
-			payloadTripID: tripID, payloadCommentID: m.ID,
-			payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(body, previewLen),
+			payloadTripID: tripID, idKey: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(words, previewLen),
 		},
 	}}
 }

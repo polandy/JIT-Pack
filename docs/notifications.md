@@ -6,7 +6,8 @@ a notification, and only these:
 - **Delegation** — someone hands you the responsibility for packing an item, either directly or by assigning the
   item to a traveler linked to your account (see [Linking a person to an account](command-line.md#linking-a-person-to-an-account)),
   or hands you one of the trip's tasks — either a chore of the trip itself or something a
-  packing element needs done first. You find both under **Aufgaben** on the trip.
+  packing element needs done first. You find both under **Aufgaben** on the trip. It also covers something on the
+  shopping list handed to you to buy; tapping that one opens the trip's shopping list.
 - **Mention** — a comment names you with `@display-name`.
 - **Task** — a comment on an item is flagged as a task; the item's packer is notified.
 - **Row taken over** — you had started packing a row and somebody else took it over (see [Two people, one row](multi-user-setup.md#6-two-people-one-row)).
@@ -19,7 +20,8 @@ a notification, and only these:
   you configure (see [Task reminders](configuration.md#task-reminders)), to the person the task is handed to, or to
   everyone on the trip when it is nobody's in particular. Tapping it opens the trip's **Aufgaben**.
 - **Purchase due** — something on a trip's shopping list is due tomorrow or today. The same daily run sends it, to
-  everyone on the trip: a purchase is nobody's in particular. Tapping it opens the trip's shopping list.
+  the person it is handed to, or to everyone on the trip when it is nobody's in particular. Tapping it opens the
+  trip's shopping list.
 
 The first six exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
 concern you. **Task due and purchase due are the exception**: a single-user instance reminds its one user too, and

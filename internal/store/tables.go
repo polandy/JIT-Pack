@@ -500,6 +500,9 @@ var tableSpecs = map[string]tableSpec{
 			// FR-30.10: the day it is due — the client's to choose, like a
 			// task's (FR-7.11); the reminder scheduler only reads it.
 			"due_date",
+			// FR-30.12: who is to buy it — the client's to choose, like a
+			// task's assignee (FR-7.5).
+			"assignee_user_id",
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

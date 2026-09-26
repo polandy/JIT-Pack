@@ -84,7 +84,7 @@ func TestPlanTaskDue_FR7_11_AssigneeElseEveryMember(t *testing.T) {
 	}
 }
 
-func TestPlanShoppingDue_FR30_10_EveryMember(t *testing.T) {
+func TestPlanShoppingDue_FR30_12_AssigneeElseEveryMember(t *testing.T) {
 	members := map[string][]store.MemberName{
 		"trip-1":    {{UserID: "u-andy", DisplayName: "Andy"}, {UserID: "u-sia", DisplayName: "Sia"}},
 		"trip-solo": {{UserID: "u-local", DisplayName: "Ich"}},
@@ -94,6 +94,8 @@ func TestPlanShoppingDue_FR30_10_EveryMember(t *testing.T) {
 		{ID: "e-milk", TripID: "trip-1", Name: "Milch", DueDate: "2026-07-08"},
 		{ID: "e-solo", TripID: "trip-solo", Name: "Brot", DueDate: "2026-07-09"},
 		{ID: "e-later", TripID: "trip-1", Name: "Später", DueDate: "2026-07-12"},
+		{ID: "e-sias", TripID: "trip-1", Name: "Käse", DueDate: "2026-07-09", Assignee: "u-sia"},
+		{ID: "e-left", TripID: "trip-1", Name: "Wein", DueDate: "2026-07-09", Assignee: "u-gone"},
 	}
 	type sent struct{ user, entry, name, due string }
 	var got []sent
@@ -110,6 +112,10 @@ func TestPlanShoppingDue_FR30_10_EveryMember(t *testing.T) {
 		{"u-andy", "e-milk", "Milch", dueToday}, {"u-sia", "e-milk", "Milch", dueToday},
 		// Single-User: one member, and still reminded.
 		{"u-local", "e-solo", "Brot", dueTomorrow},
+		// FR-30.12: handed to Sia, so only Sia hears.
+		{"u-sia", "e-sias", "Käse", dueTomorrow},
+		// An assignee who left the trip is nobody's any more: everybody hears.
+		{"u-andy", "e-left", "Wein", dueTomorrow}, {"u-sia", "e-left", "Wein", dueTomorrow},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("plan = %v\nwant %v", got, want)

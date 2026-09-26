@@ -20,8 +20,14 @@
  * alone and counts towards no packing figure. Adding a packing row in a buy
  * mode is the packing list's job (M4), where the item and its mode are chosen.
  */
-import { IonPage, IonContent, IonIcon, IonFab, IonFabButton } from '@ionic/vue'
-import { addOutline, bagHandleOutline, pricetagsOutline } from 'ionicons/icons'
+import { IonPage, IonContent, IonIcon, IonFab, IonFabButton, IonChip, IonLabel } from '@ionic/vue'
+import {
+  addOutline,
+  bagHandleOutline,
+  personAddOutline,
+  personOutline,
+  pricetagsOutline,
+} from 'ionicons/icons'
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
@@ -47,6 +53,7 @@ import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { collapseRow } from '@/lib/rowCollapse'
+import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { presentToast } from '@/lib/toast'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
@@ -104,7 +111,26 @@ const beforeOpen = computed(
 
 // FR-30.4: a purchase is named from the trip's participants, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
-const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const {
+  nameOf,
+  assignees,
+  myUserId,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator)
+
+/** FR-30.12: a seat only where there is somebody else to hand a purchase to — M25's rule. */
+const assignable = computed(() => assignees.value.length > 1)
+
+/**
+ * FR-30.12: *Meine* — only what I am to buy, M25's chip. A packing line is
+ * nobody's here (its person is the packing list's), so it leaves too.
+ */
+const mineOnly = ref(false)
+function shownLines(lines: ShoppingLine[]): ShoppingLine[] {
+  return mineOnly.value && assignable.value
+    ? lines.filter((line) => line.assignee === myUserId.value)
+    : lines
+}
 onMounted(async () => {
   await ensure()
   await loadIdentity()
@@ -112,16 +138,16 @@ onMounted(async () => {
 
 function openLines(list: ShoppingMode) {
   return {
-    own: own.open(props.tripId, list),
-    sourced: sources.flatMap((source) => source.open(props.tripId, list)),
+    own: shownLines(own.open(props.tripId, list)),
+    sourced: shownLines(sources.flatMap((source) => source.open(props.tripId, list))),
   }
 }
 
 function boughtLines(list: ShoppingMode): ShoppingLine[] {
-  return [
+  return shownLines([
     ...own.bought(props.tripId, list),
     ...sources.flatMap((source) => source.bought(props.tripId, list)),
-  ]
+  ])
 }
 
 /** Today as the device reckons it — what a due day is read against (FR-30.10). */
@@ -155,6 +181,8 @@ function dueIn(list: ShoppingMode): number {
 /** Nothing open and nothing bought, on either list: the screen's empty state (G-7). */
 const nothingAtAll = computed(
   () =>
+    // *Meine* with nothing of mine is not an empty list — the lines say so.
+    !mineOnly.value &&
     board.value.due.length === 0 &&
     SHOPPING_MODES.every(
       (list) => board.value.lists[list].open === 0 && bought.value[list].length === 0,
@@ -306,7 +334,7 @@ const bulkSheetOpen = ref(false)
 /** The last batch's undo, live for as long as its snackbar (FR-30.9, M9's `bulkUndo`). One batch at a time. */
 let bulkUndo: (() => void) | null = null
 
-function undoBulkTag() {
+function undoBulk() {
   const undo = bulkUndo
   bulkUndo = null
   undo?.()
@@ -336,7 +364,68 @@ async function applyBulkTag(tag: string | null) {
     }),
     positionAnchor: FAB_ANCHOR.m6,
     cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulkTag() }],
+    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
+  })
+}
+
+/** FR-30.12: the person picker M4 and M25 ask with (`lib/pickAssignee`), over the trip's own people. */
+function pickAssignee(header: string, current: string | null) {
+  return pickAssigneeFrom(header, current, assignees.value)
+}
+
+/** FR-30.12: the seat — who is to buy this line; undone from the toast like every act here. */
+async function assignLine(line: ShoppingLine) {
+  if (!line.assign) return
+  const previous = line.assignee ?? null
+  const picked = await pickAssignee(line.name, previous)
+  if (picked === undefined || picked === previous) return
+  line.assign(picked)
+  await presentToast({
+    message:
+      picked === null
+        ? t('packing.unassignedToast', { name: line.name })
+        : t('packing.assignedToast', { name: line.name, who: nameOf(picked) ?? '' }),
+    positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
+    // The line as it is by then: the one tapped still carries the entry
+    // from before the hand-over, and would take the undo for no change.
+    buttons: [
+      { text: t('packing.undo'), handler: () => liveOwnLine(line.key)?.assign?.(previous) },
+    ],
+  })
+}
+
+/** An own entry's line as the store holds it now, open on either list. */
+function liveOwnLine(key: string): ShoppingLine | undefined {
+  return ownOpenLines.value.find((line) => line.key === key)
+}
+
+/** FR-30.12: one person for the batch, across both lists — `applyBulkTag`'s shape. */
+async function bulkAssign() {
+  const picked = await pickAssignee(t('shopping.bulkAssignTitle', { n: selected.value.size }), null)
+  if (picked === undefined) return
+  const results = SHOPPING_MODES.map((list) =>
+    own.bulkSetAssignee(props.tripId, list, selected.value, picked),
+  )
+  const touched = results.reduce((n, result) => n + result.touched, 0)
+  endSelecting()
+  if (touched === 0) {
+    await presentToast({
+      message: t('shopping.bulkNothingToDo'),
+      positionAnchor: FAB_ANCHOR.m6,
+      cssClass: 'pack-toast',
+    })
+    return
+  }
+  bulkUndo = () => results.forEach((result) => result.undo())
+  await presentToast({
+    message:
+      picked === null
+        ? t('shopping.bulkUnassigned', { n: touched })
+        : t('shopping.bulkAssigned', { n: touched, who: nameOf(picked) ?? '' }),
+    positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
+    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
   })
 }
 
@@ -560,6 +649,19 @@ setHeaderTitle(
       @pointerup="drag.up"
       @pointercancel="drag.cancel"
     >
+      <!-- FR-30.12: M25's *Meine* chip, where a purchase can be anybody's. -->
+      <IonChip
+        v-if="assignable"
+        :outline="!mineOnly"
+        class="mine"
+        data-testid="m6-mine"
+        :aria-pressed="mineOnly ? 'true' : 'false'"
+        @click="mineOnly = !mineOnly"
+      >
+        <IonIcon :icon="personOutline" />
+        <IonLabel>{{ t('shopping.mine') }}</IonLabel>
+      </IonChip>
+
       <!-- M25's composer. G-20: in place while a
            selection is on, at rest — typing a new entry mid-batch is a
            different act, and a chip here only files the next entry. -->
@@ -656,9 +758,12 @@ setHeaderTitle(
             :selection="selection"
             :tag-of="tagOfDue"
             :leave="onRowLeave"
+            :assignable="assignable"
+            :name-of="nameOf"
             @buy="buyLine"
             @open="openEditSheet"
             @lift="onLift"
+            @assign="assignLine"
           />
         </DueBlock>
 
@@ -673,10 +778,12 @@ setHeaderTitle(
             :drop-key="dropKeyOf(list)"
             :selection="selection"
             :leave="onRowLeave"
+            :assignable="assignable"
             @buy="buyLine"
             @unbuy="(line) => line.unbuy()"
             @open="openEditSheet"
             @lift="onLift"
+            @assign="assignLine"
           />
         </template>
 
@@ -735,6 +842,10 @@ setHeaderTitle(
         <button type="button" data-testid="m6-bulk-tag" @click="bulkSheetOpen = true">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('shopping.bulkTag') }}
+        </button>
+        <button v-if="assignable" type="button" data-testid="m6-bulk-assign" @click="bulkAssign">
+          <IonIcon :icon="personAddOutline" />
+          {{ t('shopping.bulkAssign') }}
         </button>
       </BulkBar>
 
@@ -826,6 +937,11 @@ setHeaderTitle(
 
 .hint-wide {
   margin: 4px 18px 8px;
+}
+
+/* M25's chip, at M25's inset. */
+.mine {
+  margin: 4px 14px 2px;
 }
 
 .select-hint {

@@ -4111,9 +4111,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     entry, and **the pressing ones lead** — overdue, today, the next two days, earliest first — with everything else
     in the order it had.
   * **The reminder.** The server's FR-7.11 run sends a second kind, **`shopping_due`**, the day before and on the due
-    day, at the same `JITPACK_TASK_REMINDER_TIME` and under the same once-a-day claim. **Recipient: every member of the
-    trip** — an entry has no assignee, and a purchase nobody in particular was handed is everybody's, the rule a task
-    without an assignee already follows. Single-User is reminded too (FR-17.3 does not apply, FR-7.11's reason). The
+    day, at the same `JITPACK_TASK_REMINDER_TIME` and under the same once-a-day claim. **Recipient: the task's rule**
+    (FR-30.12) — the person the entry is handed to, else every member of the trip, since a purchase nobody in
+    particular was handed is everybody's. Single-User is reminded too (FR-17.3 does not apply, FR-7.11's reason). The
     payload names the entry (`item_name`, `entry_id`) and the day; a tap opens M6. **Its own M17 toggle, *Fällige
     Einkäufe*** — a person reminded of their chores need not want the groceries. **Local Mode:** M1's opening hint
     counts the due purchases beside the tasks (*„1 Aufgabe und 2 Einkäufe fällig"*, or either alone).
@@ -4151,6 +4151,30 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     `components/global/` — `ListComposer`, `ChipRow`, `DueChips`, `DueBlock`, `ListSection`, `ListGroup`,
     `ListRow`, `FoldToggle`, `RestLine`, `TagPicker` and `EntrySheet`. What stays per screen is what a line is.
   * **Modes.** All three, like the list itself. **Surfaces:** M6 (UI-Spec M6), M25. E2E-M6-36.
+
+* **FR-30.12 (A purchase can be handed to somebody, *built*):** the shopping list's own entries carry an assignee,
+  as a task does (FR-7.5): who is to buy it.
+  * **Only the list's own entries** (`shopping_entries.assignee_user_id`, nullable, a reference to `users`, one field
+    so a hand-over and a rename on two devices both stand — NFR-4.2a). Like a task's, it is the client's to set:
+    invariant 3 is about who acted, not whom a job is handed to. **The packing list's buy lines carry no seat**: their
+    person is the packing list's question (FR-25.19), asked on M4, and one line may stand for rows of several people.
+    Rejected: a seat there that writes the packing row's assignment (ambiguous for such a line), and a read-only
+    avatar of it (a second place saying what M4 already says).
+  * **The seat is M25's**, at the row's edge before the tick (`AssigneeSeat`, now in `components/global/` so the
+    module may use it, ADR-066), with the same picker over the trip's own people; the facts line is left to facts, so
+    an entry with none is one line. **Server Mode only in effect**: the seat, the chip and the batch are absent where
+    nobody else is on the trip — Local and Single-User Mode (G-8). While selecting, the avatar stays and the control
+    goes; a bought entry names its buyer (FR-30.4), not its assignee.
+  * **Told like a task:** handing an entry to somebody else sends them the delegation notification (*„Andy hat dir
+    „Brot" zugewiesen"*), its payload naming the entry (`entry_id`); a tap opens M6. Nobody is told of taking an
+    entry on themselves.
+  * **The reminder follows it** (FR-30.10): the person handed the entry, else every member — `dueRecipients`, one rule
+    for tasks and purchases, which also returns to everybody when the assignee has left the trip.
+  * ***Meine*** on M6, M25's chip: only what I am to buy. A packing line leaves too — it is nobody's here.
+  * **The batch:** the selection's bar carries ***Zuweisen*** on M6 and on M25 alike — one picker, only what changes is
+    written, one undo for the batch.
+  * **Modes.** The column syncs in all three; the controls exist in Server Mode (above). Not in the portable backup
+    (item 25). **Surfaces:** M6, M25 (UI-Spec). E2E-M6-37, E2E-M25-18.
 
 ## Part B — Clarifications & Extensions to Existing Sections
 
@@ -5184,8 +5208,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     reminded too. **Local Mode** has no server: when the app opens, M1 says once, as a toast, ***„N Aufgaben fällig“***
     — the open tasks due by tomorrow, the overdue ones included, across the active trips; nothing when there are none.
   * Like every task, a due date is not in the portable backup (item 24).
-  * The shopping list's own entries may carry a day too (FR-30.10); the same daily run reminds every member of a trip
-    of them, as a kind of its own (`shopping_due`).
+  * The shopping list's own entries may carry a day too (FR-30.10); the same daily run reminds of them by the same
+    recipient rule (FR-30.12), as a kind of its own (`shopping_due`).
 
 * **FR-7.12 (A finished packing closes *before the trip*, *built*, ADR-076):** FR-7.7 moves the open *before* tasks to
   *during* when the packing is closed. The shopping list follows, and *before* stays closed afterwards:
@@ -5280,9 +5304,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
        and reading (FR-30.11). **A task tag is drawn as its name alone** — no mark in the composer's chips, the group
        headings or the chooser, as a shopping tag has none; the `task_tags.icon` column stays, unread by the screen,
        and the dev seed sets none.
-  3. **Two-line rows, no ✕.** The words, then under them the due pill, the row a preparation belongs to and the
-     person. *Done* and *delete* as same-sized neighbours a finger-width apart invite the wrong tap; a task is removed
-     from its sheet or from a selection. M4's compact window is unchanged.
+  3. **Two-line rows, no ✕.** The words, then under them the due pill and the row a preparation belongs to. **The
+     person sits at the row's edge, before the tick** (the seat, 24 px like an avatar), where M4's rows and M6's
+     entries carry it (FR-30.12): a seat in the second line made every open task two lines where one was enough, and
+     a task row taller than a shopping row for no fact at all. A task with nothing to say under its words is one line.
+     *Done* and *delete* as same-sized neighbours a finger-width apart invite the wrong tap; a task is removed from
+     its sheet or from a selection. M4's compact window is unchanged.
   4. **After the packing is closed, *Während der Reise* comes first** and *Vor der Reise* is one folded line at the
      end — its lock line inside the fold — so the history does not stand above the live work with empty headings.
   5. **One *erledigt* fold per phase**, at the section's end, rather than one under every tag group.
@@ -5294,9 +5321,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
      rows; letting a task name a traveller in every mode was the alternative, not taken.
   * **Alongside:** the selection's icon is its own glyph (`SELECTION_ICON`, `checkmarkDoneOutline`, on every list that
     selects), distinct from the *Aufgaben* pill's ☑ directly above it on M6 and M25; the selection's bar carries
-    **Erledigt**, **Fällig** and **Löschen** (the trip's own tasks only) and offers a phase only where it would move
-    something; and M4's task figure says what it counts, *„Beim Packen 0/2"*, so no two screens say *Aufgaben* with
-    different numbers.
+    **Erledigt**, **Fällig**, **Zuweisen** (where anybody else is on the trip, FR-30.12's batch) and **Löschen** (the
+    trip's own tasks only) and offers a phase only where it would move something; and M4's task figure says what it
+    counts, *„Beim Packen 0/2"*, so no two screens say *Aufgaben* with different numbers.
   * **Details:** *Vor Abreise* is the **day before the trip's start**, offered only for a task before the trip and
     only when that day is later than tomorrow (earlier it would duplicate *Heute* or *Morgen*, or be past); a phase
     chip in the composer reads *Unterwegs* rather than *Während der Reise*, to fit the row; the *Fällig* block wears a

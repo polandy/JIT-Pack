@@ -513,6 +513,10 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 	}
 }
 
+// columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
+// handed to — one column name on both tables.
+const columnAssignee = "assignee_user_id"
+
 // Purchase record columns (FR-30.4), shared by trip_items and
 // shopping_entries.
 const (

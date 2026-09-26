@@ -36,6 +36,7 @@ import {
   arrowForwardOutline,
   calendarOutline,
   checkmarkOutline,
+  personAddOutline,
   personOutline,
   pricetagsOutline,
   trashOutline,
@@ -82,13 +83,11 @@ import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { isPackingClosed } from '@/lib/tripPhase'
-import { useTripStore } from '@/stores/tripStore'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
 const orchestrator = useOrchestrator()
-const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()
 
 // ADR-033: the tasks travel the trip partition, like the packing rows. „No
@@ -96,7 +95,7 @@ const { tasksOf } = useTripTasks()
 // not it.
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const {
-  participants,
+  assignees,
   myUserId,
   nameOf,
   load: loadIdentity,
@@ -109,10 +108,6 @@ const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m
 const removing = ref(new Set<string>())
 
 /** Only the people this trip actually carries may be handed a task (FR-7.5). */
-const assignees = computed(() => {
-  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return participants.value.filter((person) => members.has(person.user_id))
-})
 const assignable = computed(() => assignees.value.length > 1)
 
 const acts = useTaskActs(() => props.tripId, {
@@ -380,6 +375,16 @@ function bulkRemove() {
   afterBatch(acts.removeMany(selectedTasks.value))
 }
 
+/** FR-7.14: one person for the batch — the row's own picker, titled for the batch. */
+async function bulkAssign() {
+  const picked = await pickAssignee(
+    t('tasks.bulkAssignTitle', { n: selectedTasks.value.length }),
+    null,
+  )
+  if (picked === undefined) return
+  afterBatch(acts.assignMany(selectedTasks.value, picked))
+}
+
 /*
  * No screen-wide empty state, deliberately. A section with nothing in it says
  * so in its own line — an empty „Vor der Reise" under a full „Während der
@@ -612,6 +617,10 @@ function onSheetRemove() {
         <button type="button" data-testid="m25-bulk-tag" @click="bulkTagOpen = true">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('tasks.bulkTagShort') }}
+        </button>
+        <button v-if="assignable" type="button" data-testid="m25-bulk-assign" @click="bulkAssign">
+          <IonIcon :icon="personAddOutline" />
+          {{ t('tasks.bulkAssign') }}
         </button>
         <button
           v-for="phase in bulkPhases"

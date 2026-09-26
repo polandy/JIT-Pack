@@ -55,6 +55,8 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (n.kind === NOTIFY_TASK_DUE) return tripSubPath(tripId, 'tasks')
   // FR-30.10: a purchase's reminder opens the trip's shopping list (M6).
   if (n.kind === NOTIFY_SHOPPING_DUE) return tripSubPath(tripId, 'shopping')
+  // FR-30.12: so does a purchase handed to the reader.
+  if (str(n.payload, 'entry_id')) return tripSubPath(tripId, 'shopping')
   // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
   if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
     const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')

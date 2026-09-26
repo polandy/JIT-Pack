@@ -386,6 +386,8 @@ export interface ShoppingEntry {
   bought_by_user_id: string | null
   /** FR-30.10: the day it is due (`YYYY-MM-DD`), FR-7.11's shape; null for none. */
   due_date: string | null
+  /** FR-30.12: who is to buy it, a task's assignee's shape (FR-7.5); null for nobody in particular. */
+  assignee_user_id: string | null
 }
 
 // --- Master data ---

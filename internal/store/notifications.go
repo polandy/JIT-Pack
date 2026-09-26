@@ -258,6 +258,17 @@ func (s *Store) CommentBody(ctx context.Context, commentID string) (string, erro
 	return body, nil
 }
 
+// ShoppingEntryName returns a shopping entry's name, for the notification an
+// FR-30.12 assignment earns.
+func (s *Store) ShoppingEntryName(ctx context.Context, entryID string) (string, error) {
+	var name string
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT name FROM shopping_entries WHERE id = ?`, entryID).Scan(&name); err != nil {
+		return "", fmt.Errorf("shopping entry %s: %w", entryID, err)
+	}
+	return name, nil
+}
+
 // TravelerLinkedUser returns a traveler's linked account (FR-2.5 →
 // ADR-058), reporting false when the traveler has none, is unlinked, or
 // cannot be read.

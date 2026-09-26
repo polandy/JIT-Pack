@@ -186,6 +186,7 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     bought_at: entry.bought_at,
     bought_by_user_id: entry.bought_by_user_id,
     due_date: entry.due_date,
+    assignee_user_id: entry.assignee_user_id,
   }
 }
 

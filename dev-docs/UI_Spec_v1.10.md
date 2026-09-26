@@ -1565,9 +1565,14 @@ These patterns apply to every screen and are specified once.
   * **One *gekauft* fold per list**, at the section's end (*„› N gekauft"*, `m6-bought-bar`, M25's *erledigt* fold)
     — see FR-25.11j below.
   * **The empty state** (*„Nichts zu kaufen"*, `m6-empty`) only when nothing is open and nothing bought on either list.
-* **A line: two lines, as a task's.** The first is the grip (own entries; a dashed placeholder for a packing line) and
-  the name; the second, where there is anything to say, the **due pill**, the amount when above one, the tag (in the
-  *Fällig* block only) and — for a per-person item — the recipients (FR-25.6). The check-off stands at the row's own
+* **A line: two lines at most, as a task's.** The first is the grip (own entries; a dashed placeholder for a packing
+  line) and the name; the second, where there is anything to say, the **due pill**, the amount when above one, the tag
+  (in the *Fällig* block only) and — for a per-person item — the recipients (FR-25.6). **Who is to buy it (FR-30.12)**
+  stands at the row's edge before the check-off, M25's seat (`m6-row-assign-<name>`): on an own entry in Server Mode
+  when anybody else is on the trip; an avatar alone while selecting or on a closed list; nothing on a packing line,
+  whose person is M4's question. The seat opens the person picker (headed with the entry's name, *„niemand"* last) and
+  the hand-over raises a toast with **Rückgängig**. The recipients (*„für Mia"*, an 18 px avatar without a ring) and
+  the assignee (the ringed 24 px avatar at the edge) never share a place. The check-off stands at the row's own
   edge. **No ✕ on the row**: an own entry is removed from its entry sheet (*Entfernen*, `m6-entry-remove`), as a task is
   from its own. A packing line offers neither.
 * **Before the trip, closed (FR-7.12, *built*):** once the packing is finished, *Vor der Reise* is the record of what
@@ -1589,6 +1594,9 @@ These patterns apply to every screen and are specified once.
   repeated under every such row reads as clutter at any real list length; the row's own tappability is the whole
   affordance, exactly as a tagged row's is. **The reveal of what was bought is not grouped:** its rows say their tag as
   a small label under the name, and its check (which puts the line back) is at the end like the open rows'. (E2E-M6-31)
+* ***Meine* (FR-30.12, *built*):** M25's chip above the composer (`m6-mine`), where anybody else is on the trip: only
+  the lines I am to buy, on both lists and in the *Fällig* block; a packing line leaves too. With nothing of mine the
+  lists fold to their end lines rather than the empty state. (E2E-M6-37)
 * **The day an entry is due (FR-30.10, *built*):** the entry sheet carries a ***Fällig*** row between the name and the
   tag mask — **M25's day chips** (`DueChips`: *Heute*, *Morgen*, *Vor Abreise* where it applies, *Datum…* for the app's
   date control, ADR-035; the day in force as a chip with its ✕) — written with the sheet's button like the other two;
@@ -1606,7 +1614,9 @@ These patterns apply to every screen and are specified once.
   once below the list rather than repeated per row: *„Packlisten-Positionen tragen nie ein Tag — nicht wählbar."*); the
   row's own tap toggles it instead of opening the entry sheet. A row selected by the long press that started the mode is
   not toggled off by the tap the browser sends on release — the same care M4's row menu takes with its own trailing
-  click. Once at least one entry is picked, a bottom bar offers **Tag vergeben**, opening the same search-or-create
+  click. Once at least one entry is picked, a bottom bar offers **Tag vergeben** and — where anybody else is on the
+  trip — **Zuweisen** (FR-30.12: the person picker headed *„Wer kauft N Einträge?"*; only what changes is written, and
+  the toast's **Rückgängig** gives each entry its own assignee back). **Tag vergeben** opens the same search-or-create
   sheet the single entry does — titled *„Tag für einen Eintrag"* / *„Tag für N Einträge"*, and with no trailing summary
   line, since that sentence is written for one entry staying staged until *Speichern* and this sheet applies the instant
   a chip is chosen, to more than one. Choosing files every selected entry at once; the mode ends with the batch, and a
@@ -2657,10 +2667,12 @@ token would prove nothing there is anything to prove.
     rows name their tag on the second line and can be unticked.
   * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`), the one M4, M6 and M26 carry: it scrolls to the top and focuses the
     composer's field. Hidden while selecting; the snackbar clears it.
-* **A task's line (FR-7.14): two lines.** The first is the grip and the words; the second, where there is anything to
-  say, is what is known about the task — the **due pill**, the **row it prepares** (the chip leading to it), the **tag**
-  where the row stands outside its group, and the **person** (the seat in Server Mode, an avatar where the task can no
-  longer be handed over). The tick stands at the row's own edge — the rule M4's packing rows follow. **No ✕ on the
+* **A task's line (FR-7.14): two lines at most.** The first is the grip and the words; the second, where there is
+  anything to say, is what is known about the task — the **due pill**, the **row it prepares** (the chip leading to
+  it) and the **tag** where the row stands outside its group. **The person stands at the row's edge, before the tick**
+  (`AssigneeSeat`: the seat in Server Mode, 24 px like an avatar; an avatar alone where the task can no longer be
+  handed over), M4's place for it and M6's — so a task with nothing under its words is one line, as tall as a shopping
+  row (E2E-M25-18). The tick stands at the row's own edge — the rule M4's packing rows follow. **No ✕ on the
   row**: *done* and *delete* would be same-sized neighbours a finger-width apart; a task is removed from its sheet or
   from a selection. A fact never squeezes the words: they take the row's width. M4's window keeps its compact one-line
   rows.
@@ -2690,8 +2702,10 @@ token would prove nothing there is anything to prove.
   live and the composer stays in place at rest. *„Alle N"* takes every **open** task shown, in both phases and of both
   kinds. The floating bar offers, left to right: **Erledigt** (every selected task ticked off, in the done ink),
   **Fällig** (a sheet of the same day chips, titled for the batch; *Vor Abreise* only where every selected task is for
-  before the trip), **Tag** (the task sheet's tag chooser, titled for the batch), **the other phase** — one button per
-  phase the batch would actually move something into, never back into a closed *before* — and **Löschen**, only when
+  before the trip), **Tag** (the task sheet's tag chooser, titled for the batch), **Zuweisen** (the row's person
+  picker, headed *„Wer übernimmt N Tasks?"*; only where anybody else is on the trip, FR-30.12), **the other phase** —
+  one button per phase the batch would actually move something into, never back into a closed *before* — and
+  **Löschen**, only when
   every selected task is the trip's own (a preparation is removed on its row, FR-7.3). Only what changes is written, one
   snackbar undo takes the whole batch back (a deletion is hidden at once and written when the undo lapses, as a single
   one is), and the mode ends with the batch; a batch that changes nothing says so instead. Switching views ends the

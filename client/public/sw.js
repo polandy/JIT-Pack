@@ -209,6 +209,8 @@ function notificationUrl(payload, kind) {
   if (kind === 'task_due') return url + '/tasks'
   // FR-30.10: a purchase's reminder opens the trip's shopping list (M6).
   if (kind === 'shopping_due') return url + '/shopping'
+  // FR-30.12: so does a purchase handed to the reader.
+  if (payload.entry_id) return url + '/shopping'
   // FR-7.13: a note or a reply opens its thread, a screen of its own.
   if (kind === 'note' || kind === 'note_reply') {
     const thread = payload.thread_id || payload.comment_id

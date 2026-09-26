@@ -1,8 +1,8 @@
 // Package api — taskdue.go is FR-7.11's reminder: once a day, at a time the
 // operator chooses, everybody a task is for hears that it is due tomorrow or
-// today — and, in the same run, every member of a trip hears about its
-// shopping entries due then (FR-30.10). It is the one notification no push sets off — every other kind is a
-// person's act (notificationrules.go) — so it has a clock of its own. The
+// today — and, in the same run, the same people hear about the trip's
+// shopping entries due then (FR-30.10, FR-30.12). It is the one notification
+// no push sets off — every other kind is a person's act (notificationrules.go) — so it has a clock of its own. The
 // schedule and the recipient rule are pure functions; the loop and the
 // store reads around them are the I/O. See ADR-076.
 package api
@@ -94,22 +94,31 @@ func planTaskDue(
 			payloadTripID: task.TripID, payloadCommentID: task.ID,
 			payloadItemName: truncate(task.Body, previewLen), payloadDue: due,
 		}
-		onTrip := members(task.TripID)
-		if task.Assignee != "" && displayNameOf(onTrip, task.Assignee) != "" {
-			plan = append(plan, plannedNotification{UserID: task.Assignee, Kind: store.NotifyTaskDue, Payload: payload})
-			continue
-		}
-		for _, m := range onTrip {
-			plan = append(plan, plannedNotification{UserID: m.UserID, Kind: store.NotifyTaskDue, Payload: payload})
+		for _, userID := range dueRecipients(task.Assignee, members(task.TripID)) {
+			plan = append(plan, plannedNotification{UserID: userID, Kind: store.NotifyTaskDue, Payload: payload})
 		}
 	}
 	return plan
 }
 
+// dueRecipients is the one rule both reminders share: the assignee, or —
+// for a job nobody has been handed, or one whose assignee has left the trip
+// — every member, because „nobody in particular" is everybody's.
+func dueRecipients(assignee string, onTrip []store.MemberName) []string {
+	if assignee != "" && displayNameOf(onTrip, assignee) != "" {
+		return []string{assignee}
+	}
+	out := make([]string, 0, len(onTrip))
+	for _, m := range onTrip {
+		out = append(out, m.UserID)
+	}
+	return out
+}
+
 // planShoppingDue decides who hears about which shopping entry (FR-30.10):
-// every member of its trip, because a purchase is nobody's in particular —
-// the rule planTaskDue applies to a task nobody was handed. FR-17.3's
-// two-member rule does not apply, for planTaskDue's reason.
+// planTaskDue's rule (FR-30.12) — the person handed the purchase, else every
+// member of its trip. FR-17.3's two-member rule does not apply, for
+// planTaskDue's reason.
 func planShoppingDue(
 	entries []store.DueShoppingEntry, today, tomorrow string,
 	members func(tripID string) []store.MemberName,
@@ -124,8 +133,8 @@ func planShoppingDue(
 			payloadTripID: entry.TripID, payloadEntryID: entry.ID,
 			payloadItemName: truncate(entry.Name, previewLen), payloadDue: due,
 		}
-		for _, m := range members(entry.TripID) {
-			plan = append(plan, plannedNotification{UserID: m.UserID, Kind: store.NotifyShoppingDue, Payload: payload})
+		for _, userID := range dueRecipients(entry.Assignee, members(entry.TripID)) {
+			plan = append(plan, plannedNotification{UserID: userID, Kind: store.NotifyShoppingDue, Payload: payload})
 		}
 	}
 	return plan

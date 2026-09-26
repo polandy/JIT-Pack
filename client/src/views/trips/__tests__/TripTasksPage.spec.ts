@@ -900,6 +900,44 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     for (const call of acts.setTaskDueDate.mock.calls) expect(call[2]).toBe('2026-07-09')
   })
 
+  it('hands the whole selection to one person, skipping who already has it, with one undo (FR-7.14)', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    seedTask('Pass holen', { assignee_user_id: 'u-sia' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    await barAll()
+    picked = 'u-sia'
+    await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.assignTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.assignTripTodo.mock.calls[0]![0]).toMatchObject({ body: 'Salbe holen' })
+    expect(acts.assignTripTodo.mock.calls[0]![1]).toBe('u-sia')
+    expect(barSelection()).toBeNull()
+
+    // A dismissed picker keeps the selection and writes nothing.
+    acts.assignTripTodo.mockClear()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    picked = undefined
+    await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
+    await flushPromises()
+    expect(acts.assignTripTodo).not.toHaveBeenCalled()
+    expect(barSelection()).not.toBeNull()
+  })
+
+  it('offers no batch hand-over with nobody to hand to (G-8)', async () => {
+    seedTrip(['u-andy'])
+    seedTask('Salbe holen', {})
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
+    expect(page.find('[data-testid="m25-bulkbar"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m25-bulk-assign"]').exists()).toBe(false)
+  })
+
   it('deletes the trip’s own tasks of a selection, and offers no delete for a preparation (FR-7.14)', async () => {
     seedTrip()
     seedRow('ti-1', 'Kulturbeutel')

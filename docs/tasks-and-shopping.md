@@ -19,8 +19,8 @@ and the same gestures file, move and tick off what is on it.
   from both phases and every tag, earliest first. Each row names its tag underneath, since it is not under its heading
   while it is up here.
 - Then **Vor der Reise** and **Während der Reise**, each grouped under its tags. A task shows its words and, on a
-  second line, its due label, the packing-list row it belongs to and who has it. Tick it at the right edge. Finished
-  tasks fold away under one **N erledigt** line at the end of each phase.
+  second line, its due label and the packing-list row it belongs to. Who has it sits at the right edge, just before
+  the tick you tick it off with. Finished tasks fold away under one **N erledigt** line at the end of each phase.
 
 To change a task, tap its words. The sheet shows the words themselves, which you can correct in place; **Erledigt**
 as its main button (**Wieder öffnen** on a finished task); **Fällig** with the same day chips; the task's **Tag**
@@ -45,6 +45,18 @@ removed on that row.
 
 To change an entry, tap its name: the sheet holds the name, the day, the tag and **Speichern**. An entry has no ✕ on
 its line — remove it with **Entfernen** in that sheet.
+
+## Who does it
+
+On a trip you share with someone, every open task and every entry you typed into the shopping list has a small
+circle at its right edge, just before the tick: dashed while it is nobody's, the person's initials once it is
+somebody's. Tap it and pick who does the task or buys the entry — or **niemand** to hand it back. That person is
+notified (see [Notifications & Push](notifications.md)), and **Rückgängig** in the snackbar takes the change back.
+
+**Meine**, above the field on either list, shows only what is yours. The packing list's own positions on the shopping
+list have no circle: who takes care of those is decided on the packing list.
+
+The circle is only there when there is someone else on the trip — in Single-User and Local Mode it is not.
 
 ## When a part has nothing left to do
 
@@ -78,8 +90,10 @@ selection:
 
 | List | Actions |
 |---|---|
-| Shopping list | **Tag vergeben** — file every selected entry under one tag |
-| Tasks | **Erledigt** — tick them all off; **Fällig** — one day for all; **Tag**; the other phase (**Vor der Reise** or **Unterwegs**, shown only where it would move something); **Löschen** — only when every selected task is the trip's own |
+| Shopping list | **Tag vergeben** — file every selected entry under one tag; **Zuweisen** — one person buys them all |
+| Tasks | **Erledigt** — tick them all off; **Fällig** — one day for all; **Tag**; **Zuweisen** — one person does them all; the other phase (**Vor der Reise** or **Unterwegs**, shown only where it would move something); **Löschen** — only when every selected task is the trip's own |
+
+**Zuweisen** only appears when there is someone else on the trip.
 
 Only what changes is written, and one **Rückgängig** undoes the whole batch. Tap **✕** in the app bar to leave
 without doing anything.
@@ -146,7 +160,8 @@ its heading; one overdue or due within two days stands in the **Fällig** block 
 overview puts those entries first as well.
 
 Only entries typed into the shopping list take a date; what comes from the packing list does not. On the morning
-before and on the day itself, everyone on the trip is reminded of it (see [Notifications & Push](notifications.md)),
+before and on the day itself, the person who buys it is reminded — or everyone on the trip, if it is nobody's yet
+(see [Notifications & Push](notifications.md)),
 and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkäufe fällig"*).
 
 ## When the packing is finished

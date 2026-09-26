@@ -39,15 +39,15 @@ func travelerResolverFor(links map[string]string) travelerResolver {
 // FR-2.5/ADR-058's roster-assignment rule.
 func noTravelerLinks(string) (string, bool) { return "", false }
 
-// noTodoBodies is the resolver for every case that is not about FR-7.5's
-// trip-todo assignment rule.
-func noTodoBodies(string) (string, bool) { return "", false }
+// noTodoBodies is the resolver for every case that is not about an
+// assignment rule (FR-7.5, FR-30.12).
+func noTodoBodies(string, string) (string, bool) { return "", false }
 
-// todoBodiesFor answers from a map and reports false for anything else,
-// which is how a case says "this todo could not be read".
-func todoBodiesFor(bodies map[string]string) todoResolver {
-	return func(commentID string) (string, bool) {
-		b, ok := bodies[commentID]
+// todoBodiesFor answers from a map keyed by table and id, and reports false
+// for anything else, which is how a case says "this row could not be read".
+func todoBodiesFor(bodies map[string]string) wordsResolver {
+	return func(table, id string) (string, bool) {
+		b, ok := bodies[table+"/"+id]
 		return b, ok
 	}
 }
@@ -513,12 +513,12 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 	update := func(fields map[string]any) syncpkg.Mutation {
 		return syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: todo, Fields: fields}
 	}
-	bodies := todoBodiesFor(map[string]string{todo: "Pflanzen giessen"})
+	bodies := todoBodiesFor(map[string]string{store.TableComments + "/" + todo: "Pflanzen giessen"})
 
 	tests := []struct {
 		name   string
 		mut    syncpkg.Mutation
-		bodies todoResolver
+		bodies wordsResolver
 		want   []string
 	}{
 		{
@@ -587,12 +587,95 @@ func TestPlanTodoAssignment_PayloadNamesTheTask(t *testing.T) {
 		[]syncpkg.Mutation{{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: "c-todo",
 			Fields: map[string]any{"assignee_user_id": "u-sarah"}}},
 		allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks,
-		todoBodiesFor(map[string]string{"c-todo": "Pflanzen giessen"}), noThreads)
+		todoBodiesFor(map[string]string{store.TableComments + "/c-todo": "Pflanzen giessen"}), noThreads)
 	if len(plan) != 1 {
 		t.Fatalf("plan = %v, want one delegation", recipients(plan))
 	}
 	wantPayload(t, plan[0].Payload, map[string]any{
 		payloadTripID: "trip-1", payloadCommentID: "c-todo", payloadItemName: "Pflanzen giessen",
+		payloadActorID: "u-actor", payloadActorName: "Andy",
+	})
+}
+
+// TestPlanShoppingAssignment_FR30_12 pins who a shopping entry's assignment
+// notifies: the task rule's answer (FR-7.5), with the entry's name — never
+// the actor, never somebody off the trip, and nothing for an entry nobody
+// can read.
+func TestPlanShoppingAssignment_FR30_12(t *testing.T) {
+	const entry = "e-bread"
+	update := func(fields map[string]any) syncpkg.Mutation {
+		return syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableShoppingEntries, ID: entry, Fields: fields}
+	}
+	names := todoBodiesFor(map[string]string{store.TableShoppingEntries + "/" + entry: "Brot"})
+
+	tests := []struct {
+		name  string
+		mut   syncpkg.Mutation
+		names wordsResolver
+		want  []string
+	}{
+		{
+			name:  "assigning an existing entry notifies the assignee",
+			mut:   update(map[string]any{"assignee_user_id": "u-sarah"}),
+			names: names,
+			want:  []string{"u-sarah/" + store.NotifyDelegation},
+		},
+		{
+			name: "an entry written already assigned notifies the assignee",
+			mut: syncpkg.Mutation{Op: syncpkg.OpInsert, Table: store.TableShoppingEntries, ID: entry,
+				Fields: map[string]any{"name": "Brot", "assignee_user_id": "u-sarah"}},
+			names: noTodoBodies,
+			want:  []string{"u-sarah/" + store.NotifyDelegation},
+		},
+		{
+			name:  "an entry written unassigned notifies nobody",
+			mut:   update(map[string]any{"name": "Brot"}),
+			names: names,
+			want:  nil,
+		},
+		{
+			name:  "taking it on oneself notifies nobody",
+			mut:   update(map[string]any{"assignee_user_id": "u-actor"}),
+			names: names,
+			want:  nil,
+		},
+		{
+			name:  "somebody off the trip is not notified",
+			mut:   update(map[string]any{"assignee_user_id": "u-stranger"}),
+			names: names,
+			want:  nil,
+		},
+		{
+			name:  "an unreadable entry earns nothing rather than a nameless push",
+			mut:   update(map[string]any{"assignee_user_id": "u-sarah"}),
+			names: noTodoBodies,
+			want:  nil,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := recipients(planNotifications("trip-1", "u-actor", []syncpkg.Mutation{tc.mut},
+				allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks, tc.names, noThreads))
+			if strings.Join(got, ",") != strings.Join(tc.want, ",") {
+				t.Fatalf("plan = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestPlanShoppingAssignment_PayloadNamesTheEntry pins the deep link: the
+// trip and the entry, which the client opens onto the trip's shopping list.
+func TestPlanShoppingAssignment_PayloadNamesTheEntry(t *testing.T) {
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{{Op: syncpkg.OpUpsert, Table: store.TableShoppingEntries, ID: "e-bread",
+			Fields: map[string]any{"assignee_user_id": "u-sarah"}}},
+		allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks,
+		todoBodiesFor(map[string]string{store.TableShoppingEntries + "/e-bread": "Brot"}), noThreads)
+	if len(plan) != 1 {
+		t.Fatalf("plan = %v, want one delegation", recipients(plan))
+	}
+	wantPayload(t, plan[0].Payload, map[string]any{
+		payloadTripID: "trip-1", payloadEntryID: "e-bread", payloadItemName: "Brot",
 		payloadActorID: "u-actor", payloadActorName: "Andy",
 	})
 }

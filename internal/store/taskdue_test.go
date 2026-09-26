@@ -98,6 +98,8 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 	entry("e-undated", testTrip, 0, "")
 	entry("e-bought", testTrip, 1, "2026-07-08")
 	entry("e-archived", "trip-old", 0, "2026-07-08")
+	// FR-30.12: the assignee travels with the entry, for the recipient rule.
+	mustExec(t, s, `UPDATE shopping_entries SET assignee_user_id = ? WHERE id = 'e-tomorrow'`, testUser)
 
 	got, err := s.DueShoppingEntries(ctx, "2026-07-08", "2026-07-09")
 	if err != nil {
@@ -105,7 +107,7 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 	}
 	want := []DueShoppingEntry{
 		{ID: "e-today", TripID: testTrip, Name: "name e-today", DueDate: "2026-07-08"},
-		{ID: "e-tomorrow", TripID: testTrip, Name: "name e-tomorrow", DueDate: "2026-07-09"},
+		{ID: "e-tomorrow", TripID: testTrip, Name: "name e-tomorrow", DueDate: "2026-07-09", Assignee: testUser},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("DueShoppingEntries = %+v\nwant %+v", got, want)
@@ -114,5 +116,21 @@ func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) 
 	none, err := s.DueShoppingEntries(ctx)
 	if err != nil || none != nil {
 		t.Errorf("DueShoppingEntries() = %v, %v; want nil, nil", none, err)
+	}
+}
+
+// FR-30.12: an assignment notification names the entry by its stored name,
+// and an entry that is not there is an error, never an empty name.
+func TestShoppingEntryName_FR30_12_NamesTheEntryOrFails(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO shopping_entries (id, trip_id, name) VALUES ('e-bread', ?, 'Brot')`, testTrip)
+
+	name, err := s.ShoppingEntryName(ctx, "e-bread")
+	if err != nil || name != "Brot" {
+		t.Fatalf("ShoppingEntryName = %q, %v; want Brot", name, err)
+	}
+	if _, err := s.ShoppingEntryName(ctx, "e-missing"); err == nil {
+		t.Error("ShoppingEntryName(missing) = nil error; want one")
 	}
 }
