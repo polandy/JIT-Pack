@@ -442,6 +442,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M26's baseline held a minute and a ripple (2026-09-25)](#m26s-baseline-held-a-minute-and-a-ripple-2026-09-25) — E2E-VIS-14 red on `main`: `toLocaleTimeString` escapes the pinned hour, and `md`'s ripple outlives `ion-activated`.
 - [A purchase's due day, and why the day rules left `domain/` (2026-09-25)](#a-purchases-due-day-and-why-the-day-rules-left-domain-2026-09-25) — FR-30.10: a module reaches only the kernel, so the day rules moved to `lib/dueDay.ts`; buy rows stay undated.
 - [M25 reworked from a UX review (2026-09-25)](#m25-reworked-from-a-ux-review-2026-09-25) — FR-7.14: an in-budget baseline survives `--update-snapshots`; a role class on `ion-textarea` misses its field.
+- [`e2e` and `visual` skip every diff that touches no app input, not just Markdown (2026-09-26)](#e2e-and-visual-skip-every-diff-that-touches-no-app-input-not-just-markdown-2026-09-26) — the list names what is *not* app input, so it goes stale only toward an extra run.
 
 ## Deviations
 
@@ -17679,3 +17680,23 @@ before it is regenerated, and then looked at.
 `jp-sheet-title` on the `IonTextarea`, and rendered in the body face: Ionic's own host rule sets the font and wins, and
 the native `textarea` inherits from the host. The role now sits on a wrapping `div`, and the host and its field are set
 to `font: inherit`, which keeps the design-token gate's rule that only the theme files declare type.
+
+## `e2e` and `visual` skip every diff that touches no app input, not just Markdown (2026-09-26)
+
+The markdown-only skip (2026-09-22 entry) chose a suffix check "rather than an allowlist of doc directories" so it
+could not go stale. It left most of the cheap patches paying for the full matrix anyway: a unit-test-only fix, a gate
+script, `mkdocs.yml`, a `dev-docs/*.html` concept mockup, `release.yml` — none of them can change what a browser
+renders, and each ran ten e2e shards, two backend legs and `visual`. The owner asked for e2e to run only when code
+changed.
+
+**The option not taken: an allowlist of app inputs** (`client/src/`, `internal/`, `go.mod`, `Dockerfile`, …). It reads
+more naturally and is shorter, but it fails the dangerous way — a new source directory nobody adds to it silently
+skips e2e on exactly the change that introduced it. The `changes` job instead lists what is *not* app input: Markdown
+anywhere, `docs/`, `dev-docs/`, `deploy/`, `.claude/`, unit tests (`__tests__/` under `client/src` or `client/cli`,
+`_test.go`, `testdata/`), the `*-gate` scripts and `ci-remote.sh`, the other three workflows, `dependabot.yml`, the
+release-please and lint configs. `client/e2e/`, `scripts/e2e.sh`/`visual.sh`, `.github/actions/` and `ci.yml` itself
+are deliberately absent.
+
+**The accepted cost** is the one the suffix check was chosen to avoid: the list can go stale. It goes stale in the safe
+direction only — a forgotten non-app path costs one unnecessary e2e run. Unit tests are on it because `go` and
+`client` run them on every trigger, so no test signal is lost, only a duplicate of it through the browser.
