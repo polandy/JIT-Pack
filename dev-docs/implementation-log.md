@@ -444,6 +444,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M25 reworked from a UX review (2026-09-25)](#m25-reworked-from-a-ux-review-2026-09-25) — FR-7.14: an in-budget baseline survives `--update-snapshots`; a role class on `ion-textarea` misses its field.
 - [`e2e` and `visual` skip every diff that touches no app input, not just Markdown (2026-09-26)](#e2e-and-visual-skip-every-diff-that-touches-no-app-input-not-just-markdown-2026-09-26) — the list names what is *not* app input, so it goes stale only toward an extra run.
 - [A purchase handed to somebody, and a task row one line again (2026-09-26)](#a-purchase-handed-to-somebody-and-a-task-row-one-line-again-2026-09-26) — FR-30.12: a `ShoppingLine` holds the entry as it was, so an undo through the tapped line writes nothing.
+- [Vor der Reise closes when the trip is under way, on both lists (2026-09-26)](#vor-der-reise-closes-when-the-trip-is-under-way-on-both-lists-2026-09-26) — M25's spec seeded every trip `active`, hiding the gap.
 
 ## Deviations
 
@@ -17724,3 +17725,20 @@ clause caught it. The undo now looks the line up again (`liveOwnLine`), which is
 met a second time in a different shape: any write through a line or a snapshot after the store has moved must be made
 against what the store holds now.
 
+
+## Vor der Reise closes when the trip is under way, on both lists (2026-09-26)
+
+FR-7.14 and FR-30.8. The owner asked whether *Vor der Reise* is still offered once a trip has started; it was, on each
+list for a different trip. M25's composer read the start date and the packing stamp, so a trip started early by
+*Reise starten* kept its *before* chip; M6 read the status and the packing stamp, so a planned trip past its first day
+still filed purchases before departure. Decided with the owner: **under way is any one of status, date or packing
+closed**, one function in the kernel (`beforeIsOver`, `lib/tripPhase.ts`) since the module cannot import `domain/`,
+and **moving a task into *before* is refused too** — sheet, selection bar and drag — while a task already there stays
+workable. Rejected: status alone (a forgotten *Reise starten* would leave *before* open all trip) and date alone (an
+early start stays in *before*).
+
+**A premise that hid the gap: M25's page spec seeded every trip as `active`.** Every *before* case on the screen ran
+on a trip that, by the new rule, is already under way — the suite was green because the screen ignored the status, and
+it went red the moment the screen started reading it. The default is `planning` now; a case that needs a running trip
+says so. The e2e suite held the same belief four times over — E2E-M1-10, E2E-M1-11, E2E-M25-13 and E2E-M25-05 started a
+trip and then wrote *before* tasks on it; they write for the road now, which is what a reader of a running trip can do.

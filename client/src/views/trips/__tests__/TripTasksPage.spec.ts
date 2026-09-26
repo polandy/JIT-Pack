@@ -100,7 +100,7 @@ function seedTrip(members: string[] = ['u-andy', 'u-sia']) {
     table: TABLE.trips,
     id: 't1',
     deleted: false,
-    row: { name: 'Samedan', year: 2026, status: 'active' },
+    row: { name: 'Samedan', year: 2026, status: 'planning' },
   })
   for (const [i, userId] of members.entries()) {
     trips.applyChange({
@@ -1136,7 +1136,7 @@ describe('M25 — the composer writes for the road once the trip has begun (FR-7
       table: TABLE.trips,
       id: 't1',
       deleted: false,
-      row: { name: 'Samedan', year: 2026, status: 'active', start_date: startDate },
+      row: { name: 'Samedan', year: 2026, status: 'planning', start_date: startDate },
     })
   }
 
@@ -1157,6 +1157,40 @@ describe('M25 — the composer writes for the road once the trip has begun (FR-7
       'during',
       { taskTagId: null, dueDate: null },
     )
+  })
+
+  it('offers no *before* once the trip is started early, and moves nothing into it', async () => {
+    // *Reise starten* tapped ahead of the date: the status alone says the trip
+    // is under way, and it is the case the date rule used to miss.
+    seedTrip()
+    useTripStore().applyChange({
+      seq: 1,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active', start_date: '2026-07-20' },
+    })
+    seedTask('Salbe holen', {})
+    seedTask('Zug abklären', { phase: 'during' })
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-composer-phase"]').exists()).toBe(false)
+
+    // The bar offers a road task no way back; a task still in *before* its way out.
+    await page.get('[data-testid="trip-todo-Zug abklären"] ion-label').trigger('contextmenu')
+    expect(page.find('[data-testid="m25-bulk-before"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(false)
+    await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('pointerdown')
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    expect(page.find('[data-testid="m25-bulk-before"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(true)
+    await barExit()
+
+    await page.get('[data-testid="trip-todo-open-Zug abklären"]').trigger('click')
+    await flushPromises()
+    expect(page.find('[data-testid="task-sheet"]').exists()).toBe(true)
+    expect(page.find('[data-testid="task-sheet-move"]').exists()).toBe(false)
   })
 
   it('keeps both phases the day before departure', async () => {

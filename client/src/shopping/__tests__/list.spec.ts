@@ -111,28 +111,30 @@ describe('openCount', () => {
   })
 })
 
-/**
- * FR-30.8 — which list M6 opens on.
- *
- * „Vor der Reise" stops being the answer the moment that moment is past:
- * the trip has started, or the packing has been declared finished (FR-5.10).
- * The other list keeps its count in the tab label, so nothing is hidden —
- * it is one tap away and says how much is on it.
+/*
+ * FR-30.8 — which list M6 opens on: *Vor der Reise* until the trip is under
+ * way (the kernel's beforeIsOver, pinned in lib), the destination after. The
+ * other list keeps its count in the tab label, so nothing is hidden.
  */
 describe('listInFocus', () => {
-  it('opens a planned trip on the list before departure', () => {
-    expect(listInFocus({ planned: true, packingClosed: false })).toBe('buy_before')
+  const today = '2026-10-10'
+  const ahead = { planned: true, packingClosed: false, startDate: '2026-10-12' }
+
+  it('opens a planned trip ahead of its start on the list before departure', () => {
+    expect(listInFocus(ahead, today)).toBe('buy_before')
   })
 
   it('opens a running trip at the destination', () => {
-    expect(listInFocus({ planned: false, packingClosed: false })).toBe('buy_local')
+    expect(listInFocus({ ...ahead, planned: false }, today)).toBe('buy_local')
+  })
+
+  it('opens a planned trip at the destination once its first day has come', () => {
+    // Nobody tapped *Reise starten*; the calendar says the trip is under way.
+    expect(listInFocus({ ...ahead, startDate: today }, today)).toBe('buy_local')
   })
 
   it('opens a planned trip at the destination once the packing is closed', () => {
-    // The bag is shut the evening before, with the trip still „planning"
-    // because nobody tapped *Reise starten*. Shopping before departure is
-    // over all the same.
-    expect(listInFocus({ planned: true, packingClosed: true })).toBe('buy_local')
+    expect(listInFocus({ ...ahead, packingClosed: true }, today)).toBe('buy_local')
   })
 })
 

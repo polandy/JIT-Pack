@@ -4,6 +4,7 @@ import {
   dashboardTasks,
   filedTagOf,
   groupAccepts,
+  phaseTakes,
   packingWindowTasks,
   tagForGroup,
   taskGroups,
@@ -570,5 +571,48 @@ describe('a batch of tasks (FR-7.8): only what changes is written', () => {
     const tasks = [task('a'), task('b', { phase: TASK_PHASE_DURING }), task('c')]
     expect(tasksToMove(tasks, TASK_PHASE_DURING).map((t) => t.id)).toEqual(['a', 'c'])
     expect(tasksToMove(tasks, TASK_PHASE_BEFORE).map((t) => t.id)).toEqual(['b'])
+  })
+})
+
+describe('phaseTakes (FR-7.12, FR-7.14): what a drop may put into a phase', () => {
+  const open = { locked: false, over: false }
+  it.each([
+    [
+      'before, while it is open, takes a road task',
+      TASK_PHASE_BEFORE,
+      TASK_PHASE_DURING,
+      open,
+      true,
+    ],
+    [
+      'before, once closed, takes not even its own',
+      TASK_PHASE_BEFORE,
+      TASK_PHASE_BEFORE,
+      { locked: true, over: true },
+      false,
+    ],
+    [
+      'before, once over, takes no road task',
+      TASK_PHASE_BEFORE,
+      TASK_PHASE_DURING,
+      { locked: false, over: true },
+      false,
+    ],
+    [
+      'before, once over, still regroups its own',
+      TASK_PHASE_BEFORE,
+      TASK_PHASE_BEFORE,
+      { locked: false, over: true },
+      true,
+    ],
+    [
+      'the road always takes',
+      TASK_PHASE_DURING,
+      TASK_PHASE_BEFORE,
+      { locked: true, over: true },
+      true,
+    ],
+  ] as const)('%s', (_name, into, from, before, want) => {
+    expect(phaseTakes(into, { phase: from }, before)).toBe(want)
   })
 })

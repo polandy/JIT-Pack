@@ -89,6 +89,7 @@ function mountCard(
   opts: {
     planned?: boolean
     packingClosed?: boolean
+    startDate?: string | null
     embedded?: boolean
     sources?: ShoppingSource[]
   } = {},
@@ -99,6 +100,7 @@ function mountCard(
       tripName: 'Elba',
       planned: opts.planned ?? false,
       packingClosed: opts.packingClosed ?? false,
+      startDate: opts.startDate ?? null,
       embedded: opts.embedded ?? false,
     },
     global: {
@@ -167,6 +169,17 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
     const card = mountCard({
       planned: true,
       packingClosed: true,
+      sources: [source({ buy_before: [line('Adapter')], buy_local: [line('Brot')] })],
+    })
+    expect(rows(card)).toEqual(['Brot'])
+  })
+
+  // FR-30.8, M25's rule (FR-7.14): a planned trip whose first day has come is
+  // under way, whether or not anybody tapped *Reise starten*.
+  it('opens a planned trip at the destination once its first day has come', () => {
+    const card = mountCard({
+      planned: true,
+      startDate: TODAY,
       sources: [source({ buy_before: [line('Adapter')], buy_local: [line('Brot')] })],
     })
     expect(rows(card)).toEqual(['Brot'])

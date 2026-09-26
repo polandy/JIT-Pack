@@ -49,12 +49,18 @@ const props = withDefaults(
      * history: not ticked, not reworded, not dated.
      */
     beforeLocked?: boolean
+    /**
+     * FR-7.14: the trip is under way, so *before the trip* takes nothing new —
+     * a task in *during* is not offered the move back. One already in *before*
+     * keeps its move to the road.
+     */
+    beforeOver?: boolean
     /** FR-7.11: today as the device reckons it, for the day chips. */
     today: string
     /** The trip's first day, for *Vor Abreise*; null where it names none. */
     tripStart?: string | null
   }>(),
-  { taskTags: undefined, beforeLocked: false, tripStart: null },
+  { taskTags: undefined, beforeLocked: false, beforeOver: false, tripStart: null },
 )
 
 const emit = defineEmits<{
@@ -123,8 +129,10 @@ function onDue(day: string | null) {
   if (day !== props.task.due_date) emit('due', day)
 }
 
-/** Whether the phase move is offered: never back into a closed *before* (FR-7.12). */
-const canMove = computed(() => !(props.beforeLocked && otherPhase.value === TASK_PHASE_BEFORE))
+/** Whether the phase move is offered: never into a *before* that is over (FR-7.12, FR-7.14). */
+const canMove = computed(
+  () => !((props.beforeLocked || props.beforeOver) && otherPhase.value === TASK_PHASE_BEFORE),
+)
 
 /** Where the task would go — the other phase, always. */
 const otherPhase = computed<TaskPhase>(() =>

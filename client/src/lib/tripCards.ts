@@ -18,6 +18,8 @@ export interface TripCardProps {
   planned: boolean
   /** Whether its packing has been declared finished (FR-5.10) — FR-30.8 reads it. */
   packingClosed: boolean
+  /** Its first day, or null for an undated trip — FR-30.8 reads it too. */
+  startDate: string | null
   /**
    * FR-7.10: the card is drawn as a block *of the hero* — seven lines, no chip,
    * folding — once the packing is finished, instead of as the card under it.

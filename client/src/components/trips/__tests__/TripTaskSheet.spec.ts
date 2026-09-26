@@ -145,3 +145,17 @@ describe('TripTaskSheet — a closed *before* (FR-7.12)', () => {
     expect(sheet.find('[data-testid="task-sheet-move"]').exists()).toBe(true)
   })
 })
+
+describe('TripTaskSheet — a trip under way (FR-7.14)', () => {
+  it('offers no move into before, and the task stays workable', () => {
+    const sheet = mountSheet({ task: task({ phase: 'during' }), beforeOver: true })
+    expect(sheet.find('[data-testid="task-sheet-move"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="task-sheet-done"]').exists()).toBe(true)
+  })
+
+  it('keeps a task already in before workable, and its move to the road', () => {
+    const sheet = mountSheet({ task: task({ phase: 'before' }), beforeOver: true })
+    expect(sheet.find('[data-testid="task-sheet-move"]').exists()).toBe(true)
+    expect(sheet.find('[data-testid="task-sheet-done"]').exists()).toBe(true)
+  })
+})

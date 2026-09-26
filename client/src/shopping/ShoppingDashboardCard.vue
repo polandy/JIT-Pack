@@ -54,7 +54,10 @@ const sources = inject(SHOPPING_SOURCES, [])
 
 /** The list that is *now* for this trip (FR-30.8); the chip switches it. */
 const list = ref<ShoppingMode>(
-  listInFocus({ planned: props.planned, packingClosed: props.packingClosed }),
+  listInFocus(
+    { planned: props.planned, packingClosed: props.packingClosed, startDate: props.startDate },
+    orchestrator.today(),
+  ),
 )
 
 /** Today as the device reckons it — what a due day is read against (FR-30.10). */
