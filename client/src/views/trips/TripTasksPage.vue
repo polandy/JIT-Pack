@@ -66,7 +66,6 @@ import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { taskBoard } from '@/domain/taskBoard'
-import { hasDeparted } from '@/domain/tripDay'
 import {
   filedTagOf,
   groupAccepts,
@@ -82,7 +81,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { beforeIsOver, isPackingClosed, standingOf } from '@/lib/tripPhase'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
@@ -141,10 +140,13 @@ const taskTags = computed(() => masterStore.taskTagList)
 /** FR-7.11: today as the device reckons it — what „due" is measured against. */
 const today = computed(() => orchestrator.today())
 const tripStart = computed(() => trip.value?.start_date ?? null)
-/** FR-7.14: from the first day on, the composer writes for the road only. */
-const forTheRoad = computed(
-  () => beforeLocked.value || (!!trip.value && hasDeparted(trip.value, today.value)),
-)
+/**
+ * FR-7.14: once the trip is under way — started, its first day come, or its
+ * packing finished — *before the trip* takes nothing new: the composer writes
+ * for the road, and no task is moved in. What already stands there stays, is
+ * ticked and can go to the road. M6 asks the same rule (`lib/tripPhase`).
+ */
+const forTheRoad = computed(() => !!trip.value && beforeIsOver(standingOf(trip.value), today.value))
 
 /**
  * FR-7.14: the board — what is pressing on top, across both phases and every
@@ -251,7 +253,12 @@ const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
 const drag = useDragToGroup<TripTask>({
   accepts: (task, place) => {
-    if (beforeLocked.value && readDropKey(place).phase === TASK_PHASE_BEFORE) return false
+    const into = readDropKey(place).phase
+    if (
+      into === TASK_PHASE_BEFORE &&
+      (beforeLocked.value || (forTheRoad.value && task.phase !== into))
+    )
+      return false
     const group = groupAt(place)
     return group !== null && groupAccepts(group, task)
   },
@@ -320,13 +327,13 @@ const bulkDueOpen = ref(false)
 
 /**
  * FR-7.14: the phase buttons the bar offers — each only where it would move
- * something, and never back into a closed *before*. A selection already all
+ * something, and never into a *before* that is over. A selection already all
  * in one phase is offered the other one alone.
  */
 const bulkPhases = computed(() =>
   ([TASK_PHASE_BEFORE, TASK_PHASE_DURING] as TaskPhase[]).filter(
     (phase) =>
-      !(beforeLocked.value && phase === TASK_PHASE_BEFORE) &&
+      !(forTheRoad.value && phase === TASK_PHASE_BEFORE) &&
       tasksToMove(selectedTasks.value, phase).length > 0,
   ),
 )
@@ -690,6 +697,7 @@ function onSheetRemove() {
           :name-of="nameOf"
           :task-tags="taskTags"
           :before-locked="beforeLocked"
+          :before-over="forTheRoad"
           :today="today"
           :trip-start="tripStart"
           @close="openedId = null"

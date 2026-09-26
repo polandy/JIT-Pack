@@ -4024,12 +4024,13 @@ lists — *Vor der Reise* and *Vor Ort* — for the list's own entries as for th
   be worked is not a link“* rule is kept by making the hero's head the link and nothing else.
 
 * **FR-30.8 (The List That Is Now, *built*):** *Vor der Reise* is the one list which is certainly over once you have
-  left, so the list in focus is the one still worth working: ***Vor der Reise*** while the trip is planned **and** its
-  packing is open, ***Vor Ort***
-  otherwise — a running trip, an archived one, and a planned trip whose packing has been declared finished (FR-5.10),
-  which is the case the phase alone gets wrong: the bag is shut the evening before, on a trip nobody has tapped
-  *Reise starten* on. **One rule for both of the module's screens** (`listInFocus` in `client/src/shopping/list.ts`):
-  M6 and the dashboard card under each trip (FR-30.7) must not disagree about the same trip.
+  left, so the list in focus is the one still worth working: ***Vor der Reise*** until the trip is **under way**,
+  ***Vor Ort*** from then on. Under way is any one of three facts: the trip has been started (its status is no longer
+  planned — *Reise starten* tapped, even a day early), its **first day has come**, or its packing has been declared
+  finished (FR-5.10) — the bag is shut the evening before, on a trip nobody has tapped *Reise starten* on. **One rule
+  for the module's screens and M25** (`beforeIsOver` in `client/src/lib/tripPhase.ts`, read by `listInFocus` in
+  `client/src/shopping/list.ts`): M6, the dashboard card under each trip (FR-30.7) and M25's composer (FR-7.14) must
+  not disagree about the same trip. An undated trip has no first day to have come.
   * **Nothing is hidden.** The other list keeps its count, so the five things still unbought before departure are one
     tap away and say how many they are.
   * **The reader's pick wins for the visit** and is not remembered across visits (FR-25.18's rule is about a filter of
@@ -5292,11 +5293,12 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
      *Morgen*, *Vor Abreise*, *Datum…*. One insert carries all three. Phase and tag stay chosen for the next task; the
      day does not. Rejected: an add sheet behind the FAB (M26's way — it covers the list while you write) and a
      composer per section moved to its top.
-     * **From the trip's first day a task cannot be written *before* it**: the composer names no phase and writes for
-       the road — the day the dashboard leads with the road's tasks (`taskPhaseInFront`), read by `hasDeparted` in
-       `domain/tripDay.ts`. The phase chips are also gone once *before* is closed. An undated trip keeps both chips:
-       it has no day to have passed. Only the composer: a task still standing in *before* may be moved or reworded
-       until the packing closes it (FR-7.12).
+     * **Once the trip is under way nothing new goes *before* it** — FR-30.8's rule, `beforeIsOver` in
+       `lib/tripPhase.ts`: started (even ahead of its date), its first day come, or its packing finished. The composer
+       names no phase and writes for the road, and **no task is moved in**: the task sheet offers a road task no move
+       back, the selection's bar no *Vor der Reise*, and a drag no drop into a *before* group. An undated trip that
+       nobody has started keeps both phases: it has no day to have passed. A task still standing in *before* stays: it
+       is ticked, reworded and moved to the road until the packing closes it (FR-7.12).
      * **The tag dialog is the shopping list's.** The composer's *＋ Tag* opens **M6's entry sheet** for a task (*Neue
        Aufgabe*: the words typed so far, the day chips, the tag chooser and *Hinzufügen*), and the tag chooser — here,
        in the task sheet and in the selection's batch sheet — is **M6's search-or-create mask** (a search field, the

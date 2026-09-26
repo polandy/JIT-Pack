@@ -354,11 +354,11 @@ test.describe('M1 — the three promises @local @m1', () => {
     await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026', startDate: '2026-11-02' })
     await tripAction(page, 'start')
     await activeTripWith(page, ['Zelt'])
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Empty the fridge')
-    // Ticked on M25 (FR-7.7): M4's section keeps only the preparations
-    // still due before the trip, and these are the trip's own chores.
-    const tasks = await openTasks(page, 'before')
+    await addTripTodo(page, 'Water the plants', 'during')
+    await addTripTodo(page, 'Empty the fridge', 'during')
+    // Ticked on M25 (FR-7.7), for the road: the trip is under way, so a new
+    // task is not for before it (FR-7.14).
+    const tasks = await openTasks(page, 'during')
     await tasks.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
     await expect(tasks.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
     await writesLanded(page)
@@ -410,7 +410,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     // An open todo leaves the trip fully packed.
     await hero.click()
     await expectTripOpen(page, TRIP.name)
-    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Water the plants', 'during')
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('0/1 tasks')
     await expect(share).toHaveText('1/1 packed')
@@ -426,12 +426,9 @@ test.describe('M1 — the three promises @local @m1', () => {
     // Resolving it changes the task check and nothing else.
     await hero.click()
     await expectTripOpen(page, TRIP.name)
-    const section = await openTasks(page, 'before')
+    const section = await openTasks(page, 'during')
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    // Its one task done, the phase folds to its line at the end, counting it.
-    await expect(section.getByTestId('m25-before-fold')).toHaveText(
-      'Before the trip · nothing open · 1 done',
-    )
+    await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('1/1 tasks')

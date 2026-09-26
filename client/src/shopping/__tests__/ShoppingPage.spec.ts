@@ -625,6 +625,23 @@ describe('M6 — the list a new entry goes on (FR-30.8)', () => {
     expect(listChips(page).exists()).toBe(false)
   })
 
+  it('writes for the destination once a planned trip’s first day has come (FR-7.14)', async () => {
+    // Nobody tapped *Reise starten*; M25 already writes for the road today.
+    seedTrip({ status: 'planning', start_date: '2026-07-08' })
+    const page = mountPage()
+    await flushPromises()
+
+    expect(listChips(page).exists()).toBe(false)
+  })
+
+  it('offers both lists the day before a planned trip’s first day', async () => {
+    seedTrip({ status: 'planning', start_date: '2026-07-09' })
+    const page = mountPage()
+    await flushPromises()
+
+    expect(listChips(page).exists()).toBe(true)
+  })
+
   it('offers before departure while the trip itself is not here yet', async () => {
     const page = mountPage()
     await flushPromises()

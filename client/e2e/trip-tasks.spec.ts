@@ -10,7 +10,7 @@ import {
   startTrip,
   tripWithRows,
 } from './helpers/m4'
-import { createTripViaWizard } from './helpers/trips'
+import { createTripViaWizard, openTripView } from './helpers/trips'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { PATH } from './routes'
@@ -710,8 +710,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // the trip's name is already on screen for the helper to read — right
     // after a fresh load WebKit showed the screen's generic title instead.
     await startTrip(page)
-    await addTripTodo(page, 'Buy a map')
-    await addTripTodo(page, 'Renew the passport')
+    await addTripTodo(page, 'Buy a map', 'during')
+    await addTripTodo(page, 'Renew the passport', 'during')
 
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -721,8 +721,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
       String(tomorrow.getDate()).padStart(2, '0'),
     ].join('-')
 
-    const before = await openTasks(page, 'before')
-    await before.getByTestId('trip-todo-open-Renew the passport').click()
+    // A running trip takes new tasks for the road only (FR-7.14).
+    const road = await openTasks(page, 'during')
+    await road.getByTestId('trip-todo-open-Renew the passport').click()
     const sheet = page.getByTestId('task-sheet')
     await expect(sheet).toBeVisible()
     // The calendar, which is still there behind *Datum…* (FR-7.14).
@@ -738,8 +739,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     const pill = due.getByTestId('trip-todo-due-Renew the passport')
     await expect(pill).toHaveText('Tomorrow')
     await expect(pill).toHaveAttribute('data-due', 'soon')
-    await expect(before.getByTestId('trip-todo-Renew the passport')).toHaveCount(0)
-    await expect(before.getByTestId('trip-todo-Buy a map')).toBeVisible()
+    await expect(road.getByTestId('trip-todo-Renew the passport')).toHaveCount(0)
+    await expect(road.getByTestId('trip-todo-Buy a map')).toBeVisible()
     await expect(visible(page).getByTestId('trip-todo-due-Buy a map')).toHaveCount(0)
     await writesLanded(page)
 
@@ -938,5 +939,56 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(
       visible(page).getByTestId('m25-before').getByTestId('trip-todo-Maut zahlen'),
     ).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M25-19 (FR-7.14, FR-30.8): a trip started early — *Reise starten*
+   * tapped a month ahead of its first day — is under way by its status alone,
+   * and *Vor der Reise* takes nothing new on either list. The composer names
+   * no phase; a road task's sheet offers no way back and the selection no
+   * *Vor der Reise*, while a task already standing there keeps its way out.
+   * M6 asks the same rule: its composer offers no list either.
+   */
+  test('E2E-M25-19: a trip started ahead of its date offers no Vor der Reise on either list', async ({
+    page,
+  }) => {
+    const ahead = new Date(Date.now() + 30 * 86_400_000)
+    const startDate = [
+      ahead.getFullYear(),
+      String(ahead.getMonth() + 1).padStart(2, '0'),
+      String(ahead.getDate()).padStart(2, '0'),
+    ].join('-')
+    await createTripViaWizard(page, { name: 'Früh los', startDate, travelers: ['Andy'] })
+    await addTripTodo(page, 'Pass holen')
+    await startTrip(page)
+
+    const during = await openTasks(page, 'during')
+    const composer = visible(page).getByTestId('m25-composer')
+    await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
+    await expect(composer.getByTestId('m25-composer-phase')).toHaveCount(0)
+    await fillIonic(composer.getByTestId('trip-todo-input'), 'Maut zahlen')
+    await composer.getByTestId('trip-todo-add').click()
+    await expect(during.getByTestId('trip-todo-Maut zahlen')).toBeVisible()
+
+    await during.getByTestId('trip-todo-open-Maut zahlen').click()
+    const sheet = page.getByTestId('task-sheet')
+    await expect(sheet.getByTestId('task-sheet-done')).toBeVisible()
+    await expect(sheet.getByTestId('task-sheet-move')).toHaveCount(0)
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    const before = visible(page).getByTestId('m25-before')
+    await before.getByTestId('trip-todo-open-Pass holen').click({ button: 'right' })
+    await expect(page.getByTestId('m25-selbar')).toBeVisible()
+    await expect(visible(page).getByTestId('m25-bulk-during')).toBeVisible()
+    await during.getByTestId('trip-todo-open-Maut zahlen').click()
+    await expect(page.getByTestId('m25-select-count')).toContainText('2')
+    await expect(visible(page).getByTestId('m25-bulk-before')).toHaveCount(0)
+
+    await writesLanded(page)
+    await page.reload()
+    await openTripView(page, 'shopping')
+    await expect(visible(page).getByTestId('m6-composer')).toBeVisible()
+    await expect(visible(page).getByTestId('m6-composer-list')).toHaveCount(0)
   })
 })

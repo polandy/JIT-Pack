@@ -3287,6 +3287,12 @@ went.
 * **E2E-M25-17** `local` (FR-7.14) — **implemented** (`trip-tasks.spec.ts`): a trip whose first
   day was two days ago. The composer is on screen and names no phase; a task typed there lands under *Während der
   Reise*, and after a reload it is still there and not under *Vor der Reise*.
+* **E2E-M25-19** `local` (FR-7.14, FR-30.8) — **implemented** (`trip-tasks.spec.ts`): a trip started with *Reise
+  starten* a month before its first day, one task already under *Vor der Reise*. M25's composer is on screen and names
+  no phase, and a task typed there lands under *Während der Reise*; its sheet is up with *Erledigt* and offers no move;
+  the selection of the *before* task alone offers *Unterwegs*, and with the road task added offers no *Vor der Reise*.
+  After a reload M6's composer is on screen and offers no list. Fails on a build that reads the start from the date
+  alone, which is what M25 did.
 * **E2E-M25-18** `server` (FR-7.14) — **implemented** (`e2e/server/multi-user.spec.ts`): on a trip
   shared with a second account, a task with nothing to say under its words shows its empty seat and **no** facts
   line, and its row is exactly as tall as a shopping entry's with its own seat. Fails on a build that seats the person

@@ -1544,7 +1544,7 @@ These patterns apply to every screen and are specified once.
   * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
     kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):
     *Vor der Reise* / *Vor Ort*, *Vor der Reise* chosen — offered only while FR-30.8's rule still names *before*
-    (the trip planned and its packing open); otherwise the row goes and everything written is for *Vor Ort*. **The
+    (the trip not yet under way); otherwise the row goes and everything written is for *Vor Ort*. **The
     tag**: the tag chips and *＋ Tag* (below). **The day**: M25's day chips (`DueChips`), shown once something is
     typed — *Heute*, *Morgen*, *Vor Abreise* (for *Vor der Reise* only, while that day is later than tomorrow) and
     *Datum…*. The list and the tag stay chosen for the next entry; the day does not.
@@ -1647,10 +1647,11 @@ These patterns apply to every screen and are specified once.
   with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather than the dashboard
   card's inline panel (which exists only because several cards share M1's page). The bought fold is the way back once
   the toast is gone. (E2E-M6-33)
-* **Whether *Vor der Reise* is offered (FR-30.8 — *built*):** while the trip is planned **and** its packing is open the
-  composer offers *Vor der Reise* and starts on it; otherwise — running, archived, or planned with the packing declared
-  finished (FR-5.10) — it writes for *Vor Ort*. Until the trip itself is on the device the rule reads *before*
-  (ADR-033's reasoning). The dashboard card (FR-30.7) opens by the same rule, from the same function. (E2E-M6-30)
+* **Whether *Vor der Reise* is offered (FR-30.8 — *built*):** until the trip is under way the composer offers *Vor der
+  Reise* and starts on it; once it is — started (even ahead of its date), its first day come, or its packing declared
+  finished (FR-5.10) — it writes for *Vor Ort*. M25's composer asks the same rule (`beforeIsOver`). Until the trip
+  itself is on the device the rule reads *before* (ADR-033's reasoning). The dashboard card (FR-30.7) opens by the same
+  rule, from the same function. (E2E-M6-30, E2E-M25-19)
 * **Actions:** Type and tap ＋ (or Enter) → an entry on the list the composer names; the field clears for the next. Check
   off an entry → bought, under its list's fold. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing
   list, BUY_LOCAL → packed). *Entfernen* in an entry's sheet → removed. A packing row leaves only by being bought or by
@@ -2633,8 +2634,10 @@ token would prove nothing there is anything to prove.
     G-8): with nobody to hand a task to, every task is everybody's.
   * **The composer** (`TaskComposer`, `m25-composer`, a card) — M6's shape: the field and its ＋, then chips that
     file the task as it is typed. **The phase**: *Vor der Reise* / *Unterwegs*, *Vor der Reise* chosen until the
-    packing is finished **or the trip's first day has come** (`hasDeparted`; an undated trip keeps both); then the
-    row goes and the field says *„Aufgabe für unterwegs…"* — *before* is closed, or behind the reader.
+    trip is **under way** — started, its first day come, or its packing finished (`beforeIsOver`, FR-30.8's rule; an
+    undated trip nobody has started keeps both); then the row goes and the field says *„Aufgabe für unterwegs…"*.
+    From then on no task is moved into *before* either: the sheet offers a road task no move back, the selection's
+    bar no *Vor der Reise*, a drag no drop there. A task already in *before* is still worked and moved out.
     **The tag**: every task tag, and *＋ Tag*, which opens **M6's entry sheet** for a task (one dialog for both
     lists) — *Neue Aufgabe*, the words typed so far, the day chips and the
     tag chooser below, and *Hinzufügen*; the tag chosen there stays chosen in the composer (FR-7.8's „created where it

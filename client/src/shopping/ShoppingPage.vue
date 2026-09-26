@@ -63,9 +63,8 @@ import {
   SHOPPING_MODES,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
-  TRIP_STATUS_PLANNING,
 } from '@/types/domain'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed, standingOf } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
 import { dropTag, listInFocus, shoppingBoard, type ShoppingSection } from './list'
 import ShoppingListSection from './ShoppingListSection.vue'
@@ -97,16 +96,14 @@ const beforeLocked = computed(() => isPackingClosed(trip.value))
 
 /**
  * Whether a new entry may still be for *before departure* (FR-30.8's rule):
- * only while the trip is planned and its packing open. Until the trip itself
- * is on the device, *Vor der Reise* is the answer that cannot be wrong.
+ * only until the trip is under way — started, its first day come, or its
+ * packing finished — M25's rule for a task. Until the trip itself is on the
+ * device, *Vor der Reise* is the answer that cannot be wrong.
  */
 const beforeOpen = computed(
   () =>
     !trip.value ||
-    listInFocus({
-      planned: trip.value.status === TRIP_STATUS_PLANNING,
-      packingClosed: isPackingClosed(trip.value),
-    }) === ITEM_MODE_BUY_BEFORE,
+    listInFocus(standingOf(trip.value), orchestrator.today()) === ITEM_MODE_BUY_BEFORE,
 )
 
 // FR-30.4: a purchase is named from the trip's participants, the way every

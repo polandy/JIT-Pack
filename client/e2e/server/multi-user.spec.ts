@@ -823,19 +823,19 @@ test.describe('Two accounts on one instance @server', () => {
 
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await tripAction(alice, 'start')
-    await addTripTodo(alice, task)
+    await addTripTodo(alice, task, 'during')
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
     const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await subscribedBob
-    const bobsSection = await openTasks(bob, 'before')
+    const bobsSection = await openTasks(bob, 'during')
     const bobsTodo = bobsSection.getByTestId(`trip-todo-${task}`)
     await expect(bobsTodo).toBeVisible()
 
     // An unassigned task carries the empty seat, as an unassigned row does.
     await alice.goto(tripPath)
-    const section = await openTasks(alice, 'before')
+    const section = await openTasks(alice, 'during')
     const seat = section.getByTestId(`trip-todo-assign-${task}`)
     await expect(seat).toBeVisible()
     await expect(seat.getByTestId('user-avatar')).toHaveCount(0)

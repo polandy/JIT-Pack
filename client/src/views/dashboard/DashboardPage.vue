@@ -536,6 +536,7 @@ async function handleRefresh(event: CustomEvent) {
             :key="`hero-${index}`"
             :trip-id="heroTrip.id"
             :trip-name="heroTrip.name"
+            :start-date="heroTrip.start_date"
             :planned="false"
             :packing-closed="true"
             embedded
@@ -600,6 +601,7 @@ async function handleRefresh(event: CustomEvent) {
           :key="`hero-${index}`"
           :trip-id="heroTrip.id"
           :trip-name="heroTrip.name"
+          :start-date="heroTrip.start_date"
           :planned="false"
           :packing-closed="isPackingClosed(heroTrip)"
         />
@@ -693,6 +695,7 @@ async function handleRefresh(event: CustomEvent) {
           :key="`${trip.id}-${index}`"
           :trip-id="trip.id"
           :trip-name="trip.name"
+          :start-date="trip.start_date"
           :planned="false"
           :packing-closed="isPackingClosed(trip)"
         />
@@ -734,6 +737,7 @@ async function handleRefresh(event: CustomEvent) {
             :key="`${trip.id}-${index}`"
             :trip-id="trip.id"
             :trip-name="trip.name"
+            :start-date="trip.start_date"
             :planned="true"
             :packing-closed="isPackingClosed(trip)"
           />

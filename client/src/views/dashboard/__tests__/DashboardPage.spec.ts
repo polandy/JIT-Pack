@@ -117,6 +117,7 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
       tripName: { type: String, required: true },
       planned: { type: Boolean, required: true },
       packingClosed: { type: Boolean, required: true },
+      startDate: { type: String, default: null },
       embedded: { type: Boolean, default: false },
     },
     setup(props) {
@@ -125,7 +126,7 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
     },
   })
 
-  it('passes the packing stamp beside the phase', async () => {
+  it('passes the packing stamp and the first day beside the phase (FR-30.8)', async () => {
     const trips = useTripStore()
     trips.applyChange({
       seq: 0,
@@ -143,6 +144,7 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
         name: 'Elba',
         year: 2026,
         status: 'planning',
+        start_date: '2026-10-12',
         packing_closed_at: '2026-09-20T18:40:00.000Z',
       },
     })
@@ -152,12 +154,13 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
     await flushPromises()
 
     const shut = seen.find((props) => props.tripId === 't-shut')
-    expect(shut).toMatchObject({ planned: true, packingClosed: true })
+    expect(shut).toMatchObject({ planned: true, packingClosed: true, startDate: '2026-10-12' })
     // The other trip is the control: without it, a card told `true` for every
     // trip would pass this case.
     expect(seen.find((props) => props.tripId === 't-running')).toMatchObject({
       planned: false,
       packingClosed: false,
+      startDate: null,
     })
   })
 })
@@ -360,6 +363,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
         tripName: { type: String, required: true },
         planned: { type: Boolean, required: true },
         packingClosed: { type: Boolean, required: true },
+        startDate: { type: String, default: null },
         embedded: { type: Boolean, default: false },
       },
       setup(props) {
