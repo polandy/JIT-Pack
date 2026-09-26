@@ -199,13 +199,14 @@ function isClosed(phase: TaskPhase): boolean {
 }
 
 /**
- * Owner, 2026-09-26 (M6 alike): a phase with nothing open anywhere — the
- * *Fällig* block included — took a heading, a hint and a fold of room above
- * the one still being worked. It leaves reading order for one line at the
- * end, as the closed *before* already did.
+ * Owner, 2026-09-26 (M6 alike): a phase with nothing open under its heading
+ * took a heading, a hint and a fold of room above the one still being
+ * worked. It leaves reading order for one line at the end, as the closed
+ * *before* already did — also while its last open tasks stand in the
+ * *Fällig* block, which is where they are read (the line counts them).
  */
 function inOrder(phase: TaskPhase): boolean {
-  return !isClosed(phase) && (shelfOf(phase).open.length > 0 || dueIn(phase) > 0)
+  return !isClosed(phase) && shelfOf(phase).open.length > 0
 }
 
 const restPhases = computed(() => PHASES.filter((phase) => !inOrder(phase)))
@@ -214,13 +215,19 @@ const restOpen = reactive<Record<TaskPhase, boolean>>({
   [TASK_PHASE_DURING]: false,
 })
 
-/** *„Vor der Reise · nichts offen · 3 erledigt"* — or the closed *before*'s own words. */
+/** *„Vor der Reise · nichts offen · 3 erledigt"* (*„· 2 fällig"* while the block holds some) — or the closed *before*'s own words. */
 function restLabel(phase: TaskPhase): string {
   const done = shelfOf(phase).resolved.length
   if (isClosed(phase)) {
     return done > 0 ? t('tasks.beforeHistory', { n: done }) : t('tasks.beforeHistoryEmpty')
   }
   const name = t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')
+  const due = dueIn(phase)
+  if (due > 0) {
+    return done > 0
+      ? t('tasks.phaseRestDueDone', { phase: name, due, n: done })
+      : t('tasks.phaseRestDue', { phase: name, due })
+  }
   return done > 0
     ? t('tasks.phaseRestDone', { phase: name, n: done })
     : t('tasks.phaseRest', { phase: name })

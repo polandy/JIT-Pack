@@ -289,14 +289,19 @@ describe('M6 — a list with nothing open, folded to one line at the end', () =>
     expect(page.findAll('[data-testid="m6-bought-row"] h3').map((h) => h.text())).toEqual(['Hut'])
   })
 
-  it('keeps a list in its place while its only open line stands in the Fällig block', () => {
+  it('folds a list whose only open lines stand in the Fällig block, counting them', () => {
     seedEntry('e1', { name: 'Brot', due_date: '2026-07-08' })
+    seedEntry('e2', { name: 'Milch', list: 'buy_local' })
     const page = mountPage()
 
-    expect(page.find('[data-testid="m6-before-fold"]').exists()).toBe(false)
-    expect(page.get('section[data-testid="m6-before"]').text()).toContain(
-      t('shopping.beforeDeparture'),
+    const sections = page
+      .findAll('section[data-testid="m6-before"], section[data-testid="m6-local"]')
+      .map((section) => section.attributes('data-testid'))
+    expect(sections).toEqual(['m6-local', 'm6-before'])
+    expect(page.get('[data-testid="m6-before-fold"]').text()).toBe(
+      t('shopping.listRestDue', { list: t('shopping.beforeDeparture'), due: 1 }),
     )
+    expect(page.get('[data-testid="m6-due"]').text()).toContain('Brot')
   })
 })
 
@@ -1114,8 +1119,10 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     expect(due.get('[data-testid="m6-row-tag-Wasser"]').text()).toBe(t('shopping.ownEntries'))
     expect(labels(page)).toEqual(['Spray', 'Wasser', 'Pflaster', 'Kerzen', 'Brot'])
     expect(page.get('[data-testid="m6-group-tag-Apotheke"]').text()).not.toContain('Spray')
-    // The list the block took it from counts only what stands under it.
-    expect(page.find('[data-testid="m6-local-fold"]').exists()).toBe(false)
+    // The list the block took its only line from folds, and counts it there.
+    expect(page.get('[data-testid="m6-local-fold"]').text()).toBe(
+      t('shopping.listRestDue', { list: t('shopping.atDestination'), due: 1 }),
+    )
     expect(page.get('[data-testid="m6-row-due-Spray"]').attributes('data-due')).toBe('overdue')
     expect(page.get('[data-testid="m6-row-due-Spray"]').text()).toBe(t('tasks.dueOverdue'))
     expect(page.get('[data-testid="m6-row-due-Kerzen"]').attributes('data-due')).toBe('later')

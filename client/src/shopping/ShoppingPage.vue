@@ -174,13 +174,14 @@ function isClosed(list: ShoppingMode): boolean {
 }
 
 /**
- * Owner, 2026-09-26 (M25 alike): a list with nothing open anywhere — the
- * *Fällig* block included — took a heading, a hint and a fold of room above
- * the one still being worked. It leaves reading order for one line at the
- * end, as the closed *before* already did.
+ * Owner, 2026-09-26 (M25 alike): a list with nothing open under its heading
+ * took a heading, a hint and a fold of room above the one still being
+ * worked. It leaves reading order for one line at the end, as the closed
+ * *before* already did — also while its last open lines stand in the
+ * *Fällig* block, which is where they are read (the line counts them).
  */
 function inOrder(list: ShoppingMode): boolean {
-  return !isClosed(list) && (board.value.lists[list].open > 0 || dueIn(list) > 0)
+  return !isClosed(list) && board.value.lists[list].open > 0
 }
 
 const restLists = computed(() => SHOPPING_MODES.filter((list) => !inOrder(list)))
@@ -189,7 +190,7 @@ const restOpen = reactive<Record<ShoppingMode, boolean>>({
   [ITEM_MODE_BUY_LOCAL]: false,
 })
 
-/** *„Vor der Abreise · nichts offen · 2 gekauft"* — or the closed *before*'s own words. */
+/** *„Vor der Reise · nichts offen · 2 gekauft"* (*„· 1 fällig"* while the block holds some) — or the closed *before*'s own words. */
 function restLabel(list: ShoppingMode): string {
   const n = bought.value[list].length
   if (isClosed(list)) {
@@ -198,6 +199,12 @@ function restLabel(list: ShoppingMode): string {
   const name = t(
     list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
   )
+  const due = dueIn(list)
+  if (due > 0) {
+    return n > 0
+      ? t('shopping.listRestDueBought', { list: name, due, n })
+      : t('shopping.listRestDue', { list: name, due })
+  }
   return n > 0
     ? t('shopping.listRestBought', { list: name, n })
     : t('shopping.listRest', { list: name })

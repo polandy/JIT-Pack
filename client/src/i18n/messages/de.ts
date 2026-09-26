@@ -286,10 +286,10 @@ export const de: Record<keyof typeof en, string> = {
     '{n} offene Aufgabe wandert zu den Aufgaben für unterwegs. | {n} offene Aufgaben wandern zu den Aufgaben für unterwegs.',
   'packing.closedToastTasks':
     '{n} Aufgabe ist jetzt für unterwegs | {n} Aufgaben sind jetzt für unterwegs',
-  // FR-7.12 — was auf der Einkaufsliste „Vor der Abreise" offen ist, wandert
+  // FR-7.12 — was auf der Einkaufsliste „Vor der Reise" offen ist, wandert
   // mit dem Abschluss zu „Vor Ort".
   'packing.closeConfirmShopping':
-    '{n} offener Einkauf wandert von „Vor der Abreise" zu „Vor Ort". | {n} offene Einkäufe wandern von „Vor der Abreise" zu „Vor Ort".',
+    '{n} offener Einkauf wandert von „Vor der Reise" zu „Vor Ort". | {n} offene Einkäufe wandern von „Vor der Reise" zu „Vor Ort".',
   'packing.closedToastShopping': '{n} Einkauf jetzt vor Ort | {n} Einkäufe jetzt vor Ort',
   'packing.closedTitle': 'Packen abgeschlossen',
   'packing.closedStamp': '{when} · {n} nicht mitgenommen | {when} · {n} nicht mitgenommen',
@@ -1608,6 +1608,8 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.beforeHistoryEmpty': 'Vor der Reise · abgeschlossen',
   'tasks.phaseRest': '{phase} · nichts offen',
   'tasks.phaseRestDone': '{phase} · nichts offen · {n} erledigt',
+  'tasks.phaseRestDue': '{phase} · {due} fällig',
+  'tasks.phaseRestDueDone': '{phase} · {due} fällig · {n} erledigt',
   'tasks.wordsLabel': 'Aufgabe',
   'tasks.markDone': 'Erledigt',
   'tasks.reopen': 'Wieder öffnen',
@@ -1783,8 +1785,8 @@ export const de: Record<keyof typeof en, string> = {
 
   // M6 Einkaufslisten (FR-3.2/3.3).
   'shopping.title': 'Einkaufen',
-  'shopping.beforeDeparture': 'Vor der Abreise',
-  'shopping.beforeDepartureCount': 'Vor der Abreise ({n})',
+  'shopping.beforeDeparture': 'Vor der Reise',
+  'shopping.beforeDepartureCount': 'Vor der Reise ({n})',
   'shopping.atDestination': 'Vor Ort',
   'shopping.atDestinationCount': 'Vor Ort ({n})',
   'shopping.packingList': 'Packliste',
@@ -1799,8 +1801,8 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.dueCount': '{n} Einkauf | {n} Einkäufe',
   'shopping.dueHint': '{n} Einkauf fällig | {n} Einkäufe fällig',
   'shopping.beforeLocked':
-    'Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise gekauft wurde.',
-  'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
+    'Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Reise gekauft wurde.',
+  'shopping.emptyBefore': 'Vor der Reise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
   'shopping.emptyHint':
     'Trag oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst.',
@@ -1813,10 +1815,12 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.dueGroup': 'Fällig',
   'shopping.openCount': '{n} offen',
   'shopping.boughtFold': '{n} gekauft',
-  'shopping.beforeHistory': 'Vor der Abreise · {n} gekauft',
-  'shopping.beforeHistoryEmpty': 'Vor der Abreise · abgeschlossen',
+  'shopping.beforeHistory': 'Vor der Reise · {n} gekauft',
+  'shopping.beforeHistoryEmpty': 'Vor der Reise · abgeschlossen',
   'shopping.listRest': '{list} · nichts offen',
   'shopping.listRestBought': '{list} · nichts offen · {n} gekauft',
+  'shopping.listRestDue': '{list} · {due} fällig',
+  'shopping.listRestDueBought': '{list} · {due} fällig · {n} gekauft',
   'shopping.emptyAll': 'Nichts zu kaufen',
   'shopping.listLabel': 'Liste',
   'shopping.tagNone': 'Noch kein Tag — der Eintrag steht unter „Eingetragen“.',

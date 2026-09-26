@@ -352,15 +352,28 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     expect(acts.reopenTripTodo).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps a phase in its place while its only open task stands in the Fällig block', async () => {
+  /*
+   * Owner, 2026-09-26: a phase whose last open tasks are read in the Fällig
+   * block has nothing under its heading — it folds like an empty one, and
+   * its line counts what waits up there.
+   */
+  it('folds a phase whose only open tasks stand in the Fällig block, counting them', async () => {
     seedTrip()
     seedTask('Salbe holen', { due_date: STUB_TODAY })
+    seedTask('Pass holen', { task_state: 'resolved' })
+    seedTask('Zug abklären', { phase: 'during' })
 
     const page = mountPage()
     await flushPromises()
 
-    expect(page.find('[data-testid="m25-before-fold"]').exists()).toBe(false)
-    expect(page.get('[data-testid="m25-before"]').text()).toContain('Before the trip')
+    const sections = page
+      .findAll('section[data-testid="m25-during"], section[data-testid="m25-before"]')
+      .map((section) => section.attributes('data-testid'))
+    expect(sections).toEqual(['m25-during', 'm25-before'])
+    expect(page.get('[data-testid="m25-before-fold"]').text()).toBe(
+      'Before the trip · 1 due · 1 done',
+    )
+    expect(page.get('[data-testid="m25-due"]').text()).toContain('Salbe holen')
   })
 
   /*

@@ -274,7 +274,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
     // Before departure is one folded line at the end, and says why once open.
     const fold = m6.getByTestId('m6-before-fold')
-    await expect(fold).toHaveText('Before departure · closed')
+    await expect(fold).toHaveText('Before the trip · closed')
     await expect(m6.getByTestId('m6-before-locked')).toHaveCount(0)
     await fold.click()
     await expect(m6.getByTestId('m6-before-locked')).toBeVisible()
@@ -300,7 +300,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     )
     await openTripView(page, 'shopping')
     await expectComposingFor(page, 'before')
-    await expect(m6.getByTestId('m6-before-fold')).toHaveText('Before departure · nothing open')
+    await expect(m6.getByTestId('m6-before-fold')).toHaveText('Before the trip · nothing open')
     await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
     await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
   })

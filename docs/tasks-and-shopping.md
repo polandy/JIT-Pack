@@ -33,12 +33,12 @@ removed on that row.
 
 **Einkaufen** reads the way the task list does:
 
-- **The field on top** adds something to buy, with chips under it: **Vor der Abreise** or **Vor Ort** (only while
+- **The field on top** adds something to buy, with chips under it: **Vor der Reise** or **Vor Ort** (only while
   the trip is still being planned and packed — after that, everything new is for **Vor Ort**), your shopping tags
   (**＋ Tag** opens the entry sheet), and — once you have typed something — a day, with the same chips as a task.
 - **Fällig** comes next, when anything is pressing: everything overdue, due today or in the next two days, from both
   lists, earliest first, each row naming its tag underneath.
-- Then **Vor der Abreise** and **Vor Ort**, one under the other, each with how much is still open. Under each come
+- Then **Vor der Reise** and **Vor Ort**, one under the other, each with how much is still open. Under each come
   the packing list's own positions (under **Packliste**), then your entries under their tags, then the untagged ones
   under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
   end of each list, where you can untick it again.
@@ -48,10 +48,11 @@ its line — remove it with **Entfernen** in that sheet.
 
 ## When a part has nothing left to do
 
-On both lists, a part with nothing open — say **Vor der Abreise** once everything is bought, or **Vor der Reise**
-once every task is done — moves to the end of the screen as one line: *Vor der Abreise · nichts offen*. When
-something in it was bought or done, the line says how much (*· 2 gekauft*) and a tap on it shows those entries, where
-you can untick one again. As soon as something is open there again, the part is back in its place.
+On both lists, a part with nothing open under its heading — say **Vor der Reise** once everything is bought or every
+task is done — moves to the end of the screen as one line: *Vor der Reise · nichts offen*. That is also the case when
+the only things still open stand in **Fällig** at the top; the line then says how many (*· 2 fällig*). When something in
+it was bought or done, the line says how much (*· 2 gekauft*) and a tap on it shows those entries, where you can untick
+one again. As soon as something is open under it again, the part is back in its place.
 
 ## Moving one entry
 
@@ -158,7 +159,7 @@ and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkä
 - Afterwards both *before* lists are a record, and nothing can be added to them, ticked or unticked there, or moved
   into them. On the task list, **Während der Reise** comes first and **Vor der Reise** is one folded line at the end
   (*Vor der Reise · 3 erledigt*); open it to read what was done. New tasks land in **Während der Reise**. The
-  shopping list does the same: **Vor der Abreise** is one folded line at the end (*Vor der Abreise · 4 gekauft*), and
+  shopping list does the same: **Vor der Reise** is one folded line at the end (*Vor der Reise · 4 gekauft*), and
   new entries land in **Vor Ort**.
 - **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
 

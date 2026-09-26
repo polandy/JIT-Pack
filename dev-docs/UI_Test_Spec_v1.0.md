@@ -1118,7 +1118,7 @@ in WebKit.
   both stand *at the destination* while M6's *Vor der Abreise* carries its lock line and no field, and M25's *Vor der
   Reise* is one folded line at the end whose fold holds the lock line, with no *Vor der Reise* chip on the composer
   (FR-7.14). *Wieder öffnen* gives both back and moves nothing. **Revised 2026-09-26 (FR-30.11, no tabs):** M6's *Vor
-  der Abreise* is read in `m6-before` before the close and is afterwards the folded line *„Before departure · closed"*
+  der Abreise* is read in `m6-before` before the close and is afterwards the folded line *„Before the trip · closed"*
   at the end, whose fold holds the lock line; the composer stays and writes for *Vor Ort*. Mutation-proved: with the
   module's crossing skipped the case goes red at the own entry.
 * **E2E-M4-148** `local` (G-14, added 2026-09-25) — **implemented** (`packing-list-shape.spec.ts`): the header line's
@@ -1457,7 +1457,7 @@ composer.
   affordance reveals the row in a section of its own.)* **Revised 2026-09-26 (FR-30.11, no tabs):** the reveal is the
   list's own *gekauft* fold (*„1 bought"*), scoped to *Vor der Abreise*, its state read off `aria-expanded` rather than
   a changing label. **Revised 2026-09-26 (the rest line):** the bought packing row empties *Vor der Abreise*, so its
-  purchase is counted by the list's line at the end (*„Before departure · nothing open · 1 bought"*, `aria-expanded` as
+  purchase is counted by the list's line at the end (*„Before the trip · nothing open · 1 bought"*, `aria-expanded` as
   before), and putting it back returns the list to its place.
 * **E2E-M6-24** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-16):
   the tab labels, not the notice. With every trip pull held, M6 said „Vor der Abreise (0)" above a body saying the list
@@ -1534,11 +1534,12 @@ composer.
   reload.
 * **E2E-M6-36** `local` (FR-30.11, added 2026-09-26) — **implemented** (`shopping/shopping.spec.ts`): both lists stand
   on one screen, what is due today leads above them, and an entry is removed from its sheet. On a planned trip the
-  composer's *Before departure* chip is pressed; *Brot* goes there, *Milch* goes to *At destination* by its chip with
+  composer's *Before the trip* chip is pressed; *Brot* goes there, *Milch* goes to *At destination* by its chip with
   *Today* from the day chips. *Milch* stands alone in the **Fällig** block with *Today* and *„Added here"*; *Vor der
-  Abreise* holds *Brot* under *„1 open"*; *Vor Ort* stays in its place with a bare head, no row and **no** line at the
-  end, since its one open line is up in the block. The boxes read block, then before, then local. *Brot*'s row carries
-  no button; removed from its sheet, *Vor der Abreise* folds to its line at the end, *„Before departure · nothing open"*
+  Reise* holds *Brot* under *„1 open"*; *Vor Ort* has no row and is its line at the end, *„At destination · 1 due"*,
+  since its one open line is up in the block (revised 2026-09-26: it used to keep a bare head in place). The boxes read
+  block, then before, then local. *Brot*'s row carries no button; removed from its sheet, *Vor der Reise* folds to its
+  line at the end, *„Before the trip · nothing open"*
   — and after a reload *Milch* is still in the block and *Brot* gone. Every clause but the removal would fail on the
   tabbed screen, and the row's missing button on the old one.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a

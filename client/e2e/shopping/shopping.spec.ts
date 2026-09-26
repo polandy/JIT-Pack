@@ -613,7 +613,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     // outcome rather than a loss.
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
     const bar = restLine(page, 'before')
-    await expect(bar).toHaveText('Before departure · nothing open · 1 bought')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
     await expect(bar).toHaveAttribute('aria-expanded', 'false')
     await expect(m6(page).getByTestId('m6-bought-list')).toHaveCount(0)
 
@@ -627,7 +627,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
     // Open now, and still saying what it holds rather than what it would do.
     await expect(bar).toHaveAttribute('aria-expanded', 'true')
-    await expect(bar).toHaveText('Before departure · nothing open · 1 bought')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
 
     // E2E-M6-02 (FR-3.3), and the half the note only *claims*: the row really
     // is on the packing list now. The sentence above is a string until the
@@ -776,7 +776,7 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     // With nothing open the list is one line at the end, and it counts one
     // purchase, not three.
     const line = restLine(page, 'before')
-    await expect(line).toHaveText('Before departure · nothing open · 1 bought')
+    await expect(line).toHaveText('Before the trip · nothing open · 1 bought')
     await line.click()
     const bought = m6(page).getByTestId('m6-bought-row')
     await expect(bought).toHaveCount(1)
@@ -847,8 +847,9 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
    *
    * The composer files the next entry on the list its chip names, and dates
    * it with its day chips. The entry due today stands in the *Due* block and
-   * **not** under its own list — so that list's head counts nothing and it
-   * also does not claim to be empty, since something of it is open, above.
+   * **not** under its own list — so that list has nothing under a heading and
+   * folds to its line at the end, which counts the one waiting above
+   * (owner, 2026-09-26: a heading over nothing read as a list left over).
    * The block names the group the line left. Then the row's lost ✕: an
    * entry is removed from its sheet, and stays removed across a reload.
    */
@@ -879,11 +880,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     // Both lists render at once — no tab to switch.
     await expect(list(page, 'before').getByTestId('m6-row')).toHaveText([/Brot/])
     await expect(head(page, 'before')).toContainText('1 open')
-    // The local list holds no row of its own: Milch stands above, not twice.
-    await expect(head(page, 'local')).toHaveText('At destination')
+    // The local list holds no row of its own: Milch stands above, not twice,
+    // and the list is its line at the end, counting it.
     await expect(list(page, 'local').getByTestId('m6-row')).toHaveCount(0)
-    await expect(restLine(page, 'local')).toHaveCount(0)
-    // Top to bottom: the block, then before departure, then at destination.
+    await expect(restLine(page, 'local')).toHaveText('At destination · 1 due')
+    // Top to bottom: the block, then before the trip, then the local line.
     const box = async (el: ReturnType<typeof list>) => (await el.boundingBox())!
     const [block, before, local] = [
       await box(due),
@@ -897,12 +898,12 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     const brot = list(page, 'before').getByTestId('m6-row').filter({ hasText: 'Brot' })
     await expect(brot.locator('button')).toHaveCount(0)
     await removeEntry(page, 'Brot')
-    await expect(restLine(page, 'before')).toHaveText('Before departure · nothing open')
+    await expect(restLine(page, 'before')).toHaveText('Before the trip · nothing open')
     await writesLanded(page)
 
     await page.reload()
     await expect(m6(page).getByTestId('m6-due').getByTestId('m6-row')).toHaveText([/Milch/])
-    await expect(restLine(page, 'before')).toHaveText('Before departure · nothing open')
+    await expect(restLine(page, 'before')).toHaveText('Before the trip · nothing open')
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Brot' })).toHaveCount(0)
   })
 

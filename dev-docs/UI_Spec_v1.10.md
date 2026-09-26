@@ -896,7 +896,7 @@ These patterns apply to every screen and are specified once.
     one only the count pulses and the snackbar says *„Milch“ zu Einkaufsliste hinzugefügt* / *„Post nachsenden“ zu
     Aufgaben hinzugefügt*. The block never unfolds by itself.
   * **Empty (G-7):** the block stays; done tick in the head, the field, and a quiet sentence in the place of the rows —
-    *Für unterwegs ist nichts notiert.*, *Vor Ort ist nichts zu kaufen.* / *Vor der Abreise ist nichts zu kaufen.*
+    *Für unterwegs ist nichts notiert.*, *Vor Ort ist nichts zu kaufen.* / *Vor der Reise ist nichts zu kaufen.*
   * **Foot:** a 48 px bordered control, *Packliste öffnen ›*, leads to M4. Links: the card's head into the trip, a
     block's *„weitere“* line into M25 / M6 (its head folds it), and none inside another. The Playwright cases go into
     the ledger (`dev-docs/e2e-tests.md`) with the build.
@@ -983,7 +983,7 @@ These patterns apply to every screen and are specified once.
   landing is exercised from a notification instead (E2E-G4-01).
 * **The shopping card (FR-30.7, added 2026-09-19 — the one card M1 lets you work).** Under each trip's card, as a
   sibling (the trip card is a link): title *„Einkaufen"* (*„Einkaufen · Elba 2027"* under a planned trip), two chips
-  *Vor der Abreise (n)* · *Vor Ort (n)* with the list that is *now* pressed — *Vor Ort* for a running trip, *Vor der
+  *Vor der Reise (n)* · *Vor Ort (n)* with the list that is *now* pressed — *Vor Ort* for a running trip, *Vor der
   Abreise* for a planned one —, the field *„Was kaufen? z. B. Milch, Brot …"* with ＋, at most five lines (own entries
   first, packing lines after them with a *Packliste* tag, the amount when above one), each with a check-off. A
   check-off shows *„„Brot" gekauft · Rückgängig"* inside the card. Last line: *„Zur Einkaufsliste →"*, or *„Alle 7
@@ -1626,10 +1626,10 @@ These patterns apply to every screen and are specified once.
     *Erledigte* reveal. The list stays workable: the composer is where it was, and while the packing is closed what is
     typed into it lands **packed**, its hint saying so instead of FR-9.1's. (E2E-M4-139, E2E-M4-140, E2E-M4-141,
     E2E-M4-142, E2E-M4-143) **Since FR-7.12 (2026-09-25)** the sheet carries one more crossing line beside FR-7.7's
-    tasks, with the cart glyph: *„N offene Einkäufe wandern von „Vor der Abreise" zu „Vor Ort"."*
+    tasks, with the cart glyph: *„N offene Einkäufe wandern von „Vor der Reise" zu „Vor Ort"."*
     (`m4-close-sheet-shopping`) — the packing rows still to buy before departure plus the shopping list's own
     entries there, which move in the same act and come back with the same undo. The task window's lines carry
-    FR-7.11's due pill, the dated ones first, and M5's mode select no longer offers *Vor der Abreise kaufen* for a row
+    FR-7.11's due pill, the dated ones first, and M5's mode select no longer offers *Vor der Reise kaufen* for a row
     not already there while the packing is closed.
   * **Packed or forgotten (FR-5.11 — built 2026-09-21).** Once the packing is closed the composer carries a
     two-way choice above its hint (`role=radiogroup`): ***Eingepackt*** — *stand nicht auf der Liste* — and
@@ -1834,7 +1834,7 @@ These patterns apply to every screen and are specified once.
   with no ✕** (an entry is removed from its sheet); **one *gekauft* fold per list**; a finished packing's *before*
   **folded at the end**, as M25's is. A thing due tomorrow on the tab not open was a thing nobody saw — the tabs
   hid one list behind the other. The sentences below are amended to match; FR-30.8's rule now only decides whether
-  the composer still offers *Vor der Abreise*.
+  the composer still offers *Vor der Reise*.
 * **One set of components for M6 and M25 (owner, 2026-09-26: *„use the same components, so it is guaranteed to be
   uniform"*, translated).** Both screens are drawn from `components/global/`: `ListComposer` (the card, the field
   and its ＋) with `ChipRow`s of `ChoiceChip`s and `DueChips`; `DueBlock` (*Fällig*, tinted faintly in the overdue
@@ -1846,19 +1846,21 @@ These patterns apply to every screen and are specified once.
 * **Elements, top to bottom:**
   * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
     kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):
-    *Vor der Abreise* / *Vor Ort*, *Vor der Abreise* chosen — offered only while FR-30.8's rule still names *before*
+    *Vor der Reise* / *Vor Ort*, *Vor der Reise* chosen — offered only while FR-30.8's rule still names *before*
     (the trip planned and its packing open); otherwise the row goes and everything written is for *Vor Ort*. **The
     tag**: the tag chips and *＋ Tag* (below). **The day**: M25's day chips (`DueChips`), shown once something is
-    typed — *Heute*, *Morgen*, *Vor Abreise* (for *Vor der Abreise* only, while that day is later than tomorrow) and
+    typed — *Heute*, *Morgen*, *Vor Abreise* (for *Vor der Reise* only, while that day is later than tomorrow) and
     *Datum…*. The list and the tag stay chosen for the next entry; the day does not.
   * **The *Fällig* block** (`m6-due`), drawn only when something is pressing: every open line overdue, due today or
     in the next two days, **from both lists**, earliest first, one `ListGroup` headed *Fällig* with its count. **A
     line in it leaves its group.** Its rows name their tag on the second line — *Eingetragen* for an untagged entry,
     *Packliste* for a packing line (which carries no day today, so it does not appear here yet).
-  * **Two sections**, *Vor der Abreise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count is
-    **what stands under it** (*„N offen"*). **A list with nothing open anywhere** — the *Fällig* block included — leaves
-    reading order for **one line at the end of the screen** (`RestLine`, owner 2026-09-26, M25 alike): *„Vor der Abreise
-    · nichts offen"*, a statement; *„· 2 gekauft ›"* once something was bought, a fold that opens onto the bought rows
+  * **Two sections**, *Vor der Reise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count is
+    **what stands under it** (*„N offen"*). **A list with nothing open under its heading** — also when its last open
+    lines stand in the *Fällig* block (owner 2026-09-26: a heading over nothing still read as a list left over) — leaves
+    reading order for **one line at the end of the screen** (`RestLine`, owner 2026-09-26, M25 alike): *„Vor der Reise
+    · nichts offen"*, a statement; *„· 1 fällig"* in place of *nichts offen* while the block holds some of its lines;
+    *„· 2 gekauft ›"* once something was bought, a fold that opens onto the bought rows
     directly (`m6-before-fold` / `m6-local-fold`). Inside each: the packing list's rows in that mode first, **combined
     under one *„Packliste"* heading regardless of category** (revised 2026-09-23 — a packing category is not this list's
     tag), then the list's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"* (FR-30.9)**.
@@ -1872,9 +1874,9 @@ These patterns apply to every screen and are specified once.
   stands at the row's own edge. **No ✕ on the row**: an own entry is removed from its entry sheet (*Entfernen*,
   `m6-entry-remove`), as a task is from its own. A packing line offers neither.
 * **Before departure, closed (FR-7.12, built 2026-09-25, placed at the end 2026-09-26):** once the packing is finished,
-  *Vor der Abreise* is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor
+  *Vor der Reise* is the record of what was bought before the trip. Closing the packing moved its open lines to *Vor
   Ort* (M4's close sheet names the number); the list is no longer drawn in reading order but **folded at the end of
-  the screen**, M25's way: one line (*„Vor der Abreise · N gekauft"*, or *„· abgeschlossen"*, `m6-before-fold`) that
+  the screen**, M25's way: one line (*„Vor der Reise · N gekauft"*, or *„· abgeschlossen"*, `m6-before-fold`) that
   opens onto the lock sentence (*„Die Packliste ist abgeschlossen — diese Liste zeigt jetzt, was vor der Abreise
   gekauft wurde."*, `m6-before-locked`) and the list's bought fold, which can be read but not put back. The composer
   stays, writing for *Vor Ort*. Reopening the packing lifts it.
@@ -1946,10 +1948,10 @@ These patterns apply to every screen and are specified once.
   raises a toast with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather
   than the dashboard card's inline panel (which exists only because several cards share M1's page). The reveal below
   the list is unchanged and still the way back once the toast is gone. (E2E-M6-33)
-* **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Abreise* while the trip is planned **and** its packing is
+* **Which tab opens (FR-30.8 — built 2026-09-20):** *Vor der Reise* while the trip is planned **and** its packing is
   open; *Vor Ort* otherwise — running, archived, or planned with the packing declared finished (FR-5.10). The other tab
   keeps its count in its label, so nothing is hidden. A tab the reader picks holds for the visit and is not remembered
-  across visits; until the trip itself is on the device the tab stays *Vor der Abreise* (ADR-033's reasoning). The
+  across visits; until the trip itself is on the device the tab stays *Vor der Reise* (ADR-033's reasoning). The
   dashboard card (FR-30.7) opens by the same rule, from the same function. (E2E-M6-30)
 * **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
   entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
@@ -3059,11 +3061,11 @@ token would prove nothing there is anything to prove.
   * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is **what stands under
     it** — a task up in the *Fällig* block is not counted twice. Sections are **not** a segment: the two phases of a
     trip are one thing read top to bottom (M6's lists read the same way since FR-30.11). **A phase with no open task
-    anywhere** — the *Fällig* block included — leaves reading order for **one line at the end of the screen**
-    (`RestLine`, owner 2026-09-26, M6 alike): *„Vor der Reise · nichts offen"*, a statement; *„· 3 erledigt ›"* once
-    something is done, a fold that opens onto the finished tasks directly, with no second *erledigt* fold under it
-    (`m25-before-fold` / `m25-during-fold`). Such a phase used to take a heading, a hint and a fold of room above
-    the one still being worked.
+    under its heading** — also when its last open tasks stand in the *Fällig* block — leaves reading order for **one
+    line at the end of the screen** (`RestLine`, owner 2026-09-26, M6 alike): *„Vor der Reise · nichts offen"*, a
+    statement (*„· 2 fällig"* while the block holds some of its tasks); *„· 3 erledigt ›"* once something is done, a
+    fold that opens onto the finished tasks directly, with no second *erledigt* fold under it (`m25-before-fold` /
+    `m25-during-fold`). Such a phase used to take a heading, a hint and a fold of room above the one still being worked.
   * **Inside each section, the tag groups** (FR-7.8). One heading per task tag that holds something, in the tags'
     own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names where the task came
     from, and both are the same state in the data. **An empty heading is not drawn**, and is therefore not a drop

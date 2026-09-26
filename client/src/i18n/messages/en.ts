@@ -294,7 +294,7 @@ export const en = {
   'packing.closedToastTasks':
     '{n} task is now for the trip itself | {n} tasks are now for the trip itself',
   'packing.closeConfirmShopping':
-    '{n} open purchase moves from “Before departure” to “At the destination”. | {n} open purchases move from “Before departure” to “At the destination”.',
+    '{n} open purchase moves from “Before the trip” to “At the destination”. | {n} open purchases move from “Before the trip” to “At the destination”.',
   'packing.closedToastShopping':
     '{n} purchase now at the destination | {n} purchases now at the destination',
   'packing.closedTitle': 'Packing finished',
@@ -1594,6 +1594,8 @@ export const en = {
   'tasks.beforeHistoryEmpty': 'Before the trip · closed',
   'tasks.phaseRest': '{phase} · nothing open',
   'tasks.phaseRestDone': '{phase} · nothing open · {n} done',
+  'tasks.phaseRestDue': '{phase} · {due} due',
+  'tasks.phaseRestDueDone': '{phase} · {due} due · {n} done',
   'tasks.wordsLabel': 'Task',
   'tasks.markDone': 'Done',
   'tasks.reopen': 'Reopen',
@@ -1766,8 +1768,8 @@ export const en = {
 
   // M6 shopping views (FR-3.2/3.3).
   'shopping.title': 'Shopping',
-  'shopping.beforeDeparture': 'Before departure',
-  'shopping.beforeDepartureCount': 'Before departure ({n})',
+  'shopping.beforeDeparture': 'Before the trip',
+  'shopping.beforeDepartureCount': 'Before the trip ({n})',
   'shopping.atDestination': 'At destination',
   'shopping.atDestinationCount': 'At destination ({n})',
   'shopping.packingList': 'Packing list',
@@ -1781,8 +1783,8 @@ export const en = {
   'shopping.dueCount': '{n} purchase | {n} purchases',
   'shopping.dueHint': '{n} purchase due | {n} purchases due',
   'shopping.beforeLocked':
-    'The packing is finished — this list is now the record of what was bought before departure.',
-  'shopping.emptyBefore': 'Nothing to buy before departure',
+    'The packing is finished — this list is now the record of what was bought before the trip.',
+  'shopping.emptyBefore': 'Nothing to buy before the trip',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
   'shopping.emptyHint':
     'Type what you mean to buy above. Anything on the packing list that is bought rather than packed shows up here by itself.',
@@ -1795,10 +1797,12 @@ export const en = {
   'shopping.dueGroup': 'Due',
   'shopping.openCount': '{n} open',
   'shopping.boughtFold': '{n} bought',
-  'shopping.beforeHistory': 'Before departure · {n} bought',
-  'shopping.beforeHistoryEmpty': 'Before departure · closed',
+  'shopping.beforeHistory': 'Before the trip · {n} bought',
+  'shopping.beforeHistoryEmpty': 'Before the trip · closed',
   'shopping.listRest': '{list} · nothing open',
   'shopping.listRestBought': '{list} · nothing open · {n} bought',
+  'shopping.listRestDue': '{list} · {due} due',
+  'shopping.listRestDueBought': '{list} · {due} due · {n} bought',
   'shopping.emptyAll': 'Nothing to buy',
   'shopping.listLabel': 'List',
   'shopping.tagNone': 'No tag yet — the entry is listed under “Added here”.',

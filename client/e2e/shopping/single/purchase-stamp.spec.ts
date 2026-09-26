@@ -45,7 +45,7 @@ test.describe('M6 — who bought it, and when (FR-30.4) @single @m6', () => {
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
     // Both were bought before departure, so its one line counts them both.
     await expect(m6(page).getByTestId('m6-before-fold')).toHaveText(
-      'Before departure · nothing open · 2 bought',
+      'Before the trip · nothing open · 2 bought',
     )
 
     const who = await accountName(page)

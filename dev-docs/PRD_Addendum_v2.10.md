@@ -4719,6 +4719,10 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     opens onto those rows directly. It took a heading, a hint and a fold of room above the list still being worked.
     Rejected: hiding it (what was bought or done would have no place) and a one-line head in place (it stays in the
     way). The closed *before* of FR-7.12 wears the same line.
+  * **Amended the same day (owner):** a part whose last open lines stand in the *Fällig* block folds too — its heading
+    stood over nothing but a fold, and did not look like the other screen's line. The line counts what waits up there
+    (*„Vor der Reise · 2 fällig · 3 erledigt ›"*). And M6's *Vor der Abreise* is called ***Vor der Reise*** (*Before
+    the trip*), M25's name for the same time; the day chip *Vor Abreise* keeps its name, since it names a day.
   * **One set of components, so the two screens cannot drift (owner, the same day):** both are drawn from
     `components/global/` — `ListComposer`, `ChipRow`, `DueChips`, `DueBlock`, `ListSection`, `ListGroup`,
     `ListRow`, `FoldToggle`, `RestLine`, `TagPicker` and `EntrySheet`. What stays per screen is what a line is.

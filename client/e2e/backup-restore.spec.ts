@@ -578,7 +578,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const m6 = () => visible(page).getByTestId('m6-page')
     await m6().getByTestId('m6-row').filter({ hasText: 'Kaffee' }).locator('ion-checkbox').click()
     await expect(m6().getByTestId('m6-before-fold')).toHaveText(
-      'Before departure · nothing open · 1 bought',
+      'Before the trip · nothing open · 1 bought',
     )
 
     await page.getByTestId('sync-indicator').click()
@@ -614,7 +614,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // Under the line of the list it was bought from — *before departure*,
     // folded to the end since nothing of it is open.
     const bar = m6r().getByTestId('m6-before-fold')
-    await expect(bar).toHaveText('Before departure · nothing open · 1 bought')
+    await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')
     await expect(m6r().getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
     await bar.click()
     const bought = m6r().getByTestId('m6-bought-row')
