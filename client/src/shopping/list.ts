@@ -86,14 +86,31 @@ export function buildSections(
 
 function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSection[] {
   const sections: ShoppingSection[] = []
-  if (sourced.length > 0) {
+  const combined = sourced.filter((line) => !line.section)
+  if (combined.length > 0) {
     sections.push({
       key: PACKING_SECTION,
       own: false,
       tagged: false,
       packing: true,
       name: null,
-      lines: sourced,
+      lines: combined,
+    })
+  }
+  // FR-31.8: a source that names a heading gets it — after the combined one,
+  // A–Z, and never a place to drop an entry (it is not one of this list's tags).
+  const bySection = new Map<string, ShoppingLine[]>()
+  for (const line of sourced) {
+    if (line.section) bySection.set(line.section, [...(bySection.get(line.section) ?? []), line])
+  }
+  for (const name of [...bySection.keys()].sort((a, b) => a.localeCompare(b))) {
+    sections.push({
+      key: `source:${name}`,
+      own: false,
+      tagged: false,
+      packing: false,
+      name,
+      lines: bySection.get(name) ?? [],
     })
   }
   const byTag = new Map<string, ShoppingLine[]>()

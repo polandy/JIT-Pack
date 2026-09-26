@@ -56,6 +56,21 @@ describe('buildSections', () => {
   })
 })
 
+describe('buildSections — a source’s own heading (FR-31.8)', () => {
+  it('files a line that names its heading under it, after the combined one, never as a drop target', () => {
+    const forHut = { ...line('Proviant'), section: 'Hüttentour' }
+    const forBoat = { ...line('Sonnenhut'), section: 'Bootsausflug' }
+    const sections = buildSections([line('Milch')], [line('Sonnencreme'), forHut, forBoat])
+    expect(sections.map((s) => [s.packing, s.own, s.name, s.lines.map((l) => l.name)])).toEqual([
+      [true, false, null, ['Sonnencreme']],
+      [false, false, 'Bootsausflug', ['Sonnenhut']],
+      [false, false, 'Hüttentour', ['Proviant']],
+      [false, true, null, ['Milch']],
+    ])
+    expect(dropTag(sections[1]!)).toBeUndefined()
+  })
+})
+
 describe('buildSections — tags (FR-30.9)', () => {
   it('puts the packing section first, then a section per tag A–Z, then the untagged', () => {
     const sections = buildSections(

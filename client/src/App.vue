@@ -60,6 +60,9 @@ import { PATH, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
 import { resolveHead } from '@/composables/useHeaderTitle'
 import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
+import { createExcursionShoppingSource } from '@/composables/excursionShoppingSource'
+import { pendingExcursionCount } from '@/domain/excursions'
+import { localIsoDate } from '@/domain/trips'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
@@ -203,11 +206,24 @@ provide(ORCHESTRATOR, orchestrator)
  * the module's count — so neither side imports the other.
  */
 const shoppingSources = orchestrator
-  ? [createPackingShoppingSource(useTripStore(), orchestrator)]
+  ? [
+      createPackingShoppingSource(useTripStore(), orchestrator),
+      // FR-31.8: an excursion's vor-Ort lines, bought at the kiosk on the way.
+      createExcursionShoppingSource(useTripStore(), orchestrator),
+    ]
   : []
 provide(SHOPPING_SOURCES, shoppingSources)
 provide(TRIP_VIEW_COUNTS, {
   shopping: shoppingCount(shoppingSources),
+  // FR-31.10: excursions ahead that still have something to pack or buy.
+  excursions: (tripId) => {
+    const trips = useTripStore()
+    return pendingExcursionCount(
+      trips.getExcursions(tripId),
+      trips.getExcursionItems(tripId),
+      localIsoDate(Date.now()),
+    )
+  },
   // FR-7.13: what is new for me in the trip's notes, never their total.
   notes: (tripId) => {
     const trips = useTripStore()

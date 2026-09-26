@@ -61,6 +61,7 @@ export type TripSubScreen =
   | 'shopping'
   | 'tasks'
   | 'notes'
+  | 'excursions'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {
@@ -110,6 +111,15 @@ export const THREAD_ID_PARAM = ':threadId'
 export function tripNotesPath(tripId: string, threadId?: string): string {
   const path = tripSubPath(tripId, 'notes')
   return threadId ? `${path}/${threadId}` : path
+}
+
+/** The route parameter naming one excursion (FR-31, M27). */
+export const EXCURSION_ID_PARAM = ':excursionId'
+
+/** M27, or one excursion's own list under it (FR-31.6). */
+export function tripExcursionsPath(tripId: string, excursionId?: string): string {
+  const path = tripSubPath(tripId, 'excursions')
+  return excursionId ? `${path}/${excursionId}` : path
 }
 
 /**

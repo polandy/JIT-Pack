@@ -15,6 +15,8 @@ import type { NotificationEntry } from '@/api/types'
 export const NOTIFY_TASK_DUE = 'task_due'
 /** FR-30.10's reminder for a purchase — the same day rule, and its link is M6. */
 export const NOTIFY_SHOPPING_DUE = 'shopping_due'
+/** FR-31.9's reminder for an excursion — the same day rule, and its link is the excursion's list. */
+export const NOTIFY_EXCURSION_DUE = 'excursion_due'
 
 /** FR-7.9's new note and FR-7.13's reply — the two kinds whose link is a thread on M26. */
 export const NOTIFY_NOTE = 'note'
@@ -30,6 +32,7 @@ export const NOTIFICATION_KINDS = [
   NOTIFY_NOTE_REPLY,
   NOTIFY_TASK_DUE,
   NOTIFY_SHOPPING_DUE,
+  NOTIFY_EXCURSION_DUE,
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
@@ -50,17 +53,24 @@ export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic
  */
 const TASK_DUE_TOMORROW = 'task_dueTomorrow'
 const SHOPPING_DUE_TOMORROW = 'shopping_dueTomorrow'
-type BodyKind = NotificationKind | typeof TASK_DUE_TOMORROW | typeof SHOPPING_DUE_TOMORROW
+const EXCURSION_DUE_TOMORROW = 'excursion_dueTomorrow'
+type BodyKind =
+  | NotificationKind
+  | typeof TASK_DUE_TOMORROW
+  | typeof SHOPPING_DUE_TOMORROW
+  | typeof EXCURSION_DUE_TOMORROW
 const BODY_KINDS: readonly BodyKind[] = [
   ...NOTIFICATION_KINDS,
   TASK_DUE_TOMORROW,
   SHOPPING_DUE_TOMORROW,
+  EXCURSION_DUE_TOMORROW,
 ]
 
-/** A reminder kind's tomorrow sentence (FR-7.11, FR-30.10). */
+/** A reminder kind's tomorrow sentence (FR-7.11, FR-30.10, FR-31.9). */
 const TOMORROW_BODIES: Readonly<Record<string, BodyKind>> = {
   [NOTIFY_TASK_DUE]: TASK_DUE_TOMORROW,
   [NOTIFY_SHOPPING_DUE]: SHOPPING_DUE_TOMORROW,
+  [NOTIFY_EXCURSION_DUE]: EXCURSION_DUE_TOMORROW,
 }
 
 /** The kinds whose sentence quotes the body rather than naming an item. */

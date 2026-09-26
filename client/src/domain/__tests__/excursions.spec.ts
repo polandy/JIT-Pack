@@ -7,12 +7,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   arrangeExcursions,
+  borrowersByTripItem,
+  dayAfter,
+  dueExcursions,
   draftLinesFor,
   draftLinesFromGroup,
   excursionView,
   isDueSoon,
   isLeftBehind,
   isOpenPurchase,
+  pendingExcursionCount,
   participantsOf,
   planGroupFromExcursion,
   planLinks,
@@ -530,6 +534,101 @@ describe('time — FR-31.10', () => {
     expect(isDueSoon(hike, open, '2026-07-14', today)).toBe(false)
     expect(isDueSoon(hike, done, today, '2026-07-16')).toBe(false)
     expect(isDueSoon({ starts_on: null, ends_on: null }, open, today, '2026-07-16')).toBe(false)
+  })
+})
+
+describe('pendingExcursionCount — the pill’s badge (FR-31.10)', () => {
+  it('counts the excursions ahead, today’s included, that still have something open', () => {
+    const ex = (id: string, starts_on: string | null) => ({
+      id,
+      trip_id: 'trip-1',
+      name: id,
+      starts_on,
+      ends_on: starts_on,
+      source_template_id: null,
+    })
+    const open = (excursion_id: string) => line(`l-${excursion_id}`, 'x', { excursion_id })
+    const done = (excursion_id: string) =>
+      line(`d-${excursion_id}`, 'x', { excursion_id, packed_count: 1, state: 'packed' })
+    expect(
+      pendingExcursionCount(
+        [
+          ex('today', '2026-07-15'),
+          ex('ahead', '2026-07-20'),
+          ex('done', '2026-07-18'),
+          ex('past', '2026-07-10'),
+          ex('undated', null),
+        ],
+        [open('today'), open('ahead'), done('done'), open('past'), open('undated')],
+        '2026-07-15',
+      ),
+    ).toBe(2)
+  })
+})
+
+describe('borrowersByTripItem — M4’s hint (FR-31.12)', () => {
+  it('names each excursion ahead once per suitcase row it borrows, and no past one', () => {
+    const ex = (id: string, name: string, day: string | null) => ({
+      id,
+      trip_id: 'trip-1',
+      name,
+      starts_on: day,
+      ends_on: day,
+      source_template_id: null,
+    })
+    const map = borrowersByTripItem(
+      [ex('e1', 'Hüttentour', '2026-07-17'), ex('e2', 'Boot', null), ex('e3', 'Alt', '2026-07-01')],
+      [
+        line('a', 'Schlafsack', { excursion_id: 'e1', trip_item_id: 'ti-bag' }),
+        line('b', 'Schlafsack', { excursion_id: 'e1', trip_item_id: 'ti-bag' }),
+        line('c', 'Schlafsack', { excursion_id: 'e2', trip_item_id: 'ti-bag' }),
+        line('d', 'Lampe', { excursion_id: 'e3', trip_item_id: 'ti-lamp' }),
+        line('e', 'Proviant', { excursion_id: 'e1' }),
+      ],
+      '2026-07-15',
+    )
+    expect([...map]).toEqual([['ti-bag', ['Hüttentour', 'Boot']]])
+  })
+})
+
+describe('dueExcursions — M1 (FR-31.10)', () => {
+  it('lists today’s and tomorrow’s excursions with something open across trips, today first', () => {
+    const ex = (id: string, name: string, day: string) => ({
+      id,
+      trip_id: 't',
+      name,
+      starts_on: day,
+      ends_on: day,
+      source_template_id: null,
+    })
+    const rows = dueExcursions(
+      [
+        {
+          id: 't1',
+          name: 'Sardinien',
+          excursions: [
+            ex('a', 'Hütte', '2026-07-16'),
+            ex('b', 'Wandern', '2026-07-15'),
+            ex('c', 'Boot', '2026-07-20'),
+          ],
+          lines: [
+            line('1', 'x', { excursion_id: 'a' }),
+            line('2', 'x', { excursion_id: 'b' }),
+            line('3', 'x', { excursion_id: 'c' }),
+          ],
+        },
+      ],
+      '2026-07-15',
+    )
+    expect(rows.map((r) => [r.excursion.name, r.today, r.tripName])).toEqual([
+      ['Wandern', true, 'Sardinien'],
+      ['Hütte', false, 'Sardinien'],
+    ])
+  })
+
+  it('steps across a month end', () => {
+    expect(dayAfter('2026-07-31')).toBe('2026-08-01')
+    expect(dayAfter('2026-12-31')).toBe('2027-01-01')
   })
 })
 

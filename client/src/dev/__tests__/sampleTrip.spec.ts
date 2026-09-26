@@ -40,6 +40,19 @@ function seed() {
   return { tripId, trip: useTripStore() }
 }
 
+/** The same, on a device that has loaded what it holds — the running app. */
+async function seedConnected() {
+  const orchestrator = useSyncOrchestrator({
+    baseUrl: '',
+    getToken: () => null,
+    local: new IndexedDBPersistence(),
+  })
+  await orchestrator.connect()
+  const master = seedSampleMaster(orchestrator)
+  const tripId = seedSampleTrip(orchestrator, master.items)
+  return { tripId, trip: useTripStore() }
+}
+
 describe('seedSampleTrip (dev)', () => {
   it('leaves a fresh device with both kinds of task (FR-7.6)', () => {
     const { tripId, trip } = seed()
@@ -143,5 +156,24 @@ describe('seedSampleTrip (dev)', () => {
     const titled = roots.find((note) => note.title !== null)
     expect(titled).toBeDefined()
     expect(notes.filter((note) => note.parent_id === titled?.id).length).toBeGreaterThan(1)
+  })
+
+  /**
+   * FR-31: M27 opens with an excursion from a group — per-person lines, a
+   * vor-Ort line, and, on this closed suitcase, something not in the luggage
+   * — and an undated one, so both of M27's sections show.
+   */
+  it('leaves a fresh device with excursions to look at (FR-31)', async () => {
+    // An excursion links into the suitcase, so it waits for the device's rows
+    // to be loaded (ADR-016's guard) — as they are when the seed button runs.
+    const { tripId, trip } = await seedConnected()
+
+    const excursions = trip.getExcursions(tripId)
+    expect(excursions.some((e) => e.starts_on !== null)).toBe(true)
+    expect(excursions.some((e) => e.starts_on === null)).toBe(true)
+    const lines = trip.getExcursionItems(tripId)
+    expect(lines.some((l) => l.for_all_participants)).toBe(true)
+    expect(lines.some((l) => l.mode === 'buy_local')).toBe(true)
+    expect(lines.some((l) => l.not_in_luggage)).toBe(true)
   })
 })

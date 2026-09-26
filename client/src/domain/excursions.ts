@@ -657,3 +657,94 @@ export function planGroupFromExcursion(
   }
   return { newMasterItems, positions: [...bySet.values()] }
 }
+
+/**
+ * The count the switcher's pill wears (FR-31.10): excursions still ahead,
+ * today's included, with something on their list still to pack or buy. A
+ * finished list, a past excursion and one without a day ask for nothing.
+ */
+export function pendingExcursionCount(
+  excursions: readonly Excursion[],
+  lines: readonly ExcursionItem[],
+  today: string,
+): number {
+  return excursions.filter(
+    (e) =>
+      whenOf(e, today) === 'upcoming' &&
+      lines.some((l) => l.excursion_id === e.id && unitsOf(l).done < unitsOf(l).total),
+  ).length
+}
+
+/**
+ * Which excursions borrow each suitcase row (FR-31.12): the names M4 shows on
+ * a row, so it is not skipped or left out of the suitcase blind. Past
+ * excursions are left out — they borrowed it already — and each name is
+ * listed once however many of its lines point at the row.
+ */
+export function borrowersByTripItem(
+  excursions: readonly Excursion[],
+  lines: readonly ExcursionItem[],
+  today: string,
+): Map<string, string[]> {
+  const names = new Map(
+    excursions.filter((e) => whenOf(e, today) !== 'past').map((e) => [e.id, e.name]),
+  )
+  const out = new Map<string, string[]>()
+  for (const line of lines) {
+    const name = names.get(line.excursion_id)
+    if (line.trip_item_id === null || name === undefined) continue
+    const list = out.get(line.trip_item_id) ?? []
+    if (!list.includes(name)) list.push(name)
+    out.set(line.trip_item_id, list)
+  }
+  return out
+}
+
+/** One excursion the dashboard shows (FR-31.10). */
+export interface DueExcursionRow {
+  tripId: string
+  tripName: string
+  excursion: Excursion
+  /** Whether it starts today — else tomorrow. */
+  today: boolean
+  units: PackUnits
+}
+
+/**
+ * dueExcursions lists what M1 shows: every trip's excursions starting today or
+ * tomorrow that still have something open, today's first.
+ */
+export function dueExcursions(
+  trips: ReadonlyArray<{
+    id: string
+    name: string
+    excursions: readonly Excursion[]
+    lines: readonly ExcursionItem[]
+  }>,
+  today: string,
+): DueExcursionRow[] {
+  const tomorrow = dayAfter(today)
+  const rows: DueExcursionRow[] = []
+  for (const trip of trips) {
+    for (const excursion of trip.excursions) {
+      const lines = trip.lines.filter((l) => l.excursion_id === excursion.id)
+      if (!isDueSoon(excursion, lines, today, tomorrow)) continue
+      rows.push({
+        tripId: trip.id,
+        tripName: trip.name,
+        excursion,
+        today: spanOf(excursion)!.from === today,
+        units: sumUnits(lines),
+      })
+    }
+  }
+  return rows.sort(
+    (a, b) => Number(b.today) - Number(a.today) || a.excursion.name.localeCompare(b.excursion.name),
+  )
+}
+
+/** The calendar day after an ISO day, through UTC so no zone moves it. */
+export function dayAfter(iso: string): string {
+  const [y = 0, m = 1, d = 1] = iso.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+}

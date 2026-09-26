@@ -164,13 +164,23 @@ async function readMirror() {
  * plainer sentence.
  */
 function bodyName(kind, payload) {
-  const known = ['delegation', 'mention', 'task', 'lock_taken', 'note', 'note_reply', 'task_due', 'shopping_due']
+  const known = [
+    'delegation',
+    'mention',
+    'task',
+    'lock_taken',
+    'note',
+    'note_reply',
+    'task_due',
+    'shopping_due',
+    'excursion_due',
+  ]
   if (known.indexOf(kind) === -1) return 'generic'
   // FR-7.13: a reply, like a note and a mention, is about its own words.
   const quoted = kind === 'mention' || kind === 'note' || kind === 'note_reply'
   const named = quoted ? payload.preview : payload.item_name
-  // FR-7.11/FR-30.10: a reminder's day picks one of two sentences.
-  const reminder = kind === 'task_due' || kind === 'shopping_due'
+  // FR-7.11/FR-30.10/FR-31.9: a reminder's day picks one of two sentences.
+  const reminder = kind === 'task_due' || kind === 'shopping_due' || kind === 'excursion_due'
   const body = reminder && payload.due === 'tomorrow' ? kind + 'Tomorrow' : kind
   return named ? body : body + 'Plain'
 }
@@ -211,6 +221,10 @@ function notificationUrl(payload, kind) {
   if (kind === 'shopping_due') return url + '/shopping'
   // FR-30.12: so does a purchase handed to the reader.
   if (payload.entry_id) return url + '/shopping'
+  // FR-31.9: an excursion's reminder opens its own list.
+  if (kind === 'excursion_due') {
+    return url + '/excursions' + (payload.excursion_id ? '/' + payload.excursion_id : '')
+  }
   // FR-7.13: a note or a reply opens its thread, a screen of its own.
   if (kind === 'note' || kind === 'note_reply') {
     const thread = payload.thread_id || payload.comment_id

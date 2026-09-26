@@ -10,10 +10,12 @@ import {
   TEMPLATE_ID_PARAM,
   TRIP_ID_PARAM,
   THREAD_ID_PARAM,
+  EXCURSION_ID_PARAM,
   itemPath,
   seriesPath,
   templatePath,
   tripNotesPath,
+  tripExcursionsPath,
   tripPath,
   tripSubPath,
 } from './paths'
@@ -232,6 +234,22 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'notes' },
     name: 'trip-notes',
     component: () => import('@/views/trips/TripNotesPage.vue'),
+    props: true,
+  },
+  {
+    // M27 (FR-31): the trip's excursions, each with its own small list.
+    path: tripExcursionsPath(TRIP_ID_PARAM),
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'excursions' },
+    name: 'trip-excursions',
+    component: () => import('@/views/trips/TripExcursionsPage.vue'),
+    props: true,
+  },
+  {
+    // One excursion's list (FR-31.6), under M27 and still in its view.
+    path: tripExcursionsPath(TRIP_ID_PARAM, EXCURSION_ID_PARAM),
+    meta: { parent: tripExcursionsPath(TRIP_ID_PARAM), tripView: 'excursions' },
+    name: 'trip-excursion',
+    component: () => import('@/views/trips/TripExcursionPage.vue'),
     props: true,
   },
   {

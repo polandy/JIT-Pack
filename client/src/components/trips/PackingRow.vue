@@ -18,7 +18,12 @@
  * branch chain is testable without a trip.
  */
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
+import {
+  buildOutline,
+  lockClosedOutline,
+  removeCircleOutline,
+  trailSignOutline,
+} from 'ionicons/icons'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
@@ -91,6 +96,11 @@ const props = withDefaults(
      * (FR-25.19), so the row that shows it offers nothing to pick.
      */
     assignable?: boolean
+    /**
+     * FR-31.12: the excursions that borrow this row, named on an open row so
+     * it is not skipped or left out of the suitcase blind.
+     */
+    borrowedBy?: readonly string[]
   }>(),
   {
     variant: 'item',
@@ -101,6 +111,7 @@ const props = withDefaults(
     assignable: false,
     seatColumn: false,
     seat: null,
+    borrowedBy: () => [],
   },
 )
 
@@ -195,6 +206,14 @@ const emit = defineEmits<{
       <p v-else-if="done && notes.packed" class="stamp" data-testid="m4-packed-stamp">
         {{ notes.packed }}
         <span v-if="notes.responsible" class="muted">· {{ notes.responsible }}</span>
+      </p>
+      <p
+        v-if="!done && borrowedBy.length > 0"
+        class="stamp borrowed"
+        :data-testid="`m4-borrowed-${testKey}`"
+      >
+        <IonIcon :icon="trailSignOutline" aria-hidden="true" />
+        {{ borrowedBy.join(', ') }}
       </p>
     </IonLabel>
 
@@ -346,6 +365,19 @@ const emit = defineEmits<{
 
 .stamp {
   font-size: var(--jp-text-xs);
+}
+
+.borrowed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-subtext0);
+}
+
+.borrowed ion-icon {
+  flex: none;
+  width: var(--jp-icon-xs);
+  height: var(--jp-icon-xs);
 }
 
 .muted {
