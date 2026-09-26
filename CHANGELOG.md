@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.20.0](https://github.com/polandy/JIT-Pack/compare/v0.19.0...v0.20.0) (2026-09-26)
+
+
+### Features
+
+* a shopping entry names its due day, leads M6 and M1, and the morning run reminds every member (FR-30.10) ([#605](https://github.com/polandy/JIT-Pack/issues/605)) ([b852a20](https://github.com/polandy/JIT-Pack/commit/b852a20f23ddba5d075308576a8caef452fcd398))
+* a task names its due day, the server reminds at six, and a finished packing closes before (FR-7.11, FR-7.12) ([#600](https://github.com/polandy/JIT-Pack/issues/600)) ([c4b52ca](https://github.com/polandy/JIT-Pack/commit/c4b52caaa39aae393f7e4c82287ae22dc9d0a2f7))
+* **client:** a selection wears the app bar, a ⋮ holds its own context, and the trip's steps are M2's (G-20, G-12, FR-9.3) ([#598](https://github.com/polandy/JIT-Pack/issues/598)) ([ca0cd34](https://github.com/polandy/JIT-Pack/commit/ca0cd34392def9f1abc41fe33a0ab35159e84014))
+* **client:** M25 reworked for use, and M6 reads like it — what is due leads, one composer files as you type, one tag dialog (FR-7.14, FR-30.11) ([#606](https://github.com/polandy/JIT-Pack/issues/606)) ([e3f0549](https://github.com/polandy/JIT-Pack/commit/e3f05494265e75dc5c5cbec70f60f8db78cde604))
+* **client:** the trip switcher words only where you stand, and a held glyph names itself (ADR-051 amendment 3) ([#601](https://github.com/polandy/JIT-Pack/issues/601)) ([a79510d](https://github.com/polandy/JIT-Pack/commit/a79510de07da5ca24d265388fd53c804645d3d22))
+* trip notes become threads on a view of their own — titled notes, replies one level deep, read like a conversation (FR-7.13) ([#602](https://github.com/polandy/JIT-Pack/issues/602)) ([b4b0210](https://github.com/polandy/JIT-Pack/commit/b4b02101d8f2848cfd28d226b1c65cec8593d573))
+
 ## [0.19.0](https://github.com/polandy/JIT-Pack/compare/v0.18.0...v0.19.0) (2026-09-24)
 
 
