@@ -1456,7 +1456,9 @@ composer.
   bought. *(The dimmed-and-still-interactive row of the original wording described the filter-sheet design; the built
   affordance reveals the row in a section of its own.)* **Revised 2026-09-26 (FR-30.11, no tabs):** the reveal is the
   list's own *gekauft* fold (*„1 bought"*), scoped to *Vor der Abreise*, its state read off `aria-expanded` rather than
-  a changing label.
+  a changing label. **Revised 2026-09-26 (the rest line):** the bought packing row empties *Vor der Abreise*, so its
+  purchase is counted by the list's line at the end (*„Before departure · nothing open · 1 bought"*, `aria-expanded` as
+  before), and putting it back returns the list to its place.
 * **E2E-M6-24** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-16):
   the tab labels, not the notice. With every trip pull held, M6 said „Vor der Abreise (0)" above a body saying the list
   was loading — two answers on one screen, and the number is the one a reader acts on. The case asserts both labels as
@@ -1533,12 +1535,12 @@ composer.
 * **E2E-M6-36** `local` (FR-30.11, added 2026-09-26) — **implemented** (`shopping/shopping.spec.ts`): both lists stand
   on one screen, what is due today leads above them, and an entry is removed from its sheet. On a planned trip the
   composer's *Before departure* chip is pressed; *Brot* goes there, *Milch* goes to *At destination* by its chip with
-  *Today* from the day chips. *Milch* stands alone in the **Fällig** block with *Today* and *„Added here"*;
-  *Vor der Abreise* holds *Brot* under *„1 open"*; *Vor Ort*'s head is bare, with no row and **no** empty line, since
-  its one open line is up in the block. The boxes read block, then before, then local. *Brot*'s row carries no
-  button; removed from its sheet, *Vor der Abreise* says it is empty — and after a reload *Milch* is still in the
-  block and *Brot* gone. Every clause but the removal would fail on the tabbed screen, and the row's missing button
-  on the old one.
+  *Today* from the day chips. *Milch* stands alone in the **Fällig** block with *Today* and *„Added here"*; *Vor der
+  Abreise* holds *Brot* under *„1 open"*; *Vor Ort* stays in its place with a bare head, no row and **no** line at the
+  end, since its one open line is up in the block. The boxes read block, then before, then local. *Brot*'s row carries
+  no button; removed from its sheet, *Vor der Abreise* folds to its line at the end, *„Before departure · nothing open"*
+  — and after a reload *Milch* is still in the block and *Brot* gone. Every clause but the removal would fail on the
+  tabbed screen, and the row's missing button on the old one.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1, amended 2026-09-21) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -1561,9 +1563,11 @@ composer.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
-  own row still open. **Revised 2026-09-26 (FR-30.11, no tabs):** the two
-  sections' folds: *Vor Ort*'s holds the row noting it was packed, *Vor der Abreise* has no fold and its own row open —
-  exactly one fold on the page.
+  own row still open. **Revised 2026-09-26 (FR-30.11, no tabs):** the two sections' folds: *Vor Ort*'s holds the row
+  noting it was packed, *Vor der Abreise* has no fold and its own row open — exactly one fold on the page. **Revised
+  2026-09-26 (the rest line):** with *Milch* bought, *Vor Ort* has nothing open and folds to its line at the end, *„At
+  destination · nothing open · 1 bought"*, which holds the one bought row; *Vor der Abreise* keeps its open row and has
+  no fold.
 * **E2E-M6-18** `all` (FR-25.11k) — **REMOVED (owner decision 2026-08-30)**: the surface was never built, and M6 stays
   the focused procurement checklist it is. The reasoning is one sentence per feature — a shopping list rarely runs to
   twenty rows, so a filter bar and a search field carry weight M4 already owns; and the composer has been the *shared*
@@ -3535,13 +3539,14 @@ here from M4** rather than being renumbered: their promise is unchanged and the 
 moved, so the M4 entries are struck in place and say where each went.
 
 * **E2E-M25-01** `local` (FR-7.7, was E2E-M4-96) — **implemented** (`trip-tasks.spec.ts`): the trip's own tasks are
-  written, ticked, reopened and removed here, each state read back **after a reload** because a list that only
-  repaints proves the component and not the write. What the id gained with the move is the phase: a task written into
-  *Während der Reise* stands in that section and **not** in the other one — a task in both would be a task filed
-  twice, which is the defect „one list, two windows" exists to prevent. Since FR-7.14 the one composer's phase chip
-  decides the section, and the removal is made from the task's sheet. The removal keeps the other section's task as
-  its positive signal, and waits for the snackbar to lapse before reloading, since that is when the delete is written
-  (FR-25.31).
+  written, ticked, reopened and removed here, each state read back **after a reload** because a list that only repaints
+  proves the component and not the write. What the id gained with the move is the phase: a task written into *Während
+  der Reise* stands in that section and **not** in the other one — a task in both would be a task filed twice, which is
+  the defect „one list, two windows" exists to prevent. Since FR-7.14 the one composer's phase chip decides the section,
+  and the removal is made from the task's sheet. The removal keeps the other section's task as its positive signal, and
+  waits for the snackbar to lapse before reloading, since that is when the delete is written (FR-25.31). **Revised
+  2026-09-26 (the rest line):** with its one task done, *Vor der Reise* is the line *„Before the trip · nothing open · 1
+  done"* at the end, which opens onto the task directly; unticked, the phase is back in its place and the line gone.
 * **E2E-M25-02** `local` (FR-7.7/FR-25.2, was E2E-M4-105) — **implemented** (`trip-tasks.spec.ts`): ticking a task off
   offers the snackbar's undo, like a pack. The tick makes the task leave the open list, so the mistap has no evidence
   left to tap again; the undo brings it back and the reopened state is read after a reload. The *„N erledigt"* fold is

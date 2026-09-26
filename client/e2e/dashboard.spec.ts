@@ -434,7 +434,10 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expectTripOpen(page, TRIP.name)
     const section = await openTasks(page, 'before')
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
+    // Its one task done, the phase folds to its line at the end, counting it.
+    await expect(section.getByTestId('m25-before-fold')).toHaveText(
+      'Before the trip · nothing open · 1 done',
+    )
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('1/1 tasks')

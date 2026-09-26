@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * M6's open lines, drawn the way M25 draws a task (owner, 2026-09-26: one
- * look and feel for the two lists): the grip or the selection box at the
+ * M6's open lines — `ListRow`, the component M25's tasks are drawn with
+ * (owner, 2026-09-26: one look and feel, guaranteed by one component): the grip or the selection box at the
  * leading edge, the name, a second line with what is known about it — the
  * due pill, the amount, the tag where the line stands outside its group, who
  * it is for — and the check-off at the trailing edge, where the thumb rests.
@@ -10,11 +10,12 @@
  * task is from its own. Every act is reported; the page owns the writes, the
  * undo toast and the drag.
  */
-import { IonCheckbox, IonItem, IonLabel } from '@ionic/vue'
+import { IonLabel } from '@ionic/vue'
 import { computed } from 'vue'
 
 import DragGrip from '@/components/global/DragGrip.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
+import ListRow from '@/components/global/ListRow.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
@@ -73,36 +74,42 @@ function hasFacts(line: ShoppingLine): boolean {
   <!-- FR-25.11j: a bought row leaves rather than vanishes — M4's FR-25.2
        `pack-out` recipe, kept to this list's own class names. -->
   <TransitionGroup tag="div" name="buy-out" class="row-group" @leave="onLeave">
-    <IonItem
+    <ListRow
       v-for="line in lines"
       :key="line.key"
       class="shop-row"
+      :checked="selecting ? null : false"
+      :tick-disabled="readonly"
+      :tick-label="t('shopping.bought', { name: line.name })"
+      :selected="selecting && isSelected(line)"
+      :facts-testid="`m6-row-facts-${line.name}`"
       :data-row-key="line.key"
-      :data-selected="selecting && isSelected(line) ? 'true' : undefined"
       data-testid="m6-row"
+      @tick="emit('buy', line)"
     >
-      <!-- FR-30.9: the selection box while selecting — dashed and dimmed for
-           a packing line, which carries no tag and is never selectable. -->
-      <SelectBox
-        v-if="selecting"
-        slot="start"
-        :on="isSelected(line)"
-        :off="!line.edit"
-        :data-testid="`m6-row-check-${line.name}`"
-      />
-      <!-- FR-30.9's single-row drag: own entries only, lifted at once. -->
-      <DragGrip
-        v-else-if="line.edit && !readonly"
-        slot="start"
-        :label="t('shopping.dragToRetag', { name: line.name })"
-        :data-testid="`m6-row-grip-${line.name}`"
-        @pointerdown.stop="(e: PointerEvent) => emit('lift', line, e)"
-      />
-      <!-- A packing line has nothing to drag (owner feedback 2026-09-23: an
-           empty gap here read as broken) — the dashed placeholder. -->
-      <DragGrip v-else slot="start" off />
+      <template #start>
+        <!-- FR-30.9: the selection box while selecting — dashed and dimmed for
+             a packing line, which carries no tag and is never selectable. -->
+        <SelectBox
+          v-if="selecting"
+          slot="start"
+          :on="isSelected(line)"
+          :off="!line.edit"
+          :data-testid="`m6-row-check-${line.name}`"
+        />
+        <!-- FR-30.9's single-row drag: own entries only, lifted at once. -->
+        <DragGrip
+          v-else-if="line.edit && !readonly"
+          slot="start"
+          :label="t('shopping.dragToRetag', { name: line.name })"
+          :data-testid="`m6-row-grip-${line.name}`"
+          @pointerdown.stop="(e: PointerEvent) => emit('lift', line, e)"
+        />
+        <!-- A packing line has nothing to drag (owner feedback 2026-09-23: an
+             empty gap here read as broken) — the dashed placeholder. -->
+        <DragGrip v-else slot="start" off />
+      </template>
       <IonLabel
-        class="text"
         :class="{ tappable: !!line.edit, selectable: selecting && !!line.edit }"
         :role="line.edit ? 'button' : undefined"
         :tabindex="line.edit ? 0 : undefined"
@@ -115,43 +122,27 @@ function hasFacts(line: ShoppingLine): boolean {
         @pointercancel="selection?.release()"
         @contextmenu.prevent="line.edit && selection?.contextMenu(line.key)"
       >
-        <h3>{{ line.name }}</h3>
-        <!-- M25's second line: what is known about the line. The pill stays
-             while selecting — when a thing is due is part of choosing it. -->
-        <div v-if="hasFacts(line)" class="facts" :data-testid="`m6-row-facts-${line.name}`">
-          <DueBadge
-            :day="line.dueDate ?? null"
-            :today="today"
-            :testid="`m6-row-due-${line.name}`"
-          />
-          <span v-if="line.quantity > 1" class="fact">{{ line.quantity }}×</span>
-          <span v-if="tagOf?.(line)" class="fact tag" :data-testid="`m6-row-tag-${line.name}`">{{
-            tagOf(line)
-          }}</span>
-          <!-- FR-25.6: for whom, derived from membership — never a control. -->
-          <span v-if="line.recipients.length > 0" class="recipients" data-testid="m6-row-for">
-            <UserAvatar
-              v-for="recipient in line.recipients"
-              :key="recipient.id"
-              :name="recipient.name"
-              :seed="recipient.id"
-              :size="18"
-            />
-            <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
-          </span>
-        </div>
+        <h3 class="row-name">{{ line.name }}</h3>
       </IonLabel>
-      <!-- The check-off is last, so its outer edge is the row's (UI-Spec M4). -->
-      <IonCheckbox
-        v-if="!selecting"
-        slot="end"
-        class="tick"
-        :checked="false"
-        :disabled="readonly"
-        :aria-label="t('shopping.bought', { name: line.name })"
-        @ionChange="emit('buy', line)"
-      />
-    </IonItem>
+      <!-- M25's second line: what is known about the line. The pill stays
+           while selecting — when a thing is due is part of choosing it. -->
+      <template v-if="hasFacts(line)" #facts>
+        <DueBadge :day="line.dueDate ?? null" :today="today" :testid="`m6-row-due-${line.name}`" />
+        <span v-if="line.quantity > 1">{{ line.quantity }}×</span>
+        <span v-if="tagOf?.(line)" :data-testid="`m6-row-tag-${line.name}`">{{ tagOf(line) }}</span>
+        <!-- FR-25.6: for whom, derived from membership — never a control. -->
+        <span v-if="line.recipients.length > 0" class="recipients" data-testid="m6-row-for">
+          <UserAvatar
+            v-for="recipient in line.recipients"
+            :key="recipient.id"
+            :name="recipient.name"
+            :seed="recipient.id"
+            :size="18"
+          />
+          <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
+        </span>
+      </template>
+    </ListRow>
   </TransitionGroup>
 </template>
 
@@ -159,15 +150,6 @@ function hasFacts(line: ShoppingLine): boolean {
 /* A `TransitionGroup` wrapper with no footprint of its own. */
 .row-group {
   display: contents;
-}
-
-.shop-row[data-selected='true'] {
-  --background: color-mix(in srgb, var(--jp-action) 10%, transparent);
-}
-
-.text {
-  margin: 0;
-  padding-block: 8px;
 }
 
 .tappable {
@@ -178,29 +160,10 @@ function hasFacts(line: ShoppingLine): boolean {
   user-select: none;
 }
 
-/* M25's facts line (`TripTodoList.vue`), for a shopping line. */
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.fact {
-  white-space: nowrap;
-}
-
 .recipients {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.tick {
-  margin-inline-start: 4px;
 }
 
 /* --- FR-25.11j: the buy-out. A bought row washes the done colour, collapses

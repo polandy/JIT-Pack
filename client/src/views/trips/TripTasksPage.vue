@@ -34,16 +34,7 @@
  * and gave them a view of their own (M26): a note is not work, and a place
  * people write in earns its own pill (ADR-051 amendment 3).
  */
-import {
-  IonChip,
-  IonContent,
-  IonFab,
-  IonFabButton,
-  IonIcon,
-  IonLabel,
-  IonList,
-  IonPage,
-} from '@ionic/vue'
+import { IonChip, IonContent, IonFab, IonFabButton, IonIcon, IonLabel, IonPage } from '@ionic/vue'
 import {
   addOutline,
   arrowBackOutline,
@@ -58,8 +49,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import DueChips from '@/components/global/DueChips.vue'
+import DueBlock from '@/components/global/DueBlock.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
-import ListGroup from '@/components/global/ListGroup.vue'
 import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -524,24 +515,27 @@ function onSheetRemove() {
         </div>
 
         <!-- FR-7.14: what is due now, across both phases and every tag. -->
-        <IonList v-if="board.due.length > 0" class="groups due" data-testid="m25-due">
-          <ListGroup :title="t('tasks.dueGroup')" :count="board.due.length">
-            <TripTodoList
-              :trip-id="tripId"
-              :tasks="board.due"
-              :assignable="assignable"
-              :name-of="nameOf"
-              :lift="onLift"
-              :selection="selection"
-              :today="today"
-              :tag-of="tagNameOf"
-              variant="list"
-              @toggle="acts.toggle"
-              @assign="acts.assign"
-              @open="openTask"
-            />
-          </ListGroup>
-        </IonList>
+        <DueBlock
+          v-if="board.due.length > 0"
+          :title="t('tasks.dueGroup')"
+          :count="board.due.length"
+          testid="m25-due"
+        >
+          <TripTodoList
+            :trip-id="tripId"
+            :tasks="board.due"
+            :assignable="assignable"
+            :name-of="nameOf"
+            :lift="onLift"
+            :selection="selection"
+            :today="today"
+            :tag-of="tagNameOf"
+            variant="list"
+            @toggle="acts.toggle"
+            @assign="acts.assign"
+            @open="openTask"
+          />
+        </DueBlock>
 
         <template v-for="phase in PHASES" :key="phase">
           <TaskPhaseSection
@@ -728,16 +722,6 @@ function onSheetRemove() {
 .groups {
   padding: 0;
   background: transparent;
-}
-
-.due {
-  margin-top: 8px;
-}
-
-/* The pressing block is tinted in the overdue ink, faintly: it is the one
-   place on the screen that asks to be read first. */
-.due :deep(ion-item) {
-  --background: color-mix(in srgb, var(--ct-ember) 6%, var(--jp-surface-card));
 }
 
 .hint-wide {

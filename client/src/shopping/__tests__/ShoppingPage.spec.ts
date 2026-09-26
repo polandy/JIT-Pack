@@ -677,10 +677,10 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
 
     await typeSheetName(page, 'Mückenspray')
     await search(page, '  Apotheke ')
-    expect(page.find('[data-testid="m6-tag-create"]').text()).toContain('Apotheke')
-    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    expect(page.find('[data-testid="tag-pick-create"]').text()).toContain('Apotheke')
+    await page.find('[data-testid="tag-pick-create"]').trigger('click')
     expect(written).toEqual([])
-    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(
+    expect(page.find('[data-testid="tag-pick-summary"]').text()).toBe(
       t('shopping.tagFiledUnder', { tag: 'Apotheke' }),
     )
 
@@ -704,9 +704,9 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     await typeSheetName(page, 'Milch')
 
     await search(page, 'super')
-    expect(page.find('[data-testid="m6-tag-offer-Supermarkt"]').exists()).toBe(true)
+    expect(page.find('[data-testid="tag-pick-offer-Supermarkt"]').exists()).toBe(true)
     await search(page, 'supermarkt')
-    expect(page.find('[data-testid="m6-tag-create"]').exists()).toBe(false)
+    expect(page.find('[data-testid="tag-pick-create"]').exists()).toBe(false)
     await page.findComponent(IonSearchbar).trigger('keyup', { key: 'Enter' })
     await confirm(page).trigger('click')
 
@@ -733,7 +733,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     await page.find('[data-testid="m6-tag-new"]').trigger('click')
     await typeSheetName(page, 'Pasta')
     await search(page, 'Laden')
-    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    await page.find('[data-testid="tag-pick-create"]').trigger('click')
     await confirm(page).trigger('click')
     await page.find('[data-testid="m6-row-label"]').trigger('click')
     await page.find('[data-testid="m6-entry-remove"]').trigger('click')
@@ -801,8 +801,8 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     await open()
     expect(page.find('[data-testid="m6-entry-title"]').text()).toBe(t('shopping.entrySheetEdit'))
     expect(sheetName(page).props('value')).toBe('Batterien')
-    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(t('shopping.tagNone'))
-    await page.find('[data-testid="m6-tag-offer-Supermarkt"]').trigger('click')
+    expect(page.find('[data-testid="tag-pick-summary"]').text()).toBe(t('shopping.tagNone'))
+    await page.find('[data-testid="tag-pick-offer-Supermarkt"]').trigger('click')
     expect(written).toEqual([])
     await confirm(page).trigger('click')
 
@@ -838,17 +838,17 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     const page = mountPage()
 
     await page.find('[data-testid="m6-row-label"]').trigger('click')
-    expect(page.find('[data-testid="m6-tag-summary"]').text()).toBe(
+    expect(page.find('[data-testid="tag-pick-summary"]').text()).toBe(
       t('shopping.tagFiledUnder', { tag: 'Supermarkt' }),
     )
-    await page.find('[data-testid="m6-tag-assigned-Supermarkt"]').trigger('click')
+    await page.find('[data-testid="tag-pick-assigned-Supermarkt"]').trigger('click')
     await confirm(page).trigger('click')
     expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: null } })
     expect(headings(page)).toEqual(['m6-group-own'])
 
     await page.find('[data-testid="m6-row-label"]').trigger('click')
     await search(page, ' Bäcker ')
-    await page.find('[data-testid="m6-tag-create"]').trigger('click')
+    await page.find('[data-testid="tag-pick-create"]').trigger('click')
     await confirm(page).trigger('click')
     expect(written.at(-1)).toMatchObject({ id: 'e1', fields: { tag: 'Bäcker' } })
     expect(headings(page)).toEqual(['m6-group-tag-Bäcker'])
@@ -979,7 +979,9 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
   it('keeps the field and its chips in place while selecting, at rest rather than gone', async () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
-    const composer = () => page.get('[data-testid="m6-composer"]')
+    // M25's shape: the slot around the shared composer rests, as `composer-slot` there does.
+    const composer = () => page.get('.composer-slot')
+    expect(page.find('.composer-slot [data-testid="m6-composer"]').exists()).toBe(true)
     expect(composer().attributes('inert')).toBeUndefined()
 
     await enterSelectionViaHeader()
@@ -1042,8 +1044,8 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     )
     // The single-entry sheet's summary sentence names "the entry" — wrong
     // for a batch that also applies the instant a chip is chosen.
-    expect(page.find('[data-testid="m6-tag-summary"]').exists()).toBe(false)
-    await page.find('[data-testid="m6-tag-offer-Apotheke"]').trigger('click')
+    expect(page.find('[data-testid="tag-pick-summary"]').exists()).toBe(false)
+    await page.find('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
 
     // Only Brot changed — Milch already carried Apotheke, so the two do not
     // collide on one write.
@@ -1069,7 +1071,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     await enterSelectionViaHeader()
     await barAll()
     await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
-    await page.find('[data-testid="m6-tag-offer-Apotheke"]').trigger('click')
+    await page.find('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
 
     expect(written).toEqual([])
     const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
@@ -1113,7 +1115,7 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     expect(labels(page)).toEqual(['Spray', 'Wasser', 'Pflaster', 'Kerzen', 'Brot'])
     expect(page.get('[data-testid="m6-group-tag-Apotheke"]').text()).not.toContain('Spray')
     // The list the block took it from counts only what stands under it.
-    expect(page.find('[data-testid="m6-local"] [data-testid="m6-list-empty"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-local-fold"]').exists()).toBe(false)
     expect(page.get('[data-testid="m6-row-due-Spray"]').attributes('data-due')).toBe('overdue')
     expect(page.get('[data-testid="m6-row-due-Spray"]').text()).toBe(t('tasks.dueOverdue'))
     expect(page.get('[data-testid="m6-row-due-Kerzen"]').attributes('data-due')).toBe('later')

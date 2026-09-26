@@ -324,12 +324,18 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.reload()
     const reopened = await openTasks(page, 'before')
     await expect(reopened.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
-    await reopened.getByTestId('trip-todos-resolved').click()
+    // Nothing open is left before the trip: the phase is one line at the end
+    // (owner, 2026-09-26), counting what was done, and opens onto it.
+    const line = reopened.getByTestId('m25-before-fold')
+    await expect(line).toHaveText('Before the trip · nothing open · 1 done')
+    await line.click()
     await expect(reopened.getByTestId('trip-todo-Water the plants')).toBeVisible()
 
-    // Unticked again: a mis-tap's only undo once the snackbar is gone.
+    // Unticked again: a mis-tap's only undo once the snackbar is gone — and
+    // the phase stands in its place again.
     await reopened.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
     await expect(reopened.getByTestId('trip-todos-resolved')).toHaveCount(0)
+    await expect(reopened.getByTestId('m25-before-fold')).toHaveCount(0)
 
     // Removed; the other section's task stays. The delete is written when the
     // snackbar lapses (FR-25.31), so its going is waited on before the reload.
@@ -421,8 +427,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(before.getByTestId('m25-group-trip')).toContainText('No tag')
 
     await before.getByTestId('trip-todo-open-Salbe holen').click()
-    await page.getByTestId('task-tag-search').locator('input').fill('Apotheke')
-    await page.getByTestId('task-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The heading is the assertion: a tag that wrote nothing visible would
@@ -441,8 +447,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Taken back: the task is under „No tag" again, and the empty tag group
     // is gone with it — an empty heading is not drawn.
     await visible(page).getByTestId('trip-todo-open-Salbe holen').click()
-    await expect(page.getByTestId('task-tag-summary')).toHaveText('Filed under: Apotheke')
-    await page.getByTestId('task-tag-assigned-Apotheke').click()
+    await expect(page.getByTestId('tag-pick-summary')).toHaveText('Filed under: Apotheke')
+    await page.getByTestId('tag-pick-assigned-Apotheke').click()
     await expect(visible(page).getByTestId('m25-group-trip')).toContainText('Salbe holen')
   })
 
@@ -470,11 +476,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Two tags to drag between, made the way the app makes them.
     const section = await openTasks(page, 'before')
     await section.getByTestId('trip-todo-open-Salbe holen').click()
-    await page.getByTestId('task-tag-search').locator('input').fill('Apotheke')
-    await page.getByTestId('task-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
     await visible(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
-    await page.getByTestId('task-tag-search').locator('input').fill('Haus')
-    await page.getByTestId('task-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
+    await page.getByTestId('tag-pick-create').click()
     // The sheet's own teardown, as `tripAction` waits for it: one still on
     // screen takes the pointer that was meant for the row underneath — which
     // is exactly what the first run of this case did.
@@ -596,8 +602,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
 
     await visible(page).getByTestId('m25-bulk-tag').click()
     await expect(page.getByTestId('m25-bulk-title')).toContainText('2')
-    await page.getByTestId('task-tag-search').locator('input').fill('Haus')
-    await page.getByTestId('task-tag-create').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
+    await page.getByTestId('tag-pick-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The mode ends with the batch; both tasks now stand under one heading.
@@ -778,9 +784,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
       'Fetch the salve',
     )
     await expect(sheet.getByTestId('m25-entry-due-current')).toBeVisible()
-    await sheet.getByTestId('task-tag-search').locator('input').fill('Apotheke')
-    await sheet.getByTestId('task-tag-create').click()
-    await expect(sheet.getByTestId('task-tag-summary')).toHaveText('Filed under: Apotheke')
+    await sheet.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await sheet.getByTestId('tag-pick-create').click()
+    await expect(sheet.getByTestId('tag-pick-summary')).toHaveText('Filed under: Apotheke')
     await sheet.getByTestId('m25-entry-confirm').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     const tag = composer.getByTestId('m25-composer-tag-Apotheke')
@@ -847,7 +853,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.getByTestId('task-sheet-done').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(reloaded.getByTestId('trip-todo-Pass holen')).toHaveCount(0)
-    await reloaded.getByTestId('trip-todos-resolved').click()
+    await reloaded.getByTestId('m25-before-fold').click()
     await expect(reloaded.getByTestId('trip-todo-Pass holen')).toBeVisible()
   })
 

@@ -24,14 +24,15 @@
  * screen's one snackbar (FR-25.31), so the writer is the screen and this list
  * reports the tap. Writing a new task is M25's composer's (`TaskComposer`).
  */
-import { IonCheckbox, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import { chevronForwardOutline } from 'ionicons/icons'
+import { IonLabel } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
+import FoldToggle from '@/components/global/FoldToggle.vue'
+import ListRow from '@/components/global/ListRow.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
@@ -174,55 +175,89 @@ function hasFacts(task: TripTask): boolean {
       {{ emptyText }}
     </InlineHint>
 
-    <IonItem
+    <!-- The shared row (M6's too, owner 2026-09-26): the leading slot, the
+         words, the facts under them, the tick at the row's own edge. -->
+    <ListRow
       v-for="task in open"
       :key="task.id"
       :lines="isList ? undefined : 'none'"
       class="todo-row"
-      :data-selected="selecting && selection?.selected.value.has(task.id) ? 'true' : undefined"
+      :checked="selecting ? null : false"
+      :tick-disabled="readonly"
+      :selected="selecting && !!selection?.selected.value.has(task.id)"
+      :facts-testid="`trip-todo-facts-${task.body}`"
       :data-testid="`trip-todo-${task.body}`"
+      @tick="emit('toggle', task)"
     >
       <!-- M6's leading edge (2026-09-24): the selection box while selecting,
            the grip otherwise. -->
-      <SelectBox
-        v-if="selecting"
-        slot="start"
-        :on="selection?.selected.value.has(task.id)"
-        :data-testid="`trip-todo-check-${task.body}`"
-      />
-      <DragGrip
-        v-else-if="lift"
-        slot="start"
-        :label="t('tripTodos.drag', { body: task.body })"
-        :data-testid="`trip-todo-grip-${task.body}`"
-        @pointerdown.stop="onLift($event, task)"
-      />
-      <div class="text">
-        <!-- FR-7.7: the words are the way into the task's own sheet. A hold
-             on them selects, M6's gesture (and its right-click twin). -->
-        <IonLabel
-          @pointerdown="selection?.press(task.id, $event)"
-          @pointermove="selection?.move($event)"
-          @pointerup="selection?.release()"
-          @pointercancel="selection?.release()"
-          @contextmenu="onContextMenu($event, task)"
+      <template #start>
+        <SelectBox
+          v-if="selecting"
+          slot="start"
+          :on="selection?.selected.value.has(task.id)"
+          :data-testid="`trip-todo-check-${task.body}`"
+        />
+        <DragGrip
+          v-else-if="lift"
+          slot="start"
+          :label="t('tripTodos.drag', { body: task.body })"
+          :data-testid="`trip-todo-grip-${task.body}`"
+          @pointerdown.stop="onLift($event, task)"
+        />
+      </template>
+      <!-- FR-7.7: the words are the way into the task's own sheet. A hold
+           on them selects, M6's gesture (and its right-click twin). -->
+      <IonLabel
+        @pointerdown="selection?.press(task.id, $event)"
+        @pointermove="selection?.move($event)"
+        @pointerup="selection?.release()"
+        @pointercancel="selection?.release()"
+        @contextmenu="onContextMenu($event, task)"
+      >
+        <button
+          type="button"
+          class="body row-name"
+          :data-testid="`trip-todo-open-${task.body}`"
+          @click="onOpen(task)"
         >
-          <button
-            type="button"
-            class="body"
-            :data-testid="`trip-todo-open-${task.body}`"
-            @click="onOpen(task)"
-          >
-            {{ task.body }}
-          </button>
-        </IonLabel>
-        <!-- FR-7.14: the second line — what is known about the task. The pill
-             stays while selecting: when a task is due is part of choosing it. -->
-        <div
-          v-if="isList && hasFacts(task)"
-          class="facts"
-          :data-testid="`trip-todo-facts-${task.body}`"
+          {{ task.body }}
+        </button>
+      </IonLabel>
+      <!-- FR-7.14: the second line — what is known about the task. The pill
+           stays while selecting: when a task is due is part of choosing it. -->
+      <template v-if="isList && hasFacts(task)" #facts>
+        <DueBadge
+          v-if="today"
+          :day="openDueDay(task)"
+          :today="today"
+          :testid="`trip-todo-due-${task.body}`"
+        />
+        <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
+        <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+          tagOf(task)
+        }}</span>
+        <AssigneeSeat
+          v-if="seatOffered()"
+          :avatar="assigneeOf(task)"
+          :data-testid="`trip-todo-assign-${task.body}`"
+          @assign="emit('assign', task)"
+        />
+        <span
+          v-else-if="task.assignee_user_id"
+          class="person"
+          :data-testid="`trip-todo-assignee-${task.body}`"
         >
+          <UserAvatar
+            variant="assignee"
+            :name="nameOf?.(task.assignee_user_id)"
+            :seed="task.assignee_user_id"
+          />
+        </span>
+      </template>
+      <!-- M4's window keeps its one-line cluster at the row's edge. -->
+      <template v-if="!isList && !selecting" #end>
+        <span slot="end" class="todo-end">
           <DueBadge
             v-if="today"
             :day="openDueDay(task)"
@@ -234,160 +269,108 @@ function hasFacts(task: TripTask): boolean {
             :item="task.item"
             :to="tripItemPath(tripId, task.item.id)"
           />
-          <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
-            tagOf(task)
-          }}</span>
           <AssigneeSeat
-            v-if="seatOffered()"
+            v-if="assignable && !readonly"
             :avatar="assigneeOf(task)"
             :data-testid="`trip-todo-assign-${task.body}`"
             @assign="emit('assign', task)"
           />
-          <span
+          <UserAvatar
             v-else-if="task.assignee_user_id"
-            class="person"
+            variant="assignee"
+            :name="nameOf?.(task.assignee_user_id)"
+            :seed="task.assignee_user_id"
             :data-testid="`trip-todo-assignee-${task.body}`"
-          >
-            <UserAvatar
-              variant="assignee"
-              :name="nameOf?.(task.assignee_user_id)"
-              :seed="task.assignee_user_id"
-            />
-          </span>
-        </div>
-      </div>
-      <!-- M4's window keeps its one-line cluster at the row's edge. -->
-      <span v-if="!isList && !selecting" slot="end" class="todo-end">
-        <DueBadge
-          v-if="today"
-          :day="openDueDay(task)"
-          :today="today"
-          :testid="`trip-todo-due-${task.body}`"
-        />
-        <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
-        <AssigneeSeat
-          v-if="assignable && !readonly"
-          :avatar="assigneeOf(task)"
-          :data-testid="`trip-todo-assign-${task.body}`"
-          @assign="emit('assign', task)"
-        />
-        <UserAvatar
-          v-else-if="task.assignee_user_id"
-          variant="assignee"
-          :name="nameOf?.(task.assignee_user_id)"
-          :seed="task.assignee_user_id"
-          :data-testid="`trip-todo-assignee-${task.body}`"
-        />
-        <RemoveButton
-          v-if="!task.item && !readonly"
-          :label="t('tripTodos.remove')"
-          :data-testid="`trip-todo-remove-${task.body}`"
-          @click="emit('remove', task)"
-        />
-      </span>
-      <!-- The tick is last, so its outer edge is the row's — the same rule a
-           packing row's control follows (UI-Spec M4). While selecting it
-           steps aside, as M6's does. -->
-      <IonCheckbox
-        v-if="!selecting"
-        slot="end"
-        class="tick"
-        :checked="false"
-        :disabled="readonly"
-        @ionChange="emit('toggle', task)"
-      />
-    </IonItem>
+          />
+          <RemoveButton
+            v-if="!task.item && !readonly"
+            :label="t('tripTodos.remove')"
+            :data-testid="`trip-todo-remove-${task.body}`"
+            @click="emit('remove', task)"
+          />
+        </span>
+      </template>
+    </ListRow>
 
     <!-- Resolved ones fold away but stay reachable: unticking is the only
          undo a mis-tap has, short of typing the task again. -->
     <template v-if="resolved.length > 0">
-      <button
+      <FoldToggle
         v-if="!unfolded"
-        type="button"
-        class="resolved-toggle"
-        :class="{ open: showResolved }"
-        :aria-expanded="showResolved ? 'true' : 'false'"
-        data-testid="trip-todos-resolved"
-        @click="showResolved = !showResolved"
-      >
-        <IonIcon :icon="chevronForwardOutline" class="caret" />
-        {{ t('tripTodos.resolved', { n: resolved.length }) }}
-      </button>
+        :label="t('tripTodos.resolved', { n: resolved.length })"
+        :open="showResolved"
+        testid="trip-todos-resolved"
+        @toggle="showResolved = !showResolved"
+      />
       <template v-if="showResolved || unfolded">
-        <IonItem
+        <ListRow
           v-for="task in resolved"
           :key="task.id"
           :lines="isList ? undefined : 'none'"
           class="todo-row resolved"
+          done
+          :checked="true"
+          :tick-disabled="readonly"
+          :facts-testid="`trip-todo-facts-${task.body}`"
           :data-testid="`trip-todo-${task.body}`"
+          @tick="emit('toggle', task)"
         >
-          <div class="text">
-            <IonLabel>
-              <button
-                type="button"
-                class="body"
-                :data-testid="`trip-todo-open-${task.body}`"
-                @click="emit('open', task)"
-              >
-                {{ task.body }}
-              </button>
-            </IonLabel>
-            <div
-              v-if="isList && hasFacts(task)"
-              class="facts"
-              :data-testid="`trip-todo-facts-${task.body}`"
+          <IonLabel>
+            <button
+              type="button"
+              class="body row-name"
+              :data-testid="`trip-todo-open-${task.body}`"
+              @click="emit('open', task)"
             >
-              <TaskItemChip
-                v-if="task.item"
-                :item="task.item"
-                :to="tripItemPath(tripId, task.item.id)"
-              />
-              <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
-                tagOf(task)
-              }}</span>
-              <!-- Done is done: who had it is still worth reading, but handing
-                   over a finished task decides nothing. -->
-              <span
-                v-if="task.assignee_user_id"
-                class="person"
-                :data-testid="`trip-todo-assignee-${task.body}`"
-              >
-                <UserAvatar
-                  variant="assignee"
-                  :name="nameOf?.(task.assignee_user_id)"
-                  :seed="task.assignee_user_id"
-                />
-              </span>
-            </div>
-          </div>
-          <span v-if="!isList" slot="end" class="todo-end">
+              {{ task.body }}
+            </button>
+          </IonLabel>
+          <template v-if="isList && hasFacts(task)" #facts>
             <TaskItemChip
               v-if="task.item"
               :item="task.item"
               :to="tripItemPath(tripId, task.item.id)"
             />
-            <UserAvatar
+            <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+              tagOf(task)
+            }}</span>
+            <!-- Done is done: who had it is still worth reading, but handing
+                 over a finished task decides nothing. -->
+            <span
               v-if="task.assignee_user_id"
-              variant="assignee"
-              :name="nameOf?.(task.assignee_user_id)"
-              :seed="task.assignee_user_id"
+              class="person"
               :data-testid="`trip-todo-assignee-${task.body}`"
-            />
-            <RemoveButton
-              v-if="!task.item && !readonly"
-              :label="t('tripTodos.remove')"
-              :data-testid="`trip-todo-remove-${task.body}`"
-              @click="emit('remove', task)"
-            />
-          </span>
-          <IonCheckbox
-            slot="end"
-            class="tick"
-            :checked="true"
-            :disabled="readonly"
-            @ionChange="emit('toggle', task)"
-          />
-        </IonItem>
+            >
+              <UserAvatar
+                variant="assignee"
+                :name="nameOf?.(task.assignee_user_id)"
+                :seed="task.assignee_user_id"
+              />
+            </span>
+          </template>
+          <template v-if="!isList" #end>
+            <span slot="end" class="todo-end">
+              <TaskItemChip
+                v-if="task.item"
+                :item="task.item"
+                :to="tripItemPath(tripId, task.item.id)"
+              />
+              <UserAvatar
+                v-if="task.assignee_user_id"
+                variant="assignee"
+                :name="nameOf?.(task.assignee_user_id)"
+                :seed="task.assignee_user_id"
+                :data-testid="`trip-todo-assignee-${task.body}`"
+              />
+              <RemoveButton
+                v-if="!task.item && !readonly"
+                :label="t('tripTodos.remove')"
+                :data-testid="`trip-todo-remove-${task.body}`"
+                @click="emit('remove', task)"
+              />
+            </span>
+          </template>
+        </ListRow>
       </template>
     </template>
   </div>
@@ -404,26 +387,8 @@ function hasFacts(task: TripTask): boolean {
   --min-height: 36px;
 }
 
-.todo-row[data-selected='true'] {
-  --background: color-mix(in srgb, var(--jp-action) 10%, transparent);
-}
-
-/* The words and, in M25's rows, the facts under them. The column takes the
-   row's width, so a fact never pushes the words into a second line. */
-.text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  padding-block: 8px;
-}
-
-.window .text {
+.window :deep(.text) {
   padding-block: 0;
-}
-
-.text ion-label {
-  margin: 0;
 }
 
 /* In M25's list a task's words are a row's name, set in the role
@@ -433,36 +398,6 @@ function hasFacts(task: TripTask): boolean {
   font-size: var(--jp-text-md);
   font-weight: var(--jp-weight-semibold);
   white-space: normal;
-}
-
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.facts .tag {
-  white-space: nowrap;
-}
-
-.person {
-  display: inline-flex;
-}
-
-.list .resolved-toggle {
-  padding-inline: 16px;
-}
-
-.todo-row.resolved ion-label {
-  color: var(--ct-subtext0);
-}
-
-.todo-row.resolved .body {
-  text-decoration: line-through;
 }
 
 /* The words are a control, and must not read as one: the line is the task,
@@ -479,6 +414,10 @@ function hasFacts(task: TripTask): boolean {
   cursor: pointer;
 }
 
+.person {
+  display: inline-flex;
+}
+
 .todo-end {
   display: flex;
   align-items: center;
@@ -489,27 +428,9 @@ function hasFacts(task: TripTask): boolean {
   max-width: 62%;
 }
 
-.tick {
-  margin-inline-start: 4px;
-}
-
-.resolved-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: none;
-  background: none;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.resolved-toggle .caret {
-  transition: transform 0.15s;
-}
-
-.resolved-toggle.open .caret {
-  transform: rotate(90deg);
+/* M4's window keeps its fold at the window's inset, not a list's. */
+.window .fold-toggle {
+  margin-top: 0;
+  padding-inline: 14px;
 }
 </style>

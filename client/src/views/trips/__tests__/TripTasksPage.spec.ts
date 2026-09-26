@@ -294,8 +294,8 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       .findAllComponents(IonInput)
       .find((input) => input.attributes('data-testid') === 'm25-entry-name')!
     expect(name.props('value')).toBe('Salbe holen')
-    await composer.get('[data-testid="task-tag-Apotheke"]').trigger('click')
-    expect(composer.get('[data-testid="task-tag-summary"]').text()).toBe('Filed under: Apotheke')
+    await composer.get('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
+    expect(composer.get('[data-testid="tag-pick-summary"]').text()).toBe('Filed under: Apotheke')
     await composer.get('[data-testid="m25-entry-confirm"]').trigger('click')
     await flushPromises()
 
@@ -633,7 +633,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    await page.get('[data-testid="task-tag-Apotheke"]').trigger('click')
+    await page.get('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
     await flushPromises()
 
     expect(acts.setTaskTag).toHaveBeenCalledWith(
@@ -669,7 +669,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="trip-todo-open-Akku laden"]').trigger('click')
     await flushPromises()
 
-    expect(page.get('[data-testid="task-tag-summary"]').text()).toBe(
+    expect(page.get('[data-testid="tag-pick-summary"]').text()).toBe(
       'No tag yet — the task is listed under “From the packing list”.',
     )
   })
@@ -683,8 +683,8 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(page.get('[data-testid="task-tag-summary"]').text()).toBe('Filed under: Apotheke')
-    await page.get('[data-testid="task-tag-assigned-Apotheke"]').trigger('click')
+    expect(page.get('[data-testid="tag-pick-summary"]').text()).toBe('Filed under: Apotheke')
+    await page.get('[data-testid="tag-pick-assigned-Apotheke"]').trigger('click')
     await flushPromises()
 
     expect(acts.setTaskTag).toHaveBeenCalledWith(
@@ -707,7 +707,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
       .findComponent(IonSearchbar)
       .vm.$emit('ionInput', { detail: { value: 'Apotheke' } })
     await flushPromises()
-    await page.get('[data-testid="task-tag-create"]').trigger('click')
+    await page.get('[data-testid="tag-pick-create"]').trigger('click')
     await flushPromises()
 
     expect(acts.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
@@ -797,7 +797,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-tag"]').trigger('click')
     await flushPromises()
     expect(page.get('[data-testid="m25-bulk-title"]').text()).toBe('Tag for 3 tasks')
-    await page.get('[data-testid="task-tag-Apotheke"]').trigger('click')
+    await page.get('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
     await flushPromises()
 
     // Salbe already carried it: two writes, across both phases and both kinds.

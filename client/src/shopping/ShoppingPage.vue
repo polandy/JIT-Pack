@@ -21,25 +21,19 @@
  * alone and counts towards no packing figure. Adding a packing row in a buy
  * mode is the packing list's job (M4), where the item and its mode are chosen.
  */
-import {
-  IonPage,
-  IonContent,
-  IonList,
-  IonInput,
-  IonButton,
-  IonIcon,
-  IonFab,
-  IonFabButton,
-} from '@ionic/vue'
-import { addOutline, bagHandleOutline, pricetagsOutline, trashOutline } from 'ionicons/icons'
+import { IonPage, IonContent, IonIcon, IonFab, IonFabButton } from '@ionic/vue'
+import { addOutline, bagHandleOutline, pricetagsOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
+import ChipRow from '@/components/global/ChipRow.vue'
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
+import DueBlock from '@/components/global/DueBlock.vue'
 import DueChips from '@/components/global/DueChips.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
+import EntrySheet from '@/components/global/EntrySheet.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
-import ListGroup from '@/components/global/ListGroup.vue'
+import ListComposer from '@/components/global/ListComposer.vue'
 import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -344,7 +338,7 @@ async function applyBulkTag(tag: string | null) {
 const draft = ref('')
 
 const content = ref<InstanceType<typeof IonContent> | null>(null)
-const field = ref<InstanceType<typeof IonInput> | null>(null)
+const composer = ref<{ focus: () => Promise<void> } | null>(null)
 
 /**
  * FR-30.9's single-row retag: a grip lifts one own entry and drops it onto
@@ -412,7 +406,7 @@ function onLift(line: ShoppingLine, event: PointerEvent) {
  */
 async function goToField() {
   await (content.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
-  await (field.value?.$el as HTMLIonInputElement | undefined)?.setFocus()
+  await composer.value?.focus()
 }
 
 /**
@@ -564,84 +558,68 @@ setHeaderTitle(
       <!-- M25's composer (owner, 2026-09-26). G-20: in place while a
            selection is on, at rest — typing a new entry mid-batch is a
            different act, and a chip here only files the next entry. -->
-      <div
-        class="composer jp-card"
-        :class="{ resting: selecting }"
-        :inert="selecting || undefined"
-        data-testid="m6-composer"
-      >
-        <form class="add" data-testid="m6-add" @submit.prevent="addEntry">
-          <IonInput
-            ref="field"
-            v-model="draft"
-            class="add-input"
-            :placeholder="t('shopping.addPlaceholder')"
-            :aria-label="t('shopping.addPlaceholder')"
-            enterkeyhint="done"
-            data-testid="m6-add-input"
-            @keyup.enter="addEntry"
-          />
-          <IonButton
-            type="submit"
-            fill="clear"
-            :disabled="draft.trim() === ''"
-            :aria-label="t('shopping.addLabel')"
-            data-testid="m6-add-submit"
-          >
-            <IonIcon slot="icon-only" :icon="addOutline" aria-hidden="true" />
-          </IonButton>
-        </form>
-
-        <!-- The list the next entry goes on, while *before* still takes one. -->
-        <div
-          v-if="beforeOpen"
-          class="chips"
-          role="group"
-          :aria-label="t('shopping.listLabel')"
-          data-testid="m6-composer-list"
+      <div class="composer-slot" :class="{ resting: selecting }" :inert="selecting || undefined">
+        <ListComposer
+          ref="composer"
+          v-model="draft"
+          :placeholder="t('shopping.addPlaceholder')"
+          :label="t('shopping.addPlaceholder')"
+          :add-label="t('shopping.addLabel')"
+          testid="m6-composer"
+          input-testid="m6-add-input"
+          submit-testid="m6-add-submit"
+          form-testid="m6-add"
+          @submit="addEntry"
         >
-          <ChoiceChip
-            :pressed="composeList === ITEM_MODE_BUY_BEFORE"
-            data-testid="m6-list-before"
-            @click="chosenList = ITEM_MODE_BUY_BEFORE"
+          <!-- The list the next entry goes on, while *before* still takes one. -->
+          <ChipRow
+            v-if="beforeOpen"
+            :label="t('shopping.listLabel')"
+            data-testid="m6-composer-list"
           >
-            {{ t('shopping.beforeDeparture') }}
-          </ChoiceChip>
-          <ChoiceChip
-            :pressed="composeList === ITEM_MODE_BUY_LOCAL"
-            data-testid="m6-list-local"
-            @click="chosenList = ITEM_MODE_BUY_LOCAL"
-          >
-            {{ t('shopping.atDestination') }}
-          </ChoiceChip>
-        </div>
+            <ChoiceChip
+              :pressed="composeList === ITEM_MODE_BUY_BEFORE"
+              data-testid="m6-list-before"
+              @click="chosenList = ITEM_MODE_BUY_BEFORE"
+            >
+              {{ t('shopping.beforeDeparture') }}
+            </ChoiceChip>
+            <ChoiceChip
+              :pressed="composeList === ITEM_MODE_BUY_LOCAL"
+              data-testid="m6-list-local"
+              @click="chosenList = ITEM_MODE_BUY_LOCAL"
+            >
+              {{ t('shopping.atDestination') }}
+            </ChoiceChip>
+          </ChipRow>
 
-        <!-- FR-30.9: the tag the next entry is filed under. -->
-        <div class="chips" role="group" :aria-label="t('shopping.tags')" data-testid="m6-tag-chips">
-          <ChoiceChip
-            v-for="tag in tagChips"
-            :key="tag"
-            :pressed="draftTag === tag"
-            data-testid="m6-tag-chip"
-            @click="toggleDraftTag(tag)"
-          >
-            {{ tag }}
-          </ChoiceChip>
-          <ChoiceChip add data-testid="m6-tag-new" @click="openAddSheet">
-            {{ t('shopping.tagAdd') }}
-          </ChoiceChip>
-        </div>
+          <!-- FR-30.9: the tag the next entry is filed under. -->
+          <ChipRow :label="t('shopping.tags')" data-testid="m6-tag-chips">
+            <ChoiceChip
+              v-for="tag in tagChips"
+              :key="tag"
+              :pressed="draftTag === tag"
+              data-testid="m6-tag-chip"
+              @click="toggleDraftTag(tag)"
+            >
+              {{ tag }}
+            </ChoiceChip>
+            <ChoiceChip add data-testid="m6-tag-new" @click="openAddSheet">
+              {{ t('shopping.tagAdd') }}
+            </ChoiceChip>
+          </ChipRow>
 
-        <!-- FR-30.10: the day, once there is something to date. -->
-        <DueChips
-          v-if="showDays"
-          :value="draftDue"
-          :today="today"
-          :phase="phaseOf(composeList)"
-          :trip-start="tripStart"
-          testid="m6-composer-due"
-          @update="draftDue = $event"
-        />
+          <!-- FR-30.10: the day, once there is something to date. -->
+          <DueChips
+            v-if="showDays"
+            :value="draftDue"
+            :today="today"
+            :phase="phaseOf(composeList)"
+            :trip-start="tripStart"
+            testid="m6-composer-due"
+            @update="draftDue = $event"
+          />
+        </ListComposer>
       </div>
 
       <EmptyState
@@ -661,20 +639,23 @@ setHeaderTitle(
 
       <template v-else>
         <!-- What is due now, across both lists and every tag (M25's block). -->
-        <IonList v-if="board.due.length > 0" class="groups due" data-testid="m6-due">
-          <ListGroup :title="t('shopping.dueGroup')" :count="board.due.length">
-            <ShoppingRows
-              :lines="board.due"
-              :today="today"
-              :selection="selection"
-              :tag-of="tagOfDue"
-              :leave="onRowLeave"
-              @buy="buyLine"
-              @open="openEditSheet"
-              @lift="onLift"
-            />
-          </ListGroup>
-        </IonList>
+        <DueBlock
+          v-if="board.due.length > 0"
+          :title="t('shopping.dueGroup')"
+          :count="board.due.length"
+          testid="m6-due"
+        >
+          <ShoppingRows
+            :lines="board.due"
+            :today="today"
+            :selection="selection"
+            :tag-of="tagOfDue"
+            :leave="onRowLeave"
+            @buy="buyLine"
+            @open="openEditSheet"
+            @lift="onLift"
+          />
+        </DueBlock>
 
         <template v-for="list in SHOPPING_MODES" :key="list">
           <ShoppingListSection
@@ -774,69 +755,47 @@ setHeaderTitle(
         </section>
       </SheetModal>
 
-      <!-- FR-30.9: name, day and tag — the packing list's creation sheet, for an entry. -->
-      <SheetModal
-        :is-open="entrySheet !== null"
+      <!-- FR-30.9: name, day and tag — the one entry sheet M25's composer opens too. -->
+      <EntrySheet
+        :open="entrySheet !== null"
+        :title="entrySheet?.line ? t('shopping.entrySheetEdit') : t('shopping.entrySheetNew')"
+        :name="entrySheet?.name ?? ''"
+        :name-label="t('shopping.entryName')"
+        :due-label="t('shopping.dueField')"
+        :confirm-label="entrySheet?.line ? t('common.save') : t('common.add')"
+        :removable="!!entrySheet?.line?.remove"
+        :dated="entrySheet?.line?.boughtAt === undefined"
         testid="m6-entry-sheet"
-        @dismiss="entrySheet = null"
+        title-testid="m6-entry-title"
+        close-testid="m6-entry-close"
+        name-testid="m6-entry-name"
+        confirm-testid="m6-entry-confirm"
+        remove-testid="m6-entry-remove"
+        @close="entrySheet = null"
+        @update:name="(name) => entrySheet && (entrySheet.name = name)"
+        @confirm="confirmEntrySheet"
+        @remove="removeFromSheet"
       >
-        <section v-if="entrySheet" class="entry-sheet">
-          <SheetHead
-            :title="entrySheet.line ? t('shopping.entrySheetEdit') : t('shopping.entrySheetNew')"
-            title-testid="m6-entry-title"
-            close-testid="m6-entry-close"
-            @close="entrySheet = null"
+        <template #due>
+          <DueChips
+            v-if="entrySheet"
+            :value="entrySheet.due"
+            :today="today"
+            :phase="phaseOf(entrySheet.list)"
+            :trip-start="tripStart"
+            testid="m6-entry-due"
+            @update="chooseSheetDue"
           />
-          <IonInput
-            :value="entrySheet.name"
-            :label="t('shopping.entryName')"
-            label-placement="stacked"
-            fill="outline"
-            data-testid="m6-entry-name"
-            @ionInput="
-              (e: CustomEvent) => entrySheet && (entrySheet.name = (e.detail.value as string) ?? '')
-            "
-            @keyup.enter="confirmEntrySheet"
-          />
-          <!-- FR-30.10: a day, not a time — M25's day chips. A bought entry
-               has none to set: its day says when it was meant, nothing more. -->
-          <div v-if="entrySheet.line?.boughtAt === undefined" class="entry-sheet-due">
-            <div class="entry-sheet-label jp-section-count">{{ t('shopping.dueField') }}</div>
-            <DueChips
-              :value="entrySheet.due"
-              :today="today"
-              :phase="phaseOf(entrySheet.list)"
-              :trip-start="tripStart"
-              testid="m6-entry-due"
-              @update="chooseSheetDue"
-            />
-          </div>
+        </template>
+        <template #tag>
           <ShoppingTagChooser
+            v-if="entrySheet"
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="entrySheet.tag"
             @choose="chooseSheetTag"
           />
-          <div class="entry-sheet-actions">
-            <IonButton
-              v-if="entrySheet.line?.remove"
-              fill="clear"
-              color="danger"
-              data-testid="m6-entry-remove"
-              @click="removeFromSheet"
-            >
-              <IonIcon slot="start" :icon="trashOutline" aria-hidden="true" />
-              {{ t('common.remove') }}
-            </IonButton>
-            <IonButton
-              :disabled="entrySheet.name.trim() === ''"
-              data-testid="m6-entry-confirm"
-              @click="confirmEntrySheet"
-            >
-              {{ entrySheet.line ? t('common.save') : t('common.add') }}
-            </IonButton>
-          </div>
-        </section>
-      </SheetModal>
+        </template>
+      </EntrySheet>
       <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
            top of the list, so the screen still has one way to add. Hidden
            while selecting (FR-30.9, M9's own rule). -->
@@ -856,53 +815,9 @@ setHeaderTitle(
   --padding-bottom: 96px;
 }
 
-/* M25's composer, card for card (owner, 2026-09-26): the field and its
-   chips read as one thing to fill in, not as loose lines above the list. */
-.composer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 8px 12px 4px;
-  padding: 4px 12px 12px;
-}
-
 /* G-20: at rest while a selection is on — in place, so nothing moves. */
-.composer.resting {
+.composer-slot.resting {
   opacity: 0.45;
-}
-
-.add {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.add-input {
-  flex: 1;
-  min-height: 40px;
-}
-
-/* The ＋ is a control in a row of 40, not a 48 that pushes the chips below it down. */
-.add ion-button {
-  margin: 0;
-  height: 40px;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-/* The groups sit full width, as M25's do. */
-.groups {
-  padding: 0;
-  background: transparent;
-}
-
-.due {
-  margin-top: 8px;
 }
 
 .hint-wide {
@@ -917,19 +832,5 @@ setHeaderTitle(
 
 .entry-sheet {
   padding: 4px 18px 22px;
-}
-
-.entry-sheet-due {
-  margin-top: 12px;
-}
-
-.entry-sheet-label {
-  margin-bottom: 6px;
-}
-
-.entry-sheet-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 </style>

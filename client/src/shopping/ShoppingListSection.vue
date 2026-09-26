@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * One list of M6 — *Vor der Abreise* or *Vor Ort* — drawn as M25 draws a
- * phase (`TaskPhaseSection.vue`; owner, 2026-09-26): its head with what is
+ * One list of M6 — *Vor der Abreise* or *Vor Ort* — on `ListSection`,
+ * `FoldToggle` and `ListRow`, the components M25's phase is drawn with
+ * (owner, 2026-09-26: one look and feel, guaranteed by one component): its head with what is
  * open under it, its tag groups, and **one** *gekauft* fold at its end. The
  * two lists used to be tabs, one hidden behind the other; they now stand one
  * under the other, with what is due now above both.
@@ -12,12 +13,13 @@
  *
  * The acts are reported, never written: the page owns the toast and the drag.
  */
-import { IonCheckbox, IonIcon, IonItem, IonLabel, IonList } from '@ionic/vue'
-import { chevronForwardOutline } from 'ionicons/icons'
+import { IonLabel, IonList } from '@ionic/vue'
 import { computed, ref } from 'vue'
 
+import FoldToggle from '@/components/global/FoldToggle.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
-import SectionHead from '@/components/global/SectionHead.vue'
+import ListRow from '@/components/global/ListRow.vue'
+import ListSection from '@/components/global/ListSection.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
 import { t } from '@/i18n'
@@ -87,13 +89,13 @@ function boughtStamp(line: ShoppingLine): string | null {
 </script>
 
 <template>
-  <section class="list" :data-testid="testid ?? (before ? 'm6-before' : 'm6-local')">
-    <SectionHead
-      v-if="!headless"
-      :title="t(before ? 'shopping.beforeDeparture' : 'shopping.atDestination')"
-      :count="count"
-    />
-    <IonList v-if="shelf.sections.length > 0" class="groups">
+  <ListSection
+    :title="t(before ? 'shopping.beforeDeparture' : 'shopping.atDestination')"
+    :count="count"
+    :headless="headless"
+    :testid="testid ?? (before ? 'm6-before' : 'm6-local')"
+  >
+    <IonList v-if="shelf.sections.length > 0" class="list-groups">
       <ListGroup
         v-for="section in shelf.sections"
         :key="section.key"
@@ -117,123 +119,60 @@ function boughtStamp(line: ShoppingLine): string | null {
 
     <!-- FR-25.11j + M25's fold: what was bought from this list, at its end. -->
     <template v-if="bought.length > 0">
-      <button
+      <FoldToggle
         v-if="!headless"
-        type="button"
-        class="bought-toggle"
-        :class="{ open: showBought }"
-        :aria-expanded="showBought ? 'true' : 'false'"
-        data-testid="m6-bought-bar"
-        @click="showBought = !showBought"
-      >
-        <IonIcon :icon="chevronForwardOutline" class="caret" aria-hidden="true" />
-        {{ t('shopping.boughtFold', { n: bought.length }) }}
-      </button>
-      <IonList v-if="showBought || headless" class="groups" data-testid="m6-bought-list">
-        <IonItem v-for="line in bought" :key="line.key" class="bought" data-testid="m6-bought-row">
+        :label="t('shopping.boughtFold', { n: bought.length })"
+        :open="showBought"
+        testid="m6-bought-bar"
+        @toggle="showBought = !showBought"
+      />
+      <IonList v-if="showBought || headless" class="list-groups" data-testid="m6-bought-list">
+        <ListRow
+          v-for="line in bought"
+          :key="line.key"
+          done
+          :checked="true"
+          :tick-disabled="readonly"
+          :tick-label="t('shopping.undoBought', { name: line.name })"
+          data-testid="m6-bought-row"
+          @tick="emit('unbuy', line)"
+        >
           <IonLabel
             :class="{ tappable: !!line.edit && !readonly }"
             data-testid="m6-bought-label"
             @click="line.edit && !readonly && emit('open', line)"
           >
-            <h3>{{ line.name }}</h3>
-            <div class="facts">
-              <!-- FR-30.9: the fold is flat, so the tag is said in the row. -->
-              <span v-if="line.tag" class="fact" data-testid="m6-bought-tag">{{ line.tag }}</span>
-              <span v-if="line.boughtNote" class="fact" data-testid="m6-bought-note">{{
-                line.boughtNote
-              }}</span>
-              <!-- FR-30.4: who bought it, and when. -->
-              <span v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
-                <UserAvatar
-                  v-if="line.boughtBy && nameOf(line.boughtBy)"
-                  :name="nameOf(line.boughtBy)"
-                  :seed="line.boughtBy"
-                  :size="18"
-                />
-                <span>{{ boughtStamp(line) }}</span>
-              </span>
-            </div>
+            <h3 class="row-name">{{ line.name }}</h3>
           </IonLabel>
-          <IonCheckbox
-            slot="end"
-            class="tick"
-            :checked="true"
-            :disabled="readonly"
-            :aria-label="t('shopping.undoBought', { name: line.name })"
-            @ionChange="emit('unbuy', line)"
-          />
-        </IonItem>
+          <template v-if="line.tag || line.boughtNote || boughtStamp(line)" #facts>
+            <!-- FR-30.9: the fold is flat, so the tag is said in the row. -->
+            <span v-if="line.tag" data-testid="m6-bought-tag">{{ line.tag }}</span>
+            <span v-if="line.boughtNote" data-testid="m6-bought-note">{{ line.boughtNote }}</span>
+            <!-- FR-30.4: who bought it, and when. -->
+            <span v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
+              <UserAvatar
+                v-if="line.boughtBy && nameOf(line.boughtBy)"
+                :name="nameOf(line.boughtBy)"
+                :seed="line.boughtBy"
+                :size="18"
+              />
+              <span>{{ boughtStamp(line) }}</span>
+            </span>
+          </template>
+        </ListRow>
       </IonList>
     </template>
-  </section>
+  </ListSection>
 </template>
 
 <style scoped>
-.list :deep(.section-head) {
-  margin: 18px 16px 4px;
-}
-
-/* The groups sit in one list per section, full width, as M25's do. */
-.groups {
-  padding: 0;
-  background: transparent;
-}
-
-/* M25's *erledigt* fold (`TripTodoList.vue`), for what was bought. */
-.bought-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 6px 16px;
-  border: none;
-  background: none;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.bought-toggle .caret {
-  transition: transform 0.15s;
-}
-
-.bought-toggle.open .caret {
-  transform: rotate(90deg);
-}
-
-.bought ion-label {
-  color: var(--ct-subtext0);
-}
-
-.bought h3 {
-  text-decoration: line-through;
-}
-
 .tappable {
   cursor: pointer;
-}
-
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  font-size: var(--jp-text-sm);
-}
-
-.fact {
-  white-space: nowrap;
 }
 
 .recipients {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.tick {
-  margin-inline-start: 4px;
 }
 </style>

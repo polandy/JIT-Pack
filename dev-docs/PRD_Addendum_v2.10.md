@@ -4713,6 +4713,15 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     way), the composer staying and writing for *Vor Ort*.
   * **And the other way round, on M25:** its *＋ Tag* opens M6's entry sheet, and the task tag chooser is M6's
     search-or-create mask (FR-7.14's amendment of the same day).
+  * **Decided with the owner from a mockup, the same day:** a list or phase **with nothing open anywhere** (the
+    *Fällig* block included) leaves reading order for **one line at the end of the screen**, on M6 and M25 alike —
+    *„Vor der Abreise · nichts offen"*, and *„· 2 gekauft ›"* / *„· 3 erledigt ›"* once something is finished, which
+    opens onto those rows directly. It took a heading, a hint and a fold of room above the list still being worked.
+    Rejected: hiding it (what was bought or done would have no place) and a one-line head in place (it stays in the
+    way). The closed *before* of FR-7.12 wears the same line.
+  * **One set of components, so the two screens cannot drift (owner, the same day):** both are drawn from
+    `components/global/` — `ListComposer`, `ChipRow`, `DueChips`, `DueBlock`, `ListSection`, `ListGroup`,
+    `ListRow`, `FoldToggle`, `RestLine`, `TagPicker` and `EntrySheet`. What stays per screen is what a line is.
   * **Modes.** All three, like the list itself. **Surfaces:** M6 (UI-Spec M6), M25. E2E-M6-36, with the M6 cases that
     read tabs, the row ✕ or the reveal's wording revised.
 

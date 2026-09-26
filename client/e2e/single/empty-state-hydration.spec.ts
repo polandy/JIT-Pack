@@ -104,7 +104,8 @@ test.describe('M6 before its rows have arrived @single @m6', () => {
     // The half the case exists for: no „nothing to buy" while there is
     // nothing to judge from — neither the screen's empty state nor a list's.
     await expect(visiblePage(page).getByTestId('m6-empty')).toHaveCount(0)
-    await expect(visiblePage(page).getByTestId('m6-list-empty')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m6-before-fold')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m6-local-fold')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m6-before')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m6-local')).toHaveCount(0)
 

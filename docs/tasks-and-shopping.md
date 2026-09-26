@@ -46,6 +46,13 @@ removed on that row.
 To change an entry, tap its name: the sheet holds the name, the day, the tag and **Speichern**. An entry has no ✕ on
 its line — remove it with **Entfernen** in that sheet.
 
+## When a part has nothing left to do
+
+On both lists, a part with nothing open — say **Vor der Abreise** once everything is bought, or **Vor der Reise**
+once every task is done — moves to the end of the screen as one line: *Vor der Abreise · nichts offen*. When
+something in it was bought or done, the line says how much (*· 2 gekauft*) and a tap on it shows those entries, where
+you can untick one again. As soon as something is open there again, the part is back in its place.
+
 ## Moving one entry
 
 Every row you can file carries a grip (three short lines) at its left edge. Press it and drag the row onto another

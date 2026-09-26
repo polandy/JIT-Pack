@@ -1835,6 +1835,14 @@ These patterns apply to every screen and are specified once.
   **folded at the end**, as M25's is. A thing due tomorrow on the tab not open was a thing nobody saw — the tabs
   hid one list behind the other. The sentences below are amended to match; FR-30.8's rule now only decides whether
   the composer still offers *Vor der Abreise*.
+* **One set of components for M6 and M25 (owner, 2026-09-26: *„use the same components, so it is guaranteed to be
+  uniform"*, translated).** Both screens are drawn from `components/global/`: `ListComposer` (the card, the field
+  and its ＋) with `ChipRow`s of `ChoiceChip`s and `DueChips`; `DueBlock` (*Fällig*, tinted faintly in the overdue
+  ink on both); `ListSection` (a section's head and count); `ListGroup` (a tag's heading and drop frame); `ListRow`
+  (leading slot, name, facts line, trailing tick); `FoldToggle` (*„› N erledigt"* / *„› N gekauft"*); `RestLine`
+  (a section with nothing open, at the end); `TagPicker` (the search-or-create tag mask, test ids `tag-pick-*`) and
+  `EntrySheet` (name, day, tag, *Entfernen*, the writing button). What remains per screen is what a line *is* —
+  a task or a thing to buy — never how it looks. The shopping module reaches these as kernel (ADR-066).
 * **Elements, top to bottom:**
   * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
     kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):
@@ -1847,13 +1855,14 @@ These patterns apply to every screen and are specified once.
     in the next two days, **from both lists**, earliest first, one `ListGroup` headed *Fällig* with its count. **A
     line in it leaves its group.** Its rows name their tag on the second line — *Eingetragen* for an untagged entry,
     *Packliste* for a packing line (which carries no day today, so it does not appear here yet).
-  * **Two sections**, *Vor der Abreise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count
-    is **what stands under it** (*„N offen"*), and one line (*„Vor der Abreise ist nichts zu kaufen"*) only when
-    nothing of that list is open anywhere. Inside each: the packing list's rows in that mode first, **combined under
-    one *„Packliste"* heading regardless of category** (revised 2026-09-23 — a packing category is not this list's
-    tag), then the list's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"*
-    (FR-30.9)**. An entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not
-    built.
+  * **Two sections**, *Vor der Abreise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count is
+    **what stands under it** (*„N offen"*). **A list with nothing open anywhere** — the *Fällig* block included — leaves
+    reading order for **one line at the end of the screen** (`RestLine`, owner 2026-09-26, M25 alike): *„Vor der Abreise
+    · nichts offen"*, a statement; *„· 2 gekauft ›"* once something was bought, a fold that opens onto the bought rows
+    directly (`m6-before-fold` / `m6-local-fold`). Inside each: the packing list's rows in that mode first, **combined
+    under one *„Packliste"* heading regardless of category** (revised 2026-09-23 — a packing category is not this list's
+    tag), then the list's own entries — **a section per tag, A–Z, then the untagged under *„Eingetragen"* (FR-30.9)**.
+    An entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not built.
   * **One *gekauft* fold per list**, at the section's end (*„› N gekauft"*, `m6-bought-bar`, M25's *erledigt* fold)
     — see FR-25.11j below.
   * **The empty state** (*„Nichts zu kaufen"*, `m6-empty`) only when nothing is open and nothing bought on either list.
@@ -3048,10 +3057,13 @@ token would prove nothing there is anything to prove.
     what makes a task pressing is its day, not where it was put. A task left open in a closed *before* is history and
     not in it (`domain/taskBoard.ts`).
   * **Two sections**, *Vor der Reise* and *Während der Reise*, each a `SectionHead` whose count is **what stands under
-    it** — a task up in the *Fällig* block is not counted twice — and a finished section says nothing rather than
-    „0". Sections are **not** a segment: the shopping list's two tabs are two places you stand, while the two phases
-    of a trip are one thing read top to bottom. A section says it is empty in one line only when the phase has no
-    open task anywhere.
+    it** — a task up in the *Fällig* block is not counted twice. Sections are **not** a segment: the two phases of a
+    trip are one thing read top to bottom (M6's lists read the same way since FR-30.11). **A phase with no open task
+    anywhere** — the *Fällig* block included — leaves reading order for **one line at the end of the screen**
+    (`RestLine`, owner 2026-09-26, M6 alike): *„Vor der Reise · nichts offen"*, a statement; *„· 3 erledigt ›"* once
+    something is done, a fold that opens onto the finished tasks directly, with no second *erledigt* fold under it
+    (`m25-before-fold` / `m25-during-fold`). Such a phase used to take a heading, a hint and a fold of room above
+    the one still being worked.
   * **Inside each section, the tag groups** (FR-7.8). One heading per task tag that holds something, in the tags'
     own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names where the task came
     from, and both are the same state in the data. **An empty heading is not drawn**, and is therefore not a drop
@@ -3081,11 +3093,11 @@ token would prove nothing there is anything to prove.
     selecting — when a task is due is part of choosing it. Inside a group the dated open tasks lead, earliest first.
 * **Before the trip, closed (FR-7.12, placed by FR-7.14).** Once the packing is finished, *Vor der Reise* is history,
   and history comes after the work: *Während der Reise* is the first section, and *Vor der Reise* is **one folded line
-  at the end** (`m25-before-fold`, a card): *„Vor der Reise · N erledigt"*, or *„· abgeschlossen"* with nothing done.
-  Unfolded it carries the lock line (*„Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt
-  wurde."*, `m25-before-locked`) and the phase's groups and fold read-only: ticks disabled, no grip, no seat, no drop.
-  The composer has no *Vor der Reise* chip, *„Alle N"* leaves those tasks out, and the sheet offers no move back.
-  Reopening the packing on M4 lifts all of it.
+  at the end** (`m25-before-fold`, the same `RestLine` an empty phase folds to): *„Vor der Reise · N erledigt"*, or *„·
+  abgeschlossen"* with nothing done. Unfolded it carries the lock line (*„Die Packliste ist abgeschlossen — hier steht,
+  was vor der Reise erledigt wurde."*, `m25-before-locked`) and the phase's groups and fold read-only: ticks disabled,
+  no grip, no seat, no drop. The composer has no *Vor der Reise* chip, *„Alle N"* leaves those tasks out, and the sheet
+  offers no move back. Reopening the packing on M4 lifts all of it.
 * **Several tasks at once (FR-7.8/ADR-075, extended by FR-7.14).** M6's selection, drawn by the same components
   (`useRowSelection`, `SelectBox`, `BulkBar`, and the app bar's G-20 mode): a **hold on a task's words** (500 ms, 8 px),
   a right-click, or the app bar's icon (`m25-select`) enters it. **The icon is `SELECTION_ICON`**

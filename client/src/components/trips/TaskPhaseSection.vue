@@ -17,7 +17,7 @@ import { IonList } from '@ionic/vue'
 import { computed } from 'vue'
 
 import ListGroup from '@/components/global/ListGroup.vue'
-import SectionHead from '@/components/global/SectionHead.vue'
+import ListSection from '@/components/global/ListSection.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
 import type { PhaseShelf } from '@/domain/taskBoard'
@@ -88,16 +88,13 @@ function groupName(group: TaskGroup): string {
 </script>
 
 <template>
-  <section
-    class="phase"
-    :data-testid="testid ?? (phase === TASK_PHASE_BEFORE ? 'm25-before' : 'm25-during')"
+  <ListSection
+    :title="t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')"
+    :count="count"
+    :headless="headless"
+    :testid="testid ?? (phase === TASK_PHASE_BEFORE ? 'm25-before' : 'm25-during')"
   >
-    <SectionHead
-      v-if="!headless"
-      :title="t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')"
-      :count="count"
-    />
-    <IonList v-if="groups.length > 0" class="groups">
+    <IonList v-if="groups.length > 0" class="list-groups">
       <ListGroup
         v-for="group in groups"
         :key="group.key"
@@ -125,7 +122,6 @@ function groupName(group: TaskGroup): string {
     <!-- FR-7.14: one fold per phase, at its end. -->
     <TripTodoList
       v-if="shelf.resolved.length > 0"
-      class="done-fold"
       :trip-id="tripId"
       :tasks="shelf.resolved"
       :name-of="nameOf"
@@ -137,21 +133,5 @@ function groupName(group: TaskGroup): string {
       @toggle="emit('toggle', $event)"
       @open="emit('open', $event)"
     />
-  </section>
+  </ListSection>
 </template>
-
-<style scoped>
-.phase :deep(.section-head) {
-  margin: 18px 16px 4px;
-}
-
-/* The groups sit in one list per phase, full width like M6's (2026-09-24). */
-.groups {
-  padding: 0;
-  background: transparent;
-}
-
-.done-fold {
-  margin-top: 4px;
-}
-</style>

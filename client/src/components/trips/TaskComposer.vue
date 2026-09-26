@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * M25's one composer (FR-7.14, owner 2026-09-25): a task is written at the
- * top of the screen, in M6's shape — the field, then chips that file it as it
+ * top of the screen — `ListComposer`, `ChipRow` and `EntrySheet`, the very
+ * components M6's composer is built of (owner, 2026-09-26) — the field, then chips that file it as it
  * is typed. Before, each phase had a field at its own end, the first one
  * below the fold once a trip had ten tasks, and a task could only be tagged
  * or dated afterwards, through its sheet.
@@ -25,14 +26,13 @@
  * FR-7.3), in one insert with its filing, and reports what it wrote so the
  * screen can arm the undo.
  */
-import { IonButton, IonIcon, IonInput } from '@ionic/vue'
-import { addOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
+import ChipRow from '@/components/global/ChipRow.vue'
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DueChips from '@/components/global/DueChips.vue'
-import SheetHead from '@/components/global/SheetHead.vue'
-import SheetModal from '@/components/global/SheetModal.vue'
+import EntrySheet from '@/components/global/EntrySheet.vue'
+import ListComposer from '@/components/global/ListComposer.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
@@ -61,7 +61,7 @@ const emit = defineEmits<{
 
 const orchestrator = useOrchestrator()
 
-const field = ref<{ $el: HTMLIonInputElement } | null>(null)
+const composer = ref<{ focus: () => Promise<void> } | null>(null)
 const draft = ref('')
 const chosenPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
 const phase = computed<TaskPhase>(() => (props.forTheRoad ? TASK_PHASE_DURING : chosenPhase.value))
@@ -135,43 +135,25 @@ function confirmEntry() {
 
 /** The FAB's way in: the field, focused (M6's `goToField`). */
 async function focus() {
-  await field.value?.$el.setFocus()
+  await composer.value?.focus()
 }
 
 defineExpose({ focus })
 </script>
 
 <template>
-  <div class="task-composer jp-card" data-testid="m25-composer">
-    <form class="add" @submit.prevent="add">
-      <IonInput
-        ref="field"
-        v-model="draft"
-        class="add-input"
-        :placeholder="forTheRoad ? t('tasks.addDuring') : t('tasks.addPlaceholder')"
-        :aria-label="t('tasks.addPlaceholder')"
-        enterkeyhint="done"
-        data-testid="trip-todo-input"
-        @keyup.enter="add"
-      />
-      <IonButton
-        type="submit"
-        fill="clear"
-        :disabled="draft.trim() === ''"
-        :aria-label="t('common.add')"
-        data-testid="trip-todo-add"
-      >
-        <IonIcon slot="icon-only" :icon="addOutline" aria-hidden="true" />
-      </IonButton>
-    </form>
-
-    <div
-      v-if="!forTheRoad"
-      class="chips"
-      role="group"
-      :aria-label="t('tasks.phaseLabel')"
-      data-testid="m25-composer-phase"
-    >
+  <ListComposer
+    ref="composer"
+    v-model="draft"
+    :placeholder="forTheRoad ? t('tasks.addDuring') : t('tasks.addPlaceholder')"
+    :label="t('tasks.addPlaceholder')"
+    :add-label="t('common.add')"
+    testid="m25-composer"
+    input-testid="trip-todo-input"
+    submit-testid="trip-todo-add"
+    @submit="add"
+  >
+    <ChipRow v-if="!forTheRoad" :label="t('tasks.phaseLabel')" data-testid="m25-composer-phase">
       <ChoiceChip
         :pressed="phase === TASK_PHASE_BEFORE"
         data-testid="m25-phase-before"
@@ -186,14 +168,9 @@ defineExpose({ focus })
       >
         {{ t('tasks.duringShort') }}
       </ChoiceChip>
-    </div>
+    </ChipRow>
 
-    <div
-      class="chips"
-      role="group"
-      :aria-label="t('tasks.tagLabel')"
-      data-testid="m25-composer-tags"
-    >
+    <ChipRow :label="t('tasks.tagLabel')" data-testid="m25-composer-tags">
       <ChoiceChip
         v-for="tag in taskTags"
         :key="tag.id"
@@ -206,11 +183,10 @@ defineExpose({ focus })
       <ChoiceChip add data-testid="m25-composer-tag-new" @click="openEntry">
         {{ t('tasks.tagAdd') }}
       </ChoiceChip>
-    </div>
+    </ChipRow>
 
     <DueChips
       v-if="showDays"
-      class="days"
       :value="day"
       :today="today"
       :phase="phase"
@@ -219,99 +195,44 @@ defineExpose({ focus })
       @update="day = $event"
     />
 
-    <!-- M6's entry sheet (FR-30.9), for a task. Guarded by its own state:
-         `is-open` alone only animates the modal, and a spec's stub renders
-         the slot regardless. -->
-    <SheetModal :is-open="entry !== null" testid="m25-entry-sheet" @dismiss="entry = null">
-      <section v-if="entry" class="entry-sheet">
-        <SheetHead
-          :title="t('tasks.entrySheetNew')"
-          title-testid="m25-entry-title"
-          close-testid="m25-entry-close"
-          @close="entry = null"
-        />
-        <IonInput
-          :value="entry.body"
-          :label="t('tasks.entryName')"
-          label-placement="stacked"
-          fill="outline"
-          data-testid="m25-entry-name"
-          @ionInput="(e: CustomEvent) => entry && (entry.body = (e.detail.value as string) ?? '')"
-          @keyup.enter="confirmEntry"
-        />
+    <!-- M6's entry sheet (FR-30.9) — the same component, for a task. -->
+    <EntrySheet
+      :open="entry !== null"
+      :title="t('tasks.entrySheetNew')"
+      :name="entry?.body ?? ''"
+      :name-label="t('tasks.entryName')"
+      :due-label="t('tasks.dueField')"
+      :confirm-label="t('common.add')"
+      testid="m25-entry-sheet"
+      title-testid="m25-entry-title"
+      close-testid="m25-entry-close"
+      name-testid="m25-entry-name"
+      confirm-testid="m25-entry-confirm"
+      @close="entry = null"
+      @update:name="(name) => entry && (entry.body = name)"
+      @confirm="confirmEntry"
+    >
+      <template #due>
         <DueChips
-          class="entry-sheet-due"
+          v-if="entry"
           :value="entry.day"
           :today="today"
           :phase="phase"
           :trip-start="tripStart"
           testid="m25-entry-due"
-          @update="entry.day = $event"
+          @update="(d) => entry && (entry.day = d)"
         />
+      </template>
+      <template #tag>
         <TaskTagChooser
+          v-if="entry"
           :task-tags="taskTags"
           :chosen="entry.tagId"
           :no-tag-label="t('tasks.noTag')"
           @tag="chooseEntryTag"
           @new-tag="createEntryTag"
         />
-        <div class="entry-sheet-actions">
-          <IonButton
-            :disabled="entry.body.trim() === ''"
-            data-testid="m25-entry-confirm"
-            @click="confirmEntry"
-          >
-            {{ t('common.add') }}
-          </IonButton>
-        </div>
-      </section>
-    </SheetModal>
-  </div>
+      </template>
+    </EntrySheet>
+  </ListComposer>
 </template>
-
-<style scoped>
-.task-composer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 8px 12px 4px;
-  padding: 4px 12px 12px;
-}
-
-.add {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.add-input {
-  flex: 1;
-  min-height: 40px;
-}
-
-/* The ＋ is a control in a row of 40, not a 48 that pushes the chips down. */
-.add ion-button {
-  margin: 0;
-  height: 40px;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.entry-sheet {
-  padding: 4px 18px 22px;
-}
-
-.entry-sheet-due {
-  margin-top: 12px;
-}
-
-.entry-sheet-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-</style>

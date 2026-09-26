@@ -294,11 +294,13 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await writesLanded(page)
     const reopened = await openTasks(page, 'before')
     await expect(visiblePage(page).getByTestId('m25-phase-before')).toBeVisible()
-    await expect(reopened.getByTestId('m25-before-fold')).toHaveCount(0)
+    // Open again but empty: the plain line at the end, with no lock behind it.
+    await expect(reopened.getByTestId('m25-before-fold')).toHaveText(
+      /^Before the trip · nothing open/,
+    )
     await openTripView(page, 'shopping')
     await expectComposingFor(page, 'before')
-    await expect(m6.getByTestId('m6-before-fold')).toHaveCount(0)
-    await expect(m6.getByTestId('m6-before').getByTestId('m6-list-empty')).toBeVisible()
+    await expect(m6.getByTestId('m6-before-fold')).toHaveText('Before departure · nothing open')
     await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
     await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Sun hat/, /Coffee/])
   })
