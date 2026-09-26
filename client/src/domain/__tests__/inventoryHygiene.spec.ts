@@ -95,8 +95,8 @@ describe('suggestTag — an offer only with a reason (FR-24.12)', () => {
   })
 
   it('lets a Vorlage outrank a name neighbour — a shared word is a weaker reason', () => {
-    // Found on the rendered seed: „Reiseadapter" shares „Reise" with
-    // Reiseapotheke and was offered „Bad", while its own group is all Technik.
+    // As in the seed: „Reiseadapter" shares „Reise" with Reiseapotheke and
+    // would be offered „Bad", while its own group is all Technik.
     const ctx = {
       ...empty(),
       items: [item('apo', 'Reiseapotheke'), item('lade', 'Ladegerät'), item('ad', 'Reiseadapter')],

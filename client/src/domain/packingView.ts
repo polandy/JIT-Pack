@@ -202,9 +202,9 @@ export interface PackingView {
    * Open **rows** over the trip's whole set, before search and facets. It
    * answers FR-25.11e's „N offene Sachen sind hinter dem Filter" by
    * subtraction against the rows on screen, so both sides of that
-   * subtraction are rows: the page had been taking the left-hand side from
-   * the trip's packed *units* and getting a hidden count out of a list with
-   * nothing hidden in it (FR-25.22).
+   * subtraction are rows: a left-hand side taken from the trip's packed
+   * *units* gets a hidden count out of a list with nothing hidden in it
+   * (FR-25.22).
    */
   openRowCount: number
   /**
@@ -271,7 +271,7 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
 
 /**
  * An entry that asks nothing further of anyone, and so sinks to the end of
- * its group (FR-25.2, 2026-09-06).
+ * its group (FR-25.2).
  *
  * A cluster settles only when every *visible* instance is done: the head
  * names one item and cannot be in two places, so one open instance keeps the
@@ -330,8 +330,8 @@ export interface LeavingEntry {
  *
  * Lighting a second traveler turns a row into a cluster under a new list key,
  * and unlighting one turns it back: to the list, one entry departs and another
- * arrives. Animated, the old shape stood beside its own replacement for the
- * length of the collapse — the item named twice, and its strip drawn twice.
+ * arrives. Animated, the old shape would stand beside its own replacement for
+ * the length of the collapse — the item named twice, and its strip drawn twice.
  * It does not matter where the change was made: M5's strip reshapes the list
  * under the sheet exactly as M4's own does.
  *

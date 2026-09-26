@@ -2,15 +2,14 @@
  * E2E-M17-03 and E2E-NFR-05 (NFR-4.5): M17's data section, driven under a
  * real OIDC session — the branch that carries the auth header.
  *
- * NFR-05's catalogue entry said `single`, for the same reason M17-03's did
- * before the M17 audit corrected it: the mode was read off the screen's
- * section rather than off the request. Corrected here to `server`.
+ * The mode is read off the request, not off the screen's section — which is
+ * why both run under `server`.
  *
- * Why `server` and not `all`, which the case used to claim: in Local Mode
- * this section is a different section entirely (per-trip and per-template
- * YAML written client-side, because there is no server to ask), and in
- * `single` there is no token, so the header the promise is about is never
- * sent. Only a logged-in account exercises `downloadExport` as written.
+ * Why `server` and not `all`: in Local Mode this section is a different
+ * section entirely (per-trip and per-template YAML written client-side,
+ * because there is no server to ask), and in `single` there is no token, so
+ * the header the promise is about is never sent. Only a logged-in account
+ * exercises `downloadExport` as written.
  *
  * Both files are read back rather than counted: an export is one half of a
  * pair whose other half is a restore, and the half that matters most is the

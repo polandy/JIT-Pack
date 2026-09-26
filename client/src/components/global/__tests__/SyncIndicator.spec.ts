@@ -2,12 +2,12 @@
 /**
  * G-2 — the status glyph in the app bar.
  *
- * Since the outbox became durable (B2, NFR-4.1) the queue outlives the
+ * The outbox is durable (B2, NFR-4.1), so the queue outlives the
  * connection state that produced it: a reload leaves a queue behind, and a
  * master partition can drain while a trip's queue is still waiting for the
  * trip to be opened. The badge therefore counts the queue, not the state —
- * before, it hid the moment `state` stopped being `offline`, which said
- * "everything is sent" over a queue that was not.
+ * hidden the moment `state` stops being `offline`, it would say "everything
+ * is sent" over a queue that is not.
  */
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'

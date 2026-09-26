@@ -13,8 +13,7 @@ import {
 import { FOR_WHOM_M5, openTripTodos } from './helpers/m4'
 
 /**
- * M5 — item detail (UI-Test-Spec §4), rebuilt 2026-08-14 as a sheet over
- * the packing list.
+ * M5 — item detail (UI-Test-Spec §4), a sheet over the packing list.
  *
  * The cases are about the shape of the screen rather than its fields: it
  * opens *over* the list, it is driven by the route so a deep link and a
@@ -55,13 +54,12 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-name')).toHaveText('Zelt')
     // The list is still there behind it — that is the point of a sheet.
     await expect(page.getByTestId('m4-header')).toBeVisible()
-    // ADR-064: the desktop pane is not built at this width — not built
-    // rather than not shown. The sheet and the pane render the same
-    // component, so both at once is two of every control in the detail;
-    // a `v-else-if` used to make that impossible structurally and the
-    // teleport's own `v-if` now has to say it. Asserted here rather than
-    // left to the strict-mode violation it happens to cause, which names
-    // a locator rather than the rule.
+    // ADR-064: the desktop pane is not built at this width — not built rather
+    // than not shown. The sheet and the pane render the same component, so
+    // both at once is two of every control in the detail; the teleport's own
+    // `v-if` is what makes that impossible. Asserted here rather than left to
+    // the strict-mode violation it happens to cause, which names a locator
+    // rather than the rule.
     await expect(page.getByTestId('m5-panel')).toHaveCount(0)
 
     await page.getByTestId('m5-close').click()
@@ -110,16 +108,15 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
     await expect(page.getByTestId('m5-pack')).toBeVisible()
-    // UX pass 2026-08-25 (UX-10): the pack box names itself the way prep and
-    // notes do — before this label it was an unlabelled box holding only a
-    // checkbox and the state chip.
+    // UX-10: the pack box names itself the way prep and notes do — without
+    // the label it is a box holding only a checkbox and the state chip.
     await expect(page.getByTestId('m5-pack-label')).toHaveText('Packing')
     await expect(page.getByTestId('m5-todo-input')).toBeVisible()
     await expect(page.getByTestId('m5-note-input')).toBeVisible()
     // FR-25.15: the sheet confirms local capture. Silent on a sheet nobody
-    // has edited (owner, 2026-09-20) — a standing ✓ confirms nothing, and it
-    // made every assertion about this indicator unfalsifiable, this one
-    // included: it was green before the sheet had written a thing.
+    // has edited — a standing ✓ confirms nothing, and it would make every
+    // assertion about this indicator unfalsifiable, this one included: green
+    // before the sheet had written a thing.
     await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveCount(0)
     await page.getByTestId('m5-pack').getByTestId('row-check').click()
     await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveAttribute(
@@ -156,9 +153,9 @@ test.describe('M5 item detail @local @m5', () => {
     const listBefore = await visible(page).elementHandle()
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
 
-    // Not scoped to the page: since 2026-09-17 the panel is the frame's
-    // second pane, teleported out of the screen so it can reach the
-    // window's edge. A page-scoped locator would never find it.
+    // Not scoped to the page: the panel is the frame's second pane,
+    // teleported out of the screen so it can reach the window's edge. A
+    // page-scoped locator would never find it.
     await expect(page.getByTestId('m5-panel')).toBeVisible()
     await expect(visible(page).getByTestId('m4-header')).toBeVisible()
     // The page showing the panel is the very element that showed the list:
@@ -193,12 +190,12 @@ test.describe('M5 item detail @local @m5', () => {
     expect(Math.round(panelBox.y + panelBox.height)).toBe(viewport.height)
   })
 
-  // E2E-M5-27 (ADR-064): the pane lives in the frame now, so the thing that
-  // hides a screen cannot hide it. Ionic keeps a page mounted and merely
-  // marks it `.ion-page-hidden`, and the pane is no longer inside that
-  // element — if it did not unmount itself, it would stand over the next
-  // screen. Provoked with the trip's own view switcher, which is the
-  // shortest way off M4 that keeps the trip.
+  // E2E-M5-27 (ADR-064): the pane lives in the frame, so the thing that hides
+  // a screen cannot hide it. Ionic keeps a page mounted and merely marks it
+  // `.ion-page-hidden`, and the pane is not inside that element — if it did
+  // not unmount itself, it would stand over the next screen. Provoked with
+  // the trip's own view switcher, which is the shortest way off M4 that keeps
+  // the trip.
   test('E2E-M5-27: leaving M4 with the pane open takes the pane with it', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
@@ -249,13 +246,12 @@ test.describe('M5 item detail @local @m5', () => {
 
   // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open
   // closes the sheet — like the chevron — instead of popping through the
-  // replace-based history straight past M4 to the trip list. Found by the
-  // owner clicking back on an item detail (2026-08-16).
+  // replace-based history straight past M4 to the trip list.
   test('E2E-M5-13: browser back with the sheet open closes it, not the trip', async ({ page }) => {
     await page.setViewportSize({ width: 400, height: 880 })
     const path = await createTripViaWizard(page, TRIP)
 
-    // The owner's history, built in-SPA — a `page.goto` here would start
+    // A person's history, built in-SPA — a `page.goto` here would start
     // a second document, and back across documents reboots the app
     // instead of reaching the router: list → trip → sheet.
     await page.getByTestId('header-back').click()
@@ -289,20 +285,15 @@ test.describe('M5 item detail @local @m5', () => {
   })
 
   // E2E-M5-14 (G-14/FR-21.8): the save indicator sits on the ✕'s centre
-  // line. Owner-flagged on a rendered phone (2026-08-16): the ✓ was 26 px
-  // against the ✕'s 34 px and both were hung from the same top edge, which
-  // put their centres 4 px apart and made the header read as crooked.
-  // Geometry rather than a stylesheet claim, because only the rendered box
-  // shows the offset (invariant 9b's point).
+  // line. Two controls of different sizes hung from the same top edge put
+  // their centres apart and make the header read as crooked. Geometry
+  // rather than a stylesheet claim, because only the rendered box shows the
+  // offset (invariant 9b's point).
   //
-  // **The shared diameter is deliberately no longer asserted** (owner,
-  // 2026-09-20). It was the other half of why the indicator read as a
-  // second button: a filled circle at exactly the ✕'s size, beside a ✕ that
-  // is one. The lamp that replaced it is 9 px, and this case had the old
-  // equality written into it — a test can pin a defect as firmly as a
-  // promise. What survives is the alignment, which is what was actually
-  // wrong in 2026-08-16: the lamp keeps a cell as tall as the ✕ so the two
-  // centres still coincide, and that is the clause below.
+  // **The diameter is deliberately not shared**: a filled circle at exactly
+  // the ✕'s size, beside a ✕ that is one, reads as a second button. The
+  // lamp is 9 px and keeps a cell as tall as the ✕ so the two centres
+  // coincide, and that is the clause below.
   test('E2E-M5-14: the save indicator sits on the ✕’s centre line', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
@@ -321,9 +312,9 @@ test.describe('M5 item detail @local @m5', () => {
 
     // Both boxes are read in *one* frame, inside the page. Two separate
     // `boundingBox()` calls land in different frames of the sheet's enter
-    // animation and report a 5 px offset on an aligned header — a false red
-    // this case produced before it was written this way. Under one shared
-    // transform the difference between the two is exact whenever it is read.
+    // animation and report a 5 px offset on an aligned header — a false red.
+    // Under one shared transform the difference between the two is exact
+    // whenever it is read.
     //
     // The lamp is measured as the painted dot, not as the cell that centres
     // it: the cell's own centre agrees with the ✕ by construction, which is
@@ -337,10 +328,9 @@ test.describe('M5 item detail @local @m5', () => {
     })
 
     expect(save.centerY).toBeCloseTo(close.centerY, 1)
-    // And it is no longer the ✕'s twin: a status lamp that matches a button
-    // in size and shape is read as a second button, which is what sent this
-    // case back to the owner. The margin is wide, because the claim is
-    // "visibly smaller" and not a pixel count.
+    // And it is not the ✕'s twin: a status lamp that matches a button in
+    // size and shape is read as a second button. The margin is wide, because
+    // the claim is "visibly smaller" and not a pixel count.
     expect(save.width).toBeLessThan(close.width / 2)
   })
 
@@ -388,9 +378,9 @@ test.describe('M5 item detail @local @m5', () => {
   })
 
   // E2E-M5-17 (FR-9.1): the two trip-feedback flags are controls behind
-  // *Details ▾*, and only while the trip runs. Until 2026-08-20 the sheet
-  // printed them as a note, which left *unused* — the flag M14's assistant
-  // is mostly about — unwritable anywhere in the app.
+  // *Details ▾*, and only while the trip runs. Printed as a note, they would
+  // leave *unused* — the flag M14's assistant is mostly about — unwritable
+  // anywhere in the app.
   test('E2E-M5-17: an item can be marked unused, but only once the trip runs', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
@@ -637,12 +627,12 @@ test.describe('M5 item detail @local @m5', () => {
   /*
    * E2E-M5-25 (FR-21.25): the sheet is as tall as what it holds.
    *
-   * It stood at a fixed 88 % of the viewport whatever was on it, so an item
-   * with no prep, no notes and its details folded away spent two thirds of
-   * the screen on nothing — while the list it covered was what the two
-   * thirds could have shown. Both halves are asserted, because a sheet that
-   * simply became short would pass the first: it is short *for this item*
-   * and grows when the item is given more to say.
+   * At a fixed 88 % of the viewport whatever is on it, an item with no prep,
+   * no notes and its details folded away would spend two thirds of the screen
+   * on nothing — while the list it covered is what the two thirds could have
+   * shown. Both halves are asserted, because a sheet that simply became short
+   * would pass the first: it is short *for this item* and grows when the item
+   * is given more to say.
    */
   test('E2E-M5-25: the sheet takes the height of its content, not of the screen', async ({
     page,
@@ -659,7 +649,7 @@ test.describe('M5 item detail @local @m5', () => {
     // The *modal*, not the box inside it: with a fixed `--height` the box is
     // still only as tall as its content, and the empty third is the modal
     // around it — so a case measuring the box would have passed against the
-    // very build this one is about (proved by mutation, 2026-09-08).
+    // very build this one is about (proved by mutation).
     const box = page.getByTestId('m5-modal').locator('.modal-wrapper').first()
     const folded = (await box.boundingBox())!.height
     expect(folded).toBeLessThan(880 * 0.8)

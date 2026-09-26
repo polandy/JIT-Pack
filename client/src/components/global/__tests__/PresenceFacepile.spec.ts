@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * G-10 — trip presence (FR-4.6), as decided on 2026-08-28: everything the
+ * G-10 — trip presence (FR-4.6): everything the
  * pattern knows is on screen, rather than a sheet behind a tap.
  *
  * The states that matter here cannot be produced end-to-end. A device that

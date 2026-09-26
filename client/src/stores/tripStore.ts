@@ -469,8 +469,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   /**
    * removeRow drops a row and everything `itemChildRows`/`childRows` says
    * hangs off it — the one implementation of the client's delete cascade for
-   * this partition. `applyChange` used to inline its own, shorter version:
-   * a deleted trip item left its comments and FR-7.3 todos in the store
+   * this partition. `applyChange` goes through it too: a shorter copy there
+   * would leave a deleted trip item's comments and FR-7.3 todos in the store
    * until their own tombstones arrived a pull page later.
    */
   function removeRow(table: SyncTable, id: string): void {

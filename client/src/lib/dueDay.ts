@@ -12,7 +12,7 @@
  * clock.
  *
  * The three states that matter are the ones a person acts on: **overdue**,
- * **today**, and **soon** (the next two days, owner 2026-09-25). A day
+ * **today**, and **soon** (the next two days). A day
  * further out is *later* — it is shown, but it does not move anything up.
  */
 export const DUE_OVERDUE = 'overdue'
@@ -21,7 +21,7 @@ export const DUE_SOON = 'soon'
 export const DUE_LATER = 'later'
 export type DueState = typeof DUE_OVERDUE | typeof DUE_TODAY | typeof DUE_SOON | typeof DUE_LATER
 
-/** How many days ahead still count as *soon* (owner, 2026-09-25). */
+/** How many days ahead still count as *soon*. */
 export const DUE_SOON_DAYS = 2
 
 /** The days from `today` to `day`, both `YYYY-MM-DD`; negative in the past. */
@@ -85,8 +85,8 @@ export function sortByDue<T>(
 
 /**
  * pressingGroupsFirst moves the groups holding something pressing to the
- * top (owner, 2026-09-25: a group with an overdue or soon task is shown above
- * the rest), keeping the reading order inside both halves.
+ * top (a group with an overdue or soon task is shown above the rest), keeping
+ * the reading order inside both halves.
  */
 export function pressingGroupsFirst<G>(groups: readonly G[], pressing: (group: G) => boolean): G[] {
   return [...groups.filter(pressing), ...groups.filter((group) => !pressing(group))]

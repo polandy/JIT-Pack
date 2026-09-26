@@ -242,9 +242,9 @@ const QUESTION_VERB: Record<MembershipQuestion, MessageKey> = {
  *
  * Raised above its neighbours, because it appears at once while the rows under
  * it slide down to make room (FR-25.2's `pack-out-move`) — and a later sibling
- * paints over an earlier one. For those 0.3 s the rows below were drawn across
- * the strip, which looked like a strip too transparent to hide them (owner,
- * 2026-09-18). Above them, they slide out from underneath instead.
+ * paints over an earlier one. Left level, for those 0.3 s the rows below are
+ * drawn across the strip, which looks like a strip too transparent to hide
+ * them. Above them, they slide out from underneath instead.
  */
 .strip {
   position: relative;

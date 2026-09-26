@@ -2,10 +2,10 @@
 /**
  * The refusal vocabulary the server speaks (Sync-API §5).
  *
- * A `rejected` mutation used to arrive as one word for five situations, so
- * the client parked it with nothing to say. The reasons are a closed set on
- * the wire and are mapped here — once — to the catalogue keys that turn
- * them into a sentence in the user's language.
+ * `rejected` alone is one word for five situations, and a client with nothing
+ * more parks the mutation with nothing to say. The reasons are a closed set on
+ * the wire and are mapped here — once — to the catalogue keys that turn them
+ * into a sentence in the user's language.
  */
 import { describe, it, expect } from 'vitest'
 

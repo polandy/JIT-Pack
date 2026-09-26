@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-// SQLite's foreign_keys pragma is per connection and defaults to off. It
-// used to be executed once after connecting, which holds only as long as
-// that one pooled connection does: database/sql discards a connection it
+// SQLite's foreign_keys pragma is per connection and defaults to off.
+// Executing it once after connecting holds only as long as that one pooled
+// connection does: database/sql discards a connection it
 // finds broken and dials a replacement, and the replacement would enforce
 // nothing. Every REFERENCES clause in schema.sql rests on this.
 func TestOpen_ForeignKeysSurviveANewPooledConnection(t *testing.T) {

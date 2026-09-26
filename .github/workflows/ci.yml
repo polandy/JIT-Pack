@@ -227,15 +227,13 @@ jobs:
   # The shard count is a *measurement*, not a constant: ten, sized
   # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
   # the per-browser split that was worse, the 20-job concurrency ceiling that
-  # eight non-shard jobs eat into, and what bounds it from below now that the
-  # legs are short (no longer the fixed ~60 s per leg, but `e2e-single` and
-  # `e2e-server` at ~260 s, which do not shard) — is in
-  # dev-docs/implementation-log.md, "The e2e matrix is ten legs" and the
-  # eight-leg section it supersedes. **Re-read the number when the suite
-  # grows**: a green pipeline never says the count has gone stale, because
-  # the only symptom is that every run is slower than it needs to be, and it
-  # has now gone stale twice. The cheap check is the per-leg times of any
-  # recent run.
+  # eight non-shard jobs eat into, and what bounds it from below (not a fixed
+  # per-leg cost but `e2e-single` and `e2e-server` at ~260 s, which do not
+  # shard) — is in dev-docs/implementation-log.md, "The e2e matrix is ten
+  # legs" and the eight-leg section it supersedes. **Re-read the number when
+  # the suite grows**: a green pipeline never says the count has gone stale,
+  # because the only symptom is that every run is slower than it needs to be.
+  # The cheap check is the per-leg times of any recent run.
   #
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
@@ -338,9 +336,9 @@ jobs:
           path: client/playwright-report/
           retention-days: 7
 
-  # Checks formatting instead of applying it (ADR-040). This job used to run
-  # gofmt and prettier with --write and push a `style:` commit back onto the
-  # branch, which cost more than the convenience was worth: the bot's push is
+  # Checks formatting instead of applying it (ADR-040). Running gofmt and
+  # prettier with --write and pushing a `style:` commit back onto the branch
+  # costs more than the convenience is worth: the bot's push is
   # attributed to github-actions[bot] and its run arrives `action_required`,
   # so `gh pr checks` reports *no checks at all* and the PR sits at BLOCKED —
   # not red, not pending, blank, with nothing on screen saying that manually

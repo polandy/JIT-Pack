@@ -137,8 +137,8 @@ export function useSyncStatus(now: NowMs = defaultNowMs): SyncStatus {
 
   // Order matters, and 'syncing' deliberately outranks 'local': Local
   // Mode still writes, and while a write is open the honest answer is
-  // "not on the device yet". The glyph used to say "Local" from the tap
-  // onwards, which is a promise made before it was kept.
+  // "not on the device yet". Saying "Local" from the tap onwards would be
+  // a promise made before it was kept.
   const state = computed<SyncState>(() => {
     if (connectionState.value === 'offline') return 'offline'
     if (isSyncing.value) return 'syncing'

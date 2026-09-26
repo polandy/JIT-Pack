@@ -2,12 +2,11 @@
  * Service-worker registration at app start (NFR-4.13).
  *
  * One worker script serves both stories: Web Push (NFR-4.6, handlers in
- * public/sw.js since the beginning) and the app shell that makes an installed
- * PWA paint without network. Registration used to live only inside
- * `registerPush()`, which meant a device that never enabled push never got a
- * service worker — and therefore no offline shell. It now happens
- * unconditionally at boot; push later re-registers the same URL, which the
- * browser treats as a no-op.
+ * public/sw.js) and the app shell that makes an installed PWA paint without
+ * network. Registration happens unconditionally at boot, not inside
+ * `registerPush()` alone — a device that never enabled push would otherwise
+ * get no service worker, and therefore no offline shell. Push later
+ * re-registers the same URL, which the browser treats as a no-op.
  *
  * Update policy (ADR-019, amended by ADR-044): a new worker installs in the
  * background and activates on the next launch — never an *unprompted* reload.

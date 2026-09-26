@@ -25,9 +25,9 @@ export interface PageHeadEntry {
    *
    * A screen whose whole job is a long list drives this from its own scroll
    * (M4). It lives on the entry rather than in the page, because since
-   * ADR-050 the element is the frame's — and an owner call from 2026-08-19,
-   * that scrolling down takes the trip's name with the line under it, had
-   * quietly stopped applying the moment the name moved up here.
+   * ADR-050 the element is the frame's — held in the page, the rule that
+   * scrolling down takes the trip's name with the line under it would not
+   * reach the name at all.
    */
   collapsed: boolean
 }

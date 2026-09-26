@@ -6,11 +6,11 @@ import { bootPage, uniq } from '../serverMode'
  * real jitpackd so the round trip proves the server accepts the same names
  * the client does.
  *
- * The rule this pins down is the 2026-08-26 revision: 1–50 printable
- * characters, no leading or trailing whitespace. The old `[A-Za-z0-9._-]`
- * charset rejected the server's own seeded default ("Demo User") and every
- * human name with a space or a diacritic — the untouched screen opened with
- * a standing red error (UX review 2026-08-25, UX-3).
+ * The rule this pins down: 1–50 printable characters, no leading or
+ * trailing whitespace. A charset like `[A-Za-z0-9._-]` rejects the server's
+ * own seeded default ("Demo User") and every human name with a space or a
+ * diacritic — the untouched screen would open with a standing red error
+ * (UX-3).
  */
 test('E2E-M17-04: a human display name is accepted, and the rule only speaks when touched', async ({
   browser,
@@ -26,11 +26,10 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
   await expect(screen.getByTestId('settings-name-rule')).toHaveCount(0)
 
   // FR-23.4a: this account never uploaded a picture, and the avatar
-  // endpoint answers 404 for such an account — which used to leave a 64 px
-  // hole here, with the placeholder written for the case sitting behind a
-  // condition that is never false. The circle carries initials and no
-  // `<img>`. Asserted on *this* screen and not only on M20, because the
-  // same defect was written into two templates.
+  // endpoint answers 404 for such an account — a 64 px hole here unless the
+  // placeholder actually renders. The circle carries initials and no
+  // `<img>`. Asserted on *this* screen and not only on M20, because the two
+  // templates can fail independently.
   const face = screen.getByTestId('user-avatar')
   await expect(face).toBeVisible()
   await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
@@ -39,7 +38,7 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
   await input.locator('input').fill('')
   await expect(screen.getByTestId('settings-name-rule')).toBeVisible()
 
-  // A name with a space and a diacritic — the shape the old rule refused —
+  // A name with a space and a diacritic — the shape a charset rule refuses —
   // saves, and the server keeps it across a reload.
   const name = `Béatrice Müller ${uniq()}`
   await input.locator('input').fill(name)
@@ -61,22 +60,18 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
  * E2E-M17-12 (FR-17.13): the picked photo is positioned on the crop stage and
  * saved as the profile picture.
  *
- * The entry stood open with a reason that was wrong in both halves: that no
- * Playwright project can drive a modal behind a file dialog, and that the
- * canvas offers nothing settled to assert against. `setInputFiles` fills a
- * hidden `<input type=file>` with no dialog at all, and the upload's own
- * result — the picture on the profile row, where there had been initials — is
- * as settled a signal as any. The component spec's header carries the same
- * wrong premise; both are corrected with this case.
+ * `setInputFiles` fills a hidden `<input type=file>` with no dialog at all,
+ * and the upload's own result — the picture on the profile row, where there
+ * had been initials — is as settled a signal as any.
  *
- * It is also the only layer that can see the defect it was written against
- * (owner report 2026-09-01): Ionic's global reset caps every `img` at
- * `max-width: 100%`, so the stage clamped the picture to its own 260 px while
- * `sourceRect()` went on cropping at the real scale — zooming moved the photo
- * instead of scaling it, and what was saved was not what was shown. Both the
- * geometry unit and the component spec stayed green throughout: the latter
- * asserts the inline `width: 520px` that the browser then refused to apply
- * (invariant 9b — only a rendered pixel says).
+ * It is also the only layer that can see the defect it guards against:
+ * Ionic's global reset caps every `img` at `max-width: 100%`, so the stage
+ * can clamp the picture to its own 260 px while `sourceRect()` goes on
+ * cropping at the real scale — zooming moves the photo instead of scaling
+ * it, and what is saved is not what is shown. The geometry unit and the
+ * component spec stay green through that: the latter asserts the inline
+ * `width: 520px` that the browser then refuses to apply (invariant 9b — only
+ * a rendered pixel says).
  */
 const SOURCE_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAIAAAA8r+mnAAAAQklEQVR4nBXLQRHAMBDDQEE5KIYSKIJyUAwlUNrouTMCHAweFBeLFyFOTDzRuLHxRtB54vG1Wr3/TJ2aevpsa+utH/m+KgHg2F2DAAAAAElFTkSuQmCC'

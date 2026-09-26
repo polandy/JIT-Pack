@@ -1,10 +1,10 @@
 # Concept — API tokens
 
-**Status:** **implemented 2026-08-30.** Written and rewritten the same day, after the owner chose
-the unmanaged variant. Kept as the reasoning behind FR-23.7 and ADR-039 — where the two differ, the
-FR and the ADR are authoritative. The one question it ends on was answered: **90 days**.
-**Asked for:** a token a person can create in the UI *and* on the command line, that is never
-stored in plaintext and is shown exactly once.
+**Status:** **implemented**, the unmanaged variant. Kept as the reasoning behind FR-23.7 and
+ADR-039 — where the two differ, the FR and the ADR are authoritative. The one question it ends on is
+answered: **90 days**.
+**Scope:** a token a person can create in the UI *and* on the command line, that is never stored in
+plaintext and is shown exactly once.
 
 ---
 
@@ -27,7 +27,7 @@ something the server can recognise as a machine credential.
 ## 2. Decided: unmanaged, and what settled it
 
 The alternative was a stored token — a table, three endpoints, a management screen — which buys
-**listing** and **individual revocation**. It was rejected (owner, 2026-08-30) on two grounds:
+**listing** and **individual revocation**. It is rejected on two grounds:
 
 **The kill switch is cheaper than it looks.** Rotating `JITPACK_SESSION_SECRET` invalidates every
 API token at once. The assumption that this also throws everyone out of the app is **wrong, and was
@@ -35,10 +35,8 @@ measured**: refresh tokens are opaque random values stored hashed in `sessions`,
 (`internal/api/auth.go:157`). A secret rotation therefore only voids the 15-minute *access* tokens,
 and every browser silently obtains a new one at its next refresh. (One caveat, in §6.)
 
-**No table means no schema change.** A stored token would change `schema.sql`, change the
-fingerprint, and force every database — development machines and the family instance — to be
-deleted and rebuilt (invariant 2). That cost was accepted in an earlier round of this concept, but
-not paying it at all is better.
+**No table means no schema change.** A stored token would change `schema.sql` and every database
+with it (invariant 2); not paying that cost at all is better.
 
 ## 3. What is given up — deliberately, and permanently
 

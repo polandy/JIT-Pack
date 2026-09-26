@@ -5,8 +5,8 @@
  * `local` or `server` is chosen once on M19 and persisted on the device.
  * Single-User Mode is not a third value: it is a server-side configuration a
  * `server` client discovers by being offered no OIDC (CLAUDE.md invariant 5).
- * Before this module the key was a literal in six files, each with its own
- * cast; §4a wants it named once.
+ * The storage key is named once here rather than as a literal in each
+ * reader, each with its own cast (§4a).
  */
 import { ref, type Ref } from 'vue'
 
@@ -136,7 +136,7 @@ export function hasCollaborativeSession(): boolean {
  * Whether a typed server URL can be dialled at all: parseable, and http(s).
  * Syntax only — a reachability probe from the browser cannot tell an
  * unreachable host from a healthy one whose API sets no CORS headers, which
- * ours does not (UI-Spec M19, struck 2026-08-31).
+ * ours does not (UI-Spec M19).
  */
 export function isValidServerUrl(value: string): boolean {
   try {

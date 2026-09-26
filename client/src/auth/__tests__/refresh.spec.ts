@@ -184,7 +184,7 @@ describe('createAuthRefresher', () => {
    * expired token stops the *token* from being wrong; without a window, the
    * refresher still asks the IdP once per request the app makes, and a fleet
    * of devices whose grant has expired drains the rate limit in front of the
-   * token endpoint — which also serves the login exchange (2026-09-13).
+   * token endpoint — which also serves the login exchange.
    */
   it('asks the IdP once per backoff window, however often it is asked', async () => {
     storeTokens({ expires_at: NOW - 1 })

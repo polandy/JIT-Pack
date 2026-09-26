@@ -1,8 +1,8 @@
 /**
  * A history pop leaving a route with an active overlay closes the overlay
  * instead (ADR-011): the overlay replaced the entry of the screen beneath
- * it, so a raw pop would skip that screen. Found by the owner pressing
- * the browser's back button on an open M5 sheet (2026-08-16).
+ * it, so a raw pop would skip that screen — the browser's back button on an
+ * open M5 sheet.
  */
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -46,7 +46,7 @@ function nextNavs(router: ReturnType<typeof makeRouter>, count: number): Promise
   })
 }
 
-/** The owner's history: list → trip → sheet replacing the trip's entry. */
+/** The history in question: list → trip → sheet replacing the trip's entry. */
 async function openSheet(router: ReturnType<typeof makeRouter>) {
   await router.push('/tabs/trips')
   await router.push('/trips/t1')

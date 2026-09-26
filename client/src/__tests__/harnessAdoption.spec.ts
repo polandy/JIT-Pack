@@ -4,9 +4,9 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * T-10 (design review 2026-09-02). `harness.ts` exists because forty-one
- * specs stood up the same globals in twenty-eight spellings; a spec that
- * stubs one of them by hand is a twenty-ninth, and nothing said so.
+ * T-10. `harness.ts` exists so that specs stand up the same globals in one
+ * spelling; a spec that stubs one of them by hand is a second, and nothing
+ * else would say so.
  *
  * The rule is deliberately about `fetch` and `WebSocket` only. `localStorage`
  * is the documented exception: the harness stubs it **under `node` alone**,

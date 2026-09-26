@@ -1,8 +1,7 @@
 /**
  * The FR-27.4 group refresh (M2/M4): a trip that follows a Vorlage is *asked*
  * about what moved in it rather than being rewritten behind the user's back
- * (ADR-016, and the owner's 2026-08-18 revision that moved the question to
- * the trip). The whole group is one question asked three ways — derive, then
+ * (ADR-016, which asks the question at the trip). The whole group is one question asked three ways — derive, then
  * yes, no, or nothing to ask.
  *
  * The proposals are the one piece of orchestrator state that moved with its
@@ -61,7 +60,7 @@ export function createGroupRefreshActions(
    * nothing.
    *
    * Nothing on the trip is written here — that is the whole point of the
-   * split: the owner's rule (2026-08-18) is that a group change reaches a
+   * split: the rule is that a group change reaches a
    * trip by being asked about, and the question is asked at the trip. What
    * this *does* write, immediately and silently, is the bookkeeping half of
    * a plan that proposes nothing: adopting a hand-added row into the ledger

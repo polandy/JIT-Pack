@@ -317,16 +317,16 @@ export type TaskPhase = (typeof TASK_PHASES)[number]
  * wrote it and when, and the record of it being ticked off.
  *
  * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's trip
- * todo), because they are one table and the owner asked for the same four
- * facts on both. `phase` is null on a task written before FR-7.7 and reads as
- * *before* (`taskPhaseOf`); the resolution pair is null while the task is open.
+ * todo), because they are one table and both carry the same four facts.
+ * `phase` is null on a task written before FR-7.7 and reads as *before*
+ * (`taskPhaseOf`); the resolution pair is null while the task is open.
  */
 export interface TaskFacts {
   /**
    * FR-7.8: the one tag the task carries, or null for none. „Exactly one"
-   * as the owner asked it — at most one, never two — so a column and not a
-   * set. Null is a real state: M25 names that group after where the task
-   * came from rather than calling it a gap.
+   * means at most one, never two — so a column and not a set. Null is a real
+   * state: M25 names that group after where the task came from rather than
+   * calling it a gap.
    */
   task_tag_id: string | null
   phase: TaskPhase | null
@@ -397,9 +397,9 @@ export interface ShoppingEntry {
  * reorder, delete — is M9's tag manager (FR-24.10).
  */
 /**
- * FR-7.8: a tag a *task* can carry. Its own list, not the inventory's (owner,
- * 2026-09-21) — the two never appear in the same picker, so „Technik" may
- * exist in both without either meaning the other.
+ * FR-7.8: a tag a *task* can carry. Its own list, not the inventory's — the
+ * two never appear in the same picker, so „Technik" may exist in both without
+ * either meaning the other.
  */
 export interface TaskTag {
   id: string
@@ -441,9 +441,9 @@ export interface ItemTag {
  *
  * Deliberately not a field of {@link MasterItem}: `items` has no such column,
  * and the category is the item's *primary tag*, which only a caller holding
- * the tag assignments can name. It was an optional field there for months,
- * written by nothing, so every row a Vorlage generated arrived without a
- * category — `domain/tags.withCategories` is what fills it now.
+ * the tag assignments can name. As an optional field there it would be
+ * written by nothing, and every row a Vorlage generated would arrive without
+ * a category — `domain/tags.withCategories` is what fills it.
  */
 export interface CategorisedMasterItem extends MasterItem {
   category_name: string | null
@@ -575,7 +575,7 @@ export interface TemplateItem {
   id: string
   template_id: string
   item_id: string
-  /** Plain amount (FR-1.3/1.5 formulas retired 2026-08-08). */
+  /** Plain amount (FR-1.3/1.5 formulas retired). */
   quantity: number
   assignment: TemplateAssignment
   dedup: TemplateDedup

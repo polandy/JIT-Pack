@@ -14,11 +14,10 @@ import {
 } from '@/types/domain'
 
 /**
- * U-7b (design review 2026-09-02). `TripStatus` had named values and
- * `ItemMode` did not, so `pack` was compared against by hand in four dozen
- * places. Two things are under test: that the vocabulary narrows an unknown
- * the way both importers need, and that no file goes back to spelling it —
- * the second is what keeps the first the only copy.
+ * U-7b. `ItemMode` has named values, as `TripStatus` does, so `pack` is never
+ * compared against by hand. Two things are under test: that the vocabulary
+ * narrows an unknown the way both importers need, and that no file goes back
+ * to spelling it — the second is what keeps the first the only copy.
  */
 
 /** Every source file that could carry a mode; `domain.ts` is the declaration. */

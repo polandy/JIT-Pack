@@ -8,8 +8,8 @@
  * read; a task of the trip itself carries no chip, and that absence is the
  * whole distinction between the two kinds.
  *
- * A link rather than a button on either surface: M1 takes no actions (owner,
- * 2026-09-18), and on M4 the row's sheet is a route of its own (FR-25.14), so
+ * A link rather than a button on either surface: M1 takes no actions, and on
+ * M4 the row's sheet is a route of its own (FR-25.14), so
  * the same element does the same thing on both.
  */
 import ItemMark from '@/components/items/ItemMark.vue'

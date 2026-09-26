@@ -130,9 +130,9 @@ function sharedPrefix(a: string, b: string): number {
  *      prefix (at least {@link NAME_PREFIX_MIN} letters) lends its primary
  *      tag: Zahnseide „wie Zahnbürste".
  *
- * The order was the other way round until the rendered seed offered „Bad"
- * for a Reiseadapter filed in „Strom & Laden", because it shares „Reise" with
- * the Reiseapotheke: German compounds make a shared first word common and
+ * The Vorlage comes first: the other way round, a Reiseadapter filed in
+ * „Strom & Laden" is offered „Bad", because it shares „Reise" with the
+ * Reiseapotheke: German compounds make a shared first word common and
  * weak, and a Vorlage is a decision somebody made.
  *
  * No reason, no suggestion: an offer that cannot say why is a guess, and the

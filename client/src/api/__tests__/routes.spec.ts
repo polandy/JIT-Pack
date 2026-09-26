@@ -6,8 +6,8 @@ import { API } from '../routes'
  * the resource; the master partition's scope segment is `master`; an export
  * names its format as the path's extension (ADR-027).
  *
- * This file is generated from `internal/api/wire.go`, so it can no longer
- * disagree with the server about a path — the gate regenerates it. What these
+ * This file is generated from `internal/api/wire.go`, so it cannot disagree
+ * with the server about a path — the gate regenerates it. What these
  * cases still hold is the *values*: a rename in the contract arrives here as a
  * red test rather than as a silently regenerated file, which is what makes it
  * a decision. `internal/api/routes_test.go` holds the same paths against the

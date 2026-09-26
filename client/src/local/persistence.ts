@@ -29,8 +29,8 @@ export class IndexedDBPersistence {
    * Writes run one after another, and `settled` is the tail of that
    * chain. FR-19.2 calls every applied change durable, but the caller
    * cannot await a fire-and-forget save: a row added and followed
-   * immediately by a reload was written into a transaction the
-   * navigation cancelled, and came back gone. Chaining also removes the
+   * immediately by a reload would be written into a transaction the
+   * navigation cancels, and come back gone. Chaining also removes the
    * interleaving two overlapping saves of the same key would allow.
    */
   private settled: Promise<void> = Promise.resolve()

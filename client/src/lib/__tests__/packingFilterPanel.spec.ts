@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 /**
- * U-1.4 (design review 2026-09-02). These seven derivations were computeds
- * inside `PackingListPage.vue`, so every one of them could only be reached
- * by rendering M4 and opening a sheet — and the absence buckets, which are
- * the whole reason the sheet is worded here rather than in `FilterSheet`,
- * had no test at all.
+ * U-1.4. These seven derivations live outside `PackingListPage.vue` so each
+ * can be reached without rendering M4 and opening a sheet — above all the
+ * absence buckets, which are the whole reason the sheet is worded here rather
+ * than in `FilterSheet`.
  *
  * jsdom because the catalogue reads `localStorage` for the locale.
  */

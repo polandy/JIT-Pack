@@ -163,8 +163,8 @@ describe('runImport', () => {
     expect(code).toBe(EXIT.ok)
     // An import writes master data, so every push goes to the master
     // partition's endpoint — named exactly rather than by prefix, because
-    // the paths lead with their scope now (NFR-4.14, ADR-027) and a prefix
-    // that no longer distinguishes anything asserts nothing.
+    // the paths lead with their scope (NFR-4.14, ADR-027) and a prefix that
+    // distinguishes nothing asserts nothing.
     expect(instance.pushed.map((p) => p.path)).toEqual(
       Array(instance.pushed.length).fill('/api/v1/master/sync'),
     )
@@ -175,8 +175,9 @@ describe('runImport', () => {
     expect(it0.lines.join('\n')).toContain('Ferien')
   })
 
-  // The whole point of sharing the client's rules: a trip keeps what the
-  // server's own importer used to drop (ADR-024/ADR-025).
+  // The whole point of sharing the client's rules: a trip keeps its status
+  // and tags, which a second, server-side importer would drift away from
+  // (ADR-024/ADR-025).
   it('keeps the status and the tags the file carries', async () => {
     const it0 = io({ 'f.yaml': `${TEMPLATE}---\n${TRIP}` })
     await runImport({ serverUrl: 'http://x', token: null, dryRun: false, files: ['f.yaml'] }, it0)

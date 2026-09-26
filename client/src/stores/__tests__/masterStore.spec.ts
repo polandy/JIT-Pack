@@ -630,10 +630,10 @@ describe('masterStore', () => {
 /**
  * The one place four screens get their portable resolvers from (ADR-024).
  *
- * It exists because the pair was written out at each call site and nothing
- * drove any copy: with all of them returning no tags, the whole unit suite and
- * the whole M18 e2e unit stayed green while the backup lost every tag. One
- * source is one thing to get right — and this is the test that gets it right.
+ * A copy at each call site is driven by nothing: with every copy returning no
+ * tags, the whole unit suite and the whole M18 e2e unit stay green while the
+ * backup loses every tag. One source is one thing to get right — and this is
+ * the test that gets it right.
  */
 describe('portableResolvers (FR-24.1/24.2, ADR-024)', () => {
   it('resolves an item and its tags, primary first', () => {

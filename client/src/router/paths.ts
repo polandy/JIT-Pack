@@ -1,14 +1,11 @@
 /**
  * Every path the app navigates to, built in one place.
  *
- * The route table names 27 routes and nothing used the names: navigation
- * was written as `` `/trips/${id}/review` `` at some thirty call sites, in
- * `router-link` attributes and in `meta.parent` alike. A path shape that is
- * spelled at thirty places is a shape nothing can change — and the one
- * defect it already caused is recorded in `PortableImportPage.vue:120`,
- * where `/trips` was pushed to a router that only knows `/trips/new` and
- * `/trips/:tripId`, so the replace matched nothing and the user was left
- * where they were.
+ * A path shape spelled as `` `/trips/${id}/review` `` at every call site, in
+ * `router-link` attributes and in `meta.parent` alike, is a shape nothing
+ * can change — and a hand-spelled path can name a route that does not
+ * exist: `/trips` pushed to a router that only knows `/trips/new` and
+ * `/trips/:tripId` matches nothing and leaves the user where they were.
  *
  * Route *names* were the other candidate and are not used, for two
  * reasons: `router-link` and `ionRouter.navigate` take a path, and the
@@ -96,7 +93,7 @@ export const CLOSING_QUERY_PARAM = 'closing'
 
 /**
  * The packing list in its closing pass (FR-9.3) — where *Reise abschliessen*
- * leads from M2, now that the trip's lifecycle steps are M2's alone.
+ * leads from M2, since the trip's lifecycle steps are M2's alone.
  */
 export function tripClosingPath(tripId: string): string {
   return `${tripPath(tripId)}?${new URLSearchParams({ [CLOSING_QUERY_PARAM]: '1' }).toString()}`

@@ -1,105 +1,12 @@
 # Sync Protocol & API Specification — „JIT-Pack" (v1.3)
 
 **Document Status:** Proposed for Review **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`,
-`updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10. **Revision Note (v1.3):** Added four RPC endpoints (§8) for
-portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly
-distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All four were removed again on 2026-08-23
-(ADR-025)** — they were a second implementation of a format that already had one on the client, and it had silently
-fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
+`updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10.
 
-**Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
-* **2026-09-25 (FR-7.13) — P-3, §5 and §8:** trip notes become threads. `comments.parent_id` (written once, one level
-  deep, refused as `constraint_violated` when it names anything but a first note of the same trip), `comments.title`
-  (dropped from a reply), `comments.edited_at` (the client's clock) and `note_acks.seen_through` join the trip
-  partition; a note's `body`, `title` or `edited_at` pushed by anybody but its author is refused as `not_authorized`; a
-  new kind, `note_reply`, reaches a thread's participants, and `notification-prefs` carries it. Was: a note was one
-  line, anybody could change it, and its tick said only *that* it was read.
-* **2026-09-25 (FR-30.10) — P-3 and §8, notifications:** `shopping_entries.due_date` joins the trip partition, the
-  shape of `comments.due_date`, and the daily run sends a second kind, `shopping_due`, to every member of the trip;
-  `notification-prefs` carries it. Was: an entry had no date.
-* **2026-09-25 (FR-7.11, ADR-076) — P-3 and §8, notifications:** `comments.due_date` (a calendar day, the client's to
-  choose) joins the trip partition, and the server sends a `task_due` notification of its own accord once a day — the
-  first kind no push sets off. `notification-prefs` carries `task_due`, and its GET now also answers `lock_taken`,
-  which it had silently answered as `false`. Was: a task had no date, and every notification was a person's act.
-* **2026-09-21 (FR-7.8, ADR-072) — P-3, `GET /master/sync`:** `task_tags` joins the master partition and
-  `comments.task_tag_id` points at it across the partition boundary. Was: a task could be filed by nothing but the
-  row it hung off.
-* **2026-09-21 (FR-7.7, ADR-071) — §5, server-stamped fields:** `comments.phase` is the client's to choose, while
-  `resolved_by_user_id`/`resolved_at` are stamped by the task's state as the packing record is by its own. Was: a
-  task recorded nothing about when it was due or who ticked it off.
-* **2026-09-21 (FR-30.9) — §5:** `shopping_entries.tag`, one nullable client-chosen column (1–40 characters). Merged per
-  field like the rest, so a retag and a purchase never contend. Was: an entry had no tag.
-* **2026-09-19 (FR-30.4) — §5, server-stamped fields:** `bought_by_user_id`/`bought_at` on `trip_items` and
-  `shopping_entries` — who bought a thing and when, stamped like the packing record. Was: no record of a purchase.
-* **2026-09-19 (FR-30.1, ADR-066) — P-3:** `shopping_entries` joins the trip partition — the shopping list's own
-  entries, which are no trip items. Was: every shopping-list line was a `trip_items` row in a buy mode.
-* **2026-09-19 (FR-5.8, ADR-065) — §8:** `POST /master/items/{id}/prune`, a conditional delete of an inventory item
-  that keeps a used item untouched. Was: the four ADR-038 deletes only, none called by the app.
-* **2026-09-18 (FR-7.4) — P-3, `GET /master/sync`:** `template_tasks` joins the master partition, and a task
-  comment may carry a null `trip_item_id` (a trip todo). Was: no template-level task table, and no writer of an
-  unanchored task.
-* **2026-09-09 (ADR-052) — §5/§6:** a write older than the tombstone is `rejected` with `row_deleted` instead of
-  re-creating the row. Was: a delete left nothing to compare a later-arriving older write against, so the merge's
-  "unknown id" branch applied every field it carried and the deleted row came back, silently, on every device.
-* **2026-09-04 (G-2) — §8:** the NFR-4.5 export carries every table of both partitions. Was: a hand-written query list
-  beside the feed's visibility rules, which had lost `item_dependencies` (the whole FR-20.1 graph) and `trip_members`
-  (every restored trip's roster) with nothing to say so; both lists are views of one per-table declaration now.
-* **2026-09-02 — §4:** the cascade bullet states what the *client* owes — the same child list, derived locally. Was: a
-  rule written for the server alone; the client mirrored four of a deleted trip's nine child tables, and Local Mode,
-  which has no tombstones at all, kept every child row of every deleted trip, master item, Vorlage and trip item for the
-  device's lifetime. **§5/§5.1 (ADR-031):** what happens *after* a refusal — the row is re-logged, and the one refusal
-  that cannot be re-logged without leaking a foreign row is repaired by the client. Was: the client rendered
-  optimistically, the outbox dropped the mutation (P-5), the server row never changed, so its `change_log` entry sat
-  behind the client's cursor and no ordinary pull offered it again.
-* **2026-08-25 (data-model review) — six places where document and code had drifted apart.** §4: a snapshot carries
-  `updated_hlc` beside the syncable columns — described since v1.0 and never sent, so the client's §3 clock-advance step
-  had never once run. §4: every foreign-key cascade is tombstoned explicitly, naming the two that were not (a deleted
-  trip's master-partition children, a deleted trip item's comments), and the retention sentence admits nothing compacts
-  anything yet. P-3: `conflict_log` is not a trip-partition table and never was. §8: the conflict envelope names the
-  `mutation_id` and `actor_user_id` it had been sending all along. §5: the refusal vocabulary — the `error` beside a
-  `rejected` outcome had been declared since v1.0 and written only for the two validation errors raised before the
-  store, so five different refusals were one word and the client parked the mutation with nothing to show; a delete
-  other rows still depend on is refused rather than cascaded, because FR-9.2's provenance outlives the Vorlage it names.
-  §5, server-stamped fields: comment `author_id` and the two G-3 claim columns are stripped from every mutation and
-  written back only where the server decides them — was stamped on `insert` alone (an `upsert` could rewrite an existing
-  comment's author) and only inside the state switch (a claim holder without a `state` could be forged).
-* **2026-08-24 (NFR-4.14, ADR-027):** every path names its **scope** first and its resource second — `/trips/{id}/sync`
-  and `/master/sync` in §4/§5, `/master/conflicts` in §8 — and the full export names its format, `/me/export.json`; the
-  old paths are gone rather than aliased. Was: three disagreements about the same two ideas (which partition, which
-  format), so a reader who knew two endpoints could not predict the third. Same day: every response body in §8 is a type
-  declared in `internal/api/wire.go` and generated into the client — the admin overview, the notification list and its
-  preference set, the instance config and the auth pair were the four families still outside the contract; no key
-  changed. The preference endpoint's *request* body stays an untyped map on purpose: an absent key there means the kind
-  stays enabled, which a struct would decode as disabled.
-* **2026-08-23 (NFR-4.14, ADR-026) — §9** no longer lists the error codes: `internal/api/wire.go` declares them and the
-  client's copy is generated, because the list here had drifted into naming two codes nothing sends and omitting eleven
-  that are sent. The paths are declared there as well, and the client's builders are generated from that declaration.
-  The envelopes in §4/§5/§7/§8 are prose about a shape with one machine-checked declaration; where the two ever
-  disagree, `wire.go` is what runs. **§6:** a conflict entry records an *overwrite*, not a lost race — a field the
-  losing push carried along unchanged is neither logged nor counted, and the outcome stays `applied`. Was: the merge
-  compared clocks and never values, so a whole-group edit filled the log with `2026 → 2026` rows and the client
-  announced overwritten fields to users whose data was untouched.
-* **2026-08-22 — seven rules the document implied and never spelled out, each found drifted in the code.** §5 and P-3: a
-  trip mutation is confined to the trip its endpoint names (never written, never enforced). §5: the push *response*
-  envelope and its `outcome` key, and a constraint violation is a `rejected` mutation rather than a 5xx — the client
-  read a `status` key no server has ever sent, and the trip partition answered 500 where the master partition answered
-  `rejected`. §5: `pull_hint` is a signal that a pull is worth making, never the cursor to make it from — the client had
-  taken it as the cursor, stepping over everything another device wrote while it was offline. §4: two consequences of
-  "rows are full snapshots" — a snapshot carries syncable columns only, so a generated one is derived rather than read,
-  and a client's *optimistic* row is a full snapshot too, or it blanks what it omits, permanently in Local Mode. §5:
-  what `merged` obliges the client to do — the outcome existed on the wire and was read nowhere, so a user was never
-  told an edit had been overwritten. §8: `GET /conflicts/master` — NFR-4.2a's audit had one endpoint and two partitions,
-  so every master-partition loser (a group renamed twice, a trip's own dates) was logged and reachable by nothing. §6:
-  field-level LWW needs a clock *per field*, persisted beside the row, and rule 2 is narrowed to the two states it names
-  — the server had kept one `updated_hlc` per row, so a pack made offline lost to any unrelated later edit of the same
-  row, and the code had compensated by letting every incoming `packed` win regardless of HLC, silently undoing later
-  deliberate unpacks and skips (ADR-022).
-
-**Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
-**Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are
-**history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current
-`internal/store/schema.sql`. The dates still say when a rule started applying; the numbers no longer point at anything
-to open.
+**Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC. Every path names its **scope** first and its
+resource second — `/trips/{id}/…`, `/master/…`, `/me/…` (NFR-4.14, ADR-027). Every envelope below is prose about a shape
+declared once in `internal/api/wire.go` and generated into the client (ADR-026); where the two disagree, `wire.go` is
+what runs.
 
 ---
 
@@ -115,16 +22,16 @@ to open.
   templates, template_items, template_includes, template_item_tasks, template_tasks, item_dependencies, trip_series,
   destination_*,
   trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel
-  the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition
+  the master partition — trip_members, the FR-27.4 registry and its applied-changes log. **Partition
   membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its
   blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it
   describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for
   trip_members); writes are allowed to any member, since registering a source and logging an applied change are
   consequences of ordinary editing rather than administration. **A partition is a boundary in both directions:**
   membership is checked for the trip an endpoint names, so a mutation that reaches past it is refused rather than
-  applied — see §5. `conflict_log` was listed among the trip partition's tables until 2026-08-25 and never belonged
-  there: it carries no HLC columns, is in no partition whitelist, and §8 says in as many words that conflict rows never
-  flow through pull. It is *scoped* by `trip_id` exactly as `change_log` is, and read over its own endpoint.
+  applied — see §5. `conflict_log` belongs to neither partition: it carries no HLC columns, is in no partition
+  whitelist, and §8 says in as many words that conflict rows never flow through pull. It is *scoped* by `trip_id`
+  exactly as `change_log` is, and read over its own endpoint.
 * **P-4 (Server is merge authority):** Conflict resolution per NFR-4.2a happens on the server during push. Clients never
   merge; they apply pulled state verbatim.
 * **P-5 (Idempotency everywhere):** Every mutation carries a client-generated `mutation_id` (UUID). Replays return the
@@ -154,17 +61,17 @@ to open.
   token); concurrent refreshes coalesce into a single call. A refresh that could not be **delivered** keeps the current
   token — offline is normal, not a logout: a network error, a 5xx, or one of the 4xx whose cause is a moment rather than
   a verdict (408, 425, 429). A refresh that was **answered and refused** ends the session: the client clears its tokens
-  and returns to the login page. That is every other 4xx, not only 401 — revised 2026-09-13, ADR-059, after a client
-  that retried a 403 or a 400 for ever turned an unrenewable session into a device that could only say *offline*. And a
+  and returns to the login page. That is every other 4xx, not only 401 (ADR-059): a client that retried a 403 or a 400
+  for ever would turn an unrenewable session into a device that can only say *offline*. And a
   kept token is only handed out while it is **still inside its own expiry**: a token past `expires_at` is null, because
   sending it can produce nothing but the next 401 (`sessionAccessTTL` is 15 minutes, so a device with a broken refresh
-  path reached that state a quarter of an hour after login and stayed in it across restarts).
+  path would reach that state a quarter of an hour after login and stay in it across restarts).
   A refresh that could not be delivered also **arms a backoff** — 5 s, 30 s, 2 min, then 10 min per consecutive
   failure — during which no request reaches this endpoint at all and every caller is answered from the rule above
   without one. This is the same requirement seen from the other side: the endpoint replays a grant at the *IdP*, whose
   rate limit is shared by every client of that IdP **and by the authorization-code exchange behind the login screen**,
   so an unbounded retry from one device is an outage for everyone — including the 429 that rate limit answers with,
-  which is transient and therefore retried. Observed 2026-09-13.
+  which is transient and therefore retried.
 * **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` (from the
   discovery document) so the client needs only the server URL; servers without OIDC answer 501.
 * **Session claims:** `sub` **is** `users.id` — identity is established once, by the broker at login/refresh, never per
@@ -185,7 +92,7 @@ to open.
   response the client advances `last_seen_hlc` to the maximum observed. `device_id` is random per installation and only
   breaks ties.
 * **Comparison** is plain string comparison; the server never trusts client wall clocks beyond HLC semantics.
-* **The format is validated on push** (added 2026-09-08). Because comparison is lexicographic, a value outside the
+* **The format is validated on push.** Because comparison is lexicographic, a value outside the
   format does not fail to sort — it sorts wherever its bytes fall, and one above `f` (`"~"`, say) outranks every clock
   the protocol can produce, so the field it lands on can never be written again by any device. A clock is a client
   value that decides a correctness question, which invariant 3 says is never trusted: the server refuses a mutation
@@ -211,26 +118,26 @@ to open.
 }
 ```
 
-* **`has_more` is a client obligation, not a hint (clarified 2026-08-25).** A partition is routinely larger than one
+* **`has_more` is a client obligation, not a hint.** A partition is routinely larger than one
   page — a decade of trips is — and a client that takes the first page and stops holds a fraction of the instance while
   believing itself synced. The client therefore **pulls in a loop until `has_more` is false**, applying each page and
   advancing its cursor before asking for the next, so a feed interrupted halfway keeps what it already took. It stops on
   `next_cursor` failing to advance as well as on `has_more`, because a server that claimed more without moving the
   cursor would otherwise spin the loop for ever. **The rule is named once** — `client/src/sync/pullProtocol.ts`, asked
-  by both clients that page: the app's `SyncOutbox.drain` and the command line's `pullPartitionAll` (2026-09-01). It
-  had been written twice, and the guard had reached only the drain, so `jitpack import` was the client that could
-  hang. **The request itself is named once too** (2026-09-05, C-8): `client/src/sync/partition.ts` takes the partition
+  by both clients that page: the app's `SyncOutbox.drain` and the command line's `pullPartitionAll`, so the guard
+  reaches both. **The request itself is named once too** (C-8): `client/src/sync/partition.ts` takes the partition
   as a parameter — `pullPartition`, `pullPartitionAll`, `pushPartition` — so which feed a call addresses stops being
   carried by the name of the function. **The
   cursor itself is deliberately not kept on the device outside Local Mode**: the pulled rows are not kept either — they
   live in the client's stores and go with the tab — so a device that remembered how far it had read and not *what* it
-  had read would ask for the changes after that point, receive none, and render an empty app. Measured 2026-08-25: an
-  instance of 717 master rows served a browser only its first 500, and the trips (which sit behind them in `change_log`)
-  never arrived at all; persisting the cursor without the rows turned that into no rows at all. E2E-SYNC-01 holds it.
-* **A client drains a partition once at a time (added 2026-08-25).** Pushing and pulling one partition is a single
+  had read would ask for the changes after that point, receive none, and render an empty app. Measured: without the
+  loop, an instance of 717 master rows serves a browser only its first 500, and the trips (which sit behind them in
+  `change_log`) never arrive; persisting the cursor without the rows turns that into no rows at all. E2E-SYNC-01 holds
+  it.
+* **A client drains a partition once at a time.** Pushing and pulling one partition is a single
   operation, and a second one started while the first is open is pure cost: the same chunk pushed twice (the server
-  memoizes it by `mutation_id`, so it is answered `duplicate` and changes nothing) and the same pages pulled twice. That
-  was one wasted request while a pull was one request; since a pull became a *paged* loop it is the whole partition. A
+  memoizes it by `mutation_id`, so it is answered `duplicate` and changes nothing) and the same pages pulled twice —
+  with a *paged* pull, the whole partition. A
   client therefore serialises drains **per partition** — the master feed must not make a trip wait behind it — and a
   caller arriving mid-drain waits for a **further** drain rather than for the running one, because a drain sends the
   queue as it stood when it started: handing back the running promise would report a mutation enqueued since then as
@@ -242,14 +149,13 @@ to open.
     `internal/store/store.go`). A generated column such as `trips.duration_days` is in neither direction of the
     protocol. **A client derives such a value from the columns it does receive** rather than reading it off the row —
     `durationDays()` mirrors the schema's own definition — because reading it leaves every pulled trip without one.
-  * **`updated_hlc` is the one column that travels without being writable** (added 2026-08-25). §3 has every client
-    advance its clock to the highest HLC it has observed, and a pull snapshot is the only place a device meets the clock
-    of a write it did not make; the field was described here from the start and was never actually sent, so the client's
-    observe step — which reads exactly this field — had been dead code since it was written. A device whose wall clock
-    lags therefore kept minting HLCs older than writes it had already seen, and lost its own later edits to them. It
+  * **`updated_hlc` is the one column that travels without being writable.** §3 has every client advance its clock to
+    the highest HLC it has observed, and a pull snapshot is the only place a device meets the clock of a write it did
+    not make. Without it, a device whose wall clock lags keeps minting HLCs older than writes it has already seen, and
+    loses its own later edits to them. It
     stays off `syncableColumns`, so it is readable and never settable: P-4 says clients do not merge, and a settable row
     clock would let one push backdate another device's write out of existence. **A clock that cannot be parsed is
-    ignored, not fatal** (added 2026-08-25, on merging this with the multi-page pull): the server stores an HLC verbatim
+    ignored, not fatal:** the server stores an HLC verbatim
     and never checks its device id, so one buggy producer can put an unparseable value in a shared feed — and since
     observing is an optimisation for causality rather than a gate on rendering, a throw there would make every *other*
     row of that partition unreachable on every device for as long as the row exists. The client skips such a value and
@@ -262,66 +168,65 @@ to open.
   until the trip is archived; **nothing compacts them today** — archiving a trip touches no log, and the `mutations`
   idempotency memo grows without bound beside them. Both are deliberate for a single-household instance and are named
   here so the absence is a known cost rather than a claim the code does not keep.
-* **Every foreign-key cascade is tombstoned explicitly** (stated 2026-08-25). SQLite deletes child rows inside the
+* **Every foreign-key cascade is tombstoned explicitly.** SQLite deletes child rows inside the
   engine, where no change feed can observe them, so a cascade without tombstones leaves those rows on every other device
   forever. `cascadeChildren` collects the children before the parent is deleted and appends a tombstone for each:
   templates → their positions, position tasks, includes and trip sources; items → tags and dependencies; tags → their
   assignments; series → profile and checklist; **trips → trip_members, trip_template_sources and trip_applied_changes**;
   and, the trip partition's only one, **trip_items → their comments**. A trip's remaining children need no tombstones
   for the opposite reason: `change_log.trip_id` cascades too, so the trip partition's whole feed is deleted with the
-  trip, and the master feed is what carries the news. **The client owes the same list** (added 2026-09-02). It has to
+  trip, and the master feed is what carries the news. **The client owes the same list.** It has to
   build the cascade itself, not because it renders faster but because in Local Mode nothing else ever will: the
   optimistic change list is what the device persists, and it deletes exactly the keys it names — so a delete naming only
   the parent leaves every child row on the device, where the next start reads them back. It is the delete twin of §4's
-  snapshot rule, and it hid the same way: the stores drop their own buckets, so the screen is right while the disk is
+  snapshot rule, and it hides the same way: the stores drop their own buckets, so the screen is right while the disk is
   not. `client/src/sync/cascade.ts` mirrors `cascadeChildren` case for case.
 * The server compacts consecutive changes to the same entity within one response (only the latest snapshot is sent).
 
 ### `GET /master/sync?cursor={seq}&limit={n}`
 
-Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes
-nullable in migration 005); visibility is filtered per user (member trips and their rosters, own series; tags,
-item_tags, items and templates are instance-wide per the FR-1.6 MVP simplification).
+Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows; visibility is filtered per
+user (member trips and their rosters, own series; tags, item_tags, items and templates are instance-wide per the FR-1.6
+MVP simplification).
 
-`item_dependencies` syncs through the master partition since migration 011 (Addendum 3.20, FR-20.1): rows carry
-`{item_id, depends_on_item_id, mode, quantity}` (plain integer since migration 014; formulas retired 2026-08-08) and are
+`item_dependencies` syncs through the master partition (Addendum 3.20, FR-20.1): rows carry
+`{item_id, depends_on_item_id, mode, quantity}` (`quantity` a plain integer) and are
 shared like the items they connect — writable and visible to every authenticated user. Deleting an item cascades its
 relations (both directions) and tombstones them. A duplicate `(item_id, depends_on_item_id)` pair, a self-reference, or
 an unknown endpoint is `rejected` (UNIQUE/CHECK/FK). Cycle prevention is save-time client validation; the client
 resolver also tolerates cycles that slip in from another device.
 
-`template_includes` and `template_item_tasks` sync through the master partition since migration 016 (§3.27,
-FR-27.1/27.7). An include row carries `{template_id, included_template_id}` and is the reference that makes a
-Ferien-Vorlage composed rather than copied; the scope rule (parent a Ferien-Vorlage, child a Gruppe) is enforced in the
-store so a violation is an ordinary `rejected` mutation rather than an opaque trigger abort, and a duplicate pair or a
-self-reference is `rejected` by UNIQUE/CHECK. Deleting either side cascades and tombstones the row. A task row carries
-`{template_item_id, task}` — one row per task rather than a JSON column on `template_items`, because field-level LWW
-(§6) would treat a blob as one field and lose concurrent edits. **Ordering is not guaranteed:** a pull can deliver an
-include before the group it points at, so the client resolver drops an unresolvable include rather than inventing a
-phantom group.
+`template_includes` and `template_item_tasks` sync through the master partition (§3.27, FR-27.1/27.7). An include row
+carries `{template_id, included_template_id}` and is the reference that makes a Ferien-Vorlage composed rather than
+copied; the scope rule (parent a Ferien-Vorlage, child a Gruppe) is enforced in the store so a violation is an ordinary
+`rejected` mutation rather than an opaque trigger abort, and a duplicate pair or a self-reference is `rejected` by
+UNIQUE/CHECK. Deleting either side cascades and tombstones the row. A task row carries `{template_item_id, task}` — one
+row per task rather than a JSON column on `template_items`, because field-level LWW (§6) would treat a blob as one field
+and lose concurrent edits. **Ordering is not guaranteed:** a pull can deliver an include before the group it points at,
+so the client resolver drops an unresolvable include rather than inventing a phantom group.
 
-`template_tasks` (FR-7.4, 2026-09-18) sits beside them in the master partition: `{template_id, task}`, one row per task
-for the same field-level reason, cascading and tombstoned with its template. Its rows materialise at generation as
-**trip todos** — `comments` rows with `is_task=1` and `trip_item_id` null, a shape the trip partition always accepted
-and no client wrote before. Nothing about either needs a new rule on the server.
+`template_tasks` (FR-7.4) sits beside them in the master partition: `{template_id, task}`, one row per task for the
+same field-level reason, cascading and tombstoned with its template. Its rows materialise at generation as **trip
+todos** — `comments` rows with `is_task=1` and `trip_item_id` null, a shape the trip partition accepts like any other
+comment. Neither needs a rule of its own on the server.
 
-`comments.assignee_user_id` (FR-7.5, 2026-09-19) is an ordinary client-written column of the trip partition — a trip
+`comments.assignee_user_id` (FR-7.5) is an ordinary client-written column of the trip partition — a trip
 todo's assignment, the counterpart of `trip_items.packer_user_id`, and like it **not** stamped: invariant 3 governs
 `author_id`. Setting it to another member earns that member a `delegation` notification (§ Notifications).
 
-`comments.phase` (FR-7.7, 2026-09-21) is the client's statement about when a task is due — `before`, `during`, or NULL
+`comments.phase` (FR-7.7) is the client's statement about when a task is due — `before`, `during`, or NULL
 for a task written before the column existed. `template_tasks.phase` is the same value on the Vorlage's side, carried
 into the trip at generation. Both are nullable and free of a CHECK, like everything else on these tables: a constraint
 that can refuse a single-field mutation loses the user's choice (ADR-022). `resolved_at`/`resolved_by_user_id` beside
 them are the resolution's record and are **stamped** — see §5.
 
-`comments.due_date` (FR-7.11, 2026-09-25) is the day a task is due, `YYYY-MM-DD`, or NULL for none — a calendar day
+`comments.due_date` (FR-7.11) is the day a task is due, `YYYY-MM-DD`, or NULL for none — a calendar day
 with no time and no zone, so it reads the same wherever it is read. The client's to choose, one field, nullable and
 free of a CHECK for the reason above; an explicit `null` takes the date off. The server only reads it, for the daily
 reminder (§8, kind `task_due`). `shopping_entries.due_date` (FR-30.10) is the same field on a shopping entry, read by
 the same run for kind `shopping_due`.
 
-`comments.parent_id`, `title` and `edited_at` (FR-7.13, 2026-09-25) make a trip note a thread. `parent_id` names the
+`comments.parent_id`, `title` and `edited_at` (FR-7.13) make a trip note a thread. `parent_id` names the
 thread's first note on a reply and is **written once**: the server drops it from every op on a row that already exists,
 and refuses an insert (`constraint_violated`) whose parent is itself a reply, is an item's comment or a task, belongs to
 another trip or does not exist — and a reply that is a task or names a packing row. Deleting a first note cascades to
@@ -331,7 +236,7 @@ reply. `edited_at` is the client's clock, like `resolved_at`. **A note's words a
 `not_authorized`; a task's stay everybody's. `note_acks.seen_through` is the client's statement of how far a tick
 reached — the stamp of the thread's newest entry — and is read only by clients.
 
-`task_tags` (FR-7.8, ADR-072, 2026-09-21) joins the master partition: `{name, sort_order, icon}`, instance-wide like
+`task_tags` (FR-7.8, ADR-072) joins the master partition: `{name, sort_order, icon}`, instance-wide like
 `tags`, and a separate vocabulary from it on purpose — a task is filed by what it is *about*, an item by what it *is*,
 and the two never appear in one picker. `comments.task_tag_id` names one of its rows, which makes it a trip-partition
 row pointing at a master-partition one, as `trip_items.source_item_id` already does. It is the client's to choose and
@@ -344,7 +249,7 @@ change feed cannot see it, so **no tombstone and no update travel** and a device
 old id. The client therefore reads a task whose tag it has no row for as untagged rather than trusting the column —
 the same rule that covers the ordinary case of the two feeds arriving out of order.
 
-`items.icon` and `templates.icon` (§3.28, FR-28.1/28.8/28.9 — **built 2026-08-22**, ADR-021) are ordinary synced columns
+`items.icon` and `templates.icon` (§3.28, FR-28.1/28.8/28.9 — **built**, ADR-021) are ordinary synced columns
 carrying one emoji, resolved by field-level LWW like `name`. They are deliberately **not** given the `image_hash`
 treatment beside them: that split exists because BLOBs bloat every pull envelope (ADR-002), and a mark is a handful of
 bytes. The server validates a length cap only (`capMark`, mirrored by a CHECK on both tables) and otherwise treats the
@@ -352,7 +257,7 @@ value as opaque text — it does not try to decide whether a string "is an emoji
 a check would reject next year's valid input on a purely cosmetic field. A trip row carries no mark of its own
 (FR-28.7): the client resolves it through `trip_items.source_item_id`, so no trip partition changes.
 
-`items.retired_at` and `templates.retired_at` (§3.24, FR-24.3 — **built 2026-08-25**, ADR-032) are ordinary synced
+`items.retired_at` and `templates.retired_at` (§3.24, FR-24.3 — **built**, ADR-032) are ordinary synced
 columns carrying FR-24.3's lifecycle marker: NULL while the row is active, an RFC3339 stamp once a delete retired it.
 They resolve by field-level LWW like `name`, and **they change nothing about what a pull carries** — `masterVisible`
 does not consult them and no query filters on them. That is the point: the marker is a display rule the *client*
@@ -361,13 +266,13 @@ answering FR-8/FR-14 analytics and FR-9.2 attributions. The column has no `NOT N
 constraint able to refuse a single-field mutation would lose the user's decision, because a rejected mutation is one the
 outbox drops. `UNIQUE (name)` on both tables is a **partial** unique index over `retired_at IS NULL`, so a retired row
 stops holding the name it was created with. **Restoring is the same column set back to NULL** — an ordinary upsert, no
-special op (M23, 2026-08-25) — and it is the one write that partial index can refuse: if an active row took the freed
+special op (M23) — and it is the one write that partial index can refuse: if an active row took the freed
 name meanwhile, the restore is `rejected` with `constraint_violated`, the row stays retired and ADR-031's re-log repairs
 the pusher. The client refuses it first, over the master partition it holds in full, and offers a replacement name
 written in the *same* mutation as the cleared marker (ADR-034), so that rejection is a backstop rather than a path
 anyone travels.
 
-`trip_members` syncs through the master partition since migration 009 (FR-4.5/4.7): rows carry `{trip_id, user_id,
+`trip_members` syncs through the master partition (FR-4.5/4.7): rows carry `{trip_id, user_id,
 role}`, are managed only by Owner/Admin, never carry `role: "owner"` from a client (the creator's server-created row is
 the only Owner and is immutable — no demotion, no removal), and a duplicate `(trip_id, user_id)` insert is `rejected`.
 Two server-side feed guarantees make late sharing work: (a) creating a trip also logs the auto-created owner membership
@@ -397,7 +302,7 @@ copy until it discards it (lazy, same semantics as trip deletes).
   earlier ones.
 * **Server-stamped fields.** Before merging, the server overwrites the actor columns from the authenticated pusher, so a
   client value is never trusted (`stampActor`). Comment `author_id` is stamped on **insert** and **stripped from every
-  other op** (corrected 2026-08-25): authorship is decided once, when the comment comes into being, and re-stamping a
+  other op**: authorship is decided once, when the comment comes into being, and re-stamping a
   later op would be the opposite forgery — flagging a foreign comment as an FR-7.2 task is an `upsert`, and would
   transfer its authorship. An `upsert` that would *create* a comment therefore carries no author, meets the `NOT NULL`
   column and comes back as an ordinary `rejected` mutation rather than attributed to whoever pushed it. On `trip_items`,
@@ -407,32 +312,29 @@ copy until it discards it (lazy, same semantics as trip deletes).
   `packed` records the pusher as the packer and clears the claim, and **every** other state — `open`, `partial`,
   `skipped` — clears both. A mutation carrying no `state` at all therefore changes neither, which is the point of the
   strip: without it a push that touches no state could name any claim holder it liked, and the FR-5.7 takeover and M4's
-  row read that holder as authoritative. Ending a claim is the server's job for the same reason starting one is — the
-  release used to be the client sending `packing_now_by: null`, and a released claim may not depend on the client saying
-  so. The FR-5.7 **takeover** does not travel this path at all: it has its own endpoint (§8) and is stamped there.
-  `packer_user_id` is *not* stamped: since FR-25.19 it carries the assignment, which is the client's to choose.
-  **The purchase record (FR-30.4)** follows the same rule on `trip_items` and `shopping_entries`:
-  `bought_by_user_id`/`bought_at` are stripped from every mutation and written back only by the field the purchase is —
-  `bought_from` on a trip item, `bought` on an entry. A purchase names the pusher and keeps the client's tap time (an
-  unreadable one is replaced by the server's clock, as for `packed_at`); taking it back clears both. A mutation that
-  touches neither field carries **no** record, not even a null, since a null would erase a purchase another device
-  already recorded.
-  `trips.year` (migration 021) is `NOT NULL` — a `trips` insert without it is rejected rather than defaulted, because a
-  trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable from the same migration.
-  **The task's resolution record (FR-7.7)** follows the purchase's rule on `comments`: `resolved_by_user_id`/
-  `resolved_at` are stripped from every mutation and written back only by the `task_state` the mutation carries —
-  `resolved` names the pusher and keeps the client's tap time, any other state clears both, and a mutation touching no
-  state carries no record at all. `phase` and `task_tag_id` are left untouched beside them: when a task is due and what
-  it is about are the user's statements, not claims about who anyone is.
-  `trip_items.packed_at` (migration 020) is the same record's *when* (FR-25.17) and follows it exactly — written with
-  the record, cleared with it, stripped from every mutation first — with one deliberate difference: a **client-supplied
-  RFC 3339 value is kept**, because packing happens offline and the push can land days after the tap. A clock is not an
-  identity claim, so invariant 3 does not reach it; an unparseable value is replaced by the server's own time rather
-  than stored. `packing_now_at` follows the claim on exactly those terms.
+  row read that holder as authoritative. Ending a claim is the server's job for the same reason starting one is — a
+  released claim may not depend on the client sending `packing_now_by: null`. The FR-5.7 **takeover** does not travel
+  this path at all: it has its own endpoint (§8) and is stamped there. `packer_user_id` is *not* stamped: since FR-25.19
+  it carries the assignment, which is the client's to choose. **The purchase record (FR-30.4)** follows the same rule on
+  `trip_items` and `shopping_entries`: `bought_by_user_id`/`bought_at` are stripped from every mutation and written back
+  only by the field the purchase is — `bought_from` on a trip item, `bought` on an entry. A purchase names the pusher
+  and keeps the client's tap time (an unreadable one is replaced by the server's clock, as for `packed_at`); taking it
+  back clears both. A mutation that touches neither field carries **no** record, not even a null, since a null would
+  erase a purchase another device already recorded. `trips.year` is `NOT NULL` — a `trips` insert without it is rejected
+  rather than defaulted, because a trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable. **The
+  task's resolution record (FR-7.7)** follows the purchase's rule on `comments`: `resolved_by_user_id`/ `resolved_at`
+  are stripped from every mutation and written back only by the `task_state` the mutation carries — `resolved` names the
+  pusher and keeps the client's tap time, any other state clears both, and a mutation touching no state carries no
+  record at all. `phase` and `task_tag_id` are left untouched beside them: when a task is due and what it is about are
+  the user's statements, not claims about who anyone is. `trip_items.packed_at` is the same record's *when* (FR-25.17)
+  and follows it exactly — written with the record, cleared with it, stripped from every mutation first — with one
+  deliberate difference: a **client-supplied RFC 3339 value is kept**, because packing happens offline and the push can
+  land days after the tap. A clock is not an identity claim, so invariant 3 does not reach it; an unparseable value is
+  replaced by the server's own time rather than stored. `packing_now_at` follows the claim on exactly those terms.
 * **Response** per mutation, under the key **`outcome`**: `applied` | `merged` (some fields lost per conflict rules,
   `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected`
-  (validation/permission, with `error`). The envelope, written out because naming only the *values* was how the client
-  came to read a key the server has never sent:
+  (validation/permission, with `error`). The envelope, written out because naming only the *values* lets a client read
+  a key the server never sends:
 
 ```json
 {
@@ -448,21 +350,19 @@ copy until it discards it (lazy, same semantics as trip deletes).
 ```
 
   **`merged` is an outcome the client has to act on, not a quieter `applied`.** The mutation *did* apply, so it leaves
-  the queue like any other — but `conflicts[]` names fields of this device's change that the server dropped, and until
-  2026-08-22 the client read that array in no code path at all. It now counts them per push and reports one signal per
+  the queue like any other — but `conflicts[]` names fields of this device's change that the server dropped. The client
+  counts them per push and reports one signal per
   push (never per conflict — a reconnect drains a whole queue), which G-2 turns into a toast leading to the partition's
   conflict log and a standing line in its detail sheet. The count is this session's; the durable record is the log.
 
   `internal/api/testdata/push_response.json` holds exactly this document, and both sides are tested against that file
   rather than against their own idea of it (`TestPushResponse_MatchesTheSharedWireFixture` and
   `client/src/composables/__tests__/pushContract.spec.ts`).
-* **A `rejected` mutation names its reason** (added 2026-08-25). The `error` field beside the outcome was declared from
-  the start and written only for the two validation errors the handler raises before the store is reached, so every
-  *store-side* refusal — an authorization denial, a mutation aimed outside its partition, a structural template rule, a
-  constraint, a delete other rows still depend on — reached the client as the bare word `rejected`. Per P-5 any outcome
-  is an acknowledgement, so the client's outbox drops the mutation: the user's change was gone, their screen still
-  showed it as done, and nothing anywhere could say why. The refusals now carry one of a **closed vocabulary**, declared
-  once as `store.RejectReason` and sent verbatim in `error`:
+* **A `rejected` mutation names its reason.** Per P-5 any outcome is an acknowledgement, so the client's outbox drops
+  the mutation; a bare `rejected` would leave the user's change gone, their screen still showing it as done, and
+  nothing anywhere able to say why. Every *store-side* refusal — an authorization denial, a mutation aimed outside its
+  partition, a structural template rule, a constraint, a delete other rows still depend on — therefore carries one of a
+  **closed vocabulary**, declared once as `store.RejectReason` and sent verbatim in `error`:
 
   | value | means |
   |---|---|
@@ -478,15 +378,15 @@ copy until it discards it (lazy, same semantics as trip deletes).
   does not know. Values outside the set — the validation errors, or an older server saying nothing — are diagnostics,
   and the client deliberately does not render them as copy. G-2's detail sheet names the most recent refusal beside the
   parked count.
-* **A refusal repairs the row it refused** (added 2026-08-25, ADR-031). Naming the reason was half the answer; the other
-  half is that the device stops showing what was refused. The server appends a `change_log` entry for the refused
-  entity, so the pull the same drain makes next carries the row and replaces the optimistic copy — the repair travels
-  the one read path (P-1), like every other change. **`deleted` on that entry is read from the server's own row, never
-  from the mutation's op**: a refused delete or update re-delivers the snapshot, and a refused *insert* — for which
-  there is no server row — delivers a tombstone that drops the phantom. A refused **delete** re-logs the rows its
-  cascade would have taken as well, because a client mirrors that cascade optimistically and would otherwise get the
-  parent back with none of its children. The entries land in the shared feed, so devices that did nothing pull rows that
-  did not change; that is the accepted cost of not opening a second read path. Two limits are deliberate:
+* **A refusal repairs the row it refused** (ADR-031). Naming the reason is half the answer; the other half is that the
+  device stops showing what was refused. The server appends a `change_log` entry for the refused entity, so the pull the
+  same drain makes next carries the row and replaces the optimistic copy — the repair travels the one read path (P-1),
+  like every other change. **`deleted` on that entry is read from the server's own row, never from the mutation's op**:
+  a refused delete or update re-delivers the snapshot, and a refused *insert* — for which there is no server row —
+  delivers a tombstone that drops the phantom. A refused **delete** re-logs the rows its cascade would have taken as
+  well, because a client mirrors that cascade optimistically and would otherwise get the parent back with none of its
+  children. The entries land in the shared feed, so devices that did nothing pull rows that did not change; that is the
+  accepted cost of not opening a second read path. Two limits are deliberate:
   * **`out_of_scope` re-logs nothing.** The row belongs to another trip, and an entry for it under this one would hand
     the pusher the foreign snapshot on the next pull — the exact leak P-3 exists to prevent. The client repairs that one
     itself, by dropping the row: a row a partition may not touch is a row it must not keep.
@@ -496,38 +396,37 @@ copy until it discards it (lazy, same semantics as trip deletes).
 
   A replay repairs nothing further: the memo answers it `duplicate` before the store is reached (P-5), so a boot replay
   of a parked mutation does not append a repair per attempt.
-* **A delete the data still depends on is refused, not cascaded** — for every entity except the two FR-24.3 governs
-  (revised 2026-08-25). The deliberately restricting references carry no `ON DELETE` clause on purpose: FR-9.2 has an
+* **A delete the data still depends on is refused, not cascaded** — for every entity except the two FR-24.3 governs.
+  The deliberately restricting references carry no `ON DELETE` clause on purpose: FR-9.2 has an
   archived trip keep naming the Vorlage its rows came from, and the same holds for a master item a template position or
   a trip item names, a series a trip names, and a traveler or container a trip item names. The refusal is asked for
   before the delete is attempted (the driver's constraint message is not a contract to branch on), and it is the
   conservative half of a tradeoff: `ON DELETE SET NULL` would silently strip provenance from finished trips, and
   cascading across the partition boundary would need one master mutation to write tombstones into N trip partitions. For
   a **series, traveler or container** the answer is still `still_referenced` and the row is untouched.
-* **For `items` and `templates`, that same check now decides rather than declines** (FR-24.3, built 2026-08-25). A
+* **For `items` and `templates`, that same check decides rather than declines** (FR-24.3, built). A
   delete of a referenced master item or Vorlage is answered **`applied`**: the server writes `retired_at` instead of
   removing the row, appends an ordinary (non-tombstone) master change-log entry for it, and — because the pushing device
   already mirrored the delete's cascade optimistically — re-logs every child that cascade would have taken, alive,
-  exactly as ADR-031's repair does for a refusal. A delete of an *un*referenced one is the physical delete it always
-  was. The client cannot always predict which it will get (it holds only the trip partitions it has opened), and does
-  not need to: the pull carries the truth. **Whether the permissive behaviour is wanted for the other entities too is an
-  owner decision**, not a defect.
-* **A write older than the delete does not bring the row back** (added 2026-09-09). A delete removes the row itself, so
-  the entity's only remaining trace is its `change_log` tombstone — and a write made before the delete, pushed after it
-  by a device that was offline meanwhile, therefore arrived at an id the server holds nothing for. That is the same
-  state a genuinely new row arrives in, and the merge treated it as one: every field applied, the row re-created with
-  the values it had before somebody deleted it, and the resurrection reached every other device as an ordinary change.
-  The tombstone is now read where the row is missing, and **a write must be strictly newer than it to create the row
-  again** — the same direction the delete branch decides in (`m.hlc > row.updated_hlc`), so the two cannot disagree.
-  Older is `rejected` with `row_deleted`, and ADR-031's repair applies with nothing changed: there is no server row, so
-  the re-log is a tombstone, and the phantom leaves the pushing device on its next pull. Strictly newer still applies,
-  which is what keeps the two paths that legitimately re-create a deleted id working — the client's undo and FR-24.3's
-  restore both re-insert the row they removed, under the same id, with a fresh clock. The word `row_deleted` is
-  deliberately the one §6.1's revert endpoint already answers with: one meaning, one spelling. The cost is a lookup in
-  the feed's log for every write that finds no row, which is every insert, and it is unindexed — affordable because
-  the feed carrying the burst (a trip creation's a hundred `trip_items`) is the one `idx_change_log_trip` already
-  bounds, while the master feed that scales sees single-digit inserts per action. Measured, weighed and given a
-  numeric revisit trigger in ADR-052.
+  exactly as ADR-031's repair does for a refusal. A delete of an *un*referenced one is a physical delete. The client
+  cannot always predict which it will get (it holds only the trip partitions it has opened), and does not need to: the
+  pull carries the truth. **Whether the permissive behaviour is wanted for the other entities too is an open product
+  decision**, not a defect.
+* **A write older than the delete does not bring the row back.** A delete removes the row itself, so the entity's only
+  remaining trace is its `change_log` tombstone — and a write made before the delete, pushed after it by a device that
+  was offline meanwhile, arrives at an id the server holds nothing for. That is the same state a genuinely new row
+  arrives in; merged as one, it would re-create the row with the values it had before somebody deleted it and carry the
+  resurrection to every other device. The tombstone is therefore read where the row is missing, and **a write must be
+  strictly newer than it to create the row again** — the same direction the delete branch decides in (`m.hlc >
+  row.updated_hlc`), so the two cannot disagree. Older is `rejected` with `row_deleted`, and ADR-031's repair applies
+  with nothing changed: there is no server row, so the re-log is a tombstone, and the phantom leaves the pushing device
+  on its next pull. Strictly newer still applies, which is what keeps the two paths that legitimately re-create a
+  deleted id working — the client's undo and FR-24.3's restore both re-insert the row they removed, under the same id,
+  with a fresh clock. The word `row_deleted` is deliberately the one §6.1's revert endpoint answers with: one meaning,
+  one spelling. The cost is a lookup in the feed's log for every write that finds no row, which is every insert, and it
+  is unindexed — affordable because the feed carrying the burst (a trip creation's a hundred `trip_items`) is the one
+  `idx_change_log_trip` already bounds, while the master feed that scales sees single-digit inserts per action.
+  Measured, weighed and given a numeric revisit trigger in ADR-052.
 * **A constraint the database refuses is `rejected`, never a 5xx.** A foreign key whose target another device deleted, a
   quantity merged below what is already packed, a partial upsert whose row is gone: the statement fails, the transaction
   survives, and the mutation is answered as the refusal it is. Returning an error instead would make the whole batch a
@@ -621,49 +520,46 @@ that last set *it*: every synced table carries `field_hlcs`, a JSON object `{fie
 by nothing else (it is not a synced column — clients never merge, P-4 — and does not travel in pull snapshots). A field
 with no entry is as old as the row (`updated_hlc`), which is the only safe reading of a row a non-merging path wrote; an
 insert stamps every column, because a default taken at insert time was written then. Without the per-field record, one
-`updated_hlc` per row made every older incoming field lose to *any* newer write of the row — a pack made offline at
-10:00 was displaced by a container assigned at 10:30 — and that was masked for exactly one case by letting `packed`
-always win (ADR-022).
+`updated_hlc` per row would make every older incoming field lose to *any* newer write of the row — a pack made offline
+at 10:00 displaced by a container assigned at 10:30 (ADR-022).
 
 **Rule 2 is as narrow as it reads.** *Packed* beats *packing now* because the lock is transient and the pack is the fact
 it was waiting for; *packing now* never displaces *packed* for the same reason. Between two deliberate state decisions —
 a pack made offline against a later unpack or FR-5.5 skip — the later one stands and the earlier one is logged, because
-a person made both and only the clock can say which was the last word. The previous code let every incoming `packed` win
-regardless of HLC, which was silent data loss: the later decision was overwritten and, the group having applied, no
-conflict was written.
+a person made both and only the clock can say which was the last word. Letting every incoming `packed` win regardless of
+HLC would be silent data loss: the later decision overwritten and, the group having applied, no conflict written.
 
 Field groups: `packed_count`+`state` merge as one unit (they are causally coupled per FR-5.4) and share one clock, the
 newer of the two; all other columns are independent fields. **Decided: no further grouping** — `mode` is not grouped
 with `state`; a procurement-mode change concurrent with a pack-state change is resolved as two independent LWW fields,
 not a coupled unit.
 
-**A conflict is an overwrite, not a lost race** (corrected 2026-08-23). Losing the write and having a value overwritten
+**A conflict is an overwrite, not a lost race.** Losing the write and having a value overwritten
 are two different things, and only the second one is worth a log row: a field the push carried along unchanged —
 `end_date` riding with the `start_date` an FR-2.7 edit moved, the `name` beside a changed quantity — leaves the row
-holding exactly what that push wanted. Logging it anyway produced entries reading `2026 → 2026`, each with a revert
-button that restores what is already there, and made the outcome `merged` rather than `applied`, so the client announced
-overwritten fields to a user whose data no one had touched. The comparison is deliberately across types: a mutation's
+holding exactly what that push wanted. Logging it anyway would produce entries reading `2026 → 2026`, each with a revert
+button that restores what is already there, and make the outcome `merged` rather than `applied`, announcing overwritten
+fields to a user whose data no one touched. The comparison is deliberately across types: a mutation's
 fields are decoded from the envelope's JSON and the row's are read from SQLite, so one quantity of 5 arrives as a
 `float64` and the other as an `int64`, and a boolean field is `true` on one side and `1` on the other. A value of a
 shape neither numeric, textual nor null is treated as different, so an unforeseen type logs a conflict rather than
 swallowing one.
 
-**What the conflict log names.** Each dropped field is one row: entity, field, losing and winning value, and — since
-2026-08-22 — the `mutation_id` that lost it and the `actor_user_id` who pushed it, both server-stamped. The mutation id
-groups the fields one push lost so a revert restores `state` and `packed_count` together; the actor is the person that
-revert belongs to and the one to tell (NFR-4.2a: audit **and** manual revert; the revert and the telling are the
-client's half and follow).
+**What the conflict log names.** Each dropped field is one row: entity, field, losing and winning value, the
+`mutation_id` that lost it and the `actor_user_id` who pushed it, both server-stamped. The mutation id groups the fields
+one push lost so a revert restores `state` and `packed_count` together; the actor is the person that revert belongs to
+and the one to tell (NFR-4.2a: audit **and** manual revert, §6.1).
 
-**An entry does not outlive the row it names** (corrected 2026-09-10, found on the :3000 instance): both logs leave out
-the entries whose entity has since been deleted. `conflict_log` holds both partitions' entries in one table, keyed by
-table name and id, so it has no foreign key to that row and nothing cascades — a deleted template's `templates · name`
-entry simply stayed. It was left out rather than kept because such an entry can do neither of the two things NFR-4.2a
-promises: the client has no name to show for a deleted entity and falls back to the bare kind, and the revert answers
-`409 row_deleted`. A record meant to survive its subject says so by storing what it needs, the way a lock event stores
-`item_name` (ADR-028). Note what this is *not*: a deleted row does not erase the log, it stops being listed — the rows
-remain, and a compaction on archive is still unbuilt.
+**An entry does not outlive the row it names:** both logs leave out the entries whose entity has since been deleted.
+`conflict_log` holds both partitions' entries in one table, keyed by table name and id, so it has no foreign key to that
+row and nothing cascades — a deleted template's `templates · name` entry would simply stay. It is left out rather than
+kept because such an entry can do neither of the two things NFR-4.2a promises: the client has no name to show for a
+deleted entity and falls back to the bare kind, and the revert answers `409 row_deleted`. A record meant to survive its
+subject says so by storing what it needs, the way a lock event stores `item_name` (ADR-028). Note what this is *not*: a
+deleted row does not erase the log, it stops being listed — the rows remain, and a compaction on archive is still
+unbuilt.
 
-### 6.1 Manual revert (NFR-4.2a's second half) — implemented 2026-08-22
+### 6.1 Manual revert (NFR-4.2a's second half) — implemented
 
 NFR-4.2a promises the log so users can audit **and manually revert**. A
 revert is **an ordinary upsert with a fresh server HLC, resolved by the
@@ -685,8 +581,7 @@ Four consequences follow, and all four are deliberate:
   exists to drop, and it is answered `409 revert_refused` rather than
   silently swallowed. A deleted row is `409 row_deleted` — one logged
   field cannot rebuild a row.
-* **A coupled field group is restored as a whole** (corrected 2026-08-23,
-  found in review). `state` and `packed_count` are one fact (§6, FR-5.4),
+* **A coupled field group is restored as a whole.** `state` and `packed_count` are one fact (§6, FR-5.4),
   so restoring one without the other writes a row the state machine cannot
   describe — `state = packed` beside `packed_count = 0` on a quantity of
   five. The revert therefore carries the whole group: the tapped entry's
@@ -702,26 +597,24 @@ Four consequences follow, and all four are deliberate:
   restore one entry and any refusal below rolls the flag back with it. The
   loss itself stays in the log; a revert is a fact *about* the entry.
 
-The `losing_value`/`winning_value` columns are what makes this possible at
-all, and they were already there — as was the unused `reverted` flag. No
-schema change was owed.
+The `losing_value`/`winning_value` columns and the `reverted` flag are what
+make this possible.
 
 
 ## 7. WebSocket — `GET /ws` (Upgrade)
 
 * Auth via `?token=` query param (implemented) or first frame `{"auth": "<JWT>"}` (reserved, not implemented).
-* **The parameter is omitted entirely when the client has no token** (clarified 2026-08-14). `wsAuth` promotes any
-  *non-empty* `?token=` value to an `Authorization` header, so a client that interpolated an absent token anyway
-  (`?token=null`) sent `Bearer null` — and a multi-user instance answered `401 invalid token` where the truth was `401
-  missing bearer token`. Absent means absent; a present token is percent-encoded. (Single-User Mode bypasses `authed`
-  altogether, so it upgraded either way — the cost was the misleading diagnosis, not a refused connection.)
-* **The handshake is same-origin, and the port is part of the origin** (recorded 2026-08-23 after the shipped stack
-  failed it). `websocket.Accept` runs with the library's default options: an `Origin` header is authorized only when its
-  host — *port included* — equals the request's `Host`, and anything else is answered `403`. Nothing else on the wire is
-  checked this way, so a reverse proxy that rewrites `Host` breaks the socket alone while all of §§3–8 keep working.
-  `scripts/proxy-host-gate.mjs` holds every nginx sample in the repository to `$http_host` for that reason; `$host`
-  drops the port. Since ADR-043 the shipped stack has no proxy of its own — one process serves the client and the API —
-  so the samples the gate guards are the manual's, for the TLS terminator an operator puts in front.
+* **The parameter is omitted entirely when the client has no token.** `wsAuth` promotes any *non-empty* `?token=`
+  value to an `Authorization` header, so an interpolated absent token (`?token=null`) would send `Bearer null` and draw
+  `401 invalid token` where the truth is `401 missing bearer token`. Absent means absent; a present token is
+  percent-encoded. (Single-User Mode bypasses `authed` altogether and upgrades either way.)
+* **The handshake is same-origin, and the port is part of the origin.** `websocket.Accept` runs with the library's
+  default options: an `Origin` header is authorized only when its host — *port included* — equals the request's `Host`,
+  and anything else is answered `403`. Nothing else on the wire is checked this way, so a reverse proxy that rewrites
+  `Host` breaks the socket alone while all of §§3–8 keep working. `scripts/proxy-host-gate.mjs` holds every nginx sample
+  in the repository to `$http_host` for that reason; `$host` drops the port. Since ADR-043 the shipped stack has no
+  proxy of its own — one process serves the client and the API — so the samples the gate guards are the manual's, for
+  the TLS terminator an operator puts in front.
 * Server → client envelope: `{"type": "<event>", "payload": {…}}`.
 * Client → server frames: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`, `{"unsubscribe": ["trip:<id>"]}`, `{"cursor":
   {"trip_id": "<id>", "seq": <n>}}` — the client reports its pull cursor after each trip pull so the server can
@@ -730,33 +623,30 @@ schema change was owed.
   keepalive, answered with a `pong` event. `user:` frames are
   accepted but redundant: `notification.created` is delivered to every connection *authenticated* as the target user, so
   a client can never miss (or steal) the event by (mis)subscribing.
-* **A subscription ends when the permission does, and the server decides that on every send (ADR-056, corrected
-  2026-09-10).** `subscribe` is refused for a trip the caller is not a member of, and until this date that refusal was
-  the *only* check the socket ever passed: the hub then broadcast to whoever its in-memory subscription map still
-  named. Nothing server-side could take a subscription away — `unsubscribe` is reachable from the client's own frame
-  and from nowhere else — so a removed member's open socket kept receiving `trip.changed`, the G-3 `item.locked` /
-  `item.unlocked` events *including the item's name*, and the presence list, until that person closed the tab. The hub
-  now asks, for every event and every presence payload, whether that connection's user may still receive this trip:
-  the account is active (FR-23.3) and the membership is current (FR-4.7). Both questions go through the mode's
-  identity, so Single-User Mode answers yes to both and behaves exactly as before. Nothing on the wire changes — a
-  revoked device is simply no longer told, and its next pull already refuses. Two consequences worth knowing: the
+* **A subscription ends when the permission does, and the server decides that on every send (ADR-056).** `subscribe`
+  is refused for a trip the caller is not a member of, and that check alone is not enough: nothing server-side takes a
+  subscription away — `unsubscribe` is reachable from the client's own frame and from nowhere else — so a hub that
+  broadcast to its in-memory subscription map would keep a removed member's open socket receiving `trip.changed`, the
+  G-3 `item.locked` / `item.unlocked` events *including the item's name*, and the presence list, until that person
+  closed the tab. The hub therefore asks, for every event and every presence payload, whether that connection's user
+  may still receive this trip: the account is active (FR-23.3) and the membership is current (FR-4.7). Both questions go
+  through the mode's identity, so Single-User Mode answers yes to both. Nothing on the wire says so — a revoked device
+  is simply no longer told, and its next pull already refuses. Two consequences worth knowing: the
   presence roster other members hold keeps a revoked user until the next presence event (nothing rebroadcasts at the
   moment of revocation), and a membership restored after a mistake resumes with no re-subscribe, because the
   subscription itself was never taken away.
-* **A broadcast waits for no peer, and a peer that cannot keep up is disconnected (ADR-057, 2026-09-10).** The hub
-  wrote to its subscribers in a loop with a 5 s deadline per write, so one socket the kernel had stopped draining —
-  a phone out of range whose TCP connection has not failed yet — delayed every *other* subscriber by up to that
-  deadline, one after another. Each connection now owns a bounded queue and a single writer, and a connection whose
-  queue overruns is **closed** rather than waited for: an event carries no rows (P-1), and the client's
+* **A broadcast waits for no peer, and a peer that cannot keep up is disconnected (ADR-057).** Each connection owns a
+  bounded queue and a single writer, so one socket the kernel has stopped draining — a phone out of range whose TCP
+  connection has not failed yet — delays no *other* subscriber, and a connection whose queue overruns is **closed**
+  rather than waited for: an event carries no rows (P-1), and the client's
   reconnect-and-pull recovers everything the gap contained. Two things follow for a client author: a socket may close
   for no reason the client can see and the reconnect path is the answer to all of them, and events for one socket
   keep their order, so `item.locked` can never arrive after its `item.unlocked`.
-* **The socket is a subscription, not a session, and the client treats it as one (implemented 2026-09-01).** P-1 has
-  named *reconnect* as one of the four things the read path serves since v1.0, and until this date the client had none:
-  a closed socket was nulled and never dialled again, so a device whose connection the server restart under it (the
-  nightly backup does exactly that) or a network change had cut stayed deaf to every other device's change until it
-  wrote something itself or reloaded — found on the family instance as a *one-directional* sync, because only one of the
-  two devices had lost its socket. What the client does now, all of it in `useWebSocket.ts`: **(1)** a socket that
+* **The socket is a subscription, not a session, and the client treats it as one.** P-1 names *reconnect* as one of
+  the four things the read path serves: a device whose connection a server restart (the nightly backup does exactly
+  that) or a network change cut must not stay deaf to every other device's change until it writes something itself or
+  reloads — which reads as a *one-directional* sync, since only one of two devices lost its socket. What the client
+  does, all of it in `useWebSocket.ts`: **(1)** a socket that
   closes without `disconnect()` having been called is dialled again after a backoff that doubles from 1 s to a 30 s cap
   and resets on a successful open — no jitter, on purpose, since an instance has a handful of devices and not a fleet;
   **(2)** the subscription set is declarative — every open sends the whole set and the latest cursor per trip, because a
@@ -780,13 +670,10 @@ schema change was owed.
 | `pong` | — | answers a client `{"ping": true}`; consumed by the client's liveness watchdog, never surfaced (§9) |
 
 * Locks (`packing_now`) are **also** persisted via normal mutations; the ephemeral event only lowers latency, and
-  offline devices converge via pull. **A claim has no lifetime** (FR-5.7, ADR-028, 2026-08-24): it ends by the row being
+  offline devices converge via pull. **A claim has no lifetime** (FR-5.7, ADR-028): it ends by the row being
   packed, by the holder **releasing** it, or by another member **taking it over**, and never by ageing. The row keeps
   `packing_now` until one of those three writes over it, so age carries no information and no client reads
-  `packing_now_at` to decide whether a claim still counts. **What this replaced:** a 15-minute staleness window that
-  every client applied and the server did not, published per instance on `GET /api/v1/config` from
-  `JITPACK_LOCK_TIMEOUT`. The window, the variable and the endpoint are all gone; `GET /api/v1/config` served nothing
-  else, so it went with them.
+  `packing_now_at` to decide whether a claim still counts.
 * **The takeover is the one part of the lock the server owns.** Everything else about G-3 is a client rendering rule,
   but a takeover has to be stamped with *who* took over (invariant 3) and has to notify another account, neither of
   which a client can do for itself — so it is an RPC endpoint (§8) rather than a mutation. Local Mode has no server and
@@ -813,32 +700,32 @@ rows below are therefore **not implemented as endpoints**:
 
 | Endpoint | Purpose |
 |---|---|
-| ~~`POST /trips`~~ | superseded: the M3 wizard generates client-side and pushes trips (master partition) + travelers/trip_items (trip partition) |
-| ~~`POST /trips/{id}/clone`~~ | superseded: FR-12 clones client-side (`planClone` + ordinary mutations — traveler/container links remapped, quantities carried over unchanged), same cascade as trip generation |
-| ~~`POST /trips/{id}/archive`~~ | superseded: archiving is a plain `trips.status` upsert on the master partition. Open server-side follow-up: the NFR-4.2a conflict-log compaction on archive has no trigger yet |
-| ~~`GET /trips/{id}/review`~~ / ~~`POST /trips/{id}/review/{proposalId}`~~ | superseded: M14 derives proposals client-side from FR-9.1 flags and current template state (applied cards vanish on recomputation → resumability for free); apply/fork are ordinary master mutations, "Never ask again" is a device-local dismissal store scoped to the item–template pair |
-| ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | superseded: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |
+| ~~`POST /trips`~~ | not an endpoint: the M3 wizard generates client-side and pushes trips (master partition) + travelers/trip_items (trip partition) |
+| ~~`POST /trips/{id}/clone`~~ | not an endpoint: FR-12 clones client-side (`planClone` + ordinary mutations — traveler/container links remapped, quantities carried over unchanged), same cascade as trip generation |
+| ~~`POST /trips/{id}/archive`~~ | not an endpoint: archiving is a plain `trips.status` upsert on the master partition. Open server-side follow-up: the NFR-4.2a conflict-log compaction on archive has no trigger yet |
+| ~~`GET /trips/{id}/review`~~ / ~~`POST /trips/{id}/review/{proposalId}`~~ | not an endpoint: M14 derives proposals client-side from FR-9.1 flags and current template state (applied cards vanish on recomputation → resumability for free); apply/fork are ordinary master mutations, "Never ask again" is a device-local dismissal store scoped to the item–template pair |
+| ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | not an endpoint: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |
 | `GET /me/export.json` · `GET /trips/{id}/export.csv` | NFR-4.5 — implemented: full export is a versioned JSON envelope `{version, exported_at, data:{table:[rows]}}` filtered to the caller's pull visibility (users/avatars excluded), carrying **every** table in P-3's two partitions; CSV columns `item,category,quantity,packed_count,mode,traveler,container` |
-| ~~`GET`/`POST /templates/import`~~ · ~~`GET`/`POST /trips/import`~~ · ~~`GET /trips/{id}/export.yaml`~~ | **removed 2026-08-23 (ADR-025): portable YAML has no endpoint at all.** Reading *and* writing the format live once, in `client/src/domain/portable.ts`. The server had a second implementation of both directions that no product surface used and that had fallen behind the format — its export omitted trip status, ordered tags, marks and `from_inventory`; its import discarded the same fields and wrote nothing to the change log, so what it imported reached no device. Files are written by the app (M17/M21/NFR-4.11) and read by the app or the FR-18.7 command; both land through `POST /sync/master` and `POST /sync/trips/{id}` like every other write |
+| ~~`GET`/`POST /templates/import`~~ · ~~`GET`/`POST /trips/import`~~ · ~~`GET /trips/{id}/export.yaml`~~ | **not endpoints (ADR-025): portable YAML has no endpoint at all.** Reading *and* writing the format live once, in `client/src/domain/portable.ts` — a second, server-side implementation falls behind the format with no product surface to notice. Files are written by the app (M17/M21/NFR-4.11) and read by the app or the FR-18.7 command; both land through `POST /master/sync` and `POST /trips/{id}/sync` like every other write |
 | `GET /me` | Own identity `{user_id, display_name, is_instance_admin}` — the client needs its `users.id` to address the avatar/display-name endpoints (M17 profile; `PUT /users/{id}/avatar` and `PUT /users/{id}/display-name` accept only the caller's own id — 403 `forbidden` for any other, invariant: identity claims in the path are never trusted); the admin flag decides whether M20's entry point renders (FR-23.2, endpoints enforce regardless) |
 | `GET /users` | Instance user directory `{users:[{user_id, display_name}]}`, ordered by name, deactivated accounts excluded (FR-23.3) — backs the M3 sharing picker (FR-4.5). Any authenticated user may list; a self-hosted instance's roster is not a secret to its users |
 | `GET /items/{id}/image` · `PUT /items/{id}/image` · `DELETE /items/{id}/image` | Addendum FR-22 — implemented: one optional reference photo per master item. GET is public (like avatars, ADR-002), streams `image/jpeg` with `ETag` = `items.image_hash`, 404 when absent. PUT/DELETE need only authentication, **no trip role** (FR-22.6 — items carry no trip association); PUT validates `image/jpeg` and ≤150 KB (FR-22.4, mirrored by the `item_images` CHECK) and stamps `items.image_hash` through the master change-log with a fresh server HLC, so other devices pull the hint on their next master pull. The BLOB lives in `item_images`, outside the sync envelope; `image_hash` is the only synced signal. Local Mode writes the blob to IndexedDB with a client-computed hash instead |
 | `GET /admin/users` | FR-23.2 — implemented: instance-admin only (403 `forbidden` otherwise, like every `/admin/` route), all provisioned accounts `{user_id, display_name, email, created_at, is_instance_admin, deactivated_at, trip_count, template_count}` ordered by name |
 | `POST /admin/users/{id}/deactivate` · `POST /admin/users/{id}/reactivate` | FR-23.3 — implemented: deactivation revokes access (403 `account_deactivated`), deletes the account's push subscriptions, and suppresses new notifications; data and attributions stay untouched. Deactivating an admin → 409 `admin_undeactivatable` (remove from `JITPACK_ADMIN_EMAILS` first); unknown id → 404. Both idempotent. Reactivation restores access; the client re-registers Web Push on next app start |
 | `DELETE /admin/users/{id}/avatar` · `DELETE /admin/users/{id}/display-name` | FR-23.4 profile intervention — implemented: avatar cleared (image + mime); display name reset to `''` and re-stamped from the IdP's claim at the account's next login. Moderation, not a lock — the user may set both again |
-| `GET /notifications` | FR-6.2 — implemented: own notifications newest first (`?unread=1` filters, `?limit=` ≤ 200), each `{id, kind, payload, created_at, read_at}`. Kinds: `delegation` (a push set `packer_user_id` to another member, or a trip todo's `assignee_user_id` to another member — FR-7.5; the latter carries the todo's text as `item_name` and no `item_id`), `mention` (`@display-name` in a comment body, case-insensitive, name may contain spaces), `task` (task comment on an item whose packer is another member; a packer who is also mentioned gets only the task), `lock_taken` (FR-5.7's takeover names the previous holder), `note` (FR-7.9: a new trip-level comment, `trip_item_id` null and not a task, reaches every member but its author — no `@name` needed, unlike a mention; since FR-7.13 a first note only), `note_reply` (FR-7.13: a reply in a note thread reaches the thread's participants — the first note's author and every replier, still on the trip — but never the replier and never somebody who only ticked; payload adds `thread_id`, the first note, and `thread`, its title or first line), `task_due` (FR-7.11: **not** created by a push — the server's own daily run at `JITPACK_TASK_REMINDER_TIME`, default 06:00 in the server's zone, finds every open task of a non-archived trip due today or tomorrow and notifies its assignee, or every member when it has none or the assignee left the trip; once per task and day, never after the day has passed; payload `trip_id`, `comment_id`, `item_name` (the task's words) and `due` — `today` or `tomorrow` — and no actor; sent in Single-User Mode too), `shopping_due` (FR-30.10: the same daily run, for every shopping entry not yet bought of a non-archived trip due today or tomorrow, to **every member** — an entry has no assignee; payload `trip_id`, `entry_id`, `item_name` (the entry's name) and `due`, no actor; a tap opens the trip's shopping list). `payload` carries the FR-6.3 deep-link context: `trip_id`, `item_id`, `comment_id`, `actor_id`, `actor_name`, `item_name`, `preview` (comment excerpt ≤ 120 chars) — a note's payload carries no `item_id`/`item_name`, the same shape a trip-level mention already has. Created server-side during push handling (`task_due` and `shopping_due` excepted, see above); suppressed per-kind by the target's M17 prefs; never in Single-User Mode (FR-17.3) except `task_due` and `shopping_due`, which are nobody's act. Notification rows never flow through pull |
+| `GET /notifications` | FR-6.2 — implemented: own notifications newest first (`?unread=1` filters, `?limit=` ≤ 200), each `{id, kind, payload, created_at, read_at}`. Kinds: `delegation` (a push set `packer_user_id` to another member, or a trip todo's `assignee_user_id` to another member — FR-7.5; the latter carries the todo's text as `item_name` and no `item_id`), `mention` (`@display-name` in a comment body, case-insensitive, name may contain spaces), `task` (task comment on an item whose packer is another member; a packer who is also mentioned gets only the task), `lock_taken` (FR-5.7's takeover names the previous holder), `note` (FR-7.9: a new trip-level comment, `trip_item_id` null and not a task, reaches every member but its author — no `@name` needed, unlike a mention; a first note only), `note_reply` (FR-7.13: a reply in a note thread reaches the thread's participants — the first note's author and every replier, still on the trip — but never the replier and never somebody who only ticked; payload adds `thread_id`, the first note, and `thread`, its title or first line), `task_due` (FR-7.11: **not** created by a push — the server's own daily run at `JITPACK_TASK_REMINDER_TIME`, default 06:00 in the server's zone, finds every open task of a non-archived trip due today or tomorrow and notifies its assignee, or every member when it has none or the assignee left the trip; once per task and day, never after the day has passed; payload `trip_id`, `comment_id`, `item_name` (the task's words) and `due` — `today` or `tomorrow` — and no actor; sent in Single-User Mode too), `shopping_due` (FR-30.10: the same daily run, for every shopping entry not yet bought of a non-archived trip due today or tomorrow, to **every member** — an entry has no assignee; payload `trip_id`, `entry_id`, `item_name` (the entry's name) and `due`, no actor; a tap opens the trip's shopping list). `payload` carries the FR-6.3 deep-link context: `trip_id`, `item_id`, `comment_id`, `actor_id`, `actor_name`, `item_name`, `preview` (comment excerpt ≤ 120 chars) — a note's payload carries no `item_id`/`item_name`, the same shape a trip-level mention already has. Created server-side during push handling (`task_due` and `shopping_due` excepted, see above); suppressed per-kind by the target's M17 prefs; never in Single-User Mode (FR-17.3) except `task_due` and `shopping_due`, which are nobody's act. Notification rows never flow through pull |
 | `POST /notifications/{id}/read` | FR-6.2 — implemented: stamp `read_at`; owner-scoped (foreign id → 404), idempotent |
 | `GET /me/notification-prefs` · `PUT /me/notification-prefs` | UI-Spec M17 — implemented: per-kind toggles `{"delegation":bool,"mention":bool,"task":bool,"lock_taken":bool,"note":bool,"note_reply":bool,"task_due":bool,"shopping_due":bool}`; missing keys default to enabled, unknown keys are dropped. Checked at *creation* time, so a disabled kind produces neither push nor in-app notification |
 | `GET /push/vapid-key` · `POST /push/subscriptions` · `DELETE /push/subscriptions` | NFR-4.6 — implemented for Web Push: the server generates its VAPID keypair on first use and persists it next to the data (`server_keys`); `vapid-key` hands the public key to `pushManager.subscribe`, POST registers the browser's `{endpoint, keys:{p256dh, auth}}` (endpoint = identity, re-registering rebinds), DELETE (owner-scoped, `{endpoint}` body) is the M17 opt-out. Sends are RFC 8291 `aes128gcm`, detached from the request; a push service answering 404/410 drops the subscription. Message body: `{notification_id, kind, payload}` — same payload as `GET /notifications`. Operator contact via `JITPACK_PUSH_CONTACT` (VAPID `sub`). UnifiedPush/FCM/APNs remain unimplemented — there is no native mobile build yet; the WebSocket stays the universal in-app fallback |
-| ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **superseded**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
-| `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a): `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id, resolved_at, reverted}]}`, newest first; conflict rows never flow through pull. `mutation_id` and `actor_user_id` are what §6.1's revert needs — the first groups the entries one revert restores together, the second names the person to tell — and were sent but undocumented until 2026-08-25. `reverted` says the losing value has already been restored, so the client offers the control once. An entry whose row has been deleted since is left out, in both partitions — see §6 |
+| ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **not an endpoint**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
+| `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a): `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id, resolved_at, reverted}]}`, newest first; conflict rows never flow through pull. `mutation_id` and `actor_user_id` are what §6.1's revert needs — the first groups the entries one revert restores together, the second names the person to tell. `reverted` says the losing value has already been restored, so the client offers the control once. An entry whose row has been deleted since is left out, in both partitions — see §6 |
 | `POST /trips/{id}/conflicts/{conflictId}/revert` | NFR-4.2a's manual revert, trip partition — implemented: restores the entry's `losing_value` as an ordinary upsert with a fresh server HLC (§6.1, ADR-023) and marks the entry `reverted`. Membership only, like the list beside it. Answers `{ok, pull_hint:{next_cursor}}`; the restored value arrives through the normal pull (P-1), and `trip.changed` is broadcast. Refusals carry their own codes: `404 conflict_not_found` (unknown, or the other partition's), `409 already_reverted`, `409 row_deleted`, `409 revert_refused` (§6 rule 2 outranks it) |
 | `POST /trips/{id}/items/{itemId}/takeover` | FR-5.7's takeover, and the one part of G-3's lock the server owns — implemented: moves a `packing_now` claim from its holder to the caller in one transaction, so the row is never unclaimed in between. Membership only. The write is an ordinary upsert with a fresh server HLC (like the revert beside it), so the other devices converge through the normal pull; `trip.changed` and `item.locked` are broadcast. Answers `{ok, previous_holder, pull_hint:{next_cursor}}` — the holder's id is what the confirmation named beforehand and the snackbar names after. It also records the takeover in `lock_events` and sends the previous holder an FR-6.2 notification of kind `lock_taken`, neither of which a client could do for itself (invariant 3). Refusals carry their own codes: `404 not_found` (no such row on this trip — an item of another trip answers the same, so nothing foreign is confirmed), `409 claim_not_held` (nobody is packing it), `409 claim_is_own` (releasing is the action for that). A refusal writes nothing and notifies nobody |
 | `GET /trips/{id}/lock-events` | The trip's takeover record: `{lock_events:[{id, trip_item_id, item_name, from_user_id, to_user_id, created_at}]}`, newest first. Membership only, like the conflict log — and deliberately *not* part of it (ADR-028): that log holds merge losers, and one list carrying two unrelated kinds of event stops being readable. `item_name` is stored on the event rather than joined, so the record stays readable after the row it names is deleted |
-| `GET /master/conflicts` | The **master partition's** conflict log, same envelope. There is one log per partition because a conflict belongs to the partition its mutation was pushed to, and `conflict_log.trip_id` tells them apart exactly as `change_log.trip_id` does — NULL for the master partition. It therefore takes no trip id, and needs its own endpoint: the per-trip query filters on `trip_id` and these rows have none, so before this endpoint they were written and read by nothing. Authenticated but not membership-scoped; each row is filtered through the same `masterVisible` rule as a master pull, because a conflict entry names an entity and naming one the user may not see would leak it. **`trips` is the case that matters**: a trip's own fields (name, dates, year, status) merge on the master partition, so a conflict on them appears here rather than in that trip's log. Entries whose entity has been deleted are left out, like the per-trip list's — visibility hides that for `trips` (membership cascades), and hid nothing for the tables owned instance-wide |
+| `GET /master/conflicts` | The **master partition's** conflict log, same envelope. There is one log per partition because a conflict belongs to the partition its mutation was pushed to, and `conflict_log.trip_id` tells them apart exactly as `change_log.trip_id` does — NULL for the master partition. It therefore takes no trip id, and needs its own endpoint: the per-trip query filters on `trip_id` and these rows have none. Authenticated but not membership-scoped; each row is filtered through the same `masterVisible` rule as a master pull, because a conflict entry names an entity and naming one the user may not see would leak it. **`trips` is the case that matters**: a trip's own fields (name, dates, year, status) merge on the master partition, so a conflict on them appears here rather than in that trip's log. Entries whose entity has been deleted are left out, like the per-trip list's — visibility hides that for `trips` (membership cascades), and hides nothing for the tables owned instance-wide |
 | `POST /master/conflicts/{conflictId}/revert` | The same revert, master partition — implemented: authenticated but not membership-scoped, filtered through the same `masterVisible` rule the list is (an entry the caller may not see answers `404`, not `403`, so nothing is named), then authorized for the *write* by the same per-row ownership rules as a master push (`403 forbidden` where the caller may read the row but not write it). Broadcasts `master.changed` to the actor's own devices, like a master push |
-| `DELETE /master/tags/{id}` · `DELETE /master/items/{id}` · `DELETE /master/templates/{id}` · `DELETE /master/template-items/{id}` | FR-24.4 — implemented 2026-08-30 (**ADR-038**): delete one master row without composing a mutation. The handler holds no rule — it mints the `mutation_id` and a fresh server HLC and hands an ordinary `op: "delete"` to the same `ApplyMasterMutation` the push calls, so FR-24.3's retire-or-remove decision, the authorization and the `change_log` entry are reached exactly where they already were. Answers `{outcome, retired, pull_hint:{next_cursor}}`; **`retired` is the half the status code cannot carry** — FR-24.3 keeps a row something still resolves against, so a `200` does not always mean the row is gone, and a caller cleaning up would otherwise have to pull the partition back down to find out. Authenticated, not membership-scoped, like the master push. `404 not_found` for an unknown id — deliberately not an applied delete of nothing, because a script working through a list has to tell a row it removed from one it never had. **The app does not call these**: it writes through the push above, because its writes have to survive being offline and Local Mode has no server at all (invariant 5) — the two doors differ in transport and share the rule. Four tables only; `trips`, their membership and their series are deliberately not reachable by a path parameter |
-| `POST /master/items/{id}/prune` | FR-5.8 — implemented 2026-09-19 (**ADR-065**): delete an inventory item **only if nothing uses it** — no `template_items` position, no `trip_items` row, no `item_dependencies` row bringing it as another item's companion (`item_id`; its own list, where it is `depends_on_item_id`, goes with it) — and otherwise leave it **exactly as it was, never retired**. The app calls it when a packing-list removal becomes final and the device saw no other use; the push's delete cannot serve, because it answers a use by retiring (FR-24.3) and a device holds only the trips it has opened. Runs the ordinary master pipeline under a partition whose write gate adds the "still used" check, inside the deleting transaction; a kept item is neither re-logged nor stamped. Answers `{pruned, pull_hint:{next_cursor}}` — `pruned: false` both for a used item and for one already gone, with `next_cursor` 0, since neither changed anything. Authenticated, not membership-scoped, like the master push. The client calls it only after the trip delete has been answered (`whenSent`), because the master queue otherwise drains first and the row being removed would count as its use |
+| `DELETE /master/tags/{id}` · `DELETE /master/items/{id}` · `DELETE /master/templates/{id}` · `DELETE /master/template-items/{id}` | FR-24.4 — implemented (**ADR-038**): delete one master row without composing a mutation. The handler holds no rule — it mints the `mutation_id` and a fresh server HLC and hands an ordinary `op: "delete"` to the same `ApplyMasterMutation` the push calls, so FR-24.3's retire-or-remove decision, the authorization and the `change_log` entry are reached exactly where they already were. Answers `{outcome, retired, pull_hint:{next_cursor}}`; **`retired` is the half the status code cannot carry** — FR-24.3 keeps a row something still resolves against, so a `200` does not always mean the row is gone, and a caller cleaning up would otherwise have to pull the partition back down to find out. Authenticated, not membership-scoped, like the master push. `404 not_found` for an unknown id — deliberately not an applied delete of nothing, because a script working through a list has to tell a row it removed from one it never had. **The app does not call these**: it writes through the push above, because its writes have to survive being offline and Local Mode has no server at all (invariant 5) — the two doors differ in transport and share the rule. Four tables only; `trips`, their membership and their series are deliberately not reachable by a path parameter |
+| `POST /master/items/{id}/prune` | FR-5.8 — implemented (**ADR-065**): delete an inventory item **only if nothing uses it** — no `template_items` position, no `trip_items` row, no `item_dependencies` row bringing it as another item's companion (`item_id`; its own list, where it is `depends_on_item_id`, goes with it) — and otherwise leave it **exactly as it was, never retired**. The app calls it when a packing-list removal becomes final and the device saw no other use; the push's delete cannot serve, because it answers a use by retiring (FR-24.3) and a device holds only the trips it has opened. Runs the ordinary master pipeline under a partition whose write gate adds the "still used" check, inside the deleting transaction; a kept item is neither re-logged nor stamped. Answers `{pruned, pull_hint:{next_cursor}}` — `pruned: false` both for a used item and for one already gone, with `next_cursor` 0, since neither changed anything. Authenticated, not membership-scoped, like the master push. The client calls it only after the trip delete has been answered (`whenSent`), because the master queue otherwise drains first and the row being removed would count as its use |
 
 All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never
 through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g.,
@@ -849,24 +736,19 @@ minimal and the footprint goal (NFR-4.3) intact.
 ## 9. Error Model & Limits
 
 * Errors: `{ "error": { "code": …, "message": "…", "field": "…" } }` with matching HTTP status (404/403/422/409). **The
-  list of codes is not in this document** (revised 2026-08-23, NFR-4.14/ADR-026): it is `ErrorCode` in
-  `internal/api/wire.go`, generated into the client as a union and a frozen `ERROR_CODE` object, so a code exists once
-  and both sides are checked against it. The list that stood here had drifted into fiction — it named `conflict`, which
-  no handler has ever sent, and `rate_limited`, retired with Demo Mode in Addendum v2.10, while omitting eleven codes
-  that are sent daily. Prose about *why* an error is raised stays here; the vocabulary is generated.
+  list of codes is not in this document** (NFR-4.14/ADR-026): it is `ErrorCode` in `internal/api/wire.go`, generated
+  into the client as a union and a frozen `ERROR_CODE` object, so a code exists once and both sides are checked against
+  it — a hand-kept list here drifts. Prose about *why* an error is raised stays here; the vocabulary is generated.
 * Limits: push batch ≤ 200 mutations; pull limit ≤ 1000; **push body ≤ 8 MB, every other JSON body ≤ 64 KB**, both
-  answered `413 payload_too_large`; WebSocket idle timeout 5 min with client ping — **implemented on both sides
-  2026-09-01**, having been a sentence only. The client sends
-  `{"ping": true}` every 30 s on an open socket and treats *any* frame within 10 s as life; a ping nothing answers
-  closes the socket on the client's side and starts the §7 redial, which is the only way a half-open connection (a phone
-  that changed networks, a killed proxy worker) is ever noticed — a dead TCP peer fires no event. The server gives every
-  read a 5-minute deadline and closes a connection that stays silent past it, unregistering it from the hub — so the
-  G-10 presence list stops carrying devices that left without saying so. App-level rather than protocol pings because a
-  browser cannot send the latter, and because the client needs a frame it can *see* to know the connection is still
-  two-way. A reverse proxy's idle timeout therefore only has to exceed 30 s.
-* **A body limit was written here long before one existed** (corrected 2026-09-10). The line above used to promise
-  `request body ≤ 5 MB (import: 20 MB)`; no handler enforced either number, the import half named endpoints retired
-  with ADR-025, and every JSON body was decoded straight off the connection. The batch cap is not the same promise —
+  answered `413 payload_too_large`; WebSocket idle timeout 5 min with client ping — **implemented on both sides**. The
+  client sends `{"ping": true}` every 30 s on an open socket and treats *any* frame within 10 s as life; a ping nothing
+  answers closes the socket on the client's side and starts the §7 redial, which is the only way a half-open connection
+  (a phone that changed networks, a killed proxy worker) is ever noticed — a dead TCP peer fires no event. The server
+  gives every read a 5-minute deadline and closes a connection that stays silent past it, unregistering it from the hub
+  — so the G-10 presence list stops carrying devices that left without saying so. App-level rather than protocol pings
+  because a browser cannot send the latter, and because the client needs a frame it can *see* to know the connection is
+  still two-way. A reverse proxy's idle timeout therefore only has to exceed 30 s.
+* **Why a body limit beside the batch cap.** The batch cap is not the same promise —
   a mutation's `fields` are free-form JSON, and 200 of them are counted only once the envelope is already in memory.
   The two caps differ because their bodies do: a push carries a whole outbox chunk, while every other body is
   fixed-shape, and two of those endpoints (`/auth/token`, `/auth/refresh`) answer before anyone has proved who they
@@ -887,7 +769,7 @@ minimal and the footprint goal (NFR-4.3) intact.
 
 ## Decisions (Resolved)
 
-All decisions originally listed as open here have been resolved and are now recorded directly in their owning section:
+Every decision is recorded in its owning section:
 field-group granularity (§6, no `mode`+`state` grouping), the end of a claim (§7: by a person, never by a clock —
 ADR-028), and master-partition scope for shared templates (§8, lazy discovery). No open decisions remain in this
 document.

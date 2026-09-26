@@ -542,10 +542,8 @@ describe('useSyncOrchestrator', () => {
  * Sync-API P-1: "one code path serves initial load, reconnect, offline
  * catch-up, and realtime". The hub replays nothing, so a socket that comes
  * back after a gap has to *pull* the gap — every `trip.changed` sent while
- * the device was deaf is gone. Before this, a reconnect did not exist at all,
- * and a device whose socket died learned of nobody else's changes until it
- * wrote something itself (found 2026-09-01: a member's packs never reached
- * the owner's open tab).
+ * the device was deaf is gone. Without the catch-up, a device whose socket
+ * died learns of nobody else's changes until it writes something itself.
  */
 describe('useSyncOrchestrator — reconnect catch-up (Sync-API P-1)', () => {
   const syncPaths = () =>

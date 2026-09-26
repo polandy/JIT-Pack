@@ -131,8 +131,8 @@ export async function writesLanded(page: Page) {
  * screen agrees with. Measured on `‹ back` out of M6 — with the URL already
  * at M4, the outlet still had M6 painted and M4 `ion-page-invisible`.
  *
- * The menu the trip switcher replaced had this wait by accident, in
- * `sheet.onDidDismiss()`; a control that navigates directly needs it named.
+ * A menu gets this wait by accident, in `sheet.onDidDismiss()`; a control
+ * that navigates directly needs it named.
  */
 export async function pageSettled(page: Page) {
   await expect(

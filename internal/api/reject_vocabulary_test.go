@@ -11,7 +11,7 @@ import (
 // `store.RejectReason`, once in client/src/sync/rejectionReasons.ts, because
 // the *sentence* belongs to whoever renders it and only the client knows the
 // user's language (Sync-API §5). Twice-declared and checked nowhere is how
-// `outcome`/`status` survived for months (see pushcontract_test.go): a reason
+// two sides drift unseen (see pushcontract_test.go): a reason
 // the client has no entry for is not a compile error, it is a rejection the
 // user is told nothing about. Both sides are read from source here, so
 // neither a new reason nor a renamed one can be half-landed.

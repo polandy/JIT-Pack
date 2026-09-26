@@ -5,7 +5,7 @@ These files deliberately live outside `docs/` so they are **not** published to t
 [user manual](https://polandy.github.io/JIT-Pack/) — read them here on GitHub.
 
 Only the current version of each document is kept. Never write a "v2" of a doc —
-replace the file and update its own revision note.
+replace the file; git holds its history.
 
 ## Product
 
@@ -29,7 +29,7 @@ replace the file and update its own revision note.
   option, a wrong premise, a cost accepted on purpose, a trap with a price.
 - [`design-foundation-plan.md`](design-foundation-plan.md) — the token-level PRs that
   came **before** the remaining screen rebuilds, with the measured gap between the
-  prototype and the client that motivated each. All six are merged (2026-08-15); it is
+  prototype and the client that motivated each. All six are merged; it is
   kept for the measurements, not as a plan.
 - [`mvp-plan.md`](mvp-plan.md) — the tracks that stand between today and the family
   packing a real vacation with it, and which of them may run in parallel. Delete it
@@ -74,7 +74,7 @@ generated — edit the builder, not the HTML:
 - [`UI_Concept_ResolvedList_variants.html`](UI_Concept_ResolvedList_variants.html) — showing
   a Vorlage its resulting items (FR-27.14); `node dev-docs/build-resolved-list-variants.mjs`.
 - [`UI_Concept_ReviewStep_variants.html`](UI_Concept_ReviewStep_variants.html) — how much
-  editing M3's review step should carry (FR-2.6, **variant A chosen 2026-08-17**);
+  editing M3's review step should carry (FR-2.6, **variant A chosen**);
   `node dev-docs/build-review-step-variants.mjs`.
 - [`UI_Concept_M4Title_variants.html`](UI_Concept_M4Title_variants.html) — where M4's trip
   name lives once the G-12 cluster fills the app bar (UI-Spec M4, **B chosen without its
@@ -102,6 +102,6 @@ generated — edit the builder, not the HTML:
   its menu, and a cluster head that sets both for every instance at once. Hand-written, no
   generator — it is five states of one screen rather than a matrix of variants.
 - [`UI_Concept_TripNotes_variants.html`](UI_Concept_TripNotes_variants.html) — trip notes read by
-  every traveller and ticked per person (decided 2026-09-21, reasoning in
+  every traveller and ticked per person (decided, reasoning in
   [`trip-notes-concept.md`](trip-notes-concept.md)): where they live and whether M1 may tick.
   Hand-written, with an interactive who-am-I switch.

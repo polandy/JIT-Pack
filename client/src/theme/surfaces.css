@@ -44,23 +44,21 @@
    * How wide the frame's content column is allowed to grow (UX-17, G-9).
    *
    * One value, because every screen in this app is a list of controls: a
-   * name at one edge and the thing that acts on it at the other. There
-   * were two for a day — a 960 px "reading" measure as the default beside
-   * this one — and the census that retired it found no screen the reading
-   * measure fitted. It left the chevron 855 px from the name it opens on
-   * M8, 890 px on M12 and a settings toggle 857 px from its label; and at
-   * this type size a 960 px line of body copy runs to some 120 characters,
-   * so it was not a reading measure either.
+   * name at one edge and the thing that acts on it at the other. No screen
+   * fits a wider "reading" measure: at 960 px the chevron would sit 855 px
+   * from the name it opens on M8, 890 px on M12 and a settings toggle 857 px
+   * from its label; and at this type size a 960 px line of body copy runs to
+   * some 120 characters, so it would not be a reading measure either.
    *
-   * Inert below its own width, so the phone keeps every pixel — and, since
-   * 2026-09-11, inert above the app's one other breakpoint (900px, G-9's
-   * sheet/panel switch) too: a flat 600px left an iPad mini's extra width
-   * unused on both sides of the column, with the frame's native scrollbar
-   * stranded in that gap rather than sitting at the screen edge, so the
-   * value grows across the gap between the two. A single `clamp()` cannot
-   * do that and stay flat past 900px — `vw` only rises with the viewport,
-   * so a factor steep enough to matter at an iPad mini's 744px (a gentler
-   * 82vw computed to 610px there, indistinguishable from the bug) reaches
+   * Inert below its own width, so the phone keeps every pixel — and inert
+   * above the app's one other breakpoint (900px, G-9's sheet/panel switch)
+   * too: a flat 600px would leave an iPad mini's extra width unused on both
+   * sides of the column, with the frame's native scrollbar stranded in that
+   * gap rather than sitting at the screen edge, so the value grows across
+   * the gap between the two. A single `clamp()` cannot do that and stay flat
+   * past 900px — `vw` only rises with the viewport, so a factor steep enough
+   * to matter at an iPad mini's 744px (a gentler 82vw computes to 610px
+   * there, indistinguishable from the flat value) reaches
    * the 900px ceiling by ~978px and stays pinned there for every wider
    * desktop window too, widening a column E2E-M4-71 checks stays capped
    * well below the window (`toBeLessThan(VIEWPORT / 2 + 100)` at a 1280px
@@ -83,17 +81,16 @@
   /* --- The app bar ----------------------------------------------------
    * The height of the frame's top bar, and therefore the line every layer
    * the frame puts *under* it starts at: the body column and the FR-19.7
-   * banner's overlay. (M5's desktop panel read it until 2026-09-17, when it
-   * became the frame's second pane and took its top from the row.) Three
-   * files read it, which is
-   * why it is a token and no longer three copies of `56px` (§4a).
+   * banner's overlay. (M5's desktop panel is the frame's second pane and
+   * takes its top from the row.) Three files read it, which is why it is a
+   * token and not three copies of `56px` (§4a).
    */
   --jp-app-bar-h: 56px;
 
   /* --- The desktop rail -----------------------------------------------
    * G-9's rail width. Read by the rail itself and by the FR-19.7 banner's
    * layer, which starts where the rail ends — an overlay that began at the
-   * viewport edge covered the rail's first anchor (rendered 2026-09-13).
+   * viewport edge would cover the rail's first anchor.
    */
   --jp-nav-rail-w: 80px;
 
@@ -175,13 +172,12 @@
 /*
  * A list that holds cards is scaffolding, not a plane.
  *
- * Ionic paints `ion-list` from `--ion-item-background`, which is now the
- * card plane — so a list wrapping cards laid a card-coloured slab a few
- * pixels wider than the cards on it, and each card's shadow fell onto its
- * own container instead of onto the page. That is the original defect one
- * plane up, and it was invisible in the stylesheet again: the giveaway was
- * that the pixels under a card edge measured *lighter* than the page,
- * which is the one thing a shadow cannot be.
+ * Ionic paints `ion-list` from `--ion-item-background`, which is the card
+ * plane — so a list wrapping cards would lay a card-coloured slab a few
+ * pixels wider than the cards on it, and each card's shadow would fall onto
+ * its own container instead of onto the page. The stylesheet does not show
+ * it: the giveaway is that the pixels under a card edge measure *lighter*
+ * than the page, which is the one thing a shadow cannot be.
  *
  * `:has()` rather than a class per screen, and rather than a blanket
  * `ion-list` rule: this states the actual condition, applies to screens
@@ -248,8 +244,8 @@ ion-header.header-md::after {
  * An action sheet is a bottom sheet, so it wears SheetModal's shape: the
  * large top corners, the handle, the rising cast and the dimmer backdrop.
  * Every row menu in the app is an `ion-action-sheet` (thirteen call sites),
- * and Material's flat, square slab beside the app's own sheets read as two
- * designs (owner, 2026-09-24). Told once here rather than per call site with
+ * and Material's flat, square slab beside the app's own sheets reads as two
+ * designs. Told once here rather than per call site with
  * a `cssClass`, so a new menu cannot forget it. The title's type is in
  * typography.css, its colour and the sheet's in palette.css.
  */

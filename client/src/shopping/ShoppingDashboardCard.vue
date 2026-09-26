@@ -3,8 +3,8 @@
  * A trip's shopping list on the dashboard, and workable there (FR-30.7).
  *
  * M1 otherwise only reports (FR-7.4's ruling); the shopping list is the one
- * exception, by owner decision on 2026-09-19, because it is opened in the shop
- * — where a detour through the trip is the thing nobody wants. So this card
+ * exception, because it is opened in the shop — where a detour through the
+ * trip is the thing nobody wants. So this card
  * checks lines off and takes new entries, and leaves everything else to M6:
  * removing, the bought reveal and its stamps.
  *

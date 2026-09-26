@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * FR-25.4a: how an item is obtained is one vocabulary. Seven views used to
- * spell the mapping themselves, and the dense-list rule — 🧳 stays silent —
- * was the part that differed between them.
+ * FR-25.4a: how an item is obtained is one vocabulary, read by every view
+ * rather than spelled by each — the dense-list rule (🧳 stays silent) is the
+ * part that drifts between copies.
  */
 import { bagHandleOutline, cartOutline, locationOutline } from 'ionicons/icons'
 import { describe, expect, it, afterAll } from 'vitest'

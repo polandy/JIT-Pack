@@ -10,7 +10,7 @@
  * because *gemeinsam* is the default, and silent about what the browse-sheet
  * adds, which answers *for whom* per line.
  *
- * Since FR-24.11 reached the composer, everything it adds is an inventory item:
+ * Under FR-24.11, everything the composer adds is an inventory item:
  * the names typed below exist in the seeded inventory, and what happens to a
  * name that does not is its own block at the end.
  */
@@ -203,7 +203,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
   /**
    * One door per surface: the sheet's lines answer *for whom* with their own
    * 👥 and avatars (FR-25.13g/h). A decided add therefore leaves at once — no
-   * deferral, since no editor follows any more — and carries no travelers even
+   * deferral, since no editor follows — and carries no travelers even
    * while the strip under the sheet has some lit.
    */
   it('sends a decided browse add straight out, deaf to the strip, decision intact', async () => {

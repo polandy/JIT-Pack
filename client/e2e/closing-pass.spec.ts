@@ -11,13 +11,13 @@ import { chooseInRowMenu, openRowMenu, packRow, startTrip, tripWithRows } from '
 /**
  * The closing pass and the judgement that feeds it (FR-9.3; UI-Spec M4).
  *
- * The asymmetry this unit is about: *missing* stamps itself as a
- * by-product of the quick-add, while *unused* used to cost three taps per
- * row into a fold nothing ever asks for — and *unused* is the input the
- * M14 assistant is built around. Two paths are asserted separately
- * because they are separate promises: the row's press-and-hold, which is
- * the fast one, and the pass at archive time, which is the one point in
- * the lifecycle where the whole trip is in view at once.
+ * The asymmetry this unit is about: *missing* stamps itself as a by-product of
+ * the quick-add, while *unused* would otherwise cost three taps per row into a
+ * fold nothing ever asks for — and *unused* is the input the M14 assistant is
+ * built around. Two paths are asserted separately because they are separate
+ * promises: the row's press-and-hold, which is the fast one, and the pass at
+ * archive time, which is the one point in the lifecycle where the whole trip
+ * is in view at once.
  *
  * **Reduced motion is on**, as in skip-item.spec.ts: the production code
  * takes its own no-motion path, so what is asserted is the outcome rather
@@ -77,7 +77,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await expect(page.getByTestId('m5-flag-missing')).toHaveCount(0)
   })
 
-  // E2E-M4-53: the door asks. Archiving used to happen on the tap itself.
+  // E2E-M4-53: the door asks; archiving does not happen on the tap itself.
   test('E2E-M4-53: the archive action opens the pass and archives nothing until it is finished', async ({
     page,
   }) => {
@@ -165,13 +165,11 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
 })
 
 /**
- * E2E-M14-06's clause that no code ever kept: the closing card *teases* the
- * first two proposals.
+ * E2E-M14-06's clause: the closing card *teases* the first two proposals.
  *
- * It rendered a heading, a hint and two buttons and asked the review generator
- * nothing — so the card said the same thing whether the trip had eleven
- * suggestions waiting or none, which is the one question the tap answers.
- * No case id claimed the clause, so nothing was red (found 2026-08-30).
+ * A card of a heading, a hint and two buttons that asks the review generator
+ * nothing says the same thing whether the trip has eleven suggestions
+ * waiting or none, which is the one question the tap answers.
  */
 test.describe('M14 — the closing card reads what it offers @local @m14', () => {
   test.beforeEach(async ({ seedMode }) => {

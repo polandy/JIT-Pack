@@ -219,8 +219,8 @@ const emit = defineEmits<{
       <!-- FR-25.25: the same place either way — the avatar names who is
            responsible, and tapping it is how that is decided. A row nobody
            has is the one that most needs the control, and it is also the one
-           with nothing to tap, so it renders an empty seat rather than the
-           blank the row used to end with. -->
+           with nothing to tap, so it renders an empty seat rather than a
+           blank. -->
       <AssigneeSeat
         v-if="assignable"
         :avatar="edgeAvatar"
@@ -300,12 +300,10 @@ const emit = defineEmits<{
 }
 
 /*
- * UX-9's fixed width, on the other side of the row (2026-09-06). It bought
- * a straight column of names at the cost of a 108px gap on every row that
- * carried only a checkbox — and the control it held sat at the far edge
- * from the thumb. Right-aligned, the control's outer edge is the container's
- * on every row, so the alignment is free and the width is only a floor for
- * the tap target.
+ * Right-aligned, the control's outer edge is the container's on every row,
+ * so the names line up for free, the control sits nearest the thumb, and
+ * the width is only a floor for the tap target — a fixed width on the
+ * other side would cost a 108px gap on every row carrying only a checkbox.
  */
 .row-control {
   display: flex;
@@ -355,10 +353,7 @@ const emit = defineEmits<{
   font-size: var(--jp-text-sm);
 }
 
-/* Two `.prep` rules stood in `PackingListPage.vue`, and the badge resolved to
-   both — the yellow was written for a header-line element that no longer
-   exists, and only the badge was left to inherit it. Merged here as one rule
-   so the row keeps the colour it has been rendering. */
+/* The prep badge: one rule, beside the row that renders it. */
 .prep {
   color: var(--ct-straw);
   font-size: var(--jp-text-3xs);
@@ -405,8 +400,8 @@ const emit = defineEmits<{
 /*
  * A done row has nothing left to ask of anyone, so it says so twice: it
  * sinks to the end of its group (`packingView`) and its name is struck
- * through here. The strike replaces the blanket dim the row used to carry —
- * that dimmed the FR-25.17 stamp as well, which is the one part of a done
+ * through here. A strike rather than a blanket dim over the row — that
+ * would dim the FR-25.17 stamp as well, which is the one part of a done
  * row still worth reading (who packed it, and when).
  */
 .done h3 {
@@ -418,10 +413,9 @@ const emit = defineEmits<{
 /*
  * FR-21.16: inside a cluster the item is named once, by the head. A child
  * row names a *person*, which qualifies that item rather than restating it,
- * so it sits one step under the head and recessive against it. Until
- * 2026-09-07 it did the opposite — the traveler rows were the larger and
- * brighter of the two, because they were Ionic's default row name and the
- * head was the only one of the pair that had been styled.
+ * so it sits one step under the head and recessive against it — left to
+ * Ionic's default row name, the traveler rows would be the larger and
+ * brighter of the two.
  */
 .child h3 {
   font-size: var(--jp-text-base);

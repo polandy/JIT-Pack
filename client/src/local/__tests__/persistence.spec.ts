@@ -115,10 +115,10 @@ describe('IndexedDBPersistence', () => {
 /**
  * FR-19.2 — a save the caller can wait for.
  *
- * The regression: `save()` was fire-and-forget, so a row added and
- * followed straight away by a reload was written into a transaction the
- * navigation cancelled. The row was gone and the app had already shown
- * it as stored, which reads as data loss rather than as a race.
+ * The regression guarded: with a fire-and-forget `save()`, a row added and
+ * followed straight away by a reload is written into a transaction the
+ * navigation cancels. The row is gone and the app has already shown it as
+ * stored, which reads as data loss rather than as a race.
  */
 describe('durability (FR-19.2)', () => {
   it('whenSettled resolves only after the write is readable again', async () => {

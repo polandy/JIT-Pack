@@ -135,7 +135,7 @@ describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
     expect(sheet.find('[data-testid="m9-tag-merge-Hygiene"]').exists()).toBe(false)
     expect(sheet.find('[data-testid="m9-tag-delete-Hygiene"]').exists()).toBe(false)
     expect(sheet.find('[data-testid="m9-tag-grip-Hygiene"]').exists()).toBe(false)
-    // The name stops being a button: a tap picks the row now.
+    // The name stops being a button: in this mode a tap picks the row.
     expect(sheet.find('[data-testid="m9-tag-rename-Hygiene"]').exists()).toBe(false)
   })
 

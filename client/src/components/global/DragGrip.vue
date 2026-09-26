@@ -2,13 +2,11 @@
 /**
  * The grip at a row's leading edge that exists only to be dragged — M6's
  * single-row retag (FR-30.9) and M25's tasks between tags and phases
- * (FR-7.8). Both drew their own until 2026-09-24, and M25's read as a stray
- * dash beside the words (owner feedback: make it look like the shopping
- * list's); one component now, so the two cannot drift apart again.
+ * (FR-7.8). One component draws both, so the two cannot drift apart.
  *
  * `off` is the refusal: a row that cannot be dragged still holds the grip's
- * place with a dashed ring, since an empty gap there read as broken rather
- * than absent (owner feedback 2026-09-23).
+ * place with a dashed ring, since an empty gap there reads as broken rather
+ * than absent.
  *
  * The caller's `slot`, `data-testid` and `@pointerdown.stop` fall through to
  * the one root element, which is where the gesture has to start — an emit

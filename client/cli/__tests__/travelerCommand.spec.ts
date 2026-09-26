@@ -450,10 +450,10 @@ describe('runTraveler add', () => {
   // FR-2.5: the link is what makes the person on the trip the account on the
   // instance, and it is the half no import ever wrote.
   // The link is a *second* mutation, after the traveller's insert and after
-  // whatever FR-27.4 generates for them — not a field on the insert, which is
-  // what it used to be. A row that arrived already linked earns its account
-  // one delegation notification per generated per-person row
-  // (`planRosterAssignment`), which nobody running this command can see.
+  // whatever FR-27.4 generates for them — not a field on the insert. A row
+  // that arrived already linked would earn its account one delegation
+  // notification per generated per-person row (`planRosterAssignment`), which
+  // nobody running this command can see.
   it('links the account named by --user after inserting the person unlinked', async () => {
     instance.addTrip('trip-1', 'Cannobio', 2026)
     instance.users = [{ user_id: 'u-sia', display_name: 'Sia' }]
@@ -603,9 +603,9 @@ describe('runTraveler list', () => {
  * The parity this command promises (FR-18.8): what it writes is what the app
  * would have written. M22's add is not the bare insert — a trip that still
  * follows its groups gets the new person's positions in the same breath
- * (FR-2.7, the FR-27.4 amendment of 2026-08-21), and a command that skips
- * that leaves a traveller on a trip with nothing to pack while the app's own
- * screen would have filled the list.
+ * (FR-2.7, the FR-27.4 amendment), and a command that skips that leaves a
+ * traveller on a trip with nothing to pack while the app's own screen would
+ * have filled the list.
  */
 describe('runTraveler add — the trip follows the roster (FR-2.7/FR-27.4)', () => {
   it('generates the new traveller\u2019s positions, as M22 does', async () => {

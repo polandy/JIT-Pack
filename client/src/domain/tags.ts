@@ -178,8 +178,8 @@ export function groupByPrimaryTag(
 /**
  * How several chosen tags combine (FR-24.8).
  *
- * `any` is the default and the one the old single-select axis approximated;
- * `all` is the question that axis could not ask at all — „Wandern *und*
+ * `any` is the default and the one a single-select axis approximates; `all` is
+ * the question such an axis cannot ask at all — „Wandern *und*
  * Elektronisches".
  */
 export type TagFilterMode = 'any' | 'all'
@@ -365,12 +365,12 @@ export function tagsOfItems(items: MasterItem[], assignments: ItemTag[], tags: T
 
 // --- FR-24.10: managing the tags themselves ---------------------------------
 //
-// Until now a tag could only be created (M10, ADR-014) and given away
-// (FR-24.9). The four acts below are the other half: rename, merge, reorder
-// and delete. A **rename** is not here because it already has a rule —
-// `tags.name` is the third `UNIQUE (name)` space beside Vorlagen and series,
-// so `nameCollision.findNameCollision` is what answers it, and writing a
-// second fold for it is the drift that file exists to prevent.
+// A tag is created in M10 (ADR-014) and given away by FR-24.9. The four acts
+// below are the other half: rename, merge, reorder and delete. A **rename** is
+// not here because it already has a rule — `tags.name` is the third
+// `UNIQUE (name)` space beside Vorlagen and series, so
+// `nameCollision.findNameCollision` is what answers it, and writing a second
+// fold for it is the drift that file exists to prevent.
 
 /** The tag is removed outright — nothing carries it. */
 export const TAG_DELETE_ALLOWED = 'allowed'

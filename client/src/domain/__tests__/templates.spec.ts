@@ -154,11 +154,11 @@ describe('resolveTemplate (FR-27.2)', () => {
   })
 
   /*
-   * This case used to expect "the order they were included" — an order the
-   * data does not carry: `template_includes` has no sort column, so the rows
-   * arrive in whatever order the sync or IndexedDB produced. An e2e run made
-   * that concrete, reporting the same merge as „in Wildlife & Makro" on WebKit
-   * and „in Makro & Wildlife" on Chromium.
+   * Not "the order they were included" — an order the data does not carry:
+   * `template_includes` has no sort column, so the rows arrive in whatever
+   * order the sync or IndexedDB produced. Relying on it reports the same
+   * merge as „in Wildlife & Makro" on WebKit and „in Makro & Wildlife" on
+   * Chromium.
    */
   it('lists the included groups by name, so two devices agree', () => {
     const resolution = resolveTemplate('vacation', {
@@ -256,9 +256,8 @@ describe('tripsReachedBy (FR-27.4 blast radius)', () => {
   }
 
   it('names every trip that still follows the template, running ones included', () => {
-    // Owner rule 2026-08-18: only the past is out of reach. A running trip is
-    // asked like any other, so a warning that left it out would understate
-    // what the edit touches.
+    // Only the past is out of reach. A running trip is asked like any other,
+    // so a warning that left it out would understate what the edit touches.
     const planning = trip('t1', 'Samedan', 'planning')
     const active = trip('t2', 'Davos', 'active')
     const archived = trip('t3', 'Wien', 'archived')
@@ -468,12 +467,11 @@ describe('resolvedLines carries provenance and marks (FR-27.14)', () => {
 })
 
 /**
- * FR-27.6, amended 2026-08-17: what the M7 ＋ should create.
+ * FR-27.6: what the M7 ＋ should create.
  *
- * The chooser used to ask on every tap, including while standing on the
- * *Gruppen* tab — where the question has exactly one possible answer. The
- * segment already states the scope, so the ＋ follows it and only *Alle* has
- * something left to ask.
+ * Asking on every tap would ask on the *Gruppen* tab too — where the question
+ * has exactly one possible answer. The segment already states the scope, so
+ * the ＋ follows it and only *Alle* has something left to ask.
  */
 describe('scopeForNewTemplate (FR-27.6)', () => {
   it('takes the scope from a single-scope tab', () => {

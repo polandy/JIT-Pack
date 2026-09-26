@@ -4,12 +4,11 @@ import (
 	"testing"
 )
 
-// G-1 (design review 2026-09-02). The two partitions used to be two copies
-// of one pipeline, so "how do they differ" could only be answered by
-// diffing two functions — and twice already a rule fixed in one had to be
+// G-1. As two copies of one pipeline, the partitions could only be told
+// apart by diffing two functions, and a rule fixed in one would have to be
 // remembered in the other (ADR-031's re-log, FR-24.3's retire).
 //
-// Now the difference is four fields, and this is where it is declared. A
+// The difference is four fields, and this is where it is declared. A
 // fifth difference, or a flag that drifts to the other side, is a red test
 // rather than a reading exercise.
 func TestPartitions_DifferInExactlyTheFourWaysTheyDeclare(t *testing.T) {

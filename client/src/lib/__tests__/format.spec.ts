@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 /**
- * Shared display formatting (UX-5/UX-11, 2026-08-25 UX review): dates were
- * interpolated as raw ISO strings on every trip surface, and the analytics
- * value KPI was a bare `toFixed(2)`. One locale-aware helper per fact, used
- * everywhere that fact is shown.
+ * Shared display formatting (UX-5/UX-11): no trip surface interpolates a raw
+ * ISO date, and the analytics value KPI is not a bare `toFixed(2)`. One
+ * locale-aware helper per fact, used everywhere that fact is shown.
  *
  * jsdom: `setLocale` persists to localStorage and stamps `document.documentElement.lang`.
  */

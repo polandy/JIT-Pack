@@ -67,9 +67,9 @@ describe('useSyncStatus', () => {
 
 /**
  * FR-19.2 — the glyph may not promise durability before the write lands.
- * Local Mode used to report "on this device" from the tap onwards, so a
- * reload inside that window came back without the row while the app had
- * already said it was safe.
+ * Reporting "on this device" from the tap onwards would let a reload inside
+ * that window come back without the row while the app had already said it
+ * was safe.
  */
 describe('Local Mode writes (FR-19.2)', () => {
   it('reports syncing while a local write is open, not "local"', () => {

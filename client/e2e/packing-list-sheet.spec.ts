@@ -23,7 +23,7 @@ import { writesLanded } from './helpers/page'
 
 /**
  * M4 — the list while M5's sheet is over it, and what stays rendered behind
- * it (UI-Test-Spec §4). Split out of `packing-list.spec.ts` on 2026-09-20.
+ * it (UI-Test-Spec §4). A neighbour of `packing-list.spec.ts`.
  *
  * Motion is reduced for the whole file: the header line folds over a
  * max-height transition that also changes the height of the scrolled content,
@@ -52,11 +52,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
 
   // E2E-M4-45 (ADR-012's overlay revision, ADR-046): opening an item is a
   // state of the list's own page — `?item=` on the same route — so the list
-  // never leaves the screen and never leaves its offset. Until ADR-046 the
-  // item was a path parameter, every open mounted a second list at the top,
-  // and a scroll memory carried the offset across the remount; this case
-  // was written for that repair and now holds the promise it was repairing.
-  // The assertion is on the rendered scroll position, never on the URL.
+  // never leaves the screen and never leaves its offset — an item as a path
+  // parameter would mount a second list at the top on every open. The
+  // assertion is on the rendered scroll position, never on the URL.
   test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled', async ({
     page,
   }) => {
@@ -73,9 +71,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     // turns: since FR-21.17's gesture rule the head stands still for a
     // scroll nobody made, so moving the offset through ion-content's API
     // would leave the line open and assert nothing. A mid-list offset
-    // because that is what "where it was" means here; the very end used to
-    // be unusable — the clamp that a collapse provokes read as an upward
-    // scroll and re-opened the line — and E2E-M4-70 holds that wobble down.
+    // because that is what "where it was" means here; at the very end the
+    // clamp that a collapse provokes can read as an upward scroll and
+    // re-open the line, and E2E-M4-70 holds that wobble down.
     const SCROLLED_TO = await scrollPackList(page, 200)
 
     // Settled, not merely started: the header line folds over a max-height
@@ -236,15 +234,13 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
    * E2E-G12-04 (G-12, ADR-050): what the header line carries, and how many
    * lines it is.
    *
-   * The spec sentence promised "a single line" unconditionally and named the
+   * The spec sentence promises "a single line" unconditionally and names the
    * filter chip row as absent by default. Read against the screen, the second
    * half is narrower than that: the chip row is always there, because
-   * FR-25.11a/b made it the place the grouping is stated (E2E-M4-15). The
-   * first half is true again since ADR-050 — the line was two rows on a phone
-   * for as long as it carried the trip's name and its three destinations, and
-   * with both gone it states figures alone at every width. The clause that
-   * survives unchanged is the search field, which is absent until it is
-   * opened — and that is what nothing asserted.
+   * FR-25.11a/b make it the place the grouping is stated (E2E-M4-15). The
+   * first half holds under ADR-050 — without the trip's name and its three
+   * destinations the line states figures alone at every width. The clause
+   * asserted here is the search field, which is absent until it is opened.
    */
   test('E2E-G12-04: the header line carries the figure and nothing else at either width', async ({
     page,
@@ -260,11 +256,11 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     // rather than always carries.
     await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
 
-    // The line is the figure plus its padding and nothing more — since
-    // FR-21.23 the figure is itself two lines and a track, so "one row" is
-    // no longer the measurement; "nothing stacked beside it" is. Measured,
-    // not read off the stylesheet: a second block would show as height here
-    // whatever the flex direction says.
+    // The line is the figure plus its padding and nothing more — under
+    // FR-21.23 the figure is itself two lines and a track, so "one row" is not
+    // the measurement; "nothing stacked beside it" is. Measured, not read off
+    // the stylesheet: a second block would show as height here whatever the
+    // flex direction says.
     const phoneLine = (await header.boundingBox())!
     const phoneStats = (await stats.boundingBox())!
     expect(phoneLine.height).toBeLessThan(phoneStats.height * 2)
@@ -281,20 +277,17 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await expect(page.getByTestId('m4-search-input')).toBeVisible()
   })
 
-  // E2E-M4-56 (UX pass 2026-08-25, UX-9; revised 2026-09-06): the names of
-  // a checkbox row and a stepper row start at the same x, and the two
-  // controls end at the same x. UX-9 bought the first with a fixed control
-  // column on the *left* — before it a stepper row started its name 86 px
-  // right of a checkbox row. The control now sits at the row's other edge,
-  // so the lead column holds the names straight and the container edge
-  // holds the controls; both halves are asserted, because either one alone
-  // would pass on a row that had lost the other. The lead column's *third*
-  // shape — a lone per-person instance — is E2E-M4-72: this pair is a
-  // checkbox row against a stepper row, and neither of them has a traveler,
-  // so the general claim in the comment above was never tested against the
-  // row that broke it. Built through M8 per spec
-  // §2.4, because a quantity can only come from a position; measured on
-  // rendered boxes, not on the stylesheet.
+  // E2E-M4-56 (UX-9): the names of a checkbox row and a stepper row start at
+  // the same x, and the two controls end at the same x — without that, a
+  // stepper row starts its name 86 px right of a checkbox row. The control
+  // sits at the row's other edge, so the lead column holds the names
+  // straight and the container edge holds the controls; both halves are
+  // asserted, because either one alone would pass on a row that had lost
+  // the other. The lead column's *third* shape — a lone per-person instance
+  // — is E2E-M4-72: this pair is a checkbox row against a stepper row, and
+  // neither of them has a traveler. Built through M8 per spec §2.4, because
+  // a quantity can only come from a position; measured on rendered boxes,
+  // not on the stylesheet.
   test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
     page,
   }) => {
@@ -341,10 +334,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     )
   })
 
-  // E2E-M4-68 (FR-25.2, 2026-09-06): a done row keeps its place in the list
-  // and loses its place in the queue — it falls behind the rows that still
-  // ask for something. Asserted on the *rendered* order, because the domain
-  // unit can only say what the view model holds.
+  // E2E-M4-68 (FR-25.2): a done row keeps its place in the list and loses its
+  // place in the queue — it falls behind the rows that still ask for
+  // something. Asserted on the *rendered* order, because the domain unit can
+  // only say what the view model holds.
   test('E2E-M4-68: a packed row sinks to the end of its group when revealed', async ({ page }) => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
@@ -372,14 +365,13 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   })
 
   /*
-   * E2E-M4-69 (FR-25.22, 2026-09-07): the reveal bar and the filter sheet's
-   * *Erledigte* switch label the same set, so they must carry the same
-   * number. They carried two: the bar counted done rows among the ones the
-   * filter lets through, the switch counted the whole trip's packed *units*.
-   * `filter-switch-done` occurred in no test at all, which is what let it
-   * stand. Since FR-25.32 the bar is gone while a term is typed, so the
-   * pairing is read without one; the search is then what shows the switch
-   * counting the *matches* (1) rather than the trip (2).
+   * E2E-M4-69 (FR-25.22): the reveal bar and the filter sheet's *Erledigte*
+   * switch label the same set, so they must carry the same number — not
+   * done rows among the ones the filter lets through on one, and the whole
+   * trip's packed *units* on the other. Under FR-25.32 the bar is gone while
+   * a term is typed, so the pairing is read without one; the search is then
+   * what shows the switch counting the *matches* (1) rather than the trip
+   * (2).
    */
   test('E2E-M4-69: the reveal bar and the Erledigte switch carry one number', async ({ page }) => {
     await createTripViaWizard(page, M4_TRIP)
@@ -460,8 +452,8 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   /*
    * E2E-M4-129 (FR-21.17): a list that overflows its screen by less than the
    * header line frees when it yields — a search's few hits — keeps the line.
-   * It used to yield anyway; the shorter range clamped the offset, the line
-   * came back and the list jumped up, on every swipe down. The viewport is
+   * Yielding anyway, the shorter range clamps the offset, the line comes
+   * back and the list jumps up, on every swipe down. The viewport is
    * sized from the measured overflow so the case sits in that band on any
    * engine, and the positive signal is the offset reaching the end.
    */
@@ -535,10 +527,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   /*
    * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
    * and puts the once-per-trip ones behind the ⋮, where they are read as
-   * words. Before it, six glyphs plus the gear sat in a bar that on a phone
-   * had already given up its title to make room. Since 2026-09-25 the ⋮
-   * holds packing's own and nothing else (owner): the trip's properties and
-   * its lifecycle steps are M2's, where the trip itself is the subject.
+   * words — six glyphs plus the gear do not fit a phone's bar. The ⋮ holds
+   * packing's own and nothing else: the trip's properties and its lifecycle
+   * steps are M2's, where the trip itself is the subject.
    */
   test('E2E-M4-57: the rare packing actions move behind the bar menu, and the trip-wide ones leave it', async ({
     page,
@@ -695,9 +686,9 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     // satisfy visibility and say nothing.
     await expect(row.getByTestId('m4-packed-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
 
-    // The same record on M5, which the UI-Test-Spec calls an M5 case and
-    // nothing had ever driven: read-only there, because the server stamps
-    // it and no control may pick it (invariant 3).
+    // The same record on M5, which the UI-Test-Spec calls an M5 case:
+    // read-only there, because the server stamps it and no control may pick it
+    // (invariant 3).
     await row.getByRole('heading').click()
     await page.getByTestId('m5-details').click()
     await expect(page.getByTestId('m5-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
@@ -721,7 +712,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    * The entry itself is always there — M6 is a screen, not a notification — so
    * the count is the part that carries information, and a `(0)` is worse than
    * no number at all. ADR-050 put it in the word because an action sheet
-   * renders no badge; since ADR-051 amendment 3 the pill of a view you are
+   * renders no badge; under ADR-051 amendment 3 the pill of a view you are
    * not standing on is a glyph, and there the number is a badge — the name
    * still carries it, so a screen reader hears the same count.
    */

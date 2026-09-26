@@ -7,12 +7,12 @@
  * screen: roles and members are FR-4.5's roster and stay Server-Mode-only
  * (G-8), while travellers are trip records that exist in every mode (FR-19.3).
  *
- * A screen rather than a sheet (owner, 2026-08-21): the roster is a list with
+ * A screen rather than a sheet: the roster is a list with
  * its own add and remove affordances, and the M5 grammar would nest a list
  * inside an overlay over a list.
  *
  * The consequences of a traveller change are FR-27.4's rule, applied
- * immediately (2026-08-21 amendment) by the orchestrator — this screen's job
+ * immediately by the orchestrator — this screen's job
  * is to *say* what happened, because a row that stays behind after its person
  * left is exactly the thing a user finds later and does not understand.
  */
@@ -89,10 +89,10 @@ const canRemove = computed(() => trip.value?.status === TRIP_STATUS_PLANNING)
 
 const name = ref('')
 /**
- * FR-2.1b: the trip's year, editable here since 2026-08-31.
+ * FR-2.1b: the trip's year, editable here.
  *
- * `TripEdit`'s only writers were M3's wizard and the clone form, both at
- * creation, so a typo on the one temporal fact a trip is required to have was
+ * M3's wizard and the clone form set it only at creation, so without this a
+ * typo on the one temporal fact a trip is required to have would be
  * permanent — and it is the fact M2 sorts and groups by. The picker offers
  * the same years those two do, from the one rule they all read.
  */
@@ -203,10 +203,10 @@ async function reportTravelerChange(
 }
 
 /**
- * Adding takes the account in the same gesture as the name (owner,
- * 2026-09-13): the two-step version made the common case — a person who is
- * already on the trip being added as a traveller — read as a control the user
- * had to discover after the fact. The picker resets with the field, because
+ * Adding takes the account in the same gesture as the name: two steps would
+ * make the common case — a person who is already on the trip being added as
+ * a traveller — read as a control the user has to discover after the fact.
+ * The picker resets with the field, because
  * the next person is a different one far more often than not.
  */
 async function addTraveler(): Promise<void> {
@@ -286,11 +286,10 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
         Above both cards, because it is about the screen and not about one of
         them: an archived trip loses the ✕, the add row and the started-trip
         note together, so without this it answers no tap and says nothing —
-        the shape the owner ruled against on 2026-08-21 for the started trip,
-        reached here by a different route (owner decision 2026-08-31). Its own
-        sentence, not that one's: the reason is that the trip is over, and
-        borrowing the other wording would claim it has not left yet.
-        Rendering it inside the travellers card read as a rule about people.
+        the shape ruled out for the started trip, reached here by a different
+        route. Its own sentence, not that one's: the reason is that the trip
+        is over, and borrowing the other wording would claim it has not left
+        yet. Inside the travellers card it would read as a rule about people.
       -->
       <p v-if="readOnly" class="note page-note" data-testid="trip-edit-archived-note">
         {{ t('tripEdit.archivedNote') }}
@@ -400,11 +399,10 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               </IonSelectOption>
             </IonSelect>
             <!--
-              Absent rather than disabled once the trip has started (owner,
-              2026-08-21). The first version rendered it refusing every tap, on
-              the reasoning that a vanished control gets hunted for; in the hand
-              it reads as a broken app instead, and the note under the list
-              already answers the question the ✕ would have raised.
+              Absent rather than disabled once the trip has started: a
+              control refusing every tap reads as a broken app in the hand,
+              and the note under the list already answers the question the ✕
+              would have raised.
             -->
             <IonButton
               v-if="!readOnly && canRemove"

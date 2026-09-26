@@ -217,12 +217,11 @@ export const useMasterStore = defineStore('master', () => {
    *
    * Assembled here rather than at each caller because four screens write
    * portable files — the device backup, both single exports and the template
-   * list — and the pair was written out at each. Nothing drove any copy: with
-   * all of them returning no tags, the whole unit suite and the whole M18 e2e
-   * unit stayed green while the backup silently lost every tag. One named
-   * source is one thing to get right, and `serializeTrip` takes it as a
-   * *required* argument so a caller cannot quietly omit it — which is how the
-   * fourth call site, exporting templates without tags, was found at all.
+   * list — and a copy at each is driven by nothing: with every copy returning
+   * no tags, the whole unit suite and the whole M18 e2e unit stay green while
+   * the backup silently loses every tag. One named source is one thing to get
+   * right, and `serializeTrip` takes it as a *required* argument so a caller
+   * cannot quietly omit it.
    */
   function portableResolvers() {
     return {
@@ -403,12 +402,11 @@ export const useMasterStore = defineStore('master', () => {
   /**
    * removeRow drops a row and everything `childRows` says hangs off it.
    *
-   * The cascade used to be written twice — once here, arm by arm inside
-   * `applyChange`, and once in `childRows` for the optimistic path — and the
-   * two disagreed: a deleted item left its dependency rows behind, a deleted
-   * template left its positions' tasks. Both only until the children's own
-   * tombstones arrived, which is the *next* pull page when the parent's
-   * lands on a page boundary.
+   * The cascade is written once, in `childRows`, and serves `applyChange` and
+   * the optimistic path alike. Two copies disagree: a deleted item leaves its
+   * dependency rows behind, a deleted template its positions' tasks — until
+   * the children's own tombstones arrive, which is the *next* pull page when
+   * the parent's lands on a page boundary.
    */
   function removeRow(table: SyncTable, id: string): void {
     for (const child of childRows(table, id)) {

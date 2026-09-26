@@ -135,8 +135,8 @@ func TestExportFull_VisibilityFiltered(t *testing.T) {
 }
 
 // The {userID} in the path names the row that gets written, so it must be the
-// caller's own. Both routes previously carried `authed` alone, which let any
-// account overwrite any other account's avatar or display name (invariant 3).
+// caller's own. `authed` alone would let any account overwrite any other
+// account's avatar or display name (invariant 3).
 func TestProfileWrites_RefuseAnotherUser(t *testing.T) {
 	srv := newTestServer(t)
 

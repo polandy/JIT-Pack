@@ -107,9 +107,9 @@ export class HLCGenerator {
  * `observe` throwing is right for the generator's own contract, and wrong at
  * the boundary where a pull meets another device's data: the clock is an
  * optimisation for causality (§3), not a gate on rendering, so one unusable
- * value must never cost the page it arrived in. The server now refuses such
- * a clock at push time rather than storing it, but the tolerance stays: a
- * row that was written before that guard existed is still on the server, and
+ * value must never cost the page it arrived in. The server refuses such a
+ * clock at push time rather than storing it, but the tolerance stays: a
+ * row written before that guard existed can still be on the server, and
  * a throw would make every *other* row of its partition unreachable on every
  * device for as long as it lives.
  */

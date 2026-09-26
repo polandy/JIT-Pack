@@ -314,8 +314,8 @@ describe('membershipRows', () => {
  * FR-25.21 / FR-5.5 — a rewritten row's `state` must still be true of its own
  * numbers.
  *
- * Both conversions change a row's quantity and its packed count, and neither
- * used to touch the state that describes them. That is not cosmetic: `isDone`
+ * Both conversions change a row's quantity and its packed count, so both have
+ * to touch the state that describes them. That is not cosmetic: `isDone`
  * reads *skipped* and *fully packed* as done and FR-25.2 takes a done row off
  * the list, so a row left claiming a state its numbers no longer support
  * disappears while it is unfinished. The repair is a derivation, not a policy —

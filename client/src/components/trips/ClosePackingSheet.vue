@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * FR-5.10's question, as the sheet the 2026-09-20 round drew (variant A).
+ * FR-5.10's question, as a sheet (variant A).
  *
- * It replaces an `ion-alert`, which was the cheap way to ask and looked it:
+ * A sheet rather than an `ion-alert`, which is the cheap way to ask and looks it:
  * a system dialogue for the one moment in the trip where the app should
  * look like itself. What the sheet adds beyond chrome is *room for the
  * three things a count hides* — the started rows, the ones due on departure

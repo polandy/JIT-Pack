@@ -48,12 +48,10 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
 /**
  * The views that earn a pill under the page's name (ADR-051 amendment 1).
  *
- * ADR-051 gave all four a pill, and the row filled a 390 px line to within
- * six pixels: four destinations, all equally loud, two of which are read once
- * a trip. The owner's call of 2026-09-20 is that the luggage and the analytics
- * are not that — so the row keeps the views a trip is *worked* in, and the
- * other two are words in the bar's ⋮ again, where the once-per-trip actions
- * already are.
+ * A pill each for the luggage and the analytics would fill a 390 px line to
+ * within six pixels: destinations all equally loud, two of which are read once
+ * a trip. So the row keeps the views a trip is *worked* in, and those two are
+ * words in the bar's ⋮, where the once-per-trip actions already are.
  *
  * FR-7.7 adds the third worked-in view by that same rule: the tasks are
  * returned to across a trip, not read once. It re-opens the measurement the
@@ -188,7 +186,7 @@ export function tripViewPills(current: TripViewId): TripViewId[] {
 
 /**
  * The views that belong to packing: the list itself and the two read off it.
- * A ⋮ acts on the context it sits in (owner, 2026-09-25), and the luggage and
+ * A ⋮ acts on the context it sits in, and the luggage and
  * the analytics are the packing list's — offered from the shopping list or
  * the tasks they were a way out of the place the user stood in.
  */

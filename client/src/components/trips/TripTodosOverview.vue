@@ -2,10 +2,10 @@
 /**
  * M1's *Aufgaben* card (FR-7.4, FR-7.6): the open tasks of every active trip
  * — the trip's own and the preparations its rows owe — reported and not
- * operated, because the dashboard takes no actions (owner, 2026-09-18).
+ * operated, because the dashboard takes no actions.
  *
- * One card rather than two (FR-7.6, ADR-068): the *Vorzubereiten* card that
- * listed preparations by item is this card's item-bound half now. What tells
+ * One card rather than two (FR-7.6, ADR-068): preparations by item are this
+ * card's item-bound half. What tells
  * the two kinds apart is the chip, which names the row and is the way into
  * it; the head of each block leads into the trip, where tasks are ticked.
  *

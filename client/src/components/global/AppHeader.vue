@@ -6,7 +6,7 @@
  * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
  * which is what keeps the conflict log reachable from inside a trip.
  * The left slot switches: the logo on a tab root, `‹ back` everywhere
- * else. The page's *name* is not here any more — it is in the page, at a
+ * else. The page's *name* is not here — it is in the page, at a
  * size a bar cannot give it (PageHead, ADR-050).
  */
 import {

@@ -4,20 +4,16 @@
  * lamp while a write is in flight, a green one once it settled on this
  * device, meaning on the tooltip (G-12-06).
  *
- * The prop is a boolean and not a `SyncState` on purpose (2026-08-30). It
- * used to be the latter, fed straight from G-2's own state, and this file's
- * last case asserted the consequence as if it were the rule: "every
- * non-syncing state is settled — offline is a G-2 story, not this one".
- * Offline is precisely *this* story. `syncStatus.state` answers `offline`
- * before `syncing`, so a write still open on a device with no network read
- * as saved — the one case FR-25.15 exists for, pinned green by its own test.
- * What the two mean apart is now `capturePending`, tested in
- * `composables/__tests__/captureState.spec.ts`.
+ * The prop is a boolean and not a `SyncState` on purpose. Fed from G-2's
+ * own state, "every non-syncing state is settled" would follow — and offline
+ * is precisely *this* story: `syncStatus.state` answers `offline` before
+ * `syncing`, so a write still open on a device with no network would read
+ * as saved, the one case FR-25.15 exists for. What the two mean apart is
+ * `capturePending`, tested in `composables/__tests__/captureState.spec.ts`.
  *
- * The first case is the one the rest hangs from (owner, 2026-09-20): the
- * indicator used to render its settled state from the moment the sheet
- * opened, which confirms nothing. Everything below asserts that it speaks
- * only as the consequence of a write.
+ * The first case is the one the rest hangs from: a settled state rendered
+ * from the moment the sheet opens confirms nothing. Everything below asserts
+ * that it speaks only as the consequence of a write.
  */
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
@@ -68,7 +64,7 @@ describe('SaveIndicator (FR-25.15)', () => {
 })
 
 /**
- * FR-25.15, the spoken half (2026-09-21). The lamp is the sighted signal and
+ * FR-25.15, the spoken half. The lamp is the sighted signal and
  * it is deliberately silent until a write happens — but *silence* and *not
  * being there* are the same thing only for the eye. A live region that is
  * created and filled in one frame is not reliably announced: the region has
@@ -105,7 +101,7 @@ describe('SaveIndicator — what it announces (FR-25.15)', () => {
   it('hides the lamp from assistive tech — the region is the one voice', () => {
     const wrapper = mount(SaveIndicator, { props: { pending: true } })
     expect(wrapper.get(LAMP).attributes('aria-hidden')).toBe('true')
-    // The lamp used to carry the label itself, on an element that is also a
+    // A label on the lamp itself would sit on an element that is also a
     // live region; a label change there is not reliably announced either.
     expect(wrapper.get(LAMP).attributes('aria-label')).toBeUndefined()
   })

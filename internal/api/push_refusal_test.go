@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-// A constraint the database refuses used to leave the handler with a raw
-// error, which it answered as 500. That is the one status the client's
-// outbox keeps retrying — a failing server is expected to recover — so the
-// mutation stayed at the head of its queue and every later mutation for
-// that trip stayed behind it. The push must answer 200 with the single
-// mutation `rejected`, and the rest of the batch must still apply.
+// A constraint the database refuses must not reach the client as a 500.
+// That is the one status the client's outbox keeps retrying — a failing
+// server is expected to recover — so the mutation would stay at the head of
+// its queue and every later mutation for that trip behind it. The push must
+// answer 200 with the single mutation `rejected`, and the rest of the batch
+// must still apply.
 func TestPush_ConstraintViolation_RejectsOneMutationAndAppliesTheRest(t *testing.T) {
 	srv, st := newTestServerWithStore(t)
 	if _, err := st.DB().Exec(
@@ -23,8 +23,7 @@ func TestPush_ConstraintViolation_RejectsOneMutationAndAppliesTheRest(t *testing
 		// A container another device deleted while this one was offline.
 		mutation("item-1", "mut-1", "upsert",
 			map[string]any{"container_id": "gone-container"}, "0000000002000-0000-bbbbbbbb"),
-		// Ordinary traffic queued behind it — this is what used to be held
-		// hostage by the 500.
+		// Ordinary traffic queued behind it — what a 500 would hold hostage.
 		mutation("item-1", "mut-2", "upsert",
 			map[string]any{"quantity": 5}, "0000000003000-0000-cccccccc"),
 	}}

@@ -72,7 +72,7 @@ const props = withDefaults(
      * Whether the WebSocket is open (Sync-API §7). Server Mode only: the
      * glyph's state is about this device's own changes reaching the server,
      * and says nothing about other devices' changes reaching this one — a
-     * dead socket under a green glyph was a deaf device that looked fine.
+     * dead socket under a green glyph is a deaf device that looks fine.
      */
     live?: boolean
     /**
@@ -104,8 +104,8 @@ const props = withDefaults(
     hasBackupContent: boolean
     /**
      * A newer build is installed and waiting (NFR-4.13). It takes over on the
-     * next launch (ADR-019) — and, since FR-19.7, on a press of the action
-     * below, which is the only thing that shortens the wait (ADR-044).
+     * next launch (ADR-019) — and on a press of the action below (FR-19.7),
+     * which is the only thing that shortens the wait (ADR-044).
      */
     updateReady: boolean
     /** True from the press until the page is replaced — no second press. */

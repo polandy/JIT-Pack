@@ -74,7 +74,7 @@ func TestMasterPushPull_RoundTrip(t *testing.T) {
 	}
 }
 
-// FR-1.6 MVP simplification (2026-08-08): every account sees every template,
+// FR-1.6 MVP simplification: every account sees every template,
 // exactly as it already sees every master item.
 func TestMasterPull_TemplatesVisibleToEveryone(t *testing.T) {
 	srv := newTestServer(t)

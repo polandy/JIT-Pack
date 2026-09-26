@@ -105,7 +105,7 @@ var baselineLevels = map[int64]struct {
 //
 // It exists so those values are refused rather than read as levels of *this*
 // chain. That is also why the level of a current database lives in
-// `schema_meta` and not in `user_version` (ADR-067 amendment, 2026-09-21): a
+// `schema_meta` and not in `user_version` (ADR-067 amendment): a
 // hash and a counter must not share one field.
 const lastMigrationEraLevel = 23
 

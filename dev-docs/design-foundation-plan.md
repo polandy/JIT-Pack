@@ -1,7 +1,7 @@
 # The design foundation — what to build before the next screen rebuild
 
-**Status:** complete, 2026-08-15. The plan's five steps became six when PR 3 split (see there); all six are merged. What
-follows the foundation is the screen-rebuild half of CLAUDE.md "Not built yet" item 3. 
+**Status:** complete. Six steps (PR 3 is split, see there), all merged. What follows the foundation is the
+screen-rebuild half of CLAUDE.md "Not built yet" item 3.
 **Sequencing:** this comes **before** the remaining screen rebuilds in CLAUDE.md
 "Not built yet" item 3 (M7/M8, M9/M10, M11, M12, M14).
 
@@ -25,8 +25,8 @@ Doing this after the six remaining rebuilds would mean building the same gap six
 more times and then touching all six again. Doing it first means each rebuild
 starts from the tokens.
 
-**Every value below was verified against the running code and the prototype on
-2026-08-14** — where a line number is given, it was read, not assumed.
+**Every value below was verified against the running code and the prototype**
+— where a line number is given, it was read, not assumed.
 
 ## Working rules for all five PRs
 
@@ -38,7 +38,7 @@ starts from the tokens.
 - `make ci` green before finishing; `make e2e` where a case is added.
 - Speak German to the owner, write code and docs in English.
 - Runtime claims get verified by running the thing, not by reading the code path
-  (see the 2026-08-14 entry in `implementation-log.md` for what that cost).
+  (see „Post-#73 review remediation" in `implementation-log.md` for what that cost).
 
 ---
 
@@ -112,16 +112,12 @@ That single line is why the app reads as a default Ionic app.
 - Checked checkboxes/toggles and progress bars → green/teal
 - `--ion-color-primary` **stays blue** — it is the action colour, not the brand
 
-**The brand is flavour-relative — decided by the owner 2026-08-14, after
-seeing it rendered.** The plan treated "peach is the brand" as one value.
-It is one *role* with two readings: Latte's peach (`#fe640b`) is a
-saturated orange on a near-white ground, Mocha's (`#fab387`) a pastel on a
-near-black one, so the light theme shouted. Measuring settled the direction
-— stock Latte peach managed **2.45:1** as an 11 px tab label on `mantle`,
-so the calmer choice was also the more legible one, and going *paler*
-(rosewater, 2.17:1) would have made it worse. Latte's brand is now
-`color-mix(in srgb, var(--ct-peach) 65%, var(--ct-text))` → **3.56:1**,
-derived from palette tokens rather than picked by eye.
+**The brand is flavour-relative — decided after seeing it rendered.** The plan treated "peach is the brand" as one
+value. It is one *role* with two readings: Latte's peach (`#fe640b`) is a saturated orange on a near-white ground,
+Mocha's (`#fab387`) a pastel on a near-black one, so the light theme shouted. Measuring settled the direction — stock
+Latte peach managed **2.45:1** as an 11 px tab label on `mantle`, so the calmer choice was also the more legible one,
+and going *paler* (rosewater, 2.17:1) would have made it worse. Latte's brand is now `color-mix(in srgb, var(--ct-peach)
+65%, var(--ct-text))` → **3.56:1**, derived from palette tokens rather than picked by eye.
 
 One correction inside that correction, and it took rendering to see: the
 FAB gradient's far stop cannot simply be deepened alongside it. Latte's
@@ -189,15 +185,12 @@ run: from the wrong working directory it globbed **zero files and reported
 "ok"**. A gate that scans nothing must never pass, so an empty sweep now
 exits non-zero. The same shape as the false-green tests below.
 
-**Two more defects, both found by rendering the Latte edge the owner asked
-about.** Routing `--ion-item-background` through the card plane also
-repainted every `ion-list`, because Ionic reads the same variable for the
-list itself — so a list laid a card-coloured slab a few pixels wider than
-the cards on it and each card's shadow fell onto its own container. The
-tell was that the pixels under a card edge measured *lighter* than the
-page, which is the one thing a shadow cannot be. `ion-list:has(.jp-card)`
-states the actual condition and, not incidentally, outranks Ionic's own
-`.list-md`, which a bare element selector does not.
+**Two more defects, both found by rendering the Latte edge.** Routing `--ion-item-background` through the card plane
+also repainted every `ion-list`, because Ionic reads the same variable for the list itself — so a list laid a
+card-coloured slab a few pixels wider than the cards on it and each card's shadow fell onto its own container. The tell
+was that the pixels under a card edge measured *lighter* than the page, which is the one thing a shadow cannot be.
+`ion-list:has(.jp-card)` states the actual condition and, not incidentally, outranks Ionic's own `.list-md`, which a
+bare element selector does not.
 
 And the numbers then contradicted what this plan and the specs had claimed.
 Latte was described as casting "far softer" than Mocha. Measured off the

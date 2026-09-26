@@ -1,6 +1,6 @@
 # CODING_PRINCIPLES.md — „JIT-Pack"
 
-**Status:** Binding for all code in this project once agreed.
+**Status:** Binding for all code in this project.
 **Precedence:** These principles > convenience. Deviations require a written note in the PR/commit.
 
 ---
@@ -59,11 +59,11 @@ client/src/local/            Local Mode's own storage: the row store, backup, ex
 
 * **Dependency rule**, as `go list -deps` reports it: `api → store, sync`; `store → sync`; `webui → nothing internal`
   (it takes the API prefixes as parameters rather than importing the handler); **`sync` and `wiregen` import nothing
-  internal, ever.** This makes the riskiest packages trivially unit-testable. `internal/portable` was a third such leaf
-  until 2026-08-23; it went with the server's half of the portable format, which is now the client's alone (ADR-025).
+  internal, ever.** This makes the riskiest packages trivially unit-testable. The portable format is the client's alone
+  (ADR-025), so no Go leaf carries it.
 * `client/src/sync/` is **not** a pure leaf the way Go's `internal/sync` is — the name is shared, the rule is not. It
-  holds what the client needs to speak the sync protocol: since B2 that includes an IndexedDB adapter for the outbox
-  queue, and since 2026-08-25 the builder for the optimistic twin of a write — pure functions over `PullChange`, which
+  holds what the client needs to speak the sync protocol: that includes an IndexedDB adapter for the outbox queue and
+  the builder for the optimistic twin of a write — pure functions over `PullChange`, which
   is why they live here rather than under `composables/`, where nothing that declines Vue's reactivity belongs. It lives
   there rather than in `client/src/local/` because that directory means *Local Mode*, and the outbox exists only in the
   mode that has a server. Purity is preserved where it is claimed: `client/src/domain/` imports nothing from `sync/`.
@@ -80,10 +80,10 @@ client/src/local/            Local Mode's own storage: the row store, backup, ex
   rule can only be asserted by standing up HTTP + database + goroutines, that is not a call for a bigger integration
   test — the cut is wrong, and the rule moves out until a unit test can reach it. (`internal/sync` and
   `internal/wiregen` are the proof: zero-dependency leaves precisely so their risk is trivially testable.)
-* **No ordering races in production code** (owner, 2026-09-02). A behaviour must not depend on which of two asynchronous
+* **No ordering races in production code.** A behaviour must not depend on which of two asynchronous
   things completes first — a response against a listener's registration, an event against its subscriber, a child's
   mount against its parent's. No test can pin that ordering, so the case reads as flaky and the defect is blamed on
-  whatever changed last (it was blamed on a Vue patch bump the day this rule was written). The fix is a seam in the
+  whatever changed last. The fix is a seam in the
   implementation, never a wait or a retry in the test: make the thing a **state** rather than a one-shot **event** — a
   latch, a settled flag, a replay on subscribe — so a consumer that arrives late still sees it, and write the unit case
   *"a subscriber attached after the fact is still reached"*. In Vue specifically, children's `onMounted` run before the
@@ -164,10 +164,10 @@ except for the one class that *is* gated: colours, type and shape, which
 every notation, because a rule that knows only the spellings that were in use
 when it was written is a rule about spelling rather than about colour.
 
-*Paid for on 2026-08-18 (FR-27.4):* `internal/store` switched on bare table
-names in five places across two packages. Adding a table meant finding all
-five by grep, and the sixth place that should have had a case simply did not.
-Naming them turned "did I catch every switch?" into a compile-time question.
+*Why (FR-27.4):* a switch on bare table names, spread over five places in two
+packages, means adding a table by finding all five by grep — and a sixth place
+that should have had a case is invisible. Named, "did I catch every switch?" is
+a compile-time question.
 
 ## 5. Dependencies (footprint-guarded)
 

@@ -36,10 +36,10 @@ export const NAV_ANCHORS: readonly NavAnchor[] = [
 /**
  * Whether an anchor is the one the current path belongs to.
  *
- * Exact rather than a substring test: the inventory anchor used to light
- * up inside a trip's item sheet because the old check asked whether the
- * path merely *contained* the segment, which pointed the user at the
- * master inventory while they were inside a trip. It compares against the
+ * Exact rather than a substring test: a path that merely *contains* the
+ * segment would light the inventory anchor inside a trip's item sheet,
+ * pointing the user at the master inventory while they are inside a
+ * trip. It compares against the
  * anchor's own `href` rather than rebuilding the path from `match` —
  * the two are the same string exactly once (U-9).
  */

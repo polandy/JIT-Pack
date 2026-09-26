@@ -13,8 +13,8 @@
  * Whether the packing has been declared finished (FR-5.10).
  *
  * The *stamp*, never „nothing is open": the list stays open afterwards so a
- * thing that was packed but never listed can still be added (owner,
- * 2026-09-20), and a derived reading would be revoked by exactly that row.
+ * thing that was packed but never listed can still be added, and a derived
+ * reading would be revoked by exactly that row.
  */
 export function isPackingClosed(trip: { packing_closed_at: string | null } | null | undefined) {
   return (trip?.packing_closed_at ?? null) !== null

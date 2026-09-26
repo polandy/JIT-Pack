@@ -2,10 +2,9 @@
  * Helpers shared by the two backend-backed projects, `single` and `server`
  * (UI-Test-Spec §2.2/§2.3).
  *
- * They were the `single` unit's private helpers until the multi-identity
- * project arrived and needed the same four moves — booting a page in server
- * mode, adding a row, packing it, and knowing when a page's WebSocket
- * subscription actually exists. Copying them would have made two versions
+ * Both projects need the same four moves — booting a page in server mode,
+ * adding a row, packing it, and knowing when a page's WebSocket
+ * subscription actually exists. Copying them would make two versions
  * of "how this suite drives the app" (CODING_PRINCIPLES §4a), and the
  * WebSocket one in particular is the kind of helper that must not be
  * reinvented: its whole point is that it does not wait for a duration.
@@ -53,7 +52,7 @@ export async function quickAddItem(page: Page, name: string): Promise<void> {
  * packed row leaves the list (FR-25.2) while a refused one stays put.
  * `writesLanded` is the proof the write settled — on its own it would be
  * satisfied by the state the app was already in before this write.
- * The log's 2026-09-13 entry has what the missing barrier cost.
+ * `dev-docs/implementation-log.md` has what a missing barrier costs.
  */
 export async function packItem(page: Page, name: string): Promise<void> {
   const progress = visiblePage(page).getByTestId('m4-progress')
@@ -83,17 +82,17 @@ export async function packItem(page: Page, name: string): Promise<void> {
  * subscribers, the subscriber included, so that frame proves the connection
  * is in the trip's set and every later `trip.changed` must reach it.
  *
- * **The page is the whole parameter, and that is the fix** (2026-08-30). This
- * used to take a `page.waitForEvent('websocket')` promise the caller had made
- * earlier, and attached the frame listener only once the caller awaited it —
- * so every caller that did anything slow in between (all of them waited for a
- * row to render) let the `presence` frame arrive and be dropped, because
- * Playwright buffers no frames from before a listener exists. The test then
- * waited out its timeout for a *second* presence broadcast that only another
- * account's arrival would produce. It passed only while the server round trip
- * was slower than the render, which is why it failed under CI load and never
- * locally. Taking the page instead means the listener is attached one
- * microtask after the socket exists, and no caller can open a window.
+ * **The page is the whole parameter, and that is the point.** A
+ * `page.waitForEvent('websocket')` promise made earlier by the caller would
+ * attach the frame listener only once the caller awaited it — so a caller
+ * that did anything slow in between (waiting for a row to render) lets the
+ * `presence` frame arrive and be dropped, because Playwright buffers no
+ * frames from before a listener exists. The test then waits out its timeout
+ * for a *second* presence broadcast that only another account's arrival
+ * would produce — green only while the server round trip is slower than the
+ * render, so red under CI load and never locally. Taking the page means the
+ * listener is attached one microtask after the socket exists, and no caller
+ * can open a window.
  */
 export function watchSubscribed(page: Page): Promise<void> {
   return page

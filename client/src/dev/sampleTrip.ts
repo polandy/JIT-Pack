@@ -23,9 +23,9 @@ import { createShoppingActions, useShoppingStore } from '@/shopping'
  * back: it was a *product* surface — a mode a user entered, with its own
  * reset banner and explanation. This is a dev affordance behind
  * `import.meta.env.DEV` **at the import** — the guard that actually prunes it,
- * as opposed to the `v-if` on the button, which for weeks hid the trigger
- * while Rollup kept emitting this module for every instance to download
- * (found 2026-08-16). `scripts/dev-code-gate.mjs` holds it now.
+ * as opposed to a `v-if` on the button, which hides the trigger while Rollup
+ * keeps emitting this module for every instance to download.
+ * `scripts/dev-code-gate.mjs` holds it.
  *
  * It lands through **the M18 portable-import path** (FR-18.4) rather than
  * a creation path of its own. A second way of building a trip is a second
@@ -325,10 +325,10 @@ function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
 /**
  * A second, *planned* trip, generated from the sample Ferien-Vorlage and
  * registered against it (FR-27.4). The active trip above is imported rather
- * than generated, so it follows nothing and can never show the refresh —
- * since 2026-08-18 that is the reason, not its status. Without this one a dev
- * cannot see a group edit reach a trip, which is the whole feature: edit a
- * position in M8, open the trip, and answer the card it carries.
+ * than generated, so it follows nothing and can never show the refresh — that
+ * is the reason, not its status. Without this one a dev cannot see a group
+ * edit reach a trip, which is the whole feature: edit a position in M8, open
+ * the trip, and answer the card it carries.
  */
 export function seedPlannedTrip(orchestrator: Orchestrator, vacationTemplateId: string): string {
   return orchestrator.createTripFromWizard({

@@ -9,14 +9,12 @@ import { UNTAGGED_KEY } from '@/domain/tags'
  * FR-24.2 — a generated trip row carries the item's primary tag as its
  * grouping key.
  *
- * The rule was written once, in the quick-add, and nowhere else: generation
- * read `MasterItem.category_name`, an optional field that `items` has no
- * column for and that nothing in the client ever wrote. So every row a
- * Vorlage produced arrived with `category_name: null` and fell into the
- * leftover bucket of M4's grouping, M6's shopping groups and M12's
- * analytics — while the same item added by hand got its tag. The unit tests
- * of generation could not see it: each one sets `category_name` in its own
- * fixture, which is the answer the store never supplied.
+ * Generation and the quick-add must agree: a row a Vorlage produces without
+ * the tag arrives with `category_name: null` and falls into the leftover
+ * bucket of M4's grouping, M6's shopping groups and M12's analytics — while
+ * the same item added by hand gets its tag. The unit tests of generation
+ * cannot see that: each one sets `category_name` in its own fixture, which
+ * is the answer only the store can supply.
  *
  * This case therefore starts at the store and ends at the generated row.
  */

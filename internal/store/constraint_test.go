@@ -88,9 +88,9 @@ func TestIsConstraintViolation_ReadsTheResultCodeNotTheMessage(t *testing.T) {
 		}
 	})
 
-	// The old implementation matched the message "constraint failed". A row
-	// whose *content* says that must not be mistaken for one: this is the
-	// exact failure the result code exists to prevent.
+	// Matching the message "constraint failed" is not enough: a row whose
+	// *content* says that must not be mistaken for one. This is the exact
+	// failure the result code exists to prevent.
 	t.Run("a row that merely says the words", func(t *testing.T) {
 		if err := errors.New(`INSERT failed: constraint failed`); isConstraintViolation(err) {
 			t.Error("an error was matched by its wording rather than by its result code")

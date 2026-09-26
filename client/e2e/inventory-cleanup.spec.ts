@@ -33,7 +33,7 @@ async function openFromOverflow(page: Page, label: string): Promise<void> {
   await page.getByText(label, { exact: true }).click()
 }
 
-/** M24, reached the way the owner does — the sentence at M9's foot. */
+/** M24, reached the way a person does — the sentence at M9's foot. */
 async function openCleanup(page: Page): Promise<Locator> {
   await visiblePage(page).getByTestId('m9-cleanup-note').click()
   await expect(page.getByTestId('header-title')).toHaveText('Tidy up')
@@ -52,8 +52,9 @@ test.describe('M9 — tags are marked, and created where they are given @local @
   })
 
   /**
-   * E2E-M9-24 (FR-24.9 amended): the give sheet used to offer only tags that
-   * existed, so a new category for forty items was a detour through M10.
+   * E2E-M9-24 (FR-24.9): the give sheet creates the tag it does not find —
+   * offering only tags that exist would make a new category for forty items
+   * a detour through M10.
    */
   test('E2E-M9-24: giving a tag creates the one the search did not find, and the undo takes it back', async ({
     page,
@@ -131,7 +132,7 @@ test.describe('M24 — Aufräumen @local @m24', () => {
   })
 
   /**
-   * E2E-M24-01 (FR-24.12): the owner's first rule. M9 says how many findings
+   * E2E-M24-01 (FR-24.12): the first rule. M9 says how many findings
    * there are, the sentence is the way in, and the suggestion — offered with
    * its reason — files the item.
    */

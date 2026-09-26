@@ -111,11 +111,11 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.getByTestId('portable-restore-commit').click()
 
     // The restore lands on the segment its own result is on. Every imported
-    // trip is *planning* (FR-18.4) and M2 opens on Active, so before the fix a
-    // successful restore ended on the words "No active trips" — asserted here
-    // without tapping the segment, which is the whole difference.
-    // Ionic marks the chosen segment with a class; its `aria-selected` sits in
-    // the shadow root and reads empty from here.
+    // trip is *planning* (FR-18.4) and M2 opens on Active, so otherwise a
+    // successful restore would end on the words "No active trips" — asserted
+    // here without tapping the segment, which is the whole difference. Ionic
+    // marks the chosen segment with a class; its `aria-selected` sits in the
+    // shadow root and reads empty from here.
     await expect(visible(restored).getByTestId('trips-filter-planned')).toHaveClass(
       /segment-button-checked/,
     )
@@ -144,13 +144,13 @@ test.describe('Local Mode backup and restore @local @m18', () => {
   /*
    * E2E-M18-09 (ADR-024): a backup gives back the *status* it saved.
    *
-   * Every imported trip used to be `planning` (FR-18.4), which is right for a
-   * file somebody shared and wrong for the only copy of a device: a restore
-   * turned a finished trip back into a plan, and with it the historical
+   * Importing every trip as `planning` (FR-18.4) is right for a file
+   * somebody shared and wrong for the only copy of a device: a restore would
+   * turn a finished trip back into a plan, and with it the historical
    * quantities FR-3.14 reads. Asserted through the segment the restore lands
-   * on as well as through the row, because the two used to be the same
-   * constant and are now derived — landing on an empty Planned list is the
-   * failure mode this replaces, one status over.
+   * on as well as through the row, because both are derived from the saved
+   * status — landing on an empty Planned list is the failure mode, one
+   * status over.
    *
    * The marks and tags half of ADR-024 is unit-covered end to end
    * (`portableImport.spec.ts`, buildBackup → commitPortableRestore on a fresh
@@ -199,14 +199,14 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.getByTestId('portable-restore-commit').click()
 
     // The restore put the user where its own result is, which for a device of
-    // finished trips is Archived and not the old constant.
+    // finished trips is Archived and not Planned.
     await expect(visible(restored).getByTestId('trips-filter-archived')).toHaveClass(
       /segment-button-checked/,
     )
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toBeVisible()
 
     // The positive companion: it is on Archived *because it is archived*, not
-    // because the segment was picked for it. Planned is where it used to land.
+    // because the segment was picked for it.
     await visible(restored).getByTestId('trips-filter-planned').click()
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
@@ -217,9 +217,9 @@ test.describe('Local Mode backup and restore @local @m18', () => {
    * E2E-M18-10 (FR-18.4, ADR-030): the same file, restored twice.
    *
    * The invitation is real — a restore is what you run when you are not sure
-   * whether the last one worked — and before ADR-030 the second run built a
-   * second copy of every trip, silently and with the first still on screen.
-   * A trip's identity is its year and its name, so the second run adds nothing
+   * whether the last one worked — and it must not build a second copy of
+   * every trip, silently and with the first still on screen (ADR-030). A
+   * trip's identity is its year and its name, so the second run adds nothing
    * and says which trips it left alone.
    *
    * The positive signal is `toHaveCount(1)`: a case that only asserted "no
@@ -236,9 +236,8 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
-    // A Ferien-Vorlage as well as a group: the two used to be handled
-    // differently here, the group linking and the Vorlage landing beside
-    // itself under a suffix.
+    // A Ferien-Vorlage as well as a group: both have to link, and neither may
+    // land beside itself under a suffix.
     await createTemplate(page, 'template', 'Fototage')
     await addPosition(page, 'Stativ')
     await backToList(page)
@@ -302,7 +301,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
 
     // One group and one Ferien-Vorlage, both linked by name rather than copied
-    // (ADR-017 for the group, ADR-030 for the Vorlage, which used to arrive a
+    // (ADR-017 for the group, ADR-030 for the Vorlage, which must not arrive a
     // second time as "Fototage (import)").
     await restored.getByTestId('rail-templates').click()
     await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(1)
@@ -317,8 +316,8 @@ test.describe('Local Mode backup and restore @local @m18', () => {
    *
    * A file holding one document is M18's merge preview, not the restore list —
    * a different branch of the screen, with its own way of saying "already
-   * here" and its own commit. E2E-M18-10 covers the restore list; without this
-   * the preview's note and its toast were written into a template nothing ran.
+   * here" and its own commit. E2E-M18-10 covers the restore list; this runs
+   * the preview's note and its toast.
    *
    * A device with one trip and no template produces exactly one document, so
    * the file is taken from the app's own backup rather than hand-written —
@@ -563,8 +562,8 @@ test.describe('Local Mode backup and restore @local @m18', () => {
    * knowing nothing about it — the irreversible state the FR exists to
    * prevent, reached through the one door Local Mode has.
    *
-   * The positive signal is M6's bought bar on the restored device: before
-   * the fix the row is neither on the shopping list (its mode is `pack`) nor
+   * The positive signal is M6's bought bar on the restored device: without
+   * the link the row is neither on the shopping list (its mode is `pack`) nor
    * under the reveal (nothing says it was bought), so the bar never renders.
    */
   test('E2E-M18-12: a restored row still says which shopping list it was bought from', async ({
@@ -630,10 +629,9 @@ test.describe('Local Mode backup and restore @local @m18', () => {
  * (FR-18.4/18.5, FR-16.3).
  *
  * The restore list above is the branch a backup file takes; a file holding
- * one document takes this one, and until this block nothing drove it. The
- * preview's own promises — the summary header, the three per-item states, the
- * merge/keep-separate choice, the schema warning and the parse error — were
- * written in 2026-07 and rendered by no test: the two cases in
+ * one document takes this one. The preview's own promises — the summary
+ * header, the three per-item states, the merge/keep-separate choice, the
+ * schema warning and the parse error — are asserted here: the two cases in
  * `packing-list.spec.ts` that come through here use it as a *fixture* for a
  * trip with quantities, click straight past the preview and assert nothing
  * about it.
@@ -772,9 +770,9 @@ test.describe('M18 portable import preview @local @m18', () => {
 
     await page.goto(`${PATH.trips}?status=archived`)
     await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(1)
-    // The negative half, on the segment it used to land on: before ADR-024
-    // every imported trip was planning, so a decade of archived history
-    // imported as a decade of plans.
+    // The negative half, on Planned: an import that made every trip planning
+    // would turn a decade of archived history into a decade of plans
+    // (ADR-024).
     await page.goto(`${PATH.trips}?status=planned`)
     await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(0)
   })

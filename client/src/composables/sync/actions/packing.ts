@@ -820,10 +820,9 @@ export function createPackingActions(ctx: SyncContext) {
    * after a quick-add that matched a master item.
    *
    * Returns their names, in the order they were added, so the caller can say
-   * what it took along. It returned nothing until 2026-08-31, and no caller
-   * raised anything, so the companions simply appeared on the list — while
-   * FR-20.2's *skip* names exactly what it took with it. That contrast is what
-   * made the silence read as an omission rather than as a decision.
+   * what it took along — as FR-20.2's *skip* names exactly what it took with
+   * it. Companions that simply appeared on the list, beside that, would read
+   * as an omission rather than as a decision.
    */
   function addRequiredCompanions(tripId: string): string[] {
     const onList = tripStore.getItems(tripId)

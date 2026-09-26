@@ -119,12 +119,12 @@ test.describe('Two accounts on one instance @server', () => {
   /**
    * E2E-FLOW-01b (FR-4.4, Sync-API P-1): the direction E2E-FLOW-01 does not
    * drive — the **member** packs and the **owner's** open screen reflects it.
-   * The two directions are the same server code, and it was still this one
-   * that failed on the family instance (2026-09-01): the owner's tab had lost
-   * its socket and the member's had not, so one direction converged and the
-   * other did not, and a case that only ever packs on the owner's device
-   * could not have seen it. The stamp names Bob — the server's own attribution
-   * (invariant 3), which a one-account project cannot produce.
+   * The two directions are the same server code, and still they diverge when
+   * the owner's tab has lost its socket and the member's has not: one
+   * direction converges and the other does not, and a case that only ever
+   * packs on the owner's device cannot see it. The stamp names Bob — the
+   * server's own attribution (invariant 3), which a one-account project cannot
+   * produce.
    */
   test("E2E-FLOW-01b: a member's pack reaches the owner's open screen, named", async ({
     browser,
@@ -302,12 +302,12 @@ test.describe('Two accounts on one instance @server', () => {
    *
    * **Carol rather than Bob, and the preference is put back.** A preference
    * belongs to the account, not to a trip, so unlike everything else in this
-   * file it is *shared-run state*: leaving Bob's delegations off broke
-   * E2E-NOTIFY-01 and E2E-FLOW-02, which expect him to be told. Carol is
-   * this file's own (see `mockIdp.mjs` — the admin cases used to share her,
-   * and deactivated her under this case on a second worker), and the
-   * preference is set through a helper that is idempotent in both
-   * directions, so a retry starts from the state the case assumes.
+   * file it is *shared-run state*: leaving Bob's delegations off would break
+   * E2E-NOTIFY-01 and E2E-FLOW-02, which expect him to be told. Carol is this
+   * file's own (see `mockIdp.mjs` — an admin case sharing her would deactivate
+   * her under this case on a second worker), and the preference is set through
+   * a helper that is idempotent in both directions, so a retry starts from the
+   * state the case assumes.
    */
   test('E2E-M17-01: a preference turned off in M17 silences that kind and only that kind', async ({
     browser,
@@ -385,7 +385,7 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-G3-01 (the identity half, owed since 2026-08-22) + E2E-G3-03's
+   * E2E-G3-01 (the identity half) + E2E-G3-03's
    * identity half: a row Alice is packing names *Alice* on Bob's screen —
    * on the list row and again in the sheet one tap below it.
    *
@@ -548,23 +548,20 @@ test.describe('Two accounts on one instance @server', () => {
    * E2E-FLOW-02 (FR-4.3 → FR-6.2 → FR-6.3, FR-25.19/25.20): Alice hands a
    * row to Bob, Bob is told, and the telling leads back to the row.
    *
-   * The whole chain was unreachable until 2026-08-24. The server has always
-   * fired `notifyDelegation` on a push carrying `packer_user_id` — Go tests
-   * cover it — but no client surface ever wrote that column: it was set
-   * once when a row was generated and never again, so the FR-6.2 delegation
-   * notification could not be produced by using the app. M5's *Zugewiesen
-   * an* picker is the writer; this case is the proof that the writer, the
-   * notification, the deep link and FR-25.20's filter are one chain rather
-   * than four separately-tested pieces.
+   * The server fires `notifyDelegation` on a push carrying `packer_user_id` —
+   * Go tests cover it — but only a client surface that writes that column lets
+   * the FR-6.2 delegation notification be produced by using the app. M5's
+   * *Zugewiesen an* picker is the writer; this case is the proof that the
+   * writer, the notification, the deep link and FR-25.20's filter are one
+   * chain rather than four separately-tested pieces.
    */
   /**
    * E2E-M1-03 (FR-6.1/6.3/4.4): the dashboard's standing surface for a
    * delegation, and that it arrives without a refresh.
    *
-   * Delegation has been *delivered* since 2026-08-25 — as an FR-6.2 toast,
-   * which E2E-FLOW-02 above asserts. A toast is gone by the time the app is
-   * next opened, and until 2026-08-31 nothing on M1 read `packer_user_id` at
-   * all: there was no badge of any kind on the screen for FR-4.4 to update.
+   * Delegation is *delivered* as an FR-6.2 toast, which E2E-FLOW-02 above
+   * asserts. A toast is gone by the time the app is next opened, so M1 reads
+   * `packer_user_id` itself: a standing surface for FR-4.4 to update.
    *
    * The live half is asserted the way this file asserts every live half —
    * against the settled section, with the WebSocket subscription awaited
@@ -680,16 +677,15 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(itemDetail(bob).getByTestId('m5-sheet')).toBeVisible()
     await expect(itemDetail(bob).getByTestId('m5-sheet')).toContainText(item)
 
-    // FR-25.20, reachable for the first time: the row is Bob's job now, so
-    // Alice's list hides it — and says so rather than hiding it silently.
+    // FR-25.20: the row is Bob's job now, so Alice's list hides it — and says
+    // so rather than hiding it silently.
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toHaveCount(0)
     await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
 
-    // …and the empty list says what actually happened. It used to report
-    // „no matches · behind the filter" and offer to clear a search and
-    // facets nobody had set: FR-25.20's hiding is not a filter, and this
-    // state was unreachable until the assignment had a writer.
+    // …and the empty list says what actually happened, not „no matches ·
+    // behind the filter" with an offer to clear a search and facets nobody
+    // had set: FR-25.20's hiding is not a filter.
     const empty = visiblePage(alice).getByTestId('packing-empty')
     await expect(empty).toContainText(ACCOUNT_NAMES.bob)
     await expect(empty).not.toContainText(/filter/i)
@@ -796,10 +792,8 @@ test.describe('Two accounts on one instance @server', () => {
    * its own seat, the way a row is (E2E-M4-90) — and the assignee is told,
    * sees it on the task, and finds it named on M1.
    *
-   * It moved to M25 with FR-7.7: the trip's own tasks are written and worked
-   * there now, and M4 keeps only the preparations still due before the trip.
-   * The promise is unchanged, which is why the id moved rather than the case
-   * being rewritten.
+   * It lives on M25 (FR-7.7): the trip's own tasks are written and worked
+   * there, and M4 keeps only the preparations still due before the trip.
    *
    * Two accounts are the whole point: the seat is absent where nobody else
    * can be picked (E2E-M25-03), and „I was told" needs a second person.
@@ -931,8 +925,8 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-M22-14 (FR-2.5, owner 2026-09-13): the add row records the account in
-   * the same act as the name.
+   * E2E-M22-14 (FR-2.5): the add row records the account in the same act as
+   * the name.
    *
    * The reload is the assertion for the same reason as in E2E-M22-13: the
    * link is optimistic, and only what survives the reload is what the
@@ -1039,7 +1033,7 @@ test.describe('Two accounts on one instance @server', () => {
 
     // Bob opens M5 from Leonardo's row: unclaimed, so M5 itself is
     // not locked — asserted, because a locked M5 would make the rest of this
-    // case prove the old, row-scoped rule instead of the new one.
+    // case prove a row-scoped rule instead of the any-instance one.
     const leonardo = visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)
     await leonardo.click()
     await expect(bob.getByTestId('m5-sheet')).toBeVisible()
@@ -1047,7 +1041,7 @@ test.describe('Two accounts on one instance @server', () => {
     const strip = bob.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)
     await expect(strip).toBeVisible()
 
-    // G-3, one surface deeper than it used to reach: the reason is on the
+    // G-3, one surface deeper than M5's own banner: the reason is on the
     // screen and it carries Alice's name.
     const lock = bob.getByTestId(`for-whom-lock-${FOR_WHOM_M5}`)
     const more = bob.getByTestId(`for-whom-plus-${FOR_WHOM_M5}-Leonardo`)
@@ -1310,9 +1304,9 @@ test.describe('Two accounts on one instance @server', () => {
    * E2E-M9-29 (FR-1.9 over FR-24.4/24.7): the inventory *shows* who an item
    * is usually for, and finds it by that name.
    *
-   * Until this, the flag could only be read by opening the item — an
-   * inventory of two hundred rows answered „was ist üblicherweise meins?"
-   * one editor at a time. Server Mode again, and for the same G-8 reason as
+   * Read only by opening the item, the flag would answer „was ist
+   * üblicherweise meins?" one editor at a time across an inventory of two
+   * hundred rows. Server Mode again, and for the same G-8 reason as
    * E2E-M9-27: the property is not offered where there is only one account,
    * so the toggle's own presence is part of what is asserted.
    *
@@ -1392,11 +1386,10 @@ test.describe('Two accounts on one instance @server', () => {
    * E2E-M4-130 (FR-5.1, FR-25.25): the late-packer flag is trip state, not a
    * view preference — what Alice marks „pack later" is marked for Bob too.
    *
-   * Reported by the owner as not arriving; the case found it does, and it is
-   * kept because no other case had a second account look at the flag. It is
-   * asserted three ways: live on Bob's open screen, after his reload (the
-   * server's copy rather than a socket frame), and in the clearing direction,
-   * because a flag that could only be set would strand a row as „later".
+   * No other case has a second account look at the flag. It is asserted three
+   * ways: live on Bob's open screen, after his reload (the server's copy
+   * rather than a socket frame), and in the clearing direction, because a flag
+   * that could only be set would strand a row as „later".
    */
   test("E2E-M4-130: a late-packer flag set by one account shows on the other's screen", async ({
     browser,

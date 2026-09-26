@@ -122,7 +122,7 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
   })
 
   it('still asks a running trip — departure does not freeze it', async () => {
-    // Owner rule 2026-08-18: only the past is frozen.
+    // Only the past is frozen.
     const orch = await localOrchestrator()
     seedWorld('active')
 

@@ -103,11 +103,11 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visiblePage(page).getByTestId('m8-groups-head')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m8-positions-head')).toContainText('Positions')
 
-    // FR-25.13c: the FAB expands the quick-add but no longer focuses it —
-    // the empty composer leads with chips, and an auto-raised keyboard
-    // would cover them. Asserted after the confirm has rendered, so the
-    // old open()'s awaited focus would have landed by now and the unfixed
-    // build fails here rather than racing past.
+    // FR-25.13c: the FAB expands the quick-add but does not focus it — the
+    // empty composer leads with chips, and an auto-raised keyboard would
+    // cover them. Asserted after the confirm has rendered, so an awaited
+    // focus in open() would have landed by now and a focusing build fails
+    // here rather than racing past.
     await openQuickAdd(page, 'm8-fab')
     const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
 
@@ -128,8 +128,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
     // …and nothing opens on top of it. "One tap" is the whole of FR-25.7:
     // an editor presenting itself after every add would make the defaults
-    // a suggestion rather than an answer (E2E-M8-12, clause added
-    // 2026-08-30 — it was the one part of that sentence nothing asserted).
+    // a suggestion rather than an answer (E2E-M8-12).
     await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
 
     // The field stays open and empty for the next position (FR-25.13).
@@ -151,8 +150,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
     // The anchor survives, and that is the point: toasts on this screen are
     // positioned against the fab *container*. Hiding the whole IonFab would
-    // have dropped the anchor and let toasts fall behind the tab bar — the
-    // M7/M8 defect from 2026-08-15, nearly rebuilt while fixing this one.
+    // drop the anchor and let toasts fall behind the tab bar.
     await expect(visiblePage(page).locator(`#${FAB_ANCHOR.m8}`)).toHaveCount(1)
 
     // And it comes back once the composer closes.
@@ -166,11 +164,11 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
 
-    // Since FR-24.11 reached the composer the duplicate is reported before
-    // the commit rather than after it: the exact name is already a position,
-    // so the composer says so and ✓ rests. Enter is pressed anyway, and the
-    // report still standing afterwards is the settled signal that it did
-    // nothing — the row count beside it is the claim.
+    // Under FR-24.11 the duplicate is reported before the commit rather than
+    // after it: the exact name is already a position, so the composer says so
+    // and ✓ rests. Enter is pressed anyway, and the report still standing
+    // afterwards is the settled signal that it did nothing — the row count
+    // beside it is the claim.
     const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Kamera')
     await expect(visiblePage(page).getByTestId('quick-add-already-in')).toContainText('Kamera')
@@ -193,8 +191,8 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
   })
 
   /**
-   * E2E-M8-27 (FR-24.11, FR-25.13): M8 used to create the master item
-   * silently for any name it did not know; now the composer's sheet does, and
+   * E2E-M8-27 (FR-24.11, FR-25.13): M8 never creates the master item
+   * silently for a name it does not know; the composer's sheet does, and
    * nothing is written before its „Anlegen".
    *
    * The sheet is opened, dismissed, and opened again: the offer still reading
@@ -264,8 +262,8 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(page.getByTestId('header-title')).toHaveText('Makro')
     await expect(positionRows(page)).toHaveText(['Kamera', 'Stativ'])
 
-    // Removing the rest reaches the empty state, which nothing had rendered
-    // before this case — `m8-positions-empty` existed in no test at all.
+    // Removing the rest reaches the empty state, rendered here and nowhere
+    // else in the suite.
     await positionRow(page, 'Kamera').locator('[data-testid^="m8-position-remove-"]').click()
     await positionRow(page, 'Stativ').locator('[data-testid^="m8-position-remove-"]').click()
     await expect(positionRows(page)).toHaveCount(0)
@@ -291,9 +289,8 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // First position via the typed autocomplete — this also feeds the trail.
     const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
 
-    // Since FR-24.11 reached the composer it searches by M9's rule, where
-    // one character is already a query (it replaced E2E-M8-13's former
-    // two-character gate): "Z" finds the toothbrush.
+    // Under FR-24.11 it searches by M9's rule, where one character is
+    // already a query: "Z" finds the toothbrush.
     await input.fill('Z')
     await expect(
       visiblePage(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }),
@@ -523,8 +520,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await page.getByTestId('m8-assign-person').click()
     await page.getByTestId('m8-dedup-sum').click()
     await page.getByTestId('m8-cond-summer').click()
-    // Procurement is named in M8-12's sentence beside the other four and was
-    // the one of them no test had ever clicked (2026-09-02).
+    // Procurement is named in M8-12's sentence beside the other four.
     await page.getByTestId('m8-mode-buy_local').click()
 
     // The glance row now carries all four (FR-25.14 idiom).
@@ -533,10 +529,10 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(glance).toContainText('Summer')
     await expect(glance).toContainText('Buy there')
 
-    // FR-15.2 gives each axis one value, so the active chip is also the way
-    // to clear it — the only branch of `toggleCondition` that deletes, and
-    // untested anywhere until 2026-08-30. The per-person chip beside it is
-    // the positive signal that the glance itself did not simply go away.
+    // FR-15.2 gives each axis one value, so the active chip is also the way to
+    // clear it — the only branch of `toggleCondition` that deletes. The
+    // per-person chip beside it is the positive signal that the glance itself
+    // did not simply go away.
     await page.getByTestId('m8-cond-summer').click()
     await expect(glance).not.toContainText('Summer')
     await expect(glance).toContainText('Per person')
@@ -546,7 +542,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     // FR-25.15: the sheet's lamp has settled back to green — the transient
     // amber is unit-tested (SaveIndicator), racing it here would be a timing
     // bet. Since the lamp is silent until the sheet writes, its presence at
-    // all is now carried by the edits this case made above it.
+    // all is carried by the edits this case made above it.
     const indicator = page.getByTestId('m8-position-sheet').getByTestId('save-indicator')
     await expect(indicator).toHaveAttribute('title', 'Saved')
 
@@ -641,8 +637,8 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
   // Every case here builds two groups, their positions and a Vorlage through
   // M7/M8, because spec §2.4 forbids injecting them. That is the most UI work
   // of any unit in the suite and it sits near WebKit's 30 s default; the M3
-  // composition unit hit the same wall on 2026-08-16, and the failures land at
-  // whatever step the clock runs out on — which reads as four unrelated bugs.
+  // composition unit hits the same wall, and the failures land at whatever
+  // step the clock runs out on — which reads as four unrelated bugs.
   test.slow()
 
   test.beforeEach(async ({ seedMode, page }) => {
@@ -753,9 +749,9 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     const note = visiblePage(page).getByTestId('m8-blast-note')
     await expect(note).toContainText('Engadin 2027')
-    // …and says what will actually happen there. The note used to promise an
-    // immediate change and a freeze on departure; both were retired
-    // 2026-08-18, and a warning that outlives its rule is worse than none.
+    // …and says what will actually happen there: a proposal, not an
+    // immediate change or a freeze on departure — a warning that outlives its
+    // rule is worse than none.
     await expect(note).toContainText('proposed')
 
     // …and so does the group, reached through the include.

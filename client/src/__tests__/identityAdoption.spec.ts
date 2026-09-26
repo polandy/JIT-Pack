@@ -3,10 +3,10 @@
  * screen never fetches it for itself.
  *
  * Asserted over the *source*, the `tripScreenAdoption.spec.ts` idiom, and for
- * the same reason: the rule was written into nine screens and its violation is
- * an *addition* that each screen makes plausibly and alone. A view that calls
+ * the same reason: the rule spans many screens and its violation is an
+ * *addition* that each screen makes plausibly and alone. A view that calls
  * `orchestrator.fetchUsers()` again is not wrong on its own screen — it is
- * wrong because eight others do not.
+ * wrong because the others do not.
  */
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

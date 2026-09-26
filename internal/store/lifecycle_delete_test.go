@@ -8,10 +8,10 @@ import (
 	"jitpack/internal/sync"
 )
 
-// FR-24.3 replaces the still_referenced refusal for master items and
-// Vorlagen with a decision: a row something references is *retired* — kept,
-// clocked and synced, but hidden from every display surface — while a row
-// nothing references is deleted outright. The marker is the whole mechanism,
+// FR-24.3 answers a delete of a master item or Vorlage with a decision
+// rather than a still_referenced refusal: a row something references is
+// *retired* — kept, clocked and synced, but hidden from every display
+// surface — while a row nothing references is deleted outright. The marker is the whole mechanism,
 // so it has to be a column like any other: nullable, defaulted absent, and on
 // the sync whitelist, or no device ever learns a row went away.
 func TestSchema_ItemsAndTemplatesCarryARetiredMarker_FR24_3(t *testing.T) {
@@ -114,8 +114,7 @@ func TestApplyMasterMutation_DeletingAnUnreferencedItem_RemovesTheRow_FR24_3(t *
 	}
 }
 
-// A Vorlage a trip generated from is the FR-9.2 case, and the one the
-// still_referenced refusal was written for.
+// A Vorlage a trip generated from is the FR-9.2 case.
 func TestApplyMasterMutation_DeletingATemplateATripItemNames_RetiresIt_FR24_3(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

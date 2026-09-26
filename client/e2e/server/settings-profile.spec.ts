@@ -1,6 +1,6 @@
 /**
- * E2E-M17-05 (FR-17.13, revised 2026-08-29): under an OIDC session the profile
- * splits — the picture is the user's, the display name is the provider's.
+ * E2E-M17-05 (FR-17.13): under an OIDC session the profile splits — the
+ * picture is the user's, the display name is the provider's.
  *
  * This is the case the `single` project cannot carry: E2E-M17-04 drives the
  * same screen without tokens, which is exactly the branch that was already

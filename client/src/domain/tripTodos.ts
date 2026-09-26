@@ -116,9 +116,8 @@ export interface TripTask {
  * before FR-7.7 carries read as *before*.
  *
  * It is a reading and not a default: a task nobody has said anything about is
- * one you meant to do before you left, which is what the app asked for until
- * now. Writing the column on every old row would have claimed a statement
- * nobody made.
+ * one you meant to do before you left. Writing the column on every old row
+ * would claim a statement nobody made.
  */
 export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
   return task.phase ?? TASK_PHASE_BEFORE
@@ -169,10 +168,9 @@ export function tripTasks(
 /**
  * FR-7.7's five facts, read the same way off both kinds of task.
  *
- * FR-7.5 used to leave a preparation's assignee null on the way through here,
- * on the grounds that its row already names somebody. The owner's 2026-09-20
- * request reverses that: a task is handed over like a pack item, and a
- * preparation is a task.
+ * A preparation's assignee is carried through here even though its row already
+ * names somebody: a task is handed over like a pack item, and a preparation is
+ * a task.
  */
 function factsOf(todo: ItemTodo | TripTodo) {
   return {
@@ -288,11 +286,11 @@ function compareTasks(a: TripTask, b: TripTask): number {
 /**
  * Where a task with **no** tag is filed, which is not „nowhere".
  *
- * The owner asked for preparations to read under *Aus Packliste*
- * (2026-09-21). That is not a tag: as a row it could be renamed, deleted, and
- * hung on tasks that never came from a packing list, and then the heading
- * would be a lie. It is the *name of an origin* — so both kinds of untagged
- * task are `task_tag_id === null` in the data, and only the heading differs.
+ * Preparations read under *Aus Packliste*. That is not a tag: as a row it
+ * could be renamed, deleted, and hung on tasks that never came from a packing
+ * list, and then the heading would be a lie. It is the *name of an origin* —
+ * so both kinds of untagged task are `task_tag_id === null` in the data, and
+ * only the heading differs.
  */
 export const TASK_ORIGIN_PREP = 'prep'
 export const TASK_ORIGIN_TRIP = 'trip'
@@ -352,10 +350,9 @@ export function filedTagOf(
  * **An empty heading is not drawn.** A group with nothing in it says nothing
  * while reading, and it is not a drop target either — losing a tag happens in
  * the task's own sheet, where it is a choice rather than a place you have to
- * find. The first build of the concept did the opposite: empty groups
- * appeared the moment a task was lifted, and the list moved under the finger
- * that had just lifted it. That is ADR-060, broken by the feature meant to
- * help.
+ * find. Empty groups appearing the moment a task is lifted would move the
+ * list under the finger that had just lifted it — ADR-060, broken by the
+ * feature meant to help.
  */
 export function taskGroups(
   tasks: readonly TripTask[],

@@ -4,10 +4,10 @@
  *
  * A component test for the reason the API-token block beside it is one: what
  * matters most is which modes the block appears in, and Local Mode and
- * Single-User Mode are reachable in no Playwright project. The defect it was
- * written for is the opposite of a broken button — `clearTokens` was called
- * from no view at all, so a device with a token its instance no longer
- * accepted could only be repaired through the browser's website data.
+ * Single-User Mode are reachable in no Playwright project. The defect it
+ * guards is the opposite of a broken button — a `clearTokens` called from no
+ * view at all, which leaves a device with a token its instance no longer
+ * accepts repairable only through the browser's website data.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'

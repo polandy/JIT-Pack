@@ -2,12 +2,11 @@
  * The sentences a packing row says about itself — packed by whom, held by
  * whom, left behind why — worded once for both screens that show them.
  *
- * M4's list and M5's sheet had each written all five: the same fields, the
- * same catalogue keys, and already two different answers. M5 appended the
- * responsible person to the packed line with a `·`, M4 rendered it as its
- * own span; M5 said "packed by somebody" for a row with an unreadable
- * timestamp where M4 said nothing at all. Neither difference was a
- * decision — they are two transcriptions of one rule.
+ * M4's list and M5's sheet say all five from the same fields and the same
+ * catalogue keys; written out in each, they drift into two answers — where
+ * the responsible person is appended, what a row with an unreadable
+ * timestamp says — and neither difference would be a decision, just two
+ * transcriptions of one rule.
  *
  * The composition stays with the screens (the `·` is M5's), the wording
  * comes from here. It lives in `lib/` rather than `domain/` because it

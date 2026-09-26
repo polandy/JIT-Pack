@@ -115,8 +115,8 @@ func TestWebPush_GoneSubscriptionIsDropped(t *testing.T) {
 	// Two signals, in this order and for two different reasons: the
 	// delivery says the send goroutine exists (the push response can
 	// reach the client before it is even started), and WaitDetached says
-	// it has finished acting on the 410. Reading the subscriptions in
-	// between is what used to need a three-second poll.
+	// it has finished acting on the 410. Without them, reading the
+	// subscriptions in between would need a poll.
 	push.waitForDelivery(t)
 	if err := apiSrv.WaitDetached(context.Background()); err != nil {
 		t.Fatalf("WaitDetached: %v", err)

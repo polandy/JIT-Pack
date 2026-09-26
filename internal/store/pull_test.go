@@ -7,11 +7,10 @@ import (
 	"jitpack/internal/sync"
 )
 
-// G-9 (design review 2026-09-02). Pull's pagination — cursor, limit+1,
-// HasMore, NextCursor, compaction, snapshot loop — used to be written out
-// once per partition. It is one function now, and what still differs is a
-// feed and a filter. These tests pin those two, because they are the only
-// places the two partitions can still drift apart.
+// G-9. Pull's pagination — cursor, limit+1, HasMore, NextCursor,
+// compaction, snapshot loop — is one function for both partitions, and what
+// differs is a feed and a filter. These tests pin those two, because they are
+// the only places the two partitions can drift apart.
 
 func TestFeedWhere_TheTwoFeedsSelectDisjointHalvesOfOneChangeLog(t *testing.T) {
 	t.Run("the clause", func(t *testing.T) {

@@ -6,12 +6,12 @@
  * `GET /auth/config` says *yes* by answering with the IdP's endpoints and
  * *no* by answering 501 `not_configured`, which is the whole of what makes a
  * Single-User instance single-user (E2E-M19-02). Anything else — a fetch
- * that never arrived, a proxy's 502, a 500 — is neither answer, and the
- * screen used to file all of them under *no*: the catch set
- * `loginRequired = false` and the template read that as "this server does
- * not require a login". A person whose server was down was told, in the same
- * breath, that it was unreachable and that they could head back to the app.
- * The reassuring half was the false one.
+ * that never arrived, a proxy's 502, a 500 — is neither answer. Filed under
+ * *no*, a catch setting `loginRequired = false` would have the template read
+ * it as "this server does not require a login", and a person whose server
+ * was down would be told, in the same breath, that it was unreachable and
+ * that they could head back to the app. The reassuring half would be the
+ * false one.
  */
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -62,7 +62,7 @@ describe('LoginPage — a failure is not an answer (Sync-API §2)', () => {
     const w = await render()
 
     expect(w.text()).toContain(t('login.serverUnreachable'))
-    // The half that was a lie. The sign-in stays offered, because trying is
+    // The half that would be a lie. The sign-in stays offered, because trying is
     // the only thing left that can find out.
     expect(w.text()).not.toContain(t('login.notRequired'))
     expect(w.find('[data-testid="login-action"]').exists()).toBe(true)

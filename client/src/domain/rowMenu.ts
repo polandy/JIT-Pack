@@ -1,12 +1,12 @@
 /**
  * What M4's press-and-hold offers on a row (FR-5.5, FR-5.7, FR-5.8, FR-5.9, FR-9.3, G-3).
  *
- * The menu was a nested ternary inside `actionSheetController.create`, so
- * the rule could only be read by rendering M4 and holding a row down — and
- * two of its five outcomes are *empty*, which a running screen shows as
- * nothing happening. Here the whole decision is one function returning the
- * entries in the order they are offered; the view keeps the wording, the
- * glyphs and the handlers, which are its own.
+ * Inside `actionSheetController.create` the rule could only be read by
+ * rendering M4 and holding a row down — and two of its five outcomes are
+ * *empty*, which a running screen shows as nothing happening. Here the
+ * whole decision is one function returning the entries in the order they
+ * are offered; the view keeps the wording, the glyphs and the handlers,
+ * which are its own.
  */
 import { ITEM_MODE_BUY_LOCAL, type TripItem } from '@/types/domain'
 
@@ -139,8 +139,8 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
           item.late_packer ? 'latePackerOff' : 'latePackerOn',
         ]
 
-  // FR-9.3: the judgement leaves the fold. *Unused* used to cost three taps
-  // into M5's *Details* block, which nothing ever asks for.
+  // FR-9.3: the judgement sits outside the fold. Inside M5's *Details* block,
+  // which nothing ever asks for, *Unused* would cost three taps.
   if (ctx.judgeable) entries.push(item.flag_unused ? 'unflagUnused' : 'flagUnused')
   // FR-5.8: last, where a destructive entry belongs, and never on a row I am
   // holding — that one offers the release and nothing else, and removing a

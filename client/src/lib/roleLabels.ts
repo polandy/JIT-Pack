@@ -1,10 +1,10 @@
 /**
  * Trip-membership roles (FR-4.5/4.7) as words a person reads.
  *
- * Hoisted out of the roster because the label used to be computed from the
- * stored value — `role.charAt(0).toUpperCase() + role.slice(1)` — which is a
- * spelling rule for English wire values, not a translation: it renders
- * "Editor" in every language and would render "Owner" as "Owner" forever.
+ * A catalogue key rather than the stored value capitalised —
+ * `role.charAt(0).toUpperCase() + role.slice(1)` is a spelling rule for
+ * English wire values, not a translation: it renders "Editor" in every
+ * language and would render "Owner" as "Owner" forever.
  * An unknown role falls back to its own value rather than to a blank chip,
  * the same rule `attributeLabel` follows.
  */

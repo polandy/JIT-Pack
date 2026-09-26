@@ -36,10 +36,10 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
     <IonIcon :icon="icon" :class="{ spinning: state === 'syncing' }" />
     <span v-if="updateReady" class="update-dot" data-testid="sync-indicator-update" />
     <!--
-      The queue, not the connection: since the outbox became durable (B2) a
-      queue outlives the offline state that made it — a reload, or a trip
-      partition still waiting for its trip to be opened. Gating this on
-      `offline` claimed everything was sent while it was not.
+      The queue, not the connection: the outbox is durable (B2), so a queue
+      outlives the offline state that made it — a reload, or a trip
+      partition still waiting for its trip to be opened. Gated on `offline`,
+      this would claim everything was sent while it was not.
     -->
     <IonBadge v-if="pendingCount > 0" color="warning" data-testid="sync-queue-count">
       {{ pendingCount }}
@@ -63,9 +63,8 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
 /*
  * Without this the icon inherits the button's text size and renders at ~13 px
  * beside 25 px neighbours — at which point the Local Mode phone outline has no
- * discernible features left and reads as a missing-glyph box. Reported as
- * "sieht kaputt aus" (owner, 2026-08-16), and it was: an icon size that never
- * came from the table invariant 9 points at.
+ * discernible features left and reads as a missing-glyph box. The size comes
+ * from the table invariant 9 points at.
  */
 .sync-indicator ion-icon {
   font-size: var(--jp-icon-md);

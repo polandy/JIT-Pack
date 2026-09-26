@@ -411,7 +411,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     // Responsibility and record are two things (FR-25.19): assigning must
     // not touch who packed it, and the optimistic row is a *replacement*,
     // so a projection that forgets a column erases it — permanently in
-    // Local Mode, which is what made the provenance defect of 2026-08-20.
+    // Local Mode.
     const after = trips.getItems('t1')[0]!
     expect(after).toEqual({
       ...before,

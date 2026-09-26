@@ -186,11 +186,11 @@ export async function packListOffset(page: Page): Promise<{ top: number; slack: 
 /**
  * Scroll M4's list the way a reader does: a wheel over the list itself.
  *
- * Since FR-21.17's gesture rule the head yields to an input and stands still
+ * Under FR-21.17's gesture rule the head yields to an input and stands still
  * for a scroll nobody made, so a case that moves the offset through the
- * scroller's API is asserting against a head that was never asked to move —
- * it would stay green against the rule's removal. `deltaY` is a wheel's, not
- * an offset: pass more than the slack to reach the end.
+ * scroller's API is asserting against a head that was never asked to move — it
+ * would stay green against the rule's removal. `deltaY` is a wheel's, not an
+ * offset: pass more than the slack to reach the end.
  *
  * It returns the offset the list came to rest at, which is not the one the
  * wheel asked for: yielding the head takes its height out of the scrolled
@@ -223,9 +223,9 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
   // moving first; M4's window closes on Ionic's scroll-end debounce after it
   // (FR-21.17), and until it does, a scroll nobody made still counts as the
   // reader's. Without this wait the next programmatic move in a case is a race
-  // against that debounce — which is what made E2E-M4-135 red on a loaded
-  // shard, measuring the head answering the *flick* and reading it as the
-  // defect the case was written to catch. The attribute is that window.
+  // against that debounce — on a loaded shard E2E-M4-135 would measure the
+  // head answering the *flick* and read it as the defect the case exists to
+  // catch. The attribute is that window.
   await expect(packList(page)).not.toHaveAttribute('data-scroll-gesture')
   return (await packListOffset(page)).top
 }

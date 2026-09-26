@@ -57,7 +57,7 @@ spec-width:
 
 # And beside that: a case id that means two things turns a green test into
 # coverage of a promise nothing asserts, and every automatic signal moves the
-# reassuring way while it happens (found on M5, 2026-08-30).
+# reassuring way while it happens.
 case-ids:
 	@$(RUN) node scripts/case-id-gate.mjs
 
@@ -136,14 +136,15 @@ fmt: $(CLIENT_DEPS)
 # is the package's own content plus its dependencies, flags and the files and
 # env the test read, so a hit means this exact run already happened; the tests
 # here are hermetic (in-memory SQLite, no network, no wall clock), which is the
-# condition under which that guarantee holds. Verified 2026-08-30 that a cached
-# run still writes a byte-identical coverage profile, so `cover` below is
-# checking real numbers and not a stale file.
+# condition under which that guarantee holds. A cached run still writes a
+# byte-identical coverage profile, so `cover` below is checking real numbers
+# and not a stale file.
 #
-# It matters because `make ci` is run repeatedly while iterating, and a session
-# working on the client re-ran the whole race suite each time to be told
-# nothing. CI keeps `-count=1`: a fresh runner has a cold cache anyway, so it
-# costs nothing there and keeps the pipeline's verdict independent of any cache.
+# It matters because `make ci` is run repeatedly while iterating, and without
+# the cache a session working on the client re-runs the whole race suite each
+# time to be told nothing. CI keeps `-count=1`: a fresh runner has a cold
+# cache anyway, so it costs nothing there and keeps the pipeline's verdict
+# independent of any cache.
 test: build vet
 	$(RUN) go test $(GO_PKGS) -race -coverprofile=coverage.txt
 	@$(MAKE) --no-print-directory cover
@@ -159,7 +160,7 @@ cover:
 # `config verify` first, because the action runs it and `run` does not: an
 # option of the wrong *shape* (a string where the schema wants a list) is
 # tolerated by `run` and fails the CI job — which is exactly the kind of
-# drift this target exists to catch before the push (2026-08-18).
+# drift this target exists to catch before the push.
 go-lint:
 	$(RUN) golangci-lint config verify
 	$(RUN) golangci-lint run $(GO_PKGS)

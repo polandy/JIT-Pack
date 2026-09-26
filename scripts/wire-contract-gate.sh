@@ -3,12 +3,11 @@
 # internal/api/wire.go (NFR-4.14, ADR-026/027). This regenerates them and fails
 # when a checked-in file differs.
 #
-# It exists because the two sides used to be written independently: in one week
-# that produced three defects, each invisible to both test suites — the client
-# read a key no server sends, took a hint for a cursor, and expected one
-# partition's refusal shape from the other. A generator alone would not have
-# caught them; what catches them is that the build refuses a wire change the
-# client has not followed.
+# It exists because two sides written independently drift in ways invisible to
+# both test suites — a client reading a key no server sends, taking a hint for
+# a cursor, expecting one partition's refusal shape from the other. A generator
+# alone does not catch that; what catches it is that the build refuses a wire
+# change the client has not followed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

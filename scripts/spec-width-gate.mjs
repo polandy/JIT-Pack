@@ -2,13 +2,13 @@
  * Holds the developer documentation to a line width a reader and a tool can
  * both work with.
  *
- * These files are written one paragraph per physical line, and they had grown
- * to 7 000–8 400 characters on the longest of them. Nothing was wrong with the
- * Markdown: it renders identically either way, which is exactly why it drifted
- * for a year. What breaks is every way the files are actually read — `grep -n`
+ * Written one paragraph per physical line, these files run to thousands of
+ * characters a line. Nothing is wrong with the Markdown: it renders
+ * identically either way, which is exactly why it drifts unnoticed. What
+ * breaks is every way the files are actually read — `grep -n`
  * for one FR returns a whole screen of unrelated rules, a partial read cannot
  * land on a single sentence, and a diff of a two-word amendment is a diff of
- * the entire section (T-12, design review 2026-09-02).
+ * the entire section (T-12).
  *
  * Three shapes are exempt because wrapping them would change what they mean,
  * not how they look: a Markdown **table row** and an **ATX heading** are each

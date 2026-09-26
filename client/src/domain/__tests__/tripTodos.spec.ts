@@ -144,12 +144,11 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
   })
 
   /*
-   * FR-7.5 gave a preparation no assignee on the grounds that its row already
-   * names somebody. FR-7.7 reverses that on the owner's request of
-   * 2026-09-20: a task is handed over like a pack item, and a preparation is
-   * a task. The row's `packer_user_id` still says who is packing it — the two
-   * are different questions, and a battery can be Sia's to charge on a camera
-   * Andy is packing.
+   * FR-7.7: a preparation carries its own assignee although its row already
+   * names somebody — a task is handed over like a pack item, and a
+   * preparation is a task. The row's `packer_user_id` still says who is
+   * packing it — the two are different questions, and a battery can be Sia's
+   * to charge on a camera Andy is packing.
    */
   it('keeps a preparation’s own assignee (FR-7.7, reversing FR-7.5)', () => {
     const tasks = tripTasks(
@@ -357,7 +356,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
 
   /*
    * „Aus Packliste" is not a tag — it is what the *untagged* group is called
-   * when the task came from a packing row (owner, 2026-09-21). Both kinds are
+   * when the task came from a packing row. Both kinds are
    * `task_tag_id === null` in the data, and only the heading differs, so
    * nothing has to create the row, nobody can rename it, and it cannot end up
    * describing a task it is not true of.

@@ -7,9 +7,9 @@ import (
 
 // AccountStatus answers existence and deactivation as one question, because a
 // caller that asks only the second one reads "no such row" as a pass. That is
-// the hole long-lived API tokens made reachable: a credential outlives the
-// account it was minted for, and until this existed the request still
-// authenticated (FR-23.7, ADR-039).
+// the hole long-lived API tokens make reachable: a credential outlives the
+// account it was minted for, and without this the request would still
+// authenticate (FR-23.7, ADR-039).
 func TestAccountStatus_UnknownActiveDeactivated_FR23_7(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

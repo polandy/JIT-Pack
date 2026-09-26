@@ -2,10 +2,9 @@
 /**
  * M26 — a trip's notes (FR-7.13), the fourth view a trip is worked in.
  *
- * A note used to be a line in M25's second segment (FR-7.9 decision 1). As a
- * thread it is a place people write in, which is the form ADR-051's revisit
- * trigger names, and a note *is not work*: so it has a view of its own, the
- * fourth pill (ADR-051 amendment 3 made the room).
+ * As a thread a note is a place people write in, which is the form ADR-051's
+ * revisit trigger names, and a note *is not work*: so it has a view of its
+ * own, the fourth pill (ADR-051 amendment 3 made the room).
  *
  * The list is the threads, the one with the latest activity first, each a
  * card that shows its words — the notes are looked things up in — and opens

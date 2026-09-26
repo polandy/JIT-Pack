@@ -52,9 +52,9 @@ export const AUTH_EXPIRED_EVENT = 'jitpack:auth-expired'
  *
  * A DOM event reaches only the listeners that exist when it is dispatched,
  * and the first request a deactivated account's app makes is M1's `me`, sent
- * from a child's `onMounted` — it answered before App.vue had finished the
- * awaits ahead of its listener, the event was lost, and the dashboard stood
- * there saying *offline* (E2E-M20-02, 2026-09-02). The latch lets a handler
+ * from a child's `onMounted` — it can answer before App.vue has finished the
+ * awaits ahead of its listener, the event is lost, and the dashboard stands
+ * there saying *offline* (E2E-M20-02). The latch lets a handler
  * attached afterwards still learn that the session is over. It is never
  * reset on purpose: a new session is only ever entered through a full reload
  * (CallbackPage), which starts a fresh module.

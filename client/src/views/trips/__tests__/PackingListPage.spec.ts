@@ -33,11 +33,11 @@ vi.mock('vue-router', () => ({
 }))
 
 /*
- * Every case here mounts M4 and none of them used to take it down again, so a
- * live component from the previous case kept its watchers on the *next* case's
- * store: `seedTrip()` reported a row it had never been given, and a case that
- * asserted a figure read the leftovers. Only an assertion on the header's own
- * number was ever going to notice.
+ * Every case here mounts M4, so without an unmount a live component from the
+ * previous case keeps its watchers on the *next* case's store: `seedTrip()`
+ * reports a row it has never been given, and a case that asserts a figure
+ * reads the leftovers. Only an assertion on the header's own number would
+ * notice.
  */
 enableAutoUnmount(afterEach)
 
@@ -135,11 +135,10 @@ describe('M4 packing list — an absence it has not read yet (ADR-033, G-7)', ()
   })
 
   /*
-   * The note was gated and the figure above it was not, which is the half of
-   * ADR-033 the 2026-09-13 sweep missed: „0/0 packed" under a full ring track
-   * is the same verdict as „everything is packed", stated in the one place on
-   * M4 that a reader trusts over a sentence. Rendering found it; no assertion
-   * did, because every case here looked below the header.
+   * ADR-033 gates the figure as well as the note under it: „0/0 packed" under
+   * a full ring track is the same verdict as „everything is packed", stated
+   * in the one place on M4 that a reader trusts over a sentence. A case that
+   * looks only below the header cannot see it.
    */
   it('states no figure until the rows it would count are on the device', async () => {
     seedTrip()
@@ -181,8 +180,8 @@ describe('M4 packing list — an absence it has not read yet (ADR-033, G-7)', ()
 })
 
 /*
- * FR-9.3's closing pass has one door since M4's ⋮ gave the trip's lifecycle
- * steps to M2 (owner, 2026-09-25): M2's *Reise abschliessen*, arriving here as
+ * FR-9.3's closing pass has one door, since the trip's lifecycle steps are
+ * M2's: M2's *Reise abschliessen*, arriving here as
  * `?closing=1`. The flag is spent at once, so a reload or a back does not
  * reopen a pass the user has left.
  */

@@ -88,7 +88,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await group.click()
 
     // Both positions landed, once each. By the rows' own testids rather than
-    // by text: since FR-7.6 the group's preparation task is on this screen
+    // by text: under FR-7.6 the group's preparation task is on this screen
     // too, in the task section, carrying the chip of the row it prepares —
     // so „an ion-item that says Kamera" is two elements and neither is a
     // count of rows.
@@ -101,10 +101,10 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await expect(page.locator('ion-toast')).toContainText('Group “Makro” added — 2 positions')
 
     // FR-27.7: the position's task arrives as an ordinary FR-7.3 prep todo on
-    // the row it was generated for, and blocks it like a hand-added one.
-    // Since FR-7.6 it is a task of the trip like any other: counted in the
-    // header figure, listed in the one section, and naming its row on the
-    // line through the chip.
+    // the row it was generated for, and blocks it like a hand-added one. Under
+    // FR-7.6 it is a task of the trip like any other: counted in the header
+    // figure, listed in the one section, and naming its row on the line
+    // through the chip.
     await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
       'While packing 0/1',
     )
@@ -126,10 +126,10 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await createTripViaWizard(page, { name: 'Fototour 2026' })
 
     // Added by hand before the group, so the group finds one of its
-    // positions already on the list — the case that would double it. Since
-    // FR-24.11 reached the composer the typed name is the inventory's own
-    // *Kamera*, so the row carries its source item; a sourceless row that
-    // has to be matched by name no longer comes from the composer.
+    // positions already on the list — the case that would double it. Under
+    // FR-24.11 the typed name is the inventory's own *Kamera*, so the row
+    // carries its source item; the composer makes no sourceless row that has
+    // to be matched by name.
     await openQuickAdd(page)
     expect(await addInComposer(page, 'Kamera')).toBe('added')
     await expect(visible(page).locator('ion-item').filter({ hasText: 'Kamera' })).toHaveCount(1)

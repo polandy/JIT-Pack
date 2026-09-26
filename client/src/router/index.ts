@@ -38,10 +38,10 @@ export const routes: RouteRecordRaw[] = [
     redirect: PATH.dashboard,
   },
   // Flat, deliberately: every route lives in the one router outlet in
-  // App.vue. The four anchors used to be children of an `IonTabs`
-  // layout, which brought a *second* outlet with it — and crossing
-  // between the two left the outgoing page on screen while the URL
-  // changed underneath it (ADR-012). The `/tabs/` prefix stays so no
+  // App.vue. The four anchors are not children of an `IonTabs`
+  // layout, which would bring a *second* outlet with it — and crossing
+  // between the two leaves the outgoing page on screen while the URL
+  // changes underneath it (ADR-012). The `/tabs/` prefix stays so no
   // bookmark, link or test id has to move; it names the group, not a
   // layout.
   {

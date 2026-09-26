@@ -1,10 +1,10 @@
 /**
  * Durable sync outbox storage (B2, NFR-4.1).
  *
- * The outbox used to be a JS array: a reload or an app kill while offline
- * threw away every mutation that had not reached the server. On a phone in
- * a hotel with no wifi that is the ordinary case, not the edge case, so the
- * queue lives in IndexedDB and is replayed on boot before the first pull.
+ * An in-memory outbox would lose every mutation that had not reached the
+ * server to a reload or an app kill while offline. On a phone in a hotel with
+ * no wifi that is the ordinary case, not the edge case, so the queue lives in
+ * IndexedDB and is replayed on boot before the first pull.
  *
  * Replaying is safe because the server memoizes by `mutation_id`
  * (Sync-API P-5, `mutations` table): a mutation pushed twice comes back
@@ -168,11 +168,10 @@ export class IndexedDBOutboxStore implements OutboxStore {
    *
    * `onsuccess` and `onerror` are not the whole story: an open the browser
    * *blocks* fires neither, and a wedged IndexedDB fires nothing at all.
-   * Either left this promise pending, and `connect()` awaits it on the boot
-   * path — the app came up with no trips, no error and the glyph still
-   * saying what it said before. The service worker's own open has handled
-   * `onblocked` since it was written (`client/public/sw.js`); this one had
-   * neither that nor a deadline.
+   * Either would leave this promise pending, and `connect()` awaits it on the
+   * boot path — the app would come up with no trips, no error and the glyph
+   * still saying what it said before. So this open handles `onblocked`, as
+   * the service worker's own does (`client/public/sw.js`), and has a deadline.
    */
   private open(): Promise<IDBDatabase> {
     this.db ??= new Promise<IDBDatabase>((resolve, reject) => {

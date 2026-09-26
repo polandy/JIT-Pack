@@ -2,12 +2,12 @@
 /**
  * M2's two FR-27.4 chips: what a trip *took over* from its groups (past
  * tense, expandable) and what is still *waiting* on it (a pointer, since the
- * decision belongs at the trip). Since the owner's rule change of 2026-08-18
- * a running trip carries both — only a past trip is frozen.
+ * decision belongs at the trip). A running trip carries both — only a past
+ * trip is frozen.
  *
  * A component test rather than e2e for the chip's *rules*: which trips may
- * carry it, whether its log is written out or folded away (owner, 2026-08-18:
- * inline up to ten changes, foldable above), and that each entry is worded
+ * carry it, whether its log is written out or folded away (inline up to ten
+ * changes, foldable above), and that each entry is worded
  * from its structured detail. The reachable flow — edit a group, see the chip
  * appear — is E2E-M8-09.
  */
@@ -185,15 +185,15 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
   })
 
   it('appears on a running trip too — departure no longer freezes it', async () => {
-    // The rule this replaces was "active means frozen" (owner, 2026-08-18).
+    // Departure does not mean frozen; only a past trip is.
     segment = 'active'
     const trips = seedTrip('active')
     trips.applyChanges([logEntry()])
 
     const wrapper = mountPage()
 
-    // The running trip is the hero rather than a row since FR-21.15, and the
-    // chip had to come with it: the trip a person is packing is where the
+    // The running trip is the hero rather than a row (FR-21.15), and the
+    // chip comes with it: the trip a person is packing is where the
     // question „what changed under me" is asked most.
     expect(wrapper.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
@@ -275,7 +275,7 @@ describe('TripListPage — the FR-27.4 proposal chip', () => {
     const chip = wrapper.find('[data-testid="m2-proposed-chip-Samedan"]')
     expect(chip.exists()).toBe(true)
     expect(chip.text()).toContain('3')
-    // The decision is at the trip (owner, 2026-08-18): a second place to
+    // The decision is at the trip: a second place to
     // answer from would be a second place to get the answer wrong.
     expect(chip.element.tagName).not.toBe('BUTTON')
   })
@@ -309,8 +309,8 @@ describe('TripListPage — the FR-27.4 proposal chip', () => {
 })
 
 /**
- * M2's row menu (2026-09-24): a hold or a right-click opens the trip's
- * actions as a sheet, the way M4 and M7 do, where a swipe used to. *Which*
+ * M2's row menu: a hold or a right-click opens the trip's actions as a
+ * sheet, the way M4 and M7 do. *Which*
  * actions a status earns is `tripRowActions`' table in the domain spec; what
  * is asserted here is the wiring — the gesture reaches the sheet, the sheet
  * reaches the orchestrator, and the tap that ends a hold does not also open
@@ -471,9 +471,9 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
 
 /**
  * ADR-033: `trip_items` live in the trip's own partition, so a trip this
- * device has never opened has nothing to sum. The row used to print the sum
- * of nothing — `0/0 gepackt`, ring at 0 % — which reads as "you packed
- * nothing" for a trip that was fully packed years ago.
+ * device has never opened has nothing to sum. The sum of nothing —
+ * `0/0 gepackt`, ring at 0 % — reads as "you packed nothing" for a trip that
+ * was fully packed years ago.
  */
 describe('TripListPage — a trip whose own rows are not here yet', () => {
   it('says the items are still coming instead of claiming there are none', () => {
@@ -484,7 +484,7 @@ describe('TripListPage — a trip whose own rows are not here yet', () => {
 
     const summary = wrapper.find('[data-testid="trip-item-summary"]')
     expect(summary.text()).toBe(t('trips.itemsUnknown'))
-    // The positive half: the number it used to show is *not* there.
+    // The positive half: the sum of nothing is *not* there.
     expect(summary.text()).not.toContain('0/0')
   })
 
@@ -769,8 +769,8 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
   })
 
-  // The trip's properties are M2's alone since M4's ⋮ holds packing only
-  // (owner, 2026-09-25), so both of M2's doors carry them.
+  // The trip's properties are M2's alone, since M4's ⋮ holds packing only,
+  // so both of M2's doors carry them.
   it('opens the trip’s properties from the card', async () => {
     segment = 'active'
     seedTrip('active')

@@ -4,11 +4,11 @@ import type { Locator, Page } from '@playwright/test'
 /**
  * Colour anchors (UI-Test-Spec §3, G-11; Addendum FR-21.7).
  *
- * The unit suite reads the stylesheet; these assert what a browser
- * actually painted, which is the only place a cascade mistake shows. The
- * regression they guard is the one this PR fixes: Ionic paints its own
- * primary on tabs, FABs and checkboxes unless told otherwise, so the app
- * drifts back to a default-blue look one component at a time.
+ * The unit suite reads the stylesheet; these assert what a browser actually
+ * painted, which is the only place a cascade mistake shows. The regression
+ * they guard: Ionic paints its own primary on tabs, FABs and checkboxes unless
+ * told otherwise, so the app drifts back to a default-blue look one component
+ * at a time.
  *
  * Roles are compared against the role token rather than against a hex, so
  * the cases hold in Tag as well as Nacht — a literal here would assert
@@ -30,8 +30,8 @@ function computed(el: Locator, prop: string) {
  *
  * The conversion is not incidental: a custom property computes to the
  * token text it was given — the palette's `#fab387` — while `color`
- * computes to `rgb(250, 179, 135)`. Comparing the two raw is how the
- * first version of this case failed against a correct page.
+ * computes to `rgb(250, 179, 135)`. Comparing the two raw fails against a
+ * correct page.
  */
 async function rolePainted(page: Page, token: string): Promise<string> {
   return page.evaluate((t) => {

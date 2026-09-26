@@ -920,7 +920,7 @@ export const de: Record<keyof typeof en, string> = {
   'settings.addTraveler': 'Reisende:n hinzufügen',
   'settings.addTravelerAccount': 'Bestehenden User hinzufügen',
   'settings.travelerLinked': 'Verknüpfter Account',
-  // M17's remaining sections (NFR-4.12, 2026-08-22) — see the English file.
+  // M17's remaining sections (NFR-4.12) — see the English file.
   'settings.profile': 'Profil',
   'settings.profileLocalNote': 'Der lokale Modus kennt kein Konto — alles bleibt auf diesem Gerät.',
   'settings.avatarAlt': 'Profilbild',

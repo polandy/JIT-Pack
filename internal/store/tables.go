@@ -1,15 +1,14 @@
 // Package store — tables.go is the one place a syncable table is declared.
 //
-// Per-table knowledge used to live in five registries plus two switches,
-// spread over two files: the push whitelist, the two partition sets, the
-// FR-24.3 lifecycle set, the blocking references and the cascade switch. A
-// table added to four of them and missed in the fifth is not a build error —
-// it is a rule that silently does not apply, which is the failure
-// CODING_PRINCIPLES §4a was written after. Since G-2's second half the
+// Per-table knowledge — the push whitelist, the two partition sets, the
+// FR-24.3 lifecycle set, the blocking references, the cascade switch, the
 // master pull's visibility filter, the NFR-4.5 backup's query list and the
-// API layer's mark whitelist are declared here too. They are all views
-// derived from one `tableSpecs` map, and `tables_test.go` refuses a `Table*`
-// constant without an entry.
+// API layer's mark whitelist — is declared here once (G-2). Kept as separate
+// registries, a table added to four of them and missed in the fifth is not a
+// build error — it is a rule that silently does not apply, which is the
+// failure CODING_PRINCIPLES §4a was written after. They are all views derived
+// from one `tableSpecs` map, and `tables_test.go` refuses a `Table*` constant
+// without an entry.
 package store
 
 import "sort"
@@ -44,7 +43,7 @@ type childQuery struct{ table, query string }
 // three fields is set, which `tables_test.go` asserts.
 type visibilityRule struct {
 	// everyone marks the instance-wide master data (FR-1.6 MVP
-	// simplification, 2026-08-08 — everybody sees everything).
+	// simplification — everybody sees everything).
 	everyone bool
 	// tripQuery resolves the row's trip id, and every member of that trip
 	// may see the row. A missing row denies: its tombstone follows in the

@@ -27,7 +27,7 @@ vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
   // FR-25.15: the indicator's own signal, deliberately not the one above.
-  // A real `ref`, because since the indicator latches, what it says is a
+  // A real `ref`, because the indicator latches: what it says is a
   // function of the signal *changing* and not only of its value at mount.
   capturePending: ref(false),
   setReviewFlag: vi.fn(),
@@ -237,8 +237,8 @@ describe('M5 FR-9.1 flags', () => {
 
     // FR-9.1's active-only gate was true of *setting* a flag in the moment
     // and false of correcting it: the assistant runs on the archived trip,
-    // so the first sight of what a flag did used to be the moment it could
-    // no longer be given or taken back.
+    // so gated that way, the first sight of what a flag did would be the
+    // moment it could no longer be given or taken back.
     expect(wrapper.find('[data-testid="m5-flag-unused"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="m5-flag-unused"]').trigger('ionChange', {
@@ -278,8 +278,6 @@ describe('M5 FR-9.1 flags', () => {
  * with lock banner". Carried here because the *rule* is the sheet's, and
  * the rendered half is asserted with a second account in
  * `e2e/server/multi-user.spec.ts` and `e2e/single/server-sync.spec.ts`.
- * The ledger reported this as unwritten for months while these cases
- * stood — the id was the only thing missing.
  */
 describe('M5 respects the G-3 lock', () => {
   function seedLocked(holder: string | null) {
@@ -399,10 +397,10 @@ describe('M5 respects the G-3 lock', () => {
  * FR-6.2 notification, while *who packed it* is stamped by the server the
  * moment the row is checked and is deliberately not editable.
  *
- * Until this control existed, `packer_user_id` was written once at row
- * creation and never again: every surface read it — M4's avatar, the
- * "zuständig war …" stamp, FR-25.20's filter — and nothing set it, so the
- * delegation notification the server implements could not fire from the app.
+ * This control is the one writer of `packer_user_id` after row creation:
+ * every surface reads it — M4's avatar, the "zuständig war …" stamp,
+ * FR-25.20's filter — and without it the delegation notification the server
+ * implements could not fire from the app.
  */
 /**
  * Its two absence cases are E2E-M5-08 (`single/local`, FR-17.3/G-8:
@@ -519,10 +517,10 @@ describe('M5 FR-25.19 assignment', () => {
 
 /**
  * FR-25.15 — the indicator says whether *this* edit is captured, and that
- * is not what G-2 says. Until 2026-08-30 the sheet handed it
- * `syncStatus.state`, whose precedence answers `offline` before `syncing`:
- * a write still open on a device with no network rendered as saved, which
- * is the single case the requirement was written for. A browser cannot
+ * is not what G-2 says. Handed `syncStatus.state`, whose precedence
+ * answers `offline` before `syncing`, it would render a write still open on
+ * a device with no network as saved, which is the single case the
+ * requirement was written for. A browser cannot
  * assert it without racing the write, so it is pinned here, where the
  * signal is a value somebody sets.
  */
@@ -531,9 +529,9 @@ describe('M5 FR-25.15 save indicator', () => {
     seedTrip('active')
     const wrapper = mountSheet()
 
-    // The positive signal the three cases below stand against. Until
-    // 2026-09-20 the settled lamp was here from the first frame, so each of
-    // them would have been just as green with the sheet writing nothing.
+    // The positive signal the three cases below stand against: were the
+    // settled lamp here from the first frame, each of them would be just as
+    // green with the sheet writing nothing.
     expect(wrapper.find('[data-testid="save-indicator"]').exists()).toBe(false)
   })
 
@@ -549,7 +547,7 @@ describe('M5 FR-25.15 save indicator', () => {
 
   it('says so offline too — the sync state has no vote', async () => {
     seedTrip('active')
-    // What G-2 reports, and what used to decide this lamp.
+    // What G-2 reports, and what must not decide this lamp.
     orchestratorFake.syncStatus.state.value = 'offline'
     orchestratorFake.capturePending.value = true
     const wrapper = mountSheet()
@@ -636,9 +634,9 @@ describe('M5 can change how many are coming along (FR-25.24)', () => {
 /**
  * FR-21.25 — the sheet's weight is the other way round.
  *
- * The two things a rendered look found are both assertable here: the control
- * the sheet is *opened* for was the smallest thing on it, and the only two
- * filled buttons belonged to prep and notes. A `fill` is what makes a button
+ * Both halves are assertable here: the control the sheet is *opened* for
+ * must not be the smallest thing on it, and prep and notes must not own the
+ * only two filled buttons. A `fill` is what makes a button
  * read as the page's answer, so it is the property the case pins.
  */
 describe('M5 puts its weight on the action it is opened for (FR-21.25)', () => {
@@ -821,7 +819,7 @@ describe('M5 FR-25.15 — the lamp belongs to the item it was raised on', () => 
 
 /**
  * FR-7.3's preparation list, ticked at the line's end — the same edge M4 puts
- * a packing control on, and the same edge the trip's task list now uses. A
+ * a packing control on, and the same edge the trip's task list uses. A
  * task read one way on one screen and the other way on the next is two
  * idioms for one act.
  */

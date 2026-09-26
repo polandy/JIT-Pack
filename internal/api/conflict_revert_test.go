@@ -158,9 +158,9 @@ func TestRevertConflict_DeletedRowIsRefused_NFR42a(t *testing.T) {
 	if code := errorCode(t, raw); code != "row_deleted" {
 		t.Errorf("error code = %q, want row_deleted", code)
 	}
-	// Read the flag in the log rather than through the list: since
-	// 2026-09-10 the list leaves out the entries whose row is gone (§6),
-	// which is this entry exactly. The promise is still the one the name
+	// Read the flag in the log rather than through the list: the list
+	// leaves out the entries whose row is gone (§6), which is this entry
+	// exactly. The promise is still the one the name
 	// makes — a refused revert marks nothing spent.
 	var reverted bool
 	if err := st.DB().QueryRow(

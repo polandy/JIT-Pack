@@ -56,10 +56,10 @@ const TALL_PNG = Buffer.from(
  * never lands. That surfaces as an unclickable FAB 30 s later, nothing
  * resembling a navigation error. The edit head exists only once the item
  * does, so it is a positive signal that the replaced page — and not the
- * form it replaced — is the one now on screen. It used to be the FR-25.15
- * indicator inside that head, which stopped saying so on 2026-09-20: the
- * indicator is silent until it has written something, and the write that
- * created the item can well have landed before its page was painted.
+ * form it replaced — is the one now on screen. The FR-25.15 indicator
+ * inside that head cannot say so: it is silent until it has written
+ * something, and the write that created the item can well have landed
+ * before its page was painted.
  */
 async function commitNewItem(page: Page, name: string) {
   await visiblePage(page).getByTestId('m10-create').click()
@@ -159,9 +159,9 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
 
     const list = visiblePage(page)
     // The swipe axis is not merely hidden: the screen renders no segment at
-    // all any more. Asserted on the element rather than on the old test id —
-    // an absence assertion against an id nothing declares is green whatever
-    // the app does, which is what `scripts/testid-gate.mjs` refuses.
+    // all. Asserted on the element rather than on a test id — an absence
+    // assertion against an id nothing declares is green whatever the app does,
+    // which is what `scripts/testid-gate.mjs` refuses.
     await expect(list.locator('ion-segment')).toHaveCount(0)
 
     // A chip says what it leads to — the axis never carried a count.
@@ -190,8 +190,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
 
   /**
    * E2E-M9-15 (FR-24.8): what the axis was actually used for. The jump moves
-   * the list and takes nothing out of it — the owner's call, 2026-09-13:
-   * scrolling, not anchoring.
+   * the list and takes nothing out of it: scrolling, not anchoring.
    */
   test('E2E-M9-15: the group heading jumps without filtering anything away', async ({ page }) => {
     test.slow()
@@ -479,9 +478,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   }
 
   /**
-   * E2E-M9-17 (FR-24.10): a tag could be created and given away and never
-   * fixed — `createTag` and `moveTag` were the only two tag mutations in the
-   * product, so a name typed wrong stayed wrong.
+   * E2E-M9-17 (FR-24.10): a tag is not only created and given away but
+   * renamed — without it, a name typed wrong stays wrong.
    */
   test('E2E-M9-17: a tag is renamed, and a name another tag holds is refused', async ({ page }) => {
     await createItem(page, 'Badehose', { tags: ['Kleidun'] })
@@ -843,10 +841,9 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
    */
 
   /**
-   * E2E-M9-10 (FR-1.1): the "searchable" half of M9-01's sentence, which
-   * until now nothing typed into. G-12's own case asserts that the
-   * magnifier opens *this* screen's field; that the field then filters the
-   * list is a different promise and belongs here.
+   * E2E-M9-10 (FR-1.1): the "searchable" half of M9-01's sentence. G-12's own
+   * case asserts that the magnifier opens *this* screen's field; that the
+   * field then filters the list is a different promise and belongs here.
    */
   test('E2E-M9-10: the search filters the list and says so when nothing matches', async ({
     page,
@@ -882,10 +879,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   /**
-   * E2E-M9-11 (FR-24.7): what the old rule could not be typed into. Both
-   * halves were measured against the family instance before they were
-   * written — „gurtel" and „guertel" each returned 0 of 184 rows, and a tag
-   * every row carries could not be searched at all.
+   * E2E-M9-11 (FR-24.7): what a plain name match cannot be typed into. Both
+   * halves are measured against the family instance — without them,
+   * „gurtel" and „guertel" each return 0 of 184 rows, and a tag every row
+   * carries cannot be searched at all.
    */
   test('E2E-M9-11: the search reaches an umlaut name and a tag, and says which', async ({
     page,
@@ -916,9 +913,9 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   /**
-   * E2E-M9-12 (FR-24.7): the dead end that cost the audit its clearest
-   * screenshot — „socken" under an unrelated tag chip, answered with a bare
-   * „Kein Artikel gefunden" while three socks sat in the list.
+   * E2E-M9-12 (FR-24.7): the dead end — „socken" under an unrelated tag
+   * chip, answered with a bare „Kein Artikel gefunden" while three socks sit
+   * in the list.
    */
   test('E2E-M9-12: a filtered dead end names the filter and offers the way out', async ({
     page,
@@ -951,8 +948,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   /**
    * E2E-M9-13 (FR-24.6): the bar stays while the list moves. Measured on the
    * family instance, the list is 10 391 px against a 671 px viewport — after
-   * two swipes the old screen had no heading, no axis and no field left, and
-   * filtering meant scrolling fifteen screens back.
+   * two swipes a scrolling bar leaves no heading and no field on screen, and
+   * filtering means scrolling fifteen screens back.
    */
   test('E2E-M9-13: the tools stay put while the list scrolls', async ({ page }) => {
     for (const name of ['Anorak', 'Buff', 'Campingstuhl', 'Daunenjacke', 'Eispickel']) {
@@ -999,9 +996,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
  * describe because the world is the interesting part — every other case
  * here creates an item first, and this one must not.
  *
- * Nothing had ever rendered this state: `m9-empty` appears in the suite
- * exactly once before this case, as G9-13's *absence* assertion, where it
- * stands in for "not the inventory screen".
+ * Elsewhere in the suite `m9-empty` appears only as G9-13's *absence*
+ * assertion, where it stands in for "not the inventory screen".
  */
 test.describe('M10 — where an item is filed (FR-24.9)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
@@ -1026,14 +1022,13 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
     await list.getByTestId('m9-row').click()
     const editor = visiblePage(page)
 
-    // FR-25.15 rides along here rather than in a case of its own, because
-    // this is the one M10 case that opens a *saved* item and then edits a
-    // field — which is exactly the before/after the indicator needs. Since
-    // 2026-09-20 the lamp is silent until the editor has written something,
-    // so the absence is the positive signal the presence below is read
-    // against. Its row still holds its height while it is silent: alone on
-    // a line, a collapsing row would move the whole form up and drop it back
-    // on the first edit.
+    // FR-25.15 rides along here rather than in a case of its own, because this
+    // is the one M10 case that opens a *saved* item and then edits a field —
+    // which is exactly the before/after the indicator needs. The lamp is
+    // silent until the editor has written something, so the absence is the
+    // positive signal the presence below is read against. Its row still holds
+    // its height while it is silent: alone on a line, a collapsing row would
+    // move the whole form up and drop it back on the first edit.
     await expect(editor.getByTestId('save-indicator')).toHaveCount(0)
     // Read against the token rather than a copy of its value: a number here
     // would be a second place `--jp-control-round` is written down.
@@ -1048,7 +1043,7 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
     expect(roundControl).toBeGreaterThan(0)
     expect(headHeight).toBeGreaterThanOrEqual(roundControl)
 
-    // Tapping the *name* is the new target; the ✕ beside it is the old one.
+    // Tapping the *name* files the item; the ✕ beside it removes the tag.
     await editor.getByTestId('m10-tag-primary-Sommer').click()
     await expect(editor.getByTestId('m10-tag-summary')).toContainText('Sommer')
     await expect(editor.getByTestId('save-indicator')).toBeVisible()
@@ -1108,9 +1103,9 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
     await expect(list.getByTestId('m9-empty')).toBeVisible()
     // G-7 is an offer, not a shrug: the tools and the no-match state are both
     // absent, so what is on screen is the empty state and not a list that
-    // happens to have painted nothing. (It read `m9-tag-axis` until FR-24.8
-    // removed that control — an absence assertion against an element nothing
-    // renders any more is green by construction.)
+    // happens to have painted nothing. (Both are elements the screen does
+    // render — an absence assertion against an element nothing renders is
+    // green by construction.)
     await expect(list.getByTestId('m9-tools')).toHaveCount(0)
     await expect(list.getByTestId('m9-no-match')).toHaveCount(0)
 
@@ -1146,11 +1141,11 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
     // section is *translated* — which is exactly what it must not do.
     await expect(form.getByTestId('m10-section-photo')).toHaveCount(0)
     await expect(form.getByTestId('m10-section-depends')).toHaveCount(0)
-    // Since 2026-08-31 the two FR-24.5 also names are real sections, so
-    // their absence here asserts something at last: „Enthalten in"
-    // (FR-27.8) and „Kommentare aus Reisen" (FR-27.9) are built, and an
-    // item that does not exist yet is in no group and carries no remark.
-    // E2E-M10-17 and E2E-M10-18 are the positive halves.
+    // The two FR-24.5 also names are real sections, so their absence here
+    // asserts something: „Enthalten in" (FR-27.8) and „Kommentare aus Reisen"
+    // (FR-27.9) are built, and an item that does not exist yet is in no group
+    // and carries no remark. E2E-M10-17 and E2E-M10-18 are the positive
+    // halves.
     await expect(form.getByTestId('m10-section-delete')).toHaveCount(0)
     await expect(form.getByTestId('m10-section-containment')).toHaveCount(0)
     await expect(form.getByTestId('m10-section-comments')).toHaveCount(0)
@@ -1284,10 +1279,8 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
 })
 
 /*
- * The two sections a saved item owns that nothing had ever rendered
- * (audit 2026-08-30, backlog item 6). Both were specified in July, both are
- * built, and between them they carried one `data-testid` — the heading
- * E2E-M10-13 reads for its German word. A heading is not a behaviour.
+ * The two sections a saved item owns, operated rather than only found: the
+ * heading E2E-M10-13 reads for its German word is not a behaviour.
  */
 test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
@@ -1349,9 +1342,9 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
   })
 
   /*
-   * E2E-M10-31 (FR-20.1, owner 2026-09-24): a name in either list is the way
-   * to that item. Inspecting a dependent meant finding it again by hand in
-   * the inventory; the name is a link now, and only the name — the row's
+   * E2E-M10-31 (FR-20.1): a name in either list is the way to that item.
+   * Without it, inspecting a dependent means finding it again by hand in
+   * the inventory; the name is the link, and only the name — the row's
    * mode select and remove button must not navigate.
    */
   test('E2E-M10-31: a dependency’s name leads to that item, from either list', async ({ page }) => {
@@ -1446,8 +1439,8 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
 
   /*
    * FR-24.11 inside FR-20.1's picker: a companion the inventory does not hold
-   * yet used to mean leaving the item in hand, creating the other one in M9,
-   * finding the first again and only then declaring the pair.
+   * yet would otherwise mean leaving the item in hand, creating the other one
+   * in M9, finding the first again and only then declaring the pair.
    */
   test('E2E-M10-23: a companion the inventory lacks is created from the picker and declared at once', async ({
     page,
@@ -1585,11 +1578,11 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
 })
 
 /**
- * UX-14 (review 2026-08-25): with a grown vocabulary, an empty query rendered
- * every unassigned tag as a chip — twenty per form on the real instance — and
- * the de placeholder ran out of its box at phone width. The empty query now
- * offers a capped shelf with a "more via search" tail, and the search still
- * reaches everything.
+ * UX-14: with a grown vocabulary, an empty query that rendered every
+ * unassigned tag as a chip would put twenty on each form on the real
+ * instance, and a long de placeholder runs out of its box at phone width.
+ * The empty query offers a capped shelf with a "more via search" tail, and
+ * the search still reaches everything.
  *
  * Phone viewport on purpose: the placeholder assertion is about fitting the
  * narrow box, and at the behaviour projects' desktop width it could not fail.
@@ -1656,7 +1649,7 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     await visiblePage(page).getByTestId('m10-tag-more').click()
     await expect(visiblePage(page).getByTestId('m10-tag-search').locator('input')).toBeFocused()
 
-    // The placeholder fits its box at phone width — the de string used to run
+    // The placeholder fits its box at phone width — a longer de string runs
     // out of the searchbar. Measured by rendering, not by reproducing the
     // font: the text briefly becomes the value, and scrollWidth then reports
     // what the box actually shows (a canvas re-measure quietly used the wrong
@@ -1674,12 +1667,9 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
 })
 
 /**
- * M10's rear-view — FR-27.8 and FR-27.9, built 2026-08-31.
- *
- * Both were mocked in the concept prototype in July, written into three
- * specs, and existed in no build. They are the two halves of the question the
- * owner actually asks at an item: what hangs off this, and what did we say
- * about it last time.
+ * M10's rear-view — FR-27.8 and FR-27.9. They are the two halves of the
+ * question the owner actually asks at an item: what hangs off this, and what
+ * did we say about it last time.
  */
 test.describe("M10 — the item's rear-view @local @m10", () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -1687,8 +1677,8 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
   })
 
   // E2E-M10-17 (FR-27.8): which groups and Vorlagen hold this item, and the
-  // way into each. The delete card's count says how many; until now nothing
-  // said which, which is the question asked before an item is edited.
+  // way into each. The delete card's count says how many; this says which,
+  // which is the question asked before an item is edited.
   test('E2E-M10-17: the item names the groups holding it, and leads into one', async ({ page }) => {
     await createMasterItem(page, 'Wanderstöcke')
     // createTemplate starts on M7's FAB; creating the item ended on M10.
@@ -1732,7 +1722,7 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
 
   // E2E-M10-18 (FR-27.9): what was said about this item while packing, across
   // trips. The remark made on last year's trip is worth most where next
-  // year's list is curated, and until now it died in an archived trip.
+  // year's list is curated, not left in an archived trip.
   test('E2E-M10-18: a remark made on a trip is readable at the item', async ({ page }) => {
     await createMasterItem(page, 'Wanderstöcke')
     await createTripViaWizard(page, { name: 'Laos 2025' })

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * M4 — Packing list, and since the phase hub was dropped (2026-08-08) the
- * trip screen itself: tapping a trip opens this, with nothing in between.
+ * M4 — Packing list, and the trip screen itself: tapping a trip opens this,
+ * with nothing in between.
  *
- * Rebuilt from the concept mock (UI-Spec M4, Addendum §3.25). What the
+ * Built from the concept mock (UI-Spec M4, Addendum §3.25). What the
  * shape is answering, in one line each:
  *
  *  - **The header line** (trip line): the trip's name where the app bar has
@@ -12,8 +12,7 @@
  *    whatever the list shows (G-12), so a short list is never mistaken for
  *    a finished trip. It hides on scroll-down and returns on any upward
  *    scroll, which is where the list height comes from — and the page head
- *    above it goes with it, deliberately (the name used to live in this
- *    line, and the owner's call was that it goes too).
+ *    above it goes with it, deliberately.
  *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
  *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
  *    unlabelled glyph is exactly where concept testing kept failing.
@@ -309,10 +308,10 @@ async function reportGroupAnswer(message: string) {
 /**
  * FR-9.4: the first proposals the review would offer, for the closing card.
  *
- * UI-Spec M14 has promised since the screen shipped that the card *„teases the
- * first two proposals"*, and it read none — so it said the same thing whether
- * eleven suggestions were waiting or none, which is the one question the tap
- * answers. Two, because the card is a tease and the list is one tap away.
+ * UI-Spec M14 promises that the card *„teases the first two proposals"*: one
+ * that names none says the same thing whether eleven suggestions are waiting
+ * or none, which is the one question the tap answers. Two, because the card
+ * is a tease and the list is one tap away.
  *
  * It calls the same rule M14 calls (invariant 4): a second, cheaper
  * approximation here would be a rule implemented twice, and the one that
@@ -558,8 +557,8 @@ const travelerShares = computed(() => progressByTraveler(allItems.value, travele
 /**
  * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
  * quick filters — *mine and the shared ones* is two taps, OR'd like the
- * sheet's chips. Narrowing to one alone used to cost a trip to the sheet for
- * exactly the combination a packer wants most.
+ * sheet's chips. Otherwise narrowing to one alone would cost a trip to the
+ * sheet for exactly the combination a packer wants most.
  */
 function selectTraveler(value: string) {
   toggleValue('person', value)
@@ -724,11 +723,9 @@ const hold = useLongPress<TripItem>(openRowMenu)
 
 /**
  * FR-5.5's press-and-hold is the *row's*, and the packing control is not the
- * row (E2E-G6-01). That exception used to live here as a `closest()` on the
- * control column's class — a rule about a component, written one file away
- * from it and coupled to its stylesheet. `PackingRow` stops the press at the
- * control itself now, so a press that reaches this handler is already the
- * row's.
+ * row (E2E-G6-01). `PackingRow` stops the press at the control itself — the
+ * rule lives with the component, not here as a `closest()` coupled to its
+ * stylesheet — so a press that reaches this handler is already the row's.
  */
 function onRowPress(item: TripItem, event: PointerEvent): void {
   hold.down(item, event.clientX, event.clientY)
@@ -864,7 +861,7 @@ function rowsOf(ids: string[]): TripItem[] {
 /**
  * Say what a fan-out did — and, where a claim kept it off a row, say that
  * too. A group action that quietly wrote three of four would be indis-
- * tinguishable from one that wrote all four (G-3, advisory since 2026-08-30).
+ * tinguishable from one that wrote all four (G-3, advisory).
  */
 function announceFanOut(written: number, total: number, blockedBy: string[]): void {
   void announceAct(
@@ -1227,9 +1224,9 @@ const RING_SIZE_HEADER = 42
  * sentence rather than beside it, because a figure reads as one line and this
  * is the second (FR-21.23).
  *
- * It used to carry the open preparation as well. Since FR-7.6 the figure
- * beside it counts those, and a number stated twice on one line is a number
- * two places can disagree about.
+ * It leaves out the open preparation: the figure beside it counts those
+ * (FR-7.6), and a number stated twice on one line is a number two places
+ * can disagree about.
  */
 const statsDetail = computed(() =>
   kpis.value.totalWeight > 0 ? formatWeight(kpis.value.totalWeight) : null,
@@ -1386,7 +1383,7 @@ setHeaderActions(() => {
   // would be two doors into a room you are standing in. Search, filter and
   // fold stay: they are why the pass is a mode of M4 at all.
   if (closingPass.value) return items
-  // What is left behind the ⋮ is packing's own (owner, 2026-09-25): the
+  // What is left behind the ⋮ is packing's own: the
   // trip's properties and its lifecycle steps change the whole trip, so they
   // are M2's — the trip's row and hero — and the bar here does not repeat
   // them. The luggage and the analytics head the sheet (AppHeader).
@@ -1450,9 +1447,9 @@ function packedStamp(item: TripItem): string | null {
 
 /**
  * FR-5.5, worded in `lib/rowFacts.ts`. A row that is done because it was
- * left behind used to be revealed with nothing at all where a packed row
- * carries its FR-25.17 stamp, which is exactly the "forgot it" / "decided
- * against it" confusion FR-5.5 exists to remove.
+ * left behind says so where a packed row carries its FR-25.17 stamp; with
+ * nothing there, it is exactly the "forgot it" / "decided against it"
+ * confusion FR-5.5 exists to remove.
  */
 function skippedNoteFor(item: TripItem): string | null {
   return skippedNote(item, allItems.value, masterStore.dependencyList)
@@ -1495,9 +1492,9 @@ const visibleOpenRows = computed(
 )
 
 // Rows on both sides (FR-25.22): the sentence counts *Sachen* behind the
-// filter, and the left-hand side used to be the trip's open **units**, so a
-// single open row of quantity three reported two hidden things on a list
-// hiding nothing.
+// filter, and counting the trip's open **units** on the left-hand side would
+// have a single open row of quantity three report two hidden things on a
+// list hiding nothing.
 const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
 
 const searching = computed(() => search.value.trim() !== '')
@@ -1729,7 +1726,7 @@ function removeConfirmed(
 
 /**
  * FR-9.3: the flag is a judgement, not a stamp. The same menu entry sets it
- * and takes it back, and since FR-25.31 the snackbar does too — the one undo
+ * and takes it back, and the snackbar does too (FR-25.31) — the one undo
  * every act on the list offers.
  */
 function onFlagUnused(item: TripItem, value: boolean) {
@@ -1746,7 +1743,7 @@ function onFlagUnused(item: TripItem, value: boolean) {
 
 /**
  * The pass's single gesture. It raises the same snackbar as the menu's
- * entry (FR-25.31, owner 2026-09-19): one at a time, each replacing the last,
+ * entry (FR-25.31): one at a time, each replacing the last,
  * so a run of taps leaves one undo for the latest rather than a stack.
  */
 function onPassToggle(item: TripItem) {
@@ -1829,9 +1826,7 @@ function onZero(item: TripItem) {
 
 /**
  * The duration lives in CSS only. The hook below waits on `transitionend`
- * rather than on a number, so there is nothing here to keep in step — an
- * earlier version declared the 300 ms twice on the theory that both sides
- * needed it, and the second copy was never read.
+ * rather than on a number, so there is nothing here to keep in step.
  */
 
 /** Honoured for the row collapse as well as the flash — checked live, since
@@ -1913,8 +1908,8 @@ function restorePacked(records: RowUndoRecord[]) {
 }
 
 function onToggle(item: TripItem) {
-  // Un-packing a revealed done row is announced too (FR-25.31, owner
-  // 2026-09-19): its result is on screen, but a mistap on a list of done rows
+  // Un-packing a revealed done row is announced too (FR-25.31): its result
+  // is on screen, but a mistap on a list of done rows
   // is as expensive to find again as one on the open list.
   const reads = stateFor(item.packed_count, item.quantity)
   const unpacks = reads === 'packed' || reads === 'skipped'
@@ -2014,7 +2009,7 @@ function quickAddOptions(item: BrowseAddition) {
 function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision) {
   const opts = quickAddOptions(item)
   // FR-5.10: while the packing is closed, a row typed here is a thing that
-  // travelled and was never on the list (owner, 2026-09-20) — so it lands
+  // travelled and was never on the list — so it lands
   // *packed* rather than as the one open job on a finished list. An add for
   // named travelers keeps the open row it always wrote: a row per person is
   // a plan being made, not a bag being recorded.
@@ -2243,7 +2238,7 @@ function onArchive() {
 }
 
 /**
- * The pass's one door is M2's *Reise abschliessen* since 2026-09-25, which
+ * The pass's one door is M2's *Reise abschliessen*, which
  * arrives here as `?closing=1`. Taken only while archiving is the trip's next
  * step — a stale link to an archived or planning trip opens the list — and
  * the flag is dropped from the URL at once, so a reload or a back does not
@@ -2300,7 +2295,7 @@ const closeSheetOpen = ref(false)
 const closePrompted = ref(false)
 
 /**
- * FR-5.10's second door (owner, 2026-09-20): the step is offered where the
+ * FR-5.10's second door: the step is offered where the
  * moment is. Packing the last open row *is* the moment — finding the ⋮
  * afterwards is the part nobody does.
  *
@@ -2441,19 +2436,16 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
 /**
  * The trip's name, written exactly once, in the page head (ADR-050).
  *
- * It used to depend on the width: below the G-9 breakpoint the bar could not
- * hold it — with search, filter, fold-all, the lifecycle step, the sync glyph
- * and the gear beside it, 54 px were left and "Samedan 2026" rendered as
- * "S…" — so M4 registered no title there and its header line led with the
- * name. The bar names no page any more, so nothing turns on the viewport and
- * the header line is one row of figures at every width.
+ * The bar names no page — beside search, filter, fold-all, the lifecycle
+ * step, the sync glyph and the gear, 54 px are left and "Samedan 2026"
+ * renders as "S…" — so nothing turns on the viewport and the header line is
+ * one row of figures at every width.
  *
  * The third argument is why the name is *still* the header line's business:
- * the owner's 2026-08-19 call was that scrolling down takes the whole line,
- * name included. ADR-050 moved the name into the frame and the collapse
- * stayed behind with the figures, so the biggest block on the screen became
- * the one thing that never yielded — 89 of a phone's 844 px, permanently, on
- * the screen that is scrolled most. The head now yields on the same gesture.
+ * scrolling down takes the whole line, name included, and the head yields on
+ * the same gesture. Otherwise the biggest block on the screen would be the
+ * one thing that never yields — 89 of a phone's 844 px, permanently, on the
+ * screen that is scrolled most.
  */
 setHeaderTitle(
   () => tripName.value,
@@ -2477,10 +2469,9 @@ setHeaderTitle(
       </IonRefresher>
 
       <!-- One header line (G-12): what the trip stands at. Deliberately
-           unfiltered — see FR-25.20. The trip's *other views* used to sit
-           here as three glyphs; they are words in the bar's menu now
-           (ADR-050), and the name is the page's own head. -->
-      <!-- Collapsed for a second reason since ADR-033: with the figure below
+           unfiltered — see FR-25.20. Neither the trip's *other views* nor
+           its name sit here: the name is the page's own head (ADR-050). -->
+      <!-- Collapsed for a second reason (ADR-033): with the figure below
            waiting for the partition the line holds nothing, and an empty band
            above the note is a container asserting itself. The state that
            yields the space already exists, so it is reused rather than
@@ -2600,8 +2591,8 @@ setHeaderTitle(
           @remove="taskActs.remove"
           @open="onOpenTask"
         />
-        <!-- Always rendered, folded or not: since FR-7.7 this section is a
-             window, and a reader who finds it empty is exactly the one who
+        <!-- Always rendered, folded or not: this section is a window
+             (FR-7.7), and a reader who finds it empty is exactly the one who
              has to be told where the rest of the tasks are. Hiding the way
              out inside the fold would answer only the readers who did not
              need it. -->
@@ -2904,7 +2895,7 @@ setHeaderTitle(
         </IonButton>
       </EmptyState>
 
-      <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
+      <!-- The bars run in the order the rows do: the two
            whose rows still ask for something first — packed on departure day
            (FR-25.27), then in somebody else's hands (FR-25.20) — and last the
            one whose rows ask for nothing. Hidden only on request, and never
@@ -3150,10 +3141,10 @@ setHeaderTitle(
    moves. */
 ion-content.pack-content::part(scroll) {
   overflow-anchor: none;
-  /* The measure column (surfaces.css) no longer spans the full viewport on
-     a tablet, which otherwise leaves the browser's default scrollbar
-     rendered at the true screen edge, disconnected from the content it
-     scrolls. A thin, token-coloured bar reads as this list's own control
+  /* The measure column (surfaces.css) does not span the full viewport on a
+     tablet, so the browser's default scrollbar would render at the true
+     screen edge, disconnected from the content it scrolls. A thin,
+     token-coloured bar reads as this list's own control
      instead of a stray line in the gutter. */
   scrollbar-width: thin;
   scrollbar-color: var(--ct-overlay1) transparent;
@@ -3203,9 +3194,9 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
     padding 0.18s ease;
 }
 
-/* Scrolling down still takes the whole line (owner call, 2026-08-19): you
+/* Scrolling down takes the whole line: you
    know which packing list you are on, and the rows are what the screen is
-   for. Any upward scroll brings it back. The name is no longer in here —
+   for. Any upward scroll brings it back. The name is not in here —
    the same flag collapses the frame's page head, see setHeaderTitle. */
 .trip-line.collapsed {
   max-height: 0;
@@ -3318,9 +3309,8 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   background: none;
   border: none;
   color: var(--ct-text);
-  /* A group heading outranks the rows under it. It used to be 0.82rem
-     uppercase micro-type — smaller than the item names it was heading,
-     which inverts the hierarchy it exists to state. */
+  /* A group heading outranks the rows under it: micro-type smaller than the
+     item names it heads would invert the hierarchy it exists to state. */
   font-size: var(--jp-text-lg);
   font-weight: var(--jp-weight-bold);
   letter-spacing: var(--jp-tracking-display);
@@ -3385,10 +3375,10 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 
 /*
  * The rule and the step belong to the *children*, not to the block
- * (FR-21.20). Until 2026-09-07 they were on `.cluster`, which carried the
- * head in with them: the item's name sat 8 px right of every other item
- * name in the list and only 6 px left of its own travelers — so the head
- * read as one of its children rather than as their heading. The head is a
+ * (FR-21.20). On `.cluster` they would carry the head in with them: the
+ * item's name would sit 8 px right of every other item name in the list and
+ * only 6 px left of its own travelers — so the head would read as one of its
+ * children rather than as their heading. The head is a
  * line of the list; the people under it are the ones stepping in.
  */
 .cluster-children {
@@ -3421,12 +3411,11 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
  * The green is the done role, not a colour picked for the animation — the
  * same one the checkbox turns (G-11).
  *
- * On the *item*, not on the slider around it. Washing both put the tint
- * over two different grounds — the card behind the empty stretch of row,
- * and the item's own surface behind the label — so the row came out in two
- * shades split down the middle. Measuring said so before looking did: one
- * side was the tint over `--ct-base`, the other the same tint over
- * `--ct-surface0`.
+ * On the *item*, not on the slider around it. Washing both would put the
+ * tint over two different grounds — the card behind the empty stretch of
+ * row, and the item's own surface behind the label — so the row would come
+ * out in two shades split down the middle: the tint over `--ct-base` on one
+ * side, the same tint over `--ct-surface0` on the other.
  */
 .pack-out-leave-from {
   background: color-mix(in srgb, var(--jp-done) 22%, transparent);

@@ -329,8 +329,8 @@ test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
     const list = visiblePage(page)
     const strip = await openForWhom(page, ITEM)
     // Read at once, while the rows under it are still sliding down to make
-    // room: nothing may paint over the strip. They used to, for 0.3 s, and it
-    // looked like a strip too transparent to hide them (owner, 2026-09-18).
+    // room: nothing may paint over the strip. Rows painting over it for the
+    // 0.3 s of the slide look like a strip too transparent to hide them.
     // Green does not depend on catching the slide — a covered strip is the
     // failure whenever it is sampled.
     const covered = await strip.evaluate((el) => {
@@ -421,10 +421,10 @@ test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
  *
  * The two spec entries name one rendered outcome and this case asserts every
  * clause of both: the head M4-12 asks for, the absence of a second top-level
- * row wearing the name — the 2026-08-07 regression, where each row was
- * individually right and only the grouping was wrong — and M4-58's differing
- * amounts on rows that have no `source_item_id`, which is what makes this the
- * case that proves the folded-name cluster key.
+ * row wearing the name — the failure where each row is individually right and
+ * only the grouping is wrong — and M4-58's differing amounts on rows that have
+ * no `source_item_id`, which is what makes this the case that proves the
+ * folded-name cluster key.
  */
 test.describe('FR-25.8 per-person quick-add @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -849,11 +849,11 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   })
 
   /*
-   * FR-25.23. The cost the fold was bought with is that a cluster no longer
-   * shows its people, so the shut head has to answer for them — and the two
-   * halves are asserted together here because passing either one alone is
-   * what a half-built fold looks like: children gone with nothing in their
-   * place, or a head that summarises rows it never hid.
+   * FR-25.23. The cost of the fold is that a shut cluster does not show its
+   * people, so the shut head has to answer for them — and the two halves are
+   * asserted together here because passing either one alone is what a
+   * half-built fold looks like: children gone with nothing in their place, or
+   * a head that summarises rows it never hid.
    *
    * It is an e2e case rather than a unit because the fold is state on the
    * screen, not in the view model: `ClusterHead` renders whatever `collapsed`
@@ -1034,10 +1034,10 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   })
 
   /*
-   * FR-25.26, widened 2026-09-19 (owner): the head offers what a row's own
-   * menu does, each entry reaching every instance. Asserted per child, for
-   * E2E-M4-88's reason — the head sums and folds its children, so a fan-out
-   * that reached one instance of two would still repaint the head.
+   * FR-25.26: the head offers what a row's own menu does, each entry reaching
+   * every instance. Asserted per child, for E2E-M4-88's reason — the head sums
+   * and folds its children, so a fan-out that reached one instance of two
+   * would still repaint the head.
    */
   test('E2E-M4-117: the cluster head sets the amount and skips for every instance', async ({
     page,

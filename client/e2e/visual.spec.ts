@@ -77,10 +77,10 @@ async function freeze(page: Page) {
     // The counter lives in `sessionStorage` rather than in this closure,
     // because `addInitScript` runs again on **every navigation** — a local
     // `let n = 0` restarts there, and the next row created hands back an id
-    // an earlier one already has. Found 2026-09-09 building E2E-VIS-12: its
-    // three trips are created across navigations, so all three took the same
-    // id and the last one silently overwrote the other two, leaving a
-    // dashboard with nothing active on it and no error anywhere.
+    // an earlier one already has. E2E-VIS-12's three trips are created across
+    // navigations, so all three would take the same id and the last one
+    // silently overwrite the other two, leaving a dashboard with nothing
+    // active on it and no error anywhere.
     const KEY = 'e2e-uuid-counter'
     const uuid = () => {
       const n = Number(sessionStorage.getItem(KEY) ?? '0') + 1
@@ -90,17 +90,17 @@ async function freeze(page: Page) {
     }
     Object.defineProperty(crypto, 'randomUUID', { value: uuid, configurable: true })
     // The dashboard greeting reads the wall clock's hour — the one
-    // time-of-day the suite renders. Found 2026-08-15, when a 19:49 UTC
-    // run met a baseline recorded in the morning: the job was green only
-    // inside the baseline's own time window. Pinning the *hour* keeps
+    // time-of-day the suite renders. Unpinned, a 19:49 UTC run meets a
+    // baseline recorded in the morning, and the job is green only inside the
+    // baseline's own time window. Pinning the *hour* keeps
     // Date.now() untouched (freezing it breaks the Local Mode write path
     // — see the header), so the seam is exactly as wide as the defect.
     Date.prototype.getHours = () => 9
     // A note's stamp (FR-7.13, `domain/stamp.ts`) prints its time of day
     // through `toLocaleTimeString`, which never asks `getHours` — so M26's
-    // baseline held the minute it was recorded in (06:58 PM) and failed at
-    // any other (07:31 PM, 2026-09-25). Pinned to one instant's rendering,
-    // in the caller's own locale and options, for the pin above's reason.
+    // baseline would hold the minute it was recorded in and fail at any
+    // other. Pinned to one instant's rendering, in the caller's own locale
+    // and options, for the pin above's reason.
     const timeOf = Date.prototype.toLocaleTimeString
     const pinned = new Date(2026, 0, 1, 9, 0)
     Date.prototype.toLocaleTimeString = function (...args: Parameters<Date['toLocaleTimeString']>) {
@@ -110,25 +110,24 @@ async function freeze(page: Page) {
     // derives its quota from the *runner's* free disk: 6,144 MB on one
     // machine and 3,072 MB on the next, for the same bundle. Both numbers
     // then land in a baseline that only one machine can reproduce, and the
-    // remainder of the budget is what decided whether a run went red —
-    // g2-sheet.png failed by 11 pixels on 2026-09-15 for this and nothing
-    // else. Removed rather than masked, like the ids above: the pair below
-    // renders exactly what the recorded baseline holds, so the line keeps
-    // its own rendering in the image and loses only the machine.
+    // remainder of the budget decides whether a run goes red — g2-sheet.png
+    // fails by 11 pixels for this and nothing else. Removed rather than
+    // masked, like the ids above: the pair below renders exactly what the
+    // recorded baseline holds, so the line keeps its own rendering in the
+    // image and loses only the machine.
     if (navigator.storage) {
       navigator.storage.estimate = () => Promise.resolve({ usage: 104_858, quota: 6_442_555_802 })
     }
     // The app bar prints what was built — `git describe --tags --always
     // --dirty` (vite.config.ts), which is a *different string on every run*:
     // a dev machine renders `v0.16.0-4-g1c0553c-dirty`, CI renders the sha of
-    // the commit it built. That text has been inside every baseline carrying
-    // the bar since they were first recorded, and it is the reason this gate
-    // drifted: on 2026-09-20 the items tab failed by **660 pixels against a
-    // 658 budget** on a branch that had not touched the screen, almost all of
-    // it the version string. It is build metadata and not design, so it is
-    // hidden rather than masked — `visibility` keeps the box, so nothing else
-    // moves, and the line beside it keeps its own rendering (the storage
-    // estimate above is removed for the same reason, one machine at a time).
+    // the commit it built. In a baseline carrying the bar, that text alone
+    // can fail the items tab by **660 pixels against a 658 budget** on a
+    // branch that has not touched the screen. It is build metadata and not
+    // design, so it is hidden rather than masked — `visibility` keeps the
+    // box, so nothing else moves, and the line beside it keeps its own
+    // rendering (the storage estimate above is removed for the same reason,
+    // one machine at a time).
     document.addEventListener('DOMContentLoaded', () => {
       const style = document.createElement('style')
       style.textContent = '[data-testid="header-app-version"] { visibility: hidden; }'
@@ -221,10 +220,9 @@ test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMo
   await expect(page.getByTestId('filter-sheet')).toBeVisible()
   // Ionic paints a pressed button `ion-activated` and clears it on a 150 ms
   // timer after pointer-up (CLEAR_STATE_DEFERS), which the shot sometimes
-  // beat: 48×48 px of state tint under the scrim, on the runner in one
-  // job and not the other, found the day `threshold: 0` landed and
-  // invisible under the old 0.2 tolerance. The class going away is the
-  // observable seam; the pointer is parked as well so no hover remains.
+  // beats: 48×48 px of state tint under the scrim, on the runner in one job
+  // and not the other, visible at `threshold: 0`. The class going away is
+  // the observable seam; the pointer is parked as well so no hover remains.
   await page.mouse.move(0, 0)
   await expect(page.getByTestId('m4-filter')).not.toHaveClass(/ion-activated/)
   await settled(page)
@@ -315,12 +313,12 @@ test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) 
 // whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and
 // the card list itself — and because the rebuild that introduced them was
 // judged on exactly those pixels.
-// E2E-VIS-13: M25 — the tasks in their two phases (FR-7.7). The screen the
-// owner asked for beside the packing and shopping lists, and the one place
-// where both kinds of task and both phases are visible at once: a
-// preparation with the chip of its row under *Vor der Reise*, a chore of the
-// trip under *Während der Reise*, and the provenance line under each. Since
-// FR-7.14: the composer on top, the *Fällig* block and the two-line rows.
+// E2E-VIS-13: M25 — the tasks in their two phases (FR-7.7). The screen
+// beside the packing and shopping lists, and the one place where both kinds
+// of task and both phases are visible at once: a preparation with the chip
+// of its row under *Vor der Reise*, a chore of the trip under *Während der
+// Reise*, and the provenance line under each. With FR-7.14: the composer on
+// top, the *Fällig* block and the two-line rows.
 test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
@@ -381,14 +379,13 @@ test('E2E-VIS-14: visual: M26 a trip’s notes @local @visual', async ({ page, s
   await page.getByTestId('header-back').click()
   const notes = await openNotes(page)
   await expect(notes.getByTestId('note-thread-name')).toHaveCount(2)
-  // The back button just pressed is the one M26 shows, and its press
-  // outlives the navigation: `md` mode leaves a `.ripple-effect` disc in the
-  // button's shadow root and removes it on Ionic's own timers (fade-out after
-  // 325 ms, gone 200 ms later). The first baseline caught the disc; CI, a
-  // step slower, never did — 1700 px red on every run from 2026-09-25. The
-  // disc leaving is the seam, as `ion-activated` is for M4's filter sheet
-  // above; the pointer is parked mid-page, since (0, 0) is this button's
-  // corner.
+  // The back button just pressed is the one M26 shows, and its press outlives
+  // the navigation: `md` mode leaves a `.ripple-effect` disc in the button's
+  // shadow root and removes it on Ionic's own timers (fade-out after 325 ms,
+  // gone 200 ms later). A fast machine's shot catches the disc; CI, a step
+  // slower, does not — 1700 px of difference. The disc leaving is the seam,
+  // as `ion-activated` is for M4's filter sheet above; the pointer is parked
+  // mid-page, since (0, 0) is this button's corner.
   const back = page.getByTestId('header-back')
   await page.mouse.move(195, 600)
   await expect(back).not.toHaveClass(/ion-activated/)
@@ -448,13 +445,11 @@ test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', asyn
 /**
  * E2E-VIS-09: M16, the series and destination profile.
  *
- * The screen that had **no coverage at any layer** until 2026-08-30 — no spec
- * file, no unit, not one `data-testid` — and whose first render found FR-13.3's
- * checklist input at **width 0**, because Ionic gives `ion-select` `width:
- * 100%` and as a flex item that is a basis of the whole row. That is the class
- * of defect a baseline exists for: every assertion passed, the element was in
- * the DOM with the right computed flex and height, and only the pixel said the
- * box was empty (invariant 9b, G-14).
+ * FR-13.3's checklist input can render at **width 0**, because Ionic gives
+ * `ion-select` `width: 100%` and as a flex item that is a basis of the whole
+ * row. That is the class of defect a baseline exists for: every assertion
+ * passes, the element is in the DOM with the right computed flex and height,
+ * and only the pixel says the box is empty (invariant 9b, G-14).
  *
  * The row is deliberately in frame *with content on both sides* — a select
  * carrying a value and an input carrying text — because an empty row of the
@@ -478,10 +473,10 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
 
   // Where the page sits at capture time is not part of the screen's state:
   // `fill()` focuses a field, and the browser scrolls a focused field into
-  // view on its own schedule, so the mobile baseline was recorded 102px down
-  // and met a run that had stayed at the top (2026-08-31, a 6 % diff on a
-  // docs-only commit). Blur first, then put the scroller back, so the shot is
-  // of the top of the screen every time rather than of whichever scroll won.
+  // view on its own schedule, so a baseline recorded 102px down can meet a
+  // run that stayed at the top (a 6 % diff on a docs-only commit). Blur
+  // first, then put the scroller back, so the shot is of the top of the
+  // screen every time rather than of whichever scroll won.
   await visiblePage(page)
     .locator('ion-content')
     .evaluate(async (el) => {
@@ -495,9 +490,9 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
 })
 
 // E2E-VIS-10: M1 with a trip on it. The four tab-root baselines are all
-// *empty* states, so until this one the screen every rebuild lands on had no
-// picture of itself with data — and the hero card (FR-21.13) is precisely
-// the thing an empty dashboard cannot show.
+// *empty* states, so this is the picture with data of the screen every rebuild
+// lands on — and the hero card (FR-21.13) is precisely the thing an empty
+// dashboard cannot show.
 test('E2E-VIS-10: visual: M1 with the hero card @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
@@ -511,17 +506,16 @@ test('E2E-VIS-10: visual: M1 with the hero card @local @visual', async ({ page, 
   await expect(page).toHaveScreenshot('m1-hero.png')
 })
 
-// E2E-VIS-12: M1's other cards (FR-21.28, G-14). The dashboard's only picture
-// was of the hero, so the blocks under it — a following trip and the planned
-// lookahead — had never been photographed, and that is exactly where the
-// screen kept Ionic's card: another radius, another shadow and an inset of
-// its own, which no stylesheet gate can see because it is not our stylesheet.
+// E2E-VIS-12: M1's other cards (FR-21.28, G-14) — the blocks under the hero,
+// a following trip and the planned lookahead. That is where the screen can
+// keep Ionic's card: another radius, another shadow and an inset of its own,
+// which no stylesheet gate can see because it is not our stylesheet.
 test('E2E-VIS-12: visual: M1 below the hero @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   // Every trip carries a departure date: which one is the hero is
   // `byDepartureSoonestFirst`, and a dateless pair orders by nothing — the
-  // trap E2E-M1-09 was written after.
+  // trap E2E-M1-09 describes.
   await createTripViaWizard(page, {
     name: 'Samedan 2026',
     startDate: '2026-09-20',

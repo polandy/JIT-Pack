@@ -82,7 +82,7 @@ describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
    * the scroller enough room that nothing is left to scroll, and the clamp
    * lands at the very top. Held there, the head could never come back —
    * no gesture is possible on a list that fits — and M4's view switcher
-   * was gone for good (E2E-M4-28, found by FR-7.4's taller list).
+   * would be gone for good (E2E-M4-28).
    */
   it('comes back when the clamp lands where it would never have yielded', () => {
     const yielded: HeadScrollState = { top: 60, collapsed: true }

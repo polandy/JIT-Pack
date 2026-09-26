@@ -1,12 +1,11 @@
 /**
  * The design-token gate's own specification (CLAUDE.md invariant 9b).
  *
- * A guard that finds nothing has to prove it *can* find something, and
- * this one had been passing for weeks while blind to every colour
- * notation newer than `hsl()` — `color-mix()`, `oklch()`, `light-dark()`
- * and the 148 names all walked past it. So each rule is asserted from
- * both sides here: what it must reject, and what it must keep letting
- * through.
+ * A guard that finds nothing has to prove it *can* find something — a gate
+ * blind to every colour notation newer than `hsl()` would let `color-mix()`,
+ * `oklch()`, `light-dark()` and the 148 names walk past it and still pass.
+ * So each rule is asserted from both sides here: what it must reject, and
+ * what it must keep letting through.
  *
  * It runs the gate as a process against a fixture tree rather than
  * importing it, because the script scans on load and exits with a code —

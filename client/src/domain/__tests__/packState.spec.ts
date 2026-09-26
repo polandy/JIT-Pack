@@ -1,8 +1,7 @@
 /**
- * C-4 (design review 2026-09-02): the packing state derived from a row's
- * numbers, once. The table pins what the five former copies answered where
- * they agreed, and decides the two cells where they did not — a quantity of
- * 0 is FR-5.5's skipped row, never `packed` and never `open`.
+ * C-4: the packing state derived from a row's numbers, once. The table pins
+ * every cell, including the two that are easy to get wrong — a quantity of 0
+ * is FR-5.5's skipped row, never `packed` and never `open`.
  */
 import { describe, expect, it } from 'vitest'
 

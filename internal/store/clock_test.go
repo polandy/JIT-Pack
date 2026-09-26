@@ -33,13 +33,13 @@ func openTestStoreAt(t *testing.T, at time.Time) *Store {
 }
 
 // G-4: every timestamp this package writes comes from the store's own
-// clock. Before the seam these columns could only be asserted non-empty —
+// clock. Without the seam these columns could only be asserted non-empty —
 // which is green whether the value is right, wrong, or a decade off.
 //
 // Both formats are represented on purpose. The four Go-side columns keep
-// RFC3339 at second precision; the three that SQLite used to write with
-// strftime('%Y-%m-%dT%H:%M:%fZ') keep milliseconds, because they order
-// rows and whole seconds would tie instants that are not tied.
+// RFC3339 at second precision; the three that order rows keep milliseconds
+// (strftime('%Y-%m-%dT%H:%M:%fZ')'s layout), because whole seconds would tie
+// instants that are not tied.
 func TestStoreClock_EveryTimestampComesFromTheInjectedClock(t *testing.T) {
 	// Written out rather than derived from timestampSeconds/timestampMillis:
 	// formatting the expectation with the constant under test moves both

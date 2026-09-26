@@ -124,8 +124,9 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
  * carries decides whether a trip row is the group's position, generated.
  *
  * The row's master item answers it outright when it has one — a name is
- * editable on the trip, and renaming the row there used to report the drift
- * twice: once as a new own position, once as a position the trip had dropped.
+ * editable on the trip, and renaming the row there would otherwise report the
+ * drift twice: once as a new own position, once as a position the trip had
+ * dropped.
  *
  * The name is the fallback, not a second opinion. It is what recognises an
  * ad-hoc row typed on the trip, which has no master item yet and is the very

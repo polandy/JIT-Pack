@@ -2,14 +2,12 @@
  * Holds one claim a pull-to-refresh makes by existing: that pulling down
  * fetches something.
  *
- * Two of the six did not. M9's handler and M7's were one line —
- * `refresher.complete()` — so the spinner appeared, span
- * its animation and resolved, having asked nothing of anybody. A gesture
+ * A handler that is one line — `refresher.complete()` — shows the spinner,
+ * spins its animation and resolves, having asked nothing of anybody. A gesture
  * that reports success without doing work is worse than an absent one: the
  * absent one sends you to look for the real control, and this one tells you
- * the list is up to date. Both survived because no test in the repository
- * ever touched a refresher, and neither is visible in a diff that does not
- * already know to look (found in the Phase-6 audit, 2026-09-15).
+ * the list is up to date. A test that never touches the refresher cannot see
+ * it, and neither can a diff that does not already know to look.
  *
  * **The rule, and why it is spelled this way.** Every view that renders an
  * `<IonRefresher>` must have a handler that `await`s something. Fetching is

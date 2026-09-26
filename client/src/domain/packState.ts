@@ -5,11 +5,11 @@
  * state is a *reading* of the two numbers (FR-25.2, FR-25.13f) with one
  * exception the numbers cannot express: a quantity of 0 is FR-5.5's
  * *considered and skipped*, a done row that was never meant to be packed.
- * Written once here because it had been written five times — in the
- * mutation factory, the view model and two screens — and two of the copies
- * disagreed exactly at that exception: a claim released on a skipped row, or
- * a stepper touched on one, wrote `packed` with a count of 0, and the
- * dashboard's checkbox showed a skipped row as packed.
+ * Written once here because the mutation factory, the view model and two
+ * screens all need it, and copies disagree exactly at that exception: a claim
+ * released on a skipped row, or a stepper touched on one, would write
+ * `packed` with a count of 0, and the dashboard's checkbox would show a
+ * skipped row as packed.
  *
  * `packing_now` is not derived: it is a claim somebody holds (G-3/FR-5.7),
  * and the numbers say nothing about it.
@@ -55,12 +55,11 @@ export interface PackUnits {
  *
  * FR-5.5's skipped row contributes no units at all — `0/0` — so a
  * *bewusst nicht eingepackt* row is neither packed nor part of what is left
- * to pack. It had counted as one unit, done, but on a trip with many
- * consciously-skipped rows that read as progress nothing earned: 57 skipped
- * items made the trip line say `57/284 gepackt` while not a single item had
- * been packed. Reporting the decision cost more than it was worth once the
- * trip line was the number a person actually reads (owner, 2026-09-12,
- * amending FR-25.22).
+ * to pack. Counted as one unit, done, it would read as progress nothing
+ * earned on a trip with many consciously-skipped rows: 57 skipped items would
+ * make the trip line say `57/284 gepackt` while not a single item had been
+ * packed. Reporting the decision costs more than it is worth, because the
+ * trip line is the number a person actually reads (FR-25.22).
  */
 export function unitsOf(row: { packed_count: number; quantity: number }): PackUnits {
   if (row.quantity <= 0) return { done: 0, total: 0 }
@@ -70,10 +69,9 @@ export function unitsOf(row: { packed_count: number; quantity: number }): PackUn
 /**
  * How far along a trip is, as a whole percentage (FR-21.23).
  *
- * The screens that draw a ring, a track or a bar all drew this fraction
- * themselves, once each, and the three had drifted apart in rounding alone.
- * It reads the trip line's units, so the figure agrees with the counter
- * printed beside it (FR-25.22).
+ * The screens that draw a ring, a track or a bar all read this fraction, so
+ * the three cannot drift apart in rounding. It reads the trip line's units, so
+ * the figure agrees with the counter printed beside it (FR-25.22).
  */
 export function packedPercent(kpis: { packedItems: number; totalItems: number }): number {
   if (kpis.totalItems <= 0) return 0

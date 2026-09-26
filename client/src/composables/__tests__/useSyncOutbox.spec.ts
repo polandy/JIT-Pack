@@ -27,7 +27,7 @@ function makeMutation(overrides: Partial<Mutation> = {}): Mutation {
 
 describe('SyncOutbox', () => {
   // The paths carry the scope first (NFR-4.14, ADR-027), so a trip partition
-  // with no id can no longer interpolate as the literal "null" — a path the
+  // with no id cannot interpolate as the literal "null" — a path the
   // server answers 404 and the outbox would retry forever. The positive half
   // is asserted beside it, or a builder returning nothing would pass too.
   describe('the partition a push is addressed to', () => {
@@ -888,9 +888,8 @@ describe('SyncOutbox durability', () => {
 /**
  * A partition bigger than one page (Sync-API §4).
  *
- * The pull asked once, ignored `has_more`, and kept its cursor in a plain
- * `Map` that a reload threw away — so an instance of 717 master rows served
- * a browser the same first 500 for ever, and the trips (which sit behind
- * them in `change_log`) were never delivered at all. Measured on the family
- * instance 2026-08-25; the sync indicator was green throughout.
+ * A pull that asks once, ignores `has_more`, and keeps its cursor in a plain
+ * `Map` that a reload throws away serves an instance of 717 master rows the
+ * same first 500 for ever, and never delivers the trips (which sit behind
+ * them in `change_log`) at all — with the sync indicator green throughout.
  */

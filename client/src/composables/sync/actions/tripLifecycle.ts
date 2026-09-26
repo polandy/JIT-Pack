@@ -228,8 +228,8 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
 
   /**
    * addTravelerToTrip adds a person to a trip that already exists (FR-2.7)
-   * and lets the trip's plan follow **immediately** — the FR-27.4 amendment
-   * of 2026-08-21. It performs no resolution of its own: the travelers were
+   * and lets the trip's plan follow **immediately** — the FR-27.4
+   * amendment. It performs no resolution of its own: the travelers were
    * always part of what a trip follows, so the work is `acceptTripRefresh`,
    * the same path the "yes" on M4's card takes. That is the whole point of
    * routing it here rather than expanding per-person rows a second way.
@@ -292,7 +292,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    *
    * Their **unpacked** rows go with them through FR-27.4, whose protection is
    * what keeps a packed one out of it. What happens to *those* is the user's
-   * call, taken at the confirmation (owner, 2026-08-21): `includePacked`
+   * call, taken at the confirmation: `includePacked`
    * deletes them outright — the person is not coming, so the thing comes back
    * out of the bag — while the default leaves them on the list without an
    * assignment, as the reminder that something in the bag now belongs to
@@ -419,11 +419,9 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    * fully packed is exactly the one somebody declares finished — and it does
    * **not** touch the lifecycle: starting and archiving stay their own steps.
    *
-   * **FR-7.7 amends what it leaves alone.** The tasks used to be outside this
-   * entirely (*„todos are not packing"*); since the owner's request of
-   * 2026-09-20 every task still open and still meant for before the trip
-   * crosses to *during* here, because the packing being finished is the
-   * moment „before" ends. The rule is `tasksCrossing`, in the same plan the
+   * **FR-7.7 amends what it leaves alone.** Every task still open and still
+   * meant for before the trip crosses to *during* here, because the packing
+   * being finished is the moment „before" ends. The rule is `tasksCrossing`, in the same plan the
    * question was read from.
    *
    * Returns the rows and the tasks it changed, snapshotted before the write,

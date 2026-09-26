@@ -50,9 +50,8 @@ describe('the three anchors (FR-21.7)', () => {
     // CSS cannot derive an rgb triplet from a hex, so each is written by
     // hand beside its colour and would drift apart silently — Ionic's
     // rgba() internals are the only consumer, and a stale twin shows up as
-    // slightly-off ripples and nothing else. Before ADR-048 only the brand
-    // was guarded, because only the brand was restated per flavour; now
-    // every accent is, so every twin is.
+    // slightly-off ripples and nothing else. Every accent is restated per
+    // flavour (ADR-048), so every twin is guarded.
     const blocks = [
       /:root\s*\{([^}]*)\}/.exec(css)?.[1],
       /:root\.jitpack-day\s*\{([^}]*)\}/.exec(css)?.[1],

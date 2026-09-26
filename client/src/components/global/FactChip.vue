@@ -7,7 +7,7 @@
  * `PackingListPage.vue`, `ShoppingPage.vue`, `QuantityEditor.vue`'s own
  * `.qty-chip`) — those independently evolved a different surface, border and
  * "on" state each, and unifying them is a real redesign decision, not this
- * extraction (owner, 2026-09-23).
+ * extraction.
  *
  * `tone` names what the chip says, not a colour — several names share a
  * colour today (`buy`/`warn` both `--ct-larch`, `done`/`applied` both

@@ -2,12 +2,11 @@
 /**
  * M9's tag manager (FR-24.10) — the screen where a tag itself is fixed.
  *
- * Until now a tag could be created (M10, ADR-014) and given away (FR-24.9)
- * and nothing else: `createTag` and `moveTag` were the only two tag
- * mutations in the product, so a name typed wrong stayed wrong, a tag typed
- * twice stayed twice, and the axis order was whatever order the tags
- * happened to be created in. Against this instance's own data — 23 tags, 49
- * items under „Diverses" — that is the gap between tagging and *filing*.
+ * Creating a tag (M10, ADR-014) and giving it away (FR-24.9) do not fix one:
+ * without this sheet a name typed wrong stays wrong, a tag typed twice stays
+ * twice, and the axis order is whatever order the tags happened to be
+ * created in. Against this instance's own data — 23 tags, 49 items under
+ * „Diverses" — that is the gap between tagging and *filing*.
  *
  * **The sheet decides nothing.** It emits an intent per row and the page
  * runs it, because each of the acts needs a prompt, a picker or a

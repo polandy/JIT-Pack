@@ -152,8 +152,8 @@ describe('who holds the lock (G-3)', () => {
  * and Single-User Mode have no second account to compare against — and that
  * is exactly what a takeover breaks: the server hands the row to somebody
  * else, and the device that lost it must stop believing it still holds one.
- * Found by the `server` e2e project on 2026-08-24: the notification landed
- * on the loser's screen while her row went on saying "You are packing this".
+ * Without it, the notification lands on the loser's screen while her row
+ * goes on saying "You are packing this".
  */
 describe('a claim that was taken over (FR-5.7)', () => {
   it('stops being mine when a lock event names another account', async () => {

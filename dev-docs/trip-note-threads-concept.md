@@ -1,17 +1,15 @@
 # Concept — trip notes become threads: a titled note, one level of replies, its participants told
 
-**Status:** **every question decided 2026-09-25 (owner: the recommendation everywhere; question 6 after two renders);
-built the same day in two PRs** — the trip-view switcher went to icons first (ADR-051 amendment 3, #601), then the
-threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of their own (**M26**). The FR and UI-Spec M26 are
-authoritative; where this file's §4 still describes M25's segment, it is the reasoning before question 6 was decided.
-Two details moved in the build: the edit is a ✎ on the entry itself rather than an entry in the sheet (the mockup's
-shape), and the reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a rule). The
-interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. **Reworked the same day after a UX review
-(§7b)**: a thread has its own view, read top to bottom, and question 1's newest-first is reversed there. It builds on
-FR-7.9 as built (`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
+**Status:** **every question decided, the recommendation everywhere; built in two PRs** — the trip-view switcher on
+icons (ADR-051 amendment 3, #601), then the threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of
+their own (**M26**). The FR and UI-Spec M26 are authoritative. This file is the reasoning: where §1–§4 describe M25's
+segment or replies newest first, §7a (question 6) and §7b (the UX rework) decide otherwise — a thread has its own
+view, read top to bottom. The reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a
+rule). The interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. It builds on FR-7.9 as built
+(`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
 
-**Asked for** (owner, 2026-09-25, translated): notes should work like a forum with threads. One note can have
-several notes attached to it, one level only. The parent note can have a title, and the overview shows that title.
+**Scope:** notes work like a forum with threads. One note can have several notes attached to it, one level only.
+The parent note can have a title, and the overview shows that title.
 Notes can be edited. The newest entry is always on top. Notes can be expanded. A new note also shows on the
 dashboard. When somebody else responds to a note, everyone who took part in it is notified.
 
@@ -94,16 +92,14 @@ in it that I have not seen, so a reply to a thread I ticked last week makes it n
 
 ## 6. Rejected
 
-* **Deeper nesting.** Asked against. One level keeps the reply field in one obvious place and the list readable on
+* **Deeper nesting.** One level keeps the reply field in one obvious place and the list readable on
   a phone.
-* **Oldest reply first, as in a chat.** The owner asked for the newest on top; the reply field sits right above it,
-  so what I just wrote lands where I wrote it.
 * **Every member notified of every reply.** A thread about the ferry is not the business of the person who only
   wrote the pizza number; the first note already reached everyone.
 * **Expanding a thread counts as seen.** FR-7.9 chose an explicit tick because *seen* is a statement, and scrolling
   past is not one.
 
-## 7. Questions — all decided (owner, 2026-09-25)
+## 7. Questions — all decided
 
 | # | Question | Recommended | Alternatives, and what they cost |
 |---|---|---|---|
@@ -112,11 +108,11 @@ in it that I have not seen, so a reply to a thread I ticked last week makes it n
 | 3 | Does an edit re-open the thread for others | **Yes, an edit by someone else counts as new** | No: a corrected key-box code goes unseen by everyone who ticked the wrong one |
 | 4 | Who is a participant | **The first note's author and everyone who replied** | Also everyone who ticked: a tick would subscribe you to the whole discussion |
 | 5 | Its own push switch | **Yes, `note_reply` beside `note`** | Share `note`: a person who wants new codes but not the discussion cannot say so |
-| 6 | Notes as their own trip view (a pill beside *Aufgaben*) instead of M25's second segment | **A view of its own, on an icon row** (owner, 2026-09-25) — the switcher goes to icons first, its own PR | See §7a |
+| 6 | Notes as their own trip view (a pill beside *Aufgaben*) instead of M25's second segment | **A view of its own, on an icon row** — the switcher goes to icons first, its own PR | See §7a |
 
 ### 7a. Question 6 — a view of their own
 
-Asked by the owner the same day. FR-7.9 decision 1 put notes inside M25 because a fourth pill reopened ADR-051
+FR-7.9 decision 1 put notes inside M25 because a fourth pill reopened ADR-051
 amendment 1's width measurement. Threads change the premise of that ruling:
 
 * **For a view of its own.** A note *is not work* — FR-7.9's own first sentence — so filing it under *Aufgaben* is a
@@ -129,7 +125,7 @@ amendment 1's width measurement. Threads change the premise of that ruling:
 * **Fallbacks if four do not fit:** the notes pill carries only its *new* count (never the total), or the row keeps
   three and *Notizen* joins the ⋮ — the second is rejected in advance for something written in, not read once.
 
-**Measured 2026-09-25** in the mockup's §*Frage 6*, with `TripViewNav.vue`'s own metrics (13 px Hanken Grotesk, 10 px
+**Measured** in the mockup's §*Frage 6*, with `TripViewNav.vue`'s own metrics (13 px Hanken Grotesk, 10 px
 padding, 1 px border, 6 px gap, 16 px page gutter) in headless Chromium, counts Einkaufen 12, Aufgaben 7, 2 new notes.
 Negative is overflow:
 
@@ -151,7 +147,7 @@ it what the own view would have bought — push and M1 open M25 on the notes seg
 *Aufgaben* pill does not count notes. A shorter pill word (the count as a badge, not *„(12)"*) would change every
 pill and is its own decision.
 
-**Owner's counter-proposal, same day: icons instead of words.** Rendered as a third variant: the current view keeps
+**Icons instead of words.** Rendered as a third variant: the current view keeps
 icon and word (the row must still say where you are — ADR-051 amendment 1), every other view is its Ionicon at
 `--jp-icon-md` with its count as a badge (the notes' badge in the *neu* colour, the others grey), and the name appears
 in a bubble on a long press (on hover with a mouse). Measured the same way:
@@ -165,16 +161,15 @@ in a bubble on a long press (on hover with a mouse). Measured the same way:
 It fits everywhere but the widest case on the smallest phone, by one pixel, and also cures today's overflow. What it
 costs: **a pill no longer says what it is** — the packing list (a list) and the tasks (a checkbox) are both
 checklists, and that pair is the one a reader will confuse; the page title names the screen after the tap, which is
-the lesson, not the label. **The bubble on a tap** (the owner's first reading) was drawn too and is not recommended:
+the lesson, not the label. **The bubble on a tap** was drawn too and is not recommended:
 every switch would cost two taps to spare a reader who already knows the icons one look at the title. And it is a
 change to the switcher for every trip view (M4, M6, M25, M11, M12), so it is ADR-051's amendment 3 and E2E-G12's
 cases, not a rider on this feature.
 
-## 7b. The UX rework — decided 2026-09-25 (owner: the recommendation everywhere)
+## 7b. The UX rework — decided as recommended
 
-Asked for the same day, once the built M26 had been used (owner, translated): the notes module did not convince in
-use; review it as a UX expert and show the improvements in mockups. The review found three things that hit the
-module's main purpose — looking up a code, and seeing what the others wrote since:
+A UX review of M26 in use, with its improvements in mockups, found three things that hit the module's main
+purpose — looking up a code, and seeing what the others wrote since:
 
 * **The words were folded away.** A collapsed card showed only a name; *4711* was a tap away on every lookup.
 * **The reading direction broke.** Inside a thread: the first note, then the reply field, then the replies newest

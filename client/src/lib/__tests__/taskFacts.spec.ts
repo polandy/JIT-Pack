@@ -1,9 +1,7 @@
 // @vitest-environment jsdom
 /**
  * FR-7.7: what a task says about itself — who wrote it and when, who ticked
- * it off and when (owner, 2026-09-20: *„der zeitpunkt des erstellen des tasks
- * soll ersichtlich sein wie auch der des erledigens. auch wer ihn erstellt und
- * erledigt hat."*).
+ * it off and when.
  *
  * The cases worth pinning are the ones where a fact is *missing*, because
  * that is where a stamp goes wrong: Local Mode has nobody to name, and a

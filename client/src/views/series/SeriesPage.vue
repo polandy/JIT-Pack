@@ -370,9 +370,9 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
  * Ionic gives `ion-select` `width: 100%`, which as a flex item is a
  * flex-basis of the entire row: the free space is already negative, so the
  * input beside it — basis 0 — grows by nothing and shrinks to nothing. The
- * checklist input rendered at zero width and FR-13.3's editor could not be
- * typed into at all (found 2026-08-30, the first time M16 was rendered by a
- * test). The select is content-sized here, and the input takes the rest.
+ * checklist input would render at zero width and FR-13.3's editor could not
+ * be typed into at all. The select is content-sized here, and the input
+ * takes the rest.
  */
 .add-row ion-select {
   flex: 0 1 auto;

@@ -503,8 +503,8 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 		case hasState:
 			// Un-packed in any way (open, partial, skipped): both stamps
 			// are cleared with the state they described (FR-25.17/FR-5.3),
-			// never left to outlive it. The client used to null the claim
-			// itself; a released claim may not depend on it doing so.
+			// never left to outlive it. A released claim may not depend on
+			// the client nulling it itself.
 			m.Set("packing_now_by", nil)
 			m.Set("packing_now_at", nil)
 			m.Set("packed_by_user_id", nil)
@@ -537,7 +537,7 @@ type recordColumns struct {
 // stampRecord writes who did a thing and when, for a record whose truth is
 // decided by a state the same mutation carries.
 //
-// The rule is FR-25.19's, and it is written once because three records now
+// The rule is FR-25.19's, and it is written once because three records
 // obey it: the person is the pusher and never a client value (invariant 3),
 // while the time may be the client's tap, because packing, shopping and
 // ticking a task off all happen away from a network and the push lands later.

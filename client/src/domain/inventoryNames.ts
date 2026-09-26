@@ -6,7 +6,7 @@
  * and the only path that ever carried a rename across afterwards is FR-27.4 —
  * which, by design, asks about a group's rows only, never touches a packed,
  * skipped or hand-edited one, and never a past trip. Everything outside that
- * kept its old name for good. This is the rest: every row whose inventory item
+ * keeps its old name for good. This is the rest: every row whose inventory item
  * is now called something else, offered as a choice rather than written.
  *
  * Nothing here is stored. What differs is recomputed from the two names each

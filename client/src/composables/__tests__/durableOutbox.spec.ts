@@ -1,7 +1,7 @@
 /**
  * The durable outbox as the app uses it (B2, NFR-4.1): a queue an earlier
  * session left on the device is replayed on connect — before the first pull
- * — and the G-2 status says how much is waiting, so a reload no longer looks
+ * — and the G-2 status says how much is waiting, so a reload does not look
  * like an all-clear.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'

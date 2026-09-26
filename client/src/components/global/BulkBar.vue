@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * What a selection can be acted on with — the floating bar at the foot of a
- * selecting list, above where the FAB stands (M9's shape, then M6's; M25's
- * since 2026-09-24). The actions are the screen's: each is a button in the
+ * selecting list, above where the FAB stands (M9's shape, shared by M6 and
+ * M25). The actions are the screen's: each is a button in the
  * slot, an icon over a word; `class="danger"` marks the one that removes
  * (M9's retire).
  */

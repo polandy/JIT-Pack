@@ -4,8 +4,8 @@
  *
  * Every other seam spec starts pinia and hands the group the real stores —
  * correctly, because it wants to assert against what the group painted. This
- * one exists to hold the *other* property: that the context no longer
- * requires them. Nothing here calls `setActivePinia`, so if `SyncContext`
+ * one exists to hold the *other* property: that the context does not
+ * require them. Nothing here calls `setActivePinia`, so if `SyncContext`
  * ever widens back to `ReturnType<typeof useTripStore>`, this file stops
  * compiling — and if the fake stops satisfying what a group reads, it fails
  * at runtime with "not a function" rather than quietly passing.

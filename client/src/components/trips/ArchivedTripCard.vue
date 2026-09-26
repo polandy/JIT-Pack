@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * What an archived trip leads with — the one real remnant of the dropped
- * "Danach" phase (owner, 2026-08-08).
+ * "Danach" phase.
  *
  * FR-9.4: it says what the review *would* say before the tap, and names the
  * proposals rather than counting them — „2 Vorschläge" is the number the

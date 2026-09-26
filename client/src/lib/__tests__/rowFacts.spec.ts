@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 /**
- * U-2 (design review 2026-09-02). M4's list and M5's sheet had each
- * transcribed these five sentences from the same fields, and had drifted:
- * the cases below are the rule both now read, including the two places
- * they used to disagree — a row with no readable timestamp, and where the
- * responsible person is appended.
+ * U-2. M4's list and M5's sheet say these five sentences from the same
+ * fields, and the cases below are the rule both read, including the two
+ * places two transcriptions drift apart — a row with no readable timestamp,
+ * and where the responsible person is appended.
  *
  * jsdom because the catalogue reads `localStorage` for the locale.
  */
@@ -101,7 +100,7 @@ describe('packedStampText (FR-25.17)', () => {
 
   it('says nothing where the row knows neither who nor when', () => {
     // The state badge has already said the row is packed; an empty
-    // "packed · " under it is noise. M5 used to render exactly that.
+    // "packed · " under it is noise.
     expect(packedStampText(row(), nameOf, NOW)).toBeNull()
     expect(packedStampText(row({ packed_at: 'not-a-date' }), nameOf, NOW)).toBeNull()
   })

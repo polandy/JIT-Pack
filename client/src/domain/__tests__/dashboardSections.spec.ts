@@ -1,8 +1,5 @@
 /**
  * FR-6.1/6.3 and FR-5.1 — M1's two cross-trip sections.
- *
- * Both were specified in July and existed on no screen until 2026-08-31;
- * `DashboardPage.vue` read neither the assignment nor the flag.
  */
 import { describe, it, expect } from 'vitest'
 

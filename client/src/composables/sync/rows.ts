@@ -201,7 +201,7 @@ export async function hashBlob(blob: Blob): Promise<string> {
 
 // The base an optimistic row is rebuilt on, so every column the store keeps
 // must appear here: a field left out is blanked until the next pull puts it
-// back. That is how editing a weight used to drop the reference photo.
+// back — editing a weight would drop the reference photo.
 export function masterItemRow(item: MasterItem): Record<string, unknown> {
   return {
     name: item.name,

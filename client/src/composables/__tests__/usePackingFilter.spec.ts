@@ -158,10 +158,9 @@ describe('usePackingFilter (FR-25.18)', () => {
 
 /**
  * M12 sends the reader to M4 grouped by the dimension whose slice was
- * tapped. It used to do that through a second grouping state on the trip
- * store, which the M4 rebuild stopped reading — the tap navigated and the
- * grouping silently stayed put. One state, and the screen that leaves has
- * to write the one the screen that arrives reads.
+ * tapped. A second grouping state that M4 does not read would let the tap
+ * navigate while the grouping silently stays put. One state, and the screen
+ * that leaves has to write the one the screen that arrives reads.
  */
 describe('setStoredGroupBy (FR-25.18)', () => {
   it('is the grouping the next mount reads', () => {

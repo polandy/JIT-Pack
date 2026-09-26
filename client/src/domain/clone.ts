@@ -4,7 +4,7 @@
  * The plan copies the source trip's curated list (all manual edits,
  * FR-2.4 decoupling) with fresh pack state; the three FR-12.2 carry-over
  * options gate traveler assignments, packer delegations, and container
- * assignments. Quantities carry over as-is (formulas retired 2026-08-08)
+ * assignments. Quantities carry over as-is (no formulas, FR-1.3/1.5)
  * against the new duration; manual quantities survive as-is.
  *
  * Runs client-side like generation/review (Addendum 3.19), so
@@ -104,9 +104,9 @@ export function planClone(
       : null,
   }))
 
-  // Quantities carry over unchanged — the FR-12.2 formula re-evaluation was
-  // retired with FR-1.3/1.5 (owner decision 2026-08-08); plain amounts have
-  // nothing to re-derive from a new duration.
+  // Quantities carry over unchanged — FR-12.2's formula re-evaluation is
+  // retired with FR-1.3/1.5; plain amounts have nothing to re-derive from a
+  // new duration.
   const items: ClonedItem[] = source.items.map((item) => {
     const quantity = item.quantity
     return {

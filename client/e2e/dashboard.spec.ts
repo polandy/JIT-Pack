@@ -16,12 +16,10 @@ import { expectFiguresPaired, writesLanded } from './helpers/page'
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
  *
- * The **populated** dashboard, which until the 2026-08-30 audit of backlog
- * item 6 no test had ever rendered: three `data-testid`s stood on the
- * screen, all three in its empty state, and the visual baseline is taken on
- * a fresh Local Mode with no trips. Every case here therefore needs an
- * *active* trip — the wizard leaves one in `planning`, which M1 does not
- * show at all, so the trip is started through M4's own menu.
+ * The **populated** dashboard: the visual baseline is taken on a fresh Local
+ * Mode with no trips, so this is where it renders. Every case here needs an
+ * *active* trip — the wizard leaves one in `planning`, which M1 does not show
+ * at all, so the trip is started through M4's own menu.
  *
  * Local Mode throughout: what M1 aggregates is read out of the stores, and
  * the two clauses of its spec that need a server (delegation highlighting,
@@ -82,7 +80,7 @@ test.describe('M1 dashboard @local @m1', () => {
     await expect(card).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-empty')).toHaveCount(0)
 
-    // The counts are the hero's two lines now, not one summary sentence
+    // The counts are the hero's two lines, not one summary sentence
     // (FR-21.13): the share in words beside the ring, and what is still
     // owed under it.
     await expect(card.getByTestId('hero-progress')).toHaveText('0/4 packed')
@@ -93,9 +91,8 @@ test.describe('M1 dashboard @local @m1', () => {
     // *Which* three is deliberately not asserted: the preview is the first
     // three of the store's own array, whose order after a reload is
     // IndexedDB's key order over random ids — so "the next 3" in the spec
-    // names an ordering neither this screen nor the store defines (found
-    // 2026-08-30; the case flaked on it before it asserted the rule the
-    // screen actually keeps).
+    // names an ordering neither this screen nor the store defines (asserting
+    // it flakes).
     await expect(card.locator('[data-testid^="dashboard-preview-"]')).toHaveCount(3)
     const previewed = await card
       .locator('[data-testid^="dashboard-preview-"]')
@@ -119,11 +116,10 @@ test.describe('M1 dashboard @local @m1', () => {
    * active trips is the smallest list that tells those apart.
    *
    * Both carry a departure date, and that is the case rather than the
-   * fixture: the first version seeded two dateless trips and asserted which
-   * one was the hero, which is an ordering *nothing defined* — it passed on
-   * Chromium and failed on WebKit, where IndexedDB handed the rows back the
-   * other way round. The fix was in the screen (`byDepartureSoonestFirst`),
-   * not in the assertion.
+   * fixture: with two dateless trips, which one is the hero is an ordering
+   * *nothing defines* — Chromium and WebKit's IndexedDB hand the rows back
+   * in different orders. The screen orders them (`byDepartureSoonestFirst`),
+   * not the assertion.
    */
   test('E2E-M1-09: the trip departing soonest is the hero; the next is a card', async ({
     page,
@@ -154,8 +150,8 @@ test.describe('M1 dashboard @local @m1', () => {
    * the card, which is the positive signal that the card reads the todos
    * rather than a copy of them.
    *
-   * Until FR-7.6 this was a card of its own (*Prep to do*), grouped by item.
-   * One card now, and the chip is what the grouping became.
+   * One card, not a *Prep to do* card of its own grouped by item (FR-7.6):
+   * the chip is what carries the item.
    */
   test('E2E-M1-02: a row’s preparation is listed among the trip’s tasks, with nothing to tick', async ({
     page,
@@ -209,13 +205,13 @@ test.describe('M1 dashboard @local @m1', () => {
    * E2E-M1-08 (FR-6.1): the lookahead — a trip that is planned but not yet
    * started is on the dashboard, and it is on it *as* something planned.
    *
-   * Both halves matter and neither is enough alone. Asserting the section
-   * only would pass on a screen that had simply stopped filtering by status
-   * and listed the trip twice; asserting the absence of the active card only
-   * would pass on the screen this case was written against, which showed the
-   * trip nowhere at all. Starting the trip at the end is the positive signal
-   * behind that absence: the same trip changes sides, so the section is
-   * keyed on the status rather than on being a leftover.
+   * Both halves matter and neither is enough alone. Asserting the section only
+   * would pass on a screen that had simply stopped filtering by status and
+   * listed the trip twice; asserting the absence of the active card only would
+   * pass on a screen that showed the trip nowhere at all. Starting the trip at
+   * the end is the positive signal behind that absence: the same trip changes
+   * sides, so the section is keyed on the status rather than on being a
+   * leftover.
    */
   test('E2E-M1-08: a planned trip is listed as planned, and starting it moves it', async ({
     page,
@@ -249,11 +245,9 @@ test.describe('M1 dashboard @local @m1', () => {
 })
 
 /**
- * M1's three unbuilt promises, built 2026-08-31 on the owner's ruling.
- *
- * `DashboardPage.vue` read neither `packer_user_id` nor the Late-Packer flag,
- * and its prep card's item name was a `<p>`. All three had stood in UI-Spec M1
- * since the concept round.
+ * M1's three promises from UI-Spec M1: the Late-Packer section, a task's chip
+ * that leads to its row, and the delegation section read off
+ * `packer_user_id`.
  */
 test.describe('M1 — the three promises @local @m1', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -311,8 +305,8 @@ test.describe('M1 — the three promises @local @m1', () => {
   })
 
   // E2E-M1-07 (FR-7.3/7.6): the chip on a task is the way into the row that
-  // owes it. UI-Spec M1 has promised the jump since the screen shipped; what
-  // carries it since FR-7.6 is the chip rather than a card of item names.
+  // owes it. UI-Spec M1 promises the jump; under FR-7.6 the chip carries it
+  // rather than a card of item names.
   test('E2E-M1-07: the chip on a task opens the row it names', async ({ page }) => {
     await activeTripWith(page, ['Kamera'])
     await visible(page).getByTestId('m4-row-Kamera').click()
@@ -362,7 +356,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await activeTripWith(page, ['Zelt'])
     await addTripTodo(page, 'Water the plants')
     await addTripTodo(page, 'Empty the fridge')
-    // Ticked on M25 since FR-7.7: M4's section keeps only the preparations
+    // Ticked on M25 (FR-7.7): M4's section keeps only the preparations
     // still due before the trip, and these are the trip's own chores.
     const tasks = await openTasks(page, 'before')
     await tasks.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
@@ -388,7 +382,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await group.getByTestId(`trip-todos-open-${TRIP.name}`).click()
     await expectTripOpen(page, TRIP.name)
     await expect(visible(page).getByTestId('m4-trip-todos')).toBeVisible()
-    // The way on to where these tasks now live (FR-7.7).
+    // The way on to where these tasks live (FR-7.7).
     await expect(visible(page).getByTestId('m4-trip-todos-all')).toBeVisible()
   })
 
@@ -461,10 +455,9 @@ test.describe('M1 — the three promises @local @m1', () => {
 
 /**
  * FR-30.7: a trip's shopping list on the dashboard, and workable there — the
- * one card on M1 that is (owner decision 2026-09-19). A running trip always
- * has its card, opened on the destination list; a planned trip has one while
- * something is left to buy, opened on the list before departure. The card
- * also leads onto M6 (FR-30.5).
+ * one card on M1 that is. A running trip always has its card, opened on the
+ * destination list; a planned trip has one while something is left to buy,
+ * opened on the list before departure. The card also leads onto M6 (FR-30.5).
  */
 test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
   test.beforeEach(async ({ seedMode }) => {

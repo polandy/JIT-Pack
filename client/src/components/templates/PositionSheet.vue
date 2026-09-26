@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M8 — position sheet (§3.25 consistency directive, owner 2026-08-08).
+ * M8 — position sheet (§3.25 consistency directive).
  *
  * Editing a template position behaves like the packing list's M5 sheet:
  * name header, read-only glance-chip row, the routinely touched sections

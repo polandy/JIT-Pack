@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
- * M11 — ADR-033, on the trip partition this time: `useTripScreen` has exposed
- * `loaded` since U-10 and its own doc comment says a screen with an empty state
- * owes the guard, but M11 only destructured `trip`. So the G-7 state invited the
- * user to create the first piece of luggage over the three the trip already had,
- * and a bag created that way is a duplicate nobody asked for.
+ * M11 — ADR-033, on the trip partition this time: `useTripScreen` exposes
+ * `loaded` (U-10), and a screen with an empty state owes the guard. Without
+ * it, the G-7 state invites the user to create the first piece of luggage over
+ * the three the trip already has, and a bag created that way is a duplicate
+ * nobody asked for.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'

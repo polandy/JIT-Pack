@@ -3,10 +3,10 @@
  * C-14: the orchestrator's injection key, and what happens when a view asks
  * for it and nothing provided one.
  *
- * The 27 call sites used to assert non-null (`inject(...)!`). That assertion
- * was never checked, and `App.vue` genuinely provides `null` until a mode is
- * chosen — so the empty case has to fail with a sentence rather than at
- * whatever the view happened to call first.
+ * A non-null assertion (`inject(...)!`) at the call sites would never be
+ * checked, and `App.vue` genuinely provides `null` until a mode is chosen —
+ * so the empty case has to fail with a sentence rather than at whatever the
+ * view happened to call first.
  */
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h } from 'vue'
@@ -38,7 +38,7 @@ describe('useOrchestrator', () => {
   })
 
   /**
-   * The case the old `!` could not express. `App.vue` provides `null` for the
+   * The case a `!` cannot express. `App.vue` provides `null` for the
    * whole of M17, so "provided, but empty" is a state that actually occurs —
    * and it has to fail the same way as "not provided at all".
    */

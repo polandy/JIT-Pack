@@ -3,9 +3,8 @@
  *
  * A sync row is SQLite's shape, not the domain's: there is no boolean column
  * (so a flag is `1` or `0`) and no object column (so an attribute set is a
- * JSON string). Both conversions were written at every site that builds or
- * reads a row — sixteen `? 1 : 0` and thirteen `JSON.stringify`/`parse` —
- * and each one is a place to write `0` where `null` was meant, or to let a
+ * JSON string). Written at every site that builds or reads a row, each
+ * conversion is a place to write `0` where `null` was meant, or to let a
  * malformed string throw where an empty value was recoverable.
  *
  * They are three functions here so a row codec states the *column's* type
@@ -32,8 +31,8 @@ export function dbBool(value: boolean | null | undefined): number {
  * where "no key set" is the user declining rather than an object that happens
  * to be empty. That difference is deliberate and stays with them: folding it
  * in here would make this function decide a question it cannot see the answer
- * to. They no longer call this function to say so — they pass the domain
- * value and `rowFrom` encodes it (C-10).
+ * to. They do not call this function to say so — they pass the domain value
+ * and `rowFrom` encodes it (C-10).
  */
 export function jsonColumn(value: object | null | undefined): string | null {
   return value ? JSON.stringify(value) : null

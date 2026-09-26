@@ -29,7 +29,7 @@ the phase model is what keeps a growing feature set from becoming a grab-bag.
 
 ---
 
-## 1. Decisions taken (2026-07-14)
+## 1. Decisions taken
 
 Three forks were resolved up front so the concept below is concrete:
 
@@ -61,9 +61,9 @@ Three forks were resolved up front so the concept below is concrete:
 A trip carries a **phase**, but phases are *soft*: nothing forbids adding an idea mid-trip or
 packing after departure. The phase drives emphasis (what the trip screen leads with), not locks.
 
-**Where this attaches (decided 2026-08-08).** A four-phase hub was mocked during the packing
-concept and then dropped: with Plan and During empty, it was two dead tabs in front of the app's
-most frequent action, and it duplicated entries M4 already carries. In the MVP **M4 *is* the trip
+**Where this attaches (decided).** A four-phase hub in front of the trip is rejected: with Plan
+and During empty, it is two dead tabs in front of the app's most frequent action, and it duplicates
+entries M4 already carries. In the MVP **M4 *is* the trip
 screen** — a trip opens straight into its packing list. When Plan and During acquire real content,
 the phase frame goes **above M4**, which becomes the *Prepare* phase; the *After* phase already
 exists in miniature as M4's closing card on an archived trip (M14 suggestions + M21).
@@ -154,9 +154,3 @@ gets a forward note; the full screen designs come with each cluster.
 - It changes **no data model** and writes no migration.
 - It does **not** reprioritise the packing roadmap.
 - It is **not** authoritative over any shipped or specced behaviour (see the precedence note up top).
-
----
-
-**Revision note (v1.0):** New document. Captures the expansion from packing app to family vacation
-companion agreed on 2026-07-14, with three up-front decisions (trip-as-phased-vacation, best-effort
-cached network features, two-adult collaboration). Directional only — no build commitment.

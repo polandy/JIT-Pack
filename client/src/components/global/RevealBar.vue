@@ -3,8 +3,7 @@
  * The bar that shows or hides a set of rows the screen is keeping back
  * (FR-21.22): M4's packed rows and its other people's rows, M6's bought ones.
  *
- * It was a dashed outline in two screens' stylesheets, twenty identical
- * declarations apart. A dashed border is the app's mark for *a place where
+ * Not a dashed outline: a dashed border is the app's mark for *a place where
  * something is not yet* — the empty picker slot, the quick-add invitation —
  * and this is the opposite: rows that exist, counted in the label, one tap
  * from being on screen. So it is a filled button with a caret that says

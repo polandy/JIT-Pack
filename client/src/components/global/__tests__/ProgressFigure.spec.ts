@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The figure M1's hero and M4's header line now share (FR-21.23).
+ * The figure M1's hero and M4's header line share (FR-21.23).
  *
  * What is worth pinning is the part a caller cannot see going wrong: the
  * track is drawn from the same percentage as the ring, so the two can never

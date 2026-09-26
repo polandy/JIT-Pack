@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 /**
- * U-4 (design review 2026-09-02). The dialog's protocol is what is under
- * test: which role counts as a yes, that the caller is told about a cancel,
- * and that a prompt returning `false` keeps the alert open with the typed
- * text — the rule that saves a rename from being thrown away, and the one
- * that was written three different ways before this module existed.
+ * U-4. The dialog's protocol is what is under test: which role counts as a
+ * yes, that the caller is told about a cancel, and that a prompt returning
+ * `false` keeps the alert open with the typed text — the rule that saves a
+ * rename from being thrown away.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 

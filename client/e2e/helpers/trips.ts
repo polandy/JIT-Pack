@@ -101,12 +101,8 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
 /**
  * M4 is open on the named trip.
  *
- * Which element carried the name used to depend on the width (UI-Spec M4,
- * 2026-08-19): below the breakpoint the app bar had no room for it and M4's
- * own header line led with the name; above it the bar took the title back.
- * Since ADR-050 the name is in the page head at every width, so the branch
- * on the viewport that used to be here — bar above the breakpoint, M4's own
- * header line below it — is gone with it.
+ * The name is in the page head at every width (ADR-050), so nothing here
+ * branches on the viewport.
  */
 export async function expectTripOpen(page: Page, name: string) {
   await expect(page.getByTestId('header-title')).toHaveText(name)
@@ -115,11 +111,11 @@ export async function expectTripOpen(page: Page, name: string) {
 /**
  * Open the quick-add composer — clicking the ＋ only when it is closed.
  *
- * Since 2026-08-17 the ＋ hides while the composer is open (FR-25.13a): it
- * would open what is already open. The composer also *stays* open after an add
- * (FR-25.13), so a loop that adds three items must not tap the ＋ three times —
- * it would wait forever on the second. Tests that add in a loop go through
- * here; the guard is the same one `addPosition` has always had.
+ * The ＋ hides while the composer is open (FR-25.13a): it would open what is
+ * already open. The composer also *stays* open after an add (FR-25.13), so a
+ * loop that adds three items must not tap the ＋ three times — it would wait
+ * forever on the second. Tests that add in a loop go through here; the guard is
+ * the same one `addPosition` has.
  */
 export async function openQuickAdd(page: Page, fab: 'm4-fab' | 'm8-fab' = 'm4-fab') {
   const input = visiblePage(page).getByTestId('quick-add-input')
@@ -152,13 +148,13 @@ export function exactSuggestion(scope: Locator, name: string): Locator {
 /**
  * Type a name into the open composer (M4, M6, M8) and commit it with ✓.
  *
- * Since FR-24.11 reached the composer every add goes through the inventory: a
- * name it holds is added at once, any other opens `CreateItemSheet`, and only
- * that sheet's „Anlegen" writes. Which of the two happens is decided from a
- * **settled** signal, never from a one-shot `isVisible()` that may run before
- * Vue has re-rendered: the offer naming this query and the exact suggestion
- * exclude each other, so whichever is on screen is the answer. A retired name
- * (the restore offer) is not handled here — its case says so itself.
+ * Every add goes through the inventory (FR-24.11): a name it holds is added at
+ * once, any other opens `CreateItemSheet`, and only that sheet's „Anlegen"
+ * writes. Which of the two happens is decided from a **settled** signal, never
+ * from a one-shot `isVisible()` that may run before Vue has re-rendered: the
+ * offer naming this query and the exact suggestion exclude each other, so
+ * whichever is on screen is the answer. A retired name (the restore offer) is
+ * not handled here — its case says so itself.
  *
  * Ends with the sheet gone; the caller asserts the row, because what a row is
  * called differs per screen.
@@ -232,9 +228,9 @@ export async function createTripFollowingGroup(
 /**
  * The once-per-trip actions, by the words the user reads. *Finish packing*
  * is M4's ⋮ (FR-5.10); the other three change the whole trip and are M2's
- * alone since 2026-09-25 — the trip's row menu, or its hero card's — because
- * a ⋮ acts on the context it sits in (G-12). Specs name the action, and this
- * helper takes them to whichever menu holds it, so they read as before.
+ * alone — the trip's row menu, or its hero card's — because a ⋮ acts on the
+ * context it sits in (G-12). Specs name the action, and this helper takes
+ * them to whichever menu holds it.
  */
 export const TRIP_ACTION = {
   edit: 'Trip properties',
@@ -390,13 +386,12 @@ const TRIP_VIEW = {
 const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = ['packing', 'shopping', 'tasks', 'notes']
 
 /**
- * One of the trip's six views → another (FR-21.21, ADR-051). They were
- * glyphs on M4's header line, then words in the bar's ⋮ (ADR-050), then four
- * pills under the page's name — and since amendment 1 the two views a trip is
- * worked in are pills and the other two are words in the ⋮ again — three
- * since FR-7.7 gave the tasks a screen, four since FR-7.13 gave the notes
- * one. Either way this reaches them from any of the six screens, so the luggage is still one step from the shopping
- * list rather than going back through M4.
+ * One of the trip's six views → another (FR-21.21, ADR-051). The views a
+ * trip is worked in are pills under the page's name and the rest are words
+ * in the bar's ⋮ (amendment 1; the tasks' screen from FR-7.7, the notes'
+ * from FR-7.13). Either way this reaches them from any of the six screens,
+ * so the luggage is one step from the shopping list rather than going back
+ * through M4.
  *
  * The head is scrolled back into view first, unconditionally: on M4 it yields
  * on the way down (FR-21.17) and takes the switcher with it, so a case that
@@ -494,10 +489,10 @@ export const TRIP_ROW_ACTION = {
 
 /**
  * Open a trip row's action sheet on M2 (FR-4.5, FR-12.1, FR-18.3) — the hold
- * or right-click menu M4 and M7 already had, which replaced M2's swipe on
- * 2026-09-24. `contextmenu` rather than a held pointer, as `openRowMenu` in
- * `helpers/m4.ts`: it is the handler the hold fires into, and the hold's
- * 500 ms are `useLongPress`'s unit-tested business, not a timing to guess.
+ * or right-click menu M4 and M7 have too. `contextmenu` rather than a held
+ * pointer, as `openRowMenu` in `helpers/m4.ts`: it is the handler the hold
+ * fires into, and the hold's 500 ms are `useLongPress`'s unit-tested
+ * business, not a timing to guess.
  */
 export async function openTripRowMenu(page: Page, trip: string): Promise<Locator> {
   await visiblePage(page).getByTestId(`trip-row-${trip}`).dispatchEvent('contextmenu')

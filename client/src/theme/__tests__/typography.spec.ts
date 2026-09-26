@@ -94,9 +94,8 @@ describe('typography.css', () => {
 describe('the views do not decide type for themselves (G-13)', () => {
   // The rule G-13 states, asserted rather than trusted: a screen applies a
   // role, it does not pick a family or restate what a role already says.
-  // Both halves of this had a real violation when it was written —
-  // QuantityStepper carried its own tabular-figures rule, so `.jp-num`
-  // and the component disagreed about who owns it.
+  // A component carrying its own tabular-figures rule beside `.jp-num`
+  // would leave the two disagreeing about who owns it.
   const vueFiles = globSync('src/**/*.vue', { cwd: process.cwd() })
 
   it('finds the views to check at all', () => {
@@ -142,11 +141,9 @@ describe('the scale carries the views now (FR-21.5)', () => {
   })
 
   it('names the section head once, with its counter beside it (G-13)', () => {
-    // Fifty-five heads across twelve screens carried `.section-title
-    // jp-eyebrow`. The role decided everything except the margin, and the
-    // margin is exactly what each screen then wrote for itself — in five
-    // different values. Both halves live in one place now: the type here,
-    // the spacing in SectionHead.vue.
+    // A role that decides everything except the margin leaves the margin to
+    // each screen, in as many values as there are screens. Both halves live
+    // in one place: the type here, the spacing in SectionHead.vue.
     const head = /\.jp-section-head\s*\{([^}]*)\}/.exec(css)?.[1]
     expect(head, 'typography.css defines no .jp-section-head role').toBeTruthy()
     expect(head).toContain('font-family: var(--jp-font-display)')
@@ -178,8 +175,7 @@ describe('the scale carries the views now (FR-21.5)', () => {
   it("names the head's second line once, with its colour (G-9, ADR-050)", () => {
     // The meta line is a role rather than a size a component picks, and its
     // recessive colour is part of it for the same reason the eyebrow's is: a
-    // subordinate line that is not recessive stops being subordinate. Four
-    // screens used to state this fact inside the title string instead.
+    // subordinate line that is not recessive stops being subordinate.
     const rule = /\.jp-meta\s*\{([^}]*)\}/.exec(css)?.[1]
     expect(rule, 'typography.css defines no .jp-meta role').toBeTruthy()
     expect(rule).toMatch(/color:\s*var\(--ct-subtext0\)/)
@@ -224,7 +220,7 @@ describe('the scale carries the views now (FR-21.5)', () => {
     const detail = /ion-label\[class\] p \{([^}]*)\}/.exec(css)?.[1]
     expect(detail).toContain('font-size: var(--jp-text-sm)')
 
-    // The body's own size, which the browser had been deciding at 16px.
+    // The body's own size, which the browser would decide at 16px.
     const body = /\nbody \{([^}]*)\}/.exec(css)?.[1]
     expect(body).toContain('font-size: var(--jp-text-md)')
   })

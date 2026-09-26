@@ -2,7 +2,7 @@
  * FR-7.11's reminder where there is no server to send it: Local Mode tells
  * the person once, when the app is opened, how many tasks — and, since
  * FR-30.10, purchases — are due: the in-app stand-in for the push a server
- * would have sent at six (owner, 2026-09-25).
+ * would have sent at six.
  *
  * Once per app start, not per visit to the dashboard: the hint is the
  * morning's reminder, and repeating it on every return to M1 would make it

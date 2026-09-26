@@ -17,7 +17,7 @@ import {
 } from '@/router/paths'
 
 /**
- * U-9 (design review 2026-09-02). Two things are under test: that the
+ * U-9. Two things are under test: that the
  * builders spell what the router matches, and that no screen goes back to
  * spelling it itself — the second is what keeps the first true.
  */
@@ -119,8 +119,8 @@ describe('router paths', () => {
   it('leaves no constant sitting in a static attribute', () => {
     // `router-link="PATH.items"` is a link to the literal text; Vue never
     // evaluates it, nothing type-checks it, and the page simply does not
-    // navigate. Five of them were introduced while writing this module and
-    // found by one e2e case rather than by the build.
+    // navigate. The build does not catch it; only an e2e case that clicks
+    // the link would.
     const offenders = sources.flatMap(({ path, source }) =>
       source
         .split('\n')

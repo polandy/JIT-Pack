@@ -1,5 +1,5 @@
-# The project toolchain — the single mechanism, deleting the nix devShell that
-# used to pin the same three tools to different versions. Run `mise install`
+# The project toolchain — the single mechanism, so no second one can pin the
+# same three tools to different versions. Run `mise install`
 # once per machine; the Makefile re-execs through `mise exec` when these are not
 # already on PATH.
 #

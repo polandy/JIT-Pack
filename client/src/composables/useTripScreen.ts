@@ -41,10 +41,10 @@ export interface TripScreen {
  * What every screen showing one trip has to do before it renders: say it is
  * watching the trip, and fetch the trip's partition.
  *
- * It exists because only M4 did it (U-10, 2026-09-05). Every sibling — M6,
- * M11, M12, M14, M16, M21, M22 — relied on having been *reached through* M4,
- * so in `server` mode a reload or a shared link straight onto one of them
- * rendered an empty screen over rows that were on the server. Local Mode hid
+ * U-10: every sibling of M4 — M6, M11, M12, M14, M16, M21, M22 — needs it
+ * too, or it relies on having been *reached through* M4, and in `server`
+ * mode a reload or a shared link straight onto one of them renders an empty
+ * screen over rows that are on the server. Local Mode hid
  * it completely: there the whole database is hydrated at startup, so the
  * cheapest possible test of this rule is green on the mode that does not have
  * it. E2E-G9-18 drives the mode that does.

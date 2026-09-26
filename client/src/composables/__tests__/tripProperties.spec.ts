@@ -4,7 +4,7 @@
  *
  * What the consequences *are* is FR-27.4's rule and is tested in
  * `domain/__tests__/refresh.spec.ts`. What is asserted here is that a
- * traveller change actually runs that rule — immediately, per the 2026-08-21
+ * traveller change actually runs that rule — immediately, per the FR-27.4
  * amendment — and that it runs it per row rather than per position.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'

@@ -5,10 +5,10 @@
  * Three things live here that no screen test can see: which views the row
  * offers, in order; the one you are standing on is the one marked; and the
  * shopping pill counts **things to buy** rather than rows — the arithmetic
- * M6's own segments use (FR-25.6), which the bar menu it replaced got wrong
- * unnoticed for as long as the two numbers were never on one screen.
+ * M6's own segments use (FR-25.6), and a mismatch goes unnoticed for as
+ * long as the two numbers are never on one screen.
  *
- * Since FR-30.3 the count is provided rather than computed here; the mount
+ * Under FR-30.3 the count is provided rather than computed here; the mount
  * below provides it the way `App.vue` does, so the rule is held through the
  * real wiring and not through a number the spec made up.
  */

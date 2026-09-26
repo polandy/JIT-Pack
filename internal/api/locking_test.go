@@ -128,7 +128,7 @@ func TestPush_PackingNow_StampsLockerAndEmitsLockEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := pull.Changes[0].Row
-	// FR-25.19: the record, not packer_user_id — that column is now the
+	// FR-25.19: the record, not packer_user_id — that column is the
 	// assignment and nobody assigned this row.
 	if row["packed_by_user_id"] != userA {
 		t.Errorf("packed_by_user_id = %v, want %s (FR-25.19)", row["packed_by_user_id"], userA)

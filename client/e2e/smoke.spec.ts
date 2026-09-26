@@ -33,11 +33,10 @@ test('E2E-M19-04: the server URL is pre-filled with the page origin @smoke @m19'
 })
 
 /**
- * E2E-M19-01, the rest of it (FR-19.1, NFR-4.11): the *choice* — which
- * nothing had ever made. Every other spec in the suite seeds
- * `jitpack_mode` into localStorage and boots past this screen, so M19 read
- * as covered while its one action had never been taken (found 2026-08-30,
- * audit of backlog item 6).
+ * E2E-M19-01, the rest of it (FR-19.1, NFR-4.11): the *choice*. Every other
+ * spec in the suite seeds `jitpack_mode` into localStorage and boots past
+ * this screen, so M19 would read as covered while its one action is never
+ * taken.
  *
  * Three clauses in one case, because they are one gesture: the card lands
  * on M1's empty state, the browser is asked to keep the data, and a reload

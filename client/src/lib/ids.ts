@@ -5,10 +5,9 @@
  * `crypto.randomUUID` is only defined in a **secure context**: HTTPS, or
  * localhost. A self-hosted instance reached over plain HTTP on the LAN
  * (`http://192.168.1.35:3000`) is neither, so the function is `undefined`
- * there and *every* write threw "crypto.randomUUID is not a function". The
- * dev machine and the Playwright suite both run on localhost, which is a
- * secure context — which is precisely why nothing caught it before an iPad on
- * the LAN did (2026-08-16).
+ * there and *every* write would throw "crypto.randomUUID is not a function".
+ * The dev machine and the Playwright suite both run on localhost, which is a
+ * secure context — so only a device on the LAN would ever catch it.
  *
  * `crypto.getRandomValues` carries no such restriction, so the fallback builds
  * the same RFC 4122 v4 value from it rather than degrading the id.

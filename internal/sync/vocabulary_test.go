@@ -4,8 +4,8 @@ import "testing"
 
 // IsTruthy decides whether an additive field carries a "yes" (NFR-4.2a
 // rule 3). It is exported because internal/api asks the same question of the
-// same field of the same mutation, and used to answer it with its own copy
-// that had no int64 case.
+// same field of the same mutation, and a copy of its own there would miss a
+// shape such as int64.
 func TestIsTruthy_AcceptsEveryShapeAFieldArrivesIn(t *testing.T) {
 	for _, tc := range []struct {
 		name string

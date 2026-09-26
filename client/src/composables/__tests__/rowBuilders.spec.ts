@@ -367,12 +367,10 @@ const CASES: BuilderCase[] = [
       // derives it from the two dates the builder does carry.
       duration_days: 10,
       series_id: 'ser-1',
-      // `series_name` used to sit here as a second carve-out, and unlike
-      // `duration_days` it was not derived from anything: no such column
-      // exists in `schema.sql` and no writer ever filled one, so every trip
-      // ever read carried `null`. It is gone with C-3b — the FR-14.3 trend
-      // heading resolves the name from the master store's series row, which
-      // the *view* can reach even though the trip store cannot.
+      // No `series_name` beside it: no such column exists in `schema.sql` —
+      // the FR-14.3 trend heading resolves the name from the master store's
+      // series row, which the *view* can reach even though the trip store
+      // cannot (C-3b).
       attributes: { season: 'summer' },
       packing_closed_at: '2026-08-01T18:40:00.000Z',
       imported: true,
@@ -693,12 +691,9 @@ describe.each(CASES)('$builder', (testCase) => {
  * rebuild a row that has to stay a task. The asymmetry is worth knowing: a
  * hard-coded column is only as defended as the writer that contradicts it.
  *
- * `created_at` used to be the second one. It was in `commentRow` on purpose —
- * PR #204 found it missing, which meant an optimistic promotion blanked the
- * timestamp, permanently in Local Mode — but nothing could observe it,
- * because `ItemTodo` did not carry it and the `satisfies` held it instead of
- * an assertion. FR-7.7 gave a task its own provenance line, so the column is
- * now read by a surface and defended by the case below.
+ * `created_at` is in `commentRow` on purpose — without it an optimistic
+ * promotion blanks the timestamp, permanently in Local Mode. FR-7.7's
+ * provenance line reads it, so the case below defends it.
  */
 describe('commentRow', () => {
   const COMMENT_ID = 'cmt-1'

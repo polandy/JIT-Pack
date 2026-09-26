@@ -627,9 +627,9 @@ function conditionFailure(
 }
 
 /**
- * computeQuantity clamps the position's plain amount at 0. Formulas were
- * retired (FR-1.3/1.5, owner decision 2026-08-08) — trip-specific amounts
- * are set in the M3 quantity review instead.
+ * computeQuantity clamps the position's plain amount at 0. Formulas are
+ * retired (FR-1.3/1.5) — trip-specific amounts are set in the M3 quantity
+ * review instead.
  */
 export function computeQuantity(ti: Pick<TemplateItem, 'quantity'>): number {
   return Math.max(0, Math.floor(ti.quantity ?? 1))

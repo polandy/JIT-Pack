@@ -61,7 +61,7 @@
  * closing after the first tap the way the other four verbs do. Emptying the
  * set is the same as the line's own *„Rückgängig"*. A second, unrelated long
  * press on the name shows what its ellipsis hid, because the buttons take
- * room the name used to have.
+ * room the name would otherwise have.
  *
  * **FR-25.13i** reverses FR-25.13f's *„settled lines offer nothing"* for the
  * settled half (locked lines keep it, because a takeover is FR-5.7's confirmed
@@ -83,8 +83,8 @@
  *    of taps down one list, so a line reset in the middle of it has to stay
  *    put and flip rather than take the row below it into the finger.
  *
- * **FR-25.13j** gives the sheet M9's search and FR-24.11's offer (owner
- * request 2026-09-19): working through the inventory stops at the item one
+ * **FR-25.13j** gives the sheet M9's search and FR-24.11's offer: working
+ * through the inventory stops at the item one
  * knows by name and cannot find by scrolling, and at the one the inventory
  * does not hold yet. Both are M9's own parts — `SearchRow` persistent, so the
  * sheet still raises no keyboard on arrival; `searchItems` narrowing inside
@@ -1476,10 +1476,9 @@ function groupLabel(key: string): string {
 
 /* FR-25.13h: the same 34×34 touch target the other three verbs get (`.act`
    above) — only the frame is dropped, because an avatar is its own shape
-   already and a square border would draw it a second time. Shrinking the
-   *box* rather than just the glyph was the original mistake here: the
-   tappable area was the visible 20px circle and nothing more, live-tested
-   and found too small to hit reliably. */
+   already and a square border would draw it a second time. Only the glyph
+   shrinks, never the *box*: a tappable area of just the visible 20px circle
+   is too small to hit reliably. */
 .act.assign {
   border: none;
   background: none;

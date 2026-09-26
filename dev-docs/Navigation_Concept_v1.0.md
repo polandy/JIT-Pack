@@ -3,19 +3,13 @@
 **Document Status:** Proposed for Review — consolidated IA draft
 **Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router
 (`client/src/router/index.ts`)
-**Revision Note (v1.2, 2026-08-13):** §1.2 rewritten — the app has **one** header bar whose left slot switches between
-the logo (tab roots) and `‹ back` + title (everything else), decided in [ADR-011](adr/ADR-011_One_Header_Bar.md) after
-the back affordance was found to be built but invisible on seventeen screens. §7's back-stack proposal is promoted from
-proposal to **binding contract**, because the logo is no longer the universal escape it was written to be.
-
-**Revision Note (v1.1):** Added **Part II** — full, code-grounded elaboration of the six structural points (desktop
-rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges). Part II states *As built* vs
-*Proposal* per point and corrects Part I's "trip toolbar" simplification (the entries are distributed and status-gated,
-not a single toolbar).
-**Revision Note (v1.0):** New document. The per-screen designs already existed in `UI_Spec_v1.10.md`; what was missing
-was the connective tissue — *how the app is navigated as a whole*. This document is the single home for that. It does
-not restate each screen's internal design (that stays in the UI Spec); it defines the **structure between** screens: the
-navigation model, the screen graph, and the routing that realises it.
+**Scope:** *how the app is navigated as a whole* — the single home for that. It does not restate each screen's
+internal design (that stays in `UI_Spec_v1.10.md`); it defines the **structure between** screens: the navigation model,
+the screen graph, and the routing that realises it. Part I is the model; **Part II** elaborates six structural points
+(desktop rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges) against the code, each
+as *As built* vs *Proposal*. The trip-context entries are distributed and status-gated, not a single toolbar. The app
+has **one** header bar whose left slot switches between the logo (tab roots) and `‹ back` + title (everything else),
+per [ADR-011](adr/ADR-011_One_Header_Bar.md); §7's back-target rules are a **binding contract**.
 
 > An interactive version of this concept (clickable phone prototype + navigation map) is maintained as a Claude Artifact
 and is the visual companion to this text. This markdown file is the authoritative written form; the two are kept in sync
@@ -89,27 +83,26 @@ and covered the viewport; each page's own header landed at `y=0` beneath the glo
 timed out against the occluding bar. The options and their costs are weighed in ADR-011; the accepted cost is the item
 below.
 
-Left → right (G-9, as amended by ADR-011):
+Left → right (G-9, ADR-011):
 
 1. **Logo — on the tab roots only.** A "home" tap-target to M1. It is *not* present on drill-downs: `‹ back` occupies
-   that slot there, and the guaranteed way out is the back-target contract of §7, not the logo. (G-9's older wording —
-   "from anywhere, including inside a trip, template, or wizard" — is superseded.)
+   that slot there, and the guaranteed way out is the back-target contract of §7, not the logo.
 2. **Sync glyph** (G-2) — `synced` / `syncing` / `offline` / `local`. Tapping opens the sync detail; inside a trip it
    also exposes the conflict log (NFR-4.2a). In Local Mode it shows a device glyph and opens storage & backup detail
    instead.
 3. **Settings / avatar** (G-1) — the gear (Single-User/Local) or the account avatar (collaborative) opens M17.
 
-**Height & style (concept-review, 2026-07-17):** the top bar is deliberately **low** — a **short, single-line title with
+**Height & style:** the top bar is deliberately **low** — a **short, single-line title with
 no subtitle**, a compact status area, and small logo/gear targets — so it never steals room from content. The **logo is
 a lightweight line mark** (a suitcase, tinted with the brand accent), not a filled tile. On **M4 (packing list)** the
 bar additionally participates in a **collapsing-header** interaction: scrolling the list down hides the packing
 sub-header, and scrolling up restores it (see Addendum §3.25 / UI-Spec M4). This collapse is M4-specific for now and may
-extend to other long lists later. **Corrected 2026-08-19:** nothing migrates *into* the bar as the header goes. The
-migration was never built, and once the G-12 cluster filled the bar there was no room for it — M4 now carries its name
-in its own header line and registers **no** app-bar title at all (G-9). **Full-screen packing (decided 2026-07-17):** on
-M4 the **bottom tab bar is hidden entirely** — packing runs full-screen for maximum vertical room. This is coherent with
-M4 being a drill-down (§Cross-cluster edges, point 1): the **‹ back** chevron is the return path to Reisen, so the four
-root anchors need not be shown. The ＋ FAB drops to the screen foot. Mobile only — the desktop left rail is unaffected.
+extend to other long lists later. Nothing migrates *into* the bar as the header goes: the G-12 cluster fills the bar,
+so M4 carries its name in its own header line and registers **no** app-bar title at all (G-9). **Full-screen packing:**
+on M4 the **bottom tab bar is hidden entirely** — packing runs full-screen for maximum vertical room. This is coherent
+with M4 being a drill-down (§Cross-cluster edges, point 1): the **‹ back** chevron is the return path to Reisen, so the
+four root anchors need not be shown. The ＋ FAB drops to the screen foot. Mobile only — the desktop left rail is
+unaffected.
 
 ### 1.3 "Everything else is context" — the three ways down
 
@@ -241,9 +234,9 @@ today; **Proposal** = the recommended target. Nothing here is invented — every
 
 *Source: `components/global/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
 
-**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden. *(Until 2026-08-13
-this paragraph was wrong: the hiding rule lived on `.desktop-nav` in `App.vue` and lost to `NavRail.vue`'s own scoped
-`.nav-rail`, so the rail rendered at every width. The breakpoint now lives in the component that owns it.)* at ≥ 900 px
+**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden; the breakpoint
+lives in the component that owns it (`NavRail.vue`), since a rule on `App.vue`'s `.desktop-nav` loses to the rail's own
+scoped `.nav-rail`. At ≥ 900 px
 `App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80
 px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail +
 `main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the
@@ -294,14 +287,12 @@ changes.)
 
 **Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
 
-- 6a. ~~**A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`.
-  On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers,
-  Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.~~ **Superseded
-  2026-08-08 by UI-Spec G-12.** The overflow menu was mocked and rejected: an unlabelled ⋯ says nothing about what is
-  inside, so in testing the entries behind it were simply never found — twice. M4 now splits its controls by *what they
-  act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views (Shopping, Luggage,
-  Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow at all. Rarely-used
-  entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than being hidden in a menu.
+- 6a. ~~**A canonical order** for the M4 header cluster with an **overflow "⋯" menu**~~ — UI-Spec G-12 governs. An
+  unlabelled ⋯ says nothing about what is inside, and in testing the entries behind it went unfound. M4 splits its
+  controls by *what they act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views
+  (Shopping, Luggage, Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow
+  at all. Rarely-used entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than
+  being hidden in a menu.
 - 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to
   `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
 - 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters;
@@ -325,14 +316,14 @@ exist for notifications (G-4 → `/trips/:id?item=:itemId&comment=…`) and the 
    the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace`
    to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
 2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has
-   nowhere sane to go. **Rule (revised by ADR-011):** the logo is no longer on screen here, so it cannot be the escape.
+   nowhere sane to go. **Rule (ADR-011):** the logo is not on screen here, so it cannot be the escape.
    The declared parent is: `‹ back` routes to the parent trip (M4) even when history is empty, and from there to M2. The
    contract below is what guarantees it.
 3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they
    must never be a dead end — each has a visible close/back to its origin trip.
-4. **Browser back with a route-driven overlay open** (found by the owner 2026-08-16, fixed the same day). M5's sheet
-   *replaces* the trip's history entry (deliberately — the sheet is a state of the screen, and one screen keeps one
-   entry; ADR-046), so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a
+4. **Browser back with a route-driven overlay open.** M5's sheet *replaces* the trip's history entry (deliberately —
+   the sheet is a state of the screen, and one screen keeps one entry; ADR-046), so an unguarded history pop skips M4
+   and lands on the trip list, two screens back. **Rule:** a pop leaving a
    route whose `meta.overlayQuery` is set closes the overlay instead — the same meaning the chevron already gives it.
    Mechanically (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed.
    Not intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an
@@ -342,7 +333,7 @@ exist for notifications (G-4 → `/trips/:id?item=:itemId&comment=…`) and the 
    transition queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a
    visible sheet first, so the window is not reachable by intent.
 
-**The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so
+**The back-target contract (binding, ADR-011).** With no logo on drill-downs, `‹ back` is *the* way out, so
 every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from
 it rather than from history alone, which is what makes a cold-start deep link survivable.
 
@@ -357,13 +348,11 @@ it rather than from history alone, which is what makes a cold-start deep link su
 The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is
 a visible omission rather than a silent one.
 
-**The fifth class, and why it was added** (owner-found 2026-08-21, ADR-011 amendment). Inside a trip, tapping the gear
-and then `‹` landed on the dashboard. The cause was a gap in the table above rather than a bug under it: the gear is
-offered on *every* screen (G-1, deliberately — it is what keeps the conflict log reachable from inside a trip), while
-`/tabs/settings` declared the single static parent `/tabs/dashboard`. From anywhere else, the chevron lied. The flows
-row had the same hole and was worse off: it *promised* "the origin the flow was entered from" and **nothing implemented
-it** — there was no `from`, `origin` or `returnTo` anywhere in the router, so M18 entered from the trip list returned to
-Settings.
+**The fifth class, and why it exists** (ADR-011 amendment). The gear is offered on *every* screen (G-1, deliberately —
+it is what keeps the conflict log reachable from inside a trip), so no single static parent is true for Settings: with
+`/tabs/settings` declaring `/tabs/dashboard`, the gear tapped inside a trip and then `‹` would land on the dashboard.
+The flows row's promise — "the origin the flow was entered from" — needs a mechanism for the same reason; without one,
+M18 entered from the trip list returns to Settings.
 
 The mechanism (`router/originStamp.ts`): a route in this class carries `meta.acceptsFrom`, and the router stamps the
 path it was entered from into `?from=` on the way in — a redirect that replaces rather than appends. `backTarget()`

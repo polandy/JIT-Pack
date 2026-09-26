@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
  * FR-24.3/ADR-032: which of the two deletions a surface announces before the
- * user confirms. The rule was written out at four call sites and asserted at
- * none of them — only the `kind` behind it (`masterDeletion.spec.ts`) had a
- * test, and `kind` is the half that does *not* consult `certain`.
+ * user confirms. The `kind` behind it is pinned in `masterDeletion.spec.ts`,
+ * but `kind` is the half that does *not* consult `certain` — this is the half
+ * that does.
  */
 import { describe, expect, it, afterAll, beforeEach } from 'vitest'
 

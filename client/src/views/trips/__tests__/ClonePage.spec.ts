@@ -155,7 +155,7 @@ describe('ClonePage — the two dates bound each other (FR-2.1d)', () => {
 
 /**
  * G-17 — the clone is one act. It writes and then leaves, and the button
- * stays under the finger until the route changes; a second tap used to
+ * stays under the finger until the route changes; a second tap must not
  * write a second trip, with the same name, on the same day.
  */
 describe('M19 writes one clone however often the button is pressed', () => {

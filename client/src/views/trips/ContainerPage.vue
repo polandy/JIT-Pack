@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M11 — Container Management (FR-10.1–10.3), rebuilt 2026-08-16.
+ * M11 — Container Management (FR-10.1–10.3).
  *
  * The list shows each container as a card: name, carrier, weight bar
  * (amber at 90 % of max, red beyond — FR-10.3) and the pairing imbalance

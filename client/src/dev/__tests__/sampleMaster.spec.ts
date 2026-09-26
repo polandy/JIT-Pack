@@ -116,9 +116,9 @@ describe('seedSampleMaster (dev)', () => {
     // of typing; the co-skip cascade needs a dependency, and building one by
     // hand is three screens away.
     //
-    // The suggested one is the newer half: every relation here was required
-    // until 2026-09-06, which left FR-20.4's "waits for a tap" branch — the
-    // M3 wizard's checkbox, M5's offer — unreachable on a fresh device.
+    // The suggested one matters: with every relation required, FR-20.4's
+    // "waits for a tap" branch — the M3 wizard's checkbox, M5's offer — is
+    // unreachable on a fresh device.
     const { master } = seed()
 
     const named = master.dependencyList.map((dep) => ({
@@ -176,9 +176,9 @@ describe('seedSampleMaster (dev)', () => {
 
 /**
  * The seed's *report*. A button that seeds and says nothing is
- * indistinguishable from a dead one when anything throws, which cost the owner
- * a session on 2026-08-16 — so the summary is produced here, once, and a
- * failure travels as a rejection rather than as silence.
+ * indistinguishable from a dead one when anything throws — so the summary is
+ * produced here, once, and a failure travels as a rejection rather than as
+ * silence.
  */
 describe('seedSampleData (dev)', () => {
   it('summarises what it created, so the caller can report it', async () => {
@@ -294,7 +294,8 @@ describe('seedSampleData (dev)', () => {
     // from a fresh install without editing a group by hand first.
     const proposal = orchestrator.refreshProposals.value[planned[0]!.id]
     expect(proposal?.add.map((a) => a.generated.name)).toEqual(['Stirnlampe'])
-    // Offered, not applied — otherwise the seed would demonstrate the old model.
+    // Offered, not applied — otherwise the seed would skip the question it
+    // exists to show.
     expect(trips.getItems(planned[0]!.id).some((i) => i.name === 'Stirnlampe')).toBe(false)
   })
 

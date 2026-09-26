@@ -3,9 +3,9 @@
 // it (Sync-API §4).
 //
 // Cursor, limit+1/HasMore, NextCursor, compaction and the snapshot loop
-// were written out twice, once per partition. Their only real differences
-// are which feed the page reads and what the puller may see of it — and
-// both of those are now arguments rather than a second copy.
+// are written once for both partitions. Their only real differences are
+// which feed the page reads and what the puller may see of it — and both of
+// those are arguments rather than a second copy.
 package store
 
 import (

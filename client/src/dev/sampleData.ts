@@ -36,7 +36,7 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
   // …and then one group gains a position, so the device also arrives with an
   // *open* FR-27.4 question on that trip. Without it the proposal card is
   // unreachable from a fresh install without first editing a group by hand,
-  // which is exactly what the seed exists to spare (standing rule, 2026-08-16).
+  // which is exactly what the seed exists to spare.
   // A headlamp for night macro — and, more to the point, an item the trip
   // does not already carry: the tripod would have been silent, because
   // Wildlife already put it there and the position is keyed on the item.

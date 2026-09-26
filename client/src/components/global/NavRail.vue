@@ -18,7 +18,7 @@ const ionRouter = useIonRouter()
  * list relative to the inventory, and there is no back edge between them.
  * As plain `<router-link>`s each switch pushed onto the one outlet
  * (ADR-012), and a push interrupted by the next one leaves both pages
- * live — measured 2026-08-31: tapping through the anchors faster than the
+ * live — tapping through the anchors faster than the
  * transition leaves two pages on screen, the older one on the higher
  * z-index, eating every tap meant for the page the URL names.
  *

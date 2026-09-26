@@ -655,7 +655,7 @@ const seriesTaken = computed(() =>
 // --- Navigation ---
 const stepValid = computed(() => {
   if (step.value === 1) {
-    // No date gate any more (FR-2.1b): the year is preselected, so the
+    // No date gate (FR-2.1b): the year is preselected, so the
     // only thing that can be missing here is a name.
     return (
       name.value.trim() !== '' &&

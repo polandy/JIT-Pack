@@ -1,8 +1,8 @@
 /**
- * Builds UI_Concept_ClosePacking_variants.html — the rendered round for the
- * owner request of 2026-09-20: an action that *finishes packing* (every row
- * still open becomes FR-5.5's „bewusst nicht mitgenommen"), and M6 no longer
- * opening on „Vor der Abreise" once the trip has started or packing is closed.
+ * Builds UI_Concept_ClosePacking_variants.html — the rendered round for an
+ * action that *finishes packing* (every row still open becomes FR-5.5's
+ * „bewusst nicht mitgenommen"), and for M6 not opening on „Vor der Abreise"
+ * once the trip has started or packing is closed.
  *
  * Same rule as the other variant sheets: the CSS is lifted verbatim from
  * UI_Concept_Prototype.html, because a variant that looks different because

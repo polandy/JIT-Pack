@@ -1,8 +1,5 @@
 /**
  * FR-27.8 / FR-27.9 — M10's rear-view, the two pure aggregations.
- *
- * Both were specified in July, built in the concept prototype, and existed
- * nowhere in the app until 2026-08-31.
  */
 import { describe, it, expect } from 'vitest'
 

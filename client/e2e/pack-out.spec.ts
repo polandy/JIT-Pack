@@ -34,9 +34,9 @@ test('E2E-M4-33: a packed row leaves and the snackbar puts it back @local @m4', 
 
   await check(page, 'Schlafsack')
 
-  // The row leaves — the behaviour FR-25.2 already had — *and* says so,
-  // which it did not. `packing.packedToast` was translated in both
-  // catalogues months ago and had zero call sites until now.
+  // The row leaves (FR-25.2) *and* says so, through `packing.packedToast` —
+  // a key that is translated in both catalogues whether or not anything
+  // calls it.
   await expect(page.getByTestId('m4-row-Schlafsack')).toBeHidden()
   const toast = page.locator('ion-toast.pack-toast')
   await expect(toast).toBeVisible()
@@ -77,5 +77,5 @@ test('E2E-M4-34: packing several rows leaves one undo, for the last of them @loc
   await expect(page.getByTestId('m4-row-Zelt')).toBeHidden()
 })
 
-// E2E-M4-35 was reversed by FR-25.31 (2026-09-19): un-packing is announced
-// now, and its undo is E2E-M4-120 in undo-every-act.spec.ts.
+// E2E-M4-35 is reversed by FR-25.31: un-packing is announced, and its undo is
+// E2E-M4-120 in undo-every-act.spec.ts.

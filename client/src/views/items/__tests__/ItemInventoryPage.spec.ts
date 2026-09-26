@@ -110,7 +110,7 @@ function assignTag(itemId: string, tagId: string, position = 0) {
   })
 }
 
-/** Type into the persistent field the screen now owns (FR-24.6). */
+/** Type into the persistent field the screen owns (FR-24.6). */
 async function typeSearch(page: ReturnType<typeof mountPage>, term: string) {
   const field = page.find('[data-testid="items-search-input"]')
   await field.setValue(term)
@@ -128,7 +128,7 @@ function headMeta(): string | null {
  * `attach` puts the page in the document, which only the focus case needs:
  * `document.activeElement` never moves for a detached element, so without it
  * the "takes no focus" assertion passes against a field that focuses
- * unconditionally — which it did, until this was measured. It is opt-in
+ * unconditionally. It is opt-in
  * rather than the default because an attached `ion-segment` runs its own
  * scroll handling on every mutation, and jsdom has no `Element.scrollTo` to
  * run it with; stubbing that globally would hide a real error in the next

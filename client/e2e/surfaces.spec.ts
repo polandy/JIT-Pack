@@ -129,11 +129,10 @@ test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @loc
    * The seam as the browser actually drew it, off `.item-inner` inside
    * `ion-item`'s shadow root.
    *
-   * Not `--inner-border-width` on the host: the first version of this
-   * case read that, and it passed against `lines="none"` — the very bug
-   * it was written for. Ionic drives the line from an attribute selector
-   * in its own stylesheet, so the custom property is simply unset on a
-   * row nobody styled, and "unset" is not "0".
+   * Not `--inner-border-width` on the host: reading that passes against
+   * `lines="none"` — the very bug this guards against. Ionic drives the line
+   * from an attribute selector in its own stylesheet, so the custom property
+   * is simply unset on a row nobody styled, and "unset" is not "0".
    */
   const seam = (i: number) =>
     rows
@@ -196,11 +195,11 @@ test('E2E-G14-02: the card still casts a shadow in Tag @local @g14', async ({ pa
   )
 })
 
-// E2E-G14-04 (G-14/FR-21.12): every sheet leaves the same way. Eight sheets
-// drew the control themselves, in two designs split four against four — the
-// same button, two appearances, and nothing recording which was meant. The
-// assertion compares two sheets that used to be on opposite sides of that
-// split, because a single sheet's rendering would have been green either way.
+// E2E-G14-04 (G-14/FR-21.12): every sheet leaves the same way. Sheets that
+// draw the control themselves drift into two designs — the same button, two
+// appearances, and nothing recording which was meant. The assertion compares
+// two unrelated sheets, because a single sheet's rendering would be green
+// either way.
 test('E2E-G14-04: two sheets present the same way out @local @g14', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize(MOBILE)
@@ -249,12 +248,11 @@ function overhang(el: Locator) {
 }
 
 // E2E-G14-05 (G-14/FR-21.8): a segment given a side margin stays inside its
-// column. Ionic sizes `ion-segment` `width: 100%`, so M25's and M7's margins
-// pushed it past the column by the margin's width and the scroller cut its
-// right end off straight — found on an iPad (owner, 2026-09-24), but 14 px
-// past a 390 px phone screen too. Both viewports, because the tablet column
-// is where it read as a defect and the phone is where it was first missed.
-// M25's segment left with the notes (FR-7.13, M26); M7's is the one left.
+// column. Ionic sizes `ion-segment` `width: 100%`, so a margin pushes it past
+// the column by the margin's width and the scroller cuts its right end off
+// straight — on a tablet, and 14 px past a 390 px phone screen too. Both
+// viewports, because the tablet column is where it reads as a defect and the
+// phone is where it is easy to miss. M7's segment is the one with a margin.
 for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
   test(`E2E-G14-05: a segment with a margin stays inside its column at ${viewport.width}px @local @g14`, async ({
     page,
@@ -274,10 +272,10 @@ for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
 }
 
 // E2E-G14-06 (G-14/FR-21.8): a row menu is a sheet, and looks like one. Every
-// row menu is an `ion-action-sheet`, and Material drew it as a flat, square
-// slab beside the app's own rounded sheets — two designs for one gesture
-// (owner, 2026-09-24). Compared against M5's sheet as rendered, not against
-// the stylesheet: the corner, the plane and the title's type.
+// row menu is an `ion-action-sheet`, and Material draws it as a flat, square
+// slab beside the app's own rounded sheets — two designs for one gesture.
+// Compared against M5's sheet as rendered, not against the stylesheet: the
+// corner, the plane and the title's type.
 test('E2E-G14-06: a row menu wears the same sheet as M5 @local @g14', async ({
   page,
   seedMode,

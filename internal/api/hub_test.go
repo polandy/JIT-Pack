@@ -537,7 +537,7 @@ func TestHub_APeerThatCannotKeepUpIsDisconnected(t *testing.T) {
 
 // A peer that reads keeps every frame, in the order the hub sent them: the
 // queue is a buffer, not a sampler, and one pump per connection is what
-// makes that true now that the write no longer happens where the event does.
+// makes that true while the write happens elsewhere than the event does.
 func TestHub_AReadingPeerKeepsEveryFrameInOrder(t *testing.T) {
 	hub := NewHub(nil, allowAll)
 	peer := newFakePeer(false)

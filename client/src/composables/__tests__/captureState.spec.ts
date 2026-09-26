@@ -7,10 +7,10 @@
  * exactly where the two disagree: a device with no network still writes,
  * and while that write is open the honest answer is "not yet".
  *
- * Until 2026-08-30 the indicator was handed `syncStatus.state`, whose
- * precedence returns `offline` before `syncing` — so offline it read
- * *settled* for every write, including one still in flight, which is the
- * one case the requirement exists for. These cases pin the difference.
+ * The indicator is not handed `syncStatus.state`: its precedence returns
+ * `offline` before `syncing`, so offline it would read *settled* for every
+ * write, including one still in flight, which is the one case the
+ * requirement exists for. These cases pin the difference.
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'

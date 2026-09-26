@@ -7,11 +7,11 @@
  * reason this is a rule and not a loop:
  *
  *  - **Nothing packed** → the skip M4's row menu already writes.
- *  - **Partly packed** → the amount shrinks to what is in the bag (variant P1,
- *    owner 2026-09-20). Four of six socks travelled; skipping the row would
- *    write quantity 0 and deny them, and M14 would lose four packed rows it
- *    could have judged. The remainder is simply no longer owed, so the trip
- *    line completes without anybody claiming the socks were left at home.
+ *  - **Partly packed** → the amount shrinks to what is in the bag (variant
+ *    P1). Four of six socks travelled; skipping the row would write quantity 0
+ *    and deny them, and M14 would lose four packed rows it could have judged.
+ *    The remainder is simply no longer owed, so the trip line completes
+ *    without anybody claiming the socks were left at home.
  *
  * What it never touches: a row that is already decided (packed, or skipped —
  * the *state* says so even where the amount survived the skip, FR-5.5), and
