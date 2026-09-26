@@ -109,8 +109,8 @@ unaffected.
 Every non-anchor screen is reached by exactly one of three motions:
 
 1. **Drill-down** — tapping a row opens its detail (a trip → M4, a template → M8, an item → M10).
-2. **Contextual toolbar / sheet** — a screen exposes sibling tools for the thing you're looking at (M4's toolbar →
-   Shopping, Containers, Analytics, …).
+2. **Contextual switcher / sheet** — a screen exposes sibling tools for the thing you're looking at (a trip's view
+   switcher → Shopping, Tasks, Notes; the bar's ⋮ → Luggage, Analytics; see §6).
 3. **Wizard / flow** — a multi-step create/import task on its own route (M3, M15, M18).
 
 There is no global "hamburger" menu and no nested tab bars. Depth is always the result of a deliberate drill from an
@@ -136,8 +136,8 @@ Reached from the bottom tabs / nav rail. Always available.
 
 ### 2.2 Cluster B — Trip context (opened from M2 / M4)
 
-A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hub (M4) that carries its own contextual
-toolbar. Everything here is scoped to one `:tripId`.
+A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hub (M4); its views are named by the
+switcher under the page head and the bar's ⋮ (§6). Everything here is scoped to one `:tripId`.
 
 | Screen | Route | Role |
 |---|---|---|
@@ -148,6 +148,8 @@ toolbar. Everything here is scoped to one `:tripId`.
 | **M11** Containers | `/trips/:id/containers` | weights, pairing, assignment |
 | **M12** Analytics | `/trips/:id/analytics` | weight per dimension + trip totals, series trend |
 | **M14** Review | `/trips/:id/review` | post-trip proposals for the template |
+| **M25** Tasks | `/trips/:id/tasks` | the trip's tasks, in their two phases (FR-7.7) |
+| **M26** Notes | `/trips/:id/notes` | the trip's notes, as threads (FR-7.13) |
 | Clone | `/trips/:id/clone` | trip as a starting point (FR-12) |
 | Members | `/trips/:id/members` | roles Owner/Admin/Editor (FR-4.5) |
 | Conflict Log | `/trips/:id/conflicts` | via the sync indicator inside the trip |
@@ -181,8 +183,9 @@ secondary edges are what make the app feel connected:
 
 - **M1 → M4/M5:** dashboard task cards deep-link straight into a trip item (G-4).
 - **M2 → M3:** the FAB / empty state starts the wizard; **M16 → M3** (`?series=`) starts it pre-seeded from a series.
-- **M4 sync glyph → Conflict Log;** **M4 toolbar → M6/M11/M12/M14/Members.**
-- **M2 slide actions → Clone / Members / Archive→M14 / YAML export.**
+- **Sync glyph (inside a trip) → Conflict Log;** **view switcher → M4/M6/M25/M26;** **⋮ → M11/M12;**
+  **M4 archived-trip card → M14.**
+- **M2 row hold menu / hero → Properties / Clone / Members / Start / Archive (closing pass → M14) / YAML export.**
 - **M7 → M8, M9 → M10** (drill); **M9 empty / M2 title → M15** (import).
 - **Logo (everywhere) → M1** (universal home, G-9).
 
@@ -259,44 +262,42 @@ primary actions render inline in the top bar on desktop, as a floating FAB on mo
 
 ## 6. Trip-context entry points
 
-*Source: `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`), `views/trips/TripListPage.vue` (M2 slide
-actions).*
+*Source: `lib/tripViews.ts` (the six views), `components/trips/TripViewNav.vue` (the switcher),
+`components/global/AppHeader.vue` (the ⋮), `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`),
+`views/trips/TripListPage.vue` and `domain/trips.ts` (`tripRowActions`, M2's row menu and hero).*
 
-**Correction to Part I.** The concept described M4 as carrying "its own contextual **toolbar**". In the shipping code
-there is **no single toolbar** — the trip-scoped screens are reached from *distributed, gated* affordances on M4 (and
-two from outside M4). This is the accurate map:
+There is **no single trip toolbar**. The trip-scoped screens are reached from a small number of distinct places, each
+holding one kind of entry:
 
 | Entry | Lives on | Gating (as built) | Target |
 |---|---|---|---|
-| Presence facepile (G-10) | M4 header end | `presenceUsers.length > 1` | presence sheet |
-| Archive → Review | M4 header end | `trip.status === 'active'` | archives, auto-opens `/review` |
-| Review (sparkles) | M4 header end | `trip.status === 'archived'` | `/trips/:id/review` |
-| Shopping | M4 header end | `shoppingCount > 0` (badge) | `/trips/:id/shopping` |
-| Analytics | M4 trip title line | 📊 icon (G-12) | `/trips/:id/analytics` |
-| Edit containers | M4 body | `groupBy === 'container'` | `/trips/:id/containers` |
+| Packing, Shopping, Tasks, Notes | view switcher under the page head (FR-21.21) | always; counts as badges | M4 / M6 / M25 / M26 |
+| Luggage (*Gepäck*), Analytics (*Auswertung*) | the app bar's **⋮**, heading the sheet (G-12) | packing's views only (M4, M11, M12) | M11 / M12 |
+| *Packen abschliessen* (FR-5.10) | M4's ⋮ | trip not archived, packing not closed | closes the packing |
+| *Namen aus dem Inventar* (FR-27.16) | M4's ⋮ | renames to take over exist | rename sheet |
+| Presence facepile (G-10) | M4's trip head line | `presenceUsers.length > 1` | presence sheet |
+| Review (M14) | M4's archived-trip card | `trip.status === 'archived'` | `/trips/:id/review` |
 | Item detail (M5) | M4 list row | always | `/trips/:id?item=:itemId` (ADR-046) |
-| Conflict log | **top-bar sync glyph** | inside any trip (`onSyncTap`) | `/trips/:id/conflicts` |
-| Members | **M2 slide action** | Owner/Admin + OIDC session (G-8) | `/trips/:id/members` |
-| Clone | **M2 slide action** | archived trips (also M16) | `/trips/:id/clone` |
+| Conflict log | **top-bar sync glyph** | inside a trip, Server Mode (`onSyncTap`) | `/trips/:id/conflicts` |
+| Properties, Start, *Reise abschliessen* | **M2** row hold menu and hero | lifecycle step (`nextLifecycleStep`) | edit / status / M4 closing pass → M14 |
+| Members | **M2** row hold menu | OIDC session (`collaborative`, G-8) | `/trips/:id/members` |
+| Clone | **M2** row hold menu | archived trips (also M16) | `/trips/:id/clone` |
 
-**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Archive, an `archived` trip
-shows Review/Clone. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to
-show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4. (Note: the M4 toolbar itself
-is slated for a slim-down redesign — see UI-Spec M4 / Addendum §3.25 — but the entry *set* stays; only its presentation
-changes.)
+**Reading of this.** Each place answers one question. The switcher names the views a trip is *worked* in; the ⋮ holds
+what belongs to the context it sits in and nothing else (G-12, ADR-051 amendment 2) — on packing's views that is the
+two views read off the packing list plus packing's own steps, and M6/M25 have no ⋮ at all. What changes the whole trip
+(its properties, starting it, archiving it) is M2's alone, so M4 does not repeat it. The trip's status is the gate for
+those lifecycle entries; M14 is reached from the archived trip's card on M4 and from the end of the closing pass.
 
-**Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
+**Rules that hold the map together:**
 
-- 6a. ~~**A canonical order** for the M4 header cluster with an **overflow "⋯" menu**~~ — UI-Spec G-12 governs. An
-  unlabelled ⋯ says nothing about what is inside, and in testing the entries behind it went unfound. M4 splits its
-  controls by *what they act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views
-  (Shopping, Luggage, Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow
-  at all. Rarely-used entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than
-  being hidden in a menu.
-- 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to
-  `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
-- 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters;
-  presence uses the facepile, never a number badge.
+- 6a. **Words where a glyph says nothing.** The bar renders at most three glyphs from a page's list; everything else is
+  a **word** in the ⋮'s action sheet (G-12, ADR-050). M4's *Suchen*, *Filter* and *Zuklappen* stay glyphs because they
+  are tapped while packing. The ⋮ is scoped to its context: it never carries the trip's lifecycle, which is M2's.
+- 6b. **Luggage without the grouping detour.** M11 is a ⋮ entry on every packing view, so it is reachable whatever
+  `groupBy` is set to; grouping by container is a way of *reading* the list, not the door to M11.
+- 6c. **Badges** are consistent: a count badge on a switcher glyph (Shopping's things to buy, open Tasks, Notes'
+  unseen entries) and on the prep/KPI counters; presence uses the facepile, never a number badge.
 - 6d. **Mode-gating is one rule:** Members and presence appear only with an OIDC session (`collaborative`); in
   Single-User/Local they vanish with no gap (G-8).
 
@@ -437,13 +438,13 @@ list→detail — are omitted as implied.)
 | M1 Dashboard | M5 Item / M4 Trip | task card / deep link (G-4) |
 | M2 Trips | M3 Wizard | FAB / empty CTA |
 | M16 Series | M3 Wizard (`?series=`) | "New trip in series" |
-| M2 Trips | Clone / Members / M14 / YAML export | slide actions (status-gated) |
+| M2 Trips | Properties / Clone / Members / M4 closing pass → M14 / YAML export | row hold menu and hero (status-gated) |
 | M2 title / M9 empty | M15 Import | upload icon / empty CTA |
 | M7 / M2 title | M18 Portable Import | import entry |
 | M4 sync glyph | Conflict log | `onSyncTap` inside a trip |
-| M4 trip title line | M12 Analytics | 📊 icon (G-12) |
-| M4 header | M6 / M14 | status-gated buttons |
-| M4 grouping | M11 Containers | `groupBy=container` → edit |
+| any trip view | M4 / M6 / M25 / M26 | view switcher under the page head (FR-21.21) |
+| M4 / M11 / M12 app bar | M11 Luggage / M12 Analytics | ⋮ entries (G-12) |
+| M4 archived-trip card | M14 Review | *archived* status |
 | M12 slice | M4 (grouped) | pick slices, then *In der Packliste zeigen* |
 | M16 | M12 | trends shortcut (newest trip) |
 | Logo (any screen) | M1 Dashboard | universal home (G-9) |

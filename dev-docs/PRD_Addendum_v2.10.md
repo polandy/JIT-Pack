@@ -1,12 +1,12 @@
 # PRD Addendum (Consolidated): „JIT-Pack" — Extensions & Clarifications (v2.10)
 
 **Document Status:** Accepted
-**Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (proposed, item tags & master-item lifecycle)**,
-**3.25 (proposed, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed, calendar-reminder iCalendar
-subscription — Variant B)**, **3.27 (accepted, template composition)**, **3.28 (proposed, one emoji mark per item)**
-and **3.30 (accepted, the shopping list as a module of its own)**, clarifications to existing FRs, and refined/added
-NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base PRD; a retired FR/NFR number keeps a removal
-stub and is never reused.
+**Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (built, item tags & master-item lifecycle)**,
+**3.25 (built, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed and parked, calendar-reminder
+iCalendar subscription — Variant B)**, **3.27 (accepted, template composition)**, **3.28 (built, one emoji mark per
+item)** and **3.30 (accepted, the shopping list as a module of its own)**, clarifications to existing FRs, and
+refined/added NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base PRD; a retired FR/NFR number
+keeps a removal stub and is never reused.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation
 companion (idea board, scheduling, live during-trip collaboration) — is captured in `Vision_NorthStar_v1.0.md`. It adds
 no FRs/NFRs here and does not change any scope below; clusters graduate into numbered sections only when picked up, and
@@ -1149,8 +1149,9 @@ server unprocessed.
   weight, etc.). This is the lightweight signal other devices use to know a photo exists or changed, without carrying
   its bytes. The client never sets this field directly via a mutation (it has no way to compute the server-stored hash
   of bytes it hasn't uploaded yet); instead, the image upload handler stamps it server-side after storing the BLOB,
-  using a freshly generated HLC — the same pattern already used for `packing_now_by`/`packer_user_id`/comment
-  `author_id` (`stampActor` in `internal/api/server.go`). Stamping it server-side, through the normal change-log path,
+  using a freshly generated HLC — the same pattern already used for `packing_now_by`/`packed_by_user_id`/comment
+  `author_id` (`stampActor` in `internal/api/server.go`; `packer_user_id` is the FR-25.19 assignment and the client's
+  to set). Stamping it server-side, through the normal change-log path,
   means the update reaches other devices on their next ordinary pull with no protocol addition. On item delete,
   `item_images` cascades via its own `ON DELETE CASCADE`, mirroring how template deletes cascade `template_items`
   (`cascadeChildren`).
@@ -1890,7 +1891,7 @@ which is why M4, M12, analytics, export and the spreadsheet import each group by
     because something still uses them, and those stay selected. A selection with nothing deletable asks nothing and
     says why. Neither act gains an undo — the single ones have none — and switching the segment ends the selection.
 
-* **FR-24.4 (A Master Row Has A Delete Endpoint, *built*):** Deleting a master row from outside the app is one
+* **FR-24.16 (A Master Row Has A Delete Endpoint, *built*):** Deleting a master row from outside the app is one
   authenticated request — `DELETE /api/v1/master/{tags|items|templates|template-items}/{id}` — rather than a
   hand-composed sync mutation. **Why:** without it the only write path is `POST /master/sync`, whose shape is
   load-bearing for the app and pure overhead for anyone else — a caller with no local state would have to invent a
@@ -1933,9 +1934,8 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
 
 ### 3.25 Packing-Screen Concept Refinements (M2 / M4 / M5 / M6 / M8)
 
-**Status: proposed** — **not yet implemented**. M4 (the packing list) is the product's core screen and is to be
-**re-mocked from scratch** with these in mind; the points below are the binding intent for that redesign. Moves to
-*accepted* + schema when the concept is locked.
+**Status: built**, except where a point below says otherwise (FR-25.12). M4 (the packing list) is the product's core
+screen; the points below are what M2, M4, M5, M6 and M8 do.
 
 * **FR-25.1 (Per-Traveler Packing Instances):** For per-person items (FR-1.4), the packing list (M4) shows **one packing
   instance per traveler**, each independently checkable and labelled with the traveler (name/avatar), so it is visible
@@ -2002,7 +2002,7 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
   instances can be packed by different people. The row carries no "gepackt von …" subtitle text (the avatar carries it;
   the name is a hover tooltip). **Interaction with FR-25.2 (hide-done):** because fully-packed rows are hidden by
   default, the packer avatar is most prominent on partially-packed rows and during the brief pack animation before a row
-  collapses; on revealed done rows it shows dimmed with the row.
+  collapses; on revealed done rows it shows unchanged beside the struck-through name (FR-25.2).
 * **FR-25.4 (Procurement Modes — Icons, Filter, Clearer Naming):** The three procurement modes (FR-3.1) are shown as an
   **icon on the row** and are filterable in M4. Their labels keep timing and procurement apart: **🧳 Packen · 🛒 Vorher
   kaufen · 📍 Vor Ort kaufen**. The **Late Packer** flag (FR-5.1) is *kept* but is explicitly a **separate concept**
@@ -2119,8 +2119,8 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     written by `stampActor` from the authenticated pusher when the state becomes `packed` and cleared on any other
     state, and a client-sent value is discarded before that (invariant 3). *M4 built:* the row's right edge carries the
     one avatar (assignee with a blue ring while open, packer with a green ring and check once packed) and the revealed
-    row names both where they differ; migration 020 adds the `packed_at` the FR-25.17 stamp needs. M5's half follows
-    with that screen.
+    row names both where they differ, and so does the M5 sheet (`responsibleNote`); migration 020 adds the
+    `packed_at` the FR-25.17 stamp needs.
   * **FR-25.20 (Other people's rows are hidden by default):** M4 opens showing **your** work: rows whose *responsible
     person* (FR-25.19) is somebody else are filtered out. They are that person's job, and on a shared household list
     they sit between you and your own. **Unassigned rows always stay visible** — nobody has claimed them, so they are
@@ -2152,13 +2152,13 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     *weggelassen* row along again is **confirmed first**, naming the item and the person, while a packed row growing
     past its count is bookkeeping and is not worth a question. `packed_at` and `packed_by_user_id` are deliberately
     **not** cleared with the state: those units really were packed by that person, and the count still says so.
-    **Membership is a checkbox, never a quantity of 0:** a checked traveler's stepper floors at 1, because 0 already
-    means *skipped* (FR-5.5) and one control must not carry two decisions. **The control is one component on two
-    surfaces** (invariant 4's second half): M5's *Details ▾* and M4's quick-add (FR-25.8). **Its surface is FR-25.28's
-    for-whom strip on the row**, in M5 and in the quick-add, which asks its questions inline; every rule here stands. It
-    is **absent** rather than disabled on a trip with fewer than two travelers (G-8) — there is no membership to
-    distribute — and **read-only while any instance of the item is claimed by somebody else** (G-3), because a
-    conversion rewrites rows another person is packing at that moment. Available in all three modes: travelers are trip
+    **Membership is a toggle, never a quantity of 0:** a lit traveler's amount floors at 1, because 0 already means
+    *skipped* (FR-5.5) and one control must not carry two decisions. **The control is FR-25.28's for-whom strip, one
+    component on three surfaces** (invariant 4's second half): M4's row, M5 and the quick-add (FR-25.8); it asks its
+    questions inline, and there is no membership sheet beside it. It is **absent** rather than disabled on a trip with
+    fewer than two travelers (G-8) — there is no membership to distribute — and **read-only while any instance of the
+    item is claimed by somebody else** (G-3), because a conversion rewrites rows another person is packing at that
+    moment. Available in all three modes: travelers are trip
     records, not accounts. **Templates stay uniform:** a position keeps `assignment: per_person` with one per-head
     quantity, since a Vorlage written in March has no Mia to give a 1 to; per-traveler amounts are trip-level only and
     M8 is untouched. A hand-set amount is **protected** from a template refresh — `isProtected` in `domain/refresh.ts`
@@ -2172,37 +2172,36 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     visible before it is written and correctable with the stepper after. **(c)** The write path is a real tradeoff and
     gets **ADR-036** — keep-and-repoint, against delete-and-recreate and against a `trip_item_members` table. **M5 opens
     on one instance**, because the route is `trip/{id}/item/{id}` and a G-4 deep link lands on a row: M5 shows that
-    instance’s own stepper, and every instance together lives in M4’s cluster and in the membership editor; FR-25.14’s
+    instance’s own stepper, and every instance together lives in M4’s cluster and in the for-whom strip; FR-25.14’s
     rule — **the aggregate is a read-only chip, never an operable stepper, because „+1“ cannot say for whom** — is what
-    the `3 Personen` glance chip is. **Three further rules:** (i) the editor has **no *Übernehmen* button** — every
-    control commits immediately (G-5, FR-25.15); the footer keeps the running *„3 Personen · 6 Stück"* summary, which is
-    the half a person actually reads. (ii) The `Pro Person` tab **shows the roster and writes nothing**: as an action
-    its only possible effect with nobody picked yet would be to assign the item to whoever is first in the roster — a
-    silent decision on somebody else’s packing list. Checking a person is the write. (iii) **A collapse of two or more
-    always asks, even when it destroys no progress**, because it takes the personal row off *everyone’s* list and the
-    resulting amount is worth reading first; a single traveler leaving asks only when their row carries something. Both
-    destructive conversions — removing a traveler whose row has progress or notes, and collapsing N rows into one — are
-    confirmed with the outcome stated *before* it happens, the FR-24.3/ADR-032 idiom; a traveler whose row is untouched
-    is removed silently.
-    **FR-25.21c (the roster has a head row):** checking five people one at a time is five taps for the answer *„alle"*,
-    which is the common one on a family trip — a sunscreen, a toothbrush, a rain jacket. The roster therefore opens with
-    **„Alle Reisenden"**, a row wearing the same checkbox grammar as the lines under it rather than a link or a chip,
-    because the editor has exactly two kinds of control (the tab and the row) and a third would have to be learned. It
-    is **tri-state** — mixed while only some travelers are members — so it also answers *„sind alle dabei?"*, which is
-    otherwise read by counting. **It only ever enlarges the membership:** the travelers who have no row arrive at the
-    floor of one and every amount somebody chose is left standing, so the shortcut can never overwrite a decision.
-    **Unchecking it is deliberately not the reverse.** An empty membership is not a state the model has — nobody
-    per-person means *gemeinsam* — so the way back stays the *Gemeinsam* tab, which sums the amounts and confirms the
-    outcome first (b); a second, silent path to that rewrite is exactly what the confirm exists to prevent. Once
-    everybody is a member the head is simply a checked box: the tap changes nothing, and it is deliberately **not**
-    disabled — a faded control is the G-3 lock's sentence about a row somebody else has claimed, and saying it here
-    about a full roster would make one appearance mean two things. It writes through the same `apply()` as every other
-    control, so FR-5.5's *weggelassen* question is asked once for the whole tap rather than once per person, and G-3
-    freezes it with the rest of the editor.
+    the strip's summary line is. **Three further rules:** (i) the strip has **no *Übernehmen* button** — every
+    toggle commits immediately (G-5, FR-25.15); its summary line carries the running *„3 Personen · 6 Stück"*, which is
+    the half a person actually reads. (ii) **Lighting a traveler is the write**, and nothing else in the strip picks a
+    person: there is no per-person mode that would first have to choose somebody, which with nobody picked could only
+    mean whoever is first in the roster — a silent decision on somebody else’s packing list. (iii) **A collapse of two
+    or more always asks, even when it destroys no progress**, because it takes the personal row off *everyone’s* list
+    and the resulting amount is worth reading first; a single traveler leaving asks only when their row carries
+    something, and the last one leaving is re-pointed to *gemeinsam* silently (FR-25.28, decision 4). Both destructive
+    conversions — removing a traveler whose row has progress or notes, and collapsing N rows into one — are confirmed
+    with the outcome stated *before* it happens, the FR-24.3/ADR-032 sentence, asked inside the strip (FR-25.28); a
+    traveler whose row is untouched is removed silently.
+    **FR-25.21c (*Alle* in one tap):** lighting five people one at a time is five taps for the answer *„alle"*, which
+    is the common one on a family trip — a sunscreen, a toothbrush, a rain jacket. The strip therefore carries an
+    ***Alle*** toggle between *Gemeinsam* and the first avatar, in the same toggle grammar as the avatars rather than a
+    link or a chip. It is lit exactly when every traveler is. **It only ever enlarges the membership:** the travelers
+    who have no row arrive at the floor of one and every amount somebody chose is left standing, so the shortcut can
+    never overwrite a decision. **Tapping it lit is deliberately not the reverse.** An empty membership is not a state
+    the model has — nobody per-person means *gemeinsam* — so the way back is the *Gemeinsam* toggle, which sums the
+    amounts and confirms the outcome first (b); a second, silent path to that rewrite is exactly what the confirm
+    exists to prevent. Once everybody is lit the tap changes nothing, and it is deliberately **not** disabled — a faded
+    control is the G-3 lock's sentence about a row somebody else has claimed, and saying it here about a full roster
+    would make one appearance mean two things. It writes through the same planner as every other toggle, so FR-5.5's
+    *weggelassen* question is asked once for the whole tap rather than once per person, and G-3 freezes it with the
+    rest of the strip.
   * **FR-25.14 (Per-person items have no aggregate stepper):** in M5, a per-person item's total renders as a **read-only
     progress chip** ("0/3"), never as a +/− stepper: a summed quantity inside a stepper cannot be operated, and should
     not be — "+1" cannot say *for whom*. The working controls belong on **one row per traveler**, each with its own
-    check or stepper — M5 shows the one instance it opened on, M4's cluster and the membership editor carry them all
+    check or stepper — M5 shows the one instance it opened on, M4's cluster and M5's strip carry them all
     (FR-25.21); that is also the only place where incrementing has a defined meaning. A control that looks operable and
     is not is worse than no control.
   * **FR-25.15 (Editing saves as you go, and says so):** the item sheet has **no Save button** — on a phone there is
@@ -2254,8 +2253,9 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     you leave the shop without half of it.
   * **FR-25.11i ("Show done" belongs in the filter panel):** hiding finished rows *is* a filter, so its control lives in
     the filter sheet on **every** list screen, as an "Erledigte" section carrying the count. Default stays hidden
-    (FR-25.2); revealed rows are dimmed and **remain interactive**, so a mistap is undone by tapping the same control
-    again. M4 also keeps its list-foot *„{n} Erledigte anzeigen"* shortcut, and the two reflect one state. A list screen
+    (FR-25.2); revealed rows wear their name struck through (FR-25.2) and **remain interactive**, so a mistap is
+    undone by tapping the same control again. M4 also keeps its list-foot *„{n} Erledigte anzeigen"* shortcut, and the
+    two reflect one state. A list screen
     without such a control leaves a checked row no way back.
   * **FR-25.11j (Leaving a list must stay reversible):** checking off a **BUY_BEFORE** row does not merely mark it done,
     it *changes the item's mode* (FR-3.3) and so removes it from the shopping side entirely. The item must therefore
@@ -2503,23 +2503,22 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     * **No wire, no schema, no ADR.** One insert gains an optional decided state; everything else is the existing pack
       and skip actions called from a second surface. Identical in Server, Single-User and Local Mode.
   * **FR-25.13g („Für alle" in the browse-sheet, *built*):** the sheet can add an item and it can decide what happens to
-    it; it also says **who needs it**. FR-25.8's composer mode ends each add in the membership editor — one sheet per
-    item, after the fact. So the line carries a **third verb, 👥 (*für alle*)**. Of four variants weighed (ADR-054) —
+    it; it also says **who needs it**, without the detour through M4's for-whom strip one item at a time, after the
+    fact. So the line carries a **third verb, 👥 (*für alle*)**. Of four variants weighed (ADR-054) —
     **(A)** a *Gemeinsam / Pro Person* segment in the sheet head, **(B)** a third verb on the line, **(C)** the roster
     unfolding inside the line, **(D)** a *Für alle* offer appearing beside *Rückgängig* after an ordinary add — **B** is
     the design: the decision is per item rather than per run, so A's mode would be paid for on nearly every line and
     fails silently the way modes do — FR-25.13f's reasoning. C reorders the list under the finger, which FR-25.13e
-    forbids on purpose, and buys a traveler *subset* the membership editor already offers. D costs a second tap for the
+    forbids on purpose, and buys a traveler *subset* the for-whom strip already offers. D costs a second tap for the
     common case and only exists in the seconds after an add. The rules:
     * **One tap, one row per traveler, amount one.** On a **free** line the tap adds the row and hands it to everybody;
       on a line the trip **already carries** it gives the travelers who have none a row of their own, keeping the amount
       anybody already chose — the FR-25.21c shortcut's rule, so a spread can enlarge a membership and never rewrite one.
       The rows are ADR-036's keep-and-repoint: the existing row *becomes* the first traveler's, so its comments, todos
       and packing progress survive the spread rather than being deleted beside it.
-    * **No editor opens, and that is the point.** FR-25.8's mode ends in the membership editor and therefore has to
-      close the sheet first; this verb ends in the sheet, which is what lets a run of them be tapped one after another.
-      The amount stays one per person: setting different amounts is the editor's, one screen away, and asking here would
-      rebuild it.
+    * **Nothing opens, and that is the point.** The verb ends in the sheet, which is what lets a run of them be tapped
+      one after another. The amount stays one per person: setting different amounts is the child rows' (FR-25.24), one
+      screen away, and asking here would rebuild it.
     * **It only ever adds, checked twice.** A row belonging to somebody who has left the trip is left out of the plan
       entirely rather than swept up by it — the planner would read it as a member nobody asked for and *delete* it,
       which is a decision ADR-036 gives a confirm and a run has no room for. And a plan that still comes back carrying a
@@ -2543,7 +2542,7 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
     `undefined < undefined` and silently drops every per-person item in a buy mode. Quantity and packed count are
     aggregated over the instances wherever an item is treated as a whole. Covered by E2E-M6-05.
   * **FR-25.13h (Assign travelers from the browse-sheet, *built*):** FR-25.13g's 👥 answers *who* for everybody; the line
-    also answers it in one tap for one or more **named** travelers, sparing the detour through the membership editor
+    also answers it in one tap for one or more **named** travelers, sparing the detour through the for-whom strip
     FR-25.13g exists to remove. The line carries a second shape of the same answer, decided by how many travelers there
     are to draw:
     * **Up to three travelers, a button per person, in the line.** Each traveler gets a small avatar button beside 👥, ✓
@@ -2666,45 +2665,27 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
   **Vorbereitung** first (FR-27.7 — the two things actually touched routinely); per-person, procurement, dedup,
   conditions and Late-Packer behind the **"Details ▾"** toggle. (In this document's numbering, M7 = template list, M8 =
   the item-parameter editor.)
-* **FR-25.8 (Per-Traveler Quantities at Add-Time — its surface is superseded by FR-25.28: the strip picks the travelers
-  before the add, no editor opens after it, and amounts are set on the child rows):** When quick-adding an item **during
-  packing** (M4, FR-5.6), the user can give it a **different quantity per traveler in one step** — e.g. "kurze Hosen:
-  Andy 2, Leo 3, Mia 0". The quick-add offers a **"pro Person" mode** that opens the FR-25.21 membership editor — a
-  checkbox and an amount per traveler, and an unticked traveler is simply not given the item (0 is FR-5.5's *skipped*
-  and may not also mean *not for this person*). On add, the item expands to **one packing row per ticked traveler**
-  (consistent with FR-25.1), each carrying that traveler's own quantity and independently packable. **Those rows are
-  instances of *one* item and must render as a single FR-25.1 cluster** — named once, with a child row per traveler —
-  **not as N independent items repeating the name**: N separate items leave every row present and individually correct,
-  yet the screen shows three unrelated "Jacke" rows instead of one grouped item. The composer creates the master item
-  first (FR-24.11), so the instances share a `source_item_id`; rows without one (imports, older trips) are held together
-  by the normalised name per FR-25.1's cluster-identity rule. The per-person amounts are **trip-scoped** (FR-5.6) — they
-  modify no master item and no template quantity. The uniform single-quantity mode ("Gesamt") stays the **default** for
-  the common case; per-person is one tap away, and the mode also governs FR-25.13f's one-tap verbs: a browse-sheet line
-  decided *already packed* or *stays home* in *Pro Person* mode writes its decision and then distributes it. Rationale:
-  real families need "3 shorts for Leo, 2 for Andy, none for Mia" without building a template or editing each row
-  afterwards. *Built.* The composer carries a *Gesamt* / *Pro Person* segment — the same two words the membership editor
-  uses, because it is that editor the mode opens — offered only where the caller has travelers to distribute over: M8
-  never (a Vorlage has no people, FR-25.9) and a trip with fewer than two travelers not either (G-8). **(a) The row is
-  written first and the editor opens on it**, rather than the mode collecting a draft membership and writing N rows at
-  the end: the editor edits rows, and one able to work on a draft would be a second implementation of the rules
-  `domain/membership.ts` already owns (invariant 4, ADR-036) — the same duplication ADR-025 exists to prevent. The
-  accepted cost is that abandoning the flow leaves an ordinary shared row behind, which is what was asked for by typing
-  the name. **(b) The mode survives an add and dies with the composer**: rows are entered in runs (FR-25.13a), so a run
-  of per-person rows is entered the way a run of shared ones is, and *Gesamt* is the default the next opening returns
-  to. **(c) The editor opens on the roster** instead of on *Gemeinsam*, because the mode is already the answer to which
-  tab this is; asking twice would make the mode a label rather than a choice. **(d) G-3: the editor is read-only while
-  any instance of the item is claimed by somebody else**, and the claim is read off **every row the editor would
-  touch**, not the one row it was opened from: on the quick-add a freshly minted row carries no claim while its
-  folded-name key can still pull an older, claimed ad-hoc row into the same cluster — which the conversion would then
-  rewrite. A caller knows one row, the editor knows the cluster. **And the editor says whose claim it is** (E2E-G3-04):
-  every other G-3 surface names the holder, and this one can inherit none of them, because M5's banner is absent on the
-  unclaimed row the editor is opened from and the editor is a modal above M5 in any case. A frozen editor stating no
-  reason is a dead end, so it carries its own line, naming the holder where the directory knows them and saying *„Jemand
-  …"* where it does not. **(e) An add made from the FR-25.13d browse-sheet closes the sheet before the editor opens**,
-  because a modal presented while the sheet is up renders behind it. The sheet exists for runs and the mode ends each
-  add in an editor, so the two postures cannot share a tap — the sheet closing *is* the answer to which one this is.
-  With nobody to distribute over the mode is absent, so FR-25.1's flat fallback is reached by a membership of one and is
-  asserted where that state arises (E2E-M5-19).
+* **FR-25.8 (Per-Traveler Quantities at Add-Time, *built*):** When quick-adding an item **during packing** (M4,
+  FR-5.6), the user can give it to **several travelers in one step** — e.g. "kurze Hosen" for Andy, Leo and Mia. The
+  composer carries FR-25.28's **for-whom strip** over its field, with a sentence under it stating the outcome
+  (*„Wird für 2 Personen angelegt, je 1."*); a traveler left unlit is simply not given the item (0 is FR-5.5's
+  *skipped* and may not also mean *not for this person*). On add, the item expands to **one packing row per lit
+  traveler** at an amount of 1 (consistent with FR-25.1), each independently packable; different amounts — Andy 2,
+  Leo 3 — are set on the child rows that have just appeared (FR-25.24) and **nothing opens after the add**. With
+  nothing lit the add is one shared row. **Those rows are instances of *one* item and must render as a single FR-25.1
+  cluster** — named once, with a child row per traveler — **not as N independent items repeating the name**: N
+  separate items leave every row present and individually correct, yet the screen shows three unrelated "Jacke" rows
+  instead of one grouped item. The composer creates the master item first (FR-24.11), so the instances share a
+  `source_item_id`; rows without one (imports, older trips) are held together by the normalised name per FR-25.1's
+  cluster-identity rule. The per-person amounts are **trip-scoped** (FR-5.6) — they modify no master item and no
+  template quantity. Rationale: real families need "3 shorts for Leo, 2 for Andy, none for Mia" without building a
+  template or editing each row afterwards. **The choice survives an add and dies with the composer**: rows are entered
+  in runs (FR-25.13a), so a run of per-person rows is entered the way a run of shared ones is, and *gemeinsam* is what
+  the next opening returns to. **The strip speaks for what the composer adds and nothing else**: an add from the
+  FR-25.13d browse-sheet never reads it — the sheet answers *for whom* per line with its own 👥 and avatars
+  (FR-25.13g/h). The strip is offered only where the caller has travelers to distribute over: M8 never (a Vorlage has
+  no people, FR-25.9) and a trip with fewer than two travelers not either (G-8). FR-25.1's flat fallback is reached by
+  a membership of one and is asserted where that state arises (E2E-M5-19).
 * **FR-25.9 (Per-Person Quantities in Templates) — REMOVED:** there is no distinction between adult and child
   quantities. A per-person template position carries **one quantity**, applied to every traveler alike; the concrete
   per-person numbers are set on the trip (FR-25.8), which is where the actual people are known. **This also retires the
@@ -2714,7 +2695,7 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
   (FR-4.2) — a single traveler label on an otherwise shared row — is **removed**: it carries weight only for genuinely
   per-person items and for weight-by-person, and otherwise adds noise to every row. What remains, and is **directly
   editable in M5**, is **per-person membership**: a control ("Wer braucht das?") where `Gemeinsam` = one shared row for
-  the whole trip, and the **FR-25.21 membership editor** — one or more travelers, each with their amount — turns the
+  the whole trip, and **FR-25.28's for-whom strip** — one or more travelers, each with their amount — turns the
   item into a **per-person item** (FR-1.4/25.1) with one independently-packable row per selected traveler. **Adding a
   traveler adds *their own* packing-list row** (e.g. "Leonardo also needs sunglasses" → a Sonnenbrille row appears on
   his list); removing one drops that row. Consequences: shared M4 rows carry no *for-whom* avatar (only per-person child
@@ -2747,9 +2728,10 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
   reclaim the freed space. Chosen over an auto-hide-on-scroll tab bar and an explicit focus toggle — full-screen is
   calmest and matches the standard iOS/Ionic detail-screen pattern. On desktop (≥ 900 px) the left nav rail is
   unaffected (this concerns the mobile bottom bar only).
-  * **Global top app bar (all screens):** slimmed to a **short, single-line title, no subtitle**, with reduced height
-    (compact status area, small logo/gear). The **logo is a lightweight line mark** (a suitcase; doubles as the home
-    affordance per Navigation_Concept §1.2), not a heavy filled tile. The bar is static on every screen.
+  * **Global top app bar (all screens):** the bar **names no page** (G-9, ADR-050) — the screen's name is the page
+    head the frame's `PageHead` renders under it — and keeps a reduced height (compact status area, small
+    logo/gear). The **logo is a lightweight line mark** (a suitcase; doubles as the home affordance per
+    Navigation_Concept §1.2), not a heavy filled tile. The bar is static on every screen.
 * **M4 quick-add:** keep the inline quick-add (FR-5.6, well-liked); it **collapses when it loses focus**, and the
   **bottom-right ＋ (FAB) expands *and* focuses it** as the primary entry point.
 * **FR-25.22 (One Arithmetic for Every Fraction on M4):** Every `x/y` M4 draws counts the same
@@ -2987,8 +2969,7 @@ schema is `internal/store/schema.sql`'s and is deliberately **not** restated in 
 
   **Four decisions:**
   1. **There is no membership sheet beside the strip.** One door per decision (FR-21.24); a sheet kept „for the
-     overview" is a second writer of the same rows and the two drift. FR-25.21's points (i)–(iii) about *the editor*
-     describe the strip where they apply.
+     overview" is a second writer of the same rows and the two drift. FR-25.21's points (i)–(iii) are the strip's.
   2. **A visible seat, not a press-and-hold entry.** The seat costs about 44 px of every shared row's width. A menu
      entry would cost nothing and leave the question as hard to find as a path through M5 — being unable to see where
      the question lives is what the seat answers.
@@ -3414,7 +3395,8 @@ not copied*; and group edits that reach **pending** trips but never touch runnin
   generation does — otherwise the same camera brings its spare battery when added alone and does not when it arrives
   inside a group. The rows are **not** written into the FR-27.4 ledger: `planRefresh` adopts a row it finds without a
   ledger entry, which is the same path a hand-added row takes, so the first refresh records them with no extra
-  mechanism. The emoji the FR asks each entry to show waits for §3.28, which owns the mark.
+  mechanism. Each entry wears the generic group glyph, the same on every entry; the group's own §3.28 mark
+  (`templates.icon`, FR-28.8) is **not built** on this surface.
 * **FR-2.6 (The Review Step Reviews, Not Only Counts, *built*):** M3 step 4 is a review, so it lets the user correct the
   list rather than only approve it. A step that could change nothing but the *amount* — not drop a row this trip does
   not need, not „kaufen statt packen“, not who it is for, not add the thing you notice missing while reading the list —
@@ -3714,13 +3696,13 @@ not copied*; and group edits that reach **pending** trips but never touch runnin
     (a one-item group would claim every list that mentions its item), and a group **already included** is never offered
     (its items are covered by the include; the loose duplicates are FR-27.2's dedup question, not this one's).
   * **Propose, never act — the FR-27.4 lesson.** The editor shows a **non-blocking suggestion row** between the
-    *Gruppen* section and the own positions: „*4 Positionen entsprechen ⛺ Makro Fotografie*" with **Zusammenfassen** and
-    **Ignorieren**, plus the FR-27.12 peek chevron so what the group would bring is one tap away. Nothing changes until
-    a tap. The emoji on the row waits for §3.28, which owns the mark (the FR-27.10 rule). *Considered and rejected:*
-    converting automatically with a one-click undo. The undo is genuinely lossless here (the include resolves back to
-    the same items), but acting silently and explaining afterwards reads as the app rewriting the user's work, and a
-    user who typed the positions loose *may have meant it* — deviating from the group is a legitimate reason to not want
-    the include.
+    *Gruppen* section and the own positions: „*4 Positionen entsprechen der Gruppe «Makro Fotografie»*" with
+    **Zusammenfassen** and **Ignorieren**, plus the FR-27.12 peek chevron so what the group would bring is one tap
+    away. Nothing changes until a tap. The row names the group without its §3.28 mark (`templates.icon`, FR-28.8) —
+    **not built** on this row, as on FR-27.10's group entries. *Considered and rejected:* converting automatically
+    with a one-click undo. The undo is genuinely lossless here (the include resolves back to the same items), but
+    acting silently and explaining afterwards reads as the app rewriting the user's work, and a user who typed the
+    positions loose *may have meant it* — deviating from the group is a legitimate reason to not want the include.
   * **When positions deviate from the group's, the row says so before the tap** („Menge weicht bei 2 Positionen ab —
     nach dem Zusammenfassen gilt die Gruppe"): accepting means the group's own definitions apply from then on, which is
     what following a group *is* (FR-27.4), and the one thing this feature must never do is change what a trip would
@@ -3979,7 +3961,7 @@ is kept **independently of the packing list**, and whatever the packing list mar
 A shopping item is therefore not a packing row: were it one, „Milch" would count in the packing progress, the weight,
 the analytics, FR-9's feedback and M21's *Vorlage aus Reise*, and buying it at the destination would mark it *packed*.
 By decision there is **one shopping list per trip** (not several named lists, not lists outside trips), with two
-lists — *Vor der Abreise* and *Vor Ort* — for the list's own entries as for the packing rows.
+lists — *Vor der Reise* and *Vor Ort* — for the list's own entries as for the packing rows.
 
 * **FR-30.1 (The List's Own Entries):** A trip carries any number of **shopping entries**: a name, the list it is on
   (`buy_before` or `buy_local`, `mode`'s vocabulary without `pack`) and whether it is bought. They live in their own
@@ -4039,8 +4021,8 @@ lists — *Vor der Abreise* and *Vor Ort* — for the list's own entries as for 
   hero — seven lines, under the trip's head rather than a sibling under it — and the *„sibling, because a card that can
   be worked is not a link“* rule is kept by making the hero's head the link and nothing else.
 
-* **FR-30.8 (The List That Is Now, *built*):** *Vor der Abreise* is the one list which is certainly over once you have
-  left, so the list in focus is the one still worth working: ***Vor der Abreise*** while the trip is planned **and** its
+* **FR-30.8 (The List That Is Now, *built*):** *Vor der Reise* is the one list which is certainly over once you have
+  left, so the list in focus is the one still worth working: ***Vor der Reise*** while the trip is planned **and** its
   packing is open, ***Vor Ort***
   otherwise — a running trip, an archived one, and a planned trip whose packing has been declared finished (FR-5.10),
   which is the case the phase alone gets wrong: the bag is shut the evening before, on a trip nobody has tapped
@@ -4049,14 +4031,14 @@ lists — *Vor der Abreise* and *Vor Ort* — for the list's own entries as for 
   * **Nothing is hidden.** The other list keeps its count, so the five things still unbought before departure are one
     tap away and say how many they are.
   * **The reader's pick wins for the visit** and is not remembered across visits (FR-25.18's rule is about a filter of
-    four facet values, not about a tab). **Until the trip itself is on the device** the rule answers *Vor der Abreise*:
+    four facet values, not about a tab). **Until the trip itself is on the device** the rule answers *Vor der Reise*:
     a rule read off an absent trip would open a planned trip at the destination and then move the tab under the reader
     (ADR-033's reasoning).
   * Rejected: letting the **content** decide — open whichever tab has something on it. It never opens on an empty list,
     and it makes the screen open differently as lines are checked off, so the tab you were working stops being the tab
     you come back to.
   * **On M6** (FR-30.11), which has no tabs — both lists stand on one screen — the rule decides only whether the
-    composer still offers *Vor der Abreise* (its list chips). On the dashboard card it decides which list is shown and
+    composer still offers *Vor der Reise* (its list chips). On the dashboard card it decides which list is shown and
     where the card's field files an entry.
 
 * **FR-30.9 (Tags on the List's Own Entries, Grouped by Them):** an entry carries **at most
@@ -4143,14 +4125,14 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
      from both lists, earliest first, which **leaves its group** while it is there (`shoppingBoard` in
      `shopping/list.ts`, `taskBoard`'s rule). Rejected: keeping the tabs and aligning only the rows — a thing due
      tomorrow on the tab not open stays a thing nobody sees. FR-30.8's rule decides only whether the composer offers
-     *Vor der Abreise*.
+     *Vor der Reise*.
   2. **No ✕ on the row.** An own entry is removed from its sheet (*Entfernen*), as a task is from its own — so *done*
      and *delete* are not same-sized neighbours. The selection offers *Tag vergeben* across both lists. Rejected:
      keeping the ✕ for the one-tap delete.
-  * **The composer and rows:** M25's composer card with **list chips** (*Vor der Abreise* / *Vor Ort*,
+  * **The composer and rows:** M25's composer card with **list chips** (*Vor der Reise* / *Vor Ort*,
     gone when FR-30.8 names *Vor Ort*), tag chips and **day chips** (`DueChips`, in `components/global/` so the
     module may use it — ADR-066); two-line rows (due pill, amount, recipients under the name); one ***gekauft* fold
-    per list**, M25's *erledigt* fold; a finished packing's *Vor der Abreise* **folded at the end** (FR-7.12, M25's
+    per list**, M25's *erledigt* fold; a finished packing's *Vor der Reise* **folded at the end** (FR-7.12, M25's
     way), the composer staying and writing for *Vor Ort*.
   * **And the other way round, on M25:** its *＋ Tag* opens M6's entry sheet, and the task tag chooser is M6's
     search-or-create mask (FR-7.14).
@@ -4794,18 +4776,21 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     card is display-only and fetches no trip partition — but their task list works like any other. **Revisit
     trigger:** a trip todo somebody needs to see on M1 before the trip is started.
   * **Visibility.** A section closed at the foot of M4, under every group and reveal bar, goes unseen, so two of four
-    mocked variants work together: **(A) a second figure** — M4's header line and M1's hero carry the todos as the
-    packing share's pair: the same ring, *„1/4 Aufgaben"*, *„3 offen"* while any is, and a track, in the same
-    `--jp-done` because progress has one colour (G-11). The two read as one: side by side with both headlines on a line
-    and both tracks on another, or — where two columns would cut a sentence short (measured: *„118/118 gepackt"* needs
-    115 px, a 360 px phone's hero column has 77) — one above the other. On M4 a tap on it unfolds the section and brings
-    it into view. It is absent on a trip with no todo, rather than reading *0/0*. **(B) Tasks first** — the section sits
-    above the list, directly under the header line, **unfolded while any todo is open and folded to its one line once
-    none is**, so a finished section gives the rows their room back; a fold the user makes holds for the visit. The two
-    rejected variants, kept for their triggers: a separate *Aufgaben* view beside the packing list (*trigger:* todos
-    that grow fields of their own — a note, or a second field beside FR-7.5's assignee, which alone does not fire it),
-    and a departure countdown band from three days before the start (*trigger:* A and B still missed in practice). The
-    list cards below M1's hero keep the one-line check, because a card that small has no room for a second ring.
+    mocked variants work together. **(A) a second figure** — M1's hero carries the todos as the packing share's pair:
+    the same ring, *„1/4 Aufgaben"*, *„3 offen"* while any is, and a track, in the same `--jp-done` because progress has
+    one colour (G-11). The two read as one: side by side with both headlines on a line and both tracks on another, or —
+    where two columns would cut a sentence short (measured: *„118/118 gepackt"* needs 115 px, a 360 px phone's hero
+    column has 77) — one above the other. It is absent on a trip with no todo, rather than reading *0/0*. **(B) a
+    section above the list.** M4 carries the same pair and a section, but for FR-7.7's window rather than for the
+    trip's own todos, which are written and read on M25: the tasks that hang off a packing row and are still due before
+    the trip, under *„Beim Packen zu erledigen"*. Its figure says what it counts (*„Beim Packen 0/2"*) and is absent
+    while the window is empty; a tap on it unfolds the section and brings it into view. The section sits directly
+    under the header line, **unfolded while any of its tasks is open and folded to its one line once none is**, so a
+    finished section gives the rows their room back; a fold the user makes holds for the visit. It is there even when
+    empty, because its line to M25 is the way to the rest of the tasks. Of the two other variants, the separate
+    *Aufgaben* view beside the packing list is FR-7.7's M25; the departure countdown band from three days before the
+    start stays rejected (*trigger:* A and B still missed in practice). The list cards below M1's hero keep the
+    one-line check, because a card that small has no room for a second ring.
   * **Who may resolve:** every member of the trip, as for FR-7.3. There is no row, so there is no G-3 claim to
     respect. A due day is optional and FR-7.11's.
   * **From a template.** A template — either scope, in practice the Ferien-Vorlage — can carry **trip tasks** beside its
@@ -4852,9 +4837,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     assigned and mentioning its assignee notifies them once.
   * **M1 reports it.** The *Aufgaben* card names the assignee after each open todo (*„Pflanzen giessen · Sia"*),
     read-only like the rest of the card.
-  * **Not a trigger by itself.** FR-7.4's trigger for a separate *Aufgaben* view names fields a todo grows; one
-    assignee fits on the task line in the idiom the row already uses. The trigger stands for the rest of its list — a
-    note, or a second field beside this one.
+  * **On the task line.** One assignee fits on the task line in the idiom the row already uses.
   * **Not carried:** a template's trip task (FR-7.4) names nobody, so a generated todo starts unassigned — the
     precedent is FR-1.9, which put a default assignee on the inventory item, not on a template position. *Revisit
     trigger:* the same Vorlage task assigned to the same person by hand on every trip. Not in the portable format or
@@ -5148,7 +5131,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
       Rejected: unfolding on add.
     * **Empty is not absent.** A block with nothing open stays, because it is where the next entry is typed: the head
       carries the done tick, the field stays, and one quiet sentence replaces the rows — the ones M25 and M6 already
-      say, by phase (*„Für unterwegs ist nichts notiert.“*, *„Vor Ort ist nichts zu kaufen.“*, *„Vor der Abreise ist
+      say, by phase (*„Für unterwegs ist nichts notiert.“*, *„Vor Ort ist nichts zu kaufen.“*, *„Vor der Reise ist
       nichts zu kaufen.“*). A planned trip with nothing to buy shows no shopping block, as FR-30.7 says.
     * **The way back to the packing list.** Without the ring the hero does not show the packing, and the list must
       stay one tap away — a row added after the packing was finished belongs there (FR-5.10). A full-width control under
@@ -5207,16 +5190,16 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **The trigger is closing the packing** (FR-5.10), never a date: a person saying they are done, as FR-7.7 argued.
   * **In the same act**, every open purchase still *before departure* moves to ***Vor Ort*** — the packing rows in
     `buy_before` and the shopping list's own entries alike — and FR-5.10's confirmation names the number (*„2 offene
-    Einkäufe wandern von „Vor der Abreise“ zu „Vor Ort“.“*). What was bought stays where it was bought (FR-25.11j).
+    Einkäufe wandern von „Vor der Reise“ zu „Vor Ort“.“*). What was bought stays where it was bought (FR-25.11j).
     The close's one snackbar undo takes all of it back. The shopping list is a module (FR-30.3), so the packing side
     reaches its entries through a kernel contract the composition root binds (`lib/packingClose.ts`).
   * **Afterwards *before* is read-only**, as history. M25's *Vor der Reise* keeps its tasks and says why
     (*„Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.“*); it has no field, its ticks do
     not move, nothing is handed over or removed there, nothing can be dragged into it, it is not in a selection and
-    no batch or sheet offers a move into it. M6's *Vor der Abreise* keeps its bought reveal and says so
-    (*„… diese Liste zeigt jetzt, was vor der Abreise gekauft wurde.“*); no field, no ＋, nothing put back. A new task
+    no batch or sheet offers a move into it. M6's *Vor der Reise* keeps its bought reveal and says so
+    (*„… diese Liste zeigt jetzt, was vor der Reise gekauft wurde.“*); no field, no ＋, nothing put back. A new task
     asked for *before* — a row's preparation from M5, a group added late, a comment made a task — is written for
-    *during*, and M5 does not offer *Vor der Abreise kaufen* for a row not already there.
+    *during*, and M5's *Vorher kaufen* is not selectable for a row not already in that mode.
   * **Reopening the packing lifts the lock** (FR-5.10) and moves nothing back: reopening is not an undo.
 * **FR-7.13 (Trip notes are threads, *built*; mockup `dev-docs/UI_Concept_TripNoteThreads_variants.html`, reasoning
   in `dev-docs/trip-note-threads-concept.md`):** notes work like a forum: replies attach to a note, one level only; the

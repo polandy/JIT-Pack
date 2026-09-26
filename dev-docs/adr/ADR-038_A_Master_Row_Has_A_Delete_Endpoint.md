@@ -1,7 +1,7 @@
 # ADR-038: A master row has a delete endpoint — and the app deliberately does not use it
 
 **Status:** Accepted
-**Related:** FR-24.3, FR-24.4, NFR-4.14, ADR-025, ADR-026/027, ADR-032, invariants 4 and 5, Sync-API §5/§5a,
+**Related:** FR-24.3, FR-24.16, NFR-4.14, ADR-025, ADR-026/027, ADR-032, invariants 4 and 5, Sync-API §5/§5a,
 `internal/store/master_delete_row.go`, `internal/api/masterdelete.go`
 
 **Decision Drivers (in priority order):**

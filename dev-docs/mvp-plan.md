@@ -357,8 +357,12 @@ with no dependencies), then C, with E/F/G filling in.
    the family is back, because a tag can be rebuilt under a running instance and a digest cannot.
    What the decision does add is the reason the manual's *"exclude JIT-Pack from any auto-updater"* is not optional
    advice. An auto-updater rewrites the `image:` line directly, so it bypasses whatever guard the deployment puts on the
-   *deploy* path — and while JIT-Pack is pre-1.0 the cost of an unattended bump is not a restart but a deleted database
-   (invariant 2). The operator's own updater configuration is therefore where this is enforced, not the compose file.
+   *deploy* path, and the cost of an unattended bump is more than a restart. A newer build carries the database
+   forward through its migration chain at start-up (invariant 2, ADR-067), and the chain only goes forward: the
+   pinned older image then refuses the migrated file (`ErrSchemaStale`), so undoing a bad bump mid-trip takes a restore
+   from a backup made before it — which an auto-updater does not make, and which nobody is at home to run. Nothing is
+   deleted, but nothing can be rolled back by re-pinning either. The operator's own updater configuration is therefore
+   where this is enforced, not the compose file.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a
    round-trip.
 6. ~~**Track I shape**~~ — **built as A**: a global action carries its origin, stamped by the router rather
