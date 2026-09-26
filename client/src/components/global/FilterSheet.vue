@@ -9,7 +9,7 @@
  * ("Gemeinsam", "Ohne Gepäck") is the screen's vocabulary and the counts
  * are the view model's arithmetic.
  *
- * **Every tap is in force immediately** (owner, 2026-08-14). There is no
+ * **Every tap is in force immediately**. There is no
  * apply button because there is nothing left to apply: the head states the
  * outcome of what the list behind the panel is *already* showing, and the
  * other facets' counts recompute as you go — which is what makes
@@ -24,10 +24,9 @@
  * the tab bar hidden to win list height, which a panel pushing the list
  * down would hand straight back.
  *
- * Shares `SheetModal`'s chrome since U-3 (2026-09-02 review): the sized
- * variant (`height="86%"`, `grab="wide"`) keeps this panel's own dimensions
- * pixel-identical to before the fold, so folding it in cost no design
- * decision — only `SheetModal.vue` grew the two props this needed.
+ * Shares `SheetModal`'s chrome: the sized variant (`height="86%"`,
+ * `grab="wide"`) keeps this panel's own dimensions — the two props
+ * `SheetModal.vue` carries for it.
  */
 import { IonContent, IonIcon, IonCheckbox } from '@ionic/vue'
 

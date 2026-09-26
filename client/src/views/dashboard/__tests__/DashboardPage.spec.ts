@@ -106,8 +106,8 @@ describe('M1 dashboard — an absence it has not read yet (ADR-033, G-7)', () =>
 /**
  * FR-30.8: what M1 tells a module's card about the trip it sits under. The
  * card opens on the list that is *now*, and *now* is a fact only the trip
- * knows — so M1 has to pass it. It was passing `planned` alone, which is
- * exactly right until a trip's packing is finished before it starts.
+ * knows — so M1 has to pass it. `planned` alone would be exactly right
+ * until a trip's packing is finished before it starts.
  */
 describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
   const seen: TripCardProps[] = []
@@ -163,9 +163,9 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
 })
 
 /**
- * FR-7.10 on M1 (owner, 2026-09-21; translated from German): *on the dashboard
- * „packing finished“ takes up too much space — leave it out once the trip is
- * in that phase*, and show the phase in the date line instead.
+ * FR-7.10 on M1: on the dashboard „packing finished“ takes up too much
+ * space, so it is left out once the trip is in that phase, and the phase is
+ * shown in the date line instead.
  *
  * Both halves matter: the line is gone, and the phase is said elsewhere.
  * Without the second, a spec that only proved the line's absence would pass

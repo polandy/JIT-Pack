@@ -119,19 +119,17 @@ function setMerge(name: string, merge: boolean) {
  * Restore every readable document of a backup file, then show the trips.
  *
  * `/tabs/trips`, not `/trips`: the latter is not a route (only `/trips/new`
- * and `/trips/:tripId` are), so the replace matched nothing and left the user
- * on the import form with the file still pasted in it — the restore had
- * happened and said nothing. Found by E2E-M18-05, which was the first thing
- * ever to walk this path.
+ * and `/trips/:tripId` are), so a replace to it matches nothing and leaves
+ * the user on the import form with the file still pasted in it — a restore
+ * that happened and said nothing (E2E-M18-05).
  *
  * And on the segment the restored trips are actually on, because M2 opens on
  * Active and a restore that worked must not end on the words "No active
- * trips". That segment used to be a constant — every imported trip was
- * `planning` (FR-18.4) — and since ADR-024 a backup gives back the status it
- * saved, so a device of archived history restored onto a hard-coded *planned*
- * would land on an empty list and read as a restore that did nothing. It is
- * derived from the first restored trip now; a file of templates only keeps the
- * old default, having no trip to point at.
+ * trips". A backup gives back the status it saved (ADR-024), so a device of
+ * archived history restored onto a hard-coded *planned* would land on an
+ * empty list and read as a restore that did nothing. The segment is derived
+ * from the first restored trip; a file of templates keeps the *planned*
+ * default, having no trip to point at.
  */
 function commitRestore() {
   const documents = restore.value ?? []

@@ -13,8 +13,7 @@
  * them when there is one and it loads. That ordering is deliberate — the
  * avatar endpoint 404s for an account that never uploaded one, which is the
  * common case, and a bare `<img>` on it renders the browser's torn-picture
- * glyph or, once hidden, a hole where a person should be. Both were on
- * screen until 2026-08-28.
+ * glyph or, once hidden, a hole where a person should be.
  *
  * The colour is a deterministic pick from the accent tokens (invariant 9),
  * so the same person is the same colour on every screen and across reloads

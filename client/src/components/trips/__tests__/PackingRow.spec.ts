@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
- * M4's row (FR-25.1/25.3), the one both kinds of row are now cut from.
+ * M4's row (FR-25.1/25.3), the one both kinds of row are cut from.
  *
- * What is pinned here is the part that was written twice and had no unit at
- * all: the order of the four sentences under the name, which control the
+ * What is pinned here is the part both kinds share: the order of the four
+ * sentences under the name, which control the
  * left column offers, and the two places an item row and a child row are
  * deliberately not the same.
  */
@@ -278,10 +278,10 @@ describe('PackingRow — where the two kinds differ', () => {
 
   /**
    * FR-21.19: the lead column is one thing wide. The `traveler` case is the
-   * one that matters and the one this case used to leave out — it asserted
-   * "an item row does not" against `traveler: null`, which is the only input
-   * that could not falsify it, while a lone per-person instance drew the
-   * face *and* the mark and started its name 32 px right of its siblings.
+   * one that matters: `traveler: null` alone is the only input that could
+   * not falsify "an item row does not", while a lone per-person instance
+   * that drew the face *and* the mark would start its name 32 px right of
+   * its siblings.
    */
   it('a child row keeps the avatar column open with nobody in it; an item row never draws one', () => {
     const child = mountRow({ variant: 'child', traveler: null })

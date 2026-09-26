@@ -86,7 +86,7 @@ const orchestratorFake = {
   },
 }
 
-// Every mount below reads the orchestrator since FR-25.13j; only the search
+// Every mount below reads the orchestrator (FR-25.13j); only the search
 // specs at the end make it write.
 config.global.provide = { [ORCHESTRATOR]: orchestratorFake }
 

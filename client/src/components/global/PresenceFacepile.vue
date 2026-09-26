@@ -6,7 +6,7 @@
  * Advisory only. Rendered above one person, so it disappears in Single-User
  * and Local Mode without a mode check (G-8).
  *
- * **Everything it knows is on screen** (2026-08-28). The presence event
+ * **Everything it knows is on screen**. The presence event
  * carries three fields, and the answer that is worth acting on is *who* is
  * behind — you turn to that person. So the state sits on each face rather
  * than behind a tap: an amber ring marks somebody still catching up, and

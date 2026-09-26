@@ -4,11 +4,11 @@
  * Trip Properties; this screen has no M number, and its testids read `members-`
  * for the same reason.
  *
- * It carried the conflation in its own words: „No roster synced for this trip
- * yet", under a comment that named both states it could mean (*roster not
- * synced yet, or a pre-sync trip*) and gave the reader no way to tell which. Membership rows travel in the master partition, so the
- * guard is `masterDataLoaded`, and the G-7 sentence now says the one thing it
- * is left to say once the rows are here.
+ * „No roster synced for this trip yet" would conflate two states (*roster not
+ * synced yet, or a pre-sync trip*) and give the reader no way to tell which.
+ * Membership rows travel in the master partition, so the guard is
+ * `masterDataLoaded`, and the G-7 sentence says the one thing it is left to
+ * say once the rows are here.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'

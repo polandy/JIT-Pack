@@ -3,18 +3,12 @@
  * The head of a bottom sheet: what the sheet is about, the line under it,
  * and the way out (§3.25, G-13).
  *
- * Eight sheets had written this by hand, and the drift was not in the
- * markup — it was in the close button, which existed in two designs split
- * four against four: a filled circle on `--ct-surface0` at the round-control
- * size, and a 32px ghost in `--ct-overlay0`. The same control, two
- * appearances, and nothing recording which was meant. The concept prototype
- * settles it: a filled circle on the sunken plane with a hairline, at the
- * round-control size the token table already carries.
+ * Every sheet's close button is the concept prototype's: a filled circle on
+ * the sunken plane with a hairline, at the round-control size the token
+ * table already carries — one control, one appearance.
  *
- * The second line was two sizes as well (`--jp-text-xs` in three sheets,
- * `--jp-text-sm` in two). It is `.jp-meta` now — the role the page head
- * already uses for exactly this fact, one step down from the title and
- * recessive.
+ * The second line is `.jp-meta` — the role the page head already uses for
+ * exactly this fact, one step down from the title and recessive.
  *
  * Three slots, because what varies between sheets is what sits *around* the
  * two lines: `lead` for a mark, a thumbnail or a state glyph; `meta` where

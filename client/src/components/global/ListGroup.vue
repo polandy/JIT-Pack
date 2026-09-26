@@ -2,7 +2,7 @@
 /**
  * One heading of a grouped list and the rows under it — M6's tag headings
  * (FR-30.9), M25's task groups (FR-7.8) and M9's primary-tag groups (FR-24.2),
- * drawn once so the lists look alike (owner, 2026-09-24).
+ * drawn once so the lists look alike.
  *
  * It is also a drop target for `useDragToGroup`: `dropTarget` is the name the
  * gesture hands back, and `droppable: false` dims the heading for as long as
@@ -141,8 +141,8 @@ ion-item-divider {
 }
 
 /* A heading a drag can never land on dims for as long as something is in the
-   air (owner feedback 2026-09-23: a heading that just sits there looked
-   broken, not ineligible). The host carries `data-drag` (`useDragToGroup`). */
+   air: a heading that just sits there looks broken, not ineligible. The
+   host carries `data-drag` (`useDragToGroup`). */
 [data-drag='dragging'] .list-group[data-droppable='false'] {
   opacity: 0.5;
 }

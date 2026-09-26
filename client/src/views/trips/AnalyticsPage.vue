@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * M12 — Analytics (FR-8.1/8.2/10.4/14.3), rebuilt on the concept round of
- * 2026-08-08 (dev-docs/UI_Concept_Prototype.html).
+ * M12 — Analytics (FR-8.1/8.2/10.4/14.3), built on the concept prototype
+ * (dev-docs/UI_Concept_Prototype.html).
  *
  * Dimension switcher Person/Kategorie/Gepäck with a packed-in-planned bar
  * per dimension value; items without weight metadata stay out of the bars
@@ -54,10 +54,10 @@ const { trip } = useTripScreen(props.tripId, orchestrator)
 
 /**
  * FR-14.3: the trend runs across the trips of one series, so the heading
- * names the series. It used to read `trip.series_name`, a column no writer
- * has ever filled — client or server — so the heading has always fallen
- * back to the trip's own name. The series is in the master store; this
- * resolves it, and falls back only when the trip belongs to no series.
+ * names the series. Not `trip.series_name`, a column no writer fills —
+ * client or server — so reading it would always fall back to the trip's own
+ * name. The series is in the master store; this resolves it, and falls back
+ * only when the trip belongs to no series.
  */
 const trendName = computed(
   () =>

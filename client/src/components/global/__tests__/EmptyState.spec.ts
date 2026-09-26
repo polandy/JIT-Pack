@@ -8,10 +8,10 @@ import { describe, expect, it } from 'vitest'
 import EmptyState from '../EmptyState.vue'
 
 /**
- * U-8 (design review 2026-09-02). The G-7 empty state was hand-built on ten
- * screens with four different spacing rules; E2E-G2-09 exists because one of
- * those copies had dropped two declarations. What is pinned here is the
- * component's own shape, and that no screen goes back to building its own.
+ * U-8. The G-7 empty state is one component because hand-built copies drift
+ * apart in their spacing and drop declarations (E2E-G2-09 guards one such
+ * loss). What is pinned here is the component's own shape, and that no
+ * screen builds its own.
  */
 
 /** Every file that renders a screen or a piece of one. */

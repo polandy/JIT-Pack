@@ -28,10 +28,9 @@ describe('PageHead — the screen names itself (G-9)', () => {
   })
 
   /**
-   * FR-21.17. The head is the biggest block on M4 and was the only one that
-   * never yielded — the owner's 2026-08-19 call took the trip's name down
-   * with the line under it, and ADR-050 moved the name out from under that
-   * rule without moving the rule.
+   * FR-21.17. The head is the biggest block on M4, so it yields too:
+   * scrolling down takes the trip's name with the line under it, wherever
+   * ADR-050 puts the name.
    */
   it('yields its space when the page says it should', () => {
     const wrapper = mount(PageHead, { props: { title: 'Samedan Sommer', collapsed: true } })

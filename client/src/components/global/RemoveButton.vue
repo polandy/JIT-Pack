@@ -1,15 +1,10 @@
 <script setup lang="ts">
 /**
  * The round ✕ that takes a row off a list — a preparation task, a Vorlage
- * group, a position, a trip task (component extraction worklist item 1,
- * owner 2026-09-22).
+ * group, a position, a trip task.
  *
- * It was the same button, icon and CSS block written out seven times across
- * three files, none of them with any press feedback — a tap landed with no
- * visible acknowledgement. One size now (30px, the majority's own number;
- * the one 28px call site gains two pixels nobody will notice) and one
- * `:hover`/`:active`/`:focus-visible` treatment, decided once here instead
- * of never, in seven places.
+ * One size (30px) and one `:hover`/`:active`/`:focus-visible` treatment,
+ * decided once here, so every tap lands with a visible acknowledgement.
  *
  * `data-testid` is not a prop: with one root element it falls through to the
  * button, which is where a case looking for it wants it (the pattern

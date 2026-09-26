@@ -10,8 +10,8 @@
  * whole, nothing is taken away from it, and the sheet closes onto the group
  * you asked for.
  *
- * It **scrolls** rather than anchoring the group at the top (owner decision,
- * 2026-09-13): the rows above stay where they were, so a jump can be undone
+ * It **scrolls** rather than anchoring the group at the top: the rows above
+ * stay where they were, so a jump can be undone
  * by scrolling back rather than by another jump.
  */
 import { computed } from 'vue'

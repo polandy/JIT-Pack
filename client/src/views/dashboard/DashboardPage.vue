@@ -108,13 +108,12 @@ useDueTaskHint({
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives
- * when its trip is opened, so on a fresh Server-Mode boot M1 was counting an
+ * when its trip is opened, so on a fresh Server-Mode boot M1 would count an
  * empty store: every active trip rendered with „0 open", no preview rows and
  * no prep, until the user had visited each trip in this page session. Local
- * Mode never showed it, because everything there is rehydrated from IndexedDB
- * on boot, and the pull-to-refresh already pulled exactly this — the screen
- * simply never asked on arrival. Found 2026-08-31, building the two sections
- * below, which read the same rows.
+ * Mode cannot show it, because everything there is rehydrated from IndexedDB
+ * on boot, and the pull-to-refresh pulls exactly this — so the screen asks
+ * on arrival too. The two sections below read the same rows.
  *
  * A watcher rather than a call in `onMounted`: the trip list itself arrives
  * with the master partition, which on a cold boot has not landed yet, so a
@@ -192,8 +191,8 @@ function travelerLine(trip: Trip): string | null {
 const greeting = computed(() => t(greetingKey(new Date().getHours())))
 
 // G-9/ADR-050: M1's name is its greeting, and the frame draws it like every
-// other screen's — M1 was the one tab root still writing its own heading into
-// the content, which put it 26 px lower and a size smaller than M2's beside it.
+// other screen's — a heading written into the content would sit 26 px lower
+// and a size smaller than M2's beside it.
 setHeaderTitle(
   () => greeting.value,
   () => t('dashboard.subtitle'),
@@ -210,7 +209,7 @@ function progressFraction(trip: Trip): number {
 }
 
 /*
- * `isOpenRow` rather than the predicate written out: the same reading now has
+ * `isOpenRow` rather than the predicate written out: the same reading has
  * three readers on this screen (the preview, the count and the two sections),
  * and a rule spelled out per caller is what §4a is about.
  */
@@ -357,7 +356,7 @@ async function handleRefresh(event: CustomEvent) {
 <template>
   <IonPage>
     <!-- The screen itself, for a test that has to say which screen is up:
-         since ADR-050 M1's name is the frame's, not this page's. -->
+         under ADR-050 M1's name is the frame's, not this page's. -->
     <IonContent class="ion-padding" data-testid="dashboard">
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
@@ -747,9 +746,9 @@ async function handleRefresh(event: CustomEvent) {
 <style scoped>
 /*
  * G-14: the app's card, positioned by the screen and painted by nobody.
- * These blocks were Ionic's `ion-card` until 2026-09-09 (FR-21.28) — a
- * second radius, a second elevation and a 10 px inset of its own, which put
- * them a visible step in from the hero card above them.
+ * Not Ionic's `ion-card` (FR-21.28): that brings a second radius, a second
+ * elevation and a 10 px inset of its own, which puts the blocks a visible
+ * step in from the hero card above them.
  */
 .trip-card,
 .prep-card {

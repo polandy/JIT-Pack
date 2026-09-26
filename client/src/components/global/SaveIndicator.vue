@@ -10,22 +10,19 @@
  * entire story.
  *
  * The seam is the orchestrator's `capturePending`, which counts this device's
- * own open writes and nothing else. It used to be `syncStatus.state` — G-2's
- * own state — which collapsed the two the requirement exists to keep apart:
- * that state answers `offline` before `syncing`, so an open write on a device
- * with no network read as settled, and a background pull on one with a
- * network read as saving (found 2026-08-30, audit of backlog item 6).
+ * own open writes and nothing else. `syncStatus.state` — G-2's own state —
+ * would collapse the two the requirement exists to keep apart: that state
+ * answers `offline` before `syncing`, so an open write on a device with no
+ * network would read as settled, and a background pull on one with a
+ * network as saving.
  *
- * **It is silent until it has something to confirm** (owner, 2026-09-20:
- * *"the semantics of the checkmark are unclear and therefore confusing"*).
- * Two things made it so, and they pulled the same way. It rendered its
- * settled state from the moment a sheet opened, so the first thing you saw
- * was a confirmation of nothing — an indicator that is never off carries no
- * information. And it was a ✓ on a filled circle at the exact diameter of
- * the ✕ beside it, which is the built form of a confirm button. The latch
- * below answers the first: the lamp appears only as the consequence of
- * something you did. The lamp answers the second: a drawn dot offers no tap
- * target, and it is no longer the glyph that means *accept* elsewhere.
+ * **It is silent until it has something to confirm.** A settled state
+ * shown from the moment a sheet opens is a confirmation of nothing — an
+ * indicator that is never off carries no information — so the latch below
+ * makes the lamp appear only as the consequence of something you did. And
+ * it is a drawn dot rather than a ✓ on a filled circle at the ✕'s diameter,
+ * which is the built form of a confirm button: a dot offers no tap target,
+ * and it is not the glyph that means *accept* elsewhere.
  */
 import { computed, ref, watch } from 'vue'
 
@@ -103,8 +100,8 @@ const title = computed(() => (saving.value ? t('item.saving') : t('item.saved'))
  * As tall as the ✕ it stands beside and no wider than the lamp inside it.
  * Equal heights hung from the same top edge put the two centres on one line;
  * a lamp sized to itself would instead centre on the whole header, which is
- * as tall as the 44px thumbnail it leads with, and sit visibly low of the ✕
- * (owner, 2026-09-20, from the rendered sheet). Height is what buys the
+ * as tall as the 44px thumbnail it leads with, and sit visibly low of the ✕.
+ * Height is what buys the
  * shared centre line, so the width is free to stay tight.
  */
 .lamp {

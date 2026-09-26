@@ -40,7 +40,7 @@ const emit = defineEmits<{ toggle: [] }>()
 
 /**
  * FR-27.4: above this many changes the log folds away behind the chip.
- * Owner decision 2026-08-18 — a handful of lines is worth reading where it
+ * A handful of lines is worth reading where it
  * happened, but M2 is the app's main entry and there is deliberately no
  * "seen" state, so an unbounded log would push every other trip down the
  * list until the busy one departs.
@@ -53,9 +53,8 @@ const open = computed(() => !folds.value || props.expanded)
 </script>
 
 <template>
-  <!-- FR-16.2: `trips.imported` had been written by M15 and read by nothing
-       until 2026-08-31; on an instance carrying a decade of migrated history
-       it is what separates the two kinds of past. -->
+  <!-- FR-16.2: `trips.imported` is written by M15; on an instance carrying a
+       decade of migrated history it is what separates the two kinds of past. -->
   <span v-if="imported" class="chip imported-chip" :data-testid="`m2-imported-chip-${name}`">
     {{ t('trips.importedChip') }}
   </span>
@@ -68,8 +67,8 @@ const open = computed(() => !folds.value || props.expanded)
   <!-- FR-27.4: a trip follows its source groups until it is past. It says
        what it took over, because a list that changed under you with no trace
        reads as data loss. A short log is simply written out; a long one folds
-       away, so one busy trip cannot push the rest of the list off the screen
-       (owner, 2026-08-18). -->
+       away, so one busy trip cannot push the rest of the list off the
+       screen. -->
   <div v-if="applied.length" class="applied">
     <button
       v-if="folds"
@@ -102,13 +101,14 @@ const open = computed(() => !folds.value || props.expanded)
 <style scoped>
 /*
  * The three chips share a shape and differ only in what they paint with it:
- * `.chip` had been a name with no rule behind it, so the imported one drew a
- * background with no padding around the word inside it.
+ * `.chip` is a rule of its own, so none draws a background with no padding
+ * around the word inside it.
  *
- * The size is stated rather than inherited: inside the row these sat in an
- * `ion-label` and took the body size from it, and the hero has no `ion-label`
- * to inherit from. A chip qualifies the name above it, so it takes the step
- * under the body the rest of the app gives a subordinate line (FR-21.14).
+ * The size is stated rather than inherited: inside a row these sit in an
+ * `ion-label` and would take the body size from it, and the hero has no
+ * `ion-label` to inherit from. A chip qualifies the name above it, so it
+ * takes the step under the body the rest of the app gives a subordinate line
+ * (FR-21.14).
  */
 .chip {
   border-radius: var(--jp-r-sm);

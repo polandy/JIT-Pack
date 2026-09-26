@@ -4,7 +4,7 @@
  *
  * It states a *decision*, which is why it carries a moment and a number: the
  * list below it is still workable — a thing that was packed but never listed
- * is added afterwards (owner, 2026-09-20) — so without this card a finished
+ * is added afterwards — so without this card a finished
  * list would look exactly like one nobody has closed.
  *
  * *Wieder öffnen* lifts the stamp and nothing else. The rows it decided stay

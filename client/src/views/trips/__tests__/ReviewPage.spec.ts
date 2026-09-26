@@ -189,10 +189,9 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     // The footer counts what was written; the open count drops.
     const summary = wrapper.get('[data-testid="m14-summary"]').text()
     expect(summary).toContain('1')
-    // FR-27.4 has been an *offer* since 2026-08-18: a trip following the
-    // group is asked on its next open and may decline. The footer said
-    // planning trips "pick it up immediately", which is the pre-revision
-    // model — a promise the app does not keep.
+    // FR-27.4 is an *offer*: a trip following the group is asked on its next
+    // open and may decline. A footer saying planning trips "pick it up
+    // immediately" would make a promise the app does not keep.
     expect(summary).not.toMatch(/immediately|sofort/i)
     expect(wrapper.get('[data-testid="m14-open-count"]').text()).toContain('1')
   })
@@ -253,10 +252,10 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     expect(blasts[0]!.text()).toContain('1')
   })
 
-  // The why line has two branches, and until 2026-08-30 only the singular
-  // one had ever been rendered: `historyCount` is the page's own function,
-  // the domain takes the count as a *parameter*, and E2E-M14-01's trip is
-  // in no series — so the archived-history branch could not fail there.
+  // The why line has two branches, and the archived-history one is pinned
+  // only here: `historyCount` is the page's own function, the domain takes
+  // the count as a *parameter*, and E2E-M14-01's trip is in no series — so
+  // the branch cannot fail there.
   it('counts the item across the archived trips of the series, not just this one', () => {
     seedMaster()
     const trips = seedTrip()

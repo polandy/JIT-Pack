@@ -13,9 +13,8 @@
  * content, so its body has to scroll on its own and its handle is a
  * different width and shade — `height` and `grab` exist for exactly that
  * one caller. They are the only two dimensions the filter sheet's chrome
- * ever differed on (U-3 in the 2026-09-02 review measured a 2 px shift in
- * the shared values as a 4 217 px reflow, which is why this stayed a
- * fork for as long as it did); a caller that passes `height` also owns its
+ * differs on (a 2 px shift in the shared values reflows it by 4 217 px);
+ * a caller that passes `height` also owns its
  * own scrolling body — `.sheet-box` only constrains height at the default,
  * because a sized sheet's content decides that instead (`IonContent` there
  * already does, and stacking two scroll containers would fight over the
@@ -31,8 +30,8 @@ import { IonModal } from '@ionic/vue'
  * sibling that appears later with `v-if` is inserted *before* the next
  * sibling's element, and if that element is the moved modal the insert
  * throws (`insertBefore … not a child of this node`) and the whole patch is
- * lost: found 2026-09-24 when M25's selection bar never came back after its
- * batch sheet. With two roots the component is a fragment whose start marker
+ * lost — M25's selection bar would never come back after its batch sheet.
+ * With two roots the component is a fragment whose start marker
  * stays in place, and on unmount Vue still removes the modal wherever it is.
  */
 defineOptions({ inheritAttrs: false })
@@ -129,7 +128,7 @@ function onDismiss() {
   flex: none;
 }
 
-/* The filter sheet's own handle, unchanged since before the fold (U-3). */
+/* The filter sheet's own handle. */
 .grab.wide {
   width: 38px;
   margin: 10px auto 2px;

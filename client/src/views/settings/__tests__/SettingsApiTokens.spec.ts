@@ -80,7 +80,7 @@ describe('M17 API tokens', () => {
     expect(w.find('[data-testid="token-create"]').exists()).toBe(true)
   })
 
-  // The owner's decision, pinned: with no revocation the expiry is the only
+  // Pinned on purpose: with no revocation the expiry is the only
   // thing that ever ends a token's life, so the default is not incidental.
   //
   // Asserted through what a mint is actually asked for rather than through

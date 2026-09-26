@@ -2,7 +2,7 @@
 /**
  * M7 — Template List (§3.27, FR-27.6)
  *
- * One shared instance-wide list (FR-1.6 MVP simplification, 2026-08-08):
+ * One shared instance-wide list (FR-1.6 MVP simplification):
  * every account sees and edits every template, so there is no my/published
  * split and no publish toggle.
  *
@@ -84,8 +84,8 @@ const {
 } = useContextSearch()
 setHeaderTitle(() => t('templates.title'))
 
-// M18's portable import was a glyph beside the screen's own `h1` until
-// ADR-050 moved the name into the frame (FR-18.4).
+// M18's portable import is a bar action, since the screen's name is the
+// frame's (ADR-050, FR-18.4).
 setHeaderActions(() => [
   action(),
   {
@@ -151,12 +151,12 @@ const sections = computed(() =>
 
 // --- Creating (FR-27.6): the scope is chosen, never derived ---------------
 //
-// One sheet, one commit (owner decision 2026-08-15, variant pass): picking a
-// scope reveals the name field in the same sheet instead of handing off to a
-// system dialog — the explanation of what a Gruppe *is* stays on screen while
-// you name one, and no row exists until the name does. The prototype's
-// create-then-rename flow was rejected for exactly that second point: with
-// real persistence it writes a "Neue Gruppe" row the moment you tap.
+// One sheet, one commit: picking a scope reveals the name field in the same
+// sheet instead of handing off to a system dialog — the explanation of what
+// a Gruppe *is* stays on screen while you name one, and no row exists until
+// the name does. Not the prototype's create-then-rename flow, for exactly
+// that second point: with real persistence it writes a "Neue Gruppe" row the
+// moment you tap.
 
 const kindChooserOpen = ref(false)
 const pendingKind = ref<TemplateKind | null>(null)
@@ -164,8 +164,8 @@ const pendingName = ref('')
 const nameInput = ref<InstanceType<typeof IonInput> | null>(null)
 
 /**
- * FR-27.6 (amended 2026-08-17): the ＋ follows the scope segment. On a
- * single-scope tab the chooser had one possible answer, so it is skipped and
+ * FR-27.6: the ＋ follows the scope segment. On a
+ * single-scope tab the chooser has one possible answer, so it is skipped and
  * the sheet opens on the name — the only thing still missing. On *Alle* the
  * question is real and stays.
  */
@@ -224,8 +224,8 @@ function commitCreate() {
 
 // --- Row actions (FR-18.2): long-press / right-click menu ------------------
 //
-// Export lives behind a press-and-hold (owner decision 2026-08-15, variant
-// pass; the spec's E2E-M7-04 shape): the row keeps only what identifies it,
+// Export lives behind a press-and-hold (the spec's E2E-M7-04 shape): the row
+// keeps only what identifies it,
 // and the menu has room for the rename/delete the M8 rebuild will add.
 // The 500 ms live in useLongPress, unit-tested with fake timers;
 // `contextmenu` covers desktop and is the seam the e2e case drives.
@@ -446,10 +446,9 @@ async function shareTemplate(tpl: Template) {
               @pointerup="hold.cancel()"
               @pointercancel="hold.cancel()"
             >
-              <!-- FR-28.8: the prototype has drawn a mark here since §3.27;
-                   until now every one of them was hardcoded in the mock. The
+              <!-- FR-28.8: the prototype draws a mark here (§3.27). The
                    `packing` ladder rather than `plain`: this is a column, and
-                   rendered with the slot dropped the marked groups pushed
+                   rendered with the slot dropped the marked groups would push
                    their names right of the unmarked ones. -->
               <ItemMark
                 slot="start"
@@ -575,8 +574,8 @@ async function shareTemplate(tpl: Template) {
 
 <style scoped>
 /* Ionic sizes the segment `width: 100%`, so a side margin pushes it past its
-   column by the margin's width and the scroller cuts its right end off
-   (owner, 2026-09-24, on an iPad). `auto` lets a block fill what the margins
+   column by the margin's width and the scroller cuts its right end off.
+   `auto` lets a block fill what the margins
    leave. */
 ion-segment {
   margin: 0 12px 4px;

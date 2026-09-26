@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 /**
- * U-1.5 (design review 2026-09-02). FR-25.1's cluster head — the line that
- * names a per-person item once — was markup inside `PackingListPage.vue`
- * and had no unit at all. What is pinned here is what makes it a *head*
+ * U-1.5. FR-25.1's cluster head — the line that names a per-person item
+ * once — as a unit of its own. What is pinned here is what makes it a *head*
  * rather than a row: it carries the item's mark and glyphs, so the traveler
  * rows under it carry none (FR-28.4 — one tent, not three).
  */

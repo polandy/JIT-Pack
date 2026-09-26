@@ -4,14 +4,14 @@
  *
  * The master item database, and deliberately a **lookup surface rather
  * than a spreadsheet**: every row is the primary-tag avatar and the name,
- * nothing else. The earlier layout put all tags, the weight and the price
- * on every row and read as overload (owner, 2026-08-08).
+ * nothing else — all tags, the weight and the price on every row read as
+ * overload.
  *
  * **The tools do not leave (FR-24.6).** Search, the sort and the active tag
  * sit in a bar that stays while the list scrolls, and the group headings
  * stick underneath it. Measured against the family instance the list is
- * 10 391 px against a 671 px viewport — fifteen screens, after two of which
- * the old screen had no heading, no axis and no field left on it.
+ * 10 391 px against a 671 px viewport — fifteen screens, and tools that
+ * scrolled away would leave no heading, no axis and no field after two.
  *
  * **Search is the screen's main route, so it is not behind the magnifier**
  * (the one G-12 exception, FR-24.6): on a 184-row database looking something
@@ -181,8 +181,8 @@ const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 const itemsKnown = computed(() => orchestrator.masterDataLoaded())
 
 /**
- * The same rule for the *chrome*, which is where it was still missing until
- * 2026-09-16: removing the search row and shrinking the bar are themselves the
+ * The same rule for the *chrome*: removing the search row and shrinking the
+ * bar are themselves the
  * statement „there is nothing here", made off the bare `isEmpty` the notice
  * below refuses to decide on. So the screen keeps the tools it is going to
  * have until the rows say otherwise — which also spares it the jump of a
@@ -512,8 +512,8 @@ function groupLabel(key: string): string {
  * The avatar glyph: the primary tag's initial, or a neutral one.
  *
  * Read from the item rather than from the heading it sits under, because
- * since FR-24.6/24.7 the heading is not always a tag: under „Treffer im Tag"
- * the key is the *reason*, and taking its initial painted a column of „T"s
+ * under FR-24.6/24.7 the heading is not always a tag: under „Treffer im Tag"
+ * the key is the *reason*, and taking its initial would paint a column of „T"s
  * on rows filed under six different tags. The map is the same one the search
  * reads, so this costs no second pass (NFR-4.3).
  */
@@ -707,7 +707,7 @@ const bulkCounts = computed(() => tagCounts(selectedItems.value, masterStore.ite
  * batch at a time. A retire is deliberately not in here — see
  * `retireSelected`.
  *
- * A closure rather than a record, because the actions no longer undo the same
+ * A closure rather than a record, because the actions do not undo the same
  * *shape*: a tag batch puts assignments back where they were, an assignee
  * batch writes each item's own previous value, a link removes rows that were
  * not there before. Each action's own group knows how to reverse it, so what
@@ -1144,8 +1144,8 @@ async function topmostGroup(): Promise<string | null> {
 }
 
 /**
- * Scroll the group into view (FR-24.8). It **scrolls and does not anchor**
- * (owner decision, 2026-09-13): the rows above stay where they are, so a jump
+ * Scroll the group into view (FR-24.8). It **scrolls and does not anchor**:
+ * the rows above stay where they are, so a jump
  * is undone by scrolling back rather than by a second jump.
  *
  * The offset is computed from the two boxes rather than from `offsetTop`,
@@ -1456,10 +1456,10 @@ onBeforeUnmount(() => observer?.disconnect())
         than a banner over a list that is not wrong, only untidy.
 
         FR-24.3's other half, said out loud. A retired item is hidden from
-        this list by design (ADR-032), but until now nothing here admitted
-        the hidden ones exist — so „25 Artikel" read as the whole
-        collection, and the way back to them (M23) was reachable only by
-        someone who already knew it was there.
+        this list by design (ADR-032); without a sentence admitting the
+        hidden ones exist, „25 Artikel" would read as the whole collection,
+        and the way back to them (M23) would be reachable only by someone
+        who already knew it was there.
 
         Both behind `itemsKnown` for ADR-033's reason: a partition that has
         not arrived has no findings and no retired rows, and „nothing to
@@ -1733,7 +1733,7 @@ onBeforeUnmount(() => observer?.disconnect())
   font-size: var(--jp-icon-xs);
 }
 
-/* The tile itself now lives in ItemMark with the ladder that decides when
+/* The tile itself lives in ItemMark with the ladder that decides when
    it shows (FR-28.4); only the row's own spacing stays here. */
 .row-mark {
   margin-inline-end: 12px;

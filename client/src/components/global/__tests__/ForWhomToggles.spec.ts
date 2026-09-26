@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * FR-25.28 — the toggle line is laid out for three travelers (owner,
- * 2026-09-18): the full face up to three, the compact one above. The layout
+ * FR-25.28 — the toggle line is laid out for three travelers: the full face
+ * up to three, the compact one above. The layout
  * itself is a rendered question and E2E-M4-100 reads it; what is pinned here is
  * the threshold, so a change to it is a decision rather than a drift.
  */

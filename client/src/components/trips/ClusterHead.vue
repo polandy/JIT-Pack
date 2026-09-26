@@ -8,9 +8,9 @@
  * `PackingRow` and this line share `RowGlyphs`. It reads no store: the
  * resolved master row arrives as a prop, like everything else.
  *
- * Since FR-25.23 it is also the cluster's fold control, and shut is the
- * default: the head used to be an extra line above children that were always
- * open, so naming the item once cost a line rather than saving any. Shut it
+ * Under FR-25.23 it is also the cluster's fold control, and shut is the
+ * default: an extra line above children that are always open would make
+ * naming the item once cost a line rather than save any. Shut it
  * has to answer for the rows it hides — who, and how far — which is why it
  * carries both the faces and the open count in that state.
  */
@@ -152,8 +152,7 @@ defineEmits<{
      names itself once inside it at the row's own size, and the traveler
      rows under that step down (FR-21.16). The item is the thing being
      packed and the person only qualifies it, so the head must not be the
-     recessive line of the two — it read one step *below* its own children
-     until 2026-09-07. */
+     recessive line of the two. */
   font-size: var(--jp-text-md);
   font-weight: var(--jp-weight-semibold);
   color: var(--ct-text);

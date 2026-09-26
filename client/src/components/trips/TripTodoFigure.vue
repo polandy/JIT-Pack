@@ -5,7 +5,7 @@
  * hero. The same four parts as the share beside it, in the same order, so
  * the two stand as a pair: same ring, same lines, tracks on one level.
  *
- * It counts **every** task of the trip since FR-7.6 — its own and the
+ * It counts **every** task of the trip (FR-7.6) — its own and the
  * preparations its rows owe — because the list under it holds both and a
  * figure that disagreed with the list it heads would be read as a defect.
  *

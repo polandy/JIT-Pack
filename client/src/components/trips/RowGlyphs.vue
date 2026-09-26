@@ -4,7 +4,7 @@
  * (FR-25.4a) and whether it is a late packer.
  *
  * They are on two lines that are not the same component — an item row and a
- * per-person cluster head — and the pair had been written and styled twice.
+ * per-person cluster head — so the pair is written and styled once, here.
  * The head shows them once for the whole cluster; a child row shows none,
  * because the head above it already did.
  *
@@ -32,7 +32,7 @@ defineProps<{
     class="mode-icon"
     :title="modeLabel(mode)"
   />
-  <!-- Addressable: since FR-25.25 the flag is set from the list, and the
+  <!-- Addressable: the flag is set from the list (FR-25.25), and the
        glyph is the only rendered evidence that the write landed. -->
   <IonIcon
     v-if="late"

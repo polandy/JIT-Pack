@@ -9,7 +9,7 @@
  * the FAB hovering over it, and a screen that offers one action twice has
  * to be read twice before it can be used once. M6, which has no FAB, is
  * where the pill is still the way in.
- * Opening no longer focuses the input (FR-25.13c, owner 2026-08-21): the
+ * Opening does not focus the input (FR-25.13c): the
  * empty composer leads with a tappable row of recently used items, and an
  * auto-raised soft keyboard would cover it. Typing is one tap on the field
  * away.
@@ -22,8 +22,8 @@
  * The form stays open after adding, because rows are entered in runs, and
  * it closes only when asked to: ✕, Escape, or the FAB again.
  *
- * M8 reuses this component verbatim (§3.25 consistency directive,
- * owner 2026-08-08): `confirmLabel` names the scope on the commit button
+ * M8 reuses this component verbatim (§3.25 consistency directive):
+ * `confirmLabel` names the scope on the commit button
  * ("Zur Gruppe hinzufügen") and `excludeItemIds` keeps positions the
  * template already carries out of the suggestions — a duplicate is
  * reported by the caller, not offered again here.
@@ -43,14 +43,14 @@
  * question per line with its own 👥 and avatars (FR-25.13g/h), and one door
  * per surface is the rule, so a sheet add never reads the strip.
  *
- * **A name the inventory does not hold becomes an inventory item** (FR-24.11,
- * owner 2026-09-19): the composer searches with M9's rule, makes M9's offer
+ * **A name the inventory does not hold becomes an inventory item**
+ * (FR-24.11): the composer searches with M9's rule, makes M9's offer
  * above its hits through the same `SearchOfferButton`, and takes it through the
  * same `CreateItemSheet`; what the sheet creates is then added like any pick.
  * The confirm button and Enter therefore add an exact match or open the sheet
- * — they never write a row nobody's inventory knows. The ad-hoc row this used
- * to make had no tags, no weight and no second life on the next trip, and it
- * was the one add on the screen that did not go through the inventory.
+ * — they never write a row nobody's inventory knows. An ad-hoc row would have
+ * no tags, no weight and no second life on the next trip, and be the one add
+ * on the screen that did not go through the inventory.
  *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
@@ -172,7 +172,7 @@ const props = withDefaults(
 /** The fields an add carries over, whichever verb sent it (FR-25.7 defaults). */
 export interface BrowseAddition {
   name: string
-  /** Always an inventory item since FR-24.11 reached the composer. */
+  /** Always an inventory item (FR-24.11). */
   sourceItemId: string
   weightGrams: number | null
   valueCents: number | null
@@ -355,7 +355,7 @@ async function focusInput() {
 }
 
 /**
- * Opened by the FAB. Deliberately *without* focus since FR-25.13c: the
+ * Opened by the FAB. Deliberately *without* focus (FR-25.13c): the
  * chips are the primary offer, and focusing would raise the soft keyboard
  * over them. The accepted cost is one extra tap for whoever wants to type.
  */
@@ -380,7 +380,7 @@ function toggle() {
 /**
  * `expanded` is exposed, not only `open()`: the ＋ that opens this composer has
  * nothing left to do while it is open, and a control that does nothing is
- * worse than no control (owner, 2026-08-17). The parent owns the FAB, so it
+ * worse than no control. The parent owns the FAB, so it
  * needs to see the state rather than guess it from its own bookkeeping.
  */
 defineExpose({ open, expanded })
@@ -396,7 +396,7 @@ function additionOf(item: MasterItem) {
     sourceItemId: item.id,
     weightGrams: item.weight_grams,
     valueCents: item.value_cents,
-    // The generated row carries one grouping key, which since FR-24.1 is
+    // The generated row carries one grouping key, which under FR-24.1 is
     // the master item's *primary* tag (FR-24.2) — the trip side keeps a
     // single snapshot, it does not gain the whole set.
     categoryName: masterStore.categoryOf(item.id),
@@ -723,7 +723,7 @@ function onKeydown(event: KeyboardEvent) {
       </p>
 
       <!-- FR-25.13c: the empty composer offers chips before it asks for
-           typing — the reason open() no longer raises the keyboard. -->
+           typing — the reason open() does not raise the keyboard. -->
       <div v-if="showChips" class="chip-rows" data-testid="quick-add-chips">
         <p class="chip-heading jp-eyebrow">{{ t('quickAdd.recentHeading') }}</p>
         <div class="chip-row">

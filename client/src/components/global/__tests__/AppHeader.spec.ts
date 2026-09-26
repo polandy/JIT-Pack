@@ -2,12 +2,11 @@
 /**
  * G-9's left slot, and the budget its right-hand cluster is held to.
  *
- * The bar no longer names the page at all (ADR-050): M4 had given its title
- * up in 2026-08 because beside six icons at 390 px the trip name rendered as
- * "S…", and the answer for every other screen is the same one M4 got — the
- * name belongs in the page, at a size a bar cannot give it. What is left
- * here is the left slot's *other* job, the way back, and the cap that keeps
- * the cluster from growing back to what made the title unreadable.
+ * The bar does not name the page at all (ADR-050): beside six icons at
+ * 390 px a trip name renders as "S…", so the name belongs in the page, at a
+ * size a bar cannot give it. What is left here is the left slot's *other*
+ * job, the way back, and the cap that keeps the cluster from growing to
+ * what makes a title unreadable.
  */
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -128,9 +127,9 @@ describe('AppHeader — the left slot (G-9)', () => {
 
     // __APP_VERSION__ is vite.config.ts's `define`; vitest.config.ts merges
     // the same config, so this is the value a real build would carry too —
-    // and it is rendered **verbatim**. The old assertion restated the
-    // component's own `v${…}` template, so it would have passed against any
-    // prefix at all, which is how `vv0.10.0-1-g500b5e54` shipped: both
+    // and it is rendered **verbatim**. Restating the component's own
+    // `v${…}` template would pass against any prefix at all and let
+    // `vv0.10.0-1-g500b5e54` through: both
     // sources of the string already carry the tag's own `v`, `git describe`
     // and the release workflow's `APP_VERSION=${{ github.ref_name }}` alike.
     expect(wrapper.find('[data-testid="header-app-version"]').text()).toBe(__APP_VERSION__)
@@ -138,8 +137,8 @@ describe('AppHeader — the left slot (G-9)', () => {
 })
 
 /**
- * G-12's overflow (UX-13, 2026-08-27): the bar had grown to six glyphs plus
- * the gear on M4, so a page can now mark an action as belonging behind the
+ * G-12's overflow (UX-13): six glyphs plus the gear on M4 are more than the
+ * bar holds, so a page can mark an action as belonging behind the
  * ⋮ rather than beside the others. What is pinned here is that the bar
  * decides *nothing* on its own — an unmarked action is always a glyph, and
  * the ⋮ exists only when something asked for it.
@@ -337,7 +336,7 @@ describe('AppHeader — the trip views the switcher does not show', () => {
     expect(pushed).toEqual(['/trips/trip-1/containers'])
   })
 
-  // A ⋮ acts on its own context (owner, 2026-09-25): the luggage and the
+  // A ⋮ acts on its own context: the luggage and the
   // analytics are the packing list's, and the pill row reaches packing.
   it('offers none of packing’s views on the shopping list or the tasks', () => {
     for (const [path, tripView] of [

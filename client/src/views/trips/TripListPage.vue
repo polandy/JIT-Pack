@@ -131,9 +131,8 @@ const isDev = import.meta.env.DEV
  *
  * It reports both outcomes. An async handler that only navigates on success is
  * indistinguishable from a dead button when anything throws — a stale module
- * graph after a dev-server restart is enough — and the owner spent a session
- * on exactly that (2026-08-16): "vielleicht hab ich nicht gemerkt dass es nicht
- * funktionierte weil es kein feedback gab".
+ * graph after a dev-server restart is enough — and with no feedback nobody
+ * notices that it did not work.
  */
 async function addSampleData() {
   // The guard is what removes the seed from a production bundle, not the
@@ -169,9 +168,8 @@ const {
 } = useContextSearch()
 setHeaderTitle(() => t('trips.title'))
 
-// The two import entries were glyphs beside the screen's own `h1` until
-// ADR-050 moved the name into the frame. They are screen-level actions, so
-// they belong in the one place a screen states those (G-12).
+// The two import entries are screen-level actions, so they belong in the one
+// place a screen states those (G-12); the name is the frame's (ADR-050).
 setHeaderActions(() => [
   action(),
   {
@@ -400,9 +398,8 @@ function progressPercent(trip: Trip): number {
 
 function progressColor(trip: Trip): string {
   const pct = progressPercent(trip)
-  // Headway only ever runs the done ramp (G-11). It used to end at
-  // peach below half, which now reads as the brand shouting at you for
-  // not having packed yet.
+  // Headway only ever runs the done ramp (G-11). Peach below half would
+  // read as the brand shouting at you for not having packed yet.
   if (pct >= 100) return 'var(--jp-done)'
   return 'var(--jp-done-far)'
 }
@@ -453,9 +450,9 @@ function toggleApplied(tripId: string) {
 }
 
 /**
- * What the refresh took over on this trip. No status rule any more: since the
- * owner's 2026-08-18 change a running trip takes changes over too, and only a
- * *past* one is frozen — which cannot produce entries in the first place, so
+ * What the refresh took over on this trip. No status rule: a running trip
+ * takes changes over too, and only a *past* one is frozen — which cannot
+ * produce entries in the first place, so
  * the record is simply whatever the log holds.
  */
 function appliedChanges(trip: Trip): AppliedChange[] {
@@ -464,8 +461,8 @@ function appliedChanges(trip: Trip): AppliedChange[] {
 
 /**
  * FR-27.4: how many changes are *waiting* on this trip. The chip is a
- * pointer, not a control — the decision belongs at the trip (owner,
- * 2026-08-18), and tapping the row is already the way there.
+ * pointer, not a control — the decision belongs at the trip, and tapping the
+ * row is already the way there.
  *
  * It can only speak for a trip whose partition this device holds: a proposal
  * is a diff against the trip's rows, and in Server Mode those arrive when the
@@ -514,8 +511,8 @@ async function startTrip(tripId: string) {
  * *Reise abschliessen* opens the packing list in FR-9.3's closing pass rather
  * than archiving here: the pass is the one point where the user looks at the
  * whole trip at once, and it is what archives — *Fertig* archives and opens
- * M14. It was M4's own door until M4's ⋮ gave up the trip-wide steps (owner,
- * 2026-09-25); archiving straight from M2 had skipped it all along.
+ * M14. Archiving straight from M2 would skip it; M4's ⋮ holds none of the
+ * trip-wide steps.
  */
 function archiveTrip(tripId: string) {
   router.push(tripClosingPath(tripId))
@@ -643,9 +640,9 @@ const heroActions = computed<HeroAction[]>(() => {
 
 // --- Row menu: hold / right-click (M4, M7 shape) ---------------------------
 //
-// A swipe until 2026-09-24; M2 was the last list that hid its actions behind
-// one, and M4 and M7 already answered a hold with a sheet. The 500 ms live in
-// useLongPress; `contextmenu` covers desktop and is the seam the e2e drives.
+// Not a swipe: no list hides its actions behind one, and M4 and M7 answer a
+// hold with a sheet. The 500 ms live in useLongPress; `contextmenu` covers
+// desktop and is the seam the e2e drives.
 
 const hold = useLongPress<Trip>(openRowMenu)
 
@@ -745,7 +742,7 @@ async function handleRefresh(event: CustomEvent) {
           >
             <IonLabel>
               <span class="segment-label">{{ segment.label }}</span>
-              <!-- FR-2.8: beside the label, in brackets (owner, 2026-08-29).
+              <!-- FR-2.8: beside the label, in brackets.
                    Absent while the count is unknown, `(0)` where the segment
                    is empty — the two are not the same thing. -->
               <span v-if="segment.count !== null" class="segment-count jp-num">
@@ -806,8 +803,8 @@ async function handleRefresh(event: CustomEvent) {
       </TripHero>
 
       <!--
-        Not here yet is not empty (ADR-033) — the guard the counts have had
-        since FR-2.8, on the screen. The same component *without* its
+        Not here yet is not empty (ADR-033) — the guard the counts have
+        (FR-2.8), on the screen. The same component *without* its
         illustration on purpose: that is what makes it a notice rather than
         the G-7 absence, and it keeps one spacing rule instead of adding a
         second loading layout beside it. The block does change height when
@@ -919,8 +916,7 @@ async function handleRefresh(event: CustomEvent) {
                 />
               </IonLabel>
               <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
-                     presence facepile G-10 removed from here on 2026-08-28,
-                     whose words were left standing in the spec. -->
+                     presence facepile, which G-10 keeps off this list. -->
               <div
                 v-if="travelersOf(trip).length > 0"
                 slot="end"
@@ -1000,7 +996,7 @@ ion-segment-button {
   opacity: 0.6;
 }
 
-/* The list is scaffolding now, not a surface: each series is its own card
+/* The list is scaffolding, not a surface: each series is its own card
    on the page plane (G-14), so the list itself must not paint one. */
 .trip-list {
   background: transparent;

@@ -47,7 +47,7 @@ const emit = defineEmits<{
 }>()
 
 /**
- * The line is laid out for **three travelers** (owner, 2026-09-18): the common
+ * The line is laid out for **three travelers**: the common
  * trip, where *Gemeinsam*, *Alle* and three faces share a phone's width with
  * room to spare. Up to that size a toggle is a full 40 px face with its name
  * spelled out under it; a longer roster steps down to the compact 32 px face,

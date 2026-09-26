@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M8 — Template Editor (§3.27, FR-27.6/27.7), rebuilt from the concept.
+ * M8 — Template Editor (§3.27, FR-27.6/27.7), built from the concept.
  *
  * The editor is **scope-shaped**: a Gruppe shows only *Positionen*; a
  * Ferien-Vorlage additionally shows *Gruppen* — whose picker offers groups
@@ -126,8 +126,7 @@ function groupIcon(templateId: string): string | null {
 // --- The mark (FR-28.8) ----------------------------------------------------
 //
 // The same field items carry, on the same terms — and not scope creep: the
-// concept prototype has shown 📷 Makro Fotografie and ⛺ Camping Basis since
-// §3.27, every one of them hardcoded in the mock.
+// concept prototype shows 📷 Makro Fotografie and ⛺ Camping Basis (§3.27).
 
 const markPickerOpen = ref(false)
 
@@ -886,8 +885,8 @@ const mergeLines = computed(() =>
         <!-- FR-27.2: the footer names every merge — the merge is the
              user-visible point of the whole feature. -->
         <!-- FR-27.14: the line that states the count is the way into the list.
-             It is a button because it acts, and because the count alone has
-             answered "how many" and never "what" since the footer existed. -->
+             It is a button because it acts, and because the count alone
+             answers "how many" and never "what". -->
         <button
           v-if="!isGroup && includes.length"
           class="resolution jp-card"
@@ -909,7 +908,7 @@ const mergeLines = computed(() =>
           </p>
         </button>
 
-        <!-- FR-25.13a, amended 2026-08-17: the ＋ opens the quick-add, so it
+        <!-- FR-25.13a: the ＋ opens the quick-add, so it
              hides while the quick-add is open — there is nothing left for it to
              do, and the composer needs the space more than the button does. -->
         <IonFab :id="FAB_ANCHOR.m8" vertical="bottom" horizontal="end" slot="fixed">

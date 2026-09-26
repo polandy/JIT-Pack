@@ -8,7 +8,7 @@
  * spent, five destinations behind one glyph. ADR-051 was the other half of
  * that decision — the views came back as a row of words that says where you
  * are as well as where you can go, on all four screens, so the step from the
- * shopping list to the luggage no longer goes back through the packing list.
+ * shopping list to the luggage does not go back through the packing list.
  *
  * Amendment 1 keeps that shape and narrows what stands in it: the views a
  * trip is worked in, plus whichever view is being looked at. The luggage and
@@ -16,9 +16,9 @@
  * indistinguishable from the ones worked in daily; they are entries in the
  * bar's ⋮ again, which `AppHeader` fills from the same table.
  *
- * Amendment 3 (owner, 2026-09-25) keeps the word only where you stand: every
- * other view is its glyph, with its number as a badge, because four words and
- * their counts no longer fit a 390 px row. A glyph without a word names
+ * Amendment 3 keeps the word only where you stand: every other view is its
+ * glyph, with its number as a badge, because four words and their counts do
+ * not fit a 390 px row. A glyph without a word names
  * itself three ways — `aria-label`, a `title` for a hovering pointer, and a
  * bubble on a held press for a finger, which is the one a phone has.
  *
@@ -175,8 +175,8 @@ onBeforeUnmount(hideBubble)
 
 <style scoped>
 /* The row scrolls rather than wraps: a second line would push the list down
-   by as much as the head above it. Since amendment 3 four glyphs and one
-   word fit the narrowest phone with room to spare, but the current view's
+   by as much as the head above it. Four glyphs and one word fit the
+   narrowest phone with room to spare, but the current view's
    word carries a count, and a count has no upper bound. The top padding is
    the badges' — a scroller clips whatever overhangs it. */
 .trip-views {

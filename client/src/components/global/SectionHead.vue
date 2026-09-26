@@ -5,15 +5,13 @@
  * things — a name and a number — set in two faces on one baseline, and
  * that is a composition rather than a declaration.
  *
- * It replaces fifty-five hand-written heads, each pairing the type role with
- * a local rule of its own. The role had already been named; what every screen
- * kept writing for itself was the spacing around it, in five different
- * values, which is why the margin lives here now and nowhere else.
+ * It owns the spacing around the head as well as the type role: left to
+ * each screen, that margin drifts into as many values as there are screens,
+ * which is why it lives here and nowhere else.
  *
- * The count is passed as a value rather than composed into the title: four
- * heads used to join the two with a middle dot inside the translated string,
- * so the number was set in the title's face and could not be aligned with
- * anything.
+ * The count is passed as a value rather than composed into the title: joined
+ * with a middle dot inside the translated string, the number would be set in
+ * the title's face and could not be aligned with anything.
  *
  * A `data-testid` is not a prop: with one root element it falls through to
  * the head, which is where a case looking for the section wants it.

@@ -112,7 +112,7 @@ function positionTask(id: string, templateItemId: string, task: string) {
 }
 
 /**
- * The owner's scenario: a Ferien-Vorlage over two photography groups that
+ * The scenario: a Ferien-Vorlage over two photography groups that
  * share the camera, one of which asks for a battery charge before leaving.
  */
 function seedComposition() {
@@ -186,8 +186,8 @@ async function mountAtStepFour(templateId = 'v1') {
 }
 
 /**
- * FR-2.6 variant A: the review step reviews. Until now it changed exactly one
- * thing — the amount — and every other decision waited until the trip existed.
+ * FR-2.6 variant A: the review step reviews — not only the amount: the other
+ * decisions are made here too, rather than waiting until the trip exists.
  */
 describe('M3 step 4 — deciding before the trip exists (FR-2.6)', () => {
   function seedForReview() {
@@ -299,8 +299,8 @@ describe('M3 step 4 — the default action (G-16)', () => {
   /**
    * G-17: the create is one act, and the screen leaves afterwards — but the
    * leaving is a route change, and the button stays under the finger until
-   * it happens. An impatient second tap used to write a second trip, and the
-   * Enter key above could do it without a second tap at all.
+   * it happens. An impatient second tap must not write a second trip, nor
+   * the Enter key above without a second tap at all.
    */
   it('writes one trip however often the button is pressed', async () => {
     seedComposition()

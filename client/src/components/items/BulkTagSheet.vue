@@ -10,9 +10,9 @@
  *
  * **Giving creates what the search did not find** (FR-24.9, amended with
  * FR-24.12): a typed name no tag holds is offered as a new tag, in the same
- * dashed row FR-24.11 offers a missing item in. It used to be M10's business
- * alone, which made tagging forty untagged items a trip to M10 first — the
- * exact detour the bulk action exists to spare. Taking never offers it: a tag
+ * dashed row FR-24.11 offers a missing item in. Left to M10 alone, tagging
+ * forty untagged items would take a trip to M10 first — the exact detour the
+ * bulk action exists to spare. Taking never offers it: a tag
  * nobody carries cannot be taken away.
  *
  * **Giving carries the switch that refiles.** Assigning a tag does not move an

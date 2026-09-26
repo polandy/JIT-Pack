@@ -22,7 +22,7 @@ const props = withDefaults(
     /**
      * The control at the size of a screen's main action rather than a row's
      * (FR-21.25). M5 is opened to pack the thing, and the control that does
-     * it was the smallest thing on the sheet.
+     * it must not be the smallest thing on the sheet.
      */
     large?: boolean
     /**
@@ -55,17 +55,16 @@ const isPartial = computed(() => props.packed > 0 && props.packed < props.quanti
 /**
  * The two holds, on the gesture the row around them already uses.
  *
- * This was a hand-rolled `setTimeout` pair that borrowed only the 500 ms
- * from `useLongPress` and left its three cancellations behind, while
- * `PackingRow` — the very row these buttons sit in — wires all of them.
- * Each missing one wrote to the trip on its own:
+ * `useLongPress` in full, cancellations included — the gesture `PackingRow`,
+ * the very row these buttons sit in, already wires. Without each one a hold
+ * writes to the trip on its own:
  *
  * - no `pointercancel`: the browser takes the pointer to scroll the list
  *   with it, no up and no leave ever arrives, and half a second later the
  *   row packs itself completely;
  * - no travel slop: a flick that begins on ✚ is a scroll, not a hold;
- * - a leave that *committed* rather than cancelled: dragging off the 28 px
- *   circle counted as the tap, so the same flick stepped the row by one;
+ * - a leave that *commits* rather than cancels: dragging off the 28 px
+ *   circle counts as the tap, so the same flick steps the row by one;
  * - no clearing on unmount: a filter or a navigation takes the row away
  *   mid-press, and the emit still lands on whatever the parent does next.
  */

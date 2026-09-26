@@ -8,8 +8,8 @@
  *    it has been taken (a second close would re-decide rows nobody touched);
  *  - the finished list *says* so, with the moment, and carries the way back;
  *  - the list stays workable, and a row typed onto it lands **packed** — the
- *    owner's case (2026-09-20) is a thing that travelled and was never
- *    listed, not the one open job on an otherwise finished trip.
+ *    case is a thing that travelled and was never listed, not the one open
+ *    job on an otherwise finished trip.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
@@ -222,7 +222,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
 
   it('writes the close once it is confirmed, and arms one undo for the batch', async () => {
     seedTrip({}, [{ name: 'Regenjacke' }])
-    // FR-7.7: the action now reports two things it touched. One undo covers
+    // FR-7.7: the action reports two things it touched. One undo covers
     // both — the rows travel as the snapshot the snackbar holds, the moved
     // tasks in the closure beside it.
     const moved = [{ task: { id: 'task-1', body: 'Salbe holen' }, phase: 'before' }]
@@ -331,8 +331,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
 })
 
 /**
- * FR-5.10's second door (owner, 2026-09-20): *„wird es auch getriggert, wenn
- * das letzte Item gepackt wurde? das sollte es."*
+ * FR-5.10's second door: packing the last item offers the step too.
  *
  * The step is offered where the moment is, not only where the menu is. What
  * needs pinning is the *shape* of that offer, because each clause below is a

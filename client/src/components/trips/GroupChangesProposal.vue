@@ -2,8 +2,8 @@
 /**
  * FR-27.4 — the question, asked at the trip.
  *
- * A group this trip follows has changed, and the owner's rule (2026-08-18) is
- * that the trip takes it over only if asked and answered. The card names every
+ * A group this trip follows has changed, and the rule is that the trip takes
+ * it over only if asked and answered. The card names every
  * change before either button is pressed: "N changes" with nothing to read is
  * a dialog that can only be answered by guessing.
  *
@@ -24,7 +24,7 @@ const emit = defineEmits<{ apply: []; decline: [] }>()
 
 /**
  * Above this many lines the list folds. Same threshold and same reason as
- * M2's log (owner, 2026-08-18): a handful is worth reading in place, and a
+ * M2's log: a handful is worth reading in place, and a
  * group edit that touched forty positions must not push the packing list
  * itself off the screen.
  */
@@ -34,7 +34,7 @@ const expanded = ref(false)
 const changes = computed(() => props.plan.log)
 /**
  * The lead speaks about groups, so it is counted in groups: one group that
- * moved two positions used to announce itself as "the groups … have changed".
+ * moved two positions must not announce itself as "the groups … have changed".
  */
 const groupCount = computed(() => new Set(changes.value.map((c) => c.source_template_id)).size)
 const folds = computed(() => changes.value.length > INLINE_LIMIT)

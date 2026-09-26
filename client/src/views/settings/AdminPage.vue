@@ -129,8 +129,8 @@ function avatarUrl(user: AdminUserRow): string {
 
 /**
  * `toLocaleDateString()` with no locale follows the *device*, not the app —
- * so an English instance on a German phone printed `28.8.2026` under
- * "Provisioned". The same defect the conflict log had (E2E-G2-01, 2026-08-24).
+ * so an English instance on a German phone would print `28.8.2026` under
+ * "Provisioned" — the defect E2E-G2-01 guards against on the conflict log.
  */
 function provisioned(user: AdminUserRow): string {
   return formatDate(new Date(user.created_at))

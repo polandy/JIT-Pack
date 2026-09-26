@@ -162,10 +162,9 @@ describe('ContainerSheet', () => {
   })
 
   // FR-10.1 calls the carrier *optional*, and E2E-M11-01 promises editing
-  // it. E2E-M11-05 sets one and reads it back off the card; nothing at any
-  // layer took one off again until 2026-08-30 (backlog item 6), so a chip
-  // that could only ever be handed on was indistinguishable from one that
-  // toggles.
+  // it. E2E-M11-05 sets one and reads it back off the card, so a chip that
+  // could only ever be handed on would be indistinguishable there from one
+  // that toggles.
   it('tapping the carrier again clears it — the carrier is optional (FR-10.1)', async () => {
     const tripStore = useTripStore()
     seed(tripStore, 'travelers', { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null })

@@ -147,8 +147,8 @@ function unassign(tagId: string) {
 
 /**
  * Make an assigned tag the primary one (FR-24.9) — where the item is filed
- * in the inventory, which until now was decided by the accident of which tag
- * was assigned first and could only be changed by removing them all.
+ * in the inventory, rather than the accident of which tag was assigned
+ * first, changeable only by removing them all.
  *
  * While *creating*, the draft's order is the assignment order, so the same
  * act is a move inside the list rather than a write.
@@ -171,8 +171,8 @@ async function createItem() {
     nameError.value = t('items.editor.nameMissing')
     return
   }
-  // The name identifies the item since FR-24.1 dropped the category from
-  // its UNIQUE — report the clash here rather than let the push reject.
+  // The name alone identifies the item (FR-24.1: the category is not part of
+  // its UNIQUE) — report the clash here rather than let the push reject.
   if (findNameCollision(name, masterStore.activeItemList)) {
     nameError.value = t('items.editor.nameTaken', { name })
     return
@@ -623,8 +623,8 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <!-- The row exists only once the item does, which is what tells the
              replaced edit page apart from the creation form it replaced. The
-             indicator inside it cannot say that since FR-25.15 went silent
-             until it has written something. -->
+             indicator inside it cannot say that: it is silent until it has
+             written something (FR-25.15). -->
         <div v-else class="edit-head" data-testid="m10-edit-head">
           <SaveIndicator :pending="orchestrator.capturePending.value" />
         </div>
@@ -1297,7 +1297,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   cursor: pointer;
 }
 
-/* FR-20.1: a dependency's name leads to that item (owner, 2026-09-24). The
+/* FR-20.1: a dependency's name leads to that item. The
    action role, so it reads as a way somewhere rather than as a label. */
 .dep-link {
   color: var(--jp-action);

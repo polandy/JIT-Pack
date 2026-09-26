@@ -4,7 +4,7 @@
  * pill wherever a task or a purchase is listed (M25, M4's window, M6, M1), so
  * „überfällig" reads the same everywhere.
  *
- * Overdue is the one loud state (the owner asked for red); today and soon
+ * Overdue is the one loud state, in red; today and soon
  * wear the action colour, a date further out stays quiet.
  */
 import { computed } from 'vue'

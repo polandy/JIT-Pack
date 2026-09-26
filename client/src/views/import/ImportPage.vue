@@ -201,9 +201,8 @@ const mapping = computed(() => ({
 
 /**
  * NFR-4.7: names the sheet marked with a trailing '?'. The rule that strips it
- * and writes an open task has been built and unit-covered since the wizard
- * shipped; what no step did was *say* so, so the user first met the tasks
- * inside the trip (E2E-M15-02).
+ * and writes an open task lives in the domain; this is the step that *says*
+ * so, so the user does not first meet the tasks inside the trip (E2E-M15-02).
  */
 const noiseNames = computed(() =>
   buildImportPlan(grid.value, mapping.value, new Map())

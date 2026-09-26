@@ -2,11 +2,11 @@
  * FR-25.15 — the indicator's seam, pinned across every surface that carries
  * it rather than on one of them.
  *
- * `SaveIndicator` is mounted by four sheets (M5, M8, M10, M11), and until
- * 2026-08-30 all four passed it `syncStatus.state` — G-2's own state, the
- * one thing the requirement says it must never be. A behavioural case on M5
- * proves M5; it says nothing about the other three, and the defect was
- * precisely that the same wrong line had been copied into each.
+ * `SaveIndicator` is mounted by four sheets (M5, M8, M10, M11), and none may
+ * pass it `syncStatus.state` — G-2's own state, the one thing the
+ * requirement says it must never be. A behavioural case on M5 proves M5; it
+ * says nothing about the other three, and the defect to catch is precisely
+ * the same wrong line copied into each.
  *
  * So the rule is asserted where it actually lives: at the call sites. A
  * fifth sheet added later is covered by construction, which a fourth

@@ -2,8 +2,8 @@
 /**
  * G-2 / FR-19.6 — the sync detail behind the status glyph.
  *
- * The glyph is one symbol standing for four different situations, and until
- * now tapping it did nothing outside a trip. What the sheet must get right is
+ * The glyph is one symbol standing for four different situations. What the
+ * sheet must get right is
  * therefore *which* story it tells: the network states explain the queue and
  * lead to the conflict log, Local Mode explains that there is no server and
  * leads to a backup — conflicts cannot occur there, so offering the log would
@@ -143,7 +143,7 @@ describe('SyncDetailSheet — network states (G-2)', () => {
 
     // The trip-scoped log genuinely has no subject here. The master
     // partition's has one either way — inventory, groups and a trip's own
-    // fields merge there — and it used to be reachable through nothing.
+    // fields merge there — and this sheet is its way in.
     expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
     await wrapper.get('[data-testid="sync-detail-master-conflicts"]').trigger('click')
 
@@ -363,9 +363,9 @@ describe('SyncDetailSheet — the durable queue', () => {
   })
 
   /**
-   * The refusal used to be a count and nothing else, so "the server rejected
-   * 1 change" was the whole story a user got about a template the app had
-   * already removed from their screen. The reason is what makes the count
+   * A count alone — "the server rejected 1 change" — would be the whole
+   * story a user got about a template the app had already removed from
+   * their screen. The reason is what makes the count
    * actionable (Sync-API §5).
    */
   it('says why the last refusal happened', () => {
@@ -410,8 +410,8 @@ describe('SyncDetailSheet — the durable queue', () => {
  * Sync-API §7/§9 — whether other devices' changes are reaching this one. The
  * glyph's four states are about this device's own changes reaching the
  * server and say nothing about the socket; a dead one under a green glyph
- * was a device that looked synced and heard nobody (found 2026-09-01 on the
- * family instance). Both outcomes render a line, so the gap can be asserted
+ * is a device that looks synced and hears nobody. Both outcomes render a
+ * line, so the gap can be asserted
  * against the connected line's absence rather than against nothing.
  */
 describe('SyncDetailSheet — live updates (Sync-API §7/§9)', () => {
@@ -439,9 +439,9 @@ describe('SyncDetailSheet — live updates (Sync-API §7/§9)', () => {
 })
 
 /**
- * FR-19.6 — since when "synced" is true. The glyph said *synced* and nothing
- * said how long ago, so a device left in a drawer read like one that had just
- * pulled.
+ * FR-19.6 — since when "synced" is true. The glyph says *synced* and not how
+ * long ago, so without this line a device left in a drawer reads like one
+ * that has just pulled.
  */
 describe('SyncDetailSheet — the last completed sync (FR-19.6)', () => {
   it('says when the last cycle completed, as a time of day on the same day', () => {

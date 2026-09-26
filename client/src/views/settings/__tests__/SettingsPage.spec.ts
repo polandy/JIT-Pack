@@ -196,8 +196,8 @@ describe('M17 profile with an OIDC session (FR-17.13)', () => {
     const note = wrapper.find('[data-testid="settings-name-managed"]')
     expect(note.exists()).toBe(true)
     expect(note.text()).toContain('display name')
-    // The old copy said "Profile is managed by your identity provider", which
-    // stopped being true the moment the picture became editable here.
+    // Not "Profile is managed by your identity provider": the picture is
+    // editable here.
     expect(note.text()).not.toMatch(/^Profile is managed/)
   })
 

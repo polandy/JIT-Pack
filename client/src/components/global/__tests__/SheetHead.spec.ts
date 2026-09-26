@@ -81,9 +81,9 @@ describe('SheetHead — one head, one way out (G-13)', () => {
 
   it('declines the h1 margin the role does not name', () => {
     // `.jp-sheet-title` names type and no spacing, so the browser's own h1
-    // margin survives it. Four sheets used to decline it separately, and the
-    // one that forgot had its title start half a line below the state glyph
-    // it was supposed to align with (E2E-G2-08).
+    // margin survives it. A sheet that forgets to decline it has its title
+    // start half a line below the state glyph it aligns with (E2E-G2-08), so
+    // SheetHead declines it once for all of them.
     const css = readFileSync(resolve(process.cwd(), 'src/components/global/SheetHead.vue'), 'utf8')
     expect(css).toMatch(/\.titles h1 \{[^}]*margin: 0/)
   })

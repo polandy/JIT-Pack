@@ -3,12 +3,10 @@
  * A person, as a circle (FR-25.3) — and specifically what happens when there
  * is no picture, which is the common case rather than the edge one.
  *
- * The avatar endpoint 404s for any account that never uploaded a photo. M20
- * and M17 each rendered a bare `<img>` at it: one showed the browser's
- * torn-picture glyph, the other hid the element on error and left a 64 px
- * hole where a person should be, with the placeholder written for that case
- * sitting behind a condition that was never false. Both were on screen until
- * 2026-08-28. The initials are the ground here, so neither state exists.
+ * The avatar endpoint 404s for any account that never uploaded a photo. A
+ * bare `<img>` at it shows the browser's torn-picture glyph, or, hidden on
+ * error, leaves a 64 px hole where a person should be. The initials are the
+ * ground here, so neither state exists.
  */
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'

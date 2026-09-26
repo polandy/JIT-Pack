@@ -3,9 +3,9 @@
  * M23 — Hidden master data (FR-24.3, ADR-034)
  *
  * The other half of the lifecycle delete: a master item or Vorlage something
- * still uses is *retired* rather than removed, and until this screen existed
- * that was one-way in practice — the data half of the FR's "free restore"
- * was built and no surface listed the rows it applied to.
+ * still uses is *retired* rather than removed, and this screen is what makes
+ * that two-way in practice: it lists the rows the FR's "free restore"
+ * applies to.
  *
  * It lives beside the conflict log rather than inside M9 and M7, for the
  * same reason the conflict log does: it is a corrective surface, used after

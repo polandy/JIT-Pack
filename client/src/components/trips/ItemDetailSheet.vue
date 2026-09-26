@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * M5 — item detail, redesigned 2026-08-14 (UI-Spec M5, Addendum §3.25).
+ * M5 — item detail (UI-Spec M5, Addendum §3.25).
  *
  * The screen is opened for one of three reasons: to pack the thing, to
- * note something about it, or to change one attribute. The old build gave
- * all three the same weight — nine equal sections, every one expanded —
- * which is why it read as a form rather than as a thing you handle.
+ * note something about it, or to change one attribute. Giving all three the
+ * same weight — nine equal sections, every one expanded — reads as a form
+ * rather than as a thing you handle.
  *
  * The order here is the order of those reasons:
  *   1. the row's identity, small photo included (FR-22.1),
@@ -130,10 +130,10 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
 
 /**
  * G-3: while somebody else is packing this row, the sheet is a view of it
- * and nothing more. The padlock used to stop at M4's row, so one tap
- * deeper handed over every control — the exact collision G-3 exists to
- * prevent, and the harder one to notice, because the sheet accepted the
- * edit and the other device simply lost it at the next merge.
+ * and nothing more. A padlock that stopped at M4's row would hand over
+ * every control one tap deeper — the exact collision G-3 exists to
+ * prevent, and the harder one to notice, because the sheet would accept the
+ * edit and the other device simply lose it at the next merge.
  *
  * The whole sheet goes read-only rather than the packing block alone:
  * G-3 says "non-interactive for others except viewing", and a mode where
@@ -253,7 +253,7 @@ const suggestedCompanions = computed(() => {
 function addCompanion(companion: SuggestedCompanion) {
   // Every field comes from the resolution rather than a second lookup: it
   // knows the category the row is filed under (FR-24.2) and the quantity
-  // the dependency asked for, and this chip used to write neither.
+  // the dependency asked for, and the chip writes both.
   orchestrator.quickAddItem(
     props.tripId,
     companion.name,
@@ -405,7 +405,7 @@ const packedStamp = computed(() => {
     >
       <template #lead>
         <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
-           it is not what the screen is about — it used to take 200px of
+           it is not what the screen is about, and a large one would take
            the first thing you see, on rows that mostly have none. The mark
            is the same slot's second rung (FR-28.4). `plain`, not `packing`:
            the sheet has no column to keep aligned, so an ad-hoc row shows
@@ -451,8 +451,8 @@ const packedStamp = computed(() => {
     </p>
 
     <!-- What the screen is opened for, and therefore the biggest control.
-         Labelled like prep and notes below (UX pass 2026-08-25): without the
-         eyebrow, a quantity-1 row rendered as an unlabelled box holding only
+         Labelled like prep and notes below: without the
+         eyebrow, a quantity-1 row renders as an unlabelled box holding only
          a checkbox and the state chip. -->
     <!-- FR-25.24: how many, before how many of them are in the bag. The
          order is the order of the two questions — a stepper counting

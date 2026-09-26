@@ -235,8 +235,8 @@ async function saveName() {
   if (!me.value || !nameValid.value) return
   // The store is refreshed by `saveDisplayName` itself (ADR-047), so the
   // name this screen shows and the name M4 puts on a packed row are one
-  // answer — this used to patch a ref of its own and leave every other
-  // screen's copy behind until it was remounted.
+  // answer — a ref of this screen's own would leave every other screen's
+  // copy behind until it was remounted.
   await orchestrator.saveDisplayName(me.value.user_id, nameDraft.value)
   nameSaved.value = true
   setTimeout(() => (nameSaved.value = false), 2000)
@@ -345,10 +345,8 @@ const yamlTemplateId = ref('')
  * NFR-4.11 export reminder. What it tracks is the **whole-device** backup —
  * the requirement's own words — which is the G-2 storage sheet's one-tap
  * export and nothing else. The two YAML downloads below are a single trip
- * and a single template, and until 2026-08-30 they stamped this same key:
- * exporting one trip silenced the warning about everything the file did not
- * contain. They were written when M17's YAML *was* the only export, and the
- * device backup (ADR-015) arrived beside them without anyone revisiting it.
+ * and a single template, and they do not stamp this key: exporting one trip
+ * must not silence the warning about everything the file does not contain.
  */
 const exportReminder = ref(reminderState(lastExportAt(), Date.now()))
 
@@ -675,8 +673,8 @@ async function exportTripCSV() {
         </IonItem>
         <!-- Same add-row shape as M22's traveller editor: a placeholder
              input and a labelled button, no stacked label — the scaled
-             floating label rendered with glyph gaps mid-word (UX review
-             2026-08-25) and its lone + read as detached. -->
+             floating label renders with glyph gaps mid-word and its lone +
+             reads as detached. -->
         <IonItem lines="none">
           <IonInput
             data-testid="default-traveler-input"
