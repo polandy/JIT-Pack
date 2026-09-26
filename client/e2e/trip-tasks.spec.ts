@@ -421,8 +421,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(before.getByTestId('m25-group-trip')).toContainText('No tag')
 
     await before.getByTestId('trip-todo-open-Salbe holen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('task-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('task-tag-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The heading is the assertion: a tag that wrote nothing visible would
@@ -441,7 +441,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Taken back: the task is under „No tag" again, and the empty tag group
     // is gone with it — an empty heading is not drawn.
     await visible(page).getByTestId('trip-todo-open-Salbe holen').click()
-    await page.getByTestId('task-sheet-tag-none').click()
+    await expect(page.getByTestId('task-tag-summary')).toHaveText('Filed under: Apotheke')
+    await page.getByTestId('task-tag-assigned-Apotheke').click()
     await expect(visible(page).getByTestId('m25-group-trip')).toContainText('Salbe holen')
   })
 
@@ -469,11 +470,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // Two tags to drag between, made the way the app makes them.
     const section = await openTasks(page, 'before')
     await section.getByTestId('trip-todo-open-Salbe holen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Apotheke')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('task-tag-search').locator('input').fill('Apotheke')
+    await page.getByTestId('task-tag-create').click()
     await visible(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('task-tag-search').locator('input').fill('Haus')
+    await page.getByTestId('task-tag-create').click()
     // The sheet's own teardown, as `tripAction` waits for it: one still on
     // screen takes the pointer that was meant for the row underneath — which
     // is exactly what the first run of this case did.
@@ -595,8 +596,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
 
     await visible(page).getByTestId('m25-bulk-tag').click()
     await expect(page.getByTestId('m25-bulk-title')).toContainText('2')
-    await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-    await page.getByTestId('task-sheet-tag-add').click()
+    await page.getByTestId('task-tag-search').locator('input').fill('Haus')
+    await page.getByTestId('task-tag-create').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
     // The mode ends with the batch; both tasks now stand under one heading.
@@ -750,8 +751,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   /**
    * E2E-M25-14 (FR-7.14): a task is filed as it is typed, and what is due
    * leads. The one composer sits on top; its chips name the phase, the tag
-   * and the day, and the task lands with all three in one write — read back
-   * after a reload. Due today, it stands in the *Fällig* block, named by its
+   * and the day, and *＋ Tag* opens M6's entry sheet with what was typed. The
+   * task lands with all three in one write — read back after a reload. Due today, it stands in the *Fällig* block, named by its
    * tag since it is outside its group; the tag's group itself is not drawn,
    * because nothing else is in it. The FAB takes the reader back to the field.
    */
@@ -764,15 +765,25 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await expect(visible(page).getByTestId('m25-due')).toHaveCount(0)
 
     const composer = visible(page).getByTestId('m25-composer')
-    await composer.getByTestId('m25-composer-tag-new').click()
-    await fillIonic(composer.getByTestId('m25-composer-tag-input'), 'Apotheke')
-    await composer.getByTestId('m25-composer-tag-create').click()
-    const tag = composer.getByTestId('m25-composer-tag-Apotheke')
-    await expect(tag).toHaveAttribute('aria-pressed', 'true')
     await fillIonic(composer.getByTestId('trip-todo-input'), 'Fetch the salve')
     await composer.getByTestId('due-chip-today').click()
     await expect(composer.getByTestId('m25-composer-due-current')).toBeVisible()
-    await composer.getByTestId('trip-todo-add').click()
+
+    // ＋ Tag is M6's entry sheet (owner, 2026-09-26): it carries the words
+    // and the day typed so far, and makes the tag by search-or-create.
+    await composer.getByTestId('m25-composer-tag-new').click()
+    const sheet = page.getByTestId('m25-entry-sheet')
+    await expect(sheet.getByTestId('m25-entry-title')).toHaveText('New task')
+    await expect(sheet.getByTestId('m25-entry-name').locator('input')).toHaveValue(
+      'Fetch the salve',
+    )
+    await expect(sheet.getByTestId('m25-entry-due-current')).toBeVisible()
+    await sheet.getByTestId('task-tag-search').locator('input').fill('Apotheke')
+    await sheet.getByTestId('task-tag-create').click()
+    await expect(sheet.getByTestId('task-tag-summary')).toHaveText('Filed under: Apotheke')
+    await sheet.getByTestId('m25-entry-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    const tag = composer.getByTestId('m25-composer-tag-Apotheke')
 
     const due = visible(page).getByTestId('m25-due')
     await expect(due.getByTestId('trip-todo-due-Fetch the salve')).toHaveText('Today')

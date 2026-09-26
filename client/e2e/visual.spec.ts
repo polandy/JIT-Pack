@@ -332,8 +332,8 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   // FR-7.8: one task carries a tag, so the baseline shows all three kinds of
   // heading — a tag, what came from the packing list, and what has none.
   await visiblePage(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
-  await fillIonic(page.getByTestId('task-sheet-tag-input'), 'Haus')
-  await page.getByTestId('task-sheet-tag-add').click()
+  await page.getByTestId('task-tag-search').locator('input').fill('Haus')
+  await page.getByTestId('task-tag-create').click()
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
   // FR-7.14: one task due today, so the *Fällig* block on top is in the
   // baseline — the preparation, named there by where it came from.

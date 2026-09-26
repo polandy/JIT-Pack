@@ -35,8 +35,9 @@ import { addOutline, bagHandleOutline, closeOutline, pricetagsOutline } from 'io
 import { computed, inject, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
-import DateField from '@/components/global/DateField.vue'
+import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
+import DueChips from '@/components/global/DueChips.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
@@ -61,7 +62,13 @@ import { presentToast } from '@/lib/toast'
 import { boughtStampText } from '@/lib/rowFacts'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, TRIP_STATUS_PLANNING } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TRIP_STATUS_PLANNING,
+} from '@/types/domain'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
 import { buildSections, dropTag, listInFocus, type ShoppingSection } from './list'
@@ -407,11 +414,25 @@ function toggleDraftTag(tag: string) {
   }
 }
 
+/**
+ * FR-30.10: the day the next entry is due — M25's chips (owner, 2026-09-26),
+ * with *Vor Abreise* on the tab that is bought before it. Unlike the tag it
+ * does not stay after an add: two things due the same day is a coincidence.
+ */
+const draftDue = ref<string | null>(null)
+const duePhase = computed(() =>
+  tab.value === ITEM_MODE_BUY_BEFORE ? TASK_PHASE_BEFORE : TASK_PHASE_DURING,
+)
+const tripStart = computed(() => trip.value?.start_date?.slice(0, 10) ?? null)
+/** The day row waits for something to date, so the composer stays two lines at rest. */
+const showDays = computed(() => draft.value.trim() !== '' || draftDue.value !== null)
+
 /** FR-30.1: an entry of the list's own, on the open tab. */
 function addEntry() {
   if (draft.value.trim() === '') return
-  actions.addEntry(props.tripId, tab.value, draft.value, draftTag.value)
+  actions.addEntry(props.tripId, tab.value, draft.value, draftTag.value, draftDue.value)
   draft.value = ''
+  draftDue.value = null
 }
 
 /**
@@ -433,7 +454,7 @@ const entrySheet = ref<{
 const madeTags = ref<string[]>([])
 
 function openAddSheet() {
-  entrySheet.value = { line: null, name: draft.value, tag: draftTag.value, due: null }
+  entrySheet.value = { line: null, name: draft.value, tag: draftTag.value, due: draftDue.value }
 }
 
 /** An existing entry, from a tap on its name; a source's line has nothing to edit. */
@@ -447,9 +468,9 @@ function chooseSheetTag(tag: string | null) {
   if (tag !== null && !madeTags.value.includes(tag)) madeTags.value.push(tag)
 }
 
-/** FR-30.10: the date field's answer; its clear hands back an empty string, which is no date. */
-function chooseSheetDue(iso: string) {
-  if (entrySheet.value) entrySheet.value.due = iso === '' ? null : iso
+/** FR-30.10: the day chips' answer, null for none. */
+function chooseSheetDue(day: string | null) {
+  if (entrySheet.value) entrySheet.value.due = day
 }
 
 function confirmEntrySheet() {
@@ -460,6 +481,7 @@ function confirmEntrySheet() {
   } else {
     actions.addEntry(props.tripId, tab.value, sheet.name, sheet.tag, sheet.due)
     draft.value = ''
+    draftDue.value = null
     draftTag.value = sheet.tag
   }
   entrySheet.value = null
@@ -502,7 +524,7 @@ setHeaderTitle(
       }}</InlineHint>
       <div
         v-else
-        class="composer"
+        class="composer jp-card"
         :class="{ resting: selecting }"
         :inert="selecting || undefined"
         data-testid="m6-composer"
@@ -531,26 +553,30 @@ setHeaderTitle(
 
         <!-- FR-30.9: the tag the next entry is filed under. -->
         <div class="chips" role="group" :aria-label="t('shopping.tags')" data-testid="m6-tag-chips">
-          <button
+          <ChoiceChip
             v-for="tag in tagChips"
             :key="tag"
-            type="button"
-            class="chip"
-            :aria-pressed="draftTag === tag"
+            :pressed="draftTag === tag"
             data-testid="m6-tag-chip"
             @click="toggleDraftTag(tag)"
           >
             {{ tag }}
-          </button>
-          <button
-            type="button"
-            class="chip chip-add"
-            data-testid="m6-tag-new"
-            @click="openAddSheet"
-          >
+          </ChoiceChip>
+          <ChoiceChip add data-testid="m6-tag-new" @click="openAddSheet">
             {{ t('shopping.tagAdd') }}
-          </button>
+          </ChoiceChip>
         </div>
+
+        <!-- FR-30.10: the day, once there is something to date (M25's row). -->
+        <DueChips
+          v-if="showDays"
+          :value="draftDue"
+          :today="today"
+          :phase="duePhase"
+          :trip-start="tripStart"
+          testid="m6-composer-due"
+          @update="draftDue = $event"
+        />
       </div>
 
       <IonList v-if="sections.length > 0">
@@ -812,11 +838,14 @@ setHeaderTitle(
             "
             @keyup.enter="confirmEntrySheet"
           />
-          <!-- FR-30.10: a day, not a time — FR-7.11's field for a task. -->
+          <!-- FR-30.10: a day, not a time — M25's day chips for a task. -->
           <div class="entry-sheet-due">
-            <DateField
-              :label="t('shopping.dueField')"
-              :value="entrySheet.due ?? ''"
+            <div class="entry-sheet-label jp-section-count">{{ t('shopping.dueField') }}</div>
+            <DueChips
+              :value="entrySheet.due"
+              :today="today"
+              :phase="duePhase"
+              :trip-start="tripStart"
               testid="m6-entry-due"
               @update="chooseSheetDue"
             />
@@ -924,6 +953,16 @@ setHeaderTitle(
   gap: 6px;
 }
 
+/* M25's composer, card for card (owner, 2026-09-26): the field and its
+   chips read as one thing to fill in, not as loose lines above the list. */
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 12px 4px;
+  padding: 4px 12px 12px;
+}
+
 /* G-20: at rest while a selection is on — in place, so nothing moves. */
 .composer.resting {
   opacity: 0.45;
@@ -933,7 +972,6 @@ setHeaderTitle(
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 16px 0;
 }
 
 .add-input {
@@ -951,33 +989,8 @@ setHeaderTitle(
 .chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  padding: 0 16px 8px;
-}
-
-.chip {
-  padding: 5px 12px;
-  border: 1px solid var(--ct-surface1);
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-sunken);
-  color: var(--ct-text);
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.chip[aria-pressed='true'] {
-  border-color: var(--jp-action);
-  color: var(--jp-action);
-}
-
-.chip-add {
-  background: none;
-  color: var(--ct-subtext0);
-}
-
-.chip:focus-visible {
-  outline: 2px solid var(--jp-action);
-  outline-offset: 2px;
 }
 
 .tappable {
@@ -1008,6 +1021,10 @@ setHeaderTitle(
 
 .entry-sheet-due {
   margin-top: 12px;
+}
+
+.entry-sheet-label {
+  margin-bottom: 6px;
 }
 
 .entry-sheet-actions {

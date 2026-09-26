@@ -12,7 +12,7 @@
  * (`domain/__tests__/tripTodos.spec.ts`, `lib/__tests__/taskFacts.spec.ts`).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { IonInput } from '@ionic/vue'
+import { IonInput, IonSearchbar } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
@@ -250,6 +250,46 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       'before',
       { taskTagId: 'tag-apo', dueDate: null },
     )
+  })
+
+  /*
+   * ＋ Tag is M6's entry sheet (owner, 2026-09-26): it carries what was typed,
+   * files the task under the tag chosen there, and leaves that tag chosen in
+   * the composer for the next one.
+   */
+  it('opens the entry sheet from ＋ Tag with the words typed, and writes what it was given', async () => {
+    seedTrip()
+    seedTaskTag('tag-apo', 'Apotheke', 0)
+    const page = mountPage()
+    await flushPromises()
+
+    const composer = page.findComponent(TaskComposer)
+    await composer.findComponent(IonInput).setValue('Salbe holen')
+    expect(composer.find('[data-testid="m25-entry-name"]').exists()).toBe(false)
+    await composer.get('[data-testid="m25-composer-tag-new"]').trigger('click')
+    await flushPromises()
+
+    expect(composer.get('[data-testid="m25-entry-title"]').text()).toBe('New task')
+    const name = composer
+      .findAllComponents(IonInput)
+      .find((input) => input.attributes('data-testid') === 'm25-entry-name')!
+    expect(name.props('value')).toBe('Salbe holen')
+    await composer.get('[data-testid="task-tag-Apotheke"]').trigger('click')
+    expect(composer.get('[data-testid="task-tag-summary"]').text()).toBe('Filed under: Apotheke')
+    await composer.get('[data-testid="m25-entry-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+      't1',
+      expect.any(String),
+      'Salbe holen',
+      'before',
+      { taskTagId: 'tag-apo', dueDate: null },
+    )
+    expect(composer.find('[data-testid="m25-entry-name"]').exists()).toBe(false)
+    expect(
+      composer.get('[data-testid="m25-composer-tag-Apotheke"]').attributes('aria-pressed'),
+    ).toBe('true')
   })
 
   it('says so where a section is empty, rather than leaving a gap', async () => {
@@ -528,7 +568,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    await page.get('[data-testid="task-sheet-tag-Apotheke"]').trigger('click')
+    await page.get('[data-testid="task-tag-Apotheke"]').trigger('click')
     await flushPromises()
 
     expect(acts.setTaskTag).toHaveBeenCalledWith(
@@ -549,14 +589,14 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
   })
 
   /*
-   * „No tag" is a choice in the list rather than the absence of one, and it
-   * is named after where the task came from — the same words as its group,
-   * so the sheet and the list cannot disagree about where it will land.
+   * An untagged task's sheet names the group it stands in, after where the
+   * task came from — the same words as its heading, so the sheet and the list
+   * cannot disagree about where it is.
    */
-  it('offers “no tag” under the name of the group it would return to', async () => {
+  it('names the group an untagged task stands in, after where it came from', async () => {
     seedTrip()
     seedRow('ti-1', 'Kulturbeutel')
-    seedTask('Akku laden', { trip_item_id: 'ti-1', task_tag_id: 'apo' })
+    seedTask('Akku laden', { trip_item_id: 'ti-1' })
     seedTaskTag('apo', 'Apotheke', 0)
 
     const page = mountPage()
@@ -564,7 +604,29 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="trip-todo-open-Akku laden"]').trigger('click')
     await flushPromises()
 
-    expect(page.get('[data-testid="task-sheet-tag-none"]').text()).toBe('From the packing list')
+    expect(page.get('[data-testid="task-tag-summary"]').text()).toBe(
+      'No tag yet — the task is listed under “From the packing list”.',
+    )
+  })
+
+  it('takes a task’s tag off with the ✕ on its chip', async () => {
+    seedTrip()
+    seedTaskTag('apo', 'Apotheke', 0)
+    seedTask('Salbe holen', { task_tag_id: 'apo' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await flushPromises()
+    expect(page.get('[data-testid="task-tag-summary"]').text()).toBe('Filed under: Apotheke')
+    await page.get('[data-testid="task-tag-assigned-Apotheke"]').trigger('click')
+    await flushPromises()
+
+    expect(acts.setTaskTag).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'Salbe holen' }),
+      null,
+    )
   })
 
   it('creates a tag that is not in the list yet, where it is needed', async () => {
@@ -575,12 +637,12 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
     await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    // The tag chooser's own field — the sheet's first input is FR-7.11's date.
     await page
       .findComponent({ name: 'TaskTagChooser' })
-      .findComponent(IonInput)
-      .setValue('Apotheke')
-    await page.get('[data-testid="task-sheet-tag-add"]').trigger('click')
+      .findComponent(IonSearchbar)
+      .vm.$emit('ionInput', { detail: { value: 'Apotheke' } })
+    await flushPromises()
+    await page.get('[data-testid="task-tag-create"]').trigger('click')
     await flushPromises()
 
     expect(acts.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
@@ -670,7 +732,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-tag"]').trigger('click')
     await flushPromises()
     expect(page.get('[data-testid="m25-bulk-title"]').text()).toBe('Tag for 3 tasks')
-    await page.get('[data-testid="task-sheet-tag-Apotheke"]').trigger('click')
+    await page.get('[data-testid="task-tag-Apotheke"]').trigger('click')
     await flushPromises()
 
     // Salbe already carried it: two writes, across both phases and both kinds.

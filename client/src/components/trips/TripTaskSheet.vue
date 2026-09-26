@@ -27,10 +27,9 @@ import {
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
+import DueChips from '@/components/global/DueChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import TaskDueChips from '@/components/trips/TaskDueChips.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
-import { quickDueDays } from '@/domain/taskQuickDays'
 import { filedTagOf, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
@@ -118,10 +117,6 @@ function onWordsKey(ev: KeyboardEvent) {
  */
 const chosenTag = computed(() => filedTagOf(props.task, props.taskTags ?? []))
 const noTagLabel = computed(() => (props.task.item ? t('tasks.fromPacking') : t('tasks.noTag')))
-
-const quick = computed(() =>
-  quickDueDays(props.today, { phase: props.task.phase, tripStart: props.tripStart }),
-)
 
 /** FR-7.11: the day chips' answer; the day it already has is no change. */
 function onDue(day: string | null) {
@@ -212,10 +207,11 @@ function factLine(key: string, icon: string, text: string | null) {
          finished task's date says when it was meant, nothing more to set. -->
     <section v-if="isOpen && !history" class="due">
       <div class="label jp-section-count">{{ t('tasks.dueField') }}</div>
-      <TaskDueChips
+      <DueChips
         :value="task.due_date"
         :today="today"
-        :quick="quick"
+        :phase="task.phase"
+        :trip-start="tripStart ?? null"
         testid="task-sheet-due"
         @update="onDue"
       />

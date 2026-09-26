@@ -29,7 +29,7 @@ const props = withDefaults(
     max?: string
     /**
      * FR-7.14: only the calendar, no field — for a caller whose own control
-     * opens it (M25's *Datum…* chip, `TaskDueChips`) through `openPicker`.
+     * opens it (M25's *Datum…* chip, `DueChips`) through `openPicker`.
      */
     bare?: boolean
   }>(),

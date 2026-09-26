@@ -1571,7 +1571,6 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.bulkMovedToDuring':
     'Eine Aufgabe auf „Während der Reise“ geschoben | {n} Aufgaben auf „Während der Reise“ geschoben',
   'tasks.bulkNothingToDo': 'Nichts zu ändern — die Auswahl ist schon dort.',
-  'tasks.newTag': 'Neues Tag…',
   'tasks.movedToast': '„{body}" verschoben',
   'tasks.whilePacking': 'Beim Packen zu erledigen',
   // FR-7.11 — das Fälligkeitsdatum einer Aufgabe: nur ein Tag, keine Zeit.
@@ -1594,6 +1593,13 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.duringShort': 'Unterwegs',
   'tasks.phaseLabel': 'Wann',
   'tasks.tagAdd': '＋ Tag',
+  'tasks.tagSearchPlaceholder': 'Tags suchen oder anlegen…',
+  'tasks.tagCreate': '„{name}“ neu anlegen',
+  'tasks.tagFiledUnder': 'Abgelegt unter: {tag}',
+  'tasks.tagUnassign': 'Tag entfernen: {tag}',
+  'tasks.tagNone': 'Noch kein Tag — die Aufgabe steht unter „{group}“.',
+  'tasks.entrySheetNew': 'Neue Aufgabe',
+  'tasks.entryName': 'Aufgabe',
   'tasks.quickBeforeDeparture': 'Vor Abreise',
   'tasks.quickPick': 'Datum…',
   'tasks.dueClear': 'Fällig {day} – entfernen',

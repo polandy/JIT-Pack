@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
- * FR-7.14: a task's due day, chosen from chips — *Heute*, *Morgen*, *Vor
- * Abreise* where it applies, and *Datum…* for the calendar as the last
- * resort. The owner's rework of 2026-09-25: a day used to take five taps
- * through two stacked sheets.
+ * FR-7.14: a due day, chosen from chips — *Heute*, *Morgen*, *Vor Abreise*
+ * where it applies, and *Datum…* for the calendar as the last resort. The
+ * owner's rework of 2026-09-25: a day used to take five taps through two
+ * stacked sheets.
  *
  * The day in force is its own chip with a ✕, so taking a date off is one tap
- * too. Used by M25's composer, the task sheet and the selection's *Fällig*.
+ * too. Used by M25 (composer, task sheet, the selection's *Fällig*) and, since
+ * 2026-09-26, by M6's composer and entry sheet (FR-30.10) — which is why it is
+ * a shared component and works out its chips itself: the shopping module may
+ * not reach `domain/` (ADR-066).
  */
 import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
@@ -18,19 +21,25 @@ import {
   QUICK_DAY_BEFORE_DEPARTURE,
   QUICK_DAY_TODAY,
   QUICK_DAY_TOMORROW,
-  type QuickDay,
+  quickDueDays,
   type QuickDayKey,
 } from '@/domain/taskQuickDays'
 import { t, type MessageKey } from '@/i18n'
 import { dueLabel, shortDueDay } from '@/lib/taskDueText'
+import type { TaskPhase } from '@/types/domain'
 
 const props = defineProps<{
   /** The day in force, `YYYY-MM-DD`, or null for none. */
   value: string | null
   /** Today as the device reckons it. */
   today: string
-  /** The chips on offer (`quickDueDays`). */
-  quick: readonly QuickDay[]
+  /**
+   * What the day is for — *Vor Abreise* is offered only for before the trip;
+   * null where the things in hand are of both phases (a mixed selection).
+   */
+  phase: TaskPhase | null
+  /** The trip's first day; null where it names none. */
+  tripStart: string | null
   /**
    * The test handle: the *Datum…* chip carries it and the calendar
    * `${testid}-picker`, so `setDateField` drives it as it drives a field.
@@ -45,6 +54,10 @@ const QUICK_LABEL: Record<QuickDayKey, MessageKey> = {
   [QUICK_DAY_TOMORROW]: 'tasks.dueTomorrow',
   [QUICK_DAY_BEFORE_DEPARTURE]: 'tasks.quickBeforeDeparture',
 }
+
+const quick = computed(() =>
+  quickDueDays(props.today, { phase: props.phase, tripStart: props.tripStart }),
+)
 
 const picker = ref<{ openPicker: () => void } | null>(null)
 

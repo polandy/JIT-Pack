@@ -11,9 +11,11 @@
  *  - **the phase** — *Vor der Reise* until the trip's first day or the
  *    finished packing (FR-7.12), whichever comes first; then the row goes and
  *    everything written is for the road;
- *  - **the tag** — the task tags, and *＋ Tag* for a word that is not one
- *    yet (FR-7.8's „created where it is needed");
- *  - **the day** — `TaskDueChips`, shown once there is something to date.
+ *  - **the tag** — the task tags, and *＋ Tag*, which opens M6's entry sheet
+ *    (owner, 2026-09-26): the words typed so far, the day and the tag chooser
+ *    with its search-or-create, so a tag that is not one yet is made where
+ *    it is needed (FR-7.8);
+ *  - **the day** — `DueChips`, shown once there is something to date.
  *
  * The phase and the tag stay after a task is written, as M6's tag does: the
  * things for one errand are typed one after another. The day does not — two
@@ -28,10 +30,12 @@ import { addOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
+import DueChips from '@/components/global/DueChips.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
-import TaskDueChips from '@/components/trips/TaskDueChips.vue'
+import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
-import { quickDueDays } from '@/domain/taskQuickDays'
 import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase, type TaskTag } from '@/types/domain'
@@ -76,39 +80,61 @@ watch(
   },
 )
 
-const quick = computed(() =>
-  quickDueDays(props.today, { phase: phase.value, tripStart: props.tripStart }),
-)
-
 /** The day row waits for something to date, so the composer stays two lines at rest. */
 const showDays = computed(() => draft.value.trim() !== '' || day.value !== null)
-
-const newTagOpen = ref(false)
-const newTag = ref('')
 
 function toggleTag(id: string) {
   tagId.value = tagId.value === id ? null : id
 }
 
-function createTag() {
-  const name = newTag.value.trim()
-  if (!name) return
-  // Created where it is needed, like the sheet's (FR-7.8).
-  tagId.value = orchestrator.createTaskTag(name, props.taskTags.length)
-  newTag.value = ''
-  newTagOpen.value = false
+function write(body: string, filing: { taskTagId: string | null; dueDate: string | null }) {
+  const id = orchestrator.addTripTodo(
+    props.tripId,
+    CLIENT_ACTOR_PLACEHOLDER,
+    body,
+    phase.value,
+    filing,
+  )
+  emit('added', id, body)
 }
 
 function add() {
   const body = draft.value.trim()
   if (!body) return
-  const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body, phase.value, {
-    taskTagId: tagId.value,
-    dueDate: day.value,
-  })
+  write(body, { taskTagId: tagId.value, dueDate: day.value })
   draft.value = ''
   day.value = null
-  emit('added', id, body)
+}
+
+/**
+ * M6's entry sheet, for a task (owner, 2026-09-26): opened from *＋ Tag*,
+ * carrying what was typed, the day and the tag chosen so far. Null while shut.
+ */
+const entry = ref<{ body: string; tagId: string | null; day: string | null } | null>(null)
+
+function openEntry() {
+  entry.value = { body: draft.value, tagId: tagId.value, day: day.value }
+}
+
+function chooseEntryTag(id: string | null) {
+  if (entry.value) entry.value.tagId = id
+}
+
+/** Created where it is needed, like the task sheet's (FR-7.8). */
+function createEntryTag(name: string) {
+  chooseEntryTag(orchestrator.createTaskTag(name, props.taskTags.length))
+}
+
+/** Written as the field would write it; the tag stays for the next task, as M6's does. */
+function confirmEntry() {
+  const sheet = entry.value
+  const body = sheet?.body.trim()
+  if (!sheet || !body) return
+  write(body, { taskTagId: sheet.tagId, dueDate: sheet.day })
+  tagId.value = sheet.tagId
+  draft.value = ''
+  day.value = null
+  entry.value = null
 }
 
 /** The FAB's way in: the field, focused (M6's `goToField`). */
@@ -183,42 +209,69 @@ defineExpose({ focus })
           tag.name
         }}
       </ChoiceChip>
-      <ChoiceChip
-        v-if="!newTagOpen"
-        add
-        data-testid="m25-composer-tag-new"
-        @click="newTagOpen = true"
-      >
+      <ChoiceChip add data-testid="m25-composer-tag-new" @click="openEntry">
         {{ t('tasks.tagAdd') }}
       </ChoiceChip>
-      <form v-else class="new-tag" @submit.prevent="createTag">
-        <IonInput
-          v-model="newTag"
-          :placeholder="t('tasks.newTag')"
-          :aria-label="t('tasks.newTag')"
-          data-testid="m25-composer-tag-input"
-          @keyup.enter="createTag"
-        />
-        <IonButton
-          type="submit"
-          size="small"
-          :disabled="!newTag.trim()"
-          data-testid="m25-composer-tag-create"
-        >
-          {{ t('common.add') }}
-        </IonButton>
-      </form>
     </div>
 
-    <TaskDueChips
+    <DueChips
       v-if="showDays"
       class="days"
       :value="day"
       :today="today"
-      :quick="quick"
+      :phase="phase"
+      :trip-start="tripStart"
       testid="m25-composer-due"
       @update="day = $event"
     />
+
+    <!-- M6's entry sheet (FR-30.9), for a task. Guarded by its own state:
+         `is-open` alone only animates the modal, and a spec's stub renders
+         the slot regardless. -->
+    <SheetModal :is-open="entry !== null" testid="m25-entry-sheet" @dismiss="entry = null">
+      <section v-if="entry" class="entry-sheet">
+        <SheetHead
+          :title="t('tasks.entrySheetNew')"
+          title-testid="m25-entry-title"
+          close-testid="m25-entry-close"
+          @close="entry = null"
+        />
+        <IonInput
+          :value="entry.body"
+          :label="t('tasks.entryName')"
+          label-placement="stacked"
+          fill="outline"
+          data-testid="m25-entry-name"
+          @ionInput="(e: CustomEvent) => entry && (entry.body = (e.detail.value as string) ?? '')"
+          @keyup.enter="confirmEntry"
+        />
+        <DueChips
+          class="entry-sheet-due"
+          :value="entry.day"
+          :today="today"
+          :phase="phase"
+          :trip-start="tripStart"
+          testid="m25-entry-due"
+          @update="entry.day = $event"
+        />
+        <TaskTagChooser
+          :task-tags="taskTags"
+          :chosen="entry.tagId"
+          :no-tag-label="t('tasks.noTag')"
+          @tag="chooseEntryTag"
+          @new-tag="createEntryTag"
+        />
+        <div class="entry-sheet-actions">
+          <IonButton
+            :disabled="entry.body.trim() === ''"
+            data-testid="m25-entry-confirm"
+            @click="confirmEntry"
+          >
+            {{ t('common.add') }}
+          </IonButton>
+        </div>
+      </section>
+    </SheetModal>
   </div>
 </template>
 
@@ -255,17 +308,16 @@ defineExpose({ focus })
   gap: 6px;
 }
 
-.new-tag {
-  display: flex;
-  flex: 1 1 100%;
-  align-items: center;
-  gap: 8px;
+.entry-sheet {
+  padding: 4px 18px 22px;
 }
 
-.new-tag ion-input {
-  --background: var(--ct-surface0);
-  --padding-start: 12px;
-  --padding-end: 12px;
-  border-radius: var(--jp-r-md);
+.entry-sheet-due {
+  margin-top: 12px;
+}
+
+.entry-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

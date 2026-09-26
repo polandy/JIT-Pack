@@ -58,12 +58,12 @@ import {
 import { computed, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
+import DueChips from '@/components/global/DueChips.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TaskComposer from '@/components/trips/TaskComposer.vue'
-import TaskDueChips from '@/components/trips/TaskDueChips.vue'
 import TaskPhaseSection from '@/components/trips/TaskPhaseSection.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
@@ -79,7 +79,6 @@ import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { taskBoard } from '@/domain/taskBoard'
-import { quickDueDays } from '@/domain/taskQuickDays'
 import { hasDeparted } from '@/domain/tripDay'
 import {
   filedTagOf,
@@ -309,11 +308,10 @@ const bulkRemovable = computed(
   () => selectedTasks.value.length > 0 && selectedTasks.value.every((task) => task.item === null),
 )
 
-/** The *Fällig* sheet's chips: *Vor Abreise* only where every task is for before the trip. */
-const bulkQuick = computed(() => {
+/** The *Fällig* sheet's phase: *Vor Abreise* only where every task is for before the trip. */
+const bulkPhase = computed(() => {
   const phases = new Set(selectedTasks.value.map((task) => task.phase))
-  const phase = phases.size === 1 ? [...phases][0]! : null
-  return quickDueDays(today.value, { phase, tripStart: tripStart.value })
+  return phases.size === 1 ? [...phases][0]! : null
 })
 
 /** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
@@ -649,10 +647,11 @@ function onSheetRemove() {
             close-testid="m25-bulk-due-close"
             @close="bulkDueOpen = false"
           />
-          <TaskDueChips
+          <DueChips
             :value="null"
             :today="today"
-            :quick="bulkQuick"
+            :phase="bulkPhase"
+            :trip-start="tripStart"
             testid="m25-bulk-when"
             @update="bulkDue"
           />

@@ -1117,4 +1117,51 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     })
     expect(page.get('[data-testid="m6-row-due-Milch"]').text()).toBe(t('tasks.dueToday'))
   })
+
+  /*
+   * M25's day row under the field (owner, 2026-09-26): shown once something
+   * is typed, *Vor Abreise* on the tab bought before the trip, and the day
+   * gone again after the add.
+   */
+  it('dates the next entry from the composer’s chips, the eve of departure among them', async () => {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'planning', start_date: '2026-07-20' },
+    })
+    const page = mountPage()
+    const composer = () => page.get('[data-testid="m6-composer"]')
+    expect(composer().find('[data-testid="m6-composer-due-chips"]').exists()).toBe(false)
+
+    await composer().findComponent(IonInput).setValue('Sonnencreme')
+    await composer().get('[data-testid="due-chip-beforeDeparture"]').trigger('click')
+    await composer().get('form').trigger('submit')
+
+    expect(written.at(-1)).toMatchObject({
+      op: 'insert',
+      fields: { name: 'Sonnencreme', due_date: '2026-07-19' },
+    })
+    expect(composer().find('[data-testid="m6-composer-due-chips"]').exists()).toBe(false)
+  })
+
+  it('offers no eve of departure on the tab bought on the road', async () => {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'planning', start_date: '2026-07-20' },
+    })
+    const page = mountPage()
+    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
+      detail: { value: 'buy_local' },
+    })
+    const composer = page.get('[data-testid="m6-composer"]')
+    await composer.findComponent(IonInput).setValue('Brot')
+
+    expect(composer.find('[data-testid="due-chip-tomorrow"]').exists()).toBe(true)
+    expect(composer.find('[data-testid="due-chip-beforeDeparture"]').exists()).toBe(false)
+  })
 })
