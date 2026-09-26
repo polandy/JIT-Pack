@@ -778,3 +778,43 @@ export function inventoryItemFor(
   const match = masterItems.find((m) => normalizeName(m.name) === normalizeName(line.name))
   return match ? { itemId: match.id } : { create: line.name.trim() }
 }
+
+// --- Read as M4's row (FR-31.6) ---
+
+/**
+ * excursionLineAsRow reads a line in the shape M4's row renders (FR-31.6: the
+ * excursion's list is the packing list's row, stepper and glyphs included).
+ * What a line does not have is what a fresh trip row has not either — no
+ * packer, container, claim, flags or purchase record — so the row shows
+ * nothing it could not act on.
+ */
+export function excursionLineAsRow(line: ExcursionItem): TripItem {
+  return {
+    id: line.id,
+    trip_id: line.trip_id,
+    source_item_id: line.source_item_id,
+    source_template_id: null,
+    name: line.name,
+    weight_grams: null,
+    value_cents: null,
+    category_name: line.category_name,
+    quantity: line.quantity,
+    packed_count: line.packed_count,
+    state: line.state,
+    mode: line.mode,
+    late_packer: false,
+    assigned_traveler_id: line.assigned_traveler_id,
+    packer_user_id: null,
+    packed_by_user_id: null,
+    packed_at: null,
+    container_id: null,
+    packing_now_by: null,
+    packing_now_at: null,
+    flag_unused: false,
+    flag_missing: false,
+    bought_from: null,
+    bought_at: null,
+    bought_by_user_id: null,
+    updated_hlc: '',
+  }
+}

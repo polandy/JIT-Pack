@@ -2842,30 +2842,35 @@ token would prove nothing there is anything to prove.
   and what it put into the suitcase (FR-31.4).
 * **One excursion** (`/trips/:id/excursions/:excursionId`, `meta.parent` the list, still in the excursions view, so the
   pills stay): named by the excursion, with *„So., 27.9. – Mo., 28.9. · Sia, Andy"* (or *Alle*, or *Ohne Datum*) as the
-  meta line. Under the head a FR-21.23 figure: *„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while *vor
-  Ort* lines are unbought, *„Noch nichts auf der Liste"* on an empty one. Then the lines **by category** (G-2 group
-  heads with their unit count, lines without a category under *Ohne Kategorie*), A–Z.
-* **A line** (`ExcursionLine`): the §3.28 mark, the name and *×n* for more than one, the tick at the edge (a skipped
-  line has none and reads done). One fact line under the name:
+  meta line. **It is M4, smaller, built from M4's own parts**, so it reads and works like the packing list: M4's
+  progress card (*„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while *vor Ort* lines are unbought, *„Noch
+  nichts auf der Liste"* on an empty one) and, where two or more go, its **Pro Person** strip over the participants,
+  whose cards filter the list to one person's lines or the shared ones as on M4. Then the lines **by category** under
+  M4's collapsible group heads (`done/total` in units, *Ohne* for none), A–Z.
+* **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
+  and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
+  (`ExcursionFacts`):
   * ***aus dem Gepäck*** — it borrows a trip row this device holds;
-  * ***vor Ort*** in the done colour, ***vor Ort gekauft*** once bought (FR-31.8), with ***Auf die Packliste***
-    beside it until it is a trip row, and ***vor Ort gekauft · auf der Packliste*** after (FR-31.13);
+  * a *vor Ort* line to buy says nothing more — the row's mode glyph says it, as on M4; ***vor Ort gekauft*** once
+    bought (FR-31.8), with ***Auf die Packliste*** beside it until it is a trip row, and ***vor Ort gekauft · auf der
+    Packliste*** after (FR-31.13);
   * ***nicht im Gepäck · Vor Ort besorgen*** in the straw warning tone, the action a small text button in place
     (FR-31.7) — the mark is never painted on (FR-28.5/G-15);
   * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
     the line with an undo.
 
-  A tap on the name opens the line's menu (an action sheet headed by the name): *Eins mehr*, *Eins weniger* (above one),
-  *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a bought one, FR-31.13; a toast with
-  *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
-  *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
-* **A thing per person** is FR-25.1's cluster: a head with the mark, the name, a caret, *für alle* under it where the
-  set is one, and `done/total` in units; **shut by default** (FR-25.23, view state, not persisted); open, a child per
-  participant in roster order with the person's avatar and name instead of the mark, each with its own tick.
-* **The composer**, at the foot of the list: where two or more go, FR-25.28's **for-whom strip** over **the excursion's
-  participants** (*Gemeinsam*, *Alle*, an avatar each) with its sentence (*„Wird gemeinsam angelegt."* / *„Wird für 2
-  Personen angelegt, je 1."*), then a field *„Zur Liste hinzufügen…"* with ＋. A typed name that is an inventory item
-  brings its master item, category and mark; the line is linked into the suitcase like a group's (FR-31.4/31.7).
+  A tap on the row (or its long press) opens the line's menu (an action sheet headed by the name): *Eins mehr*, *Eins
+  weniger* (above one), *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a bought one,
+  FR-31.13; a toast with *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* / *Doch
+  mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
+* **A thing per person** is M4's `ClusterHead` (handle `m27-cluster-*`): the mark, the name, a caret; **shut by
+  default** (FR-25.23, view state, not persisted) with a face per person and the open count; open, a child per
+  participant in roster order, each with its own tick.
+* **Adding** is M4's: the orange **＋** (`m27-add-fab`) opens M4's **quick-add** — the inventory search with its
+  create sheet (FR-24.11), recent chips, *Mehr aus dem Inventar…*, whole **groups** (FR-27.10's offer; a group adds
+  what the list does not carry yet, with *Rückgängig*), and FR-25.28's **for-whom strip** over **the excursion's
+  participants** where two or more go. *Gemeinsam* adds one shared line, every participant is *für alle*, some
+  avatars name those people (FR-31.5). The line is linked into the suitcase like a group's (FR-31.4/31.7).
 * **The ⋮** (G-12, words only): *Ausflug bearbeiten* (the sheet above; a change of who goes rewrites the per-person sets
   and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Als Gruppe speichern* (a prompt prefilled with the
   excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen beginnen kannst."*;

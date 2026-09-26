@@ -12,6 +12,7 @@ import {
   inventoryItemFor,
   dayAfter,
   dueExcursions,
+  excursionLineAsRow,
   draftLinesFor,
   draftLinesFromGroup,
   excursionView,
@@ -704,5 +705,32 @@ describe('bought on the spot, kept — FR-31.13', () => {
     })
     expect(inventoryItemFor(line('l', ' regencape'), inventory)).toEqual({ itemId: 'item-cape' })
     expect(inventoryItemFor(line('l', 'Sonnenhut '), inventory)).toEqual({ create: 'Sonnenhut' })
+  })
+})
+
+describe('excursionLineAsRow — M4’s row (FR-31.6)', () => {
+  it('carries what the row renders and nothing a line does not have', () => {
+    const row = excursionLineAsRow(
+      line('l', 'Proviant', {
+        quantity: 2,
+        packed_count: 1,
+        state: 'partial',
+        mode: 'buy_local',
+        assigned_traveler_id: 'tr-sia',
+      }),
+    )
+    expect(row).toMatchObject({
+      id: 'l',
+      name: 'Proviant',
+      quantity: 2,
+      packed_count: 1,
+      state: 'partial',
+      mode: 'buy_local',
+      assigned_traveler_id: 'tr-sia',
+      packer_user_id: null,
+      container_id: null,
+      packing_now_by: null,
+      late_packer: false,
+    })
   })
 })

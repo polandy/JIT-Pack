@@ -38,20 +38,21 @@ The excursion's list works like the packing list, only smaller:
 
 - tick a line when it is in the bag — this tick belongs to the excursion; the suitcase's tick is not touched;
 - **aus dem Gepäck** under a line means it comes out of your luggage;
-- **vor Ort** means you buy it on the way — lunch at the kiosk. These lines also appear on the trip's shopping list
+- a pin glyph on a line means you buy it on the way — lunch at the kiosk. These lines also appear on the trip's shopping list
   (**Einkaufen**), under **Vor Ort** and the excursion's name. Tick one off there and the excursion says **vor Ort
   gekauft**; it still needs to go into the bag;
 - a thing you bought on the spot and want to keep — a rain cape from the hut — gets **Auf die Packliste** beside
   **vor Ort gekauft**. Tap it and the thing joins the trip's packing list, already packed, and your inventory, so the
   next trip can plan with it. **Rückgängig** in the message takes it back;
-- tap a line's name for more: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal nicht**,
+- tap a line for more: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal nicht**,
   **Von der Liste nehmen**.
 
 ### A thing for each person
 
-Some things each person needs — a sleeping bag, a water bottle. At the bottom of the list, choose who a new thing is
-for before you type it: **Gemeinsam** (one for everyone), **Alle** (one each) or single people. A thing for each person
-shows once with a count (*0/2*); tap it to see one line per person, each ticked on its own.
+The excursion's list works like the packing list: add with the orange **＋** — search your inventory, pick a whole
+group, or create a new item. Some things each person needs — a sleeping bag, a water bottle. Above the field, choose
+who a new thing is for before you add it: **Gemeinsam** (one for everyone), **Alle** (one each) or single people. A
+thing for each person shows once with its people; tap it to see one line per person, each ticked on its own.
 
 If you change who goes later (⋮ → **Ausflug bearbeiten**), things you added for **Alle** follow: someone who joins gets
 their own line, someone who stays behind loses the lines not yet packed. A line of theirs already in the bag stays,

@@ -5,11 +5,13 @@ import {
   addPosition,
   backToTemplateList,
   createTemplate,
+  addInComposer,
   createTripViaWizard,
-  fillIonic,
+  openQuickAdd,
   openTripView,
 } from './fixtures'
 import {
+  addToExcursion,
   createExcursion,
   excursionLine,
   excursionMenu,
@@ -107,14 +109,12 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
     await openExcursions(page)
     await visible(page).getByTestId('m27-excursion-Tageswanderung').click()
-    await expect(excursionLine(page, 'Hüttenschlafsack').locator('ion-checkbox')).toHaveJSProperty(
-      'checked',
-      false,
-    )
-    await expect(excursionLine(page, 'Stirnlampe').locator('ion-checkbox')).toHaveJSProperty(
-      'checked',
-      true,
-    )
+    await expect(
+      excursionLine(page, 'Hüttenschlafsack').getByTestId('row-check').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', false)
+    await expect(
+      excursionLine(page, 'Stirnlampe').getByTestId('row-check').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', true)
   })
 
   /**
@@ -140,9 +140,8 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await openExcursions(page)
     await visible(page).getByTestId('m27-excursion-Hüttentour Supramonte').click()
     await visible(page).getByTestId('excursion-buy-on-site-Hüttenschlafsack').click()
-    await expect(visible(page).getByTestId('excursion-source-Hüttenschlafsack')).toHaveText(
-      'on the spot',
-    )
+    // Now a purchase on the spot: the warning gives way to the row's own glyph.
+    await expect(visible(page).getByTestId('excursion-missing-Hüttenschlafsack')).toHaveCount(0)
     await writesLanded(page)
 
     await openTripView(page, 'shopping')
@@ -164,9 +163,10 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
   })
 
   /**
-   * E2E-M27-04: the composer asks *für wen* over the people going. *Alle*
-   * writes one line per participant, shown as a cluster that names the thing
-   * once, counts both, and opens onto a child per person, each ticked alone.
+   * E2E-M27-04: the excursion's ＋ is M4's quick-add, and its *für wen* strip
+   * is over the people going. *Alle* writes one line per participant, shown as
+   * M4's cluster that names the thing once and opens onto a child per person,
+   * each ticked alone.
    */
   test('E2E-M27-04: für alle writes a line per participant, read as one cluster', async ({
     page,
@@ -175,21 +175,23 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await openExcursions(page)
     await createExcursion(page, { name: 'Hüttentour' })
 
-    await visible(page).getByTestId('for-whom-all-m27').click()
-    await expect(visible(page).getByTestId('m27-for-whom-sentence')).toHaveText(
+    await openQuickAdd(page, 'm27-add-fab')
+    await visible(page).getByTestId('for-whom-all-quick-add').click()
+    await expect(visible(page).getByTestId('quick-add-for-whom-summary')).toHaveText(
       'Will be added for 2 people, 1 each.',
     )
-    await fillIonic(visible(page).getByTestId('m27-composer-input'), 'Schlafsack')
-    await visible(page).getByTestId('m27-composer-add').click()
+    await addInComposer(page, 'Schlafsack')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
-    await expect(visible(page).getByTestId('excursion-cluster-count-Schlafsack')).toHaveText('0/2')
-    await visible(page).getByTestId('excursion-cluster-Schlafsack').click()
+    const cluster = visible(page).getByTestId('m27-cluster-Schlafsack')
+    await cluster.click()
+    await expect(visible(page).locator('[data-testid^="m27-child-Schlafsack-"]')).toHaveCount(2)
     await tickExcursionLine(page, 'Schlafsack-Sia')
-    await expect(excursionLine(page, 'Schlafsack-Andy').locator('ion-checkbox')).toHaveJSProperty(
-      'checked',
-      false,
-    )
-    await expect(visible(page).getByTestId('excursion-cluster-count-Schlafsack')).toHaveText('1/2')
+    await expect(
+      excursionLine(page, 'Schlafsack-Andy').getByTestId('row-check').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', false)
+    await expect(cluster).toContainText('1/2')
   })
 
   /**
@@ -202,21 +204,22 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await createTripViaWizard(page, { name: 'Sardinien', travelers: ['Andy', 'Sia', 'Lio'] })
     await openExcursions(page)
     await createExcursion(page, { name: 'Hüttentour', who: ['Andy', 'Sia'] })
-    await visible(page).getByTestId('for-whom-all-m27').click()
-    await fillIonic(visible(page).getByTestId('m27-composer-input'), 'Schlafsack')
-    await visible(page).getByTestId('m27-composer-add').click()
-    await expect(visible(page).getByTestId('excursion-cluster-count-Schlafsack')).toHaveText('0/2')
+    await addToExcursion(page, 'Schlafsack', 'all')
+    await visible(page).getByTestId('m27-cluster-Schlafsack').click()
+    const children = visible(page).locator('[data-testid^="m27-child-Schlafsack-"]')
+    await expect(children).toHaveCount(2)
 
     await excursionMenu(page, 'm27-edit')
     const sheet = page.getByTestId('m27-sheet')
     await sheet.getByTestId('m27-who-Lio').click()
     await sheet.getByTestId('m27-save').click()
-    await expect(visible(page).getByTestId('excursion-cluster-count-Schlafsack')).toHaveText('0/3')
+    await expect(children).toHaveCount(3)
+    await expect(visible(page).getByTestId('m27-child-Schlafsack-Lio')).toBeVisible()
 
     const toast = page.locator('ion-toast').filter({ hasText: 'Who goes changed' })
     await expect(toast).toHaveCount(1)
     await toast.locator('button').filter({ hasText: 'Undo' }).click()
-    await expect(visible(page).getByTestId('excursion-cluster-count-Schlafsack')).toHaveText('0/2')
+    await expect(children).toHaveCount(2)
   })
 
   /**
@@ -230,10 +233,8 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
     await openExcursions(page)
     await createExcursion(page, { name: 'Bootsausflug' })
-    await fillIonic(visible(page).getByTestId('m27-composer-input'), 'Sonnenhut')
-    await visible(page).getByTestId('m27-composer-add').click()
+    await addToExcursion(page, 'Sonnenhut')
     await expect(excursionLine(page, 'Sonnenhut')).toBeVisible()
-    await writesLanded(page)
 
     await excursionMenu(page, 'm27-save-as-group')
     const prompt = page.locator('ion-alert')
@@ -273,8 +274,7 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await startTrip(page)
     await openExcursions(page)
     await createExcursion(page, { name: 'Hüttentour' })
-    await fillIonic(visible(page).getByTestId('m27-composer-input'), 'Regencape')
-    await visible(page).getByTestId('m27-composer-add').click()
+    await addToExcursion(page, 'Regencape')
     await visible(page).getByTestId('excursion-buy-on-site-Regencape').click()
     await writesLanded(page)
 

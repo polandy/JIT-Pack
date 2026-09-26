@@ -3365,8 +3365,9 @@ went.
   excursion from a group writes nothing into the packing list and marks the missing lines *nicht im Gepäck*. *Vor Ort
   besorgen* moves such a line to M6's *Vor Ort* list, under the excursion's name; buying it there stamps it *vor Ort
   gekauft* on the excursion, where it stays on the list.
-* **E2E-M27-04** `local` (FR-31.5) — **implemented** (`excursions.spec.ts`): the composer's for-whom strip is over the
-  excursion's participants; *Alle* writes a cluster with a child per participant.
+* **E2E-M27-04** `local` (FR-31.5) — **implemented** (`excursions.spec.ts`): the excursion's ＋ opens M4's
+  quick-add, whose for-whom strip is over the excursion's participants; *Alle* writes M4's cluster with a child per
+  participant, each ticked alone.
 * **E2E-M27-05** `local` (FR-31.3/31.5) — **implemented** (`excursions.spec.ts`): changing who goes in the edit sheet
   gives a joiner a line of every *für alle* set; the one toast's undo takes the people and the lines back.
 * **E2E-M27-06** `local` (FR-31.11/31.1) — **implemented** (`excursions.spec.ts`): the ⋮'s *Als Gruppe speichern*

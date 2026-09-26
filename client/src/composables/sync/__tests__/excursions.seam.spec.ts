@@ -440,3 +440,30 @@ describe('addToPackingList — FR-31.13', () => {
     expect(queued.some((q) => q.muts.some((m) => m.mutation.table === TABLE.tripItems))).toBe(false)
   })
 })
+
+describe('addGroupLines — FR-31.2 on an existing excursion', () => {
+  it('adds the group over the participants and leaves out what the list carries', () => {
+    seedTrip()
+    seedGroup()
+    const actions = build()
+    const { excursionId } = actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: null,
+    })!
+    pullIn(ctx.tripStore, TABLE.excursionItems, 'l-lamp', {
+      trip_id: TRIP_ID,
+      excursion_id: excursionId,
+      name: 'Stirnlampe',
+      source_item_id: 'item-lamp',
+    })
+
+    const written = actions.addGroupLines(TRIP_ID, excursionId, GROUP_ID)!
+
+    expect(written.lines).toBe(3)
+    expect(lines().filter((l) => l.name === 'Stirnlampe')).toHaveLength(1)
+    expect(lines().filter((l) => l.name === 'Hüttenschlafsack')).toHaveLength(2)
+  })
+})

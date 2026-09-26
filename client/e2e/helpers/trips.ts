@@ -117,7 +117,10 @@ export async function expectTripOpen(page: Page, name: string) {
  * forever on the second. Tests that add in a loop go through here; the guard is
  * the same one `addPosition` has.
  */
-export async function openQuickAdd(page: Page, fab: 'm4-fab' | 'm8-fab' = 'm4-fab') {
+export async function openQuickAdd(
+  page: Page,
+  fab: 'm4-fab' | 'm8-fab' | 'm27-add-fab' = 'm4-fab',
+) {
   const input = visiblePage(page).getByTestId('quick-add-input')
   if (await input.isVisible().catch(() => false)) return
   await visiblePage(page).getByTestId(fab).click()

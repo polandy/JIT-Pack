@@ -101,6 +101,12 @@ const props = withDefaults(
      * it is not skipped or left out of the suitcase blind.
      */
     borrowedBy?: readonly string[]
+    /**
+     * FR-31.6: an excursion's list is this row too. Its handle is its own
+     * screen's, so a case on one list never finds a row of the other while
+     * both are mounted in the stack.
+     */
+    screen?: 'm4' | 'm27'
   }>(),
   {
     variant: 'item',
@@ -112,6 +118,7 @@ const props = withDefaults(
     seatColumn: false,
     seat: null,
     borrowedBy: () => [],
+    screen: 'm4',
   },
 )
 
@@ -140,7 +147,7 @@ const emit = defineEmits<{
   <IonItem
     button
     :class="{ done, locked, child: props.variant === 'child' }"
-    :data-testid="`${props.variant === 'child' ? 'm4-child' : 'm4-row'}-${testKey}`"
+    :data-testid="`${screen === 'm27' ? (variant === 'child' ? 'm27-child' : 'm27-row') : variant === 'child' ? 'm4-child' : 'm4-row'}-${testKey}`"
     @click="emit('open')"
     @contextmenu.prevent="emit('menu')"
     @pointerdown="(e: PointerEvent) => emit('pressStart', e)"
@@ -215,6 +222,9 @@ const emit = defineEmits<{
         <IonIcon :icon="trailSignOutline" aria-hidden="true" />
         {{ borrowedBy.join(', ') }}
       </p>
+      <!-- FR-31.6: an excursion's line is this row too, and says what it
+           needs done under its name — the one thing M4's rows do not say. -->
+      <slot name="facts" />
     </IonLabel>
 
     <!-- The end column: what the row *says*, then what you do to it. The

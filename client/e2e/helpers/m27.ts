@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test'
 
 import { fillIonic } from './ionic'
 import { visiblePage, writesLanded } from './page'
-import { openTripView } from './trips'
+import { addInComposer, openQuickAdd, openTripView } from './trips'
 
 /**
  * M27 — a trip's excursions (FR-31). The steps more than one case takes: reach
@@ -55,15 +55,40 @@ export async function createExcursion(page: Page, seed: ExcursionSeed): Promise<
   return list
 }
 
-/** One line of the open excursion, by its name (or `name-person` under a cluster). */
+/**
+ * One line of the open excursion. The list is built from M4's own row, so a
+ * line wears its own screen's handle: `m27-row-<name>`, or
+ * `m27-child-<name>-<person>` under a cluster (FR-31.6).
+ */
 export function excursionLine(page: Page, key: string): Locator {
-  return visiblePage(page).getByTestId(`excursion-line-${key}`)
+  return visiblePage(page)
+    .getByTestId(`m27-row-${key}`)
+    .or(visiblePage(page).getByTestId(`m27-child-${key}`))
 }
 
 /** Tick one line's check and wait for the write. */
 export async function tickExcursionLine(page: Page, key: string): Promise<void> {
-  await excursionLine(page, key).locator('ion-checkbox').click()
-  await expect(excursionLine(page, key).locator('ion-checkbox')).toHaveJSProperty('checked', true)
+  const check = excursionLine(page, key).getByTestId('row-check').locator('ion-checkbox')
+  await check.click()
+  await expect(check).toHaveJSProperty('checked', true)
+  await writesLanded(page)
+}
+
+/**
+ * Add a thing to the open excursion through its ＋ — M4's quick-add, the
+ * inventory included (FR-24.11) — for whom the strip says: nobody named is
+ * shared, `'all'` taps *Alle*. Ends with the composer closed.
+ */
+export async function addToExcursion(
+  page: Page,
+  name: string,
+  forWhom: 'shared' | 'all' = 'shared',
+) {
+  await openQuickAdd(page, 'm27-add-fab')
+  if (forWhom === 'all') await visiblePage(page).getByTestId('for-whom-all-quick-add').click()
+  await addInComposer(page, name)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
   await writesLanded(page)
 }
 

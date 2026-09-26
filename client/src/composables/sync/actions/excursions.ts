@@ -322,6 +322,33 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
 
+  /**
+   * FR-31.2 on an excursion that exists: the quick-add's group, expanded over
+   * its participants and linked like the lines it started with. Things the
+   * list already carries are left out, by master item (FR-27.10's rule).
+   */
+  function addGroupLines(tripId: string, excursionId: string, templateId: string) {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip || !tripDataLoaded(tripId)) return null
+    const carried = new Set(
+      tripStore
+        .getExcursionItems(tripId, excursionId)
+        .map((l) => l.source_item_id)
+        .filter((id): id is string => id !== null),
+    )
+    const drafts = draftLinesFromGroup({
+      templateId,
+      templates: masterStore.templateList,
+      includes: masterStore.includeList,
+      templateItems: masterStore.positionList,
+      templateItemTasks: masterStore.templateItemTaskList,
+      masterItems: masterStore.categorisedItemList,
+      attributes: trip.attributes,
+      participants: participants(tripId, excursionId),
+    }).filter((d) => d.source_item_id === null || !carried.has(d.source_item_id))
+    return writeLines(tripId, excursionId, drafts)
+  }
+
   /** FR-31.4/31.5: lines typed or picked in the composer, linked like a Gruppe's. */
   function addLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
     return writeLines(tripId, excursionId, drafts)
@@ -481,6 +508,7 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     deleteExcursion,
     setParticipants,
     addLines,
+    addGroupLines,
     setLineCount,
     toggleLine,
     setLineQuantity,

@@ -1,22 +1,39 @@
 <script setup lang="ts">
 /**
- * One excursion's list (FR-31.6) — a lean M4 for the rucksack: its lines by
- * category, a thing per person as FR-25.1's cluster, a tick each, and a
- * composer that asks *für wen* over the people going (FR-31.5). What a line
- * needs done stands on the line (FR-31.7, FR-31.5); what the excursion needs
- * done — edit it, save it as a Gruppe, delete it — is in the bar's ⋮.
+ * One excursion's list (FR-31.6) — the packing list, smaller. It is built
+ * from M4's own parts so it reads and works like it: the collapsible group
+ * heads, `PackingRow` with its stepper and glyphs, FR-25.1's `ClusterHead`
+ * for a thing per person, and the orange ＋ that opens M4's quick-add with
+ * its inventory search, its groups and its *für wen* strip — over the people
+ * going (FR-31.5). What a line needs done stands under its name
+ * (`ExcursionFacts`); what the excursion needs done — edit it, save it as a
+ * Gruppe, delete it — is in the bar's ⋮.
  */
-import { IonContent, IonIcon, IonPage, actionSheetController } from '@ionic/vue'
-import { chevronDownOutline, createOutline, layersOutline, trashOutline } from 'ionicons/icons'
+import {
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonList,
+  IonPage,
+  actionSheetController,
+} from '@ionic/vue'
+import {
+  addOutline,
+  chevronDownOutline,
+  createOutline,
+  layersOutline,
+  trashOutline,
+} from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import ForWhomToggles from '@/components/global/ForWhomToggles.vue'
-import ItemMark from '@/components/items/ItemMark.vue'
-import ListComposer from '@/components/global/ListComposer.vue'
-import ListGroup from '@/components/global/ListGroup.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
-import ExcursionLine from '@/components/trips/ExcursionLine.vue'
+import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddItem.vue'
+import ClusterHead from '@/components/trips/ClusterHead.vue'
+import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
+import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
+import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -25,6 +42,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import {
   canJoinPackingList,
   draftLinesFor,
+  excursionLineAsRow,
   excursionView,
   isLeftBehind,
   isOpenPurchase,
@@ -33,21 +51,29 @@ import {
   spanOf,
   suitcaseOf,
   sumUnits,
+  type ExcursionEntry,
   type LineFor,
 } from '@/domain/excursions'
+import { NO_VALUE } from '@/domain/packingView'
 import { packedPercent } from '@/domain/packState'
+import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { t } from '@/i18n'
 import { confirmDestructive, promptText } from '@/lib/confirm'
 import { excursionDays } from '@/lib/excursionText'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { presentToast } from '@/lib/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
 import { tripExcursionsPath } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem } from '@/types/domain'
+import type { ExcursionItem, Traveler } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
+
+/** M4's header ring (PackingListPage), so the two figures are one size. */
+const RING_SIZE_HEADER = 42
 
 const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
@@ -65,7 +91,20 @@ const participants = computed(() =>
   participantsOf(props.excursionId, participantRows.value, travelers.value),
 )
 const lines = computed(() => tripStore.getExcursionItems(props.tripId, props.excursionId))
-const groups = computed(() => excursionView(lines.value, participants.value))
+/**
+ * M4's person filter, from the same strip: one person's lines, or the shared
+ * ones — a second tap on the same card lets go.
+ */
+const person = ref<string | null>(null)
+function selectPerson(value: string) {
+  person.value = person.value === value ? null : value
+}
+const shownLines = computed(() =>
+  person.value === null
+    ? lines.value
+    : lines.value.filter((l) => (l.assigned_traveler_id ?? NO_VALUE) === person.value),
+)
+const groups = computed(() => excursionView(shownLines.value, participants.value))
 const units = computed(() => sumUnits(lines.value))
 const toBuy = computed(() => lines.value.filter(isOpenPurchase).length)
 const tripItems = computed(() => tripStore.getItems(props.tripId))
@@ -89,9 +128,36 @@ const metaLine = computed(() => {
   return `${days} · ${who}`
 })
 
-function personOf(line: ExcursionItem) {
-  const person = travelers.value.find((tr) => tr.id === line.assigned_traveler_id)
-  return person ? { id: person.id, name: person.name } : null
+function personOf(line: ExcursionItem): Traveler | null {
+  return travelers.value.find((tr) => tr.id === line.assigned_traveler_id) ?? null
+}
+
+/** A line says nothing in M4's own note slots — its facts are its own. */
+const NO_NOTES: PackingRowNotes = {
+  lock: null,
+  ownClaim: null,
+  skipped: null,
+  packed: null,
+  responsible: null,
+}
+
+function isDone(line: ExcursionItem): boolean {
+  return line.state === STATE_SKIPPED || line.packed_count >= line.quantity
+}
+
+/** FR-25.23's shut head: a face per instance, ringed once it is dealt with. */
+function facesOf(entry: Extract<ExcursionEntry, { kind: 'cluster' }>) {
+  return entry.lines.map((line) => ({ traveler: personOf(line), done: isDone(line) }))
+}
+
+// --- the fold of a group (view state, as on M4) ---
+
+const shutGroups = ref(new Set<string>())
+function toggleGroup(key: string) {
+  const next = new Set(shutGroups.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  shutGroups.value = next
 }
 
 function masterOf(sourceItemId: string | null) {
@@ -112,6 +178,11 @@ function toggleCluster(key: string) {
 
 function tick(line: ExcursionItem) {
   orchestrator.toggleLine(props.tripId, line)
+}
+
+/** M4's stepper, on the line's own count. */
+function count(line: ExcursionItem, packed: number) {
+  orchestrator.setLineCount(props.tripId, line, Math.min(Math.max(packed, 0), line.quantity))
 }
 
 async function removeLine(line: ExcursionItem) {
@@ -179,61 +250,63 @@ async function openLine(line: ExcursionItem) {
   await sheet.present()
 }
 
-// --- the composer (FR-31.5) ---
+// --- adding: M4's ＋ and quick-add, over the people going (FR-31.5) ---
 
-const draft = ref('')
-const chosen = ref(new Set<string>())
-
-const composerFor = computed<LineFor>(() => {
-  const ids = participants.value.map((p) => p.id).filter((id) => chosen.value.has(id))
-  if (ids.length === 0) return { kind: 'shared' }
-  if (ids.length === participants.value.length) return { kind: 'all' }
-  return { kind: 'named', travelerIds: ids }
-})
-const composerAmounts = computed(() => new Map([...chosen.value].map((id) => [id, 1])))
-const composerSentence = computed(() =>
-  chosen.value.size === 0 ? t('forWhom.addShared') : t('forWhom.addFor', { n: chosen.value.size }),
+const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
+const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
+const carriedItemIds = computed(() =>
+  lines.value.map((l) => l.source_item_id).filter((id): id is string => id !== null),
 )
 
-function chooseShared() {
-  chosen.value = new Set()
-}
-function chooseAll() {
-  chosen.value = new Set(participants.value.map((p) => p.id))
-}
-function chooseOne(id: string) {
-  const next = new Set(chosen.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  chosen.value = next
+/**
+ * The strip's chosen set as the excursion reads it: nobody is shared, every
+ * participant is *für alle* — the set that grows with a joiner — and some are
+ * named (FR-31.5).
+ */
+function forWhomOf(travelerIds: readonly string[]): LineFor {
+  if (travelerIds.length === 0) return { kind: 'shared' }
+  if (travelerIds.length === participants.value.length) return { kind: 'all' }
+  return { kind: 'named', travelerIds }
 }
 
-/** A typed name that is an inventory item brings its mark, category and link. */
-function addTyped() {
-  const name = draft.value.trim()
-  if (!name) return
-  const master = masterStore.activeItemList.find(
-    (m) => m.name.trim().toLowerCase() === name.toLowerCase(),
-  )
+function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }) {
   orchestrator.addLines(
     props.tripId,
     props.excursionId,
     draftLinesFor(
       {
-        source_item_id: master?.id ?? null,
-        name: master?.name ?? name,
-        category_name: master ? masterStore.categoryOf(master.id) : null,
+        source_item_id: item.sourceItemId,
+        name: item.name,
+        category_name: item.categoryName,
         quantity: 1,
         mode: ITEM_MODE_PACK,
-        weight_grams: master?.weight_grams ?? null,
-        value_cents: master?.value_cents ?? null,
+        weight_grams: item.weightGrams,
+        value_cents: item.valueCents,
         source_template_id: null,
       },
-      composerFor.value,
+      forWhomOf(item.travelerIds),
       participants.value,
     ),
   )
-  draft.value = ''
+}
+
+function onQuickAddForAll(item: BrowseAddition) {
+  onQuickAdd({ ...item, travelerIds: participants.value.map((p) => p.id) })
+}
+
+async function onQuickAddGroup(templateId: string) {
+  const written = orchestrator.addGroupLines(props.tripId, props.excursionId, templateId)
+  const group = masterStore.getTemplate(templateId)
+  if (!written || !group) return
+  await presentToast({
+    message: groupAdditionMessage({
+      groupName: group.name,
+      added: written.lines,
+      alreadyPresent: [],
+      unassignable: [],
+    }),
+    buttons: [{ text: t('packing.undo'), handler: written.undo }],
+  })
 }
 
 // --- the excursion's own acts, in the bar's ⋮ ---
@@ -341,8 +414,10 @@ setHeaderTitle(
   <IonPage>
     <IonContent class="excursion-content" data-testid="m27-excursion-page">
       <template v-if="loaded && excursion">
-        <div class="figure">
+        <!-- M4's progress card and its per-person strip, over the excursion. -->
+        <div class="stats jp-card" data-testid="m27-progress-card">
           <ProgressFigure
+            class="jp-num"
             :percent="packedPercent({ packedItems: units.done, totalItems: units.total })"
             :headline="
               units.total > 0
@@ -350,111 +425,135 @@ setHeaderTitle(
                 : t('excursions.nothingYet')
             "
             :detail="toBuy > 0 ? t('excursions.toBuy', { n: toBuy }) : null"
-            :ring-size="44"
+            :ring-size="RING_SIZE_HEADER"
             headline-testid="m27-figure"
           />
         </div>
+        <TravelerProgressStrip
+          v-if="showsTravelerProgress(participants)"
+          :progress="progressByTraveler(lines, participants)"
+          :selected="person === null ? [] : [person]"
+          @select="selectPerson"
+        />
 
-        <ListGroup
-          v-for="group in groups"
-          :key="group.category ?? ''"
-          :title="group.category ?? t('facet.noCategory')"
-          :count="group.units.total"
-          head-testid="m27-group-head"
-        >
-          <template
-            v-for="entry in group.entries"
-            :key="entry.kind === 'line' ? entry.line.id : entry.key"
-          >
-            <ExcursionLine
-              v-if="entry.kind === 'line'"
-              :line="entry.line"
-              :test-key="entry.line.name"
-              :master="masterOf(entry.line.source_item_id)"
-              :from-luggage="suitcaseOf(entry.line, tripItems) !== null"
-              @tick="tick(entry.line)"
-              @open="openLine(entry.line)"
-              @buy-on-site="orchestrator.buyOnTheSpot(tripId, entry.line)"
-              :can-keep="canJoinPackingList(entry.line)"
-              @keep="keep(entry.line)"
-            />
-            <template v-else>
-              <button
-                type="button"
-                class="cluster-head"
-                :aria-expanded="openClusters.has(entry.key)"
-                :data-testid="`excursion-cluster-${entry.name}`"
-                @click="toggleCluster(entry.key)"
+        <QuickAddItem
+          ref="quickAdd"
+          :show-trigger="false"
+          :offer-groups="true"
+          :traveler-count="participants.length"
+          :travelers="participants"
+          :exclude-item-ids="carriedItemIds"
+          @add="onQuickAdd"
+          @add-for-all="onQuickAddForAll"
+          @add-group="onQuickAddGroup"
+        />
+
+        <IonList v-if="groups.length > 0" class="excursion-list">
+          <template v-for="group in groups" :key="group.category ?? ''">
+            <button
+              class="group-head"
+              :class="{ shut: shutGroups.has(group.category ?? '') }"
+              :data-testid="`m27-group-${group.category ?? 'none'}`"
+              @click="toggleGroup(group.category ?? '')"
+            >
+              <IonIcon :icon="chevronDownOutline" class="caret" />
+              <span class="group-name">{{ group.category ?? t('common.none') }}</span>
+              <span class="group-count">{{ group.units.done }}/{{ group.units.total }}</span>
+            </button>
+
+            <div v-if="!shutGroups.has(group.category ?? '')" class="group-card jp-card">
+              <template
+                v-for="entry in group.entries"
+                :key="entry.kind === 'line' ? entry.line.id : entry.key"
               >
-                <ItemMark
-                  :mark="masterOf(entry.lines[0]!.source_item_id)?.icon ?? null"
-                  surface="packing"
-                  :photo-item="masterOf(entry.lines[0]!.source_item_id)"
-                  :size="22"
-                />
-                <span class="cluster-name">
-                  {{ entry.name }}
-                  <IonIcon
-                    :icon="chevronDownOutline"
-                    class="caret"
-                    :class="{ shut: !openClusters.has(entry.key) }"
-                    aria-hidden="true"
-                  />
-                  <small v-if="entry.forAll">{{ t('excursions.forAll') }}</small>
-                </span>
-                <span
-                  class="cluster-count jp-num"
-                  :data-testid="`excursion-cluster-count-${entry.name}`"
+                <PackingRow
+                  v-if="entry.kind === 'line'"
+                  screen="m27"
+                  :item="excursionLineAsRow(entry.line)"
+                  :label="entry.line.name"
+                  :test-key="entry.line.name"
+                  :done="isDone(entry.line)"
+                  :locked="false"
+                  :closing-pass="false"
+                  :notes="NO_NOTES"
+                  :master="masterOf(entry.line.source_item_id)"
+                  @open="openLine(entry.line)"
+                  @menu="openLine(entry.line)"
+                  @edit-quantity="openLine(entry.line)"
+                  @increment="count(entry.line, entry.line.packed_count + 1)"
+                  @decrement="count(entry.line, entry.line.packed_count - 1)"
+                  @complete="count(entry.line, entry.line.quantity)"
+                  @zero="count(entry.line, 0)"
+                  @toggle="tick(entry.line)"
                 >
-                  {{ entry.units.done }}/{{ entry.units.total }}
-                </span>
-              </button>
-              <template v-if="openClusters.has(entry.key)">
-                <ExcursionLine
-                  v-for="line in entry.lines"
-                  :key="line.id"
-                  class="child"
-                  :line="line"
-                  :test-key="`${line.name}-${personOf(line)?.name ?? ''}`"
-                  :person="personOf(line)"
-                  :from-luggage="suitcaseOf(line, tripItems) !== null"
-                  :left-behind="line.packed_count > 0 && isLeftBehind(line, participants)"
-                  @tick="tick(line)"
-                  @open="openLine(line)"
-                  @buy-on-site="orchestrator.buyOnTheSpot(tripId, line)"
-                  @take-out="removeLine(line)"
-                  :can-keep="canJoinPackingList(line)"
-                  @keep="keep(line)"
-                />
-              </template>
-            </template>
-          </template>
-        </ListGroup>
+                  <template #facts>
+                    <ExcursionFacts
+                      :line="entry.line"
+                      :test-key="entry.line.name"
+                      :from-luggage="suitcaseOf(entry.line, tripItems) !== null"
+                      :can-keep="canJoinPackingList(entry.line)"
+                      @buy-on-site="orchestrator.buyOnTheSpot(tripId, entry.line)"
+                      @keep="keep(entry.line)"
+                    />
+                  </template>
+                </PackingRow>
 
-        <div class="composer">
-          <ForWhomToggles
-            v-if="participants.length > 1"
-            :travelers="participants"
-            :amounts="composerAmounts"
-            test-key="m27"
-            @shared="chooseShared"
-            @all="chooseAll"
-            @toggle="chooseOne"
-          />
-          <p v-if="participants.length > 1" class="sentence" data-testid="m27-for-whom-sentence">
-            {{ composerSentence }}
-          </p>
-          <ListComposer
-            v-model="draft"
-            :placeholder="t('excursions.addPlaceholder')"
-            :label="t('excursions.addLabel')"
-            :add-label="t('excursions.addAction')"
-            testid="m27-composer"
-            input-testid="m27-composer-input"
-            submit-testid="m27-composer-add"
-            @submit="addTyped"
-          />
-        </div>
+                <div v-else class="cluster">
+                  <ClusterHead
+                    screen="m27"
+                    :name="entry.name"
+                    :mode="entry.lines[0]!.mode"
+                    :late="false"
+                    :done-count="entry.units.done"
+                    :total-count="entry.units.total"
+                    :open-count="entry.units.total - entry.units.done"
+                    :collapsed="!openClusters.has(entry.key)"
+                    :faces="facesOf(entry)"
+                    :master="masterOf(entry.lines[0]!.source_item_id)"
+                    @toggle="toggleCluster(entry.key)"
+                  />
+                  <div v-if="openClusters.has(entry.key)" class="cluster-children">
+                    <PackingRow
+                      v-for="line in entry.lines"
+                      screen="m27"
+                      :key="line.id"
+                      variant="child"
+                      :item="excursionLineAsRow(line)"
+                      :label="personOf(line)?.name ?? line.name"
+                      :test-key="`${entry.name}-${personOf(line)?.name ?? ''}`"
+                      :done="isDone(line)"
+                      :locked="false"
+                      :closing-pass="false"
+                      :notes="NO_NOTES"
+                      :traveler="personOf(line)"
+                      @open="openLine(line)"
+                      @menu="openLine(line)"
+                      @edit-quantity="openLine(line)"
+                      @increment="count(line, line.packed_count + 1)"
+                      @decrement="count(line, line.packed_count - 1)"
+                      @complete="count(line, line.quantity)"
+                      @zero="count(line, 0)"
+                      @toggle="tick(line)"
+                    >
+                      <template #facts>
+                        <ExcursionFacts
+                          :line="line"
+                          :test-key="`${entry.name}-${personOf(line)?.name ?? ''}`"
+                          :from-luggage="suitcaseOf(line, tripItems) !== null"
+                          :left-behind="line.packed_count > 0 && isLeftBehind(line, participants)"
+                          :can-keep="canJoinPackingList(line)"
+                          @buy-on-site="orchestrator.buyOnTheSpot(tripId, line)"
+                          @take-out="removeLine(line)"
+                          @keep="keep(line)"
+                        />
+                      </template>
+                    </PackingRow>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </IonList>
       </template>
 
       <ExcursionSheet
@@ -470,6 +569,17 @@ setHeaderTitle(
         @dismiss="editing = false"
         @save="saveEdit"
       />
+
+      <IonFab :id="FAB_ANCHOR.m27Excursion" slot="fixed" vertical="bottom" horizontal="end">
+        <IonFabButton
+          v-if="!quickAddExpanded"
+          data-testid="m27-add-fab"
+          :aria-label="t('common.add')"
+          @click="quickAdd?.open()"
+        >
+          <IonIcon :icon="addOutline" />
+        </IonFabButton>
+      </IonFab>
     </IonContent>
   </IonPage>
 </template>
@@ -477,73 +587,72 @@ setHeaderTitle(
 <style scoped>
 .excursion-content {
   --padding-top: 6px;
-  --padding-bottom: 24px;
+  /* Room for the FAB over the last row, as on M4. */
+  --padding-bottom: 88px;
 }
 
-.figure {
-  padding: 4px 16px 8px;
-}
-
-.cluster-head {
+.stats {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  margin: 4px 8px 8px;
+  padding: 10px 8px;
+}
+
+.stats > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* M4's group heads and cards (PackingListPage), so the two lists read alike. */
+.excursion-list {
+  padding: 0;
+  background: transparent;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   width: 100%;
-  padding: 10px 16px;
-  border: 0;
-  background: var(--jp-surface-card);
+  padding: 20px 6px 8px;
+  background: none;
+  border: none;
   color: var(--ct-text);
-  text-align: start;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
+  letter-spacing: var(--jp-tracking-display);
   cursor: pointer;
 }
 
-.cluster-name {
-  display: flex;
+.group-name {
   flex: 1;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  font-weight: var(--jp-weight-semibold);
+  text-align: start;
 }
 
-.cluster-name small {
-  flex-basis: 100%;
+.group-count {
   color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-regular);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-medium);
+}
+
+.group-card {
+  margin: 0 8px;
+}
+
+.group-card ion-item {
+  --padding-start: 12px;
+  --inner-padding-end: 10px;
 }
 
 .caret {
-  width: var(--jp-icon-sm);
-  height: var(--jp-icon-sm);
-  color: var(--ct-subtext0);
-  transition: transform 0.15s ease;
+  transition: transform 0.18s ease;
 }
 
-.caret.shut {
+.group-head.shut .caret {
   transform: rotate(-90deg);
 }
 
-.cluster-count {
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-sm);
-}
-
-.child {
-  --padding-start: 34px;
-}
-
-.composer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 18px 12px 0;
-}
-
-.sentence {
-  margin: 0 4px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
+.cluster-children {
+  border-inline-start: 2px solid var(--ct-surface1);
+  margin-inline-start: 12px;
 }
 </style>
