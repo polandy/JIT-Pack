@@ -5,6 +5,7 @@ import { installOriginStamp } from './originStamp'
 import {
   ITEM_ID_PARAM,
   ITEM_QUERY_PARAM,
+  LINE_QUERY_PARAM,
   PATH,
   SERIES_ID_PARAM,
   TEMPLATE_ID_PARAM,
@@ -245,9 +246,15 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
-    // One excursion's list (FR-31.6), under M27 and still in its view.
+    // One excursion's list (FR-31.6), under M27 and still in its view; a
+    // line's sheet over it is `?line=`, as M5's is `?item=` over M4.
     path: tripExcursionsPath(TRIP_ID_PARAM, EXCURSION_ID_PARAM),
-    meta: { parent: tripExcursionsPath(TRIP_ID_PARAM), tripView: 'excursions' },
+    meta: {
+      parent: tripExcursionsPath(TRIP_ID_PARAM),
+      overlayQuery: LINE_QUERY_PARAM,
+      overlayParent: tripExcursionsPath(TRIP_ID_PARAM, EXCURSION_ID_PARAM),
+      tripView: 'excursions',
+    },
     name: 'trip-excursion',
     component: () => import('@/views/trips/TripExcursionPage.vue'),
     props: true,

@@ -77,6 +77,32 @@ export async function tickExcursionLine(page: Page, key: string): Promise<void> 
   await writesLanded(page)
 }
 
+/**
+ * Open a line's menu — M4's action sheet (FR-5.5). `contextmenu` rather than a
+ * long press, for M4's reason: the hold's timing is unit-tested on a fake
+ * clock (`useLongPress`).
+ */
+export async function openLineMenu(page: Page, key: string): Promise<Locator> {
+  await excursionLine(page, key).dispatchEvent('contextmenu')
+  const menu = page.getByTestId('excursion-line-menu')
+  await expect(menu).toBeVisible()
+  return menu
+}
+
+/** Choose one entry of the open line menu, and wait for the sheet to go. */
+export async function chooseInLineMenu(page: Page, label: RegExp): Promise<void> {
+  const menu = page.getByTestId('excursion-line-menu')
+  await menu.getByRole('button', { name: label }).click()
+  await expect(menu).toHaveCount(0)
+}
+
+/** M4's snackbar, and its one undo (FR-25.31). */
+export async function undoFromSnackbar(page: Page, text: string | RegExp): Promise<void> {
+  const toast = page.locator('ion-toast.pack-toast').filter({ hasText: text })
+  await expect(toast).toHaveCount(1)
+  await toast.getByRole('button', { name: /undo/i }).click()
+}
+
 /** FR-25.2's bar on the excursion: bring the packed lines back into view. */
 export async function revealPackedLines(page: Page): Promise<void> {
   await visiblePage(page).getByTestId('m27-done-bar').click()

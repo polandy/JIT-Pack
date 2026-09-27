@@ -42,23 +42,15 @@ import {
 import {
   addOutline,
   bagHandleOutline,
-  contrastOutline,
-  closeCircleOutline,
-  removeCircleOutline,
-  refreshOutline,
   checkmarkDoneOutline,
   chevronDownOutline,
   chevronForwardOutline,
   contractOutline,
   expandOutline,
   funnelOutline,
-  layersOutline,
-  locationOutline,
-  lockOpenOutline,
   peopleOutline,
   textOutline,
   timeOutline,
-  trashOutline,
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
@@ -134,6 +126,7 @@ import {
   rowEdgeAvatar,
 } from '@/domain/packingView'
 import { avatarAssignable, rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
+import { ROW_MENU_BUTTONS } from '@/lib/rowMenuButtons'
 import {
   clusterMenuEntries,
   clusterTargets,
@@ -150,9 +143,8 @@ import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { useTaskActs } from '@/composables/useTaskActs'
-import { gestureAfter, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
+import { useHeadScroll } from '@/composables/useHeadScroll'
 import { collapseRow } from '@/lib/rowCollapse'
-import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -739,33 +731,6 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
  */
 let rowMenuActive = false
 
-/**
- * Label and glyph for each entry `rowMenuEntries` can return — the wording
- * and the icons are the screen's, the decision is the domain's.
- */
-const ROW_MENU_BUTTONS: Record<
-  RowMenuAction,
-  { labelKey: MessageKey; icon: string; role?: 'destructive' }
-> = {
-  takeover: { labelKey: 'packing.takeoverAction', icon: lockOpenOutline },
-  release: { labelKey: 'packing.releaseAction', icon: lockOpenOutline },
-  unskip: { labelKey: 'packing.unskipAction', icon: refreshOutline },
-  quantity: { labelKey: 'quantity.edit', icon: layersOutline },
-  packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
-  skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
-  // FR-5.9: the glyphs the row's own mode badge shows, so the entry names the
-  // state it leaves the row in.
-  buyLocal: { labelKey: 'mode.buyLocal', icon: locationOutline },
-  packInstead: { labelKey: 'packing.packInsteadAction', icon: bagHandleOutline },
-  latePackerOn: { labelKey: 'packing.latePackerOn', icon: timeOutline },
-  latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline },
-  flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
-  unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline },
-  // FR-5.8: the one entry that deletes — iOS paints it red, the way
-  // `confirmDestructive` marks its button.
-  remove: { labelKey: 'packing.removeAction', icon: trashOutline, role: 'destructive' },
-}
-
 function runRowMenu(action: RowMenuAction, item: TripItem): void {
   switch (action) {
     case 'takeover':
@@ -1239,98 +1204,10 @@ const statsDetail = computed(() =>
 
 /**
  * The header line *and the page head above it* yield to the list on the way
- * down and come back on an upward gesture. The rule itself is a pure step in
- * `lib/headScroll.ts` — its interesting cases are the readings it must not
- * act on, none of which a listener can reach.
+ * down and come back on an upward gesture (FR-21.17) — `useHeadScroll`.
  */
-const head = ref<HeadScrollState>({ top: 0, collapsed: false })
-const headCollapsed = computed(() => head.value.collapsed)
-
-/**
- * The scroller behind the ion-content. Resolved at mount rather than from
- * the first event: `nextHeadState` needs its geometry to tell a list that
- * survives yielding from one that does not, and the first event of a page is
- * the one a short list's jump starts on. The event stays as the fallback.
- */
-let scrollEl: HTMLElement | null = null
 const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
-
-/**
- * Whether the reader is the one scrolling right now (FR-21.17).
- *
- * Armed by the inputs that scroll a list and disarmed when the scroller
- * comes to rest, so a flick's momentum still counts as the flick — or when
- * focus moves, which announces the browser's own scroll before it happens. Without
- * it the head answered scrolls nobody made — the browser's own, when it
- * brings a control into view for a keyboard focus or for a click aimed at
- * a row below the fold — and each answer moved every row by the head's
- * height while a finger was already on its way to one (E2E-M4-135).
- */
-let gesture = false
-
-/**
- * The window, and the one observable thing about it.
- *
- * It closes on Ionic's `ionScrollEnd`, which is a debounce after the last
- * scroll event — so *whether* it is open is a race against a timer for
- * anything outside this screen, and E2E-M4-135 lost that race on a loaded
- * shard: it measured a scroll nobody made while the flick that set it up was
- * still settling, and read the head answering the reader as the defect it was
- * written to catch. A plain `let` is deliberate — a ref would re-render the
- * list on every wheel event — so the state is mirrored onto the host element
- * instead, the way the G-19 toast carries `data-presented`. Nothing in the app
- * reads it; it exists so a case can wait for the window rather than hope.
- */
-function armGesture(open: boolean): void {
-  gesture = open
-  packContent.value?.$el.toggleAttribute('data-scroll-gesture', open)
-}
-
-function onScrollerInput(event: Event) {
-  const key = event instanceof KeyboardEvent ? event.key : undefined
-  const armed = gestureAfter(gesture, {
-    type: event.type,
-    key,
-    onScroller: event.target === scrollEl,
-  })
-  if (armed !== gesture) armGesture(armed)
-}
-
-/** False once the screen is gone, so a scroller resolving late is not listened to at all. */
-let listening = true
-
-onMounted(() => {
-  void packContent.value?.$el.getScrollElement?.().then((el) => {
-    // A scroller that does not resolve is the state the rule already knows
-    // as `viewport: null` — and there is nothing to listen on either.
-    if (el == null || !listening) return
-    scrollEl = el
-    for (const type of SCROLLER_INPUTS)
-      el.addEventListener(type, onScrollerInput, { passive: true })
-  })
-})
-
-onUnmounted(() => {
-  listening = false
-  for (const type of SCROLLER_INPUTS) scrollEl?.removeEventListener(type, onScrollerInput)
-})
-
-function onScroll(event: CustomEvent<{ scrollTop: number }>) {
-  if (scrollEl === null) {
-    const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
-    void content.getScrollElement?.().then((el) => (scrollEl = el))
-  }
-  head.value = nextHeadState(head.value, {
-    top: event.detail.scrollTop,
-    viewport: scrollEl,
-    gesture,
-  })
-}
-
-/** The scroller has come to rest, so whatever moves it next has to say who asked. */
-function onScrollEnd() {
-  armGesture(false)
-}
+const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(packContent)
 
 // --- App-bar cluster (G-12) --------------------------------------------
 

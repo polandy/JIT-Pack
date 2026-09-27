@@ -51,9 +51,19 @@ The excursion's list works like the packing list, only smaller:
   next trip can plan with it. **Rückgängig** in the message takes it back;
 - tap a line to open its detail, just like on the packing list: the amount, packing, **Nicht einpacken**, who it is
   for — turn a shared thing into one for each person there — and under **Details** whether you pack it or buy it on
-  the spot;
-- press and hold a line for its menu: **Eins mehr**, **Eins weniger**, **Gekauft**, **Ins Inventar übernehmen**,
-  **Vor Ort besorgen**, **Diesmal nicht**, **Von der Liste nehmen**.
+  the spot. On a wide screen the detail opens beside the list instead of over it; the browser's back button closes it;
+- tap the number on a line to change how many you take, as on the packing list;
+- press and hold a line for the packing list's own menu: **Menge ändern**, **Nicht einpacken**, **Vor Ort kaufen**
+  (or **Doch mitnehmen**), and for the excursion **Gekauft**, **Auf die Packliste** and **Ins Inventar übernehmen**,
+  then **Von der Liste entfernen**. Whatever you do there, the message at the bottom offers **Rückgängig**.
+
+### Finding things on a longer list
+
+The bar at the top has the packing list's three buttons: the magnifier searches the excursion's list, the funnel
+filters it — by person, category or state — and groups it by category, person or state, and the last button folds
+every group shut or open again. The person cards under the progress work as quick filters: tap one or several to see
+only their things (and the shared ones, if you tap **Gemeinsam**); the chips above the list show what is filtered and
+take it away again. A filter lasts until you close the app; the grouping is kept.
 
 ### Things just for this excursion
 

@@ -122,6 +122,15 @@ export function tripExcursionsPath(tripId: string, excursionId?: string): string
   return excursionId ? `${path}/${excursionId}` : path
 }
 
+/** Query key naming the line whose sheet or panel is open over an excursion's list (M27, like M5's `?item=`). */
+export const LINE_QUERY_PARAM = 'line'
+
+/** One excursion's list with a line's sheet or panel open over it (FR-31.6). */
+export function tripExcursionLinePath(tripId: string, excursionId: string, lineId: string): string {
+  const query = new URLSearchParams({ [LINE_QUERY_PARAM]: lineId })
+  return `${tripExcursionsPath(tripId, excursionId)}?${query.toString()}`
+}
+
 /**
  * The item sheet or panel over the packing list (M5): the trip's own route
  * with the item in the query, optionally naming the comment to flash (G-4).

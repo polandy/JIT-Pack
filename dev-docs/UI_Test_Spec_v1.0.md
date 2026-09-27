@@ -3389,6 +3389,19 @@ went.
 * **E2E-M27-09** `local` (FR-31.14) — **implemented** (`excursions.spec.ts`): two names the inventory lacks added *nur
   für diesen Ausflug* read so and are not on M4; *Ins Inventar* on one toasts, makes it *aus dem Gepäck* and a row of
   M4; *Als Gruppe speichern* asks about the other alone, and *Weglassen* saves the Gruppe with it absent from M9.
+* **E2E-M27-10** `local` (FR-31.6, FR-5.5, FR-25.24, FR-25.31) — **implemented** (`excursions.spec.ts`): a line's menu
+  offers M4's entries in M4's words (*Change the amount*, *Do not pack this*, *Buy there*, *Remove from the list*) and
+  not the suitcase's (*Pack*, late packer); the amount through M4's popover is one act with one undo, and the skip and
+  the removal each leave the list and come back from the snackbar's *Undo*.
+* **E2E-M27-11** `local` (FR-31.6, FR-25.11, FR-25.16, FR-25.29) — **implemented** (`excursions.spec.ts`): the bar's
+  search narrows the list, a search with no match shows *No matches* and M4's reset; two person cards are two chips
+  and a cluster then shows those two people's lines, the reset brings the third back; fold-all folds the group to its
+  open count and back; a fully packed list says *All done*.
+* **E2E-M27-12** `local` (FR-31.6, G-9) — **implemented** (`excursions.spec.ts`): a tap opens the line's sheet with
+  `?line=` in the URL; the browser's back closes it and the excursion's list is what remains; at a desktop width the
+  same tap opens M5's side panel beside the list, and no sheet.
+* **E2E-M27-13** `local` (FR-31.6, FR-25.13f) — **implemented** (`excursions.spec.ts`): the inventory sheet's
+  *packen* on a thing the excursion carries takes its line off the open list, and the row's undo brings it back.
 
 ## 5. Cross-Screen Flow Tests
 
@@ -3737,6 +3750,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-31.10–31.12 | E2E+UNIT | M27-01 (M4's borrowed line), M27-06 (saved as a group); `excursions.spec.ts` (`arrangeExcursions`, `pendingExcursionCount`, `dueExcursions`, `borrowersByTripItem`, `planGroupFromExcursion`), `excursions.seam.spec.ts` (`saveAsGroup`) |
 | FR-31.13 | E2E+UNIT | M27-07 (bought through M6, taken onto the packing list, on M4 and in M9); `excursions.spec.ts` (`canJoinPackingList`, `inventoryItemFor`), `excursions.seam.spec.ts` (`addToPackingList`, its undo) |
 | FR-31.14 | E2E+UNIT | M27-09; `excursions.spec.ts` (`planLinks` leaves the line out, `canAdoptIntoInventory`, `planGroupFromExcursion` without unlisted lines), `excursions.seam.spec.ts` (`adoptIntoInventory` and its undo, `unlistedNames`, `saveAsGroup` leaving them out) |
+| FR-31.6 (M4's parts) | E2E+UNIT | M27-10 (menu, popover, snackbar undo), M27-11 (search, person filter, fold-all, empty states), M27-12 (`?line=`, back, side panel), M27-13 (browse verbs); `excursions.spec.ts` (`excursionMenuEntries`); M4's own `useHeadScroll` through E2E-M4-70/135/150 |
 | FR-31.5/31.6 (the sheet) | E2E+UNIT | M27-08; `excursions.spec.ts` (`planForWhom`, `lineSetOf`), `excursions.seam.spec.ts` (`setForWhom`, its undo) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
