@@ -438,17 +438,18 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 			by: "resolved_by_user_id",
 			at: "resolved_at",
 		}, known, state == taskStateResolved)
-	case store.TableNoteAcks:
-		// FR-7.9: whose tick a row is decided once, exactly like a comment's
-		// authorship (same shape as store.TableComments above). An upsert
-		// must only flip `acked`, never reassign the row to somebody else's
-		// tick — stamping unconditionally would let two users racing an
-		// upsert on the same row id steal each other's row instead of
-		// getting the UNIQUE(comment_id, user_id) refusal they should.
-		delete(m.Fields, "user_id")
-		if m.Op == syncpkg.OpInsert {
-			m.Set("user_id", userID)
-		}
+	case store.TableIdeas, store.TableIdeaComments:
+		// FR-29.1/29.4: an idea's author and a discussion entry's, decided
+		// once — store.TableComments' rule above, for its reason.
+		stampOnInsert(m, "author_id", userID)
+	case store.TableNoteAcks, store.TableIdeaVotes:
+		// FR-7.9/FR-29.3: whose tick or vote a row is decided once, exactly
+		// like a comment's authorship (same shape as store.TableComments
+		// above). An upsert must only flip `acked` or `vote`, never reassign
+		// the row to somebody else — stamping unconditionally would let two
+		// users racing an upsert on the same row id steal each other's row
+		// instead of getting the UNIQUE(…, user_id) refusal they should.
+		stampOnInsert(m, "user_id", userID)
 	case store.TableShoppingEntries:
 		// FR-30.4: the entry's purchase record. `bought` is the flag the
 		// record describes, sent as a JSON number or boolean.
@@ -510,6 +511,16 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 			m.Set("packed_by_user_id", nil)
 			m.Set("packed_at", nil)
 		}
+	}
+}
+
+// stampOnInsert removes an actor column from every op and gives it back to
+// the insert alone, as the pusher: who wrote a row is decided once, when it
+// comes into being, and a later op may not move it to somebody else.
+func stampOnInsert(m *syncpkg.Mutation, column, userID string) {
+	delete(m.Fields, column)
+	if m.Op == syncpkg.OpInsert {
+		m.Set(column, userID)
 	}
 }
 

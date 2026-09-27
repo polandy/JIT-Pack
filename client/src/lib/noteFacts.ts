@@ -21,11 +21,24 @@ function joined(parts: readonly string[]): string {
   return parts.filter((part) => part !== '').join(' · ')
 }
 
+/**
+ * „Ben · heute 14:32" — who wrote something and when, the line every written
+ * entry wears: a note's here, an idea's and its discussion's in the planner.
+ * A name the directory does not know is left out rather than shown as an id.
+ */
+export function writtenMeta(
+  authorId: string | null,
+  at: string | null,
+  nameOf: NameOf,
+  now: Date = new Date(),
+): string {
+  return joined([nameOf(authorId) ?? '', when(at, now)])
+}
+
 /** „Ben · heute 14:32 · bearbeitet" — an entry's own line. */
 export function noteEntryMeta(entry: ItemComment, nameOf: NameOf, now: Date = new Date()): string {
   return joined([
-    nameOf(entry.author_id) ?? '',
-    when(entry.created_at, now),
+    writtenMeta(entry.author_id, entry.created_at, nameOf, now),
     entry.edited_at ? t('notes.edited') : '',
   ])
 }

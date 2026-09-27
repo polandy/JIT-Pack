@@ -3,7 +3,8 @@
  * rule for the planner).
  *
  * A feature module is a directory under `client/src` that owns one feature
- * end to end — store, actions, screens, specs. `shopping/` is the first.
+ * end to end — store, actions, screens, specs. `shopping/` is the first,
+ * `planner/` (§3.29) the second.
  * Two directions are held, both by direct import:
  *
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
@@ -41,7 +42,7 @@ const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 const SRC = resolve(root, 'client/src')
 
 /** The feature modules — one directory each under `client/src`. */
-const MODULES = ['shopping']
+const MODULES = ['shopping', 'planner']
 
 /** Kernel directories a module may import from. */
 const KERNEL_DIRS = ['api', 'sync', 'types', 'lib', 'theme', 'i18n']

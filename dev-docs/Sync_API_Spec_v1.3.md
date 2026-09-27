@@ -18,7 +18,8 @@ what runs.
 * **P-2 (One write path):** Clients write exclusively via the **push endpoint** from a local outbox — also while online.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
-  trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items) and one **master
+  trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items, ideas, idea_votes,
+  idea_comments) and one **master
   partition per user** (items, tags, item_tags, task_tags, templates, template_items, template_includes,
   template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members,
   trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition —
@@ -235,6 +236,16 @@ tombstoned like any cascade. `excursion_items.trip_item_id` is the one reference
 (`ON DELETE SET NULL`): the server clears it inside the engine and writes **no change** for it, so another device keeps
 the old id until the line is next written, and a client reads a link to a row it does not hold as no link. The
 excursion's own reminder is kind `excursion_due` (§8), read off `starts_on`.
+
+`ideas`, `idea_votes` and `idea_comments` (§3.29, ADR-078) are the planner's three trip-partition tables, routed on the
+client to the planner module's own store. `ideas.author_id` and `idea_comments.author_id` are **stamped on the insert**
+like `comments.author_id`, and `idea_votes.user_id` like `note_acks.user_id`: stripped from every op and given back to
+the insert alone, as the pusher. **A vote is its voter's**: any op on an existing `idea_votes` row pushed by somebody
+else is refused as `not_authorized`, and a second row for the same idea and account by the `UNIQUE (idea_id, user_id)`
+constraint; a withdrawn vote is `vote: null`, never a delete. `ideas.link` is refused by a CHECK unless it starts with
+`http://` or `https://`, `ideas.tag` unless it is one of FR-29.10's keys, `ideas.state` unless one of `idea`,
+`shortlisted`, `done`, `dropped`. Deleting an idea cascades to its votes and discussion, tombstoned like any cascade.
+`created_at` on both is the client's clock, like a comment's.
 
 `comments.parent_id`, `title` and `edited_at` (FR-7.13) make a trip note a thread. `parent_id` names the
 thread's first note on a reply and is **written once**: the server drops it from every op on a row that already exists,

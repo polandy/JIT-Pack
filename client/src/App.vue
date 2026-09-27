@@ -78,6 +78,7 @@ import {
   useShoppingStore,
 } from '@/shopping'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
+import { ideasCount, plannerFeatureStore } from '@/planner'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -123,7 +124,7 @@ const orchestrator = mode.value
       onRejections: showRejectionToast,
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
       // their rows without importing a module.
-      features: [shoppingFeatureStore()],
+      features: [shoppingFeatureStore(), plannerFeatureStore()],
     })
   : null
 
@@ -214,6 +215,8 @@ const shoppingSources = orchestrator
   : []
 provide(SHOPPING_SOURCES, shoppingSources)
 provide(TRIP_VIEW_COUNTS, {
+  // §3.29: the ideas nobody has decided on yet.
+  ideas: ideasCount(),
   shopping: shoppingCount(shoppingSources),
   // FR-31.10: excursions ahead that still have something to pack or buy.
   excursions: (tripId) => {

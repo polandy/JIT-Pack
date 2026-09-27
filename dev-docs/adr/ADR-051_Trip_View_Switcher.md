@@ -194,6 +194,30 @@ open, grey. The row is now five pills, six while standing on the luggage or the 
 row sideways, which it always could (the row scrolls rather than wraps), instead of every trip screen's pills being
 made denser for a phone nobody in the household holds.
 
+**Amendment 4 (2026-09-27) — the planner's ideas are the first pill, and a full row scrolls at 410 px too.** The planner
+(§3.29, ADR-078) puts *Ideen* in the one switcher rather than in a phase bar above it — variant B of
+`UI_Concept_PlannerNav_variants.html`, chosen by the owner on the render: one row of navigation, one tap to anything, no
+new pattern. *Ideen* (`bulbOutline`) is the **first** pill, because a trip is planned before it is packed; its badge
+counts the ideas nobody has decided on yet, grey. The day plan will join as the last pill (§3.29 FR-29.7).
+
+The mockup said seven glyphs fit 360 px. **Measured in the app, they do not fit 410 px**: its pills are wider than the
+mockup's (a glyph pill ≈ 48 px with its gap, the worded one 90–110 px). Six pills fill the Pixel 9 Pro's row to the edge
+— in English, *Packing list* worded, one pixel over — and a seventh, the luggage or the analytics joining it while you
+stand there, overflows by 36 px. Three ways were put to the owner:
+
+- **Scroll the row sideways, the current pill scrolled into view** — chosen. The pills keep their size and tap target;
+  the row already scrolled on anything narrower than 410 px. Cost: in that shape a pill at the edge is cut off, and the
+  row no longer shows every destination at once on the phone it is laid out for.
+- *Slimmer glyph pills* (padding 10 → 6 px, gap 6 → 4 px), so seven fit — rejected: a glyph pill of about 36 px is below
+  a comfortable tap target, and the day plan's seventh pill would make it tight again.
+- *No pill for the ⋮ views* — the packing pill stays marked and the title names *Gepäck* — rejected: it solves today's
+  shape only, reverses Amendment 1's "the row marks where you are", and the day plan would need one of the other two
+  anyway.
+
+The row now brings the pill you stand on inside its own clip when it overflows (`TripViewNav`'s `revealCurrent`, the
+row's own scroll offset, never the page's). E2E-G12-07 asserts, at 410 px, the six pills on one line with the current
+one wholly in view, and standing on the luggage the row scrolling with that pill wholly in view.
+
 ## Consequences
 
 **Positive**

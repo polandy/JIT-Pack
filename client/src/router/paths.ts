@@ -62,6 +62,7 @@ export type TripSubScreen =
   | 'tasks'
   | 'notes'
   | 'excursions'
+  | 'ideas'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {
@@ -120,6 +121,17 @@ export const EXCURSION_ID_PARAM = ':excursionId'
 export function tripExcursionsPath(tripId: string, excursionId?: string): string {
   const path = tripSubPath(tripId, 'excursions')
   return excursionId ? `${path}/${excursionId}` : path
+}
+
+/** Query key naming the idea whose sheet or panel is open over the board (M28, like M5's `?item=`). */
+export const IDEA_QUERY_PARAM = 'idea'
+
+/** The trip's ideas (M28), or one idea's sheet or panel open over them (FR-29.6). */
+export function tripIdeasPath(tripId: string, ideaId?: string): string {
+  const path = tripSubPath(tripId, 'ideas')
+  if (!ideaId) return path
+  const query = new URLSearchParams({ [IDEA_QUERY_PARAM]: ideaId })
+  return `${path}?${query.toString()}`
 }
 
 /** Query key naming the line whose sheet or panel is open over an excursion's list (M27, like M5's `?item=`). */

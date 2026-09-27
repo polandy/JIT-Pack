@@ -41,7 +41,8 @@ Back it up from inside the app:
    *„Eingetragen"*. Those entries belong to the shopping list, not to the packing list the
    file describes, and a restored trip's shopping list holds only what the packing list
    marks to buy. **Nor are [excursions](excursions.md)** — neither the excursions nor their
-   lists; save one as a group first if you want to keep it. **And *Packen abgeschlossen* is not in it either:** a restored trip's
+   lists; save one as a group first if you want to keep it. **Nor are the trip's [ideas](ideas.md)** — nor their
+   votes and comments. **And *Packen abgeschlossen* is not in it either:** a restored trip's
    packing is open again, with the rows that were deliberately left behind still marked as
    such. Finish it again from the packing list's ⋮ if you want the note back.
 

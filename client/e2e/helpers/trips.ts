@@ -372,6 +372,7 @@ export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
  * have to know which shape the view is in today.
  */
 const TRIP_VIEW = {
+  ideas: 'trip-view-ideas',
   packing: 'trip-view-packing',
   shopping: 'trip-view-shopping',
   tasks: 'trip-view-tasks',
@@ -388,6 +389,7 @@ const TRIP_VIEW = {
  * imported the rule would agree with a wrong app.
  */
 const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = [
+  'ideas',
   'packing',
   'shopping',
   'tasks',
@@ -396,7 +398,7 @@ const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = [
 ]
 
 /**
- * One of the trip's seven views → another (FR-21.21, ADR-051). The views a
+ * One of the trip's eight views → another (FR-21.21, ADR-051). The views a
  * trip is worked in are pills under the page's name and the rest are words
  * in the bar's ⋮ (amendment 1; the tasks' screen from FR-7.7, the notes'
  * from FR-7.13). Either way this reaches them from any of the six screens,

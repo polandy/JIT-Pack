@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router'
 import { installOverlayBackGuard } from './overlayBackGuard'
 import { installOriginStamp } from './originStamp'
 import {
+  IDEA_QUERY_PARAM,
   ITEM_ID_PARAM,
   ITEM_QUERY_PARAM,
   LINE_QUERY_PARAM,
@@ -17,6 +18,7 @@ import {
   templatePath,
   tripNotesPath,
   tripExcursionsPath,
+  tripIdeasPath,
   tripPath,
   tripSubPath,
 } from './paths'
@@ -235,6 +237,20 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'notes' },
     name: 'trip-notes',
     component: () => import('@/views/trips/TripNotesPage.vue'),
+    props: true,
+  },
+  {
+    // M28 (§3.29): the trip's ideas — the planner module's board. One idea's
+    // sheet over it is `?idea=`, as M5's is `?item=` over M4.
+    path: tripIdeasPath(TRIP_ID_PARAM),
+    meta: {
+      parent: tripPath(TRIP_ID_PARAM),
+      overlayQuery: IDEA_QUERY_PARAM,
+      overlayParent: tripIdeasPath(TRIP_ID_PARAM),
+      tripView: 'ideas',
+    },
+    name: 'trip-ideas',
+    component: () => import('@/planner/IdeasPage.vue'),
     props: true,
   },
   {

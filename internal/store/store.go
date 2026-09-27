@@ -68,6 +68,11 @@ const (
 	TableExcursions         = "excursions"
 	TableExcursionTravelers = "excursion_travelers"
 	TableExcursionItems     = "excursion_items"
+	// §3.29: the planner's ideas, one vote per person on each, and each
+	// idea's discussion (FR-29.1–29.4, ADR-078).
+	TableIdeas        = "ideas"
+	TableIdeaVotes    = "idea_votes"
+	TableIdeaComments = "idea_comments"
 	// FR-27.4, the planning-trip refresh (migration 023).
 	TableTripTemplateSources    = "trip_template_sources"
 	TableTripGeneratedPositions = "trip_generated_positions"

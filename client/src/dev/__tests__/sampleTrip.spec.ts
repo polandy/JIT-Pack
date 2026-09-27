@@ -21,7 +21,10 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
-import { SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
+import { plannerFeatureStore, usePlannerStore } from '@/planner'
+import { IDEA_STATES } from '@/types/domain'
+
+import { SEED_IDEAS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
@@ -54,6 +57,31 @@ async function seedConnected() {
 }
 
 describe('seedSampleTrip (dev)', () => {
+  /*
+   * §3.29: M28 has chips to show and segments to switch between only if the
+   * seed spreads its ideas — a board of five alike ideas exercises none of it.
+   */
+  it('leaves the board ideas in three segments, with a vote and a comment (§3.29)', () => {
+    // The module's rows reach its store only through the binding the app
+    // shell makes (FR-29.9), so this device binds it as App.vue does.
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+      features: [plannerFeatureStore()],
+    })
+    const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)
+    const planner = usePlannerStore()
+    const ideas = planner.getIdeas(tripId)
+
+    expect(ideas).toHaveLength(SEED_IDEAS.length)
+    const used = IDEA_STATES.filter((state) => ideas.some((idea) => idea.state === state))
+    expect(used).toEqual(['idea', 'shortlisted', 'dropped'])
+    expect(ideas.some((idea) => idea.rain_proof)).toBe(true)
+    expect(planner.getVotes(tripId).filter((vote) => vote.vote === 'up')).toHaveLength(1)
+    expect(planner.getComments(tripId)).toHaveLength(1)
+  })
+
   it('leaves a fresh device with both kinds of task (FR-7.6)', () => {
     const { tripId, trip } = seed()
 

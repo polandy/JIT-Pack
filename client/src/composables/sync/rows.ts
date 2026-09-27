@@ -31,6 +31,9 @@ import type {
   TripItem,
   TripMember,
   TripSeries,
+  Idea,
+  IdeaComment,
+  IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
 
@@ -219,6 +222,42 @@ export function containerRow(container: Container): Record<string, unknown> {
 }
 
 /** FR-30.1: a shopping entry as its row. */
+/** FR-29.1: an idea. */
+export function ideaRow(idea: Idea): Record<string, unknown> {
+  return {
+    trip_id: idea.trip_id,
+    author_id: idea.author_id,
+    title: idea.title,
+    note: idea.note,
+    link: idea.link,
+    tag: idea.tag,
+    rain_proof: dbBool(idea.rain_proof),
+    state: idea.state,
+    created_at: idea.created_at,
+  }
+}
+
+/** FR-29.3: one person's vote on one idea. */
+export function ideaVoteRow(vote: IdeaVote): Record<string, unknown> {
+  return {
+    trip_id: vote.trip_id,
+    idea_id: vote.idea_id,
+    user_id: vote.user_id,
+    vote: vote.vote,
+  }
+}
+
+/** FR-29.4: one entry of an idea's discussion. */
+export function ideaCommentRow(comment: IdeaComment): Record<string, unknown> {
+  return {
+    trip_id: comment.trip_id,
+    idea_id: comment.idea_id,
+    author_id: comment.author_id,
+    body: comment.body,
+    created_at: comment.created_at,
+  }
+}
+
 export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> {
   return {
     trip_id: entry.trip_id,

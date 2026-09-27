@@ -166,6 +166,7 @@ const ENTITY_LABELS: Partial<Record<string, MessageKey>> = {
   [TABLE.comments]: 'conflicts.entity.comments',
   [TABLE.tripSeries]: 'conflicts.entity.trip_series',
   [TABLE.shoppingEntries]: 'conflicts.entity.shopping_entries',
+  [TABLE.ideas]: 'conflicts.entity.ideas',
 }
 
 /**

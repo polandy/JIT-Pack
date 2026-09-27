@@ -448,6 +448,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A wheel that could not scroll held the gesture window open (2026-09-26)](#a-wheel-that-could-not-scroll-held-the-gesture-window-open-2026-09-26) — FR-21.17: the window was unbounded, not 120–220 ms; a focus closes it, and the helper sees it open.
 - [Excursions: a small packing list inside a trip (2026-09-26)](#excursions-a-small-packing-list-inside-a-trip-2026-09-26) — M6 assumed every shopping source was the packing list; a stale suitcase link on purpose.
 - [The excursion list takes the rest of M4's parts (2026-09-27)](#the-excursion-list-takes-the-rest-of-m4s-parts-2026-09-27) — M5's back guard shows the wrong page below a non-root screen; the line sheet is pushed.
+- [The planner's first slice: ideas, votes and a discussion (2026-09-27)](#the-planners-first-slice-ideas-votes-and-a-discussion-2026-09-27) — `comments.idea_id` would have leaked into every notes reader; the mockup's row measurement was wrong.
 
 ## Deviations
 
@@ -17807,3 +17808,35 @@ the push until Ionic's transition ends (a timer, or an outlet event the router c
 the list itself, replacing otherwise (a deep link). Cost: the one overlay of the app that is not a replace. E2E-M27-12
 was red on the replace and is green on the push.
 
+
+## The planner's first slice: ideas, votes and a discussion (2026-09-27)
+
+§3.29 slice 1a, the owner's go on the concept (`dev-docs/planner-concept.md`): the board M28 as the planner module's
+first screen, with the four states, votes with names, a discussion, the tags and the rain mark. Pictures, the bridge to
+the packing side, the notifications and the day plan are specified and not built. The owner put the board before the
+concept's step 0 (the CI fast loop), so this PR runs the full suite like any other.
+
+**A premise that was wrong: the discussion as `comments.idea_id`.** The draft and the concept both reused `comments`,
+with an `idea_id` beside `trip_item_id`. Checked against the code before a line was written, it failed the concept's own
+decision #12: `comments` is the packing store's table, and every reader of trip-level comments — M26's threads, M25's
+tasks, M1's notes card, the note-reply notification, the due-task reminder — reads a row with a null `trip_item_id` as
+a note or a task. Each would have had to learn to skip idea comments, and one that forgot would have surfaced a
+discussion entry as a trip note with no error anywhere. Built instead: `idea_comments`, the planner's own table,
+routed to its own store through `FEATURE_STORE_TABLES` like the shopping entries (ADR-078). Cost: a second comment
+shape.
+
+**A measurement that did not survive the app.** The concept's navigation mockup put seven glyph pills in 360 px with
+room to spare, and variant B was chosen on that. The app's pills are wider than the mockup's — about 48 px for a glyph
+with its gap, 90–110 px for the worded current one — and six already fill the Pixel 9 Pro's 410 px (in English, with
+*Packing list* worded, one pixel over). E2E-G12-07 caught it on the ⋮-view shape, 36 px over. The owner chose, from
+three, to let the row scroll with the current pill scrolled into view (ADR-051 amendment 4); E2E-G12-07 was red with
+`revealCurrent` stubbed out. The day plan's pill will make every shape scroll, and was decided with it.
+
+**A module's own cascade had nowhere to paint.** An idea's delete must name its votes and words in the optimistic
+change, or Local Mode's disk keeps them (C-3a). `cascadeOf` is the packing tables' switch and imports no module, and the
+lint rule keeps `localTombstone` inside `sync/cascade.ts` — so the planner's store names its children and paints them
+through a new `cascadeTombstones` there. The Local Mode case was red without the children.
+
+**A trap for a rendered check: a dev-mode build is not a dev build.** `vite build --mode development` still sets
+`import.meta.env.DEV` false (Vite derives it from `NODE_ENV`), so the served bundle had no seed button;
+`NODE_ENV=development vite build --mode development` is the build the owner tests on.

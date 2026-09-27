@@ -679,6 +679,63 @@ CREATE TABLE excursion_items (
 );
 
 -- ---------------------------------------------------------------------------
+-- The planner (§3.29, ADR-078): what the travellers might do on the trip
+-- ---------------------------------------------------------------------------
+
+-- FR-29.1: one idea — a title, and optionally a note, one link, one tag and
+-- the rain-proof mark. The state is set by hand (FR-29.2); no vote moves it.
+-- The link is rendered as an href, so a scheme other than http(s) is refused
+-- here as well as by the client. The tag is a stable key of FR-29.10's closed
+-- set, labelled by the client's catalogue. `author_id` is stamped by the
+-- server on the insert (invariant 3); `created_at` is named by the client,
+-- like comments.created_at, for the board's newest-first order.
+CREATE TABLE ideas (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    author_id   TEXT NOT NULL REFERENCES users(id),
+    title       TEXT NOT NULL,
+    note        TEXT,
+    link        TEXT CHECK (link IS NULL OR link LIKE 'http://%' OR link LIKE 'https://%'),
+    tag         TEXT CHECK (tag IS NULL OR tag IN ('hiking','swimming','culture','food','outing')),
+    rain_proof  INTEGER NOT NULL DEFAULT 0 CHECK (rain_proof IN (0,1)),
+    state       TEXT NOT NULL DEFAULT 'idea'
+                CHECK (state IN ('idea','shortlisted','done','dropped')),
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-29.3: one person's vote on one idea. A row per (idea, person) rather than
+-- a list on the idea, so two people voting at once both count — ADR-073's
+-- reason for note_acks. Withdrawing sets `vote` to NULL rather than deleting
+-- the row: field-level LWW never deletes. `user_id` is stamped by the server
+-- on the insert, and only its own voter may change the row afterwards.
+CREATE TABLE idea_votes (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    user_id     TEXT NOT NULL REFERENCES users(id),
+    vote        TEXT CHECK (vote IS NULL OR vote IN ('up','down')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT '',
+    UNIQUE (idea_id, user_id)
+);
+
+-- FR-29.4: the discussion of one idea. Its own table rather than a column on
+-- `comments`, so that no reader of a trip's notes and tasks has to know that
+-- ideas exist, and the planner module holds every row it shows (ADR-078).
+CREATE TABLE idea_comments (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    author_id   TEXT NOT NULL REFERENCES users(id),
+    body        TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- ---------------------------------------------------------------------------
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
 
@@ -787,6 +844,7 @@ CREATE INDEX idx_change_log_trip   ON change_log (trip_id, seq);
 CREATE INDEX idx_conflict_log_partition ON conflict_log (trip_id, resolved_at DESC, id);
 CREATE INDEX idx_conflict_log_mutation  ON conflict_log (mutation_id, entity_table, entity_id);
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
+CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);
 CREATE INDEX idx_notifications_user ON notifications (user_id, created_at DESC);

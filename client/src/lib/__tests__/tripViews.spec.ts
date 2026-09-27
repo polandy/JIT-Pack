@@ -24,9 +24,17 @@ const TRIP = 'trip-1'
 describe('the trip views that earn a pill', () => {
   // FR-7.13: the notes are the fourth view worked in — written in, not read once.
   // FR-31: the excursions the fifth — packed during the trip, more often than the suitcase.
-  it('shows the five a trip is worked in, in the order it is worked through', () => {
-    const worked = ['packing', 'shopping', 'tasks', 'notes', 'excursions']
-    for (const current of ['packing', 'shopping', 'tasks', 'notes', 'excursions'] as const) {
+  // §3.29: the ideas the sixth, first — a trip is planned before it is packed.
+  it('shows the six a trip is worked in, in the order it is worked through', () => {
+    const worked = ['ideas', 'packing', 'shopping', 'tasks', 'notes', 'excursions']
+    for (const current of [
+      'ideas',
+      'packing',
+      'shopping',
+      'tasks',
+      'notes',
+      'excursions',
+    ] as const) {
       expect(tripViewPills(current)).toEqual(worked)
     }
   })
@@ -38,6 +46,7 @@ describe('the trip views that earn a pill', () => {
    */
   it('adds the view being looked at when it is none of them', () => {
     expect(tripViewPills('luggage')).toEqual([
+      'ideas',
       'packing',
       'shopping',
       'tasks',
@@ -46,6 +55,7 @@ describe('the trip views that earn a pill', () => {
       'luggage',
     ])
     expect(tripViewPills('analytics')).toEqual([
+      'ideas',
       'packing',
       'shopping',
       'tasks',

@@ -1,6 +1,7 @@
 import type { InjectionKey } from 'vue'
 import {
   briefcaseOutline,
+  bulbOutline,
   cartOutline,
   chatbubblesOutline,
   checkboxOutline,
@@ -10,10 +11,10 @@ import {
 } from 'ionicons/icons'
 
 import { t, type MessageKey } from '@/i18n'
-import { tripExcursionsPath, tripPath, tripSubPath } from '@/router/paths'
+import { tripExcursionsPath, tripIdeasPath, tripPath, tripSubPath } from '@/router/paths'
 
 /**
- * The trip's seven views, named once (FR-21.21, ADR-051).
+ * The trip's eight views, named once (FR-21.21, ADR-051).
  *
  * The ids are the vocabulary three places share: the route table says which
  * view a route *is*, the switcher decides which pill is current from that,
@@ -24,6 +25,7 @@ import { tripExcursionsPath, tripPath, tripSubPath } from '@/router/paths'
  * readers below render in — the switcher's pills and the bar's ⋮ entries.
  */
 export const TRIP_VIEW_IDS = [
+  'ideas',
   'packing',
   'shopping',
   'tasks',
@@ -33,7 +35,7 @@ export const TRIP_VIEW_IDS = [
   'analytics',
 ] as const
 
-/** One of the trip's seven views — see TRIP_VIEW_IDS. */
+/** One of the trip's eight views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -67,8 +69,13 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  * often then than the suitcase is (ADR-077). The row is laid out for the
  * Pixel 9 Pro's 410 px (ADR-051) and scrolls on anything narrower; E2E-G12-07
  * measures its widest shape, the sixth pill a ⋮ view adds.
+ *
+ * §3.29 adds the sixth, first in the row: the ideas a trip is planned from,
+ * before the packing begins (ADR-051 amendment 4). E2E-G12-07 measures the
+ * row again with it, and with a ⋮ view as the seventh.
  */
 export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
+  'ideas',
   'packing',
   'shopping',
   'tasks',
@@ -96,6 +103,12 @@ interface TripViewSpec {
 }
 
 const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
+  ideas: {
+    icon: bulbOutline,
+    nameKey: 'ideas.title',
+    countKey: 'ideas.viewCount',
+    path: (tripId) => tripIdeasPath(tripId),
+  },
   packing: { icon: listOutline, nameKey: 'packing.title', path: tripPath },
   shopping: {
     icon: cartOutline,

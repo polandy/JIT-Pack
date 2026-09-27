@@ -22,12 +22,17 @@
  * itself three ways — `aria-label`, a `title` for a hovering pointer, and a
  * bubble on a held press for a finger, which is the one a phone has.
  *
+ * The row is laid out for the Pixel 9 Pro's 410 px (ADR-051) and scrolls
+ * sideways where its pills do not fit — on a narrower phone, and at 410 px
+ * too once a seventh pill joins it. The pill you stand on is scrolled into
+ * view, so the row never hides the one thing it marks.
+ *
  * The frame renders it, once, from `meta.tripView` — the same shape as the
  * content column it sits in (G-9): a screen that had to remember to offer
  * its siblings is a screen that will forget.
  */
 import { IonIcon, useIonRouter } from '@ionic/vue'
-import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
@@ -122,10 +127,33 @@ function onRelease() {
 // A bubble belongs to the screen it was asked on.
 watch(() => props.current, hideBubble)
 onBeforeUnmount(hideBubble)
+
+const row = ref<HTMLElement | null>(null)
+
+/**
+ * Brings the current pill inside the row when the row scrolls. The row's own
+ * scroll offset only — `scrollIntoView` would move the page under it too.
+ */
+function revealCurrent() {
+  const nav = row.value
+  const pill = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+  if (!nav || !pill) return
+  const bounds = nav.getBoundingClientRect()
+  const box = pill.getBoundingClientRect()
+  if (box.right > bounds.right) nav.scrollLeft += box.right - bounds.right
+  else if (box.left < bounds.left) nav.scrollLeft -= bounds.left - box.left
+}
+
+onMounted(revealCurrent)
+watch(
+  () => props.current,
+  () => void nextTick(revealCurrent),
+)
 </script>
 
 <template>
   <nav
+    ref="row"
     class="trip-views"
     :aria-label="t('packing.tripViews')"
     data-testid="trip-views"
