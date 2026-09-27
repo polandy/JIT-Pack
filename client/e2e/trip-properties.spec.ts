@@ -2,7 +2,7 @@ import {
   test,
   expect,
   expectTripOpen,
-  setDateField,
+  setDateRange,
   tripAction,
   tripActionFromList,
   expectTripActionOffered,
@@ -166,10 +166,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     // G-17 (ADR-035): the date is set through the app's picker, and the field
     // renders the locale display — never the ISO the state holds.
-    await setDateField(page, 'trip-edit-start', '2026-10-03')
-    await expect(visible(page).getByTestId('trip-edit-start').locator('input')).toHaveValue(
-      'Oct 3, 2026',
-    )
+    await setDateRange(page, 'trip-edit-dates', { start: '2026-10-03', end: '2026-10-10' })
+    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('Oct 3 – 10, 2026')
 
     // Asserted on the rendered screen, never on the URL: the name has to come
     // back through the store and repaint M4, which is the whole point.
@@ -179,9 +177,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     // The date write survived the round trip too, not only the optimistic paint.
     await openTripEdit(page)
-    await expect(visible(page).getByTestId('trip-edit-start').locator('input')).toHaveValue(
-      'Oct 3, 2026',
-    )
+    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('Oct 3 – 10, 2026')
   })
 
   test('E2E-M22-02: a traveller added extends the per-person rows straight away', async ({
@@ -383,7 +379,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
   test('E2E-M22-10: an archived trip’s properties are read-only, all of them', async ({ page }) => {
     // UI-Spec M22's *States* line: "on an archived one the whole screen is
     // read-only, consistent with FR-27.4's 'past trips are never touched'".
-    // The unit spec pins the two DateFields; the name, the roster and the add
+    // The unit spec pins the date range; the name, the roster and the add
     // row are asserted here.
     await tripWithTwoTravellers(page, 'Letztes Jahr')
     await tripAction(page, 'start')

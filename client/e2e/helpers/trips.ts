@@ -7,7 +7,7 @@
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 
-import { setDateField } from './ionic'
+import { setDateRange } from './ionic'
 import { pageSettled, visiblePage, writesLanded } from './page'
 import { PATH } from '../routes'
 
@@ -55,11 +55,8 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   // sees it.
   if (trip.startDate || trip.endDate || trip.series) {
     await page.getByTestId('wizard-more').click()
-    if (trip.startDate) {
-      await setDateField(page, 'wizard-start-date', trip.startDate)
-    }
-    if (trip.endDate) {
-      await setDateField(page, 'wizard-end-date', trip.endDate)
+    if (trip.startDate || trip.endDate) {
+      await setDateRange(page, 'wizard-dates', { start: trip.startDate, end: trip.endDate })
     }
     if (trip.series) {
       await page.getByTestId('wizard-series').click()

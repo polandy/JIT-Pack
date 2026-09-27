@@ -4288,8 +4288,9 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
 **M27** (UI-Spec).
 
 * **FR-31.1 (The Excursion):** A trip carries any number of excursions: a name, an optional **first and last day**
-  (calendar days, both empty while the day is not known yet, equal for a one-day outing) and the Gruppe it was started
-  from, kept as provenance only. They live in the table `excursions` in the **trip partition** and sync like every
+  (calendar days, both empty while the day is not known yet, equal for a one-day outing — picked as one range, G-17,
+  whose calendar offers only the trip's own days once the trip has them) and the Gruppe it was started from, kept as
+  provenance only. They live in the table `excursions` in the **trip partition** and sync like every
   other trip row (field-level LWW, tombstones, they go with their trip). The two days carry no constraint that orders
   them — LWW merges each alone — so the client writes them ordered and a reader takes a reversed pair as its min and
   max. Deleting an excursion takes its participants and its lines; **the trip's packing list is left as it is**.
@@ -4536,19 +4537,19 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
     inventing one; a file without a `year` field has its year read out of its end date.
   * The departure-day triggers need a start date (FR-2.1a), and the FR-14.2 history hint labels its trips by the
     `year` field.
-* **FR-2.1d (The two dates bound each other):** Wherever a trip's start and end dates are edited — M3's
-  step 1, M22, and the clone screen — **each one bounds the other's calendar**: the end picker offers no day before the
-  start already set, and the start picker no day after the end. An unset counterpart is *no* restriction, because
-  FR-2.1b makes both optional and independent.
+* **FR-2.1d (The two dates are one range):** Wherever a trip's start and end dates are edited — M3's step 1, M22,
+  and the clone screen — they are **one range field** (G-17, ADR-080) whose calendar never produces an end before its
+  start: a tap on a day before the start, while the end is awaited, becomes the new start, and a new start past the end
+  drops the end. Either side can still be set alone, because FR-2.1b makes both optional and independent.
 
-  * **A bound, not a validation.** The invalid pair is made unreachable rather than refused after the fact: there is no
-    message to word, no error state to render per screen, and no way for the three screens to disagree about the rule.
-    The date control carries it (ADR-035), so a fourth surface that uses the control inherits it.
+  * **A rule of the picker, not a validation.** The invalid pair is made unreachable rather than refused after the
+    fact: there is no message to word, no error state to render per screen, and no way for the three screens to
+    disagree about the rule. The range control carries it, so a fourth surface that uses the control inherits it.
   * **Why it is needed.** An end before its start would give a negative duration — a trip stored as 26 September →
     5 September would carry `duration_days = -20` into its row *and* into generation, where duration is a quantity
     input.
-  * **A row can still arrive inverted** — synced from an older device, or imported — so the bound constrains
-    the picker and never the field's own value: such a trip still renders and is still repairable from either end.
+  * **A row can still arrive inverted** — synced from an older device, or imported — so the rule constrains
+    the picker and never the field's own value: such a trip still renders and is repaired by picking a new range.
     `durationDays` reads an inverted pair as **no length** rather than a negative one, which is the absence every
     consumer already handles (FR-2.1b).
 

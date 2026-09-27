@@ -75,6 +75,8 @@ Keep `type="date"` and `type="file"`, declare the browser's rendering intentiona
 - `intlLocale()` becomes an exported member of the i18n module — `IonDatetime` needs the same regional tag the
   formatters use.
 - e2e sets dates through `setDateField` in `fixtures.ts` (opens the picker and clicks the day), not through `fill()`.
+- A first and a last day together are one `DateRangeField` (ADR-080, 2026-09-27); `DateField` stays the
+  single-day control.
 - Typing a date is not possible. **Revisit trigger:** a date field whose value is far from today (a birth date, a
   passport expiry) — the calendar-only path is the wrong entry for those, and the component would need a typed
   alternative.

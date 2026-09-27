@@ -26,7 +26,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import DateField from '@/components/global/DateField.vue'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { tripPath } from '@/router/paths'
@@ -56,6 +56,11 @@ const year = ref(thisYear)
 
 const startDate = ref('')
 const endDate = ref('')
+
+function onDates(start: string, end: string): void {
+  startDate.value = start
+  endDate.value = end
+}
 const travelerAssignments = ref(true)
 const packerDelegations = ref(true)
 const containerAssignments = ref(true)
@@ -157,21 +162,14 @@ setHeaderTitle(
             </IonSelect>
           </IonItem>
           <IonItem>
-            <DateField
-              testid="clone-start-date"
-              :max="endDate"
-              :label="t('wizard.startDate')"
-              :value="startDate"
-              @update="startDate = $event"
-            />
-          </IonItem>
-          <IonItem>
-            <DateField
-              testid="clone-end-date"
-              :min="startDate"
-              :label="t('wizard.endDate')"
-              :value="endDate"
-              @update="endDate = $event"
+            <DateRangeField
+              testid="clone-dates"
+              :label="t('wizard.dates')"
+              :start-label="t('tripEdit.startDate')"
+              :end-label="t('tripEdit.endDate')"
+              :start="startDate"
+              :end="endDate"
+              @update="onDates"
             />
           </IonItem>
         </IonList>

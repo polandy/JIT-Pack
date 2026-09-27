@@ -9,7 +9,7 @@ import {
   openTripFromList,
   openTripView,
   openQuickAdd,
-  setDateField,
+  setDateRange,
   tripAction,
   expectTripActionOffered,
   visiblePage,
@@ -379,15 +379,15 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.goto(PATH.newTrip)
 
     // Folded: the optional inputs are absent, not merely invisible.
-    await expect(page.getByTestId('wizard-start-date')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-dates')).toHaveCount(0)
     await expect(page.getByTestId('wizard-more-summary')).toBeVisible()
 
     await page.getByTestId('wizard-more').click()
-    await setDateField(page, 'wizard-end-date', '2026-09-20')
+    await setDateRange(page, 'wizard-dates', { end: '2026-09-20' })
     await page.getByTestId('wizard-more').click()
 
     // Folded again — with what was set now stated on the row itself.
-    await expect(page.getByTestId('wizard-end-date')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-dates')).toHaveCount(0)
     await expect(page.getByTestId('wizard-more-summary')).toContainText('Sep 20, 2026')
   })
 

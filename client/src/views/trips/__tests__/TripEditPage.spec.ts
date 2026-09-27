@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
  * M22 (FR-2.7) — the screen where a trip's name, dates and roster stop being
- * frozen. What is asserted here is the date pair: the two fields bound each
- * other (FR-2.1d), and a trip that already carries an inverted range — one
- * synced from a device that predates the bound, or imported — is still
- * editable rather than locked out of its own repair.
+ * frozen. What is asserted here is the date range: one field writes both days
+ * (FR-2.1d, G-17), and a trip that already carries an inverted range — one
+ * synced from a device that predates the bound, or imported — still renders
+ * rather than being locked out of its own repair.
  */
 import { IonInput, IonSelect } from '@ionic/vue'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
@@ -12,7 +12,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TripEditPage from '../TripEditPage.vue'
-import DateField from '@/components/global/DateField.vue'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
@@ -108,55 +108,68 @@ function mountPage(): VueWrapper {
   })
 }
 
-const fields = (w: VueWrapper) => {
-  const [start, end] = w.findAllComponents(DateField)
-  return { start: start!, end: end! }
-}
+const datesField = (w: VueWrapper) => w.findComponent(DateRangeField)
 
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
 })
 
-describe('M22 — the two dates bound each other (FR-2.1d)', () => {
-  it('offers no end before the trip’s start', () => {
-    seedTrip({ start_date: '2026-08-22', end_date: null })
+describe('M22 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
+  it('hands the stored range to the field', () => {
+    seedTrip({ start_date: '2026-08-22', end_date: '2026-09-05' })
 
-    expect(fields(mountPage()).end.props('min')).toBe('2026-08-22')
+    const field = datesField(mountPage())
+    expect(field.props('start')).toBe('2026-08-22')
+    expect(field.props('end')).toBe('2026-09-05')
   })
 
-  it('offers no start after the trip’s end', () => {
-    seedTrip({ start_date: null, end_date: '2026-09-05' })
-
-    expect(fields(mountPage()).start.props('max')).toBe('2026-09-05')
-  })
-
-  it('leaves the counterpart unbounded while it is empty', () => {
+  it('writes both days of a picked range in one update', async () => {
     seedTrip()
-
-    // FR-2.1b: the year is the one required temporal fact. A trip with no
-    // dates yet must reach any day in either field.
-    const f = fields(mountPage())
-    expect(f.start.props('max')).toBe('')
-    expect(f.end.props('min')).toBe('')
-  })
-
-  it('still lets an already-inverted range be repaired from either end', async () => {
-    // The bound is new; rows are not. A trip synced from a device that
-    // predates it — or imported — must not be locked out of its own repair,
-    // so the guard constrains the *picker* and never the field's own value.
-    seedTrip({ start_date: '2026-09-26', end_date: '2026-09-05' })
     const wrapper = mountPage()
 
-    expect(fields(wrapper).start.props('value')).toBe('2026-09-26')
-    expect(fields(wrapper).end.props('value')).toBe('2026-09-05')
-
-    await fields(wrapper).start.vm.$emit('update', '2026-09-01')
+    await datesField(wrapper).vm.$emit('update', '2026-10-09', '2026-10-18')
 
     expect(orchestratorFake.updateTrip).toHaveBeenCalledWith(TRIP_ID, {
-      start_date: '2026-09-01',
-      end_date: '2026-09-05',
+      start_date: '2026-10-09',
+      end_date: '2026-10-18',
     })
+  })
+
+  it('writes a start alone, and an emptied range as no dates (FR-2.1b)', async () => {
+    seedTrip({ start_date: '2026-08-22', end_date: '2026-09-05' })
+    const wrapper = mountPage()
+
+    await datesField(wrapper).vm.$emit('update', '2026-08-20', '')
+    expect(orchestratorFake.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
+      start_date: '2026-08-20',
+      end_date: null,
+    })
+
+    await datesField(wrapper).vm.$emit('update', '', '')
+    expect(orchestratorFake.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
+      start_date: null,
+      end_date: null,
+    })
+  })
+
+  it('writes nothing when the range picked is the one the trip has', async () => {
+    seedTrip({ start_date: '2026-08-22', end_date: '2026-09-05' })
+    const wrapper = mountPage()
+
+    await datesField(wrapper).vm.$emit('update', '2026-08-22', '2026-09-05')
+
+    expect(orchestratorFake.updateTrip).not.toHaveBeenCalled()
+  })
+
+  it('still renders an already-inverted range, so it can be repaired', () => {
+    // A row synced from a device that predates the bound, or imported, keeps
+    // its days: the picker never produces the pair, the field never hides it.
+    seedTrip({ start_date: '2026-09-26', end_date: '2026-09-05' })
+
+    const field = datesField(mountPage())
+    expect(field.props('start')).toBe('2026-09-26')
+    expect(field.props('end')).toBe('2026-09-05')
   })
 
   it('an archived trip’s dates stay read-only', () => {
@@ -166,9 +179,7 @@ describe('M22 — the two dates bound each other (FR-2.1d)', () => {
       end_date: '2026-09-05',
     })
 
-    const f = fields(mountPage())
-    expect(f.start.props('readonly')).toBe(true)
-    expect(f.end.props('readonly')).toBe(true)
+    expect(datesField(mountPage()).props('readonly')).toBe(true)
   })
 })
 

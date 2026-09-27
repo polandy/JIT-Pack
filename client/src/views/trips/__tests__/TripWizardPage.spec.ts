@@ -15,7 +15,8 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripWizardPage from '../TripWizardPage.vue'
-import DateField from '@/components/global/DateField.vue'
+import { formatDayRange } from '@/i18n'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
@@ -701,7 +702,7 @@ describe('M3 step 3 — the picker does not outlive the inventory (FR-27.3)', ()
   })
 })
 
-describe('M3 step 1 — the two dates bound each other (FR-2.1d)', () => {
+describe('M3 step 1 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
   /** Step one with the optional fold open, where the dates live (FR-2.1c). */
   async function mountAtDates() {
     const wrapper = mount(TripWizardPage, {
@@ -713,36 +714,17 @@ describe('M3 step 1 — the two dates bound each other (FR-2.1d)', () => {
     await wrapper.get('[data-testid="wizard-more"]').trigger('click')
     return wrapper
   }
-  const fields = (w: VueWrapper) => {
-    const [start, end] = w.findAllComponents(DateField)
-    return { start: start!, end: end! }
-  }
-
-  it('offers no end before the start it already has', async () => {
+  it('shows the picked range on the field and on the folded row', async () => {
     const wrapper = await mountAtDates()
 
-    await fields(wrapper).start.vm.$emit('update', '2026-09-26')
+    await wrapper.findComponent(DateRangeField).vm.$emit('update', '2026-09-10', '2026-09-20')
 
-    // A trip whose end precedes its start is not a state M3 has to reject —
-    // it is one the calendar never offers.
-    expect(fields(wrapper).end.props('min')).toBe('2026-09-26')
-  })
-
-  it('offers no start after the end it already has', async () => {
-    const wrapper = await mountAtDates()
-
-    await fields(wrapper).end.vm.$emit('update', '2026-09-05')
-
-    expect(fields(wrapper).start.props('max')).toBe('2026-09-05')
-  })
-
-  it('leaves the counterpart unbounded while it is empty', async () => {
-    const wrapper = await mountAtDates()
-
-    // FR-2.1b: a trip is planned long before its dates exist, and one date
-    // set must not restrict a field the user has not reached yet.
-    expect(fields(wrapper).start.props('max')).toBe('')
-    expect(fields(wrapper).end.props('min')).toBe('')
+    const field = wrapper.findComponent(DateRangeField)
+    expect(field.props('start')).toBe('2026-09-10')
+    expect(field.props('end')).toBe('2026-09-20')
+    expect(wrapper.get('[data-testid="wizard-more-summary"]').text()).toContain(
+      formatDayRange('2026-09-10', '2026-09-20'),
+    )
   })
 })
 

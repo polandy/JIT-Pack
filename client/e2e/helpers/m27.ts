@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 
-import { fillIonic } from './ionic'
+import { fillIonic, setDateRange } from './ionic'
 import { visiblePage, writesLanded } from './page'
 import { confirmCreateSheet, exactSuggestion, openQuickAdd, openTripView } from './trips'
 
@@ -24,6 +24,8 @@ export interface ExcursionSeed {
   group?: string
   /** Who goes by name; absent is everybody. */
   who?: string[]
+  /** The first and last day, ISO; absent leaves the days open. */
+  days?: { start: string; end: string }
 }
 
 /**
@@ -40,6 +42,9 @@ export async function createExcursion(page: Page, seed: ExcursionSeed): Promise<
   for (const person of seed.who ?? []) {
     await sheet.getByTestId(`m27-who-${person}`).click()
     await expect(sheet.getByTestId(`m27-who-${person}`)).toHaveAttribute('aria-pressed', 'true')
+  }
+  if (seed.days) {
+    await setDateRange(page, 'm27-dates', seed.days)
   }
   if (seed.group) {
     await sheet.getByTestId(`m27-group-${seed.group}`).click()

@@ -11,7 +11,8 @@ Open the trip and tap the **Ausflüge** icon (a signpost) in the row under the t
 bottom right. The sheet asks for:
 
 - a **Name** — *Tageswanderung*, *Hüttentour*;
-- **Von** and **Bis** — the day or days. Both are optional: leave them empty while the weather decides;
+- **Wann** — the day or days. Tap the first day, then the last; the same day twice is a day trip. The calendar only
+  offers the trip's own days once the trip has them. It is optional: leave it empty while the weather decides;
 - **Wer geht mit** — **Alle**, or tap the people who go;
 - **Beginnen mit** — a group to start from (search it by its name or by something in it), or **Leer beginnen**.
 
