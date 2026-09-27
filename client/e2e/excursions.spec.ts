@@ -129,7 +129,7 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
    * packing list; *Vor Ort besorgen* puts it on M6's Vor-Ort list under the
    * excursion's name, and buying it there reads back on the excursion.
    */
-  test('E2E-M27-03: once under way, what the luggage lacks is marked and bought on the spot', async ({
+  test('E2E-M27-03: once under way, what the luggage lacks is marked and bought on the spot @shopping', async ({
     page,
   }) => {
     await seedGroup(page)
@@ -273,7 +273,7 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
    * Packliste*: it is a packed row of the trip — shown when the packed rows
    * are revealed — and an item of the inventory.
    */
-  test('E2E-M27-07: a thing bought on the spot joins the packing list and the inventory', async ({
+  test('E2E-M27-07: a thing bought on the spot joins the packing list and the inventory @shopping', async ({
     page,
   }) => {
     await tripWithRows(page, ['Stirnlampe'], 'Sardinien')

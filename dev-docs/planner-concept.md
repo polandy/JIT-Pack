@@ -1,12 +1,13 @@
 # Concept — the planner: ideas, votes and a day plan inside a trip
 
-**Status:** **accepted; slice 1a built** (2026-09-27) — the board, votes and discussion, as §3.29 FR-29.1–29.15 in
-the PRD Addendum, M28 in the UI Spec, ADR-078 and ADR-051 amendment 4. Those are now authoritative; this file is the
-reasoning, and where it and they differ, they win. Written 2026-09-26 on the owner's request; the walk-through settled
-the points in §2 the same evening, and the navigation was chosen on the rendered mockup
-(`dev-docs/UI_Concept_PlannerNav_variants.html`, built by `node dev-docs/build-planner-nav-variants.mjs`). It takes
-the Idea Board draft as its base — §3.29 on the unmerged branch `docs/idea-board-spec` (commit `53130c83`, 2026-09-19)
-— and adds what the draft left out: the bridge from an idea to the packing side, a fourth state, and the day plan.
+**Status:** **accepted; slice 1a and the CI fast loop built** (2026-09-27) — the board, votes and discussion, as §3.29
+FR-29.1–29.15 in the PRD Addendum, M28 in the UI Spec, ADR-078 and ADR-051 amendment 4; the loop as ADR-079. Those are
+now authoritative; this file is the reasoning, and where it and they differ, they win. Written 2026-09-26 on the owner's
+request; the walk-through settled the points in §2 the same evening, and the navigation was chosen on the rendered
+mockup (`dev-docs/UI_Concept_PlannerNav_variants.html`, built by `node dev-docs/build-planner-nav-variants.mjs`). It
+takes the Idea Board draft as its base — §3.29 on the unmerged branch `docs/idea-board-spec` (commit `53130c83`,
+2026-09-19) — and adds what the draft left out: the bridge from an idea to the packing side, a fourth state, and the day
+plan.
 
 **What building slice 1a changed here.** The screens are **M28 *Ideen*** and **M29 *Tagesplan***, since the
 excursions took M27. The discussion is **its own table, `idea_comments`**, not `comments.idea_id` (ADR-078): every
@@ -250,7 +251,8 @@ plan and their polish — the bulk of the work — stay inside the module.
 * **An idea's results are a column on the result** — against a list on the idea and against a join table; the
   field-level-merge argument of §3.
 * **CI selects e2e by module** (§5a) — a full run on every diff, against a module-only run with a smoke set, against
-  test-impact analysis from an import graph; the smoke set is the cost of not knowing run-time coupling.
+  test-impact analysis from an import graph; the smoke set is the cost of not knowing run-time coupling. *Written as
+  ADR-079 and built 2026-09-27.*
 * **The draft's image limit** (500 KB, four per idea) stands beside invariant 6's 150 KB — recorded in the ADR-002
   line, not a new one.
 
@@ -264,8 +266,9 @@ plan and their polish — the bulk of the work — stay inside the module.
 
 ## 8. Order of work
 
-0. **The fast loop first, proven on `shopping`:** `module_only` in the `changes` job, the one-leg e2e selection,
-   `@smoke` tags, `make e2e-module`, the ADR. Without the planner in it, so it is judged on a module that exists.
+0. **The fast loop** *(built 2026-09-27, after slice 1a, for `shopping` and `planner` at once; ADR-079)*: `module`
+   in the `changes` job, the one-leg e2e selection, `@smoke` and module tags held by the boundary gate,
+   `make e2e-module`. `visual` runs in full rather than per module — one job, inside the module leg's time.
 1. PR #614 (excursions) merges first — the bridge writes `excursions.idea_id`.
 2. **Slice 1a — the board** *(built 2026-09-27; the owner put it before step 0)*: `ideas`, `idea_votes`,
    `idea_comments`, M28 with the four states, votes, discussion, tags and the rain mark, the switcher's *Ideen* pill,

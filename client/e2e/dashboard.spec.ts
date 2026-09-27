@@ -461,7 +461,7 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M1-12: each trip shows its shopping card on the list that is now, and leads onto M6', async ({
+  test('E2E-M1-12: each trip shows its shopping card on the list that is now, and leads onto M6 @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -498,7 +498,7 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
   })
 
-  test('E2E-M1-13: the card checks off, undoes and adds — and M4 and M6 agree', async ({
+  test('E2E-M1-13: the card checks off, undoes and adds — and M4 and M6 agree @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)

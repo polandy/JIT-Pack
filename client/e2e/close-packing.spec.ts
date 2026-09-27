@@ -234,7 +234,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * that says why it takes nothing, and neither composer offers it.
    * *Wieder öffnen* lifts both.
    */
-  test('E2E-M4-149: finishing the packing moves the purchases and closes before', async ({
+  test('E2E-M4-149: finishing the packing moves the purchases and closes before @shopping', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Vorher zu')
@@ -591,7 +591,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * checks it off on the right, and the head of the card — not the card —
    * leads into the trip: no control sits inside a link.
    */
-  test('E2E-M1-27: the hero’s shopping block adds and buys, and the hero is not one link', async ({
+  test('E2E-M1-27: the hero’s shopping block adds and buys, and the hero is not one link @shopping', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Dashboard-Einkauf')
@@ -632,7 +632,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * entry typed afterwards standing in *At destination* is the positive
    * signal behind the list chips' absence.
    */
-  test('E2E-M6-30: M6 files new entries at the destination once the packing is finished', async ({
+  test('E2E-M6-30: M6 files new entries at the destination once the packing is finished @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, { name: 'Einkauf danach', travelers: ['Andy'] })

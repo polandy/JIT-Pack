@@ -43,7 +43,7 @@ test.describe('M4 packing list @local @m4', () => {
   // E2E-M4-01 (FR-8.1/7.3, G-12): the header line counts the whole trip,
   // whatever the list below it is showing. A short list that also shortened
   // the header would make a filtered trip look further along than it is.
-  test('E2E-M4-01: the header line stays unfiltered while the search narrows the list', async ({
+  test('E2E-M4-01: the header line stays unfiltered while the search narrows the list @smoke', async ({
     page,
   }) => {
     await createTripViaWizard(page, M4_TRIP)
@@ -63,7 +63,7 @@ test.describe('M4 packing list @local @m4', () => {
   // E2E-M4-04 (FR-5.6, FR-25.13a): the visible confirm button is the commit,
   // and the form stays open for the next row. The name is new to the
   // inventory, so the commit goes through the create sheet (FR-24.11).
-  test('E2E-M4-04: the FAB opens the quick-add, which commits by button and stays open', async ({
+  test('E2E-M4-04: the FAB opens the quick-add, which commits by button and stays open @smoke', async ({
     page,
   }) => {
     await createTripViaWizard(page, M4_TRIP)
@@ -167,7 +167,7 @@ test.describe('M4 packing list @local @m4', () => {
   // neither pack the row nor open it. The click lands off the glyph on
   // purpose: at its centre the case would pass against a glyph-only target
   // as well.
-  test('E2E-G6-03: a tap beside the checkbox still packs the row', async ({ page }) => {
+  test('E2E-G6-03: a tap beside the checkbox still packs the row @smoke', async ({ page }) => {
     await tripWithRows(page, ['Zelt', 'Lampe'], 'Zielprobe')
 
     // Two near misses: left of the glyph, into the checkbox's column, and
@@ -818,7 +818,9 @@ test.describe('M4 packing list @local @m4', () => {
   // about; the *fresh session* half is unit-tested in usePackingFilter,
   // because reaching it here needs a reload, and Local Mode does not
   // restore trip items across one (see the ledger).
-  test('E2E-M4-28: the Erledigte switch survives leaving M4 and coming back', async ({ page }) => {
+  test('E2E-M4-28: the Erledigte switch survives leaving M4 and coming back @shopping', async ({
+    page,
+  }) => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Zelt'])
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').click()
@@ -843,7 +845,9 @@ test.describe('M4 packing list @local @m4', () => {
   // in the page's own head, and at every width. The bar names no page —
   // beside six icons at 390 px the name would render as "S…" — so the width
   // decides nothing, and the header line carries figures alone.
-  test('E2E-M4-44: the trip is named once, in the page head, at either width', async ({ page }) => {
+  test('E2E-M4-44: the trip is named once, in the page head, at either width @shopping', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, M4_TRIP)
 
@@ -910,7 +914,9 @@ test.describe('M4 packing list @local @m4', () => {
    * that reads it — a badge painted from the menu's own state would pass
    * the first and fail the second.
    */
-  test('E2E-M4-119: a row is bought at the destination from its own menu', async ({ page }) => {
+  test('E2E-M4-119: a row is bought at the destination from its own menu @shopping', async ({
+    page,
+  }) => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Sonnencreme'])
 

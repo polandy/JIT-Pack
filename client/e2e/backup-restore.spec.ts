@@ -566,7 +566,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
    * the link the row is neither on the shopping list (its mode is `pack`) nor
    * under the reveal (nothing says it was bought), so the bar never renders.
    */
-  test('E2E-M18-12: a restored row still says which shopping list it was bought from', async ({
+  test('E2E-M18-12: a restored row still says which shopping list it was bought from @shopping', async ({
     page,
     browser,
   }) => {

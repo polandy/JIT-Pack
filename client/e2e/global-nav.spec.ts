@@ -105,7 +105,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   // E2E-G9-09 (G-9): the desktop rail. The regression it guards leaves the
   // outgoing screen painted while the URL has already moved on.
-  test('E2E-G9-09: the desktop rail navigates, and the target screen is the one rendered', async ({
+  test('E2E-G9-09: the desktop rail navigates, and the target screen is the one rendered @smoke', async ({
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
@@ -182,7 +182,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   // E2E-G1-01 (G-1): below the breakpoint the same four anchors are the
   // bottom bar. Mobile had no way between them at all.
-  test('E2E-G1-01: the mobile tab bar carries the four anchors and navigates', async ({ page }) => {
+  test('E2E-G1-01: the mobile tab bar carries the four anchors and navigates @smoke', async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.dashboard)
 
@@ -322,7 +324,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // E2E-M4-32: a cold boot straight into M4. The teleported app-bar
   // actions crashed the render mid-patch, and an empty list read as lost
   // data — the rows were in IndexedDB the whole time.
-  test('E2E-M4-32: a reload straight into the packing list still shows its rows', async ({
+  test('E2E-M4-32: a reload straight into the packing list still shows its rows @smoke', async ({
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
@@ -811,7 +813,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * because the trip's three neighbours are not the only icons the reader
    * is holding in their head.
    */
-  test('E2E-G12-05: shopping, luggage, analytics and the inventory wear four different glyphs', async ({
+  test('E2E-G12-05: shopping, luggage, analytics and the inventory wear four different glyphs @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -860,7 +862,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * its own — every view but the current one — so its pills are read here
    * too. Their bubble on a held press is E2E-G12-08's.
    */
-  test('E2E-G12-06: every unlabelled icon names itself, and a plain tap just navigates', async ({
+  test('E2E-G12-06: every unlabelled icon names itself, and a plain tap just navigates @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -904,7 +906,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * every view reachable from every one — the luggage and the analytics
    * through the packing list, whose views they are.
    */
-  test("E2E-G12-07: the trip's views are named, and reachable from each other", async ({
+  test("E2E-G12-07: the trip's views are named, and reachable from each other @shopping @planner", async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -1042,7 +1044,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * still fires a click, which is the defect this case exists for: a reader
    * who asked "what is this" must not be taken there.
    */
-  test('E2E-G12-08: holding a glyph on the switcher shows its name and goes nowhere', async ({
+  test('E2E-G12-08: holding a glyph on the switcher shows its name and goes nowhere @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -1074,7 +1076,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * Measured, not eyeballed: the first row's top before and after, on the
    * shopping list, where the field and its chips also stay.
    */
-  test('E2E-G20-01: starting a selection moves nothing — the count is in the app bar', async ({
+  test('E2E-G20-01: starting a selection moves nothing — the count is in the app bar @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)

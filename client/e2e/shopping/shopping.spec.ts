@@ -97,7 +97,7 @@ async function removeEntry(page: Page, name: string) {
   await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toHaveCount(0)
 }
 
-test.describe('M6 shopping — the list’s own entries @local @m6', () => {
+test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -579,7 +579,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
  * assertion here worth a positive one beside it: the fold that counts what
  * disappeared, and the row it names once revealed.
  */
-test.describe('M6 shopping — what was bought can be found and put back @local @m6', () => {
+test.describe('M6 shopping — what was bought can be found and put back @local @m6 @shopping', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -691,7 +691,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
  * held three, each with its own amount and its own check-off, and nobody had
  * seen it because nothing could produce a per-person item by hand.
  */
-test.describe('M6 shopping — a per-person item is one buy row @local @m6', () => {
+test.describe('M6 shopping — a per-person item is one buy row @local @m6 @shopping', () => {
   const ITEM = 'Kurze Hosen'
   // No end date: the wizard's date picker is not what these cases are about,
   // and every hop through it is a step that can fail for a reason M6 does not
@@ -794,7 +794,7 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
  * headings and their counts, with both kinds of line on them. The lists
  * stand one under the other, each a section with its own head.
  */
-test.describe('M6 shopping — the two lists and their counts @local @m6', () => {
+test.describe('M6 shopping — the two lists and their counts @local @m6 @shopping', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -927,7 +927,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
  * the top, so the ＋ is the way back to it from a long, scrolled list — and
  * the list scrolls clear of it (E2E-M6-15, FR-25.11h's rule for M6's half).
  */
-test.describe('M6 shopping — the ＋ bottom right @local @m6', () => {
+test.describe('M6 shopping — the ＋ bottom right @local @m6 @shopping', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })

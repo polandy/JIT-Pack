@@ -949,7 +949,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    * *Vor der Reise*, while a task already standing there keeps its way out.
    * M6 asks the same rule: its composer offers no list either.
    */
-  test('E2E-M25-19: a trip started ahead of its date offers no Vor der Reise on either list', async ({
+  test('E2E-M25-19: a trip started ahead of its date offers no Vor der Reise on either list @shopping', async ({
     page,
   }) => {
     const ahead = new Date(Date.now() + 30 * 86_400_000)

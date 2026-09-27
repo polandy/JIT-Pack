@@ -878,7 +878,7 @@ test.describe('Two accounts on one instance @server', () => {
    * The packing list's own buy lines carry no seat: whose they are is the
    * packing list's question, asked on M4.
    */
-  test('E2E-M6-37: a purchase is handed to the other account from its seat, and they are told', async ({
+  test('E2E-M6-37: a purchase is handed to the other account from its seat, and they are told @shopping', async ({
     browser,
   }) => {
     const id = uniq()
@@ -947,7 +947,9 @@ test.describe('Two accounts on one instance @server', () => {
    * Only a trip with two people shows a seat at all (G-8), so this lives in
    * the unit with two accounts.
    */
-  test('E2E-M25-18: a task row with its seat is as tall as a shopping row', async ({ browser }) => {
+  test('E2E-M25-18: a task row with its seat is as tall as a shopping row @shopping', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Kebnekaise ${id}`
     const task = `Pass holen ${id}`

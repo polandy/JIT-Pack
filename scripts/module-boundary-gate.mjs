@@ -32,17 +32,25 @@
  * Unlike that gate, the import scan here matches `from '…'` wherever it
  * stands, so a multi-line import (`} from '…'` on its own line) is seen.
  *
+ * A third rule rides along, because it is about the same list: **every e2e
+ * case under `client/e2e/<module>/` is tagged `@<module>`**, in its own title
+ * or in a top-level `describe` around it. CI runs a module-only diff as
+ * `--grep "@<module>|@smoke"` (ADR-079), and an untagged case there would drop
+ * out of that run without a sound. The same holds for a case *outside* those
+ * directories that works a module's surface (`MODULE_E2E_MARKERS`): the case,
+ * or the top-level `describe` around it, carries the module's tag too.
+ *
  * Node built-ins only; wired into `make client` and the CI client job.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 
+import { MODULE_E2E_MARKERS, MODULES } from './modules.mjs'
+
 /* Run from the repository root (`make ci`) or from `client/` (CI job). */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 const SRC = resolve(root, 'client/src')
-
-/** The feature modules — one directory each under `client/src`. */
-const MODULES = ['shopping', 'planner']
+const E2E = resolve(root, 'client/e2e')
 
 /** Kernel directories a module may import from. */
 const KERNEL_DIRS = ['api', 'sync', 'types', 'lib', 'theme', 'i18n']
@@ -164,6 +172,109 @@ for (const file of walk(SRC)) {
   }
 }
 
+/** Every `*.spec.ts` below `dir`. */
+function specFiles(dir) {
+  const out = []
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) out.push(...specFiles(full))
+    else if (entry.endsWith('.spec.ts')) out.push(full)
+  }
+  return out
+}
+
+/** The titles of a spec's top-level `test(…)` and `test.describe(…)` calls. */
+const TOP_LEVEL_TITLE = /^test(?:\.describe(?:\.(?:serial|parallel))?)?\(\s*(['"`])(.*?)\1/gm
+
+const untagged = []
+let moduleSpecs = 0
+for (const module of MODULES) {
+  let dir
+  try {
+    dir = resolve(E2E, module)
+    statSync(dir)
+  } catch {
+    continue
+  }
+  for (const file of specFiles(dir)) {
+    moduleSpecs += 1
+    const titles = [...readFileSync(file, 'utf8').matchAll(TOP_LEVEL_TITLE)].map((m) => m[2])
+    for (const title of titles) {
+      if (title.split(/\s+/).includes(`@${module}`)) continue
+      untagged.push(
+        `${relative(root, file)}: \`${title}\` is not tagged \`@${module}\` — CI's ` +
+          `module-only run selects the module's cases by that tag (ADR-079)`,
+      )
+    }
+  }
+}
+
+/** A test or describe call opening on this line, and its indentation. */
+const TEST_START = /^(\s*)test(?:\.describe(?:\.(?:serial|parallel))?)?\(/
+const STRING = /(['"`])(.*?)\1/
+
+/** The title of the call opening on line `i`: on that line, or the next. */
+function titleAt(lines, i) {
+  const rest = lines[i].replace(TEST_START, '')
+  return (STRING.exec(rest) ?? STRING.exec(lines[i + 1] ?? ''))?.[2] ?? ''
+}
+
+const TOP_LEVEL_FUNCTION = /^(?:async\s+)?function\s+(\w+)/
+
+/**
+ * A spec's own top-level helper that works a module's surface is a marker
+ * too: a call to it is as good as the line it wraps.
+ */
+function wrappers(lines, markers) {
+  const out = []
+  let name = null
+  let hit = false
+  for (const line of lines) {
+    const fn = TOP_LEVEL_FUNCTION.exec(line)
+    if (fn) [name, hit] = [fn[1], false]
+    if (name && markers.some((re) => re.test(line))) hit = true
+    if (name && line.startsWith('}')) {
+      if (hit) out.push(new RegExp(`\\b${name}\\(`))
+      name = null
+    }
+  }
+  return out
+}
+
+const tagged = (title, module) => title.split(/\s+/).includes(`@${module}`)
+
+const moduleDirs = MODULES.map((m) => resolve(E2E, m))
+for (const file of specFiles(E2E)) {
+  if (moduleDirs.some((d) => file.startsWith(`${d}/`))) continue
+  const lines = readFileSync(file, 'utf8').split('\n')
+  for (const [module, direct] of Object.entries(MODULE_E2E_MARKERS)) {
+    const markers = [...direct, ...wrappers(lines, direct)]
+    const seen = new Set()
+    let test = -1
+    let describe = -1
+    let inHelper = false
+    lines.forEach((line, i) => {
+      if (TOP_LEVEL_FUNCTION.test(line)) inHelper = true
+      else if (inHelper && line.startsWith('}')) inHelper = false
+      if (inHelper) return
+      const start = TEST_START.exec(line)
+      if (start) {
+        test = i
+        if (start[1] === '') describe = i
+      }
+      if (!markers.some((re) => re.test(line))) return
+      const where = test < 0 ? `line ${i + 1}, before any test` : titleAt(lines, test)
+      if (test >= 0 && (tagged(titleAt(lines, test), module) || tagged(titleAt(lines, describe), module))) return
+      if (seen.has(where)) return
+      seen.add(where)
+      untagged.push(
+        `${relative(root, file)}: \`${where}\` works the ${module} module's surface and is not ` +
+          `tagged \`@${module}\` — CI's module-only run would skip it (ADR-079)`,
+      )
+    })
+  }
+}
+
 /*
  * A gate that measures nothing passes silently for the rest of its life. If a
  * module moved, this says so instead of reporting ok over an empty walk.
@@ -176,8 +287,8 @@ for (const module of MODULES) {
     process.exit(1)
   }
 }
-if (moduleFiles === 0) {
-  console.error('module-boundary-gate: no module files found')
+if (moduleFiles === 0 || moduleSpecs === 0) {
+  console.error('module-boundary-gate: no module files or module e2e specs found')
   process.exit(1)
 }
 
@@ -192,7 +303,13 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
+if (untagged.length > 0) {
+  console.error('module-boundary-gate: a module e2e case is missing its module tag.\n')
+  for (const line of untagged) console.error(`  ${line}`)
+  process.exit(1)
+}
+
 console.log(
   `module-boundary-gate: ok — ${MODULES.length} module(s), ${moduleFiles} module files, ` +
-    `${files} files checked, no import across the boundary`,
+    `${files} files checked, no import across the boundary; ${moduleSpecs} module e2e spec(s) tagged`,
 )
