@@ -86,6 +86,12 @@ async function dismissMenu(page: Page) {
  * one and a leaked stack shows more — which is the only way to see the
  * ADR-012 defect from outside, since the URL is right either way.
  */
+/**
+ * The phone the trip switcher is laid out for (ADR-051): the Pixel 9 Pro, in
+ * CSS pixels. Narrower phones scroll the row rather than wrap it.
+ */
+const PIXEL_9_PRO = { width: 410, height: 914 }
+
 const ANCHOR_RUN = ['trips', 'templates', 'items', 'trips', 'dashboard', 'trips'] as const
 
 function visiblePages(page: Page) {
@@ -911,31 +917,35 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       ['trip-view-shopping', 'Shopping'],
       ['trip-view-tasks', 'Tasks'],
       ['trip-view-notes', 'Notes'],
+      ['trip-view-excursions', 'Excursions'],
     ] as const) {
       await expect(page.getByTestId(id)).toHaveAccessibleName(name)
     }
     await expect(page.getByTestId('trip-view-packing')).toHaveText('Packing list')
     await expect(page.getByTestId('trip-view-shopping')).toHaveText('')
 
-    // The row is measured rather than assumed — at the **narrowest** phone the
-    // app targets, and in its widest shape, standing on a view that joins the
-    // row (five pills, the notes the fourth under FR-7.13). Two clauses, because a row can fail either way: every
+    // The row is measured rather than assumed — at the width it is laid out for,
+    // the Pixel 9 Pro's 410 px (ADR-051: narrower phones scroll it), and in its
+    // widest shape, standing on a view that joins the
+    // row (six pills: the notes the fourth under FR-7.13, the excursions the
+    // fifth under FR-31). Two clauses, because a row can fail either way: every
     // pill inside the viewport, and all on one line, since a row that wrapped
     // would have „fitted" by every width assertion on its own.
     const viewport = page.viewportSize()!
     await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
-    await page.setViewportSize({ width: 360, height: 780 })
+    await page.setViewportSize({ width: PIXEL_9_PRO.width, height: PIXEL_9_PRO.height })
     const boxes = await Promise.all(
       [
         'trip-view-packing',
         'trip-view-shopping',
         'trip-view-tasks',
         'trip-view-notes',
+        'trip-view-excursions',
         'trip-view-luggage',
       ].map(async (id) => (await page.getByTestId(id).boundingBox())!),
     )
-    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(360 - 16)
+    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(PIXEL_9_PRO.width - 16)
     expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
     await page.setViewportSize(viewport)
     await openTripView(page, 'packing')

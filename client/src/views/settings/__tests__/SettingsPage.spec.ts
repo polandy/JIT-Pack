@@ -51,6 +51,7 @@ const orchestratorFake = {
       note_reply: true,
       task_due: true,
       shopping_due: true,
+      excursion_due: true,
     }),
   ),
   saveNotificationPrefs: vi.fn(),
@@ -142,7 +143,11 @@ describe('M17 notifications on a Single-User server (FR-7.11)', () => {
       .findAll('[data-testid^="settings-pref-"]')
       .map((r) => r.attributes('data-testid'))
     // FR-7.11 and FR-30.10: the two kinds nobody sets off.
-    expect(rows).toEqual(['settings-pref-task_due', 'settings-pref-shopping_due'])
+    expect(rows).toEqual([
+      'settings-pref-task_due',
+      'settings-pref-shopping_due',
+      'settings-pref-excursion_due',
+    ])
     expect(wrapper.find('[data-testid="settings-push"]').exists()).toBe(true)
   })
 

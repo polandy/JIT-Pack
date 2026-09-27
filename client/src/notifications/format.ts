@@ -18,9 +18,16 @@ import {
   NOTIFY_NOTE,
   NOTIFY_NOTE_REPLY,
   NOTIFY_SHOPPING_DUE,
+  NOTIFY_EXCURSION_DUE,
   NOTIFY_TASK_DUE,
 } from './messages'
-import { tripItemPath, tripNotesPath, tripPath, tripSubPath } from '@/router/paths'
+import {
+  tripExcursionsPath,
+  tripItemPath,
+  tripNotesPath,
+  tripPath,
+  tripSubPath,
+} from '@/router/paths'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this
@@ -57,6 +64,10 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (n.kind === NOTIFY_SHOPPING_DUE) return tripSubPath(tripId, 'shopping')
   // FR-30.12: so does a purchase handed to the reader.
   if (str(n.payload, 'entry_id')) return tripSubPath(tripId, 'shopping')
+  // FR-31.9: an excursion's reminder opens its own list.
+  if (n.kind === NOTIFY_EXCURSION_DUE) {
+    return tripExcursionsPath(tripId, str(n.payload, 'excursion_id') || undefined)
+  }
   // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
   if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
     const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')

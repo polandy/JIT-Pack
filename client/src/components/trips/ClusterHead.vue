@@ -54,6 +54,8 @@ defineProps<{
   master: MasterItem | null
   /** FR-25.28: the for-whom seat; absent where the list has no *who* column. */
   seat?: { open: boolean } | null
+  /** FR-31.6: an excursion's cluster carries its own screen's handle, as `PackingRow` does. */
+  screen?: 'm4' | 'm27'
 }>()
 
 defineEmits<{
@@ -77,7 +79,7 @@ defineEmits<{
   <button
     class="cluster-head"
     :class="{ shut: collapsed }"
-    :data-testid="`m4-cluster-${name}`"
+    :data-testid="`${screen === 'm27' ? 'm27-cluster' : 'm4-cluster'}-${name}`"
     :aria-expanded="!collapsed"
     @click="$emit('toggle')"
     @contextmenu.prevent="$emit('menu')"

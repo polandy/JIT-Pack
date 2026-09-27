@@ -163,7 +163,55 @@ export function seedSampleTrip(
   seedTripTodos(id, orchestrator)
   seedPreparations(id, orchestrator)
   seedTripNotes(id, orchestrator)
+  seedExcursions(id, orchestrator)
   return id
+}
+
+/**
+ * FR-31: M27 opens with two excursions — a hut tour tomorrow for two of the
+ * three, started from the *Hüttentour* group, and an undated boat trip with
+ * one thing to buy on the spot. The trip is active, so its suitcase is closed
+ * and the hut tour shows *nicht im Gepäck* on what the luggage lacks (FR-31.7)
+ * beside the lines it borrows. Through the orchestrator's own actions.
+ */
+export const SEED_EXCURSION_GROUP = 'Hüttentour'
+
+function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
+  const group = useMasterStore().activeTemplateList.find((t) => t.name === SEED_EXCURSION_GROUP)
+  const goes = useTripStore()
+    .getTravelers(tripId)
+    .filter((traveler) => traveler.name !== TRAVELERS[2])
+    .map((traveler) => traveler.id)
+  orchestrator.createExcursion(tripId, {
+    name: 'Hüttentour Supramonte',
+    startsOn: localDay(1),
+    endsOn: localDay(2),
+    travelerIds: goes,
+    templateId: group?.id ?? null,
+  })
+  const boat = orchestrator.createExcursion(tripId, {
+    name: 'Bootsausflug',
+    startsOn: null,
+    endsOn: null,
+    travelerIds: null,
+    templateId: null,
+  })
+  if (boat) {
+    orchestrator.addLines(tripId, boat.excursionId, [
+      {
+        source_item_id: null,
+        name: 'Sonnenhut',
+        category_name: null,
+        assigned_traveler_id: null,
+        quantity: 1,
+        mode: ITEM_MODE_BUY_LOCAL,
+        for_all_participants: false,
+        weight_grams: null,
+        value_cents: null,
+        source_template_id: null,
+      },
+    ])
+  }
 }
 
 /**

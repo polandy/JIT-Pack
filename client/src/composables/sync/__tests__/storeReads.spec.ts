@@ -50,7 +50,12 @@ function fakeTripReads(asked: string[] = []): TripReads {
     childRows: () => [],
     itemChildRows: () => [],
     commentChildRows: () => [],
+    excursionChildRows: () => [],
+    travelerChildRows: () => [],
     templateSourceRows: () => [],
+    getExcursions: () => [],
+    getExcursionTravelers: () => [],
+    getExcursionItems: () => [],
   }
 }
 

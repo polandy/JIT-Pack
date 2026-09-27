@@ -17,6 +17,9 @@ import type {
   ItemDependency,
   ItemTodo,
   NoteAck,
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
   ShoppingEntry,
   TaskFacts,
   TripTodo,
@@ -105,6 +108,46 @@ export function noteAckRow(ack: NoteAck): Record<string, unknown> {
     user_id: ack.user_id,
     acked: dbBool(ack.acked),
     seen_through: ack.seen_through,
+  }
+}
+
+/** FR-31.1: an excursion. */
+export function excursionRow(excursion: Excursion): Record<string, unknown> {
+  return {
+    trip_id: excursion.trip_id,
+    name: excursion.name,
+    starts_on: excursion.starts_on,
+    ends_on: excursion.ends_on,
+    source_template_id: excursion.source_template_id,
+  }
+}
+
+/** FR-31.3: one participant of one excursion. */
+export function excursionTravelerRow(row: ExcursionTraveler): Record<string, unknown> {
+  return {
+    trip_id: row.trip_id,
+    excursion_id: row.excursion_id,
+    traveler_id: row.traveler_id,
+  }
+}
+
+/** FR-31.4: one line of an excursion's list. */
+export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
+  return {
+    trip_id: line.trip_id,
+    excursion_id: line.excursion_id,
+    trip_item_id: line.trip_item_id,
+    source_item_id: line.source_item_id,
+    name: line.name,
+    category_name: line.category_name,
+    assigned_traveler_id: line.assigned_traveler_id,
+    quantity: line.quantity,
+    packed_count: line.packed_count,
+    state: line.state,
+    mode: line.mode,
+    bought_at: line.bought_at,
+    not_in_luggage: dbBool(line.not_in_luggage),
+    for_all_participants: dbBool(line.for_all_participants),
   }
 }
 

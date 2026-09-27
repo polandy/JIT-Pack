@@ -201,7 +201,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G9-13 | G-9/§7 The same contract for M15 | all | The spreadsheet import opened from M2 returns to the trip list, where its declared parent is `/tabs/items` (it is entered from M2 and from M9's empty state). |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(The settings gear stays on a detail screen — ADR-011: the sync glyph and settings are the only route to the conflict log from inside a trip.)* |
 | E2E-G12-08 | G-12 A glyph on the trip switcher names itself when held | all | **Implemented** (ADR-051 amendment 3). Holding the shopping glyph on M4 shows *Shopping* in a bubble; the release does **not** navigate — asserted after the bubble has gone on its own, so the packing list still being current is a settled answer rather than an early one — and a plain tap on the same glyph still does. The defect it guards is the click every hold's release still fires. |
-| E2E-G12-07 | G-12 The trip's places are named in the page | all | **Implemented.** ~~Shopping (with open-item count), Luggage and Analytics sit on the trip title line and each lands in one tap~~ / ~~**No ⋯ exists**~~ — M4 carries a ⋮ for its once-per-trip actions (UX-13, E2E-M4-57), and the trip's places are pills under the page's name (FR-21.21, ADR-051 and its amendments 1–3): every pill *named*, the current one in a word, the row measured at 360 px in its widest shape — five pills (FR-7.13). *Packliste*, *Einkaufen*, *Aufgaben* and *Notizen* are pills, *Gepäck* and *Auswertung* are words in the bar's ⋮ (asserted absent from the row and present in the sheet), the current view is marked with `aria-current` — including when it is one of the two, which join the row while you stand in them — and every view is reachable from every one — **the luggage and the analytics through the packing list** (ADR-051 amendment 2): M6, M25 and M26 have no ⋮ (asserted on each, on a rendered screen), so shopping → packing → luggage → analytics; M26's back is M4, and a thread's own view (FR-7.13) is named by its thread with M26 as its back. There is no sideways step from M6, M25 or M26 to the luggage or the analytics, by decision. |
+| E2E-G12-07 | G-12 The trip's places are named in the page | all | **Implemented.** ~~Shopping (with open-item count), Luggage and Analytics sit on the trip title line and each lands in one tap~~ / ~~**No ⋯ exists**~~ — M4 carries a ⋮ for its once-per-trip actions (UX-13, E2E-M4-57), and the trip's places are pills under the page's name (FR-21.21, ADR-051 and its amendments 1–3): every pill *named*, the current one in a word, the row measured at the Pixel 9 Pro's 410 px in its widest shape — six pills (FR-7.13, FR-31; ADR-051). *Packliste*, *Einkaufen*, *Aufgaben*, *Notizen* and *Ausflüge* are pills, *Gepäck* and *Auswertung* are words in the bar's ⋮ (asserted absent from the row and present in the sheet), the current view is marked with `aria-current` — including when it is one of the two, which join the row while you stand in them — and every view is reachable from every one — **the luggage and the analytics through the packing list** (ADR-051 amendment 2): M6, M25 and M26 have no ⋮ (asserted on each, on a rendered screen), so shopping → packing → luggage → analytics; M26's back is M4, and a thread's own view (FR-7.13) is named by its thread with M26 as its back. There is no sideways step from M6, M25 or M26 to the luggage or the analytics, by decision. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | **Implemented.** The subject is smaller than it sounds: the four anchors carry visible labels in both presentations, so the unlabelled icons are the bar's own cluster — M4's destinations are words in its menu (ADR-050), and the case reads search, filter, fold-all and the ⋮ instead. `header-back` and `header-settings` carry a `title` beside their `aria-label`, so a pointer resting on the back arrow or the gear is told the name too. The two names are asserted to agree, and the accessible one is read as a name rather than off the attribute — Ionic relays `aria-label` into its shadow button. **The trip switcher's glyphs are read too** (ADR-051 amendment 3: shopping, tasks and notes, off M4). A plain tap **navigates**. ~~and a long-press shows it as a bubble on touch~~ — **struck by decision**, not to be built: G-12's own ⋮ already answers it on touch, and in words. The one exception, the trip switcher, is E2E-G12-08's. **And the `title` half is narrower than the case makes it look**: measured over the source, only **9 of 62** icon-only buttons carry one, and the rule is **narrowed to the app bar**, where the label is dropped to buy room. This case asserts the bar's names at runtime; the standing guarantee is `iconButtonLabels.spec.ts`, which reads the toolbar and whatever is slotted into it out of `AppHeader.vue` rather than from a list. |
 | E2E-G12-03 | G-12 Actions survive the collapsing header | all | **Implemented.** Scrolling M4 down collapses its sub-header, and search and filter still **act** from the collapsed state — the search narrows the list, the filter panel opens. The collapse itself is driven by E2E-M4-45, which asserts what the list does with its offset; this case reaches for the bar afterwards. Tappability is asserted through the outcome, because a button that is present and inert satisfies a visibility check. This is the reason the cluster lives there rather than on the status line. |
 | E2E-G12-04 | G-12 The header line | all | **Implemented.** The line states figures alone at every width (ADR-050), and the case measures it at both sides of the G-9 breakpoint. The figures are a ring, a sentence and a track (FR-21.23) — the figure is two lines tall by itself, so the measurement is that nothing is stacked *beside* it, not that the line is one row. ~~the filter chip row appears only when active~~ — reversed by FR-25.11a/b, which made that row the place the grouping is stated, so it is always present (E2E-M4-15). The other clause is the **search field**, absent until it is opened. |
@@ -961,7 +961,8 @@ in WebKit.
   injection.
 * **E2E-M4-41** `all` (FR-5.5, UI-Spec M4) — **implemented**: holding a row opens the menu **and not** the detail sheet,
   and cancelling the menu leaves the row's ordinary tap working. The release of a hold usually lands on the overlay
-  rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. **Not asserted
+  rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. A touch hold
+  fires the menu twice — the hold's timer and the browser's own `contextmenu` — and opens **one** sheet. **Not asserted
   here:** that a G-3-locked row has no menu at all — the guard exists in `PackingListPage.vue`, but a lock needs a
   second user and therefore `server` mode, which this unit does not have. Recorded rather than implied.
 * **E2E-M4-42** `all` (FR-5.5, FR-25.1) — **implemented**: the same menu on a **per-person child row** inside a cluster
@@ -3356,6 +3357,39 @@ went.
   applied to a reply). Who a reply *notifies* is `TestPlanNotifications_NoteReply_ReachesTheParticipantsOnly_FR7_13`'s,
   a rule over participants a browser cannot see.
 
+### M27 — Ausflüge (a trip's excursions, FR-31)
+
+* **E2E-M27-01** `local` (FR-31.1/31.2/31.4/31.5/31.12, FR-31.10) — **implemented**
+  (`excursions.spec.ts`): M27 is reached by its pill, marked current, with its empty state. The FAB's sheet names an
+  excursion, gives it days and starts it from a group: the group's lines land — a per-person thing as a cluster *für
+  alle* with a child per participant, a *vor Ort* line — and what the suitcase lacked is on the packing list, where M4's
+  open row names the excursion in its borrowed line. The creation toast offers the undo.
+* **E2E-M27-02** `local` (FR-31.4) — **implemented** (`excursions.spec.ts`): ticking a line on the excursion leaves the
+  tick of the suitcase row it borrows alone, and ticking the suitcase row leaves the line's alone — the link shares no
+  tick (ADR-077).
+* **E2E-M27-03** `local` (FR-31.7/31.8) — **implemented** (`excursions.spec.ts`): on a trip under way, starting an
+  excursion from a group writes nothing into the packing list and marks the missing lines *nicht im Gepäck*. *Vor Ort
+  besorgen* moves such a line to M6's *Vor Ort* list, under the excursion's name; buying it there stamps it *vor Ort
+  gekauft* on the excursion, where it stays on the list.
+* **E2E-M27-04** `local` (FR-31.5) — **implemented** (`excursions.spec.ts`): the excursion's ＋ opens M4's
+  quick-add, whose for-whom strip is over the excursion's participants; *Alle* writes M4's cluster with a child per
+  participant, each ticked alone.
+* **E2E-M27-05** `local` (FR-31.3/31.5) — **implemented** (`excursions.spec.ts`): changing who goes in the edit sheet
+  gives a joiner a line of every *für alle* set; the one toast's undo takes the people and the lines back.
+* **E2E-M27-06** `local` (FR-31.11/31.1) — **implemented** (`excursions.spec.ts`): the ⋮'s *Als Gruppe speichern*
+  writes a group the template list shows; the ⋮'s delete returns to M27 and leaves the packing list as it was.
+* **E2E-M27-08** `local` (FR-31.5/31.6) — **implemented** (`excursions.spec.ts`): a tap on a line opens M5's sheet
+  for it — the name, the amount, the large packing control packs it; the sheet's *Alle* turns the shared thing into
+  a line per person without closing the sheet, the packed shared line stays; a hold (context menu) opens the line's
+  menu, and a hold that fires twice opens it once.
+* **E2E-M27-07** `local` (FR-31.13) — **implemented** (`excursions.spec.ts`): on a trip under way, a line not in the
+  luggage is bought through M6, then taken *Auf die Packliste*: the toast says so, the line reads *vor Ort gekauft · auf
+  der Packliste* and offers the action no more, the packed row is on M4 once the packed rows are revealed, and the item
+  is in M9.
+* **E2E-M27-09** `local` (FR-31.14) — **implemented** (`excursions.spec.ts`): two names the inventory lacks added *nur
+  für diesen Ausflug* read so and are not on M4; *Ins Inventar* on one toasts, makes it *aus dem Gepäck* and a row of
+  M4; *Als Gruppe speichern* asks about the other alone, and *Weglassen* saves the Gruppe with it absent from M9.
+
 ## 5. Cross-Screen Flow Tests
 
 These are full end-to-end journeys spanning several screens — the highest-value, lowest-count tests. They mirror UI_Spec
@@ -3696,6 +3730,14 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.10 | E2E+UNIT | M6-35 (set in the sheet, the pill, the order, a reload, M1's card and Local Mode's hint); `shopping/__tests__/list.spec.ts` (due order, pressing sections first), `ShoppingPage.spec.ts` (pill, sheet), `ShoppingDashboardCard.spec.ts` (pressing lead on card and block), `sync.spec.ts` (the field's writes, the count), `useDueTaskHint.spec.ts`; Go: `TestDueShoppingEntries_*`, `TestPlanShoppingDue_*`, `TestRemindDueTasks_*` |
 | FR-30.9 | E2E+UNIT | M6-31 (the entry sheet with name and search-or-create tag, grouped open list, flat reveal with the tag, check-off at the end, reload); `shopping/__tests__/ShoppingPage.spec.ts` (grouping order, chips, sheet, source lines offer none); Go: `shopping_entries_test.go` (push path, per-field merge, 1–40 bound) |
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
+| FR-31.1–31.3 | E2E+UNIT+SERVER | M27-01 (created with days, from a group, who goes), M27-05 (who goes changes), M27-06 (deleted, the packing list untouched); `domain/__tests__/excursions.spec.ts` (participants, time), `excursions.seam.spec.ts`; Go: `excursions_test.go` (push path, cascades) |
+| FR-31.4/31.5/31.7 | E2E+UNIT+SERVER | M27-01 (lines borrowed and created), M27-02 (the link shares no tick), M27-03 (a closed suitcase, *nicht im Gepäck*), M27-04/05 (*für alle*); `excursions.spec.ts` (`planLinks`, `planParticipantChange`), `excursions.seam.spec.ts` (undo across both lists, traveller removal); Go: `TestApplyMutation_DeletingATripItemUnlinksItsExcursionLine_FR31_4` |
+| FR-31.8 | E2E+UNIT | M27-03 (on M6 under the excursion's name, bought there); `excursionShoppingSource.spec.ts`, `shopping/__tests__/list.spec.ts` (a source's own heading) |
+| FR-31.9 | UNIT+SERVER | `workerBody.spec.ts` (body and link), Go: `TestDueExcursions_FR31_9_*`, `TestPlanExcursionDue_FR31_9_*`, `TestRemindDueTasks_*` |
+| FR-31.10–31.12 | E2E+UNIT | M27-01 (M4's borrowed line), M27-06 (saved as a group); `excursions.spec.ts` (`arrangeExcursions`, `pendingExcursionCount`, `dueExcursions`, `borrowersByTripItem`, `planGroupFromExcursion`), `excursions.seam.spec.ts` (`saveAsGroup`) |
+| FR-31.13 | E2E+UNIT | M27-07 (bought through M6, taken onto the packing list, on M4 and in M9); `excursions.spec.ts` (`canJoinPackingList`, `inventoryItemFor`), `excursions.seam.spec.ts` (`addToPackingList`, its undo) |
+| FR-31.14 | E2E+UNIT | M27-09; `excursions.spec.ts` (`planLinks` leaves the line out, `canAdoptIntoInventory`, `planGroupFromExcursion` without unlisted lines), `excursions.seam.spec.ts` (`adoptIntoInventory` and its undo, `unlistedNames`, `saveAsGroup` leaving them out) |
+| FR-31.5/31.6 (the sheet) | E2E+UNIT | M27-08; `excursions.spec.ts` (`planForWhom`, `lineSetOf`), `excursions.seam.spec.ts` (`setForWhom`, its undo) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
 | FR-30.5 | E2E | M1-12 (the card's way onto M6) |

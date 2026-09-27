@@ -1,6 +1,7 @@
 // Package store — taskdue.go reads what FR-7.11's daily reminder needs: the
-// open tasks and the open shopping entries (FR-30.10) due on the days it
-// asks about, and the record of which day it last ran for.
+// open tasks, the open shopping entries (FR-30.10) and the excursions still
+// to pack (FR-31.9) due on the days it asks about, and the record of which
+// day it last ran for.
 package store
 
 import (
@@ -100,6 +101,64 @@ func (s *Store) DueShoppingEntries(ctx context.Context, days ...string) ([]DueSh
 		var d DueShoppingEntry
 		if err := rows.Scan(&d.ID, &d.TripID, &d.Name, &d.DueDate, &d.Assignee); err != nil {
 			return nil, fmt.Errorf("due shopping entries: %w", err)
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+// DueExcursion is one excursion starting on a day the reminder asks about
+// that still has something to pack (FR-31.9).
+type DueExcursion struct {
+	ID       string
+	TripID   string
+	Name     string
+	StartsOn string
+	// Participants are the accounts linked to its participants, sorted;
+	// empty where it names nobody (everybody goes) or nobody linked.
+	Participants []string
+}
+
+// DueExcursions returns the excursions of every trip that is not archived
+// whose starts_on is one of days (YYYY-MM-DD) and that have at least one
+// line still open, in a stable order. An excursion whose list is done is no
+// reason to wake anybody. No days, no excursions.
+func (s *Store) DueExcursions(ctx context.Context, days ...string) ([]DueExcursion, error) {
+	if len(days) == 0 {
+		return nil, nil
+	}
+	args := make([]any, 0, len(days)+1)
+	args = append(args, TripStatusArchived)
+	for _, d := range days {
+		args = append(args, d)
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT e.id, e.trip_id, e.name, e.starts_on,
+		        COALESCE((SELECT group_concat(u, ',') FROM (
+		            SELECT DISTINCT tr.linked_user_id AS u
+		              FROM excursion_travelers x JOIN travelers tr ON tr.id = x.traveler_id
+		             WHERE x.excursion_id = e.id AND tr.linked_user_id IS NOT NULL
+		             ORDER BY u)), '')
+		   FROM excursions e JOIN trips t ON t.id = e.trip_id
+		  WHERE t.status <> ?
+		    AND e.starts_on IN (?`+strings.Repeat(", ?", len(days)-1)+`)
+		    AND EXISTS (SELECT 1 FROM excursion_items i
+		                 WHERE i.excursion_id = e.id AND i.state IN ('open','partial'))
+		  ORDER BY e.trip_id, e.starts_on, e.id`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("due excursions: %w", err)
+	}
+	defer rows.Close()
+
+	var out []DueExcursion
+	for rows.Next() {
+		var d DueExcursion
+		var participants string
+		if err := rows.Scan(&d.ID, &d.TripID, &d.Name, &d.StartsOn, &participants); err != nil {
+			return nil, fmt.Errorf("due excursions: %w", err)
+		}
+		if participants != "" {
+			d.Participants = strings.Split(participants, ",")
 		}
 		out = append(out, d)
 	}

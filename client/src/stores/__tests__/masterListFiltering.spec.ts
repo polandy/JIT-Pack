@@ -34,6 +34,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     'FR-27.4 re-resolves a trip against the Vorlagen it follows — a retired one still resolves, or the refresh proposes deleting every row it ever produced',
   'src/composables/sync/actions/tripLifecycle.ts':
     'FR-27.10 resolves the group being added — a retired Vorlage inside it still contributes the positions it always did',
+  'src/composables/sync/actions/excursions.ts':
+    'FR-31.2 resolves the Gruppe an excursion starts from, as FR-27.10 does — a retired Vorlage inside it still contributes the positions it always did',
   'src/composables/sync/actions/postTrip.ts':
     'M21 folds a trip into a Vorlage against every master item, retired or not — a row the trip carries must still be recognised rather than invented a second time (the group list beside it is deliberately the active one)',
   'src/composables/sync/actions/inventoryNames.ts':
@@ -56,6 +58,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/components/global/QuickAddItem.vue':
     'the resolved lines of a group preview (its offers use the active list)',
   'src/components/templates/GroupPeekSheet.vue': 'FR-27.12 renders what a group resolves to',
+  'src/components/trips/ExcursionSheet.vue':
+    "FR-31.2's group search resolves each group's items, as FR-27.13 does — a retired Vorlage inside one still contributes (the groups offered are the active list)",
   'src/components/trips/ItemDetailSheet.vue': 'FR-20 companion resolution on an existing row',
   'src/views/items/ItemEditorPage.vue':
     "FR-27.8's containment list is the navigable half of the delete card's reference count, which reads the complete list for the same reason — a retired Vorlage still holds the item, and a list shorter than the number above it would contradict it. The row says it is retired.",

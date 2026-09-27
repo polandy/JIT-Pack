@@ -240,6 +240,69 @@ export interface Traveler {
   linked_user_id: string | null
 }
 
+// --- Excursions (FR-31, ADR-077) ---
+
+/**
+ * FR-31.1: a day hike or a hut night inside a trip — its own small list,
+ * packed on its own day. The dates are calendar days (`YYYY-MM-DD`), both
+ * null while the day is not known, equal for a one-day outing.
+ */
+export interface Excursion {
+  id: string
+  trip_id: string
+  name: string
+  starts_on: string | null
+  ends_on: string | null
+  /** The Gruppe it was started from — provenance for a caption only. */
+  source_template_id: string | null
+}
+
+/**
+ * FR-31.3: one participant of one excursion. No rows for an excursion means
+ * every traveller of the trip goes.
+ */
+export interface ExcursionTraveler {
+  id: string
+  trip_id: string
+  excursion_id: string
+  traveler_id: string
+}
+
+/** An excursion line's states: M4's minus the packing-now claim (FR-31.6). */
+export type ExcursionItemState = Exclude<ItemState, 'packing_now'>
+
+/**
+ * An excursion line is packed or bought on the spot (FR-31.8); a purchase
+ * before departure is the trip list's business, never the excursion's.
+ */
+export type ExcursionItemMode = Exclude<ItemMode, 'buy_before'>
+
+/**
+ * FR-31.4: one line of an excursion's list, with its **own** packed state.
+ * `trip_item_id` says the thing comes out of the suitcase and shares no tick
+ * with that row; a link to a row this device does not hold is no link.
+ */
+export interface ExcursionItem {
+  id: string
+  trip_id: string
+  excursion_id: string
+  trip_item_id: string | null
+  source_item_id: string | null
+  name: string
+  category_name: string | null
+  assigned_traveler_id: string | null
+  quantity: number
+  packed_count: number
+  state: ExcursionItemState
+  mode: ExcursionItemMode
+  /** FR-31.8: when a vor-Ort line was bought, or null while still to buy. */
+  bought_at: string | null
+  /** FR-31.7: the suitcase was already closed when the excursion asked for it. */
+  not_in_luggage: boolean
+  /** FR-31.5: made „für alle", so it follows the participants. */
+  for_all_participants: boolean
+}
+
 export interface Container {
   id: string
   trip_id: string

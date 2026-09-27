@@ -44,6 +44,8 @@ export interface CascadeStores {
     childRows(tripId: string): CascadeRow[]
     itemChildRows(tripItemId: string): CascadeRow[]
     commentChildRows(commentId: string): CascadeRow[]
+    excursionChildRows(excursionId: string): CascadeRow[]
+    travelerChildRows(travelerId: string): CascadeRow[]
     templateSourceRows(templateId: string): CascadeRow[]
   }
   masterStore: {
@@ -73,6 +75,12 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
     case TABLE.comments:
       // FR-7.13: a first note takes its thread — the replies and the ticks.
       return tripStore.commentChildRows(id)
+    case TABLE.excursions:
+      // FR-31.1: an excursion takes its participants and its lines.
+      return tripStore.excursionChildRows(id)
+    case TABLE.travelers:
+      // FR-31.5: a traveller taken off the trip is off its excursions too.
+      return tripStore.travelerChildRows(id)
     case TABLE.templates:
       // The master half, plus the trip-partition table a group's delete ends:
       // FR-27.4's source registry lives in the trip store but travels the

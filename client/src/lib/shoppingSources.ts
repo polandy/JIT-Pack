@@ -40,6 +40,12 @@ export interface ShoppingLine {
    */
   tag?: string | null
   /**
+   * The heading a source files this line under, instead of the one combined
+   * heading every source shares (FR-31.8): an excursion's lines are bought
+   * for that outing, and read under its name. Absent for the packing list's.
+   */
+  section?: string | null
+  /**
    * The day an open line is due (FR-30.10), `YYYY-MM-DD`; null or absent for
    * none — and for a bought line, which is never overdue. Only the list's own
    * entries carry one: a packing line's moment is the list it sits on.

@@ -639,3 +639,62 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
     expect(routerPush).toHaveBeenCalledWith('/trips/t1/notes/note-1')
   })
 })
+
+describe('M1 — today’s and tomorrow’s excursions (FR-31.10)', () => {
+  function seedTripWithExcursion(startsOn: string, lineState = 'open') {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 1,
+      table: TABLE.trips,
+      id: 'trip-1',
+      deleted: false,
+      row: { name: 'Sardinien', year: 2026, status: 'active', start_date: '2026-07-01' },
+    } as never)
+    trips.applyChange({
+      seq: 2,
+      table: TABLE.excursions,
+      id: 'ex-1',
+      deleted: false,
+      row: { trip_id: 'trip-1', name: 'Hüttentour', starts_on: startsOn, ends_on: startsOn },
+    } as never)
+    trips.applyChange({
+      seq: 3,
+      table: TABLE.excursionItems,
+      id: 'l-1',
+      deleted: false,
+      row: {
+        trip_id: 'trip-1',
+        excursion_id: 'ex-1',
+        name: 'Stirnlampe',
+        quantity: 1,
+        packed_count: lineState === 'packed' ? 1 : 0,
+        state: lineState,
+      },
+    } as never)
+  }
+
+  it('names tomorrow’s excursion with its trip and opens its list', async () => {
+    seedTripWithExcursion('2026-07-09')
+    const page = mountPage()
+    await flushPromises()
+
+    const row = page.find('[data-testid="dashboard-excursion-ex-1"]')
+    expect(row.text()).toContain(t('excursions.dueTomorrow', { name: 'Hüttentour' }))
+    expect(row.text()).toContain('Sardinien')
+    await row.trigger('click')
+    expect(routerPush).toHaveBeenCalledWith('/trips/trip-1/excursions/ex-1')
+  })
+
+  it('leaves out an excursion whose list is done, or which is days away', async () => {
+    seedTripWithExcursion('2026-07-08', 'packed')
+    const done = mountPage()
+    await flushPromises()
+    expect(done.find('[data-testid="dashboard-excursions"]').exists()).toBe(false)
+
+    setActivePinia(createPinia())
+    seedTripWithExcursion('2026-07-12')
+    const ahead = mountPage()
+    await flushPromises()
+    expect(ahead.find('[data-testid="dashboard-excursions"]').exists()).toBe(false)
+  })
+})

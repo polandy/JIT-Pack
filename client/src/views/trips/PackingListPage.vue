@@ -62,6 +62,7 @@ import {
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
+import { borrowersByTripItem } from '@/domain/excursions'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
@@ -1037,6 +1038,8 @@ async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster
 
 async function openClusterMenu(cluster: PackingCluster): Promise<void> {
   clusterHold.cancel()
+  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
+  if (rowMenuActive) return
   const entries = clusterMenuEntries(clusterInstances(cluster), clusterMenuContext())
   if (entries.length === 0) return
 
@@ -1085,6 +1088,8 @@ const CLUSTER_MENU_BUTTONS: Record<
 
 async function openRowMenu(item: TripItem) {
   hold.cancel()
+  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
+  if (rowMenuActive) return
   const entries = rowMenuEntries(item, {
     closingPass: closingPass.value,
     locked: locked(item),
@@ -1470,6 +1475,15 @@ function responsibleNoteFor(item: TripItem): string | null {
  * owns the order it prefers them in, because both kinds of row prefer the
  * same one and that is the rule worth having in one place.
  */
+/** FR-31.12: which excursions ahead borrow each suitcase row. */
+const borrowers = computed(() =>
+  borrowersByTripItem(
+    tripStore.getExcursions(props.tripId),
+    tripStore.getExcursionItems(props.tripId),
+    orchestrator.today(),
+  ),
+)
+
 function rowNotes(item: TripItem): PackingRowNotes {
   return {
     lock: lockNote(item),
@@ -2774,6 +2788,7 @@ setHeaderTitle(
                     :locked="locked(child.item)"
                     :closing-pass="closingPass"
                     :notes="rowNotes(child.item)"
+                    :borrowed-by="borrowers.get(child.item.id) ?? []"
                     :traveler="child.traveler"
                     :edge-avatar="edgeAvatarFor(child.item)"
                     :assignable="assignableRow(child.item)"
@@ -2807,6 +2822,7 @@ setHeaderTitle(
                 :traveler="entry.traveler"
                 :master="masterOf(entry.item)"
                 :prep-count="openTodoCount(entry.item.id)"
+                :borrowed-by="borrowers.get(entry.item.id) ?? []"
                 :edge-avatar="edgeAvatarFor(entry.item)"
                 :assignable="assignableRow(entry.item)"
                 :seat="seatFor(entry)"

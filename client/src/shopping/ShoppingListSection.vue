@@ -111,7 +111,7 @@ function boughtStamp(line: ShoppingLine): string | null {
         :title="sectionTitle(section)"
         :drop-target="dropKey(section)"
         :droppable="!readonly && dropTag(section) !== undefined"
-        :data-testid="`m6-group-${section.packing ? 'packing' : section.own ? 'own' : `tag-${section.name}`}`"
+        :data-testid="`m6-group-${section.packing ? 'packing' : section.own ? 'own' : section.tagged ? `tag-${section.name}` : `source-${section.name}`}`"
       >
         <ShoppingRows
           :lines="section.lines"

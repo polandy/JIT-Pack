@@ -117,7 +117,10 @@ export async function expectTripOpen(page: Page, name: string) {
  * forever on the second. Tests that add in a loop go through here; the guard is
  * the same one `addPosition` has.
  */
-export async function openQuickAdd(page: Page, fab: 'm4-fab' | 'm8-fab' = 'm4-fab') {
+export async function openQuickAdd(
+  page: Page,
+  fab: 'm4-fab' | 'm8-fab' | 'm27-add-fab' = 'm4-fab',
+) {
   const input = visiblePage(page).getByTestId('quick-add-input')
   if (await input.isVisible().catch(() => false)) return
   await visiblePage(page).getByTestId(fab).click()
@@ -373,6 +376,7 @@ const TRIP_VIEW = {
   shopping: 'trip-view-shopping',
   tasks: 'trip-view-tasks',
   notes: 'trip-view-notes',
+  excursions: 'trip-view-excursions',
   luggage: 'trip-view-luggage',
   analytics: 'trip-view-analytics',
 } as const
@@ -383,10 +387,16 @@ const TRIP_VIEW = {
  * in this file: the suite reads the app from the outside, and a helper that
  * imported the rule would agree with a wrong app.
  */
-const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = ['packing', 'shopping', 'tasks', 'notes']
+const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = [
+  'packing',
+  'shopping',
+  'tasks',
+  'notes',
+  'excursions',
+]
 
 /**
- * One of the trip's six views → another (FR-21.21, ADR-051). The views a
+ * One of the trip's seven views → another (FR-21.21, ADR-051). The views a
  * trip is worked in are pills under the page's name and the rest are words
  * in the bar's ⋮ (amendment 1; the tasks' screen from FR-7.7, the notes'
  * from FR-7.13). Either way this reaches them from any of the six screens,

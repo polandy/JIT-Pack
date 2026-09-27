@@ -80,6 +80,11 @@ const CASES: ServerNotification[] = [
   notif('shopping_due', { item_name: 'Milch', due: 'tomorrow' }),
   notif('shopping_due', { due: 'tomorrow' }),
   notif('shopping_due', {}),
+  // FR-31.9: an excursion's reminder, the same day rule.
+  notif('excursion_due', { item_name: 'Hüttentour', due: 'today' }),
+  notif('excursion_due', { item_name: 'Hüttentour', due: 'tomorrow' }),
+  notif('excursion_due', { due: 'tomorrow' }),
+  notif('excursion_due', {}),
   notif('shiny_new_kind', { actor_name: 'Andy' }),
   notif('mention', {}),
   notif('delegation', null),
@@ -128,6 +133,16 @@ describe('the worker renders the same body as the app', () => {
       notificationRoute(notif('shopping_due', { trip_id: 't1', entry_id: 'e1' })),
     )
     expect(notificationUrl({ trip_id: 't1' }, 'shopping_due')).toBe('/trips/t1/shopping')
+    // FR-31.9: an excursion's reminder lands on its own list.
+    expect(notificationUrl({ trip_id: 't1', excursion_id: 'x1' }, 'excursion_due')).toBe(
+      notificationRoute(notif('excursion_due', { trip_id: 't1', excursion_id: 'x1' })),
+    )
+    expect(notificationUrl({ trip_id: 't1' }, 'excursion_due')).toBe(
+      notificationRoute(notif('excursion_due', { trip_id: 't1' })),
+    )
+    expect(notificationUrl({ trip_id: 't1', excursion_id: 'x1' }, 'excursion_due')).toBe(
+      '/trips/t1/excursions/x1',
+    )
     // FR-30.12: a purchase handed over lands on the shopping list too.
     const handed = { trip_id: 't1', entry_id: 'e1', item_name: 'Brot' }
     expect(notificationUrl(handed, 'delegation')).toBe(

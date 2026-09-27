@@ -48,11 +48,13 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
+import { dueExcursions } from '@/domain/excursions'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { nameFrom } from '@/lib/rowFacts'
-import { PATH, tripItemPath, tripNotesPath, tripPath } from '@/router/paths'
+import { PATH, tripExcursionsPath, tripItemPath, tripNotesPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
@@ -316,6 +318,26 @@ const todayISO = new Date().toISOString().slice(0, 10)
 const latePackers = computed(() => latePackersDepartingToday(sectionTrips.value, todayISO))
 
 /**
+ * FR-31.10: an excursion on the day before it and the day it starts, while
+ * its list has something open — the daypack is packed the evening before as
+ * often as the morning of. Every trip that is not archived: a planned trip
+ * whose days have come is under way whether or not anybody started it.
+ */
+const excursionsDue = computed(() =>
+  dueExcursions(
+    tripStore.tripList
+      .filter((trip) => trip.status !== TRIP_STATUS_ARCHIVED)
+      .map((trip) => ({
+        id: trip.id,
+        name: trip.name,
+        excursions: tripStore.getExcursions(trip.id),
+        lines: tripStore.getExcursionItems(trip.id),
+      })),
+    orchestrator.today(),
+  ),
+)
+
+/**
  * Leaving the screen is what marks the highlights read — doing it on arrival
  * would clear them in the same paint that showed them.
  *
@@ -483,6 +505,37 @@ async function handleRefresh(event: CustomEvent) {
             <IonLabel>
               <h3>{{ row.itemName }}</h3>
               <p>{{ row.tripName }}</p>
+            </IonLabel>
+          </IonItem>
+        </div>
+      </template>
+
+      <!-- FR-31.10: today's and tomorrow's excursions, straight into their list. -->
+      <template v-if="excursionsDue.length > 0">
+        <SectionHead :title="t('excursions.title')" data-testid="dashboard-excursions-head" />
+        <div class="jp-card prep-card rows-card" data-testid="dashboard-excursions">
+          <IonItem
+            v-for="row in excursionsDue"
+            :key="row.excursion.id"
+            lines="none"
+            button
+            detail
+            class="dashboard-item"
+            :data-testid="`dashboard-excursion-${row.excursion.id}`"
+            @click="router.push(tripExcursionsPath(row.tripId, row.excursion.id))"
+          >
+            <IonLabel>
+              <h3>
+                {{
+                  t(row.today ? 'excursions.dueToday' : 'excursions.dueTomorrow', {
+                    name: row.excursion.name,
+                  })
+                }}
+              </h3>
+              <p>
+                {{ t('excursions.packed', { done: row.units.done, total: row.units.total }) }} ·
+                {{ row.tripName }}
+              </p>
             </IonLabel>
           </IonItem>
         </div>

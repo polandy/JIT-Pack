@@ -45,7 +45,7 @@ describe('seedSampleMaster (dev)', () => {
     expect(master.getIncludes(result.vacationTemplateId)).toHaveLength(2)
     // Seven from GROUPS plus the FR-24.3 'Wellness' group, whose two
     // retired items give M23 something to show on a fresh device.
-    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(8)
+    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(9)
   })
 
   it('adopts what it already wrote when it runs a second time (FR-1.6)', () => {
@@ -74,6 +74,7 @@ describe('seedSampleMaster (dev)', () => {
       'Camping Basis',
       'Strand',
       'Wandern',
+      'Hüttentour',
       'Erste Hilfe',
       'Strom & Laden',
       'Wellness',
@@ -195,7 +196,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 30 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 33 Artikel, 8 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 

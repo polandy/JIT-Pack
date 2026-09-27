@@ -6,13 +6,14 @@ import {
   checkboxOutline,
   listOutline,
   statsChartOutline,
+  trailSignOutline,
 } from 'ionicons/icons'
 
 import { t, type MessageKey } from '@/i18n'
-import { tripPath, tripSubPath } from '@/router/paths'
+import { tripExcursionsPath, tripPath, tripSubPath } from '@/router/paths'
 
 /**
- * The trip's six views, named once (FR-21.21, ADR-051).
+ * The trip's seven views, named once (FR-21.21, ADR-051).
  *
  * The ids are the vocabulary three places share: the route table says which
  * view a route *is*, the switcher decides which pill is current from that,
@@ -27,11 +28,12 @@ export const TRIP_VIEW_IDS = [
   'shopping',
   'tasks',
   'notes',
+  'excursions',
   'luggage',
   'analytics',
 ] as const
 
-/** One of the trip's six views — see TRIP_VIEW_IDS. */
+/** One of the trip's seven views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -60,8 +62,19 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  *
  * FR-7.13 adds the fourth: the trip's notes, a place people write in. Four
  * words did not fit a phone; four glyphs and one word do (amendment 3).
+ *
+ * FR-31 adds the fifth: a trip's excursions are packed during the trip, more
+ * often then than the suitcase is (ADR-077). The row is laid out for the
+ * Pixel 9 Pro's 410 px (ADR-051) and scrolls on anything narrower; E2E-G12-07
+ * measures its widest shape, the sixth pill a ⋮ view adds.
  */
-export const TRIP_VIEW_PILLS: readonly TripViewId[] = ['packing', 'shopping', 'tasks', 'notes']
+export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
+  'packing',
+  'shopping',
+  'tasks',
+  'notes',
+  'excursions',
+]
 
 /** What one view is called, where it lives, and the glyph it wears (G-12). */
 interface TripViewSpec {
@@ -102,6 +115,12 @@ const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
     countKey: 'notes.viewCount',
     countIsNew: true,
     path: (tripId) => tripSubPath(tripId, 'notes'),
+  },
+  excursions: {
+    icon: trailSignOutline,
+    nameKey: 'excursions.title',
+    countKey: 'excursions.viewCount',
+    path: (tripId) => tripExcursionsPath(tripId),
   },
   luggage: {
     icon: briefcaseOutline,

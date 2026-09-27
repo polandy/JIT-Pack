@@ -42,6 +42,7 @@ import { createGroupRefreshActions } from './sync/actions/groupRefresh'
 import { createInventoryNameActions } from './sync/actions/inventoryNames'
 import { createTripLifecycleActions } from './sync/actions/tripLifecycle'
 import { createPostTripActions } from './sync/actions/postTrip'
+import { createExcursionActions } from './sync/actions/excursions'
 import { createTripCreationActions } from './sync/actions/tripCreation'
 // The screens read this module rather than the group, so the type keeps its
 // public home even though FR-24.3's rules moved.
@@ -584,6 +585,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     groupRefresh: groupRefreshActions,
   })
   const postTripActions = createPostTripActions(ctx, { masterData: masterDataActions })
+  const excursionActions = createExcursionActions(ctx, { groups: masterDataActions })
   const tripCreationActions = createTripCreationActions(ctx)
   const tripLifecycleActions = createTripLifecycleActions(ctx, {
     comments: commentActions,
@@ -983,6 +985,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Containers (FR-10.1, M11)
     ...containerActions,
+
+    // Excursions (FR-31, M27)
+    ...excursionActions,
 
     // Trip membership (FR-4.5/4.7)
     addTripMember,

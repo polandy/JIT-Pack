@@ -446,6 +446,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A purchase handed to somebody, and a task row one line again (2026-09-26)](#a-purchase-handed-to-somebody-and-a-task-row-one-line-again-2026-09-26) — FR-30.12: a `ShoppingLine` holds the entry as it was, so an undo through the tapped line writes nothing.
 - [Vor der Reise closes when the trip is under way, on both lists (2026-09-26)](#vor-der-reise-closes-when-the-trip-is-under-way-on-both-lists-2026-09-26) — M25's spec seeded every trip `active`, hiding the gap.
 - [A wheel that could not scroll held the gesture window open (2026-09-26)](#a-wheel-that-could-not-scroll-held-the-gesture-window-open-2026-09-26) — FR-21.17: the window was unbounded, not 120–220 ms; a focus closes it, and the helper sees it open.
+- [Excursions: a small packing list inside a trip (2026-09-26)](#excursions-a-small-packing-list-inside-a-trip-2026-09-26) — M6 assumed every shopping source was the packing list; a stale suitcase link on purpose.
 
 ## Deviations
 
@@ -17765,3 +17766,26 @@ both engines against the rule without the `focusin` branch.
 **And the wait on an absence got its positive half.** `scrollPackList` waited for `data-scroll-gesture` to be gone,
 which is green against a build that never sets it. It now watches the attribute from before the wheel and asserts the
 window opened; deleting the mirror fails E2E-M4-70 at the helper, where it stayed green before.
+
+## Excursions: a small packing list inside a trip (2026-09-26)
+
+FR-31, ADR-077, M27. The concept was walked through with the owner in fourteen questions and a rendered variant round
+(`excursions-concept.md`, `UI_Concept_Excursions_variants.html`); what the code cannot show is below.
+
+**A premise found by rendering M6: every shopping source is the packing list.** FR-30.2 files all sourced lines under
+one combined heading, *Packliste*, and `ShoppingLine` had no way to say otherwise — correct while the packing list was
+the only source. The excursion's *vor Ort* lines rendered under *Packliste* on the first screenshot. Rejected: a tag
+(`ShoppingLine.tag` is the list's own vocabulary, and a tagged section takes dropped entries) and a copy into
+`shopping_entries` (FR-30.2's projection rule, and a second truth to reconcile on every line edit). Built: an optional
+`ShoppingLine.section`, a heading the source names, rendered after the combined one and never a drop target.
+
+**A cost accepted: a deleted suitcase row leaves a stale link.** `excursion_items.trip_item_id` is `ON DELETE SET
+NULL`, and SQLite clears it inside the engine where no change feed sees it — so another device keeps the old id until
+the line is next written. Not tombstoned or re-announced on purpose: the line itself survives (the hike still needs the
+thing), and every reader goes through `suitcaseOf`, which reads a link to a row the device does not hold as no link.
+`TestApplyMutation_DeletingATripItemUnlinksItsExcursionLine_FR31_4` pins the server half.
+
+**A guard that showed up in the dev seed.** `createExcursion` refuses while the trip's rows are not on the device
+(ADR-016's guard — linking against a list not pulled would create the whole group a second time). The seed spec runs
+on an orchestrator that never connected, so its excursion test connects first; the other seed tests do not, and do not
+need to.

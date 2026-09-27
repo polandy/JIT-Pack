@@ -45,6 +45,8 @@ import type {
   ItemTodo,
   MasterItem,
   NoteAck,
+  Excursion,
+  ExcursionItem,
   Template,
   TemplateItem,
   Traveler,
@@ -651,6 +653,94 @@ const CASES: BuilderCase[] = [
       acked: true,
       seen_through: '2026-09-20T10:00:00Z',
     } satisfies Record<keyof NoteAck, unknown>,
+  },
+  {
+    builder: 'excursionRow',
+    seed: () => {
+      seedTrip()
+      pullIn(useTripStore(), TABLE.excursions, 'ex-1', {
+        trip_id: TRIP_ID,
+        name: 'Hüttentour',
+        starts_on: '2026-07-16',
+        ends_on: '2026-07-17',
+        source_template_id: 'grp-hut',
+      })
+    },
+    read: () => useTripStore().getExcursions(TRIP_ID)[0] as unknown as Record<string, unknown>,
+    acts: [
+      {
+        act: (e: Excursion) => newOrch().updateExcursion(TRIP_ID, e, { name: 'Hütte' }),
+        changed: 'name',
+        becomes: 'Hütte',
+      },
+      {
+        // One end moved; the other is rewritten only when the pair reverses.
+        act: (e: Excursion) => newOrch().updateExcursion(TRIP_ID, e, { endsOn: '2026-07-18' }),
+        changed: 'ends_on',
+        becomes: '2026-07-18',
+      },
+    ],
+    expected: {
+      id: 'ex-1',
+      trip_id: TRIP_ID,
+      name: 'Hüttentour',
+      starts_on: '2026-07-16',
+      ends_on: '2026-07-17',
+      source_template_id: 'grp-hut',
+    } satisfies Record<keyof Excursion, unknown>,
+  },
+  {
+    builder: 'excursionItemRow',
+    seed: () => {
+      seedTrip()
+      pullIn(useTripStore(), TABLE.excursionItems, 'exi-1', {
+        trip_id: TRIP_ID,
+        excursion_id: 'ex-1',
+        trip_item_id: 'ti-1',
+        source_item_id: 'item-bag',
+        name: 'Hüttenschlafsack',
+        category_name: 'Schlafen',
+        assigned_traveler_id: 'tr-sia',
+        quantity: 2,
+        packed_count: 1,
+        state: 'partial',
+        mode: 'pack',
+        bought_at: null,
+        not_in_luggage: 1,
+        for_all_participants: 1,
+      })
+    },
+    read: () => useTripStore().getExcursionItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
+    acts: [
+      {
+        act: (l: ExcursionItem) => newOrch().setLineCount(TRIP_ID, l, 2),
+        changed: 'packed_count',
+        becomes: 2,
+        also: { state: 'packed' },
+      },
+      {
+        act: (l: ExcursionItem) => newOrch().buyOnTheSpot(TRIP_ID, l),
+        changed: 'mode',
+        becomes: 'buy_local',
+      },
+    ],
+    expected: {
+      id: 'exi-1',
+      trip_id: TRIP_ID,
+      excursion_id: 'ex-1',
+      trip_item_id: 'ti-1',
+      source_item_id: 'item-bag',
+      name: 'Hüttenschlafsack',
+      category_name: 'Schlafen',
+      assigned_traveler_id: 'tr-sia',
+      quantity: 2,
+      packed_count: 1,
+      state: 'partial',
+      mode: 'pack',
+      bought_at: null,
+      not_in_luggage: true,
+      for_all_participants: true,
+    } satisfies Record<keyof ExcursionItem, unknown>,
   },
 ]
 

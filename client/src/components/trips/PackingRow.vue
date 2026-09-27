@@ -18,7 +18,12 @@
  * branch chain is testable without a trip.
  */
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
+import {
+  buildOutline,
+  lockClosedOutline,
+  removeCircleOutline,
+  trailSignOutline,
+} from 'ionicons/icons'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
@@ -91,6 +96,17 @@ const props = withDefaults(
      * (FR-25.19), so the row that shows it offers nothing to pick.
      */
     assignable?: boolean
+    /**
+     * FR-31.12: the excursions that borrow this row, named on an open row so
+     * it is not skipped or left out of the suitcase blind.
+     */
+    borrowedBy?: readonly string[]
+    /**
+     * FR-31.6: an excursion's list is this row too. Its handle is its own
+     * screen's, so a case on one list never finds a row of the other while
+     * both are mounted in the stack.
+     */
+    screen?: 'm4' | 'm27'
   }>(),
   {
     variant: 'item',
@@ -101,6 +117,8 @@ const props = withDefaults(
     assignable: false,
     seatColumn: false,
     seat: null,
+    borrowedBy: () => [],
+    screen: 'm4',
   },
 )
 
@@ -129,7 +147,7 @@ const emit = defineEmits<{
   <IonItem
     button
     :class="{ done, locked, child: props.variant === 'child' }"
-    :data-testid="`${props.variant === 'child' ? 'm4-child' : 'm4-row'}-${testKey}`"
+    :data-testid="`${screen === 'm27' ? (variant === 'child' ? 'm27-child' : 'm27-row') : variant === 'child' ? 'm4-child' : 'm4-row'}-${testKey}`"
     @click="emit('open')"
     @contextmenu.prevent="emit('menu')"
     @pointerdown="(e: PointerEvent) => emit('pressStart', e)"
@@ -196,6 +214,17 @@ const emit = defineEmits<{
         {{ notes.packed }}
         <span v-if="notes.responsible" class="muted">· {{ notes.responsible }}</span>
       </p>
+      <p
+        v-if="!done && borrowedBy.length > 0"
+        class="stamp borrowed"
+        :data-testid="`m4-borrowed-${testKey}`"
+      >
+        <IonIcon :icon="trailSignOutline" aria-hidden="true" />
+        {{ borrowedBy.join(', ') }}
+      </p>
+      <!-- FR-31.6: an excursion's line is this row too, and says what it
+           needs done under its name — the one thing M4's rows do not say. -->
+      <slot name="facts" />
     </IonLabel>
 
     <!-- The end column: what the row *says*, then what you do to it. The
@@ -346,6 +375,19 @@ const emit = defineEmits<{
 
 .stamp {
   font-size: var(--jp-text-xs);
+}
+
+.borrowed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-subtext0);
+}
+
+.borrowed ion-icon {
+  flex: none;
+  width: var(--jp-icon-xs);
+  height: var(--jp-icon-xs);
 }
 
 .muted {

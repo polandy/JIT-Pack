@@ -2,6 +2,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { DependencyMode, TemplateKind } from '@/types/domain'
 import {
   ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
@@ -147,6 +148,11 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Zahnseide', weightGrams: 10 },
   { name: 'Reiseadapter', weightGrams: 90 },
   { name: 'Kartenspiel', weightGrams: 80, icon: '🃏' },
+  // FR-31: what the *Hüttentour* group adds that no other group has — so an
+  // excursion started from it has something to put into the suitcase.
+  { name: 'Hüttenschlafsack', tag: 'Camping', weightGrams: 350 },
+  { name: 'Trinkflasche', tag: 'Camping', weightGrams: 180, icon: '💧' },
+  { name: 'Proviant', tag: 'Camping', weightGrams: 400, icon: '🥪' },
   // A tag exactly one item carries — the single-tag rule's finding.
   { name: 'Graufilter', tag: 'Fotografie', weightGrams: 40 },
 ]
@@ -174,6 +180,8 @@ interface PositionSeed {
   quantity?: number
   perPerson?: boolean
   buyBefore?: boolean
+  /** FR-31.8: bought on the spot — an excursion's lunch. */
+  onSite?: boolean
   /** FR-27.7: becomes a prep todo on every row generated from this position. */
   task?: string
 }
@@ -243,6 +251,20 @@ const GROUPS: GroupSeed[] = [
     ],
   },
   {
+    // FR-31: the group an excursion starts from — a sleeping bag and a bottle
+    // each (a für-alle set), the head torch the trip already carries, and
+    // lunch bought on the spot.
+    name: 'Hüttentour',
+    icon: '🥾',
+    positions: [
+      { item: 'Hüttenschlafsack', perPerson: true },
+      { item: 'Trinkflasche', perPerson: true },
+      { item: 'Stirnlampe' },
+      { item: 'Regenjacke', perPerson: true },
+      { item: 'Proviant', onSite: true },
+    ],
+  },
+  {
     name: 'Erste Hilfe',
     positions: [{ item: 'Reiseapotheke' }, { item: 'Blasenpflaster' }],
   },
@@ -301,7 +323,11 @@ function addPositions(
     const positionId = orchestrator.addTemplateItem(templateId, itemId, {
       quantity: pos.quantity ?? 1,
       assignment: pos.perPerson ? 'per_person' : 'trip_global',
-      defaultMode: pos.buyBefore ? ITEM_MODE_BUY_BEFORE : ITEM_MODE_PACK,
+      defaultMode: pos.onSite
+        ? ITEM_MODE_BUY_LOCAL
+        : pos.buyBefore
+          ? ITEM_MODE_BUY_BEFORE
+          : ITEM_MODE_PACK,
     })
     if (pos.task) orchestrator.addTemplateItemTask(positionId, pos.task)
   }

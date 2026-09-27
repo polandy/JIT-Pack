@@ -600,6 +600,85 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
 );
 
 -- ---------------------------------------------------------------------------
+-- Excursions (FR-31, ADR-077): a small packing list inside a trip
+-- ---------------------------------------------------------------------------
+
+-- FR-31.1: a day hike or a hut night — its own list, packed on its own day.
+-- The dates are calendar days (YYYY-MM-DD), both NULL while the day is not
+-- known yet, equal for a one-day outing. No CHECK that the two are in order:
+-- field-level LWW merges each alone, and two devices moving either end could
+-- meet in a pair the CHECK refuses mid-merge (the client orders them on
+-- write; a reader takes a reversed pair as its min and max).
+CREATE TABLE excursions (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    starts_on   TEXT,
+    ends_on     TEXT,
+    -- The Gruppe it was started from (FR-31.2), provenance for the screen's
+    -- „aus Gruppe …" line only. No reference: nothing may keep a group from
+    -- being deleted for the sake of a caption.
+    source_template_id TEXT,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-31.3: who goes. A row per participant rather than a list column, so two
+-- devices adding different people both win (ADR-073's reason for note_acks).
+-- No rows means every traveller of the trip, so a traveller added to the trip
+-- later is on an excursion nobody narrowed.
+CREATE TABLE excursion_travelers (
+    id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id      TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    excursion_id TEXT NOT NULL REFERENCES excursions(id) ON DELETE CASCADE,
+    traveler_id  TEXT NOT NULL REFERENCES travelers(id) ON DELETE CASCADE,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-31.4: one line of an excursion's list, with its **own** packed state —
+-- the daypack is ticked on the morning of the hike whatever the suitcase said
+-- weeks before (ADR-077). `trip_item_id` says where the thing comes from and
+-- shares no tick with it; SET NULL, because a suitcase row taken off the trip
+-- leaves the hike needing the thing all the same. Name and category are copied
+-- as trip_items copies them, so the line reads without a join.
+CREATE TABLE excursion_items (
+    id                   TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id              TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    excursion_id         TEXT NOT NULL REFERENCES excursions(id) ON DELETE CASCADE,
+    trip_item_id         TEXT REFERENCES trip_items(id) ON DELETE SET NULL,
+    source_item_id       TEXT REFERENCES items(id),
+    name                 TEXT NOT NULL,
+    category_name        TEXT,
+    assigned_traveler_id TEXT REFERENCES travelers(id) ON DELETE CASCADE,
+    quantity             INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+    packed_count         INTEGER NOT NULL DEFAULT 0
+                         CHECK (packed_count >= 0 AND packed_count <= quantity),
+    state                TEXT NOT NULL DEFAULT 'open'
+                         CHECK (state IN ('open','partial','packed','skipped')),
+    -- 'buy_local' is „vor Ort": the line is bought on the spot and never
+    -- touches the trip's list; it is what M6's Vor-Ort list shows (FR-31.8).
+    mode                 TEXT NOT NULL DEFAULT 'pack'
+                         CHECK (mode IN ('pack','buy_local')),
+    -- FR-31.8: when a vor-Ort line was bought, the tap's moment; NULL while
+    -- it is still to buy. Nullable and free of a CHECK against `mode` for
+    -- field-level LWW's sake, as trip_items.bought_from is.
+    bought_at            TEXT,
+    -- FR-31.7: the thing was not in the luggage when the excursion asked for
+    -- it, because the suitcase was already closed. Stored rather than derived:
+    -- it is a fact about that moment, which a later edit to the trip's list
+    -- must not rewrite.
+    not_in_luggage       INTEGER NOT NULL DEFAULT 0 CHECK (not_in_luggage IN (0,1)),
+    -- FR-31.5: the line was made „für alle", so a participant who joins gets
+    -- a row of it and one who leaves loses theirs. Stored rather than read off
+    -- „every participant has a row": a set made for Andy and Sia by name reads
+    -- the same, and only „für alle" should grow a row for a third person.
+    for_all_participants INTEGER NOT NULL DEFAULT 0 CHECK (for_all_participants IN (0,1)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc          TEXT NOT NULL DEFAULT ''
+);
+
+-- ---------------------------------------------------------------------------
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
 

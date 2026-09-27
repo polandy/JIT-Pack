@@ -39,7 +39,7 @@ replace the file; git holds its history.
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
-- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M23 and the global patterns
+- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M27 and the global patterns
   G-1–G-17.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.
@@ -105,3 +105,8 @@ generated — edit the builder, not the HTML:
   every traveller and ticked per person (decided, reasoning in
   [`trip-notes-concept.md`](trip-notes-concept.md)): where they live and whether M1 may tick.
   Hand-written, with an interactive who-am-I switch.
+- [`UI_Concept_Excursions_variants.html`](UI_Concept_Excursions_variants.html) — excursions,
+  a small packing list inside a trip (decided and built as FR-31/ADR-077, reasoning in
+  [`excursions-concept.md`](excursions-concept.md)): the pill's glyph, whether one excursion is a
+  page or a sheet, how *nicht im Gepäck* looks, and a thing per participant;
+  `node dev-docs/build-excursions-variants.mjs`.

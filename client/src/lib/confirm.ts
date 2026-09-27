@@ -55,6 +55,36 @@ export function confirmAction(options: ConfirmOptions): Promise<boolean> {
   return ask(options, 'confirm')
 }
 
+/** A question with two ways forward and a cancel. */
+export interface ChoiceOptions extends ConfirmOptions {
+  /** The other way forward's label. */
+  alternativeLabel: string
+}
+
+/**
+ * Asks between two ways forward, neither of them destructive. Resolves to
+ * which was taken — `true` the confirming one, `false` the alternative — or
+ * `null` when the user cancelled.
+ */
+export async function chooseAction(options: ChoiceOptions): Promise<boolean | null> {
+  const alternative = 'alternative'
+  const alert = await alertController.create({
+    header: options.header,
+    message: options.message,
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: options.alternativeLabel, role: alternative },
+      { text: options.confirmLabel, role: 'confirm' },
+    ],
+  })
+  if (options.testid) alert.setAttribute('data-testid', options.testid)
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  if (role === 'confirm') return true
+  if (role === alternative) return false
+  return null
+}
+
 /** What a prompt asks for, and what it does with the answer. */
 export interface PromptOptions {
   header?: string

@@ -95,6 +95,13 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   // parser runs, so both builders write it and neither reads it.
   { table: TABLE.comments, parse: 'rowToComment', encode: 'commentRow', encodeOnly: ['is_task'] },
   { table: TABLE.noteAcks, parse: 'rowToNoteAck', encode: 'noteAckRow' },
+  { table: TABLE.excursions, parse: 'rowToExcursion', encode: 'excursionRow' },
+  {
+    table: TABLE.excursionTravelers,
+    parse: 'rowToExcursionTraveler',
+    encode: 'excursionTravelerRow',
+  },
+  { table: TABLE.excursionItems, parse: 'rowToExcursionItem', encode: 'excursionItemRow' },
 ]
 
 describe('every codec pair agrees about its columns', () => {

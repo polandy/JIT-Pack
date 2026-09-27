@@ -1,7 +1,8 @@
 // Package api — taskdue.go is FR-7.11's reminder: once a day, at a time the
 // operator chooses, everybody a task is for hears that it is due tomorrow or
 // today — and, in the same run, the same people hear about the trip's
-// shopping entries due then (FR-30.10, FR-30.12). It is the one notification
+// shopping entries due then (FR-30.10, FR-30.12) and its excursions still to
+// pack (FR-31.9). It is the one notification
 // no push sets off — every other kind is a person's act (notificationrules.go) — so it has a clock of its own. The
 // schedule and the recipient rule are pure functions; the loop and the
 // store reads around them are the I/O. See ADR-076.
@@ -35,6 +36,9 @@ const payloadDue = "due"
 
 // payloadEntryID names the shopping entry a shopping_due reminder is about.
 const payloadEntryID = "entry_id"
+
+// payloadExcursionID names the excursion an excursion_due reminder is about.
+const payloadExcursionID = "excursion_id"
 
 // dueWord is the payload's answer for a day, and false for a day the
 // reminder is not sent for.
@@ -140,8 +144,45 @@ func planShoppingDue(
 	return plan
 }
 
-// remindDueTasks sends the day's reminders — tasks and shopping entries — if the day's time has come and
-// they have not been sent yet, and reports whether it sent them. Safe to
+// planExcursionDue decides who hears about which excursion (FR-31.9): its
+// participants' accounts that are members of the trip, else — where it
+// names nobody, or nobody linked, or only people who left — every member,
+// dueRecipients' „nobody in particular is everybody's". FR-17.3's two-member
+// rule does not apply, for planTaskDue's reason.
+func planExcursionDue(
+	excursions []store.DueExcursion, today, tomorrow string,
+	members func(tripID string) []store.MemberName,
+) []plannedNotification {
+	var plan []plannedNotification
+	for _, ex := range excursions {
+		due, ok := dueWord(ex.StartsOn, today, tomorrow)
+		if !ok {
+			continue
+		}
+		payload := map[string]any{
+			payloadTripID: ex.TripID, payloadExcursionID: ex.ID,
+			payloadItemName: truncate(ex.Name, previewLen), payloadDue: due,
+		}
+		onTrip := members(ex.TripID)
+		var recipients []string
+		for _, userID := range ex.Participants {
+			if displayNameOf(onTrip, userID) != "" {
+				recipients = append(recipients, userID)
+			}
+		}
+		if len(recipients) == 0 {
+			recipients = dueRecipients("", onTrip)
+		}
+		for _, userID := range recipients {
+			plan = append(plan, plannedNotification{UserID: userID, Kind: store.NotifyExcursionDue, Payload: payload})
+		}
+	}
+	return plan
+}
+
+// remindDueTasks sends the day's reminders — tasks, shopping entries and
+// excursions — if the day's time has come and they have not been sent yet,
+// and reports whether it sent them. Safe to
 // call as often as the loop likes: the claim in the store is what makes it
 // once a day, across restarts too — a server started after the time still
 // sends that day's reminder, late rather than never.
@@ -171,6 +212,11 @@ func (s *Server) remindDueTasks(ctx context.Context, at time.Duration) bool {
 		slog.Error("shopping reminder lookup", "day", today, "error", err)
 		return false
 	}
+	excursions, err := s.store.DueExcursions(ctx, today, tomorrow)
+	if err != nil {
+		slog.Error("excursion reminder lookup", "day", today, "error", err)
+		return false
+	}
 	byTrip := map[string][]store.MemberName{}
 	members := func(tripID string) []store.MemberName {
 		if list, ok := byTrip[tripID]; ok {
@@ -185,6 +231,7 @@ func (s *Server) remindDueTasks(ctx context.Context, at time.Duration) bool {
 	}
 	plan := planTaskDue(tasks, today, tomorrow, members)
 	plan = append(plan, planShoppingDue(entries, today, tomorrow, members)...)
+	plan = append(plan, planExcursionDue(excursions, today, tomorrow, members)...)
 	for _, n := range plan {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}

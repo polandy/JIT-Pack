@@ -21,7 +21,7 @@ Read this file fully before touching code. It is the orientation document: what 
 |---|---|
 | What does the product do? | `dev-docs/PRD_Base.md` (original vision) |
 | What changed since? | `dev-docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md** |
-| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M23, global patterns G-1–G-17 |
+| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M27, global patterns G-1–G-20 |
 | What should packing feel like? | `dev-docs/UI_Concept_Prototype.html`; **`node dev-docs/UI_Concept_Prototype.verify.mjs` must stay green** |
 | Wire protocol? | `dev-docs/Sync_API_Spec_v1.3.md` |
 | DB schema? | `internal/store/schema.sql` — **single source of truth, never duplicated into docs** (ADR-018) |
@@ -85,6 +85,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 27. FR-7.9 trip notes, read by every traveller and ticked per person (ADR-073) — 2026-09-22. Not in the portable backup either, like the shopping list's own entries.
 28. FR-7.11/FR-7.12 a task's due day with the server's own morning reminder, and a finished packing closes *before* (ADR-076) — 2026-09-25. The reminder is the one notification Single-User sends.
 29. FR-7.13 trip notes as threads — a titled first note, replies one level deep, author-only edits, a tick that reaches the newest entry, replies pushed to the participants — on a view of their own, M26 (ADR-073 amendment note) — 2026-09-25.
+30. FR-31 excursions — a small packing list inside a trip, its own lines borrowing from the suitcase, started from and saved as a Gruppe (ADR-077) — 2026-09-26. Not in the portable backup either.
 
 **Parked, specified, do not start:** §3.26 calendar feed, the North-Star Plan/During phases, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
 

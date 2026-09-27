@@ -4,7 +4,8 @@
 **Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (built, item tags & master-item lifecycle)**,
 **3.25 (built, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed and parked, calendar-reminder
 iCalendar subscription — Variant B)**, **3.27 (accepted, template composition)**, **3.28 (built, one emoji mark per
-item)** and **3.30 (accepted, the shopping list as a module of its own)**, clarifications to existing FRs, and
+item)**, **3.30 (accepted, the shopping list as a module of its own)** and **3.31 (built, excursions — a small
+packing list inside a trip)**, clarifications to existing FRs, and
 refined/added NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base PRD; a retired FR/NFR number
 keeps a removal stub and is never reused.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation
@@ -4179,6 +4180,129 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     written, one undo for the batch.
   * **Modes.** The column syncs in all three; the controls exist in Server Mode (above). Not in the portable backup
     (item 25). **Surfaces:** M6, M25 (UI-Spec). E2E-M6-37, E2E-M25-18.
+
+### 3.31 Excursions — A Small Packing List Inside a Trip
+
+**Status: accepted** — **implemented** (ADR-077). A trip often holds outings that need their own smaller bag, packed
+from the trip's things on a day of their own: a day hike, a night in a mountain hut, a boat trip. An **excursion** is
+that bag's list. It lives inside one trip, owns **its own lines with their own packed state**, and is reusable through
+the Gruppen of §3.27 rather than through a template kind of its own. The reasoning, the options weighed and the
+rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excursions_variants.html`; the screen is
+**M27** (UI-Spec).
+
+* **FR-31.1 (The Excursion):** A trip carries any number of excursions: a name, an optional **first and last day**
+  (calendar days, both empty while the day is not known yet, equal for a one-day outing) and the Gruppe it was started
+  from, kept as provenance only. They live in the table `excursions` in the **trip partition** and sync like every
+  other trip row (field-level LWW, tombstones, they go with their trip). The two days carry no constraint that orders
+  them — LWW merges each alone — so the client writes them ordered and a reader takes a reversed pair as its min and
+  max. Deleting an excursion takes its participants and its lines; **the trip's packing list is left as it is**.
+* **FR-31.2 (Started From a Gruppe):** A new excursion starts **empty or from a Gruppe**, chosen by FR-27.13's search
+  (by the group's name and by the things inside it). The group is expanded as M3 expands one — includes, FR-15.2
+  conditions, the FR-2.3a merge — with **the excursion's participants as the roster** and no trip length (an outing is
+  not the holiday). Two readings differ from generation: a position to buy *vor der Abreise* becomes one to pack (bought
+  before the trip, it is in the suitcase by the day of the hike), and a shared line names nobody (FR-1.9's default
+  assignee is a trip row's, not a daypack's).
+* **FR-31.3 (Who Goes):** An excursion names **a subset of the trip's travellers**, by default everybody. A row per
+  participant in `excursion_travelers`, so two devices adding different people both win (ADR-073's reason). **No rows
+  means every traveller**, so a traveller added to the trip later is on an excursion that never narrowed. A traveller
+  taken off the trip is taken off its excursions, with their own lines there (the server's cascade, mirrored by the
+  client).
+* **FR-31.4 (Its Own Lines, Borrowed From the Suitcase):** An excursion's line (`excursion_items`) has a name, category,
+  amount, packed count and state (*open, partial, packed, skipped* — no packing-now claim), a mode (*pack* or *vor
+  Ort*), and an optional **link to a trip row** — *this comes out of the suitcase*. The link **shares no tick**: the
+  daypack is ticked on the morning of the hike whatever the suitcase said weeks before, and three hikes are three
+  packings. While the suitcase is open (FR-31.7) a line that is to be packed finds its trip row — by master item, else
+  by name; a per-person line **the same person's** row, a shared line the shared row first — and:
+  * **raises its amount to the line's where it holds fewer — max, never sum**: the hike borrows the suitcase's water
+    bottle, it does not need a second one; an amount is never lowered, by this or by anything below;
+  * **creates the row where the trip has none**, so what the outing needs from home is not left at home; two lines
+    naming the same missing thing create it once;
+  * **does not revive a row decided *bewusst nicht mitgenommen*** (FR-5.5): the line links it and says *nicht im
+    Gepäck*.
+
+  A *vor Ort* line never touches the trip's list. A trip row deleted later leaves its line in place, unlinked: the
+  server clears the link in the engine (`ON DELETE SET NULL`) and writes no change for it, so a device that still holds
+  the old id reads a link to a row it does not have — which is read as no link. Creating an excursion is **one act with
+  one undo**: the excursion, its lines, the rows it created and the amounts it raised.
+* **FR-31.5 (A Thing per Participant):** A thing each person needs — a sleeping bag each — is **one line per
+  participant**, shown as FR-25.1's cluster. It is defined by M4's own **for-whom strip** (FR-25.28) over **the
+  excursion's participants**: *Gemeinsam* writes one shared line, *Alle* one line per participant at one each, avatars
+  one line per named person; a Gruppe's `per_person` position arrives as *Alle*. A set made with *Alle* is stored as
+  **für alle** (`for_all_participants`), because a set made for Andy and Sia by name reads the same and must not grow
+  for a third person. When the participants change:
+  * **somebody joins** → every *für alle* set gains a line for them, at the amount the set's lines share (one where
+    they differ), linked into the suitcase like any new line;
+  * **somebody leaves** → their **open** lines go; a line of theirs already ticked **stays**, marked *nicht mehr dabei*
+    with *Herausnehmen*, because the thing is in the rucksack and a list that forgot it would hide exactly that.
+
+  The change of people and its lines are **one undo**. A thing can also be turned from shared to per person and back
+  from its line's sheet, with M5's strip over the participants; open lines of those it is no longer for go, a packed
+  one stays.
+* **FR-31.6 (The Packing List, Smaller):** An excursion's list **reads and works like M4, from M4's own parts**: its
+  progress card and per-person strip (filtering as on M4), collapsible group heads by category, M4's row with its
+  stepper and glyphs, the per-person cluster that starts shut, the §3.28 mark, and the orange ＋ opening M4's quick-add
+  (inventory search, groups, *für wen*). It is built by M4's own view model, so a packed line leaves the list as a
+  packed row does (FR-25.2), with M4's snackbar and its undo, and the reveal bar brings it back. A line adds its facts
+  under its name — *aus dem Gepäck* for a line borrowing a row this device holds, *vor Ort gekauft* once bought. A
+  line's menu offers one more / one less, *Gekauft* / *Noch nicht gekauft* for a *vor Ort* line, *Vor Ort besorgen* for
+  one not in the luggage, *Diesmal nicht* (the FR-5.5 skip, an amount of zero) / *Doch mitnehmen*, and *Von der Liste
+  nehmen* with an undo. **Not on an excursion line:** packer, container, weight, comments, packing-now, the late packer.
+* **FR-31.7 (After the Suitcase Is Closed):** Once *before* is over — the trip started, its first day come, or its
+  packing closed (FR-7.12's `beforeIsOver`) — adding lines **writes nothing to the trip's list**. A line to pack with
+  no packed trip row behind it is stored as **not in the luggage** (`not_in_luggage`) and shows *nicht im Gepäck ·
+  Vor Ort besorgen*. Stored rather than derived, because it is a fact about that moment that a later edit to the trip's
+  list must not rewrite. *Vor Ort besorgen* turns the line into a *vor Ort* line (FR-31.8). The mark on the line stays
+  untouched (FR-28.5/G-15); the problem is a line of words where the problem is.
+* **FR-31.8 (Bought on the Spot):** An excursion's open *vor Ort* lines are lines of **M6's *Vor Ort* list** — a
+  projection through the kernel contract `lib/shoppingSources.ts`, like the packing list's buy rows (FR-30.2), never a
+  copy in `shopping_entries`. They are filed **under the excursion's name** rather than under the combined packing
+  heading: a source may name its own heading (`ShoppingLine.section`), which M6 renders after the combined one, A–Z,
+  and never offers as a place to drop an entry. Buying one stamps the line's `bought_at` (the tap's moment); the line
+  stays on the excursion's list, now *vor Ort gekauft*, still to go into the rucksack. Never on *Vor der Reise*.
+* **FR-31.9 (The Morning Reminder):** The server's FR-7.11 run sends a kind of its own, **`excursion_due`**, for an
+  excursion **starting tomorrow or today** that still has an open or partial line, on a trip that is not archived — to
+  its participants' linked accounts that are members of the trip, else (nobody named, nobody linked, or only people who
+  left) to every member. Its own switch in M17 (*Ausflüge*); a tap opens the excursion's list. FR-17.3's two-member
+  rule does not apply, for FR-7.11's reason.
+* **FR-31.10 (Time):** M27 lists the **upcoming** excursions (today's included, until their last day has passed) by
+  first day, then those **without a day** by name, then the **past** ones folded, latest first. The switcher pill's
+  badge counts the upcoming excursions that still have something open. **M1** shows an excursion the day before it and
+  the day it starts while its list has something open — the daypack is packed the evening before as often as the morning
+  of — as *„Morgen: Hüttentour"* / *„Heute: …"*, straight into its list. No return check: an excursion is over when its
+  last day has passed, and its list stays readable and editable.
+* **FR-31.11 (Saved as a Gruppe):** *Als Gruppe speichern* folds an excursion's list into a **new Gruppe**: a per-person
+  set becomes one `per_person` position (a Gruppe has no people), a shared line a `trip_global` one, *vor Ort* survives
+  as the position's default mode, skipped lines are left out. A line with no master item is folded onto the inventory
+  by exact name, else a master item is created first (FR-27.5's mechanics, and exact for its reason). A name another
+  Vorlage holds is refused. The Gruppe it came from is never updated from here: an excursion is a packing, not a
+  subscription, and FR-27.4's refresh does not reach excursions.
+* **FR-31.12 (The Suitcase Names Who Borrows It):** On M4 an **open** trip row that lines of upcoming or undated
+  excursions borrow carries one quiet line naming them (signpost glyph, *„Hüttentour, Bootsausflug"*), so it is not
+  skipped or left out of the suitcase blind.
+* **FR-31.13 (Bought on the Spot, Kept):** A *vor Ort* line that was bought and is not a trip row yet offers ***Auf
+  die Packliste*** — on its fact line and in its menu. The thing then travels with the luggage (the rain cape bought at
+  the hut comes home): the trip gains a row for it, **packed** at the line's amount (it is in hand) and for the line's
+  person, linked to the **inventory item** it is — the one the line already names, else the inventory's of that exact
+  name (FR-27.5's rule), else a **new master item**, so it is in the global inventory from then on. The line keeps its
+  purchase record, now borrows that row, and reads *vor Ort gekauft · auf der Packliste*. It works on a trip under way
+  too — this is the one write into the trip's list after *before* is over, because the thing is already there. One
+  undo takes back the row, the link and an item it created.
+* **FR-31.14 (For This Excursion Alone):** Not everything on an excursion's list belongs in the inventory — a
+  chocolate bar, water, a sandwich. A name the inventory does not hold is offered two ways in the quick-add, and
+  ***Nur für diesen Ausflug*** comes first and is what ✓ does: the line names **no inventory item**, reads ***nur für
+  diesen Ausflug***, and is **never linked into the suitcase** — it creates no trip row, borrows none and is never
+  marked *nicht im Gepäck* (FR-31.4/31.7 need an item to match by). The inventory's create sheet (FR-24.11) stays the
+  second way. Such a line offers ***Ins Inventar*** on its fact line, in its sheet and in its menu: the inventory item
+  of that exact name becomes its item, else a new one, and the line — every line of its per-person set — is then
+  linked into the suitcase as FR-31.4/31.7 would have linked it; one undo takes back the links, the rows created and
+  an item created. *Als Gruppe speichern* (FR-31.11) **asks** when such lines exist, naming them: ***Mitnehmen***
+  creates them in the inventory as FR-31.11 does, ***Weglassen*** saves the Gruppe without them and the inventory
+  untouched.
+  A *vor Ort* line of this kind keeps FR-31.13's way into the inventory, once bought.
+* **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.
+  **Single-User:** everything, the reminder included (FR-7.11 sends it there). **Server:** excursions are trip data;
+  every member sees, edits and ticks them. **Not in the portable backup**, like the tasks, the notes and the shopping
+  list's own entries: the reusable part is the Gruppe, which is.
 
 ## Part B — Clarifications & Extensions to Existing Sections
 
