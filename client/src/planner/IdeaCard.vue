@@ -1,3 +1,4 @@
+<!-- probe: module-only diff (ADR-079), not for merge -->
 <script setup lang="ts">
 /**
  * One idea on the board (FR-29.6): its title, the tag, the rain mark and the
