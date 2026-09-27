@@ -19,7 +19,7 @@ import {
   revealPackedLines,
   tickExcursionLine,
 } from './helpers/m27'
-import { packRow, startTrip, tripWithRows } from './helpers/m4'
+import { holdOpensOneMenu, packRow, startTrip, tripWithRows } from './helpers/m4'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -346,6 +346,13 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
     await excursionLine(page, 'Schlafsack-Andy').dispatchEvent('contextmenu')
     await expect(page.getByTestId('excursion-line-menu')).toBeVisible()
+    await page
+      .getByTestId('excursion-line-menu')
+      .getByRole('button', { name: /cancel/i })
+      .click()
+    await expect(page.getByTestId('excursion-line-menu')).toHaveCount(0)
+    // A touch hold fires the menu twice (the timer, then `contextmenu`): one sheet.
+    await holdOpensOneMenu(page, excursionLine(page, 'Schlafsack-Andy'))
   })
   /**
    * E2E-M27-09: a name the inventory lacks is a line of the excursion alone

@@ -956,7 +956,8 @@ in WebKit.
   injection.
 * **E2E-M4-41** `all` (FR-5.5, UI-Spec M4) — **implemented**: holding a row opens the menu **and not** the detail sheet,
   and cancelling the menu leaves the row's ordinary tap working. The release of a hold usually lands on the overlay
-  rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. **Not asserted
+  rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. A touch hold
+  fires the menu twice — the hold's timer and the browser's own `contextmenu` — and opens **one** sheet. **Not asserted
   here:** that a G-3-locked row has no menu at all — the guard exists in `PackingListPage.vue`, but a lock needs a
   second user and therefore `server` mode, which this unit does not have. Recorded rather than implied.
 * **E2E-M4-42** `all` (FR-5.5, FR-25.1) — **implemented**: the same menu on a **per-person child row** inside a cluster
@@ -3375,7 +3376,7 @@ went.
 * **E2E-M27-08** `local` (FR-31.5/31.6) — **implemented** (`excursions.spec.ts`): a tap on a line opens M5's sheet
   for it — the name, the amount, the large packing control packs it; the sheet's *Alle* turns the shared thing into
   a line per person without closing the sheet, the packed shared line stays; a hold (context menu) opens the line's
-  menu.
+  menu, and a hold that fires twice opens it once.
 * **E2E-M27-07** `local` (FR-31.13) — **implemented** (`excursions.spec.ts`): on a trip under way, a line not in the
   luggage is bought through M6, then taken *Auf die Packliste*: the toast says so, the line reads *vor Ort gekauft · auf
   der Packliste* and offers the action no more, the packed row is on M4 once the packed rows are revealed, and the item

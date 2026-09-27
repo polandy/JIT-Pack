@@ -1038,6 +1038,8 @@ async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster
 
 async function openClusterMenu(cluster: PackingCluster): Promise<void> {
   clusterHold.cancel()
+  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
+  if (rowMenuActive) return
   const entries = clusterMenuEntries(clusterInstances(cluster), clusterMenuContext())
   if (entries.length === 0) return
 
@@ -1086,6 +1088,8 @@ const CLUSTER_MENU_BUTTONS: Record<
 
 async function openRowMenu(item: TripItem) {
   hold.cancel()
+  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
+  if (rowMenuActive) return
   const entries = rowMenuEntries(item, {
     closingPass: closingPass.value,
     locked: locked(item),

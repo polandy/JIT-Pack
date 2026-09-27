@@ -12,6 +12,7 @@ import {
   chooseInRowMenu,
   lightTraveler,
   openCluster,
+  holdOpensOneMenu,
   openRowMenu,
   tripWithRows,
 } from './helpers/m4'
@@ -125,6 +126,9 @@ test('E2E-M4-41: the row menu neither opens the sheet nor eats the next tap @loc
   // Holding must not also open the detail — one gesture, one outcome.
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   await chooseInRowMenu(page, /cancel/i)
+
+  // A touch hold fires the menu twice (the timer, then `contextmenu`): one sheet.
+  await holdOpensOneMenu(page, page.getByTestId('m4-row-Zelt'))
 
   await page.getByTestId('m4-row-Zelt').click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()

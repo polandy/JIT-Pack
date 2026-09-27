@@ -300,6 +300,19 @@ async function adoptOpenLine() {
 }
 
 async function openLine(line: ExcursionItem) {
+  // A touch hold fires twice — the timer and the browser's own
+  // `contextmenu` — and whichever comes second must find the menu taken.
+  hold.cancel()
+  if (menuActive) return
+  menuActive = true
+  try {
+    await presentLineMenu(line)
+  } finally {
+    menuActive = false
+  }
+}
+
+async function presentLineMenu(line: ExcursionItem) {
   const skipped = line.state === STATE_SKIPPED
   const buttons: Array<{ text: string; role?: string; handler?: () => void; data?: string }> = []
   if (!skipped) {
@@ -346,9 +359,8 @@ async function openLine(line: ExcursionItem) {
   buttons.push({ text: t('common.cancel'), role: 'cancel' })
   const sheet = await actionSheetController.create({ header: line.name, buttons })
   sheet.setAttribute('data-testid', 'excursion-line-menu')
-  menuActive = true
-  void sheet.onDidDismiss().then(() => (menuActive = false))
   await sheet.present()
+  await sheet.onDidDismiss()
 }
 
 // --- adding: M4's ＋ and quick-add, over the people going (FR-31.5) ---

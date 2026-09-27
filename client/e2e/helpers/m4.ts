@@ -120,6 +120,24 @@ export async function openRowMenu(page: Page, name: string): Promise<void> {
   await expect(page.locator('ion-action-sheet')).toBeVisible()
 }
 
+/**
+ * A touch hold as Android delivers it: the hold fires the row's menu, and the
+ * browser's own `contextmenu` arrives on top. Both are dispatched in one task,
+ * so the second finds the first menu still being built — the race a real
+ * finger loses. Asserts exactly one sheet, then cancels it and proves none is
+ * left underneath.
+ */
+export async function holdOpensOneMenu(page: Page, row: Locator): Promise<void> {
+  await row.evaluate((el) => {
+    for (let i = 0; i < 2; i++)
+      el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+  })
+  const sheets = page.locator('ion-action-sheet')
+  await expect(sheets).toHaveCount(1)
+  await sheets.getByRole('button', { name: /cancel/i }).click()
+  await expect(sheets).toHaveCount(0)
+}
+
 /** Choose one action from an open row menu, and wait for the sheet to go. */
 export async function chooseInRowMenu(page: Page, label: RegExp): Promise<void> {
   await page.locator('ion-action-sheet').getByRole('button', { name: label }).click()
