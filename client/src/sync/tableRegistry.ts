@@ -405,6 +405,7 @@ function rowToIdeaComment(id: string, row: Record<string, unknown>): IdeaComment
     author_id: row['author_id'] as string,
     body: row['body'] as string,
     created_at: (row['created_at'] as string) ?? null,
+    edited_at: (row['edited_at'] as string) ?? null,
   }
 }
 

@@ -40,7 +40,7 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
   message at the bottom offers **Rückgängig**.
 - **👍 and 👎** — your vote. Everybody sees who voted how; tap your vote again to take it back. The board sorts by
   votes; the **⋮** at the top switches to the newest first.
-- **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to delete it.
+- **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
 - **Bearbeiten** changes the title, link, note, kind or rain mark. **Idee löschen** asks first, then removes the idea
   with its votes and comments for everybody — dropping it keeps them.
 

@@ -3997,8 +3997,9 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   Mode**, and on a trip nobody shares, they are **hidden per G-8** and the board is a list of one's own plans.
 * **FR-29.4 (Discussion):** *Implemented.* An idea carries its own discussion in `idea_comments` — a table of the
   planner's, not a column on `comments`, so no reader of the trip's notes and tasks has to know ideas exist and the
-  module holds every row it shows (ADR-078). An entry's author is stamped by the server; the writer may delete their own
-  entry. The card counts the entries.
+  module holds every row it shows (ADR-078). An entry's author is stamped by the server, and **its words are its
+  author's**: only the writer edits an entry (marked *bearbeitet* after), refused for anybody else by the trip
+  partition's write gate; the writer may delete it. The card counts the entries.
 * **FR-29.5 (Pictures Outside the Envelope, With Their Own Limit):** *Specified, not built.* Up to **4** pictures per
   idea, scaled by the client to a JPEG of at most **500 KB**. The bytes follow ADR-002: only the hash and position sync
   as an `idea_images` row, the bytes move over their own endpoints, and the limit is held at handler, store and CHECK.

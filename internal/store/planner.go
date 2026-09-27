@@ -19,3 +19,20 @@ func validIdeaVote(actorID string, row sync.Row) RejectReason {
 	}
 	return ReasonNone
 }
+
+// ideaCommentWords are the fields an edit of a discussion entry changes —
+// the ones only its author may send, since the entry carries their name.
+var ideaCommentWords = []string{columnBody, columnEditedAt}
+
+// validIdeaComment is FR-29.4's part of the trip partition's write gate: a
+// word about an idea is its author's to change, as a trip note's is
+// (validNoteThread). A delete stays everybody's, like a note's.
+func validIdeaComment(actorID string, row sync.Row, m *sync.Mutation) RejectReason {
+	if !row.Exists || m.Op == sync.OpDelete || !touchesAny(m.Fields, ideaCommentWords) {
+		return ReasonNone
+	}
+	if author, _ := row.Fields[columnAuthorID].(string); author != actorID {
+		return ReasonNotAuthorized
+	}
+	return ReasonNone
+}

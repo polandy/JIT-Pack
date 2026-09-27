@@ -112,8 +112,9 @@ test.describe('M28 ideas @local', () => {
 
   /**
    * E2E-M28-03: the idea's discussion — a word written in the detail is
-   * counted on its card, and its writer takes it back through its menu. An
-   * edit changes what the card shows.
+   * counted on its card, its writer edits it in place (marked *edited*) and
+   * takes it back through its menu. An edit of the idea changes what the
+   * card shows.
    */
   test('E2E-M28-03: an idea is discussed and edited, and its card says so', async ({ page }) => {
     await openIdeas(page)
@@ -130,9 +131,23 @@ test.describe('M28 ideas @local', () => {
       ideaCard(page, 'Capuns probieren').locator('[data-testid^="idea-card-comments-"]'),
     ).toHaveText('1')
 
+    // The writer edits their words in place; the entry then says it was edited.
     await word.click()
+    await page.getByTestId('idea-comment-menu-edit').click()
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    await detail
+      .getByTestId('idea-comment-edit-body')
+      .locator('textarea')
+      .fill('Im Gasthaus Staz, Montag zu')
+    await detail.getByTestId('idea-comment-edit-save').click()
+    const edited = detail
+      .locator('[data-testid^="idea-comment-"]')
+      .filter({ hasText: 'Im Gasthaus Staz, Montag zu' })
+    await expect(edited.locator('[data-testid^="idea-comment-meta-"]')).toContainText('edited')
+
+    await edited.click()
     await page.getByTestId('idea-comment-menu-remove').click()
-    await expect(word).toHaveCount(0)
+    await expect(edited).toHaveCount(0)
     await expect(
       ideaCard(page, 'Capuns probieren').locator('[data-testid^="idea-card-comments-"]'),
     ).toHaveCount(0)

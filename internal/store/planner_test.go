@@ -182,3 +182,54 @@ func TestSchema_OneVotePerPersonPerIdea_FR29_3(t *testing.T) {
 		t.Error("a second vote row for the same person and idea was accepted")
 	}
 }
+
+// FR-29.4: a word about an idea carries its author's name, so only the author
+// changes it; a delete stays everybody's, as a trip note's does.
+func TestApplyMutation_OnlyTheAuthorEditsAWordAboutAnIdea_FR29_4(t *testing.T) {
+	s := openPlannerStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO idea_comments (id, trip_id, idea_id, author_id, body) VALUES ('ic-sia', ?, 'idea-1', ?, 'Mit Guide')`,
+		testTrip, testUserSia)
+
+	cases := []struct {
+		name   string
+		actor  string
+		fields map[string]any
+		hlc    sync.HLC
+		want   sync.Outcome
+	}{
+		{"somebody else's edit is refused", testUser, map[string]any{"body": "Ohne Guide", "edited_at": "2026-09-27T10:00:00Z"},
+			"0000000002000-0000-aaaaaaaa", sync.OutcomeRejected},
+		{"the author edits", testUserSia, map[string]any{"body": "Nur mit Guide", "edited_at": "2026-09-27T10:01:00Z"},
+			"0000000003000-0000-bbbbbbbb", sync.OutcomeApplied},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := sync.Mutation{
+				MutationID: "mc-" + string(tc.hlc), Op: sync.OpUpsert, Table: TableIdeaComments, ID: "ic-sia",
+				Fields: tc.fields, HLC: tc.hlc,
+			}
+			res, err := s.ApplyMutation(ctx, testTrip, tc.actor, m)
+			if err != nil {
+				t.Fatalf("ApplyMutation: %v", err)
+			}
+			if res.Outcome != tc.want {
+				t.Errorf("outcome = %q (reason %q), want %q", res.Outcome, res.Reason, tc.want)
+			}
+		})
+	}
+
+	var body string
+	if err := s.db.QueryRow(`SELECT body FROM idea_comments WHERE id = 'ic-sia'`).Scan(&body); err != nil {
+		t.Fatalf("read word: %v", err)
+	}
+	if body != "Nur mit Guide" {
+		t.Errorf("body = %q, want the author's own edit", body)
+	}
+
+	del := sync.Mutation{MutationID: "mc-del", Op: sync.OpDelete, Table: TableIdeaComments, ID: "ic-sia",
+		HLC: sync.HLC("0000000004000-0000-aaaaaaaa")}
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, del); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Errorf("delete by another member: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+	}
+}

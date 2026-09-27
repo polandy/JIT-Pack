@@ -581,10 +581,10 @@ var tableSpecs = map[string]tableSpec{
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
-	// FR-29.4: one entry of an idea's discussion.
+	// FR-29.4: one entry of an idea's discussion; its words are its author's.
 	TableIdeaComments: {
 		partition: partitionTrip,
-		columns:   toSet("trip_id", "idea_id", "author_id", "body", "created_at"),
+		columns:   toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
 		export: exportQuery{query: `SELECT x.* FROM idea_comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},

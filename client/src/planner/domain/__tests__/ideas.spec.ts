@@ -44,7 +44,15 @@ function vote(ideaId: string, userId: string, value: IdeaVote['vote']): IdeaVote
 }
 
 function comment(id: string, ideaId: string, createdAt: string | null): IdeaComment {
-  return { id, trip_id: TRIP, idea_id: ideaId, author_id: SIA, body: id, created_at: createdAt }
+  return {
+    id,
+    trip_id: TRIP,
+    idea_id: ideaId,
+    author_id: SIA,
+    body: id,
+    created_at: createdAt,
+    edited_at: null,
+  }
 }
 
 const ALL_IDEAS = { state: 'idea', tag: null, rainProof: false } as const

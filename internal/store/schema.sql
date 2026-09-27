@@ -730,6 +730,9 @@ CREATE TABLE idea_comments (
     idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
     author_id   TEXT NOT NULL REFERENCES users(id),
     body        TEXT NOT NULL,
+    -- When the words were last changed, the client's clock like notes'
+    -- comments.edited_at; NULL is never edited. Only the author may change them.
+    edited_at   TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''

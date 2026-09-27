@@ -145,6 +145,30 @@ describe('Server Mode', () => {
     expect(Object.keys(harness.pushedMutations()[1]!.fields ?? {})).toEqual(['rain_proof'])
   })
 
+  /* FR-29.4: an edit writes the words and when, and nothing for a blank or unchanged body. */
+  it('edits a word by its body and time alone', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const id = actions.addIdea('t1', GORROPU, 'user-andy')!
+    actions.addComment('t1', id, 'Mit Guide', 'user-andy')
+    const word = () => plannerStore.getComments('t1')[0]!
+
+    actions.editComment(word(), '  ')
+    actions.editComment(word(), 'Mit Guide')
+    actions.editComment(word(), 'Nur mit Guide')
+    await orch.drainTrip('t1')
+
+    expect(word()).toMatchObject({ body: 'Nur mit Guide' })
+    expect(word().edited_at).not.toBeNull()
+    const edits = harness
+      .pushedMutations()
+      .filter((m) => m.table === TABLE.ideaComments && m.op === 'upsert')
+    expect(edits).toHaveLength(1)
+    expect(Object.keys(edits[0]!.fields ?? {}).sort()).toEqual(['body', 'edited_at'])
+  })
+
   /* FR-29.2: an undo gives the old state back only while nobody has moved the idea since. */
   it('undoes a move, but not over a later one', () => {
     const orch = serverOrch()

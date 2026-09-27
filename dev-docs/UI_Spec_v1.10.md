@@ -2960,9 +2960,10 @@ token would prove nothing there is anything to prove.
   unless somebody has moved it since; **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars
   (`idea-vote-up`/`-down`, pressed where the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the
   **discussion** (*Kommentare* with its count), oldest first, each entry with its avatar, words, and who and when, and a
-  field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers *Kommentar
-  löschen*. At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…"
-  löschen?"* / *„Die Idee verschwindet mit ihren Stimmen und Kommentaren für alle. Verwerfen behält sie."*.
+  field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its
+  words edited in place, *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*.
+  At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* /
+  *„Die Idee verschwindet mit ihren Stimmen und Kommentaren für alle. Verwerfen behält sie."*.
 * **Who is shown (FR-29.3, G-8):** votes, the vote order and author names appear only where somebody else reads them —
   an identity and another account on the trip, M26's rule for its share hint. In Local and Single-User Mode, and on a
   trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.

@@ -9,7 +9,7 @@
  * Votes and the author's name appear only where somebody else reads them
  * (FR-29.3's G-8); the discussion stays, as a place to note things down.
  */
-import { IonButton, IonIcon, IonInput, actionSheetController } from '@ionic/vue'
+import { IonButton, IonIcon, IonInput, IonTextarea, actionSheetController } from '@ionic/vue'
 import {
   createOutline,
   linkOutline,
@@ -48,6 +48,7 @@ const emit = defineEmits<{
   state: [state: IdeaState]
   vote: [value: IdeaVoteValue]
   comment: [body: string]
+  editComment: [comment: IdeaComment, body: string]
   removeComment: [comment: IdeaComment]
 }>()
 
@@ -93,11 +94,43 @@ function sendComment() {
   draft.value = ''
 }
 
+/** The entry being edited in place, and its words so far — mine only (FR-29.4). */
+const editingId = ref<string | null>(null)
+const editDraft = ref('')
+
+function startEdit(comment: IdeaComment) {
+  editDraft.value = comment.body
+  editingId.value = comment.id
+}
+
+function saveEdit(comment: IdeaComment) {
+  const body = editDraft.value.trim()
+  if (!body) return
+  editingId.value = null
+  emit('editComment', comment, body)
+}
+
+/** „Sia · heute 14:32 · bearbeitet" — who wrote it and when, and whether it changed since. */
+function commentMeta(comment: IdeaComment): string {
+  const written = writtenMeta(
+    props.othersShown ? comment.author_id : null,
+    comment.created_at,
+    props.nameOf,
+  )
+  return comment.edited_at ? `${written} · ${t('notes.edited')}` : written
+}
+
 async function openCommentMenu(comment: IdeaComment) {
-  if (!isMine(comment)) return
+  if (!isMine(comment) || editingId.value === comment.id) return
   const sheet = await actionSheetController.create({
     htmlAttributes: { 'data-testid': 'idea-comment-menu' },
     buttons: [
+      {
+        text: t('common.edit'),
+        icon: createOutline,
+        htmlAttributes: { 'data-testid': 'idea-comment-menu-edit' },
+        handler: () => startEdit(comment),
+      },
       {
         text: t('ideas.removeComment'),
         icon: trashOutline,
@@ -205,14 +238,14 @@ async function openCommentMenu(comment: IdeaComment) {
 
     <section class="discussion" data-testid="idea-discussion">
       <SectionHead :title="t('ideas.discussion')" :count="discussion.length || null" />
-      <p
+      <div
         v-for="comment in discussion"
         :key="comment.id"
         class="comment"
         :class="{ mine: isMine(comment) }"
         :data-testid="`idea-comment-${comment.id}`"
-        :role="isMine(comment) ? 'button' : undefined"
-        :tabindex="isMine(comment) ? 0 : undefined"
+        :role="isMine(comment) && editingId !== comment.id ? 'button' : undefined"
+        :tabindex="isMine(comment) && editingId !== comment.id ? 0 : undefined"
         @click="openCommentMenu(comment)"
         @keydown.enter.self="openCommentMenu(comment)"
       >
@@ -222,13 +255,40 @@ async function openCommentMenu(comment: IdeaComment) {
           :seed="comment.author_id"
           :size="20"
         />
-        <span class="words">
+        <div v-if="editingId === comment.id" class="editor" data-testid="idea-comment-editor">
+          <IonTextarea
+            v-model="editDraft"
+            auto-grow
+            :rows="2"
+            :aria-label="t('common.edit')"
+            data-testid="idea-comment-edit-body"
+          />
+          <div class="editor-actions">
+            <IonButton
+              fill="clear"
+              size="small"
+              data-testid="idea-comment-edit-cancel"
+              @click.stop="editingId = null"
+            >
+              {{ t('common.cancel') }}
+            </IonButton>
+            <IonButton
+              size="small"
+              :disabled="!editDraft.trim()"
+              data-testid="idea-comment-edit-save"
+              @click.stop="saveEdit(comment)"
+            >
+              {{ t('common.save') }}
+            </IonButton>
+          </div>
+        </div>
+        <span v-else class="words">
           <span class="body">{{ comment.body }}</span>
-          <span class="when">{{
-            writtenMeta(othersShown ? comment.author_id : null, comment.created_at, nameOf)
+          <span class="when" :data-testid="`idea-comment-meta-${comment.id}`">{{
+            commentMeta(comment)
           }}</span>
         </span>
-      </p>
+      </div>
       <div class="composer">
         <IonInput
           v-model="draft"
@@ -404,6 +464,24 @@ async function openCommentMenu(comment: IdeaComment) {
 
 .comment.mine {
   cursor: pointer;
+}
+
+.editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor ion-textarea {
+  --background: var(--jp-surface-sunken);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border-radius: var(--jp-r-md);
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .words {

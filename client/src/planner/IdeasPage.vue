@@ -229,6 +229,10 @@ function onComment(body: string) {
   if (idea) actions.addComment(props.tripId, idea.id, body, myUserId.value)
 }
 
+function onEditComment(comment: IdeaComment, body: string) {
+  actions.editComment(comment, body)
+}
+
 function onRemoveComment(comment: IdeaComment) {
   actions.removeComment(comment)
 }
@@ -370,6 +374,7 @@ const EMPTY_KEYS = {
           @state="onState"
           @vote="onVote"
           @comment="onComment"
+          @edit-comment="onEditComment"
           @remove-comment="onRemoveComment"
         />
       </SheetModal>
@@ -386,6 +391,7 @@ const EMPTY_KEYS = {
             @state="onState"
             @vote="onVote"
             @comment="onComment"
+            @edit-comment="onEditComment"
             @remove-comment="onRemoveComment"
           />
         </aside>

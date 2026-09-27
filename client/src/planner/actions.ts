@@ -37,6 +37,7 @@ export function createPlannerActions(
 ) {
   const encodeIdea = TABLE_CODECS[TABLE.ideas].encode
   const encodeVote = TABLE_CODECS[TABLE.ideaVotes].encode
+  const encodeComment = TABLE_CODECS[TABLE.ideaComments].encode
 
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
@@ -149,6 +150,23 @@ export function createPlannerActions(
     return id
   }
 
+  /**
+   * FR-29.4: the author changes their words — only the body and when, so it
+   * overwrites nothing else. A blank or unchanged body writes nothing.
+   */
+  function editComment(comment: IdeaComment, body: string): void {
+    const words = body.trim()
+    if (words === '' || words === comment.body) return
+    const mutation = host.mutation('upsert', TABLE.ideaComments, comment.id, {
+      body: words,
+      edited_at: host.nowIso(),
+    })
+    host.writeTrip(comment.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encodeComment(comment)),
+    })
+  }
+
   function removeComment(comment: IdeaComment): void {
     const mutation = host.mutation('delete', TABLE.ideaComments, comment.id)
     host.writeTrip(comment.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
@@ -163,7 +181,16 @@ export function createPlannerActions(
     })
   }
 
-  return { addIdea, updateIdea, setState, removeIdea, vote, addComment, removeComment }
+  return {
+    addIdea,
+    updateIdea,
+    setState,
+    removeIdea,
+    vote,
+    addComment,
+    editComment,
+    removeComment,
+  }
 }
 
 function blankToNull(value: string | null): string | null {

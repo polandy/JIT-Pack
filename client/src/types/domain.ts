@@ -523,6 +523,8 @@ export interface IdeaComment {
   author_id: string
   body: string
   created_at: string | null
+  /** When its words were last changed — the client's clock; null is never edited. */
+  edited_at: string | null
 }
 
 // --- Master data ---

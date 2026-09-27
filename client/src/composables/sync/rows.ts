@@ -255,6 +255,7 @@ export function ideaCommentRow(comment: IdeaComment): Record<string, unknown> {
     author_id: comment.author_id,
     body: comment.body,
     created_at: comment.created_at,
+    edited_at: comment.edited_at,
   }
 }
 

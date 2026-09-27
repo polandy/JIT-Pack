@@ -244,7 +244,9 @@ the insert alone, as the pusher. **A vote is its voter's**: any op on an existin
 else is refused as `not_authorized`, and a second row for the same idea and account by the `UNIQUE (idea_id, user_id)`
 constraint; a withdrawn vote is `vote: null`, never a delete. `ideas.link` is refused by a CHECK unless it starts with
 `http://` or `https://`, `ideas.tag` unless it is one of FR-29.10's keys, `ideas.state` unless one of `idea`,
-`shortlisted`, `done`, `dropped`. Deleting an idea cascades to its votes and discussion, tombstoned like any cascade.
+`shortlisted`, `done`, `dropped`. **A discussion entry's words are its author's**: a mutation touching `body` or
+`edited_at` of an existing `idea_comments` row pushed by anyone else is refused as `not_authorized`; a delete stays
+everybody's, as a note's. Deleting an idea cascades to its votes and discussion, tombstoned like any cascade.
 `created_at` on both is the client's clock, like a comment's.
 
 `comments.parent_id`, `title` and `edited_at` (FR-7.13) make a trip note a thread. `parent_id` names the

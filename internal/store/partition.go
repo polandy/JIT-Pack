@@ -113,6 +113,8 @@ func tripPartition(tripID, userID string) partition {
 				return validNoteThread(ctx, tx, tripID, userID, row, m)
 			case TableIdeaVotes:
 				return validIdeaVote(userID, row), nil
+			case TableIdeaComments:
+				return validIdeaComment(userID, row, m), nil
 			}
 			return ReasonNone, nil
 		},

@@ -3414,8 +3414,8 @@ went.
   state set in it moves the idea between the segments, both counts follow, the snackbar's undo moves it back; the
   browser's back closes the detail and leaves the board.
 * **E2E-M28-03** `local` (FR-29.4/29.1) — **implemented** (`planner/ideas.spec.ts`): a word written in the detail is
-  counted on the card and taken back through its menu; *Edit* opens the sheet filled with the idea and the card shows
-  the new title.
+  counted on the card, edited in place through its menu and marked *edited*, and taken back through its menu; *Edit*
+  opens the sheet filled with the idea and the card shows the new title.
 * **E2E-M28-04** `local` (FR-29.10/29.12) — **implemented** (`planner/ideas.spec.ts`): the chips offer only the
   segment's tags, in the set's order; a tag narrows the board to its ideas, ☂ to the rain-proof ones, *All* shows the
   segment whole.
