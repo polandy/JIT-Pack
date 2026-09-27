@@ -208,7 +208,7 @@ them.
   Run a slice with `scripts/e2e.sh --grep @local`.
 - **A feature module's cases carry its name as a tag** (`@shopping`, `@planner`):
   every case under `e2e/<module>/`, and every case elsewhere that opens the
-  module's trip view, switcher entry or dashboard card. CI runs a diff that
+  module's trip view, switcher entry or dashboard card. CI runs a pull request that
   stays inside one module as `--grep "@<module>|@smoke"` on one leg (ADR-079),
   so an untagged case would simply not run there; `module-boundary-gate.mjs`
   refuses one. `@smoke` is the packing floor that rides along — keep it small.
