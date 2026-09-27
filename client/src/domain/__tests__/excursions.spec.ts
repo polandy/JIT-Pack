@@ -8,8 +8,10 @@ import { describe, expect, it } from 'vitest'
 import {
   arrangeExcursions,
   borrowersByTripItem,
+  canAdoptIntoInventory,
   canJoinPackingList,
   inventoryItemFor,
+  isExcursionOnly,
   lineSetOf,
   planForWhom,
   dayAfter,
@@ -342,8 +344,8 @@ describe('planLinks — FR-31.4, FR-31.7', () => {
 
   it('does not revive a row decided bewusst nicht mitgenommen, and says it is not in the luggage', () => {
     const plan = planLinks(
-      [draft('Zelt', { quantity: 1 })],
-      [tripItem('ti-tent', 'Zelt', { quantity: 0, state: 'skipped' })],
+      [draft('Zelt', { source_item_id: 'item-tent', quantity: 1 })],
+      [tripItem('ti-tent', 'Zelt', { source_item_id: 'item-tent', quantity: 0, state: 'skipped' })],
       true,
     )
     expect(plan.suitcase).toEqual([])
@@ -364,10 +366,22 @@ describe('planLinks — FR-31.4, FR-31.7', () => {
 
   it('writes nothing to a closed suitcase: a packed row is borrowed, anything else is not in the luggage', () => {
     const plan = planLinks(
-      [draft('Wanderschuhe'), draft('Stirnlampe'), draft('Hüttenschlafsack')],
       [
-        tripItem('ti-shoes', 'Wanderschuhe', { packed_count: 1, state: 'packed' }),
-        tripItem('ti-lamp', 'Stirnlampe', { quantity: 0, state: 'skipped' }),
+        draft('Wanderschuhe', { source_item_id: 'item-shoes' }),
+        draft('Stirnlampe', { source_item_id: 'item-lamp' }),
+        draft('Hüttenschlafsack', { source_item_id: 'item-bag' }),
+      ],
+      [
+        tripItem('ti-shoes', 'Wanderschuhe', {
+          source_item_id: 'item-shoes',
+          packed_count: 1,
+          state: 'packed',
+        }),
+        tripItem('ti-lamp', 'Stirnlampe', {
+          source_item_id: 'item-lamp',
+          quantity: 0,
+          state: 'skipped',
+        }),
       ],
       false,
     )
@@ -746,5 +760,41 @@ describe('planForWhom — the sheet’s strip (FR-31.5)', () => {
   it('finds the set by master item within one excursion', () => {
     const other = line('o', 'Schlafsack', { source_item_id: 'item-bag', excursion_id: 'ex-2' })
     expect(lineSetOf(andys, [shared, andys, sias, other]).map((l) => l.id)).toEqual(['s', 'a', 'b'])
+  })
+})
+
+describe('lines of the excursion alone — FR-31.14', () => {
+  it('neither borrows nor adds a suitcase row for a line with no inventory item', () => {
+    const plan = planLinks(
+      [draft('Schokoriegel'), draft('Wasser', { source_item_id: null })],
+      [tripItem('ti-water', 'Wasser')],
+      true,
+    )
+    expect(plan.suitcase).toEqual([])
+    expect(plan.lines.map((l) => [l.link, l.not_in_luggage])).toEqual([
+      [null, false],
+      [null, false],
+    ])
+    expect(isExcursionOnly(draft('x'))).toBe(true)
+    expect(isExcursionOnly(draft('x', { source_item_id: 'item-x' }))).toBe(false)
+  })
+
+  it('leaves lines the inventory does not know out of a Gruppe when asked to', () => {
+    const plan = planGroupFromExcursion(
+      [line('a', 'Schokoriegel'), line('b', 'Stirnlampe', { source_item_id: 'item-lamp' })],
+      [],
+      false,
+    )
+    expect(plan.newMasterItems).toEqual([])
+    expect(plan.positions.map((p) => p.name)).toEqual(['Stirnlampe'])
+  })
+})
+
+describe('a line of the excursion alone — FR-31.14', () => {
+  it('offers the inventory to a rucksack line no item names, and to nothing else', () => {
+    expect(canAdoptIntoInventory(line('l', 'Schokoriegel'))).toBe(true)
+    expect(canAdoptIntoInventory(line('l', 'Stirnlampe', { source_item_id: 'item-1' }))).toBe(false)
+    expect(canAdoptIntoInventory(line('l', 'Wasser', { mode: 'buy_local' }))).toBe(false)
+    expect(canAdoptIntoInventory(line('l', 'Wasser', { state: 'skipped' }))).toBe(false)
   })
 })

@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test'
 
 import { fillIonic } from './ionic'
 import { visiblePage, writesLanded } from './page'
-import { addInComposer, openQuickAdd, openTripView } from './trips'
+import { confirmCreateSheet, exactSuggestion, openQuickAdd, openTripView } from './trips'
 
 /**
  * M27 — a trip's excursions (FR-31). The steps more than one case takes: reach
@@ -87,14 +87,49 @@ export async function revealPackedLines(page: Page): Promise<void> {
  * inventory included (FR-24.11) — for whom the strip says: nobody named is
  * shared, `'all'` taps *Alle*. Ends with the composer closed.
  */
+/**
+ * The two ways a name enters an excursion's list (FR-31.14): through the
+ * inventory — as M4 adds one — or as a line of this excursion alone.
+ */
+export type ExcursionAdd = 'inventory' | 'local'
+
+/**
+ * Type a name into M27's open composer and add it one of the two ways. The
+ * inventory way waits for the settled signal {@link addInComposer} reads —
+ * the offer naming the query, or the exact suggestion — and takes the offer,
+ * never ✓: on M27, ✓ on an unknown name means *Nur für diesen Ausflug*.
+ */
+export async function addInExcursionComposer(
+  page: Page,
+  name: string,
+  via: ExcursionAdd = 'inventory',
+) {
+  const scope = visiblePage(page)
+  await scope.getByTestId('quick-add-input').locator('input').fill(name)
+  if (via === 'local') {
+    await scope.getByTestId('quick-add-local-only').click()
+    return
+  }
+  const offer = scope.getByTestId('quick-add-offer-title').filter({ hasText: name })
+  const known = exactSuggestion(scope, name)
+  await expect(offer.or(known).first()).toBeVisible()
+  if ((await offer.count()) === 0) {
+    await scope.getByTestId('quick-add-confirm').click()
+    return
+  }
+  await scope.getByTestId('quick-add-offer').click()
+  await confirmCreateSheet(page, name)
+}
+
 export async function addToExcursion(
   page: Page,
   name: string,
   forWhom: 'shared' | 'all' = 'shared',
+  via: ExcursionAdd = 'inventory',
 ) {
   await openQuickAdd(page, 'm27-add-fab')
   if (forWhom === 'all') await visiblePage(page).getByTestId('for-whom-all-quick-add').click()
-  await addInComposer(page, name)
+  await addInExcursionComposer(page, name, via)
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
   await writesLanded(page)

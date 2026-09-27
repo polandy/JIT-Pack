@@ -362,6 +362,34 @@ describe('saveAsGroup — FR-31.11', () => {
     expect(byItem.get('Proviant')!.default_mode).toBe('buy_local')
   })
 
+  it('names what the inventory lacks, and leaves it out of the Gruppe and the inventory when asked — FR-31.14', () => {
+    seedTrip()
+    seedGroup()
+    const actions = build()
+    const { excursionId } = actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: GROUP_ID,
+    })!
+    pullIn(ctx.tripStore, TABLE.excursionItems, 'l-bar', {
+      trip_id: TRIP_ID,
+      excursion_id: excursionId,
+      name: 'Schokoriegel',
+    })
+    expect(actions.unlistedNames(TRIP_ID, excursionId)).toEqual(['Schokoriegel'])
+
+    const groupId = actions.saveAsGroup(TRIP_ID, excursionId, 'Hütte ohne Kram', false)!
+
+    const names = ctx.masterStore
+      .getTemplateItems(groupId)
+      .map((p) => ctx.masterStore.getItem(p.item_id)!.name)
+    expect(names).not.toContain('Schokoriegel')
+    expect(names).toContain('Stirnlampe')
+    expect(ctx.masterStore.activeItemList.some((i) => i.name === 'Schokoriegel')).toBe(false)
+  })
+
   it('refuses a name another Vorlage already has', () => {
     seedTrip()
     seedGroup()
@@ -499,5 +527,49 @@ describe('setForWhom — FR-31.5 from the line’s sheet', () => {
     undo()
 
     expect(lines().map((l) => [l.id, l.assigned_traveler_id])).toEqual([['l-bag', null]])
+  })
+})
+
+describe('adoptIntoInventory — FR-31.14', () => {
+  it('makes a line of the excursion alone an inventory item, linked into the open suitcase, and undoes it', () => {
+    seedTrip()
+    const actions = build()
+    const { excursionId } = actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: null,
+    })!
+    actions.addLines(TRIP_ID, excursionId, [
+      {
+        source_item_id: null,
+        name: 'Schokoriegel',
+        category_name: null,
+        assigned_traveler_id: null,
+        quantity: 2,
+        mode: 'pack',
+        for_all_participants: false,
+        weight_grams: null,
+        value_cents: null,
+        source_template_id: null,
+      },
+    ])
+    // The excursion's alone: no suitcase row, no inventory item.
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(lines()[0]).toMatchObject({ source_item_id: null, trip_item_id: null })
+
+    const undo = actions.adoptIntoInventory(TRIP_ID, lines()[0]!)!
+
+    const item = ctx.masterStore.activeItemList.find((i) => i.name === 'Schokoriegel')!
+    const row = ctx.tripStore.getItems(TRIP_ID)[0]!
+    expect(row).toMatchObject({ name: 'Schokoriegel', source_item_id: item.id, quantity: 2 })
+    expect(lines()[0]).toMatchObject({ source_item_id: item.id, trip_item_id: row.id })
+
+    undo()
+
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(lines()[0]).toMatchObject({ source_item_id: null, trip_item_id: null })
+    expect(ctx.masterStore.activeItemList.some((i) => i.name === 'Schokoriegel')).toBe(false)
   })
 })

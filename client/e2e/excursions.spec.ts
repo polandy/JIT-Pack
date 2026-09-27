@@ -5,12 +5,12 @@ import {
   addPosition,
   backToTemplateList,
   createTemplate,
-  addInComposer,
   createTripViaWizard,
   openQuickAdd,
   openTripView,
 } from './fixtures'
 import {
+  addInExcursionComposer,
   addToExcursion,
   createExcursion,
   excursionLine,
@@ -183,7 +183,7 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await expect(visible(page).getByTestId('quick-add-for-whom-summary')).toHaveText(
       'Will be added for 2 people, 1 each.',
     )
-    await addInComposer(page, 'Schlafsack')
+    await addInExcursionComposer(page, 'Schlafsack')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
@@ -346,5 +346,58 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
     await excursionLine(page, 'Schlafsack-Andy').dispatchEvent('contextmenu')
     await expect(page.getByTestId('excursion-line-menu')).toBeVisible()
+  })
+  /**
+   * E2E-M27-09: a name the inventory lacks is a line of the excursion alone
+   * by default — no suitcase row, no inventory item. *Ins Inventar* makes it
+   * one of both, undoably; and *Als Gruppe speichern* asks whether such lines
+   * come along, leaving them out of the Gruppe and the inventory when told to.
+   */
+  test('E2E-M27-09: a line for this excursion alone stays out of the inventory until taken there', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+    await addToExcursion(page, 'Schokoriegel', 'shared', 'local')
+    await addToExcursion(page, 'Wasser', 'shared', 'local')
+    await expect(visible(page).getByTestId('excursion-local-only-Schokoriegel')).toHaveText(
+      'just for this excursion',
+    )
+
+    await openTripView(page, 'packing')
+    await expect(visible(page).getByTestId('m4-row-Stirnlampe')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Schokoriegel')).toHaveCount(0)
+
+    await openExcursions(page)
+    await visible(page).getByTestId('m27-excursion-Bootsausflug').click()
+    await visible(page).getByTestId('excursion-adopt-Schokoriegel').click()
+    await expect(
+      page.locator('ion-toast').filter({ hasText: 'is in the inventory now' }),
+    ).toHaveCount(1)
+    await expect(visible(page).getByTestId('excursion-local-only-Schokoriegel')).toHaveCount(0)
+    await expect(visible(page).getByTestId('excursion-source-Schokoriegel')).toHaveText(
+      'from the luggage',
+    )
+
+    await excursionMenu(page, 'm27-save-as-group')
+    const ask = page.getByTestId('m27-save-group-unlisted')
+    await expect(ask).toContainText('Wasser')
+    await expect(ask).not.toContainText('Schokoriegel')
+    await ask.locator('button').filter({ hasText: 'Leave out' }).click()
+    const prompt = page
+      .locator('ion-alert')
+      .filter({ has: page.locator('input[aria-label="name"]') })
+    await prompt.locator('input[aria-label="name"]').fill('Boot')
+    await prompt.locator('button').filter({ hasText: 'Save' }).click()
+    await expect(page.locator('ion-toast').filter({ hasText: 'Group “Boot” saved' })).toHaveCount(1)
+    await writesLanded(page)
+
+    await openTripView(page, 'packing')
+    await expect(visible(page).getByTestId('m4-row-Schokoriegel')).toBeVisible()
+    await page.goto(PATH.items)
+    const rows = visible(page).getByTestId('m9-row')
+    await expect(rows.filter({ hasText: 'Schokoriegel' })).toHaveCount(1)
+    await expect(rows.filter({ hasText: 'Wasser' })).toHaveCount(0)
   })
 })

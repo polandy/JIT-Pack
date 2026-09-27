@@ -2854,6 +2854,8 @@ token would prove nothing there is anything to prove.
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
   * ***aus dem Gepäck*** — it borrows a trip row this device holds;
+  * ***nur für diesen Ausflug · Ins Inventar*** — a line no inventory item names (FR-31.14); the action makes it one,
+    with a toast and *Rückgängig*;
   * a *vor Ort* line to buy says nothing more — the row's mode glyph says it, as on M4; ***vor Ort gekauft*** once
     bought (FR-31.8), with ***Auf die Packliste*** beside it until it is a trip row, and ***vor Ort gekauft · auf der
     Packliste*** after (FR-31.13);
@@ -2872,7 +2874,8 @@ token would prove nothing there is anything to prove.
   *Gekauft* switch. What M5 has and a line has not — preparations, notes, packer, container, flags — is left out.
   **A hold** (or a desktop's context menu) opens the line's menu, as on M4 (an action sheet headed by the name): *Eins
   mehr*, *Eins weniger* (above one), *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a
-  bought one, FR-31.13; a toast with *Rückgängig*), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
+  bought one, FR-31.13; a toast with *Rückgängig*), *Ins Inventar übernehmen* (a line for the excursion alone,
+  FR-31.14), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
   *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
 * **A thing per person** is M4's `ClusterHead` (handle `m27-cluster-*`): the mark, the name, a caret; **shut by
   default** (FR-25.23, view state, not persisted) with a face per person and the open count; open, a child per
@@ -2881,18 +2884,22 @@ token would prove nothing there is anything to prove.
   create sheet (FR-24.11), recent chips, *Mehr aus dem Inventar…*, whole **groups** (FR-27.10's offer; a group adds
   what the list does not carry yet, with *Rückgängig*), and FR-25.28's **for-whom strip** over **the excursion's
   participants** where two or more go. *Gemeinsam* adds one shared line, every participant is *für alle*, some
-  avatars name those people (FR-31.5). The line is linked into the suitcase like a group's (FR-31.4/31.7).
+  avatars name those people (FR-31.5). The line is linked into the suitcase like a group's (FR-31.4/31.7). A name the
+  inventory lacks is offered two ways (FR-31.14): ***„X" nur für diesen Ausflug*** (*Kommt nicht ins Inventar –
+  Proviant, Wasser, Kleinkram*, `quick-add-local-only`) first, and what ✓ does; the inventory's create offer below it.
 * **The ⋮** (G-12, words only): *Ausflug bearbeiten* (the sheet above; a change of who goes rewrites the per-person sets
   and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Als Gruppe speichern* (a prompt prefilled with the
   excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen beginnen kannst."*;
-  a taken name is refused in a toast and the prompt stays open; FR-31.11), *Ausflug löschen* (a destructive
+  a taken name is refused in a toast and the prompt stays open; FR-31.11 — where lines for the excursion alone exist,
+  an alert asks first, *„Auch Dinge, die nur für diesen Ausflug sind?"* naming them, with *Mitnehmen* and *Weglassen*,
+  handle `m27-save-group-unlisted`, FR-31.14), *Ausflug löschen* (a destructive
   confirmation *„„Hüttentour" mit seiner Liste löschen? Die Packliste bleibt, wie sie ist."*, then back to the list).
   An excursion deleted elsewhere leaves its view for the list.
 * **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
-* (E2E-M27-01…06 `local`, E2E-G12-07)
+* (E2E-M27-01…09 `local`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

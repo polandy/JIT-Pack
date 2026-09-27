@@ -43,14 +43,24 @@ The excursion's list works like the packing list, only smaller:
 - a pin glyph on a line means you buy it on the way — lunch at the kiosk. These lines also appear on the trip's shopping list
   (**Einkaufen**), under **Vor Ort** and the excursion's name. Tick one off there and the excursion says **vor Ort
   gekauft**; it still needs to go into the bag;
+- **nur für diesen Ausflug** under a line means it is not in your inventory — a chocolate bar, water. Tap **Ins
+  Inventar** beside it if you want to keep it after all: it becomes an item of your inventory and, before the trip
+  starts, goes onto the packing list like anything else the excursion needs;
 - a thing you bought on the spot and want to keep — a rain cape from the hut — gets **Auf die Packliste** beside
   **vor Ort gekauft**. Tap it and the thing joins the trip's packing list, already packed, and your inventory, so the
   next trip can plan with it. **Rückgängig** in the message takes it back;
 - tap a line to open its detail, just like on the packing list: the amount, packing, **Nicht einpacken**, who it is
   for — turn a shared thing into one for each person there — and under **Details** whether you pack it or buy it on
   the spot;
-- press and hold a line for its menu: **Eins mehr**, **Eins weniger**, **Gekauft**, **Vor Ort besorgen**, **Diesmal
-  nicht**, **Von der Liste nehmen**.
+- press and hold a line for its menu: **Eins mehr**, **Eins weniger**, **Gekauft**, **Ins Inventar übernehmen**,
+  **Vor Ort besorgen**, **Diesmal nicht**, **Von der Liste nehmen**.
+
+### Things just for this excursion
+
+When you type a name your inventory does not have, the quick-add offers two ways. **„…" nur für diesen Ausflug**
+comes first — it is also what **✓** does: the thing goes on the excursion's list only. It does not land in your
+inventory and not on the trip's packing list. Below it, **„…" anlegen** creates it as an item of your inventory, as on the
+packing list.
 
 ### A thing for each person
 
@@ -67,7 +77,8 @@ marked **nicht mehr dabei**, with **Herausnehmen** to take it off the list.
 
 In the excursion's ⋮, **Als Gruppe speichern** turns its list into a group. Start your next excursion — on this trip or
 another — from that group, or add it to a trip like any other group. Things for each person stay *for each person*,
-things bought on the spot stay *vor Ort*.
+things bought on the spot stay *vor Ort*. If the list has things just for this excursion, you are asked first:
+**Mitnehmen** adds them to your inventory so the group can hold them, **Weglassen** saves the group without them.
 
 **Ausflug löschen** in the same menu removes the excursion and its list. The trip's packing list stays as it is.
 

@@ -47,6 +47,7 @@ import { collapseRow } from '@/lib/rowCollapse'
 import RevealBar from '@/components/global/RevealBar.vue'
 import { useTripScreen } from '@/composables/useTripScreen'
 import {
+  canAdoptIntoInventory,
   canJoinPackingList,
   draftLinesFor,
   excursionLineAsRow,
@@ -64,7 +65,7 @@ import { stateFor } from '@/domain/packState'
 import { packedPercent } from '@/domain/packState'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { t } from '@/i18n'
-import { confirmDestructive, promptText } from '@/lib/confirm'
+import { chooseAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { excursionDays } from '@/lib/excursionText'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
@@ -261,6 +262,16 @@ async function keep(line: ExcursionItem) {
   })
 }
 
+/** FR-31.14: a line of the excursion alone becomes an inventory item, undoably. */
+async function adopt(line: ExcursionItem) {
+  const undo = orchestrator.adoptIntoInventory(props.tripId, line)
+  if (!undo) return
+  await presentToast({
+    message: t('excursions.adoptedToast', { item: line.name }),
+    buttons: [{ text: t('packing.undo'), handler: undo }],
+  })
+}
+
 /**
  * The line whose sheet is open (M5's idiom: a tap opens the detail, a hold
  * opens the menu). The sheet stays on the thing when its strip replaces the line.
@@ -281,6 +292,11 @@ function openSheet(line: ExcursionItem) {
 async function keepOpenLine() {
   const line = lines.value.find((l) => l.id === openLineId.value)
   if (line) await keep(line)
+}
+
+async function adoptOpenLine() {
+  const line = lines.value.find((l) => l.id === openLineId.value)
+  if (line) await adopt(line)
 }
 
 async function openLine(line: ExcursionItem) {
@@ -307,6 +323,9 @@ async function openLine(line: ExcursionItem) {
   }
   if (canJoinPackingList(line)) {
     buttons.push({ text: t('excursions.keep'), handler: () => void keep(line) })
+  }
+  if (canAdoptIntoInventory(line)) {
+    buttons.push({ text: t('excursions.adoptMenu'), handler: () => void adopt(line) })
   }
   if (line.mode === ITEM_MODE_PACK && line.not_in_luggage && !skipped) {
     buttons.push({
@@ -372,6 +391,28 @@ function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }) {
   )
 }
 
+/** FR-31.14: *Nur für diesen Ausflug* — a line no inventory item names, kept out of the suitcase. */
+function onQuickAddLocal(item: { name: string; travelerIds: string[] }) {
+  orchestrator.addLines(
+    props.tripId,
+    props.excursionId,
+    draftLinesFor(
+      {
+        source_item_id: null,
+        name: item.name,
+        category_name: null,
+        quantity: 1,
+        mode: ITEM_MODE_PACK,
+        weight_grams: null,
+        value_cents: null,
+        source_template_id: null,
+      },
+      forWhomOf(item.travelerIds),
+      participants.value,
+    ),
+  )
+}
+
 function onQuickAddForAll(item: BrowseAddition) {
   onQuickAdd({ ...item, travelerIds: participants.value.map((p) => p.id) })
 }
@@ -424,6 +465,20 @@ async function saveEdit(result: ExcursionSheetResult) {
 async function saveAsGroup() {
   const ex = excursion.value
   if (!ex) return
+  // FR-31.14: things the inventory does not know join it only if asked to.
+  let includeUnlisted = true
+  const unlisted = orchestrator.unlistedNames(props.tripId, ex.id)
+  if (unlisted.length > 0) {
+    const choice = await chooseAction({
+      header: t('excursions.unlistedHeader'),
+      message: t('excursions.unlistedMessage', { items: unlisted.join(', ') }),
+      confirmLabel: t('excursions.unlistedInclude'),
+      alternativeLabel: t('excursions.unlistedLeaveOut'),
+      testid: 'm27-save-group-unlisted',
+    })
+    if (choice === null) return
+    includeUnlisted = choice
+  }
   await promptText({
     header: t('excursions.saveAsGroup'),
     message: t('excursions.saveAsGroupMessage'),
@@ -432,7 +487,7 @@ async function saveAsGroup() {
     testid: 'm27-save-group',
     onConfirm: async (name) => {
       if (!name) return false
-      const id = orchestrator.saveAsGroup(props.tripId, ex.id, name)
+      const id = orchestrator.saveAsGroup(props.tripId, ex.id, name, includeUnlisted)
       if (id === null) {
         await presentToast({ message: t('excursions.nameTaken') })
         return false
@@ -525,7 +580,9 @@ setHeaderTitle(
           :traveler-count="participants.length"
           :travelers="participants"
           :exclude-item-ids="carriedItemIds"
+          :offer-local-only="true"
           @add="onQuickAdd"
+          @add-local="onQuickAddLocal"
           @add-for-all="onQuickAddForAll"
           @add-group="onQuickAddGroup"
         />
@@ -613,9 +670,11 @@ setHeaderTitle(
                             isLeftBehind(lineOf(child.item), participants)
                           "
                           :can-keep="canJoinPackingList(lineOf(child.item))"
+                          :can-adopt="canAdoptIntoInventory(lineOf(child.item))"
                           @buy-on-site="orchestrator.buyOnTheSpot(tripId, lineOf(child.item))"
                           @take-out="removeLine(lineOf(child.item))"
                           @keep="keep(lineOf(child.item))"
+                          @adopt="adopt(lineOf(child.item))"
                         />
                       </template>
                     </PackingRow>
@@ -654,8 +713,10 @@ setHeaderTitle(
                       :test-key="entry.item.name"
                       :from-luggage="suitcaseOf(lineOf(entry.item), tripItems) !== null"
                       :can-keep="canJoinPackingList(lineOf(entry.item))"
+                      :can-adopt="canAdoptIntoInventory(lineOf(entry.item))"
                       @buy-on-site="orchestrator.buyOnTheSpot(tripId, lineOf(entry.item))"
                       @keep="keep(lineOf(entry.item))"
+                      @adopt="adopt(lineOf(entry.item))"
                     />
                   </template>
                 </PackingRow>
@@ -705,6 +766,7 @@ setHeaderTitle(
           :participants="participants"
           @close="openLineId = null"
           @keep="keepOpenLine"
+          @adopt="adoptOpenLine"
         />
       </SheetModal>
 

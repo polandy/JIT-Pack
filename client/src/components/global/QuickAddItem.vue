@@ -155,6 +155,13 @@ const props = withDefaults(
      * pill, because otherwise the composer has no way in at all.
      */
     showTrigger?: boolean
+    /**
+     * FR-31.14: a name the inventory does not hold may stay a line of this list
+     * alone — a chocolate bar for the hike is no inventory item. Where set, such
+     * a name is offered *Nur für diesen Ausflug* first (✓ and Enter take it),
+     * with FR-24.11's create sheet as the second way. M4 and M8 leave it off.
+     */
+    offerLocalOnly?: boolean
   }>(),
   {
     isActive: false,
@@ -167,6 +174,7 @@ const props = withDefaults(
     travelers: () => [],
     browseRowStates: undefined,
     showTrigger: true,
+    offerLocalOnly: false,
   },
 )
 
@@ -191,6 +199,8 @@ const emit = defineEmits<{
     item: BrowseAddition & { travelerIds: string[] },
     decided?: AddedItemDecision,
   ]
+  /** FR-31.14: a name added to this list alone, never to the inventory. */
+  addLocal: [item: { name: string; travelerIds: string[] }]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
   addGroup: [templateId: string]
   /**
@@ -599,7 +609,23 @@ function onCreateDismiss() {
 function commit() {
   if (!canCommit.value) return
   if (exactItem.value) selectSuggestion(exactItem.value)
+  else if (localOffer.value) addLocalOnly()
   else takeOffer()
+}
+
+/**
+ * FR-31.14: the new name as a line of this list alone. Only for a name the
+ * inventory lacks — a retired one is still the inventory's, and restoring it is
+ * the one offer that already exists.
+ */
+const localOffer = computed(() => props.offerLocalOnly && offer.value?.kind === OFFER_CREATE)
+
+function addLocalOnly() {
+  const name = query.value.trim()
+  if (!name) return
+  emit('addLocal', { name, travelerIds: chosenTravelerIds() })
+  query.value = ''
+  void focusInput()
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -754,6 +780,20 @@ function onKeydown(event: KeyboardEvent) {
 
       <!-- FR-24.11: above the hits, the place M9 makes it — with the keyboard
            up, the end of a list of partial hits is out of reach. -->
+      <!-- FR-31.14: this list's own line first, the inventory second. -->
+      <button
+        v-if="localOffer"
+        type="button"
+        class="local-offer"
+        data-testid="quick-add-local-only"
+        @click="addLocalOnly"
+      >
+        <IonIcon :icon="addCircleOutline" />
+        <span>
+          <b>{{ t('quickAdd.localOnly', { name: query.trim() }) }}</b>
+          <small>{{ t('quickAdd.localOnlyHint') }}</small>
+        </span>
+      </button>
       <SearchOfferButton
         v-if="offer"
         :offer="offer"
@@ -1066,6 +1106,39 @@ function onKeydown(event: KeyboardEvent) {
   font-size: var(--jp-text-xs);
   color: var(--ct-subtext0);
   flex-shrink: 0;
+}
+
+.local-offer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--jp-r-md);
+  background: color-mix(in srgb, var(--jp-action) 12%, transparent);
+  color: var(--ct-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.local-offer ion-icon {
+  flex: none;
+  color: var(--jp-action);
+  font-size: var(--jp-icon-md);
+}
+
+.local-offer span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--jp-text-sm);
+}
+
+.local-offer small {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 .no-match {

@@ -24,13 +24,15 @@ const props = withDefaults(
     leftBehind?: boolean
     /** FR-31.13: bought on the spot and not a suitcase row yet — it can join the trip. */
     canKeep?: boolean
+    /** FR-31.14: no inventory item names it, and it can become one. */
+    canAdopt?: boolean
     /** The stable half of every `data-testid` — the row's own key. */
     testKey: string
   }>(),
-  { fromLuggage: false, leftBehind: false, canKeep: false },
+  { fromLuggage: false, leftBehind: false, canKeep: false, canAdopt: false },
 )
 
-const emit = defineEmits<{ buyOnSite: []; takeOut: []; keep: [] }>()
+const emit = defineEmits<{ buyOnSite: []; takeOut: []; keep: []; adopt: [] }>()
 
 const skipped = computed(() => props.line.state === STATE_SKIPPED)
 const onSite = computed(() => props.line.mode === ITEM_MODE_BUY_LOCAL)
@@ -87,6 +89,18 @@ const source = computed(() => {
       @click.stop="emit('keep')"
     >
       {{ t('excursions.keep') }}
+    </IonButton>
+  </p>
+  <p v-else-if="canAdopt" class="facts">
+    <span :data-testid="`excursion-local-only-${testKey}`">{{ t('excursions.localOnly') }}</span>
+    <IonButton
+      fill="clear"
+      size="small"
+      class="act"
+      :data-testid="`excursion-adopt-${testKey}`"
+      @click.stop="emit('adopt')"
+    >
+      {{ t('excursions.adopt') }}
     </IonButton>
   </p>
 </template>

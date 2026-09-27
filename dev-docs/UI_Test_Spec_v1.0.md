@@ -3380,6 +3380,9 @@ went.
   luggage is bought through M6, then taken *Auf die Packliste*: the toast says so, the line reads *vor Ort gekauft · auf
   der Packliste* and offers the action no more, the packed row is on M4 once the packed rows are revealed, and the item
   is in M9.
+* **E2E-M27-09** `local` (FR-31.14) — **implemented** (`excursions.spec.ts`): two names the inventory lacks added *nur
+  für diesen Ausflug* read so and are not on M4; *Ins Inventar* on one toasts, makes it *aus dem Gepäck* and a row of
+  M4; *Als Gruppe speichern* asks about the other alone, and *Weglassen* saves the Gruppe with it absent from M9.
 
 ## 5. Cross-Screen Flow Tests
 
@@ -3727,6 +3730,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-31.9 | UNIT+SERVER | `workerBody.spec.ts` (body and link), Go: `TestDueExcursions_FR31_9_*`, `TestPlanExcursionDue_FR31_9_*`, `TestRemindDueTasks_*` |
 | FR-31.10–31.12 | E2E+UNIT | M27-01 (M4's borrowed line), M27-06 (saved as a group); `excursions.spec.ts` (`arrangeExcursions`, `pendingExcursionCount`, `dueExcursions`, `borrowersByTripItem`, `planGroupFromExcursion`), `excursions.seam.spec.ts` (`saveAsGroup`) |
 | FR-31.13 | E2E+UNIT | M27-07 (bought through M6, taken onto the packing list, on M4 and in M9); `excursions.spec.ts` (`canJoinPackingList`, `inventoryItemFor`), `excursions.seam.spec.ts` (`addToPackingList`, its undo) |
+| FR-31.14 | E2E+UNIT | M27-09; `excursions.spec.ts` (`planLinks` leaves the line out, `canAdoptIntoInventory`, `planGroupFromExcursion` without unlisted lines), `excursions.seam.spec.ts` (`adoptIntoInventory` and its undo, `unlistedNames`, `saveAsGroup` leaving them out) |
 | FR-31.5/31.6 (the sheet) | E2E+UNIT | M27-08; `excursions.spec.ts` (`planForWhom`, `lineSetOf`), `excursions.seam.spec.ts` (`setForWhom`, its undo) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |

@@ -34,7 +34,13 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
-import { canJoinPackingList, lineSetOf, suitcaseOf, type LineFor } from '@/domain/excursions'
+import {
+  canAdoptIntoInventory,
+  canJoinPackingList,
+  lineSetOf,
+  suitcaseOf,
+  type LineFor,
+} from '@/domain/excursions'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { quantityChoices } from '@/domain/quantityChoices'
 import { t } from '@/i18n'
@@ -59,6 +65,7 @@ const emit = defineEmits<{
   close: []
   /** FR-31.13: taken onto the packing list — the host owns the toast and its undo. */
   keep: []
+  adopt: []
 }>()
 
 const tripStore = useTripStore()
@@ -241,8 +248,10 @@ function onModeChange(mode: ExcursionItemMode) {
         :test-key="`sheet-${line.name}`"
         :from-luggage="fromLuggage"
         :can-keep="canJoinPackingList(line)"
+        :can-adopt="canAdoptIntoInventory(line)"
         @buy-on-site="orchestrator.buyOnTheSpot(tripId, line)"
         @keep="emit('keep')"
+        @adopt="emit('adopt')"
       />
     </div>
 

@@ -222,6 +222,10 @@ export interface LinkPlan {
  *
  * Two lines naming the same missing thing create it once; the second links
  * the first's row.
+ *
+ * A line with no inventory item is the excursion's alone (FR-31.14): a
+ * chocolate bar added *nur für diesen Ausflug* neither borrows nor adds a
+ * suitcase row, until it is taken into the inventory.
  */
 export function planLinks(
   drafts: readonly DraftLine[],
@@ -234,7 +238,9 @@ export function planLinks(
   const created = new Map<string, { ref: string; fields: GeneratedTripItemFields }>()
 
   for (const draft of drafts) {
-    if (draft.mode === ITEM_MODE_BUY_LOCAL) {
+    // FR-31.14: a line of this excursion alone — lunch, water — and a vor-Ort
+    // line never touch the suitcase.
+    if (draft.mode === ITEM_MODE_BUY_LOCAL || isExcursionOnly(draft)) {
       lines.push({ draft, link: null, not_in_luggage: false })
       continue
     }
@@ -284,6 +290,31 @@ export function planLinks(
       suitcase.push({ kind: 'raise', tripItem, quantity })
   }
   return { lines, suitcase }
+}
+
+/**
+ * FR-31.14: a line the inventory does not know is this excursion's alone.
+ * Every other way in — a Gruppe, the quick-add's inventory, the create sheet —
+ * names an item, so no flag is needed: the missing item *is* the statement.
+ */
+export function isExcursionOnly(line: Pick<DraftLine, 'source_item_id'>): boolean {
+  return line.source_item_id === null
+}
+
+/** A line as the draft it would be written from — to link one that exists. */
+export function draftOf(line: ExcursionItem): DraftLine {
+  return {
+    source_item_id: line.source_item_id,
+    name: line.name,
+    category_name: line.category_name,
+    assigned_traveler_id: line.assigned_traveler_id,
+    quantity: line.quantity,
+    mode: line.mode,
+    for_all_participants: line.for_all_participants,
+    weight_grams: null,
+    value_cents: null,
+    source_template_id: null,
+  }
 }
 
 /**
@@ -544,6 +575,11 @@ export interface GroupFromExcursion {
 export function planGroupFromExcursion(
   lines: readonly ExcursionItem[],
   masterItems: readonly MasterItem[],
+  /**
+   * FR-31.14: whether lines the inventory does not know come along — as new
+   * master items — or stay out of the Gruppe. The screen asks.
+   */
+  includeUnlisted = true,
 ): GroupFromExcursion {
   const newMasterItems: string[] = []
   const bySet = new Map<string, GroupPositionDraft>()
@@ -563,6 +599,8 @@ export function planGroupFromExcursion(
       if (match) {
         itemId = match.id
         name = match.name
+      } else if (!includeUnlisted) {
+        continue
       } else if (!newMasterItems.some((n) => normalizeName(n) === normalizeName(line.name))) {
         newMasterItems.push(line.name)
       }
@@ -683,6 +721,15 @@ export function canJoinPackingList(line: ExcursionItem): boolean {
     line.state !== STATE_SKIPPED &&
     line.trip_item_id === null
   )
+}
+
+/**
+ * FR-31.14: a line of the excursion alone that can still become an inventory
+ * item — one meant for the rucksack. A vor-Ort line takes FR-31.13's way
+ * instead, once bought.
+ */
+export function canAdoptIntoInventory(line: ExcursionItem): boolean {
+  return isExcursionOnly(line) && line.mode === ITEM_MODE_PACK && line.state !== STATE_SKIPPED
 }
 
 /**

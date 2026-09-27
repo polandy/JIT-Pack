@@ -17,6 +17,10 @@ import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
   canJoinPackingList,
+  draftOf,
+  isExcursionOnly,
+  type LinkPlan,
+  type PlannedLine,
   lineSetOf,
   planForWhom,
   type LineFor,
@@ -90,8 +94,12 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
    * reaches the server naming a row it has not seen, then raised amounts,
    * then the lines. Returns the undo of all of it.
    */
-  function writeLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
-    const plan = planLinks(drafts, tripStore.getItems(tripId), suitcaseOpen(tripId))
+  /**
+   * The suitcase half of a link plan (FR-31.4): created rows first, so a line
+   * never reaches the server naming a row it has not seen, then raised
+   * amounts. Returns where each planned line points and the undo of it all.
+   */
+  function applySuitcase(tripId: string, plan: LinkPlan) {
     const createdIds = new Map<string, string>()
     const created: string[] = []
     const raised: Array<{ item: TripItem; quantity: number }> = []
@@ -122,26 +130,13 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
       }
     }
 
-    const lineIds: string[] = []
-    for (const planned of plan.lines) {
+    const tripItemIdOf = (planned: PlannedLine): string | null => {
       const link = planned.link
-      const tripItemId =
-        link === null
-          ? null
-          : 'existing' in link
-            ? link.existing
-            : (createdIds.get(link.created) ?? null)
-      const { mutation, id } = mutations.addExcursionItem(tripId, excursionId, {
-        ...planned.draft,
-        trip_item_id: tripItemId,
-        not_in_luggage: planned.not_in_luggage,
-      })
-      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
-      lineIds.push(id)
+      if (link === null) return null
+      return 'existing' in link ? link.existing : (createdIds.get(link.created) ?? null)
     }
 
     const undo = () => {
-      for (const id of lineIds) removeRow(tripId, TABLE.excursionItems, id)
       for (const id of created) {
         const mutation = mutations.deleteTripItem(id)
         enqueueAndDrain('trip', tripId, {
@@ -167,11 +162,78 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
         })
       }
     }
+    return { tripItemIdOf, created: created.length, undo }
+  }
+
+  /**
+   * writeLines settles where each draft comes from and writes it, with what
+   * the suitcase gains for it (FR-31.4). Returns the undo of all of it.
+   */
+  function writeLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
+    const plan = planLinks(drafts, tripStore.getItems(tripId), suitcaseOpen(tripId))
+    const suitcase = applySuitcase(tripId, plan)
+
+    const lineIds: string[] = []
+    for (const planned of plan.lines) {
+      const { mutation, id } = mutations.addExcursionItem(tripId, excursionId, {
+        ...planned.draft,
+        trip_item_id: suitcase.tripItemIdOf(planned),
+        not_in_luggage: planned.not_in_luggage,
+      })
+      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      lineIds.push(id)
+    }
+
+    const undo = () => {
+      for (const id of lineIds) removeRow(tripId, TABLE.excursionItems, id)
+      suitcase.undo()
+    }
     return {
       lines: lineIds.length,
-      addedToSuitcase: created.length,
+      addedToSuitcase: suitcase.created,
       notInLuggage: plan.lines.filter((l) => l.not_in_luggage).length,
       undo,
+    }
+  }
+
+  /**
+   * FR-31.14: a line of the excursion alone joins the inventory — as the item
+   * of that name, or a new one — and from then on is linked like any line:
+   * into the suitcase while it is open, marked *nicht im Gepäck* once it is
+   * not. Every line of the same thing goes along. Returns the undo.
+   */
+  function adoptIntoInventory(tripId: string, line: ExcursionItem): (() => void) | null {
+    if (!isExcursionOnly(line)) return null
+    const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
+    const target = inventoryItemFor(line, masterStore.activeItemList)
+    const createdItem = 'create' in target ? deps.groups.createMasterItem(target.create) : null
+    const itemId = 'itemId' in target ? target.itemId : createdItem!
+    const plan = planLinks(
+      set.map((l) => ({ ...draftOf(l), source_item_id: itemId })),
+      tripStore.getItems(tripId),
+      suitcaseOpen(tripId),
+    )
+    const suitcase = applySuitcase(tripId, plan)
+    plan.lines.forEach((planned, i) => {
+      updateLine(tripId, set[i]!, {
+        source_item_id: itemId,
+        trip_item_id: suitcase.tripItemIdOf(planned),
+        not_in_luggage: planned.not_in_luggage,
+      })
+    })
+    return () => {
+      for (const before of set) {
+        const now = tripStore.getExcursionItems(tripId).find((l) => l.id === before.id)
+        if (now) {
+          updateLine(tripId, now, {
+            source_item_id: null,
+            trip_item_id: before.trip_item_id,
+            not_in_luggage: before.not_in_luggage,
+          })
+        }
+      }
+      suitcase.undo()
+      if (createdItem !== null) deps.groups.deleteMasterItem(createdItem)
     }
   }
 
@@ -512,13 +574,30 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
   }
 
   /**
+   * FR-31.14: the names a Gruppe saved from this excursion would add to the
+   * inventory — what the screen asks about before saving.
+   */
+  function unlistedNames(tripId: string, excursionId: string): string[] {
+    return planGroupFromExcursion(
+      tripStore.getExcursionItems(tripId, excursionId),
+      masterStore.activeItemList,
+    ).newMasterItems
+  }
+
+  /**
    * FR-31.11: *Als Gruppe speichern* — master items for names the inventory
    * lacks, then the Gruppe, then its positions. Null where the name is taken.
    */
-  function saveAsGroup(tripId: string, excursionId: string, name: string): string | null {
+  function saveAsGroup(
+    tripId: string,
+    excursionId: string,
+    name: string,
+    includeUnlisted = true,
+  ): string | null {
     const plan = planGroupFromExcursion(
       tripStore.getExcursionItems(tripId, excursionId),
       masterStore.activeItemList,
+      includeUnlisted,
     )
     const groupId = deps.groups.createTemplate(name.trim(), 'group')
     if (groupId === null) return null
@@ -555,6 +634,8 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     setForWhom,
     markBought,
     addToPackingList,
+    adoptIntoInventory,
+    unlistedNames,
     saveAsGroup,
   }
 }

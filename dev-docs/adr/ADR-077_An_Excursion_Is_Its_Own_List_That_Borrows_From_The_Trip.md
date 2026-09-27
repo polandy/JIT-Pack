@@ -97,3 +97,14 @@ trip's list only while *before* is not over, and is started from and saved as a 
 A request for a **return tick** — *is everything back from the hut?* That is Repack's second half coming back, and a
 third packed state on the same line would reopen whether an excursion's line should instead be a trip row's move
 between bags.
+
+## Amendment 1 — a line for the excursion alone (FR-31.14)
+
+Owner review showed the inventory is the wrong home for a chocolate bar or a bottle of water: the first cut put every
+new name through the inventory's create sheet, as M4 does. Three shapes were weighed. **Always the inventory** (M4's
+rule) floods it with provisions nobody plans with. **A throw-away flag on the item** keeps the flood and adds a filter
+to every inventory read. **A line that names no item** (`source_item_id` null) costs nothing in the schema — the column
+was already nullable for group positions without an item — and was chosen, with *Nur für diesen Ausflug* first in the
+quick-add. The cost: such a line is never linked into the suitcase (there is no item to match a row by), so before the
+trip it is not carried onto the packing list; *Ins Inventar* is the way back, and *Als Gruppe speichern* asks rather
+than creating those items silently.

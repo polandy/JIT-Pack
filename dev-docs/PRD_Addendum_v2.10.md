@@ -4284,6 +4284,18 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   purchase record, now borrows that row, and reads *vor Ort gekauft · auf der Packliste*. It works on a trip under way
   too — this is the one write into the trip's list after *before* is over, because the thing is already there. One
   undo takes back the row, the link and an item it created.
+* **FR-31.14 (For This Excursion Alone):** Not everything on an excursion's list belongs in the inventory — a
+  chocolate bar, water, a sandwich. A name the inventory does not hold is offered two ways in the quick-add, and
+  ***Nur für diesen Ausflug*** comes first and is what ✓ does: the line names **no inventory item**, reads ***nur für
+  diesen Ausflug***, and is **never linked into the suitcase** — it creates no trip row, borrows none and is never
+  marked *nicht im Gepäck* (FR-31.4/31.7 need an item to match by). The inventory's create sheet (FR-24.11) stays the
+  second way. Such a line offers ***Ins Inventar*** on its fact line, in its sheet and in its menu: the inventory item
+  of that exact name becomes its item, else a new one, and the line — every line of its per-person set — is then
+  linked into the suitcase as FR-31.4/31.7 would have linked it; one undo takes back the links, the rows created and
+  an item created. *Als Gruppe speichern* (FR-31.11) **asks** when such lines exist, naming them: ***Mitnehmen***
+  creates them in the inventory as FR-31.11 does, ***Weglassen*** saves the Gruppe without them and the inventory
+  untouched.
+  A *vor Ort* line of this kind keeps FR-31.13's way into the inventory, once bought.
 * **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.
   **Single-User:** everything, the reminder included (FR-7.11 sends it there). **Server:** excursions are trip data;
   every member sees, edits and ticks them. **Not in the portable backup**, like the tasks, the notes and the shopping
