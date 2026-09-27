@@ -73,7 +73,14 @@ const days = computed(() => durationDays(props.start || null, props.end || null)
  */
 const anchor = ref('')
 
-const months = computed(() => calendarMonths(anchor.value, props.min, props.max, reach.value))
+/** The listed months with their days laid out once, not on every tap's render. */
+const months = computed(() =>
+  calendarMonths(anchor.value, props.min, props.max, reach.value).map((month) => ({
+    key: monthKey(month),
+    title: monthTitle.format(new Date(month.year, month.month - 1, 1)),
+    ...monthDays(month),
+  })),
+)
 
 const draftDays = computed(() => durationDays(draft.value.start || null, draft.value.end || null))
 
@@ -212,19 +219,12 @@ function clear() {
         >
           {{ t('dateRange.earlier') }}
         </button>
-        <section
-          v-for="month in months"
-          :key="monthKey(month)"
-          class="month"
-          :data-month="monthKey(month)"
-        >
-          <h3 class="month-title">
-            {{ monthTitle.format(new Date(month.year, month.month - 1, 1)) }}
-          </h3>
+        <section v-for="month in months" :key="month.key" class="month" :data-month="month.key">
+          <h3 class="month-title">{{ month.title }}</h3>
           <div class="grid">
-            <span v-for="n in monthDays(month).lead" :key="`lead-${n}`" />
+            <span v-for="n in month.lead" :key="`lead-${n}`" />
             <button
-              v-for="day in monthDays(month).days"
+              v-for="day in month.days"
               :key="day"
               type="button"
               class="day jp-num"
