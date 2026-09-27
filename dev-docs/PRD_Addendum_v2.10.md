@@ -959,7 +959,10 @@ server unprocessed.
   the list is a row being tapped, and that tap is what scrolls the next target into view; and a key that is not one
   of the paging keys is somebody typing in the quick-add, which sits inside the same scroller. The window is the
   scroller's own — armed on the input, closed when the scroller comes to rest — so a flick's momentum still counts
-  as the flick. E2E-M4-135.
+  as the flick. E2E-M4-135. **A focus moving inside the list closes it at once**: the browser announces a focus
+  before the scroll it causes, so the window ends exactly where that scroll begins, and a wheel that could not scroll
+  — upward at the top of the list — never comes to rest and would otherwise hold the window open until the next
+  focus yielded the head under a reader who had only pressed Tab. E2E-M4-150.
 
   *The variant weighed and not taken, by decision:* let the head return only where the list is back within the threshold
   — no direction read at all, no listeners. It is rejected for the cost it puts on the reader: the head would then be

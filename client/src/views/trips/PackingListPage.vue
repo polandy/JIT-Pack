@@ -150,7 +150,7 @@ import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
 import { useTaskActs } from '@/composables/useTaskActs'
-import { isScrollGesture, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
+import { gestureAfter, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
 import { collapseRow } from '@/lib/rowCollapse'
 import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
@@ -1259,7 +1259,8 @@ const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
  * Whether the reader is the one scrolling right now (FR-21.17).
  *
  * Armed by the inputs that scroll a list and disarmed when the scroller
- * comes to rest, so a flick's momentum still counts as the flick. Without
+ * comes to rest, so a flick's momentum still counts as the flick — or when
+ * focus moves, which announces the browser's own scroll before it happens. Without
  * it the head answered scrolls nobody made — the browser's own, when it
  * brings a control into view for a keyboard focus or for a click aimed at
  * a row below the fold — and each answer moved every row by the head's
@@ -1287,8 +1288,12 @@ function armGesture(open: boolean): void {
 
 function onScrollerInput(event: Event) {
   const key = event instanceof KeyboardEvent ? event.key : undefined
-  if (isScrollGesture({ type: event.type, key, onScroller: event.target === scrollEl }))
-    armGesture(true)
+  const armed = gestureAfter(gesture, {
+    type: event.type,
+    key,
+    onScroller: event.target === scrollEl,
+  })
+  if (armed !== gesture) armGesture(armed)
 }
 
 /** False once the screen is gone, so a scroller resolving late is not listened to at all. */

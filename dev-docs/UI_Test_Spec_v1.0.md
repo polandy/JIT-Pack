@@ -746,6 +746,11 @@ in WebKit.
   does it, `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled),
   and the row moves by the scroll and by nothing else. Red before the rule on both engines: one class change, and the
   row 162 px down on a 60 px scroll.
+* **E2E-M4-150** `all` (FR-21.17) — **implemented** (`packing-list-shape.spec.ts`): the list at its top and at
+  rest, an upward wheel that cannot scroll — the gesture window is asserted open, and nothing will close it — then a
+  focus moved to the last row's first control, which the browser scrolls into view. The scroll is asserted (well past
+  the yield threshold), the window is closed, and the header line does not change state once. Red before the rule on
+  both engines: one class change, the head yielded under a focus.
 * **E2E-M4-127** `local` (FR-25.2) — **implemented** (`packing-list-sheet.spec.ts`): tapping the words
   of the *Erledigte* switch turns it on and it stays on — the regression it guards is a tick that comes and goes, the
   label forwarding the tap to a checkbox that has already toggled itself. Closing the sheet shows the packed row.
@@ -3644,7 +3649,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-21.7 | E2E+UNIT | G11-02, G11-03, G11-04, G11-05 (brand on identity, done on progress); palette.css (roles named once, primary stays the action hue, no hex outside the table) |
 | FR-25.2 | E2E+UNIT | M4-33, M4-34, M4-35 (the pack registers, one undo, none on un-pack); `usePackUndo` (the snapshot is taken before the pack, replaces rather than stacks, undoes once, no-ops when unarmed) |
 | FR-21.8 | E2E+UNIT+GATE | G14-01, G14-02, G14-03 (the card is a plane, casts a flavour-correct shadow, and bounds the group rather than its entries); surfaces.css (planes differ, `.jp-card` built from tokens, five radius steps, each cast written once); `scripts/design-tokens-gate.mjs` (no raw colour, radius or shadow anywhere in `client/src`) |
-| FR-21.17 | E2E+UNIT | M4-70 (the head yields with the line and holds at the bottom), M4-129 (a list too short to survive the yield keeps its head), M4-135 (a scroll nobody made moves neither the head nor the rows); `headScroll.spec.ts` (the direction, the jitter, the clamp, the short list, the scroll nobody made, and which inputs count as one) |
+| FR-21.17 | E2E+UNIT | M4-70 (the head yields with the line and holds at the bottom), M4-129 (a list too short to survive the yield keeps its head), M4-135 (a scroll nobody made moves neither the head nor the rows), M4-150 (a focus ends the gesture, so the scroll it brings leaves the head); `headScroll.spec.ts` (the direction, the jitter, the clamp, the short list, the scroll nobody made, which inputs arm the gesture and which end it) |
 | FR-22.1 | E2E+UNIT | M10-04 (add/replace/remove, rendered and read back), M9-01; the M5 rung in the ItemMark component unit (M5-12 retired) |
 | FR-22.2/22.3 | E2E+UNIT | M10-04 asserts the aspect ratio survives the re-encode; the backoff itself is `imageResize.ts` |
 | FR-22.4 | UNIT+SERVER | the 150 KB cap is `imageResize.spec.ts` and the three server layers (invariant 6) — deliberately **not** M10-04, which would be asserting the encoder through a canvas |

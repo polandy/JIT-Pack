@@ -226,16 +226,31 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
   // which is how E2E-M4-45 was once handed 52 for a list that came to rest
   // at 242. `scrollend` fires once the whole sequence is over, on both
   // engines; the listener is attached before the wheel so it cannot miss it.
+  // The gesture window is watched from the same moment, for the wait below:
+  // waiting for an attribute to be absent is green against a build that never
+  // sets it, so the wheel has to be seen opening the window first.
   const ended = await packList(page).evaluateHandle(async (host: HTMLIonContentElement) => {
     const el = await host.getScrollElement()
-    return {
+    const signal = {
+      opened: false,
       done: new Promise<void>((resolve) =>
         el.addEventListener('scrollend', () => resolve(), { once: true }),
       ),
     }
+    const watch = new MutationObserver(() => {
+      if (!host.hasAttribute('data-scroll-gesture')) return
+      signal.opened = true
+      watch.disconnect()
+    })
+    watch.observe(host, { attributes: true, attributeFilter: ['data-scroll-gesture'] })
+    return signal
   })
   await page.mouse.wheel(0, deltaY)
   await ended.evaluate((signal) => signal.done)
+  expect(
+    await ended.evaluate((signal) => signal.opened),
+    'the wheel opened the gesture window',
+  ).toBe(true)
   await ended.dispose()
   // …and the *gesture* has ended too, which is a second thing. The list stops
   // moving first; M4's window closes on Ionic's scroll-end debounce after it

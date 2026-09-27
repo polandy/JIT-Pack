@@ -40,7 +40,7 @@ export interface ScrollReading {
    */
   viewport: { clientHeight: number; scrollHeight: number } | null
   /**
-   * Whether the reader is the one scrolling — see {@link isScrollGesture}.
+   * Whether the reader is the one scrolling — see {@link gestureAfter}.
    * A scroll nobody made moves the list without anybody asking, and a head
    * that answers it moves every row by its own height under a finger that
    * is already aiming at one.
@@ -56,7 +56,7 @@ const SCROLLING_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'E
  * listener: which events *count* and which are *heard* have to be the same
  * set, and written twice they drift into a rule nothing can trigger.
  */
-export const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+export const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown', 'focusin'] as const
 
 /** One input event, as much of it as the question needs. */
 export interface ScrollerInput {
@@ -68,8 +68,8 @@ export interface ScrollerInput {
 }
 
 /**
- * isScrollGesture answers whether an input event means the reader is
- * driving the scroller.
+ * gestureAfter answers whether the reader is driving the scroller once an
+ * input event has arrived, given whether they were before it.
  *
  * `pointerdown` is the one that has to ask where it landed: on the scroller
  * it is a scrollbar being dragged, and anywhere inside it is a row being
@@ -77,11 +77,18 @@ export interface ScrollerInput {
  * that tap is what scrolls the next target into view. `keydown` asks which
  * key, because most of them arrive from a field being typed in rather than
  * from a list being paged through.
+ *
+ * `focusin` ends the gesture outright. The browser dispatches it *before* the
+ * scroll that brings the focused control into view, so it closes the window
+ * exactly where the scroller's own rest only closes it eventually — and a
+ * wheel that could not scroll never comes to rest at all, which left the
+ * window open for whatever the next focus scrolled.
  */
-export function isScrollGesture({ type, key, onScroller }: ScrollerInput): boolean {
-  if (type === 'pointerdown') return onScroller
-  if (type === 'keydown') return SCROLLING_KEYS.includes(key ?? '')
-  return type === 'wheel' || type === 'touchmove'
+export function gestureAfter(armed: boolean, { type, key, onScroller }: ScrollerInput): boolean {
+  if (type === 'focusin') return false
+  if (type === 'pointerdown') return armed || onScroller
+  if (type === 'keydown') return armed || SCROLLING_KEYS.includes(key ?? '')
+  return armed || type === 'wheel' || type === 'touchmove'
 }
 
 /**
