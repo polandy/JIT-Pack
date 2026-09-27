@@ -59,6 +59,14 @@ test.describe('Ideas across identities (FR-29.3) @server', () => {
     await expect(alicesView.getByTestId('idea-vote-names')).toHaveText(
       `${ACCOUNT_NAMES.bob} for it`,
     )
+    // Where votes are shown the board can be read by them or by age: the ⋮ offers the other order.
+    await alice.getByTestId('header-overflow').click()
+    await expect(alice.locator('ion-action-sheet')).toContainText('Newest first')
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /cancel/i })
+      .click()
+    await expect(alice.locator('ion-action-sheet')).toHaveCount(0)
     // Bob's vote is not Alice's: her own button stays unpressed.
     await expect(alicesView.getByTestId('idea-vote-up')).toHaveAttribute('aria-pressed', 'false')
 

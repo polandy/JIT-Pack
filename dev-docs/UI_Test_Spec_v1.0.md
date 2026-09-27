@@ -3422,10 +3422,10 @@ went.
 * **E2E-M28-05** `local` (FR-29.2/29.3 G-8) — **implemented** (`planner/ideas.spec.ts`): deleting asks first — declined,
   the idea stays; confirmed, it is gone and the empty state is back. Alone on the device the detail offers no votes and
   names no author, and the card carries no tallies.
-* **E2E-M28-06** `server` (FR-29.3) — **implemented** (`planner/server/votes.spec.ts`): Bob sees Alice named as the
-  idea's author and votes for it; Alice sees his vote on the card and his name behind it in the detail, her own button
-  unpressed; Bob's second tap withdraws it and Alice's count is back to nothing. That nobody votes in another's name is
-  the server's (`TestStampActor_VoteUpsertCannotTakeOverAnotherUsersVote_FR29_3`,
+* **E2E-M28-06** `server` (FR-29.3, FR-29.6) — **implemented** (`planner/server/votes.spec.ts`): Bob sees Alice named as
+  the idea's author and votes for it; Alice sees his vote on the card and his name behind it in the detail, her own
+  button unpressed, and her ⋮ offers *Newest first*; Bob's second tap withdraws it and Alice's count is back to nothing.
+  That nobody votes in another's name is the server's (`TestStampActor_VoteUpsertCannotTakeOverAnotherUsersVote_FR29_3`,
   `TestApplyMutation_OnlyTheVoterMayChangeAVote_FR29_3`).
 
 ## 5. Cross-Screen Flow Tests
