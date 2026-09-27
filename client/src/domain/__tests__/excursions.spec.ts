@@ -10,6 +10,7 @@ import {
   borrowersByTripItem,
   canAdoptIntoInventory,
   canJoinPackingList,
+  excursionMenuEntries,
   inventoryItemFor,
   isExcursionOnly,
   lineSetOf,
@@ -796,5 +797,53 @@ describe('a line of the excursion alone — FR-31.14', () => {
     expect(canAdoptIntoInventory(line('l', 'Stirnlampe', { source_item_id: 'item-1' }))).toBe(false)
     expect(canAdoptIntoInventory(line('l', 'Wasser', { mode: 'buy_local' }))).toBe(false)
     expect(canAdoptIntoInventory(line('l', 'Wasser', { state: 'skipped' }))).toBe(false)
+  })
+})
+
+describe('a line’s menu — FR-31.6, M4’s FR-5.5', () => {
+  it('offers M4’s own entries on an open line, without the suitcase’s', () => {
+    expect(excursionMenuEntries(line('l', 'Stirnlampe'))).toEqual([
+      'quantity',
+      'skip',
+      'buyLocal',
+      'adopt',
+      'remove',
+    ])
+    expect(excursionMenuEntries(line('l', 'Stirnlampe', { source_item_id: 'item-1' }))).toEqual([
+      'quantity',
+      'skip',
+      'buyLocal',
+      'remove',
+    ])
+  })
+
+  it('offers the way back on a skipped line, and nothing it cannot do', () => {
+    expect(
+      excursionMenuEntries(line('l', 'Stirnlampe', { state: 'skipped', quantity: 0 })),
+    ).toEqual(['unskip', 'remove'])
+  })
+
+  it('offers a vor-Ort line its purchase, and a bought one the packing list', () => {
+    expect(
+      excursionMenuEntries(line('l', 'Proviant', { source_item_id: 'i', mode: 'buy_local' })),
+    ).toEqual(['quantity', 'skip', 'packInstead', 'markBought', 'remove'])
+    expect(
+      excursionMenuEntries(
+        line('l', 'Regencape', { mode: 'buy_local', bought_at: '2026-07-16T08:00:00Z' }),
+      ),
+    ).toEqual(['quantity', 'skip', 'packInstead', 'markUnbought', 'keep', 'remove'])
+  })
+
+  it('offers no change of mode on a line already begun, as M4 does', () => {
+    expect(
+      excursionMenuEntries(
+        line('l', 'Wasser', { source_item_id: 'i', quantity: 2, packed_count: 1, state: 'open' }),
+      ),
+    ).toContain('buyLocal')
+    expect(
+      excursionMenuEntries(
+        line('l', 'Wasser', { source_item_id: 'i', quantity: 1, packed_count: 1, state: 'packed' }),
+      ),
+    ).not.toContain('buyLocal')
   })
 })

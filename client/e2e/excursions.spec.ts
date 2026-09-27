@@ -12,12 +12,15 @@ import {
 import {
   addInExcursionComposer,
   addToExcursion,
+  chooseInLineMenu,
   createExcursion,
   excursionLine,
   excursionMenu,
   openExcursions,
+  openLineMenu,
   revealPackedLines,
   tickExcursionLine,
+  undoFromSnackbar,
 } from './helpers/m27'
 import { holdOpensOneMenu, packRow, startTrip, tripWithRows } from './helpers/m4'
 import { writesLanded } from './helpers/page'
@@ -406,5 +409,173 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     const rows = visible(page).getByTestId('m9-row')
     await expect(rows.filter({ hasText: 'Schokoriegel' })).toHaveCount(1)
     await expect(rows.filter({ hasText: 'Wasser' })).toHaveCount(0)
+  })
+  /**
+   * E2E-M27-10: a line's menu is M4's — its entries worded as M4's, the
+   * suitcase's own ones (*Pack now*, late packer) absent — and each act is
+   * announced in M4's snackbar with its one undo: the amount through M4's
+   * popover, the skip and the removal.
+   */
+  test('E2E-M27-10: a line’s menu is M4’s, and every act in it is undone from the snackbar', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+    await addToExcursion(page, 'Sonnenhut')
+
+    const menu = await openLineMenu(page, 'Sonnenhut')
+    for (const label of [/change the amount/i, /do not pack this/i, /buy there/i, /remove/i]) {
+      await expect(menu.getByRole('button', { name: label })).toBeVisible()
+    }
+    await expect(menu.getByRole('button', { name: /^pack$/i })).toHaveCount(0)
+    await expect(menu.getByRole('button', { name: /late packer/i })).toHaveCount(0)
+    await chooseInLineMenu(page, /change the amount/i)
+
+    const popover = page.getByTestId('m27-quantity-popover')
+    await expect(popover.getByTestId('quantity-value')).toHaveText('1')
+    await popover.getByTestId('quantity-more').click()
+    await expect(popover.getByTestId('quantity-value')).toHaveText('2')
+    await page.keyboard.press('Escape')
+    await expect(popover.getByTestId('quantity-editor')).toHaveCount(0)
+    await expect(excursionLine(page, 'Sonnenhut')).toContainText('0/2')
+    await undoFromSnackbar(page, 'quantity 2')
+    await expect(excursionLine(page, 'Sonnenhut')).not.toContainText('0/2')
+
+    await openLineMenu(page, 'Sonnenhut')
+    await chooseInLineMenu(page, /do not pack this/i)
+    await expect(excursionLine(page, 'Sonnenhut')).toHaveCount(0)
+    await undoFromSnackbar(page, 'stays at home')
+    await expect(excursionLine(page, 'Sonnenhut')).toBeVisible()
+
+    await openLineMenu(page, 'Sonnenhut')
+    await chooseInLineMenu(page, /buy there/i)
+    await undoFromSnackbar(page, 'is bought there')
+    const back = await openLineMenu(page, 'Sonnenhut')
+    await expect(back.getByRole('button', { name: /buy there/i })).toBeVisible()
+    await chooseInLineMenu(page, /cancel/i)
+
+    await openLineMenu(page, 'Sonnenhut')
+    await chooseInLineMenu(page, /remove from the list/i)
+    await expect(excursionLine(page, 'Sonnenhut')).toHaveCount(0)
+    await undoFromSnackbar(page, 'removed from the list')
+    await expect(excursionLine(page, 'Sonnenhut')).toBeVisible()
+  })
+
+  /**
+   * E2E-M27-11: M4's bar on the excursion — the search narrows, and a search
+   * with no match says so with M4's reset; the person strip filters by
+   * several people at once, each a chip; fold-all folds the groups; a list
+   * with nothing left says so as M4's does.
+   */
+  test('E2E-M27-11: search, the person filter, fold-all and M4’s empty states', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Sardinien', travelers: ['Andy', 'Sia', 'Lio'] })
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour' })
+    await addToExcursion(page, 'Schlafsack', 'all')
+    await addToExcursion(page, 'Karte')
+    const list = visible(page)
+
+    await page.getByTestId('m27-search').click()
+    await list.getByTestId('m27-search-input').fill('Kar')
+    await expect(excursionLine(page, 'Karte')).toBeVisible()
+    await expect(list.getByTestId('m27-cluster-Schlafsack')).toHaveCount(0)
+    await list.getByTestId('m27-search-input').fill('Zelt')
+    await expect(list.getByTestId('m27-empty-list')).toContainText('No matches')
+    await list.getByTestId('m27-reset').click()
+    await expect(excursionLine(page, 'Karte')).toBeVisible()
+
+    await list.getByTestId('m4-traveler-progress-Andy').click()
+    await list.getByTestId('m4-traveler-progress-Sia').click()
+    await expect(list.locator('[data-testid^="m27-chip-person-"]')).toHaveCount(2)
+    await list.getByTestId('m27-cluster-Schlafsack').click()
+    await expect(list.locator('[data-testid^="m27-child-Schlafsack-"]')).toHaveCount(2)
+    await list.getByTestId('m27-chip-reset').click()
+    await expect(list.locator('[data-testid^="m27-child-Schlafsack-"]')).toHaveCount(3)
+
+    await page.getByTestId('m27-fold-all').click()
+    await expect(excursionLine(page, 'Karte')).toHaveCount(0)
+    await expect(list.getByTestId('m27-group-none')).toContainText('open')
+    await page.getByTestId('m27-fold-all').click()
+    await expect(excursionLine(page, 'Karte')).toBeVisible()
+
+    for (const who of ['Andy', 'Sia', 'Lio']) await tickExcursionLine(page, `Schlafsack-${who}`)
+    await tickExcursionLine(page, 'Karte')
+    await expect(list.getByTestId('m27-empty-list')).toContainText('All done')
+  })
+
+  /**
+   * E2E-M27-12: the detail is on the route, as M5's is — a tap opens the
+   * sheet with `?line=`, back closes it and stays on the list; on a desktop
+   * width it is M5's side panel beside the list.
+   */
+  test('E2E-M27-12: a line’s detail is on the route, and a side panel on a desktop', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 400, height: 880 })
+    await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+    await addToExcursion(page, 'Sonnenhut')
+
+    await excursionLine(page, 'Sonnenhut').getByRole('heading').click()
+    await expect(page.getByTestId('m27-line-sheet')).toBeVisible()
+    await expect(page).toHaveURL(/[?&]line=/)
+    // Settled, not arrived: back during the sheet's enter animation would
+    // race Ionic's transition queue (E2E-M5-13's reason).
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(1)
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => {
+        if (a.playState !== 'running') return true
+        const effect = a.effect
+        const target = effect instanceof KeyframeEffect ? effect.target : null
+        return target instanceof Element && target.closest('ion-spinner') !== null
+      }),
+    )
+    // With the sheet open, back closes it rather than leaving the excursion.
+    await page.goBack()
+    await expect(page.getByTestId('m27-line-sheet')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m27-excursion-page')).toBeVisible()
+    await expect(excursionLine(page, 'Sonnenhut')).toBeVisible()
+
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await excursionLine(page, 'Sonnenhut').getByRole('heading').click()
+    const panel = page.getByTestId('m27-line-panel')
+    await expect(panel).toBeVisible()
+    await expect(panel.getByTestId('m27-line-name')).toHaveText('Sonnenhut')
+    await expect(page.getByTestId('m27-line-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m27-header')).toBeVisible()
+  })
+
+  /**
+   * E2E-M27-13: M4's browse verbs on a thing the excursion carries — *packen*
+   * puts it into the rucksack, *nicht einpacken* leaves it at home, and the
+   * row's undo takes each back.
+   */
+  test('E2E-M27-13: the inventory sheet packs and skips a carried thing, and takes each back', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+    await addToExcursion(page, 'Stirnlampe')
+
+    await openQuickAdd(page, 'm27-add-fab')
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const row = sheet.locator('[data-testid^="browse-row"]').filter({ hasText: 'Stirnlampe' })
+    await row.getByTestId('browse-pack').click()
+    await expect(row.getByTestId('browse-undo')).toBeVisible()
+    await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
+    await row.getByTestId('browse-undo').click()
+    await expect(row.getByTestId('browse-pack')).toBeVisible()
+    await expect(excursionLine(page, 'Stirnlampe')).toBeVisible()
+
+    await row.getByTestId('browse-skip').click()
+    await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
+    await row.getByTestId('browse-undo').click()
+    await expect(excursionLine(page, 'Stirnlampe')).toBeVisible()
   })
 })

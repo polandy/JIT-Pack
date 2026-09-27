@@ -13,6 +13,7 @@
 
 import { generateTripItems, type GeneratedTripItemFields } from './instantiate'
 import { stateFor, unitsOf, type PackUnits } from './packState'
+import { rowMenuEntries, type RowMenuAction } from './rowMenu'
 import type {
   CategorisedMasterItem,
   Excursion,
@@ -846,4 +847,59 @@ export function planForWhom(
 /** Every line of the same thing in one excursion — the set a strip acts on. */
 export function lineSetOf(line: ExcursionItem, lines: readonly ExcursionItem[]): ExcursionItem[] {
   return lines.filter((l) => l.excursion_id === line.excursion_id && setKey(l) === setKey(line))
+}
+
+// --- The line's menu (FR-31.6, M4's FR-5.5) ---
+
+/**
+ * What an excursion line's press-and-hold can offer: M4's own entries where a
+ * line has them, and the excursion's four acts beside them.
+ */
+export type ExcursionMenuAction =
+  | RowMenuAction
+  /** FR-31.8: a vor-Ort line was bought, or was not after all. */
+  | 'markBought'
+  | 'markUnbought'
+  /** FR-31.13: a bought line joins the packing list and the inventory. */
+  | 'keep'
+  /** FR-31.14: a line of the excursion alone joins the inventory. */
+  | 'adopt'
+
+/**
+ * M4's entries a line never has: nobody claims a line (G-3 is the suitcase's),
+ * departure day is the suitcase's (FR-25.27), and *unused* is judged on the
+ * trip's rows (FR-9.3).
+ */
+const SUITCASE_ONLY: ReadonlySet<RowMenuAction> = new Set([
+  'takeover',
+  'release',
+  'packingNow',
+  'latePackerOn',
+  'latePackerOff',
+  'flagUnused',
+  'unflagUnused',
+])
+
+/**
+ * The entries a line's menu offers, in order — M4's `rowMenuEntries` over the
+ * line read as its row, so the amount, the skip, the mode and the removal are
+ * offered where and as M4 offers them; the excursion's own acts go before the
+ * removal, which stays last.
+ */
+export function excursionMenuEntries(line: ExcursionItem): ExcursionMenuAction[] {
+  const own = rowMenuEntries(excursionLineAsRow(line), {
+    closingPass: false,
+    locked: false,
+    canTakeOver: false,
+    mine: false,
+    judgeable: false,
+  }).filter((action) => !SUITCASE_ONLY.has(action))
+  const extra: ExcursionMenuAction[] = []
+  if (line.state !== STATE_SKIPPED && line.mode === ITEM_MODE_BUY_LOCAL) {
+    extra.push(line.bought_at === null ? 'markBought' : 'markUnbought')
+  }
+  if (canJoinPackingList(line)) extra.push('keep')
+  if (canAdoptIntoInventory(line)) extra.push('adopt')
+  const removal = own.indexOf('remove')
+  return removal < 0 ? [...own, ...extra] : [...own.slice(0, removal), ...extra, 'remove']
 }

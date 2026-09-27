@@ -2843,13 +2843,22 @@ token would prove nothing there is anything to prove.
 * **One excursion** (`/trips/:id/excursions/:excursionId`, `meta.parent` the list, still in the excursions view, so the
   pills stay): named by the excursion, with *„So., 27.9. – Mo., 28.9. · Sia, Andy"* (or *Alle*, or *Ohne Datum*) as the
   meta line. **It is M4, smaller, built from M4's own parts**, so it reads and works like the packing list: M4's
-  progress card (*„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while *vor Ort* lines are unbought, *„Noch
-  nichts auf der Liste"* on an empty one) and, where two or more go, its **Pro Person** strip over the participants,
-  whose cards filter the list to one person's lines or the shared ones as on M4. Then the lines **by category** under
-  M4's collapsible group heads (`done/total` in units, *Ohne* for none), A–Z. **The list is built by M4's own view
-  model** (`buildPackingView` over the lines read as M4's rows), so it behaves as the packing list does: a packed line
-  **leaves the list** with M4's pack-out (FR-25.2) and M4's snackbar with *Rückgängig*, and M4's reveal bar (*„2
-  gepackt anzeigen"*, `m27-done-bar`) brings the packed lines back.
+  **header line** (`m27-header`) — the progress card (*„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while
+  *vor Ort* lines are unbought, *„Noch nichts auf der Liste"* on an empty one), sticky, yielding to the list on the way
+  down with the page head and back on an upward gesture (FR-21.17, the same `useHeadScroll`) — and, where two or more
+  go, its **Pro Person** strip over the participants, whose cards toggle people in the person filter as on M4 (FR-25.29:
+  several at once, each an active chip). Then M4's **chip row** (`m27-filter-bar`: the active filter values, removable,
+  or *„Gruppiert nach Kategorie"*), and the lines **by category** — or by person or state, the filter sheet's grouping,
+  container left out since a line has none — under M4's collapsible group heads (`done/total` in units, *Ohne* for
+  none), A–Z. **The list is built by M4's own view model** (`buildPackingView` over the lines read as M4's rows), so it
+  behaves as the packing list does: a packed line **leaves the list** with M4's pack-out (FR-25.2) and M4's snackbar
+  with *Rückgängig*, and M4's reveal bar (*„2 gepackt anzeigen"*, `m27-done-bar`) brings the packed lines back. **The
+  bar** carries M4's own three (G-12): the search (`m27-search`, its field `m27-search-input`, *„Ausflugsliste
+  durchsuchen…"*), the filter sheet (`m27-filter`: M4's facets and grouping, and of the reveal switches only *Erledigte*
+  — FR-25.20 and FR-25.27 are the suitcase's), and fold-all (`m27-fold-all`). The filter lasts the session, the grouping
+  is kept, both per excursion. **Empty, it says what M4 says** (`m27-empty-list`): *Keine Treffer* with the reason and
+  M4's reset while a search or filter narrows it, *„Noch nichts auf dieser Liste"* before anything is on it, *„Alles
+  erledigt 🎉 · Nichts mehr offen für diesen Ausflug."* when everything is packed.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
@@ -2864,7 +2873,10 @@ token would prove nothing there is anything to prove.
   * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
     the line with an undo.
 
-  **A tap on the row opens M5's sheet for the line** (`ExcursionItemSheet`, handle `m27-line-sheet`), laid out and
+  **A tap on the row opens M5's sheet for the line** (`ExcursionItemSheet`, handle `m27-line-sheet`) — on the route as
+  M5's is, `?line=<id>` (`overlayQuery`), so a deep link and a reload open it too; on a desktop width (≥ 900 px) it is
+  M5's **side panel** beside the list (`m27-line-panel`, G-9). Unlike M5's `?item=` the query is **pushed**, so the
+  browser's back removes it and closes the sheet on the same page; ✕ takes that same step back. Laid out and
   styled as M5 block for block: the mark, the name and its category (and person) in the head; *Menge* with the quick
   amounts; *Einpacken*, the large stepper with the state beside it; *Nicht einpacken* / *Doch mitnehmen*; where two or
   more go, **M5's for-whom strip over the participants** — shared, *Alle* (*für alle*), or named people; open lines of
@@ -2872,21 +2884,28 @@ token would prove nothing there is anything to prove.
   (FR-31.5); a glance row (person where the strip is absent, the mode); the line's facts with their actions
   (`ExcursionFacts`); and *Details ▾* with the mode (*Einpacken* / *Vor Ort kaufen*) and, for a *vor Ort* line, the
   *Gekauft* switch. What M5 has and a line has not — preparations, notes, packer, container, flags — is left out.
-  **A hold** (or a desktop's context menu) opens the line's menu, as on M4 (an action sheet headed by the name): *Eins
-  mehr*, *Eins weniger* (above one), *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a
-  bought one, FR-31.13; a toast with *Rückgängig*), *Ins Inventar übernehmen* (a line for the excursion alone,
-  FR-31.14), *Vor Ort besorgen* (a line not in the luggage), *Diesmal nicht* /
-  *Doch mitnehmen*, *Von der Liste nehmen* (with *Rückgängig*), *Abbrechen*.
+  **A hold** (or a desktop's context menu) opens **M4's row menu** — its entries decided by M4's `rowMenuEntries` over
+  the line read as its row (`excursionMenuEntries`) and worded and iconed as on M4 (`lib/rowMenuButtons.ts`): *Menge
+  ändern* (M4's amount popover, `m27-quantity-popover`, which also opens from the row's own count), *Nicht einpacken*,
+  *Vor Ort kaufen* / *Doch mitnehmen* (on a line nothing has been done to yet, FR-5.9), then the excursion's own —
+  *Gekauft* / *Noch nicht gekauft* (a *vor Ort* line), *Auf die Packliste* (a bought one, FR-31.13), *Ins Inventar
+  übernehmen* (a line for the excursion alone, FR-31.14) — and *Von der Liste entfernen* last; a skipped line offers
+  *Doch einpacken* and the removal. The suitcase's own entries (*Packen*, *Spät packen*, *Nicht benutzt*, the claim's)
+  are never offered. **Every act is announced in M4's snackbar with its one undo** (FR-25.31) — the amount (one editing
+  session, one undo), the skip, the way back, the mode, the purchase, the removal, *Auf die Packliste*, *Ins Inventar*
+  and a change of who goes alike.
 * **A thing per person** is M4's `ClusterHead` (handle `m27-cluster-*`): the mark, the name, a caret; **shut by
   default** (FR-25.23, view state, not persisted) with a face per person and the open count; open, a child per
   participant in roster order, each with its own tick.
-* **Adding** is M4's: the orange **＋** (`m27-add-fab`) opens M4's **quick-add** — the inventory search with its
-  create sheet (FR-24.11), recent chips, *Mehr aus dem Inventar…*, whole **groups** (FR-27.10's offer; a group adds
-  what the list does not carry yet, with *Rückgängig*), and FR-25.28's **for-whom strip** over **the excursion's
-  participants** where two or more go. *Gemeinsam* adds one shared line, every participant is *für alle*, some
-  avatars name those people (FR-31.5). The line is linked into the suitcase like a group's (FR-31.4/31.7). A name the
-  inventory lacks is offered two ways (FR-31.14): ***„X" nur für diesen Ausflug*** (*Kommt nicht ins Inventar –
-  Proviant, Wasser, Kleinkram*, `quick-add-local-only`) first, and what ✓ does; the inventory's create offer below it.
+* **Adding** is M4's: the orange **＋** (`m27-add-fab`) opens M4's **quick-add** — the inventory search with its create
+  sheet (FR-24.11), recent chips, *Mehr aus dem Inventar…*, whole **groups** (FR-27.10's offer; a group adds what the
+  list does not carry yet, with *Rückgängig*), and FR-25.28's **for-whom strip** over **the excursion's participants**
+  where two or more go — and the inventory sheet's verbs on a thing the list already carries (FR-25.13f–i: *packen*,
+  *nicht einpacken*, *für alle*, the people, the row's own undo and *wieder öffnen*) act on the excursion's lines of
+  that item. *Gemeinsam* adds one shared line, every participant is *für alle*, some avatars name those people
+  (FR-31.5). The line is linked into the suitcase like a group's (FR-31.4/31.7). A name the inventory lacks is offered
+  two ways (FR-31.14): ***„X" nur für diesen Ausflug*** (*Kommt nicht ins Inventar – Proviant, Wasser, Kleinkram*,
+  `quick-add-local-only`) first, and what ✓ does; the inventory's create offer below it.
 * **The ⋮** (G-12, words only): *Ausflug bearbeiten* (the sheet above; a change of who goes rewrites the per-person sets
   and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Als Gruppe speichern* (a prompt prefilled with the
   excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen beginnen kannst."*;
@@ -2899,7 +2918,7 @@ token would prove nothing there is anything to prove.
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
-* (E2E-M27-01…09 `local`, E2E-G12-07)
+* (E2E-M27-01…13 `local`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

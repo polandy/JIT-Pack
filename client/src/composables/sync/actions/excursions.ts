@@ -631,6 +631,7 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     removeLine,
     buyOnTheSpot,
     setLineMode,
+    updateLine,
     setForWhom,
     markBought,
     addToPackingList,

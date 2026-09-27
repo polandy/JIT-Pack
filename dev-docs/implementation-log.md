@@ -447,6 +447,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Vor der Reise closes when the trip is under way, on both lists (2026-09-26)](#vor-der-reise-closes-when-the-trip-is-under-way-on-both-lists-2026-09-26) — M25's spec seeded every trip `active`, hiding the gap.
 - [A wheel that could not scroll held the gesture window open (2026-09-26)](#a-wheel-that-could-not-scroll-held-the-gesture-window-open-2026-09-26) — FR-21.17: the window was unbounded, not 120–220 ms; a focus closes it, and the helper sees it open.
 - [Excursions: a small packing list inside a trip (2026-09-26)](#excursions-a-small-packing-list-inside-a-trip-2026-09-26) — M6 assumed every shopping source was the packing list; a stale suitcase link on purpose.
+- [The excursion list takes the rest of M4's parts (2026-09-27)](#the-excursion-list-takes-the-rest-of-m4s-parts-2026-09-27) — M5's back guard shows the wrong page below a non-root screen; the line sheet is pushed.
 
 ## Deviations
 
@@ -17789,3 +17790,20 @@ thing), and every reader goes through `suitcaseOf`, which reads a link to a row 
 (ADR-016's guard — linking against a list not pulled would create the whole group a second time). The seed spec runs
 on an orchestrator that never connected, so its excursion test connects first; the other seed tests do not, and do not
 need to.
+
+## The excursion list takes the rest of M4's parts (2026-09-27)
+
+FR-31.6, the owner's follow-up to #614: every M4 behaviour the excursion list lacked, eight of them, taken from M4
+itself rather than rebuilt — M4's scroll-yielding header now lives in `useHeadScroll`, its menu wording in
+`lib/rowMenuButtons.ts`, and the line menu is `rowMenuEntries` over the line read as a row (`excursionMenuEntries`).
+
+**A trap in M5's back guard.** The line sheet first copied M5's `?item=` exactly: opened by `router.replace`, with
+`overlayBackGuard` turning the browser's back — which pops past the replaced entry — into a pop followed by a push of
+the overlay parent. Under M4 that is a tab root, and the chain rebuilds. Under an excursion it is M27's list, and the
+same two navigations left the URL on the excursion while Ionic showed M27's list, the excursion page gone from the
+outlet (the "wrong screen under the right URL" the guard's own comment warns of, one level deeper). Rejected: delaying
+the push until Ionic's transition ends (a timer, or an outlet event the router cannot see). Built: the query is
+**pushed**; a query change is the same Ionic page, so back only removes it, and ✕ steps back when the entry below is
+the list itself, replacing otherwise (a deep link). Cost: the one overlay of the app that is not a replace. E2E-M27-12
+was red on the replace and is green on the push.
+
