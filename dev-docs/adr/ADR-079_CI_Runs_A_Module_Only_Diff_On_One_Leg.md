@@ -81,7 +81,8 @@ touches.
 
 ## Decision
 
-`changes` emits `module` alongside `app_untouched`. On a module-only diff `e2e` runs one leg,
+`changes` emits `module` alongside `app_untouched`, on a pull request only — a push to `main` always runs in full,
+which is what makes it the backstop the accepted cost below leans on. On a module-only diff `e2e` runs one leg,
 `--grep "@<module>|@smoke"`; `e2e-single` and `e2e-server` run `--grep @<module> --pass-with-no-tests`.
 `visual` runs every baseline regardless: it is one job that finishes inside the module's e2e leg, so narrowing
 it saves no wall-clock. `go`, `go-lint`, `client`, `format` and `docker-build` are unchanged. Locally,

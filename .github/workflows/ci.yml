@@ -37,9 +37,10 @@ jobs:
   #   have nothing to find. The list names what is *not* app input, so a path
   #   it does not name runs the suites — forgetting it costs a run, never a
   #   missed regression.
-  # - `module`: every app-input path lies inside one feature module, so e2e
-  #   runs that module's cases and the `@smoke` set on one leg instead of the
-  #   ten-leg matrix. Empty for anything else, and then everything runs.
+  # - `module`: on a pull request, every app-input path lies inside one
+  #   feature module, so e2e runs that module's cases and the `@smoke` set on
+  #   one leg instead of the ten-leg matrix. Empty for anything else — and
+  #   always on a push to main — and then everything runs.
   #
   # A script rather than a third-party paths-filter action (NFR-4.3), run on
   # the bare runner's node — built-ins only.
@@ -74,7 +75,13 @@ jobs:
             push) base="$PUSH_BEFORE_SHA" ;;
             *) base="$(git merge-base origin/main HEAD)" ;;
           esac
-          git diff --name-only "$base" "$HEAD" | node scripts/diff-scope.mjs | tee -a "$GITHUB_OUTPUT"
+          scope="$(git diff --name-only "$base" "$HEAD" | node scripts/diff-scope.mjs)"
+          # Only a pull request may narrow to a module: a push to main is the
+          # full run that catches what the smoke set cannot (ADR-079).
+          if [ "$EVENT_NAME" != pull_request ]; then
+            scope="$(echo "$scope" | sed 's/^module=.*/module=/')"
+          fi
+          echo "$scope" | tee -a "$GITHUB_OUTPUT"
 
   go:
     runs-on: ubuntu-latest
