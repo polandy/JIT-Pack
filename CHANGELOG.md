@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.21.0](https://github.com/polandy/JIT-Pack/compare/v0.20.0...v0.21.0) (2026-09-27)
+
+
+### Features
+
+* a purchase can be handed to somebody, and a task row is one line again (FR-30.12, FR-7.14) ([#612](https://github.com/polandy/JIT-Pack/issues/612)) ([ab47665](https://github.com/polandy/JIT-Pack/commit/ab476656e983a59ae154fe09e9110c3e84e59f4e))
+* **client:** the excursion list takes the rest of M4's parts (FR-31.6) ([#616](https://github.com/polandy/JIT-Pack/issues/616)) ([362d70a](https://github.com/polandy/JIT-Pack/commit/362d70a68bb7324443d79536d6d234adc1aefb1d))
+* **client:** the fold row and the quick-add card carry the group's mark (FR-28.8) ([#610](https://github.com/polandy/JIT-Pack/issues/610)) ([ae9b4c9](https://github.com/polandy/JIT-Pack/commit/ae9b4c9af44d907814190341dde9099d06151374))
+* **client:** Vor der Reise takes nothing new once the trip is under way, on both lists (FR-7.14, FR-30.8) ([#613](https://github.com/polandy/JIT-Pack/issues/613)) ([a42b6ee](https://github.com/polandy/JIT-Pack/commit/a42b6ee0d822f69e70a1e27e6c73dab6ece39671))
+* excursions — a small packing list inside a trip, borrowing from the suitcase, started from and saved as a Gruppe (FR-31, ADR-077) ([#614](https://github.com/polandy/JIT-Pack/issues/614)) ([407b783](https://github.com/polandy/JIT-Pack/commit/407b78343f22e61938538c42f9a4ddbee86c5c0d))
+
+
+### Bug Fixes
+
+* **client:** a focus ends M4's scroll gesture, and the scroll helper sees the window open (FR-21.17) ([#615](https://github.com/polandy/JIT-Pack/issues/615)) ([46f63e2](https://github.com/polandy/JIT-Pack/commit/46f63e25d8146cc875afb95cb41d57c3589880b0))
+
 ## [0.20.0](https://github.com/polandy/JIT-Pack/compare/v0.19.0...v0.20.0) (2026-09-26)
 
 
