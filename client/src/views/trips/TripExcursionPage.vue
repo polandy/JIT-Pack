@@ -41,12 +41,15 @@ import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useLongPress } from '@/composables/useLongPress'
+import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
+import type { RowUndoRecord } from '@/composables/useRowUndo'
+import { collapseRow } from '@/lib/rowCollapse'
+import RevealBar from '@/components/global/RevealBar.vue'
 import { useTripScreen } from '@/composables/useTripScreen'
 import {
   canJoinPackingList,
   draftLinesFor,
   excursionLineAsRow,
-  excursionView,
   isLeftBehind,
   isOpenPurchase,
   namesItsParticipants,
@@ -54,10 +57,10 @@ import {
   spanOf,
   suitcaseOf,
   sumUnits,
-  type ExcursionEntry,
   type LineFor,
 } from '@/domain/excursions'
-import { NO_VALUE } from '@/domain/packingView'
+import { buildPackingView, noFacets } from '@/domain/packingView'
+import { stateFor } from '@/domain/packState'
 import { packedPercent } from '@/domain/packState'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { t } from '@/i18n'
@@ -70,7 +73,7 @@ import { beforeIsOver, standingOf } from '@/lib/tripPhase'
 import { tripExcursionsPath } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, Traveler } from '@/types/domain'
+import type { ExcursionItem, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
@@ -102,12 +105,38 @@ const person = ref<string | null>(null)
 function selectPerson(value: string) {
   person.value = person.value === value ? null : value
 }
-const shownLines = computed(() =>
-  person.value === null
-    ? lines.value
-    : lines.value.filter((l) => (l.assigned_traveler_id ?? NO_VALUE) === person.value),
+/** The lines by id, to get from M4's row back to the line it reads. */
+const lineById = computed(() => new Map(lines.value.map((l) => [l.id, l])))
+function lineOf(item: TripItem): ExcursionItem {
+  return lineById.value.get(item.id)!
+}
+
+/** FR-25.2 on the excursion: packed lines leave the list until revealed. */
+const showDone = ref(false)
+
+/**
+ * M4's own view model over the lines read as M4's rows (FR-31.6): the same
+ * grouping, clusters, counts and FR-25.2 departure, so the list behaves as the
+ * packing list does because it is built by the same function.
+ */
+const view = computed(() =>
+  buildPackingView({
+    items: lines.value.map(excursionLineAsRow),
+    travelers: travelers.value,
+    containers: [],
+    participants: [],
+    groupBy: GROUP_BY_CATEGORY,
+    showDone: showDone.value,
+    facets: { ...noFacets(), person: person.value === null ? [] : [person.value] },
+    search: '',
+    currentUserId: null,
+    showOthers: true,
+    showLate: true,
+    collapsedGroups: [...shutGroups.value],
+    expandedClusters: [...openClusters.value],
+    itemsWithOpenPrep: [],
+  }),
 )
-const groups = computed(() => excursionView(shownLines.value, participants.value))
 const units = computed(() => sumUnits(lines.value))
 const toBuy = computed(() => lines.value.filter(isOpenPurchase).length)
 const tripItems = computed(() => tripStore.getItems(props.tripId))
@@ -131,10 +160,6 @@ const metaLine = computed(() => {
   return `${days} · ${who}`
 })
 
-function personOf(line: ExcursionItem): Traveler | null {
-  return travelers.value.find((tr) => tr.id === line.assigned_traveler_id) ?? null
-}
-
 /** A line says nothing in M4's own note slots — its facts are its own. */
 const NO_NOTES: PackingRowNotes = {
   lock: null,
@@ -144,18 +169,11 @@ const NO_NOTES: PackingRowNotes = {
   responsible: null,
 }
 
-function isDone(line: ExcursionItem): boolean {
-  return line.state === STATE_SKIPPED || line.packed_count >= line.quantity
-}
-
-/** FR-25.23's shut head: a face per instance, ringed once it is dealt with. */
-function facesOf(entry: Extract<ExcursionEntry, { kind: 'cluster' }>) {
-  return entry.lines.map((line) => ({ traveler: personOf(line), done: isDone(line) }))
-}
-
 // --- the fold of a group (view state, as on M4) ---
 
 const shutGroups = ref(new Set<string>())
+/** M4's grouping on this list: by category, the only axis an excursion has. */
+const GROUP_BY_CATEGORY = 'category'
 function toggleGroup(key: string) {
   const next = new Set(shutGroups.value)
   if (next.has(key)) next.delete(key)
@@ -179,13 +197,50 @@ function toggleCluster(key: string) {
 
 // --- the line's acts ---
 
-function tick(line: ExcursionItem) {
-  orchestrator.toggleLine(props.tripId, line)
+/**
+ * M4's snackbar and its one undo (FR-25.2, FR-25.31), anchored above this
+ * screen's ＋: a pack registers, the row leaves, and a mistap is taken back
+ * from the snackbar — as on the packing list.
+ */
+const { rowUndo, announcePacked, announceAct } = usePackAnnouncer(FAB_ANCHOR.m27Excursion)
+
+function restoreCounts(records: RowUndoRecord[]) {
+  for (const record of records) {
+    const line = lineById.value.get(record.itemId)
+    if (line)
+      orchestrator.setLineCount(
+        props.tripId,
+        { ...line, quantity: record.quantity },
+        record.packedCount,
+      )
+  }
 }
 
-/** M4's stepper, on the line's own count. */
+/** M4's stepper and tick, on the line's own count — each announced like M4's. */
 function count(line: ExcursionItem, packed: number) {
-  orchestrator.setLineCount(props.tripId, line, Math.min(Math.max(packed, 0), line.quantity))
+  const target = Math.min(Math.max(packed, 0), line.quantity)
+  const name = line.name
+  rowUndo.actWithUndo(
+    [excursionLineAsRow(line)],
+    () => orchestrator.setLineCount(props.tripId, line, target),
+    restoreCounts,
+  )
+  void (target >= line.quantity
+    ? announcePacked(name)
+    : target === 0
+      ? announceAct(t('packing.unpackedToast', { name }))
+      : announceAct(t('packing.countToast', { name, packed: target, quantity: line.quantity })))
+}
+
+function tick(line: ExcursionItem) {
+  const reads = stateFor(line.packed_count, line.quantity)
+  count(line, reads === 'packed' ? 0 : line.quantity)
+}
+
+/** Collapse a leaving row to nothing — M4's `collapseRow`, honouring reduced motion. */
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+function onRowLeave(el: Element, done: () => void) {
+  collapseRow(el as HTMLElement, done, reducedMotion.matches)
 }
 
 async function removeLine(line: ExcursionItem) {
@@ -475,118 +530,152 @@ setHeaderTitle(
           @add-group="onQuickAddGroup"
         />
 
-        <IonList v-if="groups.length > 0" class="excursion-list">
-          <template v-for="group in groups" :key="group.category ?? ''">
+        <IonList v-if="view.groups.length > 0" class="excursion-list">
+          <template v-for="group in view.groups" :key="group.key">
             <button
               class="group-head"
-              :class="{ shut: shutGroups.has(group.category ?? '') }"
-              :data-testid="`m27-group-${group.category ?? 'none'}`"
-              @click="toggleGroup(group.category ?? '')"
+              :class="{ shut: group.collapsed }"
+              :data-testid="`m27-group-${group.key || 'none'}`"
+              @click="toggleGroup(group.key)"
             >
               <IonIcon :icon="chevronDownOutline" class="caret" />
-              <span class="group-name">{{ group.category ?? t('common.none') }}</span>
-              <span class="group-count">{{ group.units.done }}/{{ group.units.total }}</span>
+              <span class="group-name">{{ group.name ?? t('common.none') }}</span>
+              <span class="group-count">
+                {{
+                  group.collapsed
+                    ? t('packing.openCount', { n: group.openCount })
+                    : `${group.doneCount}/${group.totalCount}`
+                }}
+              </span>
             </button>
 
-            <div v-if="!shutGroups.has(group.category ?? '')" class="group-card jp-card">
+            <!-- FR-25.2 as on M4: a packed row leaves rather than vanishes. -->
+            <TransitionGroup
+              v-if="!group.collapsed"
+              name="pack-out"
+              tag="div"
+              class="group-card jp-card"
+              @leave="onRowLeave"
+            >
               <template
                 v-for="entry in group.entries"
-                :key="entry.kind === 'line' ? entry.line.id : entry.key"
+                :key="entry.kind === 'item' ? entry.item.id : entry.key"
               >
-                <PackingRow
-                  v-if="entry.kind === 'line'"
-                  screen="m27"
-                  :item="excursionLineAsRow(entry.line)"
-                  :label="entry.line.name"
-                  :test-key="entry.line.name"
-                  :done="isDone(entry.line)"
-                  :locked="false"
-                  :closing-pass="false"
-                  :notes="NO_NOTES"
-                  :master="masterOf(entry.line.source_item_id)"
-                  @open="openSheet(entry.line)"
-                  @menu="openLine(entry.line)"
-                  @press-start="(e: PointerEvent) => hold.down(entry.line, e.clientX, e.clientY)"
-                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                  @press-end="hold.cancel()"
-                  @edit-quantity="openLine(entry.line)"
-                  @increment="count(entry.line, entry.line.packed_count + 1)"
-                  @decrement="count(entry.line, entry.line.packed_count - 1)"
-                  @complete="count(entry.line, entry.line.quantity)"
-                  @zero="count(entry.line, 0)"
-                  @toggle="tick(entry.line)"
-                >
-                  <template #facts>
-                    <ExcursionFacts
-                      :line="entry.line"
-                      :test-key="entry.line.name"
-                      :from-luggage="suitcaseOf(entry.line, tripItems) !== null"
-                      :can-keep="canJoinPackingList(entry.line)"
-                      @buy-on-site="orchestrator.buyOnTheSpot(tripId, entry.line)"
-                      @keep="keep(entry.line)"
-                    />
-                  </template>
-                </PackingRow>
-
-                <div v-else class="cluster">
+                <div v-if="entry.kind === 'cluster'" class="cluster">
                   <ClusterHead
                     screen="m27"
                     :name="entry.name"
-                    :mode="entry.lines[0]!.mode"
+                    :mode="entry.mode"
                     :late="false"
-                    :done-count="entry.units.done"
-                    :total-count="entry.units.total"
-                    :open-count="entry.units.total - entry.units.done"
-                    :collapsed="!openClusters.has(entry.key)"
-                    :faces="facesOf(entry)"
-                    :master="masterOf(entry.lines[0]!.source_item_id)"
+                    :done-count="entry.doneCount"
+                    :total-count="entry.totalCount"
+                    :open-count="entry.openCount"
+                    :collapsed="entry.collapsed"
+                    :faces="entry.faces"
+                    :master="masterOf(entry.sourceItemId)"
                     @toggle="toggleCluster(entry.key)"
                   />
-                  <div v-if="openClusters.has(entry.key)" class="cluster-children">
+                  <div v-if="!entry.collapsed" class="cluster-children">
                     <PackingRow
-                      v-for="line in entry.lines"
+                      v-for="child in entry.children"
+                      :key="child.item.id"
                       screen="m27"
-                      :key="line.id"
                       variant="child"
-                      :item="excursionLineAsRow(line)"
-                      :label="personOf(line)?.name ?? line.name"
-                      :test-key="`${entry.name}-${personOf(line)?.name ?? ''}`"
-                      :done="isDone(line)"
+                      :item="child.item"
+                      :label="child.traveler?.name ?? child.label"
+                      :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                      :done="child.done"
                       :locked="false"
                       :closing-pass="false"
                       :notes="NO_NOTES"
-                      :traveler="personOf(line)"
-                      @open="openSheet(line)"
-                      @menu="openLine(line)"
-                      @press-start="(e: PointerEvent) => hold.down(line, e.clientX, e.clientY)"
+                      :traveler="child.traveler"
+                      @open="openSheet(lineOf(child.item))"
+                      @menu="openLine(lineOf(child.item))"
+                      @press-start="
+                        (e: PointerEvent) => hold.down(lineOf(child.item), e.clientX, e.clientY)
+                      "
                       @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                       @press-end="hold.cancel()"
-                      @edit-quantity="openLine(line)"
-                      @increment="count(line, line.packed_count + 1)"
-                      @decrement="count(line, line.packed_count - 1)"
-                      @complete="count(line, line.quantity)"
-                      @zero="count(line, 0)"
-                      @toggle="tick(line)"
+                      @edit-quantity="openSheet(lineOf(child.item))"
+                      @increment="count(lineOf(child.item), child.item.packed_count + 1)"
+                      @decrement="count(lineOf(child.item), child.item.packed_count - 1)"
+                      @complete="count(lineOf(child.item), child.item.quantity)"
+                      @zero="count(lineOf(child.item), 0)"
+                      @toggle="tick(lineOf(child.item))"
                     >
                       <template #facts>
                         <ExcursionFacts
-                          :line="line"
-                          :test-key="`${entry.name}-${personOf(line)?.name ?? ''}`"
-                          :from-luggage="suitcaseOf(line, tripItems) !== null"
-                          :left-behind="line.packed_count > 0 && isLeftBehind(line, participants)"
-                          :can-keep="canJoinPackingList(line)"
-                          @buy-on-site="orchestrator.buyOnTheSpot(tripId, line)"
-                          @take-out="removeLine(line)"
-                          @keep="keep(line)"
+                          :line="lineOf(child.item)"
+                          :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                          :from-luggage="suitcaseOf(lineOf(child.item), tripItems) !== null"
+                          :left-behind="
+                            child.item.packed_count > 0 &&
+                            isLeftBehind(lineOf(child.item), participants)
+                          "
+                          :can-keep="canJoinPackingList(lineOf(child.item))"
+                          @buy-on-site="orchestrator.buyOnTheSpot(tripId, lineOf(child.item))"
+                          @take-out="removeLine(lineOf(child.item))"
+                          @keep="keep(lineOf(child.item))"
                         />
                       </template>
                     </PackingRow>
                   </div>
                 </div>
+
+                <PackingRow
+                  v-else
+                  screen="m27"
+                  :item="entry.item"
+                  :label="entry.label"
+                  :test-key="entry.item.name"
+                  :done="entry.done"
+                  :locked="false"
+                  :closing-pass="false"
+                  :notes="NO_NOTES"
+                  :traveler="entry.traveler"
+                  :master="masterOf(entry.item.source_item_id)"
+                  @open="openSheet(lineOf(entry.item))"
+                  @menu="openLine(lineOf(entry.item))"
+                  @press-start="
+                    (e: PointerEvent) => hold.down(lineOf(entry.item), e.clientX, e.clientY)
+                  "
+                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                  @press-end="hold.cancel()"
+                  @edit-quantity="openSheet(lineOf(entry.item))"
+                  @increment="count(lineOf(entry.item), entry.item.packed_count + 1)"
+                  @decrement="count(lineOf(entry.item), entry.item.packed_count - 1)"
+                  @complete="count(lineOf(entry.item), entry.item.quantity)"
+                  @zero="count(lineOf(entry.item), 0)"
+                  @toggle="tick(lineOf(entry.item))"
+                >
+                  <template #facts>
+                    <ExcursionFacts
+                      :line="lineOf(entry.item)"
+                      :test-key="entry.item.name"
+                      :from-luggage="suitcaseOf(lineOf(entry.item), tripItems) !== null"
+                      :can-keep="canJoinPackingList(lineOf(entry.item))"
+                      @buy-on-site="orchestrator.buyOnTheSpot(tripId, lineOf(entry.item))"
+                      @keep="keep(lineOf(entry.item))"
+                    />
+                  </template>
+                </PackingRow>
               </template>
-            </div>
+            </TransitionGroup>
           </template>
         </IonList>
+
+        <!-- FR-25.2: state the count, one tap to reveal — M4's bar. -->
+        <RevealBar
+          v-if="view.doneCount > 0"
+          :open="showDone"
+          :label="
+            showDone
+              ? t('packing.hideDone', { n: view.doneCount })
+              : t('packing.showDone', { n: view.doneCount })
+          "
+          testid="m27-done-bar"
+          @toggle="showDone = !showDone"
+        />
       </template>
 
       <ExcursionSheet
@@ -698,6 +787,38 @@ setHeaderTitle(
 
 .group-head.shut .caret {
   transform: rotate(-90deg);
+}
+
+.pack-out-leave-active {
+  transition:
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease,
+    background-color 0.3s ease;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pack-out-leave-from {
+  background: color-mix(in srgb, var(--jp-done) 22%, transparent);
+}
+
+.pack-out-leave-to {
+  opacity: 0;
+}
+
+.pack-out-move {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-out-leave-active,
+  .pack-out-move {
+    transition: none;
+  }
+
+  .pack-out-leave-from {
+    background: none;
+  }
 }
 
 .cluster-children {

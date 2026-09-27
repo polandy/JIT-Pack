@@ -16,6 +16,7 @@ import {
   excursionLine,
   excursionMenu,
   openExcursions,
+  revealPackedLines,
   tickExcursionLine,
 } from './helpers/m27'
 import { packRow, startTrip, tripWithRows } from './helpers/m4'
@@ -109,9 +110,11 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
     await openExcursions(page)
     await visible(page).getByTestId('m27-excursion-Tageswanderung').click()
-    await expect(
-      excursionLine(page, 'Hüttenschlafsack').getByTestId('row-check').locator('ion-checkbox'),
-    ).toHaveJSProperty('checked', false)
+    // The suitcase's pack left the excursion's sleeping bag open …
+    await expect(excursionLine(page, 'Hüttenschlafsack')).toBeVisible()
+    await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
+    // … and the excursion's own pack is there once the packed lines are shown.
+    await revealPackedLines(page)
     await expect(
       excursionLine(page, 'Stirnlampe').getByTestId('row-check').locator('ion-checkbox'),
     ).toHaveJSProperty('checked', true)
@@ -336,11 +339,12 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await sheet.getByTestId('m27-line-close').click()
     await expect(page.getByTestId('m27-line-sheet')).toHaveCount(0)
 
-    // The packed shared line stays in the rucksack; each person has a line now.
+    // The packed shared line stays in the rucksack (and off the open list, as a
+    // packed row is on M4); each person has a line now.
     await visible(page).getByTestId('m27-cluster-Schlafsack').click()
     await expect(visible(page).locator('[data-testid^="m27-child-Schlafsack-"]')).toHaveCount(2)
 
-    await excursionLine(page, 'Schlafsack').dispatchEvent('contextmenu')
+    await excursionLine(page, 'Schlafsack-Andy').dispatchEvent('contextmenu')
     await expect(page.getByTestId('excursion-line-menu')).toBeVisible()
   })
 })

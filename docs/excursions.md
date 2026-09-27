@@ -36,7 +36,9 @@ Things the luggage does not have show **nicht im Gepäck** on the excursion, wit
 
 The excursion's list works like the packing list, only smaller:
 
-- tick a line when it is in the bag — this tick belongs to the excursion; the suitcase's tick is not touched;
+- tick a line when it is in the bag — this tick belongs to the excursion; the suitcase's tick is not touched. As on
+  the packing list, a packed line leaves the list (**Rückgängig** in the message brings it back) and **… gepackt
+  anzeigen** at the foot shows the packed ones again;
 - **aus dem Gepäck** under a line means it comes out of your luggage;
 - a pin glyph on a line means you buy it on the way — lunch at the kiosk. These lines also appear on the trip's shopping list
   (**Einkaufen**), under **Vor Ort** and the excursion's name. Tick one off there and the excursion says **vor Ort

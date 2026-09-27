@@ -66,12 +66,20 @@ export function excursionLine(page: Page, key: string): Locator {
     .or(visiblePage(page).getByTestId(`m27-child-${key}`))
 }
 
-/** Tick one line's check and wait for the write. */
+/**
+ * Tick one line's check and wait for the write. The line then leaves the list
+ * as a packed row leaves M4's (FR-25.2) — its departure is the rendered
+ * evidence that the pack was written.
+ */
 export async function tickExcursionLine(page: Page, key: string): Promise<void> {
-  const check = excursionLine(page, key).getByTestId('row-check').locator('ion-checkbox')
-  await check.click()
-  await expect(check).toHaveJSProperty('checked', true)
+  await excursionLine(page, key).getByTestId('row-check').locator('ion-checkbox').click()
+  await expect(excursionLine(page, key)).toHaveCount(0)
   await writesLanded(page)
+}
+
+/** FR-25.2's bar on the excursion: bring the packed lines back into view. */
+export async function revealPackedLines(page: Page): Promise<void> {
+  await visiblePage(page).getByTestId('m27-done-bar').click()
 }
 
 /**

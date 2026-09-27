@@ -17,7 +17,6 @@ import {
   excursionLineAsRow,
   draftLinesFor,
   draftLinesFromGroup,
-  excursionView,
   isDueSoon,
   isLeftBehind,
   isOpenPurchase,
@@ -442,39 +441,6 @@ describe('planParticipantChange — FR-31.5', () => {
       }),
     ]
     expect(planParticipantChange(uneven, [andy, sia], [andy, sia, lio]).add[0]!.quantity).toBe(1)
-  })
-})
-
-describe('excursionView — FR-31.6', () => {
-  it('groups by category, clusters per-person lines in the participants’ order and counts units', () => {
-    const view = excursionView(
-      [
-        line('l1', 'Stirnlampe', { category_name: 'Schlafen', quantity: 2 }),
-        line('l2', 'Hüttenschlafsack', {
-          category_name: 'Schlafen',
-          assigned_traveler_id: 'tr-sia',
-          for_all_participants: true,
-        }),
-        line('l3', 'Hüttenschlafsack', {
-          category_name: 'Schlafen',
-          assigned_traveler_id: 'tr-andy',
-          for_all_participants: true,
-          packed_count: 1,
-          state: 'packed',
-        }),
-        line('l4', 'Proviant', { mode: 'buy_local' }),
-        line('l5', 'Zelt', { category_name: 'Schlafen', quantity: 0, state: 'skipped' }),
-      ],
-      [andy, sia],
-    )
-    expect(view.map((g) => [g.category, g.units])).toEqual([
-      ['Schlafen', { done: 1, total: 4 }],
-      [null, { done: 0, total: 1 }],
-    ])
-    const cluster = view[0]!.entries[0]!
-    expect(
-      cluster.kind === 'cluster' && [cluster.name, cluster.units, cluster.lines.map((l) => l.id)],
-    ).toEqual(['Hüttenschlafsack', { done: 1, total: 2 }, ['l3', 'l2']])
   })
 })
 

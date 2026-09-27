@@ -2846,7 +2846,10 @@ token would prove nothing there is anything to prove.
   progress card (*„2/6 gepackt"*, with *„1 vor Ort besorgen"* as its detail while *vor Ort* lines are unbought, *„Noch
   nichts auf der Liste"* on an empty one) and, where two or more go, its **Pro Person** strip over the participants,
   whose cards filter the list to one person's lines or the shared ones as on M4. Then the lines **by category** under
-  M4's collapsible group heads (`done/total` in units, *Ohne* for none), A–Z.
+  M4's collapsible group heads (`done/total` in units, *Ohne* for none), A–Z. **The list is built by M4's own view
+  model** (`buildPackingView` over the lines read as M4's rows), so it behaves as the packing list does: a packed line
+  **leaves the list** with M4's pack-out (FR-25.2) and M4's snackbar with *Rückgängig*, and M4's reveal bar (*„2
+  gepackt anzeigen"*, `m27-done-bar`) brings the packed lines back.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):

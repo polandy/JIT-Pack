@@ -4238,11 +4238,12 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
 * **FR-31.6 (The Packing List, Smaller):** An excursion's list **reads and works like M4, from M4's own parts**: its
   progress card and per-person strip (filtering as on M4), collapsible group heads by category, M4's row with its
   stepper and glyphs, the per-person cluster that starts shut, the §3.28 mark, and the orange ＋ opening M4's quick-add
-  (inventory search, groups, *für wen*). A line adds its facts under its name — *aus dem Gepäck* for a line borrowing a
-  row this device holds, *vor Ort gekauft* once bought. A line's menu offers one more / one less, *Gekauft* / *Noch
-  nicht gekauft* for a *vor Ort* line, *Vor Ort besorgen* for one not in the luggage, *Diesmal nicht* (the FR-5.5 skip,
-  an amount of zero) / *Doch mitnehmen*, and *Von der Liste nehmen* with an undo. **Not on an excursion line:** packer,
-  container, weight, comments, packing-now, the late packer.
+  (inventory search, groups, *für wen*). It is built by M4's own view model, so a packed line leaves the list as a
+  packed row does (FR-25.2), with M4's snackbar and its undo, and the reveal bar brings it back. A line adds its facts
+  under its name — *aus dem Gepäck* for a line borrowing a row this device holds, *vor Ort gekauft* once bought. A
+  line's menu offers one more / one less, *Gekauft* / *Noch nicht gekauft* for a *vor Ort* line, *Vor Ort besorgen* for
+  one not in the luggage, *Diesmal nicht* (the FR-5.5 skip, an amount of zero) / *Doch mitnehmen*, and *Von der Liste
+  nehmen* with an undo. **Not on an excursion line:** packer, container, weight, comments, packing-now, the late packer.
 * **FR-31.7 (After the Suitcase Is Closed):** Once *before* is over — the trip started, its first day come, or its
   packing closed (FR-7.12's `beforeIsOver`) — adding lines **writes nothing to the trip's list**. A line to pack with
   no packed trip row behind it is stored as **not in the luggage** (`not_in_luggage`) and shows *nicht im Gepäck ·
