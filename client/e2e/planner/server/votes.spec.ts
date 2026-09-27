@@ -13,7 +13,7 @@ import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'
  * server's (`TestStampActor_VoteUpsertCannotTakeOverAnotherUsersVote_FR29_3`,
  * `TestApplyMutation_OnlyTheVoterMayChangeAVote_FR29_3`).
  */
-test.describe('Ideas across identities (FR-29.3) @server', () => {
+test.describe('Ideas across identities (FR-29.3) @server @planner', () => {
   test.slow()
 
   /**

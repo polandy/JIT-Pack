@@ -592,7 +592,10 @@ test('E2E-VIS-11: visual: M2 with the hero card @local @visual', async ({ page, 
 // phase in the date line, no ring, and the two blocks with a row each. The
 // trip is undated on purpose: the day counter reads the wall clock, and a
 // baseline that says *„in 3 Tagen"* is a baseline that goes stale by itself.
-test('E2E-VIS-13: visual: M1 hero after the packing @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-13: visual: M1 hero after the packing @local @visual @shopping', async ({
+  page,
+  seedMode,
+}) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Zelt', 'Schlafsack'])

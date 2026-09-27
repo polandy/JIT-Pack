@@ -22,7 +22,7 @@ import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas, showSegment } from 
 
 const TRIP = { name: 'Engadin Ideen', endDate: '2026-12-31', travelers: ['Andy'] }
 
-test.describe('M28 ideas @local', () => {
+test.describe('M28 ideas @local @planner', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
     await createTripViaWizard(page, TRIP)

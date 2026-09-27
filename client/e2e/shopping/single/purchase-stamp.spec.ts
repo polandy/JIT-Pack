@@ -23,7 +23,7 @@ async function accountName(page: Page): Promise<string> {
   return ((await me.json()) as { display_name: string }).display_name
 }
 
-test.describe('M6 — who bought it, and when (FR-30.4) @single @m6', () => {
+test.describe('M6 — who bought it, and when (FR-30.4) @single @m6 @shopping', () => {
   test('E2E-M6-29: a bought entry and a bought packing row name the buyer and the time', async ({
     context,
     browser,

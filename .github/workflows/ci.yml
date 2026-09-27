@@ -29,15 +29,21 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # A change that touches no file the running app is built from — docs,
-  # specs, unit tests, the gates, the other workflows — renders no screen
-  # and changes no behaviour, so e2e and visual have nothing to find. The
-  # list names what is *not* app input, not what is: a path it does not name
-  # (a new source directory, this workflow, client/e2e/) runs the suites, so
-  # forgetting to update it costs a run, never a missed regression. Unit
-  # tests are on it because `go` and `client` run them in every case.
-  # Computed once here rather than with a third-party paths-filter action
-  # (NFR-4.3: a short diff check is not worth a new pinned dependency).
+  # What a diff reaches, decided once for every job below (ADR-079) by
+  # scripts/diff-scope.mjs, where both rules and their test live:
+  #
+  # - `app_untouched`: no file the running app is built from changed (docs,
+  #   specs, unit tests, the gates, the other workflows), so e2e and visual
+  #   have nothing to find. The list names what is *not* app input, so a path
+  #   it does not name runs the suites — forgetting it costs a run, never a
+  #   missed regression.
+  # - `module`: on a pull request, every app-input path lies inside one
+  #   feature module, so e2e runs that module's cases and the `@smoke` set on
+  #   one leg instead of the ten-leg matrix. Empty for anything else — and
+  #   always on a push to main — and then everything runs.
+  #
+  # A script rather than a third-party paths-filter action (NFR-4.3), run on
+  # the bare runner's node — built-ins only.
   #
   # Runs unconditionally, on every trigger including workflow_dispatch: a
   # `needs`-job that is itself skipped skips every job that needs it, no
@@ -48,6 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       app_untouched: ${{ steps.check.outputs.app_untouched }}
+      module: ${{ steps.check.outputs.module }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -68,18 +75,13 @@ jobs:
             push) base="$PUSH_BEFORE_SHA" ;;
             *) base="$(git merge-base origin/main HEAD)" ;;
           esac
-          not_app='\.md$|^docs/|^dev-docs/|^deploy/|^\.claude/'
-          not_app="$not_app|^(mkdocs|docker-compose|\.golangci)\.yml$|^LICENSE"
-          not_app="$not_app|^(release-please-config|\.release-please-manifest)\.json$"
-          not_app="$not_app|^\.github/(dependabot\.yml|workflows/(docker|docs|release)\.yml)$"
-          not_app="$not_app|^scripts/[a-z-]+-gate\.(mjs|sh)$|^scripts/ci-remote\.sh$"
-          not_app="$not_app|^client/(src|cli)/(.*/)?__tests__/|_test\.go$|/testdata/"
-          changed="$(git diff --name-only "$base" "$HEAD")"
-          if [ -n "$changed" ] && [ -z "$(echo "$changed" | grep -viE "$not_app")" ]; then
-            echo "app_untouched=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "app_untouched=false" >> "$GITHUB_OUTPUT"
+          scope="$(git diff --name-only "$base" "$HEAD" | node scripts/diff-scope.mjs)"
+          # Only a pull request may narrow to a module: a push to main is the
+          # full run that catches what the smoke set cannot (ADR-079).
+          if [ "$EVENT_NAME" != pull_request ]; then
+            scope="$(echo "$scope" | sed 's/^module=.*/module=/')"
           fi
+          echo "$scope" | tee -a "$GITHUB_OUTPUT"
 
   go:
     runs-on: ubuntu-latest
@@ -170,6 +172,9 @@ jobs:
       # The same idea one level up (FR-30.3, ADR-066): a feature module and
       # the packing code meet only through kernel contracts App.vue binds.
       - run: node ../scripts/module-boundary-gate.mjs
+      # The `changes` job's diff classification (ADR-079), tested here
+      # because that job runs it without a test step of its own.
+      - run: node --test ../scripts/diff-scope.test.mjs
       # And one more of the family: a pull-to-refresh whose handler awaits
       # nothing spins, resolves and tells the user the list is up to date
       # without having asked anybody. Two of six were like that, and no test
@@ -196,7 +201,9 @@ jobs:
   # e2e window.)
   #
   # Skipped when no app input changed (see `changes` above) — a baseline diff
-  # needs a rendered screen, and nothing on that list renders one.
+  # needs a rendered screen, and nothing on that list renders one. A
+  # module-only diff runs every baseline (ADR-079): one job that finishes
+  # inside the module's own e2e leg, so narrowing it would save no time.
   visual:
     needs: [changes, client]
     if: needs.changes.outputs.app_untouched != 'true'
@@ -254,8 +261,11 @@ jobs:
       # Every shard reports, so a failure in one is not hidden by the
       # others being cancelled.
       fail-fast: false
+      # One leg when the diff stays inside a feature module (ADR-079): the
+      # module's cases and the smoke set are a few dozen tests, and the
+      # matrix's cost is the runners it holds, not only its wall-clock.
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: ${{ fromJSON(needs.changes.outputs.module == '' && '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]' || '[1]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Installed and built on the *runner*, not in the container: the image
@@ -266,7 +276,18 @@ jobs:
           build: 'true'
       # job-total rather than a repeated literal: the shard count is the
       # matrix length, and naming it twice is how the two drift apart.
-      - run: scripts/e2e.sh --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      # A module-only diff selects by tag instead — `module-boundary-gate.mjs`
+      # holds that every case working the module's surface carries it, and
+      # `@smoke` rides along for the run-time coupling the boundary cannot see.
+      - env:
+          MODULE: ${{ needs.changes.outputs.module }}
+          SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+        run: |
+          if [ -n "$MODULE" ]; then
+            scripts/e2e.sh --grep "@$MODULE|@smoke"
+          else
+            scripts/e2e.sh --shard="$SHARD"
+          fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
@@ -300,7 +321,11 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
-      - run: E2E_BACKEND=1 scripts/e2e.sh --project=single
+      # A module-only diff runs the module's backend-backed cases alone
+      # (ADR-079); a module with none passes on an empty selection.
+      - env:
+          MODULE: ${{ needs.changes.outputs.module }}
+        run: E2E_BACKEND=1 scripts/e2e.sh --project=single ${MODULE:+--grep "@$MODULE" --pass-with-no-tests}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
@@ -328,7 +353,10 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
-      - run: E2E_SERVER=1 scripts/e2e.sh --project=server
+      # Narrowed on a module-only diff exactly as `e2e-single` is.
+      - env:
+          MODULE: ${{ needs.changes.outputs.module }}
+        run: E2E_SERVER=1 scripts/e2e.sh --project=server ${MODULE:+--grep "@$MODULE" --pass-with-no-tests}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:

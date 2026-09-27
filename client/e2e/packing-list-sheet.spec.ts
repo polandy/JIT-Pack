@@ -716,7 +716,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    * not standing on is a glyph, and there the number is a badge — the name
    * still carries it, so a screen reader hears the same count.
    */
-  test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
+  test('E2E-M4-11: the shopping entry carries a count only once something is to be bought @shopping', async ({
     page,
   }) => {
     await createTripViaWizard(page, M4_TRIP)

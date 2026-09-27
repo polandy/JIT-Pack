@@ -196,7 +196,9 @@ test.describe('M5 item detail @local @m5', () => {
   // not unmount itself, it would stand over the next screen. Provoked with
   // the trip's own view switcher, which is the shortest way off M4 that keeps
   // the trip.
-  test('E2E-M5-27: leaving M4 with the pane open takes the pane with it', async ({ page }) => {
+  test('E2E-M5-27: leaving M4 with the pane open takes the pane with it @shopping', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)

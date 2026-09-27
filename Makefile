@@ -5,7 +5,7 @@
 # CI step at all (stricter here than there — it guards ADR-025).
 .PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-purity client-modules client-build client-test client-fmt \
-        e2e e2e-single e2e-server visual visual-update docker-build all
+        e2e e2e-module e2e-single e2e-server visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
 # `mise.toml` is the one place the toolchain is pinned. But CLAUDE.md points
@@ -214,9 +214,11 @@ client-purity:
 
 # FR-30.3 / ADR-066: a feature module (client/src/shopping/) and the packing
 # code never import each other; only the composition root reaches into a
-# module. Node built-ins only.
+# module, and its e2e cases carry its tag. Beside it, the test of the CI
+# `changes` job's diff classification (ADR-079). Node built-ins only.
 client-modules:
 	$(RUN) node scripts/module-boundary-gate.mjs
+	$(RUN) node --test scripts/diff-scope.test.mjs
 
 # A pull-to-refresh that reports success without fetching is worse than an
 # absent one. Node built-ins only, like the three gates above.
@@ -272,6 +274,13 @@ visual-update: client-build
 # Chromium does not run at all.
 e2e: client-build
 	scripts/e2e.sh
+
+# The selection CI runs for a diff that stays inside one feature module
+# (ADR-079): the module's tagged cases and the `@smoke` set. `M` names the
+# module (scripts/modules.mjs), e.g. `make e2e-module M=planner`.
+e2e-module: client-build
+	@test -n "$(M)" || { echo "usage: make e2e-module M=<module>" >&2; exit 2; }
+	scripts/e2e.sh --grep "@$(M)|@smoke"
 
 # The backend-backed cases (UI-Test-Spec §2.2, mode `single`): a real
 # Single-User jitpackd behind the preview proxy. The binary is built here on
