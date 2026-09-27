@@ -449,6 +449,13 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await expect(excursionLine(page, 'Sonnenhut')).toBeVisible()
 
     await openLineMenu(page, 'Sonnenhut')
+    await chooseInLineMenu(page, /buy there/i)
+    await undoFromSnackbar(page, 'is bought there')
+    const back = await openLineMenu(page, 'Sonnenhut')
+    await expect(back.getByRole('button', { name: /buy there/i })).toBeVisible()
+    await chooseInLineMenu(page, /cancel/i)
+
+    await openLineMenu(page, 'Sonnenhut')
     await chooseInLineMenu(page, /remove from the list/i)
     await expect(excursionLine(page, 'Sonnenhut')).toHaveCount(0)
     await undoFromSnackbar(page, 'removed from the list')
@@ -544,9 +551,10 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
   /**
    * E2E-M27-13: M4's browse verbs on a thing the excursion carries — *packen*
-   * puts it into the rucksack, the row's undo takes it back.
+   * puts it into the rucksack, *nicht einpacken* leaves it at home, and the
+   * row's undo takes each back.
    */
-  test('E2E-M27-13: the inventory sheet packs a carried thing, and takes it back', async ({
+  test('E2E-M27-13: the inventory sheet packs and skips a carried thing, and takes each back', async ({
     page,
   }) => {
     await tripWithRows(page, ['Stirnlampe'], 'Sardinien')
@@ -563,6 +571,11 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
     await row.getByTestId('browse-undo').click()
     await expect(row.getByTestId('browse-pack')).toBeVisible()
+    await expect(excursionLine(page, 'Stirnlampe')).toBeVisible()
+
+    await row.getByTestId('browse-skip').click()
+    await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
+    await row.getByTestId('browse-undo').click()
     await expect(excursionLine(page, 'Stirnlampe')).toBeVisible()
   })
 })

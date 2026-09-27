@@ -3391,8 +3391,8 @@ went.
   M4; *Als Gruppe speichern* asks about the other alone, and *Weglassen* saves the Gruppe with it absent from M9.
 * **E2E-M27-10** `local` (FR-31.6, FR-5.5, FR-25.24, FR-25.31) — **implemented** (`excursions.spec.ts`): a line's menu
   offers M4's entries in M4's words (*Change the amount*, *Do not pack this*, *Buy there*, *Remove from the list*) and
-  not the suitcase's (*Pack*, late packer); the amount through M4's popover is one act with one undo, and the skip and
-  the removal each leave the list and come back from the snackbar's *Undo*.
+  not the suitcase's (*Pack*, late packer); the amount through M4's popover is one act with one undo; the skip and the
+  removal each leave the list and come back from the snackbar's *Undo*, and *Buy there* is undone back to packing.
 * **E2E-M27-11** `local` (FR-31.6, FR-25.11, FR-25.16, FR-25.29) — **implemented** (`excursions.spec.ts`): the bar's
   search narrows the list, a search with no match shows *No matches* and M4's reset; two person cards are two chips
   and a cluster then shows those two people's lines, the reset brings the third back; fold-all folds the group to its
@@ -3401,7 +3401,8 @@ went.
   `?line=` in the URL; the browser's back closes it and the excursion's list is what remains; at a desktop width the
   same tap opens M5's side panel beside the list, and no sheet.
 * **E2E-M27-13** `local` (FR-31.6, FR-25.13f) — **implemented** (`excursions.spec.ts`): the inventory sheet's
-  *packen* on a thing the excursion carries takes its line off the open list, and the row's undo brings it back.
+  *packen* on a thing the excursion carries takes its line off the open list, *nicht einpacken* does too, and the
+  row's undo brings it back after each.
 
 ## 5. Cross-Screen Flow Tests
 
