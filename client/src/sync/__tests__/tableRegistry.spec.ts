@@ -80,6 +80,9 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.templateItems, parse: 'rowToTemplateItem', encode: 'templateItemRow' },
   { table: TABLE.tripSeries, parse: 'rowToSeries', encode: 'seriesRow' },
   { table: TABLE.shoppingEntries, parse: 'rowToShoppingEntry', encode: 'shoppingEntryRow' },
+  { table: TABLE.ideas, parse: 'rowToIdea', encode: 'ideaRow' },
+  { table: TABLE.ideaVotes, parse: 'rowToIdeaVote', encode: 'ideaVoteRow' },
+  { table: TABLE.ideaComments, parse: 'rowToIdeaComment', encode: 'ideaCommentRow' },
   { table: TABLE.destinationProfiles, parse: 'rowToProfile', encode: 'profileRow' },
   {
     table: TABLE.destinationChecklistItems,

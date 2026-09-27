@@ -222,20 +222,21 @@ These patterns apply to every screen and are specified once.
   Sommer" as "S…" at 390 px beside M4's cluster, and an `h1` each screen writes into its own content by hand drifts from
   the others. Accepted cost: the head is a fixed band rather than part of the scroller, so it does not scroll away; the
   revisit trigger is in ADR-050.
-* **A trip's screen names the trip's other screens (FR-21.21, ADR-051 and its amendments 1 and 3).** Under the page
+* **A trip's screen names the trip's other screens (FR-21.21, ADR-051 and its amendments 1, 3 and 4).** Under the page
   head, and inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the views a trip is
-  *worked* in are a row of pills: *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen* (FR-7.13) and *Ausflüge (n)*
-  (FR-31), plus the view being looked at when it is none of them, so the row always marks where you are. **The current
-  one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word); every other view is
-  its G-12 glyph at `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label (*„Einkaufen (12)"*)
-  its `aria-label` and `title` — five words and their counts do not fit a 390 px phone. **Holding a glyph shows that
-  label in a bubble** below it, which stays a moment after the release and does not navigate; a tap is one tap, from any
-  of the trip's screens. *Gepäck* and *Auswertung* are words in the bar's ⋮ instead — the frame puts them there, from
-  the same `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view cannot be named
-  differently in the two. The widest row, six pills while standing on one of the ⋮'s views, fits the Pixel 9 Pro's
-  410 CSS px, the width the row is laid out for (ADR-051); a narrower phone scrolls it sideways (E2E-G12-07 measures
-  it). **The notes' badge counts what is new for me, never the total, in the action colour** (`count-new`)
-  where every other badge is grey.
+  *worked* in are a row of pills: *Ideen (n)* (§3.29), *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen* (FR-7.13)
+  and *Ausflüge (n)* (FR-31), plus the view being looked at when it is none of them, so the row always marks where you
+  are. **The current one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word);
+  every other view is its G-12 glyph at `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label
+  (*„Einkaufen (12)"*) its `aria-label` and `title` — six words and their counts do not fit a phone. **Holding a glyph
+  shows that label in a bubble** below it, which stays a moment after the release and does not navigate; a tap is one
+  tap, from any of the trip's screens. *Gepäck* and *Auswertung* are words in the bar's ⋮ instead — the frame puts them
+  there, from the same `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view
+  cannot be named differently in the two. The row is laid out for the Pixel 9 Pro's 410 CSS px (ADR-051); six pills fill
+  it, and where they do not fit — a narrower phone, a longer word, a seventh pill while standing on one of the ⋮'s views
+  — **the row scrolls sideways, with the pill you stand on scrolled into view** (amendment 4; E2E-G12-07 measures both
+  shapes). **The notes' badge counts what is new for me, never the total, in the action colour** (`count-new`) where
+  every other badge is grey.
 * **The bar's cluster is capped at three glyphs (ADR-050).** A page describes its actions in registration order (G-12);
   the bar renders the first three that are not marked for the ⋮ and puts everything after them into the menu, ahead of
   the actions the page marked itself. Without a cap a screen gathers glyphs one at a time, because nothing says what
@@ -617,6 +618,7 @@ These patterns apply to every screen and are specified once.
 | M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
+| M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.12 |
 
 ---
 
@@ -2919,6 +2921,57 @@ token would prove nothing there is anything to prove.
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
 * (E2E-M27-01…13 `local`, E2E-G12-07)
+
+### M28 — Ideen (A Trip's Ideas, §3.29) — *built*
+
+* **What it is:** the planner's board — what the travellers might do on the trip, discussed, voted on and decided by
+  hand (Addendum §3.29, ADR-078). Reasoning and the navigation variants, B chosen: `dev-docs/planner-concept.md`,
+  `UI_Concept_PlannerNav_variants.html` (`node dev-docs/build-planner-nav-variants.mjs`). The screen is the planner
+  module's (`client/src/planner/`, FR-29.9).
+* **Where it lives:** the first pill of the G-9 switcher, before *Packliste*, glyph `bulbOutline` (`/trips/:id/ideas`,
+  `meta.tripView: 'ideas'`). Its badge counts the ideas in *Ideen* — nobody has decided on them yet — grey. Back is M4.
+* **The board:** four segments, each with its count — *Ideen · Shortlist · Gemacht · Verworfen* (`m28-segment-<state>`,
+  the count `m28-count-<state>`), *Ideen* first. Under them a chip row (`m28-chips`), drawn only where the segment
+  carries a tag or a rain-proof idea: *Alle*, a chip per tag the segment carries in the set's order (*Wandern · Baden ·
+  Kultur · Essen · Ausflug*, `m28-chip-tag-<key>`), and ☂ (`m28-chip-rain`, named *„Geht auch bei Regen"*); a tag and ☂
+  combine by *and*, *Alle* clears both, and a chip left chosen from another segment is not in force. Then the segment's
+  ideas as rows of one card (`m28-list`, a row `idea-card-<id>`): the title in the heading weight; the tag, *☂ auch bei
+  Regen* and the link's site (*segantini-museum.ch*) as chips; a foot with 👍 and 👎, each with its count and its voters'
+  avatars, and 💬 with the discussion's size where there is one. **Order:** by votes (👍 minus 👎), the newest first among
+  equals, or newest first — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen sortieren"*), and only
+  where votes are shown; a new idea switches the board to *Ideen*, newest first, with the chips cleared. **Empty,** each
+  segment says what belongs in it (`m28-empty-<state>`): *„Noch keine Ideen für diese Reise."* with *„Ein Link, ein Ort,
+  ein Gedanke – mit ＋ notierst du, was ihr machen könntet."*, *„Noch nichts auf der Shortlist. Was ihr vorhabt, kommt
+  hierher."*, *„Noch nichts gemacht."*, *„Nichts verworfen."*; chips that match nothing say *„Keine Idee passt zu dieser
+  Auswahl."* (`m28-empty-filtered`). **Before the trip partition has arrived** the counts and the list are not drawn
+  (ADR-033).
+* **Writing an idea** (the FAB ＋, `m28-fab`, `FAB_ANCHOR.m28`; *Bearbeiten* in the detail): the sheet *„Neue Idee"* /
+  *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
+  the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
+  Web-Link – nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does;
+  a bare address is kept as `https://…`. *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*; an edit writes
+  only the fields that changed.
+* **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
+  side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
+  it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia
+  · heute 14:32"*; the time alone where authors are not shown), the tag and ☂ beside them; the link as a card that opens
+  the site in a new tab (`noopener noreferrer`); the note; **the four states as one segmented control**
+  (`idea-state-<state>`) — a tap moves the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves it back
+  unless somebody has moved it since; **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars
+  (`idea-vote-up`/`-down`, pressed where the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the
+  **discussion** (*Kommentare* with its count), oldest first, each entry with its avatar, words, and who and when, and a
+  field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its
+  words edited in place, *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*.
+  At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* /
+  *„Die Idee verschwindet mit ihren Stimmen und Kommentaren für alle. Verwerfen behält sie."*.
+* **Who is shown (FR-29.3, G-8):** votes, the vote order and author names appear only where somebody else reads them —
+  an identity and another account on the trip, M26's rule for its share hint. In Local and Single-User Mode, and on a
+  trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.
+* **Modes:** all three; votes only where there is another account.
+* **Not built yet** (§3.29): pictures (FR-29.5), the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
+  shopping entry made from an idea (FR-29.13) — a day for a shortlisted idea (FR-29.14) and the day plan, M29
+  (FR-29.15).
+* (E2E-M28-01…05 `local`, E2E-M28-06 `server`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

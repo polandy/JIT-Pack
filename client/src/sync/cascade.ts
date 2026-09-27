@@ -96,5 +96,16 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
  * `enqueueAndDrain` — the children's tombstones, without the parent's own.
  */
 export function cascadeChanges(table: SyncTable, id: string, stores: CascadeStores): PullChange[] {
-  return cascadeOf(table, id, stores).map((child) => localTombstone(child.table, child.id))
+  return cascadeTombstones(cascadeOf(table, id, stores))
+}
+
+/**
+ * cascadeTombstones paints rows a delete takes with it as removals. A feature
+ * module names its own children (the planner's idea takes its votes and its
+ * words, FR-29.2), since the switch above never imports a module — and paints
+ * them through here, so this file stays the one place a child's tombstone is
+ * built.
+ */
+export function cascadeTombstones(rows: readonly CascadeRow[]): PullChange[] {
+  return rows.map((child) => localTombstone(child.table, child.id))
 }

@@ -39,7 +39,7 @@ replace the file; git holds its history.
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
-- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M27 and the global patterns
+- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M28 and the global patterns
   G-1–G-17.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.
@@ -110,3 +110,7 @@ generated — edit the builder, not the HTML:
   [`excursions-concept.md`](excursions-concept.md)): the pill's glyph, whether one excursion is a
   page or a sheet, how *nicht im Gepäck* looks, and a thing per participant;
   `node dev-docs/build-excursions-variants.mjs`.
+- [`UI_Concept_PlannerNav_variants.html`](UI_Concept_PlannerNav_variants.html) — where the
+  planner's ideas and day plan live (decided as variant B, two more pills in the one switcher;
+  slice 1a built as §3.29/M28, ADR-078, reasoning in [`planner-concept.md`](planner-concept.md)),
+  with one idea opened; `node dev-docs/build-planner-nav-variants.mjs`.

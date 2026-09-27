@@ -32,6 +32,9 @@ import type {
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
+  Idea,
+  IdeaComment,
+  IdeaVote,
   ShoppingEntry,
   TaskFacts,
   TaskTag,
@@ -52,7 +55,7 @@ import type {
   TripSeries,
   TripTemplateSource,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
+import { IDEA_STATE_IDEA, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, toIdeaTag } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { durationDays } from '@/domain/instantiate'
 import { parseJsonColumn } from './columns'
@@ -68,6 +71,9 @@ import {
   excursionRow,
   excursionTravelerRow,
   excursionItemRow,
+  ideaCommentRow,
+  ideaRow,
+  ideaVoteRow,
   profileRow,
   seriesRow,
   templateItemRow,
@@ -366,6 +372,43 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
   }
 }
 
+function rowToIdea(id: string, row: Record<string, unknown>): Idea {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    author_id: row['author_id'] as string,
+    title: row['title'] as string,
+    note: (row['note'] as string) ?? null,
+    link: (row['link'] as string) ?? null,
+    tag: toIdeaTag(row['tag']),
+    rain_proof: Boolean(row['rain_proof']),
+    state: (row['state'] as Idea['state']) ?? IDEA_STATE_IDEA,
+    created_at: (row['created_at'] as string) ?? null,
+  }
+}
+
+function rowToIdeaVote(id: string, row: Record<string, unknown>): IdeaVote {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+    user_id: row['user_id'] as string,
+    vote: (row['vote'] as IdeaVote['vote']) ?? null,
+  }
+}
+
+function rowToIdeaComment(id: string, row: Record<string, unknown>): IdeaComment {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+    author_id: row['author_id'] as string,
+    body: row['body'] as string,
+    created_at: (row['created_at'] as string) ?? null,
+    edited_at: (row['edited_at'] as string) ?? null,
+  }
+}
+
 function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
   return {
     id,
@@ -487,6 +530,9 @@ export const TABLE_CODECS = {
   [TABLE.containers]: { parse: rowToContainer, encode: containerRow },
   [TABLE.tripGeneratedPositions]: { parse: rowToGeneratedPosition },
   [TABLE.shoppingEntries]: { parse: rowToShoppingEntry, encode: shoppingEntryRow },
+  [TABLE.ideas]: { parse: rowToIdea, encode: ideaRow },
+  [TABLE.ideaVotes]: { parse: rowToIdeaVote, encode: ideaVoteRow },
+  [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.

@@ -913,6 +913,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // you stand on says its word on screen, because a row of glyphs that
     // marked nothing in words would have stopped saying where you are.
     for (const [id, name] of [
+      ['trip-view-ideas', 'Ideas'],
       ['trip-view-packing', 'Packing list'],
       ['trip-view-shopping', 'Shopping'],
       ['trip-view-tasks', 'Tasks'],
@@ -924,29 +925,38 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('trip-view-packing')).toHaveText('Packing list')
     await expect(page.getByTestId('trip-view-shopping')).toHaveText('')
 
-    // The row is measured rather than assumed — at the width it is laid out for,
-    // the Pixel 9 Pro's 410 px (ADR-051: narrower phones scroll it), and in its
-    // widest shape, standing on a view that joins the
-    // row (six pills: the notes the fourth under FR-7.13, the excursions the
-    // fifth under FR-31). Two clauses, because a row can fail either way: every
-    // pill inside the viewport, and all on one line, since a row that wrapped
-    // would have „fitted" by every width assertion on its own.
+    // The row is measured rather than assumed, at the width it is laid out
+    // for — the Pixel 9 Pro's 410 px (ADR-051). Six pills fill it to the edge
+    // and a seventh (a view that joins the row) does not fit, so the row
+    // scrolls sideways (ADR-051 amendment 4). What holds in every shape: one
+    // line, since a row that wrapped would have „fitted" by every width
+    // assertion on its own, and the pill you stand on wholly in view — inside
+    // the row's own clip, not merely the viewport's.
     const viewport = page.viewportSize()!
+    const pillIds = [
+      'trip-view-ideas',
+      'trip-view-packing',
+      'trip-view-shopping',
+      'trip-view-tasks',
+      'trip-view-notes',
+      'trip-view-excursions',
+    ]
+    const oneLine = async (ids: readonly string[]) => {
+      const boxes = await Promise.all(
+        ids.map(async (id) => (await page.getByTestId(id).boundingBox())!),
+      )
+      expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
+    }
+    await page.setViewportSize({ width: PIXEL_9_PRO.width, height: PIXEL_9_PRO.height })
+    await oneLine(pillIds)
+    await expect(page.getByTestId('trip-view-packing')).toBeInViewport({ ratio: 1 })
+
     await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
-    await page.setViewportSize({ width: PIXEL_9_PRO.width, height: PIXEL_9_PRO.height })
-    const boxes = await Promise.all(
-      [
-        'trip-view-packing',
-        'trip-view-shopping',
-        'trip-view-tasks',
-        'trip-view-notes',
-        'trip-view-excursions',
-        'trip-view-luggage',
-      ].map(async (id) => (await page.getByTestId(id).boundingBox())!),
-    )
-    for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(PIXEL_9_PRO.width - 16)
-    expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
+    const row = page.getByTestId('trip-views')
+    expect(await row.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(true)
+    await expect(page.getByTestId('trip-view-luggage')).toBeInViewport({ ratio: 1 })
+    await oneLine([...pillIds, 'trip-view-luggage'])
     await page.setViewportSize(viewport)
     await openTripView(page, 'packing')
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
@@ -995,6 +1005,15 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await openTripView(page, 'tasks')
     await expect(onVisibleScreen(page, 'm25-before')).toBeVisible()
     await expect(page.getByTestId('header-back')).toBeVisible()
+    await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+
+    // The ideas (§3.29) are the planner's own screen: first in the row, one
+    // tap from the tasks, marked where you stand, no ⋮ where nobody else votes.
+    await openTripView(page, 'ideas')
+    await expect(onVisibleScreen(page, 'm28-fab')).toBeVisible()
+    await expect(page.getByTestId('trip-view-ideas')).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByTestId('trip-view-ideas')).toHaveText('Ideas')
+    await expect(page.getByTestId('header-title')).toHaveText('Ideas')
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
 
     // And so are the notes (FR-7.13): their own view, one tap from the tasks,

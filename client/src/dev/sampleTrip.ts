@@ -10,10 +10,16 @@ import {
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_BUY_LOCAL,
+  IDEA_STATE_DROPPED,
+  IDEA_STATE_SHORTLISTED,
+  IDEA_VOTE_UP,
   ITEM_MODE_PACK,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  type IdeaState,
+  type IdeaTag,
 } from '@/types/domain'
+import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
@@ -164,7 +170,80 @@ export function seedSampleTrip(
   seedPreparations(id, orchestrator)
   seedTripNotes(id, orchestrator)
   seedExcursions(id, orchestrator)
+  seedIdeas(id, orchestrator)
   return id
+}
+
+/**
+ * §3.29: M28 opens with a board worth reading — ideas in three of the four
+ * segments, every tag but one and a rain-proof one for the chips, a link, a
+ * note, a vote and a comment. Written without an identity, as Local Mode
+ * writes; on a server the push stamps the account that seeded. Through the
+ * module's own actions, for the reason `buyOneShoppingRow` gives.
+ */
+export const SEED_IDEAS: ReadonlyArray<{
+  title: string
+  tag: IdeaTag | null
+  link?: string
+  note?: string
+  rainProof?: boolean
+  state?: IdeaState
+  voted?: boolean
+  comment?: string
+}> = [
+  {
+    title: 'Bernina Express nach Tirano',
+    tag: 'outing',
+    link: 'https://www.rhb.ch/de/panoramazuege/bernina-express',
+    voted: true,
+  },
+  {
+    title: 'Segantini-Museum in St. Moritz',
+    tag: 'culture',
+    link: 'https://www.segantini-museum.ch',
+    rainProof: true,
+    comment: 'Montags geschlossen.',
+  },
+  { title: 'Capuns im Gasthaus probieren', tag: 'food', rainProof: true },
+  { title: 'Baden im Lej da Staz', tag: 'swimming' },
+  {
+    title: 'Muottas Muragl – Alp Languard',
+    tag: 'hiking',
+    note: 'Mit der Standseilbahn hoch, dann gut drei Stunden Höhenweg.',
+    state: IDEA_STATE_SHORTLISTED,
+  },
+  { title: 'Gleitschirm-Tandemflug', tag: null, state: IDEA_STATE_DROPPED },
+]
+
+function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
+  const plannerStore = usePlannerStore()
+  const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
+  for (const seed of SEED_IDEAS) {
+    const id = actions.addIdea(
+      tripId,
+      {
+        title: seed.title,
+        note: seed.note ?? null,
+        link: seed.link ?? null,
+        tag: seed.tag,
+        rainProof: seed.rainProof ?? false,
+      },
+      null,
+    )
+    const idea = id === null ? undefined : plannerStore.getIdea(id)
+    if (!idea) continue
+    if (seed.state) actions.setState(idea, seed.state)
+    if (seed.voted) {
+      actions.vote(
+        tripId,
+        idea.id,
+        voteTally(idea.id, plannerStore.getVotes(tripId), null),
+        IDEA_VOTE_UP,
+        null,
+      )
+    }
+    if (seed.comment) actions.addComment(tripId, idea.id, seed.comment, null)
+  }
 }
 
 /**

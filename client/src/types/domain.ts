@@ -453,6 +453,80 @@ export interface ShoppingEntry {
   assignee_user_id: string | null
 }
 
+// --- The planner (§3.29) ---
+
+/**
+ * FR-29.2: where an idea stands, set by hand — never by its votes. The order
+ * is the board's segments'.
+ */
+export const IDEA_STATES = ['idea', 'shortlisted', 'done', 'dropped'] as const
+export type IdeaState = (typeof IDEA_STATES)[number]
+export const IDEA_STATE_IDEA = 'idea' as const satisfies IdeaState
+export const IDEA_STATE_SHORTLISTED = 'shortlisted' as const satisfies IdeaState
+export const IDEA_STATE_DONE = 'done' as const satisfies IdeaState
+export const IDEA_STATE_DROPPED = 'dropped' as const satisfies IdeaState
+
+/**
+ * FR-29.10: the closed set of tags an idea may carry, as stable keys —
+ * labelled by the catalogue, held by schema.sql's CHECK.
+ */
+export const IDEA_TAGS = ['hiking', 'swimming', 'culture', 'food', 'outing'] as const
+export type IdeaTag = (typeof IDEA_TAGS)[number]
+
+/** toIdeaTag narrows a wire value; anything outside the set is no tag. */
+export function toIdeaTag(value: unknown): IdeaTag | null {
+  return IDEA_TAGS.includes(value as IdeaTag) ? (value as IdeaTag) : null
+}
+
+/** FR-29.3: one person's vote — 👍 or 👎; a withdrawn vote is null. */
+export type IdeaVoteValue = 'up' | 'down'
+export const IDEA_VOTE_UP = 'up' as const satisfies IdeaVoteValue
+export const IDEA_VOTE_DOWN = 'down' as const satisfies IdeaVoteValue
+
+/** FR-29.1: something the travellers might do on the trip. */
+export interface Idea {
+  id: string
+  trip_id: string
+  /** Stamped by the server on the insert (invariant 3). */
+  author_id: string
+  title: string
+  note: string | null
+  /** http(s) only — client and server both refuse anything else. */
+  link: string | null
+  tag: IdeaTag | null
+  /** FR-29.12: „Geht auch bei Regen". */
+  rain_proof: boolean
+  state: IdeaState
+  /** When it was written — the client names it, like a comment's. */
+  created_at: string | null
+}
+
+/**
+ * FR-29.3: one person's vote on one idea, a row per (idea, person) so two
+ * people voting at once both count (ADR-073's reason for note acks).
+ */
+export interface IdeaVote {
+  id: string
+  trip_id: string
+  idea_id: string
+  /** Stamped by the server on the insert. */
+  user_id: string
+  vote: IdeaVoteValue | null
+}
+
+/** FR-29.4: one entry of an idea's discussion. */
+export interface IdeaComment {
+  id: string
+  trip_id: string
+  idea_id: string
+  /** Stamped by the server on the insert. */
+  author_id: string
+  body: string
+  created_at: string | null
+  /** When its words were last changed — the client's clock; null is never edited. */
+  edited_at: string | null
+}
+
 // --- Master data ---
 
 /**

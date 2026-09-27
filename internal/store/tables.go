@@ -555,6 +555,40 @@ var tableSpecs = map[string]tableSpec{
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
+	// FR-29.1: an idea. Its votes and its discussion hang off it and go with
+	// it (ON DELETE CASCADE), leaf-first. `author_id` is listed so the
+	// server's own stamp can be persisted; stampActor discards a client value.
+	TableIdeas: {
+		partition: partitionTrip,
+		columns: toSet(
+			"trip_id", "author_id", "title", "note", "link", "tag",
+			"rain_proof", "state", "created_at",
+		),
+		cascades: []childQuery{
+			{TableIdeaVotes, `SELECT id FROM idea_votes WHERE idea_id = ?`},
+			{TableIdeaComments, `SELECT id FROM idea_comments WHERE idea_id = ?`},
+		},
+		export: exportQuery{query: `SELECT x.* FROM ideas x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.3: one person's vote on one idea — see schema.sql for why a row
+	// per person. `user_id` is stamped, and only its voter may change it.
+	TableIdeaVotes: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "idea_id", "user_id", "vote"),
+		export: exportQuery{query: `SELECT x.* FROM idea_votes x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.4: one entry of an idea's discussion; its words are its author's.
+	TableIdeaComments: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
+		export: exportQuery{query: `SELECT x.* FROM idea_comments x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
 	// trip_generated_positions is trip-partition state: it is only ever read
 	// beside the rows it describes, and it should travel with them.
 	//

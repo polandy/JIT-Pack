@@ -1,5 +1,6 @@
 /**
- * Holds `client/src/domain` to invariant 4: it is the layer the rules live in,
+ * Holds `client/src/domain` — and a feature module's own rule directory, the
+ * planner's `planner/domain` — to invariant 4: it is the layer the rules live in,
  * and it never points at the layers that call it.
  *
  * The direction is the whole value of the package. Its modules are exhaustively
@@ -27,7 +28,12 @@ import { join, relative, resolve } from 'node:path'
 /* Run from the repository root (`make ci`) or from `client/` (CI job). */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 const SRC = resolve(root, 'client/src')
-const DOMAIN = resolve(SRC, 'domain')
+/**
+ * The rule directories, as paths under `client/src`. A module's rules live in
+ * its own directory (§3.29, FR-29.9) and answer to the same direction; each
+ * may also import its own siblings.
+ */
+const DOMAINS = ['domain', 'planner/domain']
 
 /**
  * The layers a rule module may reach into, as an allowlist rather than a list
@@ -88,8 +94,9 @@ const problems = []
 let modules = 0
 let imports = 0
 
-for (const file of walk(DOMAIN)) {
+for (const file of DOMAINS.flatMap((dir) => walk(resolve(SRC, dir)))) {
   modules += 1
+  const home = DOMAINS.find((dir) => relative(SRC, file).startsWith(`${dir}/`))
   const where = relative(root, file)
   const source = readFileSync(file, 'utf8')
   for (const spec of specifiers(source)) {
@@ -102,7 +109,7 @@ for (const file of walk(DOMAIN)) {
       continue
     }
     const layer = inside.split('/')[0]
-    if (!ALLOWED_DIRS.includes(layer)) {
+    if (!ALLOWED_DIRS.includes(layer) && !inside.startsWith(`${home}/`)) {
       problems.push(
         `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,
       )
@@ -115,7 +122,7 @@ for (const file of walk(DOMAIN)) {
  * the package moved, this says so instead of reporting ok over an empty walk.
  */
 if (modules === 0) {
-  console.error(`domain-purity-gate: no modules found under ${relative(root, DOMAIN)}`)
+  console.error(`domain-purity-gate: no modules found under ${DOMAINS.join(', ')}`)
   process.exit(1)
 }
 
@@ -131,6 +138,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `domain-purity-gate: ok — ${modules} modules under client/src/domain, ` +
+  `domain-purity-gate: ok — ${modules} modules under ${DOMAINS.join(', ')}, ` +
     `${imports} imports, none reaching above it`,
 )

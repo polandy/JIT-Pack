@@ -3960,6 +3960,103 @@ the tail is where a symbol system is actually decided. Results:
   knows (`source_item_id`), so marks and reference photos appear on the trip the seed button opens, and deliberately
   leaves the rest ad-hoc: that mixture is what the empty slot is for.
 
+### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
+
+**Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078); pictures, the bridge to the
+packing side, the notifications and the day plan are specified here and not built. The travellers of a trip collect what
+they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
+decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
+`dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
+will be **M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
+
+The planner is the second **feature module** after the shopping list (§3.30, ADR-066): `client/src/planner/`, with its
+own store, actions, screens and pure rules, and its e2e cases under `client/e2e/planner/`.
+
+* **FR-29.1 (One Card Type — the Idea):** *Implemented.* A trip carries any number of **ideas**: a **title** (required)
+  and, optionally, a **note**, one **link**, one **tag** (FR-29.10) and the **rain-proof** mark (FR-29.12). There is no
+  separate bookmark: *a bookmark is an idea with a link*. Ideas live in the table `ideas` in the **trip partition** and
+  sync like every other trip row (field-level LWW, tombstones, they go with their trip). Every member who may edit the
+  trip may add, edit and decide ideas (FR-4.5 — no new role). The author is **stamped by the server** (invariant 3). A
+  link is accepted only with an `http` or `https` scheme — a bare address (`gorropu.info`) is read as `https` — checked
+  by the client and refused by the schema, since the value is rendered as an `href`; it opens in a new context with
+  `noopener noreferrer`. Links are **stored, never fetched**: no outbound request, so the board behaves alike in all
+  three modes; a link preview is a later slice with its own ADR.
+* **FR-29.2 (Four States, Set by Hand):** *Implemented.* `idea → shortlisted → done`, or `dropped` from any of them;
+  every state is reachable from every other in the idea's detail. **No vote moves an idea.** A move is announced with an
+  undo, which writes the old state back only while nobody has moved the idea since. **Dropping is not deleting**: a
+  dropped idea keeps its votes and discussion in its own segment. **Delete** is a separate, confirmed action in the
+  detail and removes the idea with its votes and discussion (the server's `ON DELETE CASCADE` with a tombstone per row,
+  mirrored by the client so Local Mode's disk loses them too).
+* **FR-29.3 (Votes — Open, One per Account):** *Implemented.* Every account on the trip may vote 👍 or 👎 on an idea,
+  **with its name shown**: the card shows both tallies with the voters' avatars, the detail names who is for it. Tapping
+  the vote cast withdraws it. One row per (idea, account) in `idea_votes` — two people voting at once must not merge
+  into one field (ADR-073's reason) — with a withdrawn vote kept as a row with no vote, since field-level LWW never
+  deletes. The voter is **stamped by the server**, and **only the voter may change or remove their row** (the trip
+  partition's write gate). Travellers without an account do not vote. Votes, the vote order and author names are shown
+  only where **somebody else reads them** — an identity and another account on the trip; in **Local and Single-User
+  Mode**, and on a trip nobody shares, they are **hidden per G-8** and the board is a list of one's own plans.
+* **FR-29.4 (Discussion):** *Implemented.* An idea carries its own discussion in `idea_comments` — a table of the
+  planner's, not a column on `comments`, so no reader of the trip's notes and tasks has to know ideas exist and the
+  module holds every row it shows (ADR-078). An entry's author is stamped by the server, and **its words are its
+  author's**: only the writer edits an entry (marked *bearbeitet* after), refused for anybody else by the trip
+  partition's write gate; the writer may delete it. The card counts the entries.
+* **FR-29.5 (Pictures Outside the Envelope, With Their Own Limit):** *Specified, not built.* Up to **4** pictures per
+  idea, scaled by the client to a JPEG of at most **500 KB**. The bytes follow ADR-002: only the hash and position sync
+  as an `idea_images` row, the bytes move over their own endpoints, and the limit is held at handler, store and CHECK.
+  In Local Mode the bytes live in IndexedDB beside the item photos. The numbers are this section's, not invariant 6's —
+  an item photo answers *which jacket*, an idea's has to show a place.
+* **FR-29.6 (The Board, M28):** *Implemented.* One screen per trip. Four segments with counts — *Ideen · Shortlist ·
+  Gemacht · Verworfen* — a chip row narrowing the current segment to one tag or to rain-proof ideas (combined by *and*,
+  offering only what the segment carries), and the ideas as cards. Cards order by vote score, the newest first among
+  equals, or newest first — the choice is the bar's ⋮, offered only where votes are shown; a freshly added idea switches
+  the board to *Ideen*, newest first, so it does not land below the fold. Every empty segment says what belongs in it,
+  gated on the settled partition (ADR-033). The idea opens on the route (`?idea=`) as a sheet on a phone and as the
+  frame's side panel on a desktop (ADR-064).
+* **FR-29.7 (Where the Planner Is Reached):** *Implemented for the board.* The trip's one switcher (G-12, ADR-051)
+  carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day plan will be
+  the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not built**
+  (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is empty),
+  during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the Pixel 9
+  Pro's 410 px six pills fill the row; a seventh — a ⋮ view joining it, later the day plan — scrolls the row sideways,
+  with the pill you stand on scrolled into view (ADR-051 amendment 4).
+* **FR-29.8 (Notifications):** *Specified, not built.* Three kinds — a member added an idea, commented on one, moved one
+  to the shortlist — with per-kind preferences, in the recipient's language (ADR-037), never to the actor. Votes do not
+  notify. Server Mode only.
+* **FR-29.9 (Module Boundary):** *Implemented.* The planner's client code lives under `client/src/planner/` and reaches
+  only the shared kernel; packing code never imports it, and it never imports packing code
+  (`scripts/module-boundary-gate.mjs`). Its pure rules (`planner/domain/`) answer to the same direction as
+  `client/src/domain` (`scripts/domain-purity-gate.mjs`). Its rows reach its own store through the `FeatureStore` the
+  composition root hands the orchestrator (ADR-066). Selecting e2e cases by module in CI is a later PR with its own ADR.
+* **FR-29.10 (Tags Are a Fixed Set):** *Implemented.* At most one tag per idea from a closed vocabulary: *Wandern ·
+  Baden · Kultur · Essen · Ausflug*, stored as the keys `hiking`, `swimming`, `culture`, `food`, `outing`, labelled
+  through the catalogue (NFR-4.12) and held by a CHECK. Chosen over free text because a closed set filters without a tag
+  manager and cannot fragment into *Wandern/wandern/Wanderung*. An idea that fits nothing stays untagged.
+* **FR-29.11 (Cloning Does Not Copy Ideas):** *Implemented, by construction.* Trip cloning (§3.12) copies no ideas,
+  votes, discussion or pictures: a clone repeats a packing effort, and the planner's rows are not the packing list's.
+  **Not in the portable backup** either (NFR-4.11), like tasks, notes, the shopping list's own entries and excursions;
+  `GET /me/export.json` carries them.
+* **FR-29.12 (Rain-Proof Is an Attribute, Not a Tag):** *Implemented.* A boolean mark, labelled *„Geht auch bei Regen"*:
+  a tag says **what** an idea is, this says **when** it suits, and a museum is both *Kultur* and rain-proof. Set in the
+  add sheet, shown as a chip on card and detail, a filter chip on the board. No forecast and no suggestion are made from
+  it.
+* **FR-29.13 (From an Idea to the Packing Side):** *Specified, not built.* An idea on the shortlist can **spawn an
+  excursion (FR-31), a task (FR-7.4) or a shopping entry (FR-30.1)**, each through the existing creator, pre-filled. The
+  idea **stays** and names what came of it (*Daraus gemacht*); the link is a nullable `idea_id` **on the result**
+  (`excursions`, `comments` for a task, `shopping_entries`), never a list on the idea (ADR-078), `ON DELETE SET NULL`,
+  so deleting either side leaves the other. M25, M27 and M6 name the idea through a kernel lookup the composition root
+  binds.
+* **FR-29.14 (Planning an Idea on a Day):** *Specified, not built (slice 2).* An idea on the shortlist gets **a day and
+  an optional time**; without a day it waits under *noch nicht eingeplant*. No constraint ties the day to the trip's
+  dates (field-level LWW), so an idea planned outside them is listed *außerhalb der Reise* rather than lost. Only while
+  the trip has both dates.
+* **FR-29.15 (The Day Plan, M29):** *Specified, not built (slice 2).* One screen per trip with a day strip over the
+  trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated excursions (on each
+  of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
+  table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
+
+**Not in the planner:** polls with several options (one idea per option), expenses, group logistics, map and places,
+weather, transport, ideas belonging to no trip.
+
 ### 3.30 The Shopping List as a Module of Its Own
 
 **Status: accepted** — **implemented** (ADR-066). A trip's shopping list — the groceries of a holiday flat above all —

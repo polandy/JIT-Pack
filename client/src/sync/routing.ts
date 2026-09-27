@@ -56,7 +56,12 @@ export const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
  * orchestrator as a `FeatureStore` (`sync/featureModule.ts`) through the
  * composition root, never by an import from this side.
  */
-export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([TABLE.shoppingEntries])
+export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([
+  TABLE.shoppingEntries,
+  TABLE.ideas,
+  TABLE.ideaVotes,
+  TABLE.ideaComments,
+])
 
 /** Which store a table belongs to, or null for a table that travels no feed. */
 export function storeFor(table: string): 'trip' | 'master' | 'feature' | null {
