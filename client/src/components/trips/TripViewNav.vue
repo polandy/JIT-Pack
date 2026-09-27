@@ -140,8 +140,10 @@ function revealCurrent() {
   if (!nav || !pill) return
   const bounds = nav.getBoundingClientRect()
   const box = pill.getBoundingClientRect()
-  if (box.right > bounds.right) nav.scrollLeft += box.right - bounds.right
-  else if (box.left < bounds.left) nav.scrollLeft -= bounds.left - box.left
+  // Whole pixels, rounded away from the pill: WebKit keeps `scrollLeft` as an
+  // integer and drops the fraction, which leaves a sliver of the pill clipped.
+  if (box.right > bounds.right) nav.scrollLeft += Math.ceil(box.right - bounds.right)
+  else if (box.left < bounds.left) nav.scrollLeft -= Math.ceil(bounds.left - box.left)
 }
 
 onMounted(revealCurrent)
@@ -211,7 +213,9 @@ watch(
   display: flex;
   gap: 6px;
   margin-top: 4px;
-  padding-top: 6px;
+  /* A pixel past the last pill: WebKit rounds the scroll width down, and a
+     pill ending on a fraction could otherwise never scroll wholly into view. */
+  padding: 6px 1px 0 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
