@@ -103,8 +103,12 @@ func webURL(raw string, base *url.URL) string {
 		return ""
 	}
 	abs := base.ResolveReference(ref)
-	if (abs.Scheme != "http" && abs.Scheme != "https") || abs.Host == "" {
+	if !isWebScheme(abs.Scheme) || abs.Host == "" {
 		return ""
 	}
 	return abs.String()
 }
+
+// isWebScheme is the one scheme test: a preview reads the web and nothing
+// else a URL can name.
+func isWebScheme(scheme string) bool { return scheme == "http" || scheme == "https" }

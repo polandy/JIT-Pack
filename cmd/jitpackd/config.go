@@ -87,7 +87,7 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 	c := Config{
 		Listen:      envOr(getenv, "JITPACK_LISTEN", ":8080"),
 		DBPath:      envOr(getenv, "JITPACK_DB_PATH", "jitpack.db"),
-		SingleUser:  getenv("JITPACK_SINGLE_USER") == "true",
+		SingleUser:  getenv("JITPACK_SINGLE_USER") == envTrue,
 		LocalUserID: getenv("JITPACK_LOCAL_USER_ID"),
 
 		SessionSecret: getenv("JITPACK_SESSION_SECRET"),
@@ -100,7 +100,7 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 
 		WebRoot: getenv("JITPACK_WEB_ROOT"),
 
-		UpdateCheck: getenv("JITPACK_UPDATE_CHECK") == "true",
+		UpdateCheck: getenv("JITPACK_UPDATE_CHECK") == envTrue,
 
 		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}
@@ -182,14 +182,21 @@ func parseReminderTime(raw string) (time.Duration, error) {
 	return time.Duration(t.Hour())*time.Hour + time.Duration(t.Minute())*time.Minute, nil
 }
 
+// The two words a switch takes: an opt-in is exactly envTrue, and the one
+// switch that is on by default is turned off by exactly envFalse.
+const (
+	envTrue  = "true"
+	envFalse = "false"
+)
+
 // parseLinkPreviews reads the one switch that is on by default. Anything
 // but "true", "false" or unset refuses to start: an operator who meant off
 // and misspelled it must not be left with a server fetching pages.
 func parseLinkPreviews(raw string) (bool, error) {
 	switch strings.TrimSpace(raw) {
-	case "", "true":
+	case "", envTrue:
 		return true, nil
-	case "false":
+	case envFalse:
 		return false, nil
 	}
 	return false, errors.New("JITPACK_LINK_PREVIEWS must be true or false, or unset (on)")

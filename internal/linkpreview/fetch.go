@@ -86,7 +86,7 @@ func newFetcher(allow func(netip.AddrPort) bool) *Fetcher {
 			if len(via) >= maxRedirects {
 				return fmt.Errorf("%w: too many redirects", ErrUnreadable)
 			}
-			if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
+			if !isWebScheme(req.URL.Scheme) {
 				return ErrNotWebLink
 			}
 			return nil
@@ -116,7 +116,7 @@ var sharedAddressSpace = netip.MustParsePrefix("100.64.0.0/10")
 // cannot be had is an error.
 func (f *Fetcher) Fetch(ctx context.Context, raw string) (Page, error) {
 	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+	if err != nil || !isWebScheme(u.Scheme) || u.Hostname() == "" {
 		return Page{}, ErrNotWebLink
 	}
 	ctx, cancel := context.WithTimeout(ctx, FetchTimeout)
