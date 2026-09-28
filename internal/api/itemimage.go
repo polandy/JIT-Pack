@@ -26,7 +26,7 @@ func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("ETag", `"`+hash+`"`)
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Type", imageJPEG)
 	w.Write(data)
 }
 
@@ -37,7 +37,7 @@ func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
 // this needs only authentication — no trip role — since items carry no
 // trip association; the route wires it behind s.authed alone.
 func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
-	if ct := r.Header.Get("Content-Type"); ct != "image/jpeg" {
+	if ct := r.Header.Get("Content-Type"); ct != imageJPEG {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "item image must be image/jpeg")
 		return
 	}

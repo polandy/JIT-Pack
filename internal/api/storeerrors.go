@@ -48,6 +48,9 @@ var storeErrorResponses = []errorResponse{
 	{store.ErrItemNotFound, http.StatusNotFound, ErrNotFound, "no such item"},
 	{store.ErrTripNotFound, http.StatusNotFound, ErrTripNotFound, "trip not found"},
 	{store.ErrItemImageTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrIdeaImageTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrIdeaImageLimit, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrIdeaNotFound, http.StatusNotFound, ErrNotFound, "no such idea on this trip"},
 	{store.ErrAvatarTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrInvalidDisplayName, http.StatusUnprocessableEntity, ErrValidation, ""},
 }

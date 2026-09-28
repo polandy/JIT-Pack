@@ -192,6 +192,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripItemTakeover), s.authed(s.member(s.handleTakeover)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripLockEvents), s.authed(s.member(s.handleListLockEvents)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaImage), s.authed(s.member(s.handleGetIdeaImage)))
+	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
 
 	// Master scope.
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterSync), s.authed(s.handlePullMaster))

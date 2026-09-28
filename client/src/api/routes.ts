@@ -21,6 +21,12 @@ export const API = {
   tripLockEvents: (tripID: string) => `/api/v1/trips/${tripID}/lock-events`,
   tripExportCSV: (tripID: string) => `/api/v1/trips/${tripID}/export.csv`,
 
+  // FR-29.5: one picture on an idea. PUT uploads it under the client's own
+  // id; GET reads its bytes. Both are the trip's, behind its membership —
+  // the synced half is an idea_images row, and a push moves or deletes it.
+  tripIdeaImage: (tripID: string, ideaID: string, imageID: string) =>
+    `/api/v1/trips/${tripID}/ideas/${ideaID}/images/${imageID}`,
+
   // Master scope — the partition that belongs to no trip, so its scope
   // segment is a literal rather than an id.
   masterSync: '/api/v1/master/sync',

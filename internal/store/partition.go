@@ -115,6 +115,8 @@ func tripPartition(tripID, userID string) partition {
 				return validIdeaVote(userID, row), nil
 			case TableIdeaComments:
 				return validIdeaComment(userID, row, m), nil
+			case TableIdeaImages:
+				return validIdeaImage(row, m), nil
 			}
 			return ReasonNone, nil
 		},
