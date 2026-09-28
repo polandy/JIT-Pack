@@ -23,7 +23,7 @@ import type { Idea, IdeaTag } from '@/types/domain'
 import { IDEA_TAGS } from '@/types/domain'
 import type { IdeaFields } from './actions'
 import { parseLink } from './domain/ideas'
-import { fillFromPreview } from './domain/linkFill'
+import { fillFromLink, fillFromPreview } from './domain/linkFill'
 
 /** How long a link rests before its page is read — typing is not pasting. */
 const PREVIEW_DELAY_MS = 600
@@ -32,8 +32,11 @@ const props = defineProps<{
   open: boolean
   /** The idea being edited; absent for a new one. */
   idea?: Idea | null
-  /** Reads a link's page (FR-29.16); null where there is none to be had. */
-  preview: (url: string) => Promise<LinkPreview | null>
+  /**
+   * Reads a link's page (FR-29.16); null where no read can be had — Local
+   * Mode, an instance with previews off — so none is shown starting.
+   */
+  preview: ((url: string) => Promise<LinkPreview | null>) | null
   /** Whether a picture from the link may be offered — the idea has none yet. */
   acceptsPicture: boolean
 }>()
@@ -64,6 +67,8 @@ const picture = ref<Blob | null>(null)
 const pictureUrl = ref<string | null>(null)
 /** The link last read, so an unchanged link — an edit's own — is not read again. */
 let readLink: string | null = null
+/** The site name a link placed as the title — nobody's typing, so a page may replace it. */
+let placeholder: string | null = null
 let timer: ReturnType<typeof setTimeout> | null = null
 let generation = 0
 
@@ -73,16 +78,16 @@ function dropPicture() {
   picture.value = null
 }
 
-async function readPage(url: string) {
+async function readPage(url: string, read: (url: string) => Promise<LinkPreview | null>) {
   const mine = ++generation
   previewState.value = PREVIEW_LOADING
-  const page = await props.preview(url)
+  const page = await read(url)
   // A link changed while its page was read is answered by its own read.
   if (mine !== generation) return
   readLink = url
   previewState.value = PREVIEW_DONE
   if (!page) return
-  const filled = fillFromPreview({ title: title.value, note: note.value }, page)
+  const filled = fillFromPreview({ title: title.value, note: note.value }, page, placeholder)
   title.value = filled.title
   note.value = filled.note
   if (page.picture && props.acceptsPicture) {
@@ -98,9 +103,17 @@ watch(
     if (timer) clearTimeout(timer)
     timer = null
     if (!props.open || url === null || url === readLink) return
+    // At once, not after the rest: a pasted link alone is savable.
+    const byLink = fillFromLink(
+      { title: title.value === placeholder ? '' : title.value, note: note.value },
+      url,
+    )
+    title.value = byLink.text.title
+    placeholder = byLink.placeholder
     generation++
     previewState.value = PREVIEW_IDLE
-    timer = setTimeout(() => void readPage(url), PREVIEW_DELAY_MS)
+    const read = props.preview
+    if (read) timer = setTimeout(() => void readPage(url, read), PREVIEW_DELAY_MS)
   },
 )
 
@@ -116,6 +129,7 @@ watch(
     tag.value = props.idea?.tag ?? null
     rainProof.value = props.idea?.rain_proof ?? false
     readLink = props.idea?.link ?? null
+    placeholder = null
     dropPicture()
     previewState.value = PREVIEW_IDLE
   },

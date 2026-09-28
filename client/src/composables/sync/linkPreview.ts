@@ -11,7 +11,7 @@
 import { APIRequestError } from '@/api/client'
 import { API } from '@/api/routes'
 import { ERROR_CODE, type LinkPreviewRequest, type LinkPreviewResponse } from '@/api/types'
-import type { LinkPreview } from '@/sync/featureModule'
+import type { LinkPreviews } from '@/sync/featureModule'
 import type { RestClient } from './restClient'
 
 export interface LinkPreviewDeps {
@@ -20,12 +20,10 @@ export interface LinkPreviewDeps {
   localMode: boolean
 }
 
-export function createLinkPreview(
-  deps: LinkPreviewDeps,
-): (tripId: string, url: string) => Promise<LinkPreview | null> {
+export function createLinkPreview(deps: LinkPreviewDeps): LinkPreviews {
   let off = deps.localMode
 
-  return async (tripId, url) => {
+  async function read(tripId: string, url: string) {
     if (off) return null
     let resp: LinkPreviewResponse
     try {
@@ -44,6 +42,8 @@ export function createLinkPreview(
       picture: resp.image ? pictureOf(resp.image, resp.image_type) : null,
     }
   }
+
+  return { offered: () => !off, read }
 }
 
 function pictureOf(base64: string, type: string): Blob {

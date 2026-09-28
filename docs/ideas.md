@@ -11,8 +11,9 @@ the bottom right. The sheet asks for:
 
 - a **title** — *Bernina Express nach Tirano*;
 - a **link**, optional — paste the web address; `rhb.ch` is enough, the app adds the `https://`. Only web links are
-  accepted. On a server, a pasted link is read for you: a moment later the page's own title and description fill a
-  blank title and note — what you already typed stays — and its picture appears under the link. Tap ✕ if you do not
+  accepted. A pasted link alone is enough: an empty title takes the site's name, so you can add the idea straight away.
+  On a server, the link is also read for you: a moment later the page's own title and description fill in — what you
+  typed yourself stays — and its picture appears under the link. Tap ✕ if you do not
   want it; otherwise it becomes the idea's first picture when you add the idea. (Your administrator can turn this off;
   see [Link previews](configuration.md#link-previews).);
 - a **note**, optional;

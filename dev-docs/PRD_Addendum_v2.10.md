@@ -4070,9 +4070,12 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
   table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
 
-* **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet is read — after it has rested
-  a moment, so typing is not reading — and the page's own **title**, **description** and **picture** fill what is still
-  blank: the title and the note, never over what somebody typed, before or during the read. The picture is **offered**
+* **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet names a blank title after
+  its **site** at once (*oeschinensee.ch*), so a pasted link alone is an idea that can be saved, in every mode. Where a
+  read can be had, the link is then read — after it has rested a moment, so typing is not reading — and the page's own
+  **title**, **description** and **picture** fill what is still blank: the title (the site name counts as blank, since
+  nobody typed it) and the note, never over what somebody typed, before or during the read. Where no read can be had,
+  none is shown starting. The picture is **offered**
   under the link with ✕ to decline it, only where the idea has no picture yet, and added as its first picture
   (FR-29.5) when the idea is saved. ADR-082:
   * **The server reads the page**, because a browser is kept from another site's page by the same-origin rule. Local
@@ -4082,8 +4085,8 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     pointing into its own network is refused like a direct one. A refused address reads like any page that could not
     be read.
   * What is taken is bounded: 1 MiB of the page in 8 seconds, a 4 MiB picture in 15 more, three redirects, 200
-    characters of title, 1000 of description. OpenGraph is read first, then Twitter's card, then the page's `<title>` and
-    description.
+    characters of title, 1000 of description. OpenGraph is read first, then Twitter's card, then the page's `<title>`
+    and description.
   * **On by default.** It is the one outbound request an instance makes without being asked;
     `JITPACK_LINK_PREVIEWS=false` turns it off, the route then answers *not configured*, and a device stops asking for
     the session. Any other value refuses to start.

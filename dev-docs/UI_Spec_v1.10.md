@@ -2959,13 +2959,15 @@ token would prove nothing there is anything to prove.
   *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
   the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
   Web-Link – nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does;
-  a bare address is kept as `https://…`. **A link read (FR-29.16):** once a web link has rested 0.6 s in the field the
-  sheet reads its page — *„Link wird gelesen …"* with dots under the field (`idea-edit-preview-loading`), the sheet's
-  `data-preview` going `loading` → `done` — and the page's title and description fill a blank title and note; the
-  page's picture, where the idea has none yet, stands under the link as a 16:10 thumbnail with *„Bild aus dem Link"* and
-  ✕ (`idea-edit-preview-picture`, `…-drop`). Local Mode and an instance with previews off read nothing, and a page that
-  cannot be read leaves the sheet as it was. *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*, then adds
-  the offered picture as the idea's first; an edit writes only the fields that changed.
+  a bare address is kept as `https://…`. **A link read (FR-29.16):** a web link names a blank title after its site at
+  once (*oeschinensee.ch*), so *Hinzufügen* is on without typing. Where a read can be had — never in Local Mode or on an
+  instance with previews off, where the sheet stays `data-preview="idle"` — once the link has rested 0.6 s the sheet
+  reads its page — *„Link wird gelesen …"* with dots under the field (`idea-edit-preview-loading`), the sheet's
+  `data-preview` going `loading` → `done` — and the page's title and description fill a blank (or site-named) title and
+  note; the page's picture, where the idea has none yet, stands under the link as a 16:10 thumbnail with *„Bild aus dem
+  Link"* and ✕ (`idea-edit-preview-picture`, `…-drop`). A page that cannot be read leaves the sheet as it was.
+  *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*, then adds the offered picture as the idea's first; an
+  edit writes only the fields that changed.
 * **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
   side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
   it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia
@@ -2996,7 +2998,7 @@ token would prove nothing there is anything to prove.
 * **Not built yet** (§3.29): the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
   shopping entry made from an idea (FR-29.13) — a day for a shortlisted idea (FR-29.14) and the day plan, M29
   (FR-29.15).
-* (E2E-M28-01…05, E2E-M28-07 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09 `server`, E2E-G12-07)
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09 `server`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

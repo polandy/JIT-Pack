@@ -410,7 +410,11 @@ const EMPTY_KEYS = {
       <IdeaEditSheet
         :open="editing !== null"
         :idea="editing?.idea ?? null"
-        :preview="(url: string) => orchestrator.moduleHost.linkPreview(tripId, url)"
+        :preview="
+          orchestrator.moduleHost.linkPreview.offered()
+            ? (url: string) => orchestrator.moduleHost.linkPreview.read(tripId, url)
+            : null
+        "
         :accepts-picture="!editing?.idea || picturesOf(editing.idea.id).length === 0"
         @close="editing = null"
         @save="onSave"

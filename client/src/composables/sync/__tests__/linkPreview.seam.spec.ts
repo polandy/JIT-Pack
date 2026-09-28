@@ -22,7 +22,7 @@ describe('createLinkPreview', () => {
       image_type: 'image/jpeg',
     })
 
-    const preview = await createLinkPreview({ client, localMode: false })('trip-1', URL)
+    const preview = await createLinkPreview({ client, localMode: false }).read('trip-1', URL)
 
     expect(client.calls).toEqual([
       { verb: 'post', path: API.tripLinkPreview('trip-1'), payload: { url: URL } },
@@ -42,13 +42,19 @@ describe('createLinkPreview', () => {
     )
     const preview = createLinkPreview({ client, localMode: false })
 
-    expect(await preview('trip-1', URL)).toEqual({ title: null, description: null, picture: null })
-    expect(await preview('trip-1', URL)).toBeNull()
+    expect(await preview.read('trip-1', URL)).toEqual({
+      title: null,
+      description: null,
+      picture: null,
+    })
+    expect(await preview.read('trip-1', URL)).toBeNull()
   })
 
   it('asks nothing in Local Mode', async () => {
     const client = stubClient()
-    expect(await createLinkPreview({ client, localMode: true })('trip-1', URL)).toBeNull()
+    const previews = createLinkPreview({ client, localMode: true })
+    expect(previews.offered()).toBe(false)
+    expect(await previews.read('trip-1', URL)).toBeNull()
     expect(client.calls).toEqual([])
   })
 
@@ -57,8 +63,10 @@ describe('createLinkPreview', () => {
     client.fail(new APIRequestError(501, { code: ERROR_CODE.not_configured, message: 'off' }))
     const preview = createLinkPreview({ client, localMode: false })
 
-    expect(await preview('trip-1', URL)).toBeNull()
-    expect(await preview('trip-1', 'https://example.org')).toBeNull()
+    expect(preview.offered()).toBe(true)
+    expect(await preview.read('trip-1', URL)).toBeNull()
+    expect(preview.offered()).toBe(false)
+    expect(await preview.read('trip-1', 'https://example.org')).toBeNull()
     expect(client.calls).toHaveLength(1)
   })
 
@@ -68,7 +76,7 @@ describe('createLinkPreview', () => {
     client.answer({ title: 'Hütte', description: '', image: '', image_type: '' })
     const preview = createLinkPreview({ client, localMode: false })
 
-    expect(await preview('trip-1', URL)).toBeNull()
-    expect(await preview('trip-1', URL)).toMatchObject({ title: 'Hütte' })
+    expect(await preview.read('trip-1', URL)).toBeNull()
+    expect(await preview.read('trip-1', URL)).toMatchObject({ title: 'Hütte' })
   })
 })

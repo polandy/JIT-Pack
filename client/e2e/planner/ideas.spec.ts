@@ -313,4 +313,30 @@ test.describe('M28 ideas @local @planner', () => {
       ideaCard(page, 'Lej da Staz').locator('[data-testid^="idea-card-cover-"] img'),
     ).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
   })
+
+  /**
+   * E2E-M28-10 (FR-29.16): a pasted link alone is an idea. The blank title
+   * takes the link's site at once, so *Add* is on without typing; Local Mode
+   * has no preview, and the sheet shows no read starting — it stays idle
+   * rather than flickering through one that cannot happen.
+   */
+  test('E2E-M28-10: a pasted link alone is savable, named after its site, with no read shown', async ({
+    page,
+  }) => {
+    const board = await openIdeas(page)
+    await board.getByTestId('m28-fab').click()
+    const sheet = page.getByTestId('idea-edit')
+    await expect(sheet.getByTestId('idea-edit-save')).toHaveAttribute('aria-disabled', 'true')
+
+    await fillIonic(sheet.getByTestId('idea-edit-link'), 'https://www.oeschinensee.ch/de/sommer')
+    await expect(sheet.getByTestId('idea-edit-name').locator('input')).toHaveValue(
+      'oeschinensee.ch',
+    )
+    await expect(sheet.getByTestId('idea-edit-save')).not.toHaveAttribute('aria-disabled', 'true')
+    await expect(sheet.locator('[data-preview]')).toHaveAttribute('data-preview', 'idle')
+    await expect(sheet.getByTestId('idea-edit-preview-loading')).toHaveCount(0)
+
+    await sheet.getByTestId('idea-edit-save').click()
+    await expect(ideaCard(page, 'oeschinensee.ch')).toBeVisible()
+  })
 })
