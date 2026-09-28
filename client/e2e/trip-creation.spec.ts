@@ -1,5 +1,5 @@
 import { test, expect, expectTripOpen } from './fixtures'
-import { createTripViaWizard, setDateField, visiblePage, writesLanded } from './fixtures'
+import { createTripViaWizard, setDateRange, visiblePage, writesLanded } from './fixtures'
 import type { Locator } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -57,17 +57,17 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
 
   // FR-2.1c: the dates are optional and therefore folded away.
   await page.getByTestId('wizard-more').click()
-  await setDateField(page, 'wizard-start-date', '2026-09-13')
-  await setDateField(page, 'wizard-end-date', '2026-09-20')
+  await setDateRange(page, 'wizard-dates', { start: '2026-09-13', end: '2026-09-20' })
 
-  // ADR-035 (UX-6): the field renders the locale display through formatDay,
-  // never the ISO string its state holds — the picked day proves the picker
-  // wrote through, the wording proves the browser does not own the text.
-  await expect(page.getByTestId('wizard-start-date').locator('input')).toHaveValue('Sep 13, 2026')
+  // ADR-035 (UX-6): the field renders the locale display through
+  // formatDayRange, never the ISO strings its state holds — the picked days
+  // prove the picker wrote through, the wording proves the browser does not
+  // own the text.
+  await expect(page.getByTestId('wizard-dates-value')).toHaveText('Sep 13 – 20, 2026')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it
   // counts both endpoints, so the 13th to the 20th is 8 travel days.
-  await expect(page.getByTestId('wizard-step-1')).toContainText('Duration: 8 days')
+  await expect(page.getByTestId('wizard-dates-days')).toHaveText('8 days')
 
   // Positive signal that the gate opened: the wizard actually advances.
   await page.getByTestId('wizard-next').click()
@@ -115,7 +115,7 @@ test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', a
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await setDateField(page, 'wizard-end-date', TRIP.endDate)
+  await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -147,7 +147,7 @@ test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await setDateField(page, 'wizard-end-date', TRIP.endDate)
+  await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -173,7 +173,7 @@ test('E2E-M1-05, E2E-M3-10: M3: the dashboard CTA leads through the wizard to a 
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await setDateField(page, 'wizard-end-date', TRIP.endDate)
+  await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -248,11 +248,12 @@ test('E2E-M3-19: Enter in a plain field is the Weiter click, gated like it @loca
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
 })
 
-// E2E-M3-20 (FR-2.1d): a trip whose end precedes its start is not a state M3
-// rejects — it is one the calendar never offers. Asserted on the picker
-// itself rather than on a refused submit: the bound is the mechanism, and a
-// message the user has to read is the fallback the mechanism removes.
-test('E2E-M3-20: the end picker offers no day before the start already set @local @m3', async ({
+// E2E-M3-20 (FR-2.1d): a trip whose end precedes its start is not a state
+// M3 rejects — it is one the calendar never produces. With a start already
+// set, a tap on an earlier day while the end is awaited becomes the new start
+// and leaves the end still to come: asserted on the sheet itself, since the
+// rule is the mechanism and a message would be the fallback it removes.
+test('E2E-M3-20: an end tapped before the start becomes the start, never an inverted range @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -261,23 +262,24 @@ test('E2E-M3-20: the end picker offers no day before the start already set @loca
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
   await page.getByTestId('wizard-more').click()
 
-  await setDateField(page, 'wizard-start-date', '2026-09-10')
-  await setDateField(page, 'wizard-end-date', '2026-09-20')
+  await setDateRange(page, 'wizard-dates', { start: '2026-09-10', end: '2026-09-20' })
 
-  // Re-opened rather than opened: a picker with a value opens on that value's
-  // month, so the grid under test is the same one on any day of any year —
-  // an empty picker opens on *today* and the case would rot with the calendar.
-  await page.getByTestId('wizard-end-date').click()
-  const picker = page.getByTestId('wizard-end-date-picker')
+  // Re-opened rather than opened: a picker with a value scrolls to that
+  // value's month, so the case is the same on any day of any year.
+  await page.getByTestId('wizard-dates').click()
+  const picker = page.getByTestId('wizard-dates-picker')
   await expect(picker).toBeVisible()
-  const september = picker.locator(
-    '.calendar-month:nth-child(2) .calendar-day[data-month="9"][data-year="2026"]',
-  )
+  await picker.getByTestId('wizard-dates-end').click()
+  await picker.locator('[data-day="2026-09-05"]').click()
 
-  // Both halves: a day before the start is out of reach, one after it is not.
-  // "Everything is disabled" would pass the first assertion on its own.
-  await expect(september.filter({ hasText: /^5$/ })).toBeDisabled()
-  await expect(september.filter({ hasText: /^15$/ })).toBeEnabled()
+  // Both halves: the earlier day is the start now, and the end is open again.
+  await expect(picker.getByTestId('wizard-dates-start')).toContainText('Sep 5, 2026')
+  await expect(picker.getByTestId('wizard-dates-end')).toContainText('—')
+  await expect(picker.getByTestId('wizard-dates-hint')).toHaveText('Tap the last day')
+
+  await picker.locator('[data-day="2026-09-15"]').click()
+  await picker.getByTestId('wizard-dates-apply').click()
+  await expect(page.getByTestId('wizard-dates-value')).toHaveText('Sep 5 – 15, 2026')
 })
 
 // E2E-M3-22 (G-17): the create is one act. It writes the whole trip and then

@@ -31,7 +31,7 @@ import {
 import { addOutline, closeOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 
-import DateField from '@/components/global/DateField.vue'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
@@ -158,22 +158,10 @@ function commitName(): void {
   orchestrator.updateTrip(props.tripId, { name: value })
 }
 
-/*
- * A handler rather than two statements inline: Vue parses an inline handler as
- * a single expression, and a two-line one compiles under vue-tsc and eslint
- * alike while failing at runtime — found by rendering, not by a check.
- */
-function onStartDate(value: string): void {
-  startDate.value = value
-  commitDates()
-}
-
-function onEndDate(value: string): void {
-  endDate.value = value
-  commitDates()
-}
-
-function commitDates(): void {
+/** Writes the picked range, unless it is the one the trip already has. */
+function onDates(first: string, last: string): void {
+  startDate.value = first
+  endDate.value = last
   const start = startDate.value || null
   const end = endDate.value || null
   if (start === (trip.value?.start_date ?? null) && end === (trip.value?.end_date ?? null)) return
@@ -326,23 +314,15 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             </IonSelect>
           </IonItem>
           <IonItem>
-            <DateField
-              testid="trip-edit-start"
-              :max="endDate"
-              :label="t('tripEdit.startDate')"
-              :value="startDate"
+            <DateRangeField
+              testid="trip-edit-dates"
+              :label="t('tripEdit.dates')"
+              :start-label="t('tripEdit.startDate')"
+              :end-label="t('tripEdit.endDate')"
+              :start="startDate"
+              :end="endDate"
               :readonly="readOnly"
-              @update="onStartDate($event)"
-            />
-          </IonItem>
-          <IonItem>
-            <DateField
-              testid="trip-edit-end"
-              :min="startDate"
-              :label="t('tripEdit.endDate')"
-              :value="endDate"
-              :readonly="readOnly"
-              @update="onEndDate($event)"
+              @update="onDates"
             />
           </IonItem>
         </IonList>

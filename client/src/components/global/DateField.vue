@@ -19,21 +19,12 @@ const props = withDefaults(
     testid: string
     readonly?: boolean
     /**
-     * The bounds the calendar offers, ISO `YYYY-MM-DD`. A trip's two fields
-     * bound each other (FR-2.1d), so an end before its start is not a state
-     * the app has to reject — it is one the picker never offers. Absent
-     * means *no* restriction: a default of today would forbid the past,
-     * which every archived trip needs.
-     */
-    min?: string
-    max?: string
-    /**
      * FR-7.14: only the calendar, no field — for a caller whose own control
      * opens it (M25's *Datum…* chip, `DueChips`) through `openPicker`.
      */
     bare?: boolean
   }>(),
-  { readonly: false, min: undefined, max: undefined, bare: false },
+  { readonly: false, bare: false },
 )
 
 const emit = defineEmits<{ update: [iso: string] }>()
@@ -90,8 +81,6 @@ function onPicked(picked: string | string[] | null | undefined) {
         :key="presented"
         presentation="date"
         :value="props.value || undefined"
-        :min="props.min || undefined"
-        :max="props.max || undefined"
         :locale="intlLocale()"
         :first-day-of-week="1"
         show-default-buttons

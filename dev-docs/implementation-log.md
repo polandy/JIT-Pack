@@ -449,6 +449,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Excursions: a small packing list inside a trip (2026-09-26)](#excursions-a-small-packing-list-inside-a-trip-2026-09-26) — M6 assumed every shopping source was the packing list; a stale suitcase link on purpose.
 - [The excursion list takes the rest of M4's parts (2026-09-27)](#the-excursion-list-takes-the-rest-of-m4s-parts-2026-09-27) — M5's back guard shows the wrong page below a non-root screen; the line sheet is pushed.
 - [The planner's first slice: ideas, votes and a discussion (2026-09-27)](#the-planners-first-slice-ideas-votes-and-a-discussion-2026-09-27) — `comments.idea_id` would have leaked into every notes reader; the mockup's row measurement was wrong.
+- [A date range is one field (2026-09-27)](#a-date-range-is-one-field-2026-09-27) — pure two-tap picking would have lost the end-only trips; a fixed month window lost last year's.
 
 ## Deviations
 
@@ -17840,3 +17841,20 @@ through a new `cascadeTombstones` there. The Local Mode case was red without the
 **A trap for a rendered check: a dev-mode build is not a dev build.** `vite build --mode development` still sets
 `import.meta.env.DEV` false (Vite derives it from `NODE_ENV`), so the served bundle had no seed button;
 `NODE_ENV=development vite build --mode development` is the build the owner tests on.
+
+## A date range is one field (2026-09-27)
+
+M3, M22, the clone form and M27 each had two `DateField`s bounding each other; they are now one `DateRangeField`
+(ADR-080): one sheet, months stacked, two taps. Built after a clickable mockup the owner chose from.
+
+**A premise that was wrong: a range is always picked start first.** The mockup's rule — first tap the start, second
+the end — left no way to set an end alone, and FR-2.1b makes the two independent. The suite said so before anyone
+else: ten e2e seeds create a trip with only an end (*„until the end of the year"*), and `createTripViaWizard` had no
+way to write one. Built instead: the two sides in the sheet's head choose which one the next tap sets, which also
+lets one day move alone — a trip one day longer is two taps, not a new range.
+
+**An accepted cost the suite disproved.** The first cut listed 12 months back and 24 ahead of today and called a
+farther day an accepted cost, as ADR-035 accepted that a date cannot be typed. E2E-M12-03 enters last July's trip
+after the fact, which is how a series' history is built — the day was not in the list at all. Built instead:
+*Frühere Monate* / *Spätere Monate* at the open ends, 12 months a tap, with the months anchored where the sheet opened
+so a tap never moves them under the finger.

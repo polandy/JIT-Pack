@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import { test, expect, visiblePage as visible } from './fixtures'
+import { test, expect, fillIonic, visiblePage as visible } from './fixtures'
 import {
   addPosition,
   backToTemplateList,
@@ -226,6 +226,51 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await expect(toast).toHaveCount(1)
     await toast.locator('button').filter({ hasText: 'Undo' }).click()
     await expect(children).toHaveCount(2)
+  })
+
+  /**
+   * E2E-M27-14: an excursion's days are one range inside the trip's
+   * (FR-31.1, G-17). The sheet offers no day before the trip starts or after
+   * it ends, and the range picked is the one the card states.
+   */
+  test('E2E-M27-14: an excursion’s days are picked as one range, inside the trip’s', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Engadin',
+      startDate: '2026-10-09',
+      endDate: '2026-10-18',
+      travelers: ['Andy'],
+    })
+    await openExcursions(page)
+    await visible(page).getByTestId('m27-fab').click()
+    const sheet = page.getByTestId('m27-sheet')
+    await expect(sheet.getByTestId('m27-sheet-title')).toBeVisible()
+
+    await sheet.getByTestId('m27-dates').click()
+    const picker = page.getByTestId('m27-dates-picker')
+    await expect(picker).toBeVisible()
+    // Both halves: the trip's own first and last day are offered, the days
+    // around them are not — "every day disabled" would pass the second pair.
+    await expect(picker.locator('[data-day="2026-10-09"]')).toBeEnabled()
+    await expect(picker.locator('[data-day="2026-10-18"]')).toBeEnabled()
+    await expect(picker.locator('[data-day="2026-10-08"]')).toBeDisabled()
+    await expect(picker.locator('[data-day="2026-10-19"]')).toBeDisabled()
+    await picker.locator('[data-day="2026-10-12"]').click()
+    await picker.locator('[data-day="2026-10-13"]').click()
+    await expect(picker.getByTestId('m27-dates-hint')).toHaveText('2 days')
+    await picker.getByTestId('m27-dates-apply').click()
+    await expect(picker).toBeHidden()
+
+    await fillIonic(sheet.getByTestId('m27-name'), 'Hüttentour')
+    await sheet.getByTestId('m27-save').click()
+    await expect(visible(page).getByTestId('m27-excursion-page')).toBeVisible()
+    await writesLanded(page)
+    await page.goBack()
+    await expect(visible(page).getByTestId('m27-page')).toBeVisible()
+    const when = visible(page).getByTestId('m27-when-Hüttentour')
+    await expect(when).toContainText('10/12')
+    await expect(when).toContainText('10/13')
   })
 
   /**

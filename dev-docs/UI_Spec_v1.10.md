@@ -573,12 +573,22 @@ These patterns apply to every screen and are specified once.
   in the app's locale with Monday first; clearing it is a picker action, and under G-3's lock the field opens nothing. A
   visible **file trigger** is a catalogue-labelled button in front of a hidden input (`FilePickButton`), as M10's photo
   and M17's avatar use it. A view never writes `<input type="date">` or a visible `<input type="file">`. Sites today:
-  M3's and M22's dates and the clone form's, M15's and M18's file pickers. Accepted cost (ADR-035): a date cannot be
-  typed — revisit at the first field whose value is far from today. **A `DateField` also carries its bounds**
-  (`min`/`max`, FR-2.1d): where two fields describe a range, each bounds the other's calendar, so the invalid pair is
-  unreachable rather than refused — no per-screen error state, and a fourth surface using the control inherits the rule.
-  An absent bound is no restriction, and the bound constrains the calendar only: a row that already holds an inverted
-  range still renders and is still repairable.
+  a task's and a shopping entry's due day, M15's and M18's file pickers. Accepted cost (ADR-035): a date cannot be
+  typed — revisit at the first field whose value is far from today.
+  * **A first and a last day are one `DateRangeField`** (ADR-080) — M3's and M22's dates, the clone form's and an
+    excursion's on M27. The field shows the range through `formatDayRange` with its length as a pill (*„10 Tage"*), one
+    day alone through `formatDay`, and *„Zeitraum wählen"* when empty. It opens one sheet: the two sides in its head
+    (*Beginn → Ende*, *Von → Bis*), the weekday row Monday first, and the months stacked one under the other — scrolled
+    to the range's month, else today's — so a range across a month's end is seen whole. The first tap sets the start,
+    the next the end, the same day twice is a one-day range; a tap on a side in the head chooses which one the next tap
+    sets, so one day moves alone and an end alone stays enterable (FR-2.1b). The footer carries *Leeren*, a line saying
+    what the next tap does or how many days are picked, and *Fertig*, which alone writes; leaving the sheet otherwise
+    changes nothing. The tap rule never holds an end before its start (FR-2.1d), and the field carries **bounds**
+    (`min`/`max`) as days that cannot be tapped — an excursion's are its trip's days (FR-31.1). An absent bound is no
+    restriction, and a bound constrains the calendar only: a row that already holds an inverted range still renders and
+    is repaired by picking a new one. An open side lists 12 months back and 24 ahead of where the sheet opened, with
+    *Frühere Monate* / *Spätere Monate* at its ends adding 12 more each, so no day is out of reach. Under G-3's lock the
+    field opens nothing.
   * **Why not native (ADR-035, UX-6):** the browser's control text is unreachable by NFR-4.12 and its chrome by the
     token tables; the accepted cost and its revisit trigger are in the ADR.
   * **The calendar mounts once the sheet has *landed*** (Ionic's `didPresent`), and the sheet chrome renders that state
@@ -901,10 +911,10 @@ These patterns apply to every screen and are specified once.
 
 ### M3 — Trip Creation Wizard
 
-* **Enter is the step's button (G-16):** each step's plain text fields fire the step's own navigation action
-  behind its validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter*
-  (the dates are G-17 fields — their Enter opens the picker, and the folded row's summary states them
-  through `formatDay`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its
+* **Enter is the step's button (G-16):** each step's plain text fields fire the step's own navigation action behind its
+  validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter* (the dates
+  are a G-17 range field — its Enter opens the picker, and the folded row's summary states the range through
+  `formatDayRange`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its
   Enter is reserved for the field's own result list), so step 3 is left by the button alone.
 * **Step 2 opens with the default travellers (FR-2.5a)** from M17, editable there like any other traveller.
   A default picked from the accounts opens as the account picker adds one: linked, a collaborator, with
@@ -912,8 +922,8 @@ These patterns apply to every screen and are specified once.
 * **Step 1 folds its optional fields (FR-2.1c):** name and year stand alone; dates, series and attributes
   live behind one *Mehr Optionen ▾* row that states what is set behind it.
 * **Step 1 requires a name and a year (FR-2.1b).** The year is a picker that opens on the current one, so
-  the required field is satisfied on arrival; both dates are marked optional and neither gates *Next*. The duration line
-  appears only when both dates are set.
+  the required field is satisfied on arrival; the range field is marked optional and does not gate *Next*. The
+  trip's length is the field's own pill, shown only when both dates are set.
 
 * **Purpose:** Generate a trip instance from templates with correct quantities on the first pass.
 * **Step 1 — Metadata:** Name, series picker (or "New series"), optional start date and end date (duration auto-computed
@@ -2490,29 +2500,27 @@ token would prove nothing there is anything to prove.
   roster-like section — M8 with its groups — are screens for the same reason.
 * **Elements:** the trip **name** (commits on blur/Enter, the M8 pattern — the header keeps its own static title here,
   unlike M8: this screen is *about* a trip rather than being one, and a bar reading „Samedan 2026" would not say which
-  screen it is); **the two dates** (G-17 `DateField`s; read-only under G-3's lock), both optional per FR-2.1b and
-  bounding each other (FR-2.1d); the **year** — a picker offering the same span M3 and the clone form offer, from the
-  one rule all three read (`domain/tripYears.ts`), plus the trip's own year where that lies outside the window, so an
-  imported 2014 trip is not silently offered a move. FR-2.1b makes the year the one *required* temporal fact and the
-  fact M2 sorts and groups by, so a trip created in the wrong year must not keep it for good; FR-2.7's own scope is
-  *name, dates and travellers*, and the year is this document's addition to it, by decision (E2E-M22-12). And the
-  **travellers** section — one row per person, rename in place, ＋ to add, ✕ to remove. The **series** is not edited
-  here: it is edited on **M16**, whose *detach/attach trips* action is its one writer — as PRD FR-2.7's opening
-  paragraph says.
-  Each traveller row also carries an **account picker** (FR-2.5, ADR-058) — *„Kein Konto"* or one
-  of the trip's members — in the row's end slot, between the name and the ✕. In the end slot rather than on a
-  second line: the roster reads as a list of people, and a line per row would push the fourth traveller off a
-  phone screen for a fact that is empty on most rows; the control states itself through its value, so it carries
-  no visible label, only an aria one. One sentence under the list says what an account *does* (the person is told
-  when an item is assigned to them) and what may be picked (members only), because that is a rule about the trip's
-  notifications rather than a property of one person.
-  **The add row carries the same picker**, between the name field and ＋, so a person can be added *as* the account they
-  are in one act — on a shared trip the person being added is usually one of the people it is already shared with, and a
-  two-step version would hide that behind a control found only afterwards. It offers the same names as the row pickers
-  and appears under the same rule, so the two are never out of step; it returns to *„Kein Konto"* with the name field,
-  because the next person is a different one far more often than not. What the write does with it is FR-2.5's ordering
-  rule, not a screen decision: the traveller is inserted unlinked, FR-27.4's per-person rows follow, and the link is
-  written last so the account is not told once per generated row.
+  screen it is); **the dates** (one G-17 `DateRangeField`; read-only under G-3's lock), both optional per FR-2.1b and
+  never inverted (FR-2.1d), written together when *Fertig* is tapped; the **year** — a picker offering the same span M3
+  and the clone form offer, from the one rule all three read (`domain/tripYears.ts`), plus the trip's own year where
+  that lies outside the window, so an imported 2014 trip is not silently offered a move. FR-2.1b makes the year the one
+  *required* temporal fact and the fact M2 sorts and groups by, so a trip created in the wrong year must not keep it for
+  good; FR-2.7's own scope is *name, dates and travellers*, and the year is this document's addition to it, by decision
+  (E2E-M22-12). And the **travellers** section — one row per person, rename in place, ＋ to add, ✕ to remove. The
+  **series** is not edited here: it is edited on **M16**, whose *detach/attach trips* action is its one writer — as PRD
+  FR-2.7's opening paragraph says. Each traveller row also carries an **account picker** (FR-2.5, ADR-058) — *„Kein
+  Konto"* or one of the trip's members — in the row's end slot, between the name and the ✕. In the end slot rather than
+  on a second line: the roster reads as a list of people, and a line per row would push the fourth traveller off a phone
+  screen for a fact that is empty on most rows; the control states itself through its value, so it carries no visible
+  label, only an aria one. One sentence under the list says what an account *does* (the person is told when an item is
+  assigned to them) and what may be picked (members only), because that is a rule about the trip's notifications rather
+  than a property of one person. **The add row carries the same picker**, between the name field and ＋, so a person can
+  be added *as* the account they are in one act — on a shared trip the person being added is usually one of the people
+  it is already shared with, and a two-step version would hide that behind a control found only afterwards. It offers
+  the same names as the row pickers and appears under the same rule, so the two are never out of step; it returns to
+  *„Kein Konto"* with the name field, because the next person is a different one far more often than not. What the write
+  does with it is FR-2.5's ordering rule, not a screen decision: the traveller is inserted unlinked, FR-27.4's
+  per-person rows follow, and the link is written last so the account is not told once per generated row.
 * **What a traveller change does** is FR-27.4's rule, and the screen states it rather than performing it silently:
   adding applies **immediately** and reports the FR-27.10 way — what was added, what that person already had, what this
   trip's conditions excluded. Removing takes their **unpacked** rows. What happens to a row that was already **packed**
@@ -2833,15 +2841,15 @@ token would prove nothing there is anything to prove.
   Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste an."* **Before the trip
   partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
 * **The sheet** (the FAB, ＋, `FAB_ANCHOR.m27`; also *Ausflug bearbeiten* from one excursion's ⋮): *„Neuer Ausflug"* —
-  **Name** (*„z. B. Tageswanderung"*), **Von** / **Bis** as two G-2 date fields that bound each other, both optional;
-  **Wer geht mit** — *Alle* and a chip per traveller (where the trip has two or more), everybody by default, and a set
-  that reaches everybody is *Alle* again; and, new only, **Beginnen mit** — FR-27.13's group search (*„Gruppe
-  suchen…"*), the groups A–Z with their item count and *„über Kamera"* on an item match, then *Leer beginnen*. With a
-  group chosen, one line says in advance what the tap does to the packing list: *„Was noch nicht im Gepäck ist, kommt
-  auch auf die Packliste."* while the suitcase is open, *„Die Reise hat begonnen: Was nicht im Gepäck ist, wird markiert
-  statt auf die Packliste gesetzt."* once it is not (FR-31.7). *Ausflug anlegen* writes it, opens its list, and a toast
-  *„„Hüttentour" angelegt · 3 Dinge auf die Packliste"* carries *Rückgängig*, which takes back the excursion, its lines
-  and what it put into the suitcase (FR-31.4).
+  **Name** (*„z. B. Tageswanderung"*), **Wann** — one G-17 range field (*Von → Bis*), optional, offering only the trip's
+  days once it has them (FR-31.1); **Wer geht mit** — *Alle* and a chip per traveller (where the trip has two or more),
+  everybody by default, and a set that reaches everybody is *Alle* again; and, new only, **Beginnen mit** — FR-27.13's
+  group search (*„Gruppe suchen…"*), the groups A–Z with their item count and *„über Kamera"* on an item match, then
+  *Leer beginnen*. With a group chosen, one line says in advance what the tap does to the packing list: *„Was noch nicht
+  im Gepäck ist, kommt auch auf die Packliste."* while the suitcase is open, *„Die Reise hat begonnen: Was nicht im
+  Gepäck ist, wird markiert statt auf die Packliste gesetzt."* once it is not (FR-31.7). *Ausflug anlegen* writes it,
+  opens its list, and a toast *„„Hüttentour" angelegt · 3 Dinge auf die Packliste"* carries *Rückgängig*, which takes
+  back the excursion, its lines and what it put into the suitcase (FR-31.4).
 * **One excursion** (`/trips/:id/excursions/:excursionId`, `meta.parent` the list, still in the excursions view, so the
   pills stay): named by the excursion, with *„So., 27.9. – Mo., 28.9. · Sia, Andy"* (or *Alle*, or *Ohne Datum*) as the
   meta line. **It is M4, smaller, built from M4's own parts**, so it reads and works like the packing list: M4's

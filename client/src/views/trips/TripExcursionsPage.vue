@@ -190,6 +190,8 @@ setHeaderTitle(
         :is-open="creating"
         :travelers="travelers"
         :suitcase-open="suitcaseOpen"
+        :trip-start="trip?.start_date"
+        :trip-end="trip?.end_date"
         @dismiss="creating = false"
         @save="create"
       />

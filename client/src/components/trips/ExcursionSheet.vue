@@ -12,7 +12,7 @@ import { IonButton, IonInput } from '@ionic/vue'
 import { computed, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
-import DateField from '@/components/global/DateField.vue'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { resolveTemplate, searchGroups, type GroupSearchCandidate } from '@/domain/templates'
@@ -43,8 +43,11 @@ const props = withDefaults(
     travelerIds?: string[] | null
     /** Whether the suitcase still takes things (FR-31.7). */
     suitcaseOpen: boolean
+    /** The trip's days, which bound the excursion's (FR-31.1); null is unbounded. */
+    tripStart?: string | null
+    tripEnd?: string | null
   }>(),
-  { excursion: null, travelerIds: null },
+  { excursion: null, travelerIds: null, tripStart: null, tripEnd: null },
 )
 
 const emit = defineEmits<{ dismiss: []; save: [result: ExcursionSheetResult] }>()
@@ -72,6 +75,11 @@ watch(
   },
   { immediate: true },
 )
+
+function onDates(start: string, end: string) {
+  startsOn.value = start
+  endsOn.value = end
+}
 
 const creating = computed(() => props.excursion === null)
 
@@ -165,19 +173,16 @@ function save() {
       />
 
       <div class="dates">
-        <DateField
-          testid="m27-from"
-          :label="t('excursions.from')"
-          :value="startsOn"
-          :max="endsOn || undefined"
-          @update="startsOn = $event"
-        />
-        <DateField
-          testid="m27-to"
-          :label="t('excursions.to')"
-          :value="endsOn"
-          :min="startsOn || undefined"
-          @update="endsOn = $event"
+        <DateRangeField
+          testid="m27-dates"
+          :label="t('excursions.when')"
+          :start-label="t('excursions.from')"
+          :end-label="t('excursions.to')"
+          :start="startsOn"
+          :end="endsOn"
+          :min="tripStart ?? ''"
+          :max="tripEnd ?? ''"
+          @update="onDates"
         />
       </div>
 
@@ -269,9 +274,6 @@ function save() {
 }
 
 .dates {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
   margin-top: 10px;
 }
 

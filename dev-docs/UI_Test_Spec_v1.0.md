@@ -408,9 +408,9 @@ stable references for the traceability matrix.
 
 ### M3 — Trip Creation Wizard
 * **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips
-  (season/transport/accommodation) set. The dates are set through the `DateField` picker (G-17, ADR-035) via
-  `setDateField`, and the case asserts the field's rendered value is the locale display (`Sep 13, 2026`), never the ISO
-  string the state holds.
+  (season/transport/accommodation) set. The dates are set through the `DateRangeField` sheet (G-17, ADR-080) via
+  `setDateRange`, and the case asserts the field's rendered value is the locale display (`Sep 13 – 20, 2026`), never
+  the ISO strings the state holds, and the length on its pill (`8 days`).
 * **E2E-M3-02** `all` (FR-13.1/13.2): series picker incl. inline "New series…"; picking a series prefills empty
   attribute chips from its defaults.
 * **E2E-M3-03** `all` (FR-2.5): step 2 adds travelers **by name**; asserts there is **no** Adult/Child control and no
@@ -456,11 +456,10 @@ stable references for the traceability matrix.
   whole gate.
 * **E2E-M3-16** `all` (FR-2.1c): step 1's optional fields are folded behind *Mehr Optionen ▾*, and the fold states what
   is set behind it.
-* **E2E-M3-20** `all` (FR-2.1d): with a start date already set, the end picker offers no day before
-  it. Asserted on the calendar itself — a day before the start is disabled, a day after it is not — because "everything
-  is disabled" would pass the first half alone. The picker is **re-opened** rather than opened: one that already holds a
-  value opens on that value's month, so the grid under test is the same on any day of any year, while an empty picker
-  opens on *today* and the case would rot with the calendar.
+* **E2E-M3-20** `all` (FR-2.1d): with a range already set, the end side chosen and a day before the start tapped,
+  that day becomes the start and the end is open again — both halves asserted on the sheet's head and its hint — and
+  the next tap closes the range the field then shows. The picker is **re-opened** rather than opened: one that
+  already holds a value scrolls to that value's month, so the case is the same on any day of any year.
 * **E2E-M3-21** `local` (FR-2.5b/FR-1.4): a group carrying one trip-global and one per-person
   position, previewed on a trip whose step 2 was walked through without naming anybody: the count states the one row
   placed, and the *„Braucht Reisende"* block names the other position — not the exclusion block, which stays empty
@@ -3121,9 +3120,9 @@ Every id below is implemented and read against the screen. The trip's series is 
 below, and UI-Spec M22).
 
 * **E2E-M22-01** `all` (FR-2.7): M4's G-12 cluster opens the editor, and a new name commits on blur and comes back
-  through the store — asserted on the repainted M4, never on the URL. It also sets the (G-17, ADR-035)
-  start date through the `DateField` picker and asserts the locale display (`Oct 3, 2026`) both optimistically and after
-  a round trip back through M4.
+  through the store — asserted on the repainted M4, never on the URL. It also sets the dates through the
+  `DateRangeField` sheet (G-17, ADR-080) and asserts the locale display (`Oct 3 – 10, 2026`) both optimistically and
+  after a round trip back through M4.
 * **E2E-M22-02** `all` (FR-2.7, FR-27.4): a traveller added to an existing trip extends the
   per-person positions **immediately**, and the screen reports what it did. The report is also the settled state the
   case waits on, so no clock is involved. The report is asserted as the sentence, not the digit `1` — which is
@@ -3403,6 +3402,9 @@ went.
 * **E2E-M27-13** `local` (FR-31.6, FR-25.13f) — **implemented** (`excursions.spec.ts`): the inventory sheet's
   *packen* on a thing the excursion carries takes its line off the open list, *nicht einpacken* does too, and the
   row's undo brings it back after each.
+* **E2E-M27-14** `local` (FR-31.1, G-17) — **implemented** (`excursions.spec.ts`): on a trip from 9 to 18 October,
+  the new excursion's range sheet offers the trip's first and last day and disables the day before and the day after;
+  two taps pick 12–13 October (the hint says *2 days*), and the list's row states both days.
 
 ### M28 — Ideen (a trip's ideas, §3.29)
 
@@ -3593,12 +3595,13 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-1.8 | DOC/N-A | retired — no units, everything counts in pieces |
 | FR-1.9 | E2E+UNIT+GO | M10-29 (server: set in M10, lands on the linked traveler in M3), M10-30 (Local Mode offers no control); `domain/__tests__/instantiate.spec.ts` (the rule and its failure paths), `TestMasterPush_ItemDefaultAssignee_…` (round trip, unknown account refused) |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts, the traveller faces included) |
+| FR-2.1d | E2E+UNIT | M3-20; `lib/__tests__/dateRange.spec.ts` (`tapDay`), `DateRangeField.spec.ts`, `TripEditPage.spec.ts`, `ClonePage.spec.ts`, `TripWizardPage.spec.ts` |
 | FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, in the FR-27.4 model); the M10 usage count is asserted in M10-14/15 (M10-02 retired — its „delete blocked" half is reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
-| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen** (M22-12, by decision — it has a reader everywhere and would otherwise have a writer only at creation), and the **series** is edited on M16 instead, as PRD FR-2.7's opening paragraph says; M2-34 (reached from M2's row menu) |
+| FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date range) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen** (M22-12, by decision — it has a reader everywhere and would otherwise have a writer only at creation), and the **series** is edited on M16 instead, as PRD FR-2.7's opening paragraph says; M2-34 (reached from M2's row menu) |
 | FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
@@ -3768,7 +3771,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.10 | E2E+UNIT | M6-35 (set in the sheet, the pill, the order, a reload, M1's card and Local Mode's hint); `shopping/__tests__/list.spec.ts` (due order, pressing sections first), `ShoppingPage.spec.ts` (pill, sheet), `ShoppingDashboardCard.spec.ts` (pressing lead on card and block), `sync.spec.ts` (the field's writes, the count), `useDueTaskHint.spec.ts`; Go: `TestDueShoppingEntries_*`, `TestPlanShoppingDue_*`, `TestRemindDueTasks_*` |
 | FR-30.9 | E2E+UNIT | M6-31 (the entry sheet with name and search-or-create tag, grouped open list, flat reveal with the tag, check-off at the end, reload); `shopping/__tests__/ShoppingPage.spec.ts` (grouping order, chips, sheet, source lines offer none); Go: `shopping_entries_test.go` (push path, per-field merge, 1–40 bound) |
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
-| FR-31.1–31.3 | E2E+UNIT+SERVER | M27-01 (created with days, from a group, who goes), M27-05 (who goes changes), M27-06 (deleted, the packing list untouched); `domain/__tests__/excursions.spec.ts` (participants, time), `excursions.seam.spec.ts`; Go: `excursions_test.go` (push path, cascades) |
+| FR-31.1–31.3 | E2E+UNIT+SERVER | M27-01 (created with days, from a group, who goes), M27-14 (the days as one range inside the trip's; `DateRangeField.spec.ts` for the bounds), M27-05 (who goes changes), M27-06 (deleted, the packing list untouched); `domain/__tests__/excursions.spec.ts` (participants, time), `excursions.seam.spec.ts`; Go: `excursions_test.go` (push path, cascades) |
 | FR-31.4/31.5/31.7 | E2E+UNIT+SERVER | M27-01 (lines borrowed and created), M27-02 (the link shares no tick), M27-03 (a closed suitcase, *nicht im Gepäck*), M27-04/05 (*für alle*); `excursions.spec.ts` (`planLinks`, `planParticipantChange`), `excursions.seam.spec.ts` (undo across both lists, traveller removal); Go: `TestApplyMutation_DeletingATripItemUnlinksItsExcursionLine_FR31_4` |
 | FR-31.8 | E2E+UNIT | M27-03 (on M6 under the excursion's name, bought there); `excursionShoppingSource.spec.ts`, `shopping/__tests__/list.spec.ts` (a source's own heading) |
 | FR-31.9 | UNIT+SERVER | `workerBody.spec.ts` (body and link), Go: `TestDueExcursions_FR31_9_*`, `TestPlanExcursionDue_FR31_9_*`, `TestRemindDueTasks_*` |

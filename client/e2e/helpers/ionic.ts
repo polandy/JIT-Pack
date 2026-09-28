@@ -84,11 +84,9 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
    * listener, no alignment. Ionic attaches that listener in `markReady()`,
    * which is what the `datetime-ready` wait above is for.
    *
-   * The key acts on the focused cell's date, and a hop whose landing day is
-   * outside the field's bounds (FR-2.1d) is ignored — so the cell focused is
-   * the enabled day nearest the target's day-of-month. Every month between
-   * here and the target then lands inside the bound, since the bound is a
-   * single date on one side and the target itself is inside it.
+   * The key acts on the focused cell's date, so the cell focused is the
+   * enabled day nearest the target's day-of-month — the 31st where the shown
+   * month has one, its last day where it does not.
    */
   const MAX_HOPS = 36
   for (let hop = 0; hop <= MAX_HOPS; hop++) {
@@ -131,13 +129,63 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
   // a plain `onClick`, so dispatching removes the coordinates from the
   // question entirely rather than racing them.
   //
-  // Enabled is asserted first, because dispatching also bypasses the
-  // `disabled` a bound puts on an out-of-range day (FR-2.1d) — the helper
-  // must not be able to set what the app refuses to offer.
+  // Enabled is asserted first, because dispatching also bypasses a
+  // `disabled` day — the helper must not be able to set what the app
+  // refuses to offer.
   await expect(cell).toBeEnabled()
   await cell.dispatchEvent('click')
 
   await picker.getByText('Done', { exact: true }).click()
+  await expect(picker).toBeHidden()
+}
+
+/** How many *Frühere/Spätere Monate* taps a range helper may spend reaching a day. */
+const MAX_MONTH_LOADS = 10
+
+/**
+ * Loads months until the day's is listed: an unbounded calendar lists a
+ * window around where it opened and grows by a tap at either end. Each tap
+ * is confirmed by the month count growing, never by a wait.
+ */
+async function revealMonth(picker: Locator, testid: string, day: string): Promise<void> {
+  const months = picker.locator('[data-month]')
+  const wanted = day.slice(0, 7)
+  for (let load = 0; (await picker.locator(`[data-month="${wanted}"]`).count()) === 0; load++) {
+    if (load === MAX_MONTH_LOADS) throw new Error(`range picker never listed ${wanted}`)
+    const first = (await months.first().getAttribute('data-month')) ?? ''
+    const listed = await months.count()
+    await picker.getByTestId(wanted < first ? `${testid}-earlier` : `${testid}-later`).click()
+    await expect(months).not.toHaveCount(listed)
+  }
+}
+
+/**
+ * Sets a DateRangeField (G-17, ADR-080): opens its sheet, chooses each given
+ * side in the sheet's head and taps its day, then confirms. A side left out
+ * keeps what the field held. The calendar is a plain list of day buttons, so
+ * a tap is a click — Playwright scrolls the month into view itself.
+ */
+export async function setDateRange(
+  page: Page,
+  testid: string,
+  range: { start?: string; end?: string },
+): Promise<void> {
+  await page.getByTestId(testid).click()
+  const picker = page.getByTestId(`${testid}-picker`)
+  await expect(picker).toBeVisible()
+  for (const side of ['start', 'end'] as const) {
+    const day = range[side]
+    if (!day) continue
+    await picker.getByTestId(`${testid}-${side}`).click()
+    const cell = picker.locator(`[data-day="${day}"]`)
+    await revealMonth(picker, testid, day)
+    // Enabled first: a bound (FR-2.1d, FR-31.1) is what the app refuses to
+    // offer, and the helper must not be able to set it anyway.
+    await expect(cell).toBeEnabled()
+    await cell.click()
+    await expect(cell).toHaveAttribute('aria-pressed', 'true')
+  }
+  await picker.getByTestId(`${testid}-apply`).click()
   await expect(picker).toBeHidden()
 }
 

@@ -42,7 +42,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { hasCollaborativeSession } from '@/mode'
 import { useIdentity } from '@/composables/useTripIdentity'
-import DateField from '@/components/global/DateField.vue'
+import DateRangeField from '@/components/global/DateRangeField.vue'
 import { t, formatDay, formatDayRange } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -110,6 +110,11 @@ const moreOpen = ref(false)
 
 const startDate = ref('')
 const endDate = ref('')
+
+function onDates(start: string, end: string): void {
+  startDate.value = start
+  endDate.value = end
+}
 const season = ref('')
 const transportMode = ref('')
 const accommodation = ref('')
@@ -780,25 +785,15 @@ setHeaderTitle(
         <template v-if="moreOpen">
           <IonList>
             <IonItem>
-              <DateField
-                testid="wizard-start-date"
-                :max="endDate"
-                :label="t('wizard.startDate')"
-                :value="startDate"
-                @update="startDate = $event"
+              <DateRangeField
+                testid="wizard-dates"
+                :label="t('wizard.dates')"
+                :start-label="t('tripEdit.startDate')"
+                :end-label="t('tripEdit.endDate')"
+                :start="startDate"
+                :end="endDate"
+                @update="onDates"
               />
-            </IonItem>
-            <IonItem>
-              <DateField
-                testid="wizard-end-date"
-                :min="startDate"
-                :label="t('wizard.endDate')"
-                :value="endDate"
-                @update="endDate = $event"
-              />
-            </IonItem>
-            <IonItem v-if="duration !== null" lines="none">
-              <IonNote>{{ t('wizard.duration', { n: duration }) }}</IonNote>
             </IonItem>
             <IonItem>
               <IonSelect
