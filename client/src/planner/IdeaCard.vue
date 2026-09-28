@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * One idea on the board (FR-29.6): its title, the tag, the rain mark and the
- * link's site as chips, and a foot with the two tallies and the discussion's
- * size. Tapping it opens the idea.
+ * One idea on the board (FR-29.6): its cover as a flat banner when it has
+ * pictures (FR-29.5), its title, the tag, the rain mark and the link's site
+ * as chips, and a foot with the two tallies and the discussion's size.
+ * Tapping it opens the idea.
  *
  * The tallies show who voted, as avatars, because votes are open (FR-29.3);
  * where nobody else votes — Local and Single-User Mode, a trip nobody shares
@@ -20,10 +21,14 @@ import {
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
+import type { IdeaImage } from '@/types/domain'
 import { linkSite, type IdeaCard } from './domain/ideas'
+import IdeaPicture from './IdeaPicture.vue'
 
 defineProps<{
   card: IdeaCard
+  /** The idea's pictures, cover first; the banner shows the cover. */
+  pictures: IdeaImage[]
   /** Whether votes are shown at all (FR-29.3's G-8). */
   votesShown: boolean
   nameOf: NameOf
@@ -40,6 +45,16 @@ const emit = defineEmits<{ open: [] }>()
     :data-state="card.idea.state"
     @click="emit('open')"
   >
+    <span v-if="pictures[0]" class="banner" :data-testid="`idea-card-cover-${card.idea.id}`">
+      <IdeaPicture :image="pictures[0]" alt="" />
+      <span
+        v-if="pictures.length > 1"
+        class="count jp-num"
+        :data-testid="`idea-card-pictures-${card.idea.id}`"
+      >
+        {{ t('ideas.pictureCount', { n: pictures.length }) }}
+      </span>
+    </span>
     <span class="title">{{ card.idea.title }}</span>
     <span v-if="card.idea.tag || card.idea.rain_proof || card.idea.link" class="chips">
       <span v-if="card.idea.tag" class="chip" :data-testid="`idea-card-tag-${card.idea.id}`">
@@ -124,6 +139,28 @@ const emit = defineEmits<{ open: [] }>()
 
 .idea-card:last-child {
   border-bottom: 0;
+}
+
+.banner {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  max-width: 100%;
+  margin-bottom: 2px;
+  overflow: hidden;
+  border-radius: var(--jp-r-sm);
+}
+
+.count {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 8px;
+  border-radius: var(--jp-r-pill);
+  background: color-mix(in srgb, var(--ct-crust) 72%, transparent);
+  color: var(--ct-text);
+  font-size: var(--jp-text-xs);
 }
 
 .title {

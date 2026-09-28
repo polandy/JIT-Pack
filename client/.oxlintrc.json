@@ -18,7 +18,7 @@
     // comes. `optimisticInsert/Update/Delete` take the mutation itself and
     // cannot be handed fields without their row, which is the whole reason
     // they exist; `localChange`/`localTombstone` still can, so they are
-    // confined to the two places that have no mutation to build from (see
+    // confined to the places that have no mutation to build from (see
     // the overrides below). Thirteen action call sites had drifted back to
     // them before this rule existed.
     // Matched as a *pattern*, not as two literal specifiers: `paths` compares
@@ -40,12 +40,17 @@
   },
   "overrides": [
     {
-      // The two exemptions, each because there is no mutation to build from.
+      // The exemptions, each because there is no mutation to build from.
       // `cascade.ts` paints the *children* a delete takes with it — rows the
       // one mutation never names. An item photo carries a hash whose bytes
       // travel outside the sync envelope (ADR-002), so there is no mutation
-      // at all and in Local Mode nothing else would ever reach the store.
-      "files": ["src/sync/cascade.ts", "src/composables/sync/images.ts"],
+      // at all and in Local Mode nothing else would ever reach the store. An
+      // idea picture's row is created with its bytes (FR-29.5), the same way.
+      "files": [
+        "src/sync/cascade.ts",
+        "src/composables/sync/images.ts",
+        "src/composables/sync/ideaImages.ts"
+      ],
       "rules": { "no-restricted-imports": "off" }
     },
     {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * One idea, opened (FR-29.2–29.4): who wrote it and when, the link as a
- * card, the note, the four states set by hand, the votes with the voters'
+ * One idea, opened (FR-29.2–29.5): who wrote it and when, its pictures as
+ * a mosaic, the link as a card, the note, the four states set by hand, the votes with the voters'
  * names, and the discussion with its field at the foot. The same body is the
  * phone's sheet and the desktop's side panel (ADR-064), so what it does is
  * handed to the screen as events rather than written here.
@@ -11,6 +11,7 @@
  */
 import { IonButton, IonIcon, IonInput, IonTextarea, actionSheetController } from '@ionic/vue'
 import {
+  cameraOutline,
   createOutline,
   linkOutline,
   openOutline,
@@ -28,9 +29,12 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
-import type { IdeaComment, IdeaState, IdeaVoteValue } from '@/types/domain'
+import type { IdeaComment, IdeaImage, IdeaState, IdeaVoteValue } from '@/types/domain'
 import { IDEA_STATES, IDEA_VOTE_DOWN, IDEA_VOTE_UP } from '@/types/domain'
 import { ideaDiscussion, linkSite, voteTally } from './domain/ideas'
+import { MAX_IDEA_IMAGES, canAddPicture, ideaPictures } from './domain/pictures'
+import IdeaMosaic from './IdeaMosaic.vue'
+import IdeaPictureViewer from './IdeaPictureViewer.vue'
 import { usePlannerStore } from './store'
 
 const props = defineProps<{
@@ -39,6 +43,8 @@ const props = defineProps<{
   othersShown: boolean
   myUserId: string | null
   nameOf: NameOf
+  /** Whether a picture is on its way up, so the add control waits for it. */
+  uploading: boolean
 }>()
 
 const emit = defineEmits<{
@@ -50,6 +56,9 @@ const emit = defineEmits<{
   comment: [body: string]
   editComment: [comment: IdeaComment, body: string]
   removeComment: [comment: IdeaComment]
+  addPicture: [file: File]
+  coverPicture: [image: IdeaImage]
+  removePicture: [image: IdeaImage]
 }>()
 
 const plannerStore = usePlannerStore()
@@ -60,6 +69,23 @@ const tally = computed(() =>
     ? voteTally(idea.value.id, plannerStore.getVotes(idea.value.trip_id), props.myUserId)
     : null,
 )
+const pictures = computed(() =>
+  idea.value ? ideaPictures(idea.value.id, plannerStore.getImages(idea.value.trip_id)) : [],
+)
+
+const pictureInput = ref<HTMLInputElement | null>(null)
+
+function onPictureFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // The same file can be picked again after a failed upload.
+  input.value = ''
+  if (file) emit('addPicture', file)
+}
+
+/** The picture the viewer is open on, or null while it is closed. */
+const viewing = ref<number | null>(null)
+
 const discussion = computed(() =>
   idea.value ? ideaDiscussion(idea.value.id, plannerStore.getComments(idea.value.trip_id)) : [],
 )
@@ -164,6 +190,44 @@ async function openCommentMenu(comment: IdeaComment) {
         </span>
       </template>
     </SheetHead>
+
+    <IdeaMosaic
+      v-if="pictures.length > 0"
+      :pictures="pictures"
+      :title="idea.title"
+      @open="viewing = $event"
+    />
+    <div v-if="canAddPicture(pictures)" class="add-picture">
+      <input
+        ref="pictureInput"
+        type="file"
+        accept="image/*"
+        hidden
+        data-testid="idea-picture-file"
+        @change="onPictureFile"
+      />
+      <IonButton
+        fill="clear"
+        size="small"
+        :disabled="uploading"
+        data-testid="idea-picture-add"
+        @click="pictureInput?.click()"
+      >
+        <IonIcon slot="start" :icon="cameraOutline" />
+        {{ uploading ? t('ideas.uploading') : t('ideas.addPicture') }}
+      </IonButton>
+      <span v-if="pictures.length > 0" class="of-max jp-num" data-testid="idea-picture-count">
+        {{ t('ideas.picturesOfMax', { n: pictures.length, max: MAX_IDEA_IMAGES }) }}
+      </span>
+    </div>
+    <IdeaPictureViewer
+      :pictures="pictures"
+      :title="idea.title"
+      :start="viewing"
+      @close="viewing = null"
+      @cover="(image) => emit('coverPicture', image)"
+      @remove="(image) => emit('removePicture', image)"
+    />
 
     <a
       v-if="idea.link"
@@ -350,6 +414,22 @@ async function openCommentMenu(comment: IdeaComment) {
 
 .chip.rain {
   color: var(--jp-action);
+}
+
+.add-picture {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: -6px 0 -4px -10px;
+}
+
+.add-picture ion-button {
+  --color: var(--jp-action);
+}
+
+.of-max {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 .link-card {

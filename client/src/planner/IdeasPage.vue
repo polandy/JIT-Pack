@@ -42,7 +42,14 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/lib/toast'
 import { IDEA_QUERY_PARAM, tripIdeasPath } from '@/router/paths'
-import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVoteValue } from '@/types/domain'
+import type {
+  Idea,
+  IdeaComment,
+  IdeaImage,
+  IdeaState,
+  IdeaTag,
+  IdeaVoteValue,
+} from '@/types/domain'
 import { IDEA_STATE_IDEA, IDEA_STATES } from '@/types/domain'
 import { createPlannerActions, type IdeaFields } from './actions'
 import {
@@ -53,6 +60,7 @@ import {
   voteTally,
   type IdeaOrder,
 } from './domain/ideas'
+import { ideaPictures } from './domain/pictures'
 import IdeaCard from './IdeaCard.vue'
 import IdeaDetail from './IdeaDetail.vue'
 import IdeaEditSheet from './IdeaEditSheet.vue'
@@ -106,6 +114,11 @@ const board = computed(() =>
     myUserId.value,
   ),
 )
+
+/** A card's pictures, cover first (FR-29.5). */
+function picturesOf(ideaId: string): IdeaImage[] {
+  return ideaPictures(ideaId, plannerStore.getImages(props.tripId))
+}
 
 const chipsShown = computed(() => board.value.tags.length > 0 || board.value.hasRainProof)
 /** A chip left chosen that the segment does not carry is not in force (ideaBoard drops it). */
@@ -237,6 +250,41 @@ function onRemoveComment(comment: IdeaComment) {
   actions.removeComment(comment)
 }
 
+// --- pictures (FR-29.5) ---
+
+/** Whether a picture is on its way up; the add control waits for it. */
+const uploading = ref(false)
+
+async function onAddPicture(file: File) {
+  const idea = openIdea.value
+  if (!idea || uploading.value) return
+  uploading.value = true
+  try {
+    await actions.addPicture(idea, file)
+  } catch {
+    // Server Mode uploads now or not at all — the bytes do not wait in the
+    // outbox (ADR-002) — so a failed upload is said, not queued.
+    void presentToast({ message: t('ideas.uploadFailed'), positionAnchor: FAB_ANCHOR.m28 })
+  } finally {
+    uploading.value = false
+  }
+}
+
+function onCoverPicture(image: IdeaImage) {
+  const idea = openIdea.value
+  if (idea) actions.makeCover(idea, image.id)
+}
+
+async function onRemovePicture(image: IdeaImage) {
+  const confirmed = await confirmDestructive({
+    header: t('ideas.removePicture'),
+    message: t('ideas.removePictureConfirm'),
+    confirmLabel: t('ideas.removePicture'),
+    testid: 'idea-picture-remove-confirm',
+  })
+  if (confirmed) actions.removePicture(image)
+}
+
 function onEdit() {
   if (openIdea.value) editing.value = { idea: openIdea.value }
 }
@@ -332,6 +380,7 @@ const EMPTY_KEYS = {
             v-for="card in board.cards"
             :key="card.idea.id"
             :card="card"
+            :pictures="picturesOf(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
             @open="openSheet(card.idea)"
@@ -368,6 +417,7 @@ const EMPTY_KEYS = {
           :others-shown="othersShown"
           :my-user-id="myUserId"
           :name-of="nameOf"
+          :uploading="uploading"
           @close="closeSheet"
           @edit="onEdit"
           @remove="onRemove"
@@ -376,6 +426,9 @@ const EMPTY_KEYS = {
           @comment="onComment"
           @edit-comment="onEditComment"
           @remove-comment="onRemoveComment"
+          @add-picture="onAddPicture"
+          @cover-picture="onCoverPicture"
+          @remove-picture="onRemovePicture"
         />
       </SheetModal>
       <Teleport v-if="isDesktop && openIdea" defer :to="PANEL_HOST_SELECTOR">
@@ -385,6 +438,7 @@ const EMPTY_KEYS = {
             :others-shown="othersShown"
             :my-user-id="myUserId"
             :name-of="nameOf"
+            :uploading="uploading"
             @close="closeSheet"
             @edit="onEdit"
             @remove="onRemove"
@@ -393,6 +447,9 @@ const EMPTY_KEYS = {
             @comment="onComment"
             @edit-comment="onEditComment"
             @remove-comment="onRemoveComment"
+            @add-picture="onAddPicture"
+            @cover-picture="onCoverPicture"
+            @remove-picture="onRemovePicture"
           />
         </aside>
       </Teleport>
