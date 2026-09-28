@@ -21,7 +21,8 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_ADMIN_EMAILS` | no | — | Comma-separated e-mail addresses that hold the instance-admin role, matched case-insensitively against the **verified** address the IdP reports. See [Instance admins](#instance-admins). |
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
 | `JITPACK_WEB_ROOT` | no | — | Directory holding the built client, served on the same origin as the API. The published image sets it to `/srv/web`, so a container needs nothing here. Unset, the server answers the API alone — the shape for a deployment whose own web server or CDN serves the static files. A path with no `index.html` in it is a **startup error**, not a white page. |
-| `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance contacts nothing. See [Release check](#release-check). |
+| `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance makes no release check. See [Release check](#release-check). |
+| `JITPACK_LINK_PREVIEWS` | no | on | When somebody pastes a link into an idea, the server reads that page for its title, description and picture. `false` turns it off; unset or `true` leaves it on; any other value is a **startup error**. See [Link previews](#link-previews). |
 | `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
@@ -77,6 +78,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | Multi-user mode without a session secret | `config: JITPACK_SESSION_SECRET is required in multi-user mode (it signs the sessions JIT-Pack issues, see ADR-007)` |
 | One or two of the three OIDC variables set | `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` |
 | `JITPACK_TASK_REMINDER_TIME` is not a time of day such as `06:00` | `config: JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset` |
+| `JITPACK_LINK_PREVIEWS` is neither `true` nor `false` | `config: JITPACK_LINK_PREVIEWS must be true or false, or unset (on)` |
 | The database file cannot be opened or migrated | `store: …` |
 | Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
 | Discovery document's `issuer` differs from the configured one | `oidc discovery: OIDC discovery issuer mismatch: document says "…", configured "…"` |
@@ -170,6 +172,24 @@ Four things worth knowing:
 - **It only works on a released image.** The check compares the release tag the image was built from, so `ghcr.io/polandy/jit-pack:0.7.0` can answer and a server you built yourself from a working copy cannot — that one simply shows no line. The startup log names the build so you can see which case you are in.
 - **The version in the app is not this.** The banner that offers to apply a waiting update is about the app in your browser catching up with the server you already run. This line is about the server itself being behind.
 
+## Link previews
+
+When somebody pastes a link into an [idea](ideas.md), the server opens that page and takes its title, a short description and its picture to fill the idea in. This is **on unless you turn it off**, and it is the one request your instance makes to the internet without you having asked for it:
+
+```bash
+JITPACK_LINK_PREVIEWS=false
+```
+
+What to know before you decide:
+
+- **The website sees your server.** The request comes from your instance's address and says `User-Agent: JIT-Pack link preview`. It carries nothing about the trip or the people on it — only the address that was pasted.
+- **It cannot reach into your network.** The server fetches only public internet addresses on the ordinary web ports (80 and 443). A link to your router, your NAS, your identity provider, `localhost` or any other private address — directly, through a redirect, or through a name that resolves there — is refused, and the app simply leaves the idea as typed.
+- **Only people on a trip can make it fetch.** The request is part of the trip, so a stranger cannot use your server to open pages.
+- **It is small and short.** At most 1 MiB of the page and a 4 MiB picture, eight seconds for both. A page that builds itself with JavaScript or turns away unknown visitors gives nothing, and nothing is filled.
+- **Local mode has no preview**, since there is no server to ask.
+
+With it off, pasting a link keeps it as a link — exactly as before.
+
 ## Task reminders
 
 A task can carry the day it is due, and so can an entry on a trip's shopping list. Once a day the server reminds
@@ -217,6 +237,6 @@ Nothing to configure: a reservation lasts until a person ends it. What that mean
 
 ## Request timeouts
 
-Not configurable, listed here so you can size a reverse proxy against them: the HTTP server uses a 10-second read timeout, a 30-second write timeout and a 60-second idle timeout. Outbound calls to the IdP's token and UserInfo endpoints each have their own 10-second timeout.
+Not configurable, listed here so you can size a reverse proxy against them: the HTTP server uses a 10-second read timeout, a 30-second write timeout and a 60-second idle timeout. Outbound calls to the IdP's token and UserInfo endpoints each have their own 10-second timeout, and a [link preview](#link-previews) has eight seconds for its page and picture together.
 
 Session lifetimes are likewise constants rather than configuration — 15 minutes for an access token, 90 days sliding for a refresh chain. See [Authentication → How a session works](authentication.md#how-a-session-works).

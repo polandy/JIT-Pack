@@ -175,7 +175,11 @@ function save() {
       <p v-if="!parsedLink.ok" class="invalid" data-testid="idea-edit-link-invalid">
         {{ t('ideas.linkInvalid') }}
       </p>
-      <p v-else-if="previewState === PREVIEW_LOADING" class="reading" data-testid="idea-edit-preview-loading">
+      <p
+        v-else-if="previewState === PREVIEW_LOADING"
+        class="reading"
+        data-testid="idea-edit-preview-loading"
+      >
         <IonSpinner name="dots" aria-hidden="true" />
         {{ t('ideas.previewLoading') }}
       </p>

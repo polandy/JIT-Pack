@@ -11,7 +11,10 @@ the bottom right. The sheet asks for:
 
 - a **title** — *Bernina Express nach Tirano*;
 - a **link**, optional — paste the web address; `rhb.ch` is enough, the app adds the `https://`. Only web links are
-  accepted;
+  accepted. On a server, a pasted link is read for you: a moment later the page's own title and description fill a
+  blank title and note — what you already typed stays — and its picture appears under the link. Tap ✕ if you do not
+  want it; otherwise it becomes the idea's first picture when you add the idea. (Your administrator can turn this off;
+  see [Link previews](configuration.md#link-previews).);
 - a **note**, optional;
 - one **kind** — *Wandern*, *Baden*, *Kultur*, *Essen* or *Ausflug*, or none;
 - **Geht auch bei Regen** — for what works in bad weather too.
@@ -60,7 +63,7 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
 - **Bearbeiten** changes the title, link, note, kind or rain mark. **Idee löschen** asks first, then removes the idea
   with its votes, comments and pictures for everybody — dropping it keeps them.
 
-The link opens the website in a new tab. The app never visits the link itself.
+The link opens the website in a new tab.
 
 ## On your own
 
@@ -70,7 +73,7 @@ mode — there are no vote buttons and no names: the board is a list of your own
 ## Good to know
 
 - Ideas are part of the trip: they sync like everything else on it and work offline — except adding a picture on a
-  server, which needs a connection.
+  server, which needs a connection, and reading a pasted link, which needs one too.
 - Copying a trip does not copy its ideas.
 - Ideas are **not** in the portable backup file; on a server, the full JSON export has them (see
   [Backup & Export](backup.md)).

@@ -54,9 +54,7 @@ describe('createLinkPreview', () => {
 
   it('stops asking once the instance says previews are off', async () => {
     const client = stubClient()
-    client.fail(
-      new APIRequestError(501, { code: ERROR_CODE.not_configured, message: 'off' }),
-    )
+    client.fail(new APIRequestError(501, { code: ERROR_CODE.not_configured, message: 'off' }))
     const preview = createLinkPreview({ client, localMode: false })
 
     expect(await preview('trip-1', URL)).toBeNull()
