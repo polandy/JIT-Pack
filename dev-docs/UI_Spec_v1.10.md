@@ -2943,7 +2943,9 @@ token would prove nothing there is anything to prove.
   carries a tag or a rain-proof idea: *Alle*, a chip per tag the segment carries in the set's order (*Wandern · Baden ·
   Kultur · Essen · Ausflug*, `m28-chip-tag-<key>`), and ☂ (`m28-chip-rain`, named *„Geht auch bei Regen"*); a tag and ☂
   combine by *and*, *Alle* clears both, and a chip left chosen from another segment is not in force. Then the segment's
-  ideas as rows of one card (`m28-list`, a row `idea-card-<id>`): the title in the heading weight; the tag, *☂ auch bei
+  ideas as rows of one card (`m28-list`, a row `idea-card-<id>`): the cover picture as a flat 21:9 banner where the idea
+  has pictures (`idea-card-cover-<id>`), with *„3 Bilder"* over its corner where there is more than one
+  (`idea-card-pictures-<id>`); the title in the heading weight; the tag, *☂ auch bei
   Regen* and the link's site (*segantini-museum.ch*) as chips; a foot with 👍 and 👎, each with its count and its voters'
   avatars, and 💬 with the discussion's size where there is one. **Order:** by votes (👍 minus 👎), the newest first among
   equals, or newest first — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen sortieren"*), and only
@@ -2962,7 +2964,16 @@ token would prove nothing there is anything to prove.
 * **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
   side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
   it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia
-  · heute 14:32"*; the time alone where authors are not shown), the tag and ☂ beside them; the link as a card that opens
+  · heute 14:32"*; the time alone where authors are not shown), the tag and ☂ beside them; **the pictures** (FR-29.5) as
+  a mosaic (`idea-mosaic`) — one fills the width at 16:10, two share it 2 : 1, three and more stand as the cover large
+  on the left and two stacked beside it, the third tile dimmed with *„noch 1"* over it (`idea-mosaic-more`) — and under
+  it *📷 Bild hinzufügen* with *„2 von 4"* (`idea-picture-add`, `idea-picture-count`; gone at four), *„Wird hochgeladen
+  …"* while one goes up, and a failed upload toasts *„Das Bild ließ sich nicht hochladen. Bist du online?"*. A tile
+  opens **the viewer** (`idea-viewer`), full screen on the crust surface: *„Bild 2 von 4"* and *Titelbild* on the cover
+  at the top, ✕, the picture whole, ‹ › at the sides (and a swipe, and the arrow keys), and at the foot *☆ Als
+  Titelbild* (not on the cover; the viewer stays on the picture, now first) and *Bild entfernen* — a destructive
+  confirmation (`idea-picture-remove-confirm`) *„Das Bild verschwindet für alle, die an der Reise teilnehmen."*. The
+  link as a card that opens
   the site in a new tab (`noopener noreferrer`); the note; **the four states as one segmented control**
   (`idea-state-<state>`) — a tap moves the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves it back
   unless somebody has moved it since; **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars
@@ -2971,15 +2982,16 @@ token would prove nothing there is anything to prove.
   field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its
   words edited in place, *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*.
   At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* /
-  *„Die Idee verschwindet mit ihren Stimmen und Kommentaren für alle. Verwerfen behält sie."*.
+  *„Die Idee verschwindet mit ihren Stimmen, Kommentaren und Bildern für alle. Verwerfen behält sie."*.
 * **Who is shown (FR-29.3, G-8):** votes, the vote order and author names appear only where somebody else reads them —
   an identity and another account on the trip, M26's rule for its share hint. In Local and Single-User Mode, and on a
   trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.
-* **Modes:** all three; votes only where there is another account.
-* **Not built yet** (§3.29): pictures (FR-29.5), the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
+* **Modes:** all three; votes only where there is another account. A picture is uploaded at once in Server and
+  Single-User Mode and kept on the device in Local Mode (ADR-081).
+* **Not built yet** (§3.29): the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
   shopping entry made from an idea (FR-29.13) — a day for a shortlisted idea (FR-29.14) and the day plan, M29
   (FR-29.15).
-* (E2E-M28-01…05 `local`, E2E-M28-06 `server`, E2E-G12-07)
+* (E2E-M28-01…05, E2E-M28-07 `local`, E2E-M28-06, E2E-M28-08 `server`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

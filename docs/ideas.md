@@ -29,8 +29,24 @@ The board has four parts, each with how many ideas it holds:
 - **Verworfen** — dropped. A dropped idea keeps its comments and votes; you can bring it back.
 
 Under them, chips narrow the part you are looking at to one kind, or with the umbrella to what works in the rain.
-**Alle** shows everything again. Each idea shows its kind, the rain mark, the site its link points to, the votes and
-how many comments it has.
+**Alle** shows everything again. Each idea shows its picture if it has one, its kind, the rain mark, the site its link
+points to, the votes and how many comments it has.
+
+## Pictures
+
+An idea can carry up to **four pictures** — the lake, the view from the hut, the menu. Open the idea and tap
+**Bild hinzufügen** under its pictures; on a phone you can take a photo or pick one. The app makes it smaller before
+it is stored, so a picture straight from the camera is fine.
+
+- The **first picture** is the idea's cover: the board shows it above the title. In the idea, the cover stands large
+  with the next two beside it.
+- **Tap a picture** to see it whole. Swipe, or use the arrows, to see the others.
+- **Als Titelbild** makes the picture you are looking at the cover.
+- **Bild entfernen** asks first, then removes the picture for everybody on the trip.
+
+Everybody on the trip sees the pictures — nobody else can open them. On a server, adding a picture needs a connection:
+if the upload fails, the app says so and nothing is added; try again when you are online. In Local mode the pictures
+stay on your device.
 
 ## Deciding
 
@@ -42,7 +58,7 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
   votes; the **⋮** at the top switches to the newest first.
 - **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
 - **Bearbeiten** changes the title, link, note, kind or rain mark. **Idee löschen** asks first, then removes the idea
-  with its votes and comments for everybody — dropping it keeps them.
+  with its votes, comments and pictures for everybody — dropping it keeps them.
 
 The link opens the website in a new tab. The app never visits the link itself.
 
@@ -53,7 +69,8 @@ mode — there are no vote buttons and no names: the board is a list of your own
 
 ## Good to know
 
-- Ideas are part of the trip: they sync like everything else on it and work offline.
+- Ideas are part of the trip: they sync like everything else on it and work offline — except adding a picture on a
+  server, which needs a connection.
 - Copying a trip does not copy its ideas.
 - Ideas are **not** in the portable backup file; on a server, the full JSON export has them (see
   [Backup & Export](backup.md)).

@@ -450,6 +450,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The excursion list takes the rest of M4's parts (2026-09-27)](#the-excursion-list-takes-the-rest-of-m4s-parts-2026-09-27) — M5's back guard shows the wrong page below a non-root screen; the line sheet is pushed.
 - [The planner's first slice: ideas, votes and a discussion (2026-09-27)](#the-planners-first-slice-ideas-votes-and-a-discussion-2026-09-27) — `comments.idea_id` would have leaked into every notes reader; the mockup's row measurement was wrong.
 - [A date range is one field (2026-09-27)](#a-date-range-is-one-field-2026-09-27) — pure two-tap picking would have lost the end-only trips; a fixed month window lost last year's.
+- [Pictures on an idea (2026-09-28)](#pictures-on-an-idea-2026-09-28) — a pushed row names bytes nobody has; a push whitelist is the pull's shape; `crypto.subtle` needs HTTPS.
 
 ## Deviations
 
@@ -17858,3 +17859,28 @@ farther day an accepted cost, as ADR-035 accepted that a date cannot be typed. E
 after the fact, which is how a series' history is built — the day was not in the list at all. Built instead:
 *Frühere Monate* / *Spätere Monate* at the open ends, 12 months a tap, with the months anchored where the sheet opened
 so a tap never moves them under the finger.
+
+## Pictures on an idea (2026-09-28)
+
+FR-29.5, the planner's pictures: up to four per idea, 500 KB, a banner on the card, a mosaic and a viewer in the idea
+(variant C of three rendered, and *„Als Titelbild"* as the one way to reorder — both the owner's picks). ADR-081 holds
+the two decisions that were real tradeoffs.
+
+**An option rejected: the client pushes the row, the bytes follow.** It is what every other write does, and a picture
+taken offline would appear at once. But every other device would pull a row whose bytes had not arrived, or never
+would, and show a broken tile with no way to tell *later* from *never*; and the outbox holds JSON mutations, not
+500 KB blobs. Built instead: the upload writes the row with its bytes, under the client's id so a retry is recognised.
+Cost: no picture can be added offline in Server Mode, and the screen says so.
+
+**A trap: a table's push whitelist is also what its pull returns.** The first cut listed only `position` — the one
+column a push may change — and every pulled `idea_images` row came back as `{position}` alone, with no idea and no
+hash, while the pushed move was refused as out of scope because `loadRow` had not read `trip_id` either. The column
+set in `tableSpecs` is the row's synced shape; what a push may *touch* is the partition's write gate
+(`validIdeaImage`), as `ideas.author_id` already showed.
+
+**A premise that was wrong: the Local Mode image hash works wherever the app does.** It was a SHA-256 through
+`crypto.subtle`, which exists only in a secure context — the same class as 2026-08-16's `crypto.randomUUID`. On the
+owner's plain-HTTP LAN address a Local Mode photo was stored and its row never written, for item photos as much as for
+the new pictures. It surfaced only because the render for the owner ran from the LAN IP rather than `localhost`. Fixed
+with an FNV-1a fallback, since nothing compares a Local Mode hash with a server's; E2E-NFR-SEC-05 fails with the
+fallback taken out.

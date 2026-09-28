@@ -3962,8 +3962,9 @@ the tail is where a symbol system is actually decided. Results:
 
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
-**Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078); pictures, the bridge to the
-packing side, the notifications and the day plan are specified here and not built. The travellers of a trip collect what
+**Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
+(FR-29.5, ADR-081); the bridge to the packing side, the notifications and the day plan are specified here and not
+built. The travellers of a trip collect what
 they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
 decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
 `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
@@ -4000,11 +4001,26 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   module holds every row it shows (ADR-078). An entry's author is stamped by the server, and **its words are its
   author's**: only the writer edits an entry (marked *bearbeitet* after), refused for anybody else by the trip
   partition's write gate; the writer may delete it. The card counts the entries.
-* **FR-29.5 (Pictures Outside the Envelope, With Their Own Limit):** *Specified, not built.* Up to **4** pictures per
-  idea, scaled by the client to a JPEG of at most **500 KB**. The bytes follow ADR-002: only the hash and position sync
-  as an `idea_images` row, the bytes move over their own endpoints, and the limit is held at handler, store and CHECK.
-  In Local Mode the bytes live in IndexedDB beside the item photos. The numbers are this section's, not invariant 6's —
-  an item photo answers *which jacket*, an idea's has to show a place.
+* **FR-29.5 (Pictures Outside the Envelope, With Their Own Limit):** *Implemented.* Up to **4** pictures per idea,
+  scaled by the client to a JPEG of at most **500 KB** on a longer edge of at most 1600 px. The numbers are this
+  section's, not invariant 6's — an item photo answers *which jacket*, an idea's has to show a place. The bytes follow
+  ADR-002 and the limit is held at handler, store and CHECK; how they travel is ADR-081's:
+  * **The upload creates the picture.** The row that names it — `idea_images`: idea, hash, position — is written by
+    the server when the bytes arrive, under an id the client chose so a retried upload is recognised, and it travels
+    the trip partition like any other row. A push may **move** a picture or **delete** it, never create one or point it
+    at other bytes (the trip partition's write gate). In **Local Mode** the device writes the row itself and keeps the
+    bytes in IndexedDB beside the item photos.
+  * **The bytes are the trip's.** They are read through the trip's membership with the reader's own session — unlike an
+    item photo, which is instance-wide and public (FR-22.6) — so the client fetches them and shows an object URL.
+  * **An upload needs the connection.** Server Mode uploads now or not at all; a failed upload is said and nothing is
+    written, where a mutation would wait in the outbox. Moving and deleting do wait, like every other write.
+  * **Order and cover.** A new picture goes behind the last one. The lowest position is the **cover**; *„Als
+    Titelbild"* moves a picture to the front and writes only the pictures whose place changes. Two pictures on one
+    position — a concurrent upload and move — read in id order, so every device agrees without a uniqueness rule.
+  * **On the board** the cover is the card's banner (21:9) with the count when there are more; **in the idea** the
+    pictures stand as a mosaic — the cover large, the next two beside it, the third tile saying how many more there
+    are — and a tile opens a full-screen viewer that pages by swipe, arrows or keys, makes a picture the cover and
+    removes one after asking. Deleting an idea takes its pictures.
 * **FR-29.6 (The Board, M28):** *Implemented.* One screen per trip. Four segments with counts — *Ideen · Shortlist ·
   Gemacht · Verworfen* — a chip row narrowing the current segment to one tag or to rain-proof ideas (combined by *and*,
   offering only what the segment carries), and the ideas as cards. Cards order by vote score, the newest first among

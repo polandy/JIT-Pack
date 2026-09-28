@@ -496,6 +496,8 @@ stable references for the traceability matrix.
 * **E2E-NFR-SEC-03** `local` (FR-2.1b): a trip is created through M3 — landing on M4 proves the whole cascade (trip,
   travelers, items) got ids, not only the first insert.
 * **E2E-NFR-SEC-04** `local` (FR-27.1): a group is created in M7 and takes a position in M8.
+* **E2E-NFR-SEC-05** `local` (FR-22.1, FR-29.5): with `crypto.subtle` removed too, an item photo lands in M10 — the
+  Local Mode image hash does not need SHA-256 (`composables/sync/__tests__/hashBlob.spec.ts`).
 
 *Why these are their own unit:* the suite serves from `localhost`, which **is** a secure context, so no ordinary case
 can reach the broken state — the defect was invisible to a green suite on principle rather than by accident.
@@ -3429,6 +3431,14 @@ went.
   button unpressed, and her ⋮ offers *Newest first*; Bob's second tap withdraws it and Alice's count is back to nothing.
   That nobody votes in another's name is the server's (`TestStampActor_VoteUpsertCannotTakeOverAnotherUsersVote_FR29_3`,
   `TestApplyMutation_OnlyTheVoterMayChangeAVote_FR29_3`).
+* **E2E-M28-07** `local` (FR-29.5) — **implemented** (`planner/ideas.spec.ts`): a first picture becomes the card's
+  banner and fills the mosaic (*1 of 4*); a second shares it and the card says *2 pictures*. The viewer opens on the
+  cover, pages to the second and makes it the cover — the viewer goes with it, the mosaic and the banner follow.
+  Removing asks first — declined, both stay; confirmed, one is left. After a reload the banner still shows it. Every
+  picture is asserted by its `naturalWidth`, since the two sources differ in shape.
+* **E2E-M28-08** `server` (FR-29.5, ADR-081) — **implemented** (`planner/server/pictures.spec.ts`): a picture Alice adds
+  is on Bob's card as its banner and in his mosaic — the bytes fetched with his own session. That a stranger can
+  neither add nor read one is the server's (`TestIdeaImage_AStrangerNeitherUploadsNorReads_FR29_5`).
 
 ## 5. Cross-Screen Flow Tests
 
@@ -3784,6 +3794,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.2 | E2E+UNIT+SERVER | M28-02 (moved, undone, on the route), M28-05 (deleted when confirmed); `planner/__tests__/sync.spec.ts` (undo not over a later move, the idea's cascade in Local Mode); Go: `TestApplyMutation_DeletingAnIdeaTombstonesItsVotesAndComments_FR29_2` |
 | FR-29.3 | E2E+UNIT+SERVER | M28-06 (a named vote, withdrawn), M28-05 (hidden alone, G-8); `ideas.spec.ts` (`voteTally`, `nextVote`), `sync.spec.ts` (one row per person); Go: `TestApplyMutation_OnlyTheVoterMayChangeAVote_FR29_3`, `TestSchema_OneVotePerPersonPerIdea_FR29_3`, `TestStampActor_Vote*` |
 | FR-29.4 | E2E+UNIT+SERVER | M28-03; `ideas.spec.ts` (`ideaDiscussion`), `sync.spec.ts` (survives a restart); Go: `TestStampActor_IdeaCommentAuthorIsThePusher_FR29_4` |
+| FR-29.5 | E2E+UNIT+SERVER | M28-07 (banner, mosaic, viewer, cover, removal, reload), M28-08 (another member sees it), NFR-SEC-05 (the hash on plain HTTP); `planner/domain/__tests__/pictures.spec.ts` (order, limit, `coverMoves`), `planner/__tests__/sync.spec.ts` (pulled, added, moved, removed, taken with the idea), `composables/sync/__tests__/ideaImages.seam.spec.ts` (both modes); Go: `internal/store/ideaimage_test.go`, `internal/api/ideaimage_test.go` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |
 | FR-29.9 | GATE+UNIT | `module-boundary-gate.mjs`, `domain-purity-gate.mjs`; `sync.spec.ts` (the pull funnel, the trip's cascade) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |

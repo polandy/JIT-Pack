@@ -315,6 +315,8 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M27 excursions (FR-31, since 2026-09-26) | **E2E-M27-01** (M27 by its pill, created from a group with days, a *für alle* cluster and a *vor Ort* line, the missing thing on the packing list with M4's borrowed line, the undo toast), **E2E-M27-02** (the link shares no tick, both ways), **E2E-M27-03** (a trip under way: nothing written to the packing list, *nicht im Gepäck*, *Vor Ort besorgen* onto M6 under the excursion's name, bought there), **E2E-M27-04** (the composer's *Alle* over the participants), **E2E-M27-05** (a joiner gets the *für alle* lines, one undo), **E2E-M27-06** (saved as a group, deleted without touching the packing list), **E2E-M27-07** (bought on the spot, taken onto the packing list and into the inventory), **E2E-M27-08** (a line opens M5's sheet, packs there, changes for whom), **E2E-M27-09** (a line for the excursion alone: off M4 and M9 until *Ins Inventar*, left out of a saved group), **E2E-M27-10** (M4's row menu and snackbar undo, the amount popover), **E2E-M27-11** (search, the person filter by several people, fold-all, M4's empty states), **E2E-M27-12** (`?line=`, back closes it, the side panel on a desktop), **E2E-M27-13** (the inventory sheet's *packen* and its undo), **E2E-M27-14** (the days as one range inside the trip's) | `local` | [`excursions.spec.ts`](../client/e2e/excursions.spec.ts) |
 | M28 ideas (§3.29, since 2026-09-27) | **E2E-M28-01** (the empty board, a link refused, an idea with its link read as a site, tag and rain mark, counted on the pill, the link opening outside), **E2E-M28-02** (moved between the segments on `?idea=`, the snackbar's undo, back closes the detail), **E2E-M28-03** (a word counted on the card, edited in place and taken back, an edit of the idea), **E2E-M28-04** (the chips: only the segment's tags, a tag, ☂, *All*), **E2E-M28-05** (deleted only when confirmed; alone on the device no votes and no author) | `local` | [`planner/ideas.spec.ts`](../client/e2e/planner/ideas.spec.ts) |
 | M28 votes across identities (FR-29.3, since 2026-09-27) | **E2E-M28-06** (the author named for the other member, a vote with its voter's name on card and detail, the second tap withdrawing it) | `server` | [`planner/server/votes.spec.ts`](../client/e2e/planner/server/votes.spec.ts) |
+| M28 pictures (FR-29.5, since 2026-09-28) | **E2E-M28-07** (the banner and the mosaic, *2 pictures*, the viewer paging and making the cover, a removal asked first, a reload) | `local` | [`planner/ideas.spec.ts`](../client/e2e/planner/ideas.spec.ts) |
+| M28 pictures across identities (FR-29.5, ADR-081, since 2026-09-28) | **E2E-M28-08** (a picture one member adds is on the other's card and in their mosaic, fetched with their own session) | `server` | [`planner/server/pictures.spec.ts`](../client/e2e/planner/server/pictures.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06, **E2E-M20-07** (a deactivation reaches the sharing picker, since 2026-09-05) | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire), **E2E-G10-03** (the cloud sheet names who has a shared trip open and stops when they leave, FR-4.9, since 2026-09-19), **E2E-G10-04** (tapping a roster row opens that trip) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
@@ -1342,6 +1344,14 @@ Two lessons, both paid for here: **the toast came first.** The button had no
 feedback, so the failure looked like a dead control for two sessions; the
 moment it reported, the message named the cause in one line. And **the run mode
 that matters is the one the owner uses** — localhost is not it.
+
+**E2E-NFR-SEC-05, added 2026-09-28 — the other half of the same trap.**
+`crypto.subtle` is secure-context-only as well, and the Local Mode image hash was
+a SHA-256 through it: on a plain-HTTP origin a photo was stored and its row never
+written, so M10 showed nothing. Found while rendering FR-29.5's pictures from the
+LAN address, where the seed's pictures threw. The case removes `subtle` before
+boot and lands an M10 photo; red-proved by forcing the SHA-256 branch — it fails,
+and passes again with the FNV-1a fallback back.
 
 ## FR-27.14 — a Vorlage's resulting items (2026-08-17)
 
