@@ -60,6 +60,11 @@ type Config struct {
 	// instance contacts nothing its operator did not ask it to.
 	UpdateCheck bool // JITPACK_UPDATE_CHECK, "true" enables
 
+	// LinkPreviews lets the server read a pasted link's page for its title,
+	// description and picture (FR-29.16). On unless the value is "false" —
+	// the one outbound request that is on by default (ADR-082).
+	LinkPreviews bool // JITPACK_LINK_PREVIEWS, "false" disables
+
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
@@ -111,6 +116,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	c.TaskReminderAt = at
+
+	previews, err := parseLinkPreviews(getenv("JITPACK_LINK_PREVIEWS"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.LinkPreviews = previews
 
 	if c.SingleUser {
 		if c.LocalUserID == "" {
@@ -169,6 +180,19 @@ func parseReminderTime(raw string) (time.Duration, error) {
 		return 0, errors.New("JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset")
 	}
 	return time.Duration(t.Hour())*time.Hour + time.Duration(t.Minute())*time.Minute, nil
+}
+
+// parseLinkPreviews reads the one switch that is on by default. Anything
+// but "true", "false" or unset refuses to start: an operator who meant off
+// and misspelled it must not be left with a server fetching pages.
+func parseLinkPreviews(raw string) (bool, error) {
+	switch strings.TrimSpace(raw) {
+	case "", "true":
+		return true, nil
+	case "false":
+		return false, nil
+	}
+	return false, errors.New("JITPACK_LINK_PREVIEWS must be true or false, or unset (on)")
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

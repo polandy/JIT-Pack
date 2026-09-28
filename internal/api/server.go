@@ -61,6 +61,9 @@ type Server struct {
 	// does not make one — which is the default and every build whose
 	// version cannot be compared.
 	update *updateChecker
+	// previews reads pasted links' pages (FR-29.16); nil where the
+	// operator turned it off.
+	previews LinkPreviewer
 	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
 	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
@@ -133,6 +136,7 @@ func newServer(st *store.Store, opts Options) *Server {
 	// than by value: the checker's idea of "a day ago" must be the
 	// server's own clock, including the one a test injects (G-4).
 	s.update = newUpdateChecker(opts, func() time.Time { return s.now() })
+	s.previews = opts.LinkPreviews
 	if opts.OIDC != nil {
 		s.oidc = newOIDCBroker(*opts.OIDC)
 	}
@@ -194,6 +198,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaImage), s.authed(s.member(s.handleGetIdeaImage)))
 	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreview), s.authed(s.member(s.handleLinkPreview)))
 
 	// Master scope.
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterSync), s.authed(s.handlePullMaster))

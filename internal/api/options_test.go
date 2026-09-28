@@ -5,8 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"jitpack/internal/linkpreview"
 	"jitpack/internal/store"
 )
+
+// testPreviewer is a real fetcher that is never asked: construction makes
+// no request, so its identity is all the check below needs.
+var testPreviewer = linkpreview.NewFetcher()
 
 // fixedNow is the instant a configured clock must produce. Deliberately
 // not "now": the assertion has to be able to tell an injected clock from
@@ -27,6 +32,7 @@ func fullOptions() Options {
 		// construction and asks upstream only when a request arrives.
 		UpdateFeedURL: "https://feed.example/releases/latest",
 		Now:           func() time.Time { return fixedNow },
+		LinkPreviews:  testPreviewer,
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -57,6 +63,7 @@ var applied = map[string]func(*Server) bool{
 	"UpdateFeedURL": func(s *Server) bool {
 		return s.update != nil && s.update.feedURL == "https://feed.example/releases/latest"
 	},
+	"LinkPreviews": func(s *Server) bool { return s.previews == testPreviewer },
 	"OIDC": func(s *Server) bool {
 		return s.oidc != nil && s.oidc.issuer == "https://idp.example" &&
 			s.oidc.clientID == "jitpack" && s.oidc.clientSecret == "s3cret" &&

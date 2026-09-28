@@ -378,6 +378,23 @@ type InstanceConfigResponse struct {
 	Currency string `json:"currency"`
 }
 
+// --- The link preview (FR-29.16) ---
+
+// LinkPreviewRequest names the page whose preview is wanted.
+type LinkPreviewRequest struct {
+	URL string `json:"url"`
+}
+
+// LinkPreviewResponse is what the page says about itself. Every field may
+// be empty. The picture comes as the page served it — base64 of its bytes
+// with their type — because the client scales it like any picture it takes.
+type LinkPreviewResponse struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+	ImageType   string `json:"image_type"`
+}
+
 // --- The release check (FR-23.8) ---
 
 // UpdateState is what M17's About block says about this build. It is a
@@ -501,6 +518,9 @@ const (
 	ErrClaimIsOwn           ErrorCode = "claim_is_own"
 	ErrIDPError             ErrorCode = "idp_error"
 	ErrIDPUnreachable       ErrorCode = "idp_unreachable"
+	// ErrLinkUnreadable is a link whose page this server could not read for
+	// a preview — unreachable, not HTML, or an address it does not fetch.
+	ErrLinkUnreadable ErrorCode = "link_unreadable"
 )
 
 // APIErrorBody is the inner object of an error response.
@@ -556,6 +576,9 @@ const (
 	// id; GET reads its bytes. Both are the trip's, behind its membership —
 	// the synced half is an idea_images row, and a push moves or deletes it.
 	RouteTripIdeaImage = "/api/v1/trips/{tripID}/ideas/{ideaID}/images/{imageID}"
+	// FR-29.16: what a pasted link's page says about itself. A trip's route
+	// so that only a member can make this server fetch a page.
+	RouteTripLinkPreview = "/api/v1/trips/{tripID}/link-preview"
 
 	// Master scope — the partition that belongs to no trip, so its scope
 	// segment is a literal rather than an id.

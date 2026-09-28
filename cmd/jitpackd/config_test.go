@@ -33,6 +33,7 @@ func TestLoadConfig(t *testing.T) {
 			env:  map[string]string{"JITPACK_SESSION_SECRET": "s3cret"},
 			want: Config{
 				TaskReminderAt: defaultReminder,
+				LinkPreviews:   true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -47,6 +48,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				TaskReminderAt: defaultReminder,
+				LinkPreviews:   true,
 				Listen:         ":9090",
 				DBPath:         "/data/app.db",
 				SessionSecret:  "s3cret",
@@ -63,6 +65,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				TaskReminderAt: defaultReminder,
+				LinkPreviews:   true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -77,6 +80,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				TaskReminderAt: defaultReminder,
+				LinkPreviews:   true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SingleUser:     true,
@@ -94,6 +98,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCIssuer:       "https://auth.example.com",
 				OIDCClientID:     "jitpack",
 				OIDCClientSecret: "confidential",
+				LinkPreviews:     true,
 			},
 		},
 		{
@@ -111,6 +116,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCIssuer:       "https://auth.example.com",
 				OIDCClientID:     "jitpack",
 				OIDCClientSecret: "confidential",
+				LinkPreviews:     true,
 			},
 		},
 		{
@@ -121,6 +127,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 			want: Config{
 				TaskReminderAt: defaultReminder,
+				LinkPreviews:   true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -275,6 +282,47 @@ func TestLoadConfig_UpdateCheck(t *testing.T) {
 			}
 			if cfg.UpdateCheck != tc.want {
 				t.Errorf("UpdateCheck = %v, want %v", cfg.UpdateCheck, tc.want)
+			}
+		})
+	}
+}
+
+// FR-29.16: link previews are on unless the operator says "false". It is
+// the one outbound request on by default, so a value that is neither word
+// refuses to start: an operator who meant off and misspelled it must not be
+// left fetching pages.
+func TestLoadConfig_LinkPreviews_FR29_16(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset is on", raw: "", want: true},
+		{name: "true is on", raw: "true", want: true},
+		{name: "false turns it off", raw: "false", want: false},
+		{name: "a misspelling refuses to start", raw: "flase", wantErr: true},
+		{name: "no is not a word it takes", raw: "no", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_LINK_PREVIEWS": tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("loadConfigFrom(%q) accepted it, want an error", tc.raw)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.LinkPreviews != tc.want {
+				t.Errorf("LinkPreviews = %v, want %v", cfg.LinkPreviews, tc.want)
 			}
 		})
 	}
