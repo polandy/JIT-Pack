@@ -5,10 +5,11 @@
  * written before the button, and the button stays off while the title is
  * blank or the link is not one the board may render.
  *
- * A link entered here is read for its page's own title, description and
- * picture where the instance offers it (FR-29.16): they fill what is still
- * blank, and the picture is offered — with ✕ to decline it — to be added
- * when the idea is saved.
+ * A link entered here names a blank title after its site, and is read for
+ * its page's own title, description and picture where the instance offers
+ * it (FR-29.16): the words fill what is still blank as soon as they come,
+ * and the picture follows on its own — offered with ✕ to decline it, and
+ * added when the idea is saved, even if it arrives after the save.
  */
 import { IonButton, IonIcon, IonInput, IonSpinner, IonTextarea } from '@ionic/vue'
 import { close, umbrellaOutline } from 'ionicons/icons'
@@ -33,18 +34,26 @@ const props = defineProps<{
   /** The idea being edited; absent for a new one. */
   idea?: Idea | null
   /**
-   * Reads a link's page (FR-29.16); null where no read can be had — Local
-   * Mode, an instance with previews off — so none is shown starting.
+   * Reads a link's page and then its picture (FR-29.16); null where no read
+   * can be had — Local Mode, an instance with previews off — so none is
+   * shown starting.
    */
-  preview: ((url: string) => Promise<LinkPreview | null>) | null
+  preview: {
+    read(url: string): Promise<LinkPreview | null>
+    picture(imageUrl: string): Promise<Blob | null>
+  } | null
   /** Whether a picture from the link may be offered — the idea has none yet. */
   acceptsPicture: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
-  /** The fields, and the link's picture where it was offered and kept. */
-  save: [fields: IdeaFields, picture: Blob | null]
+  /**
+   * The fields, and the link's picture where it was offered and kept — a
+   * promise, since the picture may still be on its way when the idea is
+   * saved; it resolves null for none.
+   */
+  save: [fields: IdeaFields, picture: Promise<Blob | null>]
 }>()
 
 const title = ref('')
@@ -65,6 +74,9 @@ type PreviewState = typeof PREVIEW_IDLE | typeof PREVIEW_LOADING | typeof PREVIE
 const previewState = ref<PreviewState>(PREVIEW_IDLE)
 const picture = ref<Blob | null>(null)
 const pictureUrl = ref<string | null>(null)
+/** The picture on its way — the tile shows it coming, with its ✕ already. */
+const pictureComing = ref(false)
+let pendingPicture: Promise<Blob | null> | null = null
 /** The link last read, so an unchanged link — an edit's own — is not read again. */
 let readLink: string | null = null
 /** The site name a link placed as the title — nobody's typing, so a page may replace it. */
@@ -76,12 +88,14 @@ function dropPicture() {
   if (pictureUrl.value) URL.revokeObjectURL(pictureUrl.value)
   pictureUrl.value = null
   picture.value = null
+  pictureComing.value = false
+  pendingPicture = null
 }
 
-async function readPage(url: string, read: (url: string) => Promise<LinkPreview | null>) {
+async function readPage(url: string, preview: NonNullable<typeof props.preview>) {
   const mine = ++generation
   previewState.value = PREVIEW_LOADING
-  const page = await read(url)
+  const page = await preview.read(url)
   // A link changed while its page was read is answered by its own read.
   if (mine !== generation) return
   readLink = url
@@ -90,11 +104,30 @@ async function readPage(url: string, read: (url: string) => Promise<LinkPreview 
   const filled = fillFromPreview({ title: title.value, note: note.value }, page, placeholder)
   title.value = filled.title
   note.value = filled.note
-  if (page.picture && props.acceptsPicture) {
+  if (page.imageUrl && props.acceptsPicture) {
     dropPicture()
-    picture.value = page.picture
-    pictureUrl.value = URL.createObjectURL(page.picture)
+    pictureComing.value = true
+    const coming = preview.picture(page.imageUrl)
+    pendingPicture = coming
+    const blob = await coming
+    // Declined with ✕, or another link since: this picture is not wanted.
+    if (pendingPicture !== coming) return
+    pendingPicture = null
+    pictureComing.value = false
+    if (!blob) return
+    picture.value = blob
+    pictureUrl.value = URL.createObjectURL(blob)
   }
+}
+
+/** What the save hands on: the kept picture, the one still coming, or none. */
+function pictureToSave(): Promise<Blob | null> {
+  if (picture.value) return Promise.resolve(picture.value)
+  const coming = pendingPicture
+  if (!coming) return Promise.resolve(null)
+  // A ✕ after the save cannot happen — the sheet is closed — so what is
+  // coming is kept.
+  return coming
 }
 
 watch(
@@ -112,8 +145,8 @@ watch(
     placeholder = byLink.placeholder
     generation++
     previewState.value = PREVIEW_IDLE
-    const read = props.preview
-    if (read) timer = setTimeout(() => void readPage(url, read), PREVIEW_DELAY_MS)
+    const preview = props.preview
+    if (preview) timer = setTimeout(() => void readPage(url, preview), PREVIEW_DELAY_MS)
   },
 )
 
@@ -156,7 +189,7 @@ function save() {
       tag: tag.value,
       rainProof: rainProof.value,
     },
-    picture.value,
+    pictureToSave(),
   )
 }
 </script>
@@ -197,9 +230,22 @@ function save() {
         <IonSpinner name="dots" aria-hidden="true" />
         {{ t('ideas.previewLoading') }}
       </p>
-      <div v-if="pictureUrl" class="suggested" data-testid="idea-edit-preview-picture">
-        <img :src="pictureUrl" :alt="t('ideas.previewPicture')" @error="dropPicture" />
-        <span class="caption">{{ t('ideas.previewPicture') }}</span>
+      <div
+        v-if="pictureUrl || pictureComing"
+        class="suggested"
+        data-testid="idea-edit-preview-picture"
+        :data-coming="pictureComing ? 'true' : undefined"
+      >
+        <img
+          v-if="pictureUrl"
+          :src="pictureUrl"
+          :alt="t('ideas.previewPicture')"
+          @error="dropPicture"
+        />
+        <span v-else class="coming"><IonSpinner name="dots" aria-hidden="true" /></span>
+        <span class="caption">{{
+          pictureUrl ? t('ideas.previewPicture') : t('ideas.previewPictureComing')
+        }}</span>
         <button
           type="button"
           class="drop"
@@ -298,6 +344,16 @@ function save() {
   border: 1px solid var(--jp-surface-border);
   border-radius: var(--jp-r-md);
   background: var(--jp-surface-sunken);
+}
+
+.coming {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--jp-r-sm);
+  background: var(--jp-surface-page);
+  color: var(--ct-subtext0);
 }
 
 .suggested img {

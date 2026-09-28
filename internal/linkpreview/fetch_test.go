@@ -23,34 +23,39 @@ func page(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return srv
 }
 
-func TestFetch_ReadsThePageAndItsPicture_FR29_16(t *testing.T) {
+// The page comes back without its picture's bytes: the words are what the
+// sheet shows first, and a camera photo from a slow host takes longer than
+// any head (measured: 1.4 s for oeschinensee.ch's page, 6–7 s for its picture).
+func TestFetch_ReadsThePageAndNamesItsPicture_FR29_16(t *testing.T) {
 	srv := page(t, func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/see":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte(`<meta property="og:title" content="Oeschinensee"><meta property="og:image" content="/see.jpg">`))
-		case "/see.jpg":
-			w.Header().Set("Content-Type", "image/jpeg")
-			w.Write(jpegBytes)
-		default:
-			http.NotFound(w, r)
-		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<meta property="og:title" content="Oeschinensee"><meta property="og:image" content="/see.jpg">`))
 	})
 
 	got, err := newFetcher(allowAll).Fetch(context.Background(), srv.URL+"/see")
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
-	if got.Title != "Oeschinensee" || !bytes.Equal(got.Image, jpegBytes) || got.ImageType != "image/jpeg" {
-		t.Errorf("Fetch = %q, %d image bytes of %q; want the title and the picture", got.Title, len(got.Image), got.ImageType)
+	if got.Title != "Oeschinensee" || got.ImageURL != srv.URL+"/see.jpg" {
+		t.Errorf("Fetch = %+v, want the title and the picture's address", got)
 	}
 }
 
-// A preview without its picture is still a preview: the picture is a
-// second request to a second host, and either may fail on its own.
-func TestFetch_APictureThatCannotBeHadLeavesThePreview_FR29_16(t *testing.T) {
+func TestFetchImage_ReadsThePicture_FR29_16(t *testing.T) {
+	srv := page(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Write(jpegBytes)
+	})
+	got, kind, err := newFetcher(allowAll).FetchImage(context.Background(), srv.URL+"/see.jpg")
+	if err != nil || !bytes.Equal(got, jpegBytes) || kind != "image/jpeg" {
+		t.Errorf("FetchImage = %d bytes of %q, err %v; want the picture", len(got), kind, err)
+	}
+}
+
+// The picture's address comes back from the client, so it is a user's
+// address like the page's: the same fence, and nothing that is not a picture.
+func TestFetchImage_RefusesWhatIsNotAPictureOrNotPublic_FR29_16(t *testing.T) {
 	cases := map[string]http.HandlerFunc{
-		"missing": http.NotFound,
 		"not an image": func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			w.Write([]byte("<html>"))
@@ -59,23 +64,30 @@ func TestFetch_APictureThatCannotBeHadLeavesThePreview_FR29_16(t *testing.T) {
 			w.Header().Set("Content-Type", "image/jpeg")
 			w.Write(make([]byte, MaxImageBytes+1))
 		},
+		"missing": http.NotFound,
 	}
-	for name, image := range cases {
+	for name, handler := range cases {
 		t.Run(name, func(t *testing.T) {
-			srv := page(t, func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/img" {
-					image(w, r)
-					return
-				}
-				w.Header().Set("Content-Type", "text/html")
-				w.Write([]byte(`<title>Hütte</title><meta property="og:image" content="/img">`))
-			})
-			got, err := newFetcher(allowAll).Fetch(context.Background(), srv.URL)
-			if err != nil || got.Title != "Hütte" || got.Image != nil {
-				t.Errorf("Fetch = %q with %d image bytes, err %v; want the title alone", got.Title, len(got.Image), err)
+			srv := page(t, handler)
+			if _, _, err := newFetcher(allowAll).FetchImage(context.Background(), srv.URL); !errors.Is(err, ErrUnreadable) {
+				t.Errorf("err = %v, want ErrUnreadable", err)
 			}
 		})
 	}
+	t.Run("this server's own network", func(t *testing.T) {
+		srv := page(t, func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Write(jpegBytes)
+		})
+		if _, _, err := NewFetcher().FetchImage(context.Background(), srv.URL); !errors.Is(err, ErrBlockedAddress) {
+			t.Errorf("err = %v, want ErrBlockedAddress", err)
+		}
+	})
+	t.Run("not a web link", func(t *testing.T) {
+		if _, _, err := NewFetcher().FetchImage(context.Background(), "file:///etc/passwd"); !errors.Is(err, ErrNotWebLink) {
+			t.Errorf("err = %v, want ErrNotWebLink", err)
+		}
+	})
 }
 
 func TestFetch_RefusesWhatIsNotAWebPage_FR29_16(t *testing.T) {

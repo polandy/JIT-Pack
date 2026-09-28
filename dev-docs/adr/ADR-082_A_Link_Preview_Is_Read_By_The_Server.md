@@ -22,8 +22,10 @@
 
 The sheet sends a rested link to `POST /trips/{id}/link-preview`; the server fetches it with a dialer whose Control hook
 admits only public unicast addresses on ports 80 and 443, reads the head's OpenGraph, Twitter-card and plain tags, and
-returns the words and the picture's bytes, which the client scales and uploads like any picture (ADR-081). Only members
-reach the route. `JITPACK_LINK_PREVIEWS=false` turns it off; any value but `true`/`false` refuses to start.
+returns the words with the picture's address; a second read (`…/link-preview/image`) fetches that picture through the
+same fence, and the client scales and uploads it like any picture (ADR-081). Two reads, because a camera photo from a
+slow host takes seconds longer than the words. Only members reach the routes. `JITPACK_LINK_PREVIEWS=false` turns it
+off; any value but `true`/`false` refuses to start.
 
 **Pros**
 - One paste brings title, note and picture (driver 1).

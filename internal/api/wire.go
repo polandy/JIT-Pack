@@ -380,19 +380,26 @@ type InstanceConfigResponse struct {
 
 // --- The link preview (FR-29.16) ---
 
-// LinkPreviewRequest names the page whose preview is wanted.
+// LinkPreviewRequest names the page — or, for the picture route, the
+// picture — to be read.
 type LinkPreviewRequest struct {
 	URL string `json:"url"`
 }
 
 // LinkPreviewResponse is what the page says about itself. Every field may
-// be empty. The picture comes as the page served it — base64 of its bytes
-// with their type — because the client scales it like any picture it takes.
+// be empty. The picture is only named: its bytes are the picture route's,
+// so the words need not wait for them.
 type LinkPreviewResponse struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Image       string `json:"image"`
-	ImageType   string `json:"image_type"`
+	ImageURL    string `json:"image_url"`
+}
+
+// LinkPreviewImageResponse is a page's picture as it was served — base64 of
+// its bytes with their type — for the client to scale like any picture.
+type LinkPreviewImageResponse struct {
+	Image     string `json:"image"`
+	ImageType string `json:"image_type"`
 }
 
 // --- The release check (FR-23.8) ---
@@ -579,6 +586,8 @@ const (
 	// FR-29.16: what a pasted link's page says about itself. A trip's route
 	// so that only a member can make this server fetch a page.
 	RouteTripLinkPreview = "/api/v1/trips/{tripID}/link-preview"
+	// FR-29.16: the picture a preview named, read on its own clock.
+	RouteTripLinkPreviewImage = "/api/v1/trips/{tripID}/link-preview/image"
 
 	// Master scope — the partition that belongs to no trip, so its scope
 	// segment is a literal rather than an id.

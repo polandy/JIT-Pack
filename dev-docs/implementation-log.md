@@ -17906,3 +17906,9 @@ is not a browser, header-dressed or not, and stays unreadable — the sheet then
 **An option dropped mid-build: a flag in the instance config.** The client was first told by `/instance/config`
 whether previews are on. It needed a new global read at boot for a control that shows only while a read is in flight;
 instead the route answers `not_configured` and the device stops asking for the session.
+
+**Then the owner waited, and saw nothing.** On the owner's iPad the sheet sat on *„Reading the link …"* — the read
+did land, WebKit included, but after 6–9 s, since the page and its 2.6 MB picture came back as one answer. Split into
+two reads: the words in about a second and a half, the picture after on its own, with a loading tile that already has
+its ✕. A picture still coming when the idea is saved is handed over as a promise and added once it arrives; E2E-M28-09
+holds the picture route back to see the words arrive first, and goes red when the save drops what is still coming.

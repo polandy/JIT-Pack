@@ -163,18 +163,18 @@ setHeaderActions(() =>
 
 const editing = ref<{ idea: Idea | null } | null>(null)
 
-function onSave(fields: IdeaFields, picture: Blob | null) {
+function onSave(fields: IdeaFields, picture: Promise<Blob | null>) {
   const current = editing.value
   editing.value = null
   if (current?.idea) {
     actions.updateIdea(current.idea, fields)
-    if (picture) void addPictureTo(current.idea, picture)
+    void picture.then((blob) => blob && addPictureTo(current.idea!, blob))
     return
   }
   const id = actions.addIdea(props.tripId, fields, myUserId.value)
   if (id === null) return
   const added = plannerStore.getIdea(id)
-  if (picture && added) void addPictureTo(added, picture)
+  if (added) void picture.then((blob) => blob && addPictureTo(added, blob))
   // A new idea is shown where it went and on top, so it does not land below
   // the fold of a list sorted by votes it has none of yet.
   segment.value = IDEA_STATE_IDEA
@@ -412,7 +412,11 @@ const EMPTY_KEYS = {
         :idea="editing?.idea ?? null"
         :preview="
           orchestrator.moduleHost.linkPreview.offered()
-            ? (url: string) => orchestrator.moduleHost.linkPreview.read(tripId, url)
+            ? {
+                read: (url: string) => orchestrator.moduleHost.linkPreview.read(tripId, url),
+                picture: (imageUrl: string) =>
+                  orchestrator.moduleHost.linkPreview.picture(tripId, imageUrl),
+              }
             : null
         "
         :accepts-picture="!editing?.idea || picturesOf(editing.idea.id).length === 0"

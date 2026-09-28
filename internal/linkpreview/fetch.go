@@ -24,9 +24,8 @@ const (
 	MaxImageBytes = 4 << 20
 	// PageTimeout bounds reading the page.
 	PageTimeout = 8 * time.Second
-	// ImageTimeout bounds reading the picture, on its own clock: a camera
-	// photo from a slow host takes longer than any head, and a picture
-	// cut off by the page's budget is the one part people see (measured
+	// ImageTimeout bounds reading the picture, a request of its own: a
+	// camera photo from a slow host takes longer than any head (measured
 	// 2026-09-28: 1.4 s for oeschinensee.ch's page, 6–7 s for its picture).
 	ImageTimeout = 15 * time.Second
 	// maxRedirects follows a page's moves, but not a chain of them.
@@ -42,13 +41,6 @@ var (
 	// ErrUnreadable is a page that did not answer with HTML.
 	ErrUnreadable = errors.New("page could not be read")
 )
-
-// Page is a preview with its picture's bytes, when the picture could be had.
-type Page struct {
-	Preview
-	Image     []byte
-	ImageType string
-}
 
 // Fetcher reads link previews for FR-29.16 over a client that dials only
 // what its policy allows.
@@ -116,30 +108,50 @@ func PublicOnly(ap netip.AddrPort) bool {
 // IsPrivate does not name — and which a Tailscale network lives in.
 var sharedAddressSpace = netip.MustParsePrefix("100.64.0.0/10")
 
-// Fetch reads the page at raw and, where it names one, its picture. A
-// picture that cannot be had leaves the preview without one; a page that
-// cannot be had is an error.
-func (f *Fetcher) Fetch(ctx context.Context, raw string) (Page, error) {
+// Fetch reads the page at raw for what it says about itself. Its picture is
+// named, not read: FetchImage reads it on its own clock, so the words need
+// not wait for a camera photo from a slow host.
+func (f *Fetcher) Fetch(ctx context.Context, raw string) (Preview, error) {
+	u, err := webLink(raw)
+	if err != nil {
+		return Preview{}, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, PageTimeout)
+	defer cancel()
+	doc, final, err := f.get(ctx, u, MaxPageBytes, isHTML)
+	if err != nil {
+		return Preview{}, err
+	}
+	return Parse(doc, final), nil
+}
+
+// FetchImage reads the picture at raw — an address the client hands back
+// from Fetch's answer, and so a user's address like any other: the same
+// fence, and only an image of at most MaxImageBytes.
+func (f *Fetcher) FetchImage(ctx context.Context, raw string) ([]byte, string, error) {
+	u, err := webLink(raw)
+	if err != nil {
+		return nil, "", err
+	}
+	ctx, cancel := context.WithTimeout(ctx, ImageTimeout)
+	defer cancel()
+	image, _, err := f.get(ctx, u, MaxImageBytes+1, isImage)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(image) > MaxImageBytes {
+		return nil, "", fmt.Errorf("%w: picture over %d bytes", ErrUnreadable, MaxImageBytes)
+	}
+	return image, http.DetectContentType(image), nil
+}
+
+// webLink is raw as an http(s) address with a host, or ErrNotWebLink.
+func webLink(raw string) (string, error) {
 	u, err := url.Parse(raw)
 	if err != nil || !isWebScheme(u.Scheme) || u.Hostname() == "" {
-		return Page{}, ErrNotWebLink
+		return "", ErrNotWebLink
 	}
-	pageCtx, cancelPage := context.WithTimeout(ctx, PageTimeout)
-	defer cancelPage()
-	doc, final, err := f.get(pageCtx, u.String(), MaxPageBytes, isHTML)
-	if err != nil {
-		return Page{}, err
-	}
-	page := Page{Preview: Parse(doc, final)}
-	if page.ImageURL != "" {
-		imageCtx, cancelImage := context.WithTimeout(ctx, ImageTimeout)
-		defer cancelImage()
-		if image, _, err := f.get(imageCtx, page.ImageURL, MaxImageBytes+1, isImage); err == nil && len(image) <= MaxImageBytes {
-			page.Image = image
-			page.ImageType = http.DetectContentType(image)
-		}
-	}
-	return page, nil
+	return u.String(), nil
 }
 
 // get reads at most limit bytes of raw, if its content type passes accept.

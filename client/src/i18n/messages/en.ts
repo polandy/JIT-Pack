@@ -1690,6 +1690,7 @@ export const en = {
   'ideas.nextPicture': 'Next picture',
   'ideas.previewLoading': 'Reading the link …',
   'ideas.previewPicture': 'Picture from the link',
+  'ideas.previewPictureComing': 'Loading the picture …',
   'ideas.previewPictureDrop': 'Don’t use the picture from the link',
   // --- Excursions (FR-31, M27) ---
   'excursions.title': 'Excursions',

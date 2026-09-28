@@ -19,16 +19,24 @@ import (
 // who may ask, what they get back, and that an instance with previews off
 // says so rather than fetching.
 
-// fakePreviewer answers every URL with the same page, and records the ask.
+// fakePreviewer answers every URL with the same page and picture, and
+// records the asks.
 type fakePreviewer struct {
-	page  linkpreview.Page
-	err   error
-	asked []string
+	page      linkpreview.Preview
+	image     []byte
+	imageType string
+	err       error
+	asked     []string
 }
 
-func (f *fakePreviewer) Fetch(_ context.Context, url string) (linkpreview.Page, error) {
+func (f *fakePreviewer) Fetch(_ context.Context, url string) (linkpreview.Preview, error) {
 	f.asked = append(f.asked, url)
 	return f.page, f.err
+}
+
+func (f *fakePreviewer) FetchImage(_ context.Context, url string) ([]byte, string, error) {
+	f.asked = append(f.asked, url)
+	return f.image, f.imageType, f.err
 }
 
 func newPreviewServer(t *testing.T, previewer api.LinkPreviewer) *httptest.Server {
@@ -62,10 +70,8 @@ func previewURL(srv *httptest.Server) string {
 }
 
 func TestLinkPreview_AMemberGetsWhatThePageSays_FR29_16(t *testing.T) {
-	fake := &fakePreviewer{page: linkpreview.Page{
-		Preview:   linkpreview.Preview{Title: "Oeschinensee", Description: "Ein Bergsee"},
-		Image:     []byte("\xff\xd8\xff"),
-		ImageType: "image/jpeg",
+	fake := &fakePreviewer{page: linkpreview.Preview{
+		Title: "Oeschinensee", Description: "Ein Bergsee", ImageURL: "https://www.oeschinensee.ch/see.jpg",
 	}}
 	srv := newPreviewServer(t, fake)
 
@@ -78,24 +84,44 @@ func TestLinkPreview_AMemberGetsWhatThePageSays_FR29_16(t *testing.T) {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	image, _ := base64.StdEncoding.DecodeString(got.Image)
-	if got.Title != "Oeschinensee" || got.Description != "Ein Bergsee" || string(image) != "\xff\xd8\xff" || got.ImageType != "image/jpeg" {
-		t.Errorf("response = %+v, want the page's title, description and picture", got)
+	if got.Title != "Oeschinensee" || got.Description != "Ein Bergsee" || got.ImageURL != "https://www.oeschinensee.ch/see.jpg" {
+		t.Errorf("response = %+v, want the page's title, description and picture's address", got)
 	}
 	if len(fake.asked) != 1 || fake.asked[0] != "https://www.oeschinensee.ch" {
 		t.Errorf("asked %v, want the one URL", fake.asked)
 	}
 }
 
+func TestLinkPreviewImage_AMemberGetsThePicture_FR29_16(t *testing.T) {
+	fake := &fakePreviewer{image: []byte("\xff\xd8\xff"), imageType: "image/jpeg"}
+	srv := newPreviewServer(t, fake)
+
+	resp, raw := doJSON(t, http.MethodPost, previewURL(srv)+"/image", token(t, userA, testSecret),
+		api.LinkPreviewRequest{URL: "https://www.oeschinensee.ch/see.jpg"})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, body %s", resp.StatusCode, raw)
+	}
+	var got api.LinkPreviewImageResponse
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	image, _ := base64.StdEncoding.DecodeString(got.Image)
+	if string(image) != "\xff\xd8\xff" || got.ImageType != "image/jpeg" {
+		t.Errorf("response = %+v, want the picture", got)
+	}
+}
+
 // Only a member makes this server fetch: a stranger is refused before it
 // reaches the network.
 func TestLinkPreview_AStrangerCannotMakeTheServerFetch_FR29_16(t *testing.T) {
-	fake := &fakePreviewer{}
-	srv := newPreviewServer(t, fake)
-	resp, _ := doJSON(t, http.MethodPost, previewURL(srv), token(t, "user-x", testSecret),
-		api.LinkPreviewRequest{URL: "https://example.org"})
-	if resp.StatusCode != http.StatusForbidden || len(fake.asked) != 0 {
-		t.Errorf("status = %d after %d fetches, want 403 and none", resp.StatusCode, len(fake.asked))
+	for _, route := range []string{"", "/image"} {
+		fake := &fakePreviewer{}
+		srv := newPreviewServer(t, fake)
+		resp, _ := doJSON(t, http.MethodPost, previewURL(srv)+route, token(t, "user-x", testSecret),
+			api.LinkPreviewRequest{URL: "https://example.org"})
+		if resp.StatusCode != http.StatusForbidden || len(fake.asked) != 0 {
+			t.Errorf("%q: status = %d after %d fetches, want 403 and none", route, resp.StatusCode, len(fake.asked))
+		}
 	}
 }
 
@@ -111,27 +137,31 @@ func TestLinkPreview_RefusalsSayWhy_FR29_16(t *testing.T) {
 		"an unexpected fail": {errors.New("boom"), http.StatusInternalServerError, api.ErrInternal},
 	}
 	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			srv := newPreviewServer(t, &fakePreviewer{err: tc.err})
-			resp, raw := doJSON(t, http.MethodPost, previewURL(srv), token(t, userA, testSecret),
-				api.LinkPreviewRequest{URL: "https://example.org"})
-			var body api.APIError
-			_ = json.Unmarshal(raw, &body)
-			if resp.StatusCode != tc.want || body.Error.Code != tc.code {
-				t.Errorf("status %d code %q, want %d %q", resp.StatusCode, body.Error.Code, tc.want, tc.code)
-			}
-		})
+		for _, route := range []string{"", "/image"} {
+			t.Run(name+route, func(t *testing.T) {
+				srv := newPreviewServer(t, &fakePreviewer{err: tc.err})
+				resp, raw := doJSON(t, http.MethodPost, previewURL(srv)+route, token(t, userA, testSecret),
+					api.LinkPreviewRequest{URL: "https://example.org"})
+				var body api.APIError
+				_ = json.Unmarshal(raw, &body)
+				if resp.StatusCode != tc.want || body.Error.Code != tc.code {
+					t.Errorf("status %d code %q, want %d %q", resp.StatusCode, body.Error.Code, tc.want, tc.code)
+				}
+			})
+		}
 	}
 }
 
 // Off is an instance that fetches nothing, and the route says so.
 func TestLinkPreview_OffIsSaidOnTheRoute_FR29_16(t *testing.T) {
 	srv := newPreviewServer(t, nil)
-	resp, raw := doJSON(t, http.MethodPost, previewURL(srv), token(t, userA, testSecret),
-		api.LinkPreviewRequest{URL: "https://example.org"})
-	var body api.APIError
-	_ = json.Unmarshal(raw, &body)
-	if resp.StatusCode != http.StatusNotImplemented || body.Error.Code != api.ErrNotConfigured {
-		t.Errorf("status %d code %q, want 501 %q", resp.StatusCode, body.Error.Code, api.ErrNotConfigured)
+	for _, route := range []string{"", "/image"} {
+		resp, raw := doJSON(t, http.MethodPost, previewURL(srv)+route, token(t, userA, testSecret),
+			api.LinkPreviewRequest{URL: "https://example.org"})
+		var body api.APIError
+		_ = json.Unmarshal(raw, &body)
+		if resp.StatusCode != http.StatusNotImplemented || body.Error.Code != api.ErrNotConfigured {
+			t.Errorf("%q: status %d code %q, want 501 %q", route, resp.StatusCode, body.Error.Code, api.ErrNotConfigured)
+		}
 	}
 }

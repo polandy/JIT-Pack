@@ -10,7 +10,12 @@
  */
 import { APIRequestError } from '@/api/client'
 import { API } from '@/api/routes'
-import { ERROR_CODE, type LinkPreviewRequest, type LinkPreviewResponse } from '@/api/types'
+import {
+  ERROR_CODE,
+  type LinkPreviewImageResponse,
+  type LinkPreviewRequest,
+  type LinkPreviewResponse,
+} from '@/api/types'
 import type { LinkPreviews } from '@/sync/featureModule'
 import type { RestClient } from './restClient'
 
@@ -23,27 +28,35 @@ export interface LinkPreviewDeps {
 export function createLinkPreview(deps: LinkPreviewDeps): LinkPreviews {
   let off = deps.localMode
 
-  async function read(tripId: string, url: string) {
+  /** Asks the server, and answers null for anything but an answer. */
+  async function ask<T>(path: string, url: string): Promise<T | null> {
     if (off) return null
-    let resp: LinkPreviewResponse
     try {
-      resp = await deps.client.post<LinkPreviewResponse>(API.tripLinkPreview(tripId), {
-        url,
-      } satisfies LinkPreviewRequest)
+      return await deps.client.post<T>(path, { url } satisfies LinkPreviewRequest)
     } catch (error) {
       if (error instanceof APIRequestError && error.apiError?.code === ERROR_CODE.not_configured) {
         off = true
       }
       return null
     }
-    return {
-      title: resp.title || null,
-      description: resp.description || null,
-      picture: resp.image ? pictureOf(resp.image, resp.image_type) : null,
-    }
   }
 
-  return { offered: () => !off, read }
+  return {
+    offered: () => !off,
+    async read(tripId, url) {
+      const resp = await ask<LinkPreviewResponse>(API.tripLinkPreview(tripId), url)
+      if (!resp) return null
+      return {
+        title: resp.title || null,
+        description: resp.description || null,
+        imageUrl: resp.image_url || null,
+      }
+    },
+    async picture(tripId, imageUrl) {
+      const resp = await ask<LinkPreviewImageResponse>(API.tripLinkPreviewImage(tripId), imageUrl)
+      return resp?.image ? pictureOf(resp.image, resp.image_type) : null
+    },
+  }
 }
 
 function pictureOf(base64: string, type: string): Blob {

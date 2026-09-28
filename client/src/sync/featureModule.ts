@@ -66,14 +66,18 @@ export interface LinkPreviews {
   offered(): boolean
   /** What the page says about itself, or null where it could not be read. */
   read(tripId: string, url: string): Promise<LinkPreview | null>
+  /**
+   * The picture a preview named, as the page serves it — read apart from the
+   * words, which need not wait for it. Null where it could not be had.
+   */
+  picture(tripId: string, imageUrl: string): Promise<Blob | null>
 }
 
-/** A page's own title, description and picture — each may be missing. */
+/** A page's own title and description, and where its picture is — each may be missing. */
 export interface LinkPreview {
   title: string | null
   description: string | null
-  /** The picture as the page serves it; the planner scales it like any other. */
-  picture: Blob | null
+  imageUrl: string | null
 }
 
 /**

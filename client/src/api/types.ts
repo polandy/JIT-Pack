@@ -410,7 +410,8 @@ export interface InstanceConfigResponse {
 }
 
 /**
- * LinkPreviewRequest names the page whose preview is wanted.
+ * LinkPreviewRequest names the page — or, for the picture route, the
+ * picture — to be read.
  */
 export interface LinkPreviewRequest {
   url: string
@@ -418,12 +419,20 @@ export interface LinkPreviewRequest {
 
 /**
  * LinkPreviewResponse is what the page says about itself. Every field may
- * be empty. The picture comes as the page served it — base64 of its bytes
- * with their type — because the client scales it like any picture it takes.
+ * be empty. The picture is only named: its bytes are the picture route's,
+ * so the words need not wait for them.
  */
 export interface LinkPreviewResponse {
   title: string
   description: string
+  image_url: string
+}
+
+/**
+ * LinkPreviewImageResponse is a page's picture as it was served — base64 of
+ * its bytes with their type — for the client to scale like any picture.
+ */
+export interface LinkPreviewImageResponse {
   image: string
   image_type: string
 }
