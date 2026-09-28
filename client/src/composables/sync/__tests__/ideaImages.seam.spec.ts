@@ -40,17 +40,25 @@ function pictures(local: ImageStore | null) {
   const client = stubClient()
   const applied: PullChange[] = []
   const drainTrip = vi.fn((_tripId: string) => Promise.resolve())
+  const order: string[] = []
+  const whenSent = vi.fn((_tripId: string) => {
+    order.push('whenSent')
+    return Promise.resolve()
+  })
   const made: Blob[] = []
   return {
     client,
     applied,
     drainTrip,
+    whenSent,
+    order,
     made,
     pictures: createIdeaPictures({
       client,
       local,
       applyChanges: (changes) => void applied.push(...changes),
       drainTrip,
+      whenSent,
       optimize: () => Promise.resolve(JPEG),
       objectUrl: (blob) => {
         made.push(blob)
@@ -80,6 +88,35 @@ describe('adding a picture in Server Mode', () => {
     // position would disagree with the next pull.
     expect(applied).toEqual([])
     expect(drainTrip).toHaveBeenCalledWith('trip-1')
+  })
+
+  /*
+   * The idea a picture belongs to may still be in this device's outbox — a
+   * new idea saved with a picture, the dev seed — and the server refuses a
+   * picture for an idea it does not have yet. So the trip's queued writes
+   * go first.
+   */
+  it('lets the trip’s queued writes reach the server before the upload', async () => {
+    const { client, whenSent, order, pictures: p } = pictures(null)
+    const putRaw = client.putRaw
+    client.putRaw = (...args) => {
+      order.push('putRaw')
+      return putRaw(...args)
+    }
+    client.answer(undefined)
+
+    await p.add(UPLOAD, new Blob(['photo']))
+
+    expect(whenSent).toHaveBeenCalledWith('trip-1')
+    expect(order).toEqual(['whenSent', 'putRaw'])
+  })
+
+  it('uploads nothing when those writes cannot be sent', async () => {
+    const { client, whenSent, pictures: p } = pictures(null)
+    whenSent.mockImplementationOnce(() => Promise.reject(new Error('offline')))
+
+    await expect(p.add(UPLOAD, new Blob(['photo']))).rejects.toThrow('offline')
+    expect(client.calls).toEqual([])
   })
 
   it('writes nothing when the upload fails', async () => {

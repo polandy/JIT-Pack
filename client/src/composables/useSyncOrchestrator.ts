@@ -927,6 +927,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       local,
       applyChanges: onPullChanges,
       drainTrip: (tripId) => drainTrip(tripId),
+      whenSent: (tripId) => outbox.whenSent('trip', tripId),
     }),
   }
 

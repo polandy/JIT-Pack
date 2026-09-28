@@ -28,6 +28,12 @@ export interface IdeaPictureDeps {
   /** The funnel a pulled row passes through, for Local Mode's own row. */
   applyChanges(changes: PullChange[]): void
   drainTrip(tripId: string): Promise<void>
+  /**
+   * Resolves once the trip's queued writes have reached the server, and
+   * rejects when they cannot: the idea a picture belongs to may be one of
+   * them, and the server refuses a picture for an idea it does not have.
+   */
+  whenSent(tripId: string): Promise<void>
   /** The on-device scaler — injected because it encodes through a canvas. */
   optimize?: (source: Blob) => Promise<Blob>
   /** Object URLs are the browser's; injected so a spec can see them made. */
@@ -35,7 +41,7 @@ export interface IdeaPictureDeps {
 }
 
 export function createIdeaPictures(deps: IdeaPictureDeps): IdeaPictures {
-  const { client, local, applyChanges, drainTrip } = deps
+  const { client, local, applyChanges, drainTrip, whenSent } = deps
   const optimize =
     deps.optimize ?? ((source: Blob) => optimizeItemImage(source, IDEA_IMAGE_OPTIONS))
   const objectUrl = deps.objectUrl ?? ((blob: Blob) => URL.createObjectURL(blob))
@@ -61,6 +67,7 @@ export function createIdeaPictures(deps: IdeaPictureDeps): IdeaPictures {
         applyChanges([localChange(TABLE.ideaImages, image.id, ideaImageRow(row))])
         return
       }
+      await whenSent(image.trip_id)
       await client.putRaw(
         API.tripIdeaImage(image.trip_id, image.idea_id, image.id),
         optimized,
