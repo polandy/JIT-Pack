@@ -10,6 +10,7 @@ import {
   visiblePage,
   itemDetail,
 } from './fixtures'
+import { TALL_PNG, WIDE_PNG } from './helpers/images'
 import { fillIonic } from './helpers/ionic'
 import type { Locator, Page } from '@playwright/test'
 import { backToInventory, createItem } from './helpers/m9'
@@ -29,22 +30,6 @@ import { PATH } from './routes'
  * Local Mode throughout: the inventory is backend-free, and the mode with no
  * server is where a missing client-side rule shows up.
  */
-
-/**
- * Two decodable PNGs for the photo case, differing in *shape* rather than in
- * colour: FR-22.3 keeps the aspect ratio, so the rendered `naturalWidth` is
- * a signal about the bytes behind the preview. Both are far under the
- * FR-22.4 cap — the 150 KB backoff itself is measured where it is
- * deterministic, in `lib/__tests__/imageResize.spec.ts`.
- */
-const WIDE_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAACgAAAAQCAIAAADrtar6AAAAIElEQVR4nGO4o6ExIIhh1OJRi0ctHrV41OJRi0cthiEAX9ruH4ZT4goAAAAASUVORK5CYII=',
-  'base64',
-)
-const TALL_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAABAAAAAoCAIAAAB4uO32AAAAIElEQVR4nGPQsLlDEmIY1TCqYVTDqIZRDaMaRjXQSwMAeQMgLkk8R3gAAAAASUVORK5CYII=',
-  'base64',
-)
 
 /**
  * Commit the creation form and wait for the *edit* page to be painted.

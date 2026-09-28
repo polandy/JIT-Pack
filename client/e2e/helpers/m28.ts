@@ -80,3 +80,24 @@ export async function showSegment(
   await button.click()
   await expect(button).toHaveClass(/segment-button-checked/)
 }
+
+/** The open idea's mosaic tile at `index`, its picture inside. */
+export function mosaicPicture(detail: Locator, index: number): Locator {
+  return detail.getByTestId(`idea-mosaic-tile-${index}`).locator('img')
+}
+
+/** Add a picture through the open idea's hidden file input. */
+export async function addPicture(detail: Locator, name: string, buffer: Buffer): Promise<void> {
+  const before = await detail.locator('[data-testid^="idea-mosaic-tile-"]').count()
+  await detail.getByTestId('idea-picture-file').setInputFiles({ name, mimeType: 'image/png', buffer })
+  // The add control waits out the upload; the new tile is the positive signal.
+  await expect(detail.locator('[data-testid^="idea-mosaic-tile-"]')).toHaveCount(
+    Math.min(before + 1, 3),
+  )
+  await expect(detail.getByTestId('idea-picture-add')).toBeEnabled()
+}
+
+/** The full-screen picture viewer, which Ionic lifts out to the app root. */
+export function pictureViewer(page: Page): Locator {
+  return page.getByTestId('idea-viewer')
+}

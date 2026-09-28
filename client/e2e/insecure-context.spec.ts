@@ -2,6 +2,8 @@ import { test, expect, addInComposer, openQuickAdd, expectTripOpen } from './fix
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { WIDE_PNG, WIDE_PNG_WIDTH } from './helpers/images'
+import { createItem } from './helpers/m9'
 
 /**
  * Writing on a plain-HTTP instance (E2E-NFR-SEC-01).
@@ -90,5 +92,30 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
     await expect(
       visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' }).first(),
     ).toBeVisible()
+  })
+
+  /**
+   * `crypto.subtle` is the other half of what a plain-HTTP origin lacks. A
+   * Local Mode photo is hashed on the device (FR-22), and a hash that needed
+   * SHA-256 threw there, so the photo never landed.
+   */
+  test('E2E-NFR-SEC-05: a Local Mode photo lands without crypto.subtle (FR-22.1)', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(crypto, 'subtle', { value: undefined, configurable: true })
+    })
+    await page.goto(PATH.items)
+    await createItem(page, 'Fernglas')
+    expect(await page.evaluate(() => typeof crypto.subtle)).toBe('undefined')
+
+    const form = visible(page)
+    await form
+      .getByTestId('m10-photo-file')
+      .setInputFiles({ name: 'wide.png', mimeType: 'image/png', buffer: WIDE_PNG })
+    await expect(form.getByTestId('m10-photo-preview')).toHaveJSProperty(
+      'naturalWidth',
+      WIDE_PNG_WIDTH,
+    )
   })
 })
