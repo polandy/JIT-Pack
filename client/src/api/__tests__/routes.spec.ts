@@ -49,7 +49,10 @@ describe('API routes', () => {
   it('pins every path it declares', () => {
     expect(
       Object.fromEntries(
-        Object.entries(API).map(([k, r]) => [k, typeof r === 'function' ? r('ID1', 'ID2', 'ID3') : r]),
+        Object.entries(API).map(([k, r]) => [
+          k,
+          typeof r === 'function' ? r('ID1', 'ID2', 'ID3') : r,
+        ]),
       ),
     ).toEqual({
       tripSync: '/api/v1/trips/ID1/sync',

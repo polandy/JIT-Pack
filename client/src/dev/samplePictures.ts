@@ -22,7 +22,13 @@ const SCENES: readonly Scene[] = [
   { sky: '--ct-glacier', far: '--ct-lupine', near: '--ct-pine', sun: '--ct-straw', water: true },
   { sky: '--ct-larch', far: '--ct-heather', near: '--ct-moss', sun: '--ct-straw', water: false },
   { sky: '--ct-lupine', far: '--ct-overlay2', near: '--ct-pine', sun: '--ct-text', water: true },
-  { sky: '--ct-alpenrose', far: '--ct-heather', near: '--ct-surface2', sun: '--ct-larch', water: false },
+  {
+    sky: '--ct-alpenrose',
+    far: '--ct-heather',
+    near: '--ct-surface2',
+    sun: '--ct-larch',
+    water: false,
+  },
 ]
 
 const WIDTH = 1200

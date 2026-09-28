@@ -89,7 +89,9 @@ export function mosaicPicture(detail: Locator, index: number): Locator {
 /** Add a picture through the open idea's hidden file input. */
 export async function addPicture(detail: Locator, name: string, buffer: Buffer): Promise<void> {
   const before = await detail.locator('[data-testid^="idea-mosaic-tile-"]').count()
-  await detail.getByTestId('idea-picture-file').setInputFiles({ name, mimeType: 'image/png', buffer })
+  await detail
+    .getByTestId('idea-picture-file')
+    .setInputFiles({ name, mimeType: 'image/png', buffer })
   // The add control waits out the upload; the new tile is the positive signal.
   await expect(detail.locator('[data-testid^="idea-mosaic-tile-"]')).toHaveCount(
     Math.min(before + 1, 3),

@@ -256,14 +256,21 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
 /**
  * One after another: each picture's position is read off the ones already
  * there, and in Server Mode those arrive only with the drain after an upload.
+ * A device that cannot paint or scale one — no canvas under a unit test, no
+ * connection for the upload — seeds the rest of the trip without pictures and
+ * says so in the console rather than failing the seed.
  */
 async function seedPictures(
   idea: Idea,
   count: number,
   actions: ReturnType<typeof createPlannerActions>,
 ): Promise<void> {
-  for (let i = 0; i < count; i++) {
-    await actions.addPicture(idea, await samplePicture(i))
+  try {
+    for (let i = 0; i < count; i++) {
+      await actions.addPicture(idea, await samplePicture(i))
+    }
+  } catch (error) {
+    console.warn(`dev seed: no pictures for „${idea.title}"`, error)
   }
 }
 

@@ -36,7 +36,8 @@ export interface IdeaPictureDeps {
 
 export function createIdeaPictures(deps: IdeaPictureDeps): IdeaPictures {
   const { client, local, applyChanges, drainTrip } = deps
-  const optimize = deps.optimize ?? ((source: Blob) => optimizeItemImage(source, IDEA_IMAGE_OPTIONS))
+  const optimize =
+    deps.optimize ?? ((source: Blob) => optimizeItemImage(source, IDEA_IMAGE_OPTIONS))
   const objectUrl = deps.objectUrl ?? ((blob: Blob) => URL.createObjectURL(blob))
   // One URL per picture and hash for the session: a board and its detail
   // show the same picture, and a second fetch would be a second download.
@@ -60,7 +61,11 @@ export function createIdeaPictures(deps: IdeaPictureDeps): IdeaPictures {
         applyChanges([localChange(TABLE.ideaImages, image.id, ideaImageRow(row))])
         return
       }
-      await client.putRaw(API.tripIdeaImage(image.trip_id, image.idea_id, image.id), optimized, JPEG)
+      await client.putRaw(
+        API.tripIdeaImage(image.trip_id, image.idea_id, image.id),
+        optimized,
+        JPEG,
+      )
       await drainTrip(image.trip_id)
     },
 

@@ -1,6 +1,13 @@
 import { test, expect, createTripViaWizard } from '../../fixtures'
 import { WIDE_PNG, WIDE_PNG_WIDTH } from '../../helpers/images'
-import { addIdea, addPicture, ideaCard, mosaicPicture, openIdea, openIdeas } from '../../helpers/m28'
+import {
+  addIdea,
+  addPicture,
+  ideaCard,
+  mosaicPicture,
+  openIdea,
+  openIdeas,
+} from '../../helpers/m28'
 import { uniq } from '../../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'
