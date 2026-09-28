@@ -53,6 +53,20 @@ export interface ModuleHost {
   writeTrip(tripId: string, ...muts: QueuedModuleMutation[]): void
   /** The bytes of the planner's pictures, which no mutation carries (FR-29.5). */
   pictures: IdeaPictures
+  /**
+   * What a pasted link's page says about itself (FR-29.16), or null where
+   * there is no preview to be had: Local Mode, an instance with previews
+   * off, a page that could not be read.
+   */
+  linkPreview(tripId: string, url: string): Promise<LinkPreview | null>
+}
+
+/** A page's own title, description and picture — each may be missing. */
+export interface LinkPreview {
+  title: string | null
+  description: string | null
+  /** The picture as the page serves it; the planner scales it like any other. */
+  picture: Blob | null
 }
 
 /**

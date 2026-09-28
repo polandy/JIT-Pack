@@ -1688,6 +1688,9 @@ export const en = {
   'ideas.removePictureConfirm': 'The picture goes for everyone on the trip.',
   'ideas.previousPicture': 'Previous picture',
   'ideas.nextPicture': 'Next picture',
+  'ideas.previewLoading': 'Reading the link …',
+  'ideas.previewPicture': 'Picture from the link',
+  'ideas.previewPictureDrop': 'Don’t use the picture from the link',
   // --- Excursions (FR-31, M27) ---
   'excursions.title': 'Excursions',
   'excursions.viewCount': 'Excursions ({n})',

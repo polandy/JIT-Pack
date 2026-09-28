@@ -52,6 +52,7 @@ function fakeHost(): ModuleHost {
       url: () => Promise.resolve(null),
       forget: () => Promise.resolve(),
     },
+    linkPreview: () => Promise.resolve(null),
   }
 }
 

@@ -163,14 +163,18 @@ setHeaderActions(() =>
 
 const editing = ref<{ idea: Idea | null } | null>(null)
 
-function onSave(fields: IdeaFields) {
+function onSave(fields: IdeaFields, picture: Blob | null) {
   const current = editing.value
   editing.value = null
   if (current?.idea) {
     actions.updateIdea(current.idea, fields)
+    if (picture) void addPictureTo(current.idea, picture)
     return
   }
-  if (actions.addIdea(props.tripId, fields, myUserId.value) === null) return
+  const id = actions.addIdea(props.tripId, fields, myUserId.value)
+  if (id === null) return
+  const added = plannerStore.getIdea(id)
+  if (picture && added) void addPictureTo(added, picture)
   // A new idea is shown where it went and on top, so it does not land below
   // the fold of a list sorted by votes it has none of yet.
   segment.value = IDEA_STATE_IDEA
@@ -257,10 +261,15 @@ const uploading = ref(false)
 
 async function onAddPicture(file: File) {
   const idea = openIdea.value
-  if (!idea || uploading.value) return
+  if (idea) await addPictureTo(idea, file)
+}
+
+/** A picture from the file picker or from a link's page (FR-29.16), the same way. */
+async function addPictureTo(idea: Idea, picture: Blob) {
+  if (uploading.value) return
   uploading.value = true
   try {
-    await actions.addPicture(idea, file)
+    await actions.addPicture(idea, picture)
   } catch {
     // Server Mode uploads now or not at all — the bytes do not wait in the
     // outbox (ADR-002) — so a failed upload is said, not queued.
@@ -401,6 +410,8 @@ const EMPTY_KEYS = {
       <IdeaEditSheet
         :open="editing !== null"
         :idea="editing?.idea ?? null"
+        :preview="(url: string) => orchestrator.moduleHost.linkPreview(tripId, url)"
+        :accepts-picture="!editing?.idea || picturesOf(editing.idea.id).length === 0"
         @close="editing = null"
         @save="onSave"
       />

@@ -1704,6 +1704,9 @@ export const de: Record<keyof typeof en, string> = {
   'ideas.removePictureConfirm': 'Das Bild verschwindet für alle, die an der Reise teilnehmen.',
   'ideas.previousPicture': 'Voriges Bild',
   'ideas.nextPicture': 'Nächstes Bild',
+  'ideas.previewLoading': 'Link wird gelesen …',
+  'ideas.previewPicture': 'Bild aus dem Link',
+  'ideas.previewPictureDrop': 'Bild aus dem Link nicht übernehmen',
   // --- Ausflüge (FR-31, M27) ---
   'excursions.title': 'Ausflüge',
   'excursions.viewCount': 'Ausflüge ({n})',
