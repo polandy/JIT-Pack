@@ -22,8 +22,13 @@ const (
 	MaxPageBytes = 1 << 20
 	// MaxImageBytes caps the picture handed on to be scaled by the client.
 	MaxImageBytes = 4 << 20
-	// FetchTimeout bounds both requests together.
-	FetchTimeout = 8 * time.Second
+	// PageTimeout bounds reading the page.
+	PageTimeout = 8 * time.Second
+	// ImageTimeout bounds reading the picture, on its own clock: a camera
+	// photo from a slow host takes longer than any head, and a picture
+	// cut off by the page's budget is the one part people see (measured
+	// 2026-09-28: 1.4 s for oeschinensee.ch's page, 6–7 s for its picture).
+	ImageTimeout = 15 * time.Second
 	// maxRedirects follows a page's moves, but not a chain of them.
 	maxRedirects = 3
 )
@@ -61,7 +66,7 @@ func NewFetcher() *Fetcher { return newFetcher(PublicOnly) }
 // two lookups, and a redirect inward are all refused alike.
 func newFetcher(allow func(netip.AddrPort) bool) *Fetcher {
 	dialer := &net.Dialer{
-		Timeout: FetchTimeout,
+		Timeout: PageTimeout,
 		Control: func(_, address string, _ syscall.RawConn) error {
 			ap, err := netip.ParseAddrPort(address)
 			if err != nil || !allow(ap) {
@@ -75,8 +80,8 @@ func newFetcher(allow func(netip.AddrPort) bool) *Fetcher {
 		// dialled, and the page's own address would never be checked.
 		Proxy:                 nil,
 		DialContext:           dialer.DialContext,
-		TLSHandshakeTimeout:   FetchTimeout,
-		ResponseHeaderTimeout: FetchTimeout,
+		TLSHandshakeTimeout:   PageTimeout,
+		ResponseHeaderTimeout: PageTimeout,
 		MaxIdleConns:          4,
 		IdleConnTimeout:       30 * time.Second,
 	}
@@ -119,16 +124,17 @@ func (f *Fetcher) Fetch(ctx context.Context, raw string) (Page, error) {
 	if err != nil || !isWebScheme(u.Scheme) || u.Hostname() == "" {
 		return Page{}, ErrNotWebLink
 	}
-	ctx, cancel := context.WithTimeout(ctx, FetchTimeout)
-	defer cancel()
-
-	doc, final, err := f.get(ctx, u.String(), MaxPageBytes, isHTML)
+	pageCtx, cancelPage := context.WithTimeout(ctx, PageTimeout)
+	defer cancelPage()
+	doc, final, err := f.get(pageCtx, u.String(), MaxPageBytes, isHTML)
 	if err != nil {
 		return Page{}, err
 	}
 	page := Page{Preview: Parse(doc, final)}
 	if page.ImageURL != "" {
-		if image, _, err := f.get(ctx, page.ImageURL, MaxImageBytes+1, isImage); err == nil && len(image) <= MaxImageBytes {
+		imageCtx, cancelImage := context.WithTimeout(ctx, ImageTimeout)
+		defer cancelImage()
+		if image, _, err := f.get(imageCtx, page.ImageURL, MaxImageBytes+1, isImage); err == nil && len(image) <= MaxImageBytes {
 			page.Image = image
 			page.ImageType = http.DetectContentType(image)
 		}

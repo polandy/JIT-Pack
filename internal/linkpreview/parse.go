@@ -83,10 +83,16 @@ func first(metas map[string]string, keys []string) string {
 	return ""
 }
 
-// clean unescapes entities, folds runs of whitespace into one space and
-// cuts at limit runes.
+// invisible are the marks a page sets for its own line breaking — a soft
+// hyphen, a zero-width space or joiner — which would split words mid-line
+// on a card that breaks its lines differently.
+var invisible = strings.NewReplacer("\u00ad", "", "\u200b", "", "\u200c", "", "\u200d", "", "\ufeff", "")
+
+// clean unescapes entities, drops invisible marks, folds runs of whitespace
+// into one space and cuts at limit runes.
 func clean(s string, limit int) string {
-	s = strings.Join(strings.FieldsFunc(html.UnescapeString(s), unicode.IsSpace), " ")
+	s = invisible.Replace(html.UnescapeString(s))
+	s = strings.Join(strings.FieldsFunc(s, unicode.IsSpace), " ")
 	if r := []rune(s); len(r) > limit {
 		s = strings.TrimSpace(string(r[:limit]))
 	}

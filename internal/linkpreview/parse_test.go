@@ -56,6 +56,13 @@ func TestParse_ReadsWhatAPageSaysAboutItself_FR29_16(t *testing.T) {
 			want: Preview{ImageURL: "https://example.org/s.jpg"},
 		},
 		{
+			// segantini-museum.ch hyphenates its description for the
+			// browser; on a card the marks would split words mid-line.
+			name: "soft hyphens and zero-width marks are dropped",
+			html: "<meta property=\"og:description\" content=\"Ich trin&shy;ke an die\u00adser reins\u200bte\">",
+			want: Preview{Description: "Ich trinke an dieser reinste"},
+		},
+		{
 			name: "nothing to say",
 			html: `<html><body>hello</body></html>`,
 			want: Preview{},

@@ -4081,8 +4081,8 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     **public addresses on ports 80 and 443** — checked on the address actually dialled, so a redirect or a DNS answer
     pointing into its own network is refused like a direct one. A refused address reads like any page that could not
     be read.
-  * What is taken is bounded: 1 MiB of the page, a 4 MiB picture, 8 seconds for both, three redirects, 200 characters
-    of title, 1000 of description. OpenGraph is read first, then Twitter's card, then the page's `<title>` and
+  * What is taken is bounded: 1 MiB of the page in 8 seconds, a 4 MiB picture in 15 more, three redirects, 200
+    characters of title, 1000 of description. OpenGraph is read first, then Twitter's card, then the page's `<title>` and
     description.
   * **On by default.** It is the one outbound request an instance makes without being asked;
     `JITPACK_LINK_PREVIEWS=false` turns it off, the route then answers *not configured*, and a device stops asking for

@@ -185,7 +185,7 @@ What to know before you decide:
 - **The website sees your server.** The request comes from your instance's address and says `User-Agent: JIT-Pack link preview`. It carries nothing about the trip or the people on it — only the address that was pasted.
 - **It cannot reach into your network.** The server fetches only public internet addresses on the ordinary web ports (80 and 443). A link to your router, your NAS, your identity provider, `localhost` or any other private address — directly, through a redirect, or through a name that resolves there — is refused, and the app simply leaves the idea as typed.
 - **Only people on a trip can make it fetch.** The request is part of the trip, so a stranger cannot use your server to open pages.
-- **It is small and short.** At most 1 MiB of the page and a 4 MiB picture, eight seconds for both. A page that builds itself with JavaScript or turns away unknown visitors gives nothing, and nothing is filled.
+- **It is small and short.** At most 1 MiB of the page, read within eight seconds, and a 4 MiB picture, within fifteen more. A page that builds itself with JavaScript or turns away unknown visitors gives nothing, and nothing is filled.
 - **Local mode has no preview**, since there is no server to ask.
 
 With it off, pasting a link keeps it as a link — exactly as before.
@@ -237,6 +237,6 @@ Nothing to configure: a reservation lasts until a person ends it. What that mean
 
 ## Request timeouts
 
-Not configurable, listed here so you can size a reverse proxy against them: the HTTP server uses a 10-second read timeout, a 30-second write timeout and a 60-second idle timeout. Outbound calls to the IdP's token and UserInfo endpoints each have their own 10-second timeout, and a [link preview](#link-previews) has eight seconds for its page and picture together.
+Not configurable, listed here so you can size a reverse proxy against them: the HTTP server uses a 10-second read timeout, a 30-second write timeout and a 60-second idle timeout. Outbound calls to the IdP's token and UserInfo endpoints each have their own 10-second timeout, and a [link preview](#link-previews) has eight seconds for its page and fifteen for its picture.
 
 Session lifetimes are likewise constants rather than configuration — 15 minutes for an access token, 90 days sliding for a refresh chain. See [Authentication → How a session works](authentication.md#how-a-session-works).
