@@ -29,9 +29,10 @@ export interface IdeaPictureDeps {
   applyChanges(changes: PullChange[]): void
   drainTrip(tripId: string): Promise<void>
   /**
-   * Resolves once the trip's queued writes have reached the server, and
-   * rejects when they cannot: the idea a picture belongs to may be one of
-   * them, and the server refuses a picture for an idea it does not have.
+   * Resolves once the writes the picture stands on — the trip's, and the
+   * master partition's that create the trip itself — have reached the
+   * server, and rejects when they cannot: the server refuses a picture for
+   * an idea it does not have.
    */
   whenSent(tripId: string): Promise<void>
   /** The on-device scaler — injected because it encodes through a canvas. */

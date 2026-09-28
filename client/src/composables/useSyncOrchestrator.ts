@@ -927,7 +927,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       local,
       applyChanges: onPullChanges,
       drainTrip: (tripId) => drainTrip(tripId),
-      whenSent: (tripId) => outbox.whenSent('trip', tripId),
+      // In drainTrip's order: a new trip reaches the server through the
+      // master partition, and its rows are refused until it has.
+      whenSent: async (tripId) => {
+        await outbox.whenSent('master', null)
+        await outbox.whenSent('trip', tripId)
+      },
     }),
   }
 
