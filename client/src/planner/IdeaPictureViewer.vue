@@ -71,6 +71,12 @@ function onPointerUp(event: PointerEvent) {
   if (Math.abs(dx) >= SWIPE_PX) page(dx < 0 ? 1 : -1)
 }
 
+/** The picture moves to the front, and the viewer goes with it. */
+function makeCover(image: IdeaImage) {
+  emit('cover', image)
+  index.value = 0
+}
+
 function onKey(event: KeyboardEvent) {
   if (event.key === 'ArrowLeft') page(-1)
   else if (event.key === 'ArrowRight') page(1)
@@ -144,7 +150,7 @@ function onKey(event: KeyboardEvent) {
           v-if="!isCover"
           fill="clear"
           data-testid="idea-viewer-make-cover"
-          @click="emit('cover', current)"
+          @click="makeCover(current)"
         >
           <IonIcon slot="start" :icon="starOutline" />
           {{ t('ideas.makeCover') }}
