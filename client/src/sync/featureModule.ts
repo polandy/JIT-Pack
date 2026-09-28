@@ -15,6 +15,7 @@
  *   as everything else, with this device's clock.
  */
 import type { Mutation, MutationOp, PullChange } from '@/api/types'
+import type { IdeaImage } from '@/types/domain'
 import type { CascadeRow } from './cascade'
 
 /** One module's store, as the orchestrator reads and writes it. */
@@ -50,4 +51,25 @@ export interface ModuleHost {
   nowIso(): string
   /** Queues the writes for the trip's partition, paints them, and drains. */
   writeTrip(tripId: string, ...muts: QueuedModuleMutation[]): void
+  /** The bytes of the planner's pictures, which no mutation carries (FR-29.5). */
+  pictures: IdeaPictures
+}
+
+/**
+ * FR-29.5: an idea picture's bytes, outside the sync envelope (ADR-002). The
+ * row that names a picture is created with its bytes — by the server's
+ * upload, or on this device in Local Mode — so it is not a mutation; moving
+ * or deleting one afterwards is, and goes through `writeTrip`.
+ */
+export interface IdeaPictures {
+  /**
+   * Scales the source down and stores it as `image`, whose hash is filled in
+   * here. Resolves once the row is on this device; rejects when the upload
+   * could not be made, and then nothing was written.
+   */
+  add(image: Omit<IdeaImage, 'image_hash'>, source: Blob): Promise<void>
+  /** A displayable URL for the picture, or null while its bytes are not to be had. */
+  url(image: IdeaImage): Promise<string | null>
+  /** Drops the bytes of deleted pictures where this device holds them. */
+  forget(imageIds: readonly string[]): Promise<void>
 }

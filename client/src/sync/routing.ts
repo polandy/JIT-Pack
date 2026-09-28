@@ -61,6 +61,7 @@ export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.ideas,
   TABLE.ideaVotes,
   TABLE.ideaComments,
+  TABLE.ideaImages,
 ])
 
 /** Which store a table belongs to, or null for a table that travels no feed. */

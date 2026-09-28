@@ -53,6 +53,7 @@ import { createLockState } from './sync/locks'
 import { createNotificationActions } from './sync/notifications'
 import { createConflictActions } from './sync/conflicts'
 import { createIdentityActions } from './sync/identity'
+import { createIdeaPictures } from './sync/ideaImages'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
@@ -921,6 +922,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mutation: mutations.make,
     nowIso,
     writeTrip: (tripId, ...muts) => enqueueAndDrain('trip', tripId, ...muts),
+    pictures: createIdeaPictures({
+      client,
+      local,
+      applyChanges: onPullChanges,
+      drainTrip: (tripId) => drainTrip(tripId),
+    }),
   }
 
   return {

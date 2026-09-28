@@ -527,6 +527,19 @@ export interface IdeaComment {
   edited_at: string | null
 }
 
+/**
+ * FR-29.5: one picture on an idea. Only which it is travels the feed — the
+ * bytes move over their own endpoint, or live in IndexedDB in Local Mode
+ * (ADR-002). The lowest position is the idea's cover.
+ */
+export interface IdeaImage {
+  id: string
+  trip_id: string
+  idea_id: string
+  image_hash: string
+  position: number
+}
+
 // --- Master data ---
 
 /**

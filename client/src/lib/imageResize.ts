@@ -36,6 +36,18 @@ const DEFAULTS = {
   qualityStep: 0.1,
 }
 
+/**
+ * FR-29.5: an idea picture has to show a place, so it keeps more pixels and
+ * more bytes than an item photo — 500 KB, the server's cap for it.
+ */
+export const IDEA_IMAGE_MAX_BYTES = 500 * 1024
+
+/** The options an idea picture is scaled with (FR-29.5). */
+export const IDEA_IMAGE_OPTIONS: OptimizeOptions = {
+  maxEdge: 1600,
+  maxBytes: IDEA_IMAGE_MAX_BYTES,
+}
+
 /** fitDimensions scales (w,h) so the longer edge is at most maxEdge,
  * preserving aspect ratio; images already within the cap are returned
  * unchanged (FR-22.3: no upscaling, no crop). */

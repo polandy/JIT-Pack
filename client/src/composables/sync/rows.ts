@@ -33,6 +33,7 @@ import type {
   TripSeries,
   Idea,
   IdeaComment,
+  IdeaImage,
   IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
@@ -256,6 +257,15 @@ export function ideaCommentRow(comment: IdeaComment): Record<string, unknown> {
     body: comment.body,
     created_at: comment.created_at,
     edited_at: comment.edited_at,
+  }
+}
+
+export function ideaImageRow(image: IdeaImage): Record<string, unknown> {
+  return {
+    trip_id: image.trip_id,
+    idea_id: image.idea_id,
+    image_hash: image.image_hash,
+    position: image.position,
   }
 }
 
