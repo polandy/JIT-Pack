@@ -283,14 +283,35 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
   }
 }
 
-/** hashBlob mirrors the server's image_hash: the hex of the first 8 bytes
- * of the SHA-256 digest. Used in Local Mode, where there is no server to
- * stamp the change signal (FR-22 sync hint). */
-export async function hashBlob(blob: Blob): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+/** The hex of the first 8 bytes of the SHA-256 digest — the server's image_hash. */
+async function sha256Prefix(bytes: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
   return Array.from(new Uint8Array(digest).slice(0, 8))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+const FNV_OFFSET = 0xcbf29ce484222325n
+const FNV_PRIME = 0x100000001b3n
+const U64 = (1n << 64n) - 1n
+
+/** FNV-1a over 64 bits: a change marker, not a digest anything verifies. */
+function fnv1a64(bytes: ArrayBuffer): string {
+  let hash = FNV_OFFSET
+  for (const byte of new Uint8Array(bytes)) hash = ((hash ^ BigInt(byte)) * FNV_PRIME) & U64
+  return hash.toString(16).padStart(16, '0')
+}
+
+/**
+ * hashBlob is the Local Mode image hash (FR-22, FR-29.5): where there is no
+ * server to stamp the change signal, this device does. It is the server's
+ * SHA-256 prefix where the browser offers one, and FNV-1a on a plain-HTTP
+ * origin, which has no `crypto.subtle` (E2E-NFR-SEC-01's LAN instance) —
+ * nothing compares the two, since a server stamps its own on upload.
+ */
+export async function hashBlob(blob: Blob): Promise<string> {
+  const bytes = await blob.arrayBuffer()
+  return globalThis.crypto?.subtle ? sha256Prefix(bytes) : fnv1a64(bytes)
 }
 
 // The base an optimistic row is rebuilt on, so every column the store keeps
