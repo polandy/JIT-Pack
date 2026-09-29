@@ -2204,8 +2204,8 @@ const closeStarting = ref(false)
 /**
  * FR-7.16: M2's *Reise starten* on a trip whose packing is open arrives as
  * `?starting=1`, and the list asks FR-5.10's question put for the start.
- * Taken only while starting is the trip's next step and the packing is open;
- * the flag is dropped from the URL at once, like the closing pass's. Below
+ * Taken only while starting is the trip's next step; a packing finished in
+ * the meantime starts the trip without asking. The flag is dropped from the URL at once, like the closing pass's. Below
  * the sheet's own state, since it runs as soon as it is set up.
  */
 watch(
@@ -2218,6 +2218,11 @@ watch(
       closePrompted.value = false
       closeStarting.value = true
       closeSheetOpen.value = true
+    } else if (step === 'start') {
+      // Finished on another device between M2's tap and this arrival: there
+      // is nothing left to ask, and the start was asked for.
+      orchestrator.activateTrip(props.tripId)
+      void announceAct(t('packing.startedToast'))
     }
     void router.replace(tripPath(props.tripId))
   },

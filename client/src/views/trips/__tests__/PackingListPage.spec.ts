@@ -246,8 +246,17 @@ describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
     })
   }
 
-  async function arrive(status = 'planning') {
+  async function arrive(status = 'planning', packingClosedAt: string | null = null) {
     seedTrip([{ name: 'Zelt' }], status)
+    if (packingClosedAt) {
+      useTripStore().applyChange({
+        seq: 0,
+        table: TABLE.trips,
+        id: 't1',
+        deleted: false,
+        row: { name: 'Samedan', year: 2026, status, packing_closed_at: packingClosedAt },
+      })
+    }
     tripScreen.loadedTrips.add('t1')
     route.query = { starting: '1' }
     const page = mountStarting()
@@ -285,8 +294,17 @@ describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
     expect(acts.activateTrip).toHaveBeenCalledWith('t1')
   })
 
+  it('starts without asking when the packing was finished meanwhile', async () => {
+    const page = await arrive('planning', '2026-07-01T08:00:00Z')
+
+    expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
+    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+
   it('asks nothing on a trip that is already running', async () => {
     const page = await arrive('active')
+    expect(acts.activateTrip).not.toHaveBeenCalled()
 
     expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
     expect(page.find('[data-testid="m4-list-loading"]').exists()).toBe(false)

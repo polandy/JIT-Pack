@@ -1381,6 +1381,7 @@ These patterns apply to every screen and are specified once.
     primary reads *„Abschliessen und starten"*: it closes the packing as above and starts the trip in one act, and the
     snackbar's one *Rückgängig* takes back both — the trip returns to planning. Beneath it an outline ***„Nur
     starten"*** (`m4-close-sheet-start-only`) starts the trip and leaves the packing open; *Abbrechen* starts nothing.
+    A packing finished on another device before M4 arrives starts the trip without the sheet.
     What the close carries is marked where it lands: purchases stand under M6's *„Von vor der Abreise"*, tasks without
     a tag take the task tag of that name. (E2E-M4-151, E2E-M4-152)
   * **Packed or forgotten (FR-5.11 — *built*).** Once the packing is closed the composer carries a
