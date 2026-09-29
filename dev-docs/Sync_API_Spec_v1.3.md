@@ -266,6 +266,14 @@ reply. `edited_at` is the client's clock, like `resolved_at`. **A note's words a
 `not_authorized`; a task's stay everybody's. `note_acks.seen_through` is the client's statement of how far a tick
 reached — the stamp of the thread's newest entry — and is read only by clients.
 
+`comments.excursion_id` (FR-7.15) names the excursion a thread is about, or NULL. It is kept on a first note only —
+dropped from a reply and from any row that is not a trip note — and is **its author's** like the words: a mutation
+touching it on an existing note pushed by anyone else is refused as `not_authorized`. An excursion of another trip is
+refused (`constraint_violated`); one that does not exist (deleted on another device before the note arrived) drops the
+field and the rest of the mutation is applied, so a race costs the link and never the note. Deleting an excursion
+clears the column (`ON DELETE SET NULL`) inside the engine and writes **no change**, like
+`excursion_items.trip_item_id`: a client reads a link to an excursion it does not hold as no link.
+
 `task_tags` (FR-7.8, ADR-072) joins the master partition: `{name, sort_order, icon}`, instance-wide like
 `tags`, and a separate vocabulary from it on purpose — a task is filed by what it is *about*, an item by what it *is*,
 and the two never appear in one picker. `comments.task_tag_id` names one of its rows, which makes it a trip-partition
