@@ -54,7 +54,7 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 
 ## Not built yet
 
-The packing concept is closed and every numbered backlog item below is done; the reasoning behind each is in the log (scan its index). **Numbers stay stable** because the log and specs refer to them (e.g. „item 19" means NFR-4.12). Real sources of open work, in order: what the owner just asked for; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); `dev-docs/mvp-plan.md` Track H (owner-driven dogfood deployment); a fired revisit trigger in a parked stub or ADR.
+The packing concept is closed and every numbered backlog item below is done; the reasoning behind each is in the log (scan its index). **Numbers stay stable** because the log and specs refer to them (e.g. „item 19" means NFR-4.12). Real sources of open work, in order: what the owner just asked for — the family's instance runs in production, so this is where its friction arrives; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); a fired revisit trigger in a parked stub or ADR.
 
 1. Basics first (auth, coverage, pinning, `mise`) — 2026-08-09
 2. §3.27 client package — 2026-08-21

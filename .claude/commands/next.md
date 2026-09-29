@@ -8,7 +8,6 @@ Identify the next task to work on:
    - whatever the owner has just asked for
    - an open review worklist in the repo root (`*REVIEW*.md`, untracked by convention — a
      structural or quality list with its own recommended order)
-   - `dev-docs/mvp-plan.md` Track H, the owner-driven dogfood deployment
    - a revisit trigger that has fired: the parked stubs each carry one, and so do several ADRs
 3. Read ONLY the spec sections that item references, not the full documents.
 4. Propose a concrete implementation plan with small, committable steps.

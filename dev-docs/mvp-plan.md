@@ -296,7 +296,10 @@ global patterns binding — they were made binding *by* four navigation defects 
 the §7 table updated, an ADR-011 amendment, and the `ROOT_PATHS` contradiction resolved rather
 than left standing.
 
-### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)*
+### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)* — **✅ DONE**
+
+**The family's instance runs in production**, deployed by the owner. What its use turns up comes in as the owner's
+requests, and is worked from there rather than from this track.
 
 **IdP settled: Authelia** (§7.3). The OIDC half of this track is therefore a configuration exercise against a
 provider the manual is already written for, not an integration question.
@@ -317,7 +320,7 @@ becomes an issue; expect Track B's specs to grow from it.
 | E — i18n | — | — | now |
 | F — backup tables | — | — | now |
 | G — UX polish | — | — | now |
-| H — dogfood | A, B, C, D merged | — | after first release |
+| H — dogfood | A, B, C, D merged | — | ✅ done — in production |
 | I — back-button class | — | none (router + global header) | **next up** |
 | J — trip editing | — | none (new surface + mutations) | after its two decisions |
 
