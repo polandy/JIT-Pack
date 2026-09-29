@@ -4329,7 +4329,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Every line of the open list**: an own entry, a packing line (FR-30.2) and an excursion's line (FR-31.8) alike —
     so a packing line has a grip too, and moves only inside its own heading, which the list says once below it. What
     is bought, the *Fällig* block and a closed list (FR-7.12) move nothing: the block keeps its date order, the fold
-    stays flat.
+    stays flat. The dashboard card (FR-30.7) is a flat glance without headings and keeps its own order.
   * **The hand order wins inside a heading.** A line never placed reads first, in the order the heading always had
     (by name for own entries, the packing list's for its lines, dated lines ahead — FR-30.10); every placed line
     follows by its place. The first move in a heading places all of its lines, so from then on the hand order is all
