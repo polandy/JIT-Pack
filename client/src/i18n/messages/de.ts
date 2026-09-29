@@ -1708,9 +1708,8 @@ export const de: Record<keyof typeof en, string> = {
   'ideas.linkPictureComing': 'Bild aus dem Link wird geladen …',
   'ideas.linkPictureReady': 'Bild aus dem Link wird hinzugefügt',
   'ideas.pictureComing': 'Bild wird geladen …',
-  'ideas.suggestion': 'Vorschlag aus dem Link',
+  'ideas.suggestedAs': 'Vorschlag: {text}',
   'ideas.suggestionAccept': 'Übernehmen',
-  'ideas.suggestionDismiss': 'Nicht übernehmen',
   // --- Ausflüge (FR-31, M27) ---
   'excursions.title': 'Ausflüge',
   'excursions.viewCount': 'Ausflüge ({n})',

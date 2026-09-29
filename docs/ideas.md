@@ -11,12 +11,13 @@ the bottom right. The sheet asks for:
 
 - a **title** — *Bernina Express nach Tirano*;
 - a **link**, optional — paste the web address; `rhb.ch` is enough, the app adds the `https://`. Only web links are
-  accepted. Under the link a suggestion appears: at first the site's name as the title, on a server a moment later
-  the page's own title and description. Tap **Übernehmen** to use it, or **Nicht übernehmen** to keep what you have —
-  nothing is filled in without that tap. On a server the page's picture is also fetched in the background: you see it
-  loading under the link and, after you add the idea, on its card, and it becomes the idea's picture as soon as it
-  arrives — as long as the idea has no picture yet. You can remove it like any picture. (Your administrator can turn
-  the reading of links off; see [Link previews](configuration.md#link-previews).);
+  accepted. The link then suggests a title and a description: shown grey in the title and note fields (or as a line
+  under a field you already filled), each with **Übernehmen** beside it. At first the suggested title is the site's
+  name; on a server, a moment later, the page's own title and description. Nothing is filled in until you tap
+  **Übernehmen**. On a server the page's picture is also fetched in the background: you see it loading under the link
+  and, after you add the idea, on its card, and it becomes the idea's picture as soon as it arrives — as long as the
+  idea has no picture yet. You can remove it like any picture. (Your administrator can turn the reading of links off;
+  see [Link previews](configuration.md#link-previews).);
 - a **note**, optional;
 - one **kind** — *Wandern*, *Baden*, *Kultur*, *Essen* or *Ausflug*, or none;
 - **Geht auch bei Regen** — for what works in bad weather too.

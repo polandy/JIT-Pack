@@ -7,7 +7,8 @@
  *
  * A link entered here brings a **suggestion** that changes nothing until it
  * is confirmed (FR-29.16): the page's own title and description where the
- * instance can read it, the link's site as a title otherwise. Its picture
+ * instance can read it, the link's site as a title otherwise — each shown
+ * at its own field, grey in a blank one, with *Übernehmen* beside it. Its picture
  * is fetched in the background — the sheet shows it coming — and added
  * after the save, only where the idea still has no picture by then.
  */
@@ -24,7 +25,7 @@ import type { Idea, IdeaTag } from '@/types/domain'
 import { IDEA_TAGS } from '@/types/domain'
 import type { IdeaFields } from './actions'
 import { parseLink } from './domain/ideas'
-import { acceptSuggestion, suggestionFor, type PreviewText } from './domain/linkFill'
+import { acceptPart, suggestionFor, type PreviewText, type SuggestedField } from './domain/linkFill'
 
 /** How long a link rests before its page is read — typing is not pasting. */
 const PREVIEW_DELAY_MS = 600
@@ -140,12 +141,13 @@ async function readPage(url: string, preview: NonNullable<typeof props.preview>)
   suggestion.value = suggestionFor(url, page, currentText())
 }
 
-function acceptPreview() {
+/** Confirms one field's half of the suggestion, at that field. */
+function acceptField(field: SuggestedField) {
   if (!suggestion.value) return
-  const accepted = acceptSuggestion(currentText(), suggestion.value)
-  title.value = accepted.title
-  note.value = accepted.note
-  suggestion.value = null
+  const accepted = acceptPart(currentText(), suggestion.value, field)
+  title.value = accepted.text.title
+  note.value = accepted.text.note
+  suggestion.value = accepted.rest
 }
 
 watch(
@@ -236,11 +238,29 @@ function save() {
       <IonInput
         v-model="title"
         class="title-field"
-        :placeholder="t('ideas.titlePlaceholder')"
+        :placeholder="suggestion?.title ?? t('ideas.titlePlaceholder')"
         :aria-label="t('ideas.titlePlaceholder')"
         data-testid="idea-edit-name"
         @keydown.enter.prevent="save"
-      />
+      >
+        <IonButton
+          v-if="suggestion?.title"
+          slot="end"
+          fill="clear"
+          size="small"
+          data-testid="idea-edit-name-accept"
+          @click="acceptField('title')"
+        >
+          {{ t('ideas.suggestionAccept') }}
+        </IonButton>
+      </IonInput>
+      <p
+        v-if="suggestion?.title && title.trim() !== ''"
+        class="suggested-line"
+        data-testid="idea-edit-name-suggestion"
+      >
+        {{ t('ideas.suggestedAs', { text: suggestion.title }) }}
+      </p>
       <IonInput
         v-model="link"
         type="url"
@@ -260,32 +280,6 @@ function save() {
         <IonSpinner name="dots" aria-hidden="true" />
         {{ t('ideas.previewLoading') }}
       </p>
-      <div v-if="suggestion" class="suggestion" data-testid="idea-edit-suggestion">
-        <span class="label">{{ t('ideas.suggestion') }}</span>
-        <strong v-if="suggestion.title" data-testid="idea-edit-suggestion-title">
-          {{ suggestion.title }}
-        </strong>
-        <span
-          v-if="suggestion.description"
-          class="description"
-          data-testid="idea-edit-suggestion-description"
-        >
-          {{ suggestion.description }}
-        </span>
-        <div class="suggestion-actions">
-          <IonButton
-            fill="clear"
-            size="small"
-            data-testid="idea-edit-suggestion-dismiss"
-            @click="suggestion = null"
-          >
-            {{ t('ideas.suggestionDismiss') }}
-          </IonButton>
-          <IonButton size="small" data-testid="idea-edit-suggestion-accept" @click="acceptPreview">
-            {{ t('ideas.suggestionAccept') }}
-          </IonButton>
-        </div>
-      </div>
       <div
         v-if="pictureComing || pictureUrl"
         class="picture-row"
@@ -300,10 +294,28 @@ function save() {
         v-model="note"
         auto-grow
         :rows="2"
-        :placeholder="t('ideas.notePlaceholder')"
+        :placeholder="suggestion?.description ?? t('ideas.notePlaceholder')"
         :aria-label="t('ideas.notePlaceholder')"
         data-testid="idea-edit-note"
-      />
+      >
+        <IonButton
+          v-if="suggestion?.description"
+          slot="end"
+          fill="clear"
+          size="small"
+          data-testid="idea-edit-note-accept"
+          @click="acceptField('note')"
+        >
+          {{ t('ideas.suggestionAccept') }}
+        </IonButton>
+      </IonTextarea>
+      <p
+        v-if="suggestion?.description && note.trim() !== ''"
+        class="suggested-line"
+        data-testid="idea-edit-note-suggestion"
+      >
+        {{ t('ideas.suggestedAs', { text: suggestion.description }) }}
+      </p>
       <div class="chips" role="group" :aria-label="t('ideas.tagLabel')">
         <ChoiceChip
           v-for="key in IDEA_TAGS"
@@ -375,41 +387,11 @@ function save() {
   height: 14px;
 }
 
-.suggestion {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 10px;
-  padding: 10px 12px 4px;
-  border: 1px solid var(--jp-surface-border);
-  border-radius: var(--jp-r-md);
-  background: var(--jp-surface-sunken);
-}
-
-.suggestion .label {
+.suggested-line {
+  margin: 4px 2px 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
-}
-
-.suggestion strong {
-  color: var(--ct-text);
-  font-weight: var(--jp-weight-semibold);
   overflow-wrap: anywhere;
-}
-
-.suggestion .description {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-sm);
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
-.suggestion-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
 }
 
 .picture-row {

@@ -3440,16 +3440,17 @@ went.
   is on Bob's card as its banner and in his mosaic — the bytes fetched with his own session. That a stranger can
   neither add nor read one is the server's (`TestIdeaImage_AStrangerNeitherUploadsNorReads_FR29_5`).
 * **E2E-M28-10** `local` (FR-29.16) — **implemented** (`planner/ideas.spec.ts`): a link pasted into a new idea suggests
-  its site as the title — the title field stays blank and *Add* off until *Use it* — and the idea is saved under the
-  site's name; Local Mode has no preview, so the sheet stays `idle` and shows no read starting.
+  its site grey in the blank title field — which stays blank and *Add* off until *Use it* beside it — and the idea is
+  saved under the site's name; Local Mode has no preview, so the sheet stays `idle` and shows no read starting.
 * **E2E-M28-09** `server` (FR-29.16, ADR-082) — **implemented** (`planner/server/link-preview.spec.ts`): a link pasted
-  into a new idea's sheet is read and its page's words come as a suggestion — the fields, the title included, stay blank
-  and *Add* off until *Use it*, which fills title and note. The picture, held back, shows itself coming in the sheet;
-  the idea is saved, its card shows the picture coming, and the picture reaches the card once released. A suggestion
-  dismissed leaves the typed title, and the picture still comes. That a link's picture never replaces one the idea has,
-  and that a failed one is quiet, is `planner/__tests__/sync.spec.ts`; the routes' answers are planted, since a test
-  page would be on loopback, which the server's fence refuses — the fetch and the fence are `internal/linkpreview`'s
-  (`TestFetch_*`, `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
+  into a new idea's sheet is read and its page's title and description are suggested grey in the blank title and note,
+  which stay blank and *Add* off until each field's *Use it* fills that field alone. The picture, held back, shows
+  itself coming in the sheet; the idea is saved, its card shows the picture coming, and the picture reaches the card
+  once released. Over a typed title the suggestion is a line under the field — *Suggested: …* — that changes nothing
+  left alone, and the picture still comes. That a link's picture never replaces one the idea has, and that a failed one
+  is quiet, is `planner/__tests__/sync.spec.ts`; the routes' answers are planted, since a test page would be on
+  loopback, which the server's fence refuses — the fetch and the fence are `internal/linkpreview`'s (`TestFetch_*`,
+  `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
 * **E2E-FLOW-01 Happy-path packing** `server`: Alice M1 → M4 → swipe *Packing Now* → check → Bob's device reflects it in
   real time (locks, actor attribution, presence). (FR-5.x, 4.4, G-3, G-10) *(Runs for the convergence, membership and
   attribution halves — Alice shares the trip with Bob and the row Bob sees names Alice as its packer,

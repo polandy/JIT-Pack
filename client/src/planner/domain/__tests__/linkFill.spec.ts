@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { acceptSuggestion, suggestionFor } from '../linkFill'
+import { acceptPart, suggestionFor } from '../linkFill'
 
 const PAGE = { title: 'Oeschinensee', description: 'Ein Bergsee über Kandersteg' }
 const LINK = 'https://www.oeschinensee.ch/de/sommer'
@@ -43,20 +43,25 @@ describe('suggestionFor (FR-29.16)', () => {
   })
 })
 
-describe('acceptSuggestion (FR-29.16)', () => {
-  it('takes both halves when confirmed — a confirmed suggestion replaces what was there', () => {
-    expect(acceptSuggestion({ title: 'Seerundgang', note: 'mit Kinderwagen' }, PAGE)).toEqual({
-      title: 'Oeschinensee',
-      note: 'Ein Bergsee über Kandersteg',
+describe('acceptPart (FR-29.16)', () => {
+  it('takes the title at its field — replacing what was typed — and leaves the description suggested', () => {
+    expect(acceptPart({ title: 'Seerundgang', note: '' }, PAGE, 'title')).toEqual({
+      text: { title: 'Oeschinensee', note: '' },
+      rest: { title: null, description: 'Ein Bergsee über Kandersteg' },
     })
   })
 
-  it('leaves a field the suggestion has nothing for', () => {
-    expect(
-      acceptSuggestion(
-        { title: 'Seerundgang', note: 'mit Kinderwagen' },
-        { title: 'Hütte', description: null },
-      ),
-    ).toEqual({ title: 'Hütte', note: 'mit Kinderwagen' })
+  it('takes the description at the note, leaving the title suggested', () => {
+    expect(acceptPart(BLANK, PAGE, 'note')).toEqual({
+      text: { title: '', note: 'Ein Bergsee über Kandersteg' },
+      rest: { title: 'Oeschinensee', description: null },
+    })
+  })
+
+  it('leaves no suggestion once its last half is taken', () => {
+    expect(acceptPart(BLANK, { title: 'Hütte', description: null }, 'title')).toEqual({
+      text: { title: 'Hütte', note: '' },
+      rest: null,
+    })
   })
 })

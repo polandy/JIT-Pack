@@ -39,10 +39,31 @@ export function suggestionFor(
   return title || description ? { title, description } : null
 }
 
-/** A confirmed suggestion: what it has replaces what was there. */
-export function acceptSuggestion(current: FillableText, suggestion: PreviewText): FillableText {
-  return {
-    title: suggestion.title ?? current.title,
-    note: suggestion.description ?? current.note,
-  }
+/** The two fields a suggestion is shown at, each with its own confirmation. */
+export type SuggestedField = 'title' | 'note'
+
+/** A suggestion after one field took its half — null once nothing is left. */
+export interface AcceptedPart {
+  text: FillableText
+  rest: PreviewText | null
+}
+
+/**
+ * One field's half of a suggestion, confirmed at that field: it replaces
+ * what the field held, and the other half stays suggested.
+ */
+export function acceptPart(
+  current: FillableText,
+  suggestion: PreviewText,
+  field: SuggestedField,
+): AcceptedPart {
+  const text =
+    field === 'title'
+      ? { ...current, title: suggestion.title ?? current.title }
+      : { ...current, note: suggestion.description ?? current.note }
+  const rest =
+    field === 'title'
+      ? { title: null, description: suggestion.description }
+      : { title: suggestion.title, description: null }
+  return { text, rest: rest.title || rest.description ? rest : null }
 }

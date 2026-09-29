@@ -17921,4 +17921,7 @@ between the two on a slow host. A day later the owner took the title
 field out of the fill too: the site name had still been written into a blank title at once, and now it is only the
 first suggestion — the one that keeps a pasted link a single tap from saving in Local Mode, where the page is never
 read. And a picture fetched in the background has to show that it is coming, in the sheet and on the saved idea's
-card: the planner store keeps which ideas wait for one, device state beside the synced rows.
+card: the planner store keeps which ideas wait for one, device state beside the synced rows. Then the owner tested it and
+reported the title as still no suggestion: the suggestion stood as one card under the link, and the title field above
+stayed empty, which read as nothing suggested at all. Asked with the screenshot, the owner chose the suggestion inside
+each field — grey as its placeholder, *Übernehmen* in its end slot — and each field confirms its own half.

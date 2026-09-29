@@ -1692,9 +1692,8 @@ export const en = {
   'ideas.linkPictureComing': 'Loading the picture from the link …',
   'ideas.linkPictureReady': 'The picture from the link will be added',
   'ideas.pictureComing': 'Loading the picture …',
-  'ideas.suggestion': 'Suggested by the link',
+  'ideas.suggestedAs': 'Suggested: {text}',
   'ideas.suggestionAccept': 'Use it',
-  'ideas.suggestionDismiss': 'Dismiss',
   // --- Excursions (FR-31, M27) ---
   'excursions.title': 'Excursions',
   'excursions.viewCount': 'Excursions ({n})',

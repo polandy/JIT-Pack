@@ -4070,17 +4070,18 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
   table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
 
-* **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** under
-  the link, *„Vorschlag aus dem Link"*, that changes **no field** — the title included — until it is confirmed:
-  *Übernehmen* puts what it has into the title and the note, *Nicht übernehmen* leaves the sheet as it was. At once the
-  suggestion is the link's **site** as a title (*oeschinensee.ch*), offered only where the title is blank, so a pasted
-  link is one tap from an idea that can be saved, in every mode. Where a read can be had, the link is then read — after
-  it has rested a moment, so typing is not reading — and the page's own **title** and **description** replace that
-  suggestion. The page's **picture** is fetched in the background, apart from the words since a slow host can take
-  seconds longer to give it, and **shown coming** — in the sheet under the link, then on the saved idea's card and in
-  its detail — until it arrives; it is added as the idea's first picture (FR-29.5) whenever that is, also after the
-  save, but only where the idea still has no picture by then. No confirmation is asked for it, since a picture is
-  removed in one tap (FR-29.5's viewer). Where no read can be had, none is shown starting. ADR-082:
+* **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** that
+  changes **no field** until it is confirmed, and each half is shown **at its own field**: the suggested title grey in
+  the blank title field, the suggested description grey in the blank note, each with *Übernehmen* beside it that puts it
+  in that field alone; over a field that already holds text, the suggestion is a line under it, *„Vorschlag: …"*, with
+  the same *Übernehmen*. At once the title suggestion is the link's **site** (*oeschinensee.ch*), offered only where the
+  title is blank, so a pasted link is one tap from an idea that can be saved, in every mode. Where a read can be had,
+  the link is then read — after it has rested a moment, so typing is not reading — and the page's own **title** and
+  **description** replace that suggestion. The page's **picture** is fetched in the background, apart from the words
+  since a slow host can take seconds longer to give it, and **shown coming** — in the sheet under the link, then on the
+  saved idea's card and in its detail — until it arrives; it is added as the idea's first picture (FR-29.5) whenever
+  that is, also after the save, but only where the idea still has no picture by then. No confirmation is asked for it,
+  since a picture is removed in one tap (FR-29.5's viewer). Where no read can be had, none is shown starting. ADR-082:
   * **The server reads the page**, because a browser is kept from another site's page by the same-origin rule. Local
     Mode therefore has no preview; the link is kept as typed.
   * **Only a trip's member can make the server fetch** (`POST /trips/{id}/link-preview` and `…/link-preview/image`), and
