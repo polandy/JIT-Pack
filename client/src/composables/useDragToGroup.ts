@@ -41,6 +41,9 @@
  */
 import { useLongPress, LONG_PRESS_SLOP_PX } from './useLongPress'
 
+/** How far the travelling clone steps in from its row's leading edge — the grip's column. */
+export const GHOST_INSET_PX = 56
+
 /** Where the gesture is, as the attribute spells it. */
 export type DragState = 'idle' | 'lifting' | 'dragging' | 'settling'
 
@@ -137,7 +140,6 @@ interface Lifted<T> {
   payload: T
   row: HTMLElement
   ghost: HTMLElement
-  dx: number
   dy: number
   from: number | null
   /** The place the row was lifted out of, or null where it stood in none. */
@@ -207,8 +209,11 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     ghost.setAttribute('data-drag-ghost', '')
     ghost.style.position = 'fixed'
     ghost.style.pointerEvents = 'none'
-    ghost.style.width = `${box.width}px`
-    ghost.style.left = `${box.left}px`
+    // Stepped in from the row's leading edge by the grip's width: the clone
+    // rides up and down over the list, and the gap mark it is dropped at
+    // starts in that margin, where the clone never covers it.
+    ghost.style.width = `${box.width - GHOST_INSET_PX}px`
+    ghost.style.left = `${box.left + GHOST_INSET_PX}px`
     ghost.style.top = `${box.top}px`
     document.body.appendChild(ghost)
     row.setAttribute('data-drag-source', '')
@@ -217,7 +222,6 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       payload,
       row,
       ghost,
-      dx: ev.clientX - box.left,
       dy: ev.clientY - box.top,
       from: indexOf(row),
       home: row.closest(`[${DROP_TARGET_ATTRIBUTE}]`)?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null,
@@ -252,7 +256,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function track(ev: PointerEvent): void {
     if (!lifted) return
-    lifted.ghost.style.left = `${ev.clientX - lifted.dx}px`
+    // Up and down only: the clone stays flush with the list it came from, so
+    // it never hides the gap mark or the heading it is carried to.
     lifted.ghost.style.top = `${ev.clientY - lifted.dy}px`
 
     const found = placeUnder(ev.clientX, ev.clientY)
@@ -273,7 +278,9 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     if (over !== found) {
       over?.removeAttribute(DROP_OVER_ATTRIBUTE)
       over = found
-      over?.setAttribute(DROP_OVER_ATTRIBUTE, '')
+      // A row moved inside its own place needs no frame round the place: the
+      // gap mark says everything, and the frame is for a place it goes *to*.
+      if (!(opts.markGap && lifted.home === name)) over?.setAttribute(DROP_OVER_ATTRIBUTE, '')
     }
     place = next
     if (opts.markGap) markGapAt(found, next)

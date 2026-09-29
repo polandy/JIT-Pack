@@ -1666,12 +1666,13 @@ These patterns apply to every screen and are specified once.
   flat lists with neither grip nor headings.
 * **A line, put where it belongs (FR-30.13, *built*):** while nothing is selected, every open row carries a **grip**
   (`reorderThreeOutline`, label *„<Name> verschieben"*) at its leading edge, in the checkbox's own place. Pressed and
-  carried, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims
-  in place); inside the heading under the pointer a **2 px line in the action colour** marks the gap the row will land
-  in — laid over the neighbouring row's edge (`data-drop-gap`), so no row moves under the finger, and drawn only where
-  the drop would move something. Letting go puts the row there. Packing and excursion lines move only inside their own
-  heading. Rows in the *Fällig* block are lifted the same way and keep their date order there; the placed row stands
-  in its heading once its day has passed. (E2E-M6-39)
+  carried, it lifts the row (a clone follows the pointer up and down, stepped in by the grip's width, framed in the
+  accent colour, while the row itself only dims in place); inside the heading under the pointer a **3 px bar in the
+  action colour, led by a dot,** marks the gap the row will land in — laid over the neighbouring row's edge
+  (`data-drop-gap`), so no row moves under the finger, and drawn only where the drop would move something. Inside its
+  own heading the row gets no frame and no *hier ablegen*: the bar says it all. Letting go puts the row there. Packing
+  and excursion lines move only inside their own heading. Rows in the *Fällig* block are lifted the same way and keep
+  their date order there; the placed row stands in its heading once its day has passed. (E2E-M6-39)
 * **One entry, dragged into another heading (FR-30.9, *built*):** carried across the list instead, an own row makes
   the heading under the pointer take the same accent frame while it could honestly hold it — a tag's own heading, or
   *„Eingetragen"* to clear one; the packing list's combined heading never frames and never takes it, the same refusal

@@ -19,6 +19,7 @@ import {
   DROP_GAP_ATTRIBUTE,
   DROP_OVER_ATTRIBUTE,
   DROP_REFUSED_ATTRIBUTE,
+  GHOST_INSET_PX,
   type DropPlace,
 } from '../useDragToGroup'
 import { LONG_PRESS_MS } from '../useLongPress'
@@ -320,6 +321,26 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
     drag.move(at(10, 35))
     drag.up(at(10, 35))
     expect(gaps()).toEqual([])
+  })
+
+  it('frames a place the row goes to, never the one it is moved inside', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 35))
+    expect(groupA.hasAttribute(DROP_OVER_ATTRIBUTE)).toBe(false)
+    drag.move(at(10, 50))
+    expect(groupB.hasAttribute(DROP_OVER_ATTRIBUTE)).toBe(true)
+  })
+
+  it('carries the clone up and down only, flush with the list', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(80, 35))
+    const ghost = document.querySelector<HTMLElement>('[data-drag-ghost]')!
+    expect(ghost.style.left).toBe(`${GHOST_INSET_PX}px`)
+    expect(ghost.style.top).toBe('30px')
   })
 
   it('marks nothing unless asked', () => {
