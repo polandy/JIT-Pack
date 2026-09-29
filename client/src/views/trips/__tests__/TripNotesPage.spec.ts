@@ -104,6 +104,16 @@ function seedNote(id: string, authorId: string, body: string, row: Record<string
   })
 }
 
+function seedExcursion(id: string, name: string) {
+  useTripStore().applyChange({
+    seq: 0,
+    table: TABLE.excursions,
+    id,
+    deleted: false,
+    row: { trip_id: 't1', name },
+  })
+}
+
 function seedAck(commentId: string, userId: string, seenThrough: string) {
   useTripStore().applyChange({
     seq: 0,
@@ -255,6 +265,7 @@ describe('M26 — writing a note (FR-7.13)', () => {
 
     expect(acts.addComment).toHaveBeenCalledWith('t1', null, expect.any(String), 'Code 4711', {
       title: 'Schlüsselbox',
+      excursionId: null,
     })
   })
 
@@ -271,7 +282,7 @@ describe('M26 — writing a note (FR-7.13)', () => {
       null,
       expect.any(String),
       'Pizza 079 555 12 34',
-      { title: null },
+      { title: null, excursionId: null },
     )
   })
 
@@ -308,5 +319,58 @@ describe('M26 — writing a note (FR-7.13)', () => {
     const page = await mounted()
     expect(page.find('[data-testid="m26-add"]').exists()).toBe(true)
     expect(page.text()).not.toContain('Everyone on the trip sees the note.')
+  })
+})
+
+describe('M26 — a thread about an excursion (FR-7.15)', () => {
+  it('offers no excursion to a trip that has none', async () => {
+    seedTrip()
+    const page = await mounted()
+
+    await page.get('[data-testid="m26-fab"]').trigger('click')
+    expect(page.find('[data-testid="m26-input"]').exists()).toBe(true)
+    expect(page.find('[data-testid="note-excursion-chips"]').exists()).toBe(false)
+  })
+
+  it('writes a note about the excursion picked in the sheet, and a second tap takes it back', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedExcursion('ex-boat', 'Bootsausflug')
+    const page = await mounted()
+
+    await page.get('[data-testid="m26-fab"]').trigger('click')
+    await page.findComponent(IonTextarea).setValue('Treffpunkt 7 Uhr')
+    const hut = page.get('[data-testid="note-excursion-chip-ex-hut"]')
+    await hut.trigger('click')
+    expect(hut.attributes('aria-pressed')).toBe('true')
+    await page.get('[data-testid="note-excursion-chip-ex-boat"]').trigger('click')
+    expect(hut.attributes('aria-pressed')).toBe('false')
+    await page.get('[data-testid="note-excursion-chip-ex-boat"]').trigger('click')
+    await hut.trigger('click')
+    await page.get('[data-testid="m26-add"]').trigger('click')
+
+    expect(acts.addComment).toHaveBeenCalledWith(
+      't1',
+      null,
+      expect.any(String),
+      'Treffpunkt 7 Uhr',
+      { title: null, excursionId: 'ex-hut' },
+    )
+  })
+
+  it('names the excursion on the thread’s card, and nothing for one that is gone', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedNote('n1', 'u-sia', 'Treffpunkt 7 Uhr', { excursion_id: 'ex-hut' })
+    seedNote('n2', 'u-sia', 'Code 4711', { excursion_id: 'ex-deleted' })
+    const page = await mounted()
+
+    expect(
+      page.get('[data-testid="note-thread-n1"] [data-testid="note-thread-excursion"]').text(),
+    ).toBe('Hüttentour')
+    expect(page.find('[data-testid="note-thread-n2"]').exists()).toBe(true)
+    expect(
+      page.find('[data-testid="note-thread-n2"] [data-testid="note-thread-excursion"]').exists(),
+    ).toBe(false)
   })
 })

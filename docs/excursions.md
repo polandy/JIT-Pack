@@ -91,7 +91,14 @@ another — from that group, or add it to a trip like any other group. Things fo
 things bought on the spot stay *vor Ort*. If the list has things just for this excursion, you are asked first:
 **Mitnehmen** adds them to your inventory so the group can hold them, **Weglassen** saves the group without them.
 
-**Ausflug löschen** in the same menu removes the excursion and its list. The trip's packing list stays as it is.
+**Ausflug löschen** in the same menu removes the excursion and its list. The trip's packing list stays as it is, and
+so do notes written about the excursion — they become ordinary trip notes.
+
+## Notes about an excursion
+
+A [trip note](trip-notes.md) can say which excursion it is about: pick the excursion's chip when you write the note.
+The excursion's list then shows a line for that note right under its progress card, and tapping the line opens the
+note.
 
 ## Reminders
 

@@ -60,6 +60,7 @@ let meAnswer: typeof ME | null = ME
 const acts = {
   addComment: vi.fn(() => 'new-reply'),
   editNote: vi.fn(),
+  setNoteExcursion: vi.fn(),
   deleteComment: vi.fn(),
   toggleNoteTick: vi.fn(),
 }
@@ -380,5 +381,92 @@ describe('M26 thread view — removing (FR-7.13)', () => {
     await flushPromises()
 
     expect(router.replace).toHaveBeenCalledWith('/trips/t1/notes')
+  })
+})
+
+describe('M26 thread view — the excursion a thread is about (FR-7.15)', () => {
+  function seedExcursion(id: string, name: string) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.excursions,
+      id,
+      deleted: false,
+      row: { trip_id: 't1', name },
+    })
+  }
+
+  it('names it under the first note, and the name opens the excursion’s list', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedNote('n1', 'u-sia', 'Treffpunkt 7 Uhr', { excursion_id: 'ex-hut' })
+
+    const page = await mounted()
+    const link = page.get('[data-testid="note-excursion-link"]')
+    expect(link.text()).toBe('Hüttentour')
+    await link.trigger('click')
+
+    expect(router.push).toHaveBeenCalledWith('/trips/t1/excursions/ex-hut')
+    // A way somewhere else, not into the entry's menu.
+    expect(sheets).toHaveLength(0)
+  })
+
+  it('lets the author name another excursion as one write of its own, the words untouched', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedExcursion('ex-boat', 'Bootsausflug')
+    seedNote('n1', 'u-andy', 'Treffpunkt 7 Uhr', { excursion_id: 'ex-hut' })
+
+    const page = await mounted()
+    await page.get('[data-testid="note-entry-open-n1"]').trigger('click')
+    await flushPromises()
+    await choose('Edit')
+    const editor = page.get('[data-testid="note-entry-editor-n1"]')
+    expect(
+      editor.get('[data-testid="note-excursion-chip-ex-hut"]').attributes('aria-pressed'),
+    ).toBe('true')
+    await editor.get('[data-testid="note-excursion-chip-ex-boat"]').trigger('click')
+    await editor.get('[data-testid="note-edit-save"]').trigger('click')
+
+    expect(acts.setNoteExcursion).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'n1' }),
+      'ex-boat',
+    )
+    expect(acts.editNote).not.toHaveBeenCalled()
+  })
+
+  it('takes the excursion off with a second tap on its chip', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedNote('n1', 'u-andy', 'Treffpunkt 7 Uhr', { excursion_id: 'ex-hut' })
+
+    const page = await mounted()
+    await page.get('[data-testid="note-entry-open-n1"]').trigger('click')
+    await flushPromises()
+    await choose('Edit')
+    const editor = page.get('[data-testid="note-entry-editor-n1"]')
+    await editor.get('[data-testid="note-excursion-chip-ex-hut"]').trigger('click')
+    await editor.get('[data-testid="note-edit-save"]').trigger('click')
+
+    expect(acts.setNoteExcursion).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'n1' }),
+      null,
+    )
+  })
+
+  it('offers no excursion to a reply', async () => {
+    seedTrip()
+    seedExcursion('ex-hut', 'Hüttentour')
+    seedNote('n1', 'u-sia', 'Treffpunkt 7 Uhr')
+    reply('r1', 'u-andy', 'Bin dabei', '2026-09-20T11:00:00Z')
+
+    const page = await mounted()
+    await page.get('[data-testid="note-entry-open-r1"]').trigger('click')
+    await flushPromises()
+    await choose('Edit')
+
+    expect(page.find('[data-testid="note-entry-editor-r1"]').exists()).toBe(true)
+    expect(page.find('[data-testid="note-excursion-chips"]').exists()).toBe(false)
   })
 })

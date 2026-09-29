@@ -18,13 +18,15 @@ const (
 	columnAuthorID = "author_id"
 	columnIsTask   = "is_task"
 	columnItemID   = "trip_item_id"
+	// FR-7.15's column: the excursion a thread is about.
+	columnExcursionID = "excursion_id"
 )
 
-// noteWords are the fields an edit of a note changes — the ones only the
-// entry's author may send (FR-7.13 question 2: an entry carries its
-// author's name, and words changed by somebody else would still be signed
-// by them).
-var noteWords = []string{columnBody, columnTitle, columnEditedAt}
+// noteWords are the fields only a note's author may send (FR-7.13
+// question 2: an entry carries its author's name, and words changed by
+// somebody else would still be signed by them). FR-7.15's excursion is
+// among them: which plan a note is about is part of what its author said.
+var noteWords = []string{columnBody, columnTitle, columnEditedAt, columnExcursionID}
 
 // validNoteThread is FR-7.13's part of the trip partition's write gate: a
 // thread is one level deep, a reply names its thread once and carries no
@@ -32,8 +34,9 @@ var noteWords = []string{columnBody, columnTitle, columnEditedAt}
 // another row, which a CHECK cannot see; the third is a rule over who is
 // pushing, which the schema does not know.
 //
-// It may strip fields it owns (parent_id on every later op, title on a
-// reply), which is why it takes the mutation by pointer.
+// It may strip fields it owns (parent_id on every later op, title and
+// excursion_id on anything but a first note, an excursion that is gone),
+// which is why it takes the mutation by pointer.
 func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, row sync.Row, m *sync.Mutation) (RejectReason, error) {
 	if m.Op == sync.OpDelete {
 		return ReasonNone, nil
@@ -44,27 +47,60 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, ro
 		delete(m.Fields, columnParentID)
 		if parent, _ := row.Fields[columnParentID].(string); parent != "" {
 			delete(m.Fields, columnTitle)
+			delete(m.Fields, columnExcursionID)
 			if sync.IsTruthy(m.Fields[columnIsTask]) {
 				return ReasonConstraintViolated, nil
 			}
+		}
+		if !isNoteRow(row.Fields) {
+			delete(m.Fields, columnExcursionID)
 		}
 		if isNoteRow(row.Fields) && touchesAny(m.Fields, noteWords) {
 			if author, _ := row.Fields[columnAuthorID].(string); author != actorID {
 				return ReasonNotAuthorized, nil
 			}
 		}
-		return ReasonNone, nil
+		return noteExcursion(ctx, tx, tripID, m)
 	}
 
 	parent, _ := m.Fields[columnParentID].(string)
 	if parent == "" {
-		return ReasonNone, nil
+		if !isNoteRow(m.Fields) {
+			delete(m.Fields, columnExcursionID)
+		}
+		return noteExcursion(ctx, tx, tripID, m)
 	}
 	delete(m.Fields, columnTitle)
+	delete(m.Fields, columnExcursionID)
 	if !isNoteRow(m.Fields) {
 		return ReasonConstraintViolated, nil
 	}
 	return firstNoteOf(ctx, tx, tripID, parent)
+}
+
+// noteExcursion is FR-7.15's reference check: a note may name an excursion
+// of its own trip. One deleted before the note arrived — on another device,
+// while this one was offline — drops the link and keeps the note, which a
+// foreign-key refusal would have thrown away; one of another trip is a
+// write no screen of this trip can make, and is refused.
+func noteExcursion(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+	id, _ := m.Fields[columnExcursionID].(string)
+	if id == "" {
+		return ReasonNone, nil
+	}
+	var excursionTrip string
+	err := tx.QueryRowContext(ctx, `SELECT trip_id FROM excursions WHERE id = ?`, id).Scan(&excursionTrip)
+	if errors.Is(err, sql.ErrNoRows) {
+		delete(m.Fields, columnExcursionID)
+		return ReasonNone, nil
+	}
+	if err != nil {
+		return ReasonNone, fmt.Errorf("note excursion lookup: %w", err)
+	}
+	if excursionTrip != tripID {
+		return ReasonConstraintViolated, nil
+	}
+	return ReasonNone, nil
 }
 
 // firstNoteOf answers whether id is a first note of tripID — a trip-level,

@@ -11,15 +11,19 @@
  */
 import { computed } from 'vue'
 
+import NoteExcursionTag from '@/components/trips/NoteExcursionTag.vue'
 import NoteText from '@/components/trips/NoteText.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { latestReply, threadName, type NoteThread } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { noteThreadMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
+import type { Excursion } from '@/types/domain'
 
 const props = defineProps<{
   thread: NoteThread
+  /** FR-7.15: the excursion the thread is about, or null. */
+  excursion?: Excursion | null
   nameOf: NameOf
 }>()
 
@@ -60,6 +64,7 @@ const meta = computed(() => noteThreadMeta(props.thread, props.nameOf))
       <span v-if="preview" class="preview" data-testid="note-thread-preview">
         <NoteText :body="preview" :live="false" />
       </span>
+      <NoteExcursionTag v-if="excursion" :excursion="excursion" />
       <span v-if="last" class="last" data-testid="note-thread-last">
         <UserAvatar :name="nameOf(last.author_id) ?? null" :seed="last.author_id" :size="18" />
         <span class="last-text">

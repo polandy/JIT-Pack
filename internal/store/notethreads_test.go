@@ -262,3 +262,147 @@ func TestNoteThread_UnknownRootIsAnError(t *testing.T) {
 		t.Fatal("want an error for a thread that does not exist")
 	}
 }
+
+// FR-7.15: a thread may name one excursion of its own trip. Only the first
+// note carries it, only its author changes it, and an excursion that is
+// gone by the time the note arrives costs the link, never the note.
+func seedExcursions(t *testing.T, s *Store) {
+	t.Helper()
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-hut', ?, 'Hüttentour')`, testTrip)
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-foreign', ?, 'Anderswo')`, threadOtherTrip)
+}
+
+func noteInsert(id string, extra map[string]any) sync.Mutation {
+	fields := map[string]any{
+		"trip_id": testTrip, "trip_item_id": nil, "author_id": testUser,
+		"body": "Treffpunkt 7 Uhr", "is_task": 0,
+	}
+	for k, v := range extra {
+		fields[k] = v
+	}
+	return sync.Mutation{
+		MutationID: "mut-" + id, Op: sync.OpInsert, Table: TableComments, ID: id,
+		Fields: fields, HLC: sync.HLC("0000000002000-0000-aaaaaaaa"),
+	}
+}
+
+func TestApplyMutation_NoteExcursion_IsAnExcursionOfThisTrip_FR7_15(t *testing.T) {
+	cases := []struct {
+		name     string
+		mut      sync.Mutation
+		wanted   sync.Outcome
+		wantLink any
+	}{
+		{"a first note names an excursion of its trip",
+			noteInsert("n1", map[string]any{"excursion_id": "ex-hut"}), sync.OutcomeApplied, "ex-hut"},
+		{"a first note without one is a plain trip note",
+			noteInsert("n2", nil), sync.OutcomeApplied, nil},
+		{"another trip's excursion is refused",
+			noteInsert("n3", map[string]any{"excursion_id": "ex-foreign"}), sync.OutcomeRejected, nil},
+		{"an excursion that is gone costs the link, not the note",
+			noteInsert("n4", map[string]any{"excursion_id": "ex-deleted"}), sync.OutcomeApplied, nil},
+		{"a reply carries none — the thread's first note does",
+			replyInsert("n5", threadRoot, map[string]any{"excursion_id": "ex-hut"}), sync.OutcomeApplied, nil},
+		{"a task carries none",
+			noteInsert("n6", map[string]any{"is_task": 1, "task_state": "open", "excursion_id": "ex-hut"}),
+			sync.OutcomeApplied, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := openTestStore(t)
+			seedThread(t, s)
+			seedExcursions(t, s)
+
+			res, err := s.ApplyMutation(context.Background(), testTrip, testUser, tc.mut)
+			if err != nil {
+				t.Fatalf("ApplyMutation: %v", err)
+			}
+			if res.Outcome != tc.wanted {
+				t.Fatalf("outcome = %q (reason %q), want %q", res.Outcome, res.Reason, tc.wanted)
+			}
+			if tc.wanted == sync.OutcomeRejected {
+				if res.Reason != ReasonConstraintViolated {
+					t.Errorf("reason = %q, want %q", res.Reason, ReasonConstraintViolated)
+				}
+				return
+			}
+			if got := commentColumn(t, s, tc.mut.ID, "excursion_id"); got != tc.wantLink {
+				t.Errorf("excursion_id = %v, want %v", got, tc.wantLink)
+			}
+		})
+	}
+}
+
+func TestApplyMutation_NoteExcursion_OnlyTheAuthorChangesIt_FR7_15(t *testing.T) {
+	cases := []struct {
+		name     string
+		actor    string
+		link     any
+		wanted   sync.Outcome
+		wantLink any
+	}{
+		{"the author links the thread", testUser, "ex-hut", sync.OutcomeApplied, "ex-hut"},
+		{"somebody else's link is refused", threadOther, "ex-hut", sync.OutcomeRejected, nil},
+		{"another trip's excursion is refused to the author too", testUser, "ex-foreign", sync.OutcomeRejected, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := openTestStore(t)
+			seedThread(t, s)
+			seedExcursions(t, s)
+			m := sync.Mutation{
+				MutationID: "mut-link", Op: sync.OpUpsert, Table: TableComments, ID: threadRoot,
+				Fields: map[string]any{"excursion_id": tc.link}, HLC: sync.HLC("0000000003000-0000-aaaaaaaa"),
+			}
+			res, err := s.ApplyMutation(context.Background(), testTrip, tc.actor, m)
+			if err != nil {
+				t.Fatalf("ApplyMutation: %v", err)
+			}
+			if res.Outcome != tc.wanted {
+				t.Fatalf("outcome = %q (reason %q), want %q", res.Outcome, res.Reason, tc.wanted)
+			}
+			if got := commentColumn(t, s, threadRoot, "excursion_id"); got != tc.wantLink {
+				t.Errorf("excursion_id = %v, want %v", got, tc.wantLink)
+			}
+		})
+	}
+}
+
+func TestApplyMutation_NoteExcursion_AuthorTakesTheLinkOff_FR7_15(t *testing.T) {
+	s := openTestStore(t)
+	seedThread(t, s)
+	seedExcursions(t, s)
+	mustExec(t, s, `UPDATE comments SET excursion_id = 'ex-hut' WHERE id = ?`, threadRoot)
+
+	m := sync.Mutation{
+		MutationID: "mut-unlink", Op: sync.OpUpsert, Table: TableComments, ID: threadRoot,
+		Fields: map[string]any{"excursion_id": nil}, HLC: sync.HLC("0000000003000-0000-aaaaaaaa"),
+	}
+	if res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("unlink: %v %+v", err, res)
+	}
+	if got := commentColumn(t, s, threadRoot, "excursion_id"); got != nil {
+		t.Errorf("excursion_id = %v, want none", got)
+	}
+}
+
+func TestApplyMutation_DeletingAnExcursionKeepsItsNotes_FR7_15(t *testing.T) {
+	s := openTestStore(t)
+	seedThread(t, s)
+	seedExcursions(t, s)
+	mustExec(t, s, `UPDATE comments SET excursion_id = 'ex-hut' WHERE id = ?`, threadRoot)
+
+	del := sync.Mutation{
+		MutationID: "mut-del-ex", Op: sync.OpDelete, Table: TableExcursions, ID: "ex-hut",
+		HLC: sync.HLC("0000000003000-0000-aaaaaaaa"),
+	}
+	if res, err := s.ApplyMutation(context.Background(), testTrip, testUser, del); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("delete excursion: %v %+v", err, res)
+	}
+	if got := commentColumn(t, s, threadRoot, "body"); got != "Code 4711" {
+		t.Errorf("body = %v, want the note kept", got)
+	}
+	if got := commentColumn(t, s, threadRoot, "excursion_id"); got != nil {
+		t.Errorf("excursion_id = %v, want none", got)
+	}
+}

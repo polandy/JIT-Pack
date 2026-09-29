@@ -100,6 +100,7 @@ export function commentRow(comment: ItemComment): Record<string, unknown> {
     parent_id: comment.parent_id,
     title: comment.title,
     edited_at: comment.edited_at,
+    excursion_id: comment.excursion_id,
     is_task: dbBool(false),
   }
 }

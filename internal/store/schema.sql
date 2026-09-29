@@ -460,6 +460,13 @@ CREATE TABLE comments (
     -- like resolved_at, because an edit happens offline too; NULL is „never
     -- edited".
     edited_at    TEXT,
+    -- FR-7.15: the excursion a thread is about, named on its first note only
+    -- (the server drops it from a reply and from anything that is not a
+    -- note) and changed by the note's author alone, like its words. An
+    -- excursion of another trip is refused; one already deleted when the
+    -- note arrives costs the link, never the note. ON DELETE SET NULL: the
+    -- note is the family's information and outlives the plan it was about.
+    excursion_id TEXT REFERENCES excursions(id) ON DELETE SET NULL,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
@@ -496,6 +503,8 @@ CREATE TABLE note_acks (
 
 -- FR-7.13: a thread is read by its first note's id.
 CREATE INDEX idx_comments_parent ON comments(parent_id);
+-- FR-7.15: an excursion's delete looks its notes up to unlink them.
+CREATE INDEX idx_comments_excursion ON comments(excursion_id);
 
 -- ---------------------------------------------------------------------------
 -- FR-27.4 planning refresh (ADR-016)

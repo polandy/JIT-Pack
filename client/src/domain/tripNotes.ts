@@ -11,7 +11,7 @@
  * already carries for a packed row with open prep.
  */
 
-import type { ItemComment, NoteAck } from '@/types/domain'
+import type { Excursion, ItemComment, NoteAck } from '@/types/domain'
 
 /** The tick a note's sheet shows for every reader, not only mine. */
 export interface NoteAckState {
@@ -147,6 +147,28 @@ export function noteThreads(
     .sort(
       (a, b) => b.lastActivity.localeCompare(a.lastActivity) || a.root.id.localeCompare(b.root.id),
     )
+}
+
+/**
+ * FR-7.15: the excursion a thread is about, or null. A link to an excursion
+ * this device does not hold reads as none — the server unlinks a deleted
+ * excursion's notes without a change of their own (`ON DELETE SET NULL`),
+ * so the note is a plain trip note again, as `filedTagOf` reads a tag.
+ */
+export function noteExcursion(
+  root: ItemComment,
+  excursions: readonly Excursion[],
+): Excursion | null {
+  if (!root.excursion_id) return null
+  return excursions.find((excursion) => excursion.id === root.excursion_id) ?? null
+}
+
+/** FR-7.15: the threads about one excursion, in the notes view's own order. */
+export function threadsAboutExcursion(
+  threads: readonly NoteThread[],
+  excursionId: string,
+): NoteThread[] {
+  return threads.filter((thread) => thread.root.excursion_id === excursionId)
 }
 
 /** The newest reply, which a thread's card quotes — or null before anyone answered. */

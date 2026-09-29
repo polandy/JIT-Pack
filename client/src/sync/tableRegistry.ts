@@ -432,6 +432,7 @@ function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
     parent_id: (row['parent_id'] as string) ?? null,
     title: (row['title'] as string) ?? null,
     edited_at: (row['edited_at'] as string) ?? null,
+    excursion_id: (row['excursion_id'] as string | null | undefined) ?? null,
   }
 }
 
