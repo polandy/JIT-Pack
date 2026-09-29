@@ -410,6 +410,34 @@ export interface InstanceConfigResponse {
 }
 
 /**
+ * LinkPreviewRequest names the page — or, for the picture route, the
+ * picture — to be read.
+ */
+export interface LinkPreviewRequest {
+  url: string
+}
+
+/**
+ * LinkPreviewResponse is what the page says about itself. Every field may
+ * be empty. The picture is only named: its bytes are the picture route's,
+ * so the words need not wait for them.
+ */
+export interface LinkPreviewResponse {
+  title: string
+  description: string
+  image_url: string
+}
+
+/**
+ * LinkPreviewImageResponse is a page's picture as it was served — base64 of
+ * its bytes with their type — for the client to scale like any picture.
+ */
+export interface LinkPreviewImageResponse {
+  image: string
+  image_type: string
+}
+
+/**
  * UpdateState is what M17's About block says about this build. It is a
  * closed vocabulary rather than a pair of booleans because the four cases
  * are mutually exclusive, and a client rendering them by name cannot invent
@@ -526,6 +554,7 @@ export type ErrorCode =
   | 'claim_is_own'
   | 'idp_error'
   | 'idp_unreachable'
+  | 'link_unreadable'
 
 export const ERROR_CODE = {
   validation: 'validation',
@@ -547,6 +576,7 @@ export const ERROR_CODE = {
   claim_is_own: 'claim_is_own',
   idp_error: 'idp_error',
   idp_unreachable: 'idp_unreachable',
+  link_unreadable: 'link_unreadable',
 } as const
 
 /**

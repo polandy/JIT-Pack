@@ -53,6 +53,31 @@ export interface ModuleHost {
   writeTrip(tripId: string, ...muts: QueuedModuleMutation[]): void
   /** The bytes of the planner's pictures, which no mutation carries (FR-29.5). */
   pictures: IdeaPictures
+  /** A pasted link's page, read by the server (FR-29.16). */
+  linkPreview: LinkPreviews
+}
+
+/** FR-29.16's reads, and whether this device can have one at all. */
+export interface LinkPreviews {
+  /**
+   * False in Local Mode, and once the instance has said previews are off —
+   * so a screen does not show a read that cannot happen.
+   */
+  offered(): boolean
+  /** What the page says about itself, or null where it could not be read. */
+  read(tripId: string, url: string): Promise<LinkPreview | null>
+  /**
+   * The picture a preview named, as the page serves it — read apart from the
+   * words, which need not wait for it. Null where it could not be had.
+   */
+  picture(tripId: string, imageUrl: string): Promise<Blob | null>
+}
+
+/** A page's own title and description, and where its picture is — each may be missing. */
+export interface LinkPreview {
+  title: string | null
+  description: string | null
+  imageUrl: string | null
 }
 
 /**

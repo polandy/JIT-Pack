@@ -54,6 +54,7 @@ import { createNotificationActions } from './sync/notifications'
 import { createConflictActions } from './sync/conflicts'
 import { createIdentityActions } from './sync/identity'
 import { createIdeaPictures } from './sync/ideaImages'
+import { createLinkPreview } from './sync/linkPreview'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
@@ -934,6 +935,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         await outbox.whenSent('trip', tripId)
       },
     }),
+    linkPreview: createLinkPreview({ client, localMode: !!local }),
   }
 
   return {

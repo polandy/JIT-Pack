@@ -163,14 +163,19 @@ setHeaderActions(() =>
 
 const editing = ref<{ idea: Idea | null } | null>(null)
 
-function onSave(fields: IdeaFields) {
+function onSave(fields: IdeaFields, picture: Promise<Blob | null> | null) {
   const current = editing.value
   editing.value = null
+  let ideaId: string | null
   if (current?.idea) {
     actions.updateIdea(current.idea, fields)
-    return
+    ideaId = current.idea.id
+  } else {
+    ideaId = actions.addIdea(props.tripId, fields, myUserId.value)
   }
-  if (actions.addIdea(props.tripId, fields, myUserId.value) === null) return
+  // FR-29.16: the link's picture comes in the background, whenever it comes.
+  if (ideaId !== null && picture) void actions.awaitLinkPicture(ideaId, picture)
+  if (current?.idea || ideaId === null) return
   // A new idea is shown where it went and on top, so it does not land below
   // the fold of a list sorted by votes it has none of yet.
   segment.value = IDEA_STATE_IDEA
@@ -257,10 +262,15 @@ const uploading = ref(false)
 
 async function onAddPicture(file: File) {
   const idea = openIdea.value
-  if (!idea || uploading.value) return
+  if (idea) await addPictureTo(idea, file)
+}
+
+/** A picture from the file picker or from a link's page (FR-29.16), the same way. */
+async function addPictureTo(idea: Idea, picture: Blob) {
+  if (uploading.value) return
   uploading.value = true
   try {
-    await actions.addPicture(idea, file)
+    await actions.addPicture(idea, picture)
   } catch {
     // Server Mode uploads now or not at all — the bytes do not wait in the
     // outbox (ADR-002) — so a failed upload is said, not queued.
@@ -381,6 +391,7 @@ const EMPTY_KEYS = {
             :key="card.idea.id"
             :card="card"
             :pictures="picturesOf(card.idea.id)"
+            :picture-coming="plannerStore.pictureComing(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
             @open="openSheet(card.idea)"
@@ -401,6 +412,16 @@ const EMPTY_KEYS = {
       <IdeaEditSheet
         :open="editing !== null"
         :idea="editing?.idea ?? null"
+        :has-pictures="!!editing?.idea && picturesOf(editing.idea.id).length > 0"
+        :preview="
+          orchestrator.moduleHost.linkPreview.offered()
+            ? {
+                read: (url: string) => orchestrator.moduleHost.linkPreview.read(tripId, url),
+                picture: (imageUrl: string) =>
+                  orchestrator.moduleHost.linkPreview.picture(tripId, imageUrl),
+              }
+            : null
+        "
         @close="editing = null"
         @save="onSave"
       />

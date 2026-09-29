@@ -451,6 +451,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The planner's first slice: ideas, votes and a discussion (2026-09-27)](#the-planners-first-slice-ideas-votes-and-a-discussion-2026-09-27) — `comments.idea_id` would have leaked into every notes reader; the mockup's row measurement was wrong.
 - [A date range is one field (2026-09-27)](#a-date-range-is-one-field-2026-09-27) — pure two-tap picking would have lost the end-only trips; a fixed month window lost last year's.
 - [Pictures on an idea (2026-09-28)](#pictures-on-an-idea-2026-09-28) — a pushed row names bytes nobody has; a push whitelist is the pull's shape; `crypto.subtle` needs HTTPS.
+- [A pasted link fills the idea (2026-09-28)](#a-pasted-link-fills-the-idea-2026-09-28) — one shared timeout lost real pictures; the owner chose on-by-default.
 
 ## Deviations
 
@@ -17884,3 +17885,43 @@ owner's plain-HTTP LAN address a Local Mode photo was stored and its row never w
 the new pictures. It surfaced only because the render for the owner ran from the LAN IP rather than `localhost`. Fixed
 with an FNV-1a fallback, since nothing compares a Local Mode hash with a server's; E2E-NFR-SEC-05 fails with the
 fallback taken out.
+
+## A pasted link fills the idea (2026-09-28)
+
+FR-29.16: the server reads a pasted link's page for its title, description and picture (ADR-082). Built after #622,
+on its branch.
+
+**Who decided what.** The release check had set the precedent that an instance contacts nothing unasked, and the
+recommendation was to make previews opt-in the same way. The owner chose on by default: a paste that fills nothing
+until an operator reads the configuration page is a feature most instances would never have. ADR-082 records it, with
+the switch back to opt-in as its revisit trigger.
+
+**A trap the unit tests could not see: one budget for page and picture.** The first cut gave both requests 8 seconds
+together. Against real sites from the owner's network, oeschinensee.ch's page came in 1.4 s and its 1.9 MB picture in
+6–7 s — the preview arrived without its picture on one attempt in two. Split into 8 s for the page and 15 s for the
+picture. Measured the same evening: segantini-museum.ch hyphenates its description with soft hyphens, which would split
+words mid-line on a card, so the parser drops the invisible marks; myswitzerland.com answers 406 to every client that
+is not a browser, header-dressed or not, and stays unreadable — the sheet then keeps what was typed.
+
+**An option dropped mid-build: a flag in the instance config.** The client was first told by `/instance/config`
+whether previews are on. It needed a new global read at boot for a control that shows only while a read is in flight;
+instead the route answers `not_configured` and the device stops asking for the session.
+
+**Then the owner waited, and saw nothing.** On the owner's iPad the sheet sat on *„Reading the link …"* — the read
+did land, WebKit included, but after 6–9 s, since the page and its 2.6 MB picture came back as one answer. Split into
+two reads: the words in about a second and a half, the picture after on its own, with a loading tile that already has
+its ✕. A picture still coming when the idea is saved is handed over as a promise and added once it arrives; E2E-M28-09
+holds the picture route back to see the words arrive first, and goes red when the save drops what is still coming.
+
+**The owner's call on what a link may change.** Filling blanks from the page, even only blanks, put words in the idea
+nobody had chosen; the owner asked for the title and description as a suggestion to confirm, and for the picture to
+come without asking — in the background, after the save too, but only to an idea with no picture by then. The check
+for „no picture" moved from the sheet's opening to the picture's arrival (`addLinkPicture`), since minutes can pass
+between the two on a slow host. A day later the owner took the title
+field out of the fill too: the site name had still been written into a blank title at once, and now it is only the
+first suggestion — the one that keeps a pasted link a single tap from saving in Local Mode, where the page is never
+read. And a picture fetched in the background has to show that it is coming, in the sheet and on the saved idea's
+card: the planner store keeps which ideas wait for one, device state beside the synced rows. Then the owner tested it and
+reported the title as still no suggestion: the suggestion stood as one card under the link, and the title field above
+stayed empty, which read as nothing suggested at all. Asked with the screenshot, the owner chose the suggestion inside
+each field — grey as its placeholder, *Übernehmen* in its end slot — and each field confirms its own half.

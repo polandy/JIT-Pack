@@ -16,6 +16,7 @@ import (
 	_ "time/tzdata"
 
 	"jitpack/internal/api"
+	"jitpack/internal/linkpreview"
 	"jitpack/internal/store"
 	"jitpack/internal/webui"
 )
@@ -58,6 +59,10 @@ func main() {
 		AdminEmails: cfg.AdminEmails,
 		Version:     version,
 		UpdateCheck: cfg.UpdateCheck,
+	}
+	if cfg.LinkPreviews {
+		opts.LinkPreviews = linkpreview.NewFetcher()
+		log.Printf("link previews on: pasted links' pages are read from the internet (FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)")
 	}
 	if cfg.UpdateCheck {
 		// The build names itself in the line, because that is the half an

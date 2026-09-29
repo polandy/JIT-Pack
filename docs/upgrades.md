@@ -24,6 +24,12 @@ Nothing you have to undo. Each schema change runs in its own transaction, so a s
 
 **Back up anyway before pulling a new image** ([how](backup.md#wal-mode-back-up-all-three-files-or-use-a-proper-snapshot)). Not because the upgrade is expected to fail, but because a restore is the only thing that helps if it does, and a file backup costs a second.
 
+## What a new version may start doing
+
+Most upgrades change nothing you would notice from outside. One did, and it is on unless you say otherwise:
+
+- **Link previews.** From the version that brings them, a link pasted into an [idea](ideas.md) is read by your server — it fetches that page from the internet for its title, description and picture. It is the one request the instance makes without you having asked, and it cannot reach into your own network. If the instance should keep contacting nothing, set `JITPACK_LINK_PREVIEWS=false` **before** you start the new image. [Link previews](configuration.md#link-previews) says what a website sees.
+
 ## Knowing a new version is out
 
 Nothing tells you by default. If you want the instance to say so, set [`JITPACK_UPDATE_CHECK=true`](configuration.md#release-check): **Settings → About** then carries a line naming the newest release, with a link to its notes. It asks GitHub at most once a day, only when somebody opens that screen, and only on an instance running a released image.

@@ -3963,8 +3963,8 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081); the bridge to the packing side, the notifications and the day plan are specified here and not
-built. The travellers of a trip collect what
+(FR-29.5, ADR-081) and the **link preview** (FR-29.16, ADR-082); the bridge to the packing side, the notifications and
+the day plan are specified here and not built. The travellers of a trip collect what
 they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
 decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
 `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
@@ -3980,8 +3980,8 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   trip may add, edit and decide ideas (FR-4.5 — no new role). The author is **stamped by the server** (invariant 3). A
   link is accepted only with an `http` or `https` scheme — a bare address (`gorropu.info`) is read as `https` — checked
   by the client and refused by the schema, since the value is rendered as an `href`; it opens in a new context with
-  `noopener noreferrer`. Links are **stored, never fetched**: no outbound request, so the board behaves alike in all
-  three modes; a link preview is a later slice with its own ADR.
+  `noopener noreferrer`. A link entered in the sheet is **read for its page's preview** where the instance offers it
+  (FR-29.16); the board itself never fetches anything.
 * **FR-29.2 (Four States, Set by Hand):** *Implemented.* `idea → shortlisted → done`, or `dropped` from any of them;
   every state is reachable from every other in the idea's detail. **No vote moves an idea.** A move is announced with an
   undo, which writes the old state back only while nobody has moved the idea since. **Dropping is not deleting**: a
@@ -4069,6 +4069,31 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated excursions (on each
   of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
   table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
+
+* **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** that
+  changes **no field** until it is confirmed, and each half is shown **at its own field**: the suggested title grey in
+  the blank title field, the suggested description grey in the blank note, each with *Übernehmen* beside it that puts it
+  in that field alone; over a field that already holds text, the suggestion is a line under it, *„Vorschlag: …"*, with
+  the same *Übernehmen*. At once the title suggestion is the link's **site** (*oeschinensee.ch*), offered only where the
+  title is blank, so a pasted link is one tap from an idea that can be saved, in every mode. Where a read can be had,
+  the link is then read — after it has rested a moment, so typing is not reading — and the page's own **title** and
+  **description** replace that suggestion. The page's **picture** is fetched in the background, apart from the words
+  since a slow host can take seconds longer to give it, and **shown coming** — in the sheet under the link, then on the
+  saved idea's card and in its detail — until it arrives; it is added as the idea's first picture (FR-29.5) whenever
+  that is, also after the save, but only where the idea still has no picture by then. No confirmation is asked for it,
+  since a picture is removed in one tap (FR-29.5's viewer). Where no read can be had, none is shown starting. ADR-082:
+  * **The server reads the page**, because a browser is kept from another site's page by the same-origin rule. Local
+    Mode therefore has no preview; the link is kept as typed.
+  * **Only a trip's member can make the server fetch** (`POST /trips/{id}/link-preview` and `…/link-preview/image`), and
+    the server fetches only **public addresses on ports 80 and 443** — checked on the address actually dialled, so a
+    redirect or a DNS answer pointing into its own network is refused like a direct one. A refused address reads like
+    any page that could not be read.
+  * What is taken is bounded: 1 MiB of the page in 8 seconds, a 4 MiB picture in 15 more, three redirects, 200
+    characters of title, 1000 of description. OpenGraph is read first, then Twitter's card, then the page's `<title>`
+    and description.
+  * **On by default.** It is the one outbound request an instance makes without being asked;
+    `JITPACK_LINK_PREVIEWS=false` turns it off, the route then answers *not configured*, and a device stops asking for
+    the session. Any other value refuses to start.
 
 **Not in the planner:** polls with several options (one idea per option), expenses, group logistics, map and places,
 weather, transport, ideas belonging to no trip.

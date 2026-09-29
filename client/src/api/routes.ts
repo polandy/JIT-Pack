@@ -27,6 +27,13 @@ export const API = {
   tripIdeaImage: (tripID: string, ideaID: string, imageID: string) =>
     `/api/v1/trips/${tripID}/ideas/${ideaID}/images/${imageID}`,
 
+  // FR-29.16: what a pasted link's page says about itself. A trip's route
+  // so that only a member can make this server fetch a page.
+  tripLinkPreview: (tripID: string) => `/api/v1/trips/${tripID}/link-preview`,
+
+  // FR-29.16: the picture a preview named, read on its own clock.
+  tripLinkPreviewImage: (tripID: string) => `/api/v1/trips/${tripID}/link-preview/image`,
+
   // Master scope — the partition that belongs to no trip, so its scope
   // segment is a literal rather than an id.
   masterSync: '/api/v1/master/sync',

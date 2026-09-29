@@ -62,6 +62,8 @@ describe('API routes', () => {
       tripLockEvents: '/api/v1/trips/ID1/lock-events',
       tripExportCSV: '/api/v1/trips/ID1/export.csv',
       tripIdeaImage: '/api/v1/trips/ID1/ideas/ID2/images/ID3',
+      tripLinkPreview: '/api/v1/trips/ID1/link-preview',
+      tripLinkPreviewImage: '/api/v1/trips/ID1/link-preview/image',
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',
       masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',

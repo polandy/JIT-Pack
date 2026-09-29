@@ -9,7 +9,7 @@
  * where nobody else votes — Local and Single-User Mode, a trip nobody shares
  * — the foot shows the discussion alone (G-8).
  */
-import { IonIcon } from '@ionic/vue'
+import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
   chatbubbleOutline,
   linkOutline,
@@ -29,6 +29,8 @@ defineProps<{
   card: IdeaCard
   /** The idea's pictures, cover first; the banner shows the cover. */
   pictures: IdeaImage[]
+  /** A link's picture on its way (FR-29.16): the banner shows it coming. */
+  pictureComing: boolean
   /** Whether votes are shown at all (FR-29.3's G-8). */
   votesShown: boolean
   nameOf: NameOf
@@ -54,6 +56,14 @@ const emit = defineEmits<{ open: [] }>()
       >
         {{ t('ideas.pictureCount', { n: pictures.length }) }}
       </span>
+    </span>
+    <span
+      v-else-if="pictureComing"
+      class="banner coming"
+      :data-testid="`idea-card-picture-coming-${card.idea.id}`"
+    >
+      <IonSpinner name="dots" aria-hidden="true" />
+      <span>{{ t('ideas.pictureComing') }}</span>
     </span>
     <span class="title">{{ card.idea.title }}</span>
     <span v-if="card.idea.tag || card.idea.rain_proof || card.idea.link" class="chips">
@@ -150,6 +160,16 @@ const emit = defineEmits<{ open: [] }>()
   margin-bottom: 2px;
   overflow: hidden;
   border-radius: var(--jp-r-sm);
+}
+
+.banner.coming {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 .count {

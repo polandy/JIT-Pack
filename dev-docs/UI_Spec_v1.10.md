@@ -2959,8 +2959,22 @@ token would prove nothing there is anything to prove.
   *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
   the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
   Web-Link – nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does;
-  a bare address is kept as `https://…`. *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*; an edit writes
-  only the fields that changed.
+  a bare address is kept as `https://…`. **A link read (FR-29.16):** a web link brings a suggestion shown at each field,
+  changing nothing until confirmed there: the suggested title grey as the blank title field's placeholder, the suggested
+  description as the blank note's, each with *Übernehmen* in the field's end slot (`idea-edit-name-accept`,
+  `idea-edit-note-accept`) that fills that field alone; over a field holding text, a line under it, *„Vorschlag: …"*
+  (`idea-edit-name-suggestion`, `idea-edit-note-suggestion`), with the same *Übernehmen*. At once the title suggestion
+  is the link's site (*oeschinensee.ch*), where the title is blank — so a pasted link is one tap from *Hinzufügen*.
+  Where a read can be had — never in Local Mode or on an instance with previews off, where the sheet stays
+  `data-preview="idle"` — once the link has rested 0.6 s the sheet reads its page, *„Link wird gelesen …"* with dots
+  under the field (`idea-edit-preview-loading`, `data-preview` going `loading` → `done`), and the page's own title and
+  description replace the suggestion. The page's picture is fetched in the background: under the link a small tile with
+  dots and *„Bild aus dem Link wird geladen …"*, then its thumbnail with *„Bild aus dem Link wird hinzugefügt"*
+  (`idea-edit-link-picture`, `data-coming`), neither where the idea has pictures already. After the save the idea's card
+  carries a sunken 21:9 banner with dots and *„Bild wird geladen …"* (`idea-card-picture-coming-<id>`), and its detail
+  the same in the mosaic's place (`idea-detail-picture-coming`), until the picture is there — added only where the idea
+  has none by then. *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*; an edit writes only the fields that
+  changed.
 * **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
   side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
   it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia
@@ -2991,7 +3005,7 @@ token would prove nothing there is anything to prove.
 * **Not built yet** (§3.29): the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
   shopping entry made from an idea (FR-29.13) — a day for a shortlisted idea (FR-29.14) and the day plan, M29
   (FR-29.15).
-* (E2E-M28-01…05, E2E-M28-07 `local`, E2E-M28-06, E2E-M28-08 `server`, E2E-G12-07)
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09 `server`, E2E-G12-07)
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

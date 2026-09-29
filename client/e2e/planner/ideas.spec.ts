@@ -313,4 +313,32 @@ test.describe('M28 ideas @local @planner', () => {
       ideaCard(page, 'Lej da Staz').locator('[data-testid^="idea-card-cover-"] img'),
     ).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
   })
+
+  /**
+   * E2E-M28-10 (FR-29.16): a pasted link suggests its site as the title —
+   * grey in the blank field — which takes one tap to confirm — nothing is filled without it — and the
+   * idea is then saved under the site's name. Local Mode has no preview, so
+   * the sheet shows no read starting: it stays idle rather than flickering
+   * through one that cannot happen.
+   */
+  test('E2E-M28-10: a pasted link suggests its site as the title, confirmed in one tap, no read shown', async ({
+    page,
+  }) => {
+    const board = await openIdeas(page)
+    await board.getByTestId('m28-fab').click()
+    const sheet = page.getByTestId('idea-edit')
+    const name = sheet.getByTestId('idea-edit-name').locator('input')
+    await fillIonic(sheet.getByTestId('idea-edit-link'), 'https://www.oeschinensee.ch/de/sommer')
+
+    await expect(name).toHaveAttribute('placeholder', 'oeschinensee.ch')
+    await expect(name).toHaveValue('')
+    await expect(sheet.getByTestId('idea-edit-save')).toHaveAttribute('aria-disabled', 'true')
+    await expect(sheet.locator('[data-preview]')).toHaveAttribute('data-preview', 'idle')
+    await expect(sheet.getByTestId('idea-edit-preview-loading')).toHaveCount(0)
+
+    await sheet.getByTestId('idea-edit-name-accept').click()
+    await expect(name).toHaveValue('oeschinensee.ch')
+    await sheet.getByTestId('idea-edit-save').click()
+    await expect(ideaCard(page, 'oeschinensee.ch')).toBeVisible()
+  })
 })

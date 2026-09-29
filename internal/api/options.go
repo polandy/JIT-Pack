@@ -48,6 +48,11 @@ type Options struct {
 	// test can drive every one of its states without a network. Empty
 	// means defaultUpdateFeedURL, which is what production passes.
 	UpdateFeedURL string
+	// LinkPreviews reads pasted links' pages for FR-29.16. Nil turns the
+	// preview off: the route answers "not configured", which the client
+	// takes as "do not ask again". cmd/jitpackd sets it unless the
+	// operator switches it off.
+	LinkPreviews LinkPreviewer
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
 	// confidential client (client_secret_basic, ADR-007). Nil leaves

@@ -35,6 +35,12 @@ test.describe('Idea pictures across identities (FR-29.5) @server @planner', () =
     const trip = `Oberengadin ${id}`
     const title = `Lej da Staz ${id}`
 
+    // Bob logs in first: an account exists on the server only once it has,
+    // and only an existing account can be shared with — a case that relied
+    // on another file having logged Bob in would depend on the run's order.
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
     const tripPath = await createTripViaWizard(alice, { name: trip })
@@ -46,8 +52,6 @@ test.describe('Idea pictures across identities (FR-29.5) @server @planner', () =
     await addPicture(detail, 'wide.png', WIDE_PNG)
     await expect(mosaicPicture(detail, 0)).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
 
-    const ctxBob = await browser.newContext()
-    const bob = await loginAs(ctxBob, 'bob')
     await bob.goto(tripPath)
     await openIdeas(bob)
     await expect(
