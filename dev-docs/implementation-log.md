@@ -17940,6 +17940,8 @@ but packing rows carry no shopping tag, and it would have overwritten an entry's
 went the other way on the owner's call: a real task tag in the vocabulary, because M25's groups are tags already.
 
 **Two accepted costs on that tag.** Two devices closing offline each create the tag; the name's UNIQUE index
-refuses the second insert, and that device's tasks point at a tag id that never lands, so they read as untagged
-until retagged. The undo takes the tag off the tasks but leaves it in the vocabulary — deleting it would reach into
+refuses the second insert, and the foreign key then refuses every write naming that device's tag. So the tag is
+written apart from the phase (a trap found in review: in one mutation, the refusal took the move to *during* down
+with it). Tasks both devices knew end on the first device's tag; a task only the second knew moves, and stands
+under *Ohne Tag* until somebody drags it onto the tag, which has arrived by then. The undo takes the tag off the tasks but leaves it in the vocabulary — deleting it would reach into
 master data another trip may already use.

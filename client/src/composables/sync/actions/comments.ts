@@ -242,34 +242,6 @@ export function createCommentActions(ctx: SyncContext) {
   }
 
   /**
-   * FR-7.7/FR-7.16: the close moves a task to *during*, filed under the
-   * carried tag where it takes one (see `mutations.carryTask`).
-   */
-  function carryTask(tripId: string, todo: ItemTodo | TripTodo, taskTagId: string | null) {
-    const mut = mutations.carryTask(todo.id, taskTagId)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, row),
-    })
-  }
-
-  /** The close's undo for {@link carryTask}: the phase it had, and no tag where the close gave one. */
-  function returnCarriedTask(
-    tripId: string,
-    todo: ItemTodo | TripTodo,
-    phase: TaskPhase | null,
-    untag: boolean,
-  ) {
-    const mut = mutations.returnCarriedTask(todo.id, phase, untag)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, row),
-    })
-  }
-
-  /**
    * FR-7.8: the one tag a task carries, given, changed or taken off. One
    * field, like the phase beside it — the task keeps everything else it was.
    */
@@ -326,8 +298,6 @@ export function createCommentActions(ctx: SyncContext) {
     assignTripTodo,
     assignPrepTodo,
     setTaskPhase,
-    carryTask,
-    returnCarriedTask,
     setTaskTag,
     setTaskDueDate,
     setTaskBody,

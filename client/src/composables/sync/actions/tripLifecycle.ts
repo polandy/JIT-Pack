@@ -26,7 +26,7 @@ import {
   tasksToFileAsCarried,
   type ClosingTask,
 } from '@/domain/closePacking'
-import { ITEM_MODE_BUY_LOCAL, type TaskPhase } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 /**
  * FR-7.7: one task the close moved, with the phase it had before.
@@ -486,8 +486,14 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       phase: task.phase,
       tagged: tagId !== null && toTag.has(task.id),
     }))
+    // The tag is its own write, apart from the phase: a tag another device
+    // made first under the same name refuses this device's, and with it
+    // every write naming it — the move to *during* must not go down too.
     for (const { task, tagged } of moved) {
-      commentActions.carryTask(tripId, task, tagged ? tagId : null)
+      commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+      if (tagged && tagId) {
+        commentActions.setTaskTag(tripId, { ...task, phase: TASK_PHASE_DURING }, tagId)
+      }
     }
     // FR-7.12: the shopping rows cross with the tasks, for the same reason
     // and in the same place — before the stamp that says the phase is over.
@@ -567,7 +573,8 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     // an undo that changed something. The carried tag goes where the close
     // gave it (FR-7.16).
     for (const { task, phase, tagged } of tasks) {
-      commentActions.returnCarriedTask(tripId, task, phase, tagged)
+      commentActions.setTaskPhase(tripId, task, phase)
+      if (tagged) commentActions.setTaskTag(tripId, { ...task, phase }, null)
     }
     stampPackingClosed(tripId, null)
   }

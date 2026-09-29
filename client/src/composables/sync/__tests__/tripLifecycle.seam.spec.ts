@@ -456,14 +456,17 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       task('prep', { trip_item_id: 'row-salve' })
     }
 
-    /** Each task's write, by id — the order the store holds them in is not the rule. */
-    const taskFields = () =>
-      Object.fromEntries(
-        queued
-          .flatMap((q) => q.muts)
-          .filter((m) => m.mutation.table === TABLE.comments)
-          .map((m) => [m.mutation.id, m.mutation.fields]),
-      )
+    const taskWrites = () =>
+      queued.flatMap((q) => q.muts).filter((m) => m.mutation.table === TABLE.comments)
+
+    /** Each task's writes, merged by id — the order the store holds them in is not the rule. */
+    const taskFields = () => {
+      const byId: Record<string, Record<string, unknown>> = {}
+      for (const m of taskWrites()) {
+        byId[m.mutation.id] = { ...byId[m.mutation.id], ...m.mutation.fields }
+      }
+      return byId
+    }
 
     it('makes the tag once and files only the untagged trip task under it', () => {
       seedTasks()
@@ -483,6 +486,19 @@ describe('createTripLifecycleActions without an orchestrator', () => {
         pharmacy: false,
         prep: false,
       })
+    })
+
+    it('writes the tag apart from the phase, so a refused tag leaves the move standing', () => {
+      seedTasks()
+
+      build(ctx).closePacking(TRIP_ID, { carriedTagName: TAG })
+
+      // Another device may have made the tag first under this name: the
+      // server then refuses this device's tag, and every write naming it.
+      const plants = taskWrites()
+        .filter((m) => m.mutation.id === 'plants')
+        .map((m) => Object.keys(m.mutation.fields ?? {}))
+      expect(plants).toEqual([['phase'], ['task_tag_id']])
     })
 
     it('reuses a tag of that name the vocabulary already has', () => {

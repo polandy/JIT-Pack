@@ -26,7 +26,6 @@ import {
   REVIEW_FLAG_FIELD,
   STATE_PACKED,
   STATE_PACKING_NOW,
-  TASK_PHASE_DURING,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
 } from '@/types/domain'
@@ -738,26 +737,6 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function setTaskPhase(todoId: string, phase: TaskPhase | null): Mutation {
     return make('upsert', TABLE.comments, todoId, { phase })
-  }
-
-  /**
-   * FR-7.7/FR-7.16: the close moves a task to *during*, and files it under
-   * the carried tag where it takes one — one write, so a device never shows
-   * the task in its new phase under no tag or its tag in the old phase.
-   */
-  function carryTask(todoId: string, taskTagId: string | null): Mutation {
-    return make('upsert', TABLE.comments, todoId, {
-      phase: TASK_PHASE_DURING,
-      ...(taskTagId ? { task_tag_id: taskTagId } : {}),
-    })
-  }
-
-  /** The close's undo for {@link carryTask}: its phase back, and the tag off where the close set it. */
-  function returnCarriedTask(todoId: string, phase: TaskPhase | null, untag: boolean): Mutation {
-    return make('upsert', TABLE.comments, todoId, {
-      phase,
-      ...(untag ? { task_tag_id: null } : {}),
-    })
   }
 
   function deleteTodo(todoId: string): Mutation {
@@ -1800,8 +1779,6 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     resolveTodo,
     setTodoAssignee,
     setTaskPhase,
-    carryTask,
-    returnCarriedTask,
     setTaskTag,
     setTaskDueDate,
     setTaskBody,
