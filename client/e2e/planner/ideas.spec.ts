@@ -7,7 +7,18 @@ import {
   writesLanded,
 } from '../fixtures'
 import { undoFromSnackbar } from '../helpers/m27'
-import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas, showSegment } from '../helpers/m28'
+import { TALL_PNG, TALL_PNG_WIDTH, WIDE_PNG, WIDE_PNG_WIDTH } from '../helpers/images'
+import {
+  addIdea,
+  addPicture,
+  ideaCard,
+  ideaDetail,
+  mosaicPicture,
+  openIdea,
+  openIdeas,
+  pictureViewer,
+  showSegment,
+} from '../helpers/m28'
 
 /**
  * M28 — a trip's ideas (UI-Test-Spec §28, §3.29 FR-29.1–29.6, FR-29.10,
@@ -229,5 +240,77 @@ test.describe('M28 ideas @local @planner', () => {
     await expect(ideaCard(page, 'Tandemflug')).toHaveCount(0)
     await expect(board.getByTestId('m28-empty-idea')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m28-page')).toBeVisible()
+  })
+
+  /**
+   * E2E-M28-07 (FR-29.5): pictures on an idea. The first becomes the card's
+   * banner and fills the mosaic; a second shares it and the card counts
+   * both. The viewer pages to the second and makes it the cover — the mosaic
+   * and the banner follow — and removing a picture is asked first. What the
+   * device kept survives a reload, since Local Mode's bytes are IndexedDB's.
+   */
+  test('E2E-M28-07: pictures fill the banner and the mosaic, change the cover and go when confirmed', async ({
+    page,
+  }) => {
+    await openIdeas(page)
+    await addIdea(page, { title: 'Lej da Staz' })
+    const card = ideaCard(page, 'Lej da Staz')
+    await expect(card.locator('[data-testid^="idea-card-cover-"]')).toHaveCount(0)
+
+    const detail = await openIdea(page, 'Lej da Staz')
+    await expect(detail.getByTestId('idea-mosaic')).toHaveCount(0)
+    await addPicture(detail, 'wide.png', WIDE_PNG)
+    await expect(mosaicPicture(detail, 0)).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
+    await expect(detail.getByTestId('idea-picture-count')).toHaveText('1 of 4')
+    await expect(card.locator('[data-testid^="idea-card-cover-"] img')).toHaveJSProperty(
+      'naturalWidth',
+      WIDE_PNG_WIDTH,
+    )
+    await expect(card.locator('[data-testid^="idea-card-pictures-"]')).toHaveCount(0)
+
+    await addPicture(detail, 'tall.png', TALL_PNG)
+    await expect(detail.getByTestId('idea-mosaic')).toHaveAttribute('data-count', '2')
+    await expect(mosaicPicture(detail, 1)).toHaveJSProperty('naturalWidth', TALL_PNG_WIDTH)
+    await expect(card.locator('[data-testid^="idea-card-pictures-"]')).toHaveText('2 pictures')
+
+    await detail.getByTestId('idea-mosaic-tile-0').click()
+    const viewer = pictureViewer(page)
+    await expect(viewer.getByTestId('idea-viewer-count')).toHaveText('Picture 1 of 2')
+    await expect(viewer.getByTestId('idea-viewer-cover')).toBeVisible()
+    await expect(viewer.getByTestId('idea-viewer-make-cover')).toHaveCount(0)
+    await viewer.getByTestId('idea-viewer-next').click()
+    await expect(viewer.getByTestId('idea-viewer-count')).toHaveText('Picture 2 of 2')
+    await viewer.getByTestId('idea-viewer-make-cover').click()
+    // The viewer goes with the picture it moved.
+    await expect(viewer.getByTestId('idea-viewer-count')).toHaveText('Picture 1 of 2')
+    await expect(viewer.locator('img')).toHaveJSProperty('naturalWidth', TALL_PNG_WIDTH)
+    await expect(mosaicPicture(detail, 0)).toHaveJSProperty('naturalWidth', TALL_PNG_WIDTH)
+    await expect(card.locator('[data-testid^="idea-card-cover-"] img')).toHaveJSProperty(
+      'naturalWidth',
+      TALL_PNG_WIDTH,
+    )
+
+    await viewer.getByTestId('idea-viewer-remove').click()
+    const confirm = page.getByTestId('idea-picture-remove-confirm')
+    await confirm.getByRole('button', { name: /cancel/i }).click()
+    await expect(confirm).toBeHidden()
+    await expect(viewer.getByTestId('idea-viewer-count')).toHaveText('Picture 1 of 2')
+    await viewer.getByTestId('idea-viewer-remove').click()
+    await page
+      .getByTestId('idea-picture-remove-confirm')
+      .getByRole('button', { name: /remove picture/i })
+      .click()
+    await expect(viewer.getByTestId('idea-viewer-count')).toHaveText('Picture 1 of 1')
+    await expect(viewer.locator('img')).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
+    await viewer.getByTestId('idea-viewer-close').click()
+    await expect(viewer).toBeHidden()
+    await expect(detail.getByTestId('idea-mosaic')).toHaveAttribute('data-count', '1')
+
+    await writesLanded(page)
+    await page.reload()
+    await openIdeas(page)
+    await expect(
+      ideaCard(page, 'Lej da Staz').locator('[data-testid^="idea-card-cover-"] img'),
+    ).toHaveJSProperty('naturalWidth', WIDE_PNG_WIDTH)
   })
 })

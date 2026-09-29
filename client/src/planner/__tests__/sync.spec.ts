@@ -9,13 +9,14 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
+import type { IdeaPictures, ModuleHost } from '@/sync/featureModule'
 import { TABLE } from '@/types/tables'
 import { createPlannerActions, type IdeaFields } from '../actions'
 import { voteTally } from '../domain/ideas'
@@ -51,6 +52,30 @@ const GORROPU: IdeaFields = {
   link: 'https://gorropu.info',
   tag: 'hiking',
   rainProof: false,
+}
+
+/**
+ * The host with its picture channel recorded. The channel's own two modes
+ * are `ideaImages.seam.spec.ts`'s; what is pinned here is what the planner
+ * asks of it, and that a move or a delete is an ordinary trip write.
+ */
+function withPictures(host: ModuleHost) {
+  const pictures = {
+    add: vi.fn<IdeaPictures['add']>(() => Promise.resolve()),
+    url: vi.fn<IdeaPictures['url']>(() => Promise.resolve(null)),
+    forget: vi.fn<IdeaPictures['forget']>(() => Promise.resolve()),
+  }
+  return { host: { ...host, pictures }, pictures }
+}
+
+function pulledPicture(id: string, position: number) {
+  return {
+    seq: 2 + position,
+    table: TABLE.ideaImages,
+    id,
+    deleted: false,
+    row: { trip_id: 't1', idea_id: 'idea-1', image_hash: `h-${id}`, position },
+  }
 }
 
 const pulledIdea = {
@@ -204,6 +229,101 @@ describe('Server Mode', () => {
       plannerStore.getVotes('t1'),
       plannerStore.getComments('t1'),
     ]).toEqual([[], [], []])
+  })
+})
+
+describe('pictures (FR-29.5)', () => {
+  it('routes a pulled picture to the planner store', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea, pulledPicture('ii-1', 0)])
+
+    await orch.drainTrip('t1')
+
+    expect(usePlannerStore().getImages('t1')).toEqual([
+      { id: 'ii-1', trip_id: 't1', idea_id: 'idea-1', image_hash: 'h-ii-1', position: 0 },
+    ])
+  })
+
+  it('adds a picture behind the last one, and a fifth not at all', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea, pulledPicture('ii-1', 0), pulledPicture('ii-2', 2)])
+    await orch.drainTrip('t1')
+    const plannerStore = usePlannerStore()
+    const { host, pictures } = withPictures(orch.moduleHost)
+    const actions = createPlannerActions(host, plannerStore)
+    const source = new Blob(['photo'])
+
+    expect(await actions.addPicture(plannerStore.getIdea('idea-1')!, source)).toBe(true)
+    expect(pictures.add).toHaveBeenCalledWith(
+      { id: expect.any(String), trip_id: 't1', idea_id: 'idea-1', position: 3 },
+      source,
+    )
+
+    harness.mockPull([pulledPicture('ii-3', 3), pulledPicture('ii-4', 4)])
+    await orch.drainTrip('t1')
+    pictures.add.mockClear()
+    expect(await actions.addPicture(plannerStore.getIdea('idea-1')!, source)).toBe(false)
+    expect(pictures.add).not.toHaveBeenCalled()
+  })
+
+  it('makes a picture the cover by moving only what has to move', async () => {
+    const orch = serverOrch()
+    harness.mockPull([
+      pulledIdea,
+      pulledPicture('ii-a', 0),
+      pulledPicture('ii-b', 1),
+      pulledPicture('ii-c', 2),
+    ])
+    await orch.drainTrip('t1')
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(withPictures(orch.moduleHost).host, plannerStore)
+
+    actions.makeCover(plannerStore.getIdea('idea-1')!, 'ii-b')
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations()).toMatchObject([
+      { op: 'upsert', table: TABLE.ideaImages, id: 'ii-b', fields: { position: 0 } },
+      { op: 'upsert', table: TABLE.ideaImages, id: 'ii-a', fields: { position: 1 } },
+    ])
+    expect(
+      plannerStore
+        .getImages('t1')
+        .sort((a, b) => a.position - b.position)
+        .map((image) => image.id),
+    ).toEqual(['ii-b', 'ii-a', 'ii-c'])
+  })
+
+  it('removes a picture as a trip write and lets its bytes go', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea, pulledPicture('ii-1', 0)])
+    await orch.drainTrip('t1')
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const { host, pictures } = withPictures(orch.moduleHost)
+
+    createPlannerActions(host, plannerStore).removePicture(plannerStore.getImages('t1')[0]!)
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations()).toMatchObject([
+      { op: 'delete', table: TABLE.ideaImages, id: 'ii-1' },
+    ])
+    expect(plannerStore.getImages('t1')).toEqual([])
+    expect(pictures.forget).toHaveBeenCalledWith(['ii-1'])
+  })
+
+  it('a deleted idea takes its pictures with it', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea, pulledPicture('ii-1', 0)])
+    await orch.drainTrip('t1')
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const { host, pictures } = withPictures(orch.moduleHost)
+
+    createPlannerActions(host, plannerStore).removeIdea(plannerStore.getIdea('idea-1')!)
+
+    expect(plannerStore.getImages('t1')).toEqual([])
+    expect(pictures.forget).toHaveBeenCalledWith(['ii-1'])
   })
 })
 

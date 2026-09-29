@@ -53,6 +53,7 @@ import { createLockState } from './sync/locks'
 import { createNotificationActions } from './sync/notifications'
 import { createConflictActions } from './sync/conflicts'
 import { createIdentityActions } from './sync/identity'
+import { createIdeaPictures } from './sync/ideaImages'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
@@ -921,6 +922,18 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mutation: mutations.make,
     nowIso,
     writeTrip: (tripId, ...muts) => enqueueAndDrain('trip', tripId, ...muts),
+    pictures: createIdeaPictures({
+      client,
+      local,
+      applyChanges: onPullChanges,
+      drainTrip: (tripId) => drainTrip(tripId),
+      // In drainTrip's order: a new trip reaches the server through the
+      // master partition, and its rows are refused until it has.
+      whenSent: async (tripId) => {
+        await outbox.whenSent('master', null)
+        await outbox.whenSent('trip', tripId)
+      },
+    }),
   }
 
   return {

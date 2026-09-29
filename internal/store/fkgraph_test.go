@@ -26,6 +26,11 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	// there is no row on any device for a tombstone to remove. Only
 	// items.image_hash flows, and it goes with the item.
 	TableItems + " -> item_images": "item image BLOBs are outside the sync envelope",
+	// FR-29.5: the same for an idea picture's bytes; its idea_images row is
+	// the synced half and is tombstoned.
+	TableIdeaImages + " -> idea_image_bytes": "idea picture BLOBs are outside the sync envelope",
+	TableIdeas + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
+	TableTrips + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
 
 	// The trip partition's whole feed dies with the trip: change_log.trip_id
 	// cascades too, so a tombstone written here would land in a feed that no
@@ -41,6 +46,7 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableTrips + " -> excursion_travelers":      "the trip's own feed is deleted with it",
 	TableTrips + " -> ideas":                    "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_comments":            "the trip's own feed is deleted with it",
+	TableTrips + " -> idea_images":              "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_votes":               "the trip's own feed is deleted with it",
 	TableTrips + " -> lock_events":              "the trip's own feed is deleted with it",
 	TableTrips + " -> note_acks":                "the trip's own feed is deleted with it",

@@ -36,3 +36,25 @@ func validIdeaComment(actorID string, row sync.Row, m *sync.Mutation) RejectReas
 	}
 	return ReasonNone
 }
+
+// columnPosition is where a picture stands among its idea's (FR-29.5).
+const columnPosition = "position"
+
+// validIdeaImage is FR-29.5's part of the trip partition's write gate. The
+// upload creates a picture with its bytes (ADR-002), so a push may move one
+// or delete it and nothing more: an insert would be a picture without bytes,
+// and a changed hash or idea would point the row at bytes it does not have.
+func validIdeaImage(row sync.Row, m *sync.Mutation) RejectReason {
+	if m.Op == sync.OpDelete {
+		return ReasonNone
+	}
+	if !row.Exists {
+		return ReasonNotAuthorized
+	}
+	for field := range m.Fields {
+		if field != columnPosition {
+			return ReasonNotAuthorized
+		}
+	}
+	return ReasonNone
+}

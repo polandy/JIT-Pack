@@ -34,6 +34,7 @@ import type {
   ExcursionTraveler,
   Idea,
   IdeaComment,
+  IdeaImage,
   IdeaVote,
   ShoppingEntry,
   TaskFacts,
@@ -72,6 +73,7 @@ import {
   excursionTravelerRow,
   excursionItemRow,
   ideaCommentRow,
+  ideaImageRow,
   ideaRow,
   ideaVoteRow,
   profileRow,
@@ -409,6 +411,16 @@ function rowToIdeaComment(id: string, row: Record<string, unknown>): IdeaComment
   }
 }
 
+function rowToIdeaImage(id: string, row: Record<string, unknown>): IdeaImage {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+    image_hash: row['image_hash'] as string,
+    position: Number(row['position'] ?? 0),
+  }
+}
+
 function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
   return {
     id,
@@ -533,6 +545,7 @@ export const TABLE_CODECS = {
   [TABLE.ideas]: { parse: rowToIdea, encode: ideaRow },
   [TABLE.ideaVotes]: { parse: rowToIdeaVote, encode: ideaVoteRow },
   [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
+  [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.

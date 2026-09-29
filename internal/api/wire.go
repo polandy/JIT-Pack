@@ -530,6 +530,8 @@ const (
 	PathTagID          = "tagID"
 	PathTemplateID     = "templateID"
 	PathTemplateItemID = "templateItemID"
+	PathIdeaID         = "ideaID"
+	PathImageID        = "imageID"
 )
 
 // Every path this instance serves, declared once. The server registers from
@@ -550,6 +552,10 @@ const (
 	RouteTripItemTakeover   = "/api/v1/trips/{tripID}/items/{itemID}/takeover"
 	RouteTripLockEvents     = "/api/v1/trips/{tripID}/lock-events"
 	RouteTripExportCSV      = "/api/v1/trips/{tripID}/export.csv"
+	// FR-29.5: one picture on an idea. PUT uploads it under the client's own
+	// id; GET reads its bytes. Both are the trip's, behind its membership —
+	// the synced half is an idea_images row, and a push moves or deletes it.
+	RouteTripIdeaImage = "/api/v1/trips/{tripID}/ideas/{ideaID}/images/{imageID}"
 
 	// Master scope — the partition that belongs to no trip, so its scope
 	// segment is a literal rather than an id.

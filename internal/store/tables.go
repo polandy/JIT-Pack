@@ -567,6 +567,7 @@ var tableSpecs = map[string]tableSpec{
 		cascades: []childQuery{
 			{TableIdeaVotes, `SELECT id FROM idea_votes WHERE idea_id = ?`},
 			{TableIdeaComments, `SELECT id FROM idea_comments WHERE idea_id = ?`},
+			{TableIdeaImages, `SELECT id FROM idea_images WHERE idea_id = ?`},
 		},
 		export: exportQuery{query: `SELECT x.* FROM ideas x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -586,6 +587,16 @@ var tableSpecs = map[string]tableSpec{
 		partition: partitionTrip,
 		columns:   toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
 		export: exportQuery{query: `SELECT x.* FROM idea_comments x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.5: a picture on an idea. The upload creates the row (with its
+	// bytes, which never sync); every column is listed so the pull carries
+	// it, and validIdeaImage lets a push only move a picture or delete it.
+	TableIdeaImages: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "idea_id", "image_hash", columnPosition),
+		export: exportQuery{query: `SELECT x.* FROM idea_images x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

@@ -54,6 +54,9 @@ func storeErrorNames(t *testing.T) map[error]string {
 		store.ErrItemImageTooLarge:       "ErrItemImageTooLarge",
 		store.ErrAvatarTooLarge:          "ErrAvatarTooLarge",
 		store.ErrInvalidDisplayName:      "ErrInvalidDisplayName",
+		store.ErrIdeaImageTooLarge:       "ErrIdeaImageTooLarge",
+		store.ErrIdeaImageLimit:          "ErrIdeaImageLimit",
+		store.ErrIdeaNotFound:            "ErrIdeaNotFound",
 	}
 }
 
@@ -121,7 +124,7 @@ func TestWriteStoreError_AnswersEveryRowOnPurpose(t *testing.T) {
 	}
 }
 
-// The three limits answer with the store's own sentence, so the number a
+// The limits answer with the store's own sentence, so the number a
 // user is told is the number the store enforces. A literal here would be a
 // second copy nothing keeps in step; this is what says the empty message is
 // deliberate rather than forgotten — and what stops the next row from
@@ -131,6 +134,8 @@ func TestStoreErrorResponses_OnlyTheLimitsAnswerWithTheStoresOwnSentence(t *test
 		store.ErrItemImageTooLarge:  true,
 		store.ErrAvatarTooLarge:     true,
 		store.ErrInvalidDisplayName: true,
+		store.ErrIdeaImageTooLarge:  true,
+		store.ErrIdeaImageLimit:     true,
 	}
 	names := storeErrorNames(t)
 	for _, row := range storeErrorResponses {
@@ -138,7 +143,7 @@ func TestStoreErrorResponses_OnlyTheLimitsAnswerWithTheStoresOwnSentence(t *test
 		case fromTheStore[row.err] && row.msg != "":
 			t.Errorf("store.%s must answer with the store's own sentence, got %q", names[row.err], row.msg)
 		case !fromTheStore[row.err] && row.msg == "":
-			t.Errorf("store.%s has no message: only the three limits may borrow the store's sentence", names[row.err])
+			t.Errorf("store.%s has no message: only the limits may borrow the store's sentence", names[row.err])
 		}
 	}
 }

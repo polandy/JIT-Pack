@@ -16,10 +16,18 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { TABLE_CODECS } from '@/sync/tableRegistry'
-import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVoteValue } from '@/types/domain'
+import type {
+  Idea,
+  IdeaComment,
+  IdeaImage,
+  IdeaState,
+  IdeaTag,
+  IdeaVoteValue,
+} from '@/types/domain'
 import { IDEA_STATE_IDEA } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 import type { VoteTally } from './domain/ideas'
+import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'
 import type { usePlannerStore } from './store'
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
@@ -38,6 +46,7 @@ export function createPlannerActions(
   const encodeIdea = TABLE_CODECS[TABLE.ideas].encode
   const encodeVote = TABLE_CODECS[TABLE.ideaVotes].encode
   const encodeComment = TABLE_CODECS[TABLE.ideaComments].encode
+  const encodeImage = TABLE_CODECS[TABLE.ideaImages].encode
 
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
@@ -86,17 +95,59 @@ export function createPlannerActions(
   }
 
   /**
-   * FR-29.2: deletes an idea with its votes and its words — one mutation,
-   * the children's tombstones painted with it, as `sync/cascade.ts` does for
-   * the packing tables, so Local Mode's disk loses them too.
+   * FR-29.2: deletes an idea with its votes, its words and its pictures — one
+   * mutation, the children's tombstones painted with it, as `sync/cascade.ts`
+   * does for the packing tables, so Local Mode's disk loses them too.
    */
   function removeIdea(idea: Idea): void {
     const mutation = host.mutation('delete', TABLE.ideas, idea.id)
-    const children = cascadeTombstones(plannerStore.ideaChildRows(idea.id))
+    const children = plannerStore.ideaChildRows(idea.id)
     host.writeTrip(idea.trip_id, {
       mutation,
-      optimistic: [...children, optimisticDelete(mutation)],
+      optimistic: [...cascadeTombstones(children), optimisticDelete(mutation)],
     })
+    void host.pictures.forget(
+      children.filter((row) => row.table === TABLE.ideaImages).map((row) => row.id),
+    )
+  }
+
+  function picturesOf(idea: Idea): IdeaImage[] {
+    return ideaPictures(idea.id, plannerStore.getImages(idea.trip_id))
+  }
+
+  /**
+   * FR-29.5: a picture on an idea, behind its last one. False when the idea
+   * already carries four, so nothing is scaled or sent; a failed upload
+   * rejects, and the screen says so.
+   */
+  async function addPicture(idea: Idea, source: Blob): Promise<boolean> {
+    const pictures = picturesOf(idea)
+    if (!canAddPicture(pictures)) return false
+    await host.pictures.add(
+      {
+        id: newId(),
+        trip_id: idea.trip_id,
+        idea_id: idea.id,
+        position: nextPicturePosition(pictures),
+      },
+      source,
+    )
+    return true
+  }
+
+  /** FR-29.5's „Als Titelbild": the picture to the front, the rest behind it in order. */
+  function makeCover(idea: Idea, imageId: string): void {
+    const moves = coverMoves(picturesOf(idea), imageId).map(({ image, position }) => {
+      const mutation = host.mutation('upsert', TABLE.ideaImages, image.id, { position })
+      return { mutation, optimistic: optimisticUpdate(mutation, encodeImage(image)) }
+    })
+    if (moves.length > 0) host.writeTrip(idea.trip_id, ...moves)
+  }
+
+  function removePicture(image: IdeaImage): void {
+    const mutation = host.mutation('delete', TABLE.ideaImages, image.id)
+    host.writeTrip(image.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    void host.pictures.forget([image.id])
   }
 
   /**
@@ -186,6 +237,9 @@ export function createPlannerActions(
     updateIdea,
     setState,
     removeIdea,
+    addPicture,
+    makeCover,
+    removePicture,
     vote,
     addComment,
     editComment,

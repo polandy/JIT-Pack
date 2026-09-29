@@ -46,6 +46,12 @@ function fakeHost(): ModuleHost {
         useShoppingStore().applyChanges(changesOf(mut.optimistic))
       }
     },
+    // The shopping list has no pictures; a call here is a bug in the test.
+    pictures: {
+      add: () => Promise.reject(new Error('no pictures here')),
+      url: () => Promise.resolve(null),
+      forget: () => Promise.resolve(),
+    },
   }
 }
 

@@ -34,7 +34,7 @@ describe('API routes', () => {
   })
 
   it('spells no path twice', () => {
-    const built = Object.values(API).map((r) => (typeof r === 'function' ? r('x', 'y') : r))
+    const built = Object.values(API).map((r) => (typeof r === 'function' ? r('x', 'y', 'z') : r))
     expect(new Set(built).size).toBe(built.length)
   })
 
@@ -49,7 +49,10 @@ describe('API routes', () => {
   it('pins every path it declares', () => {
     expect(
       Object.fromEntries(
-        Object.entries(API).map(([k, r]) => [k, typeof r === 'function' ? r('ID1', 'ID2') : r]),
+        Object.entries(API).map(([k, r]) => [
+          k,
+          typeof r === 'function' ? r('ID1', 'ID2', 'ID3') : r,
+        ]),
       ),
     ).toEqual({
       tripSync: '/api/v1/trips/ID1/sync',
@@ -58,6 +61,7 @@ describe('API routes', () => {
       tripItemTakeover: '/api/v1/trips/ID1/items/ID2/takeover',
       tripLockEvents: '/api/v1/trips/ID1/lock-events',
       tripExportCSV: '/api/v1/trips/ID1/export.csv',
+      tripIdeaImage: '/api/v1/trips/ID1/ideas/ID2/images/ID3',
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',
       masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',

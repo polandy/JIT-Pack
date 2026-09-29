@@ -41,6 +41,8 @@ export const TABLE = {
   ideas: 'ideas',
   ideaVotes: 'idea_votes',
   ideaComments: 'idea_comments',
+  /** FR-29.5: a picture on an idea — hash and position; the bytes stay out (ADR-002). */
+  ideaImages: 'idea_images',
   /** FR-27.4, the planning-trip refresh (migration 023). */
   tripTemplateSources: 'trip_template_sources',
   tripGeneratedPositions: 'trip_generated_positions',

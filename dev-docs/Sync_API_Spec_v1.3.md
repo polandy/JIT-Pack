@@ -19,7 +19,7 @@ what runs.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
   trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items, ideas, idea_votes,
-  idea_comments) and one **master
+  idea_comments, idea_images) and one **master
   partition per user** (items, tags, item_tags, task_tags, templates, template_items, template_includes,
   template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members,
   trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition —
@@ -246,8 +246,15 @@ constraint; a withdrawn vote is `vote: null`, never a delete. `ideas.link` is re
 `http://` or `https://`, `ideas.tag` unless it is one of FR-29.10's keys, `ideas.state` unless one of `idea`,
 `shortlisted`, `done`, `dropped`. **A discussion entry's words are its author's**: a mutation touching `body` or
 `edited_at` of an existing `idea_comments` row pushed by anyone else is refused as `not_authorized`; a delete stays
-everybody's, as a note's. Deleting an idea cascades to its votes and discussion, tombstoned like any cascade.
-`created_at` on both is the client's clock, like a comment's.
+everybody's, as a note's. Deleting an idea cascades to its votes, discussion and pictures, tombstoned like any
+cascade. `created_at` on both is the client's clock, like a comment's.
+
+`idea_images` (FR-29.5, ADR-081) names one picture on an idea — `idea_id`, `image_hash`, `position` — and is **created
+only by the upload** (`PUT /trips/{id}/ideas/{ideaID}/images/{imageID}`, §8), which writes the row and its bytes in one
+transaction and logs the row on the trip's feed with a fresh server HLC. A push may **change `position` or delete the
+row**; an insert, or any other field, is refused as `not_authorized`, since it would name bytes the server does not
+hold. The bytes live in `idea_image_bytes`, outside the envelope, and go with their row. Local Mode writes the row
+through its own change funnel, with a client-computed hash.
 
 `comments.parent_id`, `title` and `edited_at` (FR-7.13) make a trip note a thread. `parent_id` names the
 thread's first note on a reply and is **written once**: the server drops it from every op on a row that already exists,
@@ -732,6 +739,7 @@ rows below are therefore **not implemented as endpoints**:
 | ~~`GET`/`POST /templates/import`~~ · ~~`GET`/`POST /trips/import`~~ · ~~`GET /trips/{id}/export.yaml`~~ | **not endpoints (ADR-025): portable YAML has no endpoint at all.** Reading *and* writing the format live once, in `client/src/domain/portable.ts` — a second, server-side implementation falls behind the format with no product surface to notice. Files are written by the app (M17/M21/NFR-4.11) and read by the app or the FR-18.7 command; both land through `POST /master/sync` and `POST /trips/{id}/sync` like every other write |
 | `GET /me` | Own identity `{user_id, display_name, is_instance_admin}` — the client needs its `users.id` to address the avatar/display-name endpoints (M17 profile; `PUT /users/{id}/avatar` and `PUT /users/{id}/display-name` accept only the caller's own id — 403 `forbidden` for any other, invariant: identity claims in the path are never trusted); the admin flag decides whether M20's entry point renders (FR-23.2, endpoints enforce regardless) |
 | `GET /users` | Instance user directory `{users:[{user_id, display_name}]}`, ordered by name, deactivated accounts excluded (FR-23.3) — backs the M3 sharing picker (FR-4.5). Any authenticated user may list; a self-hosted instance's roster is not a secret to its users |
+| `GET /trips/{id}/ideas/{ideaID}/images/{imageID}` · `PUT` on the same path | FR-29.5, ADR-081 — implemented: one picture on an idea, **members only** (the trip's `member` gate, unlike an item photo). PUT takes `image/jpeg` of at most 500 KB (mirrored by the `idea_image_bytes` CHECK and the store) under the **client's** image id; it refuses a fifth picture and an idea not on the trip (422 / 404), writes the `idea_images` row behind the idea's last picture, logs it on the trip's feed and pings the trip's sockets. A retry with the same id answers 200 and changes nothing. GET streams the bytes with `ETag` = `image_hash` and `Cache-Control: private`, 404 when the trip's idea holds no such picture. There is no DELETE: a picture is deleted by a pushed tombstone of its row |
 | `GET /items/{id}/image` · `PUT /items/{id}/image` · `DELETE /items/{id}/image` | Addendum FR-22 — implemented: one optional reference photo per master item. GET is public (like avatars, ADR-002), streams `image/jpeg` with `ETag` = `items.image_hash`, 404 when absent. PUT/DELETE need only authentication, **no trip role** (FR-22.6 — items carry no trip association); PUT validates `image/jpeg` and ≤150 KB (FR-22.4, mirrored by the `item_images` CHECK) and stamps `items.image_hash` through the master change-log with a fresh server HLC, so other devices pull the hint on their next master pull. The BLOB lives in `item_images`, outside the sync envelope; `image_hash` is the only synced signal. Local Mode writes the blob to IndexedDB with a client-computed hash instead |
 | `GET /admin/users` | FR-23.2 — implemented: instance-admin only (403 `forbidden` otherwise, like every `/admin/` route), all provisioned accounts `{user_id, display_name, email, created_at, is_instance_admin, deactivated_at, trip_count, template_count}` ordered by name |
 | `POST /admin/users/{id}/deactivate` · `POST /admin/users/{id}/reactivate` | FR-23.3 — implemented: deactivation revokes access (403 `account_deactivated`), deletes the account's push subscriptions, and suppresses new notifications; data and attributions stay untouched. Deactivating an admin → 409 `admin_undeactivatable` (remove from `JITPACK_ADMIN_EMAILS` first); unknown id → 404. Both idempotent. Reactivation restores access; the client re-registers Web Push on next app start |

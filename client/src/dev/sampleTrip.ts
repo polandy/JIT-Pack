@@ -16,10 +16,12 @@ import {
   ITEM_MODE_PACK,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  type Idea,
   type IdeaState,
   type IdeaTag,
 } from '@/types/domain'
 import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
+import { samplePicture } from './samplePictures'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
@@ -177,7 +179,8 @@ export function seedSampleTrip(
 /**
  * §3.29: M28 opens with a board worth reading — ideas in three of the four
  * segments, every tag but one and a rain-proof one for the chips, a link, a
- * note, a vote and a comment. Written without an identity, as Local Mode
+ * note, a vote, a comment, and pictures — one, two and four, so each of the
+ * mosaic's shapes is on the board (FR-29.5). Written without an identity, as Local Mode
  * writes; on a server the push stamps the account that seeded. Through the
  * module's own actions, for the reason `buyOneShoppingRow` gives.
  */
@@ -190,12 +193,14 @@ export const SEED_IDEAS: ReadonlyArray<{
   state?: IdeaState
   voted?: boolean
   comment?: string
+  pictures?: number
 }> = [
   {
     title: 'Bernina Express nach Tirano',
     tag: 'outing',
     link: 'https://www.rhb.ch/de/panoramazuege/bernina-express',
     voted: true,
+    pictures: 1,
   },
   {
     title: 'Segantini-Museum in St. Moritz',
@@ -205,12 +210,13 @@ export const SEED_IDEAS: ReadonlyArray<{
     comment: 'Montags geschlossen.',
   },
   { title: 'Capuns im Gasthaus probieren', tag: 'food', rainProof: true },
-  { title: 'Baden im Lej da Staz', tag: 'swimming' },
+  { title: 'Baden im Lej da Staz', tag: 'swimming', pictures: 2 },
   {
     title: 'Muottas Muragl – Alp Languard',
     tag: 'hiking',
     note: 'Mit der Standseilbahn hoch, dann gut drei Stunden Höhenweg.',
     state: IDEA_STATE_SHORTLISTED,
+    pictures: 4,
   },
   { title: 'Gleitschirm-Tandemflug', tag: null, state: IDEA_STATE_DROPPED },
 ]
@@ -243,6 +249,28 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
       )
     }
     if (seed.comment) actions.addComment(tripId, idea.id, seed.comment, null)
+    if (seed.pictures) void seedPictures(idea, seed.pictures, actions)
+  }
+}
+
+/**
+ * One after another: each picture's position is read off the ones already
+ * there, and in Server Mode those arrive only with the drain after an upload.
+ * A device that cannot paint or scale one — no canvas under a unit test, no
+ * connection for the upload — seeds the rest of the trip without pictures and
+ * says so in the console rather than failing the seed.
+ */
+async function seedPictures(
+  idea: Idea,
+  count: number,
+  actions: ReturnType<typeof createPlannerActions>,
+): Promise<void> {
+  try {
+    for (let i = 0; i < count; i++) {
+      await actions.addPicture(idea, await samplePicture(i))
+    }
+  } catch (error) {
+    console.warn(`dev seed: no pictures for „${idea.title}"`, error)
   }
 }
 

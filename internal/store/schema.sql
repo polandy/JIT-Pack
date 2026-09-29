@@ -738,6 +738,32 @@ CREATE TABLE idea_comments (
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
+-- FR-29.5: one picture on an idea. The row syncs — which picture, its hash,
+-- where it stands — and the bytes do not: they live in idea_image_bytes and
+-- move over their own endpoints (ADR-002). A row is created only by the
+-- upload, which is why a push may change `position` and nothing else. The
+-- lowest position is the idea's cover; two rows on one position read in id
+-- order, so a concurrent upload and reorder need no uniqueness to agree.
+CREATE TABLE idea_images (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    image_hash  TEXT NOT NULL,
+    position    INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-29.5: the bytes of one idea picture — outside the sync envelope, and
+-- gone with their row. 500 KB, not item_images' 150 KB: an item photo answers
+-- *which jacket*, an idea's has to show a place.
+CREATE TABLE idea_image_bytes (
+    image_id   TEXT PRIMARY KEY REFERENCES idea_images(id) ON DELETE CASCADE,
+    image      BLOB NOT NULL,
+    mime       TEXT NOT NULL DEFAULT 'image/jpeg' CHECK (mime = 'image/jpeg'),
+    CHECK (length(image) <= 512000)                         -- FR-29.5: 500 KB
+);
+
 -- ---------------------------------------------------------------------------
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
@@ -848,6 +874,7 @@ CREATE INDEX idx_conflict_log_partition ON conflict_log (trip_id, resolved_at DE
 CREATE INDEX idx_conflict_log_mutation  ON conflict_log (mutation_id, entity_table, entity_id);
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
+CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);
 CREATE INDEX idx_notifications_user ON notifications (user_id, created_at DESC);
