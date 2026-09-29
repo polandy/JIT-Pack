@@ -166,15 +166,23 @@ const editing = ref<{ idea: Idea | null } | null>(null)
 function onSave(fields: IdeaFields, picture: Promise<Blob | null>) {
   const current = editing.value
   editing.value = null
+  let ideaId: string | null
   if (current?.idea) {
     actions.updateIdea(current.idea, fields)
-    void picture.then((blob) => blob && addPictureTo(current.idea!, blob))
-    return
+    ideaId = current.idea.id
+  } else {
+    ideaId = actions.addIdea(props.tripId, fields, myUserId.value)
   }
-  const id = actions.addIdea(props.tripId, fields, myUserId.value)
-  if (id === null) return
-  const added = plannerStore.getIdea(id)
-  if (added) void picture.then((blob) => blob && addPictureTo(added, blob))
+  // FR-29.16: the link's picture comes in the background, whenever it comes.
+  // A picture that cannot be had or put up is a preview missing its picture,
+  // not a failure the person saving has to hear about.
+  if (ideaId !== null) {
+    const id = ideaId
+    void picture
+      .then((blob) => (blob ? actions.addLinkPicture(id, blob) : false))
+      .catch(() => false)
+  }
+  if (current?.idea || ideaId === null) return
   // A new idea is shown where it went and on top, so it does not land below
   // the fold of a list sorted by votes it has none of yet.
   segment.value = IDEA_STATE_IDEA
@@ -419,7 +427,6 @@ const EMPTY_KEYS = {
               }
             : null
         "
-        :accepts-picture="!editing?.idea || picturesOf(editing.idea.id).length === 0"
         @close="editing = null"
         @save="onSave"
       />

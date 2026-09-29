@@ -4072,13 +4072,13 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
 
 * **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet names a blank title after its
   **site** at once (*oeschinensee.ch*), so a pasted link alone is an idea that can be saved, in every mode. Where a read
-  can be had, the link is then read — after it has rested a moment, so typing is not reading — in **two steps**: the
-  page's own **title** and **description** first, filling what is still blank — the title (the site name counts as
-  blank, since nobody typed it) and the note, never over what somebody typed — and then, apart, the **picture** the page
-  names, which a slow host can take seconds longer to give. Where no read can be had, none is shown starting. The
-  picture is **offered** under the link — a loading tile while it comes, the thumbnail once it is there, ✕ on both to
-  decline it — only where the idea has no picture yet, and added as its first picture (FR-29.5) when the idea is saved,
-  also when it arrives after the save. ADR-082:
+  can be had, the link is then read — after it has rested a moment, so typing is not reading. The page's own **title**
+  and **description** come as a **suggestion** under the link, *„Vorschlag aus dem Link"*, that changes nothing until it
+  is confirmed: *Übernehmen* puts both in the title and the note, *Nicht übernehmen* leaves the sheet as it was. The
+  page's **picture** is fetched in the background, apart from the words since a slow host can take seconds longer to
+  give it, and added as the idea's first picture (FR-29.5) whenever it arrives — also after the idea was saved — but
+  only where the idea still has no picture by then; no confirmation is asked for it, since a picture is removed in one
+  tap (FR-29.5's viewer). Where no read can be had, none is shown starting. ADR-082:
   * **The server reads the page**, because a browser is kept from another site's page by the same-origin rule. Local
     Mode therefore has no preview; the link is kept as typed.
   * **Only a trip's member can make the server fetch** (`POST /trips/{id}/link-preview` and `…/link-preview/image`), and

@@ -135,6 +135,17 @@ export function createPlannerActions(
     return true
   }
 
+  /**
+   * FR-29.16: the picture a link's page names, added in the background — and
+   * only where the idea still has none when it arrives, which may be well
+   * after the idea was saved. An idea deleted meanwhile takes none.
+   */
+  async function addLinkPicture(ideaId: string, source: Blob): Promise<boolean> {
+    const idea = plannerStore.getIdea(ideaId)
+    if (!idea || picturesOf(idea).length > 0) return false
+    return addPicture(idea, source)
+  }
+
   /** FR-29.5's „Als Titelbild": the picture to the front, the rest behind it in order. */
   function makeCover(idea: Idea, imageId: string): void {
     const moves = coverMoves(picturesOf(idea), imageId).map(({ image, position }) => {
@@ -238,6 +249,7 @@ export function createPlannerActions(
     setState,
     removeIdea,
     addPicture,
+    addLinkPicture,
     makeCover,
     removePicture,
     vote,

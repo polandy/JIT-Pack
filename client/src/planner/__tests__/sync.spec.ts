@@ -266,6 +266,26 @@ describe('pictures (FR-29.5)', () => {
     expect(pictures.add).not.toHaveBeenCalled()
   })
 
+  /* FR-29.16: a link's picture comes in the background, and only to an idea without one. */
+  it('adds a link’s picture only where the idea still has none when it arrives', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea])
+    await orch.drainTrip('t1')
+    const plannerStore = usePlannerStore()
+    const { host, pictures } = withPictures(orch.moduleHost)
+    const actions = createPlannerActions(host, plannerStore)
+    const source = new Blob(['from the page'])
+
+    expect(await actions.addLinkPicture('idea-1', source)).toBe(true)
+    expect(pictures.add).toHaveBeenCalledTimes(1)
+
+    harness.mockPull([pulledPicture('ii-1', 0)])
+    await orch.drainTrip('t1')
+    expect(await actions.addLinkPicture('idea-1', source)).toBe(false)
+    expect(await actions.addLinkPicture('idea-gone', source)).toBe(false)
+    expect(pictures.add).toHaveBeenCalledTimes(1)
+  })
+
   it('makes a picture the cover by moving only what has to move', async () => {
     const orch = serverOrch()
     harness.mockPull([

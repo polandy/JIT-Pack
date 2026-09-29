@@ -1689,9 +1689,9 @@ export const en = {
   'ideas.previousPicture': 'Previous picture',
   'ideas.nextPicture': 'Next picture',
   'ideas.previewLoading': 'Reading the link …',
-  'ideas.previewPicture': 'Picture from the link',
-  'ideas.previewPictureComing': 'Loading the picture …',
-  'ideas.previewPictureDrop': 'Don’t use the picture from the link',
+  'ideas.suggestion': 'Suggested by the link',
+  'ideas.suggestionAccept': 'Use it',
+  'ideas.suggestionDismiss': 'Dismiss',
   // --- Excursions (FR-31, M27) ---
   'excursions.title': 'Excursions',
   'excursions.viewCount': 'Excursions ({n})',

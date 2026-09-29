@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fillFromLink, fillFromPreview } from '../linkFill'
+import { acceptSuggestion, fillFromLink, suggestionFrom } from '../linkFill'
 
 const PAGE = { title: 'Oeschinensee', description: 'Ein Bergsee über Kandersteg' }
 const LINK = 'https://www.oeschinensee.ch/de/sommer'
@@ -21,43 +21,40 @@ describe('fillFromLink (FR-29.16)', () => {
   })
 })
 
-describe('fillFromPreview (FR-29.16)', () => {
-  it('fills a blank title and note from the page', () => {
-    expect(fillFromPreview({ title: '', note: '  ' }, PAGE, null)).toEqual({
+describe('suggestionFrom (FR-29.16)', () => {
+  it('suggests what the page says', () => {
+    expect(suggestionFrom(PAGE, { title: 'oeschinensee.ch', note: '' })).toEqual(PAGE)
+  })
+
+  it('suggests nothing where the page says nothing new', () => {
+    expect(suggestionFrom({ title: null, description: null }, { title: '', note: '' })).toBeNull()
+    expect(
+      suggestionFrom(PAGE, { title: 'Oeschinensee', note: 'Ein Bergsee über Kandersteg' }),
+    ).toBeNull()
+  })
+
+  it('keeps only the half that would change something', () => {
+    expect(suggestionFrom(PAGE, { title: 'Oeschinensee', note: '' })).toEqual({
+      title: null,
+      description: 'Ein Bergsee über Kandersteg',
+    })
+  })
+})
+
+describe('acceptSuggestion (FR-29.16)', () => {
+  it('takes both halves when confirmed — a confirmed suggestion replaces what was there', () => {
+    expect(acceptSuggestion({ title: 'Seerundgang', note: 'mit Kinderwagen' }, PAGE)).toEqual({
       title: 'Oeschinensee',
       note: 'Ein Bergsee über Kandersteg',
     })
   })
 
-  it('replaces the site-name placeholder, which nobody typed', () => {
+  it('leaves a field the suggestion has nothing for', () => {
     expect(
-      fillFromPreview({ title: 'oeschinensee.ch', note: '' }, PAGE, 'oeschinensee.ch'),
-    ).toEqual({
-      title: 'Oeschinensee',
-      note: 'Ein Bergsee über Kandersteg',
-    })
-  })
-
-  it('leaves what somebody typed', () => {
-    expect(
-      fillFromPreview({ title: 'Seerundgang', note: 'mit Kinderwagen' }, PAGE, 'oeschinensee.ch'),
-    ).toEqual({ title: 'Seerundgang', note: 'mit Kinderwagen' })
-  })
-
-  it('fills one and keeps the other', () => {
-    expect(fillFromPreview({ title: 'Seerundgang', note: '' }, PAGE, null)).toEqual({
-      title: 'Seerundgang',
-      note: 'Ein Bergsee über Kandersteg',
-    })
-  })
-
-  it('keeps the placeholder when the page has no title of its own', () => {
-    expect(
-      fillFromPreview(
-        { title: 'oeschinensee.ch', note: '' },
-        { title: null, description: null },
-        'oeschinensee.ch',
+      acceptSuggestion(
+        { title: 'Seerundgang', note: 'mit Kinderwagen' },
+        { title: 'Hütte', description: null },
       ),
-    ).toEqual({ title: 'oeschinensee.ch', note: '' })
+    ).toEqual({ title: 'Hütte', note: 'mit Kinderwagen' })
   })
 })

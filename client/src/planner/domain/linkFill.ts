@@ -1,12 +1,12 @@
 /**
- * What a link fills in (FR-29.16) — pure, so the rule is not only
- * reachable through the sheet.
+ * What a link does to the idea's text (FR-29.16) — pure, so the rules are
+ * not only reachable through the sheet.
  *
- * Two steps. As soon as a link rests in the field, a blank title takes the
- * link's site, so a pasted link alone is an idea that can be saved — in
- * every mode, preview or none. Then, where the page is read, its own words
- * fill what is still blank; the site name placed in the first step counts
- * as blank, since nobody typed it. What somebody typed is theirs and stays.
+ * Two different things. As soon as a link rests in the field, a blank title
+ * takes the link's site, so a pasted link alone is an idea that can be saved
+ * — in every mode, preview or none. What the page says about itself, on the
+ * other hand, is only a **suggestion**: nothing of it reaches a field until
+ * somebody confirms it.
  */
 import { linkSite } from './ideas'
 
@@ -22,7 +22,7 @@ export interface PreviewText {
   description: string | null
 }
 
-/** The text after the first step, and the title it placed, if any. */
+/** The text after the site name was placed, and the title it placed, if any. */
 export interface LinkFill {
   text: FillableText
   placeholder: string | null
@@ -34,14 +34,21 @@ export function fillFromLink(current: FillableText, link: string): LinkFill {
   return { text: { ...current, title: site }, placeholder: site }
 }
 
-export function fillFromPreview(
-  current: FillableText,
-  preview: PreviewText,
-  placeholder: string | null,
-): FillableText {
-  const titleIsBlank = current.title.trim() === '' || current.title === placeholder
+/**
+ * The suggestion a page makes: its words where they would change a field,
+ * or null where they would change nothing — nothing to confirm.
+ */
+export function suggestionFrom(page: PreviewText, current: FillableText): PreviewText | null {
+  const title = page.title && page.title !== current.title ? page.title : null
+  const description =
+    page.description && page.description !== current.note ? page.description : null
+  return title || description ? { title, description } : null
+}
+
+/** A confirmed suggestion: what it has replaces what was there. */
+export function acceptSuggestion(current: FillableText, suggestion: PreviewText): FillableText {
   return {
-    title: titleIsBlank && preview.title ? preview.title : current.title,
-    note: current.note.trim() === '' && preview.description ? preview.description : current.note,
+    title: suggestion.title ?? current.title,
+    note: suggestion.description ?? current.note,
   }
 }

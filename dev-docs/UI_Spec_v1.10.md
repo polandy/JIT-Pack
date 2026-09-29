@@ -2963,12 +2963,13 @@ token would prove nothing there is anything to prove.
   once (*oeschinensee.ch*), so *Hinzufügen* is on without typing. Where a read can be had — never in Local Mode or on an
   instance with previews off, where the sheet stays `data-preview="idle"` — once the link has rested 0.6 s the sheet
   reads its page — *„Link wird gelesen …"* with dots under the field (`idea-edit-preview-loading`), the sheet's
-  `data-preview` going `loading` → `done` — and the page's title and description fill a blank (or site-named) title and
-  note first; the page's picture follows on its own, where the idea has none yet: under the link a 16:10 tile with
-  dots and *„Bild wird geladen …"* (`idea-edit-preview-picture`, `data-coming`) until it is there, then the thumbnail
-  with *„Bild aus dem Link"*, ✕ on both (`…-drop`). A page that cannot be read leaves the sheet as it was.
-  *Hinzufügen* writes it and toasts *„„…" steht bei den Ideen"*, then adds the offered picture as the idea's first —
-  one still coming when the idea is saved is added once it arrives; an edit writes only the fields that changed.
+  `data-preview` going `loading` → `done` — and shows what the page says as a card under the link
+  (`idea-edit-suggestion`): *„Vorschlag aus dem Link"*, the page's title in the heading weight and its description in at
+  most three lines, and *Nicht übernehmen* / *Übernehmen* (`…-dismiss`, `…-accept`). Nothing changes before
+  *Übernehmen*, which puts the title and the description into the title and the note. A page that cannot be read, or
+  that says nothing new, shows no card. The page's picture is fetched in the background — nothing in the sheet shows it
+  — and appears on the idea once it arrives, also after the save, where the idea has no picture by then. *Hinzufügen*
+  writes it and toasts *„„…" steht bei den Ideen"*; an edit writes only the fields that changed.
 * **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
   side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
   it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia
