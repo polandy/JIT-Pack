@@ -452,6 +452,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A date range is one field (2026-09-27)](#a-date-range-is-one-field-2026-09-27) — pure two-tap picking would have lost the end-only trips; a fixed month window lost last year's.
 - [Pictures on an idea (2026-09-28)](#pictures-on-an-idea-2026-09-28) — a pushed row names bytes nobody has; a push whitelist is the pull's shape; `crypto.subtle` needs HTTPS.
 - [A pasted link fills the idea (2026-09-28)](#a-pasted-link-fills-the-idea-2026-09-28) — one shared timeout lost real pictures; the owner chose on-by-default.
+- [The leftovers follow the trip (2026-09-29)](#the-leftovers-follow-the-trip-2026-09-29) — most of I-8 already existed; two accepted costs on the task tag.
 
 ## Deviations
 
@@ -17925,3 +17926,20 @@ card: the planner store keeps which ideas wait for one, device state beside the 
 reported the title as still no suggestion: the suggestion stood as one card under the link, and the title field above
 stayed empty, which read as nothing suggested at all. Asked with the screenshot, the owner chose the suggestion inside
 each field — grey as its placeholder, *Übernehmen* in its end slot — and each field confirms its own half.
+
+## The leftovers follow the trip (2026-09-29)
+
+FR-7.16, from idea I-8. **A premise that was wrong:** the idea read as new work, but FR-5.10/FR-7.12 already moved
+open tasks and purchases at the close and marked unpacked rows skipped. The owner believed unpacked rows were
+removed; they are kept as FR-5.5's *weggelassen*, and the owner chose to leave it so. What was missing was the
+moment (*Reise starten* never asked about the packing), a mark on what moved, and a tag on the tasks.
+
+**Options weighed for the mark on M6.** A shopping tag named *Von vor der Abreise* would have needed no schema,
+but packing rows carry no shopping tag, and it would have overwritten an entry's own tag. A column,
+`carried_over_at` on both tables, marks rows of either kind and leaves the tag alone; it cost a migration. Tasks
+went the other way on the owner's call: a real task tag in the vocabulary, because M25's groups are tags already.
+
+**Two accepted costs on that tag.** Two devices closing offline each create the tag; the name's UNIQUE index
+refuses the second insert, and that device's tasks point at a tag id that never lands, so they read as untagged
+until retagged. The undo takes the tag off the tasks but leaves it in the vocabulary — deleting it would reach into
+master data another trip may already use.
