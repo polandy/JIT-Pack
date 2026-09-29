@@ -163,6 +163,7 @@ import {
 import {
   CLOSING_QUERY_PARAM,
   ITEM_QUERY_PARAM,
+  STARTING_QUERY_PARAM,
   tripItemPath,
   tripPath,
   tripSubPath,
@@ -2152,6 +2153,14 @@ watch(
   { immediate: true },
 )
 
+/** FR-7.16: *Nur starten* — the trip starts, the packing stays open and nothing moves. */
+function onStartOnly() {
+  closeSheetOpen.value = false
+  closeStarting.value = false
+  orchestrator.activateTrip(props.tripId)
+  void announceAct(t('packing.startedToast'))
+}
+
 /** Leaves the pass without archiving — the door asks, so it can be closed. */
 function onCancelClosingPass() {
   closingPass.value = false
@@ -2189,6 +2198,36 @@ const closeShoppingCount = computed(
 /** Whether the question is on screen, and whether it came asked or invited. */
 const closeSheetOpen = ref(false)
 const closePrompted = ref(false)
+/** FR-7.16: the sheet was opened by *Reise starten*, and its confirm starts the trip too. */
+const closeStarting = ref(false)
+
+/**
+ * FR-7.16: M2's *Reise starten* on a trip whose packing is open arrives as
+ * `?starting=1`, and the list asks FR-5.10's question put for the start.
+ * Taken only while starting is the trip's next step; a packing finished in
+ * the meantime starts the trip without asking. The flag is dropped from the URL at once, like the closing pass's. Below
+ * the sheet's own state, since it runs as soon as it is set up.
+ */
+watch(
+  [() => route.query[STARTING_QUERY_PARAM], () => nextLifecycleStep(trip.value)],
+  ([asked, step]) => {
+    if (asked === undefined) return
+    // Waits for the trip: before it has loaded there is no step to read.
+    if (step === null && !trip.value) return
+    if (step === 'start' && !packingClosed.value) {
+      closePrompted.value = false
+      closeStarting.value = true
+      closeSheetOpen.value = true
+    } else if (step === 'start') {
+      // Finished on another device between M2's tap and this arrival: there
+      // is nothing left to ask, and the start was asked for.
+      orchestrator.activateTrip(props.tripId)
+      void announceAct(t('packing.startedToast'))
+    }
+    void router.replace(tripPath(props.tripId))
+  },
+  { immediate: true },
+)
 
 /**
  * FR-5.10's second door: the step is offered where the
@@ -2253,6 +2292,7 @@ function onClosePacking() {
 /** Dismissed: nothing is written, and an offered close stops being offered. */
 function onCloseSheetDismissed() {
   closeSheetOpen.value = false
+  closeStarting.value = false
   if (closePrompted.value) onDismissPrompt()
 }
 
@@ -2266,14 +2306,22 @@ function onCloseSheetDismissed() {
  * is there when it runs, not on what the question counted.
  */
 function onConfirmClosePacking() {
+  const starting = closeStarting.value
   closeSheetOpen.value = false
+  closeStarting.value = false
   closePromptUp.value = false
   const { rows, tasks, buyRows } = orchestrator.closePacking(props.tripId, {
     isClaimed: (row: TripItem) => locked(row),
+    // FR-7.16: the tag the crossing trip tasks are filed under, in the
+    // reader's words.
+    carriedTagName: t('tasks.carriedTag'),
   })
   // FR-7.12: a module's own *before* list crosses in the same act, and is
   // taken back by the same undo.
   const crossed = closeCrossings.map((crossing) => crossing.cross(props.tripId))
+  // FR-7.16: asked for by *Reise starten* — the start is part of the act,
+  // after the close, so the trip is under way with *before* already closed.
+  if (starting) orchestrator.activateTrip(props.tripId)
   const shopping = buyRows.length + crossed.reduce((n, effect) => n + effect.count, 0)
   // One undo for the whole act (FR-25.31), and deliberately one *call*: the
   // rows travel as the records the snackbar snapshots, the moved tasks in the
@@ -2283,6 +2331,7 @@ function onConfirmClosePacking() {
   rowUndo.armUndo(rows, (records) => {
     orchestrator.restorePackingClose(props.tripId, records, tasks, buyRows)
     for (const effect of crossed) effect.undo()
+    if (starting) orchestrator.unstartTrip(props.tripId)
   })
   const said = [
     rows.length > 0 ? t('packing.closedToast', { n: rows.length }) : t('packing.closedToastNone'),
@@ -2291,6 +2340,7 @@ function onConfirmClosePacking() {
   // the tasks left a screen the reader is still looking at.
   if (tasks.length > 0) said.push(t('packing.closedToastTasks', { n: tasks.length }))
   if (shopping > 0) said.push(t('packing.closedToastShopping', { n: shopping }))
+  if (starting) said.push(t('packing.startedToastShort'))
   void announceAct(said.join(' · '))
 }
 
@@ -2960,8 +3010,10 @@ setHeaderTitle(
           :plan="closePlan"
           :shopping="closeShoppingCount"
           :prompted="closePrompted"
+          :starting="closeStarting"
           @close="onCloseSheetDismissed"
           @confirm="onConfirmClosePacking"
+          @start-only="onStartOnly"
         />
       </SheetModal>
 

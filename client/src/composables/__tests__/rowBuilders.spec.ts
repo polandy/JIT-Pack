@@ -257,6 +257,7 @@ const CASES: BuilderCase[] = [
         bought_by_user_id: null,
         flag_unused: 1,
         flag_missing: 1,
+        carried_over_at: '2026-08-21T18:00:00Z',
         updated_hlc: '0000009000000-0001-abcdef01',
       })
     },
@@ -299,6 +300,7 @@ const CASES: BuilderCase[] = [
       bought_by_user_id: null,
       flag_unused: true,
       flag_missing: true,
+      carried_over_at: '2026-08-21T18:00:00Z',
       updated_hlc: '0000009000000-0001-abcdef01',
     } satisfies Record<keyof TripItem, unknown>,
   },

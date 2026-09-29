@@ -140,6 +140,21 @@ describe('createPackingShoppingSource (FR-30.2)', () => {
     expect(source.bought('t1', 'buy_local')[0]?.boughtNote).toBe(t('shopping.wentPacked'))
   })
 
+  it('a carried row reads as carried at the destination only (FR-7.16)', () => {
+    const at = '2026-07-01T08:00:00Z'
+    const carried = item({ name: 'Sonnenhut', mode: 'buy_local', carried_over_at: at })
+    // Put back on a reopened packing: the stamp stays, the heading does not.
+    const putBack = item({ name: 'Kaffee', mode: 'buy_before', carried_over_at: at })
+    const plain = item({ name: 'Brot', mode: 'buy_local' })
+    const { source } = sourceWith({ buyLocal: [carried, plain], buyBefore: [putBack] })
+
+    expect(source.open('t1', 'buy_local').map((l) => [l.name, l.carriedOver])).toEqual([
+      ['Sonnenhut', true],
+      ['Brot', false],
+    ])
+    expect(source.open('t1', 'buy_before').map((l) => l.carriedOver)).toEqual([false])
+  })
+
   it('offers no remove — a packing row leaves the list by being bought or changing mode', () => {
     const { source } = sourceWith({ buyLocal: [item()] })
     expect(source.open('t1', 'buy_local')[0]?.remove).toBeUndefined()

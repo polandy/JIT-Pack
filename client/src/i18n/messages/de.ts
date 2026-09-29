@@ -271,6 +271,11 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closeConfirmTitle': 'Packen abschliessen?',
   'packing.closeConfirmMeta': 'Was offen bleibt, ist danach eine Entscheidung.',
   'packing.closePromptMeta': 'Das war das letzte offene Packelement.',
+  'packing.startConfirmTitle': 'Reise starten',
+  'packing.startConfirmMeta': 'Das Packen ist noch offen. Zuerst abschliessen?',
+  'packing.startConfirmVerb': 'Abschliessen und starten',
+  'packing.startOnly': 'Nur starten',
+  'packing.startedToastShort': 'Reise gestartet',
   'packing.closeLater': 'Später',
   'packing.closeConfirmBody':
     '{n} offenes Packelement wird als bewusst nicht mitgenommen vermerkt. | {n} offene Packelemente werden als bewusst nicht mitgenommen vermerkt.',
@@ -1567,6 +1572,7 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.openAll': 'Alle Aufgaben',
   // FR-7.8 — das eine Tag einer Aufgabe und die Gruppen daraus.
   'tasks.fromPacking': 'Aus Packliste',
+  'tasks.carriedTag': 'Von vor der Abreise',
   'tasks.noTag': 'Ohne Tag',
   'tasks.tagLabel': 'Tag',
   'tasks.select': 'Auswählen',
@@ -1946,6 +1952,7 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.beforeDepartureCount': 'Vor der Reise ({n})',
   'shopping.atDestination': 'Vor Ort',
   'shopping.atDestinationCount': 'Vor Ort ({n})',
+  'shopping.carriedOver': 'Von vor der Abreise',
   'shopping.packingList': 'Packliste',
   'shopping.forWhom': 'für {names}',
   'shopping.bought': 'Gekauft: {name}',

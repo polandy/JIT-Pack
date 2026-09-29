@@ -20,6 +20,7 @@ import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { defaultNowIso, type NowIso } from '@/lib/clock'
 import {
+  ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   REVIEW_FLAG_FIELD,
@@ -386,6 +387,26 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   function setItemMode(itemId: string, mode: ItemMode): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { mode })
+  }
+
+  /**
+   * FR-7.12/FR-7.16: the close carries a row still to buy *before
+   * departure* to *at the destination*, and says when — one write, so the
+   * mark never stands on a row that did not move.
+   */
+  function carryRowToLocal(itemId: string, at: string): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      mode: ITEM_MODE_BUY_LOCAL,
+      carried_over_at: at,
+    })
+  }
+
+  /** The close's undo for {@link carryRowToLocal}: back before departure, unmarked. */
+  function returnCarriedRow(itemId: string): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      mode: ITEM_MODE_BUY_BEFORE,
+      carried_over_at: null,
+    })
   }
 
   /**
@@ -1738,6 +1759,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     buyItem,
     unbuyItem,
     setItemMode,
+    carryRowToLocal,
+    returnCarriedRow,
     setMembershipFields,
     assignTraveler,
     assignContainer,

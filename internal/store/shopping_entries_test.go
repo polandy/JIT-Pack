@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -189,5 +190,54 @@ func TestSchema_ShoppingEntryTagIsOneToFortyCharacters_FR30_9(t *testing.T) {
 	}
 	if err := insert("bad-blank", ""); err == nil {
 		t.Error("an empty tag was accepted — none is NULL, not a tag named nothing")
+	}
+}
+
+// FR-7.16: what the close of the packing carried from *before departure* to
+// *at the destination* says so — a packing row in a buy mode and an own
+// entry alike — and the undo takes the mark back off. The client names the
+// moment; the server only keeps it.
+func TestApplyMutation_CarriedOverMark_SetThenCleared_FR7_16(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO trip_items (id, trip_id, name, mode) VALUES ('ti-1', ?, 'Sonnencreme', 'buy_before')`, testTrip)
+	mustExec(t, s, `INSERT INTO shopping_entries (id, trip_id, name, list) VALUES ('se-1', ?, 'Milch', 'buy_before')`, testTrip)
+
+	const at = "2026-09-29T18:00:00Z"
+	cases := []struct {
+		table, id string
+		carry     map[string]any
+	}{
+		{TableTripItems, "ti-1", map[string]any{"mode": "buy_local", "carried_over_at": at}},
+		{TableShoppingEntries, "se-1", map[string]any{"list": "buy_local", "carried_over_at": at}},
+	}
+	for i, tc := range cases {
+		t.Run(tc.table, func(t *testing.T) {
+			carry := upsert(tc.id, fmt.Sprintf("carry-%d", i), tc.carry, "0000000002000-0000-aaaaaaaa")
+			carry.Table = tc.table
+			back := upsert(tc.id, fmt.Sprintf("back-%d", i), map[string]any{"carried_over_at": nil}, "0000000003000-0000-aaaaaaaa")
+			back.Table = tc.table
+			mark := func() *string {
+				t.Helper()
+				var v *string
+				if err := s.db.QueryRow(`SELECT carried_over_at FROM `+tc.table+` WHERE id = ?`, tc.id).Scan(&v); err != nil {
+					t.Fatalf("read mark: %v", err)
+				}
+				return v
+			}
+
+			if res, err := s.ApplyMutation(ctx, testTrip, testUser, carry); err != nil || res.Outcome != sync.OutcomeApplied {
+				t.Fatalf("carry: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+			}
+			if got := mark(); got == nil || *got != at {
+				t.Fatalf("mark after the carry = %v, want %s", got, at)
+			}
+			if res, err := s.ApplyMutation(ctx, testTrip, testUser, back); err != nil || res.Outcome != sync.OutcomeApplied {
+				t.Fatalf("undo: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+			}
+			if got := mark(); got != nil {
+				t.Errorf("mark after the undo = %q, want NULL", *got)
+			}
+		})
 	}
 }

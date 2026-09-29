@@ -94,6 +94,17 @@ export const COMMENT_QUERY_PARAM = 'comment'
 export const CLOSING_QUERY_PARAM = 'closing'
 
 /**
+ * FR-7.16: asks the packing list to open with FR-5.10's question put for
+ * *Reise starten* — the trip is being started while its packing is open.
+ */
+export const STARTING_QUERY_PARAM = 'starting'
+
+/** The packing list asking whether to finish the packing as the trip starts (FR-7.16). */
+export function tripStartingPath(tripId: string): string {
+  return `${tripPath(tripId)}?${new URLSearchParams({ [STARTING_QUERY_PARAM]: '1' }).toString()}`
+}
+
+/**
  * The packing list in its closing pass (FR-9.3) — where *Reise abschliessen*
  * leads from M2, since the trip's lifecycle steps are M2's alone.
  */

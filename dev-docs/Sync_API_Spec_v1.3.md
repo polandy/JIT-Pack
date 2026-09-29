@@ -228,6 +228,12 @@ free of a CHECK for the reason above; an explicit `null` takes the date off. The
 reminder (§8, kind `task_due`). `shopping_entries.due_date` (FR-30.10) is the same field on a shopping entry, read by
 the same run for kind `shopping_due`.
 
+`trip_items.carried_over_at` and `shopping_entries.carried_over_at` (FR-7.16) are the moment finishing the packing
+carried the row from *before departure* to *at the destination*, an RFC 3339 timestamp, or NULL. Client-written, not
+stamped, and written in the same mutation as the row's move; the close's undo writes `null` beside moving it back.
+The server only stores it: the client reads it to file the row under its own heading. A client that predates the
+column neither sends nor reads it, and the row files as it always did.
+
 `excursions`, `excursion_travelers` and `excursion_items` (FR-31, ADR-077) are three more trip-partition tables, all
 client-written and none stamped. An excursion's `starts_on`/`ends_on` are calendar days like `due_date`, nullable and
 free of a CHECK that orders them; a reader takes a reversed pair as its min and max. Deleting an excursion cascades to

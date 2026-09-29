@@ -280,6 +280,11 @@ export const en = {
   'packing.closeConfirmTitle': 'Finish packing?',
   'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
   'packing.closePromptMeta': 'That was the last open item.',
+  'packing.startConfirmTitle': 'Start trip',
+  'packing.startConfirmMeta': 'Packing is still open. Finish it first?',
+  'packing.startConfirmVerb': 'Finish and start',
+  'packing.startOnly': 'Start only',
+  'packing.startedToastShort': 'Trip started',
   'packing.closeLater': 'Later',
   'packing.closeConfirmBody':
     '{n} open item is recorded as deliberately left behind. | {n} open items are recorded as deliberately left behind.',
@@ -1554,6 +1559,7 @@ export const en = {
   'tasks.openAll': 'All tasks',
   // FR-7.8 — a task's one tag, and the groups it makes.
   'tasks.fromPacking': 'From the packing list',
+  'tasks.carriedTag': 'From before departure',
   'tasks.noTag': 'No tag',
   'tasks.tagLabel': 'Tag',
   'tasks.select': 'Select',
@@ -1927,6 +1933,7 @@ export const en = {
   'shopping.beforeDepartureCount': 'Before the trip ({n})',
   'shopping.atDestination': 'At destination',
   'shopping.atDestinationCount': 'At destination ({n})',
+  'shopping.carriedOver': 'From before departure',
   'shopping.packingList': 'Packing list',
   'shopping.forWhom': 'for {names}',
   'shopping.bought': 'Bought: {name}',

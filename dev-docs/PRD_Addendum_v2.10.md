@@ -5635,6 +5635,40 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
     `012_note_excursion.sql` adds the column.
   * **Surfaces:** M26 (sheet, card, thread view, edit), M27's list. UI-Spec M26/M27; E2E-M26-05/06.
 
+* **FR-7.16 (What Crosses Says Where It Came From, and the Start Asks for the Close, *built*):** FR-7.12 carries what is
+  still open *before departure* into the trip when the packing is closed. Two gaps are closed here: what crossed
+  blended into the destination's lists unmarked, and *Reise starten* ended *before* (FR-30.8's *under way*) without
+  moving anything, because only the close moves.
+  * **Carried is a heading, where nothing files it more precisely.** A packing row still to buy before departure and a
+    shopping entry still open there are carried to *Vor Ort* with a **`carried_over_at`** in the same write — the
+    close's moment, named by the client like `packed_at`, NULL for never carried. M6 files a carried line under
+    ***Von vor der Abreise***, the first heading of the list: a packing line in place of the combined *Packliste*
+    heading, an own entry in place of the untagged *Eingetragen*. **A tag of its own wins** (FR-30.9), and so does a
+    source's own heading (FR-31.8's excursion): they say more than where the line came from. The heading takes no drop;
+    a carried entry leaves it by being given a tag. Bought, a carried line stays carried — its record says so.
+  * **For a task the heading is a tag of the vocabulary** (FR-7.8), so it can be renamed, dragged to and deleted like
+    any other: a **trip task without a tag** crosses filed under ***Von vor der Abreise***, in the same write as its
+    phase (`carryTask`). A tagged task keeps its tag, and a row's preparation keeps its *Aus Packliste* (FR-7.6). The
+    tag is **found by name** — case and surrounding space aside — and made by the first close that needs it
+    (`carriedTaskTag`, `client/src/domain/closePacking.ts`), in the reader's language. Two devices closing two trips
+    offline at once may both make it; `task_tags.name` is `UNIQUE`, so one insert is refused and that device's tasks
+    name a tag it no longer holds — which reads as untagged (FR-7.8's `filedTagOf`), the accepted cost of not
+    fetching before a write that happens offline.
+  * **One undo takes it all back**, as FR-7.12's: the rows and entries return *before departure* unmarked, each task
+    its phase, and the carried tag comes off where the close put it. The tag itself stays in the vocabulary: it is a
+    word now, and the next close would only make it again.
+  * **Unchanged:** unpacked rows become FR-5.5's *bewusst nicht mitgenommen*, not deleted (FR-5.10's P1 — M14 judges
+    them), and *before* stays as read-only, folded history on M6 and M25 (FR-7.12/FR-7.14).
+  * **The start asks for the close.** *Reise starten* (M2) on a trip whose packing is open leads to M4 with FR-5.10's
+    sheet put for the start (`?starting=1`, dropped at once): *„Reise starten — Das Packen ist noch offen. Zuerst
+    abschliessen?"*, its confirm ***Abschliessen und starten*** — the close and the start as one act with one undo,
+    which also puts the trip back to planned — and ***Nur starten***, which starts the trip and moves nothing, as the
+    start did before. *Abbrechen* starts nothing. On a trip whose packing is already closed the start is what it was.
+    Still never a date (FR-7.12): the first day arriving moves nothing; a person does.
+  * **Modes.** All three; the marks and the tag are ordinary synced columns and rows.
+  * **Surfaces:** M2 (the start), M4 (the sheet), M6 (the heading), M25 (the tag). UI-Spec M2/M4/M6/M25;
+    E2E-M4-151, E2E-M6-38.
+
 ### 3.9 Trip Feedback & Post-Trip Review
 
 * **FR-9.3 (Capturing Trip Feedback Without Visiting Every Row, *built*):**

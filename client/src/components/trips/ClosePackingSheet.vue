@@ -37,9 +37,15 @@ const props = defineProps<{
    * entries, which the plan cannot see (the list is a module, ADR-066).
    */
   shopping?: number
+  /**
+   * FR-7.16: asked for *Reise starten* while the packing is open — the
+   * confirm finishes it and starts the trip, and a second button starts the
+   * trip alone.
+   */
+  starting?: boolean
 }>()
 
-const emit = defineEmits<{ close: []; confirm: [] }>()
+const emit = defineEmits<{ close: []; confirm: []; startOnly: [] }>()
 
 /** The facts a count hides, each with the glyph its rows wear on the list. */
 const facts = () =>
@@ -53,8 +59,14 @@ const facts = () =>
 <template>
   <div class="sheet" data-testid="m4-close-sheet">
     <SheetHead
-      :title="t('packing.closeConfirmTitle')"
-      :meta="props.prompted ? t('packing.closePromptMeta') : t('packing.closeConfirmMeta')"
+      :title="props.starting ? t('packing.startConfirmTitle') : t('packing.closeConfirmTitle')"
+      :meta="
+        props.starting
+          ? t('packing.startConfirmMeta')
+          : props.prompted
+            ? t('packing.closePromptMeta')
+            : t('packing.closeConfirmMeta')
+      "
       title-testid="m4-close-sheet-title"
       close-testid="m4-close-sheet-close"
       @close="emit('close')"
@@ -101,10 +113,21 @@ const facts = () =>
       <IonButton expand="block" data-testid="m4-close-sheet-confirm" @click="emit('confirm')">
         <IonIcon slot="start" :icon="checkmarkDoneOutline" />
         {{
-          props.plan.rows.length > 0
-            ? t('packing.closeConfirmVerb', { n: props.plan.rows.length })
-            : t('packing.closeConfirmVerbNothing')
+          props.starting
+            ? t('packing.startConfirmVerb')
+            : props.plan.rows.length > 0
+              ? t('packing.closeConfirmVerb', { n: props.plan.rows.length })
+              : t('packing.closeConfirmVerbNothing')
         }}
+      </IonButton>
+      <IonButton
+        v-if="props.starting"
+        expand="block"
+        fill="outline"
+        data-testid="m4-close-sheet-start-only"
+        @click="emit('startOnly')"
+      >
+        {{ t('packing.startOnly') }}
       </IonButton>
       <IonButton
         expand="block"

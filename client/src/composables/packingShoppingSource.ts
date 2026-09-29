@@ -13,7 +13,7 @@ import { buildBuyRows } from '@/domain/buyRows'
 import { t } from '@/i18n'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode, Traveler, TripItem } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 /** What the source reads off the trip store — and nothing else. */
 export interface PackingShoppingReads {
@@ -51,6 +51,13 @@ export function createPackingShoppingSource(
         name: row.name,
         quantity: row.quantity,
         recipients: row.recipients.map((traveler) => ({ id: traveler.id, name: traveler.name })),
+        // FR-7.16: one instance carried is the line carried — the close
+        // moves every row still to buy, so the instances agree. Only at the
+        // destination: a row put back before departure on a reopened packing
+        // keeps its stamp, but was carried nowhere.
+        carriedOver:
+          list === ITEM_MODE_BUY_LOCAL &&
+          row.instances.some((item) => item.carried_over_at != null),
         // Read off the row rather than off the list: a BUY_BEFORE purchase is
         // on the packing list, a BUY_LOCAL one is packed, and a row whose
         // mode changed again since says so (FR-25.11j).

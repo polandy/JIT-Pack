@@ -389,6 +389,9 @@ var tableSpecs = map[string]tableSpec{
 			// (FR-25.19, invariant 3). packed_at is the same record's time
 			// (FR-25.17) and goes through the same gate.
 			"packed_by_user_id", "packed_at",
+			// FR-7.16: when the close of the packing carried the row to the
+			// destination — the client's clock, like packed_at's record.
+			"carried_over_at",
 		),
 		// The one cascade of the *trip* partition: a row's comments and
 		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
@@ -517,6 +520,9 @@ var tableSpecs = map[string]tableSpec{
 			// FR-30.12: who is to buy it — the client's to choose, like a
 			// task's assignee (FR-7.5).
 			"assignee_user_id",
+			// FR-7.16: when the close of the packing carried the entry to
+			// the destination — the client's to name, like the due day.
+			"carried_over_at",
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

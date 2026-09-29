@@ -253,6 +253,24 @@ export function createPackingActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-7.16: the close carries a row to the destination and marks it (see `mutations.carryRowToLocal`). */
+  function carryToLocal(tripId: string, item: TripItem, at: string) {
+    const mut = mutations.carryRowToLocal(item.id, at)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, itemRow(item)),
+    })
+  }
+
+  /** FR-7.16: the close's undo — the row back before departure, unmarked. */
+  function returnCarried(tripId: string, item: TripItem) {
+    const mut = mutations.returnCarriedRow(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, itemRow(item)),
+    })
+  }
+
   function assignTraveler(tripId: string, item: TripItem, travelerId: string | null) {
     const mut = mutations.assignTraveler(item.id, travelerId)
     enqueueAndDrain('trip', tripId, {
@@ -869,6 +887,8 @@ export function createPackingActions(ctx: SyncContext) {
     buyItem,
     unbuyItem,
     setMode,
+    carryToLocal,
+    returnCarried,
     assignTraveler,
     assignContainer,
     setLatePacker,

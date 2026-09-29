@@ -86,6 +86,7 @@ const count = computed(() =>
 const showBought = ref(false)
 
 function sectionTitle(section: ShoppingSection): string {
+  if (section.carried) return t('shopping.carriedOver')
   if (section.packing) return t('shopping.packingList')
   if (section.own) return t('shopping.ownEntries')
   return section.name ?? ''
@@ -111,7 +112,7 @@ function boughtStamp(line: ShoppingLine): string | null {
         :title="sectionTitle(section)"
         :drop-target="dropKey(section)"
         :droppable="!readonly && dropTag(section) !== undefined"
-        :data-testid="`m6-group-${section.packing ? 'packing' : section.own ? 'own' : section.tagged ? `tag-${section.name}` : `source-${section.name}`}`"
+        :data-testid="`m6-group-${section.carried ? 'carried' : section.packing ? 'packing' : section.own ? 'own' : section.tagged ? `tag-${section.name}` : `source-${section.name}`}`"
       >
         <ShoppingRows
           :lines="section.lines"

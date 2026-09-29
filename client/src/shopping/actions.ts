@@ -172,21 +172,27 @@ export function createShoppingActions(host: ModuleHost) {
   }
 
   /**
-   * FR-7.12: entries moved to another list — the close of the packing sends
-   * what is still open *before departure* to *at the destination*. One
-   * field; the undo writes each entry's own list back, and only where the
-   * entry is still on the list this put it on.
+   * FR-7.12/FR-7.16: the close of the packing carries what is still open
+   * *before departure* to *at the destination*, and marks when — one write
+   * per entry, so the mark never stands on an entry that did not move. The
+   * undo writes each entry's own list back, unmarked.
    */
-  function moveEntries(entries: readonly ShoppingEntry[], list: ShoppingMode): () => void {
-    const moving = entries.filter((entry) => entry.list !== list)
-    for (const entry of moving) writeList(entry, list)
+  function carryEntries(entries: readonly ShoppingEntry[]): () => void {
+    const moving = entries.filter((entry) => entry.list !== ITEM_MODE_BUY_LOCAL)
+    const at = host.nowIso()
+    for (const entry of moving) writeCarry(entry, ITEM_MODE_BUY_LOCAL, at)
     return () => {
-      for (const entry of moving) writeList({ ...entry, list }, entry.list)
+      for (const entry of moving) {
+        writeCarry({ ...entry, list: ITEM_MODE_BUY_LOCAL, carried_over_at: at }, entry.list, null)
+      }
     }
   }
 
-  function writeList(entry: ShoppingEntry, list: ShoppingMode): void {
-    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, { list })
+  function writeCarry(entry: ShoppingEntry, list: ShoppingMode, at: string | null): void {
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
+      list,
+      carried_over_at: at,
+    })
     host.writeTrip(entry.trip_id, {
       mutation,
       optimistic: optimisticUpdate(mutation, encode(entry)),
@@ -201,7 +207,7 @@ export function createShoppingActions(host: ModuleHost) {
     removeEntry,
     bulkSetTag,
     bulkSetAssignee,
-    moveEntries,
+    carryEntries,
   }
 }
 
@@ -255,6 +261,7 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       quantity: 1,
       recipients: [],
       tag: entry.tag,
+      carriedOver: entry.carried_over_at != null,
       dueDate: entry.bought ? null : entry.due_date,
       assignee: entry.assignee_user_id,
       boughtAt: entry.bought ? entry.bought_at : undefined,
@@ -287,13 +294,13 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
  */
 export function shoppingCloseCrossing(
   reads: Pick<EntryReads, 'openEntries'>,
-  actions: Pick<ShoppingActions, 'moveEntries'>,
+  actions: Pick<ShoppingActions, 'carryEntries'>,
 ): PackingCloseCrossing {
   return {
     pending: (tripId) => reads.openEntries(tripId, ITEM_MODE_BUY_BEFORE).length,
     cross(tripId) {
       const entries = reads.openEntries(tripId, ITEM_MODE_BUY_BEFORE)
-      return { count: entries.length, undo: actions.moveEntries(entries, ITEM_MODE_BUY_LOCAL) }
+      return { count: entries.length, undo: actions.carryEntries(entries) }
     },
   }
 }

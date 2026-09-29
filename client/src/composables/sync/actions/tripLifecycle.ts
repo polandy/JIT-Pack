@@ -20,13 +20,13 @@ import { itemRow, travelerRow, tripRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
-import { planPackingClose, type ClosingTask } from '@/domain/closePacking'
 import {
-  ITEM_MODE_BUY_BEFORE,
-  ITEM_MODE_BUY_LOCAL,
-  TASK_PHASE_DURING,
-  type TaskPhase,
-} from '@/types/domain'
+  carriedTaskTag,
+  planPackingClose,
+  tasksToFileAsCarried,
+  type ClosingTask,
+} from '@/domain/closePacking'
+import { ITEM_MODE_BUY_LOCAL, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 /**
  * FR-7.7: one task the close moved, with the phase it had before.
@@ -38,6 +38,8 @@ import {
 export interface TaskPhaseRecord {
   task: ClosingTask
   phase: TaskPhase | null
+  /** FR-7.16: whether the close filed it under the carried tag, which the undo takes off again. */
+  tagged: boolean
 }
 
 /** What closing the packing touched, for the one snackbar that takes it back. */
@@ -394,6 +396,15 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     setTripStatus(tripId, TRIP_STATUS_ACTIVE)
   }
 
+  /**
+   * FR-7.16: the undo of a start made together with the close of the
+   * packing — the trip is planned again. Not a lifecycle step anybody is
+   * offered; only the snackbar that took the start back reaches it.
+   */
+  function unstartTrip(tripId: string) {
+    setTripStatus(tripId, TRIP_STATUS_PLANNING)
+  }
+
   /** archiveTrip completes the trip; archiving is the M14 review trigger. */
   function archiveTrip(tripId: string) {
     setTripStatus(tripId, TRIP_STATUS_ARCHIVED)
@@ -435,7 +446,15 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    */
   function closePacking(
     tripId: string,
-    opts: { isClaimed?: (item: TripItem) => boolean } = {},
+    opts: {
+      isClaimed?: (item: TripItem) => boolean
+      /**
+       * FR-7.16: the name of the task tag the crossing trip tasks without a
+       * tag are filed under, in the reader's language — the screen's words,
+       * so no action reads the catalogue. Absent: no task is tagged.
+       */
+      carriedTagName?: string
+    } = {},
   ): ClosePackingEffect {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return { rows: [], tasks: [], buyRows: [] }
@@ -458,14 +477,45 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     // The crossing, in the same partition and before the stamp for the same
     // reason the rows are: the stamp is what every screen reads afterwards,
     // so nothing it claims may still be in flight when it lands.
-    const moved = plan.tasks.map((task) => ({ task, phase: task.phase }))
-    for (const { task } of moved) commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+    // FR-7.16: what crosses says it came from before departure — a trip
+    // task without a tag of its own under the vocabulary's carried tag.
+    const toTag = new Set(tasksToFileAsCarried(plan.tasks).map((task) => task.id))
+    const tagId = toTag.size > 0 && opts.carriedTagName ? carriedTagId(opts.carriedTagName) : null
+    const moved = plan.tasks.map((task) => ({
+      task,
+      phase: task.phase,
+      tagged: tagId !== null && toTag.has(task.id),
+    }))
+    // The tag is its own write, apart from the phase: a tag another device
+    // made first under the same name refuses this device's, and with it
+    // every write naming it — the move to *during* must not go down too.
+    for (const { task, tagged } of moved) {
+      commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+      if (tagged && tagId) {
+        commentActions.setTaskTag(tripId, { ...task, phase: TASK_PHASE_DURING }, tagId)
+      }
+    }
     // FR-7.12: the shopping rows cross with the tasks, for the same reason
     // and in the same place — before the stamp that says the phase is over.
-    for (const row of plan.buyRows) packingActions.setMode(tripId, row, ITEM_MODE_BUY_LOCAL)
+    const at = nowIso()
+    for (const row of plan.buyRows) packingActions.carryToLocal(tripId, row, at)
 
-    stampPackingClosed(tripId, nowIso())
+    stampPackingClosed(tripId, at)
     return { rows: plan.rows, tasks: moved, buyRows: plan.buyRows }
+  }
+
+  /**
+   * FR-7.16: the vocabulary's carried tag, made on the first close that needs
+   * it and reused by every later one. Left in place by an undo: it is a word
+   * of the vocabulary now, and the next close would only make it again.
+   */
+  function carriedTagId(name: string): string {
+    const existing = carriedTaskTag(masterStore.taskTagList, name)
+    if (existing) return existing.id
+    const sortOrder = masterStore.taskTagList.reduce((n, tag) => Math.max(n, tag.sort_order + 1), 0)
+    const { mutation, id } = mutations.createTaskTag(name, sortOrder)
+    enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+    return id
   }
 
   /** Every task of the trip, both kinds, as the close reads them (FR-7.7). */
@@ -511,17 +561,21 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     buyRows: readonly TripItem[] = [],
   ) {
     packingActions.restoreSkip(tripId, records)
-    // FR-7.12: back to *before departure* — only a row still where the close
-    // put it; one somebody bought or moved in the meantime keeps that.
+    // FR-7.12: back to *before departure*, unmarked (FR-7.16) — only a row
+    // still where the close put it; one somebody bought or moved in the
+    // meantime keeps that.
     for (const row of buyRows) {
       const live = tripStore.getItems(tripId).find((item) => item.id === row.id)
-      if (live?.mode === ITEM_MODE_BUY_LOCAL)
-        packingActions.setMode(tripId, live, ITEM_MODE_BUY_BEFORE)
+      if (live?.mode === ITEM_MODE_BUY_LOCAL) packingActions.returnCarried(tripId, live)
     }
     // The phase each task actually had, not a hard-coded *before*: a task
     // written before FR-7.7 carries none at all, and inventing one would be
-    // an undo that changed something.
-    for (const { task, phase } of tasks) commentActions.setTaskPhase(tripId, task, phase)
+    // an undo that changed something. The carried tag goes where the close
+    // gave it (FR-7.16).
+    for (const { task, phase, tagged } of tasks) {
+      commentActions.setTaskPhase(tripId, task, phase)
+      if (tagged) commentActions.setTaskTag(tripId, { ...task, phase }, null)
+    }
     stampPackingClosed(tripId, null)
   }
 
@@ -558,6 +612,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     removeTraveler,
     setTripStatus,
     activateTrip,
+    unstartTrip,
     archiveTrip,
     closePacking,
     reopenPacking,

@@ -325,8 +325,8 @@ export async function tripActionFromList(page: Page, name: string, action: TripW
 
 /**
  * Back into the trip from M2, through its own card. Dispatched on the card
- * rather than clicked at a point: right after *Start trip* M2 is still laying
- * out — the trip moves segments and a hero can arrive above the rows — and a
+ * rather than clicked at a point: right after a menu closes M2 can still be
+ * laying out — the trip moves segments and a hero can arrive above the rows — and a
  * pointer click at the card's last position opened the trip beside it
  * (e2e-server, #598).
  */
@@ -340,8 +340,8 @@ async function reopenFromM2(page: Page, name: string) {
 /**
  * Run one of the trip's once-per-trip actions through the menu the user
  * sees. The trip-wide ones leave the case where their own destination is —
- * the closing pass for *Finish trip*, the properties for *Trip properties* —
- * and *Start trip*, which has none, brings it back to the trip it came from.
+ * the closing pass for *Finish trip*, the properties for *Trip properties*,
+ * M4 for *Start trip* (see `startOnly`).
  */
 export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
   if (!isTripWide(action)) {
@@ -352,10 +352,38 @@ export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
     return
   }
-  const { sheet, name } = await openTripMenuOnM2(page)
+  if (action === 'start') {
+    const name = await askToStart(page)
+    await startOnly(page, name)
+    return
+  }
+  const { sheet } = await openTripMenuOnM2(page)
   await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
-  if (action === 'start') await reopenFromM2(page, name)
+}
+
+/**
+ * *Start trip* on a trip whose packing is still open lands on M4's close
+ * sheet in its start variant (FR-7.16). This raises it and leaves it
+ * unanswered, for the cases about that choice; returns the trip's name.
+ */
+export async function askToStart(page: Page): Promise<string> {
+  const { sheet, name } = await openTripMenuOnM2(page)
+  await sheet.getByText(TRIP_ACTION.start, { exact: true }).click()
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  await expect(page.getByTestId('m4-close-sheet-start-only')).toBeVisible()
+  return name
+}
+
+/**
+ * The plain start: `tripAction(page, 'start')` answers the sheet with
+ * *Start only*, so a case that starts a trip is not also finishing its
+ * packing.
+ */
+async function startOnly(page: Page, name: string) {
+  await page.getByTestId('m4-close-sheet-start-only').click()
+  await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+  await expectTripOpen(page, name)
 }
 
 /**

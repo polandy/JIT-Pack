@@ -2,6 +2,7 @@ import {
   test,
   expect,
   addInComposer,
+  askToStart,
   createTripViaWizard,
   openQuickAdd,
   openTripView,
@@ -16,6 +17,7 @@ import { PATH } from './routes'
 import {
   addBuyRowOnM4,
   addPrepTodo,
+  addTripTodo,
   openTasks,
   openTripTodos,
   packRow,
@@ -651,5 +653,118 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await m6.getByTestId('m6-add-submit').click()
     await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Milk/])
     await expect(m6.getByTestId('m6-before').getByTestId('m6-row')).toHaveCount(0)
+  })
+})
+
+test.describe('FR-7.16 — the leftovers follow the trip into its during phase @local @m4', () => {
+  test.slow()
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-151 (FR-7.16): *Start trip* on a trip whose packing is open asks
+   * to finish it first, on M4's own sheet. *Finish and start* does both in
+   * one act: the purchase left for before departure waits at the destination
+   * under its own heading, the trip's untagged task carries the tag that
+   * says where it came from while a preparation keeps its packing-list group,
+   * and the trip is started. One undo takes the close *and* the start back.
+   */
+  test('E2E-M4-151: starting with the packing open finishes it first, and one undo takes both back @shopping', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt', 'Kulturbeutel'], 'Losfahren')
+    await addBuyRowOnM4(page, 'Sun hat', 'Buy before')
+    await addPrepTodo(page, 'Kulturbeutel', 'Fetch the salve')
+    await addTripTodo(page, 'Book the ferry')
+
+    await askToStart(page)
+    await expect(page.getByTestId('m4-close-sheet-title')).toHaveText('Start trip')
+    await expect(closeSheet(page)).toContainText('Packing is still open. Finish it first?')
+    await expect(page.getByTestId('m4-close-sheet-start-only')).toBeVisible()
+    await page.getByTestId('m4-close-sheet-confirm').click()
+    await expect(closeSheet(page)).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toBeVisible()
+
+    // Taken back in one act, from the frame that armed it: the packing is
+    // open and the trip is back in planning, so it can be started again.
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: /undo/i }).click()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    await writesLanded(page)
+    await expectTripActionOffered(page, 'closePacking')
+    await expectTripActionOffered(page, 'start')
+
+    // Done for good, through the same door: finished, and started.
+    await askToStart(page)
+    await page.getByTestId('m4-close-sheet-confirm').click()
+    await expect(closeSheet(page)).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toBeVisible()
+    await writesLanded(page)
+    await expectTripActionOffered(page, 'archive')
+
+    await openTripView(page, 'shopping')
+    const m6 = visiblePage(page).getByTestId('m6-page')
+    const carried = m6.getByTestId('m6-group-carried')
+    await expect(carried).toContainText('From before departure')
+    await expect(carried.getByTestId('m6-row')).toHaveText([/Sun hat/])
+
+    const during = await openTasks(page, 'during')
+    const tagged = during.locator('[data-testid^="m25-group-"]').filter({
+      hasText: 'From before departure',
+    })
+    await expect(tagged.getByTestId('trip-todo-Book the ferry')).toBeVisible()
+    const prep = during.locator('[data-testid^="m25-group-"]').filter({
+      hasText: 'From the packing list',
+    })
+    await expect(prep.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+    await expect(tagged.getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M4-152 (FR-7.16): *Start only* starts the trip and leaves the
+   * packing as it was — the step is still offered, the row still open, and
+   * nothing crossed to the destination.
+   */
+  test('E2E-M4-152: Start only starts the trip and leaves the packing open', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Nur los')
+    await startTrip(page)
+
+    await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    await expectTripActionOffered(page, 'closePacking')
+  })
+
+  /**
+   * E2E-M6-38 (FR-7.16): what the close carried stands under its own
+   * heading at the destination, and what is written there afterwards does
+   * not — the heading names where a purchase came from, not where it is.
+   */
+  test('E2E-M6-38: carried purchases stand under their own heading, later ones do not @shopping', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Mitgenommen')
+    const m6 = visiblePage(page).getByTestId('m6-page')
+    await openTripView(page, 'shopping')
+    await expectComposingFor(page, 'before')
+    await m6.getByTestId('m6-add-input').locator('input').fill('Coffee')
+    await m6.getByTestId('m6-add-submit').click()
+    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Coffee' })).toBeVisible()
+    await writesLanded(page)
+
+    await openTripView(page, 'packing')
+    await tripAction(page, 'closePacking')
+    await confirmClose(page)
+
+    await openTripView(page, 'shopping')
+    await expectComposingFor(page, 'local')
+    await m6.getByTestId('m6-add-input').locator('input').fill('Milk')
+    await m6.getByTestId('m6-add-submit').click()
+    await writesLanded(page)
+
+    const carried = m6.getByTestId('m6-group-carried')
+    await expect(carried).toContainText('From before departure')
+    await expect(carried.getByTestId('m6-row')).toHaveText([/Coffee/])
+    await expect(m6.getByTestId('m6-local').getByTestId('m6-row')).toHaveText([/Coffee/, /Milk/])
   })
 })

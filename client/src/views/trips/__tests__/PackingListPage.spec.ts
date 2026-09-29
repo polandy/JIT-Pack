@@ -223,3 +223,91 @@ describe('M4 packing list — the closing pass, asked for by M2 (FR-9.3)', () =>
     expect(replaced).toEqual([])
   })
 })
+
+/*
+ * FR-7.16: M2's *Reise starten* on a trip whose packing is open arrives as
+ * `?starting=1`, and the list asks FR-5.10's question put for the start:
+ * finish and start in one act, or start alone. The flag is spent at once.
+ */
+describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
+  const acts = {
+    closePacking: vi.fn(() => ({ rows: [], tasks: [], buyRows: [] })),
+    activateTrip: vi.fn(),
+  }
+
+  function mountStarting() {
+    return mount(PackingListPage, {
+      props: { tripId: 't1' },
+      global: {
+        provide: { [ORCHESTRATOR]: { ...orchestratorFake, ...acts } },
+        // The real `ion-modal` renders an empty element under jsdom.
+        stubs: { SheetModal: { template: '<div><slot /></div>' } },
+      },
+    })
+  }
+
+  async function arrive(status = 'planning', packingClosedAt: string | null = null) {
+    seedTrip([{ name: 'Zelt' }], status)
+    if (packingClosedAt) {
+      useTripStore().applyChange({
+        seq: 0,
+        table: TABLE.trips,
+        id: 't1',
+        deleted: false,
+        row: { name: 'Samedan', year: 2026, status, packing_closed_at: packingClosedAt },
+      })
+    }
+    tripScreen.loadedTrips.add('t1')
+    route.query = { starting: '1' }
+    const page = mountStarting()
+    await flushPromises()
+    return page
+  }
+
+  it('asks whether to finish the packing with the start, and drops the flag', async () => {
+    const page = await arrive()
+
+    expect(page.get('[data-testid="m4-close-sheet-title"]').text()).toBe(
+      t('packing.startConfirmTitle'),
+    )
+    expect(page.get('[data-testid="m4-close-sheet-confirm"]').text()).toContain(
+      t('packing.startConfirmVerb'),
+    )
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+
+  it('starts the trip alone from *Start only*, finishing nothing', async () => {
+    const page = await arrive()
+
+    await page.get('[data-testid="m4-close-sheet-start-only"]').trigger('click')
+
+    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+    expect(acts.closePacking).not.toHaveBeenCalled()
+  })
+
+  it('finishes the packing and starts the trip from the confirm', async () => {
+    const page = await arrive()
+
+    await page.get('[data-testid="m4-close-sheet-confirm"]').trigger('click')
+
+    expect(acts.closePacking).toHaveBeenCalledWith('t1', expect.any(Object))
+    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+  })
+
+  it('starts without asking when the packing was finished meanwhile', async () => {
+    const page = await arrive('planning', '2026-07-01T08:00:00Z')
+
+    expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
+    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+
+  it('asks nothing on a trip that is already running', async () => {
+    const page = await arrive('active')
+    expect(acts.activateTrip).not.toHaveBeenCalled()
+
+    expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m4-list-loading"]').exists()).toBe(false)
+    expect(replaced).toEqual([tripPath('t1')])
+  })
+})

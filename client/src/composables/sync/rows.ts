@@ -281,6 +281,7 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     bought_by_user_id: entry.bought_by_user_id,
     due_date: entry.due_date,
     assignee_user_id: entry.assignee_user_id,
+    carried_over_at: entry.carried_over_at ?? null,
   }
 }
 
@@ -397,6 +398,7 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     bought_by_user_id: item.bought_by_user_id,
     flag_unused: dbBool(item.flag_unused),
     flag_missing: dbBool(item.flag_missing),
+    carried_over_at: item.carried_over_at ?? null,
     updated_hlc: item.updated_hlc,
   }
 }
