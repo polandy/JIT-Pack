@@ -2793,16 +2793,22 @@ token would prove nothing there is anything to prove.
   are new for me, and the card's edge in the action colour; **what is in it** — the first note's words under a title,
   the rest of them under a first-line name, two lines at most, with a phone number and a code marked as on the thread;
   under a hairline **the newest reply** as *„Ben: Parkplatz ist Nr. 12"* with Ben's avatar; and *„2 Antworten · vor 5
-  Min"*, or who wrote it and when with no reply yet. No chevron and no checkbox: the notes are looked things up in, so
+  Min"*, or who wrote it and when with no reply yet. A thread about an excursion (FR-7.15) names it under the words,
+  signpost glyph and name in the meta size (`note-thread-excursion`); a link to an excursion the device no longer holds
+  names nothing. No chevron and no checkbox: the notes are looked things up in, so
   the code is readable without a tap, and *seen* is said inside the thread. The empty trip says *„Für diese Reise gibt
   es noch keine Notizen."*
 * **Writing a note:** the FAB (＋, `FAB_ANCHOR.m26`) opens a sheet *„Neue Notiz"*: *„Titel (optional)"*, the words
   (*„Eine Notiz für alle — ein Code, eine Nummer…"*), where another member shares the trip the line *„Alle
-  Mitreisenden sehen die Notiz."*,
+  Mitreisenden sehen die Notiz."*, where the trip has excursions a chip row *„Zu einem Ausflug"* — one `ChoiceChip`
+  per excursion with the signpost glyph, at most one pressed, a second tap taking it off (FR-7.15) —
   *Abbrechen* and *Teilen*. It writes a first note with `created_at` from the device; the list stays where it is.
 * **The thread view** (`/trips/:id/notes/:threadId`, `meta.parent` the list, no pills) is named by the thread, with the
   trip as meta. **The first note is a card on top** — avatar, *„Ben · heute 14:32 · bearbeitet"*, a ⋯, the words in
-  full, and in Server Mode ***„Gesehen von Anna, Chris"*** (FR-7.9 decision 3, here rather than on the list). **Then
+  full, and in Server Mode ***„Gesehen von Anna, Chris"*** (FR-7.9 decision 3, here rather than on the list); under
+  the card's words, for a thread about an excursion, a pill with the signpost, its name and a chevron
+  (`note-excursion-link`) that opens the excursion's list (M27) — beside the entry's own button, not in it, so the tap
+  does not open the entry's menu. **Then
   the replies in the order they were written**, as bubbles: somebody else's on the left with avatar and name, mine on
   the right in the action colour's tint with only the time. **The reply field is fixed at the bottom** (*„Antworten…"*,
   a send button, Enter sends), and a reply lands at the bottom, scrolled into view — oldest first, so the field never
@@ -2820,14 +2826,16 @@ token would prove nothing there is anything to prove.
   ***Bearbeiten* on my own entries only** (question 2; in Local Mode, with no identity, on every entry — one writer),
   and the delete — *„Notiz löschen, mit 2 Antworten"* on a first note with replies, which takes the thread and returns
   to the list; *„Antwort löschen"* on a reply. *Bearbeiten* opens the entry in place — a title field on a first note,
-  the words, *Abbrechen* / *Speichern*; saving writes the words, the title and `edited_at`, the entry says
-  *bearbeitet*, and for everybody else the thread is new again (question 3). No push. A thread deleted elsewhere
-  leaves its view for the list.
+  the words, on a first note where the trip has excursions the sheet's chip row with the current one pressed,
+  *Abbrechen* / *Speichern*; saving writes the words, the title and `edited_at`, the entry says *bearbeitet*, and for
+  everybody else the thread is new again (question 3). A changed excursion is a write of its own without `edited_at`
+  — it neither says *bearbeitet* nor makes the thread new (FR-7.15). No push. A thread deleted elsewhere leaves its
+  view for the list.
 * **A link naming a thread** — M1's row, a `note` or `note_reply` notification — opens its view directly.
 * **Modes:** all three. Server: everything. Single-User and Local: one author, so nothing is new, *Gelesen* and
   *„Gesehen von"* never render and no push is sent; threads, titles and edits work as a scratchpad. **Before the trip
   partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
-* (E2E-M26-01/02 `local`, E2E-M26-03/04 `server`, E2E-M1-14, E2E-G12-06/07, E2E-VIS-14)
+* (E2E-M26-01/02/05/06 `local`, E2E-M26-03/04 `server`, E2E-M1-14, E2E-G12-06/07, E2E-VIS-14)
 
 ### M27 — Ausflüge (A Trip's Excursions, FR-31) — *built*
 
@@ -2872,6 +2880,10 @@ token would prove nothing there is anything to prove.
   is kept, both per excursion. **Empty, it says what M4 says** (`m27-empty-list`): *Keine Treffer* with the reason and
   M4's reset while a search or filter narrows it, *„Noch nichts auf dieser Liste"* before anything is on it, *„Alles
   erledigt 🎉 · Nichts mehr offen für diesen Ausflug."* when everything is packed.
+* **The notes about it** (FR-7.15): under the progress card and the *Pro Person* strip, one quiet line per thread
+  that names this excursion (`m27-notes`, a line `m27-note-<id>`) — M26's `chatbubblesOutline`, the thread's name, a
+  chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
+  excursion. Deleting the excursion keeps its notes as trip notes.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):

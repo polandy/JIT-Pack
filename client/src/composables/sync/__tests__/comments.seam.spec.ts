@@ -44,6 +44,42 @@ describe('createCommentActions without an orchestrator', () => {
     })
   })
 
+  it('addComment opens a thread about an excursion, and a reply names none (FR-7.15)', () => {
+    const acts = createCommentActions(ctx)
+    acts.addComment(TRIP_ID, null, AUTHOR, 'Treffpunkt 7 Uhr', { excursionId: 'ex-hut' })
+    acts.addComment(TRIP_ID, null, AUTHOR, 'Danke', { parentId: 'n-1', excursionId: 'ex-hut' })
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ excursion_id: 'ex-hut' })
+    expect(queued[1]!.muts[0]!.mutation.fields).not.toHaveProperty('excursion_id')
+  })
+
+  it('setNoteExcursion writes the link alone — no edit stamp, the words did not change (FR-7.15)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'n-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Treffpunkt 7 Uhr',
+      is_task: 0,
+      title: 'Hütte',
+    })
+    const acts = createCommentActions(ctx)
+
+    acts.setNoteExcursion(TRIP_ID, ctx.tripStore.getTripComments(TRIP_ID)[0]!, 'ex-hut')
+
+    const { mutation } = queued[0]!.muts[0]!
+    expect(mutation).toMatchObject({ op: 'upsert', id: 'n-1' })
+    expect(mutation.fields).toEqual({ excursion_id: 'ex-hut' })
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
+      body: 'Treffpunkt 7 Uhr',
+      title: 'Hütte',
+    })
+    expect(ctx.tripStore.getTripComments(TRIP_ID)[0]!.excursion_id).toBe('ex-hut')
+
+    acts.setNoteExcursion(TRIP_ID, ctx.tripStore.getTripComments(TRIP_ID)[0]!, null)
+    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ excursion_id: null })
+    expect(ctx.tripStore.getTripComments(TRIP_ID)[0]!.excursion_id).toBeNull()
+  })
+
   it('flagCommentAsTask paints the whole row, not only is_task (FR-7.2)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'cm-1', {
       trip_id: TRIP_ID,

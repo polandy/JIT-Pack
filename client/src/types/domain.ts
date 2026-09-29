@@ -336,6 +336,12 @@ export interface ItemComment {
   title: string | null
   /** FR-7.13: when the author last changed the words; null if never. */
   edited_at: string | null
+  /**
+   * FR-7.15: the excursion a thread is about, on a first note only; null for
+   * none. May name an excursion this device no longer holds — read it
+   * through `noteExcursion`.
+   */
+  excursion_id: string | null
 }
 
 /**

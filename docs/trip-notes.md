@@ -14,6 +14,23 @@ optional **Titel** and the text. Tap **Teilen**.
 Without a title, the note's first line names it — *"Pizza Bella 079 555 12 34"* is a
 fine title on its own.
 
+## A note about an excursion
+
+When the trip has [excursions](excursions.md), the sheet also shows one chip per
+excursion under **Zu einem Ausflug**. Tap one to say the note is about it — the hut
+tour's meeting point, the boat's ticket code. Tap it again to take it off; a note about
+the trip as a whole needs none.
+
+The card then names the excursion under the note's words, and inside the thread the
+excursion's name is a button that opens its packing list. The excursion's list, in
+turn, shows a line for every note about it, right under its progress card; tap one to
+open the thread.
+
+Only the note's writer can change which excursion it is about, from **Bearbeiten**.
+Doing so does not mark the note *bearbeitet* and does not make it new for anyone — the
+words did not change. Deleting an excursion keeps its notes: they become ordinary trip
+notes again.
+
 ## Reading the list
 
 Each thread is one card, the one with the latest activity on top. The card already

@@ -15,7 +15,7 @@ import { TABLE } from '@/types/tables'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
-import type { TaskFiling } from '@/sync/mutations'
+import type { NoteThreadFields, TaskFiling } from '@/sync/mutations'
 import { phaseForNewTask } from '@/domain/closePacking'
 import { isPackingClosed } from '@/lib/tripPhase'
 
@@ -29,15 +29,15 @@ export function createCommentActions(ctx: SyncContext) {
   }
 
   /**
-   * FR-7.13: `thread` opens a titled thread or answers one — see
-   * `mutations.addComment`.
+   * FR-7.13/FR-7.15: `thread` opens a titled thread, perhaps about an
+   * excursion, or answers one — see `mutations.addComment`.
    */
   function addComment(
     tripId: string,
     tripItemId: string | null,
     authorId: string,
     body: string,
-    thread?: { title?: string | null; parentId?: string | null },
+    thread?: NoteThreadFields,
   ): string {
     const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body, thread)
     enqueueAndDrain('trip', tripId, {
@@ -75,6 +75,15 @@ export function createCommentActions(ctx: SyncContext) {
    */
   function editNote(tripId: string, note: ItemComment, body: string, title?: string | null) {
     const mut = mutations.editNote(note.id, body, title)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, commentRow(note)),
+    })
+  }
+
+  /** FR-7.15: the author says which excursion a thread is about, or none. */
+  function setNoteExcursion(tripId: string, note: ItemComment, excursionId: string | null) {
+    const mut = mutations.setNoteExcursion(note.id, excursionId)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, commentRow(note)),
@@ -278,6 +287,7 @@ export function createCommentActions(ctx: SyncContext) {
     flagCommentAsTask,
     deleteComment,
     editNote,
+    setNoteExcursion,
     toggleNoteTick,
     addPrepTodo,
     resolvePrepTodo,

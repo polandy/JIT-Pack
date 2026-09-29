@@ -51,6 +51,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
 import ExcursionItemSheet from '@/components/trips/ExcursionItemSheet.vue'
+import ExcursionNotes from '@/components/trips/ExcursionNotes.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
 import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
@@ -87,6 +88,7 @@ import { packedPercent, stateFor } from '@/domain/packState'
 import { quantityChoices } from '@/domain/quantityChoices'
 import type { RowMenuAction } from '@/domain/rowMenu'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
+import { noteThreads, threadsAboutExcursion } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { chooseAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { excursionDays } from '@/lib/excursionText'
@@ -105,7 +107,12 @@ import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { presentToast } from '@/lib/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
-import { LINE_QUERY_PARAM, tripExcursionLinePath, tripExcursionsPath } from '@/router/paths'
+import {
+  LINE_QUERY_PARAM,
+  tripExcursionLinePath,
+  tripExcursionsPath,
+  tripNotesPath,
+} from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ExcursionItem, FacetKey, GroupBy, TripItem } from '@/types/domain'
@@ -198,6 +205,21 @@ const view = computed(() =>
     itemsWithOpenPrep: [],
   }),
 )
+/**
+ * FR-7.15: the threads about this excursion. No reader is named, so none
+ * reads as new here — M26's pill already counts that.
+ */
+const notes = computed(() =>
+  threadsAboutExcursion(
+    noteThreads(tripStore.getTripComments(props.tripId), [], null),
+    props.excursionId,
+  ),
+)
+
+function openNote(threadId: string) {
+  void router.push(tripNotesPath(props.tripId, threadId))
+}
+
 const units = computed(() => sumUnits(lines.value))
 const toBuy = computed(() => lines.value.filter(isOpenPurchase).length)
 const tripItems = computed(() => tripStore.getItems(props.tripId))
@@ -950,6 +972,7 @@ setHeaderTitle(
           :selected="facets.person"
           @select="selectPerson"
         />
+        <ExcursionNotes v-if="notes.length > 0" :threads="notes" @open="openNote" />
 
         <!-- FR-25.11k: the field exists only while it is being used. -->
         <SearchRow

@@ -4438,6 +4438,8 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   creates them in the inventory as FR-31.11 does, ***Weglassen*** saves the Gruppe without them and the inventory
   untouched.
   A *vor Ort* line of this kind keeps FR-31.13's way into the inventory, once bought.
+* **Notes about an excursion** are FR-7.15's: a trip note may name one excursion, which lists it under its progress
+  card; deleting the excursion keeps the note.
 * **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.
   **Single-User:** everything, the reminder included (FR-7.11 sends it there). **Server:** excursions are trip data;
   every member sees, edits and ticks them. **Not in the portable backup**, like the tasks, the notes and the shopping
@@ -5601,6 +5603,37 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   * **Surfaces:** M25 (composer, *Fällig* block, rows, folds, closed *before*, sheet, selection bar, FAB), M4 (the
     figure's words; the task sheet it shares), M6/M9/M11/M23 (the select icon). UI-Spec M25/M4; E2E-M25-14..17,
     E2E-M25-01/03/06/12/13, E2E-M4-97/149.
+
+* **FR-7.15 (A Note About an Excursion, *built*):** a thread may name **one excursion** of its trip (FR-31) that it is
+  about — the meeting point of a hut tour, the boat's ticket code — so the note can be found from the excursion and the
+  excursion from the note. Optional: a note about the trip as a whole names none, which stays the normal case.
+  * **A column on the note, not a list on the excursion:** a nullable **`comments.excursion_id`**, the shape
+    FR-29.13 gives an idea's result — one note is about at most one excursion, and two devices linking two different
+    notes never touch the same row. **`ON DELETE SET NULL`:** deleting an excursion keeps its notes, which read as
+    plain trip notes again. The server's unlinking writes no change of its own, so another device still holds the old
+    id; a link to an excursion the device does not hold **reads as none** (`noteExcursion`,
+    `client/src/domain/tripNotes.ts`), as a task's vanished tag does (FR-7.8).
+  * **A thread's, on its first note only.** The server drops `excursion_id` from a reply and from anything that is not
+    a note, as it drops a reply's title (FR-7.13).
+  * **The author's, like the words.** It is set in the new-note sheet and changed in the first note's edit; the server
+    refuses a change pushed by anybody else (`not_authorized`), the rule FR-7.13 applies to `body` and `title`. Changing
+    it is **its own write without `edited_at`**: which plan a note is about is not a change of its words, and must
+    not make the thread new for everybody who read it (FR-7.13's re-open is for corrected words).
+  * **Checked against the trip, never lost to a race.** An excursion of another trip is refused
+    (`constraint_violated`). One deleted on another device before the note arrived costs the **link, not the note**:
+    the server drops the field and applies the rest — a foreign-key refusal would have thrown the note away.
+  * **Both sides show it.** The sheet and the edit offer the trip's excursions as chips (signpost glyph, FR-31.12's),
+    at most one pressed, a second tap taking it off; none is drawn on a trip without excursions. M26's card names the
+    excursion under the note's words; the thread view names it under the first note as a way into its list (M27). An
+    excursion's list carries **one quiet line per thread about it** under its progress card — the notes view's glyph
+    and the thread's name — each opening the thread. Only the names: the words are read on M26, and a list being
+    packed is not the place to read them (FR-7.9's reason for M26).
+  * **Push and M1 unchanged:** a note about an excursion reaches the same people as any note.
+  * **Modes.** All three, as FR-7.13 has them. Local: no server, so a deleted excursion's notes are unlinked only in
+    reading, never in the row — which reads the same.
+  * **Not in the portable backup**, like FR-7.9's notes and FR-31's excursions. Migration
+    `012_note_excursion.sql` adds the column.
+  * **Surfaces:** M26 (sheet, card, thread view, edit), M27's list. UI-Spec M26/M27; E2E-M26-05/06.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

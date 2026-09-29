@@ -8,18 +8,21 @@
  * its menu — copy, edit, delete — so no action has to stand under every
  * entry. The author edits in place once the menu says so: only the author,
  * because an entry carries its author's name (question 2). A first note's
- * edit also carries its title.
+ * edit also carries its title and the excursion the thread is about
+ * (FR-7.15), which it names under its words as a way into that excursion.
  */
 import { IonButton, IonIcon, IonInput, IonTextarea } from '@ionic/vue'
 import { ellipsisHorizontal } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
+import NoteExcursionChips from '@/components/trips/NoteExcursionChips.vue'
+import NoteExcursionTag from '@/components/trips/NoteExcursionTag.vue'
 import NoteText from '@/components/trips/NoteText.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import { noteEntryMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
-import type { ItemComment } from '@/types/domain'
+import type { Excursion, ItemComment } from '@/types/domain'
 
 const props = defineProps<{
   entry: ItemComment
@@ -31,6 +34,10 @@ const props = defineProps<{
   mine: boolean
   /** A first note's „gesehen von" line; empty says nothing. */
   seenBy?: readonly string[]
+  /** FR-7.15, a first note's: the excursion the thread is about, or null. */
+  excursion?: Excursion | null
+  /** FR-7.15, a first note's: what its author may name while editing. */
+  excursions?: readonly Excursion[]
   nameOf: NameOf
 }>()
 
@@ -39,6 +46,10 @@ const emit = defineEmits<{
   menu: []
   /** The author saved an edit; `title` only for a first note. */
   save: [body: string, title: string | null | undefined]
+  /** FR-7.15: the author named another excursion, or none. */
+  link: [excursionId: string | null]
+  /** FR-7.15: the excursion's name was tapped. */
+  openExcursion: []
 }>()
 
 const meta = computed(() => noteEntryMeta(props.entry, props.nameOf))
@@ -47,17 +58,29 @@ const author = computed(() => props.nameOf(props.entry.author_id) ?? null)
 const editing = ref(false)
 const draftBody = ref('')
 const draftTitle = ref('')
+const draftExcursion = ref<string | null>(null)
+
+/** The excursions the editor offers: a first note's, where the trip has any. */
+const offered = computed(() => (props.first ? (props.excursions ?? []) : []))
 
 function startEdit() {
   draftBody.value = props.entry.body
   draftTitle.value = props.entry.title ?? ''
+  draftExcursion.value = props.excursion?.id ?? null
   editing.value = true
 }
 
+/**
+ * The words and the excursion leave as two writes: an edit of the words is
+ * stamped and makes the thread new for its readers, a new excursion is not.
+ */
 function save() {
   const body = draftBody.value.trim()
   if (!body) return
   editing.value = false
+  if (props.first && draftExcursion.value !== (props.excursion?.id ?? null)) {
+    emit('link', draftExcursion.value)
+  }
   const title = props.first ? draftTitle.value.trim() || null : undefined
   if (body === props.entry.body && (title === undefined || title === (props.entry.title ?? null))) {
     return
@@ -96,6 +119,12 @@ defineExpose({ startEdit })
         :aria-label="t('common.edit')"
         data-testid="note-edit-body"
       />
+      <NoteExcursionChips
+        v-if="offered.length > 0"
+        v-model="draftExcursion"
+        class="editor-excursions"
+        :excursions="offered"
+      />
       <div class="editor-actions">
         <IonButton
           fill="clear"
@@ -115,29 +144,38 @@ defineExpose({ startEdit })
         </IonButton>
       </div>
     </div>
-    <div
-      v-else
-      class="content"
-      role="button"
-      tabindex="0"
-      :aria-label="t('notes.more')"
-      :data-testid="`note-entry-open-${entry.id}`"
-      @click="emit('menu')"
-      @keydown.enter.self="emit('menu')"
-    >
-      <p v-if="first || !mine" class="who">
-        <span :data-testid="`note-entry-meta-${entry.id}`">{{ meta }}</span>
-        <IonIcon v-if="first" class="more" :icon="ellipsisHorizontal" aria-hidden="true" />
-      </p>
-      <p class="words" :data-testid="`note-entry-words-${entry.id}`">
-        <NoteText :body="entry.body" :live="true" />
-      </p>
-      <p v-if="!first && mine" class="when" :data-testid="`note-entry-meta-${entry.id}`">
-        {{ meta }}
-      </p>
-      <p v-if="seenBy && seenBy.length > 0" class="seen" data-testid="note-entry-seen-by">
-        {{ t('notes.seenBy', { names: seenBy.join(', ') }) }}
-      </p>
+    <div v-else class="stack">
+      <div
+        class="content"
+        role="button"
+        tabindex="0"
+        :aria-label="t('notes.more')"
+        :data-testid="`note-entry-open-${entry.id}`"
+        @click="emit('menu')"
+        @keydown.enter.self="emit('menu')"
+      >
+        <p v-if="first || !mine" class="who">
+          <span :data-testid="`note-entry-meta-${entry.id}`">{{ meta }}</span>
+          <IonIcon v-if="first" class="more" :icon="ellipsisHorizontal" aria-hidden="true" />
+        </p>
+        <p class="words" :data-testid="`note-entry-words-${entry.id}`">
+          <NoteText :body="entry.body" :live="true" />
+        </p>
+        <p v-if="!first && mine" class="when" :data-testid="`note-entry-meta-${entry.id}`">
+          {{ meta }}
+        </p>
+        <p v-if="seenBy && seenBy.length > 0" class="seen" data-testid="note-entry-seen-by">
+          {{ t('notes.seenBy', { names: seenBy.join(', ') }) }}
+        </p>
+      </div>
+      <!-- Beside the entry's own button rather than in it: a way somewhere
+         else is not a way into this entry's menu. -->
+      <NoteExcursionTag
+        v-if="first && excursion"
+        :excursion="excursion"
+        link
+        @open="emit('openExcursion')"
+      />
     </div>
   </div>
 </template>
@@ -171,14 +209,31 @@ defineExpose({ startEdit })
 }
 
 .content,
-.editor {
+.editor,
+.stack {
   min-width: 0;
 }
 
-.first .content,
+.first .stack,
 .first .editor,
 .editor {
   flex: 1;
+}
+
+/* A first note stacks its words over the excursion it is about; a reply's
+   bubble keeps sitting in the row as if nothing wrapped it. */
+.first .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry:not(.first) .stack {
+  display: contents;
+}
+
+.editor-excursions {
+  margin-bottom: 8px;
 }
 
 .content {

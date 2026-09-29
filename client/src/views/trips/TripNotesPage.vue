@@ -28,12 +28,13 @@ import { useRouter } from 'vue-router'
 import InlineHint from '@/components/global/InlineHint.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import NoteExcursionChips from '@/components/trips/NoteExcursionChips.vue'
 import TripNoteCard from '@/components/trips/TripNoteCard.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
-import { noteThreads } from '@/domain/tripNotes'
+import { noteExcursion, noteThreads } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { tripNotesPath } from '@/router/paths'
@@ -68,6 +69,9 @@ const threads = computed(() =>
   ),
 )
 
+/** FR-7.15: what a thread may be about, and what each one is. */
+const excursions = computed(() => tripStore.getExcursions(props.tripId))
+
 function openThread(id: string) {
   void router.push(tripNotesPath(props.tripId, id))
 }
@@ -77,18 +81,23 @@ function openThread(id: string) {
 const composing = ref(false)
 const draft = ref('')
 const draftTitle = ref('')
+const draftExcursion = ref<string | null>(null)
 
 function closeComposer() {
   composing.value = false
   draft.value = ''
   draftTitle.value = ''
+  draftExcursion.value = null
 }
 
 function add() {
   const body = draft.value.trim()
   if (!body) return
   const title = draftTitle.value.trim() || null
-  orchestrator.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, { title })
+  orchestrator.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, {
+    title,
+    excursionId: draftExcursion.value,
+  })
   closeComposer()
 }
 
@@ -116,6 +125,7 @@ setHeaderTitle(
             v-for="thread in threads"
             :key="thread.root.id"
             :thread="thread"
+            :excursion="noteExcursion(thread.root, excursions)"
             :name-of="nameOf"
             @open="openThread(thread.root.id)"
           />
@@ -154,6 +164,12 @@ setHeaderTitle(
             auto-grow
             :rows="3"
             data-testid="m26-input"
+          />
+          <NoteExcursionChips
+            v-if="excursions.length > 0"
+            v-model="draftExcursion"
+            class="excursion-field"
+            :excursions="excursions"
           />
           <!-- Who reads it, said before it is sent — and only where somebody
                else does. -->
@@ -194,6 +210,10 @@ setHeaderTitle(
   --padding-end: 12px;
   margin-top: 10px;
   border-radius: var(--jp-r-md);
+}
+
+.excursion-field {
+  margin-top: 10px;
 }
 
 .title-field {

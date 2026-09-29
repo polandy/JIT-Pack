@@ -809,6 +809,7 @@ describe('commentRow', () => {
     parent_id: null,
     title: null,
     edited_at: null,
+    excursion_id: null,
   } satisfies Record<keyof ItemComment, unknown>
 
   it('the seed reaches the store whole, so this fixture cannot go stale', () => {

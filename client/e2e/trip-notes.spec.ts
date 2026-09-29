@@ -8,6 +8,7 @@ import {
   threadNamed,
   tripWithRows,
 } from './helpers/m4'
+import { createExcursion, excursionMenu, openExcursions } from './helpers/m27'
 import { writesLanded } from './helpers/page'
 
 /**
@@ -151,5 +152,120 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
     const after = await openNotes(page)
     await expect(after.getByTestId('note-thread-name')).toHaveText(['Fähre um 8'])
     await expect(after.getByText('Parkplatz ist Nr. 12')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M26-05 (FR-7.15): a thread may name the excursion it is about. The
+   * sheet offers the trip's excursions as chips; the card names the chosen
+   * one; the thread's first note links into its list, which lists the thread
+   * and leads back to it. The author takes the link off in the edit, and the
+   * excursion's list no longer names the thread — after a reload too.
+   */
+  test('E2E-M26-05: a note names its excursion, and each side leads to the other', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour' })
+    await addTripNote(page, 'Code 4711', 'Schlüsselbox')
+
+    const notes = await openNotes(page)
+    await notes.getByTestId('m26-fab').click()
+    const sheet = page.getByTestId('m26-composer')
+    await expect(sheet.getByTestId('m26-composer-title')).toBeVisible()
+    await sheet.getByTestId('m26-title-input').locator('input').fill('Treffpunkt')
+    await sheet.getByTestId('m26-input').locator('textarea').fill('7 Uhr an der Talstation')
+    const chip = sheet.getByTestId(/^note-excursion-chip-/)
+    await expect(chip).toHaveText(['Hüttentour'])
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
+    await sheet.getByTestId('m26-add').click()
+    await writesLanded(page)
+
+    // The card names the excursion; the plain trip note names none.
+    await expect(threadNamed(notes, 'Treffpunkt').getByTestId('note-thread-excursion')).toHaveText(
+      'Hüttentour',
+    )
+    await expect(
+      threadNamed(notes, 'Schlüsselbox').getByTestId('note-thread-excursion'),
+    ).toHaveCount(0)
+
+    // From the thread into the excursion's list…
+    const thread = await openThread(page, 'Treffpunkt')
+    await thread.getByTestId('note-excursion-link').click()
+    const excursion = visible(page).getByTestId('m27-excursion-page')
+    await expect(page.getByTestId('header-title')).toHaveText('Hüttentour')
+    const lines = excursion.getByTestId('m27-notes').getByRole('button')
+    await expect(lines).toHaveText(['Treffpunkt'])
+
+    // …and back.
+    await lines.click()
+    const back = visible(page).getByTestId('m26-thread')
+    await expect(back.getByTestId(/^note-entry-words-/)).toHaveText(['7 Uhr an der Talstation'])
+
+    // The author takes the link off; the words stay as they were.
+    const menu = await openEntryMenu(page, '7 Uhr an der Talstation')
+    await menu.getByTestId('note-menu-edit').click()
+    const pressed = back.getByTestId(/^note-excursion-chip-/)
+    await expect(pressed).toHaveAttribute('aria-pressed', 'true')
+    await pressed.click()
+    await back.getByTestId('note-edit-save').click()
+    await writesLanded(page)
+    await expect(back.getByTestId(/^note-entry-words-/)).toHaveText(['7 Uhr an der Talstation'])
+    await expect(back.getByTestId('note-excursion-link')).toHaveCount(0)
+    await expect(back.getByTestId(/^note-entry-meta-/)).not.toContainText('edited')
+
+    // The thread view carries no pills; the list does.
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m26-fab')).toBeVisible()
+    await page.reload()
+    await openExcursions(page)
+    await visible(page).getByTestId('m27-excursion-Hüttentour').click()
+    const reloaded = visible(page).getByTestId('m27-excursion-page')
+    await expect(reloaded.getByTestId('m27-progress-card')).toBeVisible()
+    await expect(reloaded.getByTestId('m27-notes')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M26-06 (FR-7.15): deleting an excursion keeps the notes about it —
+   * the thread is a plain trip note again, on the list and in its view.
+   */
+  test('E2E-M26-06: a deleted excursion leaves its notes as trip notes', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+
+    const notes = await openNotes(page)
+    await notes.getByTestId('m26-fab').click()
+    const sheet = page.getByTestId('m26-composer')
+    await sheet.getByTestId('m26-input').locator('textarea').fill('Schwimmwesten beim Verleih')
+    await sheet.getByTestId(/^note-excursion-chip-/).click()
+    await sheet.getByTestId('m26-add').click()
+    await writesLanded(page)
+    await expect(
+      threadNamed(notes, 'Schwimmwesten beim Verleih').getByTestId('note-thread-excursion'),
+    ).toHaveText('Bootsausflug')
+
+    await openExcursions(page)
+    await visible(page).getByTestId('m27-excursion-Bootsausflug').click()
+    await expect(visible(page).getByTestId('m27-notes').getByRole('button')).toHaveText([
+      'Schwimmwesten beim Verleih',
+    ])
+    await excursionMenu(page, 'm27-delete')
+    await page
+      .getByTestId('m27-delete-confirm')
+      .locator('button')
+      .filter({ hasText: 'Delete' })
+      .click()
+    await expect(visible(page).getByTestId('m27-empty')).toBeVisible()
+    await writesLanded(page)
+
+    await page.reload()
+    const after = await openNotes(page)
+    const card = threadNamed(after, 'Schwimmwesten beim Verleih')
+    await expect(card).toBeVisible()
+    await expect(card.getByTestId('note-thread-excursion')).toHaveCount(0)
+    const thread = await openThread(page, 'Schwimmwesten beim Verleih')
+    await expect(thread.getByTestId('note-excursion-link')).toHaveCount(0)
   })
 })

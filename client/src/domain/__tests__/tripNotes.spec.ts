@@ -13,11 +13,13 @@ import {
   newNoteCount,
   newTripNotes,
   noteAckState,
+  noteExcursion,
   noteThreads,
   threadName,
+  threadsAboutExcursion,
   type DashboardNoteTrip,
 } from '../tripNotes'
-import type { ItemComment, NoteAck } from '@/types/domain'
+import type { Excursion, ItemComment, NoteAck } from '@/types/domain'
 
 const ME = 'u-anna'
 const BEN = 'u-ben'
@@ -34,6 +36,7 @@ function note(over: Partial<ItemComment> = {}): ItemComment {
     parent_id: null,
     title: null,
     edited_at: null,
+    excursion_id: null,
     ...over,
   }
 }
@@ -360,5 +363,51 @@ describe('newTripNotes — M1 (FR-7.13 §4)', () => {
 
   it('has nothing without an identity', () => {
     expect(newTripNotes([trip('a', [note()])], null)).toEqual([])
+  })
+})
+
+describe('FR-7.15: a thread about an excursion', () => {
+  const hut: Excursion = {
+    id: 'ex-hut',
+    trip_id: 'trip-a',
+    name: 'Hüttentour',
+    starts_on: null,
+    ends_on: null,
+    source_template_id: null,
+  }
+
+  it('names the excursion its first note links', () => {
+    expect(noteExcursion(note({ excursion_id: 'ex-hut' }), [hut])).toEqual(hut)
+  })
+
+  it('names none without a link', () => {
+    expect(noteExcursion(note(), [hut])).toBeNull()
+  })
+
+  it('reads a link to an excursion that is gone as none — the note stays a trip note', () => {
+    expect(noteExcursion(note({ excursion_id: 'ex-deleted' }), [hut])).toBeNull()
+  })
+
+  it('lists the threads about one excursion, in the list order, and none about another', () => {
+    const notes = [
+      note({ id: 'n-old', excursion_id: 'ex-hut', created_at: '2026-09-20T08:00:00Z' }),
+      note({ id: 'n-plain', created_at: '2026-09-20T09:00:00Z' }),
+      note({ id: 'n-new', excursion_id: 'ex-hut', created_at: '2026-09-20T10:00:00Z' }),
+      note({ id: 'n-boat', excursion_id: 'ex-boat', created_at: '2026-09-20T11:00:00Z' }),
+    ]
+    const threads = noteThreads(notes, [], ME)
+    expect(threadsAboutExcursion(threads, 'ex-hut').map((t) => t.root.id)).toEqual([
+      'n-new',
+      'n-old',
+    ])
+  })
+
+  it('never lists a reply as a thread of its own, whatever it carries', () => {
+    const notes = [
+      note({ id: 'note-1', excursion_id: 'ex-hut' }),
+      reply('r-1', ME, '2026-09-20T11:00:00Z', { excursion_id: 'ex-hut' }),
+    ]
+    const threads = threadsAboutExcursion(noteThreads(notes, [], ME), 'ex-hut')
+    expect(threads.map((t) => t.root.id)).toEqual(['note-1'])
   })
 })

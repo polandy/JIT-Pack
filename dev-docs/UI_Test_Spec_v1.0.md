@@ -3359,6 +3359,19 @@ went.
   — carries the unseen mark, and the divider *New since your last visit* stands right above it (question 3's rule,
   applied to a reply). Who a reply *notifies* is `TestPlanNotifications_NoteReply_ReachesTheParticipantsOnly_FR7_13`'s,
   a rule over participants a browser cannot see.
+* **E2E-M26-05** `local` (FR-7.15) — **implemented**
+  (`trip-notes.spec.ts`): a note names its excursion, and each side leads to the other. With one excursion on the trip,
+  the new-note sheet offers exactly its chip; pressed, the note is written about it, and its card names the excursion
+  where the plain note beside it names none. The thread's link opens the excursion's list, whose notes line names the
+  thread and leads back into it. The author takes the link off in the edit: the words stay, the link goes, and the
+  entry does not say *edited*. After a reload the excursion's list — its progress card rendered — carries no notes line.
+* **E2E-M26-06** `local` (FR-7.15) — **implemented**
+  (`trip-notes.spec.ts`): a deleted excursion leaves its notes as trip notes. A note written about an excursion is
+  listed on the excursion's list; the excursion is deleted from its ⋮; after a reload the thread is still on M26, and
+  neither its card nor its view names an excursion. That the server keeps the note while it unlinks it, and keeps a
+  note whose excursion was deleted before it arrived, is `TestApplyMutation_DeletingAnExcursionKeepsItsNotes_FR7_15`'s
+  and `TestApplyMutation_NoteExcursion_IsAnExcursionOfThisTrip_FR7_15`'s; that only the author changes the link,
+  `TestApplyMutation_NoteExcursion_OnlyTheAuthorChangesIt_FR7_15`'s.
 
 ### M27 — Ausflüge (a trip's excursions, FR-31)
 

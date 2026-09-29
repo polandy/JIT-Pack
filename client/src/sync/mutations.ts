@@ -140,6 +140,17 @@ export interface TaskFiling {
   dueDate?: string | null
 }
 
+/**
+ * FR-7.13/FR-7.15: what a trip note is written with beyond its words — a
+ * first note's title and the excursion it is about, or a reply's first
+ * note. A reply carries neither of the other two.
+ */
+export interface NoteThreadFields {
+  title?: string | null
+  parentId?: string | null
+  excursionId?: string | null
+}
+
 /** Addendum §3.20's companion link. Both item ids are the edge itself. */
 export type ItemDependencyEdit = Partial<Pick<ItemDependency, 'mode' | 'quantity'>>
 
@@ -753,16 +764,17 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * addComment creates a plain comment; tripItemId null anchors it to the
    * trip. FR-7.13: a trip note may open a thread with a `title`, or answer
    * one by naming its first note as `parentId` — never both, since a reply
-   * carries no title (the server drops it). `created_at` is the device's,
-   * because a thread is ordered by it and Local Mode has no server to
-   * default it.
+   * carries no title (the server drops it). FR-7.15: a first note may name
+   * the excursion it is about, which a reply never does. `created_at` is the
+   * device's, because a thread is ordered by it and Local Mode has no server
+   * to default it.
    */
   function addComment(
     tripId: string,
     tripItemId: string | null,
     authorId: string,
     body: string,
-    thread: { title?: string | null; parentId?: string | null } = {},
+    thread: NoteThreadFields = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.comments, id, {
@@ -774,6 +786,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       created_at: nowIso(),
       ...(thread.parentId ? { parent_id: thread.parentId } : {}),
       ...(!thread.parentId && thread.title ? { title: thread.title } : {}),
+      ...(!thread.parentId && thread.excursionId ? { excursion_id: thread.excursionId } : {}),
     })
     return { mutation, id }
   }
@@ -790,6 +803,15 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       ...(title !== undefined ? { title } : {}),
       edited_at: nowIso(),
     })
+  }
+
+  /**
+   * FR-7.15: the excursion a thread is about, or null for none — the one
+   * field, and no `edited_at`: which plan a note is about is not a change of
+   * its words, and must not make the thread new for everybody who read it.
+   */
+  function setNoteExcursion(noteId: string, excursionId: string | null): Mutation {
+    return make('upsert', TABLE.comments, noteId, { excursion_id: excursionId })
   }
 
   /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
@@ -1742,6 +1764,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     deleteTodo,
     addComment,
     editNote,
+    setNoteExcursion,
     flagCommentAsTask,
     deleteComment,
     tickNote,

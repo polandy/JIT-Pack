@@ -12,7 +12,8 @@
  * *Neu seit deinem letzten Besuch* is a divider above the first unseen
  * reply, and *Gelesen* a labelled button under the last: seeing stays a
  * statement (FR-7.9), made here rather than with a checkbox on the list.
- * Tapping an entry opens its menu.
+ * Tapping an entry opens its menu. A thread about an excursion (FR-7.15)
+ * names it under the first note, as a way into its list.
  */
 import {
   IonButton,
@@ -36,6 +37,7 @@ import {
   firstUnseenReply,
   myAckFor,
   noteAckState,
+  noteExcursion,
   noteMenuEntries,
   noteThreads,
   threadName,
@@ -44,7 +46,7 @@ import {
 import { t } from '@/i18n'
 import { copyText } from '@/lib/clipboard'
 import { presentToast } from '@/lib/toast'
-import { tripNotesPath } from '@/router/paths'
+import { tripExcursionsPath, tripNotesPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import type { ItemComment } from '@/types/domain'
@@ -64,6 +66,10 @@ const thread = computed(
     noteThreads(tripStore.getTripComments(props.tripId), acks.value, myUserId.value).find(
       (candidate) => candidate.root.id === props.threadId,
     ) ?? null,
+)
+const excursions = computed(() => tripStore.getExcursions(props.tripId))
+const excursion = computed(() =>
+  thread.value ? noteExcursion(thread.value.root, excursions.value) : null,
 )
 const unseenIds = computed(() => new Set(thread.value?.unseen.map((entry) => entry.id)))
 const divider = computed(() => (thread.value ? firstUnseenReply(thread.value) : null))
@@ -137,6 +143,14 @@ async function sendReply() {
 
 function onSave(entry: ItemComment, body: string, title: string | null | undefined) {
   orchestrator.editNote(props.tripId, entry, body, title)
+}
+
+function onLink(excursionId: string | null) {
+  if (thread.value) orchestrator.setNoteExcursion(props.tripId, thread.value.root, excursionId)
+}
+
+function openExcursion() {
+  if (excursion.value) void router.push(tripExcursionsPath(props.tripId, excursion.value.id))
 }
 
 // --- an entry's menu ---
@@ -219,9 +233,13 @@ setHeaderTitle(
           :unseen="unseenIds.has(thread.root.id)"
           :mine="isMine(thread.root)"
           :seen-by="seenBy"
+          :excursion="excursion"
+          :excursions="excursions"
           :name-of="nameOf"
           @menu="openMenu(thread.root)"
           @save="(body, title) => onSave(thread!.root, body, title)"
+          @link="onLink"
+          @open-excursion="openExcursion"
         />
         <div class="replies" data-testid="note-thread-replies">
           <template v-for="entry in thread.replies" :key="entry.id">

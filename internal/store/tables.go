@@ -473,6 +473,9 @@ var tableSpecs = map[string]tableSpec{
 			// drops it from every later op), a first note's title, and when
 			// an entry was edited, which the client names like resolved_at.
 			"parent_id", "title", "edited_at",
+			// FR-7.15: the excursion a thread is about, the author's to
+			// choose; validNoteThread keeps it on a first note of the trip.
+			"excursion_id",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
