@@ -724,9 +724,9 @@ test.describe('Single-User backend sync @single', () => {
    * Standing beside the glyph, the count widened the indicator the moment a
    * write was queued, and every glyph to its left jumped sideways — on each
    * load that flushed a queue, and under the thumb that was about to tap one
-   * of them. The glyphs on either side are measured with the queue empty and
-   * again with a count showing, so a count that pushes shows up as a moved
-   * neighbour, not only as a wider indicator.
+   * of them. The glyphs on either side are measured with the queue empty,
+   * again with a count showing and once more after it drained, so a count
+   * that pushes shows up as a moved neighbour, not only as a wider indicator.
    */
   test('E2E-G2-17: a queued change shows its count without moving the app bar', async ({
     browser,
@@ -759,6 +759,11 @@ test.describe('Single-User backend sync @single', () => {
     expect((await settings.boundingBox())?.x).toBe(before.settings)
 
     await ctx.setOffline(false)
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveCount(0)
+    expect((await search.boundingBox())?.x).toBe(before.search)
+    expect(await indicator.boundingBox()).toEqual(before.indicator)
+    expect((await settings.boundingBox())?.x).toBe(before.settings)
     await ctx.close()
   })
 
