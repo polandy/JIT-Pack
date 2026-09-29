@@ -280,6 +280,11 @@ export const en = {
   'packing.closeConfirmTitle': 'Finish packing?',
   'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
   'packing.closePromptMeta': 'That was the last open item.',
+  'packing.startConfirmTitle': 'Start trip',
+  'packing.startConfirmMeta': 'Packing is still open. Finish it first?',
+  'packing.startConfirmVerb': 'Finish and start',
+  'packing.startOnly': 'Start only',
+  'packing.startedToastShort': 'Trip started',
   'packing.closeLater': 'Later',
   'packing.closeConfirmBody':
     '{n} open item is recorded as deliberately left behind. | {n} open items are recorded as deliberately left behind.',

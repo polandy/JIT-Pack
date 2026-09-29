@@ -25,7 +25,7 @@ import type { AppliedChange } from '@/types/domain'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { tripClosingPath, tripSubPath } from '@/router/paths'
+import { tripClosingPath, tripStartingPath, tripSubPath } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -381,8 +381,8 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     expect(labels(sheets[0]!)).not.toContain(t('trips.actionStart'))
   })
 
-  it('starting the trip asks the orchestrator to activate it', async () => {
-    seedTrip('planning')
+  it('starting a trip whose packing is finished asks the orchestrator to activate it', async () => {
+    seedTrip('planning', { packing_closed_at: '2026-09-28T20:00:00Z' })
     const page = mountPage()
 
     await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
@@ -390,6 +390,20 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     button(t('trips.actionStart')).handler!()
 
     expect(orchestratorFake.activateTrip).toHaveBeenCalledWith('t1')
+    expect(pushed).not.toContain(tripStartingPath('t1'))
+  })
+
+  // FR-7.16: with the packing still open the start asks first, on the list.
+  it('starting a trip whose packing is open asks on the packing list instead', async () => {
+    seedTrip('planning')
+    const page = mountPage()
+
+    await page.find('[data-testid="trip-row-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    button(t('trips.actionStart')).handler!()
+
+    expect(pushed).toContain(tripStartingPath('t1'))
+    expect(orchestratorFake.activateTrip).not.toHaveBeenCalled()
   })
 
   it('offers clone from the archive, and marks delete as the destructive entry', async () => {

@@ -396,6 +396,15 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     setTripStatus(tripId, TRIP_STATUS_ACTIVE)
   }
 
+  /**
+   * FR-7.16: the undo of a start made together with the close of the
+   * packing — the trip is planned again. Not a lifecycle step anybody is
+   * offered; only the snackbar that took the start back reaches it.
+   */
+  function unstartTrip(tripId: string) {
+    setTripStatus(tripId, TRIP_STATUS_PLANNING)
+  }
+
   /** archiveTrip completes the trip; archiving is the M14 review trigger. */
   function archiveTrip(tripId: string) {
     setTripStatus(tripId, TRIP_STATUS_ARCHIVED)
@@ -596,6 +605,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     removeTraveler,
     setTripStatus,
     activateTrip,
+    unstartTrip,
     archiveTrip,
     closePacking,
     reopenPacking,

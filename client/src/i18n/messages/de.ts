@@ -271,6 +271,11 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closeConfirmTitle': 'Packen abschliessen?',
   'packing.closeConfirmMeta': 'Was offen bleibt, ist danach eine Entscheidung.',
   'packing.closePromptMeta': 'Das war das letzte offene Packelement.',
+  'packing.startConfirmTitle': 'Reise starten',
+  'packing.startConfirmMeta': 'Das Packen ist noch offen. Zuerst abschliessen?',
+  'packing.startConfirmVerb': 'Abschliessen und starten',
+  'packing.startOnly': 'Nur starten',
+  'packing.startedToastShort': 'Reise gestartet',
   'packing.closeLater': 'Später',
   'packing.closeConfirmBody':
     '{n} offenes Packelement wird als bewusst nicht mitgenommen vermerkt. | {n} offene Packelemente werden als bewusst nicht mitgenommen vermerkt.',

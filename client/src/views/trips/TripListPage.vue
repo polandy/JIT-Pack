@@ -56,6 +56,7 @@ import { proposedChangeCount } from '@/domain/refresh'
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { isPackingClosed } from '@/lib/tripPhase'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { useIdentity } from '@/composables/useTripIdentity'
@@ -76,7 +77,14 @@ import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { PATH, seriesPath, tripClosingPath, tripPath, tripSubPath } from '@/router/paths'
+import {
+  PATH,
+  seriesPath,
+  tripClosingPath,
+  tripPath,
+  tripStartingPath,
+  tripSubPath,
+} from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
@@ -499,8 +507,17 @@ async function deleteTrip(trip: Trip) {
   if (confirmed) orchestrator.deleteTrip(trip.id)
 }
 
-/** Start moves a planning trip into packing — see M4's onStart. */
+/**
+ * Start moves a planning trip into packing. With the packing still open it
+ * asks first, on the packing list, whether to finish it with the start
+ * (FR-7.16) — the close is what carries *before* into the trip, and a trip
+ * under way with *before* still open is the state the question exists for.
+ */
 async function startTrip(tripId: string) {
+  if (!isPackingClosed(tripStore.getTrip(tripId))) {
+    void router.push(tripStartingPath(tripId))
+    return
+  }
   orchestrator.activateTrip(tripId)
   // What starting changes is invisible on this screen — the list's later
   // additions count as forgotten (FR-9.1) — so it is said once, here.
