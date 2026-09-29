@@ -717,6 +717,56 @@ test.describe('Single-User backend sync @single', () => {
     await ctx.close()
     await ctxFresh.close()
   })
+
+  /**
+   * E2E-G2-17: the queue count annotates the glyph; it takes no room in the bar.
+   *
+   * Standing beside the glyph, the count widened the indicator the moment a
+   * write was queued, and every glyph to its left jumped sideways — on each
+   * load that flushed a queue, and under the thumb that was about to tap one
+   * of them. The glyphs on either side are measured with the queue empty,
+   * again with a count showing and once more after it drained, so a count
+   * that pushes shows up as a moved neighbour, not only as a wider indicator.
+   */
+  test('E2E-G2-17: a queued change shows its count without moving the app bar', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const item = `Stirnlampe-${id}`
+
+    const ctx = await browser.newContext()
+    const page = await bootPage(ctx)
+    await createTripViaWizard(page, { name: `Bar ${id}` })
+    await quickAddItem(page, item)
+
+    const indicator = page.getByTestId('sync-indicator')
+    const search = page.getByTestId('m4-search')
+    const settings = page.getByTestId('header-settings')
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveCount(0)
+    const before = {
+      search: (await search.boundingBox())?.x,
+      indicator: await indicator.boundingBox(),
+      settings: (await settings.boundingBox())?.x,
+    }
+
+    await ctx.setOffline(true)
+    await packItem(page, item)
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveText('1')
+
+    expect((await search.boundingBox())?.x).toBe(before.search)
+    expect(await indicator.boundingBox()).toEqual(before.indicator)
+    expect((await settings.boundingBox())?.x).toBe(before.settings)
+
+    await ctx.setOffline(false)
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveCount(0)
+    expect((await search.boundingBox())?.x).toBe(before.search)
+    expect(await indicator.boundingBox()).toEqual(before.indicator)
+    expect((await settings.boundingBox())?.x).toBe(before.settings)
+    await ctx.close()
+  })
+
   /**
    * E2E-G2-05: a mutation the server refuses is *parked*, and G-2 says so.
    *

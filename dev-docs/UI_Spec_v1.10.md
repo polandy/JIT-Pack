@@ -30,7 +30,10 @@ These patterns apply to every screen and are specified once.
   property of the *queue* rather than of the offline state — it stays on the glyph whenever something is unsent, because
   the outbox is durable and a queue outlives the connection state that produced it (a reload, or a trip partition still
   waiting for its trip to be opened); hiding it the moment the glyph says *synced* would claim everything had been sent
-  while it had not. The detail sheet adds two lines beneath the count: that the changes are **saved on this device**, or
+  while it had not. **The count rides the glyph's upper corner** and takes no room in the bar: the glyph keeps one
+  footprint in every state, so a queue that appears or drains never moves the glyphs beside it; the waiting-update dot
+  (NFR-4.13) takes the lower corner.
+  The detail sheet adds two lines beneath the count: that the changes are **saved on this device**, or
   — when the browser refused to keep them — that closing the app now would lose them; and, when the server has refused a
   change outright, that it was taken out of the queue so the rest could go, is kept on the device and will not be
   retried. Both are Server-Mode-only: Local Mode has no queue and no server to refuse anything. There is no screen
