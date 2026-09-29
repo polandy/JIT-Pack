@@ -52,7 +52,6 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
@@ -87,10 +86,11 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
 }
 
 /* The waiting-update mark (NFR-4.13): anchored to the glyph's corner so it
-   reads as an annotation of the status, not a fifth state. */
+   reads as an annotation of the status, not a fifth state. The lower corner,
+   because the upper one is the queue count's. */
 .update-dot {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   width: 7px;
   height: 7px;
@@ -111,8 +111,14 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
   }
 }
 
+/* The count rides the glyph's corner rather than standing beside it: in the
+   row it widened the button the moment a write was queued, and every glyph
+   to its left jumped sideways on each load that flushed the queue (G-2). */
 ion-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
   font-size: var(--jp-text-3xs);
-  padding: 2px 5px;
+  padding: 2px 4px;
 }
 </style>
