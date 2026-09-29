@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import {
   addInComposer,
+  browserDay,
   writesLanded,
   test,
   expect,
@@ -534,13 +535,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await addEntry(page, 'Brot')
     await addEntry(page, 'Pasta')
 
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const iso = [
-      tomorrow.getFullYear(),
-      String(tomorrow.getMonth() + 1).padStart(2, '0'),
-      String(tomorrow.getDate()).padStart(2, '0'),
-    ].join('-')
+    const iso = await browserDay(page, 1)
 
     await m6(page)
       .getByTestId('m6-row')

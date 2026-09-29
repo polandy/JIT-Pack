@@ -11,7 +11,7 @@ import {
   tripWithRows,
 } from './helpers/m4'
 import { createTripViaWizard, openTripView } from './helpers/trips'
-import { expectFiguresPaired, writesLanded } from './helpers/page'
+import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { dropBeside } from './helpers/drag'
 import { PATH } from './routes'
@@ -752,13 +752,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await addTripTodo(page, 'Buy a map', 'during')
     await addTripTodo(page, 'Renew the passport', 'during')
 
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const iso = [
-      tomorrow.getFullYear(),
-      String(tomorrow.getMonth() + 1).padStart(2, '0'),
-      String(tomorrow.getDate()).padStart(2, '0'),
-    ].join('-')
+    const iso = await browserDay(page, 1)
 
     // A running trip takes new tasks for the road only (FR-7.14).
     const road = await openTasks(page, 'during')
