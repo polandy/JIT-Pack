@@ -393,6 +393,12 @@ CREATE TABLE trip_items (
     -- Inert, like trips.status 'repack': the outbound/return split was
     -- retired, and the column is kept so existing rows stay readable.
     outbound_packed      INTEGER CHECK (outbound_packed IN (0,1)),          -- FR-11.1
+    -- FR-7.16: when closing the packing carried this row from *before
+    -- departure* to *at the destination*; NULL for a row that was never
+    -- carried. Named by the client, like packed_at, since
+    -- a close happens offline too; the shopping list files a carried line
+    -- under *Von vor der Abreise*. The undo sets it back to NULL.
+    carried_over_at      TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''         -- NFR-4.2a
 );
@@ -604,6 +610,9 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     -- particular, the normal state) and free of a CHECK for field-level
     -- LWW's sake. The reminder asks it who hears about the entry.
     assignee_user_id  TEXT REFERENCES users(id),
+    -- FR-7.16: trip_items.carried_over_at's twin — when closing the packing
+    -- carried this entry to *at the destination*.
+    carried_over_at   TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
