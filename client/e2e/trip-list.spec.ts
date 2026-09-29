@@ -255,8 +255,14 @@ test.describe('M2 row actions @local @m2', () => {
     ])
     await page.getByTestId(TRIP_ROW_ACTION.start).click()
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    // FR-7.16: its packing is open, so the start asks on M4 first.
+    await page.getByTestId('m4-close-sheet-start-only').click()
+    await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+    await expectTripOpen(page, 'Kreta')
+    await writesLanded(page)
 
-    // Started, so it leaves *Planned* — and the menu did not also open it.
+    // Started, so it leaves *Planned*.
+    await page.goto(`${PATH.trips}?status=planned`)
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('trips-filter-active')).toContainText('(1)')
     await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
@@ -289,7 +295,9 @@ test.describe('M2 row actions @local @m2', () => {
     await page.goto(`${PATH.trips}?status=planned`)
     await chooseTripRowAction(page, TRIP, 'start')
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
-    await expect(visiblePage(page).getByTestId(`trip-row-${TRIP}`)).toHaveCount(0)
+    await page.getByTestId('m4-close-sheet-start-only').click()
+    await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+    await expectTripOpen(page, TRIP)
     await writesLanded(page)
 
     await page.goto(`${PATH.trips}?status=active`)
