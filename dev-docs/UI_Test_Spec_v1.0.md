@@ -1076,6 +1076,14 @@ in WebKit.
   read in `m6-before` before the close and is afterwards the folded line *„Before the trip · closed"*
   at the end, whose fold holds the lock line; the composer stays and writes for *Vor Ort*. Mutation-proved: with the
   module's crossing skipped the case goes red at the own entry.
+* **E2E-M4-151** `local` (FR-7.16) — **implemented** (`close-packing.spec.ts`): *Start trip* on M2, on a trip
+  whose packing is open, lands on M4's close sheet in its start variant — headed *„Start trip"*, the lead asking to
+  finish first, *Start only* beside the primary. *Finish and start* closes the packing; the one undo takes back the
+  close *and* the start (the step offered on M2 is *Start* again). Done again: the trip is started (*Finish trip* is
+  offered), the purchase left for before departure stands under M6's *„From before departure"*, the trip's untagged
+  task stands under M25's tag of that name, and the preparation stays under *From the packing list*.
+* **E2E-M4-152** `local` (FR-7.16) — **implemented** (`close-packing.spec.ts`): *Start only* starts the trip and
+  leaves the packing open — the row still on the list, no closed card, *Finish packing* still offered.
 * **E2E-M4-148** `local` (G-14) — **implemented** (`packing-list-shape.spec.ts`): the header line's
   figures are a card — a non-zero corner radius — whose left and right edges are the tasks card's below it, measured
   on the painted boxes, at desktop width too, where a lone figure must not keep its own width.
@@ -1452,6 +1460,9 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   account fills the seat with them. That account is told (the toast names the entry and who handed it over), sees
   itself on the entry on its own open M6 without a reload, and *Meine* narrows its list to that one entry. E2E-M25-05's
   shape for a purchase; `server` because the seat is absent where nobody else can be picked (G-8).
+* **E2E-M6-38** `local` (FR-7.16) — **implemented** (`close-packing.spec.ts`): an own entry written for before
+  departure is carried by *Finish packing* and stands under *„From before departure"* at the destination; an entry
+  written there afterwards does not — both are in *Vor Ort*, only the carried one under that heading.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3664,6 +3675,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.13 | E2E+UNIT+SERVER | M26-01 (a view of its own, M25 one list, cards that show their words, the code chip), M26-02 (a thread read top to bottom, a reply lifts it, one level, the author's edit from the menu, the delete naming its replies), M26-03 (the pill's *neu* badge, *Read*, *Seen by*), M26-04 (a reply re-opens a read thread with the divider, *Edit* for the author only), M1-14 (newest unseen entry, opens the thread's view), G12-06/07 (the fourth pill, the thread view's back); `tripNotes.spec.ts` (threads, order, `seen_through`, own entries, edits, divider, menu), `noteText.spec.ts` (tel and code), `TripNotesPage.spec.ts`, `TripNoteThreadPage.spec.ts`, `notethreads_test.go` (one level, parent once, title dropped, author-only edit, cascade), `TestPlanNotifications_NoteReply_ReachesTheParticipantsOnly_FR7_13` |
 | FR-7.11 | E2E+UNIT | M25-13 (set on the sheet, the pill, the order, a reload, Local Mode's hint on M1); `taskDue.spec.ts` (the four states, `byDue`, `pressingFirst`, the hint's count), `tripTodos.spec.ts` (groups, M4's window, M1's block), `TripTaskSheet.spec.ts`, `TripTodoList.spec.ts`, `useDueTaskHint.spec.ts`, `taskdue_internal_test.go` (schedule, recipients, once a day), `taskdue_test.go` (the store's reads and the claim), `config_test.go` (`JITPACK_TASK_REMINDER_TIME`), `SettingsPage.spec.ts` (the row, and Single-User's section) |
 | FR-7.12 | E2E+UNIT | M4-149 (both kinds of purchase cross under one undo, both *before* places locked, reopening lifts it); `closePacking.spec.ts` (`rowsCrossingToLocal`, `phaseForNewTask`), `tripLifecycle.seam.spec.ts` (the close's write and its undo), `comments.seam.spec.ts` (every writer of a new task), `sync.spec.ts` in `shopping/` (the module's crossing), `PackingClosed.spec.ts` (the sheet's line, the undo), `TripTasksPage.spec.ts`, `ShoppingPage.spec.ts`, `ItemDetailSheet.spec.ts` |
+| FR-7.16 | E2E+UNIT | M4-151 (M2's start asks on M4, finish-and-start under one undo, the carried purchase and task where they land), M4-152 (*Start only*), M6-38 (the carried heading, and a later entry outside it); `closePacking.spec.ts` (`tasksToFileAsCarried`, `carriedTaskTag`), `tripLifecycle.seam.spec.ts` (the carried tag, the stamp and its undo), `list.spec.ts` in `shopping/` (the carried section), `PackingListPage.spec.ts` and `TripListPage.spec.ts` (the start variant), `shopping_entries_test.go` (`carried_over_at` set and cleared) |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |

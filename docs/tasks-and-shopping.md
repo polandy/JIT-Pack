@@ -172,12 +172,20 @@ and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkä
 - Every open task for **Vor der Reise** moves to **Während der Reise**, and everything still to buy **Vor der
   Abreise** moves to **Vor Ort** on the shopping list. The confirmation says how many; **Rückgängig** takes all of it
   back.
+- What moved says so. On the shopping list it stands first in **Vor Ort**, under **Von vor der Abreise** — unless you
+  gave an entry a tag of your own, which it keeps. A task without a tag gets the task tag **Von vor der Abreise**
+  (the app creates it the first time); a preparation for a packing item stays under **Aus Packliste**.
 - Afterwards both *before* lists are a record, and nothing can be added to them, ticked or unticked there, or moved
   into them. On the task list, **Während der Reise** comes first and **Vor der Reise** is one folded line at the end
   (*Vor der Reise · 3 erledigt*); open it to read what was done. New tasks land in **Während der Reise**. The
   shopping list does the same: **Vor der Reise** is one folded line at the end (*Vor der Reise · 4 gekauft*), and
   new entries land in **Vor Ort**.
 - **Wieder öffnen** on the packing list lifts this again. It moves nothing back.
+
+**Reise starten** on the trip list asks the same question when the packing is still open: it opens the packing list
+with the confirmation headed **Reise starten**. **Abschliessen und starten** finishes the packing and starts the trip
+in one go, and **Rückgängig** takes back both. **Nur starten** starts the trip and leaves the packing open;
+**Abbrechen** does neither.
 
 ## Moving between a trip's lists
 

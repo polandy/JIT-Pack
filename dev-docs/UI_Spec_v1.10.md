@@ -862,7 +862,9 @@ These patterns apply to every screen and are specified once.
   *Clone* on an archived trip only (FR-12.1), the one lifecycle step the trip's status offers — *Start* on a planned
   trip, *Archive* on a running one (FR-9.1/9.2) — and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series
   header → M16. The trip's properties and its lifecycle steps are **M2's alone** — M4's ⋮ holds packing's entries only
-  (G-12). Starting says what it changes in a toast (FR-9.1: later additions count as forgotten). The running trip's step
+  (G-12). Starting says what it changes in a toast (FR-9.1: later additions count as forgotten). **On a trip whose
+  packing is still open, *Start* opens M4 with its close sheet in the start variant** (FR-7.16, `?starting=1`) instead
+  of starting here: the moment the trip begins is the moment *before the trip* ends. The running trip's step
   reads *„Reise abschliessen"* and **opens M4 in its closing pass** (FR-9.3, `?closing=1`) instead of archiving here:
   the pass is what archives, with *Fertig*, and archiving straight from M2 would skip it. (E2E-M2-34) In Single-User
   Mode (Addendum FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with.
@@ -1374,6 +1376,13 @@ These patterns apply to every screen and are specified once.
     there, which move in the same act and come back with the same undo. The task window's lines carry FR-7.11's due
     pill, the dated ones first, and M5's mode select does not offer *Vor der Reise kaufen* for a row not already there
     while the packing is closed.
+  * **The start variant (FR-7.16 — *built*).** Reached from M2's *Start* on a trip whose packing is open, the same
+    sheet is headed *„Reise starten"*, its lead reads *„Das Packen ist noch offen. Zuerst abschliessen?"*, and its
+    primary reads *„Abschliessen und starten"*: it closes the packing as above and starts the trip in one act, and the
+    snackbar's one *Rückgängig* takes back both — the trip returns to planning. Beneath it an outline ***„Nur
+    starten"*** (`m4-close-sheet-start-only`) starts the trip and leaves the packing open; *Abbrechen* starts nothing.
+    What the close carries is marked where it lands: purchases stand under M6's *„Von vor der Abreise"*, tasks without
+    a tag take the task tag of that name. (E2E-M4-151, E2E-M4-152)
   * **Packed or forgotten (FR-5.11 — *built*).** Once the packing is closed the composer carries a
     two-way choice above its hint (`role=radiogroup`): ***Eingepackt*** — *stand nicht auf der Liste* — and
     ***Vergessen*** — *blieb zuhause*. *Eingepackt* is selected each time the composer opens and is exactly the add
@@ -1585,8 +1594,11 @@ These patterns apply to every screen and are specified once.
     bought, a fold that opens onto the bought rows directly (`m6-before-fold` / `m6-local-fold`). Inside each: the
     packing list's rows in that mode first, **combined under one *„Packliste"* heading regardless of category** (a
     packing category is not this list's tag), then the list's own entries — **a section per tag, A–Z, then the untagged
-    under *„Eingetragen"* (FR-30.9)**. An entry and a packing row of the same name stay two lines. FR-13.3's destination
-    entries are not built.
+    under *„Eingetragen"* (FR-30.9)**. **What the close carried over (FR-7.16) leads *Vor Ort* under its own
+    heading, *„Von vor der Abreise"*** (`m6-group-carried`): packing rows and untagged own entries alike, marked by
+    `carried_over_at`; an own tag or an excursion's heading still wins, and whatever is written at the destination
+    afterwards files as usual. (E2E-M6-38) An entry and a packing row of the same name stay two lines. FR-13.3's
+    destination entries are not built.
   * **One *gekauft* fold per list**, at the section's end (*„› N gekauft"*, `m6-bought-bar`, M25's *erledigt* fold)
     — see FR-25.11j below.
   * **The empty state** (*„Nichts zu kaufen"*, `m6-empty`) only when nothing is open and nothing bought on either list.
@@ -2690,9 +2702,11 @@ token would prove nothing there is anything to prove.
     `m25-during-fold`). Such a phase takes no heading, hint or fold of room above the one still being worked.
   * **Inside each section, the tag groups** (FR-7.8, ADR-072). One heading per task tag that holds something, in the
     tags' own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names where the task came
-    from, and both are the same state in the data. **An empty heading is not drawn**, and is therefore not a drop
-    target. Each group is a drop target carrying its phase *and* its tag, so one movement may change both. The groups
-    hold open tasks only.
+    from, and both are the same state in the data. **Closing the packing (FR-7.16) tags the trip's own untagged
+    tasks with *„Von vor der Abreise"***, the vocabulary's tag of that name, reused or created; a preparation keeps
+    *Aus Packliste*, and the undo takes the tag off again (the tag stays in the vocabulary). **An empty heading is
+    not drawn**, and is therefore not a drop target. Each group is a drop target carrying its phase *and* its tag, so
+    one movement may change both. The groups hold open tasks only.
   * **One *erledigt* fold per phase**, at the section's end (*„N erledigt"*, `trip-todos-resolved`) — not one under
     every tag group, where a *„1 erledigt"* between two headings would read like a heading. Its
     rows name their tag on the second line and can be unticked.
