@@ -16,7 +16,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   useDragToGroup,
   DRAG_STATE_ATTRIBUTE,
+  DROP_GAP_ATTRIBUTE,
   DROP_OVER_ATTRIBUTE,
+  DROP_REFUSED_ATTRIBUTE,
   type DropPlace,
 } from '../useDragToGroup'
 import { LONG_PRESS_MS } from '../useLongPress'
@@ -271,6 +273,64 @@ describe('useDragToGroup — where it says the thing will land', () => {
   })
 })
 
+/*
+ * FR-30.13/FR-7.17: a list whose rows go anywhere shows the finger where the
+ * row will land — on a row already there, so nothing moves under it.
+ */
+describe('useDragToGroup — the gap it marks (markGap)', () => {
+  const gaps = () =>
+    [...document.querySelectorAll(`[${DROP_GAP_ATTRIBUTE}]`)].map(
+      (el) => `${el.textContent}:${el.getAttribute(DROP_GAP_ATTRIBUTE)}`,
+    )
+
+  it('marks the row a drop would land before, and the last row for the gap past it', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+    // Lifted from outside the group, as from the Fällig block: every gap moves it.
+    const outside = document.createElement('div')
+    host.appendChild(outside)
+    box(outside, 100)
+
+    drag.down(at(10, 100), 'x', outside, true)
+    drag.move(at(10, 5))
+    expect(gaps()).toEqual(['one:before'])
+    drag.move(at(10, 35))
+    expect(gaps()).toEqual(['two:after'])
+    drag.move(at(10, 50)) // the other group numbers nothing
+    expect(gaps()).toEqual([])
+  })
+
+  it('marks nothing beside the row itself, where the drop would move nothing', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 5)) // gap 0, above itself
+    expect(gaps()).toEqual([])
+    drag.move(at(10, 25)) // gap 1, below itself
+    expect(gaps()).toEqual([])
+    drag.move(at(10, 35)) // gap 2, past two
+    expect(gaps()).toEqual(['two:after'])
+  })
+
+  it('takes the mark off when the drag ends', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 35))
+    drag.up(at(10, 35))
+    expect(gaps()).toEqual([])
+  })
+
+  it('marks nothing unless asked', () => {
+    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 35))
+    expect(gaps()).toEqual([])
+  })
+})
+
 describe('useDragToGroup — a place that cannot hold it', () => {
   it('neither highlights nor accepts what it may not have', async () => {
     vi.useFakeTimers()
@@ -290,6 +350,19 @@ describe('useDragToGroup — a place that cannot hold it', () => {
     expect(onDrop).not.toHaveBeenCalled()
     // Still ends the gesture: a refused drop is not a hung one.
     expect(host.getAttribute(DRAG_STATE_ATTRIBUTE)).toBe('idle')
+  })
+
+  it('marks every place that would refuse it while it is in the air, and only those', () => {
+    const drag = useDragToGroup<string>({
+      onDrop: vi.fn(),
+      accepts: (_payload, place) => place.target === 'a',
+    })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(groupB.hasAttribute(DROP_REFUSED_ATTRIBUTE)).toBe(true)
+    expect(groupA.hasAttribute(DROP_REFUSED_ATTRIBUTE)).toBe(false)
+    drag.up(at(10, 5))
+    expect(groupB.hasAttribute(DROP_REFUSED_ATTRIBUTE)).toBe(false)
   })
 
   it('marks the place under the pointer, and unmarks the one it left', () => {

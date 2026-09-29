@@ -1531,7 +1531,7 @@ export const en = {
   'tripTodos.resolved': '{n} done',
   'tripTodos.add': 'Add a task…',
   'tripTodos.remove': 'Remove task',
-  'tripTodos.drag': 'Drag {body} to another tag or phase',
+  'tripTodos.drag': 'Move {body}',
   'tripTodos.forItem': 'Belongs to {name}',
 
   // FR-7.7 — M25, a trip's tasks on a screen of their own.
@@ -1997,11 +1997,11 @@ export const en = {
   'shopping.bulkAssigned': 'One entry → {who} | {n} entries → {who}',
   'shopping.bulkUnassigned': 'One entry: nobody responsible | {n} entries: nobody responsible',
   'shopping.bulkNothingToDo': 'Nothing to change — the selection already carries that tag.',
-  'shopping.dragToRetag': 'Drag to retag {name}',
+  'shopping.dragToMove': 'Move {name}',
   'list.dropHere': 'drop here',
   'shopping.retagged': '“{name}” → {group}',
   'shopping.dragHint':
-    'Packing-list positions never carry a tag — nothing can be dragged in or onto them.',
+    'Packing-list positions never carry a tag — they move only within their own group.',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',

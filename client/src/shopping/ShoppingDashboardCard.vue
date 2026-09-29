@@ -48,7 +48,7 @@ const MAX_LINES = props.embedded ? 7 : 5
 
 const orchestrator = useOrchestrator()
 const shoppingStore = useShoppingStore()
-const actions = createShoppingActions(orchestrator.moduleHost)
+const actions = createShoppingActions(orchestrator.moduleHost, useShoppingStore())
 const own = ownEntriesSource(shoppingStore, actions)
 const sources = inject(SHOPPING_SOURCES, [])
 

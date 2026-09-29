@@ -70,6 +70,7 @@ import {
   filedTagOf,
   groupAccepts,
   phaseTakes,
+  placeTaskDrop,
   tagForGroup,
   taskGroups,
   tasksOfAssignee,
@@ -253,6 +254,7 @@ const readDropKey = (place: DropPlace) => {
 const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
 const drag = useDragToGroup<TripTask>({
+  markGap: true,
   accepts: (task, place) => {
     const before = { locked: beforeLocked.value, over: forTheRoad.value }
     if (!phaseTakes(readDropKey(place).phase, task, before)) return false
@@ -261,10 +263,24 @@ const drag = useDragToGroup<TripTask>({
   },
   onDrop: (task, place) => {
     const group = groupAt(place)
-    if (group) acts.retag(task, readDropKey(place).phase, tagForGroup(group.key))
+    if (!group) return
+    const { phase } = readDropKey(place)
+    // FR-7.17: renumbered against the whole group, before the retag moves
+    // the task into it — the tasks the *Fällig* block holds and the chip
+    // hides keep their places around the one that was put there.
+    const whole = wholeGroup(phase, group.key)
+    const placements = placeTaskDrop(whole, group.tasks, task, place.index)
+    acts.retag(task, phase, tagForGroup(group.key))
+    acts.place(placements)
   },
 })
 watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
+
+/** FR-7.17: a group with every open task of its phase in it, unfiltered. */
+function wholeGroup(phase: TaskPhase, key: string): TripTask[] {
+  const open = tasks.value.filter((t) => t.phase === phase && t.task_state === 'open')
+  return taskGroups(open, taskTags.value, today.value).find((g) => g.key === key)?.tasks ?? []
+}
 
 function groupAt(place: DropPlace): TaskGroup | null {
   const { phase, key } = readDropKey(place)

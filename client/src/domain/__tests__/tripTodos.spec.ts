@@ -5,6 +5,7 @@ import {
   filedTagOf,
   groupAccepts,
   phaseTakes,
+  placeTaskDrop,
   packingWindowTasks,
   tagForGroup,
   taskGroups,
@@ -614,5 +615,57 @@ describe('phaseTakes (FR-7.12, FR-7.14): what a drop may put into a phase', () =
     ],
   ] as const)('%s', (_name, into, from, before, want) => {
     expect(phaseTakes(into, { phase: from }, before)).toBe(want)
+  })
+})
+
+describe('a task placed by hand (FR-7.17)', () => {
+  const task = (id: string, position: number | null, due: string | null = null): TripTask => ({
+    id,
+    body: id,
+    task_state: 'open',
+    item: null,
+    assignee_user_id: null,
+    phase: TASK_PHASE_BEFORE,
+    author_id: 'someone',
+    created_at: null,
+    resolved_at: null,
+    resolved_by_user_id: null,
+    task_tag_id: null,
+    due_date: due,
+    position,
+  })
+  const names = (tasks: readonly TripTask[]) => tasks.map((t) => t.id)
+
+  it('stands where it was put, after the tasks never placed, whatever its day', () => {
+    const [group] = taskGroups(
+      [task('Pass', 1), task('Akku', null), task('Salbe', 0, '2026-07-30'), task('Visum', null)],
+      [],
+      TODAY,
+    )
+    expect(names(group!.tasks)).toEqual(['Akku', 'Visum', 'Salbe', 'Pass'])
+  })
+
+  it('renumbers the whole group around the drop, the hidden tasks kept between their neighbours', () => {
+    const whole = [task('A', null), task('B', null), task('C', null), task('D', null)]
+    // The chip hides B: the reader drops D between A and C.
+    const shown = [whole[0]!, whole[2]!, whole[3]!]
+    const writes = placeTaskDrop(whole, shown, whole[3]!, 1)
+    expect(writes.map((w) => [w.item.id, w.position])).toEqual([
+      ['A', 0],
+      ['B', 1],
+      ['D', 2],
+      ['C', 3],
+    ])
+  })
+
+  it('writes nothing for a task let go beside itself', () => {
+    const whole = [task('A', 0), task('B', 1)]
+    expect(placeTaskDrop(whole, whole, whole[1]!, 2)).toEqual([])
+  })
+
+  it('takes a task from another group in at the end where the drop names no gap', () => {
+    const whole = [task('A', 0), task('B', 1)]
+    const writes = placeTaskDrop(whole, whole, task('X', 0), null)
+    expect(writes.map((w) => [w.item.id, w.position])).toEqual([['X', 2]])
   })
 })

@@ -174,8 +174,9 @@ function hasFacts(task: TripTask): boolean {
     <!-- The shared row (M6's too): the leading slot, the
          words, the facts under them, the tick at the row's own edge. -->
     <ListRow
-      v-for="task in open"
+      v-for="(task, index) in open"
       :key="task.id"
+      :data-drop-index="index"
       :lines="isList ? undefined : 'none'"
       class="todo-row"
       :checked="selecting ? null : false"

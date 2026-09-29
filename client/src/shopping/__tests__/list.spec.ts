@@ -7,7 +7,15 @@ import { describe, expect, it } from 'vitest'
 
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { buildSections, dropTag, listInFocus, openCount, shoppingBoard } from '../list'
+import {
+  buildSections,
+  canDrop,
+  dropTag,
+  listInFocus,
+  openCount,
+  planDrop,
+  shoppingBoard,
+} from '../list'
 
 function line(
   name: string,
@@ -23,6 +31,7 @@ function line(
     dueDate,
     buy: () => {},
     unbuy: () => {},
+    place: () => {},
   }
 }
 
@@ -292,5 +301,126 @@ describe('shoppingBoard', () => {
     expect(board.listOf('Milch')).toBe('buy_before')
     expect(board.listOf('Brot')).toBe('buy_local')
     expect(board.listOf('nothing')).toBeUndefined()
+  })
+})
+
+/** The day the hand-order cases are read on. */
+const HAND_TODAY = '2026-07-08'
+
+/** A line placed by hand; an own entry where it can be edited (FR-30.13). */
+function placed(name: string, position: number | null, over: Partial<ShoppingLine> = {}) {
+  return { ...line(name), position, ...over }
+}
+const editable = { edit: () => {} }
+
+describe('buildSections — by hand (FR-30.13)', () => {
+  it('reads a section nobody arranged as before, and the placed lines after it by number', () => {
+    const [own] = buildSections(
+      [placed('Milch', 1), placed('Brot', null), placed('Eier', 0), placed('Apfel', null)],
+      [],
+    )
+    expect(own!.lines.map((l) => l.name)).toEqual(['Brot', 'Apfel', 'Eier', 'Milch'])
+  })
+
+  it('puts the hand order over the dated-first order inside a section', () => {
+    const [own] = buildSections(
+      [placed('Brot', 0), placed('Milch', 1, { dueDate: '2026-07-30' })],
+      [],
+      HAND_TODAY,
+    )
+    expect(own!.lines.map((l) => l.name)).toEqual(['Brot', 'Milch'])
+  })
+})
+
+describe('planDrop (FR-30.13)', () => {
+  const empty = { own: [], sourced: [] }
+  function boardOf(own: ShoppingLine[], sourced: ShoppingLine[] = []) {
+    return shoppingBoard({ buy_before: { own, sourced }, buy_local: empty }, HAND_TODAY)
+  }
+  const sectionOf = (board: ReturnType<typeof boardOf>, key: string) =>
+    board.lists.buy_before.sections.find((s) => s.key === key)!
+  const writes = (plan: ReturnType<typeof planDrop>) =>
+    plan?.placements.map((p) => [p.item.name, p.position])
+
+  it('numbers a section nobody arranged, the moved line where it was let go', () => {
+    const own = [
+      placed('Apfel', null, editable),
+      placed('Brot', null, editable),
+      placed('Eier', null, editable),
+    ]
+    const board = boardOf(own)
+    const plan = planDrop(board, own[0]!, 'buy_before', sectionOf(board, 'own'), 2)
+    expect(plan?.retag).toBeUndefined()
+    expect(writes(plan)).toEqual([
+      ['Brot', 0],
+      ['Apfel', 1],
+      ['Eier', 2],
+    ])
+  })
+
+  it('writes nothing for a line let go beside itself', () => {
+    const own = [placed('Apfel', 0, editable), placed('Brot', 1, editable)]
+    const board = boardOf(own)
+    expect(planDrop(board, own[0]!, 'buy_before', sectionOf(board, 'own'), 1)).toBeNull()
+  })
+
+  it('moves a packing line inside its own heading', () => {
+    const sourced = [placed('Hut', 0), placed('Sonnencreme', 1)]
+    const board = boardOf([], sourced)
+    const plan = planDrop(board, sourced[1]!, 'buy_before', sectionOf(board, 'packing'), 0)
+    expect(writes(plan)).toEqual([
+      ['Sonnencreme', 0],
+      ['Hut', 1],
+    ])
+  })
+
+  it('never lets a packing line leave its heading', () => {
+    const sourced = [placed('Hut', null)]
+    const board = boardOf([placed('Brot', null, editable)], sourced)
+    const own = sectionOf(board, 'own')
+    expect(canDrop(board, sourced[0]!, 'buy_before', own)).toBe(false)
+    expect(planDrop(board, sourced[0]!, 'buy_before', own, 0)).toBeNull()
+  })
+
+  it('retags an own entry dropped on another tag, and places it at the gap', () => {
+    const milch = placed('Milch', null, { ...editable, tag: null })
+    const board = boardOf([
+      milch,
+      placed('Brot', 0, { ...editable, tag: 'Bäcker' }),
+      placed('Zopf', 1, { ...editable, tag: 'Bäcker' }),
+    ])
+    const plan = planDrop(board, milch, 'buy_before', sectionOf(board, 'tag:Bäcker'), 1)
+    expect(plan?.retag).toBe('Bäcker')
+    expect(writes(plan)).toEqual([
+      ['Milch', 1],
+      ['Zopf', 2],
+    ])
+  })
+
+  it('renumbers around a line the Fällig block holds, so it keeps its place for later', () => {
+    const due = placed('Milch', 1, { ...editable, dueDate: HAND_TODAY })
+    const own = [placed('Apfel', 0, editable), due, placed('Brot', 2, editable)]
+    const board = boardOf(own)
+    const section = sectionOf(board, 'own')
+    expect(section.lines.map((l) => l.name)).toEqual(['Apfel', 'Brot'])
+    // Brot to the top: Milch stays between Apfel and where Brot was.
+    const plan = planDrop(board, own[2]!, 'buy_before', section, 0)
+    expect(writes(plan)).toEqual([
+      ['Brot', 0],
+      ['Apfel', 1],
+      ['Milch', 2],
+    ])
+  })
+
+  it('refuses a line of the other list', () => {
+    const board = shoppingBoard(
+      {
+        buy_before: { own: [placed('Brot', null, editable)], sourced: [] },
+        buy_local: { own: [placed('Wasser', null, editable)], sourced: [] },
+      },
+      HAND_TODAY,
+    )
+    const wasser = board.lists.buy_local.sections[0]!.lines[0]!
+    expect(canDrop(board, wasser, 'buy_before', sectionOf(board, 'own'))).toBe(false)
   })
 })

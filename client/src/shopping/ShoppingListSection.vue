@@ -26,7 +26,7 @@ import { boughtStampText, type NameOf } from '@/lib/rowFacts'
 import type { ShoppingLine } from '@/lib/shoppingSources'
 import { ITEM_MODE_BUY_BEFORE, type ShoppingMode } from '@/types/domain'
 
-import { dropTag, type ListShelf, type ShoppingSection } from './list'
+import type { ListShelf, ShoppingSection } from './list'
 import ShoppingRows from './ShoppingRows.vue'
 
 const props = withDefaults(
@@ -111,7 +111,7 @@ function boughtStamp(line: ShoppingLine): string | null {
         :key="section.key"
         :title="sectionTitle(section)"
         :drop-target="dropKey(section)"
-        :droppable="!readonly && dropTag(section) !== undefined"
+        :droppable="!readonly"
         :data-testid="`m6-group-${section.carried ? 'carried' : section.packing ? 'packing' : section.own ? 'own' : section.tagged ? `tag-${section.name}` : `source-${section.name}`}`"
       >
         <ShoppingRows

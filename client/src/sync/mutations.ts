@@ -139,6 +139,8 @@ export type GeneratedTripItemEdit = Partial<
 export interface TaskFiling {
   taskTagId?: string | null
   dueDate?: string | null
+  /** FR-7.17: the task's place in its group; absent for never placed. */
+  position?: number
 }
 
 /**
@@ -375,6 +377,14 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * unbuyItem is FR-25.11j's undo: the row goes back on the list it was
    * bought from, and the record that sent it there is cleared with it.
    */
+  /**
+   * FR-30.13: where the row's line stands inside its heading on the shopping
+   * list, by hand (ADR-083). One field: nothing about the packing changes.
+   */
+  function placeOnShopping(itemId: string, position: number): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, { shopping_position: position })
+  }
+
   function unbuyItem(itemId: string, from: ShoppingMode): Mutation {
     // FR-30.4: the record goes with the purchase it described.
     const cleared = { bought_from: null, bought_at: null, bought_by_user_id: null }
@@ -703,6 +713,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       // named: a task without them is written as it always was.
       ...(filed.taskTagId ? { task_tag_id: filed.taskTagId } : {}),
       ...(filed.dueDate ? { due_date: filed.dueDate } : {}),
+      // FR-7.17: a task typed by hand lands at the end of its group.
+      ...(filed.position !== undefined ? { position: filed.position } : {}),
     })
     return { mutation, id }
   }
@@ -1016,7 +1028,10 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   function updateExcursionItem(
     itemId: string,
     fields: Partial<
-      Pick<ExcursionItem, 'trip_item_id' | 'source_item_id' | 'mode' | 'bought_at' | 'name'>
+      Pick<
+        ExcursionItem,
+        'trip_item_id' | 'source_item_id' | 'mode' | 'bought_at' | 'name' | 'shopping_position'
+      >
     > & {
       not_in_luggage?: boolean
       for_all_participants?: boolean
@@ -1589,6 +1604,14 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   /**
+   * FR-7.17: where the task stands inside its group, by hand (ADR-083). One
+   * field, so a move on one device and a retag on another both stand.
+   */
+  function placeTask(todoId: string, position: number): Mutation {
+    return make('upsert', TABLE.comments, todoId, { position })
+  }
+
+  /**
    * FR-7.14: a task's words, corrected. One field, and no `edited_at`: that
    * stamp is a note's (FR-7.13), where it says the words are no longer the
    * ones its author was first read saying. A task is shared work, not a
@@ -1780,6 +1803,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     setTodoAssignee,
     setTaskPhase,
     setTaskTag,
+    placeTask,
+    placeOnShopping,
     setTaskDueDate,
     setTaskBody,
     createTaskTag,

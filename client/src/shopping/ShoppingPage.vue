@@ -66,7 +66,7 @@ import {
 } from '@/types/domain'
 import { isPackingClosed, standingOf } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
-import { dropTag, listInFocus, shoppingBoard, type ShoppingSection } from './list'
+import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } from './list'
 import ShoppingListSection from './ShoppingListSection.vue'
 import ShoppingRows from './ShoppingRows.vue'
 import ShoppingTagChooser from './ShoppingTagChooser.vue'
@@ -76,7 +76,7 @@ const props = defineProps<{ tripId: string }>()
 
 const orchestrator = useOrchestrator()
 const shoppingStore = useShoppingStore()
-const actions = createShoppingActions(orchestrator.moduleHost)
+const actions = createShoppingActions(orchestrator.moduleHost, useShoppingStore())
 const own = ownEntriesSource(shoppingStore, actions)
 // Absent in a spec that provides none: the list still works on its own.
 const sources = inject(SHOPPING_SOURCES, [])
@@ -432,12 +432,14 @@ const content = ref<InstanceType<typeof IonContent> | null>(null)
 const composer = ref<{ focus: () => Promise<void> } | null>(null)
 
 /**
- * FR-30.9's single-row retag: a grip lifts one own entry and drops it onto
- * another own group of **its own list** — a tag heading, or the untagged
- * one. The gesture is `useDragToGroup` (FR-7.8's own); a drop target is the
- * list and the section's key, since the same tag can head a group on both.
+ * The grip (FR-30.13): any line is put anywhere in its own section, and an
+ * own entry may also be dropped onto another own group of **its own list** —
+ * a tag heading, or the untagged one — which retags it (FR-30.9), at the gap
+ * it was let go in. The gesture is `useDragToGroup` (FR-7.8's own); a drop
+ * target is the list and the section's key, since the same tag can head a
+ * group on both. What a drop writes is `planDrop`'s.
  *
- * The write goes through `bulkSetTag`, not `line.edit` — a drop is exactly a
+ * The retag goes through `bulkSetTag`, not `line.edit` — a drop is exactly a
  * batch of one, and `bulkSetTag`'s undo diffs against the entry as the write
  * actually left it rather than the pre-write snapshot (see its own doc
  * comment).
@@ -457,18 +459,21 @@ function placeOf(place: DropPlace): { list: ShoppingMode; section: ShoppingSecti
 const dragHost = computed(() => content.value?.$el ?? null)
 
 const drag = useDragToGroup<ShoppingLine>({
+  markGap: true,
   accepts: (line, place) => {
     const at = placeOf(place)
-    return (
-      at !== null && at.list === board.value.listOf(line.key) && dropTag(at.section) !== undefined
-    )
+    return at !== null && canDrop(board.value, line, at.list, at.section)
   },
   onDrop: (line, place) => {
     const at = placeOf(place)
-    const toTag = at ? dropTag(at.section) : undefined
-    if (!at || toTag === undefined) return
-    const { touched, undo } = own.bulkSetTag(props.tripId, at.list, new Set([line.key]), toTag)
-    if (touched === 0) return
+    const plan = at ? planDrop(board.value, line, at.list, at.section, place.index) : null
+    if (!at || !plan) return
+    const toTag = plan.retag
+    const retag =
+      toTag === undefined ? null : own.bulkSetTag(props.tripId, at.list, new Set([line.key]), toTag)
+    for (const { item, position } of plan.placements) item.place(position)
+    if (!retag || toTag === undefined || retag.touched === 0) return
+    const undo = retag.undo
     void presentToast({
       message: t('shopping.retagged', {
         name: line.name,
@@ -484,7 +489,7 @@ watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
 
 /** The grip lifts at once — it exists only to be dragged (FR-7.8's own rule). */
 function onLift(line: ShoppingLine, event: PointerEvent) {
-  if (!line.edit || selecting.value) return
+  if (selecting.value) return
   const row = (event.currentTarget as HTMLElement).closest<HTMLElement>('[data-row-key]')
   if (row) drag.down(event, line, row, true)
 }

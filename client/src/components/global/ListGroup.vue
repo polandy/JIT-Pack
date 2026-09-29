@@ -142,8 +142,10 @@ ion-item-divider {
 
 /* A heading a drag can never land on dims for as long as something is in the
    air: a heading that just sits there looks broken, not ineligible. The
-   host carries `data-drag` (`useDragToGroup`). */
-[data-drag='dragging'] .list-group[data-droppable='false'] {
+   host carries `data-drag`, and a heading that refuses the row in hand
+   carries `data-drop-refused` (`useDragToGroup`). */
+[data-drag='dragging'] .list-group[data-droppable='false'],
+.list-group[data-drop-refused] {
   opacity: 0.5;
 }
 

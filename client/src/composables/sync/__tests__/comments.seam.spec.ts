@@ -155,6 +155,35 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getTodos(TRIP_ID)).toEqual([])
   })
 
+  it('addTripTodo puts a task typed by hand past every task of the trip (FR-7.17)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pass',
+      is_task: 1,
+      task_state: 'open',
+      position: 4,
+    })
+    createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Visum')
+    expect(queued.at(-1)!.muts[0]!.mutation.fields).toMatchObject({ body: 'Visum', position: 5 })
+  })
+
+  it('placeTask writes the place alone (FR-7.17)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pass',
+      is_task: 1,
+      task_state: 'open',
+    })
+    const todo = ctx.tripStore.getTripTodos(TRIP_ID)[0]!
+    createCommentActions(ctx).placeTask(TRIP_ID, todo, 2)
+    expect(queued.at(-1)!.muts[0]!.mutation.fields).toEqual({ position: 2 })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.position).toBe(2)
+  })
+
   it('resolveTripTodo keeps the anchor null, so the row stays the trip’s', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,

@@ -56,6 +56,7 @@ function sourceWith(lists: {
   boughtLocal?: TripItem[]
 }) {
   const writes: Array<{ verb: 'buy' | 'unbuy'; id: string; from: ShoppingMode }> = []
+  const places: Array<{ id: string; position: number }> = []
   const source = createPackingShoppingSource(
     {
       getShoppingItems: () => ({
@@ -69,9 +70,10 @@ function sourceWith(lists: {
     {
       buyItem: (_trip, row, from) => writes.push({ verb: 'buy', id: row.id, from }),
       unbuyItem: (_trip, row, from) => writes.push({ verb: 'unbuy', id: row.id, from }),
+      placeOnShopping: (_trip, row, position) => places.push({ id: row.id, position }),
     },
   )
-  return { source, writes }
+  return { source, writes, places }
 }
 
 describe('createPackingShoppingSource (FR-30.2)', () => {
@@ -153,6 +155,31 @@ describe('createPackingShoppingSource (FR-30.2)', () => {
       ['Brot', false],
     ])
     expect(source.open('t1', 'buy_before').map((l) => l.carriedOver)).toEqual([false])
+  })
+
+  it('reads a line’s place off its rows, and a move writes every row not already there (FR-30.13)', () => {
+    const forAndy = item({
+      name: 'Sonnencreme',
+      source_item_id: 'it-1',
+      assigned_traveler_id: 'tr1',
+      shopping_position: 4,
+    })
+    const forMia = item({
+      name: 'Sonnencreme',
+      source_item_id: 'it-1',
+      assigned_traveler_id: 'tr2',
+    })
+    const { source, places } = sourceWith({ buyLocal: [forAndy, forMia] })
+    const [line] = source.open('t1', 'buy_local')
+    expect(line?.position).toBe(4)
+
+    line!.place(4)
+    expect(places).toEqual([{ id: forMia.id, position: 4 }])
+    line!.place(1)
+    expect(places.slice(1)).toEqual([
+      { id: forAndy.id, position: 1 },
+      { id: forMia.id, position: 1 },
+    ])
   })
 
   it('offers no remove — a packing row leaves the list by being bought or changing mode', () => {

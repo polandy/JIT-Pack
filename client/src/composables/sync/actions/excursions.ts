@@ -522,6 +522,11 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     updateLine(tripId, line, { bought_at: bought ? nowIso() : null })
   }
 
+  /** FR-30.13: the line's place on M6's Vor-Ort list — not on the excursion's own. */
+  function placeLineOnShopping(tripId: string, line: ExcursionItem, position: number): void {
+    updateLine(tripId, line, { shopping_position: position })
+  }
+
   /**
    * FR-31.13: something bought on the spot joins the trip — a suitcase row,
    * packed (it is in hand), linked to the inventory item it is, which is
@@ -634,6 +639,7 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     updateLine,
     setForWhom,
     markBought,
+    placeLineOnShopping,
     addToPackingList,
     adoptIntoInventory,
     unlistedNames,

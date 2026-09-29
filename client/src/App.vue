@@ -245,7 +245,12 @@ if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())
 provide(
   PACKING_CLOSE_CROSSINGS,
   orchestrator
-    ? [shoppingCloseCrossing(useShoppingStore(), createShoppingActions(orchestrator.moduleHost))]
+    ? [
+        shoppingCloseCrossing(
+          useShoppingStore(),
+          createShoppingActions(orchestrator.moduleHost, useShoppingStore()),
+        ),
+      ]
     : [],
 )
 

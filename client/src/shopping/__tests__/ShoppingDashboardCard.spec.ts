@@ -68,6 +68,7 @@ function line(name: string): ShoppingLine {
     recipients: [],
     buy: vi.fn(),
     unbuy: vi.fn(),
+    place: vi.fn(),
   }
 }
 

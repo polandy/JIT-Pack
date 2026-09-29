@@ -64,6 +64,11 @@ export interface ShoppingLine {
    * rows of several people.
    */
   assignee?: string | null
+  /**
+   * Where the line stands inside its heading, by hand (FR-30.13); null or
+   * absent for never placed, which reads before every placed line (ADR-083).
+   */
+  position?: number | null
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
   /** For a bought line: when it was bought, an ISO instant (FR-30.4). */
@@ -78,6 +83,13 @@ export interface ShoppingLine {
   buy(): void
   /** Puts a bought line back on the list it was bought from. */
   unbuy(): void
+  /**
+   * Puts the line at `position` inside its heading (FR-30.13) — written on
+   * whatever the line stands for, every row of it where it stands for
+   * several. Every source offers it: a line's place is the list's to set,
+   * whoever the line belongs to.
+   */
+  place(position: number): void
   /** Removes the line; only a line the list itself owns offers this. */
   remove?(): void
   /**

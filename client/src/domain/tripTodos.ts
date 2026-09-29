@@ -14,6 +14,7 @@
 import type { ItemTodo, TaskPhase, TaskTag, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { byDue, daysBetween, isDuePressing, pressingFirst } from './taskDue'
+import { byHand, dropInto, renumber, type Placement } from '@/lib/handOrder'
 
 /** How far a trip's todos are, as the two figures M1 states. */
 export interface TripTodoProgress {
@@ -109,6 +110,8 @@ export interface TripTask {
   task_tag_id: string | null
   /** FR-7.11: the day it is due, `YYYY-MM-DD`, or null for none. */
   due_date: string | null
+  /** FR-7.17: where it stands inside its group, by hand; null or absent for never placed. */
+  position?: number | null
 }
 
 /**
@@ -182,6 +185,7 @@ function factsOf(todo: ItemTodo | TripTodo) {
     created_at: todo.created_at,
     resolved_at: todo.resolved_at,
     resolved_by_user_id: todo.resolved_by_user_id,
+    position: todo.position ?? null,
   }
 }
 
@@ -346,6 +350,8 @@ export function filedTagOf(
  * packing list, then what has no tag and never did — except that since
  * FR-7.11 a group holding an overdue or soon task moves above the rest, and
  * inside every group the dated open tasks lead (`today` is the device's).
+ * FR-7.17: a task placed by hand stands where it was put, after the ones
+ * never placed (`byHand`, ADR-083).
  *
  * **An empty heading is not drawn.** A group with nothing in it says nothing
  * while reading, and it is not a drop target either — losing a tag happens in
@@ -385,9 +391,31 @@ export function taskGroups(
   return pressingFirst(
     groups
       .filter((group) => group.tasks.length > 0)
-      .map((group) => ({ ...group, tasks: byDue(group.tasks, today) })),
+      .map((group) => ({ ...group, tasks: byHand(byDue(group.tasks, today), positionOf) })),
     today,
   )
+}
+
+/** A task's hand-set place (FR-7.17). */
+function positionOf(task: TripTask): number | null | undefined {
+  return task.position
+}
+
+/**
+ * FR-7.17: the places a task let go in gap `gap` of a group writes — the
+ * group renumbered around it. `whole` is the group with every open task of
+ * its phase in it, the ones the *Fällig* block holds and a filter hides
+ * included; `shown` is what the screen draws of it, which is what the gap
+ * counts. Empty where the drop moves nothing.
+ */
+export function placeTaskDrop(
+  whole: readonly TripTask[],
+  shown: readonly TripTask[],
+  task: TripTask,
+  gap: number | null,
+): Placement<TripTask>[] {
+  const ordered = dropInto(whole, shown, task, gap ?? shown.length, (a, b) => a.id === b.id)
+  return ordered === null ? [] : renumber(ordered, positionOf)
 }
 
 /**

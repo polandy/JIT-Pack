@@ -67,17 +67,22 @@ the only things still open stand in **Fällig** at the top; the line then says h
 it was bought or done, the line says how much (*· 2 gekauft*) and a tap on it shows those entries, where you can untick
 one again. As soon as something is open under it again, the part is back in its place.
 
-## Moving one entry
+## Putting a row where it belongs
 
-Every row you can file carries a grip (three short lines) at its left edge. Press it and drag the row onto another
-heading; the heading lights up while it can take the row, and letting go files it there. A snackbar offers
-**Rückgängig** to take it back.
+Every open row carries a grip (three short lines) at its left edge. Press it and drag: a thin line shows the gap the
+row will land in, and letting go puts it there. The order is yours — the aisles of the shop you walk, or the order you
+will do things in — and everyone on the trip sees it. New rows you type land at the end of their heading; a list you
+never rearranged keeps the order it always had (tasks with a due day first, then by name). Positions that come from
+the packing list or an excursion move too, but only inside their own heading, and they start at its top until you
+move them.
 
-On the task list a heading is a tag *inside a phase*, so dragging a task from *Vor der Reise* into a heading under
-*Während der Reise* changes both in one move.
+Drag a row onto *another* heading and the heading lights up while it can take the row; letting go files it there, at
+the gap you let go in, and a snackbar offers **Rückgängig** to take the new tag back. On the task list a heading is a
+tag *inside a phase*, so dragging a task from *Vor der Reise* into a heading under *Während der Reise* changes both in
+one move. A heading that cannot take the row you hold dims while you drag it.
 
-Rows that cannot be moved — the packing list's own positions on the shopping list — show a dashed circle instead of
-the grip.
+The rows in **Fällig** keep their order by date there; one you drag from there into its heading keeps that place once
+its day has passed. A finished list's rows have no grip.
 
 ## Changing several at once
 

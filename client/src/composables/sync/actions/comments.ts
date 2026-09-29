@@ -18,6 +18,7 @@ import type { SyncContext } from '../context'
 import type { NoteThreadFields, TaskFiling } from '@/sync/mutations'
 import { phaseForNewTask } from '@/domain/closePacking'
 import { isPackingClosed } from '@/lib/tripPhase'
+import { nextPosition } from '@/lib/handOrder'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
@@ -173,13 +174,18 @@ export function createCommentActions(ctx: SyncContext) {
     phase: TaskPhase = TASK_PHASE_BEFORE,
     filed: TaskFiling = {},
   ): string {
+    // FR-7.17: at the end of whichever group it is filed in — past every
+    // task of the trip, so past every task of that group.
+    const position = nextPosition(
+      [...tripStore.getTripTodos(tripId), ...tripStore.getTodos(tripId)].map((t) => t.position),
+    )
     const { mutation, id } = mutations.addTodo(
       tripId,
       null,
       authorId,
       body,
       newTaskPhase(tripId, phase),
-      filed,
+      { ...filed, position },
     )
     enqueueAndDrain('trip', tripId, {
       mutation,
@@ -264,6 +270,16 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-7.17: a task's place inside its group, either kind — one field. */
+  function placeTask(tripId: string, todo: ItemTodo | TripTodo, position: number) {
+    const mut = mutations.placeTask(todo.id, position)
+    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, { ...row, position }),
+    })
+  }
+
   /** FR-7.14: a task's words, corrected — either kind, one field. */
   function setTaskBody(tripId: string, todo: ItemTodo | TripTodo, body: string) {
     const mut = mutations.setTaskBody(todo.id, body)
@@ -299,6 +315,7 @@ export function createCommentActions(ctx: SyncContext) {
     assignPrepTodo,
     setTaskPhase,
     setTaskTag,
+    placeTask,
     setTaskDueDate,
     setTaskBody,
     deleteTripTodo,

@@ -19,6 +19,7 @@ import type { RowUndo } from '@/composables/useRowUndo'
 import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
+import type { Placement } from '@/lib/handOrder'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_DURING } from '@/types/domain'
@@ -245,6 +246,18 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   /**
+   * FR-7.17: tasks put where they belong inside their group — the places a
+   * drop renumbered (`placeTaskDrop`). No undo of its own: dragging the task
+   * back is the way home, and the snackbar keeps the retag's.
+   */
+  function place(placements: readonly Placement<TripTask>[]) {
+    for (const { item, position } of placements) {
+      const todo = liveTask(item)
+      if (todo) orchestrator.placeTask(tripId(), todo, position)
+    }
+  }
+
+  /**
    * FR-7.8's batch, from a selection: several tasks under one tag, or into one
    * phase, in one act. Only what changes is written (`tasksToRetag`,
    * `tasksToMove`), and **one undo takes the whole batch back** — the undo
@@ -406,6 +419,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     move,
     setDue,
     retag,
+    place,
     retagMany,
     moveMany,
     resolveMany,

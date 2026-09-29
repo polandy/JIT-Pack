@@ -258,6 +258,7 @@ const CASES: BuilderCase[] = [
         flag_unused: 1,
         flag_missing: 1,
         carried_over_at: '2026-08-21T18:00:00Z',
+        shopping_position: 3,
         updated_hlc: '0000009000000-0001-abcdef01',
       })
     },
@@ -301,6 +302,7 @@ const CASES: BuilderCase[] = [
       flag_unused: true,
       flag_missing: true,
       carried_over_at: '2026-08-21T18:00:00Z',
+      shopping_position: 3,
       updated_hlc: '0000009000000-0001-abcdef01',
     } satisfies Record<keyof TripItem, unknown>,
   },
@@ -562,6 +564,7 @@ const CASES: BuilderCase[] = [
       assignee_user_id: null,
       resolved_at: null,
       resolved_by_user_id: null,
+      position: null,
     } satisfies Record<keyof ItemTodo, unknown>,
   },
   {
@@ -710,6 +713,7 @@ const CASES: BuilderCase[] = [
         bought_at: null,
         not_in_luggage: 1,
         for_all_participants: 1,
+        shopping_position: 2,
       })
     },
     read: () => useTripStore().getExcursionItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
@@ -742,6 +746,7 @@ const CASES: BuilderCase[] = [
       bought_at: null,
       not_in_luggage: true,
       for_all_participants: true,
+      shopping_position: 2,
     } satisfies Record<keyof ExcursionItem, unknown>,
   },
 ]
@@ -847,6 +852,7 @@ describe('commentRow', () => {
         assignee_user_id: null,
         resolved_at: null,
         resolved_by_user_id: null,
+        position: null,
       } satisfies Record<keyof ItemTodo, unknown>,
     ])
   })

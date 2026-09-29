@@ -107,9 +107,10 @@ function hasFacts(line: ShoppingLine): boolean {
        `pack-out` recipe, kept to this list's own class names. -->
   <TransitionGroup tag="div" name="buy-out" class="row-group" @leave="onLeave">
     <ListRow
-      v-for="line in lines"
+      v-for="(line, index) in lines"
       :key="line.key"
       class="shop-row"
+      :data-drop-index="index"
       :checked="selecting ? null : false"
       :tick-disabled="readonly"
       :tick-label="t('shopping.bought', { name: line.name })"
@@ -129,16 +130,17 @@ function hasFacts(line: ShoppingLine): boolean {
           :off="!line.edit"
           :data-testid="`m6-row-check-${line.name}`"
         />
-        <!-- FR-30.9's single-row drag: own entries only, lifted at once. -->
+        <!-- FR-30.13: every line is put where it belongs, lifted at once;
+             an own entry may also leave for another tag (FR-30.9). -->
         <DragGrip
-          v-else-if="line.edit && !readonly"
+          v-else-if="!readonly"
           slot="start"
-          :label="t('shopping.dragToRetag', { name: line.name })"
+          :label="t('shopping.dragToMove', { name: line.name })"
           :data-testid="`m6-row-grip-${line.name}`"
           @pointerdown.stop="(e: PointerEvent) => emit('lift', line, e)"
         />
-        <!-- A packing line has nothing to drag (an empty gap here reads as
-             broken) — the dashed placeholder. -->
+        <!-- A closed list moves nothing — the dashed placeholder, since an
+             empty gap here reads as broken. -->
         <DragGrip v-else slot="start" off />
       </template>
       <IonLabel

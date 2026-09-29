@@ -24,6 +24,8 @@ export interface ExcursionShoppingReads {
 /** The one write a check-off means (FR-31.8). */
 export interface ExcursionShoppingWrites {
   markBought(tripId: string, line: ExcursionItem, bought: boolean): void
+  /** FR-30.13: the line's place on M6's Vor-Ort list. */
+  placeLineOnShopping(tripId: string, line: ExcursionItem, position: number): void
 }
 
 /** The key prefix that keeps an excursion line apart from every other source's. */
@@ -51,6 +53,8 @@ export function createExcursionShoppingSource(
         boughtBy: bought ? null : undefined,
         buy: () => writes.markBought(tripId, line, true),
         unbuy: () => writes.markBought(tripId, line, false),
+        position: line.shopping_position,
+        place: (position) => writes.placeLineOnShopping(tripId, line, position),
       }
     })
   }

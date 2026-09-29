@@ -1603,16 +1603,16 @@ These patterns apply to every screen and are specified once.
   * **One *gekauft* fold per list**, at the section's end (*„› N gekauft"*, `m6-bought-bar`, M25's *erledigt* fold)
     — see FR-25.11j below.
   * **The empty state** (*„Nichts zu kaufen"*, `m6-empty`) only when nothing is open and nothing bought on either list.
-* **A line: two lines at most, as a task's.** The first is the grip (own entries; a dashed placeholder for a packing
-  line) and the name; the second, where there is anything to say, the **due pill**, the amount when above one, the tag
+* **A line: two lines at most, as a task's.** The first is the grip (every open line; a dashed placeholder on a closed
+  list) and the name; the second, where there is anything to say, the **due pill**, the amount when above one, the tag
   (in the *Fällig* block only) and — for a per-person item — the recipients (FR-25.6). **Who is to buy it (FR-30.12)**
   stands at the row's edge before the check-off, M25's seat (`m6-row-assign-<name>`): on an own entry in Server Mode
   when anybody else is on the trip; an avatar alone while selecting or on a closed list; nothing on a packing line,
   whose person is M4's question. The seat opens the person picker (headed with the entry's name, *„niemand"* last) and
-  the hand-over raises a toast with **Rückgängig**. The recipients (*„für Mia"*, an 18 px avatar without a ring) and
-  the assignee (the ringed 24 px avatar at the edge) never share a place. The check-off stands at the row's own
-  edge. **No ✕ on the row**: an own entry is removed from its entry sheet (*Entfernen*, `m6-entry-remove`), as a task is
-  from its own. A packing line offers neither.
+  the hand-over raises a toast with **Rückgängig**. The recipients (*„für Mia"*, an 18 px avatar without a ring) and the
+  assignee (the ringed 24 px avatar at the edge) never share a place. The check-off stands at the row's own edge. **No ✕
+  on the row**: an own entry is removed from its entry sheet (*Entfernen*, `m6-entry-remove`), as a task is from its
+  own. A packing line offers neither.
 * **Before the trip, closed (FR-7.12, *built*):** once the packing is finished, *Vor der Reise* is the record of what
   was bought before the trip. Closing the packing moves its open lines to *Vor Ort* (M4's close sheet names the number);
   the list is not drawn in reading order but **folded at the end of the screen**, M25's way: one line (*„Vor der Reise ·
@@ -1664,22 +1664,28 @@ These patterns apply to every screen and are specified once.
   G-20), and `ListGroup` the headings and their drop frame — one component each, so the two lists cannot drift apart.
   (E2E-M6-32) M9 renders the same pieces, without the grip (see M9); so do M11's unassigned bucket and M23 (see there),
   flat lists with neither grip nor headings.
-* **One entry, dragged into another heading (FR-30.9, *built*):** while nothing is selected, an own row carries a
-  **grip** (`reorderThreeOutline`) at its leading edge, in the checkbox's own place. Pressed and carried across the
-  list, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims in
-  place) and the heading under the pointer takes the same accent frame while it could honestly hold it — a tag's own
-  heading, or *„Eingetragen"* to clear one; the packing list's combined heading never frames and never takes it, the
-  same refusal a selection gives it. Letting go over a framed heading files the row under it in one act, through the
-  same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with **Rückgängig**.
-  The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a lift-carry-drop with no
-  shape of its own beyond a place's name and what was dropped on it. The frame is the mockup's blue outline, on both the
-  lifted clone and the target heading. A packing row has nothing to give the gesture either — its grip slot carries a
-  dashed placeholder instead of standing empty, and the packing list's heading dims for as long as something is being
-  dragged, the same refusal `SelectBox`'s `off` gives the checkbox one slot over; a line below the list also says so
-  once in words, next to the checkbox's own hint (an empty gap and an inert heading read as broken, not as absent). The
-  lifted clone's frame and the dimmed row it left behind are drawn once, in `composables/dragToGroup.css`, and reach
-  every screen that lifts something with `useDragToGroup` — M25's own drag (FR-7.8) draws the identical frame for the
-  same reason. (E2E-M6-34)
+* **A line, put where it belongs (FR-30.13, *built*):** while nothing is selected, every open row carries a **grip**
+  (`reorderThreeOutline`, label *„<Name> verschieben"*) at its leading edge, in the checkbox's own place. Pressed and
+  carried, it lifts the row (a clone follows the pointer, framed in the accent colour, while the row itself only dims
+  in place); inside the heading under the pointer a **2 px line in the action colour** marks the gap the row will land
+  in — laid over the neighbouring row's edge (`data-drop-gap`), so no row moves under the finger, and drawn only where
+  the drop would move something. Letting go puts the row there. Packing and excursion lines move only inside their own
+  heading. Rows in the *Fällig* block are lifted the same way and keep their date order there; the placed row stands
+  in its heading once its day has passed. (E2E-M6-39)
+* **One entry, dragged into another heading (FR-30.9, *built*):** carried across the list instead, an own row makes
+  the heading under the pointer take the same accent frame while it could honestly hold it — a tag's own heading, or
+  *„Eingetragen"* to clear one; the packing list's combined heading never frames and never takes it, the same refusal
+  a selection gives it. Letting go over a framed heading files the row under it in one act, at the gap it was let go
+  in, through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with
+  **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
+  lift-carry-drop with no shape of its own beyond a place's name, the gap and what was dropped on it. The frame is the
+  mockup's blue outline, on both the lifted clone and the target heading. **A heading that refuses the row in hand dims
+  for as long as it is in the air** (`data-drop-refused`, set by the gesture from the screen's own rule): the packing
+  heading under an own entry, every other heading under a packing line. A line below the list says once in words that
+  a packing line moves only inside its heading, next to the checkbox's own hint. The lifted clone's frame, the dimmed
+  row it left behind and the insert line are drawn once, in `composables/dragToGroup.css`, and reach every screen that
+  lifts something with `useDragToGroup` — M25's own drag (FR-7.8) draws the identical frame for the same reason.
+  (E2E-M6-34)
 * **A bought row's own undo (FR-25.11j, *built*):** checking a row off — an own entry's or a packing row's projection
   alike — leaves the open list with a wash-collapse-fade, M4's FR-25.2 recipe, rather than vanishing, and raises a toast
   with **Rückgängig** immediately, M4's own shape (`presentToast`, anchored clear of the FAB) rather than the dashboard
@@ -2727,11 +2733,15 @@ token would prove nothing there is anything to prove.
     ablegen*; the row stays in the list, dimmed, and a clone travels (ADR-060), in the shared frame of
     `composables/dragToGroup.css`. The gesture's state is on the page as `data-drag`, always set, and returns to `idle`
     only once the write has landed. A row in the *Fällig* block is lifted into a group the same way.
+  * **Put where it belongs (FR-7.17).** Inside the group under the pointer, M6's insert line marks the gap the task
+    will land in, and letting go puts it there — in its own group, or in another one it is retagged into. A group a
+    task can never go to dims while it is in the air (*Aus Packliste* under a chore of the trip). (E2E-M25-20)
   * **The provenance line is not on the row:** *„erstellt von Andy · heute 14:32"* and
     *„erledigt von Sia · gestern 09:15"* are fact lines in the task's sheet.
   * **The due pill (FR-7.11)**: *Überfällig* in the danger ink on its tint, *Heute* / *Morgen* / *In 2 Tagen* in the
     action ink, a short date (*„Fr., 17.7."*) quiet on the sunken plane further out. It stays visible while
-    selecting — when a task is due is part of choosing it. Inside a group the dated open tasks lead, earliest first.
+    selecting — when a task is due is part of choosing it. Inside a group the dated open tasks lead, earliest first —
+    among the tasks never put in place by hand, which read before the placed ones (FR-7.17).
 * **Before the trip, closed (FR-7.12, placed by FR-7.14).** Once the packing is finished, *Vor der Reise* is history,
   and history comes after the work: *Während der Reise* is the first section, and *Vor der Reise* is **one folded line
   at the end** (`m25-before-fold`, the same `RestLine` an empty phase folds to): *„Vor der Reise · N erledigt"*, or *„·
