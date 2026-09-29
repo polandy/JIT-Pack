@@ -232,6 +232,8 @@ test.describe('app shell offline (NFR-4.13)', () => {
   }) => {
     await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
+    const indicator = page.getByTestId('sync-indicator')
+    const footprint = await indicator.boundingBox()
 
     // Two positive signals, because "nothing happens to the running app" is
     // otherwise an absence nobody watched: a marker no reload survives, and a
@@ -268,9 +270,15 @@ test.describe('app shell offline (NFR-4.13)', () => {
     expect(waiting.waiting).toContain('e2e-update=1')
     expect(waiting.controller).not.toContain('e2e-update=1')
 
-    // Announced: the dot on the glyph and the sentence in the G-2 sheet.
-    await expect(page.getByTestId('sync-indicator-update')).toBeVisible()
-    await page.getByTestId('sync-indicator').click()
+    // Announced: the dot on the glyph and the sentence in the G-2 sheet. The
+    // dot annotates the glyph's lower corner — the upper one is the queue
+    // count's — and, like the count, takes no room in the bar (G-2).
+    const dot = page.getByTestId('sync-indicator-update')
+    await expect(dot).toBeVisible()
+    expect(await indicator.boundingBox()).toEqual(footprint)
+    const dotBox = await dot.boundingBox()
+    expect(dotBox!.y + dotBox!.height / 2).toBeGreaterThan(footprint!.y + footprint!.height / 2)
+    await indicator.click()
     await expect(page.getByTestId('sync-detail-update')).toBeVisible()
 
     // Nothing reloaded the app to get there, and nothing took the page over

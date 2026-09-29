@@ -529,7 +529,8 @@ can reach the broken state — the defect was invisible to a green suite on prin
   Driving it needs a second worker on the origin, and registering a *different script URL on the same scope* is what
   produces one — a registration is keyed by scope, so the browser installs it into the registration the app is already
   holding and its `updatefound` is the app's own signal. Asserted: the new worker is **waiting** while the old one still
-  controls the page; the G-2 glyph carries the dot and the sheet the sentence; the running app was neither reloaded (a
+  controls the page; the G-2 glyph carries the dot — in its lower half, with the indicator's box exactly as it was
+  before, since the dot takes no room in the bar — and the sheet the sentence; the running app was neither reloaded (a
   `window` marker no reload survives) nor taken over under (`controllerchange` counted, and the controller re-read); and
   after the last client goes away — a *launch*, not a reload, which is why the case closes its page —
   `navigator.serviceWorker.ready` reports the new script active. **Not asserted:** that the
