@@ -20,11 +20,13 @@ import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { defaultNowIso, type NowIso } from '@/lib/clock'
 import {
+  ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   REVIEW_FLAG_FIELD,
   STATE_PACKED,
   STATE_PACKING_NOW,
+  TASK_PHASE_DURING,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
 } from '@/types/domain'
@@ -389,6 +391,26 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   /**
+   * FR-7.12/FR-7.16: the close carries a row still to buy *before
+   * departure* to *at the destination*, and says when — one write, so the
+   * mark never stands on a row that did not move.
+   */
+  function carryRowToLocal(itemId: string, at: string): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      mode: ITEM_MODE_BUY_LOCAL,
+      carried_over_at: at,
+    })
+  }
+
+  /** The close's undo for {@link carryRowToLocal}: back before departure, unmarked. */
+  function returnCarriedRow(itemId: string): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      mode: ITEM_MODE_BUY_BEFORE,
+      carried_over_at: null,
+    })
+  }
+
+  /**
    * FR-25.21's writer: the three fields a membership change may move, written
    * together because a conversion decides them together (ADR-036). Narrow on
    * purpose — a general "update any field" helper would be a way around the
@@ -716,6 +738,26 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function setTaskPhase(todoId: string, phase: TaskPhase | null): Mutation {
     return make('upsert', TABLE.comments, todoId, { phase })
+  }
+
+  /**
+   * FR-7.7/FR-7.16: the close moves a task to *during*, and files it under
+   * the carried tag where it takes one — one write, so a device never shows
+   * the task in its new phase under no tag or its tag in the old phase.
+   */
+  function carryTask(todoId: string, taskTagId: string | null): Mutation {
+    return make('upsert', TABLE.comments, todoId, {
+      phase: TASK_PHASE_DURING,
+      ...(taskTagId ? { task_tag_id: taskTagId } : {}),
+    })
+  }
+
+  /** The close's undo for {@link carryTask}: its phase back, and the tag off where the close set it. */
+  function returnCarriedTask(todoId: string, phase: TaskPhase | null, untag: boolean): Mutation {
+    return make('upsert', TABLE.comments, todoId, {
+      phase,
+      ...(untag ? { task_tag_id: null } : {}),
+    })
   }
 
   function deleteTodo(todoId: string): Mutation {
@@ -1738,6 +1780,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     buyItem,
     unbuyItem,
     setItemMode,
+    carryRowToLocal,
+    returnCarriedRow,
     setMembershipFields,
     assignTraveler,
     assignContainer,
@@ -1756,6 +1800,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     resolveTodo,
     setTodoAssignee,
     setTaskPhase,
+    carryTask,
+    returnCarriedTask,
     setTaskTag,
     setTaskDueDate,
     setTaskBody,

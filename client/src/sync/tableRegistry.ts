@@ -326,6 +326,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
+    carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
     updated_hlc: (row['updated_hlc'] as string) ?? '',
   }
 }
@@ -371,6 +372,7 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
     due_date: (row['due_date'] as string | null | undefined) ?? null,
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
+    carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
   }
 }
 

@@ -30,6 +30,7 @@ import {
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
   type TaskPhase,
+  type TaskTag,
   type ItemTodo,
   type TripItem,
   type TripTodo,
@@ -196,4 +197,26 @@ export function phaseForNewTask(asked: TaskPhase, packingClosed: boolean): TaskP
  */
 export function rowsCrossingToLocal(items: readonly TripItem[]): TripItem[] {
   return items.filter((item) => item.mode === ITEM_MODE_BUY_BEFORE)
+}
+
+/**
+ * FR-7.16: the crossing tasks the close files under *Von vor der Abreise* —
+ * the trip's own tasks without a tag. A tag the person gave says more than
+ * where the task came from, and a row's preparation is filed under its row
+ * already (*Aus Packliste*, FR-7.6); moving it out would lose that.
+ */
+export function tasksToFileAsCarried(crossing: readonly ClosingTask[]): TripTodo[] {
+  return crossing.filter(
+    (task): task is TripTodo => !('trip_item_id' in task) && task.task_tag_id === null,
+  )
+}
+
+/**
+ * FR-7.16: the vocabulary's tag named `name`, compared the way a person
+ * reads it — case and surrounding space aside — so the close reuses the tag
+ * an earlier close made (or somebody typed) rather than adding a second.
+ */
+export function carriedTaskTag(tags: readonly TaskTag[], name: string): TaskTag | null {
+  const wanted = name.trim().toLocaleLowerCase()
+  return tags.find((tag) => tag.name.trim().toLocaleLowerCase() === wanted) ?? null
 }

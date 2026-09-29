@@ -261,14 +261,20 @@ describe('The close of the packing (FR-7.12)', () => {
     expect(listOf('Kaffee')).toBe('buy_before')
     expect(crossing.pending('t1')).toBe(0)
 
+    // FR-7.16: and it says it was carried, in the same write.
+    const carriedOf = (name: string) =>
+      shoppingStore.getEntries('t1').find((e) => e.name === name)!.carried_over_at
+    expect(carriedOf('Sonnenhut')).toEqual(expect.any(String))
+    expect(carriedOf('Kaffee')).toBeNull()
     await orch.drainTrip('t1')
     expect(harness.pushedMutations().at(-1)).toMatchObject({
       op: 'upsert',
-      fields: { list: 'buy_local' },
+      fields: { list: 'buy_local', carried_over_at: expect.any(String) },
     })
 
     effect.undo()
     expect(listOf('Sonnenhut')).toBe('buy_before')
+    expect(carriedOf('Sonnenhut')).toBeNull()
   })
 })
 

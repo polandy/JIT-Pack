@@ -51,6 +51,9 @@ export function createPackingShoppingSource(
         name: row.name,
         quantity: row.quantity,
         recipients: row.recipients.map((traveler) => ({ id: traveler.id, name: traveler.name })),
+        // FR-7.16: one instance carried is the line carried — the close
+        // moves every row still to buy, so the instances agree.
+        carriedOver: row.instances.some((item) => item.carried_over_at != null),
         // Read off the row rather than off the list: a BUY_BEFORE purchase is
         // on the packing list, a BUY_LOCAL one is packed, and a row whose
         // mode changed again since says so (FR-25.11j).

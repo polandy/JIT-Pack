@@ -71,6 +71,38 @@ describe('buildSections — a source’s own heading (FR-31.8)', () => {
   })
 })
 
+describe('buildSections — carried from before departure (FR-7.16)', () => {
+  const carried = (l: ShoppingLine): ShoppingLine => ({ ...l, carriedOver: true })
+
+  it('files carried packing lines and untagged entries under one heading of their own, first', () => {
+    const sections = buildSections(
+      [line('Milch'), carried(line('Kaffee')), carried(line('Spray', 'Apotheke'))],
+      [
+        line('Hut'),
+        carried(line('Sonnencreme')),
+        carried({ ...line('Proviant'), section: 'Hüttentour' }),
+      ],
+    )
+    expect(sections.map((s) => [s.key, s.carried, s.lines.map((l) => l.name)])).toEqual([
+      ['carried', true, ['Sonnencreme', 'Kaffee']],
+      ['packing', false, ['Hut']],
+      ['source:Hüttentour', false, ['Proviant']],
+      ['tag:Apotheke', false, ['Spray']],
+      ['own', false, ['Milch']],
+    ])
+  })
+
+  it('takes no drop — a carried line leaves it by being given a tag', () => {
+    const [section] = buildSections([carried(line('Kaffee'))], [])
+    expect(section!.carried).toBe(true)
+    expect(dropTag(section!)).toBeUndefined()
+  })
+
+  it('is absent, not empty, when nothing was carried', () => {
+    expect(buildSections([line('Milch')], [line('Hut')]).some((s) => s.carried)).toBe(false)
+  })
+})
+
 describe('buildSections — tags (FR-30.9)', () => {
   it('puts the packing section first, then a section per tag A–Z, then the untagged', () => {
     const sections = buildSections(

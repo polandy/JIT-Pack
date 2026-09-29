@@ -18,10 +18,12 @@ import {
   phaseForNewTask,
   planPackingClose,
   rowsCrossingToLocal,
+  carriedTaskTag,
   tasksCrossing,
+  tasksToFileAsCarried,
   type ClosingTask,
 } from '../closePacking'
-import type { TaskPhase, TripItem } from '@/types/domain'
+import type { TaskPhase, TaskTag, TripItem } from '@/types/domain'
 
 let seq = 0
 
@@ -292,5 +294,53 @@ describe('FR-7.12: the close ends *before* for the shopping list and for new tas
     ['during, either way', 'during', true, 'during'],
   ] as const)('writes a new task asked for %s', (_name, asked, closed, want) => {
     expect(phaseForNewTask(asked as TaskPhase, closed)).toBe(want)
+  })
+})
+
+/**
+ * FR-7.16: what crosses is marked as having come from before departure. For
+ * a task that is a tag of the vocabulary (FR-7.8) — but only a task of the
+ * trip's own without one: a tag the person gave says more than where the
+ * task came from, and a row's preparation is already filed under its row.
+ */
+describe('tasksToFileAsCarried (FR-7.16): which crossing tasks take the tag', () => {
+  const task = (id: string, over: { tag?: string | null; row?: string } = {}) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'u-andy',
+      body: id,
+      task_state: 'open',
+      phase: 'before',
+      created_at: null,
+      assignee_user_id: null,
+      resolved_at: null,
+      resolved_by_user_id: null,
+      task_tag_id: over.tag ?? null,
+      ...(over.row ? { trip_item_id: over.row } : {}),
+    }) as ClosingTask
+
+  it('takes a trip task without a tag, and leaves a tagged one and a preparation alone', () => {
+    const filed = tasksToFileAsCarried([
+      task('Pflanzen giessen'),
+      task('Apotheke', { tag: 'tt-apo' }),
+      task('Salbe holen', { row: 'ti-1' }),
+    ])
+    expect(filed.map((t) => t.id)).toEqual(['Pflanzen giessen'])
+  })
+})
+
+describe('carriedTaskTag (FR-7.16): the vocabulary’s tag of that name, if it has one', () => {
+  const tags: TaskTag[] = [
+    { id: 'tt-apo', name: 'Apotheke', sort_order: 0 },
+    { id: 'tt-carried', name: 'von vor der Abreise ', sort_order: 1 },
+  ]
+
+  it('finds it whatever the case and surrounding space, so a second close does not make a second tag', () => {
+    expect(carriedTaskTag(tags, 'Von vor der Abreise')?.id).toBe('tt-carried')
+  })
+
+  it('finds none where the vocabulary has no such tag', () => {
+    expect(carriedTaskTag(tags.slice(0, 1), 'Von vor der Abreise')).toBeNull()
   })
 })

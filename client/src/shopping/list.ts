@@ -45,6 +45,12 @@ export interface ShoppingSection {
    * empty, when no source has anything open.
    */
   packing: boolean
+  /**
+   * FR-7.16: the heading of what the close of the packing carried here from
+   * *before departure* — packing lines and own entries alike, unless a tag
+   * or a source's own heading files them more precisely. Never a drop target.
+   */
+  carried: boolean
   /** The own entries' tag; null otherwise, the packing section included. */
   name: string | null
   lines: ShoppingLine[]
@@ -54,6 +60,8 @@ export interface ShoppingSection {
 const OWN_SECTION = 'own'
 /** Every source's lines, combined under this one heading. */
 const PACKING_SECTION = 'packing'
+/** FR-7.16: what the close carried from before departure. */
+const CARRIED_SECTION = 'carried'
 
 /** A line's due day, or null for none (FR-30.10). */
 function dueDayOf(line: ShoppingLine): string | null {
@@ -86,13 +94,31 @@ export function buildSections(
 
 function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSection[] {
   const sections: ShoppingSection[] = []
-  const combined = sourced.filter((line) => !line.section)
+  // FR-7.16: first, since what is left over from before departure is what
+  // the reader most needs to find at the destination.
+  const carried = [
+    ...sourced.filter((line) => line.carriedOver && !line.section),
+    ...own.filter((line) => line.carriedOver && !line.tag),
+  ]
+  if (carried.length > 0) {
+    sections.push({
+      key: CARRIED_SECTION,
+      own: false,
+      tagged: false,
+      packing: false,
+      carried: true,
+      name: null,
+      lines: carried,
+    })
+  }
+  const combined = sourced.filter((line) => !line.section && !line.carriedOver)
   if (combined.length > 0) {
     sections.push({
       key: PACKING_SECTION,
       own: false,
       tagged: false,
       packing: true,
+      carried: false,
       name: null,
       lines: combined,
     })
@@ -109,6 +135,7 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
       own: false,
       tagged: false,
       packing: false,
+      carried: false,
       name,
       lines: bySection.get(name) ?? [],
     })
@@ -117,7 +144,7 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
   const untagged: ShoppingLine[] = []
   for (const line of own) {
     if (!line.tag) {
-      untagged.push(line)
+      if (!line.carriedOver) untagged.push(line)
       continue
     }
     byTag.set(line.tag, [...(byTag.get(line.tag) ?? []), line])
@@ -128,6 +155,7 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
       own: false,
       tagged: true,
       packing: false,
+      carried: false,
       name: tag,
       lines: byTag.get(tag) ?? [],
     })
@@ -138,6 +166,7 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
       own: true,
       tagged: false,
       packing: false,
+      carried: false,
       name: null,
       lines: untagged,
     })

@@ -380,7 +380,13 @@ describe('createTripLifecycleActions without an orchestrator', () => {
 
     expect(effect.buyRows.map((row) => row.id)).toEqual(['hat'])
     expect(tablesQueued()).toEqual([TABLE.tripItems, TABLE.trips])
-    expect(queued[0]!.muts[0]!.mutation).toMatchObject({ id: 'hat', fields: { mode: 'buy_local' } })
+    // FR-7.16: marked as carried in the same write, at the stamp's moment.
+    const carried = queued[0]!.muts[0]!.mutation.fields!['carried_over_at']
+    expect(queued[0]!.muts[0]!.mutation).toMatchObject({
+      id: 'hat',
+      fields: { mode: 'buy_local', carried_over_at: expect.any(String) },
+    })
+    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ packing_closed_at: carried })
   })
 
   it('restorePackingClose puts a crossed row back before departure — only where the close left it', () => {
@@ -412,7 +418,111 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       .flatMap((q) => q.muts)
       .filter((m) => m.mutation.table === TABLE.tripItems)
       .map((m) => [m.mutation.id, m.mutation.fields])
-    expect(modes).toEqual([['hat', { mode: 'buy_before' }]])
+    expect(modes).toEqual([['hat', { mode: 'buy_before', carried_over_at: null }]])
+  })
+
+  /*
+   * FR-7.16: a trip task without a tag crosses filed under *Von vor der
+   * Abreise* — a tag of the vocabulary, made by the first close that needs
+   * it and reused by the next. A tagged task and a row's preparation keep
+   * what files them; the undo takes the tag off only where the close gave it.
+   */
+  describe('the carried tag (FR-7.16)', () => {
+    const TAG = 'Von vor der Abreise'
+
+    function seedTasks() {
+      seedTrip(TRIP_STATUS_ACTIVE)
+      pullIn(ctx.tripStore, TABLE.tripItems, 'row-salve', {
+        trip_id: TRIP_ID,
+        name: 'Salbe',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      })
+      const task = (id: string, extra: Record<string, unknown> = {}) =>
+        pullIn(ctx.tripStore, TABLE.comments, id, {
+          trip_id: TRIP_ID,
+          trip_item_id: null,
+          author_id: 'u-a',
+          body: id,
+          is_task: 1,
+          task_state: 'open',
+          phase: 'before',
+          ...extra,
+        })
+      task('plants')
+      task('pharmacy', { task_tag_id: 'tt-apo' })
+      task('prep', { trip_item_id: 'row-salve' })
+    }
+
+    /** Each task's write, by id — the order the store holds them in is not the rule. */
+    const taskFields = () =>
+      Object.fromEntries(
+        queued
+          .flatMap((q) => q.muts)
+          .filter((m) => m.mutation.table === TABLE.comments)
+          .map((m) => [m.mutation.id, m.mutation.fields]),
+      )
+
+    it('makes the tag once and files only the untagged trip task under it', () => {
+      seedTasks()
+
+      const effect = build(ctx).closePacking(TRIP_ID, { carriedTagName: TAG })
+
+      const made = queued.flatMap((q) => q.muts).filter((m) => m.mutation.table === TABLE.taskTags)
+      expect(made.map((m) => m.mutation.fields)).toEqual([expect.objectContaining({ name: TAG })])
+      const tagId = made[0]!.mutation.id
+      expect(taskFields()).toEqual({
+        plants: { phase: 'during', task_tag_id: tagId },
+        pharmacy: { phase: 'during' },
+        prep: { phase: 'during' },
+      })
+      expect(Object.fromEntries(effect.tasks.map((r) => [r.task.id, r.tagged]))).toEqual({
+        plants: true,
+        pharmacy: false,
+        prep: false,
+      })
+    })
+
+    it('reuses a tag of that name the vocabulary already has', () => {
+      seedTasks()
+      pullIn(ctx.masterStore, TABLE.taskTags, 'tt-carried', {
+        name: 'von vor der abreise',
+        sort_order: 3,
+      })
+
+      build(ctx).closePacking(TRIP_ID, { carriedTagName: TAG })
+
+      expect(queued.flatMap((q) => q.muts).some((m) => m.mutation.table === TABLE.taskTags)).toBe(
+        false,
+      )
+      expect(taskFields()['plants']).toEqual({ phase: 'during', task_tag_id: 'tt-carried' })
+    })
+
+    it('makes no tag where nothing takes one', () => {
+      seedTrip(TRIP_STATUS_ACTIVE)
+
+      build(ctx).closePacking(TRIP_ID, { carriedTagName: TAG })
+
+      expect(queued.flatMap((q) => q.muts).some((m) => m.mutation.table === TABLE.taskTags)).toBe(
+        false,
+      )
+    })
+
+    it('the undo puts each phase back and takes the tag off only where the close gave it', () => {
+      seedTasks()
+      const effect = build(ctx).closePacking(TRIP_ID, { carriedTagName: TAG })
+      queued.length = 0
+
+      build(ctx).restorePackingClose(TRIP_ID, [], effect.tasks)
+
+      expect(taskFields()).toEqual({
+        plants: { phase: 'before', task_tag_id: null },
+        pharmacy: { phase: 'before' },
+        prep: { phase: 'before' },
+      })
+    })
   })
 
   it('deleteTrip tombstones on the master partition', () => {

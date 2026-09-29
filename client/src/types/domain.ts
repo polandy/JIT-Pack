@@ -165,6 +165,13 @@ export interface TripItem {
   flag_unused: boolean
   flag_missing: boolean
   /**
+   * FR-7.16: when closing the packing carried the row from *before
+   * departure* to *at the destination*; null or absent for a row that was
+   * never carried. The shopping list files a carried line under *Von vor der
+   * Abreise*.
+   */
+  carried_over_at?: string | null
+  /**
    * Which shopping list the row was bought from (FR-25.11j), or null if it
    * was not bought. Buying changes the row's mode (FR-3.3), so this is what
    * lets M6 find the row again and put it back.
@@ -457,6 +464,8 @@ export interface ShoppingEntry {
   due_date: string | null
   /** FR-30.12: who is to buy it, a task's assignee's shape (FR-7.5); null for nobody in particular. */
   assignee_user_id: string | null
+  /** FR-7.16: when closing the packing carried it to *at the destination*; null or absent for never. */
+  carried_over_at?: string | null
 }
 
 // --- The planner (§3.29) ---

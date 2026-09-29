@@ -26,6 +26,7 @@ import type {
   TripTodo,
   CategorisedMasterItem,
   ItemTag,
+  TaskTag,
   MasterItem,
   Tag,
   Template,
@@ -83,6 +84,8 @@ export interface TripReads {
 /** What the action groups read off the master store — and nothing else. */
 export interface MasterReads {
   readonly tagList: Tag[]
+  /** FR-7.8's task vocabulary — the close reuses its *Von vor der Abreise* (FR-7.16). */
+  readonly taskTagList: TaskTag[]
   /** Every tag assignment — the rows FR-24.9's bulk plans are computed over. */
   readonly itemTagList: ItemTag[]
   readonly itemList: MasterItem[]

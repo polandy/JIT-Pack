@@ -46,6 +46,12 @@ export interface ShoppingLine {
    */
   section?: string | null
   /**
+   * FR-7.16: the close of the packing carried the line here from *before
+   * departure*. Filed under *Von vor der Abreise* where nothing files it more
+   * precisely — a tag of its own or a source's own heading.
+   */
+  carriedOver?: boolean
+  /**
    * The day an open line is due (FR-30.10), `YYYY-MM-DD`; null or absent for
    * none — and for a bought line, which is never overdue. Only the list's own
    * entries carry one: a packing line's moment is the list it sits on.

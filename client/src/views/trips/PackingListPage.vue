@@ -2270,6 +2270,9 @@ function onConfirmClosePacking() {
   closePromptUp.value = false
   const { rows, tasks, buyRows } = orchestrator.closePacking(props.tripId, {
     isClaimed: (row: TripItem) => locked(row),
+    // FR-7.16: the tag the crossing trip tasks are filed under, in the
+    // reader's words.
+    carriedTagName: t('tasks.carriedTag'),
   })
   // FR-7.12: a module's own *before* list crosses in the same act, and is
   // taken back by the same undo.

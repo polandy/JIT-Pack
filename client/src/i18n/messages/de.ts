@@ -1567,6 +1567,7 @@ export const de: Record<keyof typeof en, string> = {
   'tasks.openAll': 'Alle Aufgaben',
   // FR-7.8 — das eine Tag einer Aufgabe und die Gruppen daraus.
   'tasks.fromPacking': 'Aus Packliste',
+  'tasks.carriedTag': 'Von vor der Abreise',
   'tasks.noTag': 'Ohne Tag',
   'tasks.tagLabel': 'Tag',
   'tasks.select': 'Auswählen',
@@ -1946,6 +1947,7 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.beforeDepartureCount': 'Vor der Reise ({n})',
   'shopping.atDestination': 'Vor Ort',
   'shopping.atDestinationCount': 'Vor Ort ({n})',
+  'shopping.carriedOver': 'Von vor der Abreise',
   'shopping.packingList': 'Packliste',
   'shopping.forWhom': 'für {names}',
   'shopping.bought': 'Gekauft: {name}',
