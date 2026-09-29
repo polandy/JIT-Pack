@@ -286,6 +286,30 @@ describe('pictures (FR-29.5)', () => {
     expect(pictures.add).toHaveBeenCalledTimes(1)
   })
 
+  /* FR-29.16: the idea shows its link's picture coming, until it is there — or is not coming after all. */
+  it('marks the picture coming while it is awaited, and quietly not when it fails', async () => {
+    const orch = serverOrch()
+    harness.mockPull([pulledIdea])
+    await orch.drainTrip('t1')
+    const plannerStore = usePlannerStore()
+    const { host, pictures } = withPictures(orch.moduleHost)
+    const actions = createPlannerActions(host, plannerStore)
+
+    let deliver: (blob: Blob | null) => void = () => {}
+    const waiting = actions.awaitLinkPicture(
+      'idea-1',
+      new Promise<Blob | null>((resolve) => (deliver = resolve)),
+    )
+    expect(plannerStore.pictureComing('idea-1')).toBe(true)
+    deliver(new Blob(['from the page']))
+    await waiting
+    expect(plannerStore.pictureComing('idea-1')).toBe(false)
+    expect(pictures.add).toHaveBeenCalledTimes(1)
+
+    await actions.awaitLinkPicture('idea-1', Promise.reject(new Error('offline')))
+    expect(plannerStore.pictureComing('idea-1')).toBe(false)
+  })
+
   it('makes a picture the cover by moving only what has to move', async () => {
     const orch = serverOrch()
     harness.mockPull([

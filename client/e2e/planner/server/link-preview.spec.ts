@@ -57,10 +57,11 @@ test.describe('Ideas from a link (FR-29.16) @server @planner', () => {
 
   /**
    * E2E-M28-09: a link pasted into a new idea's sheet is read, and the page's
-   * title and description come as a suggestion — nothing changes until it is
-   * confirmed. The picture is fetched in the background and reaches the idea
-   * after it was saved. A suggestion dismissed leaves the typed title, and
-   * the picture still comes, since the idea has none.
+   * title and description come as a suggestion — nothing changes, the title
+   * field included, until it is confirmed. The picture is fetched in the
+   * background, shown coming in the sheet and then on the saved idea's card,
+   * and reaches the idea after the save. A suggestion dismissed leaves the
+   * typed title, and the picture still comes, since the idea has none.
    */
   test('E2E-M28-09: a link suggests its words, and its picture follows the saved idea', async ({
     browser,
@@ -86,9 +87,12 @@ test.describe('Ideas from a link (FR-29.16) @server @planner', () => {
     await expect(suggestion.getByTestId('idea-edit-suggestion-description')).toHaveText(
       'Ein Bergsee über Kandersteg',
     )
-    // A suggestion, not a fill: the fields keep the site name and nothing.
-    await expect(name).toHaveValue('oeschinensee.ch')
+    // A suggestion, not a fill: the fields stay as they were.
+    await expect(name).toHaveValue('')
     await expect(note).toHaveValue('')
+    // The picture shows itself coming while it is held back.
+    await expect(sheet.getByTestId('idea-edit-link-picture')).toHaveAttribute('data-coming', 'true')
+    await expect(sheet.getByTestId('idea-edit-save')).toHaveAttribute('aria-disabled', 'true')
     await suggestion.getByTestId('idea-edit-suggestion-accept').click()
     await expect(name).toHaveValue('Oeschinensee')
     await expect(note).toHaveValue('Ein Bergsee über Kandersteg')
@@ -97,13 +101,14 @@ test.describe('Ideas from a link (FR-29.16) @server @planner', () => {
     // Saved while the picture is still held back: it follows the idea.
     await sheet.getByTestId('idea-edit-save').click()
     const card = ideaCard(alice, 'Oeschinensee')
-    await expect(card).toBeVisible()
+    await expect(card.locator('[data-testid^="idea-card-picture-coming-"]')).toBeVisible()
     expect(asked).toEqual([LINK, PICTURE])
     releasePicture()
     await expect(card.locator('[data-testid^="idea-card-cover-"] img')).toHaveJSProperty(
       'naturalWidth',
       WIDE_PNG_WIDTH,
     )
+    await expect(card.locator('[data-testid^="idea-card-picture-coming-"]')).toHaveCount(0)
 
     // Dismissed: the typed title stays — and the picture still comes.
     await board.getByTestId('m28-fab').click()

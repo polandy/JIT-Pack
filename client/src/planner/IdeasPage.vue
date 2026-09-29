@@ -163,7 +163,7 @@ setHeaderActions(() =>
 
 const editing = ref<{ idea: Idea | null } | null>(null)
 
-function onSave(fields: IdeaFields, picture: Promise<Blob | null>) {
+function onSave(fields: IdeaFields, picture: Promise<Blob | null> | null) {
   const current = editing.value
   editing.value = null
   let ideaId: string | null
@@ -174,14 +174,7 @@ function onSave(fields: IdeaFields, picture: Promise<Blob | null>) {
     ideaId = actions.addIdea(props.tripId, fields, myUserId.value)
   }
   // FR-29.16: the link's picture comes in the background, whenever it comes.
-  // A picture that cannot be had or put up is a preview missing its picture,
-  // not a failure the person saving has to hear about.
-  if (ideaId !== null) {
-    const id = ideaId
-    void picture
-      .then((blob) => (blob ? actions.addLinkPicture(id, blob) : false))
-      .catch(() => false)
-  }
+  if (ideaId !== null && picture) void actions.awaitLinkPicture(ideaId, picture)
   if (current?.idea || ideaId === null) return
   // A new idea is shown where it went and on top, so it does not land below
   // the fold of a list sorted by votes it has none of yet.
@@ -398,6 +391,7 @@ const EMPTY_KEYS = {
             :key="card.idea.id"
             :card="card"
             :pictures="picturesOf(card.idea.id)"
+            :picture-coming="plannerStore.pictureComing(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
             @open="openSheet(card.idea)"
@@ -418,6 +412,7 @@ const EMPTY_KEYS = {
       <IdeaEditSheet
         :open="editing !== null"
         :idea="editing?.idea ?? null"
+        :has-pictures="!!editing?.idea && picturesOf(editing.idea.id).length > 0"
         :preview="
           orchestrator.moduleHost.linkPreview.offered()
             ? {

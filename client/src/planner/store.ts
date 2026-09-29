@@ -32,6 +32,20 @@ export const usePlannerStore = defineStore('planner', () => {
   const votes = ref<Map<string, IdeaVote>>(new Map())
   const comments = ref<Map<string, IdeaComment>>(new Map())
   const images = ref<Map<string, IdeaImage>>(new Map())
+  /**
+   * FR-29.16: the ideas whose link's picture is on its way, which the board
+   * shows coming. This device's state, not a row: nothing syncs it.
+   */
+  const picturesComing = ref<Set<string>>(new Set())
+
+  function pictureComing(ideaId: string): boolean {
+    return picturesComing.value.has(ideaId)
+  }
+
+  function setPictureComing(ideaId: string, coming: boolean): void {
+    if (coming) picturesComing.value.add(ideaId)
+    else picturesComing.value.delete(ideaId)
+  }
 
   function getIdeas(tripId: string): Idea[] {
     return [...ideas.value.values()].filter((idea) => idea.trip_id === tripId)
@@ -113,6 +127,8 @@ export const usePlannerStore = defineStore('planner', () => {
     getVotes,
     getComments,
     getImages,
+    pictureComing,
+    setPictureComing,
     applyChanges,
     ideaChildRows,
     tripChildRows,

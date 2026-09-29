@@ -146,6 +146,24 @@ export function createPlannerActions(
     return addPicture(idea, source)
   }
 
+  /**
+   * FR-29.16: waits for a link's picture in the background and adds it where
+   * the idea still wants it, the idea showing it coming meanwhile. A picture
+   * that cannot be had or put up is a preview missing its picture, not a
+   * failure the person who saved has to hear about.
+   */
+  async function awaitLinkPicture(ideaId: string, picture: Promise<Blob | null>): Promise<void> {
+    plannerStore.setPictureComing(ideaId, true)
+    try {
+      const blob = await picture
+      if (blob) await addLinkPicture(ideaId, blob)
+    } catch {
+      // See above: the idea simply stays without its link's picture.
+    } finally {
+      plannerStore.setPictureComing(ideaId, false)
+    }
+  }
+
   /** FR-29.5's „Als Titelbild": the picture to the front, the rest behind it in order. */
   function makeCover(idea: Idea, imageId: string): void {
     const moves = coverMoves(picturesOf(idea), imageId).map(({ image, position }) => {
@@ -250,6 +268,7 @@ export function createPlannerActions(
     removeIdea,
     addPicture,
     addLinkPicture,
+    awaitLinkPicture,
     makeCover,
     removePicture,
     vote,

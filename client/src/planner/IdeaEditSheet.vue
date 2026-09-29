@@ -5,11 +5,11 @@
  * written before the button, and the button stays off while the title is
  * blank or the link is not one the board may render.
  *
- * A link entered here names a blank title after its site, so a pasted link
- * alone can be saved. Where the instance offers it, the link's page is read
- * (FR-29.16): its title and description come as a **suggestion** that has to
- * be confirmed, and its picture is fetched in the background and added
- * after the save — only where the idea still has no picture by then.
+ * A link entered here brings a **suggestion** that changes nothing until it
+ * is confirmed (FR-29.16): the page's own title and description where the
+ * instance can read it, the link's site as a title otherwise. Its picture
+ * is fetched in the background — the sheet shows it coming — and added
+ * after the save, only where the idea still has no picture by then.
  */
 import { IonButton, IonIcon, IonInput, IonSpinner, IonTextarea } from '@ionic/vue'
 import { umbrellaOutline } from 'ionicons/icons'
@@ -24,7 +24,7 @@ import type { Idea, IdeaTag } from '@/types/domain'
 import { IDEA_TAGS } from '@/types/domain'
 import type { IdeaFields } from './actions'
 import { parseLink } from './domain/ideas'
-import { acceptSuggestion, fillFromLink, suggestionFrom, type PreviewText } from './domain/linkFill'
+import { acceptSuggestion, suggestionFor, type PreviewText } from './domain/linkFill'
 
 /** How long a link rests before its page is read — typing is not pasting. */
 const PREVIEW_DELAY_MS = 600
@@ -42,16 +42,19 @@ const props = defineProps<{
     read(url: string): Promise<LinkPreview | null>
     picture(imageUrl: string): Promise<Blob | null>
   } | null
+  /** Whether the idea has pictures already — then a link brings none. */
+  hasPictures: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
   /**
    * The fields, and the picture of a link entered here — a promise, since it
-   * is fetched in the background and may arrive after the save; it resolves
-   * null for none. Whether the idea still wants it is the receiver's call.
+   * is fetched in the background and may arrive after the save, resolving
+   * null for none; null where none is on its way. Whether the idea still
+   * wants it when it comes is the receiver's call.
    */
-  save: [fields: IdeaFields, picture: Promise<Blob | null>]
+  save: [fields: IdeaFields, picture: Promise<Blob | null> | null]
 }>()
 
 const title = ref('')
@@ -70,12 +73,13 @@ type PreviewState = typeof PREVIEW_IDLE | typeof PREVIEW_LOADING | typeof PREVIE
 
 /** Where the read stands — on the sheet as `data-preview`, the case's signal. */
 const previewState = ref<PreviewState>(PREVIEW_IDLE)
-/** What the page suggests, until it is confirmed or declined. */
+/** What the link suggests, until it is confirmed or declined. */
 const suggestion = ref<PreviewText | null>(null)
+/** The link's picture as the sheet shows it: coming, or there to be added. */
+const pictureComing = ref(false)
+const pictureUrl = ref<string | null>(null)
 /** The link the idea came with, so an edit's own link is not read again. */
 let storedLink: string | null = null
-/** The site name a link placed as the title — nobody's typing. */
-let placeholder: string | null = null
 let timer: ReturnType<typeof setTimeout> | null = null
 let generation = 0
 
@@ -105,24 +109,42 @@ function pictureOf(url: string, preview: NonNullable<typeof props.preview>) {
   return picture
 }
 
+function clearPicture() {
+  if (pictureUrl.value) URL.revokeObjectURL(pictureUrl.value)
+  pictureUrl.value = null
+  pictureComing.value = false
+}
+
+function currentText() {
+  return { title: title.value, note: note.value }
+}
+
+async function showPicture(url: string, preview: NonNullable<typeof props.preview>, mine: number) {
+  if (props.hasPictures) return
+  pictureComing.value = true
+  const blob = await pictureOf(url, preview)
+  if (mine !== generation) return
+  pictureComing.value = false
+  if (blob) pictureUrl.value = URL.createObjectURL(blob)
+}
+
 async function readPage(url: string, preview: NonNullable<typeof props.preview>) {
-  const mine = ++generation
+  const mine = generation
   previewState.value = PREVIEW_LOADING
   // The picture starts with the page, so a quick save finds it under way.
-  void pictureOf(url, preview)
+  void showPicture(url, preview, mine)
   const page = await pageOf(url, preview)
   // A link changed while its page was read is answered by its own read.
   if (mine !== generation) return
   previewState.value = PREVIEW_DONE
-  suggestion.value = page ? suggestionFrom(page, { title: title.value, note: note.value }) : null
+  suggestion.value = suggestionFor(url, page, currentText())
 }
 
 function acceptPreview() {
   if (!suggestion.value) return
-  const accepted = acceptSuggestion({ title: title.value, note: note.value }, suggestion.value)
+  const accepted = acceptSuggestion(currentText(), suggestion.value)
   title.value = accepted.title
   note.value = accepted.note
-  placeholder = null
   suggestion.value = null
 }
 
@@ -132,16 +154,15 @@ watch(
     if (timer) clearTimeout(timer)
     timer = null
     generation++
-    suggestion.value = null
+    clearPicture()
     previewState.value = PREVIEW_IDLE
-    if (!props.open || url === null || url === storedLink) return
-    // At once, not after the rest: a pasted link alone is savable.
-    const byLink = fillFromLink(
-      { title: title.value === placeholder ? '' : title.value, note: note.value },
-      url,
-    )
-    title.value = byLink.text.title
-    placeholder = byLink.placeholder
+    if (!props.open || url === null || url === storedLink) {
+      suggestion.value = null
+      return
+    }
+    // At once: the site as a title, so a link alone is one tap from saving —
+    // replaced by the page's own words where they come.
+    suggestion.value = suggestionFor(url, null, currentText())
     const preview = props.preview
     if (preview) timer = setTimeout(() => void readPage(url, preview), PREVIEW_DELAY_MS)
   },
@@ -154,7 +175,6 @@ watch(
   (open) => {
     if (!open) return
     storedLink = props.idea?.link ?? null
-    placeholder = null
     pages.clear()
     pictures.clear()
     title.value = props.idea?.title ?? ''
@@ -163,6 +183,7 @@ watch(
     tag.value = props.idea?.tag ?? null
     rainProof.value = props.idea?.rain_proof ?? false
     suggestion.value = null
+    clearPicture()
     previewState.value = PREVIEW_IDLE
   },
   { immediate: true },
@@ -171,14 +192,18 @@ watch(
 onUnmounted(() => {
   if (timer) clearTimeout(timer)
   generation++
+  clearPicture()
 })
 
 const canSave = computed(() => title.value.trim() !== '' && parsedLink.value.ok)
 
-/** The picture of a link entered here, fetched now if the save came first. */
-function pictureToSave(url: string | null): Promise<Blob | null> {
+/**
+ * The picture of a link entered here, fetched now if the save came first —
+ * or null where none is on its way, so the board shows nothing coming.
+ */
+function pictureToSave(url: string | null): Promise<Blob | null> | null {
   const preview = props.preview
-  if (!preview || url === null || url === storedLink) return Promise.resolve(null)
+  if (!preview || props.hasPictures || url === null || url === storedLink) return null
   return pictureOf(url, preview)
 }
 
@@ -260,6 +285,16 @@ function save() {
             {{ t('ideas.suggestionAccept') }}
           </IonButton>
         </div>
+      </div>
+      <div
+        v-if="pictureComing || pictureUrl"
+        class="picture-row"
+        data-testid="idea-edit-link-picture"
+        :data-coming="pictureComing ? 'true' : undefined"
+      >
+        <img v-if="pictureUrl" :src="pictureUrl" alt="" @error="clearPicture" />
+        <span v-else class="coming"><IonSpinner name="dots" aria-hidden="true" /></span>
+        <span>{{ pictureUrl ? t('ideas.linkPictureReady') : t('ideas.linkPictureComing') }}</span>
       </div>
       <IonTextarea
         v-model="note"
@@ -375,6 +410,34 @@ function save() {
   display: flex;
   justify-content: flex-end;
   gap: 4px;
+}
+
+.picture-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+.picture-row img,
+.picture-row .coming {
+  width: 56px;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--jp-r-sm);
+}
+
+.picture-row .coming {
+  display: grid;
+  place-items: center;
+  background: var(--jp-surface-sunken);
+}
+
+.picture-row ion-spinner {
+  width: 18px;
+  height: 14px;
 }
 
 .chips {

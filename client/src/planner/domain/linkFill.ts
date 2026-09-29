@@ -1,47 +1,41 @@
 /**
- * What a link does to the idea's text (FR-29.16) — pure, so the rules are
- * not only reachable through the sheet.
+ * What a link suggests for the idea's text (FR-29.16) — pure, so the rules
+ * are not only reachable through the sheet.
  *
- * Two different things. As soon as a link rests in the field, a blank title
- * takes the link's site, so a pasted link alone is an idea that can be saved
- * — in every mode, preview or none. What the page says about itself, on the
- * other hand, is only a **suggestion**: nothing of it reaches a field until
- * somebody confirms it.
+ * Nothing a link brings reaches a field until somebody confirms it. What it
+ * suggests is the page's own title and description where the page could be
+ * read, and otherwise — Local Mode, a page that says nothing — the link's
+ * site as a title for an idea that has none, so a pasted link is one tap
+ * away from being saved in every mode.
  */
 import { linkSite } from './ideas'
 
-/** The two text fields a link may fill. */
+/** The two text fields a suggestion may fill. */
 export interface FillableText {
   title: string
   note: string
 }
 
-/** A page's own words, either of which may be missing. */
+/** A suggestion, or a page's own words: either half may be missing. */
 export interface PreviewText {
   title: string | null
   description: string | null
 }
 
-/** The text after the site name was placed, and the title it placed, if any. */
-export interface LinkFill {
-  text: FillableText
-  placeholder: string | null
-}
-
-export function fillFromLink(current: FillableText, link: string): LinkFill {
-  if (current.title.trim() !== '') return { text: current, placeholder: null }
-  const site = linkSite(link)
-  return { text: { ...current, title: site }, placeholder: site }
-}
-
 /**
- * The suggestion a page makes: its words where they would change a field,
- * or null where they would change nothing — nothing to confirm.
+ * The suggestion for `link`, given what its page said (null where it was not
+ * read) and what the fields hold. Null where it would change nothing.
  */
-export function suggestionFrom(page: PreviewText, current: FillableText): PreviewText | null {
-  const title = page.title && page.title !== current.title ? page.title : null
+export function suggestionFor(
+  link: string,
+  page: PreviewText | null,
+  current: FillableText,
+): PreviewText | null {
+  const blankTitle = current.title.trim() === ''
+  const offered = page?.title ?? (blankTitle ? linkSite(link) : null)
+  const title = offered && offered !== current.title ? offered : null
   const description =
-    page.description && page.description !== current.note ? page.description : null
+    page?.description && page.description !== current.note ? page.description : null
   return title || description ? { title, description } : null
 }
 

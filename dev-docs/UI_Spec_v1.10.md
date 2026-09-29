@@ -2959,17 +2959,20 @@ token would prove nothing there is anything to prove.
   *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
   the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
   Web-Link – nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does;
-  a bare address is kept as `https://…`. **A link read (FR-29.16):** a web link names a blank title after its site at
-  once (*oeschinensee.ch*), so *Hinzufügen* is on without typing. Where a read can be had — never in Local Mode or on an
-  instance with previews off, where the sheet stays `data-preview="idle"` — once the link has rested 0.6 s the sheet
-  reads its page — *„Link wird gelesen …"* with dots under the field (`idea-edit-preview-loading`), the sheet's
-  `data-preview` going `loading` → `done` — and shows what the page says as a card under the link
-  (`idea-edit-suggestion`): *„Vorschlag aus dem Link"*, the page's title in the heading weight and its description in at
-  most three lines, and *Nicht übernehmen* / *Übernehmen* (`…-dismiss`, `…-accept`). Nothing changes before
-  *Übernehmen*, which puts the title and the description into the title and the note. A page that cannot be read, or
-  that says nothing new, shows no card. The page's picture is fetched in the background — nothing in the sheet shows it
-  — and appears on the idea once it arrives, also after the save, where the idea has no picture by then. *Hinzufügen*
-  writes it and toasts *„„…" steht bei den Ideen"*; an edit writes only the fields that changed.
+  a bare address is kept as `https://…`. **A link read (FR-29.16):** a web link brings a card under the field
+  (`idea-edit-suggestion`): *„Vorschlag aus dem Link"*, a title in the heading weight and a description in at most three
+  lines, and *Nicht übernehmen* / *Übernehmen* (`…-dismiss`, `…-accept`). Nothing changes before *Übernehmen*, the title
+  field included. At once the card suggests the link's site as the title (*oeschinensee.ch*) where the title is blank —
+  so a pasted link is one tap from *Hinzufügen*. Where a read can be had — never in Local Mode or on an instance with
+  previews off, where the sheet stays `data-preview="idle"` — once the link has rested 0.6 s the sheet reads its page,
+  *„Link wird gelesen …"* with dots under the field (`idea-edit-preview-loading`, `data-preview` going `loading` →
+  `done`), and the page's own title and description replace the card's suggestion. The page's picture is fetched in the
+  background: under the link a small tile with dots and *„Bild aus dem Link wird geladen …"*, then its thumbnail with
+  *„Bild aus dem Link wird hinzugefügt"* (`idea-edit-link-picture`, `data-coming`), neither where the idea has pictures
+  already. After the save the idea's card carries a sunken 21:9 banner with dots and *„Bild wird geladen …"*
+  (`idea-card-picture-coming-<id>`), and its detail the same in the mosaic's place (`idea-detail-picture-coming`), until
+  the picture is there — added only where the idea has none by then. *Hinzufügen* writes it and toasts *„„…" steht bei
+  den Ideen"*; an edit writes only the fields that changed.
 * **One idea** opens on the route (`?idea=<id>`, `overlayQuery`) — a sheet on a phone (`m28-idea-modal`), the frame's
   side panel on a desktop width ≥ 900 px (`m28-idea-panel`, G-9). The query is **pushed**, so the browser's back closes
   it on the same page and ✕ takes that step back. The detail (`idea-detail`): the title, with the author and when (*„Sia

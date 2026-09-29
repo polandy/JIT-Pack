@@ -9,7 +9,14 @@
  * Votes and the author's name appear only where somebody else reads them
  * (FR-29.3's G-8); the discussion stays, as a place to note things down.
  */
-import { IonButton, IonIcon, IonInput, IonTextarea, actionSheetController } from '@ionic/vue'
+import {
+  IonButton,
+  IonIcon,
+  IonInput,
+  IonSpinner,
+  IonTextarea,
+  actionSheetController,
+} from '@ionic/vue'
 import {
   cameraOutline,
   createOutline,
@@ -197,6 +204,14 @@ async function openCommentMenu(comment: IdeaComment) {
       :title="idea.title"
       @open="viewing = $event"
     />
+    <div
+      v-else-if="plannerStore.pictureComing(idea.id)"
+      class="picture-coming"
+      data-testid="idea-detail-picture-coming"
+    >
+      <IonSpinner name="dots" aria-hidden="true" />
+      <span>{{ t('ideas.pictureComing') }}</span>
+    </div>
     <div v-if="canAddPicture(pictures)" class="add-picture">
       <input
         ref="pictureInput"
@@ -414,6 +429,19 @@ async function openCommentMenu(comment: IdeaComment) {
 
 .chip.rain {
   color: var(--jp-action);
+}
+
+.picture-coming {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 .add-picture {

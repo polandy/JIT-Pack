@@ -3439,16 +3439,17 @@ went.
 * **E2E-M28-08** `server` (FR-29.5, ADR-081) — **implemented** (`planner/server/pictures.spec.ts`): a picture Alice adds
   is on Bob's card as its banner and in his mosaic — the bytes fetched with his own session. That a stranger can
   neither add nor read one is the server's (`TestIdeaImage_AStrangerNeitherUploadsNorReads_FR29_5`).
-* **E2E-M28-10** `local` (FR-29.16) — **implemented** (`planner/ideas.spec.ts`): a link pasted into a new idea names
-  the blank title after its site at once and turns *Add* on; Local Mode has no preview, so the sheet stays `idle` and
-  shows no read starting; the idea is saved under the site's name.
+* **E2E-M28-10** `local` (FR-29.16) — **implemented** (`planner/ideas.spec.ts`): a link pasted into a new idea suggests
+  its site as the title — the title field stays blank and *Add* off until *Use it* — and the idea is saved under the
+  site's name; Local Mode has no preview, so the sheet stays `idle` and shows no read starting.
 * **E2E-M28-09** `server` (FR-29.16, ADR-082) — **implemented** (`planner/server/link-preview.spec.ts`): a link pasted
-  into a new idea's sheet is read and its page's words come as a suggestion — the fields keep the site name and nothing
-  until *Use it*, which fills title and note. The idea is saved while its picture is still held back, and the picture
-  reaches the idea's card after the save. A suggestion dismissed leaves the typed title, and the picture still comes.
-  That a link's picture never replaces one the idea has is `planner/__tests__/sync.spec.ts`; the routes' answers are
-  planted, since a test page would be on loopback, which the server's fence refuses — the fetch and the fence are
-  `internal/linkpreview`'s (`TestFetch_*`, `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
+  into a new idea's sheet is read and its page's words come as a suggestion — the fields, the title included, stay blank
+  and *Add* off until *Use it*, which fills title and note. The picture, held back, shows itself coming in the sheet;
+  the idea is saved, its card shows the picture coming, and the picture reaches the card once released. A suggestion
+  dismissed leaves the typed title, and the picture still comes. That a link's picture never replaces one the idea has,
+  and that a failed one is quiet, is `planner/__tests__/sync.spec.ts`; the routes' answers are planted, since a test
+  page would be on loopback, which the server's fence refuses — the fetch and the fence are `internal/linkpreview`'s
+  (`TestFetch_*`, `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
 * **E2E-FLOW-01 Happy-path packing** `server`: Alice M1 → M4 → swipe *Packing Now* → check → Bob's device reflects it in
   real time (locks, actor attribution, presence). (FR-5.x, 4.4, G-3, G-10) *(Runs for the convergence, membership and
   attribution halves — Alice shares the trip with Bob and the row Bob sees names Alice as its packer,
@@ -3799,7 +3800,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.3 | E2E+UNIT+SERVER | M28-06 (a named vote, withdrawn), M28-05 (hidden alone, G-8); `ideas.spec.ts` (`voteTally`, `nextVote`), `sync.spec.ts` (one row per person); Go: `TestApplyMutation_OnlyTheVoterMayChangeAVote_FR29_3`, `TestSchema_OneVotePerPersonPerIdea_FR29_3`, `TestStampActor_Vote*` |
 | FR-29.4 | E2E+UNIT+SERVER | M28-03; `ideas.spec.ts` (`ideaDiscussion`), `sync.spec.ts` (survives a restart); Go: `TestStampActor_IdeaCommentAuthorIsThePusher_FR29_4` |
 | FR-29.5 | E2E+UNIT+SERVER | M28-07 (banner, mosaic, viewer, cover, removal, reload), M28-08 (another member sees it), NFR-SEC-05 (the hash on plain HTTP); `planner/domain/__tests__/pictures.spec.ts` (order, limit, `coverMoves`), `planner/__tests__/sync.spec.ts` (pulled, added, moved, removed, taken with the idea), `composables/sync/__tests__/ideaImages.seam.spec.ts` (both modes); Go: `internal/store/ideaimage_test.go`, `internal/api/ideaimage_test.go` |
-| FR-29.16 | E2E+UNIT+SERVER | M28-09 (words as a suggestion confirmed or dismissed, the picture following a save); `sync.spec.ts` (a link's picture only to an idea without one), M28-10 (a link alone savable under its site, no read shown in Local Mode); `planner/domain/__tests__/linkFill.spec.ts`, `composables/sync/__tests__/linkPreview.seam.spec.ts` (Local Mode asks nothing, off latches); Go: `internal/linkpreview` (`TestParse_*`, `TestFetch_*`, `TestPublicOnly_FR29_16`), `internal/api/linkpreview_test.go` (members only, refusals, off), `cmd/jitpackd` `TestLoadConfig_LinkPreviews_FR29_16` |
+| FR-29.16 | E2E+UNIT+SERVER | M28-09 (words as a suggestion confirmed or dismissed, the picture shown coming and following a save); `sync.spec.ts` (a link's picture only to an idea without one), M28-10 (the site suggested as the title, one tap from saving, no read shown in Local Mode); `planner/domain/__tests__/linkFill.spec.ts`, `composables/sync/__tests__/linkPreview.seam.spec.ts` (Local Mode asks nothing, off latches); Go: `internal/linkpreview` (`TestParse_*`, `TestFetch_*`, `TestPublicOnly_FR29_16`), `internal/api/linkpreview_test.go` (members only, refusals, off), `cmd/jitpackd` `TestLoadConfig_LinkPreviews_FR29_16` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |
 | FR-29.9 | GATE+UNIT | `module-boundary-gate.mjs`, `domain-purity-gate.mjs`; `sync.spec.ts` (the pull funnel, the trip's cascade) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |

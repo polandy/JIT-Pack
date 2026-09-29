@@ -17917,4 +17917,8 @@ holds the picture route back to see the words arrive first, and goes red when th
 nobody had chosen; the owner asked for the title and description as a suggestion to confirm, and for the picture to
 come without asking — in the background, after the save too, but only to an idea with no picture by then. The check
 for „no picture" moved from the sheet's opening to the picture's arrival (`addLinkPicture`), since minutes can pass
-between the two on a slow host.
+between the two on a slow host. A day later the owner took the title
+field out of the fill too: the site name had still been written into a blank title at once, and now it is only the
+first suggestion — the one that keeps a pasted link a single tap from saving in Local Mode, where the page is never
+read. And a picture fetched in the background has to show that it is coming, in the sheet and on the saved idea's
+card: the planner store keeps which ideas wait for one, device state beside the synced rows.

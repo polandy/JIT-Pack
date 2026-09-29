@@ -1,40 +1,42 @@
 import { describe, expect, it } from 'vitest'
 
-import { acceptSuggestion, fillFromLink, suggestionFrom } from '../linkFill'
+import { acceptSuggestion, suggestionFor } from '../linkFill'
 
 const PAGE = { title: 'Oeschinensee', description: 'Ein Bergsee über Kandersteg' }
 const LINK = 'https://www.oeschinensee.ch/de/sommer'
+const BLANK = { title: '', note: '' }
 
-describe('fillFromLink (FR-29.16)', () => {
-  it('names a blank title after the link’s site, so a pasted link alone can be saved', () => {
-    expect(fillFromLink({ title: '  ', note: '' }, LINK)).toEqual({
-      text: { title: 'oeschinensee.ch', note: '' },
-      placeholder: 'oeschinensee.ch',
-    })
-  })
-
-  it('leaves a typed title, and places nothing', () => {
-    expect(fillFromLink({ title: 'Seerundgang', note: '' }, LINK)).toEqual({
-      text: { title: 'Seerundgang', note: '' },
-      placeholder: null,
-    })
-  })
-})
-
-describe('suggestionFrom (FR-29.16)', () => {
+describe('suggestionFor (FR-29.16)', () => {
   it('suggests what the page says', () => {
-    expect(suggestionFrom(PAGE, { title: 'oeschinensee.ch', note: '' })).toEqual(PAGE)
+    expect(suggestionFor(LINK, PAGE, BLANK)).toEqual(PAGE)
   })
 
-  it('suggests nothing where the page says nothing new', () => {
-    expect(suggestionFrom({ title: null, description: null }, { title: '', note: '' })).toBeNull()
+  it('suggests the site as a title where the page was not read — a link alone is one tap from saving', () => {
+    expect(suggestionFor(LINK, null, BLANK)).toEqual({
+      title: 'oeschinensee.ch',
+      description: null,
+    })
+  })
+
+  it('suggests the site only for a blank title — never over one somebody typed', () => {
+    expect(suggestionFor(LINK, null, { title: 'Seerundgang', note: '' })).toBeNull()
+  })
+
+  it('still suggests the page’s own title over a typed one — the page may know better', () => {
+    expect(suggestionFor(LINK, PAGE, { title: 'Seerundgang', note: '' })).toEqual(PAGE)
+  })
+
+  it('suggests nothing where it would change nothing', () => {
     expect(
-      suggestionFrom(PAGE, { title: 'Oeschinensee', note: 'Ein Bergsee über Kandersteg' }),
+      suggestionFor(LINK, PAGE, { title: 'Oeschinensee', note: 'Ein Bergsee über Kandersteg' }),
+    ).toBeNull()
+    expect(
+      suggestionFor(LINK, { title: null, description: null }, { title: 'x', note: '' }),
     ).toBeNull()
   })
 
   it('keeps only the half that would change something', () => {
-    expect(suggestionFrom(PAGE, { title: 'Oeschinensee', note: '' })).toEqual({
+    expect(suggestionFor(LINK, PAGE, { title: 'Oeschinensee', note: '' })).toEqual({
       title: null,
       description: 'Ein Bergsee über Kandersteg',
     })
