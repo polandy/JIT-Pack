@@ -101,7 +101,7 @@ import {
   groupingAxis,
   onlyOthersHidden as isOnlyOthersHidden,
 } from '@/lib/packingFilterPanel'
-import { hasCollaborativeSession } from '@/mode'
+import { hasCollaborativeSession, readMode } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { useTripScreen } from '@/composables/useTripScreen'
@@ -1298,6 +1298,19 @@ setHeaderActions(() => {
       label: t('packing.closeAction'),
       overflow: true,
       onClick: onClosePacking,
+    })
+  }
+  // FR-32.2: who changed what in this trip. A place to go rather than an
+  // act, last because it is the rarest — and here, on the trip's home, rather
+  // than on every view: the other views keep a ⋮ only for their own context
+  // (ADR-051 amendment 2). Only where a server recorded a log (G-8).
+  if (readMode() === 'server') {
+    items.push({
+      id: 'm4-activity',
+      icon: timeOutline,
+      label: t('activity.menu'),
+      overflow: true,
+      onClick: () => router.push(tripSubPath(props.tripId, 'activity')),
     })
   }
   return items

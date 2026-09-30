@@ -621,8 +621,9 @@ export interface ActivityEntry {
   op: ActivityOp
   label: string
   subject?: string
-  // Changes maps each changed field to its [before, after] pair; a
-  // delete carries none, an insert's before is null.
+  // Changes maps each changed field to its [before, after] pair; an
+  // insert's before is null, a delete's after is null and it names every
+  // field the row held.
   changes: Record<string, unknown[]> | null
   actor_user_id: string
   created_at: string

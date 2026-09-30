@@ -52,6 +52,7 @@ import { createNameGuards } from './sync/names'
 import { createLockState } from './sync/locks'
 import { createNotificationActions } from './sync/notifications'
 import { createConflictActions } from './sync/conflicts'
+import { createActivityActions } from './sync/activity'
 import { createIdentityActions } from './sync/identity'
 import { createIdeaPictures } from './sync/ideaImages'
 import { createLinkPreview } from './sync/linkPreview'
@@ -819,6 +820,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     drainMaster,
   })
 
+  const activityActions = createActivityActions({ client, localMode: !!local })
+
   const identityActions = createIdentityActions({
     client,
     localMode: !!local,
@@ -947,6 +950,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     getRoster,
     setViewing,
     ...conflictActions,
+    ...activityActions,
     isLockedByOther: locks.isLockedByOther,
     holdsClaim: locks.holdsClaim,
     lockHolder: locks.lockHolder,

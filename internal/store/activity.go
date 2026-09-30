@@ -100,7 +100,9 @@ type activityWrite struct {
 	deleted bool
 }
 
-// recordActivity writes the entry for one applied write. A write that
+// recordActivity writes the entry for one applied write. Its changes are
+// every field the write changed, [before, after]; a delete's are every
+// field the row held, [before, null]. A write that
 // changed no value — the same field re-sent — records nothing, and neither
 // does the delete of a trip: its log goes with it (the FK cascades), and
 // the trip is the only place the entry could have been read.
@@ -121,7 +123,16 @@ func recordActivity(ctx context.Context, tx *sql.Tx, at string, w activityWrite)
 	for f, v := range w.before.Fields {
 		fields[f] = v
 	}
-	if !w.deleted {
+	if w.deleted {
+		// What was deleted, as it was: the row is gone, and this is the
+		// only place left that says what it was — a task or a note, how
+		// many, in which excursion.
+		for f, v := range w.before.Fields {
+			if v != nil {
+				changes[f] = [2]any{normalize(v), nil}
+			}
+		}
+	} else {
 		for f, v := range w.applied {
 			var old any
 			if w.before.Exists {

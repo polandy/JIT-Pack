@@ -56,8 +56,10 @@ import {
   pricetagsOutline,
   removeCircleOutline,
   swapVerticalOutline,
+  timeOutline,
   trashOutline,
 } from 'ionicons/icons'
+import { readMode } from '@/mode'
 import {
   computed,
   onBeforeUnmount,
@@ -283,6 +285,22 @@ setHeaderActions(() => {
     overflow: true,
     onClick: () => void router.push(PATH.inventoryCleanup),
   }
+  /*
+   * FR-32.2. Who changed the inventory, behind the ⋮ like the cleanup. Only
+   * where a server recorded it: Local Mode has no log to show (G-8).
+   */
+  const activity: HeaderAction[] =
+    readMode() === 'server'
+      ? [
+          {
+            id: 'm9-activity',
+            icon: timeOutline,
+            label: t('activity.menu'),
+            overflow: true,
+            onClick: () => void router.push(PATH.inventoryActivity),
+          },
+        ]
+      : []
   // An inventory with no tags has nothing to manage, exactly as it has
   // nothing to select — once it is known to hold none (ADR-033).
   if (knownEmpty.value) return [eye, sortAction]
@@ -295,8 +313,8 @@ setHeaderActions(() => {
     onClick: () => (selecting.value ? endSelecting() : rows.start()),
   }
   return masterStore.tagList.length > 0
-    ? [eye, sortAction, select, manageTags, cleanup]
-    : [eye, sortAction, select, cleanup]
+    ? [eye, sortAction, select, manageTags, cleanup, ...activity]
+    : [eye, sortAction, select, cleanup, ...activity]
 })
 
 const endSelecting = rows.end

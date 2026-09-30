@@ -21,7 +21,7 @@ Read this file fully before touching code. It is the orientation document: what 
 |---|---|
 | What does the product do? | `dev-docs/PRD_Base.md` (original vision) |
 | What changed since? | `dev-docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md** |
-| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M28, global patterns G-1–G-20 |
+| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M30, global patterns G-1–G-20 |
 | What should packing feel like? | `dev-docs/UI_Concept_Prototype.html`; **`node dev-docs/UI_Concept_Prototype.verify.mjs` must stay green** |
 | Wire protocol? | `dev-docs/Sync_API_Spec_v1.3.md` |
 | DB schema? | `internal/store/schema.sql` — **single source of truth, never duplicated into docs** (ADR-018) |
@@ -87,6 +87,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 29. FR-7.13 trip notes as threads — a titled first note, replies one level deep, author-only edits, a tick that reaches the newest entry, replies pushed to the participants — on a view of their own, M26 (ADR-073 amendment note) — 2026-09-25.
 30. FR-31 excursions — a small packing list inside a trip, its own lines borrowing from the suitcase, started from and saved as a Gruppe (ADR-077) — 2026-09-26. Not in the portable backup either.
 31. §3.29 the planner's first slice — a trip's ideas on M28 with four hand-set states, votes with names and a discussion, a feature module like the shopping list (ADR-078) — 2026-09-27; its pictures (FR-29.5, ADR-081) and a pasted link filling the idea (FR-29.16, ADR-082, on by default) — 2026-09-28. The bridge to the packing side, its notifications and the day plan (M29) are specified in §3.29, not built. Not in the portable backup either.
+32. §3.32 the activity log — who changed what, recorded by the server with each write (ADR-084), read per trip from M4's ⋮ and for the inventory from M9's ⋮ on M30 — 2026-09-30. Starts empty; none in Local Mode; not in the portable backup.
 
 **Parked, specified, do not start:** §3.26 calendar feed, the North-Star phases beyond §3.29's planner, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
 

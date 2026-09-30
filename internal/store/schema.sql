@@ -894,7 +894,7 @@ CREATE TABLE lock_events (
 -- and NULL is the inventory. The names are stored rather than joined, like
 -- lock_events.item_name, so an entry stays readable after its row is gone.
 -- changes holds {"field": [before, after]} for every field the write
--- actually changed; a delete carries none.
+-- actually changed; a delete's holds what the row held, [before, null].
 CREATE TABLE activity_log (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     trip_id       TEXT REFERENCES trips(id) ON DELETE CASCADE,  -- NULL = inventory

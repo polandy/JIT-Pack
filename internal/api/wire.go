@@ -569,8 +569,9 @@ type ActivityEntry struct {
 	Op          ActivityOp `json:"op"`
 	Label       string     `json:"label"`
 	Subject     string     `json:"subject,omitempty"`
-	// Changes maps each changed field to its [before, after] pair; a
-	// delete carries none, an insert's before is null.
+	// Changes maps each changed field to its [before, after] pair; an
+	// insert's before is null, a delete's after is null and it names every
+	// field the row held.
 	Changes     map[string][]any `json:"changes"`
 	ActorUserID string           `json:"actor_user_id"`
 	CreatedAt   string           `json:"created_at"`

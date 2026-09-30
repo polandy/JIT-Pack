@@ -3488,6 +3488,17 @@ went.
   is quiet, is `planner/__tests__/sync.spec.ts`; the routes' answers are planted, since a test page would be on
   loopback, which the server's fence refuses — the fetch and the fence are `internal/linkpreview`'s (`TestFetch_*`,
   `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
+
+### M30 — Aktivität (who changed what, §3.32)
+
+* **E2E-M30-01** `server` (FR-32.1/32.2) — **implemented** (`server/activity.spec.ts`): Bob packs two things on
+  Alice's trip; Alice opens *Activity* from M4's ⋮ and reads one *packed* line for both, *2× packed*, named after Bob
+  (the server's stamp, invariant 3) and naming both things, above her own *added* line; the line opens to its two
+  parts.
+* **E2E-M30-02** `server` (FR-32.3) — **implemented** (`server/activity.spec.ts`): an inventory item Alice creates is an
+  *added* line in the inventory's activity Bob opens from M9's ⋮, named after Alice.
+* Local Mode offers neither entry (G-8): M4's ⋮ is asserted without it inside E2E-G12-07, on a sheet that demonstrably
+  opened; M9's is `ItemInventoryPage.spec.ts`.
 * **E2E-FLOW-01 Happy-path packing** `server`: Alice M1 → M4 → swipe *Packing Now* → check → Bob's device reflects it in
   real time (locks, actor attribution, presence). (FR-5.x, 4.4, G-3, G-10) *(Runs for the convergence, membership and
   attribution halves — Alice shares the trip with Bob and the row Bob sees names Alice as its packer,
@@ -3847,6 +3858,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.5 | E2E | M1-12 (the card's way onto M6) |
 | FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
 | FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
+| FR-32.1 | E2E+SERVER | M30-01 (the actor stamped, not claimed); Go: `TestActivity_*` in `internal/store` (what is recorded and what is not, the trip a master row belongs to, the names through a foreign key, the side paths, every table's name sources) and `internal/api` (membership, paging, refusals) |
+| FR-32.2 | E2E+UNIT | M30-01 (a run folded and opened); `domain/__tests__/activity.spec.ts` (every act, the areas, the folding), `ActivityLogPage.spec.ts` (Single-User names nobody, the older page, the empty and failed states) |
+| FR-32.3 | E2E+UNIT+SERVER | M30-02; G12-07 and `ItemInventoryPage.spec.ts` (hidden in Local Mode); Go: `TestActivity_Inventory_FollowsMasterVisibility_FR32_1` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

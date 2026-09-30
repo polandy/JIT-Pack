@@ -204,6 +204,14 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // M30 (FR-32.2): reached from every trip view's ⋮.
+    path: tripSubPath(TRIP_ID_PARAM, 'activity'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'activity.title' },
+    name: 'trip-activity',
+    props: true,
+    component: () => import('@/views/activity/ActivityLogPage.vue'),
+  },
+  {
     path: tripSubPath(TRIP_ID_PARAM, 'members'),
     meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'members.title' },
     name: 'trip-members',
@@ -306,6 +314,14 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: PATH.items, titleKey: 'cleanup.title' },
     name: 'inventory-cleanup',
     component: () => import('@/views/items/InventoryCleanupPage.vue'),
+  },
+  {
+    // M30 for the inventory (FR-32.2), reached from M9's ⋮; like
+    // /items/cleanup it must precede /items/:itemId.
+    path: PATH.inventoryActivity,
+    meta: { parent: PATH.items, titleKey: 'activity.titleInventory' },
+    name: 'inventory-activity',
+    component: () => import('@/views/activity/ActivityLogPage.vue'),
   },
   {
     path: itemPath(ITEM_ID_PARAM),

@@ -103,8 +103,8 @@ func TestActivity_WritesThatChangeNothing_RecordNothing_FR32_1(t *testing.T) {
 	}
 }
 
-// A delete names the row as it was — the row is gone, and the name stored
-// with the entry is the only one left.
+// A delete names the row as it was and keeps what it held — the row is
+// gone, and the entry is the only record of it left.
 func TestActivity_Delete_NamesTheRowAsItWas_FR32_1(t *testing.T) {
 	s := openTestStore(t)
 	s.mustApply(t, testTrip, tripItemInsert("ti-1", "m-1", "Sonnencreme", "0000000001000-0000-aaaaaaaa"))
@@ -116,8 +116,8 @@ func TestActivity_Delete_NamesTheRowAsItWas_FR32_1(t *testing.T) {
 	if got.Op != ActivityDelete || got.Label != "Sonnencreme" {
 		t.Errorf("delete entry = %+v, want op delete labelled Sonnencreme", got)
 	}
-	if len(changesOf(t, got)) != 0 {
-		t.Errorf("delete changes = %s, want none", got.Changes)
+	if c := changesOf(t, got)["quantity"]; c[0] != float64(1) || c[1] != nil {
+		t.Errorf("delete's quantity = %v, want [1 nil] — what the row held", c)
 	}
 }
 
