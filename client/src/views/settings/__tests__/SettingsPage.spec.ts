@@ -52,6 +52,9 @@ const orchestratorFake = {
       task_due: true,
       shopping_due: true,
       excursion_due: true,
+      idea: true,
+      idea_comment: true,
+      idea_shortlisted: true,
     }),
   ),
   saveNotificationPrefs: vi.fn(),
@@ -99,6 +102,12 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     // FR-7.13's kind, its own switch: new codes without the discussion.
     expect(wrapper.text()).toContain('Replies to notes')
     expect(wrapper.find('[data-testid="settings-pref-note_reply"]').exists()).toBe(true)
+    // FR-29.8: the planner's three kinds, each its own switch.
+    expect(wrapper.text()).toContain('New ideas')
+    expect(wrapper.text()).toContain('Comments on ideas')
+    for (const kind of ['idea', 'idea_comment', 'idea_shortlisted']) {
+      expect(wrapper.find(`[data-testid="settings-pref-${kind}"]`).exists()).toBe(true)
+    }
   })
 
   it('renders them in German once the language is German', async () => {
@@ -112,6 +121,8 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Übernommene Artikel')
     expect(wrapper.text()).toContain('Reisenotizen')
     expect(wrapper.text()).toContain('Fällige Aufgaben')
+    expect(wrapper.text()).toContain('Neue Ideen')
+    expect(wrapper.text()).toContain('Kommentare zu Ideen')
     // And the English is gone rather than merely joined by the German.
     expect(wrapper.text()).not.toContain('Delegations')
   })

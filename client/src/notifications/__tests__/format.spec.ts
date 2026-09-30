@@ -41,6 +41,41 @@ describe('describeNotification', () => {
       want: 'Chris replied to a note',
     },
     {
+      // FR-29.8: the three planner kinds name the idea; a comment quotes itself.
+      name: 'a new idea',
+      n: notif('idea', { actor_name: 'Chris', item_name: 'Museo Nivola' }),
+      want: 'Chris suggested “Museo Nivola”',
+    },
+    {
+      name: 'a new idea, unnamed',
+      n: notif('idea', { actor_name: 'Chris' }),
+      want: 'Chris suggested an idea',
+    },
+    {
+      name: 'a word about an idea',
+      n: notif('idea_comment', {
+        actor_name: 'Chris',
+        item_name: 'Museo Nivola',
+        preview: 'Montags zu',
+      }),
+      want: 'Chris on “Museo Nivola”: Montags zu',
+    },
+    {
+      name: 'a word about an idea, the idea unnamed',
+      n: notif('idea_comment', { actor_name: 'Chris' }),
+      want: 'Chris commented on an idea',
+    },
+    {
+      name: 'an idea on the shortlist',
+      n: notif('idea_shortlisted', { actor_name: 'Chris', item_name: 'Museo Nivola' }),
+      want: 'Chris put “Museo Nivola” on the shortlist',
+    },
+    {
+      name: 'an idea on the shortlist, unnamed',
+      n: notif('idea_shortlisted', { actor_name: 'Chris' }),
+      want: 'Chris put an idea on the shortlist',
+    },
+    {
       name: 'task on item',
       n: notif('task', { actor_name: 'Sarah', item_name: 'Kocher' }),
       want: 'Sarah opened a task on “Kocher”',
@@ -75,6 +110,14 @@ describe('describeNotification', () => {
 })
 
 describe('notificationRoute (G-4)', () => {
+  it('opens an idea over the trip’s ideas, whatever was done to it (FR-29.8)', () => {
+    for (const kind of ['idea', 'idea_comment', 'idea_shortlisted']) {
+      expect(
+        notificationRoute(notif(kind, { trip_id: 't1', idea_id: 'x1', comment_id: 'c9' })),
+      ).toBe('/trips/t1/ideas?idea=x1')
+    }
+  })
+
   it('routes to the item context when the payload has one', () => {
     expect(notificationRoute(notif('delegation', { trip_id: 't1', item_id: 'i1' }))).toBe(
       '/trips/t1?item=i1',

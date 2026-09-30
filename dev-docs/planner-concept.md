@@ -149,10 +149,11 @@ by day chip. „+" adds a free entry on the chosen day, or plans an idea.
 
 ### 4.5 Notifications (draft FR-29.8, amended)
 
-Three kinds, per-kind preferences, the recipient's language (ADR-037), never to the actor: *added an idea*,
-*commented on an idea*, *moved an idea to the shortlist*. Votes do not notify — five people voting on ten ideas is
-fifty pushes. The task a planned idea spawned brings FR-7.11's morning reminder with it, which is the day plan's only
-reminder.
+Three kinds, per-kind preferences, the recipient's language (ADR-037), never to the actor: *added an idea* and *moved
+an idea to the shortlist* to every co-traveller, *commented on an idea* to its participants only — its author and its
+commenters, FR-7.13's reply rule. One notification per idea, never bundled. Votes do not notify — five people voting
+on ten ideas is fifty pushes. The task a planned idea spawned brings FR-7.11's morning reminder with it, which is the
+day plan's only reminder.
 
 ### 4.6 Navigation (decision #10, #11)
 

@@ -207,6 +207,14 @@ const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: Messag
   { kind: 'lock_taken', label: 'settings.prefLockTaken', hint: 'settings.prefLockTakenHint' },
   { kind: 'note', label: 'settings.prefNote', hint: 'settings.prefNoteHint' },
   { kind: 'note_reply', label: 'settings.prefNoteReply', hint: 'settings.prefNoteReplyHint' },
+  // FR-29.8: the planner's three kinds, each its own switch.
+  { kind: 'idea', label: 'settings.prefIdea', hint: 'settings.prefIdeaHint' },
+  { kind: 'idea_comment', label: 'settings.prefIdeaComment', hint: 'settings.prefIdeaCommentHint' },
+  {
+    kind: 'idea_shortlisted',
+    label: 'settings.prefIdeaShortlisted',
+    hint: 'settings.prefIdeaShortlistedHint',
+  },
   { kind: 'task_due', label: 'settings.prefTaskDue', hint: 'settings.prefTaskDueHint' },
   // FR-30.10: a purchase's reminder, its own switch.
   { kind: 'shopping_due', label: 'settings.prefShoppingDue', hint: 'settings.prefShoppingDueHint' },

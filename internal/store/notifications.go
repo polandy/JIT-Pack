@@ -41,10 +41,19 @@ const (
 	// an excursion starting tomorrow or today still has things to pack. Its
 	// own switch, for NotifyShoppingDue's reason.
 	NotifyExcursionDue = "excursion_due"
+	// NotifyIdea is FR-29.8's push for a new idea on a trip's board, to
+	// every co-traveller — an idea is put up for everyone, like a note.
+	NotifyIdea = "idea"
+	// NotifyIdeaComment is FR-29.8's push for a word about an idea, to the
+	// people taking part in it (store.IdeaDiscussion) — FR-7.13's reply rule.
+	NotifyIdeaComment = "idea_comment"
+	// NotifyIdeaShortlisted is FR-29.8's push for an idea moved to the
+	// shortlist, to every co-traveller: it is the group's decision.
+	NotifyIdeaShortlisted = "idea_shortlisted"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue, NotifyShoppingDue, NotifyExcursionDue}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken, NotifyNote, NotifyNoteReply, NotifyTaskDue, NotifyShoppingDue, NotifyExcursionDue, NotifyIdea, NotifyIdeaComment, NotifyIdeaShortlisted}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

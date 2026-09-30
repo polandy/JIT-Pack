@@ -63,6 +63,20 @@ type noteThreadFacts struct {
 // when it cannot be read.
 type threadResolver func(rootID string) (noteThreadFacts, bool)
 
+// ideaFacts is what FR-29.8's rules need to know about an idea: what it is
+// called, and who takes part in its discussion.
+type ideaFacts struct {
+	// Title names the idea in the notification.
+	Title string
+	// Participants are the idea's author and every commenter, in any order
+	// and possibly repeated; the rule dedupes.
+	Participants []string
+}
+
+// ideaResolver answers an idea by its id, reporting false when it cannot be
+// read.
+type ideaResolver func(ideaID string) (ideaFacts, bool)
+
 // planNotifications turns one push's mutations into the notifications they
 // earn, in the order they should be delivered. It reads nothing and writes
 // nothing: every input is a parameter.
@@ -79,6 +93,7 @@ func planNotifications(
 	resolveTraveler travelerResolver,
 	resolveWords wordsResolver,
 	resolveThread threadResolver,
+	resolveIdea ideaResolver,
 ) []plannedNotification {
 	if len(members) < 2 {
 		return nil
@@ -117,6 +132,12 @@ func planNotifications(
 			}
 		case store.TableShoppingEntries:
 			plan = append(plan, planAssignment(tripID, actor, actorName, m, members, resolveWords)...)
+		case store.TableIdeas:
+			plan = append(plan, planIdea(tripID, actor, actorName, m, members, resolveIdea)...)
+		case store.TableIdeaComments:
+			if m.Op == syncpkg.OpInsert {
+				plan = append(plan, planIdeaComment(tripID, actor, actorName, m, members, resolveIdea)...)
+			}
 		}
 	}
 	return plan
@@ -376,6 +397,78 @@ func threadName(thread noteThreadFacts) string {
 	}
 	first, _, _ := strings.Cut(thread.Body, "\n")
 	return first
+}
+
+// planIdea fires FR-29.8's two pushes about an idea itself, to every
+// co-traveller but the actor: a new idea, which is put up for everyone like a
+// note, and a move to the shortlist, which is the group's decision. Any other
+// edit — another state, a new title, a picture — notifies nobody.
+func planIdea(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, resolveIdea ideaResolver,
+) []plannedNotification {
+	var kind, title string
+	switch {
+	case m.Op == syncpkg.OpInsert:
+		// The title travels with the insert: nothing needs reading.
+		kind = store.NotifyIdea
+		title, _ = m.Fields[columnIdeaTitle].(string)
+	case m.Op != syncpkg.OpDelete && m.Fields[columnIdeaState] == store.IdeaStateShortlisted:
+		kind = store.NotifyIdeaShortlisted
+		idea, ok := resolveIdea(m.ID)
+		if !ok {
+			return nil
+		}
+		title = idea.Title
+	default:
+		return nil
+	}
+	payload := map[string]any{
+		payloadTripID: tripID, payloadIdeaID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(title, previewLen),
+	}
+	var plan []plannedNotification
+	for _, member := range members {
+		if member.UserID != actor {
+			plan = append(plan, plannedNotification{UserID: member.UserID, Kind: kind, Payload: payload})
+		}
+	}
+	return plan
+}
+
+// planIdeaComment fires FR-29.8's push for a word about an idea: to the
+// idea's author and everyone who has written about it and is still on the
+// trip, never to the writer — FR-7.13's reply rule, so a lively discussion
+// does not ring every phone on the trip. A vote does not make a participant.
+func planIdeaComment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, resolveIdea ideaResolver,
+) []plannedNotification {
+	ideaID, _ := m.Fields[columnIdeaID].(string)
+	idea, ok := resolveIdea(ideaID)
+	if !ok {
+		return nil
+	}
+	body, _ := m.Fields["body"].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadIdeaID: ideaID, payloadCommentID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName,
+		payloadItemName: truncate(idea.Title, previewLen), payloadPreview: truncate(body, previewLen),
+	}
+	onTrip := map[string]bool{}
+	for _, member := range members {
+		onTrip[member.UserID] = true
+	}
+	notified := map[string]bool{actor: true}
+	var plan []plannedNotification
+	for _, target := range idea.Participants {
+		if notified[target] || !onTrip[target] {
+			continue
+		}
+		notified[target] = true
+		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyIdeaComment, Payload: payload})
+	}
+	return plan
 }
 
 // displayNameOf resolves one member's display name. An id that is not on

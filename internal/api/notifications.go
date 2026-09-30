@@ -1,6 +1,6 @@
 // Package api — notifications.go implements FR-6.2: detecting
 // notification triggers in applied push mutations (delegation, @mention,
-// task on a delegated item, FR-7.9's new trip note), the REST endpoints to
+// task on a delegated item, FR-7.9's new trip note, FR-29.8's ideas), the REST endpoints to
 // fetch/acknowledge them, and the M17 per-kind preference endpoints.
 // Fan-out to connected devices rides the WebSocket as notification.created
 // (spec §7).
@@ -77,6 +77,10 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		TaskDue:      prefs[store.NotifyTaskDue],
 		ShoppingDue:  prefs[store.NotifyShoppingDue],
 		ExcursionDue: prefs[store.NotifyExcursionDue],
+		// FR-29.8.
+		Idea:            prefs[store.NotifyIdea],
+		IdeaComment:     prefs[store.NotifyIdeaComment],
+		IdeaShortlisted: prefs[store.NotifyIdeaShortlisted],
 	})
 }
 
@@ -146,7 +150,17 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return noteThreadFacts{Title: thread.Title, Body: thread.Body, Participants: thread.Participants}, true
 	}
-	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveWords, resolveThread) {
+	resolveIdea := func(ideaID string) (ideaFacts, bool) {
+		idea, err := s.store.IdeaDiscussion(ctx, ideaID)
+		if err != nil {
+			slog.Error("notification idea lookup", "idea", ideaID, "error", err)
+			return ideaFacts{}, false
+		}
+		return ideaFacts{Title: idea.Title, Participants: idea.Participants}, true
+	}
+	plan := planNotifications(tripID, actor, muts, results, members,
+		resolve, resolveTraveler, resolveWords, resolveThread, resolveIdea)
+	for _, n := range plan {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 }
@@ -164,11 +178,22 @@ const (
 	// opens it, and what it is called, so the sentence can say.
 	payloadThreadID = "thread_id"
 	payloadThread   = "thread"
+	// FR-29.8: an idea's notification opens the idea (M28's `?idea=`); its
+	// title rides in payloadItemName, the slot every client already fills.
+	payloadIdeaID = "idea_id"
 )
 
 // columnParentID is FR-7.13's reference from a reply to its thread's first
 // note — the field the reply rule reads off a mutation.
 const columnParentID = "parent_id"
+
+// The idea columns FR-29.8's rules read off a mutation: an insert's title, a
+// state move, and which idea a comment is about.
+const (
+	columnIdeaTitle = "title"
+	columnIdeaState = "state"
+	columnIdeaID    = "idea_id"
+)
 
 // createAndNotify persists the notification (unless the target's prefs
 // suppress it) and pings the target's connected devices.

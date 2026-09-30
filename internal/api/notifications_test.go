@@ -234,6 +234,64 @@ func TestNotifications_NoteReply_TellsTheThreadsAuthor_FR7_13(t *testing.T) {
 	}
 }
 
+// FR-29.8 over real HTTP: an idea reaches the other traveller, a word about
+// it reaches its author, and the shortlist reaches the other traveller again —
+// each naming the idea, and none told back to whoever acted.
+func TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8(t *testing.T) {
+	srv := newTestServer(t)
+
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-idea", "op": "insert", "table": "ideas", "id": "idea-1",
+		"fields": map[string]any{"trip_id": trip, "title": "Museo Nivola", "state": "idea"},
+		"hlc":    "0000000002000-0000-aaaaaaaa",
+	})
+	pushAs(t, srv, userB, map[string]any{
+		"mutation_id": "m-word", "op": "insert", "table": "idea_comments", "id": "ic-1",
+		"fields": map[string]any{"trip_id": trip, "idea_id": "idea-1", "body": "Montags zu"},
+		"hlc":    "0000000003000-0000-bbbbbbbb",
+	})
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-short", "op": "upsert", "table": "ideas", "id": "idea-1",
+		"fields": map[string]any{"state": store.IdeaStateShortlisted},
+		"hlc":    "0000000004000-0000-aaaaaaaa",
+	})
+
+	kinds := func(user string) map[string]map[string]any {
+		out := map[string]map[string]any{}
+		for _, n := range listNotifications(t, srv, user, "").Notifications {
+			out[n.Kind] = n.Payload
+		}
+		return out
+	}
+	bob := kinds(userB)
+	for _, kind := range []string{store.NotifyIdea, store.NotifyIdeaShortlisted} {
+		p, ok := bob[kind]
+		if !ok {
+			t.Fatalf("the other traveller was not told %q: %v", kind, bob)
+		}
+		if p["idea_id"] != "idea-1" || p["item_name"] != "Museo Nivola" {
+			t.Errorf("%s payload = %+v", kind, p)
+		}
+	}
+	if _, told := bob[store.NotifyIdeaComment]; told {
+		t.Error("the commenter was told of their own comment")
+	}
+
+	alice := kinds(userA)
+	p, ok := alice[store.NotifyIdeaComment]
+	if !ok {
+		t.Fatalf("the idea's author was not told of the comment: %v", alice)
+	}
+	if p["idea_id"] != "idea-1" || p["comment_id"] != "ic-1" || p["preview"] != "Montags zu" {
+		t.Errorf("comment payload = %+v", p)
+	}
+	for _, kind := range []string{store.NotifyIdea, store.NotifyIdeaShortlisted} {
+		if _, told := alice[kind]; told {
+			t.Errorf("the actor was told %q of their own act", kind)
+		}
+	}
+}
+
 func TestNotifications_TaskOnDelegatedItem_SingleNotification(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")

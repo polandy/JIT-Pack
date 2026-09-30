@@ -174,6 +174,9 @@ function bodyName(kind, payload) {
     'task_due',
     'shopping_due',
     'excursion_due',
+    'idea',
+    'idea_comment',
+    'idea_shortlisted',
   ]
   if (known.indexOf(kind) === -1) return 'generic'
   // FR-7.13: a reply, like a note and a mention, is about its own words.
@@ -225,6 +228,8 @@ function notificationUrl(payload, kind) {
   if (kind === 'excursion_due') {
     return url + '/excursions' + (payload.excursion_id ? '/' + payload.excursion_id : '')
   }
+  // FR-29.8: every idea kind opens its idea over the trip's ideas (M28).
+  if (payload.idea_id) return url + '/ideas?idea=' + encodeURIComponent(payload.idea_id)
   // FR-7.13: a note or a reply opens its thread, a screen of its own.
   if (kind === 'note' || kind === 'note_reply') {
     const thread = payload.thread_id || payload.comment_id

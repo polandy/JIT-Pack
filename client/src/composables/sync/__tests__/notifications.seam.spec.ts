@@ -129,6 +129,9 @@ describe('notification endpoints', () => {
       task_due: true,
       shopping_due: true,
       excursion_due: true,
+      idea: true,
+      idea_comment: true,
+      idea_shortlisted: true,
     })
 
     expect(client.calls[0]).toMatchObject({
