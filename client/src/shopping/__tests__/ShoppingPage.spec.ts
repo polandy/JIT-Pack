@@ -11,6 +11,7 @@
  * own table; a source line's check-off goes to the source and nowhere else;
  * and the reveal, the counts and the ADR-033 guard read both alike.
  */
+import ListRows from '@/components/global/ListRows.vue'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { IonButton, IonInput, IonSearchbar } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -902,6 +903,14 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     await page.find('[data-testid="m6-row-label"]').trigger('click')
     expect(page.find('[data-testid="m6-entry-name"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-row-tag-add"]').exists()).toBe(false)
+  })
+
+  it('draws its lines in the ListRows M25 draws its tasks in, with the buy-out wash', () => {
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    const rows = page.findComponent(ListRows)
+    expect(rows.exists()).toBe(true)
+    expect(rows.props('wash')).toBe(true)
+    expect(rows.find('[data-testid="m6-row"]').exists()).toBe(true)
   })
 
   it('a source line is moved like any other (FR-30.13): it has a grip, and its heading takes it back at another gap', () => {

@@ -35,6 +35,7 @@ import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
 import ListRow from '@/components/global/ListRow.vue'
+import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
@@ -172,94 +173,60 @@ function hasFacts(task: TripTask): boolean {
     </InlineHint>
 
     <!-- The shared row (M6's too): the leading slot, the
-         words, the facts under them, the tick at the row's own edge. -->
-    <ListRow
-      v-for="(task, index) in open"
-      :key="task.id"
-      :data-drop-index="index"
-      :lines="isList ? undefined : 'none'"
-      class="todo-row"
-      :checked="selecting ? null : false"
-      :tick-disabled="readonly"
-      :selected="selecting && !!selection?.selected.value.has(task.id)"
-      :facts-testid="`trip-todo-facts-${task.body}`"
-      :data-testid="`trip-todo-${task.body}`"
-      @tick="emit('toggle', task)"
-    >
-      <!-- M6's leading edge: the selection box while selecting,
-           the grip otherwise. -->
-      <template #start>
-        <SelectBox
-          v-if="selecting"
-          slot="start"
-          :on="selection?.selected.value.has(task.id)"
-          :data-testid="`trip-todo-check-${task.body}`"
-        />
-        <DragGrip
-          v-else-if="lift"
-          slot="start"
-          :label="t('tripTodos.drag', { body: task.body })"
-          :data-testid="`trip-todo-grip-${task.body}`"
-          @pointerdown.stop="onLift($event, task)"
-        />
-      </template>
-      <!-- FR-7.7: the words are the way into the task's own sheet. A hold
-           on them selects, M6's gesture (and its right-click twin). -->
-      <IonLabel
-        @pointerdown="selection?.press(task.id, $event)"
-        @pointermove="selection?.move($event)"
-        @pointerup="selection?.release()"
-        @pointercancel="selection?.release()"
-        @contextmenu="onContextMenu($event, task)"
+         words, the facts under them, the tick at the row's own edge — in
+         M6's `ListRows`, so a task put somewhere else glides there. -->
+    <ListRows>
+      <ListRow
+        v-for="(task, index) in open"
+        :key="task.id"
+        :data-drop-index="index"
+        :lines="isList ? undefined : 'none'"
+        class="todo-row"
+        :checked="selecting ? null : false"
+        :tick-disabled="readonly"
+        :selected="selecting && !!selection?.selected.value.has(task.id)"
+        :facts-testid="`trip-todo-facts-${task.body}`"
+        :data-testid="`trip-todo-${task.body}`"
+        @tick="emit('toggle', task)"
       >
-        <button
-          type="button"
-          class="body row-name"
-          :data-testid="`trip-todo-open-${task.body}`"
-          @click="onOpen(task)"
-        >
-          {{ task.body }}
-        </button>
-      </IonLabel>
-      <!-- FR-7.14: the second line — what is known about the task. The pill
-           stays while selecting: when a task is due is part of choosing it. -->
-      <template v-if="isList && hasFacts(task)" #facts>
-        <DueBadge
-          v-if="today"
-          :day="openDueDay(task)"
-          :today="today"
-          :testid="`trip-todo-due-${task.body}`"
-        />
-        <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
-        <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
-          tagOf(task)
-        }}</span>
-      </template>
-      <!-- FR-7.14: the person at the row's edge, before the tick. Selecting
-           takes the seat away with the tick; the avatar stays, since whose a
-           task is is part of choosing it. -->
-      <template v-if="isList ? seatOffered() || !!task.assignee_user_id : !selecting" #end>
-        <template v-if="isList">
-          <AssigneeSeat
-            v-if="seatOffered()"
-            slot="end"
-            class="person"
-            :avatar="assigneeOf(task)"
-            :data-testid="`trip-todo-assign-${task.body}`"
-            @assign="emit('assign', task)"
+        <!-- M6's leading edge: the selection box while selecting,
+           the grip otherwise. -->
+        <template #start>
+          <SelectBox
+            v-if="selecting"
+            slot="start"
+            :on="selection?.selected.value.has(task.id)"
+            :data-testid="`trip-todo-check-${task.body}`"
           />
-          <UserAvatar
-            v-else
-            slot="end"
-            class="person"
-            variant="assignee"
-            :name="nameOf?.(task.assignee_user_id ?? null)"
-            :seed="task.assignee_user_id"
-            :data-testid="`trip-todo-assignee-${task.body}`"
+          <DragGrip
+            v-else-if="lift"
+            slot="start"
+            :label="t('tripTodos.drag', { body: task.body })"
+            :data-testid="`trip-todo-grip-${task.body}`"
+            @pointerdown.stop="onLift($event, task)"
           />
         </template>
-        <!-- M4's window keeps its one-line cluster at the row's edge. -->
-        <span v-else slot="end" class="todo-end">
+        <!-- FR-7.7: the words are the way into the task's own sheet. A hold
+           on them selects, M6's gesture (and its right-click twin). -->
+        <IonLabel
+          @pointerdown="selection?.press(task.id, $event)"
+          @pointermove="selection?.move($event)"
+          @pointerup="selection?.release()"
+          @pointercancel="selection?.release()"
+          @contextmenu="onContextMenu($event, task)"
+        >
+          <button
+            type="button"
+            class="body row-name"
+            :data-testid="`trip-todo-open-${task.body}`"
+            @click="onOpen(task)"
+          >
+            {{ task.body }}
+          </button>
+        </IonLabel>
+        <!-- FR-7.14: the second line — what is known about the task. The pill
+           stays while selecting: when a task is due is part of choosing it. -->
+        <template v-if="isList && hasFacts(task)" #facts>
           <DueBadge
             v-if="today"
             :day="openDueDay(task)"
@@ -271,28 +238,69 @@ function hasFacts(task: TripTask): boolean {
             :item="task.item"
             :to="tripItemPath(tripId, task.item.id)"
           />
-          <AssigneeSeat
-            v-if="assignable && !readonly"
-            :avatar="assigneeOf(task)"
-            :data-testid="`trip-todo-assign-${task.body}`"
-            @assign="emit('assign', task)"
-          />
-          <UserAvatar
-            v-else-if="task.assignee_user_id"
-            variant="assignee"
-            :name="nameOf?.(task.assignee_user_id)"
-            :seed="task.assignee_user_id"
-            :data-testid="`trip-todo-assignee-${task.body}`"
-          />
-          <RemoveButton
-            v-if="!task.item && !readonly"
-            :label="t('tripTodos.remove')"
-            :data-testid="`trip-todo-remove-${task.body}`"
-            @click="emit('remove', task)"
-          />
-        </span>
-      </template>
-    </ListRow>
+          <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+            tagOf(task)
+          }}</span>
+        </template>
+        <!-- FR-7.14: the person at the row's edge, before the tick. Selecting
+           takes the seat away with the tick; the avatar stays, since whose a
+           task is is part of choosing it. -->
+        <template v-if="isList ? seatOffered() || !!task.assignee_user_id : !selecting" #end>
+          <template v-if="isList">
+            <AssigneeSeat
+              v-if="seatOffered()"
+              slot="end"
+              class="person"
+              :avatar="assigneeOf(task)"
+              :data-testid="`trip-todo-assign-${task.body}`"
+              @assign="emit('assign', task)"
+            />
+            <UserAvatar
+              v-else
+              slot="end"
+              class="person"
+              variant="assignee"
+              :name="nameOf?.(task.assignee_user_id ?? null)"
+              :seed="task.assignee_user_id"
+              :data-testid="`trip-todo-assignee-${task.body}`"
+            />
+          </template>
+          <!-- M4's window keeps its one-line cluster at the row's edge. -->
+          <span v-else slot="end" class="todo-end">
+            <DueBadge
+              v-if="today"
+              :day="openDueDay(task)"
+              :today="today"
+              :testid="`trip-todo-due-${task.body}`"
+            />
+            <TaskItemChip
+              v-if="task.item"
+              :item="task.item"
+              :to="tripItemPath(tripId, task.item.id)"
+            />
+            <AssigneeSeat
+              v-if="assignable && !readonly"
+              :avatar="assigneeOf(task)"
+              :data-testid="`trip-todo-assign-${task.body}`"
+              @assign="emit('assign', task)"
+            />
+            <UserAvatar
+              v-else-if="task.assignee_user_id"
+              variant="assignee"
+              :name="nameOf?.(task.assignee_user_id)"
+              :seed="task.assignee_user_id"
+              :data-testid="`trip-todo-assignee-${task.body}`"
+            />
+            <RemoveButton
+              v-if="!task.item && !readonly"
+              :label="t('tripTodos.remove')"
+              :data-testid="`trip-todo-remove-${task.body}`"
+              @click="emit('remove', task)"
+            />
+          </span>
+        </template>
+      </ListRow>
+    </ListRows>
 
     <!-- Resolved ones fold away but stay reachable: unticking is the only
          undo a mis-tap has, short of typing the task again. -->

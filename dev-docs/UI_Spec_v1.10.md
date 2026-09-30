@@ -1570,11 +1570,12 @@ These patterns apply to every screen and are specified once.
 * **One set of components for M6 and M25**, so the two are uniform by construction. Both screens are drawn from
   `components/global/`: `ListComposer` (the card, the field and its ＋) with `ChipRow`s of `ChoiceChip`s and `DueChips`;
   `DueBlock` (*Fällig*, tinted faintly in the overdue ink on both); `ListSection` (a section's head and count);
-  `ListGroup` (a tag's heading and drop frame); `ListRow` (leading slot, name, facts line, trailing tick); `FoldToggle`
-  (*„› N erledigt"* / *„› N gekauft"*); `RestLine` (a section with nothing open, at the end); `TagPicker` (the
-  search-or-create tag mask, test ids `tag-pick-*`) and `EntrySheet` (name, day, tag, *Entfernen*, the writing button).
-  What remains per screen is what a line *is* — a task or a thing to buy — never how it looks. The shopping module
-  reaches these as kernel (ADR-066).
+  `ListGroup` (a tag's heading and drop frame); `ListRow` (leading slot, name, facts line, trailing tick) inside
+  `ListRows` (the open rows as one `TransitionGroup`, so a row put or pushed elsewhere glides to its place on both
+  lists); `FoldToggle` (*„› N erledigt"* / *„› N gekauft"*); `RestLine` (a section with nothing open, at the end);
+  `TagPicker` (the search-or-create tag mask, test ids `tag-pick-*`) and `EntrySheet` (name, day, tag, *Entfernen*, the
+  writing button). What remains per screen is what a line *is* — a task or a thing to buy — never how it looks. The
+  shopping module reaches these as kernel (ADR-066).
 * **Elements, top to bottom:**
   * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
     kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):

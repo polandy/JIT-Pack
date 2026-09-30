@@ -19,6 +19,7 @@ import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import ListRow from '@/components/global/ListRow.vue'
+import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
@@ -76,11 +77,6 @@ function onClick(line: ShoppingLine) {
   if (line.edit) emit('open', line)
 }
 
-function onLeave(el: Element, done: () => void) {
-  if (props.leave) props.leave(el, done)
-  else done()
-}
-
 /** The recipients, named in roster order (FR-25.6). */
 function recipientNames(line: ShoppingLine): string {
   return line.recipients.map((recipient) => recipient.name).join(', ')
@@ -104,8 +100,9 @@ function hasFacts(line: ShoppingLine): boolean {
 
 <template>
   <!-- FR-25.11j: a bought row leaves rather than vanishes — M4's FR-25.2
-       `pack-out` recipe, kept to this list's own class names. -->
-  <TransitionGroup tag="div" name="buy-out" class="row-group" @leave="onLeave">
+       `pack-out` recipe, run by the page's `leave`; `ListRows` is M25's
+       too, so a line put somewhere else glides there on both lists. -->
+  <ListRows :leave="leave" wash>
     <ListRow
       v-for="(line, index) in lines"
       :key="line.key"
@@ -199,15 +196,10 @@ function hasFacts(line: ShoppingLine): boolean {
         />
       </template>
     </ListRow>
-  </TransitionGroup>
+  </ListRows>
 </template>
 
 <style scoped>
-/* A `TransitionGroup` wrapper with no footprint of its own. */
-.row-group {
-  display: contents;
-}
-
 .tappable {
   cursor: pointer;
 }
@@ -225,39 +217,5 @@ function hasFacts(line: ShoppingLine): boolean {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-/* --- FR-25.11j: the buy-out. A bought row washes the done colour, collapses
-   to nothing, then fades; the height itself is driven by the page's leave. */
-.buy-out-leave-active {
-  transition:
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.3s ease,
-    background-color 0.3s ease;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.buy-out-leave-from {
-  background: color-mix(in srgb, var(--jp-done) 22%, transparent);
-}
-
-.buy-out-leave-to {
-  opacity: 0;
-}
-
-.buy-out-move {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .buy-out-leave-active,
-  .buy-out-move {
-    transition: none;
-  }
-
-  .buy-out-leave-from {
-    background: none;
-  }
 }
 </style>
