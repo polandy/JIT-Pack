@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.22.0](https://github.com/polandy/JIT-Pack/compare/v0.21.0...v0.22.0) (2026-09-30)
+
+
+### Features
+
+* a pasted link suggests an idea's title and description and brings its picture (FR-29.16, ADR-082) ([#623](https://github.com/polandy/JIT-Pack/issues/623)) ([01ef817](https://github.com/polandy/JIT-Pack/commit/01ef817b43ff3bb4eaf3997653b9670e0ad4450d))
+* a trip note may name the excursion it is about (FR-7.15) ([#627](https://github.com/polandy/JIT-Pack/issues/627)) ([4a6907a](https://github.com/polandy/JIT-Pack/commit/4a6907a658fea58cfc25dbe4db1568173d2238d8))
+* **client:** a date range is one field — one sheet, two taps, months stacked (FR-2.1d, FR-31.1, ADR-080) ([#621](https://github.com/polandy/JIT-Pack/issues/621)) ([6c1e806](https://github.com/polandy/JIT-Pack/commit/6c1e80601f15894d1771c15135251c9a85032e6d))
+* pictures on an idea — a banner on the card, a mosaic and a viewer in the idea (FR-29.5, ADR-081) ([#622](https://github.com/polandy/JIT-Pack/issues/622)) ([62efac7](https://github.com/polandy/JIT-Pack/commit/62efac76c1233ed25c8e1b5ecef52a62253715e0))
+* shopping lines and tasks placed by hand within their group (FR-30.13, FR-7.17) ([#629](https://github.com/polandy/JIT-Pack/issues/629)) ([7242728](https://github.com/polandy/JIT-Pack/commit/7242728f79ae92e30a906b432f888358f630aeb0))
+* the leftovers follow the trip into its during phase (FR-7.16) ([0c06be7](https://github.com/polandy/JIT-Pack/commit/0c06be7320470ab65852bcc0270291a281d684ff))
+* the planner's ideas — a board of ideas with votes and a discussion, inside a trip (§3.29, ADR-078) ([#617](https://github.com/polandy/JIT-Pack/issues/617)) ([bf18d36](https://github.com/polandy/JIT-Pack/commit/bf18d36e663cc9e5c4d14a5b3c14ceb6de7a75f7))
+
+
+### Bug Fixes
+
+* **client:** the queue count rides the sync glyph's corner, so the app bar no longer jumps (G-2) ([#624](https://github.com/polandy/JIT-Pack/issues/624)) ([47d8912](https://github.com/polandy/JIT-Pack/commit/47d8912cb38d885561fc6c04f0b1e6d5e0c4e649))
+
 ## [0.21.0](https://github.com/polandy/JIT-Pack/compare/v0.20.0...v0.21.0) (2026-09-27)
 
 
