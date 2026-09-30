@@ -1,6 +1,15 @@
 package store
 
-import "jitpack/internal/sync"
+import (
+	"context"
+	"fmt"
+
+	"jitpack/internal/sync"
+)
+
+// IdeaStateShortlisted is the state an idea is in once it made the shortlist
+// (FR-29.2) — the move FR-29.8 tells the trip about.
+const IdeaStateShortlisted = "shortlisted"
 
 // columnVoter is whose vote an idea_votes row is (FR-29.3), stamped by the
 // server on the insert.
@@ -57,4 +66,45 @@ func validIdeaImage(row sync.Row, m *sync.Mutation) RejectReason {
 		}
 	}
 	return ReasonNone
+}
+
+// IdeaDiscussion is what FR-29.8's comment rule needs to know about an idea:
+// what it is called, and who takes part in its discussion.
+type IdeaDiscussion struct {
+	// Title is the idea's title, which a notification names it by.
+	Title string
+	// Participants are the idea's author and then every commenter once, in
+	// the order they first wrote. A vote does not make a participant.
+	Participants []string
+}
+
+// IdeaDiscussion reads an idea's title and the people taking part in its
+// discussion (FR-29.8).
+func (s *Store) IdeaDiscussion(ctx context.Context, ideaID string) (IdeaDiscussion, error) {
+	var discussion IdeaDiscussion
+	var author string
+	err := s.db.QueryRowContext(ctx, `SELECT title, author_id FROM ideas WHERE id = ?`, ideaID).
+		Scan(&discussion.Title, &author)
+	if err != nil {
+		return IdeaDiscussion{}, fmt.Errorf("idea discussion %s: %w", ideaID, err)
+	}
+	discussion.Participants = []string{author}
+
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT author_id FROM idea_comments WHERE idea_id = ?
+		 GROUP BY author_id ORDER BY min(created_at), min(rowid)`, ideaID)
+	if err != nil {
+		return IdeaDiscussion{}, fmt.Errorf("idea discussion %s commenters: %w", ideaID, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var commenter string
+		if err := rows.Scan(&commenter); err != nil {
+			return IdeaDiscussion{}, fmt.Errorf("scan commenter: %w", err)
+		}
+		if commenter != author {
+			discussion.Participants = append(discussion.Participants, commenter)
+		}
+	}
+	return discussion, rows.Err()
 }

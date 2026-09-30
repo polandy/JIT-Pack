@@ -4035,9 +4035,14 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the Pixel 9
   Pro's 410 px six pills fill the row; a seventh — a ⋮ view joining it, later the day plan — scrolls the row sideways,
   with the pill you stand on scrolled into view (ADR-051 amendment 4).
-* **FR-29.8 (Notifications):** *Specified, not built.* Three kinds — a member added an idea, commented on one, moved one
-  to the shortlist — with per-kind preferences, in the recipient's language (ADR-037), never to the actor. Votes do not
-  notify. Server Mode only.
+* **FR-29.8 (Notifications):** *Implemented.* Three kinds, each with its own M17 switch, in the recipient's language
+  (ADR-037), never to the actor: **`idea`**, a new idea, to every member of the trip; **`idea_shortlisted`**, an idea
+  moved to the shortlist, to every member, because the shortlist is the group's decision; **`idea_comment`**, a
+  comment, to the idea's **participants** only — its author and everyone who has commented on it, still on the trip —
+  FR-7.13's reply rule, so a lively discussion does not ring every phone. Votes do not notify, and neither does any
+  other state, an edit or a deletion. Each new idea notifies on its own; a burst of ten is ten notifications, the
+  switch being the answer for whoever minds. A tap opens the idea over M28. Server Mode only: a trip nobody shares
+  notifies nobody (FR-17.3), so Single-User Mode hides the three switches.
 * **FR-29.9 (Module Boundary):** *Implemented.* The planner's client code lives under `client/src/planner/` and reaches
   only the shared kernel; packing code never imports it, and it never imports packing code
   (`scripts/module-boundary-gate.mjs`). Its pure rules (`planner/domain/`) answer to the same direction as
