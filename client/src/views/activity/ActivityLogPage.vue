@@ -51,6 +51,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import {
+  SAID_BY_KIND,
   groupActivity,
   readActivity,
   type ActivityArea,
@@ -130,10 +131,11 @@ async function onRefresh(event: CustomEvent) {
  * The fields a „changed" line names: those with a word for them, minus the
  * references (an id is not an answer) and what the kind already says.
  */
+/** A column that holds another row's id — a uuid, not an answer. */
+const REFERENCE_SUFFIX = '_id'
+
 const SHOWN_FIELDS: ReadonlySet<string> = new Set(
-  Object.keys(FIELD_LABELS).filter(
-    (f) => !f.endsWith('_id') && !['state', 'packed_count', 'task_state', 'is_task'].includes(f),
-  ),
+  Object.keys(FIELD_LABELS).filter((f) => !f.endsWith(REFERENCE_SUFFIX) && !SAID_BY_KIND.has(f)),
 )
 
 function isTask(commentId: string): boolean | undefined {

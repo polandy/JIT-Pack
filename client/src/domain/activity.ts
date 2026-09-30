@@ -119,6 +119,17 @@ const RECORD_FIELDS: ReadonlySet<string> = new Set([
   FIELD.resolvedBy,
 ])
 
+/**
+ * What an act's own word already says — a „changed" line naming them would
+ * repeat its kind, and `is_task` is which list a comment is in, not a change.
+ */
+export const SAID_BY_KIND: ReadonlySet<string> = new Set([
+  FIELD.state,
+  FIELD.packedCount,
+  FIELD.taskState,
+  FIELD.isTask,
+])
+
 /** Written by generation and the planning refresh, never by a person's intent. */
 const BOOKKEEPING: ReadonlySet<SyncTable> = new Set([
   TABLE.tripGeneratedPositions,

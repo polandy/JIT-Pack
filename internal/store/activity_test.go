@@ -86,7 +86,10 @@ func TestActivity_WritesThatChangeNothing_RecordNothing_FR32_1(t *testing.T) {
 		name  string
 		write sync.Mutation
 	}{
-		{"the same value re-sent", upsert("ti-1", "m-2", map[string]any{"quantity": 1}, "0000000002000-0000-aaaaaaaa")},
+		// As JSON decodes it: a number is a float64, a flag a boolean, while
+		// SQLite hands back the integers it stored.
+		{"the same value re-sent", upsert("ti-1", "m-2", map[string]any{"quantity": float64(1)}, "0000000002000-0000-aaaaaaaa")},
+		{"the same flag re-sent as a boolean", upsert("ti-1", "m-2", map[string]any{"flag_unused": false}, "0000000002000-0000-aaaaaaaa")},
 		{"a stale write the merge drops", upsert("ti-1", "m-2", map[string]any{"quantity": 7}, "0000000000500-0000-aaaaaaaa")},
 		{"a replay of the first mutation", tripItemInsert("ti-1", "m-1", "Zahnbürste", "0000000001000-0000-aaaaaaaa")},
 		{"a refused write", upsert("ti-other", "m-2", map[string]any{"trip_id": "trip-elsewhere", "name": "X"}, "0000000002000-0000-aaaaaaaa")},
