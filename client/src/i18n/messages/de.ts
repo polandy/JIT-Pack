@@ -2017,6 +2017,8 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.bulkAssigned': 'Ein Eintrag → {who} | {n} Einträge → {who}',
   'shopping.bulkUnassigned': 'Ein Eintrag: niemand zuständig | {n} Einträge: niemand zuständig',
   'shopping.bulkNothingToDo': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
+  'shopping.bulkRemove': 'Löschen',
+  'shopping.bulkRemoved': 'Ein Eintrag entfernt | {n} Einträge entfernt',
   'shopping.dragToMove': '{name} verschieben',
   'list.dropHere': 'hier ablegen',
   'shopping.retagged': '„{name}“ → {group}',

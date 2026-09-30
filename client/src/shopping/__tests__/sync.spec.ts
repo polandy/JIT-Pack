@@ -209,6 +209,59 @@ describe('Who buys it (FR-30.12)', () => {
   })
 })
 
+describe('Several entries removed at once (FR-30.9)', () => {
+  it('removes only the selected, and the undo puts each back under its own id, as it was', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const actions = createShoppingActions(orch.moduleHost, useShoppingStore())
+    actions.addEntry('t1', 'buy_local', 'Milch', 'Supermarkt', '2026-07-01')
+    actions.addEntry('t1', 'buy_local', 'Brot')
+    actions.addEntry('t1', 'buy_local', 'Käse')
+    const shoppingStore = useShoppingStore()
+    const own = ownEntriesSource(shoppingStore, actions)
+    const byName = (name: string) => shoppingStore.getEntries('t1').find((e) => e.name === name)
+    actions.assignEntry(byName('Milch')!, 'u-sia')
+    const before = [byName('Milch')!, byName('Brot')!]
+    const keys = new Set(
+      own
+        .open('t1', 'buy_local')
+        .filter((line) => line.name !== 'Käse')
+        .map((line) => line.key),
+    )
+
+    const { touched, undo } = own.bulkRemove('t1', 'buy_local', keys)
+    expect(touched).toBe(2)
+    expect(own.open('t1', 'buy_local').map((line) => line.name)).toEqual(['Käse'])
+
+    undo()
+    expect(byName('Milch')).toMatchObject(before[0]!)
+    expect(byName('Brot')).toMatchObject(before[1]!)
+    await orch.drainTrip('t1')
+    // The undo is an insert under the same id, newer than the delete —
+    // what lets the server re-create a row it holds a tombstone for.
+    const pushed = harness.pushedMutations().slice(-4)
+    const ids = before.map((entry) => entry.id).sort()
+    expect(pushed.map((m) => m.op)).toEqual(['delete', 'delete', 'insert', 'insert'])
+    expect(
+      pushed
+        .slice(0, 2)
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual(ids)
+    expect(
+      pushed
+        .slice(2)
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual(ids)
+    expect(pushed.find((m) => m.op === 'insert' && m.id === before[0]!.id)!.fields).toMatchObject({
+      tag: 'Supermarkt',
+      due_date: '2026-07-01',
+      assignee_user_id: 'u-sia',
+    })
+  })
+})
+
 describe('The module host', () => {
   // FR-30.4: the tap's time comes from the orchestrator's own clock — the one
   // the HLC reads — so a purchase and the clock that orders it cannot disagree.

@@ -27,6 +27,7 @@ import {
   personAddOutline,
   personOutline,
   pricetagsOutline,
+  trashOutline,
 } from 'ionicons/icons'
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 
@@ -420,6 +421,24 @@ async function bulkAssign() {
       picked === null
         ? t('shopping.bulkUnassigned', { n: touched })
         : t('shopping.bulkAssigned', { n: touched, who: nameOf(picked) ?? '' }),
+    positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
+    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
+  })
+}
+
+/**
+ * FR-30.9: the selection removed in one act, across both lists. No question
+ * first — the toast's undo puts every entry back, as it does each batch here.
+ */
+async function bulkRemove() {
+  const results = SHOPPING_MODES.map((list) => own.bulkRemove(props.tripId, list, selected.value))
+  const touched = results.reduce((n, result) => n + result.touched, 0)
+  endSelecting()
+  if (touched === 0) return
+  bulkUndo = () => results.forEach((result) => result.undo())
+  await presentToast({
+    message: t('shopping.bulkRemoved', { n: touched }),
     positionAnchor: FAB_ANCHOR.m6,
     cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
@@ -848,6 +867,10 @@ setHeaderTitle(
         <button v-if="assignable" type="button" data-testid="m6-bulk-assign" @click="bulkAssign">
           <IonIcon :icon="personAddOutline" />
           {{ t('shopping.bulkAssign') }}
+        </button>
+        <button type="button" data-testid="m6-bulk-remove" @click="bulkRemove">
+          <IonIcon :icon="trashOutline" />
+          {{ t('shopping.bulkRemove') }}
         </button>
       </BulkBar>
 

@@ -1467,6 +1467,10 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   another read in that order, not A–Z; the last is dragged above the first, and the first row carries the insert line
   (`data-drop-gap="before"`) before the drop. Of two packing lines, the second is dragged above the first inside the
   packing heading. After a reload both headings still read in the new order — the places were written, not painted.
+* **E2E-M6-40** `local` (FR-30.9) — **implemented** (`shopping/shopping.spec.ts`): an untagged entry and a tagged
+  one are selected (a hold, then a tap) and removed with **Löschen**; only the unselected entry stays, and the mode
+  ends. The toast's undo puts both back under their headings, and after a reload they are still there — re-created,
+  not only repainted.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

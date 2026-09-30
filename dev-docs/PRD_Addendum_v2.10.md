@@ -4221,7 +4221,8 @@ lists — *Vor der Reise* and *Vor Ort* — for the list's own entries as for th
     opens the same search-or-create sheet a single entry's does, titled for the batch; choosing a tag files every
     selected entry under it at once — only what changes is written, so an entry already carrying that tag is
     untouched — the mode ends with the batch, and the toast's undo puts each entry back under the tag it carried
-    before.
+    before. The same bar's *Löschen* removes the selection in one act, as M25's does for tasks: no question first,
+    since the toast's undo re-creates each entry under its own id with every field it had.
   * **One entry, dragged into another heading:** a grip at the leading edge of an own row,
     shown while nothing is selected, lifts it and carries it over the open list; the heading under the pointer lights
     up while it could honestly hold the row, and lets go of it into that tag — or into *„Eingetragen"* to clear one.

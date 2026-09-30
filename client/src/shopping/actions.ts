@@ -162,6 +162,37 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
   }
 
   /**
+   * Puts a removed entry back under its own id — `restoreTripItem`'s shape:
+   * an insert newer than the tombstone re-creates the row (ADR-052). The
+   * buyer is the server's stamp (invariant 3) and does not come back; only
+   * open entries are ever removed in a batch, so there is none to lose.
+   */
+  function restoreEntry(entry: ShoppingEntry): void {
+    const mutation = host.mutation('insert', TABLE.shoppingEntries, entry.id, {
+      trip_id: entry.trip_id,
+      name: entry.name,
+      list: entry.list,
+      bought: dbBool(entry.bought),
+      tag: entry.tag,
+      bought_at: entry.bought_at,
+      due_date: entry.due_date,
+      assignee_user_id: entry.assignee_user_id,
+      carried_over_at: entry.carried_over_at ?? null,
+      position: entry.position ?? null,
+    })
+    host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticInsert(mutation) })
+  }
+
+  /** FR-30.9: removes every entry in the batch at once; the undo puts each back as it was. */
+  function bulkRemove(entries: ShoppingEntry[]): BulkResult {
+    for (const entry of entries) removeEntry(entry)
+    return {
+      touched: entries.length,
+      undo: () => entries.forEach(restoreEntry),
+    }
+  }
+
+  /**
    * FR-30.9: files every entry in the batch under one tag at once, or clears
    * it with null — the list's own shape of M9's give/take (`giveTagToItems`),
    * flat rather than join-table-shaped because an entry carries at most one
@@ -225,6 +256,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
     assignEntry,
     placeEntry,
     removeEntry,
+    bulkRemove,
     bulkSetTag,
     bulkSetAssignee,
     carryEntries,
@@ -245,7 +277,7 @@ export interface EntryReads {
   boughtEntries(tripId: string, list: ShoppingMode): ShoppingEntry[]
 }
 
-/** What the own-entries source adds beyond a `ShoppingSource` (FR-30.9's bulk tag, FR-30.12's bulk assignee). */
+/** What the own-entries source adds beyond a `ShoppingSource` (FR-30.9's bulk tag and removal, FR-30.12's bulk assignee). */
 export interface OwnEntriesSource extends ShoppingSource {
   /**
    * Files every entry a line `key` in `keys` names under one tag at once.
@@ -265,6 +297,8 @@ export interface OwnEntriesSource extends ShoppingSource {
     keys: ReadonlySet<string>,
     userId: string | null,
   ): BulkResult
+  /** Removes every entry a line `key` in `keys` names, with one undo for all of them. */
+  bulkRemove(tripId: string, list: ShoppingMode, keys: ReadonlySet<string>): BulkResult
 }
 
 /**
@@ -305,6 +339,7 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
     bulkSetTag: (tripId, list, keys, tag) => actions.bulkSetTag(picked(tripId, list, keys), tag),
     bulkSetAssignee: (tripId, list, keys, userId) =>
       actions.bulkSetAssignee(picked(tripId, list, keys), userId),
+    bulkRemove: (tripId, list, keys) => actions.bulkRemove(picked(tripId, list, keys)),
   }
 }
 

@@ -1997,6 +1997,8 @@ export const en = {
   'shopping.bulkAssigned': 'One entry → {who} | {n} entries → {who}',
   'shopping.bulkUnassigned': 'One entry: nobody responsible | {n} entries: nobody responsible',
   'shopping.bulkNothingToDo': 'Nothing to change — the selection already carries that tag.',
+  'shopping.bulkRemove': 'Delete',
+  'shopping.bulkRemoved': 'One entry deleted | {n} entries deleted',
   'shopping.dragToMove': 'Move {name}',
   'list.dropHere': 'drop here',
   'shopping.retagged': '“{name}” → {group}',
