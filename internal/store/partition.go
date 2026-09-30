@@ -1,10 +1,10 @@
 // Package store — partition.go holds the one push pipeline both sync
 // partitions run, and the value that says which partition is running it.
 //
-// The trip and master paths (Sync-API §5) run the same twelve steps —
+// The trip and master paths (Sync-API §5) run the same thirteen steps —
 // validate, transaction, idempotency memo, load, scope, merge, reference
-// check, cascade collection, persist, change_log + tombstones, conflict_log,
-// memo + commit — and their four real differences are named here rather than
+// check, cascade collection, persist, change_log + tombstones, activity_log,
+// conflict_log, memo + commit — and their four real differences are named here rather than
 // spread through two copies, so a rule such as ADR-031's re-log or FR-24.3's
 // retire-instead is written once, and "where does a rejection get re-logged"
 // has one answer.
@@ -248,6 +248,12 @@ func (s *Store) applyMutation(ctx context.Context, m sync.Mutation, p partition)
 			if res.Seq, err = p.afterChange(ctx, tx, p, w); err != nil {
 				return MutationResult{}, err
 			}
+		}
+		if err := recordActivity(ctx, tx, s.nowMillis(), activityWrite{
+			feed: p.feed, actorID: p.actorID, table: m.Table, id: m.ID,
+			before: row, applied: merged.Applied, deleted: merged.Deleted,
+		}); err != nil {
+			return MutationResult{}, err
 		}
 	}
 	if err := logConflicts(ctx, tx, p.feed, p.actorID, m, merged.Conflicts); err != nil {

@@ -20,7 +20,7 @@ func TestAddIdeaImage_StoresBytesAndLogsTheRowOnTheTripFeed_FR29_5(t *testing.T)
 	s := openPlannerStore(t)
 	ctx := context.Background()
 
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-1", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-1", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestAddIdeaImage_AppendsBehindTheLastPicture_FR29_5(t *testing.T) {
 	mustExec(t, s, `INSERT INTO idea_images (id, trip_id, idea_id, image_hash, position) VALUES ('ii-far', ?, 'idea-1', 'h', 2)`,
 		testTrip)
 
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-2", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-2", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
@@ -77,11 +77,11 @@ func TestAddIdeaImage_RefusesAFifthPicture_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
 	for i := range MaxIdeaImages {
-		if _, err := s.AddIdeaImage(ctx, testTrip, "idea-1", fmt.Sprintf("ii-%d", i), testJPEG); err != nil {
+		if _, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", fmt.Sprintf("ii-%d", i), testJPEG); err != nil {
 			t.Fatalf("AddIdeaImage: %v", err)
 		}
 	}
-	if _, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-fifth", testJPEG); !errors.Is(err, ErrIdeaImageLimit) {
+	if _, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-fifth", testJPEG); !errors.Is(err, ErrIdeaImageLimit) {
 		t.Errorf("fifth picture: err = %v, want ErrIdeaImageLimit", err)
 	}
 }
@@ -90,11 +90,11 @@ func TestAddIdeaImage_RefusesAFifthPicture_FR29_5(t *testing.T) {
 func TestAddIdeaImage_RetryWithTheSameIdChangesNothing_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	first, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-retry", testJPEG)
+	first, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-retry", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
-	again, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-retry", testJPEG)
+	again, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-retry", testJPEG)
 	if err != nil || again != first {
 		t.Fatalf("retry = %+v, err %v; want %+v", again, err, first)
 	}
@@ -109,10 +109,10 @@ func TestAddIdeaImage_RetryWithTheSameIdChangesNothing_FR29_5(t *testing.T) {
 
 func TestAddIdeaImage_RefusesMoreThan500KB_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
-	if _, err := s.AddIdeaImage(context.Background(), testTrip, "idea-1", "ii-9", make([]byte, MaxIdeaImageBytes+1)); !errors.Is(err, ErrIdeaImageTooLarge) {
+	if _, err := s.AddIdeaImage(context.Background(), testTrip, testUser, "idea-1", "ii-9", make([]byte, MaxIdeaImageBytes+1)); !errors.Is(err, ErrIdeaImageTooLarge) {
 		t.Errorf("err = %v, want ErrIdeaImageTooLarge", err)
 	}
-	if _, err := s.AddIdeaImage(context.Background(), testTrip, "idea-1", "ii-10", make([]byte, MaxIdeaImageBytes)); err != nil {
+	if _, err := s.AddIdeaImage(context.Background(), testTrip, testUser, "idea-1", "ii-10", make([]byte, MaxIdeaImageBytes)); err != nil {
 		t.Errorf("exactly 500 KB: err = %v, want it stored", err)
 	}
 }
@@ -131,7 +131,7 @@ func TestIdeaImageBytes_CheckRefusesMoreThan500KB_FR29_5(t *testing.T) {
 // in front is the trip's, so the store must not reach past it.
 func TestAddIdeaImage_RefusesAnIdeaOfAnotherTrip_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
-	if _, err := s.AddIdeaImage(context.Background(), "other-trip", "idea-1", "ii-11", testJPEG); !errors.Is(err, ErrIdeaNotFound) {
+	if _, err := s.AddIdeaImage(context.Background(), "other-trip", testUser, "idea-1", "ii-11", testJPEG); !errors.Is(err, ErrIdeaNotFound) {
 		t.Errorf("err = %v, want ErrIdeaNotFound", err)
 	}
 }
@@ -139,7 +139,7 @@ func TestAddIdeaImage_RefusesAnIdeaOfAnotherTrip_FR29_5(t *testing.T) {
 func TestGetIdeaImage_OnlyThroughItsOwnTrip_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-5", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-5", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestGetIdeaImage_OnlyThroughItsOwnTrip_FR29_5(t *testing.T) {
 func TestApplyMutation_IdeaImage_PositionOnly_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-6", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-6", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestApplyMutation_IdeaImage_PositionOnly_FR29_5(t *testing.T) {
 func TestApplyMutation_DeletingAPictureTakesItsBytes_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-7", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-7", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestApplyMutation_DeletingAPictureTakesItsBytes_FR29_5(t *testing.T) {
 func TestApplyMutation_DeletingAnIdeaTombstonesItsPictures_FR29_5(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	img, err := s.AddIdeaImage(ctx, testTrip, "idea-1", "ii-8", testJPEG)
+	img, err := s.AddIdeaImage(ctx, testTrip, testUser, "idea-1", "ii-8", testJPEG)
 	if err != nil {
 		t.Fatalf("AddIdeaImage: %v", err)
 	}

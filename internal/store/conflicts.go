@@ -198,7 +198,8 @@ type revertEntry struct {
 // Membership is the trip partition's only write gate and the caller's
 // `member` middleware has already applied it, so the only scope question
 // left here is whether the entry is this trip's at all (Sync-API P-3).
-func (s *Store) RevertTripConflict(ctx context.Context, tripID, conflictID string) (int64, error) {
+// userID is who tapped it, which is whom the activity log names.
+func (s *Store) RevertTripConflict(ctx context.Context, tripID, userID, conflictID string) (int64, error) {
 	e, err := s.loadConflictEntry(ctx, conflictID)
 	if err != nil {
 		return 0, err
@@ -206,9 +207,7 @@ func (s *Store) RevertTripConflict(ctx context.Context, tripID, conflictID strin
 	if !e.tripID.Valid || e.tripID.String != tripID {
 		return 0, ErrConflictNotFound
 	}
-	// No actor: a revert is attributed to nobody because it logs no
-	// conflict of its own, and this endpoint is never told who tapped it.
-	return s.applyRevert(ctx, conflictID, e, tripPartition(tripID, ""), nil)
+	return s.applyRevert(ctx, conflictID, e, tripPartition(tripID, userID), nil)
 }
 
 // RevertMasterConflict restores the logged losing value of one
@@ -409,6 +408,12 @@ func (s *Store) applyRevert(
 	}
 	seq, err := appendChangeLog(ctx, tx, p.feed, m, false)
 	if err != nil {
+		return 0, err
+	}
+	if err := recordActivity(ctx, tx, s.nowMillis(), activityWrite{
+		feed: p.feed, actorID: p.actorID, table: m.Table, id: m.ID,
+		before: row, applied: merged.Applied,
+	}); err != nil {
 		return 0, err
 	}
 	if err := tx.Commit(); err != nil {

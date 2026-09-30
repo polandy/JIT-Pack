@@ -543,6 +543,47 @@ type APIError struct {
 	Error APIErrorBody `json:"error"`
 }
 
+// --- Activity log (FR-32.1, ADR-084) ---
+
+// ActivityOp is what a recorded write did to its row.
+type ActivityOp string
+
+// The three things a write can do. Literals, for the reason
+// MutationOutcome's are; TestWireActivityOps_MirrorStore keeps them equal
+// to the store's.
+const (
+	ActivityInsert ActivityOp = "insert"
+	ActivityUpdate ActivityOp = "update"
+	ActivityDelete ActivityOp = "delete"
+)
+
+// ActivityEntry is one recorded change: who changed which row, when, and
+// what each field was before and after. Label and Subject are the row's
+// name and the name of what it belongs to, as they were at the time, so an
+// entry stays readable after its row is gone. What the change means is the
+// client's to say (invariant 4).
+type ActivityEntry struct {
+	ID          int64      `json:"id"`
+	EntityTable string     `json:"entity_table"`
+	EntityID    string     `json:"entity_id"`
+	Op          ActivityOp `json:"op"`
+	Label       string     `json:"label"`
+	Subject     string     `json:"subject,omitempty"`
+	// Changes maps each changed field to its [before, after] pair; a
+	// delete carries none, an insert's before is null.
+	Changes     map[string][]any `json:"changes"`
+	ActorUserID string           `json:"actor_user_id"`
+	CreatedAt   string           `json:"created_at"`
+}
+
+// ActivityListResponse is one page of a log, newest first. Before is the
+// cursor that reads the next older page, and 0 once the page reached the
+// log's beginning.
+type ActivityListResponse struct {
+	Entries []ActivityEntry `json:"entries"`
+	Before  int64           `json:"before"`
+}
+
 // --- Routes (ADR-027) ---
 
 // The path-variable names. A placeholder is written in a route pattern and read
@@ -578,7 +619,9 @@ const (
 	RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"
 	RouteTripItemTakeover   = "/api/v1/trips/{tripID}/items/{itemID}/takeover"
 	RouteTripLockEvents     = "/api/v1/trips/{tripID}/lock-events"
-	RouteTripExportCSV      = "/api/v1/trips/{tripID}/export.csv"
+	// FR-32.1: who changed what in the trip. `?before=` pages back.
+	RouteTripActivity  = "/api/v1/trips/{tripID}/activity"
+	RouteTripExportCSV = "/api/v1/trips/{tripID}/export.csv"
 	// FR-29.5: one picture on an idea. PUT uploads it under the client's own
 	// id; GET reads its bytes. Both are the trip's, behind its membership —
 	// the synced half is an idea_images row, and a push moves or deletes it.
@@ -594,6 +637,8 @@ const (
 	RouteMasterSync           = "/api/v1/master/sync"
 	RouteMasterConflicts      = "/api/v1/master/conflicts"
 	RouteMasterConflictRevert = "/api/v1/master/conflicts/{conflictID}/revert"
+	// FR-32.1: who changed what in the inventory, as the caller may see it.
+	RouteMasterActivity = "/api/v1/master/activity"
 
 	// One master row, addressed directly, so deleting it does not mean
 	// composing a mutation (ADR-038). The app itself does not call these —

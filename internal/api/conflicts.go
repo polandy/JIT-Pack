@@ -46,8 +46,9 @@ func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 
 func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
+	userID, _ := r.Context().Value(userIDKey).(string)
 
-	seq, err := s.store.RevertTripConflict(r.Context(), tripID, r.PathValue(PathConflictID))
+	seq, err := s.store.RevertTripConflict(r.Context(), tripID, userID, r.PathValue(PathConflictID))
 	if err != nil {
 		writeRevertError(w, err)
 		return

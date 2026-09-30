@@ -31,6 +31,9 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableIdeaImages + " -> idea_image_bytes": "idea picture BLOBs are outside the sync envelope",
 	TableIdeas + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
 	TableTrips + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
+	// FR-32.1: the activity log is read over its own endpoint and never
+	// synced, so no device holds a row of it.
+	TableTrips + " -> activity_log": "the activity log is not synced",
 
 	// The trip partition's whole feed dies with the trip: change_log.trip_id
 	// cascades too, so a tombstone written here would land in a feed that no
