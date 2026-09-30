@@ -1655,7 +1655,9 @@ These patterns apply to every screen and are specified once.
   not toggled off by the tap the browser sends on release — the same care M4's row menu takes with its own trailing
   click. Once at least one entry is picked, a bottom bar offers **Tag vergeben** and — where anybody else is on the
   trip — **Zuweisen** (FR-30.12: the person picker headed *„Wer kauft N Einträge?"*; only what changes is written, and
-  the toast's **Rückgängig** gives each entry its own assignee back). **Tag vergeben** opens the same search-or-create
+  the toast's **Rückgängig** gives each entry its own assignee back) and **Löschen** (M25's own word and shape: no
+  question first — every selected entry is removed at once, the mode ends, and the toast *„N Einträge entfernt"* with
+  **Rückgängig** puts each back under its own id, as it was). **Tag vergeben** opens the same search-or-create
   sheet the single entry does — titled *„Tag für einen Eintrag"* / *„Tag für N Einträge"*, and with no trailing summary
   line, since that sentence is written for one entry staying staged until *Speichern* and this sheet applies the instant
   a chip is chosen, to more than one. Choosing files every selected entry at once; the mode ends with the batch, and a

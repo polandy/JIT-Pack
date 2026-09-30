@@ -354,6 +354,59 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
   })
 
   /**
+   * E2E-M6-40 (FR-30.9): the selection is removed in one act, with no
+   * question first — the toast's undo puts every entry back under its own
+   * id, tag included, and the reload proves the store holds them again
+   * rather than only the screen.
+   */
+  test('E2E-M6-40: several entries are removed in one act, and one undo puts them all back (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Käse')
+    await addEntry(page, 'Milch')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Milch' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Laden')
+    await page.getByTestId('tag-pick-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    // Two rows across two groups — the untagged one and „Laden".
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Brot' })
+      .getByTestId('m6-row-label')
+      .dispatchEvent('contextmenu')
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Milch' })
+      .getByTestId('m6-row-label')
+      .click()
+    await expect(page.getByTestId('m6-select-count')).toContainText('2')
+
+    await m6(page).getByTestId('m6-bulk-remove').click()
+    await expect(page.getByTestId('m6-selbar')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-row').locator('h3')).toHaveText(['Käse'])
+
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('2 entries deleted')
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-group-tag-Laden').locator('h3')).toHaveText(['Milch'])
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot', 'Käse'])
+
+    await page.reload()
+    await expect(m6(page).getByTestId('m6-group-tag-Laden').locator('h3')).toHaveText(['Milch'])
+    await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot', 'Käse'])
+  })
+
+  /**
    * E2E-M6-33 (FR-25.11j): a bought row leaves the open list with a smooth
    * effect rather than vanishing, and its own toast — not a trip through the
    * reveal bar — is the fast way to take a mistap back. M4's own shape

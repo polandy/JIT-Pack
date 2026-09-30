@@ -45,7 +45,7 @@ removed on that row.
   end of each list, where you can untick it again.
 
 To change an entry, tap its name: the sheet holds the name, the day, the tag and **Speichern**. An entry has no ✕ on
-its line — remove it with **Entfernen** in that sheet.
+its line — remove it with **Entfernen** in that sheet, or select several and use **Löschen**.
 
 ## Who does it
 
@@ -96,7 +96,7 @@ selection:
 
 | List | Actions |
 |---|---|
-| Shopping list | **Tag vergeben** — file every selected entry under one tag; **Zuweisen** — one person buys them all |
+| Shopping list | **Tag vergeben** — file every selected entry under one tag; **Zuweisen** — one person buys them all; **Löschen** — remove them all (the toast's **Rückgängig** brings them back) |
 | Tasks | **Erledigt** — tick them all off; **Fällig** — one day for all; **Tag**; **Zuweisen** — one person does them all; the other phase (**Vor der Reise** or **Unterwegs**, shown only where it would move something); **Löschen** — only when every selected task is the trip's own |
 
 **Zuweisen** only appears when there is someone else on the trip.
