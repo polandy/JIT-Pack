@@ -233,3 +233,42 @@ func TestApplyMutation_OnlyTheAuthorEditsAWordAboutAnIdea_FR29_4(t *testing.T) {
 		t.Errorf("delete by another member: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
 	}
 }
+
+// FR-29.8: a comment on an idea is for the people taking part in it — who
+// wrote the idea and everyone who has written about it. A vote is not taking
+// part, as a tick is not on a note (FR-7.13).
+func TestIdeaDiscussion_NamesTheIdeasAuthorThenEveryCommenterOnce_FR29_8(t *testing.T) {
+	s := openPlannerStore(t)
+	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-chris', 'auth|chris', 'Chris')`)
+	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-dora', 'auth|dora', 'Dora')`)
+	for i, author := range []string{testUserSia, "user-chris", testUser, testUserSia} {
+		mustExec(t, s, `INSERT INTO idea_comments (id, trip_id, idea_id, author_id, body, created_at) VALUES (?, ?, 'idea-1', ?, 'Ja', ?)`,
+			"ic-"+string(rune('a'+i)), testTrip, author, "2026-09-30T0"+string(rune('1'+i))+":00:00Z")
+	}
+	mustExec(t, s, `INSERT INTO idea_votes (id, trip_id, idea_id, user_id, vote) VALUES ('vote-d', ?, 'idea-1', 'user-dora', 'up')`,
+		testTrip)
+
+	got, err := s.IdeaDiscussion(context.Background(), "idea-1")
+	if err != nil {
+		t.Fatalf("IdeaDiscussion: %v", err)
+	}
+	if got.Title != "Schlucht Gola Gorropu" {
+		t.Errorf("title = %q, want the idea's", got.Title)
+	}
+	want := []string{testUser, testUserSia, "user-chris"}
+	if len(got.Participants) != len(want) {
+		t.Fatalf("participants = %v, want %v", got.Participants, want)
+	}
+	for i := range want {
+		if got.Participants[i] != want[i] {
+			t.Fatalf("participants = %v, want %v", got.Participants, want)
+		}
+	}
+}
+
+func TestIdeaDiscussion_UnknownIdeaIsAnError_FR29_8(t *testing.T) {
+	s := openTestStore(t)
+	if _, err := s.IdeaDiscussion(context.Background(), "no-such-idea"); err == nil {
+		t.Fatal("want an error for an idea that does not exist")
+	}
+}

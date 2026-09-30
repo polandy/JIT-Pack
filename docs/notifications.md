@@ -1,7 +1,7 @@
 # Notifications & Push
 
-JIT-Pack notifies people when someone else's action concerns them, and reminds them of what is due. Eight things trigger
-a notification, and only these:
+JIT-Pack notifies people when someone else's action concerns them, and reminds them of what is due. Twelve things
+trigger a notification, and only these:
 
 - **Delegation** — someone hands you the responsibility for packing an item, either directly or by assigning the
   item to a traveler linked to your account (see [Linking a person to an account](command-line.md#linking-a-person-to-an-account)),
@@ -16,6 +16,12 @@ a notification, and only these:
   names anyone by `@display-name`. Tapping it opens the note.
 - **Reply to a note** — somebody answers a note you wrote or answered yourself. Only the people who took part in
   that thread are told, never the whole trip, and never whoever answered. Tapping it opens the thread.
+- **New idea** — a co-traveller puts up an [idea](ideas.md) for the trip. Everyone on the trip is told except whoever
+  wrote it. Tapping it opens the idea.
+- **Comment on an idea** — somebody writes about an idea you wrote or commented on yourself. Only those people are
+  told, never the whole trip, and never whoever wrote the comment.
+- **Shortlist** — an idea is moved to the shortlist. Everyone on the trip is told except whoever moved it. Votes
+  notify nobody.
 - **Task due** — a task is due tomorrow or today. Nobody sets this one off: the server sends it once a day at the time
   you configure (see [Task reminders](configuration.md#task-reminders)), to the person the task is handed to, or to
   everyone on the trip when it is nobody's in particular. Tapping it opens the trip's **Aufgaben**.
@@ -26,7 +32,7 @@ a notification, and only these:
   same daily run sends it, to the people who go on it (their accounts), or to everyone on the trip when it names nobody.
   Tapping it opens the excursion's list.
 
-The first six exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
+The first nine exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
 concern you. **Task due, purchase due and excursion are the exception**: a single-user instance reminds its one user
 too, and Settings there shows just those three switches and the push toggle. Local Mode has no server at all; instead, the app
 says once when you open it how many tasks and purchases are due (*„2 Aufgaben fällig"*, *„1 Aufgabe und 1 Einkauf
@@ -56,7 +62,8 @@ Push is off until someone turns it on, and the choice is **per device** — a ph
 
 Where the browser cannot do push, the toggle is disabled and says *Not supported by this browser*. The case that surprises people is the iPhone: **iOS delivers Web Push only to web apps installed on the home screen** (iOS 16.4 or later), so in a plain Safari tab the toggle stays disabled. Install the app to the home screen via the share sheet first, open it from there, and then enable push in Settings.
 
-Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes / replies to notes / tasks due / purchases due / excursions). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
+Beside the toggle, Settings has per-type switches (delegation / mention / task / taken over / trip notes / replies to notes / new ideas / comments on ideas /
+ideas on the shortlist / tasks due / purchases due / excursions). Switching a type off stops those notifications at the source — nothing is created, so nothing is pushed to any device either.
 
 ## Verifying delivery end to end
 

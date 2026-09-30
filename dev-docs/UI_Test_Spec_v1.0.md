@@ -3488,6 +3488,12 @@ went.
   is quiet, is `planner/__tests__/sync.spec.ts`; the routes' answers are planted, since a test page would be on
   loopback, which the server's fence refuses — the fetch and the fence are `internal/linkpreview`'s (`TestFetch_*`,
   `TestFetchImage_*`, `TestPublicOnly_FR29_16`).
+* **E2E-M28-11** `server` (FR-29.8) — **implemented** (`planner/server/notifications.spec.ts`): an idea Alice puts up
+  tells Bob, whose notice opens it; Bob's comment tells Alice, the idea's author, who is never told of her own idea;
+  Alice's move to the Shortlist tells Bob. Each sentence is asserted whole. Who each kind reaches — the participants
+  for a comment, nobody for a vote, another state or an edit — is
+  `TestPlanNotifications_Ideas_FR29_8`'s; the three over HTTP are
+  `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`'s.
 
 ### M30 — Aktivität (who changed what, §3.32)
 
@@ -3851,6 +3857,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.4 | E2E+UNIT+SERVER | M28-03; `ideas.spec.ts` (`ideaDiscussion`), `sync.spec.ts` (survives a restart); Go: `TestStampActor_IdeaCommentAuthorIsThePusher_FR29_4` |
 | FR-29.5 | E2E+UNIT+SERVER | M28-07 (banner, mosaic, viewer, cover, removal, reload), M28-08 (another member sees it), NFR-SEC-05 (the hash on plain HTTP); `planner/domain/__tests__/pictures.spec.ts` (order, limit, `coverMoves`), `planner/__tests__/sync.spec.ts` (pulled, added, moved, removed, taken with the idea), `composables/sync/__tests__/ideaImages.seam.spec.ts` (both modes); Go: `internal/store/ideaimage_test.go`, `internal/api/ideaimage_test.go` |
 | FR-29.16 | E2E+UNIT+SERVER | M28-09 (words as a suggestion confirmed or dismissed, the picture shown coming and following a save); `sync.spec.ts` (a link's picture only to an idea without one), M28-10 (the site suggested as the title, one tap from saving, no read shown in Local Mode); `planner/domain/__tests__/linkFill.spec.ts`, `composables/sync/__tests__/linkPreview.seam.spec.ts` (Local Mode asks nothing, off latches); Go: `internal/linkpreview` (`TestParse_*`, `TestFetch_*`, `TestPublicOnly_FR29_16`), `internal/api/linkpreview_test.go` (members only, refusals, off), `cmd/jitpackd` `TestLoadConfig_LinkPreviews_FR29_16` |
+| FR-29.8 | E2E+UNIT+SERVER | M28-11 (each kind on the other's screen, the notice opening the idea); `notifications/__tests__/format.spec.ts`, `workerBody.spec.ts` (wording and link, app and worker alike), `SettingsPage.spec.ts` (three switches); Go: `TestPlanNotifications_Ideas_FR29_8`, `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`, `TestIdeaDiscussion_NamesTheIdeasAuthorThenEveryCommenterOnce_FR29_8` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |
 | FR-29.9 | GATE+UNIT | `module-boundary-gate.mjs`, `domain-purity-gate.mjs`; `sync.spec.ts` (the pull funnel, the trip's cascade) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |

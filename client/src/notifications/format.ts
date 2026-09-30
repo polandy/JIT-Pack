@@ -23,6 +23,7 @@ import {
 } from './messages'
 import {
   tripExcursionsPath,
+  tripIdeasPath,
   tripItemPath,
   tripNotesPath,
   tripPath,
@@ -68,6 +69,9 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (n.kind === NOTIFY_EXCURSION_DUE) {
     return tripExcursionsPath(tripId, str(n.payload, 'excursion_id') || undefined)
   }
+  // FR-29.8: every idea kind opens its idea, a comment's included.
+  const ideaId = str(n.payload, 'idea_id')
+  if (ideaId) return tripIdeasPath(tripId, ideaId)
   // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
   if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
     const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')

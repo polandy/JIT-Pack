@@ -376,6 +376,13 @@ export interface NotificationPrefs {
   // FR-31.9: an excursion of one of this user's trips starts tomorrow or
   // today and still has things to pack.
   excursion_due: boolean
+  // FR-29.8: a co-traveller put up a new idea.
+  idea: boolean
+  // FR-29.8: somebody else wrote about an idea this user wrote or wrote
+  // about.
+  idea_comment: boolean
+  // FR-29.8: a co-traveller moved an idea to the shortlist.
+  idea_shortlisted: boolean
 }
 
 /**

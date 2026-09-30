@@ -3047,10 +3047,15 @@ token would prove nothing there is anything to prove.
   trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.
 * **Modes:** all three; votes only where there is another account. A picture is uploaded at once in Server and
   Single-User Mode and kept on the device in Local Mode (ADR-081).
-* **Not built yet** (§3.29): the notifications (FR-29.8), *Daraus gemacht* — an excursion, task or
-  shopping entry made from an idea (FR-29.13) — a day for a shortlisted idea (FR-29.14) and the day plan, M29
-  (FR-29.15).
-* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09 `server`, E2E-G12-07)
+* **Notifications (FR-29.8):** a new idea (*„Alice hat „Tiscali" vorgeschlagen"*) and a move to the Shortlist
+  (*„Alice hat „Tiscali" auf die Shortlist gesetzt"*) tell every co-traveller but the actor; a comment
+  (*„Bob zu „Tiscali": Nur mit Guide"*) tells the idea's author and its earlier commenters. Votes tell nobody. A tap
+  opens the idea over the board (`?idea=`). M17 carries three switches, *Neue Ideen*, *Kommentare zu Ideen* and
+  *Ideen auf der Shortlist*, hidden in Single-User Mode with every other second-party row.
+* **Not built yet** (§3.29): *Daraus gemacht* — an excursion, task or shopping entry made from an idea (FR-29.13) — a
+  day for a shortlisted idea (FR-29.14) and the day plan, M29 (FR-29.15).
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11 `server`,
+  E2E-G12-07)
 
 ### M30 — Aktivität (Activity Log, §3.32) — *built*
 

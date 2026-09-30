@@ -963,6 +963,13 @@ export const de: Record<keyof typeof en, string> = {
   'settings.prefShoppingDue': 'Fällige Einkäufe',
   'settings.prefShoppingDueHint':
     'Etwas auf der Einkaufsliste einer Reise ist morgen oder heute fällig',
+  'settings.prefIdea': 'Neue Ideen',
+  'settings.prefIdeaHint': 'Ein Mitreisender hat eine Idee vorgeschlagen',
+  'settings.prefIdeaComment': 'Kommentare zu Ideen',
+  'settings.prefIdeaCommentHint':
+    'Jemand schreibt zu einer Idee, die du vorgeschlagen oder kommentiert hast',
+  'settings.prefIdeaShortlisted': 'Ideen auf der Shortlist',
+  'settings.prefIdeaShortlistedHint': 'Eine Idee kam auf die Shortlist',
   'settings.prefExcursionDue': 'Ausflüge',
   'settings.prefExcursionDueHint':
     'Ein Ausflug ist morgen oder heute, und es ist noch nicht alles gepackt',
@@ -2160,6 +2167,12 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.excursion_duePlain': 'Heute ist ein Ausflug',
   'notify.body.excursion_dueTomorrow': '„{item}“ ist morgen — noch nicht alles gepackt',
   'notify.body.excursion_dueTomorrowPlain': 'Morgen ist ein Ausflug',
+  'notify.body.idea': '{actor} hat „{item}“ vorgeschlagen',
+  'notify.body.ideaPlain': '{actor} hat eine Idee vorgeschlagen',
+  'notify.body.idea_comment': '{actor} zu „{item}“: {preview}',
+  'notify.body.idea_commentPlain': '{actor} hat eine Idee kommentiert',
+  'notify.body.idea_shortlisted': '{actor} hat „{item}“ auf die Shortlist gesetzt',
+  'notify.body.idea_shortlistedPlain': '{actor} hat eine Idee auf die Shortlist gesetzt',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.actorUnknown': 'Jemand',
 }

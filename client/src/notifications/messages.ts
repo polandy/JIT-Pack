@@ -22,6 +22,14 @@ export const NOTIFY_EXCURSION_DUE = 'excursion_due'
 export const NOTIFY_NOTE = 'note'
 export const NOTIFY_NOTE_REPLY = 'note_reply'
 
+/**
+ * FR-29.8's three planner kinds — each names its idea, and each link opens it
+ * over the trip's ideas (M28).
+ */
+export const NOTIFY_IDEA = 'idea'
+export const NOTIFY_IDEA_COMMENT = 'idea_comment'
+export const NOTIFY_IDEA_SHORTLISTED = 'idea_shortlisted'
+
 /** The kinds the server sends (Sync-API §8). */
 export const NOTIFICATION_KINDS = [
   'delegation',
@@ -33,6 +41,9 @@ export const NOTIFICATION_KINDS = [
   NOTIFY_TASK_DUE,
   NOTIFY_SHOPPING_DUE,
   NOTIFY_EXCURSION_DUE,
+  NOTIFY_IDEA,
+  NOTIFY_IDEA_COMMENT,
+  NOTIFY_IDEA_SHORTLISTED,
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]

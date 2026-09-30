@@ -68,6 +68,18 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
 
 The link opens the website in a new tab.
 
+## Who is told
+
+On a trip you share, the others hear about the planning without having to look:
+
+- **A new idea** — everybody on the trip is told, except whoever wrote it.
+- **A comment** — the person who wrote the idea and everybody who has commented on it are told, never the whole
+  trip and never whoever wrote the comment.
+- **Shortlist** — everybody on the trip is told when an idea moves there, except whoever moved it.
+
+Votes tell nobody. Tapping a notification opens the idea. Each of the three has its own switch in **Settings** (see
+[Notifications & Push](notifications.md)).
+
 ## On your own
 
 Votes only mean something when somebody else votes too. On a trip nobody shares — and always in Single-User and Local

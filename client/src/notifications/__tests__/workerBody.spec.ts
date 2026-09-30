@@ -85,6 +85,13 @@ const CASES: ServerNotification[] = [
   notif('excursion_due', { item_name: 'Hüttentour', due: 'tomorrow' }),
   notif('excursion_due', { due: 'tomorrow' }),
   notif('excursion_due', {}),
+  // FR-29.8: the planner's three kinds name the idea; a comment quotes itself.
+  notif('idea', { actor_name: 'Chris', item_name: 'Museo Nivola' }),
+  notif('idea', { actor_name: 'Chris' }),
+  notif('idea_comment', { actor_name: 'Chris', item_name: 'Museo Nivola', preview: 'Montags zu' }),
+  notif('idea_comment', { actor_name: 'Chris' }),
+  notif('idea_shortlisted', { actor_name: 'Chris', item_name: 'Museo Nivola' }),
+  notif('idea_shortlisted', { actor_name: 'Chris' }),
   notif('shiny_new_kind', { actor_name: 'Andy' }),
   notif('mention', {}),
   notif('delegation', null),
@@ -156,6 +163,12 @@ describe('the worker renders the same body as the app', () => {
     ] as const) {
       expect(notificationUrl(payload, kind)).toBe(notificationRoute(notif(kind, payload)))
       expect(notificationUrl(payload, kind)).toBe('/trips/t1/notes/c9')
+    }
+    // FR-29.8: every idea kind lands on the idea, a comment's included.
+    for (const kind of ['idea', 'idea_comment', 'idea_shortlisted']) {
+      const payload = { trip_id: 't1', idea_id: 'x1', comment_id: 'c9' }
+      expect(notificationUrl(payload, kind)).toBe(notificationRoute(notif(kind, payload)))
+      expect(notificationUrl(payload, kind)).toBe('/trips/t1/ideas?idea=x1')
     }
   })
 
