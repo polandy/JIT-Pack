@@ -30,6 +30,7 @@ export const PATH = {
   newTrip: '/trips/new',
   newItem: '/items/new',
   inventoryCleanup: '/items/cleanup',
+  inventoryActivity: '/items/activity',
   importSpreadsheet: '/import',
   importFile: '/portable-import',
   masterConflicts: '/master/conflicts',
@@ -57,6 +58,7 @@ export type TripSubScreen =
   | 'analytics'
   | 'containers'
   | 'conflicts'
+  | 'activity'
   | 'members'
   | 'shopping'
   | 'tasks'

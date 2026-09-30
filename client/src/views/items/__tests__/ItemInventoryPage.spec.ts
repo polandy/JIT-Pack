@@ -41,6 +41,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { inventoryProperties } from '@/composables/useInventoryProperties'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
+import { MODE_KEY } from '@/mode'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { makeSeamContext } from '@/composables/sync/__tests__/seamContext'
@@ -1249,6 +1250,36 @@ describe('M9 — who an item is usually for, on the row (FR-1.9 over FR-24.4)', 
 
     expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
     expect(page.text()).toContain(t('items.match.assignee'))
+  })
+})
+
+describe('M9 — the inventory’s activity (FR-32.2)', () => {
+  function lastActions(): HeaderAction[] {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build()
+  }
+
+  it('offers the activity behind the ⋮ where a server recorded it', async () => {
+    localStorage.setItem(MODE_KEY, 'server')
+    seedItem('Sonnencreme')
+    mountPage()
+    await flushPromises()
+
+    const action = lastActions().find((a) => a.id === 'm9-activity')
+    expect(action?.overflow).toBe(true)
+    action!.onClick()
+    expect(routerPush).toHaveBeenCalledWith(PATH.inventoryActivity)
+  })
+
+  it('offers none in Local Mode, which has no server to have recorded it (G-8)', async () => {
+    localStorage.setItem(MODE_KEY, 'local')
+    seedItem('Sonnencreme')
+    mountPage()
+    await flushPromises()
+
+    const ids = lastActions().map((a) => a.id)
+    expect(ids).toContain('m9-cleanup')
+    expect(ids).not.toContain('m9-activity')
   })
 })
 

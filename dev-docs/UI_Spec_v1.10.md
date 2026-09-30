@@ -632,6 +632,7 @@ These patterns apply to every screen and are specified once.
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
 | M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.12 |
+| M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
 
 ---
 
@@ -3055,6 +3056,26 @@ token would prove nothing there is anything to prove.
   day for a shortlisted idea (FR-29.14) and the day plan, M29 (FR-29.15).
 * (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11 `server`,
   E2E-G12-07)
+
+### M30 — Aktivität (Activity Log, §3.32) — *built*
+
+* **What it is:** who changed what, newest first (Addendum §3.32, ADR-084). One screen, two logs: a trip's
+  (`/trips/:id/activity`, the page head's meta line names the trip, back is M4) and the inventory's
+  (`/items/activity`, titled *„Aktivität · Inventar"*, back is M9).
+* **Where it lives:** the last word in M4's ⋮, *„Aktivität"* (`m4-activity`, glyph `timeOutline`), and in M9's ⋮
+  (`m9-activity`). Only M4 carries the trip's: the other trip views keep a ⋮ only for their own context (ADR-051
+  amendment 2). **Local Mode offers neither** (G-8).
+* **The list:** a section per day (`activity-day`), headed *Heute*, *Gestern*, then the date, each day's lines one
+  card. A line (`activity-row`, `data-kind` the act) carries the act's glyph; the thing's name, or the first three
+  names and *„+N"* for a folded line (`activity-title`); the act and the part of the app — *„3× eingepackt ·
+  Packliste"*, with *„in „…""* naming what a single line's row belongs to (`activity-what`); for a *geändert* line the
+  fields before → after, *„Menge: 2 → 3"* (`activity-detail`); and at the end the person and the time, a run as
+  *from–to* (`activity-meta`). **Single-User names nobody**, only the time. A folded line is a button that opens its
+  parts beneath it (`activity-member`, name and time). *„Ältere laden"* (`activity-more`) reads the next page while
+  there is one. Pull to refresh re-reads.
+* **Empty:** *„Aktivität wird geladen …"* until the log was read (`activity-loading`, ADR-033); then *„Noch keine
+  Änderungen aufgezeichnet"* with *„Hier steht, wer was geändert hat — jede Änderung, sobald sie beim Server angekommen
+  ist."*, or *„Aktivität nicht verfügbar — offline?"* when it could not be read (`activity-empty`).
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

@@ -55,7 +55,7 @@ func TestRevertTripConflict_RestoresLosingValueAsAFreshMutation_NFR42a(t *testin
 	s := openTestStore(t)
 	id := seedTripConflict(t, s)
 
-	seq, err := s.RevertTripConflict(context.Background(), testTrip, id)
+	seq, err := s.RevertTripConflict(context.Background(), testTrip, testUser, id)
 	if err != nil {
 		t.Fatalf("RevertTripConflict: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRevertTripConflict_MarksTheEntryRevertedAndListSaysSo_NFR42a(t *testing
 	ctx := context.Background()
 	id := seedTripConflict(t, s)
 
-	if _, err := s.RevertTripConflict(ctx, testTrip, id); err != nil {
+	if _, err := s.RevertTripConflict(ctx, testTrip, testUser, id); err != nil {
 		t.Fatalf("RevertTripConflict: %v", err)
 	}
 
@@ -102,11 +102,11 @@ func TestRevertTripConflict_SecondRevertIsRefused_NFR42a(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	id := seedTripConflict(t, s)
-	if _, err := s.RevertTripConflict(ctx, testTrip, id); err != nil {
+	if _, err := s.RevertTripConflict(ctx, testTrip, testUser, id); err != nil {
 		t.Fatalf("first revert: %v", err)
 	}
 
-	_, err := s.RevertTripConflict(ctx, testTrip, id)
+	_, err := s.RevertTripConflict(ctx, testTrip, testUser, id)
 
 	if !errors.Is(err, ErrConflictAlreadyReverted) {
 		t.Fatalf("err = %v, want ErrConflictAlreadyReverted", err)
@@ -128,7 +128,7 @@ func TestRevertTripConflict_DeletedRowIsRefused_NFR42a(t *testing.T) {
 		t.Fatalf("delete: %v", err)
 	}
 
-	_, err := s.RevertTripConflict(ctx, testTrip, id)
+	_, err := s.RevertTripConflict(ctx, testTrip, testUser, id)
 
 	if !errors.Is(err, ErrConflictRowGone) {
 		t.Fatalf("err = %v, want ErrConflictRowGone", err)
@@ -158,7 +158,7 @@ func TestRevertTripConflict_TerminalPrecedenceRefusesTheRevert_NFR42a(t *testing
 	}
 	id := onlyConflictID(t, s)
 
-	_, err := s.RevertTripConflict(ctx, testTrip, id)
+	_, err := s.RevertTripConflict(ctx, testTrip, testUser, id)
 
 	if !errors.Is(err, ErrRevertRefused) {
 		t.Fatalf("err = %v, want ErrRevertRefused", err)
@@ -182,7 +182,7 @@ func TestRevertTripConflict_TerminalPrecedenceRefusesTheRevert_NFR42a(t *testing
 func TestRevertTripConflict_UnknownEntryIsNotFound(t *testing.T) {
 	s := openTestStore(t)
 
-	_, err := s.RevertTripConflict(context.Background(), testTrip, "no-such-conflict")
+	_, err := s.RevertTripConflict(context.Background(), testTrip, testUser, "no-such-conflict")
 
 	if !errors.Is(err, ErrConflictNotFound) {
 		t.Fatalf("err = %v, want ErrConflictNotFound", err)
@@ -195,7 +195,7 @@ func TestRevertTripConflict_MasterEntryIsNotInATripsLog_NFR42a(t *testing.T) {
 	s := openTestStore(t)
 	id := seedMasterTripNameConflict(t, s)
 
-	_, err := s.RevertTripConflict(context.Background(), testTrip, id)
+	_, err := s.RevertTripConflict(context.Background(), testTrip, testUser, id)
 
 	if !errors.Is(err, ErrConflictNotFound) {
 		t.Fatalf("err = %v, want ErrConflictNotFound", err)
@@ -332,7 +332,7 @@ func TestRevertTripConflict_RestoresTheWholeCoupledGroup_FR54(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.RevertTripConflict(ctx, testTrip, conflictIDForField(t, s, "state")); err != nil {
+	if _, err := s.RevertTripConflict(ctx, testTrip, testUser, conflictIDForField(t, s, "state")); err != nil {
 		t.Fatalf("revert: %v", err)
 	}
 
@@ -371,7 +371,7 @@ func TestRevertTripConflict_IndependentFieldRestoresAlone_NFR42a(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.RevertTripConflict(ctx, testTrip, conflictIDForField(t, s, "name")); err != nil {
+	if _, err := s.RevertTripConflict(ctx, testTrip, testUser, conflictIDForField(t, s, "name")); err != nil {
 		t.Fatalf("revert: %v", err)
 	}
 

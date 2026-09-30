@@ -195,6 +195,7 @@ func (s *Server) Handler() http.Handler {
 	// be stamped and has to notify, so it is an RPC rather than a mutation.
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripItemTakeover), s.authed(s.member(s.handleTakeover)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripLockEvents), s.authed(s.member(s.handleListLockEvents)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripActivity), s.authed(s.member(s.handleTripActivity)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaImage), s.authed(s.member(s.handleGetIdeaImage)))
 	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
@@ -205,6 +206,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterSync), s.authed(s.handlePullMaster))
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterSync), s.authed(s.handlePushMaster))
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterConflicts), s.authed(s.handleListMasterConflicts))
+	mux.HandleFunc(pattern(http.MethodGet, RouteMasterActivity), s.authed(s.handleMasterActivity))
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterConflictRevert), s.authed(s.handleRevertMasterConflict))
 	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTag),
 		s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))

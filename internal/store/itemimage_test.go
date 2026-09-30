@@ -18,7 +18,7 @@ func TestSetItemImage_StoresBlobStampsHashAndLogsChange(t *testing.T) {
 	ctx := context.Background()
 	jpeg := []byte("\xff\xd8\xff\xe0 pretend jpeg bytes")
 
-	hash, err := s.SetItemImage(ctx, "item-camera", jpeg)
+	hash, err := s.SetItemImage(ctx, testUser, "item-camera", jpeg)
 	if err != nil {
 		t.Fatalf("SetItemImage: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestSetItemImage_HashRevealsChangeThroughPull(t *testing.T) {
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
 	ctx := context.Background()
 
-	hash, err := s.SetItemImage(ctx, "item-camera", []byte("\xff\xd8\xff\xe0jpeg"))
+	hash, err := s.SetItemImage(ctx, testUser, "item-camera", []byte("\xff\xd8\xff\xe0jpeg"))
 	if err != nil {
 		t.Fatalf("SetItemImage: %v", err)
 	}
@@ -86,8 +86,8 @@ func TestSetItemImage_RejectsOversized(t *testing.T) {
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
 
 	oversized := make([]byte, maxItemImageBytes+1)
-	if _, err := s.SetItemImage(context.Background(), "item-camera", oversized); !errors.Is(err, ErrItemImageTooLarge) {
-		t.Fatalf("SetItemImage(oversized) err = %v, want ErrItemImageTooLarge", err)
+	if _, err := s.SetItemImage(context.Background(), testUser, "item-camera", oversized); !errors.Is(err, ErrItemImageTooLarge) {
+		t.Fatalf("SetItemImage(oversized) err = %v, testUser, want ErrItemImageTooLarge", err)
 	}
 }
 
@@ -123,8 +123,8 @@ func TestItemImages_TheColumnRefusesAnOversizedBlobItself(t *testing.T) {
 
 func TestSetItemImage_UnknownItemReturnsNotFound(t *testing.T) {
 	s := openTestStore(t)
-	if _, err := s.SetItemImage(context.Background(), "ghost", []byte("x")); !errors.Is(err, ErrItemNotFound) {
-		t.Fatalf("SetItemImage(unknown) err = %v, want ErrItemNotFound", err)
+	if _, err := s.SetItemImage(context.Background(), testUser, "ghost", []byte("x")); !errors.Is(err, ErrItemNotFound) {
+		t.Fatalf("SetItemImage(unknown) err = %v, testUser, want ErrItemNotFound", err)
 	}
 }
 
@@ -132,11 +132,11 @@ func TestDeleteItemImage_ClearsBlobNullsHashAndLogsChange(t *testing.T) {
 	s := openTestStore(t)
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
 	ctx := context.Background()
-	if _, err := s.SetItemImage(ctx, "item-camera", []byte("\xff\xd8\xff\xe0jpeg")); err != nil {
+	if _, err := s.SetItemImage(ctx, testUser, "item-camera", []byte("\xff\xd8\xff\xe0jpeg")); err != nil {
 		t.Fatalf("SetItemImage: %v", err)
 	}
 
-	if err := s.DeleteItemImage(ctx, "item-camera"); err != nil {
+	if err := s.DeleteItemImage(ctx, testUser, "item-camera"); err != nil {
 		t.Fatalf("DeleteItemImage: %v", err)
 	}
 
@@ -172,7 +172,7 @@ func TestDeleteItemImage_ClearsBlobNullsHashAndLogsChange(t *testing.T) {
 func TestDeleteItemImage_IdempotentWhenNoImage(t *testing.T) {
 	s := openTestStore(t)
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
-	if err := s.DeleteItemImage(context.Background(), "item-camera"); err != nil {
+	if err := s.DeleteItemImage(context.Background(), testUser, "item-camera"); err != nil {
 		t.Fatalf("DeleteItemImage with no image should be a no-op, got %v", err)
 	}
 }
@@ -181,7 +181,7 @@ func TestItemDelete_CascadesItemImage(t *testing.T) {
 	s := openTestStore(t)
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
 	ctx := context.Background()
-	if _, err := s.SetItemImage(ctx, "item-camera", []byte("\xff\xd8\xff\xe0jpeg")); err != nil {
+	if _, err := s.SetItemImage(ctx, testUser, "item-camera", []byte("\xff\xd8\xff\xe0jpeg")); err != nil {
 		t.Fatalf("SetItemImage: %v", err)
 	}
 	mustExec(t, s, `DELETE FROM items WHERE id = 'item-camera'`)

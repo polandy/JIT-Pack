@@ -19,6 +19,9 @@ export const API = {
   tripItemTakeover: (tripID: string, itemID: string) =>
     `/api/v1/trips/${tripID}/items/${itemID}/takeover`,
   tripLockEvents: (tripID: string) => `/api/v1/trips/${tripID}/lock-events`,
+
+  // FR-32.1: who changed what in the trip. `?before=` pages back.
+  tripActivity: (tripID: string) => `/api/v1/trips/${tripID}/activity`,
   tripExportCSV: (tripID: string) => `/api/v1/trips/${tripID}/export.csv`,
 
   // FR-29.5: one picture on an idea. PUT uploads it under the client's own
@@ -39,6 +42,9 @@ export const API = {
   masterSync: '/api/v1/master/sync',
   masterConflicts: '/api/v1/master/conflicts',
   masterConflictRevert: (conflictID: string) => `/api/v1/master/conflicts/${conflictID}/revert`,
+
+  // FR-32.1: who changed what in the inventory, as the caller may see it.
+  masterActivity: '/api/v1/master/activity',
 
   // One master row, addressed directly, so deleting it does not mean
   // composing a mutation (ADR-038). The app itself does not call these —

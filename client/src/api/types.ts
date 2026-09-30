@@ -602,3 +602,46 @@ export interface APIErrorBody {
 export interface APIError {
   error: APIErrorBody
 }
+
+/**
+ * ActivityOp is what a recorded write did to its row.
+ */
+export type ActivityOp = 'insert' | 'update' | 'delete'
+
+export const ACTIVITY_OP = {
+  insert: 'insert',
+  update: 'update',
+  delete: 'delete',
+} as const
+
+/**
+ * ActivityEntry is one recorded change: who changed which row, when, and
+ * what each field was before and after. Label and Subject are the row's
+ * name and the name of what it belongs to, as they were at the time, so an
+ * entry stays readable after its row is gone. What the change means is the
+ * client's to say (invariant 4).
+ */
+export interface ActivityEntry {
+  id: number
+  entity_table: string
+  entity_id: string
+  op: ActivityOp
+  label: string
+  subject?: string
+  // Changes maps each changed field to its [before, after] pair; an
+  // insert's before is null, a delete's after is null and it names every
+  // field the row held.
+  changes: Record<string, unknown[]> | null
+  actor_user_id: string
+  created_at: string
+}
+
+/**
+ * ActivityListResponse is one page of a log, newest first. Before is the
+ * cursor that reads the next older page, and 0 once the page reached the
+ * log's beginning.
+ */
+export interface ActivityListResponse {
+  entries: ActivityEntry[]
+  before: number
+}

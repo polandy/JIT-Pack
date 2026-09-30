@@ -51,7 +51,8 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.store.SetItemImage(r.Context(), r.PathValue(PathItemID), data); err != nil {
+	userID, _ := r.Context().Value(userIDKey).(string)
+	if _, err := s.store.SetItemImage(r.Context(), userID, r.PathValue(PathItemID), data); err != nil {
 		writeStoreError(w, err, "could not store item image")
 		return
 	}
@@ -61,7 +62,8 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteItemImage removes an item's photo (FR-22.5).
 func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.DeleteItemImage(r.Context(), r.PathValue(PathItemID)); err != nil {
+	userID, _ := r.Context().Value(userIDKey).(string)
+	if err := s.store.DeleteItemImage(r.Context(), userID, r.PathValue(PathItemID)); err != nil {
 		writeStoreError(w, err, "could not remove item image")
 		return
 	}

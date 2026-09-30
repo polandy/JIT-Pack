@@ -24,19 +24,23 @@ var (
 	ErrItemNotFound = errors.New("item not found")
 )
 
+// columnImageHash is the synced half of a photo: the hash an items row (and
+// an idea's picture row) carries while the bytes stay outside the envelope.
+const columnImageHash = "image_hash"
+
 // SetItemImage stores (or replaces) an item's reference photo (Addendum
 // FR-22.1/FR-22.5) and stamps items.image_hash so the change reaches
 // other devices through the ordinary master-partition pull. The BLOB
 // itself stays out of the sync envelope (ADR-002). Returns the stored
 // hash, which the caller echoes back as the GET ETag.
-func (s *Store) SetItemImage(ctx context.Context, itemID string, jpeg []byte) (string, error) {
+func (s *Store) SetItemImage(ctx context.Context, userID, itemID string, jpeg []byte) (string, error) {
 	if len(jpeg) > maxItemImageBytes {
 		return "", ErrItemImageTooLarge
 	}
 	sum := sha256.Sum256(jpeg)
 	hash := hex.EncodeToString(sum[:8])
 
-	err := s.withImageTx(ctx, itemID, hash, func(tx *sql.Tx) error {
+	err := s.withImageTx(ctx, userID, itemID, hash, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO item_images (item_id, image, mime, updated_at)
 			 VALUES (?, ?, 'image/jpeg', ?)
@@ -57,8 +61,8 @@ func (s *Store) SetItemImage(ctx context.Context, itemID string, jpeg []byte) (s
 // items.image_hash, stamping the clear through the change feed. It is a
 // no-op-safe idempotent operation: removing a photo that isn't there
 // still succeeds (and still re-stamps the already-null hash).
-func (s *Store) DeleteItemImage(ctx context.Context, itemID string) error {
-	return s.withImageTx(ctx, itemID, "", func(tx *sql.Tx) error {
+func (s *Store) DeleteItemImage(ctx context.Context, userID, itemID string) error {
+	return s.withImageTx(ctx, userID, itemID, "", func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM item_images WHERE item_id = ?`, itemID); err != nil {
 			return fmt.Errorf("delete item image: %w", err)
 		}
@@ -69,14 +73,19 @@ func (s *Store) DeleteItemImage(ctx context.Context, itemID string) error {
 // withImageTx stamps items.image_hash to hash (empty ⇒ SQL NULL) for the
 // given item, runs the caller's BLOB mutation in the same transaction,
 // and appends a fresh server-HLC change_log entry so other devices pull
-// the hash change. A missing item yields ErrItemNotFound.
-func (s *Store) withImageTx(ctx context.Context, itemID, hash string, blobOp func(*sql.Tx) error) error {
+// the hash change, and an activity entry naming userID (FR-32.1). A
+// missing item yields ErrItemNotFound.
+func (s *Store) withImageTx(ctx context.Context, userID, itemID, hash string, blobOp func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin item image tx: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck // no-op after a successful Commit
 
+	before, err := loadRow(ctx, tx, TableItems, itemID)
+	if err != nil {
+		return err
+	}
 	hlc := s.hlc.Next()
 	var stored any
 	if hash != "" {
@@ -101,6 +110,12 @@ func (s *Store) withImageTx(ctx context.Context, itemID, hash string, blobOp fun
 	if _, err := appendChangeLog(ctx, tx, masterFeed,
 		sync.Mutation{Table: TableItems, ID: itemID, HLC: hlc}, false); err != nil {
 		return fmt.Errorf("log image_hash change: %w", err)
+	}
+	if err := recordActivity(ctx, tx, s.nowMillis(), activityWrite{
+		feed: masterFeed, actorID: userID, table: TableItems, id: itemID,
+		before: before, applied: map[string]any{columnImageHash: stored},
+	}); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit item image tx: %w", err)

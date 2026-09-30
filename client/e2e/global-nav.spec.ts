@@ -972,6 +972,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.locator('ion-action-sheet').getByTestId('trip-view-analytics')).toHaveText(
       'Analytics',
     )
+    // FR-32.2/G-8: the trip's activity is a server's record, and Local Mode
+    // has no server — read on a sheet that demonstrably opened, above.
+    await expect(page.locator('ion-action-sheet').getByTestId('m4-activity')).toHaveCount(0)
     await dismissMenu(page)
 
     // Where you are is marked, and only there — otherwise "current" says

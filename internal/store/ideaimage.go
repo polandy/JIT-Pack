@@ -45,7 +45,7 @@ type IdeaImage struct {
 //
 // The id is the client's, so an upload that is retried after its answer was
 // lost is recognised and changes nothing.
-func (s *Store) AddIdeaImage(ctx context.Context, tripID, ideaID, imageID string, jpeg []byte) (IdeaImage, error) {
+func (s *Store) AddIdeaImage(ctx context.Context, tripID, userID, ideaID, imageID string, jpeg []byte) (IdeaImage, error) {
 	if len(jpeg) > MaxIdeaImageBytes {
 		return IdeaImage{}, ErrIdeaImageTooLarge
 	}
@@ -100,6 +100,12 @@ func (s *Store) AddIdeaImage(ctx context.Context, tripID, ideaID, imageID string
 	if _, err := appendChangeLog(ctx, tx, tripFeed(tripID),
 		sync.Mutation{Table: TableIdeaImages, ID: img.ID, HLC: hlc}, false); err != nil {
 		return IdeaImage{}, fmt.Errorf("log idea image: %w", err)
+	}
+	if err := recordActivity(ctx, tx, s.nowMillis(), activityWrite{
+		feed: tripFeed(tripID), actorID: userID, table: TableIdeaImages, id: img.ID,
+		applied: map[string]any{columnTripID: tripID, "idea_id": ideaID, columnImageHash: img.Hash, columnPosition: img.Position},
+	}); err != nil {
+		return IdeaImage{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return IdeaImage{}, fmt.Errorf("commit idea image tx: %w", err)

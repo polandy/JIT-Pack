@@ -1,6 +1,7 @@
 package api
 
 import (
+	"jitpack/internal/store"
 	"testing"
 
 	syncpkg "jitpack/internal/sync"
@@ -27,5 +28,23 @@ func TestWireOutcomes_MirrorSync(t *testing.T) {
 				t.Fatalf("wire outcome %q != sync outcome %q", tc.wire, tc.sync)
 			}
 		})
+	}
+}
+
+// FR-32.1: the op an activity entry carries is the store's own word, passed
+// through as a cast — a store spelling the wire does not know would reach
+// the client as a value its union does not contain.
+func TestWireActivityOps_MirrorStore(t *testing.T) {
+	for _, tc := range []struct {
+		wire  ActivityOp
+		store string
+	}{
+		{ActivityInsert, store.ActivityInsert},
+		{ActivityUpdate, store.ActivityUpdate},
+		{ActivityDelete, store.ActivityDelete},
+	} {
+		if string(tc.wire) != tc.store {
+			t.Errorf("wire op %q != store op %q", tc.wire, tc.store)
+		}
 	}
 }

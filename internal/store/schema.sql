@@ -887,6 +887,27 @@ CREATE TABLE lock_events (
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+-- Who changed what, and when (FR-32.1, ADR-084): one entry per write the
+-- server applied, attributed to the account that pushed it. trip_id is the
+-- trip the change is *about*, not the feed it travelled on — a trip's own
+-- master-partition rows (its name and dates, its roster) belong in its log —
+-- and NULL is the inventory. The names are stored rather than joined, like
+-- lock_events.item_name, so an entry stays readable after its row is gone.
+-- changes holds {"field": [before, after]} for every field the write
+-- actually changed; a delete's holds what the row held, [before, null].
+CREATE TABLE activity_log (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_id       TEXT REFERENCES trips(id) ON DELETE CASCADE,  -- NULL = inventory
+    entity_table  TEXT NOT NULL,
+    entity_id     TEXT NOT NULL,
+    op            TEXT NOT NULL CHECK (op IN ('insert', 'update', 'delete')),
+    label         TEXT NOT NULL,
+    subject       TEXT,
+    changes       TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(changes)),
+    actor_user_id TEXT NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 -- Idempotency memo of the push endpoint.
 CREATE TABLE mutations (
     mutation_id TEXT PRIMARY KEY,
@@ -906,6 +927,9 @@ CREATE INDEX idx_change_log_trip   ON change_log (trip_id, seq);
 -- lookup of everything one push lost together.
 CREATE INDEX idx_conflict_log_partition ON conflict_log (trip_id, resolved_at DESC, id);
 CREATE INDEX idx_conflict_log_mutation  ON conflict_log (mutation_id, entity_table, entity_id);
+-- The two activity listings, newest first: one trip's, and the inventory's.
+CREATE INDEX idx_activity_log_trip      ON activity_log (trip_id, id) WHERE trip_id IS NOT NULL;
+CREATE INDEX idx_activity_log_inventory ON activity_log (id) WHERE trip_id IS NULL;
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);

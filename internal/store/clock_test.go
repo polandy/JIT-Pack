@@ -60,7 +60,7 @@ func TestStoreClock_EveryTimestampComesFromTheInjectedClock(t *testing.T) {
 			want:  seconds,
 			setup: func(t *testing.T, s *Store) { mustExec(t, s, `INSERT INTO items (id, name) VALUES ('it-1', 'Kamera')`) },
 			read: func(t *testing.T, s *Store) string {
-				if _, err := s.SetItemImage(context.Background(), "it-1", []byte("\xff\xd8\xff\xe0 jpeg")); err != nil {
+				if _, err := s.SetItemImage(context.Background(), testUser, "it-1", []byte("\xff\xd8\xff\xe0 jpeg")); err != nil {
 					t.Fatalf("SetItemImage: %v", err)
 				}
 				return scanString(t, s, `SELECT updated_at FROM item_images WHERE item_id = 'it-1'`)

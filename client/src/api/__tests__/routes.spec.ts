@@ -20,12 +20,14 @@ describe('API routes', () => {
     expect(API.tripConflictRevert('t1', 'c1')).toBe('/api/v1/trips/t1/conflicts/c1/revert')
     expect(API.tripItemTakeover('t1', 'ti1')).toBe('/api/v1/trips/t1/items/ti1/takeover')
     expect(API.tripLockEvents('t1')).toBe('/api/v1/trips/t1/lock-events')
+    expect(API.tripActivity('t1')).toBe('/api/v1/trips/t1/activity')
     expect(API.tripExportCSV('t1')).toBe('/api/v1/trips/t1/export.csv')
   })
 
   it('gives the master partition a scope segment of its own', () => {
     expect(API.masterSync).toBe('/api/v1/master/sync')
     expect(API.masterConflicts).toBe('/api/v1/master/conflicts')
+    expect(API.masterActivity).toBe('/api/v1/master/activity')
     expect(API.masterConflictRevert('c2')).toBe('/api/v1/master/conflicts/c2/revert')
   })
 
@@ -60,12 +62,14 @@ describe('API routes', () => {
       tripConflictRevert: '/api/v1/trips/ID1/conflicts/ID2/revert',
       tripItemTakeover: '/api/v1/trips/ID1/items/ID2/takeover',
       tripLockEvents: '/api/v1/trips/ID1/lock-events',
+      tripActivity: '/api/v1/trips/ID1/activity',
       tripExportCSV: '/api/v1/trips/ID1/export.csv',
       tripIdeaImage: '/api/v1/trips/ID1/ideas/ID2/images/ID3',
       tripLinkPreview: '/api/v1/trips/ID1/link-preview',
       tripLinkPreviewImage: '/api/v1/trips/ID1/link-preview/image',
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',
+      masterActivity: '/api/v1/master/activity',
       masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',
       // Declared and generated but called by nothing in the client, on
       // purpose (ADR-038): the app writes through the push so its writes
