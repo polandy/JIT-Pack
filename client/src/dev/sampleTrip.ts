@@ -467,7 +467,7 @@ export const SEED_SHOPPING_ENTRIES = [
 const SEED_BOUGHT_ENTRY = 'Mineralwasser'
 
 function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
-  const actions = createShoppingActions(orchestrator.moduleHost)
+  const actions = createShoppingActions(orchestrator.moduleHost, useShoppingStore())
   for (const { name, tag, due } of SEED_SHOPPING_ENTRIES) {
     actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name, tag, due === null ? null : localDay(due))
   }

@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import type { TripTask } from '@/domain/tripTodos'
 
+import ListRows from '@/components/global/ListRows.vue'
 import TripTodoList from '../TripTodoList.vue'
 
 /** A task of the trip itself (FR-7.4): no row, and therefore a seat. */
@@ -389,6 +390,13 @@ describe('TripTodoList — M25’s two-line rows (FR-7.14)', () => {
       'end',
     )
     expect(wrapper.find('[data-testid="trip-todo-remove-Pass holen"]').exists()).toBe(false)
+  })
+
+  it('draws its open rows in M6’s ListRows, so a task put somewhere else glides there (FR-7.17)', () => {
+    const wrapper = list([ownTask('Pass holen', 'open'), ownTask('Visum', 'open')])
+    const rows = wrapper.findComponent(ListRows)
+    expect(rows.exists()).toBe(true)
+    expect(rows.findAll('[data-drop-index]')).toHaveLength(2)
   })
 
   it('draws no second line for a task with nothing to say, even with a seat to offer', () => {

@@ -41,6 +41,9 @@
  */
 import { useLongPress, LONG_PRESS_SLOP_PX } from './useLongPress'
 
+/** How far the travelling clone steps in from its row's leading edge — the grip's column. */
+export const GHOST_INSET_PX = 56
+
 /** Where the gesture is, as the attribute spells it. */
 export type DragState = 'idle' | 'lifting' | 'dragging' | 'settling'
 
@@ -52,6 +55,18 @@ export const DROP_TARGET_ATTRIBUTE = 'data-drop-target'
 export const DROP_INDEX_ATTRIBUTE = 'data-drop-index'
 /** Put on the target under the pointer, for the screen to style. */
 export const DROP_OVER_ATTRIBUTE = 'data-drop-over'
+/**
+ * Put on the numbered child a drop would land next to — `before` it, or
+ * `after` it where the gap is past the last one — when `markGap` asks for it.
+ * `./dragToGroup.css` draws it, once for every screen.
+ */
+export const DROP_GAP_ATTRIBUTE = 'data-drop-gap'
+/**
+ * Put, for as long as a thing is in the air, on every place under the host
+ * that `accepts` refuses it — so a heading that cannot take *this* row dims
+ * while one that takes only some rows stays lit for the rest.
+ */
+export const DROP_REFUSED_ATTRIBUTE = 'data-drop-refused'
 
 /** Where a drag is over, or was let go. */
 export interface DropPlace {
@@ -97,6 +112,13 @@ export interface DragToGroupOptions<T> {
    * every test hangs on the day a write does not.
    */
   onError?: (error: unknown) => void
+  /**
+   * Mark the gap under the pointer (`DROP_GAP_ATTRIBUTE`) — for a list whose
+   * rows can be put anywhere (FR-30.13, FR-7.17), where the finger needs to
+   * see where the row will land. Never where the drop would move nothing:
+   * either gap beside the row itself, in its own place.
+   */
+  markGap?: boolean
 }
 
 export interface DragToGroup<T> {
@@ -118,9 +140,10 @@ interface Lifted<T> {
   payload: T
   row: HTMLElement
   ghost: HTMLElement
-  dx: number
   dy: number
   from: number | null
+  /** The place the row was lifted out of, or null where it stood in none. */
+  home: string | null
 }
 
 /** The index a row occupies, where its place counts positions at all. */
@@ -150,6 +173,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   let lifted: Lifted<T> | null = null
   let over: HTMLElement | null = null
   let place: DropPlace | null = null
+  let gapMark: HTMLElement | null = null
+  let refused: HTMLElement[] = []
   let pending: { ev: PointerEvent; payload: T; row: HTMLElement; x: number; y: number } | null =
     null
 
@@ -184,21 +209,36 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     ghost.setAttribute('data-drag-ghost', '')
     ghost.style.position = 'fixed'
     ghost.style.pointerEvents = 'none'
-    ghost.style.width = `${box.width}px`
-    ghost.style.left = `${box.left}px`
+    // Stepped in from the row's leading edge by the grip's width: the clone
+    // rides up and down over the list, and the gap mark it is dropped at
+    // starts in that margin, where the clone never covers it.
+    ghost.style.width = `${box.width - GHOST_INSET_PX}px`
+    ghost.style.left = `${box.left + GHOST_INSET_PX}px`
     ghost.style.top = `${box.top}px`
     document.body.appendChild(ghost)
     row.setAttribute('data-drag-source', '')
+    markRefused(payload)
     lifted = {
       payload,
       row,
       ghost,
-      dx: ev.clientX - box.left,
       dy: ev.clientY - box.top,
       from: indexOf(row),
+      home: row.closest(`[${DROP_TARGET_ATTRIBUTE}]`)?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null,
     }
     setState('dragging')
     track(ev)
+  }
+
+  /** Marks the places under the host that would refuse `payload` wherever it landed. */
+  function markRefused(payload: T): void {
+    if (!host || !opts.accepts) return
+    for (const el of host.querySelectorAll<HTMLElement>(`[${DROP_TARGET_ATTRIBUTE}]`)) {
+      const target = el.getAttribute(DROP_TARGET_ATTRIBUTE) ?? ''
+      if (opts.accepts(payload, { target, index: null })) continue
+      el.setAttribute(DROP_REFUSED_ATTRIBUTE, '')
+      refused.push(el)
+    }
   }
 
   /** The place under the pointer, with the ghost taken out of the way. */
@@ -216,7 +256,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function track(ev: PointerEvent): void {
     if (!lifted) return
-    lifted.ghost.style.left = `${ev.clientX - lifted.dx}px`
+    // Up and down only: the clone stays flush with the list it came from, so
+    // it never hides the gap mark or the heading it is carried to.
     lifted.ghost.style.top = `${ev.clientY - lifted.dy}px`
 
     const found = placeUnder(ev.clientX, ev.clientY)
@@ -226,6 +267,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     const allowed = next !== null && (opts.accepts?.(lifted.payload, next) ?? true)
 
     if (!allowed) {
+      markGapAt(null, null)
       if (over) over.removeAttribute(DROP_OVER_ATTRIBUTE)
       if (over !== null || place !== null) opts.onHover?.(null)
       over = null
@@ -236,12 +278,40 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     if (over !== found) {
       over?.removeAttribute(DROP_OVER_ATTRIBUTE)
       over = found
-      over?.setAttribute(DROP_OVER_ATTRIBUTE, '')
+      // A row moved inside its own place needs no frame round the place: the
+      // gap mark says everything, and the frame is for a place it goes *to*.
+      if (!(opts.markGap && lifted.home === name)) over?.setAttribute(DROP_OVER_ATTRIBUTE, '')
     }
     place = next
+    if (opts.markGap) markGapAt(found, next)
     // Reported on every change of gap, not only of group: a consumer that
     // shows rows making way needs the running value.
     if (changed) opts.onHover?.(next)
+  }
+
+  /**
+   * Moves the gap mark to the child the drop would land next to. A plain
+   * attribute on an element already there, like `data-drop-over`: nothing
+   * re-renders under the finger (ADR-060).
+   */
+  function markGapAt(target: HTMLElement | null, at: DropPlace | null): void {
+    gapMark?.removeAttribute(DROP_GAP_ATTRIBUTE)
+    gapMark = null
+    if (!lifted || !target || at === null || at.index === null) return
+    const from = lifted.from
+    const stays =
+      lifted.home === at.target && from !== null && (at.index === from || at.index === from + 1)
+    if (stays) return
+    const kids = [...target.querySelectorAll<HTMLElement>(`[${DROP_INDEX_ATTRIBUTE}]`)]
+    const before = kids.find((kid) => indexOf(kid) === at.index)
+    const last = kids[kids.length - 1]
+    if (before) {
+      gapMark = before
+      gapMark.setAttribute(DROP_GAP_ATTRIBUTE, 'before')
+    } else if (last) {
+      gapMark = last
+      gapMark.setAttribute(DROP_GAP_ATTRIBUTE, 'after')
+    }
   }
 
   function down(ev: PointerEvent, payload: T, row: HTMLElement, immediate = false): void {
@@ -281,6 +351,9 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     over?.removeAttribute(DROP_OVER_ATTRIBUTE)
     over = null
     place = null
+    markGapAt(null, null)
+    for (const el of refused) el.removeAttribute(DROP_REFUSED_ATTRIBUTE)
+    refused = []
     opts.onHover?.(null)
   }
 

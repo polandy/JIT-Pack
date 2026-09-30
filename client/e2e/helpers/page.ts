@@ -209,3 +209,19 @@ export async function expectFiguresPaired(pair: Locator): Promise<void> {
   // every line above still agrees.
   for (const figure of [a, b]) expect(figure.headline.clipped).toBe(false)
 }
+
+/**
+ * A calendar day `offset` days from today, `YYYY-MM-DD`, as the **browser**
+ * reckons it. The test runner's clock is the container's (UTC) and the
+ * browser's is the config's `Europe/Zurich`: late in the evening UTC the two
+ * disagree about which day it is, and a „tomorrow" computed in the runner is
+ * the app's „today" — so the day is asked of the page that will read it.
+ */
+export async function browserDay(page: Page, offset: number): Promise<string> {
+  return page.evaluate((days) => {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  }, offset)
+}

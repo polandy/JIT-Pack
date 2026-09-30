@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import {
   addInComposer,
+  browserDay,
   writesLanded,
   test,
   expect,
@@ -14,6 +15,7 @@ import { PATH } from '../routes'
 import { createItem } from '../helpers/m9'
 import { addBuyRowOnM4, setMemberInM5, startTrip } from '../helpers/m4'
 import { setDateField } from '../helpers/ionic'
+import { dropBeside } from '../helpers/drag'
 
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
@@ -234,11 +236,14 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await expect(chip).toHaveAttribute('aria-pressed', 'false')
     await addEntry(page, 'Batterien')
 
+    // In the order they were typed, not A–Z: a line typed by hand lands at
+    // the end of its heading (FR-30.13).
     const supermarkt = m6(page).getByTestId('m6-group-tag-Supermarkt')
-    await expect(supermarkt.locator('h3')).toHaveText(['Brot', 'Pasta'])
+    await expect(supermarkt.locator('h3')).toHaveText(['Pasta', 'Brot'])
     await expect(m6(page).getByTestId('m6-group-own').locator('h3')).toHaveText(['Batterien'])
 
-    // Edit through the sheet: the title and a new tag; A–Z puts it first.
+    // Edit through the sheet: the title and a new tag; the headings' A–Z puts
+    // its heading first.
     await m6(page)
       .getByTestId('m6-row')
       .filter({ hasText: 'Batterien' })
@@ -410,18 +415,15 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     const host = m6(page)
     await expect(host).toHaveAttribute('data-drag', 'idle')
 
-    // A packing row has nothing to drag either — a dashed placeholder
-    // rather than an empty gap, and the same
-    // refusal named once in words below the list.
+    // A packing row is moved only inside its own heading (FR-30.13) — it
+    // has a grip, and the list says once, in words, why it goes no further.
     const sunscreenRow = host.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })
-    await expect(sunscreenRow.getByTestId(/^m6-row-grip-/)).toHaveCount(0)
-    await expect(sunscreenRow.locator('.drag-grip.off')).toBeVisible()
+    await expect(sunscreenRow.getByTestId('m6-row-grip-Sonnencreme')).toBeVisible()
     await expect(host.getByTestId('m6-drag-hint')).toBeVisible()
 
     // Refused: the packing row's own combined heading carries no tag of its own.
     const grip = host.getByTestId('m6-row-grip-Brot')
     const fromPacking = host.getByTestId('m6-group-packing')
-    await expect(fromPacking).toHaveAttribute('data-droppable', 'false')
     let g = (await grip.boundingBox())!
     let target = (await fromPacking.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
@@ -466,6 +468,46 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
   })
 
   /**
+   * E2E-M6-39 (FR-30.13): a line stands where it was put. The own entries
+   * read in the order they were typed; one is dragged to the top of its
+   * heading and one packing line above the other, each insert line drawn
+   * before the drop — and a reload proves the places were written, not
+   * painted.
+   */
+  test('E2E-M6-39: an entry and a packing line are put where they belong, and stay there (FR-30.13)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await addBuyRowOnM4(page, 'Sonnencreme', 'Buy before')
+    await addBuyRowOnM4(page, 'Hut', 'Buy before')
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Milch')
+    await addEntry(page, 'Brot')
+    await addEntry(page, 'Eier')
+
+    const host = m6(page)
+    const own = host.getByTestId('m6-group-own')
+    const packing = host.getByTestId('m6-group-packing')
+    const row = (name: string) => host.getByTestId('m6-row').filter({ hasText: name })
+    // Typed by hand, each lands at the end of its heading.
+    await expect(own.locator('h3')).toHaveText(['Milch', 'Brot', 'Eier'])
+    const packingBefore = await packing.locator('h3').allTextContents()
+    expect(packingBefore).toHaveLength(2)
+
+    await dropBeside(page, host, host.getByTestId('m6-row-grip-Eier'), row('Milch'), 'above')
+    await expect(own.locator('h3')).toHaveText(['Eier', 'Milch', 'Brot'])
+
+    const [first, second] = packingBefore as [string, string]
+    await dropBeside(page, host, host.getByTestId(`m6-row-grip-${second}`), row(first), 'above')
+    await expect(packing.locator('h3')).toHaveText([second, first])
+
+    await writesLanded(page)
+    await page.reload()
+    await expect(own.locator('h3')).toHaveText(['Eier', 'Milch', 'Brot'])
+    await expect(packing.locator('h3')).toHaveText([second, first])
+  })
+
+  /**
    * E2E-M6-35 (FR-30.10): an entry names the day it is due — FR-7.11's day
    * for a task, on the shopping list.
    *
@@ -493,13 +535,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await addEntry(page, 'Brot')
     await addEntry(page, 'Pasta')
 
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const iso = [
-      tomorrow.getFullYear(),
-      String(tomorrow.getMonth() + 1).padStart(2, '0'),
-      String(tomorrow.getDate()).padStart(2, '0'),
-    ].join('-')
+    const iso = await browserDay(page, 1)
 
     await m6(page)
       .getByTestId('m6-row')

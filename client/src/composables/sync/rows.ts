@@ -153,6 +153,7 @@ export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
     bought_at: line.bought_at,
     not_in_luggage: dbBool(line.not_in_luggage),
     for_all_participants: dbBool(line.for_all_participants),
+    shopping_position: line.shopping_position ?? null,
   }
 }
 
@@ -195,6 +196,7 @@ function taskFactRow(task: TaskFacts): Record<string, unknown> {
     assignee_user_id: task.assignee_user_id,
     resolved_at: task.resolved_at,
     resolved_by_user_id: task.resolved_by_user_id,
+    position: task.position ?? null,
   }
 }
 
@@ -282,6 +284,7 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     due_date: entry.due_date,
     assignee_user_id: entry.assignee_user_id,
     carried_over_at: entry.carried_over_at ?? null,
+    position: entry.position ?? null,
   }
 }
 
@@ -399,6 +402,7 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     flag_unused: dbBool(item.flag_unused),
     flag_missing: dbBool(item.flag_missing),
     carried_over_at: item.carried_over_at ?? null,
+    shopping_position: item.shopping_position ?? null,
     updated_hlc: item.updated_hlc,
   }
 }

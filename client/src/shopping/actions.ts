@@ -6,6 +6,7 @@
  * the packing mutations. A packing line's check-off never comes through here;
  * it is bound into the line by the packing side (`lib/shoppingSources.ts`).
  */
+import { nextPosition } from '@/lib/handOrder'
 import { newId } from '@/lib/ids'
 import type { PackingCloseCrossing } from '@/lib/packingClose'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
@@ -34,7 +35,12 @@ export function normalizeTag(tag: string | null | undefined): string | null {
   return trimmed === '' ? null : trimmed
 }
 
-export function createShoppingActions(host: ModuleHost) {
+/** What the writes read back: the trip's entries, for the next free place. */
+export interface EntryPlaces {
+  getEntries(tripId: string): ShoppingEntry[]
+}
+
+export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
   const encode = TABLE_CODECS[TABLE.shoppingEntries].encode
 
   /**
@@ -57,6 +63,9 @@ export function createShoppingActions(host: ModuleHost) {
       bought: dbBool(false),
       tag: normalizeTag(tag),
       due_date: dueDate,
+      // FR-30.13: typed by hand, so at the end of whichever heading it is
+      // filed under — past every entry of the trip, so past every one there.
+      position: nextPosition(places.getEntries(tripId).map((entry) => entry.position)),
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
@@ -137,6 +146,16 @@ export function createShoppingActions(host: ModuleHost) {
     }
   }
 
+  /** FR-30.13: where the entry stands inside its heading — one field. */
+  function placeEntry(entry: ShoppingEntry, position: number): void {
+    if (position === entry.position) return
+    const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, { position })
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encode(entry)),
+    })
+  }
+
   function removeEntry(entry: ShoppingEntry): void {
     const mutation = host.mutation('delete', TABLE.shoppingEntries, entry.id)
     host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
@@ -204,6 +223,7 @@ export function createShoppingActions(host: ModuleHost) {
     updateEntry,
     setBought,
     assignEntry,
+    placeEntry,
     removeEntry,
     bulkSetTag,
     bulkSetAssignee,
@@ -271,6 +291,8 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       remove: () => actions.removeEntry(entry),
       edit: (fields) => actions.updateEntry(entry, fields),
       assign: (userId) => actions.assignEntry(entry, userId),
+      position: entry.position,
+      place: (position) => actions.placeEntry(entry, position),
     }
   }
   /** The open entries a selection's line keys name. */

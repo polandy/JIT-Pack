@@ -237,6 +237,15 @@ export function createPackingActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-30.13: the row's place on the shopping list (see `mutations.placeOnShopping`). */
+  function placeOnShopping(tripId: string, item: TripItem, position: number) {
+    const mut = mutations.placeOnShopping(item.id, position)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, itemRow(item)),
+    })
+  }
+
   function unbuyItem(tripId: string, item: TripItem, from: ShoppingMode) {
     const mut = mutations.unbuyItem(item.id, from)
     enqueueAndDrain('trip', tripId, {
@@ -888,6 +897,7 @@ export function createPackingActions(ctx: SyncContext) {
     unbuyItem,
     setMode,
     carryToLocal,
+    placeOnShopping,
     returnCarried,
     assignTraveler,
     assignContainer,

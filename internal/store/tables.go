@@ -392,6 +392,8 @@ var tableSpecs = map[string]tableSpec{
 			// FR-7.16: when the close of the packing carried the row to the
 			// destination — the client's clock, like packed_at's record.
 			"carried_over_at",
+			// FR-30.13: the line's place on the shopping list (ADR-083).
+			"shopping_position",
 		),
 		// The one cascade of the *trip* partition: a row's comments and
 		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
@@ -479,6 +481,8 @@ var tableSpecs = map[string]tableSpec{
 			// FR-7.15: the excursion a thread is about, the author's to
 			// choose; validNoteThread keeps it on a first note of the trip.
 			"excursion_id",
+			// FR-7.17: the task's place inside its group (ADR-083).
+			"position",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
@@ -523,6 +527,8 @@ var tableSpecs = map[string]tableSpec{
 			// FR-7.16: when the close of the packing carried the entry to
 			// the destination — the client's to name, like the due day.
 			"carried_over_at",
+			// FR-30.13: the entry's place inside its heading (ADR-083).
+			"position",
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -559,6 +565,8 @@ var tableSpecs = map[string]tableSpec{
 			"name", "category_name", "assigned_traveler_id",
 			"quantity", "packed_count", "state", "mode", "bought_at",
 			"not_in_luggage", "for_all_participants",
+			// FR-30.13: the line's place on M6's Vor-Ort list (ADR-083).
+			"shopping_position",
 		),
 		export: exportQuery{query: `SELECT x.* FROM excursion_items x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

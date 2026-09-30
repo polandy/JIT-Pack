@@ -29,3 +29,51 @@
   border-radius: var(--jp-r-md);
   box-shadow: var(--jp-shadow);
 }
+
+/* Where a row would land in a list that takes rows anywhere (`markGap`,
+   FR-30.13/FR-7.17): a bar in the action colour on the gap, led by a dot, laid
+   over the row's edge so no row moves under the finger (ADR-060). Heavier than
+   the tag manager's line, because here it sits beside a divider's own rule and
+   a hairline would read as that rule. */
+[data-drop-gap] {
+  position: relative;
+  overflow: visible;
+}
+
+[data-drop-gap]::before,
+[data-drop-gap]::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  background: var(--jp-action);
+  pointer-events: none;
+}
+
+[data-drop-gap]::before {
+  left: 16px;
+  right: 8px;
+  height: 3px;
+}
+
+[data-drop-gap]::after {
+  left: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+[data-drop-gap='before']::before {
+  top: -1px;
+}
+
+[data-drop-gap='before']::after {
+  top: -4px;
+}
+
+[data-drop-gap='after']::before {
+  bottom: -1px;
+}
+
+[data-drop-gap='after']::after {
+  bottom: -4px;
+}

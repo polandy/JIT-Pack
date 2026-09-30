@@ -11,6 +11,7 @@
  * and the list says so rather than guessing that they are one (ADR-066).
  */
 import { isPressingDay, pressingGroupsFirst, sortByDue } from '@/lib/dueDay'
+import { byHand, dropInto, renumber, type Placement } from '@/lib/handOrder'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import { beforeIsOver, type TripStanding } from '@/lib/tripPhase'
 import type { ShoppingMode } from '@/types/domain'
@@ -78,18 +79,32 @@ function dueDayOf(line: ShoppingLine): string | null {
  * come first, earliest first, and a section holding something overdue, due
  * today or in the next two days moves above the others, keeping this order
  * inside both halves. Without `today` nothing moves.
+ *
+ * FR-30.13: a line placed by hand stands where it was put — after the lines
+ * never placed, which keep the order above (ADR-083). Once a section has
+ * been arranged, its hand order is all it has.
  */
 export function buildSections(
   own: ShoppingLine[],
   sourced: ShoppingLine[],
   today?: string,
 ): ShoppingSection[] {
-  const sections = fileSections(own, sourced)
+  const sections = fileSections(own, sourced).map((section) => ({
+    ...section,
+    lines: byHand(
+      today === undefined ? section.lines : sortByDue(section.lines, today, dueDayOf),
+      positionOf,
+    ),
+  }))
   if (today === undefined) return sections
-  return pressingGroupsFirst(
-    sections.map((section) => ({ ...section, lines: sortByDue(section.lines, today, dueDayOf) })),
-    (section) => section.lines.some((line) => isPressingDay(dueDayOf(line), today)),
+  return pressingGroupsFirst(sections, (section) =>
+    section.lines.some((line) => isPressingDay(dueDayOf(line), today)),
   )
+}
+
+/** A line's hand-set place (FR-30.13). */
+function positionOf(line: ShoppingLine): number | null | undefined {
+  return line.position
 }
 
 function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSection[] {
@@ -188,6 +203,15 @@ export interface ShoppingBoard {
   lists: Record<ShoppingMode, ListShelf>
   /** The list a line stands on, by key — the block's lines included. */
   listOf(key: string): ShoppingMode | undefined
+  /**
+   * FR-30.13: each list's sections with every open line in them — the
+   * block's too, which stand in their section's order while they are shown
+   * above it. What a move renumbers: a line held in the block keeps its
+   * place among its section's lines for when its day has passed.
+   */
+  whole: Record<ShoppingMode, ShoppingSection[]>
+  /** The key of the section a line is filed under in `whole` — the block's lines included. */
+  homeOf(key: string): string | undefined
 }
 
 /**
@@ -205,9 +229,15 @@ export function shoppingBoard(
   const keyed = new Map<string, ShoppingMode>()
   const due: ShoppingLine[] = []
   const lists = {} as Record<ShoppingMode, ListShelf>
+  const whole = {} as Record<ShoppingMode, ShoppingSection[]>
+  const homes = new Map<string, string>()
   for (const list of SHOPPING_MODES) {
     const { own, sourced } = open[list]
     for (const line of [...own, ...sourced]) keyed.set(line.key, list)
+    whole[list] = buildSections(own, sourced, today)
+    for (const section of whole[list]) {
+      for (const line of section.lines) homes.set(line.key, section.key)
+    }
     due.push(...own.filter(pressing), ...sourced.filter(pressing))
     const standing = {
       own: own.filter((l) => !pressing(l)),
@@ -218,7 +248,72 @@ export function shoppingBoard(
       open: standing.own.length + standing.sourced.length,
     }
   }
-  return { due: sortByDue(due, today, dueDayOf), lists, listOf: (key) => keyed.get(key) }
+  return {
+    due: sortByDue(due, today, dueDayOf),
+    lists,
+    listOf: (key) => keyed.get(key),
+    whole,
+    homeOf: (key) => homes.get(key),
+  }
+}
+
+/** What letting a line go over a section means (FR-30.9, FR-30.13). */
+export interface ShoppingDrop {
+  /** The tag the line takes, null for none; absent where it stays in its section. */
+  retag?: string | null
+  /** The places to write, the moved line's among them — the section renumbered. */
+  placements: Placement<ShoppingLine>[]
+}
+
+/**
+ * planDrop says what a line let go in gap `gap` of `section` (as the screen
+ * shows it, on `list`) writes — or null where it writes nothing, or where
+ * the section cannot hold the line at all.
+ *
+ * Any line may move inside its own section (FR-30.13); only an own entry may
+ * leave it, and only for one of its own list's tag sections, which is a
+ * retag (FR-30.9). The gap counts the rows the section shows, and the whole
+ * section — its lines in the *Fällig* block too — is renumbered around it.
+ */
+export function planDrop(
+  board: ShoppingBoard,
+  line: ShoppingLine,
+  list: ShoppingMode,
+  section: ShoppingSection,
+  gap: number | null,
+): ShoppingDrop | null {
+  if (!canDrop(board, line, list, section)) return null
+  const home = board.homeOf(line.key) === section.key
+  const retag = home ? undefined : dropTag(section)
+  const group = board.whole[list].find((s) => s.key === section.key)?.lines ?? section.lines
+  const ordered = dropInto(
+    group,
+    section.lines,
+    line,
+    gap ?? section.lines.length,
+    (a, b) => a.key === b.key,
+  )
+  if (ordered === null && retag === undefined) return null
+  return {
+    ...(retag === undefined ? {} : { retag }),
+    placements: ordered === null ? [] : renumber(ordered, positionOf),
+  }
+}
+
+/**
+ * canDrop is `planDrop`'s first half, which the gesture asks while the line
+ * is still in the air: its own section, or — for an own entry — a tag
+ * section of the list it stands on.
+ */
+export function canDrop(
+  board: ShoppingBoard,
+  line: ShoppingLine,
+  list: ShoppingMode,
+  section: ShoppingSection,
+): boolean {
+  if (board.listOf(line.key) !== list) return false
+  if (board.homeOf(line.key) === section.key) return true
+  return !!line.edit && dropTag(section) !== undefined
 }
 
 /**

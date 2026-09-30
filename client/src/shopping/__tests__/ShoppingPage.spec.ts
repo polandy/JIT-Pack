@@ -11,6 +11,7 @@
  * own table; a source line's check-off goes to the source and nowhere else;
  * and the reveal, the counts and the ADR-033 guard read both alike.
  */
+import ListRows from '@/components/global/ListRows.vue'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { IonButton, IonInput, IonSearchbar } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -110,6 +111,7 @@ function line(over: Partial<ShoppingLine> = {}): ShoppingLine {
     recipients: [],
     buy: vi.fn(),
     unbuy: vi.fn(),
+    place: vi.fn(),
     ...over,
   }
 }
@@ -903,15 +905,21 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(page.find('[data-testid="m6-row-tag-add"]').exists()).toBe(false)
   })
 
-  it('a source line has nothing to drag, and says so rather than leaving a gap — its own heading is never a target either (owner feedback 2026-09-23)', () => {
+  it('draws its lines in the ListRows M25 draws its tasks in, with the buy-out wash', () => {
+    const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
+    const rows = page.findComponent(ListRows)
+    expect(rows.exists()).toBe(true)
+    expect(rows.props('wash')).toBe(true)
+    expect(rows.find('[data-testid="m6-row"]').exists()).toBe(true)
+  })
+
+  it('a source line is moved like any other (FR-30.13): it has a grip, and its heading takes it back at another gap', () => {
     const page = mountPage([source({ buy_before: [line({ name: 'Sonnencreme' })] })])
     const row = page.find('[data-testid="m6-row"]')
-    expect(row.find('[data-testid^="m6-row-grip-"]').exists()).toBe(false)
-    const placeholder = row.find('.drag-grip.off')
-    expect(placeholder.exists()).toBe(true)
-    expect(placeholder.attributes('aria-hidden')).toBe('true')
+    expect(row.find('[data-testid="m6-row-grip-Sonnencreme"]').exists()).toBe(true)
+    expect(row.attributes('data-drop-index')).toBe('0')
     const group = page.find('[data-testid="m6-group-packing"]')
-    expect(group.attributes('data-droppable')).toBe('false')
+    expect(group.attributes('data-droppable')).toBe('true')
   })
 
   it('names the same refusal below the list, once, while not selecting', () => {
@@ -934,10 +942,10 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(
       row.get('[data-testid="m6-row-facts-Brot"]').find('[data-testid="m6-row-due-Brot"]').exists(),
     ).toBe(true)
-    // FR-30.9's single-row drag: the leading slot is the grip, not selecting.
+    // FR-30.13's drag: the leading slot is the grip, not selecting.
     const grip = page.find('[data-testid="m6-row-grip-Brot"]')
     expect(grip.exists()).toBe(true)
-    expect(grip.attributes('aria-label')).toBe(t('shopping.dragToRetag', { name: 'Brot' }))
+    expect(grip.attributes('aria-label')).toBe(t('shopping.dragToMove', { name: 'Brot' }))
   })
 })
 

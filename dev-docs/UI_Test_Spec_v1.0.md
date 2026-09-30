@@ -1433,9 +1433,9 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   dropped onto another own section, is retagged in one act — a batch of one, through the same `bulkSetTag` a
   selection's *Tag vergeben* uses, so its undo diffs against the entry as the drop actually left it rather than the
   pre-drop snapshot. The packing list's combined heading refuses the drop — it never highlights and never takes it —
-  since it carries no tag of its own to file under; while a drag is in the air, that heading dims rather than
-  sitting inert (an untouched heading reads as broken, not as ineligible), and the packing line's own grip slot
-  carries a dashed placeholder rather than standing empty. Also asserts the travelling clone's border, drawn from
+  since it carries no tag of its own to file under; while the entry is in the air, that heading dims rather than
+  sitting inert (an untouched heading reads as broken, not as ineligible). The packing line carries a grip of its own
+  (FR-30.13) and the line below the list says where it may go. Also asserts the travelling clone's border, drawn from
   `composables/dragToGroup.css` rather than this screen's own style.
 * **E2E-M6-35** `local` (FR-30.10) — **implemented** (`shopping/shopping.spec.ts`): a due day on an
   own entry. On a running trip, *Pasta* gets tomorrow in the entry sheet through the app's date control, written on
@@ -1463,6 +1463,10 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
 * **E2E-M6-38** `local` (FR-7.16) — **implemented** (`close-packing.spec.ts`): an own entry written for before
   departure is carried by *Finish packing* and stands under *„From before departure"* at the destination; an entry
   written there afterwards does not — both are in *Vor Ort*, only the carried one under that heading.
+* **E2E-M6-39** `local` (FR-30.13) — **implemented** (`shopping/shopping.spec.ts`): three own entries typed one after
+  another read in that order, not A–Z; the last is dragged above the first, and the first row carries the insert line
+  (`data-drop-gap="before"`) before the drop. Of two packing lines, the second is dragged above the first inside the
+  packing heading. After a reload both headings still read in the new order — the places were written, not painted.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.
@@ -3313,6 +3317,9 @@ went.
   the selection of the *before* task alone offers *Unterwegs*, and with the road task added offers no *Vor der Reise*.
   After a reload M6's composer is on screen and offers no list. Fails on a build that reads the start from the date
   alone, which is what M25 did.
+* **E2E-M25-20** `local` (FR-7.17) — **implemented** (`trip-tasks.spec.ts`): three trip tasks typed one after another
+  read in that order under *Ohne Tag*, not by their words; the last is dragged above the first with the insert line
+  on the first row before the drop, and after a reload the group still reads in the new order.
 * **E2E-M25-18** `server` (FR-7.14) — **implemented** (`e2e/server/multi-user.spec.ts`): on a trip
   shared with a second account, a task with nothing to say under its words shows its empty seat and **no** facts
   line, and its row is exactly as tall as a shopping entry's with its own seat. Fails on a build that seats the person

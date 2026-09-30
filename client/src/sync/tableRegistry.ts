@@ -327,6 +327,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
     carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
+    shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
     updated_hlc: (row['updated_hlc'] as string) ?? '',
   }
 }
@@ -373,6 +374,7 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     due_date: (row['due_date'] as string | null | undefined) ?? null,
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
     carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
+    position: (row['position'] as number | null | undefined) ?? null,
   }
 }
 
@@ -486,6 +488,7 @@ function rowToExcursionItem(id: string, row: Record<string, unknown>): Excursion
     bought_at: (row['bought_at'] as string | null | undefined) ?? null,
     not_in_luggage: Boolean(row['not_in_luggage']),
     for_all_participants: Boolean(row['for_all_participants']),
+    shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
   }
 }
 
@@ -514,6 +517,7 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
     resolved_at: (row['resolved_at'] as string | null | undefined) ?? null,
     resolved_by_user_id: (row['resolved_by_user_id'] as string | null | undefined) ?? null,
+    position: (row['position'] as number | null | undefined) ?? null,
   }
 }
 

@@ -92,6 +92,7 @@ function mountNav(
   const source = createPackingShoppingSource(useTripStore(), {
     buyItem: vi.fn(),
     unbuyItem: vi.fn(),
+    placeOnShopping: vi.fn(),
   })
   return mount(TripViewNav, {
     props: { tripId: TRIP, current },

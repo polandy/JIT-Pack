@@ -234,6 +234,11 @@ stamped, and written in the same mutation as the row's move; the close's undo wr
 The server only stores it: the client reads it to file the row under its own heading. A client that predates the
 column neither sends nor reads it, and the row files as it always did.
 
+`shopping_entries.position`, `comments.position` and `shopping_position` on `trip_items` and `excursion_items`
+(FR-30.13, FR-7.17, ADR-083) are a row's hand-set place inside its group — an integer compared only within one group,
+or NULL for never placed. Client-written, one field per mutation, no CHECK and no UNIQUE: a move renumbers its group
+and two devices may briefly hold equal places, which the reader breaks by its own order. The server only stores them.
+
 `excursions`, `excursion_travelers` and `excursion_items` (FR-31, ADR-077) are three more trip-partition tables, all
 client-written and none stamped. An excursion's `starts_on`/`ends_on` are calendar days like `due_date`, nullable and
 free of a CHECK that orders them; a reader takes a reversed pair as its min and max. Deleting an excursion cascades to

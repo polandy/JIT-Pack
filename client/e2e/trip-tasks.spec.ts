@@ -11,8 +11,9 @@ import {
   tripWithRows,
 } from './helpers/m4'
 import { createTripViaWizard, openTripView } from './helpers/trips'
-import { expectFiguresPaired, writesLanded } from './helpers/page'
+import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
+import { dropBeside } from './helpers/drag'
 import { PATH } from './routes'
 
 /**
@@ -523,6 +524,44 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
+   * E2E-M25-20 (FR-7.17): a task stands where it was put inside its group.
+   * Typed in one after another, they read in that order; the last is dragged
+   * above the first with the insert line drawn before the drop, and a reload
+   * proves the places were written.
+   */
+  test('E2E-M25-20: a task is put where it belongs in its group, and stays there @m25', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addTripTodo(page, 'Pflanzen giessen')
+    await addTripTodo(page, 'Post abbestellen')
+    await addTripTodo(page, 'Katze bringen')
+    await writesLanded(page)
+
+    await openTasks(page, 'before')
+    const host = visible(page).getByTestId('m25-page')
+    const group = visible(page).getByTestId('m25-group-trip')
+    const bodies = group.locator('[data-testid^="trip-todo-open-"]')
+    await expect(bodies).toHaveText(['Pflanzen giessen', 'Post abbestellen', 'Katze bringen'])
+
+    await dropBeside(
+      page,
+      host,
+      visible(page).getByTestId('trip-todo-grip-Katze bringen'),
+      group.getByTestId('trip-todo-Pflanzen giessen'),
+      'above',
+    )
+    await expect(bodies).toHaveText(['Katze bringen', 'Pflanzen giessen', 'Post abbestellen'])
+
+    await writesLanded(page)
+    await page.reload()
+    await openTasks(page, 'before')
+    await expect(
+      visible(page).getByTestId('m25-group-trip').locator('[data-testid^="trip-todo-open-"]'),
+    ).toHaveText(['Katze bringen', 'Pflanzen giessen', 'Post abbestellen'])
+  })
+
+  /**
    * E2E-M25-09 (FR-7.8): a heading that would not be true of the task in hand
    * neither lights up nor takes it.
    *
@@ -713,13 +752,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await addTripTodo(page, 'Buy a map', 'during')
     await addTripTodo(page, 'Renew the passport', 'during')
 
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const iso = [
-      tomorrow.getFullYear(),
-      String(tomorrow.getMonth() + 1).padStart(2, '0'),
-      String(tomorrow.getDate()).padStart(2, '0'),
-    ].join('-')
+    const iso = await browserDay(page, 1)
 
     // A running trip takes new tasks for the road only (FR-7.14).
     const road = await openTasks(page, 'during')

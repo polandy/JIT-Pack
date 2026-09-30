@@ -40,11 +40,12 @@ function line(id: string, extra: Partial<ExcursionItem> = {}): ExcursionItem {
 
 function source(lines: ExcursionItem[]) {
   const markBought = vi.fn()
+  const placeLineOnShopping = vi.fn()
   const src = createExcursionShoppingSource(
     { getExcursions: () => [excursion], getExcursionItems: () => lines, getTravelers: () => [sia] },
-    { markBought },
+    { markBought, placeLineOnShopping },
   )
-  return { src, markBought }
+  return { src, markBought, placeLineOnShopping }
 }
 
 describe('the excursion shopping source (FR-31.8)', () => {
@@ -66,6 +67,15 @@ describe('the excursion shopping source (FR-31.8)', () => {
     const { src } = source([line('Proviant')])
     expect(src.open('t', 'buy_before')).toEqual([])
     expect(src.bought('t', 'buy_before')).toEqual([])
+  })
+
+  it('reads and writes the line’s place on the Vor-Ort list (FR-30.13)', () => {
+    const proviant = line('Proviant', { shopping_position: 2 })
+    const { src, placeLineOnShopping } = source([proviant])
+    const [shown] = src.open('t', 'buy_local')
+    expect(shown?.position).toBe(2)
+    shown!.place(0)
+    expect(placeLineOnShopping).toHaveBeenLastCalledWith('t', proviant, 0)
   })
 
   it('buys by stamping the line and puts it back by clearing the stamp', () => {

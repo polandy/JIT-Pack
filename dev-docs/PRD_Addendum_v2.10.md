@@ -4319,6 +4319,32 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   * **Modes.** The column syncs in all three; the controls exist in Server Mode (above). Not in the portable backup
     (item 25). **Surfaces:** M6, M25 (UI-Spec). E2E-M6-37, E2E-M25-18.
 
+* **FR-30.13 (A line stands where it was put, *built*):** inside its heading, a shopping line can be put anywhere by
+  hand — the order a person walks a shop in is theirs, not the alphabet's. FR-7.17 is the same promise for a task;
+  the tradeoff is ADR-083.
+  * **Inside the heading, never across it.** The headings stay what FR-30.9, FR-31.8 and FR-7.16 make them, in their
+    order. The grip puts a line at the gap it is let go in, with a line in the action colour on that gap before the
+    drop (only where the drop would move something). An own entry dropped onto another tag heading of its list still
+    takes that tag (FR-30.9) — now at the gap it was let go in.
+  * **Every line of the open list**: an own entry, a packing line (FR-30.2) and an excursion's line (FR-31.8) alike —
+    so a packing line has a grip too, and moves only inside its own heading, which the list says once below it. What
+    is bought, the *Fällig* block and a closed list (FR-7.12) move nothing: the block keeps its date order, the fold
+    stays flat. The dashboard card (FR-30.7) is a flat glance without headings and keeps its own order.
+  * **The hand order wins inside a heading.** A line never placed reads first, in the order the heading always had
+    (by name for own entries, the packing list's for its lines, dated lines ahead — FR-30.10); every placed line
+    follows by its place. The first move in a heading places all of its lines, so from then on the hand order is all
+    it has. A line in the *Fällig* block keeps its place in its heading for when its day has passed.
+  * **Typed by hand, a line lands at the end** of whichever heading it is filed under. A line that arrives from the
+    packing list or an excursion has no place yet and so reads at the top of its heading until somebody moves it.
+  * **Stored as a place on the row**: `shopping_entries.position`, and `shopping_position` on `trip_items` and
+    `excursion_items` — nullable integers, compared only inside one heading. A packing line that stands for several
+    rows (FR-25.6) writes each of them. A move renumbers the heading `0…n-1` and writes only what changed, as the
+    inventory's tag axis does (FR-24.10); one field per row, so a move on one device and a retag on another both stand
+    (NFR-4.2a). Two devices moving lines of one heading offline both stand too, merged row by row: the heading reads
+    in *some* order, never loses a line, and the next move settles it.
+  * **Modes.** All three — ordinary synced columns. Not in the portable backup (item 25). **Surfaces:** M6 (UI-Spec
+    M6). E2E-M6-39, E2E-M6-34.
+
 ### 3.31 Excursions — A Small Packing List Inside a Trip
 
 **Status: accepted** — **implemented** (ADR-077). A trip often holds outings that need their own smaller bag, packed
@@ -5151,7 +5177,8 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
     on the line (it is removed where it lives, in M5). *Revisit trigger:* somebody asks to delete a preparation from
     the task list without opening its row.
   * **Order.** Open before resolved; within each half the trip's own before a row's; a row's grouped by the row and
-    each group by text. So the chores read first and a row's preparations stand together.
+    each group by text. So the chores read first and a row's preparations stand together. On M25 a task put in place
+    by hand stands there instead (FR-7.17).
   * **One figure, one head.** M4's second figure, M4's section head, M1's *Aufgaben* card and each M1 trip card's task
     line all count both kinds. **The packing figures count rows only**: the share, the ring, M2's figure and a row's
     doneness, and FR-7.3's „packed with open prep" holds — a packed row with an open preparation stays on the list. Two
@@ -5644,8 +5671,9 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
     close's moment, named by the client like `packed_at`, NULL for never carried. M6 files a carried line under
     ***Von vor der Abreise***, the first heading of the list: a packing line in place of the combined *Packliste*
     heading, an own entry in place of the untagged *Eingetragen*. **A tag of its own wins** (FR-30.9), and so does a
-    source's own heading (FR-31.8's excursion): they say more than where the line came from. The heading takes no drop;
-    a carried entry leaves it by being given a tag. Bought, a carried line stays carried — its record says so.
+    source's own heading (FR-31.8's excursion): they say more than where the line came from. The heading takes no drop
+    from elsewhere — its own lines move inside it (FR-30.13) — and a carried entry leaves it by being given a tag.
+    Bought, a carried line stays carried — its record says so.
   * **For a task the heading is a tag of the vocabulary** (FR-7.8), so it can be renamed, dragged to and deleted like
     any other: a **trip task without a tag** crosses filed under ***Von vor der Abreise***, in the same write as its
     phase (`carryTask`). A tagged task keeps its tag, and a row's preparation keeps its *Aus Packliste* (FR-7.6). The
@@ -5668,6 +5696,23 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   * **Modes.** All three; the marks and the tag are ordinary synced columns and rows.
   * **Surfaces:** M2 (the start), M4 (the sheet), M6 (the heading), M25 (the tag). UI-Spec M2/M4/M6/M25;
     E2E-M4-151, E2E-M6-38.
+
+* **FR-7.17 (A task stands where it was put, *built*):** inside its group on M25, a task can be put anywhere by hand —
+  FR-30.13's promise for the shopping list, with the same rules and the same tradeoff (ADR-083).
+  * **Inside the group, never across it**: phases and tag groups stay FR-7.8's, in their order. The grip puts a task at
+    the gap it is let go in, with the insert line drawn first; a drop onto another group still retags it (and changes
+    its phase, where the group is the other phase's), now at that gap. A preparation moves inside *Aus Packliste*
+    like any other task.
+  * **The hand order wins inside a group** over FR-7.6's order and FR-7.11's dated-first: a task never placed reads
+    first, in that order; every placed one follows by its place, and the first move places the whole group. The
+    *Fällig* block keeps its date order and moves nothing; a task in it keeps its place in its group.
+  * **Filtered, it lands next to its neighbour.** With *Meine* on (FR-30.12) the gap counts the tasks shown, and a
+    task not shown keeps its place between the ones around it.
+  * **Typed by hand, a task lands at the end** of whichever group it is filed in; a preparation made on M5 or by a
+    template has no place yet and reads at the top of its group until moved.
+  * **Stored as `comments.position`**, a nullable integer compared only inside one group, renumbered `0…n-1` by a move
+    that writes only what changed. Any member may move a task, as any may retag it.
+  * **Modes.** All three. **Surfaces:** M25 (UI-Spec M25). E2E-M25-20.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

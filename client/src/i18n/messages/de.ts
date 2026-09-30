@@ -1544,7 +1544,7 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.resolved': '{n} erledigt',
   'tripTodos.add': 'Aufgabe hinzufügen…',
   'tripTodos.remove': 'Aufgabe entfernen',
-  'tripTodos.drag': '{body} in einen anderen Tag oder eine andere Phase ziehen',
+  'tripTodos.drag': '{body} verschieben',
   'tripTodos.forItem': 'Gehört zu {name}',
 
   // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
@@ -2017,11 +2017,11 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.bulkAssigned': 'Ein Eintrag → {who} | {n} Einträge → {who}',
   'shopping.bulkUnassigned': 'Ein Eintrag: niemand zuständig | {n} Einträge: niemand zuständig',
   'shopping.bulkNothingToDo': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
-  'shopping.dragToRetag': '{name} durch Ziehen umtaggen',
+  'shopping.dragToMove': '{name} verschieben',
   'list.dropHere': 'hier ablegen',
   'shopping.retagged': '„{name}“ → {group}',
   'shopping.dragHint':
-    'Packlisten-Positionen tragen nie ein Tag — dorthin oder von dort kann nichts gezogen werden.',
+    'Packlisten-Positionen tragen nie ein Tag — sie lassen sich nur innerhalb ihrer Gruppe verschieben.',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

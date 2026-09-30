@@ -399,6 +399,10 @@ CREATE TABLE trip_items (
     -- a close happens offline too; the shopping list files a carried line
     -- under *Von vor der Abreise*. The undo sets it back to NULL.
     carried_over_at      TEXT,
+    -- FR-30.13: where the row's line stands inside its heading on the
+    -- shopping list, by hand; NULL for never placed (ADR-083). A line that
+    -- stands for several rows writes it on each of them.
+    shopping_position    INTEGER,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''         -- NFR-4.2a
 );
@@ -473,6 +477,10 @@ CREATE TABLE comments (
     -- note arrives costs the link, never the note. ON DELETE SET NULL: the
     -- note is the family's information and outlives the plan it was about.
     excursion_id TEXT REFERENCES excursions(id) ON DELETE SET NULL,
+    -- FR-7.17: where a task stands inside its group on M25, by hand; NULL for
+    -- never placed, which reads before every placed task (ADR-083). Any
+    -- member may move a task, as any may retag it.
+    position     INTEGER,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
@@ -613,6 +621,11 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     -- FR-7.16: trip_items.carried_over_at's twin — when closing the packing
     -- carried this entry to *at the destination*.
     carried_over_at   TEXT,
+    -- FR-30.13: where the entry stands inside its heading, by hand; NULL for
+    -- never placed, which reads before every placed line (ADR-083). Compared
+    -- only inside one heading, so two headings may both count from 0; no
+    -- CHECK and no UNIQUE, for field-level LWW's sake.
+    position          INTEGER,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -692,6 +705,9 @@ CREATE TABLE excursion_items (
     -- „every participant has a row": a set made for Andy and Sia by name reads
     -- the same, and only „für alle" should grow a row for a third person.
     for_all_participants INTEGER NOT NULL DEFAULT 0 CHECK (for_all_participants IN (0,1)),
+    -- FR-30.13: trip_items.shopping_position's twin, for the line's place on
+    -- M6's Vor-Ort list — not its place on the excursion's own list.
+    shopping_position    INTEGER,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''
 );

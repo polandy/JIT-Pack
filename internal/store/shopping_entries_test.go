@@ -241,3 +241,47 @@ func TestApplyMutation_CarriedOverMark_SetThenCleared_FR7_16(t *testing.T) {
 		})
 	}
 }
+
+// FR-30.13/FR-7.17: a hand-set place is kept on every row a line or a task
+// can be — an own entry, a packing row, an excursion's line, a task — and it
+// merges apart from the fields a retag writes, so a move on one device and a
+// retag on another both survive (ADR-083).
+func TestApplyMutation_HandPlace_KeptBesideARetag_FR30_13(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO shopping_entries (id, trip_id, name) VALUES ('se-1', ?, 'Milch')`, testTrip)
+	mustExec(t, s, `INSERT INTO trip_items (id, trip_id, name, mode) VALUES ('ti-1', ?, 'Sonnencreme', 'buy_before')`, testTrip)
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-1', ?, 'Gipfel')`, testTrip)
+	mustExec(t, s, `INSERT INTO excursion_items (id, trip_id, excursion_id, name, mode) VALUES ('xi-1', ?, 'ex-1', 'Wasser', 'buy_local')`, testTrip)
+	mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state) VALUES ('c-1', ?, ?, 'Pass', 1, 'open')`, testTrip, testUser)
+
+	cases := []struct {
+		table, id, column string
+		other             map[string]any
+	}{
+		{TableShoppingEntries, "se-1", "position", map[string]any{"tag": "Bäcker"}},
+		{TableTripItems, "ti-1", "shopping_position", map[string]any{"quantity": 2}},
+		{TableExcursionItems, "xi-1", "shopping_position", map[string]any{"quantity": 2}},
+		{TableComments, "c-1", "position", map[string]any{"phase": "during"}},
+	}
+	for i, tc := range cases {
+		t.Run(tc.table, func(t *testing.T) {
+			place := upsert(tc.id, fmt.Sprintf("place-%d", i), map[string]any{tc.column: 3}, "0000000002000-0000-aaaaaaaa")
+			place.Table = tc.table
+			other := upsert(tc.id, fmt.Sprintf("other-%d", i), tc.other, "0000000003000-0000-bbbbbbbb")
+			other.Table = tc.table
+			for _, m := range []sync.Mutation{place, other} {
+				if res, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+					t.Fatalf("%s: outcome %q reason %q err %v, want applied", m.MutationID, res.Outcome, res.Reason, err)
+				}
+			}
+			var got *int
+			if err := s.db.QueryRow(`SELECT `+tc.column+` FROM `+tc.table+` WHERE id = ?`, tc.id).Scan(&got); err != nil {
+				t.Fatalf("read place: %v", err)
+			}
+			if got == nil || *got != 3 {
+				t.Errorf("%s after a later write to another field = %v, want 3", tc.column, got)
+			}
+		})
+	}
+}

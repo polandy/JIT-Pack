@@ -172,6 +172,11 @@ export interface TripItem {
    */
   carried_over_at?: string | null
   /**
+   * FR-30.13: where the row's line stands inside its heading on the shopping
+   * list, by hand; null or absent for never placed (ADR-083).
+   */
+  shopping_position?: number | null
+  /**
    * Which shopping list the row was bought from (FR-25.11j), or null if it
    * was not bought. Buying changes the row's mode (FR-3.3), so this is what
    * lets M6 find the row again and put it back.
@@ -308,6 +313,8 @@ export interface ExcursionItem {
   not_in_luggage: boolean
   /** FR-31.5: made „für alle", so it follows the participants. */
   for_all_participants: boolean
+  /** FR-30.13: the line's place on M6's Vor-Ort list; null or absent for never placed. */
+  shopping_position?: number | null
 }
 
 export interface Container {
@@ -418,6 +425,11 @@ export interface TaskFacts {
   resolved_at: string | null
   /** Who ticked it off — stamped by the server alone (invariant 3). */
   resolved_by_user_id: string | null
+  /**
+   * FR-7.17: where the task stands inside its group, by hand; null or absent
+   * for never placed, which reads before every placed task (ADR-083).
+   */
+  position?: number | null
 }
 
 export interface ItemTodo extends TaskFacts {
@@ -466,6 +478,8 @@ export interface ShoppingEntry {
   assignee_user_id: string | null
   /** FR-7.16: when closing the packing carried it to *at the destination*; null or absent for never. */
   carried_over_at?: string | null
+  /** FR-30.13: where it stands inside its heading, by hand; null or absent for never placed (ADR-083). */
+  position?: number | null
 }
 
 // --- The planner (§3.29) ---
