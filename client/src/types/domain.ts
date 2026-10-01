@@ -1,5 +1,7 @@
 /** Client-side domain types — shaped from pull responses and DB schema. */
 
+import type { TrackKind } from '@/api/types'
+
 export type TripStatus = 'planning' | 'active' | 'archived'
 
 /**
@@ -590,6 +592,39 @@ export interface IdeaImage {
   idea_id: string
   image_hash: string
   position: number
+}
+
+/**
+ * FR-29.17: what a GPX track is, wherever it hangs — the figures and line
+ * the uploading device read from the file, and what the travellers set. The
+ * file itself moves over its own endpoint, or lives in IndexedDB in Local
+ * Mode (ADR-085). The kernel's track card reads these fields alone.
+ */
+export interface TrackFields {
+  id: string
+  name: string
+  /** The name the file was uploaded under, which a download keeps. */
+  file_name: string
+  kind: TrackKind
+  with_kid: boolean
+  /** The travellers' own pauses, in minutes. */
+  pause_min: number
+  position: number
+  gpx_hash: string
+  distance_m: number
+  /** Null for a file without heights, as are the two below. */
+  ascent_m: number | null
+  descent_m: number | null
+  max_ele_m: number | null
+  point_count: number
+  /** The track thinned to at most 800 points, as a polyline string. */
+  line: string
+}
+
+/** FR-29.17: one GPX track on an idea. */
+export interface IdeaTrack extends TrackFields {
+  trip_id: string
+  idea_id: string
 }
 
 // --- Master data ---

@@ -52,6 +52,13 @@ function fakeHost(): ModuleHost {
       url: () => Promise.resolve(null),
       forget: () => Promise.resolve(),
     },
+    // Nor tracks.
+    tracks: {
+      add: () => Promise.reject(new Error('no tracks here')),
+      replace: () => Promise.reject(new Error('no tracks here')),
+      file: () => Promise.resolve(null),
+      forget: () => Promise.resolve(),
+    },
     linkPreview: {
       offered: () => false,
       read: () => Promise.resolve(null),

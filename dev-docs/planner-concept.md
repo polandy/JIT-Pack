@@ -99,7 +99,7 @@ table of the planner's own rather than a column on `comments` (ADR-078).
 
 **`day_entries`** — the day plan's own entries (decision #9): `id`, `trip_id` (cascade), `kind` (`note`/`connection`,
 CHECK), `on_date`, `at_time NULL`, `title`, `note`, `link NULL`, `legs NULL`, `author_id` (server-stamped),
-`field_hlcs`, `updated_hlc`. A connection (FR-29.17) keeps its legs as one JSON field — each leg `from`, `to`, `dep`,
+`field_hlcs`, `updated_hlc`. A connection (FR-29.18) keeps its legs as one JSON field — each leg `from`, `to`, `dep`,
 `arr` (local `YYYY-MM-DDTHH:MM`, so a night train arrives on its own day), `line` (empty for a walk) — written whole
 by one person and never merged leg by leg; `at_time` is its first departure, so one ordering serves every kind. Its own
 table rather than an idea in a hidden

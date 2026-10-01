@@ -18,6 +18,7 @@
  * already holds their completeness against the domain type. The parsers had
  * no consumer outside their own store, so they moved.
  */
+import { TRACK_KIND } from '@/api/types'
 import type {
   AppliedChange,
   Container,
@@ -36,6 +37,7 @@ import type {
   Idea,
   IdeaComment,
   IdeaImage,
+  IdeaTrack,
   IdeaVote,
   ShoppingEntry,
   TaskFacts,
@@ -76,6 +78,7 @@ import {
   dayEntryRow,
   ideaCommentRow,
   ideaImageRow,
+  ideaTrackRow,
   ideaRow,
   ideaVoteRow,
   profileRow,
@@ -441,6 +444,31 @@ function rowToIdeaImage(id: string, row: Record<string, unknown>): IdeaImage {
   }
 }
 
+function nullableNumber(value: unknown): number | null {
+  return value === null || value === undefined ? null : Number(value)
+}
+
+function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+    name: row['name'] as string,
+    file_name: row['file_name'] as string,
+    kind: row['kind'] === TRACK_KIND.bike ? TRACK_KIND.bike : TRACK_KIND.hike,
+    with_kid: Boolean(row['with_kid']),
+    pause_min: Number(row['pause_min'] ?? 0),
+    position: Number(row['position'] ?? 0),
+    gpx_hash: row['gpx_hash'] as string,
+    distance_m: Number(row['distance_m'] ?? 0),
+    ascent_m: nullableNumber(row['ascent_m']),
+    descent_m: nullableNumber(row['descent_m']),
+    max_ele_m: nullableNumber(row['max_ele_m']),
+    point_count: Number(row['point_count'] ?? 0),
+    line: (row['line'] as string) ?? '',
+  }
+}
+
 function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
   return {
     id,
@@ -570,6 +598,7 @@ export const TABLE_CODECS = {
   [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
   [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
   [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
+  [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.

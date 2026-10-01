@@ -820,6 +820,43 @@ CREATE TABLE idea_image_bytes (
     CHECK (length(image) <= 512000)                         -- FR-29.5: 500 KB
 );
 
+-- FR-29.17: one GPX track on an idea. The row syncs — what the uploading
+-- device read from the file: the figures, and `line`, the track thinned to
+-- at most 800 points as a polyline string (precision 5), which every screen
+-- draws from — and the file itself does not: it lives in idea_track_gpx and
+-- moves over its own endpoint (ADR-002, ADR-085). A row is created only by
+-- the upload, so a push may change what a person sets — the name, the kind,
+-- `with_kid`, the pauses and the place — and nothing the file says. The
+-- heights are NULL for a file without any.
+CREATE TABLE idea_tracks (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+    file_name   TEXT NOT NULL CHECK (length(file_name) BETWEEN 1 AND 255),
+    kind        TEXT NOT NULL DEFAULT 'hike' CHECK (kind IN ('hike','bike')),
+    with_kid    INTEGER NOT NULL DEFAULT 0 CHECK (with_kid IN (0,1)),
+    pause_min   INTEGER NOT NULL DEFAULT 0 CHECK (pause_min BETWEEN 0 AND 480),
+    position    INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+    gpx_hash    TEXT NOT NULL,
+    distance_m  INTEGER NOT NULL CHECK (distance_m >= 0),
+    ascent_m    INTEGER CHECK (ascent_m IS NULL OR ascent_m >= 0),
+    descent_m   INTEGER CHECK (descent_m IS NULL OR descent_m >= 0),
+    max_ele_m   INTEGER,
+    point_count INTEGER NOT NULL CHECK (point_count >= 2),
+    line        TEXT NOT NULL CHECK (length(line) BETWEEN 1 AND 16000),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-29.17: the GPX file of one track, as it was uploaded — outside the sync
+-- envelope, and gone with its row. Read back only to be downloaded.
+CREATE TABLE idea_track_gpx (
+    track_id   TEXT PRIMARY KEY REFERENCES idea_tracks(id) ON DELETE CASCADE,
+    gpx        BLOB NOT NULL,
+    CHECK (length(gpx) <= 5242880)                          -- FR-29.17: 5 MB
+);
+
 -- ---------------------------------------------------------------------------
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
@@ -956,6 +993,7 @@ CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
 CREATE INDEX idx_day_entries_trip ON day_entries (trip_id, on_date);
+CREATE INDEX idx_idea_tracks_idea ON idea_tracks (idea_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);
 CREATE INDEX idx_notifications_user ON notifications (user_id, created_at DESC);

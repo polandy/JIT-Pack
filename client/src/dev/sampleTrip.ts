@@ -2,6 +2,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { localIsoDate } from '@/domain/trips'
+import { readTrack } from '@/domain/track'
 import {
   PORTABLE_SCHEMA_VERSION,
   type PortableDocument,
@@ -22,6 +23,7 @@ import {
 } from '@/types/domain'
 import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
 import { samplePicture } from './samplePictures'
+import { SAMPLE_ROUTES, sampleGpx } from './sampleTracks'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
@@ -180,9 +182,11 @@ export function seedSampleTrip(
  * §3.29: M28 opens with a board worth reading — ideas in three of the four
  * segments, every tag but one and a rain-proof one for the chips, a link, a
  * note, a vote, a comment, and pictures — one, two and four, so each of the
- * mosaic's shapes is on the board (FR-29.5). On the shortlist one is planned on
- * tomorrow and one waits without a day, so M29 has a line and a pool (FR-29.14).
- * Written without an identity, as Local Mode
+ * mosaic's shapes is on the board (FR-29.5) — and an idea with two GPX
+ * tracks and no picture, a hike and a bike tour, so the board shows a line
+ * as a banner and the map has two to choose between (FR-29.17). On the
+ * shortlist one is planned on tomorrow and one waits without a day, so M29
+ * has a line and a pool (FR-29.14). Written without an identity, as Local Mode
  * writes; on a server the push stamps the account that seeded. Through the
  * module's own actions, for the reason `buyOneShoppingRow` gives.
  */
@@ -199,6 +203,7 @@ export const SEED_IDEAS: ReadonlyArray<{
   /** FR-29.14: planned this many days from today, at this time. */
   plannedIn?: number
   plannedAt?: string
+  tracks?: boolean
 }> = [
   {
     title: 'Bernina Express nach Tirano',
@@ -216,6 +221,12 @@ export const SEED_IDEAS: ReadonlyArray<{
     comment: 'Montags geschlossen.',
   },
   { title: 'Capuns im Gasthaus probieren', tag: 'food', rainProof: true },
+  {
+    title: 'Oberengadin zu Fuss oder mit dem Velo',
+    tag: 'hiking',
+    note: 'Höhenweg mit Blick auf die Seen, oder gemütlich dem Inn entlang.',
+    tracks: true,
+  },
   { title: 'Baden im Lej da Staz', tag: 'swimming', pictures: 2 },
   {
     title: 'Muottas Muragl – Alp Languard',
@@ -262,6 +273,7 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     }
     if (seed.comment) actions.addComment(tripId, idea.id, seed.comment, null)
     if (seed.pictures) void seedPictures(idea, seed.pictures, actions)
+    if (seed.tracks) void seedTracks(idea, actions)
   }
   // FR-29.15: an entry of the day plan's own, tonight.
   actions.addDayEntry(
@@ -270,6 +282,22 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     { title: 'Tisch im Gasthaus Bernina', note: '4 Personen', time: '19:30' },
     null,
   )
+}
+
+/** One after another, for the reason `seedPictures` gives. */
+async function seedTracks(
+  idea: Idea,
+  actions: ReturnType<typeof createPlannerActions>,
+): Promise<void> {
+  try {
+    for (const route of SAMPLE_ROUTES) {
+      const gpx = sampleGpx(route)
+      const read = readTrack(gpx, route.fileName, gpx.length)
+      if (read.ok) await actions.addTrack(idea, read.upload)
+    }
+  } catch (error) {
+    console.warn(`dev seed: no tracks for „${idea.title}"`, error)
+  }
 }
 
 /**

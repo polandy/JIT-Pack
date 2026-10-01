@@ -36,8 +36,11 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
+import type { IdeaTrackUpload } from '@/api/types'
+import { orderTracks, readTrack } from '@/domain/track'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
+import { saveBlob } from '@/lib/download'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/lib/toast'
@@ -48,7 +51,9 @@ import type {
   IdeaImage,
   IdeaState,
   IdeaTag,
+  IdeaTrack,
   IdeaVoteValue,
+  TrackFields,
 } from '@/types/domain'
 import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from '@/types/domain'
 import { createPlannerActions, type IdeaFields } from './actions'
@@ -119,6 +124,12 @@ const board = computed(() =>
 /** A card's pictures, cover first (FR-29.5). */
 function picturesOf(ideaId: string): IdeaImage[] {
   return ideaPictures(ideaId, plannerStore.getImages(props.tripId))
+}
+
+function tracksOf(ideaId: string): IdeaTrack[] {
+  return orderTracks(
+    plannerStore.getTracks(props.tripId).filter((track) => track.idea_id === ideaId),
+  )
 }
 
 const chipsShown = computed(() => board.value.tags.length > 0 || board.value.hasRainProof)
@@ -304,6 +315,70 @@ async function onRemovePicture(image: IdeaImage) {
   if (confirmed) actions.removePicture(image)
 }
 
+// --- GPX tracks (FR-29.17) ---
+
+/** Whether a GPX file is being read and sent; the add control waits for it. */
+const trackBusy = ref(false)
+
+function toast(message: string) {
+  void presentToast({ message, positionAnchor: FAB_ANCHOR.m28 })
+}
+
+/**
+ * Reads a chosen file on this device (ADR-085) and hands what it read to
+ * `send`. A file that is too large or holds no track is said and kept
+ * nowhere; so is an upload that failed — Server Mode uploads now or not at
+ * all, as for a picture.
+ */
+async function withTrackFile(file: File, send: (upload: IdeaTrackUpload) => Promise<unknown>) {
+  if (trackBusy.value) return
+  trackBusy.value = true
+  try {
+    const read = readTrack(await file.text(), file.name, file.size)
+    if (!read.ok) {
+      toast(read.reason === 'too_large' ? t('ideas.trackTooLarge') : t('ideas.trackNone'))
+      return
+    }
+    await send(read.upload)
+  } catch {
+    toast(t('ideas.trackUploadFailed'))
+  } finally {
+    trackBusy.value = false
+  }
+}
+
+async function onAddTrack(file: File) {
+  const idea = openIdea.value
+  if (idea) await withTrackFile(file, (upload) => actions.addTrack(idea, upload))
+}
+
+async function onReplaceTrack(track: IdeaTrack, file: File) {
+  await withTrackFile(file, (upload) => actions.replaceTrack(track, upload))
+}
+
+function onUpdateTrack(
+  track: IdeaTrack,
+  settings: Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>,
+) {
+  actions.updateTrack(track, settings)
+}
+
+async function onDownloadTrack(track: IdeaTrack) {
+  const file = await actions.trackFile(track)
+  if (file) saveBlob(file, track.file_name)
+  else toast(t('ideas.trackUploadFailed'))
+}
+
+async function onRemoveTrack(track: IdeaTrack) {
+  const confirmed = await confirmDestructive({
+    header: t('track.remove'),
+    message: t('ideas.removeTrackConfirm'),
+    confirmLabel: t('track.remove'),
+    testid: 'track-remove-confirm',
+  })
+  if (confirmed) actions.removeTrack(track)
+}
+
 function onEdit() {
   if (openIdea.value) editing.value = { idea: openIdea.value }
 }
@@ -400,6 +475,7 @@ const EMPTY_KEYS = {
             :key="card.idea.id"
             :card="card"
             :pictures="picturesOf(card.idea.id)"
+            :tracks="tracksOf(card.idea.id)"
             :picture-coming="plannerStore.pictureComing(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
@@ -450,6 +526,7 @@ const EMPTY_KEYS = {
           :name-of="nameOf"
           :uploading="uploading"
           :days="days"
+          :track-busy="trackBusy"
           @close="closeSheet"
           @edit="onEdit"
           @remove="onRemove"
@@ -462,6 +539,11 @@ const EMPTY_KEYS = {
           @cover-picture="onCoverPicture"
           @remove-picture="onRemovePicture"
           @plan="onPlan"
+          @add-track="onAddTrack"
+          @update-track="onUpdateTrack"
+          @download-track="onDownloadTrack"
+          @replace-track="onReplaceTrack"
+          @remove-track="onRemoveTrack"
         />
       </SheetModal>
       <Teleport v-if="isDesktop && openIdea" defer :to="PANEL_HOST_SELECTOR">
@@ -473,6 +555,7 @@ const EMPTY_KEYS = {
             :name-of="nameOf"
             :uploading="uploading"
             :days="days"
+            :track-busy="trackBusy"
             @close="closeSheet"
             @edit="onEdit"
             @remove="onRemove"
@@ -485,6 +568,11 @@ const EMPTY_KEYS = {
             @cover-picture="onCoverPicture"
             @remove-picture="onRemovePicture"
             @plan="onPlan"
+            @add-track="onAddTrack"
+            @update-track="onUpdateTrack"
+            @download-track="onDownloadTrack"
+            @replace-track="onReplaceTrack"
+            @remove-track="onRemoveTrack"
           />
         </aside>
       </Teleport>

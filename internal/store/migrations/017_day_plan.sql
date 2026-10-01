@@ -1,4 +1,4 @@
--- 016 — FR-29.14/FR-29.15: an idea planned on a day, and the day plan's own
+-- 017 — FR-29.14/FR-29.15: an idea planned on a day, and the day plan's own
 -- entries. Additive only; the comments explaining the columns live in
 -- schema.sql (ADR-067 driver 4).
 

@@ -381,8 +381,13 @@ type AuthConfigResponse struct {
 // Currency is an ISO-4217 code, or empty where the operator named none:
 // amounts then stay unit-less, as they were before FR-21.9. It is a label,
 // never a conversion — the stored amount is already in this currency.
+//
+// MapTiles says whether a device draws a map's background tiles, fetched
+// from swisstopo and OpenStreetMap by the device itself (FR-29.17,
+// ADR-085). False draws a track's line alone, as a device offline does.
 type InstanceConfigResponse struct {
 	Currency string `json:"currency"`
+	MapTiles bool   `json:"map_tiles"`
 }
 
 // --- The link preview (FR-29.16) ---
@@ -407,6 +412,36 @@ type LinkPreviewResponse struct {
 type LinkPreviewImageResponse struct {
 	Image     string `json:"image"`
 	ImageType string `json:"image_type"`
+}
+
+// --- GPX tracks (FR-29.17) ---
+
+// TrackKind is what a track is walked or ridden as — a closed vocabulary,
+// held by the idea_tracks CHECK too.
+type TrackKind string
+
+const (
+	TrackHike TrackKind = "hike"
+	TrackBike TrackKind = "bike"
+)
+
+// IdeaTrackUpload is one GPX file and what the device that chose it read
+// from it (ADR-085): the server stores the file as it is and the rest as the
+// track's row, and reads neither. The heights are null for a file without
+// any; Line is the track thinned to at most 800 points, as a polyline string
+// of precision 5. Replacing a track sends the same shape under its id; the
+// name and the kind are then kept as the travellers set them.
+type IdeaTrackUpload struct {
+	Name       string    `json:"name"`
+	FileName   string    `json:"file_name"`
+	Kind       TrackKind `json:"kind"`
+	DistanceM  int       `json:"distance_m"`
+	AscentM    *int      `json:"ascent_m"`
+	DescentM   *int      `json:"descent_m"`
+	MaxEleM    *int      `json:"max_ele_m"`
+	PointCount int       `json:"point_count"`
+	Line       string    `json:"line"`
+	GPX        string    `json:"gpx"`
 }
 
 // --- The release check (FR-23.8) ---
@@ -608,6 +643,7 @@ const (
 	PathTemplateItemID = "templateItemID"
 	PathIdeaID         = "ideaID"
 	PathImageID        = "imageID"
+	PathTrackID        = "trackID"
 )
 
 // Every path this instance serves, declared once. The server registers from
@@ -634,6 +670,11 @@ const (
 	// id; GET reads its bytes. Both are the trip's, behind its membership —
 	// the synced half is an idea_images row, and a push moves or deletes it.
 	RouteTripIdeaImage = "/api/v1/trips/{tripID}/ideas/{ideaID}/images/{imageID}"
+	// FR-29.17: one GPX track on an idea. PUT uploads the file with what the
+	// device read from it, under the client's own id, and replaces the file
+	// when the id exists; GET reads the file back to be downloaded. Both are
+	// the trip's — the synced half is an idea_tracks row.
+	RouteTripIdeaTrack = "/api/v1/trips/{tripID}/ideas/{ideaID}/tracks/{trackID}"
 	// FR-29.16: what a pasted link's page says about itself. A trip's route
 	// so that only a member can make this server fetch a page.
 	RouteTripLinkPreview = "/api/v1/trips/{tripID}/link-preview"

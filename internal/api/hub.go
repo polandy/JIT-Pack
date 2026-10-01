@@ -45,6 +45,9 @@ type conn struct {
 	// a trip — the dashboard subscribes every active one — and never ends,
 	// where this is what a person is working on now.
 	viewing string
+	// rosterSent is the generation of the newest roster queued to this peer,
+	// guarded by Hub.mu — see `broadcastRoster`.
+	rosterSent uint64
 	// pullCursors tracks the last known pull cursor per trip.
 	pullCursors map[string]int64
 	// out holds the frames written but not yet sent to this peer, and is
@@ -69,6 +72,8 @@ type ReceiveFunc func(ctx context.Context, tripID, userID string) bool
 type Hub struct {
 	mu    sync.Mutex
 	conns map[*conn]struct{}
+	// rosterGen numbers the roster snapshots, newest highest.
+	rosterGen uint64
 
 	headSeq    HeadSeqFunc
 	mayReceive ReceiveFunc
@@ -343,8 +348,16 @@ func (h *Hub) broadcastPresence(tripID string) {
 // that names somebody's whereabouts, and a revoked member is neither shown nor
 // shown to. The answers are asked once per (trip, user) per call, since a
 // roster for N connections would otherwise ask the database N times over.
+//
+// Those questions are asked outside the lock, so two calls can overtake each
+// other between snapshot and send. Each snapshot therefore carries a
+// generation, and a peer is never queued one older than it already holds: a
+// roster replaces the last rather than adding to it, so the stale one is
+// dropped, not reordered.
 func (h *Hub) broadcastRoster(only *conn) {
 	h.mu.Lock()
+	h.rosterGen++
+	gen := h.rosterGen
 	viewing := map[string]map[string]bool{}
 	var targets []*conn
 	for c := range h.conns {
@@ -401,7 +414,17 @@ func (h *Hub) broadcastRoster(only *conn) {
 		if only != nil && len(members) == 0 {
 			continue
 		}
-		h.send([]*conn{c}, WSEvent{Type: EventRoster, Payload: map[string]any{"users": members}})
+		data, err := json.Marshal(WSEvent{Type: EventRoster, Payload: map[string]any{"users": members}})
+		if err != nil {
+			slog.Error("marshal roster", "error", err)
+			continue
+		}
+		h.mu.Lock()
+		if gen > c.rosterSent {
+			c.rosterSent = gen
+			c.enqueue(data)
+		}
+		h.mu.Unlock()
 	}
 }
 

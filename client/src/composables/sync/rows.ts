@@ -35,6 +35,7 @@ import type {
   Idea,
   IdeaComment,
   IdeaImage,
+  IdeaTrack,
   IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
@@ -284,6 +285,27 @@ export function ideaImageRow(image: IdeaImage): Record<string, unknown> {
     idea_id: image.idea_id,
     image_hash: image.image_hash,
     position: image.position,
+  }
+}
+
+/** FR-29.17: a GPX track on an idea — every column, as an optimistic row is rebuilt on. */
+export function ideaTrackRow(track: IdeaTrack): Record<string, unknown> {
+  return {
+    trip_id: track.trip_id,
+    idea_id: track.idea_id,
+    name: track.name,
+    file_name: track.file_name,
+    kind: track.kind,
+    with_kid: dbBool(track.with_kid),
+    pause_min: track.pause_min,
+    position: track.position,
+    gpx_hash: track.gpx_hash,
+    distance_m: track.distance_m,
+    ascent_m: track.ascent_m,
+    descent_m: track.descent_m,
+    max_ele_m: track.max_ele_m,
+    point_count: track.point_count,
+    line: track.line,
   }
 }
 

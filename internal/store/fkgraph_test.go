@@ -31,6 +31,11 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableIdeaImages + " -> idea_image_bytes": "idea picture BLOBs are outside the sync envelope",
 	TableIdeas + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
 	TableTrips + " -> idea_image_bytes":      "idea picture BLOBs are outside the sync envelope",
+	// FR-29.17: a track's file likewise; its idea_tracks row is the synced
+	// half and is tombstoned.
+	TableIdeaTracks + " -> idea_track_gpx": "GPX files are outside the sync envelope",
+	TableIdeas + " -> idea_track_gpx":      "GPX files are outside the sync envelope",
+	TableTrips + " -> idea_track_gpx":      "GPX files are outside the sync envelope",
 	// FR-32.1: the activity log is read over its own endpoint and never
 	// synced, so no device holds a row of it.
 	TableTrips + " -> activity_log": "the activity log is not synced",
@@ -50,6 +55,7 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableTrips + " -> ideas":                    "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_comments":            "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_images":              "the trip's own feed is deleted with it",
+	TableTrips + " -> idea_tracks":              "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_votes":               "the trip's own feed is deleted with it",
 	TableTrips + " -> day_entries":              "the trip's own feed is deleted with it",
 	TableTrips + " -> lock_events":              "the trip's own feed is deleted with it",

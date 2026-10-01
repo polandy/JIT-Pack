@@ -1,7 +1,7 @@
 /**
  * The planner's rows (§3.29): a trip's ideas, the votes on them, their
- * discussion and their pictures, and the day plan's own entries (FR-29.15),
- * held apart from the packing rows.
+ * discussion, their pictures and their tracks, and the day plan's own entries
+ * (FR-29.15), held apart from the packing rows.
  *
  * The planner's own store, as the shopping list has its own: nothing the
  * packing side reads can reach an idea, and the orchestrator reaches these
@@ -15,7 +15,7 @@ import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
 import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
-import type { DayEntry, Idea, IdeaComment, IdeaImage, IdeaVote } from '@/types/domain'
+import type { DayEntry, Idea, IdeaComment, IdeaImage, IdeaTrack, IdeaVote } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
 /** The tables this module holds. */
@@ -25,6 +25,7 @@ const PLANNER_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.ideaComments,
   TABLE.ideaImages,
   TABLE.dayEntries,
+  TABLE.ideaTracks,
 ])
 
 export const usePlannerStore = defineStore('planner', () => {
@@ -36,6 +37,7 @@ export const usePlannerStore = defineStore('planner', () => {
   const images = ref<Map<string, IdeaImage>>(new Map())
   /** FR-29.15: the day plan's own entries. */
   const dayEntries = ref<Map<string, DayEntry>>(new Map())
+  const tracks = ref<Map<string, IdeaTrack>>(new Map())
   /**
    * FR-29.16: the ideas whose link's picture is on its way, which the board
    * shows coming. This device's state, not a row: nothing syncs it.
@@ -80,6 +82,11 @@ export const usePlannerStore = defineStore('planner', () => {
     return dayEntries.value.get(id)
   }
 
+  /** A trip's GPX tracks, as rows — `domain/track.ts` orders them (FR-29.17). */
+  function getTracks(tripId: string): IdeaTrack[] {
+    return [...tracks.value.values()].filter((track) => track.trip_id === tripId)
+  }
+
   function applyChanges(changes: PullChange[]): void {
     for (const change of changes) {
       switch (change.table) {
@@ -102,16 +109,22 @@ export const usePlannerStore = defineStore('planner', () => {
             TABLE_CODECS[TABLE.dayEntries].parse(id, row),
           )
           break
+        case TABLE.ideaTracks:
+          apply(tracks.value, change, (id, row) => TABLE_CODECS[TABLE.ideaTracks].parse(id, row))
+          break
       }
     }
   }
 
-  /** The rows an idea's delete takes with it — its votes, words and pictures (FR-29.2). */
+  /** The rows an idea's delete takes with it — its votes, words, pictures and tracks (FR-29.2). */
   function ideaChildRows(ideaId: string): CascadeRow[] {
     return [
       ...[...images.value.values()]
         .filter((image) => image.idea_id === ideaId)
         .map((image) => ({ table: TABLE.ideaImages, id: image.id })),
+      ...[...tracks.value.values()]
+        .filter((track) => track.idea_id === ideaId)
+        .map((track) => ({ table: TABLE.ideaTracks, id: track.id })),
       ...[...votes.value.values()]
         .filter((vote) => vote.idea_id === ideaId)
         .map((vote) => ({ table: TABLE.ideaVotes, id: vote.id })),
@@ -127,6 +140,7 @@ export const usePlannerStore = defineStore('planner', () => {
       ...getVotes(tripId).map((vote) => ({ table: TABLE.ideaVotes, id: vote.id })),
       ...getComments(tripId).map((comment) => ({ table: TABLE.ideaComments, id: comment.id })),
       ...getImages(tripId).map((image) => ({ table: TABLE.ideaImages, id: image.id })),
+      ...getTracks(tripId).map((track) => ({ table: TABLE.ideaTracks, id: track.id })),
       ...getIdeas(tripId).map((idea) => ({ table: TABLE.ideas, id: idea.id })),
       ...getDayEntries(tripId).map((entry) => ({ table: TABLE.dayEntries, id: entry.id })),
     ]
@@ -136,6 +150,7 @@ export const usePlannerStore = defineStore('planner', () => {
     for (const vote of getVotes(tripId)) votes.value.delete(vote.id)
     for (const comment of getComments(tripId)) comments.value.delete(comment.id)
     for (const image of getImages(tripId)) images.value.delete(image.id)
+    for (const track of getTracks(tripId)) tracks.value.delete(track.id)
     for (const idea of getIdeas(tripId)) ideas.value.delete(idea.id)
     for (const entry of getDayEntries(tripId)) dayEntries.value.delete(entry.id)
   }
@@ -148,6 +163,7 @@ export const usePlannerStore = defineStore('planner', () => {
     getImages,
     getDayEntries,
     getDayEntry,
+    getTracks,
     pictureComing,
     setPictureComing,
     applyChanges,

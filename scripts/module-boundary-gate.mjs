@@ -85,6 +85,9 @@ const KERNEL_PATHS = [
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',
+  // A GPX track's rules (FR-29.17): a file, its figures and its time — no
+  // idea and no excursion in sight, since both carry tracks (ADR-085).
+  'domain/track',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

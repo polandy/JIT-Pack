@@ -45,6 +45,8 @@ export const TABLE = {
   ideaImages: 'idea_images',
   /** FR-29.15: the day plan's own entries. */
   dayEntries: 'day_entries',
+  /** FR-29.17: a GPX track on an idea — what was read from the file; the file stays out (ADR-085). */
+  ideaTracks: 'idea_tracks',
   /** FR-27.4, the planning-trip refresh (migration 023). */
   tripTemplateSources: 'trip_template_sources',
   tripGeneratedPositions: 'trip_generated_positions',

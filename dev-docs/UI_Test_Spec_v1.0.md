@@ -3495,6 +3495,28 @@ went.
   for a comment, nobody for a vote, another state or an edit — is
   `TestPlanNotifications_Ideas_FR29_8`'s; the three over HTTP are
   `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`'s.
+* **E2E-M28-12** `local` (FR-29.17) — **implemented** (`planner/tracks.spec.ts`): a GPX file of 3.3 km and 300 m of
+  climb becomes a track named after the file's own track — its four figures, *1 h 25* hiked by the Swiss formula, a
+  child's pace (*2 h 05*), a quarter hour of breaks added (*2 h 20*) and the same by bike (*1 h 10*), each asserted as
+  the card shows it. The board's card shows the line and *3.3 km · ↑ 300 m*; after a reload every setting is there.
+  The paces themselves are `domain/__tests__/track.spec.ts`.
+* **E2E-M28-13** `server` (FR-29.17, ADR-085) — **implemented** (`planner/server/tracks.spec.ts`): a track Alice adds
+  is on Bob's card and in his detail with its figures, read from the row; ⋮ hands Bob the file byte for byte under its
+  name, with his own session. On an instance answering `map_tiles: false` his map is the lines alone (`data-tiles`
+  `off`, no *Map offline*) and asks no tile server. That a stranger can neither add nor download one is the server's
+  (`TestIdeaTrack_AStrangerNeitherUploadsNorDownloads_FR29_17`); the switch itself is
+  `TestLoadConfig_MapTiles_FR29_17` and `TestInstanceConfig_MapTilesOnUnlessTurnedOff_FR29_17`.
+* **E2E-M28-14** `local` (FR-29.17) — **implemented** (`planner/tracks.spec.ts`): a Swiss track draws Landeskarte
+  tiles; a second one in Tuscany — a bike tour by its `<type>`, without heights — is chosen at once and puts the map on
+  OpenStreetMap. The full-screen map opens on OSM with the Landeskarte off, and its chips choose for the card too.
+  Without the Italian track the map is the Landeskarte again, and the full-screen switch draws OSM tiles in its place.
+  Offline the map is the lines alone with *Map offline*, and online again it draws tiles. Every tile is answered on the
+  device; a drawn tile from a source is the signal, since a cached one makes no request.
+* **E2E-M28-15** `local` (FR-29.17) — **implemented** (`planner/tracks.spec.ts`): a file with waypoints only is refused
+  with *There is no track in this file.* and nothing kept. A track is renamed through ⋮ (its chip says so), downloaded
+  byte for byte under its file name, and replaced through the file chooser by a shorter climb — new figures and file,
+  the name and the breaks kept. Removing asks first: declined, it stays; confirmed, the card, the count and the
+  board's line are gone.
 
 ### M29 — Tagesplan (a trip's day plan, FR-29.14/29.15)
 
@@ -3880,6 +3902,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.4 | E2E+UNIT+SERVER | M28-03; `ideas.spec.ts` (`ideaDiscussion`), `sync.spec.ts` (survives a restart); Go: `TestStampActor_IdeaCommentAuthorIsThePusher_FR29_4` |
 | FR-29.5 | E2E+UNIT+SERVER | M28-07 (banner, mosaic, viewer, cover, removal, reload), M28-08 (another member sees it), NFR-SEC-05 (the hash on plain HTTP); `planner/domain/__tests__/pictures.spec.ts` (order, limit, `coverMoves`), `planner/__tests__/sync.spec.ts` (pulled, added, moved, removed, taken with the idea), `composables/sync/__tests__/ideaImages.seam.spec.ts` (both modes); Go: `internal/store/ideaimage_test.go`, `internal/api/ideaimage_test.go` |
 | FR-29.16 | E2E+UNIT+SERVER | M28-09 (words as a suggestion confirmed or dismissed, the picture shown coming and following a save); `sync.spec.ts` (a link's picture only to an idea without one), M28-10 (the site suggested as the title, one tap from saving, no read shown in Local Mode); `planner/domain/__tests__/linkFill.spec.ts`, `composables/sync/__tests__/linkPreview.seam.spec.ts` (Local Mode asks nothing, off latches); Go: `internal/linkpreview` (`TestParse_*`, `TestFetch_*`, `TestPublicOnly_FR29_16`), `internal/api/linkpreview_test.go` (members only, refusals, off), `cmd/jitpackd` `TestLoadConfig_LinkPreviews_FR29_16` |
+| FR-29.17 | E2E+UNIT+SERVER | M28-12 (figures, time, kind, child, breaks, reload), M28-13 (another member sees and downloads it; tiles off), M28-14 (several tracks, the source following them, full screen, offline), M28-15 (rename, download, replace, remove, a file with no track); `domain/__tests__/track.spec.ts` (reading GPX, figures, kind, thinning, the line, paces), `planner/__tests__/tracks.spec.ts` (pulled, added, a sixth refused, settings, removed, taken with the idea, Local Mode restart), `composables/sync/__tests__/ideaTracks.seam.spec.ts` (both modes), `dev/__tests__/sampleTrip.spec.ts` (the seed's routes), `lib/__tests__/mapTiles.spec.ts` (the switch kept, the connection followed), `lib/__tests__/trackFormat.spec.ts`; Go: `internal/store/ideatrack_test.go`, `internal/api/ideatrack_test.go`, `cmd/jitpackd/config_test.go` |
 | FR-29.8 | E2E+UNIT+SERVER | M28-11 (each kind on the other's screen, the notice opening the idea); `notifications/__tests__/format.spec.ts`, `workerBody.spec.ts` (wording and link, app and worker alike), `SettingsPage.spec.ts` (three switches); Go: `TestPlanNotifications_Ideas_FR29_8`, `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`, `TestIdeaDiscussion_NamesTheIdeasAuthorThenEveryCommenterOnce_FR29_8` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |
 | FR-29.14/29.15 | E2E+UNIT+SERVER | M29-01 (the days, arrival and departure), M29-02 (an entry of its own), M29-03 (planned from the pool and from M28, the tick), M29-04 (an excursion on its days), G12-09 (the pill); `planner/domain/__tests__/dayPlan.spec.ts` (`tripDays`, `openingDay`, `unplannedIdeas`, `ideasOutsideTrip`, `dayLines`), `dayPlanSource.spec.ts`, `sync.spec.ts` (planning, the entry's writes, the trip's cascade); Go: `TestApplyMutation_DayPlan_PlannedIdeaAndOwnEntry_FR29_15`, `TestStampActor_DayEntryAuthorIsThePusher_FR29_15` |

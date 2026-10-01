@@ -1,7 +1,7 @@
-# ADR-085: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
+# ADR-086: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
 
 **Status:** Accepted
-**Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.17, invariant 4, invariant 5,
+**Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.18, invariant 4, invariant 5,
 `dev-docs/planner-concept.md` §3
 
 **Decision Drivers (in priority order):**

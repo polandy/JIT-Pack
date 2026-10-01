@@ -12,6 +12,7 @@
 import { API } from '@/api/routes'
 import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/lib/currency'
+import { setMapTiles } from '@/lib/mapTiles'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import PageHead from '@/components/global/PageHead.vue'
@@ -312,10 +313,14 @@ onMounted(async () => {
       if (resp.ok) {
         const config: InstanceConfigResponse = await resp.json()
         setCurrency(config.currency)
+        setMapTiles(config.map_tiles)
       }
     } catch {
       // Server unreachable — keep the last known label.
     }
+  } else {
+    // FR-29.17: Local Mode has no operator to turn the tiles off.
+    setMapTiles(true)
   }
 
   // Sync-API P-1: the app coming back — a tab unfrozen, the network back, a
