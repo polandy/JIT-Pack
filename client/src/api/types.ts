@@ -411,9 +411,14 @@ export interface AuthConfigResponse {
  * Currency is an ISO-4217 code, or empty where the operator named none:
  * amounts then stay unit-less, as they were before FR-21.9. It is a label,
  * never a conversion — the stored amount is already in this currency.
+ *
+ * MapTiles says whether a device draws a map's background tiles, fetched
+ * from swisstopo and OpenStreetMap by the device itself (FR-29.17,
+ * ADR-085). False draws a track's line alone, as a device offline does.
  */
 export interface InstanceConfigResponse {
   currency: string
+  map_tiles: boolean
 }
 
 /**
@@ -442,6 +447,38 @@ export interface LinkPreviewResponse {
 export interface LinkPreviewImageResponse {
   image: string
   image_type: string
+}
+
+/**
+ * TrackKind is what a track is walked or ridden as — a closed vocabulary,
+ * held by the idea_tracks CHECK too.
+ */
+export type TrackKind = 'hike' | 'bike'
+
+export const TRACK_KIND = {
+  hike: 'hike',
+  bike: 'bike',
+} as const
+
+/**
+ * IdeaTrackUpload is one GPX file and what the device that chose it read
+ * from it (ADR-085): the server stores the file as it is and the rest as the
+ * track's row, and reads neither. The heights are null for a file without
+ * any; Line is the track thinned to at most 800 points, as a polyline string
+ * of precision 5. Replacing a track sends the same shape under its id; the
+ * name and the kind are then kept as the travellers set them.
+ */
+export interface IdeaTrackUpload {
+  name: string
+  file_name: string
+  kind: TrackKind
+  distance_m: number
+  ascent_m: number | null
+  descent_m: number | null
+  max_ele_m: number | null
+  point_count: number
+  line: string
+  gpx: string
 }
 
 /**

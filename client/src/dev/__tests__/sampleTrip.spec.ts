@@ -25,6 +25,8 @@ import { plannerFeatureStore, usePlannerStore } from '@/planner'
 import { IDEA_STATES } from '@/types/domain'
 
 import { SEED_IDEAS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
+import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
+import { decodeLine, defaultSource, readTrack } from '@/domain/track'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
@@ -80,6 +82,22 @@ describe('seedSampleTrip (dev)', () => {
     expect(ideas.some((idea) => idea.rain_proof)).toBe(true)
     expect(planner.getVotes(tripId).filter((vote) => vote.vote === 'up')).toHaveLength(1)
     expect(planner.getComments(tripId)).toHaveLength(1)
+  })
+
+  /*
+   * FR-29.17: the seed's GPX routes are files the device can read — a hike and
+   * a bike tour, both on the Landeskarte — or the idea that carries them
+   * would show no map at all.
+   */
+  it('seeds two GPX routes that read as a hike and a bike tour in Switzerland (FR-29.17)', () => {
+    const read = SAMPLE_ROUTES.map((route) => {
+      const gpx = sampleGpx(route)
+      return readTrack(gpx, route.fileName, gpx.length)
+    })
+    const uploads = read.map((r) => (r.ok ? r.upload : null))
+    expect(uploads.map((u) => u?.kind)).toEqual(['hike', 'bike'])
+    expect(defaultSource(uploads.map((u) => decodeLine(u!.line)))).toBe('swisstopo')
+    expect(SEED_IDEAS.filter((idea) => idea.tracks)).toHaveLength(1)
   })
 
   it('leaves a fresh device with both kinds of task (FR-7.6)', () => {

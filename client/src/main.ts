@@ -38,6 +38,7 @@ import './composables/dragToGroup.css'
  * already be in the user's language, not switch under them. */
 import { initLocale } from './i18n'
 import { initCurrency } from './lib/currency'
+import { initMapTiles } from './lib/mapTiles'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
  * start, not only when push is enabled. Production only — the dev server has
@@ -51,6 +52,7 @@ initLocale()
 // The server's own answer replaces it once App.vue has asked (invariant 5:
 // Local Mode never asks, and its amounts stay unit-less).
 initCurrency()
+initMapTiles()
 if (import.meta.env.PROD) registerAppServiceWorker()
 
 const app = createApp(App)

@@ -23,6 +23,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_WEB_ROOT` | no | — | Directory holding the built client, served on the same origin as the API. The published image sets it to `/srv/web`, so a container needs nothing here. Unset, the server answers the API alone — the shape for a deployment whose own web server or CDN serves the static files. A path with no `index.html` in it is a **startup error**, not a white page. |
 | `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance makes no release check. See [Release check](#release-check). |
 | `JITPACK_LINK_PREVIEWS` | no | on | When somebody pastes a link into an idea, the server reads that page for its title, description and picture. `false` turns it off; unset or `true` leaves it on; any other value is a **startup error**. See [Link previews](#link-previews). |
+| `JITPACK_MAP_TILES` | no | on | The maps of [GPX tracks](ideas.md#gpx-tracks) show swisstopo's or OpenStreetMap's map behind the line, which each device fetches from them itself. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Map tiles](#map-tiles). |
 | `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
@@ -79,6 +80,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | One or two of the three OIDC variables set | `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` |
 | `JITPACK_TASK_REMINDER_TIME` is not a time of day such as `06:00` | `config: JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset` |
 | `JITPACK_LINK_PREVIEWS` is neither `true` nor `false` | `config: JITPACK_LINK_PREVIEWS must be true or false, or unset (on)` |
+| `JITPACK_MAP_TILES` is neither `true` nor `false` | `config: JITPACK_MAP_TILES must be true or false, or unset (on)` |
 | The database file cannot be opened or migrated | `store: …` |
 | Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
 | Discovery document's `issuer` differs from the configured one | `oidc discovery: OIDC discovery issuer mismatch: document says "…", configured "…"` |
@@ -189,6 +191,27 @@ What to know before you decide:
 - **Local mode has no preview**, since there is no server to ask.
 
 With it off, pasting a link keeps it as a link — exactly as before.
+
+## Map tiles
+
+A [GPX track](ideas.md#gpx-tracks) on an idea is drawn on a map: swisstopo's Landeskarte inside Switzerland,
+OpenStreetMap elsewhere. The map pieces — *tiles* — are fetched **by each person's device, directly from swisstopo
+(`wmts.geo.admin.ch`) and OpenStreetMap (`tile.openstreetmap.org`)**, not through your server. This is **on unless you
+turn it off**:
+
+```bash
+JITPACK_MAP_TILES=false
+```
+
+What to know before you decide:
+
+- **Those services see the device.** They learn its internet address and which part of the map it shows — roughly,
+  where the track is. Nothing else about the trip, the idea or the people on it is sent.
+- **Your server is not involved.** It never fetches a tile, so turning this off changes nothing about what your
+  server contacts — only what the devices of the people using it do.
+- **With it off,** every map shows the tracks' lines on a plain background, the way it does on a device that is
+  offline. The figures, the times and the download stay.
+- **Local mode** has no administrator and always shows the map.
 
 ## Task reminders
 

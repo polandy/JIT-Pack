@@ -76,6 +76,9 @@ const (
 	// FR-29.5: a picture on an idea — its hash and position; the bytes stay
 	// outside the envelope (ADR-002).
 	TableIdeaImages = "idea_images"
+	// FR-29.17: a GPX track on an idea — what the device read from the file;
+	// the file stays outside the envelope (ADR-085).
+	TableIdeaTracks = "idea_tracks"
 	// FR-27.4, the planning-trip refresh (migration 023).
 	TableTripTemplateSources    = "trip_template_sources"
 	TableTripGeneratedPositions = "trip_generated_positions"

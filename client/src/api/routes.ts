@@ -30,6 +30,13 @@ export const API = {
   tripIdeaImage: (tripID: string, ideaID: string, imageID: string) =>
     `/api/v1/trips/${tripID}/ideas/${ideaID}/images/${imageID}`,
 
+  // FR-29.17: one GPX track on an idea. PUT uploads the file with what the
+  // device read from it, under the client's own id, and replaces the file
+  // when the id exists; GET reads the file back to be downloaded. Both are
+  // the trip's — the synced half is an idea_tracks row.
+  tripIdeaTrack: (tripID: string, ideaID: string, trackID: string) =>
+    `/api/v1/trips/${tripID}/ideas/${ideaID}/tracks/${trackID}`,
+
   // FR-29.16: what a pasted link's page says about itself. A trip's route
   // so that only a member can make this server fetch a page.
   tripLinkPreview: (tripID: string) => `/api/v1/trips/${tripID}/link-preview`,

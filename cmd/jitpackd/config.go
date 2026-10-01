@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -65,6 +66,11 @@ type Config struct {
 	// the one outbound request that is on by default (ADR-082).
 	LinkPreviews bool // JITPACK_LINK_PREVIEWS, "false" disables
 
+	// MapTiles lets a device draw a map's background tiles, which it
+	// fetches from swisstopo and OpenStreetMap itself (FR-29.17). On
+	// unless the value is "false" (ADR-085).
+	MapTiles bool // JITPACK_MAP_TILES, "false" disables
+
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
@@ -117,11 +123,17 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 	}
 	c.TaskReminderAt = at
 
-	previews, err := parseLinkPreviews(getenv("JITPACK_LINK_PREVIEWS"))
+	previews, err := parseOnByDefault("JITPACK_LINK_PREVIEWS", getenv("JITPACK_LINK_PREVIEWS"))
 	if err != nil {
 		return Config{}, err
 	}
 	c.LinkPreviews = previews
+
+	tiles, err := parseOnByDefault("JITPACK_MAP_TILES", getenv("JITPACK_MAP_TILES"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.MapTiles = tiles
 
 	if c.SingleUser {
 		if c.LocalUserID == "" {
@@ -182,24 +194,25 @@ func parseReminderTime(raw string) (time.Duration, error) {
 	return time.Duration(t.Hour())*time.Hour + time.Duration(t.Minute())*time.Minute, nil
 }
 
-// The two words a switch takes: an opt-in is exactly envTrue, and the one
-// switch that is on by default is turned off by exactly envFalse.
+// The two words a switch takes: an opt-in is exactly envTrue, and a switch
+// that is on by default is turned off by exactly envFalse.
 const (
 	envTrue  = "true"
 	envFalse = "false"
 )
 
-// parseLinkPreviews reads the one switch that is on by default. Anything
-// but "true", "false" or unset refuses to start: an operator who meant off
-// and misspelled it must not be left with a server fetching pages.
-func parseLinkPreviews(raw string) (bool, error) {
+// parseOnByDefault reads a switch that is on by default — one that makes
+// a request to another host. Anything but "true", "false" or unset refuses
+// to start: an operator who meant off and misspelled it must not be left
+// with the request being made.
+func parseOnByDefault(name, raw string) (bool, error) {
 	switch strings.TrimSpace(raw) {
 	case "", envTrue:
 		return true, nil
 	case envFalse:
 		return false, nil
 	}
-	return false, errors.New("JITPACK_LINK_PREVIEWS must be true or false, or unset (on)")
+	return false, fmt.Errorf("%s must be true or false, or unset (on)", name)
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

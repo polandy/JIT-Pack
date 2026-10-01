@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * One idea on the board (FR-29.6): its cover as a flat banner when it has
- * pictures (FR-29.5), its title, the tag, the rain mark and the link's site
- * as chips, and a foot with the two tallies and the discussion's size.
+ * pictures (FR-29.5) — or its first GPX track's line where it has none but a
+ * track (FR-29.17) — its title, the tag, the rain mark, the link's site and
+ * the first track's distance and climb as chips, and a foot with the two tallies and the discussion's size.
  * Tapping it opens the idea.
  *
  * The tallies show who voted, as avatars, because votes are open (FR-29.3);
@@ -11,24 +12,34 @@
  */
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
+  bicycleOutline,
   chatbubbleOutline,
   linkOutline,
+  walkOutline,
   thumbsDownOutline,
   thumbsUpOutline,
   umbrellaOutline,
 } from 'ionicons/icons'
 
+import { computed } from 'vue'
+
+import TrackLines from '@/components/global/TrackLines.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { trackHueClass } from '@/components/global/trackColors'
+import { decodeLine } from '@/domain/track'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
-import type { IdeaImage } from '@/types/domain'
+import { formatDistance, formatMetres } from '@/lib/trackFormat'
+import type { IdeaImage, IdeaTrack } from '@/types/domain'
 import { linkSite, type IdeaCard } from './domain/ideas'
 import IdeaPicture from './IdeaPicture.vue'
 
-defineProps<{
+const props = defineProps<{
   card: IdeaCard
   /** The idea's pictures, cover first; the banner shows the cover. */
   pictures: IdeaImage[]
+  /** The idea's GPX tracks in their order (FR-29.17). */
+  tracks: IdeaTrack[]
   /** A link's picture on its way (FR-29.16): the banner shows it coming. */
   pictureComing: boolean
   /** Whether votes are shown at all (FR-29.3's G-8). */
@@ -37,6 +48,26 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ open: [] }>()
+
+/** Every track's line, the first one in front — the banner where there is no picture. */
+const lines = computed(() =>
+  props.tracks.map((track, index) => ({
+    id: track.id,
+    points: decodeLine(track.line),
+    hueClass: trackHueClass(index),
+    chosen: index === 0,
+  })),
+)
+
+/** „7,4 km · ↑ 520 m · +1" — the first track, and how many more there are. */
+const trackFacts = computed(() => {
+  const first = props.tracks[0]
+  if (!first) return null
+  const parts = [formatDistance(first.distance_m)]
+  if (first.ascent_m !== null) parts.push(`↑ ${formatMetres(first.ascent_m)}`)
+  if (props.tracks.length > 1) parts.push(`+${props.tracks.length - 1}`)
+  return { kind: first.kind, text: parts.join(' · ') }
+})
 </script>
 
 <template>
@@ -65,8 +96,18 @@ const emit = defineEmits<{ open: [] }>()
       <IonSpinner name="dots" aria-hidden="true" />
       <span>{{ t('ideas.pictureComing') }}</span>
     </span>
+    <span
+      v-else-if="tracks.length > 0"
+      class="banner trace"
+      :data-testid="`idea-card-trace-${card.idea.id}`"
+    >
+      <TrackLines :lines="lines" frame-all :ends="false" />
+    </span>
     <span class="title">{{ card.idea.title }}</span>
-    <span v-if="card.idea.tag || card.idea.rain_proof || card.idea.link" class="chips">
+    <span
+      v-if="card.idea.tag || card.idea.rain_proof || card.idea.link || trackFacts"
+      class="chips"
+    >
       <span v-if="card.idea.tag" class="chip" :data-testid="`idea-card-tag-${card.idea.id}`">
         {{ t(`ideas.tag.${card.idea.tag}`) }}
       </span>
@@ -81,6 +122,13 @@ const emit = defineEmits<{ open: [] }>()
       <span v-if="card.idea.link" class="site" :data-testid="`idea-card-link-${card.idea.id}`">
         <IonIcon :icon="linkOutline" aria-hidden="true" />
         {{ linkSite(card.idea.link) }}
+      </span>
+      <span v-if="trackFacts" class="chip jp-num" :data-testid="`idea-card-track-${card.idea.id}`">
+        <IonIcon
+          :icon="trackFacts.kind === 'bike' ? bicycleOutline : walkOutline"
+          aria-hidden="true"
+        />
+        {{ trackFacts.text }}
       </span>
     </span>
     <span v-if="votesShown || card.comments > 0" class="foot jp-num">
@@ -160,6 +208,15 @@ const emit = defineEmits<{ open: [] }>()
   margin-bottom: 2px;
   overflow: hidden;
   border-radius: var(--jp-r-sm);
+}
+
+.banner.trace {
+  padding: 8px;
+  background-color: var(--jp-surface-sunken);
+  background-image:
+    linear-gradient(var(--jp-surface-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--jp-surface-border) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 .banner.coming {

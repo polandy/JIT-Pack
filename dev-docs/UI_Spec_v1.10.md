@@ -631,7 +631,7 @@ These patterns apply to every screen and are specified once.
 | M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
-| M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.12 |
+| M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17 |
 | M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
 
 ---
@@ -2990,16 +2990,18 @@ token would prove nothing there is anything to prove.
   combine by *and*, *Alle* clears both, and a chip left chosen from another segment is not in force. Then the segment's
   ideas as rows of one card (`m28-list`, a row `idea-card-<id>`): the cover picture as a flat 21:9 banner where the idea
   has pictures (`idea-card-cover-<id>`), with *„3 Bilder"* over its corner where there is more than one
-  (`idea-card-pictures-<id>`); the title in the heading weight; the tag, *☂ auch bei
-  Regen* and the link's site (*segantini-museum.ch*) as chips; a foot with 👍 and 👎, each with its count and its voters'
-  avatars, and 💬 with the discussion's size where there is one. **Order:** by votes (👍 minus 👎), the newest first among
-  equals, or newest first — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen sortieren"*), and only
-  where votes are shown; a new idea switches the board to *Ideen*, newest first, with the chips cleared. **Empty,** each
-  segment says what belongs in it (`m28-empty-<state>`): *„Noch keine Ideen für diese Reise."* with *„Ein Link, ein Ort,
-  ein Gedanke – mit ＋ notierst du, was ihr machen könntet."*, *„Noch nichts auf der Shortlist. Was ihr vorhabt, kommt
-  hierher."*, *„Noch nichts gemacht."*, *„Nichts verworfen."*; chips that match nothing say *„Keine Idee passt zu dieser
-  Auswahl."* (`m28-empty-filtered`). **Before the trip partition has arrived** the counts and the list are not drawn
-  (ADR-033).
+  (`idea-card-pictures-<id>`) — and where it has none but a track (FR-29.17), the first track's line on the sunken
+  surface in its place (`idea-card-trace-<id>`); the title in the heading weight; the tag, *☂ auch bei Regen*, the
+  link's site (*segantini-museum.ch*) and the first track's distance and ascent with its kind's glyph and *„+1"* for
+  each further track (*„🥾 7,4 km · ↑ 520 m · +1"*, `idea-card-track-<id>`) as chips; a foot with 👍 and 👎, each with its
+  count and its voters' avatars, and 💬 with the discussion's size where there is one. **Order:** by votes (👍 minus 👎),
+  the newest first among equals, or newest first — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen
+  sortieren"*), and only where votes are shown; a new idea switches the board to *Ideen*, newest first, with the chips
+  cleared. **Empty,** each segment says what belongs in it (`m28-empty-<state>`): *„Noch keine Ideen für diese Reise."*
+  with *„Ein Link, ein Ort, ein Gedanke – mit ＋ notierst du, was ihr machen könntet."*, *„Noch nichts auf der Shortlist.
+  Was ihr vorhabt, kommt hierher."*, *„Noch nichts gemacht."*, *„Nichts verworfen."*; chips that match nothing say
+  *„Keine Idee passt zu dieser Auswahl."* (`m28-empty-filtered`). **Before the trip partition has arrived** the counts
+  and the list are not drawn (ADR-033).
 * **Writing an idea** (the FAB ＋, `m28-fab`, `FAB_ANCHOR.m28`; *Bearbeiten* in the detail): the sheet *„Neue Idee"* /
   *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
   the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
@@ -3031,22 +3033,49 @@ token would prove nothing there is anything to prove.
   opens **the viewer** (`idea-viewer`), full screen on the crust surface: *„Bild 2 von 4"* and *Titelbild* on the cover
   at the top, ✕, the picture whole, ‹ › at the sides (and a swipe, and the arrow keys), and at the foot *☆ Als
   Titelbild* (not on the cover; the viewer stays on the picture, now first) and *Bild entfernen* — a destructive
-  confirmation (`idea-picture-remove-confirm`) *„Das Bild verschwindet für alle, die an der Reise teilnehmen."*. The
-  link as a card that opens
-  the site in a new tab (`noopener noreferrer`); the note; **the four states as one segmented control**
-  (`idea-state-<state>`) — a tap moves the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves it back
-  unless somebody has moved it since; **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars
-  (`idea-vote-up`/`-down`, pressed where the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the
-  **discussion** (*Kommentare* with its count), oldest first, each entry with its avatar, words, and who and when, and a
-  field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its
-  words edited in place, *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*.
-  At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* /
-  *„Die Idee verschwindet mit ihren Stimmen, Kommentaren und Bildern für alle. Verwerfen behält sie."*.
+  confirmation (`idea-picture-remove-confirm`) *„Das Bild verschwindet für alle, die an der Reise teilnehmen."*. **The
+  tracks** (FR-29.17, ADR-085): beside *Bild hinzufügen* stands *GPX hinzufügen* with *„2 von 5"* (`idea-track-add`,
+  `idea-track-count`; gone at five), which opens the device's file picker for `.gpx`; *„Wird gelesen …"* while the file
+  is read and sent, and a file that is no track (*„In dieser Datei ist kein Track."*), too large (*„Die Datei ist
+  grösser als 5 MB."*) or not sent (*„Der Track ließ sich nicht hochladen. Bist du online?"*) toasts and keeps nothing.
+  A new track is chosen. Under the buttons the **track card** (`track-card`, the kernel's
+  `components/global/TrackCard.vue`): a row of chips, one per track with its kind's glyph and colour and its name
+  (`track-tab-<id>`, `aria-pressed` on the chosen one) — a single track's chip is its name; a map 16 : 7 (`track-map`,
+  `data-tiles` `on`/`off`/`offline`, `data-source` `swisstopo`/`osm`) carrying every track of the idea, the chosen one
+  in full colour with a start and an end dot, the others paler, and the map's source named in its corner (*Landeskarte*
+  or *OSM*), the tiles' attribution in the other, and in the top corner the glyph that says the map opens
+  (`track-map-open`, the whole map being that button); **without tiles** the lines alone on the sunken surface with a
+  faint grid, with *„Karte offline"* in the corner where the device is offline. A tap on the map opens **the full-screen
+  map** (`track-viewer`): the idea's title and ✕ at the top, the map panning and zooming by touch, a tap on a line
+  choosing its track, a switch *Landeskarte · OSM* (`track-source-swisstopo`, `track-source-osm`; *Landeskarte* off
+  where a track lies outside Switzerland), a button that fits the chosen track again (`track-fit`), the tiles'
+  attribution, and at its foot the same chips and figures as the card. Under the map the **four figures** of the chosen
+  track — *Distanz*, *Aufstieg*, *Abstieg*, *Höchster Punkt* (`track-distance`, `track-ascent`, `track-descent`,
+  `track-highest`; *–* without heights) — and the **time**: *Wandern · Velo* as one segmented control
+  (`track-kind-hike`, `track-kind-bike`) and the chip *Mit Kind* (`track-kid`, pressed where set), over the sum *„3 h 25
+  Gehzeit + 1 h 00 Pausen = 4 h 25 Unterwegs"* — *Fahrzeit* for a bike tour — whose pauses are a − / + stepper in
+  quarter hours (`track-pause-less`, `track-pause-more`, `track-pause`; − off at 0, + off at 8 h), with *Unterwegs* in
+  the action colour (`track-total`). Under it, small, what the time assumes: *„Formel der Schweizer Wanderwege"*, or the
+  paces where *Mit Kind* or *Velo* is chosen. Each change is written at once. At the card's foot the file's name and its
+  number of points, and ⋮ (`track-more`) offering *Umbenennen* (`track-rename`, a field in an alert,
+  `track-rename-prompt`), *GPX herunterladen* (`track-download`), *Durch andere Datei ersetzen* (`track-replace`; name,
+  kind, *Mit Kind* and pauses stay) and *Track entfernen* — a destructive confirmation (`track-remove-confirm`) *„Der
+  Track verschwindet für alle, die an der Reise teilnehmen."*. The link as a card that opens the site in a new tab
+  (`noopener noreferrer`); the note; **the four states as one segmented control** (`idea-state-<state>`) — a tap moves
+  the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves it back unless somebody has moved it since;
+  **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars (`idea-vote-up`/`-down`, pressed where
+  the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the **discussion** (*Kommentare* with its
+  count), oldest first, each entry with its avatar, words, and who and when, and a field at the foot (*„Kommentar
+  schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its words edited in place,
+  *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*. At the foot *Bearbeiten*
+  and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* / *„Die Idee verschwindet mit
+  ihren Stimmen, Kommentaren, Bildern und Tracks für alle. Verwerfen behält sie."*.
 * **Who is shown (FR-29.3, G-8):** votes, the vote order and author names appear only where somebody else reads them —
   an identity and another account on the trip, M26's rule for its share hint. In Local and Single-User Mode, and on a
   trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.
 * **Modes:** all three; votes only where there is another account. A picture is uploaded at once in Server and
-  Single-User Mode and kept on the device in Local Mode (ADR-081).
+  Single-User Mode and kept on the device in Local Mode (ADR-081), and so is a track (ADR-085). The tiles are on
+  in Local Mode and wherever the operator left `JITPACK_MAP_TILES` on.
 * **Notifications (FR-29.8):** a new idea (*„Alice hat „Tiscali" vorgeschlagen"*) and a move to the Shortlist
   (*„Alice hat „Tiscali" auf die Shortlist gesetzt"*) tell every co-traveller but the actor; a comment
   (*„Bob zu „Tiscali": Nur mit Guide"*) tells the idea's author and its earlier commenters. Votes tell nobody. A tap
@@ -3054,7 +3083,8 @@ token would prove nothing there is anything to prove.
   *Ideen auf der Shortlist*, hidden in Single-User Mode with every other second-party row.
 * **Not built yet** (§3.29): *Daraus gemacht* — an excursion, task or shopping entry made from an idea (FR-29.13) — a
   day for a shortlisted idea (FR-29.14) and the day plan, M29 (FR-29.15).
-* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11 `server`,
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11,
+  E2E-M28-13 `server`,
   E2E-G12-07)
 
 ### M30 — Aktivität (Activity Log, §3.32) — *built*

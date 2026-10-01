@@ -19,7 +19,7 @@ what runs.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
   trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items, ideas, idea_votes,
-  idea_comments, idea_images) and one **master
+  idea_comments, idea_images, idea_tracks) and one **master
   partition per user** (items, tags, item_tags, task_tags, templates, template_items, template_includes,
   template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members,
   trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition —
@@ -257,7 +257,7 @@ constraint; a withdrawn vote is `vote: null`, never a delete. `ideas.link` is re
 `http://` or `https://`, `ideas.tag` unless it is one of FR-29.10's keys, `ideas.state` unless one of `idea`,
 `shortlisted`, `done`, `dropped`. **A discussion entry's words are its author's**: a mutation touching `body` or
 `edited_at` of an existing `idea_comments` row pushed by anyone else is refused as `not_authorized`; a delete stays
-everybody's, as a note's. Deleting an idea cascades to its votes, discussion and pictures, tombstoned like any
+everybody's, as a note's. Deleting an idea cascades to its votes, discussion, pictures and tracks, tombstoned like any
 cascade. `created_at` on both is the client's clock, like a comment's.
 
 `idea_images` (FR-29.5, ADR-081) names one picture on an idea — `idea_id`, `image_hash`, `position` — and is **created
@@ -266,6 +266,15 @@ transaction and logs the row on the trip's feed with a fresh server HLC. A push 
 row**; an insert, or any other field, is refused as `not_authorized`, since it would name bytes the server does not
 hold. The bytes live in `idea_image_bytes`, outside the envelope, and go with their row. Local Mode writes the row
 through its own change funnel, with a client-computed hash.
+
+`idea_tracks` (FR-29.17, ADR-085) is one GPX track on an idea: `name`, `file_name`, `kind` (`hike`, `bike`),
+`with_kid`, `pause_min`, `position`, the figures the uploading device read (`distance_m`, `ascent_m`, `descent_m`,
+`max_ele_m`, `point_count`, the heights NULL for a file without them) and `line`, the track thinned to at most 800
+points as a polyline string (precision 5). Like a picture it is **created only by the upload** (`PUT
+/trips/{id}/ideas/{ideaID}/tracks/{trackID}`, §8), which writes the row and its file in one transaction and logs the
+row with a fresh server HLC. A push may **change `name`, `kind`, `with_kid`, `pause_min` or `position`, or delete the
+row**; an insert, or any other field, is refused as `not_authorized`. The file lives in `idea_track_gpx`, outside the
+envelope. Local Mode writes the row through its own change funnel.
 
 `comments.parent_id`, `title` and `edited_at` (FR-7.13) make a trip note a thread. `parent_id` names the
 thread's first note on a reply and is **written once**: the server drops it from every op on a row that already exists,
@@ -759,6 +768,7 @@ rows below are therefore **not implemented as endpoints**:
 | `GET /me` | Own identity `{user_id, display_name, is_instance_admin}` — the client needs its `users.id` to address the avatar/display-name endpoints (M17 profile; `PUT /users/{id}/avatar` and `PUT /users/{id}/display-name` accept only the caller's own id — 403 `forbidden` for any other, invariant: identity claims in the path are never trusted); the admin flag decides whether M20's entry point renders (FR-23.2, endpoints enforce regardless) |
 | `GET /users` | Instance user directory `{users:[{user_id, display_name}]}`, ordered by name, deactivated accounts excluded (FR-23.3) — backs the M3 sharing picker (FR-4.5). Any authenticated user may list; a self-hosted instance's roster is not a secret to its users |
 | `GET /trips/{id}/ideas/{ideaID}/images/{imageID}` · `PUT` on the same path | FR-29.5, ADR-081 — implemented: one picture on an idea, **members only** (the trip's `member` gate, unlike an item photo). PUT takes `image/jpeg` of at most 500 KB (mirrored by the `idea_image_bytes` CHECK and the store) under the **client's** image id; it refuses a fifth picture and an idea not on the trip (422 / 404), writes the `idea_images` row behind the idea's last picture, logs it on the trip's feed and pings the trip's sockets. A retry with the same id answers 200 and changes nothing. GET streams the bytes with `ETag` = `image_hash` and `Cache-Control: private`, 404 when the trip's idea holds no such picture. There is no DELETE: a picture is deleted by a pushed tombstone of its row |
+| `GET /trips/{id}/ideas/{ideaID}/tracks/{trackID}` · `PUT` on the same path | FR-29.17, ADR-085 — implemented: one GPX track on an idea, **members only**. PUT takes JSON (`IdeaTrackUpload`): the file as text of at most 5 MB (mirrored by the `idea_track_gpx` CHECK and the store) with the name, file name, kind and the figures and line the device read from it, under the **client's** track id. It refuses a sixth track and an idea not on the trip (422 / 404), writes the `idea_tracks` row behind the idea's last track, logs it on the trip's feed and pings the trip's sockets. The same id again with the same file answers 200 and changes nothing; with another file it **replaces** the file, figures, line and file name and keeps the name, kind, `with_kid`, `pause_min` and place. GET answers the file as uploaded, `application/gpx+xml` as an attachment under its file name, with `ETag` = `gpx_hash` and `Cache-Control: private`, 404 when the trip's idea holds no such track. There is no DELETE: a track is deleted by a pushed tombstone of its row |
 | `POST /trips/{id}/link-preview` · `POST /trips/{id}/link-preview/image` | FR-29.16, ADR-082 — implemented, two reads so the words need not wait for a picture: the first takes `{url}` and answers `{title, description, image_url}`, what the page says about itself and where its picture is, each possibly empty; the second takes that picture's address as `{url}` and answers `{image, image_type}`, base64 of the bytes as served, for the client to scale like any picture. **Members only** — only somebody on a trip makes the server fetch. The server fetches public addresses on ports 80/443 alone, checked on the dialled address (a redirect or DNS answer inward is refused too) — the picture's address included, since the client hands it back. 422 `validation` for a non-web link, 422 `link_unreadable` for a page or picture that could not be read — a refused address answers the same, so the routes cannot probe the server's network — and 501 `not_configured` on both where `JITPACK_LINK_PREVIEWS=false` |
 | `GET /items/{id}/image` · `PUT /items/{id}/image` · `DELETE /items/{id}/image` | Addendum FR-22 — implemented: one optional reference photo per master item. GET is public (like avatars, ADR-002), streams `image/jpeg` with `ETag` = `items.image_hash`, 404 when absent. PUT/DELETE need only authentication, **no trip role** (FR-22.6 — items carry no trip association); PUT validates `image/jpeg` and ≤150 KB (FR-22.4, mirrored by the `item_images` CHECK) and stamps `items.image_hash` through the master change-log with a fresh server HLC, so other devices pull the hint on their next master pull. The BLOB lives in `item_images`, outside the sync envelope; `image_hash` is the only synced signal. Local Mode writes the blob to IndexedDB with a client-computed hash instead |
 | `GET /admin/users` | FR-23.2 — implemented: instance-admin only (403 `forbidden` otherwise, like every `/admin/` route), all provisioned accounts `{user_id, display_name, email, created_at, is_instance_admin, deactivated_at, trip_count, template_count}` ordered by name |

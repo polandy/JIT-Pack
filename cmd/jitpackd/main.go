@@ -59,10 +59,14 @@ func main() {
 		AdminEmails: cfg.AdminEmails,
 		Version:     version,
 		UpdateCheck: cfg.UpdateCheck,
+		NoMapTiles:  !cfg.MapTiles,
 	}
 	if cfg.LinkPreviews {
 		opts.LinkPreviews = linkpreview.NewFetcher()
 		log.Printf("link previews on: pasted links' pages are read from the internet (FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)")
+	}
+	if cfg.MapTiles {
+		log.Printf("map tiles on: devices fetch them from swisstopo and OpenStreetMap (FR-29.17, JITPACK_MAP_TILES=false turns this off)")
 	}
 	if cfg.UpdateCheck {
 		// The build names itself in the line, because that is the half an

@@ -3963,12 +3963,12 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082) and the **notifications** (FR-29.8); the bridge to the
-packing side and the day plan are specified here and not built. The travellers of a trip collect what
-they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
-decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
-`dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
-will be **M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
+(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8) and **GPX tracks**
+(FR-29.17, ADR-085); the bridge to the packing side and the day plan are specified here and not built. The travellers of
+a trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
+their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
+variants are in `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec),
+the day plan will be **M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
 
 The planner is the second **feature module** after the shopping list (§3.30, ADR-066): `client/src/planner/`, with its
 own store, actions, screens and pure rules, and its e2e cases under `client/e2e/planner/`.
@@ -4053,9 +4053,9 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   through the catalogue (NFR-4.12) and held by a CHECK. Chosen over free text because a closed set filters without a tag
   manager and cannot fragment into *Wandern/wandern/Wanderung*. An idea that fits nothing stays untagged.
 * **FR-29.11 (Cloning Does Not Copy Ideas):** *Implemented, by construction.* Trip cloning (§3.12) copies no ideas,
-  votes, discussion or pictures: a clone repeats a packing effort, and the planner's rows are not the packing list's.
-  **Not in the portable backup** either (NFR-4.11), like tasks, notes, the shopping list's own entries and excursions;
-  `GET /me/export.json` carries them.
+  votes, discussion, pictures or tracks: a clone repeats a packing effort, and the planner's rows are not the packing
+  list's. **Not in the portable backup** either (NFR-4.11), like tasks, notes, the shopping list's own entries and
+  excursions; `GET /me/export.json` carries them.
 * **FR-29.12 (Rain-Proof Is an Attribute, Not a Tag):** *Implemented.* A boolean mark, labelled *„Geht auch bei Regen"*:
   a tag says **what** an idea is, this says **when** it suits, and a museum is both *Kultur* and rain-proof. Set in the
   add sheet, shown as a chip on card and detail, a filter chip on the board. No forecast and no suggestion are made from
@@ -4100,8 +4100,51 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     `JITPACK_LINK_PREVIEWS=false` turns it off, the route then answers *not configured*, and a device stops asking for
     the session. Any other value refuses to start.
 
-**Not in the planner:** polls with several options (one idea per option), expenses, group logistics, map and places,
-weather, transport, ideas belonging to no trip.
+* **FR-29.17 (GPX Tracks on an Idea):** *Implemented.* An idea carries up to **5 tracks**, each a GPX file of at most
+  **5 MB**, shown on a map with its figures and a time estimate. The file is **read on the device** that chooses it
+  (ADR-085, invariant 4). The rules are `client/src/domain/track.ts`, in the kernel, so FR-31's excursions can carry
+  tracks too in a later slice.
+  * **What is read.** The file's track points, or its route points where it has none. A file with fewer than two is
+    refused (*„In dieser Datei ist kein Track."*), and so is a file over 5 MB, before anything is sent.
+  * **The name.** The track's own name in the file, else the file's name without `.gpx`; it can be changed (at most
+    200 characters).
+  * **The figures.** *Distanz*, the sum of the great-circle steps within each segment, so the gap between two
+    segments is not walked. *Aufstieg* and *Abstieg* count a change of height only once it reaches 5 m, so a GPS that
+    wobbles is not climbing. *Höchster Punkt* is the highest point. A file without heights shows *–* for the three
+    height figures.
+  * **The kind.** Every track is a **hike** (*Wandern*) or a **bike tour** (*Velo*). The file suggests one: its
+    `<type>` where it names cycling or walking, else the average speed of its timestamps (above 9 km/h is a bike
+    tour), else a hike. It is changed by hand with one tap. No e-bike and no mountain bike: their paces vary too much
+    for one number.
+  * **Mit Kind.** Per track, off by default and only ever set by hand, since a traveller carries no age.
+  * **The time.** A hike follows the formula of the Swiss hiking trails: 4.2 km/h on the flat, 300 m of ascent and
+    500 m of descent an hour; the longer of the flat and the vertical time plus half the shorter. A bike tour is
+    18 km/h plus 600 m of ascent an hour. *Mit Kind* slows them to fixed values: 3 km/h, 200 m up, 350 m down for a
+    hike, and 12 km/h with 350 m up for a bike tour. These are estimates, not a norm, and they say so under the sum.
+    The **pauses** are the travellers' own number per track, 0 by default, in quarter hours up to 8 hours. *Gehzeit*
+    (or *Fahrzeit*) plus *Pausen* is *Unterwegs*. All three are rounded to 5 minutes. The time is computed and never
+    stored, so a changed pace applies to every track at once.
+  * **How it travels (ADR-085, ADR-081's path).** The upload carries the file, its figures and a line thinned to at
+    most 800 points. The server writes the `idea_tracks` row and keeps the file in `idea_track_gpx`, outside the
+    envelope, the 5 MB held at handler, store and CHECK. A push may rename a track, change its kind, *Mit Kind*, its
+    pauses or its place, or delete it. It may never create one or change its figures. Every screen draws from the row's
+    line, offline too. The file is read back only to be **downloaded**, with the trip's membership, under the name it
+    was uploaded with. **Replacing** a track uploads the new file under the same id: name, kind, *Mit Kind* and pauses
+    stay. As for a picture, Server Mode uploads now or not at all; Local Mode writes the row on the device and keeps
+    the file in IndexedDB.
+  * **The map.** Every track of the idea is on it, each in its own colour, the chosen one in full and the others
+    paler. It is swisstopo's **Landeskarte** where all of the idea's tracks lie within Switzerland's bounds, and
+    **OpenStreetMap** otherwise. In the full-screen map a switch changes between them, the Landeskarte offered only
+    where all tracks lie in Switzerland. Each map names its source as the tile licence requires.
+  * **Tiles on by default.** The device fetches them directly from swisstopo and OpenStreetMap. Those hosts learn the
+    device's address and the area it looks at. `JITPACK_MAP_TILES=false` turns them off; any other value refuses to
+    start. The instance's config then says so, and every map draws the lines alone on the card's surface, as a device
+    offline does — offline with *„Karte offline"*. Local Mode draws tiles.
+  * **Not copied, not backed up.** Deleting the idea takes its tracks. Cloning copies none, and they are not in the
+    portable backup (FR-29.11). The activity log names an added, renamed or removed track (§3.32).
+
+**Not in the planner:** polls with several options (one idea per option), expenses, group logistics, a map of places
+(a map shows an idea's tracks, FR-29.17, and nothing else), weather, transport, ideas belonging to no trip.
 
 ### 3.30 The Shopping List as a Module of Its Own
 

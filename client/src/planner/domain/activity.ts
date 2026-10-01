@@ -3,7 +3,7 @@
  * Vue. The log knows no module's columns; it asks these readers, which the
  * composition root binds (`lib/activityReaders.ts`).
  *
- * An idea, its discussion and its pictures read the way every row does —
+ * An idea, its discussion, its pictures and its tracks read the way every row does —
  * added, changed, removed. A vote is the one row whose write is an act of its
  * own: casting it, and taking it back.
  */
@@ -32,5 +32,6 @@ export const plannerActivityReaders: ActivityReaders = {
   [TABLE.ideas]: ideaRows,
   [TABLE.ideaComments]: ideaRows,
   [TABLE.ideaImages]: ideaRows,
+  [TABLE.ideaTracks]: ideaRows,
   [TABLE.ideaVotes]: votes,
 }
