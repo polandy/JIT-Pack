@@ -434,7 +434,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     await flushPromises()
     await row.trigger('click')
 
-    expect(pushed).toEqual(['/trips/t1'])
+    expect(pushed).toEqual(['/trips/t1/open'])
   })
 
   it('opens a new menu while the last one is still leaving', async () => {
@@ -467,7 +467,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     sheets[1]!.dismiss()
     await flushPromises()
     await row.trigger('click')
-    expect(pushed).toEqual(['/trips/t1'])
+    expect(pushed).toEqual(['/trips/t1/open'])
   })
 
   it('opens one menu for a touch hold, which fires the timer and contextmenu both', async () => {

@@ -6,6 +6,10 @@ import type { plannerEn } from './en'
 
 export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'dayPlan.dayOf': '{day} · Tag {n} von {total}',
+  'dayPlan.todayCard': 'Heute · {day}',
+  'dayPlan.todayEmpty': 'Für heute ist nichts mehr geplant.',
+  'dayPlan.todayMore': '+ {n} weitere · Tagesplan',
+  'dayPlan.todayOpen': 'Tagesplan öffnen',
   'dayPlan.noDates': 'Der Tagesplan braucht Start- und Enddatum der Reise.',
   'dayPlan.emptyDay': 'Noch nichts geplant.',
   'dayPlan.noTime': '–',

@@ -54,7 +54,14 @@ import { dueExcursions } from '@/domain/excursions'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { nameFrom } from '@/lib/rowFacts'
-import { PATH, tripExcursionsPath, tripItemPath, tripNotesPath, tripPath } from '@/router/paths'
+import {
+  PATH,
+  tripExcursionsPath,
+  tripItemPath,
+  tripNotesPath,
+  tripOpenPath,
+  tripPath,
+} from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
@@ -359,7 +366,7 @@ onUnmounted(() => {
 
 /** A planned trip's row leads to the trip, the way its card does. */
 function openTrip(tripId: string): void {
-  void router.push(tripPath(tripId))
+  void router.push(tripOpenPath(tripId))
 }
 
 /** FR-7.3: the prep card's item name is the way into its row (UI-Spec M1). */
@@ -570,7 +577,7 @@ async function handleRefresh(event: CustomEvent) {
         :phase="phaseOf(heroTrip)"
         :counter="counterOf(heroTrip)"
         :workable="isPackingClosed(heroTrip)"
-        :to="tripPath(heroTrip.id)"
+        :to="tripOpenPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
         <!-- FR-7.10: once the packing is finished the hero works the two
@@ -590,6 +597,7 @@ async function handleRefresh(event: CustomEvent) {
             :trip-id="heroTrip.id"
             :trip-name="heroTrip.name"
             :start-date="heroTrip.start_date"
+            :end-date="heroTrip.end_date"
             :planned="false"
             :packing-closed="true"
             embedded
@@ -655,6 +663,7 @@ async function handleRefresh(event: CustomEvent) {
           :trip-id="heroTrip.id"
           :trip-name="heroTrip.name"
           :start-date="heroTrip.start_date"
+          :end-date="heroTrip.end_date"
           :planned="false"
           :packing-closed="isPackingClosed(heroTrip)"
         />
@@ -664,7 +673,7 @@ async function handleRefresh(event: CustomEvent) {
       <template v-for="trip in followingTrips" :key="trip.id">
         <RouterLink
           class="jp-card trip-card"
-          :to="tripPath(trip.id)"
+          :to="tripOpenPath(trip.id)"
           :data-testid="`dashboard-trip-${trip.name}`"
         >
           <div class="trip-card-head">
@@ -749,6 +758,7 @@ async function handleRefresh(event: CustomEvent) {
           :trip-id="trip.id"
           :trip-name="trip.name"
           :start-date="trip.start_date"
+          :end-date="trip.end_date"
           :planned="false"
           :packing-closed="isPackingClosed(trip)"
         />
@@ -791,6 +801,7 @@ async function handleRefresh(event: CustomEvent) {
             :trip-id="trip.id"
             :trip-name="trip.name"
             :start-date="trip.start_date"
+            :end-date="trip.end_date"
             :planned="true"
             :packing-closed="isPackingClosed(trip)"
           />

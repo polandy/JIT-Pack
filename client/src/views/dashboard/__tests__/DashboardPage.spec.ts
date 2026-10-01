@@ -118,6 +118,7 @@ describe('M1 — what a trip card is told (FR-30.7/FR-30.8)', () => {
       planned: { type: Boolean, required: true },
       packingClosed: { type: Boolean, required: true },
       startDate: { type: String, default: null },
+      endDate: { type: String, default: null },
       embedded: { type: Boolean, default: false },
     },
     setup(props) {
@@ -364,6 +365,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
         planned: { type: Boolean, required: true },
         packingClosed: { type: Boolean, required: true },
         startDate: { type: String, default: null },
+        endDate: { type: String, default: null },
         embedded: { type: Boolean, default: false },
       },
       setup(props) {

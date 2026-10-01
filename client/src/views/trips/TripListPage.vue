@@ -81,6 +81,7 @@ import {
   PATH,
   seriesPath,
   tripClosingPath,
+  tripOpenPath,
   tripPath,
   tripStartingPath,
   tripSubPath,
@@ -674,7 +675,7 @@ let rowMenusAlive = 0
 
 function openTrip(trip: Trip) {
   if (rowMenusAlive > 0) return
-  router.push(tripPath(trip.id))
+  router.push(tripOpenPath(trip.id))
 }
 
 /**
@@ -781,7 +782,7 @@ async function handleRefresh(event: CustomEvent) {
         :meta="heroMeta"
         :percent="tripDataKnown(heroTrip) ? progressPercent(heroTrip) : 0"
         :progress="tripDataKnown(heroTrip) ? itemSummary(heroTrip) : t('trips.itemsUnknown')"
-        :to="tripPath(heroTrip.id)"
+        :to="tripOpenPath(heroTrip.id)"
         :testid="`trip-hero-${heroTrip.name}`"
         @click.capture="onHeroClick"
         @contextmenu.prevent="openRowMenu(heroTrip!)"
