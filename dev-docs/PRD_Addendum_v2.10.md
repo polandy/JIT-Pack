@@ -3965,8 +3965,8 @@ the tail is where a symbol system is actually decided. Results:
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
 (FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks** (FR-29.17,
 ADR-085) with **where everybody is** (FR-29.19, ADR-087) and **their routes edited and drawn** (FR-29.20,
-ADR-088), and the **day plan** (FR-29.14/29.15, M29); its connections
-(FR-29.18), the opening by date and the bridge to the packing side are specified here and not built. The travellers of a
+ADR-088), and the **day plan** (FR-29.14/29.15, M29) with its **connections** (FR-29.18, ADR-086); the opening by
+date and the bridge to the packing side are specified here and not built. The travellers of a
 trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
 their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
 variants are in `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec),
@@ -4072,13 +4072,14 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   an optional time**; without a day it waits under *noch nicht eingeplant*. No constraint ties the day to the trip's
   dates (field-level LWW), so an idea planned outside them is listed *außerhalb der Reise* rather than lost. Only while
   the trip has both dates.
-* **FR-29.15 (The Day Plan, M29):** *Implemented, its connections excepted (FR-29.18).* One screen per trip with a day
+* **FR-29.15 (The Day Plan, M29):** *Implemented.* One screen per trip with a day
   strip over the trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated
   excursions (on each of their days), tasks due that day, arrival and departure, and **entries of its own**
   (`day_entries`) of two kinds — a **free entry** (a table booking) and a **connection** (FR-29.18). Timed entries come
   first by their time, untimed ones after; a time orders, it does not block out hours. Tomorrow stands below today; a
   pool bar lists the shortlisted ideas without a day and plans one by a day chip. „+" adds a free entry or a connection
-  on the chosen day, or plans an idea.
+  on the chosen day, or plans an idea. An entry on a day the trip does not have — its dates moved, or a connection's
+  link named another day — is listed *außerhalb der Reise* with the ideas there, rather than lost.
 * **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** that
   changes **no field** until it is confirmed, and each half is shown **at its own field**: the suggested title grey in
   the blank title field, the suggested description grey in the blank note, each with *Übernehmen* beside it that puts it
@@ -4146,19 +4147,23 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     offline does — offline with *„Karte offline"*. Local Mode draws tiles.
   * **Not copied, not backed up.** Deleting the idea takes its tracks. Cloning copies none, and they are not in the
     portable backup (FR-29.11). The activity log names an added, renamed or removed track (§3.32).
-* **FR-29.18 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
+* **FR-29.18 (A Connection in the Day Plan):** *Implemented.* A connection is a journey by public
   transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
   being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first
-  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen*, and opens to its legs; the link, where there
+  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen* (*direkt* without a change, *(+1)* behind an
+  arrival on the next day), and opens to its legs; the link, where there
   is one, opens the provider's own app, which has what a stored copy cannot — delays and platforms. ADR-086:
-  * **A connection works anywhere.** Its fields are entered by hand — one leg — and any link may be kept beside them;
-    nothing about it is Swiss.
+  * **A connection works anywhere.** Its fields are entered by hand — one leg: from, departure, to, arrival and
+    optionally the line; an arrival before the departure is the next morning's — and any link may be kept beside
+    them; nothing about it is Swiss. A connection of one leg is changed through the same fields; one of several legs
+    keeps what its link said until another link is pasted.
   * **A link is read where a reader knows it.** Pasting a link, from the clipboard button or into the field, reads it
     at once, with no separate button. The first reader is the **SBB app's**: a shared connection is a picture with a
     short link (`a.sbbmobile.ch/s/…`) whose page links `www.sbb.ch/…/trip?tripId=…`, and that id carries every leg —
     stations, departure and arrival, line. The read fills a preview of the legs; *Einfügen* writes the connection **on
-    the day the link names**, which may be another day than the one chosen. A link no reader knows, or one that fails,
-    says so and leaves the hand fields, with the link kept.
+    the day the link names**, which may be another day than the one chosen, and the plan moves to that day. A link no
+    reader knows, or one that fails, says so and leaves the hand fields, with the link kept. A link typed rather than
+    pasted is read when the field is left.
   * **The client reads; the server only follows the short link.** Decoding the id is a pure rule in the planner's
     domain, so a full `sbb.ch` link is read in every mode. The short link is behind another site's page, which only
     the server can fetch: FR-29.16's read returns, beside title and description, **the page's links**, and the reader

@@ -1,4 +1,4 @@
--- 018 — FR-31.15: GPX tracks on an excursion, kept as an idea's are (016).
+-- 019 — FR-31.15: GPX tracks on an excursion, kept as an idea's are (016).
 -- The comments explaining their shape live in schema.sql (ADR-067 driver 4).
 
 CREATE TABLE excursion_tracks (

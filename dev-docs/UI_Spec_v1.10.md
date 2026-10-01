@@ -3147,7 +3147,7 @@ token would prove nothing there is anything to prove.
   E2E-M28-13 `server`,
   E2E-G12-07)
 
-### M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.18) — *built, its connections specified*
+### M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.18) — *built*
 
 * **What it is:** what the travellers do on each day of the trip, read together from where it is written — planned
   ideas, excursions, tasks, arrival and departure — with entries of its own beside them (Addendum FR-29.15). Reasoning:
@@ -3171,18 +3171,22 @@ token would prove nothing there is anything to prove.
     a tap opens it over M28.
   * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.
   * **✎ Eintrag**, an entry of the plan's own: its title and note; a tap opens its sheet.
+  * **🚆 Verbindung** (FR-29.18): see *Connections* below.
   An empty day says *„Noch nichts geplant."* (`m29-empty`).
 * **Tomorrow** stands below as a second card (`m29-tomorrow`), headed *„Morgen · Do., 16.7."* with its count, while
   the trip has a next day.
-* **Ideas outside the trip** — planned on a day the trip no longer has, because its dates moved — are listed under
-  *Außerhalb der Reise* (`m29-outside`) below, each with its day; a tap opens the idea.
+* **Outside the trip** — an idea planned, or an entry written, on a day the trip does not have, because its dates
+  moved or a connection's link named another day — is listed under *Außerhalb der Reise* (`m29-outside`) below, each
+  with its day (`m29-outside-<id>`), the entries first by day; a tap opens the idea, or the entry's sheet.
 * **The pool bar** (`m29-pool`), floating at the foot beside the FAB where shortlisted ideas have no day: *„2 Ideen auf
   der Shortlist noch ohne Tag"*. It opens *Shortlist ohne Tag* (`m29-pool-sheet`), each idea with a chip per day of the
   trip; a chip plans the idea on that day and toasts *„„…" steht am Fr., 2.10."*. With none left the sheet says *„Alle
   Ideen auf der Shortlist haben einen Tag."* and the bar is gone.
-* **„+" (the FAB, `m29-fab`, `FAB_ANCHOR.m29`)** opens *„Neu am Mi., 15.7."* (`day-entry`) with two segments:
+* **„+" (the FAB, `m29-fab`, `FAB_ANCHOR.m29`)** opens *„Neu am Mi., 15.7."* (`day-entry`) with three segments
+  (`day-entry-kinds`):
   * **Eintrag** — a title (*„z. B. Tisch reserviert, Mietauto abholen"*), *Notiz (optional)* and *Uhrzeit (optional)*;
     *Hinzufügen*.
+  * **Verbindung** (`day-entry-kind-connection`) — see *Connections* below.
   * **Idee** — the shortlisted ideas without a day as chips; one plans it on the chosen day.
 * **Editing:** a tap on an entry opens *Eintrag bearbeiten* with its fields, *Speichern*, and *Eintrag löschen* — a
   destructive confirmation (`day-entry-remove-confirm`) *„„…" löschen?"* / *„Der Eintrag verschwindet für alle, die an
@@ -3191,18 +3195,29 @@ token would prove nothing there is anything to prove.
   *Tag* as a chip per day (`idea-plan-day-<YYYY-MM-DD>`) plus *kein Tag* (`idea-plan-none`), and, once it has a day,
   *Uhrzeit (optional)* (`idea-plan-time`); taking the day away takes the time with it. The Shortlist's card shows
   *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
-* **Connections (FR-29.18) — specified, not built:** a third segment *🚆 Verbindung* in the ＋ sheet — *„In der
-  SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort gelesen."*, a button *📋 Link aus
-  Zwischenablage einfügen* and a link field; **a link is read the moment it is pasted** (or the button fetched it):
-  *„Verbindung wird gelesen …"*, then *„✓ 5 Teilstrecken gelesen."* with a preview of the legs and *„Am Sa., 10.10.
-  einfügen"* — the day the link names. A link nobody can read says *„Diesen Link kann ich nicht lesen – bitte von Hand
-  eintragen."*; under the link, unless a preview stands, the hand fields *Von* and *ab*, *Nach* and *an*, *Linie*. On
-  the timeline a **🚆 Verbindung** reads *„Samedan → Bern, Cäcilienstrasse"*, under it *„an 15:46 · RE 3, IC 3, IC 1,
-  T 6 · 3× umsteigen"*; ▸ opens its legs in place — each *„10:58 [RE 3] Samedan → Landquart · an 12:39"*, a walk with
-  🚶 for its line — and, where it came with a link, *„In der App öffnen ›"*.
+* **Connections (FR-29.18, ADR-086)** — the ＋ sheet's *Verbindung* (`day-entry-connection`):
+  * *„In der SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort gelesen."*, then
+    *📋 Link aus Zwischenablage einfügen* (`day-entry-paste`, only where the page may read the clipboard — not over
+    plain http) and *Link (optional)* (`day-entry-link`).
+  * **A link is read the moment it arrives** — pasted into the field, where it replaces what the field held, or fetched
+    by the button; a typed one when the field is left. There is no read button. While it reads, *„Verbindung wird
+    gelesen …"* (`day-entry-read-state`); then *„✓ 5 Teilstrecken gelesen."* with the legs as a preview
+    (`day-entry-legs`), the hand fields gone, and the button *„Am Sa., 10.10. einfügen"* — the day the link names,
+    where the plan moves once it is written. A link no reader knows says *„Diesen Link kann ich nicht lesen – bitte von
+    Hand eintragen."* and leaves the hand fields, the link kept.
+  * **The hand fields** (`day-entry-hand`), shown under the link unless a preview stands: *Von* and *ab*, *Nach* and
+    *an*, two to a row, and *Linie (optional)*; *Hinzufügen* once the stops and both times are there. An arrival
+    before the departure is the next morning's.
+  * **On the timeline** a *🚆 Verbindung* (`data-kind="connection"`) stands at its first departure and reads
+    *„Samedan → Bern, Cäcilienstrasse"*, under it *„an 15:46 · RE 3, IC 3, IC 1, T 6 · 3× umsteigen"* (*direkt* without
+    a change, *„an 06:45 (+1)"* on the next day). ▸ (`m29-legs-toggle-<key>`, `aria-expanded`) opens its legs in place
+    (`m29-legs-<key>`) — each *„10:58 [RE 3] Samedan → Landquart · an 12:39"* (`connection-leg`), a walk with 🚶 for its
+    line — and, where it came with a link, *„In der App öffnen"* (`connection-open-link`), the link in a new tab.
+  * **Editing:** a tap on the line opens *Verbindung bearbeiten* without segments: one leg in the hand fields, several
+    as the preview they were read as; a new link pasted reads again. *Eintrag löschen* as for any entry.
 * **Modes:** all three; the plan reads and writes the device's rows. Single-User and Local Mode name nobody, as M28
   does.
-* (E2E-M29-01…04 `local`, E2E-G12-09)
+* (E2E-M29-01…08 `local`, E2E-M29-09 `server`, E2E-G12-09)
 
 ### M30 — Aktivität (Activity Log, §3.32) — *built*
 

@@ -63,3 +63,31 @@ export async function addDayEntry(
   await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
   await expect(timelineLines(page).filter({ hasText: entry.title })).toBeVisible()
 }
+
+/** Open the ＋ sheet on its *Connection* segment; ends with the link field on screen. */
+export async function openConnectionSheet(page: Page): Promise<Locator> {
+  await dayPlan(page).getByTestId('m29-fab').click()
+  const sheet = page.getByTestId('day-entry')
+  await sheet.getByTestId('day-entry-kind-connection').click()
+  await expect(sheet.getByTestId('day-entry-link')).toBeVisible()
+  return sheet
+}
+
+/**
+ * Paste `text` into the connection's link field, as a paste from the
+ * keyboard or the context menu delivers it: one `paste` event carrying the
+ * text. WebKit grants no clipboard permission to a test, so the event is
+ * built here rather than read from a clipboard.
+ */
+export async function pasteLink(sheet: Locator, text: string): Promise<void> {
+  await sheet
+    .getByTestId('day-entry-link')
+    .locator('input')
+    .evaluate((input, value) => {
+      const data = new DataTransfer()
+      data.setData('text/plain', value)
+      input.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      )
+    }, text)
+}

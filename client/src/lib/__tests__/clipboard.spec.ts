@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { copyText } from '../clipboard'
+import { canReadClipboard, copyText, readClipboardText } from '../clipboard'
 
 // FR-23.7: the token is readable once, and copying it is a convenience on top
 // of showing it. Every path here has to answer rather than throw, because the
@@ -57,5 +57,31 @@ describe('copyText', () => {
     // The textarea the fallback needs must not survive the attempt — it
     // holds the token.
     expect(document.querySelectorAll('textarea')).toHaveLength(0)
+  })
+})
+
+// FR-29.18: a pasted connection link. The paste button exists only where the
+// page may read the clipboard, and a refusal answers null, never a throw.
+describe('readClipboardText', () => {
+  it('reads the text the clipboard holds', async () => {
+    vi.stubGlobal('navigator', {
+      clipboard: { readText: async () => 'https://a.sbbmobile.ch/s/x' },
+    })
+    expect(canReadClipboard()).toBe(true)
+    expect(await readClipboardText()).toBe('https://a.sbbmobile.ch/s/x')
+  })
+
+  it.each([
+    ['refused', { readText: async () => Promise.reject(new Error('denied')) }],
+    ['empty', { readText: async () => '  ' }],
+  ])('answers null when the clipboard is %s', async (_name, clipboard) => {
+    vi.stubGlobal('navigator', { clipboard })
+    expect(await readClipboardText()).toBeNull()
+  })
+
+  it('offers nothing without the clipboard API (a page over plain http)', async () => {
+    vi.stubGlobal('navigator', {})
+    expect(canReadClipboard()).toBe(false)
+    expect(await readClipboardText()).toBeNull()
   })
 })

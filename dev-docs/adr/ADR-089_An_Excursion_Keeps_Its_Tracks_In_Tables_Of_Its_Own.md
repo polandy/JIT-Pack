@@ -23,7 +23,7 @@ FR-29.17, invariants 2 and 6, `internal/store/track.go`, `client/src/composables
 
 ### Option A — `excursion_tracks` and `excursion_track_gpx`, column for column the idea's, under one parameterised code path *(accepted)*
 
-Migration 018 adds the two tables; only the holder column differs (`excursion_id`). The store's upload, replacement
+Migration 019 adds the two tables; only the holder column differs (`excursion_id`). The store's upload, replacement
 and file read take a `trackHolder` (the two table names, the holder column and table, the not-found error) and
 serve both; the write gate's `validTrack` holds both tables; the wire's upload is one `TrackUpload` on two routes.
 On the client the files go through one `createTrackFiles` bound to either table and route, the acts of a screen
@@ -84,7 +84,7 @@ An excursion keeps its tracks in `excursion_tracks` and `excursion_track_gpx`, s
 ## Consequences
 
 **Positive**
-- The idea's rows, files and route are untouched; the upgrade is migration 018 alone.
+- The idea's rows, files and route are untouched; the upgrade is migration 019 alone.
 - The kernel's track components and screen logic are now shared, so the next holder is a table, a route and a list.
 
 **Negative / accepted costs**

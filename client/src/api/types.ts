@@ -457,12 +457,15 @@ export interface LinkPreviewRequest {
 /**
  * LinkPreviewResponse is what the page says about itself. Every field may
  * be empty. The picture is only named: its bytes are the picture route's,
- * so the words need not wait for them.
+ * so the words need not wait for them. Links are the page's web links, in
+ * its order, for a client that looks for one among them — a shared
+ * connection behind a short link (FR-29.18); never null.
  */
 export interface LinkPreviewResponse {
   title: string
   description: string
   image_url: string
+  links: string[]
 }
 
 /**

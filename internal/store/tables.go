@@ -678,11 +678,15 @@ var tableSpecs = map[string]tableSpec{
 	},
 
 	// FR-29.15: an entry of the day plan's own. `author_id` is listed so the
-	// server's stamp can be persisted; stampActor discards a client value.
+	// server's stamp can be persisted; stampActor discards a client value. A
+	// connection's legs (FR-29.18) are left out of the log like a track's line.
 	TableDayEntries: {
 		partition: partitionTrip,
 		label:     activityLabel{name: own("title")},
-		columns:   toSet("trip_id", "author_id", "on_date", "at_time", "title", "note"),
+		columns: toSet(
+			"trip_id", "author_id", columnKind, "on_date", "at_time", "title", "note", columnLink, columnLegs,
+		),
+		unlogged: toSet(columnLegs),
 		export: exportQuery{query: `SELECT x.* FROM day_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},

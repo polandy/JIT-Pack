@@ -538,21 +538,45 @@ export interface Idea {
   planned_at: string | null
 }
 
+/** FR-29.15/29.18: a day entry is a free one or a journey by public transport. */
+export const DAY_ENTRY_KINDS = ['note', 'connection'] as const
+export type DayEntryKind = (typeof DAY_ENTRY_KINDS)[number]
+export const DAY_ENTRY_NOTE = 'note' as const satisfies DayEntryKind
+export const DAY_ENTRY_CONNECTION = 'connection' as const satisfies DayEntryKind
+
+/**
+ * FR-29.18: one leg of a connection. Times are local `YYYY-MM-DDTHH:MM`, so a
+ * night train arrives on its own day; a walk has an empty line.
+ */
+export interface ConnectionLeg {
+  from: string
+  to: string
+  dep: string
+  arr: string
+  line: string
+}
+
 /**
  * FR-29.15: an entry of the day plan's own — what stands on a day that is
- * neither an idea, an excursion nor a task (a table booking).
+ * neither an idea, an excursion nor a task (a table booking), or a connection
+ * (FR-29.18).
  */
 export interface DayEntry {
   id: string
   trip_id: string
   /** Stamped by the server on the insert (invariant 3). */
   author_id: string
+  kind: DayEntryKind
   /** `YYYY-MM-DD`. */
   on_date: string
-  /** `HH:MM`, or null for a day without a time. */
+  /** `HH:MM`, or null for a day without a time. A connection's is its first departure. */
   at_time: string | null
   title: string
   note: string | null
+  /** The provider's address a connection was read from, kept for its app; null for none. */
+  link: string | null
+  /** A connection's legs, in order; null for a free entry. */
+  legs: ConnectionLeg[] | null
 }
 
 /**

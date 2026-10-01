@@ -10,7 +10,7 @@
 import type { DayPlanLine } from '@/lib/dayPlanSources'
 import { DAY_PLAN_EXCURSION } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea } from '@/types/domain'
-import { IDEA_STATE_DONE, IDEA_STATE_SHORTLISTED } from '@/types/domain'
+import { DAY_ENTRY_CONNECTION, IDEA_STATE_DONE, IDEA_STATE_SHORTLISTED } from '@/types/domain'
 
 /** What one line of the timeline is. */
 export const DAY_LINE = {
@@ -20,6 +20,7 @@ export const DAY_LINE = {
   idea: 'idea',
   task: 'task',
   entry: 'entry',
+  connection: 'connection',
 } as const
 export type DayLineKind = (typeof DAY_LINE)[keyof typeof DAY_LINE]
 
@@ -121,6 +122,21 @@ export function ideasOutsideTrip(ideas: readonly Idea[], days: readonly string[]
   )
 }
 
+/**
+ * The plan's own entries on a day the trip does not have — a connection whose
+ * link named another day, or the trip's dates moved. Listed beside the ideas
+ * outside the trip, by day, rather than lost (FR-29.15, FR-29.18).
+ */
+export function entriesOutsideTrip(
+  entries: readonly DayEntry[],
+  days: readonly string[],
+): DayEntry[] {
+  const inTrip = new Set(days)
+  return entries
+    .filter((entry) => !inTrip.has(entry.on_date))
+    .sort((a, b) => a.on_date.localeCompare(b.on_date) || compareTime(a.at_time, b.at_time))
+}
+
 /** What one day of the plan is built from. */
 export interface DayInput {
   trip: TripDates
@@ -175,7 +191,8 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     if (entry.on_date !== day) continue
     lines.push({
       key: `entry:${entry.id}`,
-      kind: DAY_LINE.entry,
+      kind:
+        entry.kind === DAY_ENTRY_CONNECTION && entry.legs ? DAY_LINE.connection : DAY_LINE.entry,
       time: isPlanTime(entry.at_time) ? entry.at_time : null,
       title: entry.title,
       detail: entry.note,

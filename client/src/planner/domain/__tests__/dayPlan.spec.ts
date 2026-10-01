@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest'
 
 import type { DayPlanLine } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea, IdeaState } from '@/types/domain'
+import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '@/types/domain'
 import {
   DAY_LINE,
   MAX_PLAN_DAYS,
   dayCounts,
   dayLines,
   hasPlanDates,
+  entriesOutsideTrip,
   ideasOutsideTrip,
   isPlanTime,
   nextDay,
@@ -50,8 +52,11 @@ function entry(id: string, onDate: string, atTime: string | null): DayEntry {
     author_id: 'u1',
     on_date: onDate,
     at_time: atTime,
+    kind: DAY_ENTRY_NOTE,
     title: `Eintrag ${id}`,
     note: null,
+    link: null,
+    legs: null,
   }
 }
 
@@ -202,5 +207,50 @@ describe('stateAfterTick', () => {
   it('ticks an idea done and unticks it back onto the shortlist', () => {
     expect(stateAfterTick(false)).toBe('done')
     expect(stateAfterTick(true)).toBe('shortlisted')
+  })
+})
+
+describe('a connection on the plan (FR-29.18)', () => {
+  const leg = {
+    from: 'Olbia',
+    to: 'Nuoro',
+    dep: '2026-07-13T09:15',
+    arr: '2026-07-13T11:05',
+    line: '9',
+  }
+  const connection: DayEntry = {
+    ...entry('c', '2026-07-13', '09:15'),
+    kind: DAY_ENTRY_CONNECTION,
+    legs: [leg],
+  }
+
+  it('stands at its first departure as a line of its own kind', () => {
+    const lines = dayLines(
+      '2026-07-13',
+      input({ entries: [entry('e', '2026-07-13', '10:00'), connection] }),
+    )
+    expect(lines.map((l) => [l.kind, l.time])).toEqual([
+      [DAY_LINE.connection, '09:15'],
+      [DAY_LINE.entry, '10:00'],
+    ])
+  })
+
+  it('reads as a free entry where its legs could not be read', () => {
+    const broken = { ...connection, legs: null }
+    expect(dayLines('2026-07-13', input({ entries: [broken] }))[0]?.kind).toBe(DAY_LINE.entry)
+  })
+
+  it('lists entries on a day the trip does not have, by day and time', () => {
+    const entries = [
+      entry('later', '2026-07-20', null),
+      entry('in', '2026-07-13', null),
+      { ...connection, id: 'before', on_date: '2026-07-11', at_time: '18:00' },
+      entry('beforeEarly', '2026-07-11', '07:00'),
+    ]
+    expect(entriesOutsideTrip(entries, tripDays(TRIP)).map((e) => e.id)).toEqual([
+      'beforeEarly',
+      'before',
+      'later',
+    ])
   })
 })

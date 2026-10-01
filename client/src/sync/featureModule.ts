@@ -75,11 +75,16 @@ export interface LinkPreviews {
   picture(tripId: string, imageUrl: string): Promise<Blob | null>
 }
 
-/** A page's own title and description, and where its picture is — each may be missing. */
+/**
+ * A page's own title and description, and where its picture is — each may be
+ * missing — and the web links it carries, among which a reader finds a shared
+ * connection behind a short link (FR-29.18).
+ */
 export interface LinkPreview {
   title: string | null
   description: string | null
   imageUrl: string | null
+  links: string[]
 }
 
 /**

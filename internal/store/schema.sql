@@ -786,10 +786,19 @@ CREATE TABLE day_entries (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     author_id   TEXT NOT NULL REFERENCES users(id),
+    -- FR-29.18: a free entry, or a journey by public transport. A connection
+    -- keeps its legs as one JSON array — each leg `from`, `to`, `dep`, `arr`
+    -- (local `YYYY-MM-DDTHH:MM`), `line` (empty for a walk) — written whole by
+    -- one person, never merged leg by leg; `at_time` is its first departure
+    -- and `title` its first and last stop. `link` is the provider's address
+    -- it was read from, kept for the provider's own app (ADR-086).
+    kind        TEXT NOT NULL DEFAULT 'note' CHECK (kind IN ('note', 'connection')),
     on_date     TEXT NOT NULL,
     at_time     TEXT,
     title       TEXT NOT NULL,
     note        TEXT,
+    link        TEXT CHECK (link IS NULL OR link LIKE 'http://%' OR link LIKE 'https://%'),
+    legs        TEXT CHECK (legs IS NULL OR json_valid(legs)),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

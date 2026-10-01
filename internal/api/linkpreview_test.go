@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"jitpack/internal/api"
@@ -89,6 +90,33 @@ func TestLinkPreview_AMemberGetsWhatThePageSays_FR29_16(t *testing.T) {
 	}
 	if len(fake.asked) != 1 || fake.asked[0] != "https://www.oeschinensee.ch" {
 		t.Errorf("asked %v, want the one URL", fake.asked)
+	}
+}
+
+// FR-29.18: the page's links come with its words, and a page without any
+// answers an empty list rather than null, so a client reads one shape.
+func TestLinkPreview_CarriesThePagesLinks_FR29_18(t *testing.T) {
+	trip := "https://www.sbb.ch/en/trip?tripId=3HA.a.b"
+	cases := []struct {
+		name  string
+		links []string
+		want  string
+	}{
+		{"a share page", []string{trip}, `"links":["` + trip + `"]`},
+		{"a page without links", nil, `"links":[]`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := newPreviewServer(t, &fakePreviewer{page: linkpreview.Preview{Links: tc.links}})
+			resp, raw := doJSON(t, http.MethodPost, previewURL(srv), token(t, userA, testSecret),
+				api.LinkPreviewRequest{URL: "https://a.sbbmobile.ch/s/73oNRti7"})
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("status = %d, body %s", resp.StatusCode, raw)
+			}
+			if !strings.Contains(string(raw), tc.want) {
+				t.Errorf("body %s, want %s", raw, tc.want)
+			}
+		})
 	}
 }
 
