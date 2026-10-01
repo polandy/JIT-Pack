@@ -3530,14 +3530,14 @@ went.
   `TestWS_ALocationReachesTheTripsOtherMemberAndNoStrangersDoes_FR29_19`); the device's rules — asked only on a tap,
   sent by the interval rule, the watch ended with the last map, both choices kept — are `useLiveLocation.spec.ts` and
   `lib/__tests__/liveLocation.spec.ts`.
-* **E2E-M28-20** `local` (FR-29.20, ADR-088) — **implemented** (`planner/routeEdit.spec.ts`): arrows lie on the
+* **E2E-M28-18** `local` (FR-29.20, ADR-088) — **implemented** (`planner/routeEdit.spec.ts`): arrows lie on the
   card's map. ⋮ → *Edit route* opens the editor on the file's four points with its figures (*3.3 km*, *↑ 300 m*,
   *Before 3.3 km · 2 h 05* with the child's pace), no legend, *Done* off and arrows on the line; nothing is asked of
   the router. A handle dragged aside asks it for two paths with the hiking profile, both drawn in the changed colour
   over the original's dotted line, with the legend, other figures and a *+* difference. *Done* offers the name
   *Aufstieg zur Alp (variant)*; *As a new track* adds a second chip under it, its file named after it, with the
   original's *With a child* and quarter hour of breaks. Every request is answered on the device.
-* **E2E-M28-21** `local` (FR-29.20) — **implemented** (`planner/routeEdit.spec.ts`): on a track walked out and back,
+* **E2E-M28-19** `local` (FR-29.20) — **implemented** (`planner/routeEdit.spec.ts`): on a track walked out and back,
   a tap on the line between the first two handles asks *Which pass?* — *Way out at 0.6 km* and *Way back at 3.x km*.
   Choosing the way back sets point 5 there, selected, and the distance stays. *End here* shortens the route with a
   *−0.x km* difference. *Replace* keeps the track's name and puts the new file under it; the toast's *Undo* puts the
