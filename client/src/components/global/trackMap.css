@@ -1,0 +1,99 @@
+/* Leaflet's own elements are created outside any component's scope. Its
+   stylesheet brings colours of its own; what shows on a track map or in the
+   route editor is put back on the tokens here (ADR-085). */
+.track-map .leaflet-container {
+  background: var(--jp-surface-sunken);
+  font: inherit;
+}
+
+/* At a fractional zoom Chrome leaves a hairline between two tiles; a
+   transparent outline closes it. */
+.track-map .leaflet-tile {
+  outline: 1px solid transparent;
+}
+
+.track-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--jp-surface-card) 80%, transparent);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+}
+
+.track-map .leaflet-control-attribution a {
+  color: var(--jp-action);
+}
+
+.track-map .jp-track-halo {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ct-crust) 50%, transparent);
+  stroke-width: 7px;
+}
+
+.track-map .jp-track-line {
+  fill: none;
+  stroke-width: 4px;
+}
+
+.track-map .other {
+  opacity: 0.7;
+}
+
+.track-map .jp-track-line.other {
+  stroke-width: 3px;
+}
+
+.track-map .jp-track-start,
+.track-map .jp-track-finish {
+  stroke: var(--ct-base);
+  stroke-width: 2px;
+  fill-opacity: 1;
+}
+
+.track-map .jp-track-start {
+  fill: var(--ct-pine);
+}
+
+.track-map .jp-track-finish {
+  fill: var(--ct-ember);
+}
+
+.track-map .jp-track-larch {
+  stroke: var(--ct-larch);
+}
+
+.track-map .jp-track-glacier {
+  stroke: var(--ct-glacier);
+}
+
+.track-map .jp-track-heather {
+  stroke: var(--ct-heather);
+}
+
+.track-map .jp-track-alpenrose {
+  stroke: var(--ct-alpenrose);
+}
+
+.track-map .jp-track-pine {
+  stroke: var(--ct-pine);
+}
+
+/* The arrows along a line (FR-29.19): the line's way, in the page's two
+   extremes so they read on every hue and every map. */
+.jp-route-arrow svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  overflow: visible;
+}
+
+.jp-route-arrow path {
+  fill: none;
+  stroke: var(--ct-base);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jp-route-arrow path.edge {
+  stroke: var(--ct-text);
+  stroke-width: 4.4;
+}

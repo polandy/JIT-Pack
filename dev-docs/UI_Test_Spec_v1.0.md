@@ -3517,6 +3517,29 @@ went.
   byte for byte under its file name, and replaced through the file chooser by a shorter climb — new figures and file,
   the name and the breaks kept. Removing asks first: declined, it stays; confirmed, the card, the count and the
   board's line are gone.
+* **E2E-M28-16** `local` (FR-29.19, ADR-087) — **implemented** (`planner/routeEdit.spec.ts`): arrows lie on the
+  card's map. ⋮ → *Edit route* opens the editor on the file's four points with its figures (*3.3 km*, *↑ 300 m*,
+  *Before 3.3 km · 2 h 05* with the child's pace), no legend, *Done* off and arrows on the line; nothing is asked of
+  the router. A handle dragged aside asks it for two paths with the hiking profile, both drawn in the changed colour
+  over the original's dotted line, with the legend, other figures and a *+* difference. *Done* offers the name
+  *Aufstieg zur Alp (variant)*; *As a new track* adds a second chip under it, its file named after it, with the
+  original's *With a child* and quarter hour of breaks. Every request is answered on the device.
+* **E2E-M28-17** `local` (FR-29.19) — **implemented** (`planner/routeEdit.spec.ts`): on a track walked out and back,
+  a tap on the line between the first two handles asks *Which pass?* — *Way out at 0.6 km* and *Way back at 3.x km*.
+  Choosing the way back sets point 5 there, selected, and the distance stays. *End here* shortens the route with a
+  *−0.x km* difference. *Replace* keeps the track's name and puts the new file under it; the toast's *Undo* puts the
+  old file back, figures and name included.
+* **E2E-M28-18** `local` (FR-29.19, ADR-087) — **implemented** (`planner/routeEdit.spec.ts`): *Draw route* opens an
+  empty editor saying *Tap the starting point.*, *Done* off. As a bike tour, two taps ask the router once with the
+  `trekking` profile, the path's *↑ 150 m* and *↓ 50 m* counted. With *Straight line* the next tap asks swisstopo's
+  heights instead. Undo and redo step back and forth without asking again. Leaving asks first and *Cancel* keeps the
+  route. *Done* names it *Bike tour* without a replace option, and saving adds a bike tour with heights.
+* **E2E-M28-19** `local` (FR-29.19) — **implemented** (`planner/routeEdit.spec.ts`): offline, *Draw route*, ⋮'s
+  *Edit route* and the full-screen map's *Edit* are off. Online again, *Edit* closes the full-screen map and opens the
+  editor. A reversed route then asks before it is left, and *Discard* keeps the track as it was. The pure rules —
+  handles from a file, splits, passes, arrows, LV95, the written GPX — are `domain/__tests__/route.spec.ts`; the
+  requests and the history `lib/__tests__/routing.spec.ts` and `routeEditor.spec.ts`; the switch
+  `TestLoadConfig_Routing_FR29_19` and `TestInstanceConfig_HandsOnTheRoutingURL_FR29_19`.
 
 ### M29 — Tagesplan (a trip's day plan, FR-29.14/29.15)
 
@@ -3902,6 +3925,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.4 | E2E+UNIT+SERVER | M28-03; `ideas.spec.ts` (`ideaDiscussion`), `sync.spec.ts` (survives a restart); Go: `TestStampActor_IdeaCommentAuthorIsThePusher_FR29_4` |
 | FR-29.5 | E2E+UNIT+SERVER | M28-07 (banner, mosaic, viewer, cover, removal, reload), M28-08 (another member sees it), NFR-SEC-05 (the hash on plain HTTP); `planner/domain/__tests__/pictures.spec.ts` (order, limit, `coverMoves`), `planner/__tests__/sync.spec.ts` (pulled, added, moved, removed, taken with the idea), `composables/sync/__tests__/ideaImages.seam.spec.ts` (both modes); Go: `internal/store/ideaimage_test.go`, `internal/api/ideaimage_test.go` |
 | FR-29.16 | E2E+UNIT+SERVER | M28-09 (words as a suggestion confirmed or dismissed, the picture shown coming and following a save); `sync.spec.ts` (a link's picture only to an idea without one), M28-10 (the site suggested as the title, one tap from saving, no read shown in Local Mode); `planner/domain/__tests__/linkFill.spec.ts`, `composables/sync/__tests__/linkPreview.seam.spec.ts` (Local Mode asks nothing, off latches); Go: `internal/linkpreview` (`TestParse_*`, `TestFetch_*`, `TestPublicOnly_FR29_16`), `internal/api/linkpreview_test.go` (members only, refusals, off), `cmd/jitpackd` `TestLoadConfig_LinkPreviews_FR29_16` |
+| FR-29.19 | E2E+UNIT+SERVER | M28-16 (a moved point re-routed, the change shown, saved as a variant with its settings), M28-17 (the pass asked for, *End here*, a replacement and its undo), M28-18 (drawn from nothing, the kind's profile, straight with heights, undo and redo, saved), M28-19 (offline locks editing, leaving asks first); `domain/__tests__/route.spec.ts` (handles, legs, passes, arrows, LV95, the GPX written), `lib/__tests__/routing.spec.ts` (the address, BRouter, swisstopo's heights), `lib/__tests__/routeEditor.spec.ts` (history, fallback, aborting); Go: `cmd/jitpackd/config_test.go`, `internal/api/instance_test.go`, `internal/api/options_test.go` |
 | FR-29.17 | E2E+UNIT+SERVER | M28-12 (figures, time, kind, child, breaks, reload), M28-13 (another member sees and downloads it; tiles off), M28-14 (several tracks, the source following them, full screen, offline), M28-15 (rename, download, replace, remove, a file with no track); `domain/__tests__/track.spec.ts` (reading GPX, figures, kind, thinning, the line, paces), `planner/__tests__/tracks.spec.ts` (pulled, added, a sixth refused, settings, removed, taken with the idea, Local Mode restart), `composables/sync/__tests__/ideaTracks.seam.spec.ts` (both modes), `dev/__tests__/sampleTrip.spec.ts` (the seed's routes), `lib/__tests__/mapTiles.spec.ts` (the switch kept, the connection followed), `lib/__tests__/trackFormat.spec.ts`; Go: `internal/store/ideatrack_test.go`, `internal/api/ideatrack_test.go`, `cmd/jitpackd/config_test.go` |
 | FR-29.8 | E2E+UNIT+SERVER | M28-11 (each kind on the other's screen, the notice opening the idea); `notifications/__tests__/format.spec.ts`, `workerBody.spec.ts` (wording and link, app and worker alike), `SettingsPage.spec.ts` (three switches); Go: `TestPlanNotifications_Ideas_FR29_8`, `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`, `TestIdeaDiscussion_NamesTheIdeasAuthorThenEveryCommenterOnce_FR29_8` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |

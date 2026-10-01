@@ -24,6 +24,8 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance makes no release check. See [Release check](#release-check). |
 | `JITPACK_LINK_PREVIEWS` | no | on | When somebody pastes a link into an idea, the server reads that page for its title, description and picture. `false` turns it off; unset or `true` leaves it on; any other value is a **startup error**. See [Link previews](#link-previews). |
 | `JITPACK_MAP_TILES` | no | on | The maps of [GPX tracks](ideas.md#gpx-tracks) show swisstopo's or OpenStreetMap's map behind the line, which each device fetches from them itself. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Map tiles](#map-tiles). |
+| `JITPACK_ROUTING` | no | on | When somebody [edits or draws a route](ideas.md#changing-a-route-or-drawing-one), their device asks a BRouter route planner for the way along the paths. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Route planning](#route-planning). |
+| `JITPACK_ROUTING_URL` | no | `https://brouter.de/brouter` | The BRouter the devices ask, for example one you run yourself. It must be an `http` or `https` address; anything else is a **startup error**. |
 | `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
@@ -81,6 +83,8 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | `JITPACK_TASK_REMINDER_TIME` is not a time of day such as `06:00` | `config: JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset` |
 | `JITPACK_LINK_PREVIEWS` is neither `true` nor `false` | `config: JITPACK_LINK_PREVIEWS must be true or false, or unset (on)` |
 | `JITPACK_MAP_TILES` is neither `true` nor `false` | `config: JITPACK_MAP_TILES must be true or false, or unset (on)` |
+| `JITPACK_ROUTING` is neither `true` nor `false` | `config: JITPACK_ROUTING must be true or false, or unset (on)` |
+| `JITPACK_ROUTING_URL` is not an `http(s)` address | `config: JITPACK_ROUTING_URL must be an http(s) address, got "…"` |
 | The database file cannot be opened or migrated | `store: …` |
 | Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
 | Discovery document's `issuer` differs from the configured one | `oidc discovery: OIDC discovery issuer mismatch: document says "…", configured "…"` |
@@ -212,6 +216,34 @@ What to know before you decide:
 - **With it off,** every map shows the tracks' lines on a plain background, the way it does on a device that is
   offline. The figures, the times and the download stay.
 - **Local mode** has no administrator and always shows the map.
+
+## Route planning
+
+When somebody [edits or draws a route](ideas.md#changing-a-route-or-drawing-one), the way between two points they set
+**follows the paths**. Each person's device asks a **BRouter** route planner for it — by default the free public one
+at `brouter.de`, which plans on OpenStreetMap's maps — **directly, not through your server**. This is **on unless you
+turn it off**:
+
+```bash
+JITPACK_ROUTING=false
+```
+
+What to know before you decide:
+
+- **The route planner sees the device.** It learns its internet address and the two points of each stretch asked
+  for. Nothing else about the trip, the idea or the people on it is sent.
+- **The heights of a straight stretch** come from swisstopo's height service, the same provider as the Landeskarte.
+  Editing needs the map, so with [map tiles](#map-tiles) off nobody can edit a route at all.
+- **With it off,** routes can still be edited and drawn, but points are joined by straight lines, and the editor says
+  why.
+- **Your own BRouter.** If you run one, point the devices at it — they then ask nobody else for paths:
+
+  ```bash
+  JITPACK_ROUTING_URL=https://brouter.example.com/brouter
+  ```
+
+  It needs the profiles `hiking-mountain` and `trekking`, which a standard BRouter ships.
+- **Local mode** has no administrator and asks the public BRouter.
 
 ## Task reminders
 

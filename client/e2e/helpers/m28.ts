@@ -180,7 +180,7 @@ export function trackViewer(page: Page): Locator {
  */
 export async function trackAction(
   card: Locator,
-  action: 'rename' | 'download' | 'replace' | 'remove',
+  action: 'edit' | 'rename' | 'download' | 'replace' | 'remove',
 ): Promise<void> {
   const page = card.page()
   await card.getByTestId('track-more').click()
@@ -188,4 +188,110 @@ export async function trackAction(
   await expect(sheet).toBeVisible()
   await sheet.getByTestId(`track-${action}`).click()
   await expect(sheet).toHaveCount(0)
+}
+
+/** What the routing stubs were asked: BRouter's two points and profile, swisstopo's line. */
+export interface RoutingRequests {
+  paths: { from: [number, number]; to: [number, number]; profile: string }[]
+  heights: number
+}
+
+/**
+ * Answers BRouter and swisstopo's profile service on the device (FR-29.19),
+ * so no case reaches either. A path runs from its first point to its last
+ * through a point between them a little to the east, climbing 150 m and
+ * coming down 50 — a way that is visibly not the straight line. A straight
+ * leg's heights climb 50 m.
+ */
+export async function stubRouting(page: Page): Promise<RoutingRequests> {
+  const asked: RoutingRequests = { paths: [], heights: 0 }
+  await page.route('https://brouter.de/brouter**', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    const [from, to] = query
+      .get('lonlats')!
+      .split('|')
+      .map((pair) => pair.split(',').map(Number) as [number, number])
+    asked.paths.push({ from: from!, to: to!, profile: query.get('profile')! })
+    const mid = [(from![0] + to![0]) / 2 + 0.002, (from![1] + to![1]) / 2]
+    return route.fulfill({
+      contentType: 'application/vnd.geo+json',
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [from![0], from![1], 1000],
+                [mid[0], mid[1], 1150],
+                [to![0], to![1], 1100],
+              ],
+            },
+          },
+        ],
+      }),
+    })
+  })
+  await page.route('https://api3.geo.admin.ch/**', (route) => {
+    asked.heights += 1
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { dist: 0, alts: { COMB: 1000 } },
+        { dist: 500, alts: { COMB: 1025 } },
+        { dist: 1000, alts: { COMB: 1050 } },
+      ]),
+    })
+  })
+  return asked
+}
+
+/** The route editor, which Ionic lifts out to the app root. */
+export function routeEditor(page: Page): Locator {
+  return page.getByTestId('route-editor')
+}
+
+/**
+ * Waits until every leg of the edited route has its line — the editor's
+ * own signal (`data-settled`), set once no request is outstanding.
+ */
+export async function routeSettled(editor: Locator, handles: number): Promise<void> {
+  const map = editor.getByTestId('route-map')
+  await expect(map).toHaveAttribute('data-handles', String(handles))
+  await expect(map).toHaveAttribute('data-settled', 'true')
+}
+
+/** The centre of a handle on the screen. */
+async function handleCentre(editor: Locator, index: number): Promise<{ x: number; y: number }> {
+  const box = (await editor.getByTestId(`route-handle-${index}`).boundingBox())!
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** Drags a handle by an offset on the screen, in steps, as a finger does. */
+export async function dragHandle(
+  editor: Locator,
+  index: number,
+  dx: number,
+  dy: number,
+): Promise<void> {
+  const page = editor.page()
+  const from = await handleCentre(editor, index)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(from.x + dx, from.y + dy, { steps: 8 })
+  await page.mouse.up()
+}
+
+/** Taps the route halfway between two handles — on the line where the leg between them is straight. */
+export async function tapBetween(editor: Locator, a: number, b: number): Promise<void> {
+  const one = await handleCentre(editor, a)
+  const two = await handleCentre(editor, b)
+  await editor.page().mouse.click((one.x + two.x) / 2, (one.y + two.y) / 2)
+}
+
+/** Taps the map at a share of its width and height. */
+export async function tapMap(editor: Locator, x: number, y: number): Promise<void> {
+  const box = (await editor.getByTestId('route-map').boundingBox())!
+  await editor.page().mouse.click(box.x + box.width * x, box.y + box.height * y)
 }

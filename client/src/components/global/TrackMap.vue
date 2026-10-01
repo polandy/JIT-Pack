@@ -11,9 +11,12 @@
 import type * as Leaflet from 'leaflet'
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
+import './trackMap.css'
+
 import { t } from '@/i18n'
 import type { MapSource } from '@/domain/track'
 import { useTileState } from '@/lib/mapTiles'
+import { directionArrows, loadLeaflet, tileLayer } from './mapLayers'
 import TrackLines from './TrackLines.vue'
 import type { MapLine } from './trackColors'
 
@@ -28,22 +31,6 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ choose: [id: string] }>()
-
-/** Where each source's tiles come from, and what its licence asks to be said. */
-const TILES: Record<MapSource, { url: string; attribution: string; maxZoom: number }> = {
-  swisstopo: {
-    url: 'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',
-    attribution:
-      '© <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>',
-    maxZoom: 18,
-  },
-  osm: {
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution:
-      '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-    maxZoom: 19,
-  },
-}
 
 /** Room around the chosen track when the map frames it, in pixels. */
 const FIT_PADDING = { still: 16, interactive: 40 }
@@ -62,8 +49,7 @@ const chosen = computed(() => props.lines.find((line) => line.chosen) ?? props.l
 
 async function mount(): Promise<void> {
   if (!host.value || map.value) return
-  leaflet ??= await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
+  leaflet ??= await loadLeaflet()
   if (!host.value || map.value || tiles.value !== 'on') return
   const still = !props.interactive
   map.value = leaflet.map(host.value, {
@@ -103,16 +89,7 @@ function unmount(): void {
 function setSource(source: MapSource): void {
   if (!map.value || !leaflet) return
   if (layer) map.value.removeLayer(layer)
-  const spec = TILES[source]
-  layer = leaflet
-    // A phone's screen has two or three pixels to a point: a tile from one
-    // zoom further, drawn half the size, keeps a map's lettering sharp.
-    .tileLayer(spec.url, {
-      maxZoom: spec.maxZoom,
-      attribution: spec.attribution,
-      detectRetina: true,
-    })
-    .addTo(map.value)
+  layer = tileLayer(leaflet, source).addTo(map.value)
   layer.bringToBack()
 }
 
@@ -132,6 +109,8 @@ function draw(): void {
     if (props.interactive) path.on('click', () => emit('choose', line.id))
   }
   const points = chosen.value?.points ?? []
+  // Which way the chosen track is walked (FR-29.19).
+  directionArrows(L, map.value, () => points).addTo(group)
   if (points.length > 0) {
     L.circleMarker(points[0]!, {
       className: 'jp-track-start',
@@ -225,85 +204,5 @@ onBeforeUnmount(unmount)
   background: var(--jp-surface-card);
   color: var(--ct-subtext1);
   font-size: var(--jp-text-xs);
-}
-</style>
-
-<style>
-/* Leaflet's own elements are created outside this component's scope. Its
-   stylesheet brings colours of its own; what shows on a track map is put
-   back on the tokens here (ADR-085). */
-.track-map .leaflet-container {
-  background: var(--jp-surface-sunken);
-  font: inherit;
-}
-
-/* At a fractional zoom Chrome leaves a hairline between two tiles; a
-   transparent outline closes it. */
-.track-map .leaflet-tile {
-  outline: 1px solid transparent;
-}
-
-.track-map .leaflet-control-attribution {
-  background: color-mix(in srgb, var(--jp-surface-card) 80%, transparent);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-}
-
-.track-map .leaflet-control-attribution a {
-  color: var(--jp-action);
-}
-
-.track-map .jp-track-halo {
-  fill: none;
-  stroke: color-mix(in srgb, var(--ct-crust) 50%, transparent);
-  stroke-width: 7px;
-}
-
-.track-map .jp-track-line {
-  fill: none;
-  stroke-width: 4px;
-}
-
-.track-map .other {
-  opacity: 0.7;
-}
-
-.track-map .jp-track-line.other {
-  stroke-width: 3px;
-}
-
-.track-map .jp-track-start,
-.track-map .jp-track-finish {
-  stroke: var(--ct-base);
-  stroke-width: 2px;
-  fill-opacity: 1;
-}
-
-.track-map .jp-track-start {
-  fill: var(--ct-pine);
-}
-
-.track-map .jp-track-finish {
-  fill: var(--ct-ember);
-}
-
-.track-map .jp-track-larch {
-  stroke: var(--ct-larch);
-}
-
-.track-map .jp-track-glacier {
-  stroke: var(--ct-glacier);
-}
-
-.track-map .jp-track-heather {
-  stroke: var(--ct-heather);
-}
-
-.track-map .jp-track-alpenrose {
-  stroke: var(--ct-alpenrose);
-}
-
-.track-map .jp-track-pine {
-  stroke: var(--ct-pine);
 }
 </style>

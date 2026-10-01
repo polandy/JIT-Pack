@@ -64,7 +64,8 @@ it on your device; a file with no track in it, or a larger one, is refused and n
 
 The track then appears on a **map** in the idea:
 
-- **The map** shows every track of the idea, each in its own colour, the one you chose in full. Inside Switzerland it
+- **The map** shows every track of the idea, each in its own colour, the one you chose in full, with arrows showing
+  which way it goes. Inside Switzerland it
   is swisstopo's **Landeskarte**, elsewhere **OpenStreetMap**. Tap the map to see it full screen: there you can move
   and zoom it, switch between **Landeskarte** and **OSM** (the Landeskarte only covers Switzerland), and the square
   button brings the whole track back into view. With several tracks, a chip per track above the map chooses one.
@@ -75,7 +76,7 @@ The track then appears on a **map** in the idea:
   climbing an hour. With a child, a hike counts 3 km/h, 200 m up and 350 m down an hour, and a bike tour 12 km/h and
   350 m. These are estimates. Add your **Pausen** with − and +, a quarter of an hour at a time: walking (or riding)
   time plus breaks is the time **Unterwegs**. Everybody on the trip sees the same settings.
-- **⋮** next to the file's name: **Umbenennen**, **GPX herunterladen** (the file exactly as it was added — for your
+- **⋮** next to the file's name: **Route bearbeiten** (see below), **Umbenennen**, **GPX herunterladen** (the file exactly as it was added — for your
   watch or your hiking app), **Durch andere Datei ersetzen** (name, kind, *Mit Kind* and breaks stay) and **Track
   entfernen**, which asks first and removes it for everybody on the trip.
 
@@ -83,6 +84,34 @@ Everybody on the trip sees the tracks; nobody else can open them. On a server, a
 the map and the figures then work offline. Offline, or where your administrator turned the map tiles off (see
 [Map tiles](configuration.md#map-tiles)), the map shows the lines without the map behind them. In Local mode the files
 stay on your device.
+
+### Changing a route, or drawing one
+
+A track can be changed on the map — a shorter variant for the child, another way down — the way you plan a route in
+the swisstopo app. Choose **Route bearbeiten** in **⋮**, or **Bearbeiten** at the top of the full-screen map. To draw a
+route without a file, tap **Route zeichnen** next to **GPX hinzufügen**. Editing needs the map, so it is not available
+offline.
+
+- **Tap the map** to add a point at the end. The way there **follows the paths** — or, with **Luftlinie** chosen at
+  the bottom left, goes straight.
+- **Drag a point** to move it: the stretches on both sides are found again.
+- **Tap the line** to set a point there, which you can then drag. Where the route runs along the same path twice — out
+  and back — the app asks which of the two you mean, **Hinweg** or **Rückweg**, and shows each on the map.
+- **Tap a point** for **Hier starten**, **Hier enden** (the quickest way to a shorter variant) and **Punkt löschen**.
+- Down the right edge: undo, redo, **Zurück zum Start** to make it a loop, **Richtung umkehren**, and the whole route.
+
+While you edit, the distance, the climbing and the time follow every change. What you changed is drawn in another
+colour over the original, which stays dotted underneath; **Vorher** says how far and how long the original was, and
+the height profile at the bottom shows the climbs — move a finger along it to see the place on the map.
+
+**Fertig** asks how to keep it. **Als neuen Track** puts it beside the original — named *(Variante)* unless you change
+that — with the original's *Mit Kind* and breaks, so you can compare the two. **Ersetzen** puts it in place of the
+original, keeping its name and settings; the original file is gone, but the message that follows has **Rückgängig**.
+The app saves the route as a GPX file of its own, which **GPX herunterladen** gives you like any other.
+
+The paths come from **BRouter**, a free route planner on OpenStreetMap's maps, which your device asks directly with
+the two points of each stretch; the heights of a straight stretch come from swisstopo. Your administrator can turn
+the path finding off (see [Route planning](configuration.md#route-planning)); points are then joined straight.
 
 ## Deciding
 

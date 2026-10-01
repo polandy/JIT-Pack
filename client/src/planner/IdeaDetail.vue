@@ -23,6 +23,7 @@ import {
 import {
   cameraOutline,
   createOutline,
+  gitBranchOutline,
   linkOutline,
   mapOutline,
   openOutline,
@@ -41,6 +42,7 @@ import TrackCard from '@/components/global/TrackCard.vue'
 import { MAX_TRACKS, orderTracks } from '@/domain/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
+import { useTileState } from '@/lib/mapTiles'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
@@ -95,7 +97,11 @@ const emit = defineEmits<{
   downloadTrack: [track: IdeaTrack]
   replaceTrack: [track: IdeaTrack, file: File]
   removeTrack: [track: IdeaTrack]
+  /** FR-29.19: a track's route edited, or one drawn from nothing (null). */
+  editTrack: [track: IdeaTrack | null]
 }>()
+
+const tiles = useTileState()
 
 const plannerStore = usePlannerStore()
 
@@ -335,6 +341,17 @@ async function openCommentMenu(comment: IdeaComment) {
           <IonIcon slot="start" :icon="mapOutline" />
           {{ trackBusy ? t('ideas.trackReading') : t('ideas.addTrack') }}
         </IonButton>
+        <IonButton
+          fill="clear"
+          size="small"
+          :disabled="trackBusy || tiles !== 'on'"
+          :title="tiles !== 'on' ? t('track.editNeedsMap') : undefined"
+          data-testid="idea-track-draw"
+          @click="emit('editTrack', null)"
+        >
+          <IonIcon slot="start" :icon="gitBranchOutline" />
+          {{ t('ideas.drawTrack') }}
+        </IonButton>
         <span v-if="tracks.length > 0" class="of-max jp-num" data-testid="idea-track-count">
           {{ t('ideas.picturesOfMax', { n: tracks.length, max: MAX_TRACKS }) }}
         </span>
@@ -349,6 +366,7 @@ async function openCommentMenu(comment: IdeaComment) {
       @download="(track) => own(track) && emit('downloadTrack', own(track)!)"
       @replace="(track, file) => own(track) && emit('replaceTrack', own(track)!, file)"
       @remove="(track) => own(track) && emit('removeTrack', own(track)!)"
+      @edit="(track) => own(track) && emit('editTrack', own(track)!)"
     />
     <IdeaPictureViewer
       :pictures="pictures"

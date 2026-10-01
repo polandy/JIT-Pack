@@ -6,7 +6,7 @@
  * figures as the card. On the crust surface, like an idea's picture viewer.
  */
 import { IonIcon, IonModal } from '@ionic/vue'
-import { close, scanOutline } from 'ionicons/icons'
+import { close, createOutline, scanOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import { defaultSource, inSwitzerland, type MapSource } from '@/domain/track'
@@ -29,6 +29,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   choose: [id: string]
+  /** FR-29.19: the chosen track's route is to be edited. */
+  edit: []
   update: [
     track: TrackFields,
     settings: Partial<Pick<TrackFields, 'kind' | 'with_kid' | 'pause_min'>>,
@@ -62,6 +64,18 @@ watch(
     <div class="viewer">
       <header class="bar">
         <span class="title jp-sheet-title">{{ title }}</span>
+        <button
+          v-if="chosen"
+          type="button"
+          class="edit"
+          :disabled="tiles !== 'on'"
+          :title="tiles !== 'on' ? t('track.editNeedsMap') : undefined"
+          data-testid="track-viewer-edit"
+          @click="emit('edit')"
+        >
+          <IonIcon :icon="createOutline" aria-hidden="true" />
+          {{ t('track.editShort') }}
+        </button>
         <button
           type="button"
           class="icon-button"
@@ -147,6 +161,32 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-card);
+  color: var(--ct-text);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-semibold);
+  cursor: pointer;
+}
+
+.edit ion-icon {
+  color: var(--jp-action);
+  font-size: var(--jp-icon-sm);
+}
+
+.edit:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .stage {

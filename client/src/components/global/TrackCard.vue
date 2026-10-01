@@ -14,6 +14,7 @@ import {
   createOutline,
   documentOutline,
   downloadOutline,
+  gitBranchOutline,
   ellipsisVertical,
   expandOutline,
   swapHorizontalOutline,
@@ -24,6 +25,7 @@ import { computed, ref, watch } from 'vue'
 import { decodeLine, defaultSource } from '@/domain/track'
 import { formatNumber, t } from '@/i18n'
 import { promptText } from '@/lib/confirm'
+import { useTileState } from '@/lib/mapTiles'
 import type { TrackFields } from '@/types/domain'
 import TrackFigures from './TrackFigures.vue'
 import TrackMap from './TrackMap.vue'
@@ -47,7 +49,11 @@ const emit = defineEmits<{
   download: [track: TrackFields]
   replace: [track: TrackFields, file: File]
   remove: [track: TrackFields]
+  /** FR-29.19: the track's route is to be edited — the owner loads its file. */
+  edit: [track: TrackFields]
 }>()
+
+const tiles = useTileState()
 
 const chosen = computed(
   () => props.tracks.find((track) => track.id === chosenId.value) ?? props.tracks[0] ?? null,
@@ -92,6 +98,12 @@ function choose(id: string) {
   chosenId.value = id
 }
 
+/** The editor opens over the card; the full-screen map it was asked from closes first. */
+function openEditorFromViewer() {
+  viewing.value = false
+  if (chosen.value) emit('edit', chosen.value)
+}
+
 function onReplaceFile(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -121,6 +133,17 @@ async function openMenu() {
     header: `${track.name} · ${track.file_name}`,
     htmlAttributes: { 'data-testid': 'track-menu' },
     buttons: [
+      {
+        // Without a map no point can be set: offline, or tiles off on this instance.
+        text:
+          tiles.value === 'on'
+            ? t('track.edit')
+            : `${t('track.edit')} – ${t('track.editNeedsMap')}`,
+        icon: gitBranchOutline,
+        disabled: tiles.value !== 'on',
+        htmlAttributes: { 'data-testid': 'track-edit' },
+        handler: () => emit('edit', track),
+      },
       {
         text: t('track.rename'),
         icon: createOutline,
@@ -205,6 +228,7 @@ async function openMenu() {
       :chosen="chosen"
       @close="viewing = false"
       @choose="choose"
+      @edit="openEditorFromViewer"
       @update="(track, settings) => emit('update', track, settings)"
     />
   </section>
