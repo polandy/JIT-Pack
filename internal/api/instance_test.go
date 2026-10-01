@@ -93,9 +93,9 @@ func TestInstanceConfig_MapTilesOnUnlessTurnedOff_FR29_17(t *testing.T) {
 	}
 }
 
-// FR-29.19: the router a device asks is the one the operator configured,
+// FR-29.20: the router a device asks is the one the operator configured,
 // and none where routing is off.
-func TestInstanceConfig_HandsOnTheRoutingURL_FR29_19(t *testing.T) {
+func TestInstanceConfig_HandsOnTheRoutingURL_FR29_20(t *testing.T) {
 	if got := instanceConfig(t, newTestServer(t)).RoutingURL; got != "" {
 		t.Errorf("routing_url = %q without RoutingURL, want empty", got)
 	}

@@ -4,19 +4,35 @@
  * touch, its source switched between the Landeskarte and OpenStreetMap, the
  * chosen track framed again on a tap, and at its foot the same chips and
  * figures as the card. On the crust surface, like an idea's picture viewer.
+ *
+ * Given its trip, it also shows where people are (FR-29.19, ADR-087): the
+ * device's own position after a tap on 📍, and — where somebody else is on
+ * the trip — a switch to share it and a switch to show the others'.
  */
 import { IonIcon, IonModal } from '@ionic/vue'
-import { close, createOutline, scanOutline } from 'ionicons/icons'
-import { computed, ref, watch } from 'vue'
+import {
+  close,
+  createOutline,
+  locateOutline,
+  peopleOutline,
+  radioOutline,
+  scanOutline,
+} from 'ionicons/icons'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { defaultSource, inSwitzerland, type MapSource } from '@/domain/track'
 import { t } from '@/i18n'
+import { LIVE_LOCATION } from '@/composables/useLiveLocation'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { useTripIdentity } from '@/composables/useTripIdentity'
+import { initialsOf } from '@/lib/initials'
+import { freshPeople, minutesAgo } from '@/lib/liveLocation'
 import { useTileState } from '@/lib/mapTiles'
 import type { TrackFields } from '@/types/domain'
 import TrackFigures from './TrackFigures.vue'
 import TrackMap from './TrackMap.vue'
 import TrackTabs from './TrackTabs.vue'
-import type { MapLine } from './trackColors'
+import type { MapLine, MapMark } from './trackColors'
 
 const props = defineProps<{
   open: boolean
@@ -24,12 +40,14 @@ const props = defineProps<{
   tracks: TrackFields[]
   lines: MapLine[]
   chosen: TrackFields | null
+  /** The trip the tracks belong to; without one, the map shows nobody. */
+  tripId?: string
 }>()
 
 const emit = defineEmits<{
   close: []
   choose: [id: string]
-  /** FR-29.19: the chosen track's route is to be edited. */
+  /** FR-29.20: the chosen track's route is to be edited. */
   edit: []
   update: [
     track: TrackFields,
@@ -43,6 +61,108 @@ const tiles = useTileState()
 const swiss = computed(() => inSwitzerland(props.lines.map((line) => line.points)))
 const source = ref<MapSource>('osm')
 const map = ref<InstanceType<typeof TrackMap> | null>(null)
+
+// --- where people are (FR-29.19) ---
+
+const live = inject(LIVE_LOCATION, null)
+const orchestrator = inject(ORCHESTRATOR, null)
+const identity = props.tripId && orchestrator ? useTripIdentity(props.tripId, orchestrator) : null
+
+/**
+ * Somebody else to share with or to see: an identity and another account on
+ * the trip — M28's rule for its votes (G-8). Not in Local or Single-User Mode.
+ */
+const othersOffered = computed(
+  () => !!identity && identity.myUserId.value !== null && identity.assignees.value.length > 1,
+)
+const sharing = computed(() => !!props.tripId && !!live?.isSharing(props.tripId))
+
+/** The minute the „vor n min" are counted against, moved on while the map is open. */
+const minute = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | null = null
+const MINUTE_MS = 60_000
+
+watch(
+  () => props.open,
+  (open, was) => {
+    if (open) {
+      live?.hold()
+      minute.value = Date.now()
+      ticker ??= setInterval(() => (minute.value = Date.now()), MINUTE_MS)
+    } else if (was) {
+      live?.release()
+      if (ticker) clearInterval(ticker)
+      ticker = null
+    }
+  },
+)
+onMounted(() => {
+  if (props.open) live?.hold()
+})
+onBeforeUnmount(() => {
+  if (props.open) live?.release()
+  if (ticker) clearInterval(ticker)
+})
+
+const marks = computed<MapMark[]>(() => {
+  const list: MapMark[] = []
+  const me = live?.me.value
+  if (me) {
+    list.push({
+      id: 'me',
+      kind: 'me',
+      lat: me.lat,
+      lon: me.lon,
+      accuracyM: me.accuracyM,
+      initials: '',
+      title: t('track.me'),
+    })
+  }
+  if (live && props.tripId && othersOffered.value && live.showOthers.value) {
+    for (const { userId, fix } of freshPeople(live.others(props.tripId), minute.value)) {
+      const name = identity?.nameOf(userId) ?? t('track.someone')
+      const n = minutesAgo(fix, minute.value)
+      list.push({
+        id: userId,
+        kind: 'person',
+        lat: fix.lat,
+        lon: fix.lon,
+        accuracyM: fix.accuracyM,
+        initials: initialsOf(name, userId),
+        title: n === 0 ? t('track.personNow', { name }) : t('track.personAt', { name, n }),
+      })
+    }
+  }
+  return list
+})
+
+/** Whether the 📍 was tapped, so the first position to arrive is centred on. */
+let centreOnArrival = false
+
+function locate() {
+  if (!live) return
+  const me = live.me.value
+  if (me) map.value?.focus(me.lat, me.lon)
+  else centreOnArrival = true
+  live.locate()
+}
+
+watch(
+  () => live?.me.value,
+  (me) => {
+    if (me && centreOnArrival) {
+      centreOnArrival = false
+      map.value?.focus(me.lat, me.lon)
+    }
+  },
+)
+
+const locateNote = computed(() => {
+  const state = live?.state.value
+  if (state === 'denied') return t('track.locateDenied')
+  if (state === 'unavailable') return t('track.locateUnavailable')
+  return null
+})
 
 // Each opening starts on the map that suits the tracks.
 watch(
@@ -93,6 +213,7 @@ watch(
           class="map"
           :lines="lines"
           :source="source"
+          :marks="marks"
           interactive
           data-testid="track-viewer-map"
           @choose="emit('choose', $event)"
@@ -112,6 +233,17 @@ watch(
             </button>
           </div>
           <button
+            v-if="live"
+            type="button"
+            class="icon-button locate"
+            :aria-label="t('track.locate')"
+            :aria-pressed="live.state.value === 'on' ? 'true' : 'false'"
+            data-testid="track-locate"
+            @click="locate"
+          >
+            <IonIcon :icon="locateOutline" aria-hidden="true" />
+          </button>
+          <button
             type="button"
             class="icon-button fit"
             :aria-label="t('track.fit')"
@@ -121,6 +253,32 @@ watch(
             <IonIcon :icon="scanOutline" aria-hidden="true" />
           </button>
         </template>
+        <p v-if="locateNote" class="locate-note" data-testid="track-locate-note">
+          {{ locateNote }}
+        </p>
+      </div>
+
+      <div v-if="live && tripId && othersOffered" class="people" data-testid="track-people">
+        <button
+          type="button"
+          class="toggle"
+          :aria-pressed="sharing ? 'true' : 'false'"
+          data-testid="track-share"
+          @click="live.setSharing(tripId, !sharing)"
+        >
+          <IonIcon :icon="radioOutline" aria-hidden="true" />
+          {{ t('track.share') }}
+        </button>
+        <button
+          type="button"
+          class="toggle"
+          :aria-pressed="live.showOthers.value ? 'true' : 'false'"
+          data-testid="track-show-others"
+          @click="live.setShowOthers(!live.showOthers.value)"
+        >
+          <IonIcon :icon="peopleOutline" aria-hidden="true" />
+          {{ t('track.showOthers') }}
+        </button>
       </div>
 
       <footer v-if="chosen" class="foot">
@@ -257,6 +415,66 @@ watch(
   z-index: 500;
   top: 10px;
   right: 10px;
+}
+
+/* Under the frame button, the same size: the two ways of moving the map. */
+.locate {
+  position: absolute;
+  z-index: 500;
+  top: 58px;
+  right: 10px;
+}
+
+.locate[aria-pressed='true'] {
+  color: var(--ct-glacier);
+}
+
+.locate-note {
+  position: absolute;
+  z-index: 500;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--jp-r-sm);
+  background: color-mix(in srgb, var(--jp-surface-card) 92%, transparent);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+}
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 0;
+  background: var(--jp-surface-page);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--ct-surface2);
+  border-radius: var(--jp-r-pill);
+  background: transparent;
+  color: var(--ct-subtext1);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--jp-action);
+  background: var(--jp-action);
+  color: var(--ct-base);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.toggle ion-icon {
+  font-size: var(--jp-icon-sm);
 }
 
 .foot {

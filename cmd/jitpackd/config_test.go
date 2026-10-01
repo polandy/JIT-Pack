@@ -421,10 +421,10 @@ func TestLoadConfig_TaskReminderTime(t *testing.T) {
 	}
 }
 
-// FR-29.19: routing is on with the public BRouter unless the operator turns
+// FR-29.20: routing is on with the public BRouter unless the operator turns
 // it off or names another; a misspelt switch or an address that is no
 // http(s) URL refuses to start.
-func TestLoadConfig_Routing_FR29_19(t *testing.T) {
+func TestLoadConfig_Routing_FR29_20(t *testing.T) {
 	cases := []struct {
 		name    string
 		on, url string

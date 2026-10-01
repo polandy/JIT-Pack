@@ -382,7 +382,7 @@ async function onRemoveTrack(track: IdeaTrack) {
   if (confirmed) actions.removeTrack(track)
 }
 
-// --- Editing a route (FR-29.19, ADR-087) ---
+// --- Editing a route (FR-29.20, ADR-088) ---
 
 /** The route being edited: on which idea, which track (none when drawn from nothing) and its file. */
 interface RouteEditing {
@@ -452,7 +452,7 @@ async function onEditTrack(track: IdeaTrack | null) {
 }
 
 /**
- * Saves an edited route as the GPX file this device writes (ADR-087),
+ * Saves an edited route as the GPX file this device writes (ADR-088),
  * through FR-29.17's upload: a new track — carrying the original's
  * *Mit Kind* and pauses — or the original's file replaced, with an undo
  * that puts the old file back.

@@ -1,5 +1,5 @@
 /**
- * What every Leaflet map of tracks shares (FR-29.17, FR-29.19): the two tile
+ * What every Leaflet map of tracks shares (FR-29.17, FR-29.20): the two tile
  * sources with the attribution their licence asks for, Leaflet itself
  * loaded with the first map that needs it, and the arrows that show which
  * way a line is walked.

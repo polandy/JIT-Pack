@@ -73,7 +73,7 @@ type Config struct {
 	MapTiles bool // JITPACK_MAP_TILES, "false" disables
 
 	// RoutingURL is the BRouter a device asks for paths when it edits a
-	// route (FR-29.19, ADR-087): the public one unless JITPACK_ROUTING_URL
+	// route (FR-29.20, ADR-088): the public one unless JITPACK_ROUTING_URL
 	// names another, and empty where JITPACK_ROUTING is "false".
 	RoutingURL string // JITPACK_ROUTING, JITPACK_ROUTING_URL
 
@@ -228,7 +228,7 @@ func parseOnByDefault(name, raw string) (bool, error) {
 }
 
 // DefaultRoutingURL is the public BRouter a device asks unless the operator
-// names another (ADR-087).
+// names another (ADR-088).
 const DefaultRoutingURL = "https://brouter.de/brouter"
 
 // parseRouting reads the routing switch and its address: the address, the

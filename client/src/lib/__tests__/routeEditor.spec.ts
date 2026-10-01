@@ -1,5 +1,5 @@
 /**
- * FR-29.19 — the editor's history and the requests its new legs make.
+ * FR-29.20 — the editor's history and the requests its new legs make.
  */
 import { describe, expect, it, vi } from 'vitest'
 
@@ -47,7 +47,7 @@ const line = (from: LatLon, to: LatLon, ele: number): RoutePoint[] => [
   { ...to, ele: ele + 100 },
 ]
 
-describe('legMode (FR-29.19)', () => {
+describe('legMode (FR-29.20)', () => {
   it('follows_paths_only_where_chosen_and_routing_is_on', () => {
     expect(legMode(true, true)).toBe('path')
     expect(legMode(false, true)).toBe('line')
@@ -55,7 +55,7 @@ describe('legMode (FR-29.19)', () => {
   })
 })
 
-describe('createRouteEditor (FR-29.19)', () => {
+describe('createRouteEditor (FR-29.20)', () => {
   it('asks_the_router_for_a_new_path_leg_with_the_kind_and_settles_on_its_answer', async () => {
     const { fetchers, paths } = heldFetchers()
     const editor = createRouteEditor({

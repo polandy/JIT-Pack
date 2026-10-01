@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * FR-29.19 — the router's address as the instance hands it on, and the two
- * requests an edited leg makes (ADR-087).
+ * FR-29.20 — the router's address as the instance hands it on, and the two
+ * requests an edited leg makes (ADR-088).
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -33,7 +33,7 @@ beforeEach(() => {
   setRouting(DEFAULT_ROUTER_URL)
 })
 
-describe('the routing address (FR-29.19)', () => {
+describe('the routing address (FR-29.20)', () => {
   it('asks_the_public_router_until_the_instance_names_another_or_none', () => {
     expect(useRoutingUrl().value).toBe(DEFAULT_ROUTER_URL)
     setRouting('https://router.example/brouter')
@@ -57,7 +57,7 @@ describe('the routing address (FR-29.19)', () => {
   })
 })
 
-describe('fetchPath (FR-29.19, ADR-087)', () => {
+describe('fetchPath (FR-29.20, ADR-088)', () => {
   it('asks_for_the_kinds_profile_and_reads_the_path_with_its_heights', async () => {
     h.fetch.mockResolvedValue(
       json({
@@ -99,7 +99,7 @@ describe('fetchPath (FR-29.19, ADR-087)', () => {
   })
 })
 
-describe('fetchStraight (FR-29.19, ADR-087)', () => {
+describe('fetchStraight (FR-29.20, ADR-088)', () => {
   it('asks_swisstopo_for_heights_along_a_line_in_switzerland_in_lv95', async () => {
     h.fetch.mockResolvedValue(
       json([

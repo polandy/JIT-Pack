@@ -18,7 +18,7 @@ import {
 
 /**
  * M28 — editing a track's route and drawing one (UI-Test-Spec §28,
- * FR-29.19, ADR-087). Local Mode: the device asks the router itself in every
+ * FR-29.20, ADR-088). Local Mode: the device asks the router itself in every
  * mode, and here the file is kept on it too.
  *
  * BRouter and swisstopo's heights are answered on the device
@@ -59,14 +59,14 @@ test.describe('M28 route editing @local @planner', () => {
   })
 
   /**
-   * E2E-M28-16: a track's route is edited from ⋮ — the file's line kept
+   * E2E-M28-18: a track's route is edited from ⋮ — the file's line kept
    * with its figures until a handle moves; the two stretches beside it are
    * found along paths, drawn in their own colour over the original's
    * dotted line, and the figures say what changed. Saved as a new track it
    * stands beside the original with its *Mit Kind* and pauses. Arrows show
    * the direction on the card's map and in the editor.
    */
-  test('E2E-M28-16: a moved point re-routes its stretches, shows the change, and saves as a variant', async ({
+  test('E2E-M28-18: a moved point re-routes its stretches, shows the change, and saves as a variant', async ({
     page,
   }) => {
     const asked = await stubRouting(page)
@@ -119,13 +119,13 @@ test.describe('M28 route editing @local @planner', () => {
   })
 
   /**
-   * E2E-M28-17: where the route runs twice, a tap on the line asks which
+   * E2E-M28-19: where the route runs twice, a tap on the line asks which
    * pass the new point splits — *Hinweg* or *Rückweg*, each with how far
    * along it lies — and a split changes no figure. *Hier enden* shortens
    * the route there. Replacing the original keeps its name and settings,
    * and the toast's undo puts the old file back.
    */
-  test('E2E-M28-17: a tap on a doubled path asks for the pass, a point ends the route, and a replacement undoes', async ({
+  test('E2E-M28-19: a tap on a doubled path asks for the pass, a point ends the route, and a replacement undoes', async ({
     page,
   }) => {
     await stubRouting(page)
@@ -168,13 +168,13 @@ test.describe('M28 route editing @local @planner', () => {
   })
 
   /**
-   * E2E-M28-18: a route is drawn from nothing. The first tap sets the
+   * E2E-M28-20: a route is drawn from nothing. The first tap sets the
    * start, the next is reached along paths — asked for the kind chosen —
    * or, with *Luftlinie*, straight with swisstopo's heights. Undo and redo
    * step through it, leaving asks first, and saving adds a track of that
    * kind.
    */
-  test('E2E-M28-18: a route drawn from nothing follows paths for its kind, undoes, and saves as a track', async ({
+  test('E2E-M28-20: a route drawn from nothing follows paths for its kind, undoes, and saves as a track', async ({
     page,
   }) => {
     const asked = await stubRouting(page)
@@ -227,12 +227,12 @@ test.describe('M28 route editing @local @planner', () => {
   })
 
   /**
-   * E2E-M28-19: without a map no point can be set — offline, *Route
+   * E2E-M28-21: without a map no point can be set — offline, *Route
    * zeichnen*, ⋮'s *Route bearbeiten* and the full-screen map's
    * *Bearbeiten* are off, and back online they are on again. Leaving an
    * edited route asks first, and discarding keeps the track as it was.
    */
-  test('E2E-M28-19: editing waits for the map, and leaving an edit asks first', async ({
+  test('E2E-M28-21: editing waits for the map, and leaving an edit asks first', async ({
     page,
     context,
   }) => {

@@ -3963,14 +3963,14 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks**
-(FR-29.17, ADR-085) with **their routes edited and drawn** (FR-29.19, ADR-087) and the **day plan** (FR-29.14/29.15,
-M29); its connections (FR-29.18), the opening by date and the bridge to the packing side are specified here and not
-built. The travellers of a trip collect what they might do on it
-— a link someone found, a place, a thought — discuss each idea, vote on it with their names, and decide by hand which
-of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
-`dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
-**M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
+(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks** (FR-29.17,
+ADR-085) with **where everybody is** (FR-29.19, ADR-087) and **their routes edited and drawn** (FR-29.20,
+ADR-088), and the **day plan** (FR-29.14/29.15, M29); its connections
+(FR-29.18), the opening by date and the bridge to the packing side are specified here and not built. The travellers of a
+trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
+their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
+variants are in `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec),
+the day plan **M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
 
 The planner is the second **feature module** after the shopping list (§3.30, ADR-066): `client/src/planner/`, with its
 own store, actions, screens and pure rules, and its e2e cases under `client/e2e/planner/`.
@@ -4146,8 +4146,48 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     offline does — offline with *„Karte offline"*. Local Mode draws tiles.
   * **Not copied, not backed up.** Deleting the idea takes its tracks. Cloning copies none, and they are not in the
     portable backup (FR-29.11). The activity log names an added, renamed or removed track (§3.32).
-* **FR-29.19 (Editing and Drawing a Track's Route):** *Implemented.* A track's route is changed on the map, the way the
-  swisstopo app plans one, or a route is drawn where there is no file (ADR-087). The rules are
+* **FR-29.18 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
+  transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
+  being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first
+  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen*, and opens to its legs; the link, where there
+  is one, opens the provider's own app, which has what a stored copy cannot — delays and platforms. ADR-086:
+  * **A connection works anywhere.** Its fields are entered by hand — one leg — and any link may be kept beside them;
+    nothing about it is Swiss.
+  * **A link is read where a reader knows it.** Pasting a link, from the clipboard button or into the field, reads it
+    at once, with no separate button. The first reader is the **SBB app's**: a shared connection is a picture with a
+    short link (`a.sbbmobile.ch/s/…`) whose page links `www.sbb.ch/…/trip?tripId=…`, and that id carries every leg —
+    stations, departure and arrival, line. The read fills a preview of the legs; *Einfügen* writes the connection **on
+    the day the link names**, which may be another day than the one chosen. A link no reader knows, or one that fails,
+    says so and leaves the hand fields, with the link kept.
+  * **The client reads; the server only follows the short link.** Decoding the id is a pure rule in the planner's
+    domain, so a full `sbb.ch` link is read in every mode. The short link is behind another site's page, which only
+    the server can fetch: FR-29.16's read returns, beside title and description, **the page's links**, and the reader
+    picks the trip link among them. In Local Mode, or with previews off, a short link stays a kept link.
+  * **The format is the provider's, not a published one.** When it changes, the reader finds no legs and the hand
+    fields take over; nothing written before is affected, since the legs are stored, not the id.
+
+* **FR-29.19 (Where Everybody Is, on the Track Map):** *Implemented.* The full-screen map of an idea's tracks
+  (FR-29.17) shows **where the device is** and, on a trip shared with somebody, **where the others are who share it**.
+  ADR-087:
+  * **The device's own position on a tap.** 📍 asks the browser for it — never on its own — and draws it as a dot with
+    its accuracy, the map moving to it. While a full-screen map is open the position follows the device. Refused, the
+    map says so; a page not served over HTTPS has no position at all and says that.
+  * **Sharing is each person's, per trip, off by default.** *Meinen Standort teilen* on the full-screen map shares the
+    device's position with the trip's other members **while the app is open** — a phone's browser gives no position
+    from the background — and again after a restart until switched off. *Mitreisende zeigen*, on by default, hides
+    and shows the others' marks on this device. Both are kept per device, not synced.
+  * **Live and kept nowhere.** A position travels over the WebSocket the app already holds (Sync-API §7) to the trip's
+    other subscribers; the server stamps who and when, holds the latest position of each live connection **in memory
+    only**, gives it to a member who subscribes later, and forgets it with the connection — a stop, the trip left, the
+    socket gone. Nothing is written to the database, the activity log or a backup. A device sends at most every
+    5 seconds, and only on a move of 25 m or after 30 seconds; the server drops anything faster than every 2 seconds
+    and anything off the Earth.
+  * **A mark that has gone quiet** — no word for 5 minutes — is not drawn; a person's mark carries their initials and
+    says, when asked, *„Sia · vor 2 min"*.
+  * **Modes:** Local and Single-User Mode have nobody to share with: the 📍 works, the two switches are not shown
+    (G-8). Without map tiles the marks are drawn on the lines alone, where they fall inside the frame.
+* **FR-29.20 (Editing and Drawing a Track's Route):** *Implemented.* A track's route is changed on the map, the way the
+  swisstopo app plans one, or a route is drawn where there is no file (ADR-088). The rules are
   `client/src/domain/route.ts`, in the kernel beside `track.ts`, and the editor is `TrackEditor.vue`.
   * **Where it opens.** ⋮ on a track offers *Route bearbeiten*, and the full-screen map *Bearbeiten*. Beside *GPX
     hinzufügen* stands *Route zeichnen*, while the idea has fewer than five tracks. All three need the map: offline,
@@ -4183,29 +4223,10 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     http(s), refuses to start. The instance's config hands the address on, empty when off: the editor then offers
     no *Wegen folgen*, joins handles straight and says why. Local Mode asks the public one. The router learns the
     device's address and the two points of each stretch, as the tile servers learn the area looked at.
-* **FR-29.18 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
-  transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
-  being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first
-  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen*, and opens to its legs; the link, where there
-  is one, opens the provider's own app, which has what a stored copy cannot — delays and platforms. ADR-086:
-  * **A connection works anywhere.** Its fields are entered by hand — one leg — and any link may be kept beside them;
-    nothing about it is Swiss.
-  * **A link is read where a reader knows it.** Pasting a link, from the clipboard button or into the field, reads it
-    at once, with no separate button. The first reader is the **SBB app's**: a shared connection is a picture with a
-    short link (`a.sbbmobile.ch/s/…`) whose page links `www.sbb.ch/…/trip?tripId=…`, and that id carries every leg —
-    stations, departure and arrival, line. The read fills a preview of the legs; *Einfügen* writes the connection **on
-    the day the link names**, which may be another day than the one chosen. A link no reader knows, or one that fails,
-    says so and leaves the hand fields, with the link kept.
-  * **The client reads; the server only follows the short link.** Decoding the id is a pure rule in the planner's
-    domain, so a full `sbb.ch` link is read in every mode. The short link is behind another site's page, which only
-    the server can fetch: FR-29.16's read returns, beside title and description, **the page's links**, and the reader
-    picks the trip link among them. In Local Mode, or with previews off, a short link stays a kept link.
-  * **The format is the provider's, not a published one.** When it changes, the reader finds no legs and the hand
-    fields take over; nothing written before is affected, since the legs are stored, not the id.
 
-**Not in the planner:** polls with several options (one idea per option), expenses, group logistics, a map of places
-(a map shows an idea's tracks, FR-29.17, and nothing else), weather, transport beyond a day's connections
-(FR-29.18), ideas belonging to no trip.
+**Not in the planner:** polls with several options (one idea per option), expenses, group logistics, a map of places (a
+map shows an idea's tracks, FR-29.17, and who is where, FR-29.19, and nothing else), weather, transport beyond a day's
+connections (FR-29.18), ideas belonging to no trip.
 
 ### 3.30 The Shopping List as a Module of Its Own
 

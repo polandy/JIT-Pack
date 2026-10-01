@@ -17978,7 +17978,7 @@ swisstopo or OpenStreetMap.
 
 ## A track's route is edited on the map (2026-10-01)
 
-FR-29.19, ADR-087. Asked for as "it should feel like the swisstopo app". Decided over an interactive mockup that used
+FR-29.20, ADR-088. Asked for as "it should feel like the swisstopo app". Decided over an interactive mockup that used
 the real public BRouter (`mockup-route-edit.html`, not committed) and four questions: BRouter asked by the device
 behind a switch, both ways of saving, *Route zeichnen* in the same PR, editing locked offline. The owner's feedback
 on the mockup added the direction arrows, the changed stretches in a colour of their own, and the question which

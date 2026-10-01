@@ -57,6 +57,13 @@ function httpToWs(url: string): string {
   return url.replace(/^http/, 'ws')
 }
 
+/** A position as the socket carries it to the hub. */
+export interface LocationFrame {
+  lat: number
+  lon: number
+  accuracyM: number
+}
+
 export function useWebSocket(opts: WSOptions) {
   let socket: WebSocket | null = null
   /** Set by connect(), cleared by disconnect(): whether a socket should exist at all. */
@@ -78,6 +85,11 @@ export function useWebSocket(opts: WSOptions) {
    * knows nothing of what the last one reported (§7 in_sync).
    */
   const cursors = new Map<string, number>()
+  /**
+   * The position shared per trip (FR-29.19), kept like a cursor: the hub
+   * forgets it with the connection, and a new socket must say it again.
+   */
+  const locations = new Map<string, LocationFrame>()
   /** The trip open in the packing list (FR-4.9); told to every new socket too. */
   let viewing: string | null = null
 
@@ -139,6 +151,7 @@ export function useWebSocket(opts: WSOptions) {
         sendCursorFrame(tripId, seq)
       }
       if (viewing !== null) sendViewingFrame(viewing)
+      for (const [tripId, fix] of locations) sendLocationFrame(tripId, fix)
       startKeepalive(s)
       opts.onLive?.(true)
       opts.onOpen?.({ reconnect })
@@ -290,6 +303,27 @@ export function useWebSocket(opts: WSOptions) {
     if (isOpen()) sendCursorFrame(tripId, seq)
   }
 
+  function sendLocationFrame(tripId: string, fix: LocationFrame | null) {
+    socket?.send(
+      JSON.stringify({
+        location: fix
+          ? { trip_id: tripId, lat: fix.lat, lon: fix.lon, accuracy_m: fix.accuracyM }
+          : { trip_id: tripId, stop: true },
+      }),
+    )
+  }
+
+  /**
+   * Share where this device is on a trip, `null` to stop (FR-29.19). How
+   * often is the caller's rule (`lib/liveLocation.ts`); this only carries it,
+   * and says it again on every new socket while it stands.
+   */
+  function shareLocation(tripId: string, fix: LocationFrame | null) {
+    if (fix) locations.set(tripId, fix)
+    else if (!locations.delete(tripId)) return
+    if (isOpen()) sendLocationFrame(tripId, fix)
+  }
+
   function disconnect() {
     wanted = false
     clearTimer(reconnectTimer)
@@ -305,5 +339,13 @@ export function useWebSocket(opts: WSOptions) {
     }
   }
 
-  return { connect, ensureConnected, subscribe, sendCursor, setViewing, disconnect }
+  return {
+    connect,
+    ensureConnected,
+    subscribe,
+    sendCursor,
+    setViewing,
+    shareLocation,
+    disconnect,
+  }
 }

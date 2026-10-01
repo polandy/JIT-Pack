@@ -50,6 +50,10 @@ type conn struct {
 	rosterSent uint64
 	// pullCursors tracks the last known pull cursor per trip.
 	pullCursors map[string]int64
+	// locations is the position this connection shares per trip (FR-29.19),
+	// guarded by Hub.mu. It lives and dies with the connection: nothing else
+	// keeps it (ADR-087).
+	locations map[string]liveFix
 	// out holds the frames written but not yet sent to this peer, and is
 	// drained by its own goroutine — see `pump`.
 	out chan []byte
@@ -77,6 +81,8 @@ type Hub struct {
 
 	headSeq    HeadSeqFunc
 	mayReceive ReceiveFunc
+	// now is the hub's clock, the server's own (see `clock`).
+	now func() time.Time
 }
 
 // NewHub creates a hub. headSeq may be nil if in_sync is not needed
@@ -88,6 +94,7 @@ func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 		conns:      make(map[*conn]struct{}),
 		headSeq:    headSeq,
 		mayReceive: mayReceive,
+		now:        time.Now,
 	}
 }
 
@@ -103,6 +110,7 @@ func (h *Hub) Register(c *conn) {
 // all trips it was subscribed to.
 func (h *Hub) Unregister(c *conn) {
 	c.stop()
+	h.clearAllLocations(c)
 	h.mu.Lock()
 	delete(h.conns, c)
 	wasViewing := c.viewing != ""
@@ -146,6 +154,7 @@ func (h *Hub) Subscribe(c *conn, tripID string) {
 	h.mu.Unlock()
 
 	h.broadcastPresence(tripID)
+	h.sendLocationsTo(c, tripID)
 }
 
 // Unsubscribe removes a trip subscription from a connection.
@@ -155,6 +164,7 @@ func (h *Hub) Unsubscribe(c *conn, tripID string) {
 	delete(c.pullCursors, tripID)
 	h.mu.Unlock()
 
+	h.ClearLocation(c, tripID)
 	h.broadcastPresence(tripID)
 }
 
@@ -436,6 +446,7 @@ func newConn(ws wsWriter, userID string) *conn {
 		userID:      userID,
 		trips:       make(map[string]bool),
 		pullCursors: make(map[string]int64),
+		locations:   make(map[string]liveFix),
 		out:         make(chan []byte, wsSendQueue),
 		done:        make(chan struct{}),
 	}

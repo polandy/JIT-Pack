@@ -1,5 +1,5 @@
 /**
- * FR-29.19 — what an edited route's new legs are asked of (ADR-087).
+ * FR-29.20 — what an edited route's new legs are asked of (ADR-088).
  *
  * A path between two points comes from BRouter, asked by the device: the
  * instance's config names the address, empty where the operator turned

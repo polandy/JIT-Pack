@@ -59,7 +59,7 @@ type Options struct {
 	// device fetches from swisstopo and OpenStreetMap itself (ADR-085).
 	NoMapTiles bool
 	// RoutingURL is the BRouter a device asks for paths when it edits a
-	// route (FR-29.19, ADR-087); the instance's config hands it on. Empty
+	// route (FR-29.20, ADR-088); the instance's config hands it on. Empty
 	// turns routing off, so a device joins a route's points by straight
 	// lines. cmd/jitpackd sets the public BRouter unless the operator
 	// switches it off or names another.

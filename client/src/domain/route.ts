@@ -1,5 +1,5 @@
 /**
- * Editing a track's route (FR-29.19, ADR-087): a few handles on the map,
+ * Editing a track's route (FR-29.20, ADR-088): a few handles on the map,
  * and between each two of them a leg — the original file's line, a path the
  * router found, or a straight line. Pure: every edit returns a new draft,
  * so the editor's undo is a list of drafts, and what is fetched for a leg
@@ -459,7 +459,7 @@ function escapeXml(value: string): string {
 }
 
 /**
- * The GPX file an edited route is saved as (ADR-087): one track, one
+ * The GPX file an edited route is saved as (ADR-088): one track, one
  * segment, every point with its height where known. Coordinates at seven
  * decimals, a centimetre; heights at one.
  */

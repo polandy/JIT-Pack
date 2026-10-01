@@ -62,7 +62,7 @@ function routed(places: LatLon[]): RouteDraft {
 /** A projection that puts a degree at 10 000 pixels, north up. */
 const project = (p: LatLon) => ({ x: (p.lon - 7) * 10000, y: (47 - p.lat) * 10000 })
 
-describe('draftFromPoints (FR-29.19)', () => {
+describe('draftFromPoints (FR-29.20)', () => {
   it('turns_a_long_file_into_at_most_the_handle_cap_with_its_ends_kept', () => {
     const zigzag = Array.from({ length: 300 }, (_, i) =>
       tp(46.5 + i * 0.0005, 7.6 + (i % 7) * 0.0004),
@@ -92,7 +92,7 @@ describe('draftFromPoints (FR-29.19)', () => {
   })
 })
 
-describe('editing a draft (FR-29.19)', () => {
+describe('editing a draft (FR-29.20)', () => {
   it('starts_with_one_handle_then_joins_each_next_tap_by_a_pending_leg', () => {
     let draft = append(emptyDraft(), { lat: 46.5, lon: 7.6 }, 'path')
     expect(draft.handles).toHaveLength(1)
@@ -195,7 +195,7 @@ describe('editing a draft (FR-29.19)', () => {
   })
 })
 
-describe('handlePlace (FR-29.19)', () => {
+describe('handlePlace (FR-29.20)', () => {
   it('draws_a_handle_where_the_routers_path_ends_not_where_the_finger_let_go', () => {
     let draft = append(
       append(emptyDraft(), { lat: 46.5, lon: 7.6 }, 'path'),
@@ -214,7 +214,7 @@ describe('handlePlace (FR-29.19)', () => {
   })
 })
 
-describe('passesAt and insertAt (FR-29.19)', () => {
+describe('passesAt and insertAt (FR-29.20)', () => {
   /** Out along a line and back on the same one: two passes at every point between. */
   const outAndBack = (): RouteDraft =>
     routed([
@@ -290,7 +290,7 @@ describe('passesAt and insertAt (FR-29.19)', () => {
   })
 })
 
-describe('arrowMarks (FR-29.19)', () => {
+describe('arrowMarks (FR-29.20)', () => {
   it('sets_the_first_arrow_half_a_spacing_in_and_the_rest_a_spacing_apart', () => {
     const marks = arrowMarks([
       { x: 0, y: 0 },
@@ -330,7 +330,7 @@ describe('arrowMarks (FR-29.19)', () => {
   })
 })
 
-describe('toLv95 (FR-29.19)', () => {
+describe('toLv95 (FR-29.20)', () => {
   it('puts_bern_on_swisstopos_own_reference_point_to_a_metre', () => {
     // swisstopo's worked example: 46°02'38.87" N, 8°43'49.79" E → 2 699 999.76 / 1 099 999.97.
     const [e, n] = toLv95({ lat: 46 + 2 / 60 + 38.87 / 3600, lon: 8 + 43 / 60 + 49.79 / 3600 })
@@ -339,7 +339,7 @@ describe('toLv95 (FR-29.19)', () => {
   })
 })
 
-describe('writeGpx (FR-29.19, ADR-087)', () => {
+describe('writeGpx (FR-29.20, ADR-088)', () => {
   it('writes_a_file_the_track_reader_reads_back_with_its_kind_and_heights', () => {
     const points = [rp(46.5, 7.6, 1000), rp(46.51, 7.6, 1100), rp(46.52, 7.61, null)]
     const xml = writeGpx('Oeschinen & See <kurz>', 'bike', points)

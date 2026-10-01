@@ -135,6 +135,8 @@ func newServer(st *store.Store, opts Options) *Server {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	// FR-29.19: a shared position is stamped with the server's clock.
+	s.hub.now = func() time.Time { return s.now() }
 	// After the clock is settled, and reading it through a closure rather
 	// than by value: the checker's idea of "a day ago" must be the
 	// server's own clock, including the one a test injects (G-4).

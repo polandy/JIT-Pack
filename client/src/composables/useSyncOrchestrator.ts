@@ -60,7 +60,8 @@ import { createLinkPreview } from './sync/linkPreview'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
-import { useWebSocket } from './useWebSocket'
+import { useWebSocket, type LocationFrame } from './useWebSocket'
+import { applyLocation, type PeopleFixes } from '@/lib/liveLocation'
 import { createMutations } from '@/sync/mutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -73,6 +74,7 @@ import type {
   MasterPruneResponse,
   PresenceMember,
   RosterMember,
+  LiveLocation,
   PullChange,
   TakeoverResponse,
   WSEvent,
@@ -226,6 +228,20 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return roster.value
   }
 
+  // FR-29.19: where the others on a trip are, as their sockets say it —
+  // held only here, and forgotten with the socket (ADR-087).
+  const liveLocations = ref<Map<string, PeopleFixes>>(new Map())
+
+  function getLiveLocations(tripId: string): PeopleFixes {
+    return liveLocations.value.get(tripId) ?? new Map()
+  }
+
+  /** Shares this device's position on a trip, `null` to stop. Local Mode has nobody to tell. */
+  function shareLocation(tripId: string, fix: LocationFrame | null) {
+    if (local) return
+    ws.shareLocation(tripId, fix)
+  }
+
   // G-3 locking, and the takeover rule an `item.locked` frame carries
   // (FR-5.3/5.7). All of it in `sync/locks.ts`, which needs no client, no
   // store and no outbox to answer what a row asks while rendering.
@@ -267,7 +283,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     getToken: config.getToken,
     onEvent: onWSEvent,
     onLive: (live) => {
-      if (!live) roster.value = []
+      if (!live) {
+        roster.value = []
+        // A dead socket hears no more positions, and nothing says the last
+        // ones still hold; the next socket is given them afresh.
+        liveLocations.value = new Map()
+      }
       syncStatus.setLive(live)
     },
     onOpen: ({ reconnect }) => {
@@ -408,6 +429,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       case 'roster':
         roster.value = (event.payload?.['users'] as RosterMember[] | undefined) ?? []
         break
+      case 'location': {
+        const frame = event.payload as LiveLocation | null
+        if (!frame?.trip_id || !frame.user_id) break
+        const next = new Map(liveLocations.value)
+        next.set(frame.trip_id, applyLocation(getLiveLocations(frame.trip_id), frame, now()))
+        liveLocations.value = next
+        break
+      }
       case 'item.locked': {
         const tripId = event.payload?.['trip_id'] as string | undefined
         const itemId = event.payload?.['item_id'] as string | undefined
@@ -952,6 +981,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     getPresence,
     getRoster,
     setViewing,
+    getLiveLocations,
+    shareLocation,
     ...conflictActions,
     ...activityActions,
     isLockedByOther: locks.isLockedByOther,

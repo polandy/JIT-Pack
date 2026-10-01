@@ -197,7 +197,7 @@ export interface RoutingRequests {
 }
 
 /**
- * Answers BRouter and swisstopo's profile service on the device (FR-29.19),
+ * Answers BRouter and swisstopo's profile service on the device (FR-29.20),
  * so no case reaches either. A path runs from its first point to its last
  * through a point between them a little to the east, climbing 150 m and
  * coming down 50 — a way that is visibly not the straight line. A straight

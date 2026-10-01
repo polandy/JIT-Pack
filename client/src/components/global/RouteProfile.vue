@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The height profile of a route being edited (FR-29.19): height over
+ * The height profile of a route being edited (FR-29.20): height over
  * distance, the changed stretches in their own colour, a faint mark where
  * each handle lies. A finger moved over it names the distance and height
  * there and hands the place up, so the map can show it.

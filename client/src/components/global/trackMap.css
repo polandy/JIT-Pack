@@ -56,6 +56,38 @@
   fill: var(--ct-ember);
 }
 
+.track-map .jp-me {
+  stroke: var(--ct-base);
+  stroke-width: 3px;
+  fill: var(--ct-glacier);
+  fill-opacity: 1;
+}
+
+.track-map .jp-me-accuracy {
+  stroke: var(--ct-glacier);
+  stroke-width: 1px;
+  fill: var(--ct-glacier);
+  fill-opacity: 0.15;
+}
+
+.track-map .jp-person-mark {
+  background: none;
+  border: 0;
+}
+
+.track-map .jp-person-badge {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--ct-base);
+  border-radius: 50%;
+  background: var(--ct-heather);
+  color: var(--ct-crust);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+}
+
 .track-map .jp-track-larch {
   stroke: var(--ct-larch);
 }
@@ -76,7 +108,7 @@
   stroke: var(--ct-pine);
 }
 
-/* The arrows along a line (FR-29.19): the line's way, in the page's two
+/* The arrows along a line (FR-29.20): the line's way, in the page's two
    extremes so they read on every hue and every map. */
 .jp-route-arrow svg {
   display: block;

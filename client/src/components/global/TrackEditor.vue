@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Editing a track's route, or drawing one (FR-29.19, ADR-087), the way the
+ * Editing a track's route, or drawing one (FR-29.20, ADR-088), the way the
  * swisstopo app plans one: a tap on the map adds a point and the way there
  * follows the paths, a point is dragged and its two stretches follow, a
  * tap on the line sets a point there — asking which pass where the route
@@ -1390,7 +1390,7 @@ async function save(how: SavedRoute['how']) {
 
 <style>
 /* The editor's Leaflet elements: handles, the route's legs and what a
-   choice between passes shows (FR-29.19). Outside the scope, like the
+   choice between passes shows (FR-29.20). Outside the scope, like the
    track map's (`trackMap.css`). */
 .jp-route-handle {
   display: grid;

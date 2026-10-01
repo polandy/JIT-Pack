@@ -40,6 +40,8 @@ const props = defineProps<{
   tracks: TrackFields[]
   /** What the tracks belong to — the full-screen map's title. */
   title: string
+  /** The trip they are on, for who is where on the full-screen map (FR-29.19). */
+  tripId?: string
 }>()
 
 const chosenId = defineModel<string | null>('chosen', { default: null })
@@ -49,7 +51,7 @@ const emit = defineEmits<{
   download: [track: TrackFields]
   replace: [track: TrackFields, file: File]
   remove: [track: TrackFields]
-  /** FR-29.19: the track's route is to be edited — the owner loads its file. */
+  /** FR-29.20: the track's route is to be edited — the owner loads its file. */
   edit: [track: TrackFields]
 }>()
 
@@ -226,6 +228,7 @@ async function openMenu() {
       :tracks="tracks"
       :lines="lines"
       :chosen="chosen"
+      :trip-id="tripId"
       @close="viewing = false"
       @choose="choose"
       @edit="openEditorFromViewer"

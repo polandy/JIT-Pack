@@ -97,7 +97,7 @@ const emit = defineEmits<{
   downloadTrack: [track: IdeaTrack]
   replaceTrack: [track: IdeaTrack, file: File]
   removeTrack: [track: IdeaTrack]
-  /** FR-29.19: a track's route edited, or one drawn from nothing (null). */
+  /** FR-29.20: a track's route edited, or one drawn from nothing (null). */
   editTrack: [track: IdeaTrack | null]
 }>()
 
@@ -362,6 +362,7 @@ async function openCommentMenu(comment: IdeaComment) {
       v-model:chosen="chosenTrack"
       :tracks="tracks"
       :title="idea.title"
+      :trip-id="idea.trip_id"
       @update="(track, settings) => own(track) && emit('updateTrack', own(track)!, settings)"
       @download="(track) => own(track) && emit('downloadTrack', own(track)!)"
       @replace="(track, file) => own(track) && emit('replaceTrack', own(track)!, file)"
