@@ -2151,5 +2151,6 @@ export const en = {
   'notify.body.idea_shortlisted': '{actor} put “{item}” on the shortlist',
   'notify.body.idea_shortlistedPlain': '{actor} put an idea on the shortlist',
   'notify.body.generic': '{actor} sent you a notification',
+  'notify.toastOpen': 'Open',
   'notify.actorUnknown': 'Someone',
 } as const

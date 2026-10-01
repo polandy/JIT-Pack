@@ -5,7 +5,12 @@
 /** FR-6.2/FR-6.3: toast wording and deep-link routes per notification kind. */
 import { describe, it, expect, afterEach } from 'vitest'
 
-import { describeNotification, notificationRoute, type ServerNotification } from '../format'
+import {
+  describeNotification,
+  notificationActionLabel,
+  notificationRoute,
+  type ServerNotification,
+} from '../format'
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
 
 function notif(kind: string, payload: Record<string, unknown> | null): ServerNotification {
@@ -190,5 +195,17 @@ describe('the body speaks the app’s language', () => {
     setLocale('de')
 
     expect(describeNotification(notif(kind, payload))).toBe(want)
+  })
+})
+
+describe('notificationActionLabel (NFR-4.12)', () => {
+  afterEach(() => setLocale(DEFAULT_LOCALE))
+
+  it("names the open button and the dismiss button in the reader's language", () => {
+    setLocale('de')
+    expect(notificationActionLabel('/trips/t1')).toBe('Öffnen')
+    expect(notificationActionLabel(null)).toBe('OK')
+    setLocale('en')
+    expect(notificationActionLabel('/trips/t1')).toBe('Open')
   })
 })

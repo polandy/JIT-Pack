@@ -29,6 +29,7 @@ import { onlineRows } from '@/lib/onlineRows'
 import { loadTokens } from '@/auth/tokens'
 import {
   describeNotification,
+  notificationActionLabel,
   notificationRoute,
   type ServerNotification,
 } from '@/notifications/format'
@@ -188,13 +189,13 @@ async function showNotificationToast(n: ServerNotification) {
     buttons: route
       ? [
           {
-            text: 'Open',
+            text: notificationActionLabel(route),
             handler: () => {
               router.push(route)
             },
           },
         ]
-      : [{ text: 'OK', role: 'cancel' }],
+      : [{ text: notificationActionLabel(null), role: 'cancel' }],
   })
   toast.onDidDismiss().then(() => orchestrator?.markNotificationRead(n.id))
   await toast.present()

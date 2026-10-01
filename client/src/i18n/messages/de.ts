@@ -2174,5 +2174,6 @@ export const de: Record<keyof typeof en, string> = {
   'notify.body.idea_shortlisted': '{actor} hat „{item}“ auf die Shortlist gesetzt',
   'notify.body.idea_shortlistedPlain': '{actor} hat eine Idee auf die Shortlist gesetzt',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
+  'notify.toastOpen': 'Öffnen',
   'notify.actorUnknown': 'Jemand',
 }
