@@ -2,21 +2,25 @@
 /**
  * One line of the day plan's timeline (FR-29.15): its time, its kind with a
  * coloured edge, its title and second line, and — by kind — an excursion's
- * packed ring or a tick. Today's card and tomorrow's render the same row.
+ * packed ring or a tick, or for a connection its legs opened in place
+ * (FR-29.18). Today's card and tomorrow's render the same row.
  */
 import { IonIcon } from '@ionic/vue'
 import {
   bulbOutline,
   carOutline,
   checkboxOutline,
+  chevronForward,
   createOutline,
   trailSignOutline,
+  trainOutline,
 } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import ProgressRing from '@/components/global/ProgressRing.vue'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
+import ConnectionLegs from './ConnectionLegs.vue'
 import { dayLineWords } from './dayLineText'
 import { DAY_LINE, type DayLine, type DayLineKind } from './domain/dayPlan'
 
@@ -30,9 +34,14 @@ const KIND_ICON: Record<DayLineKind, string> = {
   [DAY_LINE.idea]: bulbOutline,
   [DAY_LINE.task]: checkboxOutline,
   [DAY_LINE.entry]: createOutline,
+  [DAY_LINE.connection]: trainOutline,
 }
 
 const words = computed(() => dayLineWords(props.line, props.nameOf))
+const legs = computed(() =>
+  props.line.kind === DAY_LINE.connection ? (props.line.entry?.legs ?? null) : null,
+)
+const legsOpen = ref(false)
 </script>
 
 <template>
@@ -53,7 +62,18 @@ const words = computed(() => dayLineWords(props.line, props.nameOf))
         <span v-if="words.detail" class="detail">{{ words.detail }}</span>
       </span>
     </button>
-    <ProgressRing v-if="line.progress !== null" :percent="line.progress * 100" :size="28" />
+    <button
+      v-if="legs"
+      type="button"
+      class="expand"
+      :aria-expanded="legsOpen ? 'true' : 'false'"
+      :aria-label="t('dayPlan.showLegs', { title: words.title })"
+      :data-testid="`m29-legs-toggle-${line.key}`"
+      @click="legsOpen = !legsOpen"
+    >
+      <IonIcon :icon="chevronForward" aria-hidden="true" />
+    </button>
+    <ProgressRing v-else-if="line.progress !== null" :percent="line.progress * 100" :size="28" />
     <button
       v-else-if="line.done !== null"
       type="button"
@@ -65,6 +85,13 @@ const words = computed(() => dayLineWords(props.line, props.nameOf))
     >
       <span aria-hidden="true">{{ line.done ? '✓' : '' }}</span>
     </button>
+    <ConnectionLegs
+      v-if="legs && legsOpen"
+      class="legs"
+      :legs="legs"
+      :link="line.entry?.link"
+      :data-testid="`m29-legs-${line.key}`"
+    />
   </div>
 </template>
 
@@ -91,6 +118,10 @@ const words = computed(() => dayLineWords(props.line, props.nameOf))
 }
 .line[data-kind='entry'] {
   border-left-color: var(--ct-heather);
+}
+.line[data-kind='connection'] {
+  flex-wrap: wrap;
+  border-left-color: var(--ct-glacier);
 }
 .line[data-kind='arrival'],
 .line[data-kind='departure'] {
@@ -163,6 +194,33 @@ const words = computed(() => dayLineWords(props.line, props.nameOf))
   color: var(--ct-base);
   font: inherit;
   cursor: pointer;
+}
+
+.expand {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ct-subtext0);
+  cursor: pointer;
+}
+
+.expand ion-icon {
+  font-size: var(--jp-icon-sm);
+  transition: transform 0.15s;
+}
+
+.expand[aria-expanded='true'] ion-icon {
+  transform: rotate(90deg);
+}
+
+/* A connection's legs, opened under its line. */
+.legs {
+  flex: 1 0 100%;
+  padding: 0 4px 10px 14px;
 }
 
 .tick[aria-pressed='true'] {

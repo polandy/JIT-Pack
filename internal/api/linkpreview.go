@@ -43,7 +43,11 @@ func (s *Server) handleLinkPreview(w http.ResponseWriter, r *http.Request) {
 		writePreviewError(w, err)
 		return
 	}
-	writeJSON(w, LinkPreviewResponse{Title: page.Title, Description: page.Description, ImageURL: page.ImageURL})
+	links := page.Links
+	if links == nil {
+		links = []string{}
+	}
+	writeJSON(w, LinkPreviewResponse{Title: page.Title, Description: page.Description, ImageURL: page.ImageURL, Links: links})
 }
 
 // handleLinkPreviewImage reads the picture a preview named. The address

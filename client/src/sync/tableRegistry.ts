@@ -21,6 +21,7 @@
 import { TRACK_KIND } from '@/api/types'
 import type {
   AppliedChange,
+  ConnectionLeg,
   Container,
   DestinationChecklistItem,
   DestinationProfile,
@@ -59,7 +60,14 @@ import type {
   TripSeries,
   TripTemplateSource,
 } from '@/types/domain'
-import { IDEA_STATE_IDEA, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, toIdeaTag } from '@/types/domain'
+import {
+  DAY_ENTRY_CONNECTION,
+  DAY_ENTRY_NOTE,
+  IDEA_STATE_IDEA,
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  toIdeaTag,
+} from '@/types/domain'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { durationDays } from '@/domain/instantiate'
 import { parseJsonColumn } from './columns'
@@ -405,11 +413,33 @@ function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
     id,
     trip_id: row['trip_id'] as string,
     author_id: row['author_id'] as string,
+    kind: row['kind'] === DAY_ENTRY_CONNECTION ? DAY_ENTRY_CONNECTION : DAY_ENTRY_NOTE,
     on_date: row['on_date'] as string,
     at_time: (row['at_time'] as string) ?? null,
     title: row['title'] as string,
     note: (row['note'] as string) ?? null,
+    link: (row['link'] as string) ?? null,
+    legs: parseLegs(row['legs']),
   }
+}
+
+/**
+ * FR-29.18: a connection's legs from their JSON column. Anything that is not
+ * a list of legs reads as none, so a malformed row is an entry without legs
+ * rather than a screen that cannot render.
+ */
+function parseLegs(raw: unknown): ConnectionLeg[] | null {
+  const parsed = parseJsonColumn<unknown>(raw, null)
+  if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isLeg)) return null
+  return parsed
+}
+
+function isLeg(value: unknown): value is ConnectionLeg {
+  if (typeof value !== 'object' || value === null) return false
+  const leg = value as Record<string, unknown>
+  return (['from', 'to', 'dep', 'arr', 'line'] as const).every(
+    (key) => typeof leg[key] === 'string',
+  )
 }
 
 function rowToIdeaVote(id: string, row: Record<string, unknown>): IdeaVote {

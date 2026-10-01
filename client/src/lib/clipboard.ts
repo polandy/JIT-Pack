@@ -44,3 +44,22 @@ function legacyCopy(text: string): boolean {
     area.remove()
   }
 }
+
+/**
+ * Whether this page may read the clipboard at all — only in a secure context,
+ * so a surface offers a paste button only where one can work (FR-29.18).
+ */
+export function canReadClipboard(): boolean {
+  return typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
+}
+
+/** The clipboard's text, or null where it was refused or holds none. */
+export async function readClipboardText(): Promise<string | null> {
+  if (!canReadClipboard()) return null
+  try {
+    const text = await navigator.clipboard.readText()
+    return text.trim() === '' ? null : text
+  } catch {
+    return null
+  }
+}

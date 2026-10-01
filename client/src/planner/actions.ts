@@ -12,13 +12,14 @@
 import type { IdeaTrackUpload } from '@/api/types'
 import { MAX_TRACKS, nextTrackPosition, orderTracks } from '@/domain/track'
 import { newId } from '@/lib/ids'
-import { dbBool } from '@/sync/columns'
+import { dbBool, jsonColumn } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { TABLE_CODECS } from '@/sync/tableRegistry'
 import type {
+  ConnectionLeg,
   DayEntry,
   Idea,
   IdeaComment,
@@ -28,8 +29,9 @@ import type {
   IdeaTag,
   IdeaVoteValue,
 } from '@/types/domain'
-import { IDEA_STATE_IDEA } from '@/types/domain'
+import { DAY_ENTRY_CONNECTION, IDEA_STATE_IDEA } from '@/types/domain'
 import { TABLE } from '@/types/tables'
+import { connectionDay, connectionTitle, timeOf } from './domain/connections'
 import type { VoteTally } from './domain/ideas'
 import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'
 import type { usePlannerStore } from './store'
@@ -40,6 +42,12 @@ export interface DayEntryFields {
   note: string | null
   /** `HH:MM`, or null for none. */
   time: string | null
+}
+
+/** What the day plan's sheet writes for a connection (FR-29.18). The link is already parsed. */
+export interface ConnectionFields {
+  legs: ConnectionLeg[]
+  link: string | null
 }
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
@@ -151,6 +159,51 @@ export function createPlannerActions(
     const note = blankToNull(fields.note)
     if (note !== entry.note) patch['note'] = note
     if (fields.time !== entry.at_time) patch['at_time'] = fields.time
+    if (Object.keys(patch).length === 0) return
+    const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)),
+    })
+  }
+
+  /**
+   * FR-29.18: a connection, on the day of its first departure — which may be
+   * another day than the one chosen, when a link names it — at that time, and
+   * named by its first and last stop. Returns its day.
+   */
+  function addConnection(tripId: string, fields: ConnectionFields, me: string | null): string {
+    const id = newId()
+    const day = connectionDay(fields.legs)
+    const mutation = host.mutation('insert', TABLE.dayEntries, id, {
+      trip_id: tripId,
+      author_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
+      kind: DAY_ENTRY_CONNECTION,
+      on_date: day,
+      at_time: timeOf(fields.legs[0]!.dep),
+      title: connectionTitle(fields.legs),
+      note: null,
+      link: fields.link,
+      legs: jsonColumn(fields.legs),
+    })
+    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    return day
+  }
+
+  /** FR-29.18: a changed connection. The legs are written whole, never leg by leg. */
+  function updateConnection(entry: DayEntry, fields: ConnectionFields): void {
+    const patch: Record<string, unknown> = {}
+    const legs = jsonColumn(fields.legs)
+    if (legs !== jsonColumn(entry.legs)) {
+      patch['legs'] = legs
+      const day = connectionDay(fields.legs)
+      if (day !== entry.on_date) patch['on_date'] = day
+      const at = timeOf(fields.legs[0]!.dep)
+      if (at !== entry.at_time) patch['at_time'] = at
+      const title = connectionTitle(fields.legs)
+      if (title !== entry.title) patch['title'] = title
+    }
+    if (fields.link !== entry.link) patch['link'] = fields.link
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
     host.writeTrip(entry.trip_id, {
@@ -403,6 +456,8 @@ export function createPlannerActions(
     planIdea,
     addDayEntry,
     updateDayEntry,
+    addConnection,
+    updateConnection,
     removeDayEntry,
     removeIdea,
     addPicture,

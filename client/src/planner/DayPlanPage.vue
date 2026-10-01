@@ -8,7 +8,8 @@
  * entry of the plan's own. What stands on a day is `domain/dayPlan.ts`'s rule;
  * the excursions and tasks come from the packing side through the kernel's
  * `lib/dayPlanSources.ts`, with their writes bound in, so this module never
- * imports them (FR-29.9).
+ * imports them (FR-29.9). A connection (FR-29.18) is an entry of its own kind,
+ * read from a pasted link through the server's page read where there is one.
  */
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, calendarOutline, chevronForward } from 'ionicons/icons'
@@ -31,13 +32,14 @@ import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
 import { tripIdeasPath } from '@/router/paths'
 import type { DayEntry, Idea } from '@/types/domain'
-import { createPlannerActions, type DayEntryFields } from './actions'
+import { createPlannerActions, type ConnectionFields, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
 import DayLineRow from './DayLineRow.vue'
 import { stripDay } from './dayLineText'
 import {
   dayCounts,
   dayLines,
+  entriesOutsideTrip,
   ideasOutsideTrip,
   nextDay,
   openingDay,
@@ -47,6 +49,7 @@ import {
   type DayInput,
   type DayLine,
 } from './domain/dayPlan'
+import { connectionDay, type PageLinks } from './domain/connections'
 import { usePlannerStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -105,6 +108,9 @@ const tomorrowLines = computed(() => (tomorrow.value ? dayLines(tomorrow.value, 
 
 const pool = computed(() => unplannedIdeas(plannerStore.getIdeas(props.tripId)))
 const outside = computed(() => ideasOutsideTrip(plannerStore.getIdeas(props.tripId), days.value))
+const outsideEntries = computed(() =>
+  entriesOutsideTrip(plannerStore.getDayEntries(props.tripId), days.value),
+)
 
 const chosenHeading = computed(() =>
   chosen.value
@@ -152,6 +158,23 @@ function onSave(fields: DayEntryFields) {
   editing.value = null
   if (current?.entry) actions.updateDayEntry(current.entry, fields)
   else if (chosen.value) actions.addDayEntry(props.tripId, chosen.value, fields, myUserId.value)
+}
+
+/** The server's read of a short link's page, where this device has one (FR-29.16). */
+const pageLinks = computed<PageLinks | null>(() => {
+  const preview = orchestrator.moduleHost.linkPreview
+  if (!preview.offered()) return null
+  return async (url) => (await preview.read(props.tripId, url))?.links ?? null
+})
+
+/** A connection lands on the day its link names, and the plan goes there with it. */
+function onSaveConnection(fields: ConnectionFields) {
+  const current = editing.value
+  editing.value = null
+  if (current?.entry) actions.updateConnection(current.entry, fields)
+  else actions.addConnection(props.tripId, fields, myUserId.value)
+  const day = connectionDay(fields.legs)
+  if (days.value.includes(day)) chosen.value = day
 }
 
 async function onRemove() {
@@ -233,12 +256,23 @@ async function onRemove() {
             </div>
           </template>
 
-          <template v-if="outside.length > 0">
+          <template v-if="outside.length + outsideEntries.length > 0">
             <h3 class="group" data-testid="m29-outside">
               <span>{{ t('dayPlan.outside') }}</span>
-              <span class="jp-num">{{ outside.length }}</span>
+              <span class="jp-num">{{ outside.length + outsideEntries.length }}</span>
             </h3>
             <div class="timeline jp-card">
+              <button
+                v-for="entry in outsideEntries"
+                :key="entry.id"
+                type="button"
+                class="outside-row"
+                :data-testid="`m29-outside-${entry.id}`"
+                @click="editing = { entry }"
+              >
+                <span class="day jp-num">{{ shortDueDay(entry.on_date) }}</span>
+                <span class="name">{{ entry.title }}</span>
+              </button>
               <button
                 v-for="idea in outside"
                 :key="idea.id"
@@ -286,10 +320,13 @@ async function onRemove() {
       <DayEntrySheet
         :open="editing !== null"
         :entry="editing?.entry ?? null"
+        :day="chosen"
         :day-text="chosen ? shortDueDay(chosen) : ''"
         :pool="pool"
+        :page-links="pageLinks"
         @close="editing = null"
         @save="onSave"
+        @save-connection="onSaveConnection"
         @remove="onRemove"
         @plan="planOnChosen"
       />

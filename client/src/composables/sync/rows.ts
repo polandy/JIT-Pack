@@ -250,10 +250,13 @@ export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
   return {
     trip_id: entry.trip_id,
     author_id: entry.author_id,
+    kind: entry.kind,
     on_date: entry.on_date,
     at_time: entry.at_time,
     title: entry.title,
     note: entry.note,
+    link: entry.link,
+    legs: jsonColumn(entry.legs),
   }
 }
 

@@ -7,6 +7,8 @@
 import { formatDate, t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { localDay } from '@/lib/taskDueText'
+import type { ConnectionLeg } from '@/types/domain'
+import { connectionSummary } from './domain/connections'
 import { DAY_LINE, type DayLine } from './domain/dayPlan'
 
 /** What one line says. */
@@ -35,8 +37,27 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
           ? t('dayPlan.departure')
           : line.title,
     // A task's second line is whose job it is, named the way every screen names a person.
-    detail: line.kind === DAY_LINE.task ? nameOf(line.source?.assignee ?? null) : line.detail,
+    detail:
+      line.kind === DAY_LINE.task
+        ? nameOf(line.source?.assignee ?? null)
+        : line.kind === DAY_LINE.connection && line.entry?.legs
+          ? connectionDetail(line.entry.legs)
+          : line.detail,
   }
+}
+
+/** A connection's second line: *„an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen"* (FR-29.18). */
+export function connectionDetail(legs: readonly ConnectionLeg[]): string {
+  const summary = connectionSummary(legs)
+  const arrival =
+    summary.arrivalDays > 0
+      ? t('dayPlan.arrivesLater', { time: summary.arrival, n: summary.arrivalDays })
+      : t('dayPlan.arrives', { time: summary.arrival })
+  const changes =
+    summary.transfers > 0 ? t('dayPlan.transfers', { n: summary.transfers }) : t('dayPlan.direct')
+  return [arrival, summary.lines.join(', '), summary.lines.length > 0 ? changes : null]
+    .filter((part) => !!part)
+    .join(' · ')
 }
 
 /** A strip tile's two halves: „Mi." over „15". */
