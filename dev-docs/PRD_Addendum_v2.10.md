@@ -4072,9 +4072,29 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   the trip has both dates.
 * **FR-29.15 (The Day Plan, M29):** *Specified, not built (slice 2).* One screen per trip with a day strip over the
   trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated excursions (on each
-  of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
-  table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
-
+  of their days), tasks due that day, arrival and departure, and **entries of its own** (`day_entries`) of two kinds — a
+  **free entry** (a table booking) and a **connection** (FR-29.17). Timed entries come first by their time, untimed ones
+  after; a time orders, it does not block out hours. Tomorrow stands below today; a pool bar lists the shortlisted ideas
+  without a day and plans one by a day chip. „+" adds a free entry or a connection on the chosen day, or plans an idea.
+* **FR-29.17 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
+  transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
+  being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first
+  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen*, and opens to its legs; the link, where there
+  is one, opens the provider's own app, which has what a stored copy cannot — delays and platforms. ADR-085:
+  * **A connection works anywhere.** Its fields are entered by hand — one leg — and any link may be kept beside them;
+    nothing about it is Swiss.
+  * **A link is read where a reader knows it.** Pasting a link, from the clipboard button or into the field, reads it
+    at once, with no separate button. The first reader is the **SBB app's**: a shared connection is a picture with a
+    short link (`a.sbbmobile.ch/s/…`) whose page links `www.sbb.ch/…/trip?tripId=…`, and that id carries every leg —
+    stations, departure and arrival, line. The read fills a preview of the legs; *Einfügen* writes the connection **on
+    the day the link names**, which may be another day than the one chosen. A link no reader knows, or one that fails,
+    says so and leaves the hand fields, with the link kept.
+  * **The client reads; the server only follows the short link.** Decoding the id is a pure rule in the planner's
+    domain, so a full `sbb.ch` link is read in every mode. The short link is behind another site's page, which only
+    the server can fetch: FR-29.16's read returns, beside title and description, **the page's links**, and the reader
+    picks the trip link among them. In Local Mode, or with previews off, a short link stays a kept link.
+  * **The format is the provider's, not a published one.** When it changes, the reader finds no legs and the hand
+    fields take over; nothing written before is affected, since the legs are stored, not the id.
 * **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** that
   changes **no field** until it is confirmed, and each half is shown **at its own field**: the suggested title grey in
   the blank title field, the suggested description grey in the blank note, each with *Übernehmen* beside it that puts it
