@@ -68,6 +68,41 @@ func validIdeaImage(row sync.Row, m *sync.Mutation) RejectReason {
 	return ReasonNone
 }
 
+// The columns of an idea's track (FR-29.17) that the store names more than
+// once: what a person sets, and the line every screen draws.
+const (
+	columnName     = "name"
+	columnKind     = "kind"
+	columnWithKid  = "with_kid"
+	columnPauseMin = "pause_min"
+	columnLine     = "line"
+)
+
+// ideaTrackSettings are the fields of a track a push may change: what a
+// person sets. Everything else is what the file says (ADR-085).
+var ideaTrackSettings = map[string]bool{
+	columnName: true, columnKind: true, columnWithKid: true, columnPauseMin: true, columnPosition: true,
+}
+
+// validIdeaTrack is FR-29.17's part of the trip partition's write gate. The
+// upload creates a track with its file, so a push may change what a person
+// sets or delete the track: an insert would be a track without its file, and
+// a changed figure or line would no longer be what the file says.
+func validIdeaTrack(row sync.Row, m *sync.Mutation) RejectReason {
+	if m.Op == sync.OpDelete {
+		return ReasonNone
+	}
+	if !row.Exists {
+		return ReasonNotAuthorized
+	}
+	for field := range m.Fields {
+		if !ideaTrackSettings[field] {
+			return ReasonNotAuthorized
+		}
+	}
+	return ReasonNone
+}
+
 // IdeaDiscussion is what FR-29.8's comment rule needs to know about an idea:
 // what it is called, and who takes part in its discussion.
 type IdeaDiscussion struct {

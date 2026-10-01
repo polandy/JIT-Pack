@@ -45,11 +45,13 @@
       // one mutation never names. An item photo carries a hash whose bytes
       // travel outside the sync envelope (ADR-002), so there is no mutation
       // at all and in Local Mode nothing else would ever reach the store. An
-      // idea picture's row is created with its bytes (FR-29.5), the same way.
+      // idea picture's row is created with its bytes (FR-29.5), the same way,
+      // and so is a GPX track's with its file (FR-29.17).
       "files": [
         "src/sync/cascade.ts",
         "src/composables/sync/images.ts",
-        "src/composables/sync/ideaImages.ts"
+        "src/composables/sync/ideaImages.ts",
+        "src/composables/sync/ideaTracks.ts"
       ],
       "rules": { "no-restricted-imports": "off" }
     },

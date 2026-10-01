@@ -26,9 +26,13 @@ Nothing you have to undo. Each schema change runs in its own transaction, so a s
 
 ## What a new version may start doing
 
-Most upgrades change nothing you would notice from outside. One did, and it is on unless you say otherwise:
+Most upgrades change nothing you would notice from outside. Two did, and both are on unless you say otherwise:
 
 - **Link previews.** From the version that brings them, a link pasted into an [idea](ideas.md) is read by your server — it fetches that page from the internet for its title, description and picture. It is the one request the instance makes without you having asked, and it cannot reach into your own network. If the instance should keep contacting nothing, set `JITPACK_LINK_PREVIEWS=false` **before** you start the new image. [Link previews](configuration.md#link-previews) says what a website sees.
+- **Map tiles.** From the version that brings [GPX tracks](ideas.md#gpx-tracks), the devices of the people using
+  your instance fetch map tiles from swisstopo and OpenStreetMap to draw a track's map. Your server contacts nobody
+  for it. If the devices should not either, set `JITPACK_MAP_TILES=false`. [Map tiles](configuration.md#map-tiles)
+  says what those services see.
 
 ## Knowing a new version is out
 

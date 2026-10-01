@@ -102,6 +102,9 @@ type tableSpec struct {
 	// finds its readable name (FR-32.1). Every table has one: an entry
 	// that names nothing tells its reader nothing.
 	label activityLabel
+	// unlogged names the columns an activity entry leaves out: data no
+	// reader of the log reads, too large to copy into every entry.
+	unlogged map[string]bool
 }
 
 // tableSpecs declares every syncable table. The maps and lookups below are
@@ -621,6 +624,7 @@ var tableSpecs = map[string]tableSpec{
 			{TableIdeaVotes, `SELECT id FROM idea_votes WHERE idea_id = ?`},
 			{TableIdeaComments, `SELECT id FROM idea_comments WHERE idea_id = ?`},
 			{TableIdeaImages, `SELECT id FROM idea_images WHERE idea_id = ?`},
+			{TableIdeaTracks, `SELECT id FROM idea_tracks WHERE idea_id = ?`},
 		},
 		export: exportQuery{query: `SELECT x.* FROM ideas x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -653,6 +657,22 @@ var tableSpecs = map[string]tableSpec{
 		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
 		columns:   toSet("trip_id", "idea_id", "image_hash", columnPosition),
 		export: exportQuery{query: `SELECT x.* FROM idea_images x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.17: a GPX track on an idea. The upload creates the row (with its
+	// file, which never syncs); every column is listed so the pull carries
+	// it, and validIdeaTrack lets a push change only what a person sets.
+	TableIdeaTracks: {
+		partition: partitionTrip,
+		label:     activityLabel{name: own(columnName), subject: via("idea_id", TableIdeas, "title")},
+		columns: toSet(
+			"trip_id", "idea_id", columnName, "file_name", columnKind, columnWithKid, columnPauseMin,
+			columnPosition, "gpx_hash", "distance_m", "ascent_m", "descent_m", "max_ele_m",
+			"point_count", columnLine,
+		),
+		unlogged: toSet(columnLine),
+		export: exportQuery{query: `SELECT x.* FROM idea_tracks x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

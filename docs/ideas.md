@@ -35,8 +35,9 @@ The board has four parts, each with how many ideas it holds:
 - **Verworfen** — dropped. A dropped idea keeps its comments and votes; you can bring it back.
 
 Under them, chips narrow the part you are looking at to one kind, or with the umbrella to what works in the rain.
-**Alle** shows everything again. Each idea shows its picture if it has one, its kind, the rain mark, the site its link
-points to, the votes and how many comments it has.
+**Alle** shows everything again. Each idea shows its picture if it has one — or, without a picture, the line of its
+first GPX track — its kind, the rain mark, the site its link points to, the first track's distance and climb, the
+votes and how many comments it has.
 
 ## Pictures
 
@@ -54,6 +55,35 @@ Everybody on the trip sees the pictures — nobody else can open them. On a serv
 if the upload fails, the app says so and nothing is added; try again when you are online. In Local mode the pictures
 stay on your device.
 
+## GPX tracks
+
+A hike or a bike tour someone planned in a hiking app or found online usually comes as a **GPX file**. An idea can
+carry up to **five** of them — the loop from the village and the shorter one with the gondola, side by side. Open the
+idea and tap **GPX hinzufügen** next to **Bild hinzufügen**, then pick the `.gpx` file (at most 5 MB). The app reads
+it on your device; a file with no track in it, or a larger one, is refused and nothing is added.
+
+The track then appears on a **map** in the idea:
+
+- **The map** shows every track of the idea, each in its own colour, the one you chose in full. Inside Switzerland it
+  is swisstopo's **Landeskarte**, elsewhere **OpenStreetMap**. Tap the map to see it full screen: there you can move
+  and zoom it, switch between **Landeskarte** and **OSM** (the Landeskarte only covers Switzerland), and the square
+  button brings the whole track back into view. With several tracks, a chip per track above the map chooses one.
+- **The figures** of the chosen track: distance, ascent, descent and highest point. A file without heights shows
+  *–* for the last three.
+- **How long it takes.** Choose **Wandern** or **Velo** — the app suggests one from the file — and **Mit Kind** for a
+  child's pace. A hike is timed with the formula of the Swiss hiking trails; a bike tour at 18 km/h plus 600 metres of
+  climbing an hour. With a child, a hike counts 3 km/h, 200 m up and 350 m down an hour, and a bike tour 12 km/h and
+  350 m. These are estimates. Add your **Pausen** with − and +, a quarter of an hour at a time: walking (or riding)
+  time plus breaks is the time **Unterwegs**. Everybody on the trip sees the same settings.
+- **⋮** next to the file's name: **Umbenennen**, **GPX herunterladen** (the file exactly as it was added — for your
+  watch or your hiking app), **Durch andere Datei ersetzen** (name, kind, *Mit Kind* and breaks stay) and **Track
+  entfernen**, which asks first and removes it for everybody on the trip.
+
+Everybody on the trip sees the tracks; nobody else can open them. On a server, adding a track needs a connection —
+the map and the figures then work offline. Offline, or where your administrator turned the map tiles off (see
+[Map tiles](configuration.md#map-tiles)), the map shows the lines without the map behind them. In Local mode the files
+stay on your device.
+
 ## Deciding
 
 Tap an idea to open it. On a phone it opens from the bottom; on a wide screen beside the board.
@@ -64,7 +94,7 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
   votes; the **⋮** at the top switches to the newest first.
 - **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
 - **Bearbeiten** changes the title, link, note, kind or rain mark. **Idee löschen** asks first, then removes the idea
-  with its votes, comments and pictures for everybody — dropping it keeps them.
+  with its votes, comments, pictures and tracks for everybody — dropping it keeps them.
 
 The link opens the website in a new tab.
 
@@ -87,8 +117,8 @@ mode — there are no vote buttons and no names: the board is a list of your own
 
 ## Good to know
 
-- Ideas are part of the trip: they sync like everything else on it and work offline — except adding a picture on a
-  server, which needs a connection, and reading a pasted link, which needs one too.
+- Ideas are part of the trip: they sync like everything else on it and work offline — except adding a picture or a
+  GPX track on a server, which needs a connection, and reading a pasted link, which needs one too.
 - Copying a trip does not copy its ideas.
 - Ideas are **not** in the portable backup file; on a server, the full JSON export has them (see
   [Backup & Export](backup.md)).

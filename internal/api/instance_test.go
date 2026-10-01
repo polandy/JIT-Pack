@@ -74,3 +74,21 @@ func TestInstanceConfig_AnswersInSingleUserModeWithoutASession(t *testing.T) {
 		t.Errorf("currency = %q, want %q", got, "EUR")
 	}
 }
+
+// FR-29.17: tiles are drawn unless the operator turned them off.
+func TestInstanceConfig_MapTilesOnUnlessTurnedOff_FR29_17(t *testing.T) {
+	if !instanceConfig(t, newTestServer(t)).MapTiles {
+		t.Error("map_tiles = false by default, want true — tiles are on unless switched off")
+	}
+
+	st, err := store.OpenForTest(t.TempDir())
+	if err != nil {
+		t.Fatalf("store.OpenForTest: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	srv := httptest.NewServer(api.New(st, testSecret, api.Options{NoMapTiles: true}).Handler())
+	t.Cleanup(srv.Close)
+	if instanceConfig(t, srv).MapTiles {
+		t.Error("map_tiles = true with NoMapTiles, want false")
+	}
+}

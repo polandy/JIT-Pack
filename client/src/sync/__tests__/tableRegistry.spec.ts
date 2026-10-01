@@ -84,6 +84,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.ideaVotes, parse: 'rowToIdeaVote', encode: 'ideaVoteRow' },
   { table: TABLE.ideaComments, parse: 'rowToIdeaComment', encode: 'ideaCommentRow' },
   { table: TABLE.ideaImages, parse: 'rowToIdeaImage', encode: 'ideaImageRow' },
+  { table: TABLE.ideaTracks, parse: 'rowToIdeaTrack', encode: 'ideaTrackRow' },
   { table: TABLE.destinationProfiles, parse: 'rowToProfile', encode: 'profileRow' },
   {
     table: TABLE.destinationChecklistItems,

@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -34,6 +35,7 @@ func TestLoadConfig(t *testing.T) {
 			want: Config{
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
+				MapTiles:       true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -49,6 +51,7 @@ func TestLoadConfig(t *testing.T) {
 			want: Config{
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
+				MapTiles:       true,
 				Listen:         ":9090",
 				DBPath:         "/data/app.db",
 				SessionSecret:  "s3cret",
@@ -66,6 +69,7 @@ func TestLoadConfig(t *testing.T) {
 			want: Config{
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
+				MapTiles:       true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -81,6 +85,7 @@ func TestLoadConfig(t *testing.T) {
 			want: Config{
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
+				MapTiles:       true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SingleUser:     true,
@@ -99,6 +104,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientID:     "jitpack",
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
+				MapTiles:         true,
 			},
 		},
 		{
@@ -117,6 +123,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientID:     "jitpack",
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
+				MapTiles:         true,
 			},
 		},
 		{
@@ -128,6 +135,7 @@ func TestLoadConfig(t *testing.T) {
 			want: Config{
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
+				MapTiles:       true,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -323,6 +331,43 @@ func TestLoadConfig_LinkPreviews_FR29_16(t *testing.T) {
 			}
 			if cfg.LinkPreviews != tc.want {
 				t.Errorf("LinkPreviews = %v, want %v", cfg.LinkPreviews, tc.want)
+			}
+		})
+	}
+}
+
+// FR-29.17: map tiles are on unless the operator says "false", with the
+// same refusal of any other word as the link preview's switch.
+func TestLoadConfig_MapTiles_FR29_17(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset is on", raw: "", want: true},
+		{name: "false turns it off", raw: "false", want: false},
+		{name: "a misspelling refuses to start", raw: "off", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_MAP_TILES":     tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "JITPACK_MAP_TILES") {
+					t.Fatalf("loadConfigFrom(%q) = %v, want an error naming the variable", tc.raw, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.MapTiles != tc.want {
+				t.Errorf("MapTiles = %v, want %v", cfg.MapTiles, tc.want)
 			}
 		})
 	}

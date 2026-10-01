@@ -453,6 +453,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Pictures on an idea (2026-09-28)](#pictures-on-an-idea-2026-09-28) — a pushed row names bytes nobody has; a push whitelist is the pull's shape; `crypto.subtle` needs HTTPS.
 - [A pasted link fills the idea (2026-09-28)](#a-pasted-link-fills-the-idea-2026-09-28) — one shared timeout lost real pictures; the owner chose on-by-default.
 - [The leftovers follow the trip (2026-09-29)](#the-leftovers-follow-the-trip-2026-09-29) — most of I-8 already existed; two accepted costs on the task tag.
+- [GPX tracks on an idea (2026-10-01)](#gpx-tracks-on-an-idea-2026-10-01) — who reads the file; a replaced file must not age a setting; a cached tile makes no request.
 
 ## Deviations
 
@@ -17945,3 +17946,32 @@ written apart from the phase (a trap found in review: in one mutation, the refus
 with it). Tasks both devices knew end on the first device's tag; a task only the second knew moves, and stands
 under *Ohne Tag* until somebody drags it onto the tag, which has arrived by then. The undo takes the tag off the tasks but leaves it in the vocabulary — deleting it would reach into
 master data another trip may already use.
+
+## GPX tracks on an idea (2026-10-01)
+
+FR-29.17, ADR-085. Decided with the owner over an interactive mockup (`mockup-gpx.html`, not committed) and two rounds
+of questions: several tracks per idea, hike or bike chosen by hand, *Mit Kind* by hand, pauses as the travellers' own
+number, fixed child paces, the original file kept with 5 MB as the limit, at most five tracks, Leaflet, tiles on by
+default with a switch, and excursions in a PR of their own.
+
+**Who reads the file — the option rejected.** The server could have parsed the GPX on upload and written the figures
+itself, which would have made them trustworthy. That is a second reader of the format beside Local Mode's (invariant
+4), so the device reads it and sends what it read; the server stores the file and the row and checks only the
+schema's bounds. Accepted: a member could send figures the file does not hold. The parser is a scanner over the text
+rather than `DOMParser`, so `domain/track.ts` stays runnable under Node.
+
+**A trap in replacing a file.** Replacing writes the row with a fresh server HLC. A setting that had never been
+written on its own has no field clock, and the merge then takes the row's clock as its age — so an edit of the pauses
+made before the replace, arriving after it, would have lost to a file it has nothing to do with. The replace pins
+every setting without a clock to the row's old one first (`TestPutIdeaTrack_AnEditFromBeforeTheReplaceStillCounts_FR29_17`,
+which goes red without the pinning).
+
+**Two traps on screen.** `scrollIntoView` on the chosen chip also scrolled the sheet around it down to the chips when
+an idea opened; the row now sets its own `scrollLeft`. And Chrome draws a hairline between two tiles at Leaflet's
+fractional zoom; a transparent outline on each tile closes it.
+
+**A trap in the e2e cases.** The first version waited for a tile *request* from the source it expected. It went red
+once in Chromium: a tile the browser already held was drawn without a request, and none came. The cases now assert
+the tile *drawn* from that source (`tilesFrom`), and every tile is answered on the device so no run reaches
+swisstopo or OpenStreetMap.
+

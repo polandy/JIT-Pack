@@ -10,8 +10,8 @@ store, and no separate media folder.
 That file holds your trips, items, tags, templates, travelers, containers,
 comments, the sync change log, notifications, Web Push subscriptions, accounts, and
 active sessions. It also holds every **image** — user avatars, item reference
-photos and the pictures on ideas — so backing up the file can never produce a snapshot with a row pointing at
-a picture that was not captured.
+photos and the pictures on ideas — and every **GPX file** on an idea, so backing up the file can never produce a
+snapshot with a row pointing at a picture or a track that was not captured.
 
 **Back up that file and you have backed up the instance.** Nothing else on the host is
 state; the binary and the environment variables are your configuration.
@@ -42,7 +42,7 @@ Back it up from inside the app:
    file describes, and a restored trip's shopping list holds only what the packing list
    marks to buy. **Nor are [excursions](excursions.md)** — neither the excursions nor their
    lists; save one as a group first if you want to keep it. **Nor are the trip's [ideas](ideas.md)** — nor their
-   votes, comments and pictures. **And *Packen abgeschlossen* is not in it either:** a restored trip's
+   votes, comments, pictures and GPX tracks. **And *Packen abgeschlossen* is not in it either:** a restored trip's
    packing is open again, with the rows that were deliberately left behind still marked as
    such. Finish it again from the packing list's ⋮ if you want the note back.
 

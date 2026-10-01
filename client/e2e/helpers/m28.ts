@@ -103,3 +103,89 @@ export async function addPicture(detail: Locator, name: string, buffer: Buffer):
 export function pictureViewer(page: Page): Locator {
   return page.getByTestId('idea-viewer')
 }
+
+/** A GPX file through the given points — latitude, longitude, height or none. */
+export function gpxFile(
+  points: readonly (readonly [number, number, number?])[],
+  options: { name?: string; type?: string } = {},
+): string {
+  const head = [
+    options.name ? `<name>${options.name}</name>` : '',
+    options.type ? `<type>${options.type}</type>` : '',
+  ].join('')
+  const pts = points
+    .map(([lat, lon, ele]) =>
+      ele === undefined
+        ? `<trkpt lat="${lat}" lon="${lon}"/>`
+        : `<trkpt lat="${lat}" lon="${lon}"><ele>${ele}</ele></trkpt>`,
+    )
+    .join('')
+  return `<?xml version="1.0"?><gpx version="1.1"><trk>${head}<trkseg>${pts}</trkseg></trk></gpx>`
+}
+
+/**
+ * Add a GPX track through the open idea's hidden file input; ends once the
+ * idea counts one more track — the positive signal that it was read and
+ * written.
+ */
+export async function addTrack(detail: Locator, name: string, gpx: string): Promise<void> {
+  const count = detail.getByTestId('idea-track-count')
+  const before =
+    (await count.count()) === 0 ? 0 : Number((await count.textContent())!.split(' ')[0])
+  await detail
+    .getByTestId('idea-track-file')
+    .setInputFiles({ name, mimeType: 'application/gpx+xml', buffer: Buffer.from(gpx) })
+  await expect(detail.getByTestId('idea-track-count')).toHaveText(new RegExp(`^${before + 1} of`))
+  await expect(detail.getByTestId('idea-track-add')).toBeEnabled()
+}
+
+/** The one-pixel picture every map tile is answered with. */
+const TILE_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64',
+)
+
+/** Where each map source's tiles come from (FR-29.17). */
+const TILE_HOSTS = { swisstopo: 'wmts.geo.admin.ch', osm: 'tile.openstreetmap.org' } as const
+
+/**
+ * Answers swisstopo's and OpenStreetMap's tiles on the device itself, so no
+ * case reaches the internet.
+ */
+export async function stubTiles(page: Page): Promise<void> {
+  for (const host of Object.values(TILE_HOSTS)) {
+    await page.route(`https://${host}/**`, (route) =>
+      route.fulfill({ contentType: 'image/png', body: TILE_PNG }),
+    )
+  }
+}
+
+/**
+ * A map's tiles from one source, as drawn. What a map shows rather than what
+ * it asked for: a tile the browser already holds is drawn without a request.
+ */
+export function tilesFrom(map: Locator, source: keyof typeof TILE_HOSTS): Locator {
+  return map.locator(`img.leaflet-tile[src*="${TILE_HOSTS[source]}"]`)
+}
+
+/** The full-screen map, which Ionic lifts out to the app root. */
+export function trackViewer(page: Page): Locator {
+  return page.getByTestId('track-viewer')
+}
+
+/**
+ * Choose one of ⋮'s actions on a track card's chosen track, and wait for the
+ * sheet to go — an action that opens a prompt or a file chooser would
+ * otherwise race the sheet still leaving.
+ */
+export async function trackAction(
+  card: Locator,
+  action: 'rename' | 'download' | 'replace' | 'remove',
+): Promise<void> {
+  const page = card.page()
+  await card.getByTestId('track-more').click()
+  const sheet = page.locator('ion-action-sheet')
+  await expect(sheet).toBeVisible()
+  await sheet.getByTestId(`track-${action}`).click()
+  await expect(sheet).toHaveCount(0)
+}

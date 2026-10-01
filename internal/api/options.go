@@ -53,6 +53,11 @@ type Options struct {
 	// takes as "do not ask again". cmd/jitpackd sets it unless the
 	// operator switches it off.
 	LinkPreviews LinkPreviewer
+	// NoMapTiles turns off the maps' background tiles (FR-29.17): the
+	// instance's config says so, and every device draws a track's line
+	// alone. Off by default — the zero value draws tiles, which the
+	// device fetches from swisstopo and OpenStreetMap itself (ADR-085).
+	NoMapTiles bool
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
 	// confidential client (client_secret_basic, ADR-007). Nil leaves

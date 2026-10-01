@@ -38,8 +38,11 @@ type Server struct {
 	// now is the server's one clock: session expiry, token minting and
 	// the fallback tap time all read it. Never nil, see newServer.
 	now func() time.Time
-	// currency is the instance-wide ISO-4217 label (FR-21.9); empty ⇒ none.
-	currency string
+	// instance is what /instance/config answers: the currency label
+	// (FR-21.9) and whether maps draw tiles (FR-29.17). One value rather
+	// than a field each, so no switch of the operator's sits on the Server
+	// as a bool a handler could branch on.
+	instance InstanceConfigResponse
 	hub      *Hub
 	oidc     *oidcBroker
 	// wsIdleOverride shrinks the §9 WebSocket idle timeout
@@ -118,7 +121,7 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
-		currency:       opts.Currency,
+		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles},
 		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		wsIdleWatch:    idleDeadline,
@@ -199,6 +202,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaImage), s.authed(s.member(s.handleGetIdeaImage)))
 	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaTrack), s.authed(s.member(s.handleGetIdeaTrack)))
+	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaTrack), s.authed(s.member(s.handlePutIdeaTrack)))
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreview), s.authed(s.member(s.handleLinkPreview)))
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreviewImage), s.authed(s.member(s.handleLinkPreviewImage)))
 

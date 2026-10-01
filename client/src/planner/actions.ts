@@ -9,6 +9,8 @@
  * painted under a placeholder would not read as mine until the pull came
  * back. Where there is no identity — Local Mode — the placeholder stands.
  */
+import type { IdeaTrackUpload } from '@/api/types'
+import { MAX_TRACKS, nextTrackPosition, orderTracks } from '@/domain/track'
 import { newId } from '@/lib/ids'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
@@ -21,6 +23,7 @@ import type {
   IdeaComment,
   IdeaImage,
   IdeaState,
+  IdeaTrack,
   IdeaTag,
   IdeaVoteValue,
 } from '@/types/domain'
@@ -47,6 +50,7 @@ export function createPlannerActions(
   const encodeVote = TABLE_CODECS[TABLE.ideaVotes].encode
   const encodeComment = TABLE_CODECS[TABLE.ideaComments].encode
   const encodeImage = TABLE_CODECS[TABLE.ideaImages].encode
+  const encodeTrack = TABLE_CODECS[TABLE.ideaTracks].encode
 
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
@@ -108,6 +112,9 @@ export function createPlannerActions(
     })
     void host.pictures.forget(
       children.filter((row) => row.table === TABLE.ideaImages).map((row) => row.id),
+    )
+    void host.tracks.forget(
+      children.filter((row) => row.table === TABLE.ideaTracks).map((row) => row.id),
     )
   }
 
@@ -177,6 +184,68 @@ export function createPlannerActions(
     const mutation = host.mutation('delete', TABLE.ideaImages, image.id)
     host.writeTrip(image.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
     void host.pictures.forget([image.id])
+  }
+
+  /** FR-29.17: an idea's tracks, in their order. */
+  function tracksOf(idea: Idea): IdeaTrack[] {
+    return orderTracks(
+      plannerStore.getTracks(idea.trip_id).filter((track) => track.idea_id === idea.id),
+    )
+  }
+
+  /**
+   * FR-29.17: a GPX track on an idea, behind its last one, from what the
+   * device read from the file. Null when the idea already carries five, so
+   * nothing is sent; a failed upload rejects, and the screen says so.
+   */
+  async function addTrack(idea: Idea, upload: IdeaTrackUpload): Promise<string | null> {
+    const tracks = tracksOf(idea)
+    if (tracks.length >= MAX_TRACKS) return null
+    const id = newId()
+    await host.tracks.add(
+      { id, trip_id: idea.trip_id, idea_id: idea.id, position: nextTrackPosition(tracks) },
+      upload,
+    )
+    return id
+  }
+
+  /** FR-29.17's „Durch andere Datei ersetzen": the file changes, what was set stays. */
+  async function replaceTrack(track: IdeaTrack, upload: IdeaTrackUpload): Promise<void> {
+    await host.tracks.replace(track, upload)
+  }
+
+  /** What the travellers set on a track (FR-29.17). */
+  type TrackSettings = Partial<Pick<IdeaTrack, 'name' | 'kind' | 'with_kid' | 'pause_min'>>
+
+  /** FR-29.17: writes only the settings that changed. A blank name is not one. */
+  function updateTrack(track: IdeaTrack, settings: TrackSettings): void {
+    const patch: Record<string, unknown> = {}
+    const name = settings.name?.trim()
+    if (name && name !== track.name) patch['name'] = name
+    if (settings.kind !== undefined && settings.kind !== track.kind) patch['kind'] = settings.kind
+    if (settings.with_kid !== undefined && settings.with_kid !== track.with_kid) {
+      patch['with_kid'] = dbBool(settings.with_kid)
+    }
+    if (settings.pause_min !== undefined && settings.pause_min !== track.pause_min) {
+      patch['pause_min'] = settings.pause_min
+    }
+    if (Object.keys(patch).length === 0) return
+    const mutation = host.mutation('upsert', TABLE.ideaTracks, track.id, patch)
+    host.writeTrip(track.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encodeTrack(track)),
+    })
+  }
+
+  function removeTrack(track: IdeaTrack): void {
+    const mutation = host.mutation('delete', TABLE.ideaTracks, track.id)
+    host.writeTrip(track.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    void host.tracks.forget([track.id])
+  }
+
+  /** The file as it was uploaded, for *GPX herunterladen*. */
+  function trackFile(track: IdeaTrack): Promise<Blob | null> {
+    return host.tracks.file(track)
   }
 
   /**
@@ -271,6 +340,12 @@ export function createPlannerActions(
     awaitLinkPicture,
     makeCover,
     removePicture,
+    tracksOf,
+    addTrack,
+    replaceTrack,
+    updateTrack,
+    removeTrack,
+    trackFile,
     vote,
     addComment,
     editComment,

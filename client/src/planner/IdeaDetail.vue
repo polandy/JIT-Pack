@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * One idea, opened (FR-29.2–29.5): who wrote it and when, its pictures as
- * a mosaic, the link as a card, the note, the four states set by hand, the votes with the voters'
+ * One idea, opened (FR-29.2–29.5, FR-29.17): who wrote it and when, its
+ * pictures as a mosaic, its GPX tracks on a map, the link as a card, the note, the four states set by hand, the votes with the voters'
  * names, and the discussion with its field at the foot. The same body is the
  * phone's sheet and the desktop's side panel (ADR-064), so what it does is
  * handed to the screen as events rather than written here.
@@ -21,6 +21,7 @@ import {
   cameraOutline,
   createOutline,
   linkOutline,
+  mapOutline,
   openOutline,
   send,
   thumbsDownOutline,
@@ -28,15 +29,24 @@ import {
   trashOutline,
   umbrellaOutline,
 } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import TrackCard from '@/components/global/TrackCard.vue'
+import { MAX_TRACKS, orderTracks } from '@/domain/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
-import type { IdeaComment, IdeaImage, IdeaState, IdeaVoteValue } from '@/types/domain'
+import type {
+  IdeaComment,
+  IdeaImage,
+  IdeaState,
+  IdeaTrack,
+  IdeaVoteValue,
+  TrackFields,
+} from '@/types/domain'
 import { IDEA_STATES, IDEA_VOTE_DOWN, IDEA_VOTE_UP } from '@/types/domain'
 import { ideaDiscussion, linkSite, voteTally } from './domain/ideas'
 import { MAX_IDEA_IMAGES, canAddPicture, ideaPictures } from './domain/pictures'
@@ -52,6 +62,8 @@ const props = defineProps<{
   nameOf: NameOf
   /** Whether a picture is on its way up, so the add control waits for it. */
   uploading: boolean
+  /** Whether a GPX file is being read and sent, so its add control waits for it. */
+  trackBusy: boolean
 }>()
 
 const emit = defineEmits<{
@@ -66,6 +78,14 @@ const emit = defineEmits<{
   addPicture: [file: File]
   coverPicture: [image: IdeaImage]
   removePicture: [image: IdeaImage]
+  addTrack: [file: File]
+  updateTrack: [
+    track: IdeaTrack,
+    settings: Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>,
+  ]
+  downloadTrack: [track: IdeaTrack]
+  replaceTrack: [track: IdeaTrack, file: File]
+  removeTrack: [track: IdeaTrack]
 }>()
 
 const plannerStore = usePlannerStore()
@@ -81,6 +101,41 @@ const pictures = computed(() =>
 )
 
 const pictureInput = ref<HTMLInputElement | null>(null)
+
+const tracks = computed(() =>
+  idea.value
+    ? orderTracks(
+        plannerStore
+          .getTracks(idea.value.trip_id)
+          .filter((track) => track.idea_id === idea.value!.id),
+      )
+    : [],
+)
+const trackInput = ref<HTMLInputElement | null>(null)
+const chosenTrack = ref<string | null>(null)
+
+// A track that arrives while the idea is open is chosen (FR-29.17): it is
+// the one just added. What was there on opening is not.
+watch(
+  () => tracks.value.map((track) => track.id),
+  (now, before) => {
+    const added = before ? now.filter((id) => !before.includes(id)) : []
+    if (added.length > 0) chosenTrack.value = added[added.length - 1]!
+  },
+  { immediate: true },
+)
+
+function onTrackFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) emit('addTrack', file)
+}
+
+/** The card hands back the kernel's track; the planner's own row is looked up by it. */
+function own(track: TrackFields): IdeaTrack | undefined {
+  return tracks.value.find((candidate) => candidate.id === track.id)
+}
 
 function onPictureFile(event: Event) {
   const input = event.target as HTMLInputElement
@@ -212,29 +267,64 @@ async function openCommentMenu(comment: IdeaComment) {
       <IonSpinner name="dots" aria-hidden="true" />
       <span>{{ t('ideas.pictureComing') }}</span>
     </div>
-    <div v-if="canAddPicture(pictures)" class="add-picture">
-      <input
-        ref="pictureInput"
-        type="file"
-        accept="image/*"
-        hidden
-        data-testid="idea-picture-file"
-        @change="onPictureFile"
-      />
-      <IonButton
-        fill="clear"
-        size="small"
-        :disabled="uploading"
-        data-testid="idea-picture-add"
-        @click="pictureInput?.click()"
-      >
-        <IonIcon slot="start" :icon="cameraOutline" />
-        {{ uploading ? t('ideas.uploading') : t('ideas.addPicture') }}
-      </IonButton>
-      <span v-if="pictures.length > 0" class="of-max jp-num" data-testid="idea-picture-count">
-        {{ t('ideas.picturesOfMax', { n: pictures.length, max: MAX_IDEA_IMAGES }) }}
-      </span>
+    <div class="adds">
+      <template v-if="canAddPicture(pictures)">
+        <input
+          ref="pictureInput"
+          type="file"
+          accept="image/*"
+          hidden
+          data-testid="idea-picture-file"
+          @change="onPictureFile"
+        />
+        <IonButton
+          fill="clear"
+          size="small"
+          :disabled="uploading"
+          data-testid="idea-picture-add"
+          @click="pictureInput?.click()"
+        >
+          <IonIcon slot="start" :icon="cameraOutline" />
+          {{ uploading ? t('ideas.uploading') : t('ideas.addPicture') }}
+        </IonButton>
+        <span v-if="pictures.length > 0" class="of-max jp-num" data-testid="idea-picture-count">
+          {{ t('ideas.picturesOfMax', { n: pictures.length, max: MAX_IDEA_IMAGES }) }}
+        </span>
+      </template>
+      <template v-if="tracks.length < MAX_TRACKS">
+        <input
+          ref="trackInput"
+          type="file"
+          accept=".gpx,application/gpx+xml"
+          hidden
+          data-testid="idea-track-file"
+          @change="onTrackFile"
+        />
+        <IonButton
+          fill="clear"
+          size="small"
+          :disabled="trackBusy"
+          data-testid="idea-track-add"
+          @click="trackInput?.click()"
+        >
+          <IonIcon slot="start" :icon="mapOutline" />
+          {{ trackBusy ? t('ideas.trackReading') : t('ideas.addTrack') }}
+        </IonButton>
+        <span v-if="tracks.length > 0" class="of-max jp-num" data-testid="idea-track-count">
+          {{ t('ideas.picturesOfMax', { n: tracks.length, max: MAX_TRACKS }) }}
+        </span>
+      </template>
     </div>
+    <TrackCard
+      v-if="tracks.length > 0"
+      v-model:chosen="chosenTrack"
+      :tracks="tracks"
+      :title="idea.title"
+      @update="(track, settings) => own(track) && emit('updateTrack', own(track)!, settings)"
+      @download="(track) => own(track) && emit('downloadTrack', own(track)!)"
+      @replace="(track, file) => own(track) && emit('replaceTrack', own(track)!, file)"
+      @remove="(track) => own(track) && emit('removeTrack', own(track)!)"
+    />
     <IdeaPictureViewer
       :pictures="pictures"
       :title="idea.title"
@@ -444,15 +534,24 @@ async function openCommentMenu(comment: IdeaComment) {
   font-size: var(--jp-text-xs);
 }
 
-.add-picture {
+.adds {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   margin: -6px 0 -4px -10px;
 }
 
-.add-picture ion-button {
+.adds:empty {
+  display: none;
+}
+
+.adds ion-button {
   --color: var(--jp-action);
+}
+
+.adds .of-max {
+  margin-inline-end: 8px;
 }
 
 .of-max {

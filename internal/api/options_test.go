@@ -33,6 +33,7 @@ func fullOptions() Options {
 		UpdateFeedURL: "https://feed.example/releases/latest",
 		Now:           func() time.Time { return fixedNow },
 		LinkPreviews:  testPreviewer,
+		NoMapTiles:    true,
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -50,7 +51,8 @@ func fullOptions() Options {
 // fullOptions must look like. The map is keyed by field name so the
 // count check below can prove it is exhaustive.
 var applied = map[string]func(*Server) bool{
-	"Currency":    func(s *Server) bool { return s.currency == "CHF" },
+	"Currency":    func(s *Server) bool { return s.instance.Currency == "CHF" },
+	"NoMapTiles":  func(s *Server) bool { return !s.instance.MapTiles },
 	"PushContact": func(s *Server) bool { return s.pushContact == "mailto:ops@example.com" },
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.
@@ -117,8 +119,8 @@ func TestOptions_EveryFieldReachesBothConstructors(t *testing.T) {
 func TestOptions_ZeroValueKeepsTheDocumentedDefaults(t *testing.T) {
 	s := New(testStore(t), []byte("secret"), Options{})
 
-	if s.currency != "" {
-		t.Errorf("currency = %q, want empty — an unnamed currency is not a default one", s.currency)
+	if s.instance.Currency != "" {
+		t.Errorf("currency = %q, want empty — an unnamed currency is not a default one", s.instance.Currency)
 	}
 	if s.oidc != nil {
 		t.Error("no OIDC configured must leave the broker off (ADR-007)")

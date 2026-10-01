@@ -118,6 +118,7 @@ func recordActivity(ctx context.Context, tx *sql.Tx, at string, w activityWrite)
 		op = ActivityInsert
 	}
 
+	unlogged := tableSpecs[w.table].unlogged
 	changes := map[string][2]any{}
 	fields := make(map[string]any, len(w.before.Fields)+len(w.applied))
 	for f, v := range w.before.Fields {
@@ -128,7 +129,7 @@ func recordActivity(ctx context.Context, tx *sql.Tx, at string, w activityWrite)
 		// only place left that says what it was — a task or a note, how
 		// many, in which excursion.
 		for f, v := range w.before.Fields {
-			if v != nil {
+			if v != nil && !unlogged[f] {
 				changes[f] = [2]any{normalize(v), nil}
 			}
 		}
@@ -141,8 +142,11 @@ func recordActivity(ctx context.Context, tx *sql.Tx, at string, w activityWrite)
 			if sameValue(old, v) {
 				continue
 			}
-			changes[f] = [2]any{old, v}
 			fields[f] = v
+			if unlogged[f] {
+				continue
+			}
+			changes[f] = [2]any{old, v}
 		}
 		if len(changes) == 0 {
 			return nil
