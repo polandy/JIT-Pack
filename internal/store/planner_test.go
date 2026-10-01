@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"jitpack/internal/sync"
@@ -312,5 +313,69 @@ func TestApplyMutation_DayPlan_PlannedIdeaAndOwnEntry_FR29_15(t *testing.T) {
 	}
 	if left != 0 {
 		t.Errorf("%d day entries outlived their trip", left)
+	}
+}
+
+// FR-29.18: a connection is a day entry of its own kind, its legs one JSON
+// array carried whole. A push writes it like any entry, and what a column
+// cannot hold — a third kind, legs that are not JSON, a link that is not the
+// web's — is refused by the table itself.
+func TestSchema_DayConnection_FR29_18(t *testing.T) {
+	s := openPlannerStore(t)
+	ctx := context.Background()
+	legs := `[{"from":"Samedan","to":"Landquart","dep":"2026-10-10T10:58","arr":"2026-10-10T12:39","line":"RE 3"}]`
+	m := sync.Mutation{
+		MutationID: "m-c", Op: sync.OpInsert, Table: TableDayEntries, ID: "de-c",
+		Fields: map[string]any{
+			"trip_id": testTrip, "author_id": testUser, "kind": "connection", "on_date": "2026-10-10",
+			"at_time": "10:58", "title": "Samedan → Landquart", "link": "https://a.sbbmobile.ch/s/73oNRti7",
+			"legs": legs,
+		},
+		HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+	}
+	var kind, stored string
+	if err := s.db.QueryRow(`SELECT kind, legs FROM day_entries WHERE id = 'de-c'`).Scan(&kind, &stored); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if kind != "connection" || stored != legs {
+		t.Errorf("stored kind %q legs %q, want the connection's own", kind, stored)
+	}
+	var changes string
+	if err := s.db.QueryRow(`SELECT changes FROM activity_log WHERE entity_id = 'de-c'`).Scan(&changes); err != nil {
+		t.Fatalf("activity entry: %v", err)
+	}
+	if strings.Contains(changes, `"legs"`) || !strings.Contains(changes, `"title"`) {
+		t.Errorf("activity entry %s, want the title without the legs", changes)
+	}
+
+	cases := []struct {
+		name, column, value string
+		ok                  bool
+	}{
+		{"a free entry", "kind", "note", true},
+		{"no third kind", "kind", "flight", false},
+		{"legs as JSON", "legs", legs, true},
+		{"legs that are not JSON", "legs", "Samedan → Bern", false},
+		{"an https link", "link", "https://www.sbb.ch/en/trip?tripId=3HA.x", true},
+		{"a script link", "link", "javascript:alert(1)", false},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := s.db.Exec(`INSERT INTO day_entries (id, trip_id, author_id, on_date, title, `+tc.column+`)
+			                     VALUES (?, ?, ?, '2026-10-10', 'x', ?)`, "de-v"+string(rune('a'+i)), testTrip, testUser, tc.value)
+			if (err == nil) != tc.ok {
+				t.Errorf("%s = %q: err %v, want accepted %v", tc.column, tc.value, err, tc.ok)
+			}
+		})
+	}
+
+	var plain string
+	mustExec(t, s, `INSERT INTO day_entries (id, trip_id, author_id, on_date, title) VALUES ('de-n', ?, ?, '2026-10-10', 'Tisch')`,
+		testTrip, testUser)
+	if err := s.db.QueryRow(`SELECT kind FROM day_entries WHERE id = 'de-n'`).Scan(&plain); err != nil || plain != "note" {
+		t.Errorf("an entry written without a kind reads %q (err %v), want note — every entry before FR-29.18", plain, err)
 	}
 }

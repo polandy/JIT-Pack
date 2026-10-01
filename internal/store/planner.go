@@ -78,6 +78,13 @@ const (
 	columnLine     = "line"
 )
 
+// The columns of a day-plan connection (FR-29.18): the link it was read
+// from — a name an idea's link shares — and its legs, one JSON array.
+const (
+	columnLink = "link"
+	columnLegs = "legs"
+)
+
 // ideaTrackSettings are the fields of a track a push may change: what a
 // person sets. Everything else is what the file says (ADR-085).
 var ideaTrackSettings = map[string]bool{

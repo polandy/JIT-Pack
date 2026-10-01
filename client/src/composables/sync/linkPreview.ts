@@ -50,6 +50,7 @@ export function createLinkPreview(deps: LinkPreviewDeps): LinkPreviews {
         title: resp.title || null,
         description: resp.description || null,
         imageUrl: resp.image_url || null,
+        links: resp.links ?? [],
       }
     },
     async picture(tripId, imageUrl) {

@@ -24,7 +24,22 @@ describe('createLinkPreview', () => {
     expect(client.calls).toEqual([
       { verb: 'post', path: API.tripLinkPreview('trip-1'), payload: { url: URL } },
     ])
-    expect(preview).toEqual({ title: 'Oeschinensee', description: null, imageUrl: PICTURE })
+    expect(preview).toEqual({
+      title: 'Oeschinensee',
+      description: null,
+      imageUrl: PICTURE,
+      links: [],
+    })
+  })
+
+  it('carries the page’s links, for a connection behind a short link (FR-29.18)', async () => {
+    const client = stubClient()
+    const trip = 'https://www.sbb.ch/en/trip?tripId=3HA.a.b'
+    client.answer({ title: '', description: '', image_url: '', links: [trip] })
+
+    const preview = await createLinkPreview({ client, localMode: false }).read('trip-1', URL)
+
+    expect(preview?.links).toEqual([trip])
   })
 
   it('reads the picture apart, as bytes', async () => {
