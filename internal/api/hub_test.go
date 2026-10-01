@@ -354,11 +354,7 @@ func TestHub_Roster_NamesWhoIsViewingASharedTrip_FR4_9(t *testing.T) {
 
 func TestHub_Roster_LeavingTheTripEmptiesIt_FR4_9(t *testing.T) {
 	_, srv := wsTestServer(t, nil)
-	andy := wsConnect(t, srv, "andy")
-	sarah := wsConnect(t, srv, "sarah")
-
-	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
-	rosterUsers(t, sarah)
+	andy, sarah := rosterWithAndyOnTrip1(t, srv)
 	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": ""})
 
 	if got := rosterUsers(t, sarah); len(got) != 0 {
@@ -368,11 +364,7 @@ func TestHub_Roster_LeavingTheTripEmptiesIt_FR4_9(t *testing.T) {
 
 func TestHub_Roster_DisconnectTakesThePersonOff_FR4_9(t *testing.T) {
 	_, srv := wsTestServer(t, nil)
-	andy := wsConnect(t, srv, "andy")
-	sarah := wsConnect(t, srv, "sarah")
-
-	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
-	rosterUsers(t, sarah)
+	andy, sarah := rosterWithAndyOnTrip1(t, srv)
 	andy.CloseNow()
 
 	if got := rosterUsers(t, sarah); len(got) != 0 {
@@ -387,8 +379,12 @@ func TestHub_Roster_NeverNamesATripTheReceiverIsNotOn_FR4_9(t *testing.T) {
 		return trip == "trip-1" || user == "andy"
 	}
 	_, srv := wsTestServerGated(t, nil, gate)
-	andy := wsConnect(t, srv, "andy")
+	// Sarah's own frame proves she is registered: a newcomer with nobody to be
+	// told about gets no greeting, so a late arrival would wait for nothing.
 	sarah := wsConnect(t, srv, "sarah")
+	wsSend(t, sarah, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+	rosterUsers(t, sarah)
+	andy := wsConnect(t, srv, "andy")
 
 	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-2"})
 
@@ -408,6 +404,23 @@ func TestHub_Roster_ANewcomerIsToldWhoIsAlreadyThere_FR4_9(t *testing.T) {
 	if got := rosterUsers(t, sarah); len(got["andy"]) != 1 {
 		t.Errorf("sarah's first roster = %v, want andy listed", got)
 	}
+}
+
+// rosterWithAndyOnTrip1 leaves andy viewing trip-1 and sarah holding exactly
+// that roster, with no frame still in flight. Connecting both before andy acts
+// would race sarah's registration against his broadcast: she can be sent the
+// change and then the greeting, two frames saying the same thing, and the
+// second would answer whatever the case reads next.
+func rosterWithAndyOnTrip1(t *testing.T, srv *httptest.Server) (andy, sarah *websocket.Conn) {
+	t.Helper()
+	andy = wsConnect(t, srv, "andy")
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+	rosterUsers(t, andy)
+	sarah = wsConnect(t, srv, "sarah")
+	if got := rosterUsers(t, sarah); len(got["andy"]) != 1 {
+		t.Fatalf("sarah's greeting = %v, want andy listed", got)
+	}
+	return andy, sarah
 }
 
 // --- ADR-057: a broadcast waits for no peer ---------------------------------
