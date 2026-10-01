@@ -45,6 +45,14 @@ export function describeNotification(n: ServerNotification): string {
   return t(bodyMessageKey(name), notificationParams(n, t('notify.actorUnknown')))
 }
 
+/**
+ * The toast's one button (FR-6.2): it opens the deep link when there is
+ * one (G-4), and only dismisses when there is none.
+ */
+export function notificationActionLabel(route: string | null): string {
+  return route ? t('notify.toastOpen') : t('common.ok')
+}
+
 function str(payload: Record<string, unknown> | null, key: string): string {
   const v = payload?.[key]
   return typeof v === 'string' ? v : ''
