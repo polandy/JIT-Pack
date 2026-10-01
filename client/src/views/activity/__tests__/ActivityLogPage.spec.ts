@@ -105,7 +105,7 @@ describe('ActivityLogPage (M30)', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('[data-testid="activity-detail"]').text()).toBe(
-      `${t('conflicts.field.quantity')}: 2 → 3`,
+      `${t('fieldLabel.quantity')}: 2 → 3`,
     )
   })
 
