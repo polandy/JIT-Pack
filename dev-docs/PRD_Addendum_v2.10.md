@@ -4602,7 +4602,8 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   ⋮ — ***Track hinzufügen …*** and ***Route zeichnen***, which needs the map (FR-29.20) — and a sixth is refused
   before a file is asked for. The excursion's view shows them **first, above its packing list**, as one card: a
   still map with every line, then one line per track (kind, name, distance, climb, time with the pauses) that opens
-  the full-screen map on it; M27's list shows the first one's distance and climb with how many more.
+  the full-screen map on it; the card **folds** to one line (the first track's distance and climb), remembered on the
+  device for every excursion, so the view can be set on packing or on the way; M27's list shows the first one's distance and climb with how many more.
   Deleting the excursion deletes its tracks. A track does **not** follow an idea to an excursion: that waits for
   §3.29's bridge to the packing side, and until then the file is downloaded from one and added to the other.
 * **Notes about an excursion** are FR-7.15's: a trip note may name one excursion, which lists it under its progress

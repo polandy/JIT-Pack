@@ -93,7 +93,8 @@ and **Route zeichnen** draws one on the map along the paths (see
 
 The route then stands at the top of the excursion, above its packing list: a small map with every track, and under
 it a line per track — whether it is a hike or a bike tour, its name, and *„3.3 km · ↑ 300 m · 1 h 25"*, the time with
-the breaks you set. Tap the map or a line to see the track full screen, with its
+the breaks you set. Tap **Route** at the top of the card to fold it to one line while you pack, and again to open it;
+the app remembers that on your device. Tap the map or a line to see the track full screen, with its
 figures, **Wandern** / **Velo**, **Mit Kind** and the breaks. **Bearbeiten** at the top changes the route, and the
 **⋮** beside it renames the track, downloads the file, replaces it with another or removes it. The list of
 excursions shows the first track's distance and climb under the excursion's name, with *+1* for each further one.

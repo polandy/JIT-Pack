@@ -1,5 +1,6 @@
 /**
- * Whether a dashboard block is folded, remembered (FR-7.10).
+ * Whether a dashboard block is folded, remembered (FR-7.10) — and an
+ * excursion's route card (FR-31.15), the same kind of choice.
  *
  * The person's own choice about how much of the dashboard they want to see, so
  * it is a viewing preference and not data — the M9 property-sheet hint's

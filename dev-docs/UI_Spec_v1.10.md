@@ -2917,7 +2917,10 @@ token would prove nothing there is anything to prove.
   excursion. Deleting the excursion keeps its notes as trip notes.
 * **Its route** (FR-31.15, ADR-089): **first, above the progress card**, a card of its own (`TrackSummary`,
   `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed
-  for it. A still map carries every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets them,
+  for it. Its head (`track-summary-toggle`, map glyph, *Route*, a caret) **folds and unfolds** it: folded, the head
+  alone carries the first track's distance and climb with *+n* (`track-summary-folded`), for whoever is packing
+  rather than planning the way; the fold is this device's, one for every excursion (`lib/blockFold.ts`), open at
+  first. Open, a still map carries every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets them,
   the lines alone offline); a tap on it opens FR-29.17's full-screen map. Under it, one line per track
   (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300 m · 1 h 25"*
   (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that track,

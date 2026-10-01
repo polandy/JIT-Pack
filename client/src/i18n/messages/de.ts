@@ -1693,6 +1693,7 @@ export const de: Record<keyof typeof en, string> = {
   'track.routeReplaced': '„{name}“ ersetzt',
   'track.addFile': 'Track hinzufügen …',
   'track.full': 'Es sind schon {max} Tracks – mehr gehen nicht.',
+  'track.route': 'Route',
   'track.reading': 'Track wird gelesen …',
   'track.open': 'Karte öffnen',
   'track.me': 'Du bist hier',

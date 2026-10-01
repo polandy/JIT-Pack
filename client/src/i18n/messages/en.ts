@@ -1676,6 +1676,7 @@ export const en = {
   'track.routeReplaced': '“{name}” replaced',
   'track.addFile': 'Add track …',
   'track.full': 'There are {max} tracks already — no more fit.',
+  'track.route': 'Route',
   'track.reading': 'Reading the track …',
   'track.open': 'Open the map',
   'track.me': 'You are here',

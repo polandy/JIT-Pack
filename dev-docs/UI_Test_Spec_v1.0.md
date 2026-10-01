@@ -3449,9 +3449,10 @@ went.
   the excursion's ⋮ stand as two lines on its route card above the progress card, each with its name and *„3.3 km · ↑
   300 m · 1 h 25"* (no climb for a file without heights). A line opens the full-screen map on its track; two steps of
   pauses there, and the track renamed through the map's ⋮, show on the line after the map is closed (*1 h 55*), and a
-  download hands back the file as it was added. Both survive a reload. With five tracks, *Track hinzufügen …* toasts
-  that no more fit and asks for no file. A track removed through the map's ⋮, confirmed, closes the map and leaves the
-  list, and M27's list shows the first one's distance and climb with *+3*.
+  download hands back the file as it was added. Both survive a reload. *Route* folds the card to its head — no map, no
+  lines, *„3.3 km · ↑ 300 m · +1"* — and it is still folded after a reload. With five tracks, *Track hinzufügen …*
+  toasts that no more fit and asks for no file. A track removed through the map's ⋮, confirmed, closes the map and
+  leaves the list, and M27's list shows the first one's distance and climb with *+3*.
 * **E2E-M27-16** `local` (FR-31.15, FR-29.20) — **implemented** (`excursionTracks.spec.ts`): *Route zeichnen* in the
   excursion's ⋮ opens the editor on nothing; two taps on the map are joined along a path (the hiking profile asked),
   and saved — with no *Ersetzen* offered — as the excursion's first track, its climb on its line. *Bearbeiten* on its

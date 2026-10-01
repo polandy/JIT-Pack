@@ -130,6 +130,20 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
     await expect(climb).toContainText('3.3 km · ↑ 300 m · 1 h 55')
     await writesLanded(page)
 
+    // Folded for packing: the head alone, its first track's figures, and so after a reload.
+    const toggle = visible(page).getByTestId('track-summary-toggle')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(visible(page).getByTestId('track-summary-map')).toHaveCount(0)
+    await expect(excursionTrackRows(page)).toHaveCount(0)
+    await expect(visible(page).getByTestId('track-summary-folded')).toHaveText(
+      '3.3 km · ↑ 300 m · +1',
+    )
+    await writesLanded(page)
+    await page.reload()
+    await expect(visible(page).getByTestId('track-summary-folded')).toBeVisible()
+    await visible(page).getByTestId('track-summary-toggle').click()
+
     // Kept.
     await page.reload()
     await expect(excursionTrackRows(page)).toHaveCount(2)

@@ -5,18 +5,26 @@
  * name, its distance, climb and time. The map opens the full-screen map on
  * the first track, a line on its own, with the track's ⋮ in the map's bar.
  * An excursion carries it at the top, above its packing list, so the route
- * is seen before what to pack for it.
+ * is seen before what to pack for it. It folds to its head — the first
+ * track's figures in one line — for whoever is packing rather than planning
+ * the way; the owner keeps whether it is open.
  *
  * Kernel, like the card: it knows tracks, never what they hang on, and
  * hands every act up.
  */
 import { IonIcon } from '@ionic/vue'
-import { bicycleOutline, chevronForward, walkOutline } from 'ionicons/icons'
+import {
+  bicycleOutline,
+  chevronDown,
+  chevronForward,
+  mapOutline,
+  walkOutline,
+} from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import { decodeLine, defaultSource, movingMinutes, type TrackSettings } from '@/domain/track'
 import { t } from '@/i18n'
-import { formatDistance, formatDuration, formatMetres } from '@/lib/trackFormat'
+import { formatDistance, formatDuration, formatMetres, tracksSummary } from '@/lib/trackFormat'
 import type { TrackFields } from '@/types/domain'
 import TrackMap from './TrackMap.vue'
 import TrackMore from './TrackMore.vue'
@@ -40,6 +48,11 @@ const emit = defineEmits<{
   /** FR-29.20: the track's route is to be edited — the owner loads its file. */
   edit: [track: TrackFields]
 }>()
+
+/** Whether the map and the lines show, or the head alone. */
+const expanded = defineModel<boolean>('open', { default: true })
+
+const folded = computed(() => tracksSummary(props.tracks)?.text ?? '')
 
 const viewing = ref(false)
 const chosenId = ref<string | null>(null)
@@ -86,8 +99,22 @@ function removeChosen(track: TrackFields) {
 </script>
 
 <template>
-  <section class="track-summary jp-card" data-testid="track-summary">
-    <div class="mini">
+  <section class="track-summary jp-card" :class="{ folded: !expanded }" data-testid="track-summary">
+    <button
+      type="button"
+      class="head"
+      :aria-expanded="expanded ? 'true' : 'false'"
+      data-testid="track-summary-toggle"
+      @click="expanded = !expanded"
+    >
+      <IonIcon class="glyph" :icon="mapOutline" aria-hidden="true" />
+      <span class="label">{{ t('track.route') }}</span>
+      <span v-if="!expanded" class="facts jp-num" data-testid="track-summary-folded">
+        {{ folded }}
+      </span>
+      <IonIcon class="caret" :icon="chevronDown" aria-hidden="true" />
+    </button>
+    <div v-if="expanded" class="mini">
       <TrackMap class="map" :lines="lines" :source="source" data-testid="track-summary-map" />
       <button
         type="button"
@@ -97,7 +124,7 @@ function removeChosen(track: TrackFields) {
         @click="open(chosen!.id)"
       ></button>
     </div>
-    <ul class="track-rows" data-testid="track-rows">
+    <ul v-if="expanded" class="track-rows" data-testid="track-rows">
       <li v-for="(track, index) in tracks" :key="track.id">
         <button
           type="button"
@@ -150,10 +177,53 @@ function removeChosen(track: TrackFields) {
   overflow: hidden;
 }
 
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--ct-text);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.head:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: -2px;
+}
+
+.head .label {
+  flex: 1;
+  font-weight: var(--jp-weight-semibold);
+}
+
+.glyph {
+  flex: none;
+  color: var(--ct-larch);
+  font-size: var(--jp-icon-sm);
+}
+
+.caret {
+  flex: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-xs);
+  transition: transform 0.18s ease;
+}
+
+.folded .caret {
+  transform: rotate(-90deg);
+}
+
 .mini {
   position: relative;
   aspect-ratio: 16 / 7;
-  border-bottom: 1px solid var(--jp-surface-border);
+  border-block: 1px solid var(--jp-surface-border);
 }
 
 .map {
