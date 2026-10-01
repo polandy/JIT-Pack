@@ -102,7 +102,7 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { useTileState } from '@/lib/mapTiles'
-import { useBlockFold } from '@/lib/blockFold'
+import { useRouteFold } from '@/lib/routeFold'
 import {
   activeChips as chipsFor,
   emptyReason as emptyReasonFor,
@@ -136,12 +136,6 @@ const DESKTOP_QUERY = '(min-width: 900px)'
 
 /** M4's groupings minus the one an excursion has nothing for — no containers. */
 const GROUPING_CONTAINER = 'container'
-
-/**
- * FR-31.15: one remembered fold for every excursion's route card — planning
- * the way or packing for it is a way of working, not a property of one excursion.
- */
-const ROUTE_FOLD_KEY = 'excursion_route'
 
 const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
@@ -914,8 +908,11 @@ const tracks = useTrackOwner<ExcursionTrack>(() => {
 const trackBusy = tracks.busy
 const routeEditor = tracks.editor
 const tiles = useTileState()
-/** Open or folded, as this device last left it: planning the way, or packing for it. */
-const routeFold = useBlockFold(ROUTE_FOLD_KEY)
+/** Folded while there is something to pack, open once there is not — or as this device left it. */
+const routeFold = useRouteFold(
+  () => props.excursionId,
+  () => units.value.done < units.value.total,
+)
 const trackInput = ref<HTMLInputElement | null>(null)
 
 /** A sixth track is refused before a file is chosen, and said. */

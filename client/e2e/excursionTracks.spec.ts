@@ -3,10 +3,12 @@ import { readFile } from 'node:fs/promises'
 import { test, expect, createTripViaWizard, visiblePage as visible } from './fixtures'
 import {
   addExcursionTrack,
+  addToExcursion,
   createExcursion,
   excursionMenu,
   excursionTrackRows,
   openExcursions,
+  tickExcursionLine,
 } from './helpers/m27'
 import {
   dragHandle,
@@ -170,6 +172,12 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
     await expect(viewer).toBeHidden()
     await expect(excursionTrackRows(page)).toHaveCount(4)
     await expect(visible(page)).not.toContainText('Pienza – Monticchiello')
+
+    // With something to pack the card starts folded; packed, it is open again.
+    await addToExcursion(page, 'Proviant', 'shared', 'local')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await tickExcursionLine(page, 'Proviant')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
 
     // The list sums them up: the first one's figures, and how many more.
     await page.goBack()

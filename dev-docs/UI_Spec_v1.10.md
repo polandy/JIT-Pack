@@ -2916,18 +2916,19 @@ token would prove nothing there is anything to prove.
   chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
   excursion. Deleting the excursion keeps its notes as trip notes.
 * **Its route** (FR-31.15, ADR-089): **first, above the progress card**, a card of its own (`TrackSummary`,
-  `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed
-  for it. Its head (`track-summary-toggle`, map glyph, *Route*, a caret) **folds and unfolds** it: folded, the head
-  alone carries the first track's distance and climb with *+n* (`track-summary-folded`), for whoever is packing
-  rather than planning the way; the fold is this device's, one for every excursion (`lib/blockFold.ts`), open at
-  first. Open, a still map carries every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets them,
-  the lines alone offline); a tap on it opens FR-29.17's full-screen map. Under it, one line per track
-  (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300 m · 1 h 25"*
-  (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that track,
-  its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar
+  `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed for
+  it. Its head (`track-summary-toggle`, map glyph, *Route*, a caret) **folds and unfolds** it: folded, the head alone
+  carries the first track's distance and climb with *+n* (`track-summary-folded`). **While the list has something left
+  to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or unfold is
+  kept per excursion in this browser (`lib/routeFold.ts`), for the phase it was made in: folded while packing, the card
+  is open again once everything is packed. Open, a still map carries every track's line in its colour
+  (`track-summary-map`, tiles as FR-29.17 sets them, the lines alone offline); a tap on it opens FR-29.17's full-screen
+  map. Under it, one line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300
+  m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that
+  track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar
   carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
-  herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a
-  file is read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
+  herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a file is
+  read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):

@@ -4602,10 +4602,11 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   hinzufügen …*** and ***Route zeichnen***, which needs the map (FR-29.20) — and a sixth is refused before a file is
   asked for. The excursion's view shows them **first, above its packing list**, as one card: a still map with every
   line, then one line per track (kind, name, distance, climb, time with the pauses) that opens the full-screen map on
-  it; the card **folds** to one line (the first track's distance and climb), remembered on the device for every
-  excursion, so the view can be set on packing or on the way; M27's list shows the first one's distance and climb with
-  how many more. Deleting the excursion deletes its tracks. A track does **not** follow an idea to an excursion: that
-  waits for §3.29's bridge to the packing side, and until then the file is downloaded from one and added to the other.
+  it; the card **folds** to one line (the first track's distance and climb) — folded by default while the list has
+  something to pack, open once it has not, and a fold or unfold remembered in the browser per excursion for that phase —
+  so the view can be set on packing or on the way; M27's list shows the first one's distance and climb with how many
+  more. Deleting the excursion deletes its tracks. A track does **not** follow an idea to an excursion: that waits for
+  §3.29's bridge to the packing side, and until then the file is downloaded from one and added to the other.
 * **Notes about an excursion** are FR-7.15's: a trip note may name one excursion, which lists it under its progress
   card; deleting the excursion keeps the note.
 * **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.

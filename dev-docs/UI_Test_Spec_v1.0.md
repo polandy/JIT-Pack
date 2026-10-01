@@ -3450,9 +3450,10 @@ went.
   300 m · 1 h 25"* (no climb for a file without heights). A line opens the full-screen map on its track; two steps of
   pauses there, and the track renamed through the map's ⋮, show on the line after the map is closed (*1 h 55*), and a
   download hands back the file as it was added. Both survive a reload. *Route* folds the card to its head — no map, no
-  lines, *„3.3 km · ↑ 300 m · +1"* — and it is still folded after a reload. With five tracks, *Track hinzufügen …*
-  toasts that no more fit and asks for no file. A track removed through the map's ⋮, confirmed, closes the map and
-  leaves the list, and M27's list shows the first one's distance and climb with *+3*.
+  lines, *„3.3 km · ↑ 300 m · +1"* — and it is still folded after a reload. A line added to the list folds the card by
+  default, and packing it opens the card again. With five tracks, *Track hinzufügen …* toasts that no more fit and asks
+  for no file. A track removed through the map's ⋮, confirmed, closes the map and leaves the list, and M27's list shows
+  the first one's distance and climb with *+3*.
 * **E2E-M27-16** `local` (FR-31.15, FR-29.20) — **implemented** (`excursionTracks.spec.ts`): *Route zeichnen* in the
   excursion's ⋮ opens the editor on nothing; two taps on the map are joined along a path (the hiking profile asked),
   and saved — with no *Ersetzen* offered — as the excursion's first track, its climb on its line. *Bearbeiten* on its
@@ -3946,7 +3947,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-31.10–31.12 | E2E+UNIT | M27-01 (M4's borrowed line), M27-06 (saved as a group); `excursions.spec.ts` (`arrangeExcursions`, `pendingExcursionCount`, `dueExcursions`, `borrowersByTripItem`, `planGroupFromExcursion`), `excursions.seam.spec.ts` (`saveAsGroup`) |
 | FR-31.13 | E2E+UNIT | M27-07 (bought through M6, taken onto the packing list, on M4 and in M9); `excursions.spec.ts` (`canJoinPackingList`, `inventoryItemFor`), `excursions.seam.spec.ts` (`addToPackingList`, its undo) |
 | FR-31.14 | E2E+UNIT | M27-09; `excursions.spec.ts` (`planLinks` leaves the line out, `canAdoptIntoInventory`, `planGroupFromExcursion` without unlisted lines), `excursions.seam.spec.ts` (`adoptIntoInventory` and its undo, `unlistedNames`, `saveAsGroup` leaving them out) |
-| FR-31.15 | E2E+UNIT | M27-15, M27-16; `excursionTracks.seam.spec.ts` (add, the limit, settings, removal, the excursion's delete), `trackFiles.seam.spec.ts` (the excursion's route and row), `track.spec.ts` (`trackSettingsPatch`), `trackFormat.spec.ts` (`tracksSummary`); Go `TestPutExcursionTrack_*`, `TestExcursionTrack_*`, `TestApplyMutation_ExcursionTrack_SettingsOnly_FR31_15` |
+| FR-31.15 | E2E+UNIT | M27-15, M27-16; `excursionTracks.seam.spec.ts` (add, the limit, settings, removal, the excursion's delete), `trackFiles.seam.spec.ts` (the excursion's route and row), `track.spec.ts` (`trackSettingsPatch`), `trackFormat.spec.ts` (`tracksSummary`), `routeFold.spec.ts` (the default by phase, the choice per excursion); Go `TestPutExcursionTrack_*`, `TestExcursionTrack_*`, `TestApplyMutation_ExcursionTrack_SettingsOnly_FR31_15` |
 | FR-31.6 (M4's parts) | E2E+UNIT | M27-10 (menu, popover, snackbar undo), M27-11 (search, person filter, fold-all, empty states), M27-12 (`?line=`, back, side panel), M27-13 (browse verbs); `excursions.spec.ts` (`excursionMenuEntries`); M4's own `useHeadScroll` through E2E-M4-70/135/150 |
 | FR-31.5/31.6 (the sheet) | E2E+UNIT | M27-08; `excursions.spec.ts` (`planForWhom`, `lineSetOf`), `excursions.seam.spec.ts` (`setForWhom`, its undo) |
 | FR-29.1/29.10/29.12 | E2E+UNIT+SERVER | M28-01 (written with link, tag, rain mark), M28-04 (chips); `planner/domain/__tests__/ideas.spec.ts` (`parseLink`, `linkSite`, `ideaBoard`); Go: `TestSchema_IdeaVocabulary_FR29_1`, `TestStampActor_IdeaAuthorIsThePusher_FR29_1` |
