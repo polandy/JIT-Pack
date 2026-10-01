@@ -9,6 +9,7 @@ import { usePlannerStore } from './store'
 
 export { plannerFeatureStore, usePlannerStore } from './store'
 export { createPlannerActions } from './actions'
+export { plannerActivityReaders } from './domain/activity'
 export { voteTally } from './domain/ideas'
 
 /** The switcher's number on *Ideen*: the ideas nobody has decided on yet. */

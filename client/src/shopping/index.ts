@@ -13,6 +13,7 @@ import { shoppingFeatureStore, useShoppingStore } from './store'
 
 export { shoppingFeatureStore, useShoppingStore }
 export { createShoppingActions, shoppingCloseCrossing } from './actions'
+export { shoppingActivityReaders } from './activity'
 
 /** FR-30.7: the trip's shopping card on the dashboard, handed to M1 by `App.vue`. */
 export { default as ShoppingDashboardCard } from './ShoppingDashboardCard.vue'

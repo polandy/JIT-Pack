@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 
@@ -334,4 +337,69 @@ func TestActivity_EveryLabelSourceNamesARealColumn_FR32_1(t *testing.T) {
 			}
 		}
 	}
+}
+
+// writesWithoutActivity names the functions that append to the change log
+// and deliberately record no activity, each with the reason. Everything else
+// that writes a change_log entry describes a change somebody made, and the
+// log has to say who (FR-32.1).
+var writesWithoutActivity = map[string]string{
+	"appendChangeLog":      "the change log's own writer",
+	"relogRefused":         "re-delivers a row a refusal did not change (ADR-031)",
+	"relogCascadeChildren": "re-delivers children a refused or retired delete left alive",
+	"masterAfterChange":    "the creator's membership goes with the trip's own insert, which is recorded; the rest re-delivers",
+	"TakeOverClaim":        "a G-3 claim is bookkeeping, which the log's reading drops anyway",
+}
+
+// FR-32.1: a write path outside the shared pipeline records its own entry —
+// a new one that only appends to the change log would go missing from the
+// log without a test failing anywhere else.
+func TestActivity_EveryChangeLogWriterRecordsActivity_FR32_1(t *testing.T) {
+	seen := map[string]bool{}
+	for _, file := range packageFiles(t, ".") {
+		parsed, err := parser.ParseFile(token.NewFileSet(), file, nil, 0)
+		if err != nil {
+			t.Fatalf("parse %s: %v", file, err)
+		}
+		for _, decl := range parsed.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
+			}
+			calls := calledNames(fn.Body)
+			name := fn.Name.Name
+			if _, exempt := writesWithoutActivity[name]; exempt {
+				seen[name] = true
+				continue
+			}
+			if calls["appendChangeLog"] && !calls["recordActivity"] {
+				t.Errorf("%s: %s appends to the change log but records no activity — call recordActivity, "+
+					"or name it in writesWithoutActivity with the reason", file, name)
+			}
+		}
+	}
+	for name := range writesWithoutActivity {
+		if !seen[name] {
+			t.Errorf("writesWithoutActivity names %s, which no longer exists", name)
+		}
+	}
+}
+
+// calledNames is every plain or method call's name in body.
+func calledNames(body *ast.BlockStmt) map[string]bool {
+	out := map[string]bool{}
+	ast.Inspect(body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		switch f := call.Fun.(type) {
+		case *ast.Ident:
+			out[f.Name] = true
+		case *ast.SelectorExpr:
+			out[f.Sel.Name] = true
+		}
+		return true
+	})
+	return out
 }
