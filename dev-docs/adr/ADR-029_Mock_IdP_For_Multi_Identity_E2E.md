@@ -131,7 +131,7 @@ because jitpackd resolves discovery at start-up and exits when the issuer does n
   `FetchDiscovery` rather than a second reading of it. It does **not** narrow this cost as far as it looks: metadata
   says what a provider *offers*, never what it does, so the login itself, the second factor, the consent screen, the
   refresh grant and the disabled-account asymmetry stay a person's job. The procedure for those is written down in
-  `dev-docs/e2e-tests.md` instead of being an intention.
+  `dev-docs/e2e-ledger/` instead of being an intention.
 - A second OIDC server implementation exists in the repo. It is bounded to the four endpoints the broker calls, and it
   drifts loudly rather than quietly: a change to the broker's expectations fails the whole `server` project at login.
 - CI grows a job (~1 min): the backend-backed projects cannot share a run.

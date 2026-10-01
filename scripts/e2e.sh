@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The Playwright behaviour suite (dev-docs/UI_Test_Spec_v1.0.md), run inside the
+# The Playwright behaviour suite (dev-docs/ui-test-spec/), run inside the
 # pinned Playwright image.
 #
 # Why a container rather than `npx playwright install --with-deps` on the

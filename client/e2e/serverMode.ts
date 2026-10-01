@@ -52,7 +52,7 @@ export async function quickAddItem(page: Page, name: string): Promise<void> {
  * packed row leaves the list (FR-25.2) while a refused one stays put.
  * `writesLanded` is the proof the write settled — on its own it would be
  * satisfied by the state the app was already in before this write.
- * `dev-docs/implementation-log.md` has what a missing barrier costs.
+ * `dev-docs/implementation-log/` has what a missing barrier costs.
  */
 export async function packItem(page: Page, name: string): Promise<void> {
   const progress = visiblePage(page).getByTestId('m4-progress')

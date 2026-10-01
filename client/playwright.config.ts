@@ -9,7 +9,7 @@ import { E2E_API_PORT, E2E_IDP_PORT, E2E_SERVER_API_PORT } from './e2e/backendPo
  * Playwright E2E configuration for the JIT-Pack client.
  *
  * Scope, modes, and per-case coverage are specified in
- * dev-docs/UI_Test_Spec_v1.0.md — this file is only the runner wiring.
+ * dev-docs/ui-test-spec/ — this file is only the runner wiring.
  *
  * The suite drives the *built* client (`vite preview`) in a headless
  * browser. Chromium and WebKit both run; WebKit is deliberate — the
@@ -107,7 +107,7 @@ export default defineConfig({
    * Local Mode projects share one browser profile per worker, a retry is
    * worse than uninformative — the second attempt starts from the state the
    * first one left, so a genuine ordering defect is *converted* into a green
-   * run. The ledger reached that conclusion itself (dev-docs/e2e-tests.md),
+   * run. The ledger reached that conclusion itself (dev-docs/e2e-ledger/),
    * and the working agreement's "no ordering races in production code" is
    * the rule this setting was quietly exempting the suite from.
    *
@@ -192,7 +192,7 @@ export default defineConfig({
        * whatever click was in flight underneath it. WebKit never exercised
        * real SW behaviour anyway — that project is chromium-only — so
        * blocking registration here removes the artifact at its source.
-       * dev-docs/e2e-tests.md: "a WebKit case lost its click to the FR-19.7
+       * dev-docs/e2e-ledger/: "a WebKit case lost its click to the FR-19.7
        * banner".
        */
       use: { ...devices['Desktop Safari'], serviceWorkers: 'block' },

@@ -141,7 +141,7 @@ closing.
 
 **The mechanism is not built yet.** Until it is, ADR-018 describes what the code does: a database at any other
 fingerprint is refused with `ErrSchemaStale`, and the live instance is carried across by hand. That interim procedure
-is written down in `dev-docs/implementation-log.md` so it stops being tribal knowledge.
+is written down in `dev-docs/implementation-log/` so it stops being tribal knowledge.
 
 ## Consequences
 

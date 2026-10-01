@@ -37,17 +37,17 @@ const DOCS_ROOT = 'dev-docs'
  * The two append-only ledgers, and the only exception to the rule above. Their
  * sections are history: rewrapping a line rewrites who wrote it, and `git
  * blame` on an entry is how a decision is traced back to the work that made
- * it. They are also the two files nobody reads end to end — each opens with an
- * index that is read instead of the body, which is the very structure the
- * width is trying to give the others.
+ * it. Nobody reads their files end to end either — each opens with an index
+ * that is read instead of the body, which is the very structure the width is
+ * trying to give the others.
  */
-const LEDGERS = new Set(['implementation-log.md', 'e2e-tests.md'])
+const LEDGERS = ['implementation-log/', 'e2e-ledger/']
 
 /** Every covered document, in a stable order so a failure reads the same twice. */
 function documents() {
   return readdirSync(resolve(root, DOCS_ROOT), { recursive: true, encoding: 'utf8' })
     .map((entry) => entry.replaceAll('\\', '/'))
-    .filter((entry) => entry.endsWith('.md') && !LEDGERS.has(entry))
+    .filter((entry) => entry.endsWith('.md') && !LEDGERS.some((dir) => entry.startsWith(dir)))
     .sort()
     .map((entry) => `${DOCS_ROOT}/${entry}`)
 }

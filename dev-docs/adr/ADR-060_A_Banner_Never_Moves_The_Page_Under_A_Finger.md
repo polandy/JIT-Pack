@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-19.7 (the one-press update offer), FR-19.8 (the migration bar), ADR-044 (the update is
-applied from a press), G-19 (UI-Spec), `dev-docs/e2e-tests.md` — *„Owed: a WebKit case lost its click to
+applied from a press), G-19 (UI-Spec), `dev-docs/e2e-ledger/` — *„Owed: a WebKit case lost its click to
 the FR-19.7 banner (2026-09-09)"*
 
 **Decision Drivers (in priority order):**

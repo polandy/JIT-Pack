@@ -7,11 +7,17 @@ These files deliberately live outside `docs/` so they are **not** published to t
 Only the current version of each document is kept. Never write a "v2" of a doc —
 replace the file; git holds its history.
 
+**The large documents are directories, one file per section.** Each has a `README.md` that
+names every file (`scripts/log-index-gate.mjs` holds that), so a change to §3.29 or to M28
+reads one file, not the whole specification. Find a file by its number (`ls dev-docs/ui-spec/M28*`)
+or by grep, then read only the part you need.
+
 ## Product
 
 - [`PRD_Base.md`](PRD_Base.md) — the original product definition: what JIT-Pack is for.
-- [`PRD_Addendum_v2.10.md`](PRD_Addendum_v2.10.md) — everything decided since, and
-  **authoritative over `PRD_Base.md` wherever the two differ**.
+- [`prd-addendum/`](prd-addendum/README.md) — everything decided since, and
+  **authoritative over `PRD_Base.md` wherever the two differ**. One file per section
+  (`3.29-planner.md`), Part C's NFRs in `nfr.md`.
 - [`Vision_NorthStar_v1.0.md`](Vision_NorthStar_v1.0.md) — the long-range picture the
   roadmap is cut from; deliberately beyond what is built.
 
@@ -21,11 +27,11 @@ replace the file; git holds its history.
   cost, with its consequences and a revisit trigger. One file per decision.
 - [`CODING_PRINCIPLES.md`](CODING_PRINCIPLES.md) — **binding**; read before writing
   code.
-- [`implementation-log.md`](implementation-log.md) — append-only history of what was
-  built and why it was built that way. Append; never restructure. It opens with an
-  **index** (one line per section) — scan that before reading any of it, and with
-  **„What earns an entry"**: if the diff and the commit message tell the same story,
-  no entry is owed. What belongs here is what the code cannot show — a rejected
+- [`implementation-log/`](implementation-log/README.md) — append-only history of what was
+  built and why it was built that way. One file per week, each opening with the
+  **index** of its own sections — grep the index lines, never read a file to find something.
+  Its README holds **„What earns an entry"**: if the diff and the commit message tell the
+  same story, no entry is owed. What belongs here is what the code cannot show — a rejected
   option, a wrong premise, a cost accepted on purpose, a trap with a price.
 - [`design-foundation-plan.md`](design-foundation-plan.md) — the token-level PRs that
   came **before** the remaining screen rebuilds, with the measured gap between the
@@ -39,16 +45,16 @@ replace the file; git holds its history.
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
-- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M28 and the global patterns
-  G-1–G-17.
+- [`ui-spec/`](ui-spec/README.md) — screens M1–M30, one file each (`M04-packing-list.md`),
+  and the global patterns G-1–G-20 in `global-patterns.md`.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.
-- [`UI_Test_Spec_v1.0.md`](UI_Test_Spec_v1.0.md) — the Playwright scope: per-screen
-  cases, cross-screen flows, and the FR/NFR traceability matrix.
-- [`e2e-tests.md`](e2e-tests.md) — which of those cases are actually implemented, and
-  where. The spec says what *should* be covered; the ledger says what *is*. Its status
-  table is followed by the dated narratives behind each unit; both are named in its
-  index, which is what to read first.
+- [`ui-test-spec/`](ui-test-spec/README.md) — the Playwright scope: per-screen cases
+  (one file per screen), cross-screen flows, and the FR/NFR traceability matrix.
+- [`e2e-ledger/`](e2e-ledger/README.md) — which of those cases are actually implemented,
+  and where. The spec says what *should* be covered; the ledger says what *is*. Its
+  `status.md` is the table; the dated narratives behind each unit are one file per month,
+  each opening with its own index.
 
 The database schema has no spec file on purpose: `internal/store/schema.sql` is its
 single source of truth and is never duplicated into prose. While the project is pre-1.0

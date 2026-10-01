@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** FR-24.8 (the tag controls), FR-24.2 (filter reaches wider than the grouping), FR-24.6 (the
 tool bar that stays), FR-24.3 / ADR-032 (a retired row leaves this list), UI-Spec M9, G-12 (screen
-actions in the app bar), `dev-docs/e2e-tests.md` — E2E-M9-14 / E2E-M9-15, ~~E2E-M9-08~~
+actions in the app bar), `dev-docs/e2e-ledger/` — E2E-M9-14 / E2E-M9-15, ~~E2E-M9-08~~
 
 **Decision Drivers (in priority order):**
 1. **No horizontal scrolling** (owner, 2026-09-13). Measured on the family instance: the `ion-segment`

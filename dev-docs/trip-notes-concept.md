@@ -2,7 +2,7 @@
 
 **Status:** **decided, built.** Variants and an interactive prototype are in
 `dev-docs/UI_Concept_TripNotes_variants.html`. The built feature is **FR-7.9** in
-`dev-docs/PRD_Addendum_v2.10.md` §3.7a, which is authoritative over this document; the per-person-state
+`dev-docs/prd-addendum/` §3.7a, which is authoritative over this document; the per-person-state
 tradeoff is `dev-docs/adr/ADR-073_A_Notes_Tick_Is_A_Row_Per_Person_Not_A_Column_On_The_Comment.md`.
 
 **Scope:** notes on a trip that the other travellers can read — the key-box code, the pizza courier's phone number.

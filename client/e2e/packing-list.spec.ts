@@ -24,7 +24,7 @@ import { createItem } from './helpers/m9'
  *
  * M4's cases are split across several files because one file holding them
  * all is worth 15 % of the run, which defeats any attempt to balance the CI
- * legs (dev-docs/implementation-log.md, "The CI legs were split by counting,
+ * legs (dev-docs/implementation-log/, "The CI legs were split by counting,
  * not by timing"). This one holds the list and its rows; its neighbours are
  * named in that entry.
  *

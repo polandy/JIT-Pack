@@ -6,7 +6,7 @@ import { PATH } from './routes'
 /**
  * M3 — Trip Creation Wizard, Local Mode.
  *
- * The first data-producing unit of the suite (dev-docs/e2e-tests.md).
+ * The first data-producing unit of the suite (dev-docs/e2e-ledger/).
  * Everything downstream needs a trip, and per spec §2.4 a trip must be
  * created through the app's own mutation path rather than injected — so
  * this unit both covers M3 and provides `createTripViaWizard` as the

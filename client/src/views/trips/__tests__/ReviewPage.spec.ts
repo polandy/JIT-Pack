@@ -7,7 +7,7 @@
  *
  * A component test rather than e2e, deliberately: reaching a flagged
  * archived trip in the browser needs the planning→active transition,
- * which no UI ships yet (see dev-docs/e2e-tests.md, M12 entry). The
+ * which no UI ships yet (see dev-docs/e2e-ledger/, M12 entry). The
  * e2e unit covers what is reachable; the list semantics live here.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'

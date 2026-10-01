@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** FR-24.1 (multi-tag categorisation), FR-24.2 (tag filtering & grouping), FR-16.3 (duplicate merge), FR-1.1
 (central item database), NFR-4.2a / Sync-API Spec §6 (field-level merge), invariant 2 (migrations are never edited),
-invariant 4 (generation runs client-side), migration `022_item_tags.sql`, `dev-docs/UI_Spec_v1.10.md` M9/M10
+invariant 4 (generation runs client-side), migration `022_item_tags.sql`, `dev-docs/ui-spec/` M9/M10
 
 **Decision Drivers (in priority order):**
 

@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** ADR-006 (client framework), invariant 8 (everything resolves to an exact version verified by hash),
 FR-21.5–21.8 (the design foundation these baselines guard), `dev-docs/design-foundation-plan.md` PR 5,
-`dev-docs/UI_Test_Spec_v1.0.md` §3
+`dev-docs/ui-test-spec/global-patterns.md`
 
 **Decision Drivers (in priority order):**
 

@@ -34,7 +34,7 @@ export async function closeContainerSheet(page: Page) {
  * path, and the only way any test can produce a container at all. Shared
  * rather than copied because the M12 unit needs a real bag with a real load
  * to render the Gepäck dimension (FR-10.4), and two copies of one
- * navigation sequence are how the M9 unit lost a wait (see e2e-tests.md).
+ * navigation sequence are how the M9 unit lost a wait (see e2e-ledger/).
  */
 export async function createContainer(page: Page, name: string, limitKg?: string) {
   await visiblePage(page).getByTestId('m11-fab').click()
