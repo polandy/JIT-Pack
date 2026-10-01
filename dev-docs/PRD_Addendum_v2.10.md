@@ -3963,8 +3963,8 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081) and the **link preview** (FR-29.16, ADR-082); the bridge to the packing side, the notifications and
-the day plan are specified here and not built. The travellers of a trip collect what
+(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082) and the **notifications** (FR-29.8); the bridge to the
+packing side and the day plan are specified here and not built. The travellers of a trip collect what
 they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
 decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
 `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
