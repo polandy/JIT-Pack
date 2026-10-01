@@ -441,7 +441,7 @@ type LinkPreviewImageResponse struct {
 // --- GPX tracks (FR-29.17) ---
 
 // TrackKind is what a track is walked or ridden as — a closed vocabulary,
-// held by the idea_tracks CHECK too.
+// held by the idea_tracks and excursion_tracks CHECKs too.
 type TrackKind string
 
 const (
@@ -449,13 +449,13 @@ const (
 	TrackBike TrackKind = "bike"
 )
 
-// IdeaTrackUpload is one GPX file and what the device that chose it read
-// from it (ADR-085): the server stores the file as it is and the rest as the
+// TrackUpload is one GPX file for an idea or an excursion, and what the
+// device that chose it read from it (ADR-085): the server stores the file as it is and the rest as the
 // track's row, and reads neither. The heights are null for a file without
 // any; Line is the track thinned to at most 800 points, as a polyline string
 // of precision 5. Replacing a track sends the same shape under its id; the
 // name and the kind are then kept as the travellers set them.
-type IdeaTrackUpload struct {
+type TrackUpload struct {
 	Name       string    `json:"name"`
 	FileName   string    `json:"file_name"`
 	Kind       TrackKind `json:"kind"`
@@ -668,6 +668,7 @@ const (
 	PathIdeaID         = "ideaID"
 	PathImageID        = "imageID"
 	PathTrackID        = "trackID"
+	PathExcursionID    = "excursionID"
 )
 
 // Every path this instance serves, declared once. The server registers from
@@ -699,6 +700,9 @@ const (
 	// when the id exists; GET reads the file back to be downloaded. Both are
 	// the trip's — the synced half is an idea_tracks row.
 	RouteTripIdeaTrack = "/api/v1/trips/{tripID}/ideas/{ideaID}/tracks/{trackID}"
+	// FR-31.15: one GPX track on an excursion, as RouteTripIdeaTrack on an
+	// idea — the synced half is an excursion_tracks row.
+	RouteTripExcursionTrack = "/api/v1/trips/{tripID}/excursions/{excursionID}/tracks/{trackID}"
 	// FR-29.16: what a pasted link's page says about itself. A trip's route
 	// so that only a member can make this server fetch a page.
 	RouteTripLinkPreview = "/api/v1/trips/{tripID}/link-preview"

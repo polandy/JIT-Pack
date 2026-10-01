@@ -37,6 +37,11 @@ export const API = {
   tripIdeaTrack: (tripID: string, ideaID: string, trackID: string) =>
     `/api/v1/trips/${tripID}/ideas/${ideaID}/tracks/${trackID}`,
 
+  // FR-31.15: one GPX track on an excursion, as RouteTripIdeaTrack on an
+  // idea — the synced half is an excursion_tracks row.
+  tripExcursionTrack: (tripID: string, excursionID: string, trackID: string) =>
+    `/api/v1/trips/${tripID}/excursions/${excursionID}/tracks/${trackID}`,
+
   // FR-29.16: what a pasted link's page says about itself. A trip's route
   // so that only a member can make this server fetch a page.
   tripLinkPreview: (tripID: string) => `/api/v1/trips/${tripID}/link-preview`,

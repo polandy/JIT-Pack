@@ -90,6 +90,10 @@ const KERNEL_PATHS = [
   // Selecting rows in place (ADR-075): string keys and the hold, no row shape —
   // M6 and M25 share it so a hold means one thing on both lists.
   'composables/useRowSelection',
+  // What a screen carrying GPX tracks does with them (FR-29.17, FR-31.15):
+  // the owner's writes are passed in, so it knows a track and no holder —
+  // M28 and the packing side's M27 share it (ADR-089).
+  'composables/useTrackOwner',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

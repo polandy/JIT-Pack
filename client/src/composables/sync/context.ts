@@ -19,6 +19,7 @@ import type {
   DestinationProfile,
   Excursion,
   ExcursionItem,
+  ExcursionTrack,
   ExcursionTraveler,
   GeneratedPosition,
   ItemDependency,
@@ -75,10 +76,11 @@ export interface TripReads {
   excursionChildRows(excursionId: string): CascadeRow[]
   travelerChildRows(travelerId: string): CascadeRow[]
   templateSourceRows(templateId: string): CascadeRow[]
-  /** FR-31: a trip's excursions, their participant rows and their lines. */
+  /** FR-31: a trip's excursions, their participant rows, their lines and their tracks. */
   getExcursions(tripId: string): Excursion[]
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
   getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[]
+  getExcursionTracks(tripId: string, excursionId?: string): ExcursionTrack[]
 }
 
 /** What the action groups read off the master store — and nothing else. */

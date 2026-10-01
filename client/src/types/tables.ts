@@ -35,6 +35,8 @@ export const TABLE = {
   excursions: 'excursions',
   excursionTravelers: 'excursion_travelers',
   excursionItems: 'excursion_items',
+  /** FR-31.15: an excursion's GPX tracks (ADR-089). */
+  excursionTracks: 'excursion_tracks',
   /** FR-30.1: the shopping list's own entries — not trip items (ADR-066). */
   shoppingEntries: 'shopping_entries',
   /** §3.29: the planner's ideas, their votes and their discussion (ADR-078). */

@@ -8,11 +8,21 @@
  * closure over the rows it wrote, so „Rückgängig" takes back exactly that act
  * and nothing a second device did meanwhile.
  */
-import { excursionItemRow, excursionRow, itemRow } from '../rows'
+import { excursionItemRow, excursionRow, excursionTrackRow, itemRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
-import type { Excursion, ExcursionItem, TripItem } from '@/types/domain'
+import type { TrackUpload } from '@/api/types'
+import {
+  MAX_TRACKS,
+  nextTrackPosition,
+  orderTracks,
+  trackSettingsPatch,
+  type TrackSettings,
+} from '@/domain/track'
+import { newId } from '@/lib/ids'
+import type { TrackFiles } from '@/sync/featureModule'
+import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
@@ -70,8 +80,17 @@ export interface GroupWrites {
   ): string
 }
 
+/** Where an excursion's track files go (FR-31.15) — `trackFiles.ts`'s `createExcursionTracks`. */
+export type ExcursionTrackFiles = TrackFiles<
+  ExcursionTrack,
+  Pick<ExcursionTrack, 'id' | 'trip_id' | 'excursion_id' | 'position'>
+>
+
 /** createExcursionActions binds the excursion group to one sync context. */
-export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWrites }) {
+export function createExcursionActions(
+  ctx: SyncContext,
+  deps: { groups: GroupWrites; tracks: ExcursionTrackFiles },
+) {
   const { mutations, enqueueAndDrain, tripStore, masterStore, today, nowIso, tripDataLoaded } = ctx
 
   /** Whether the suitcase still takes things (FR-31.7) — *before* is not over. */
@@ -324,8 +343,9 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     })
   }
 
-  /** FR-31.1: the excursion goes, with its participants and lines; the suitcase is untouched. */
+  /** FR-31.1: the excursion goes, with its participants, lines and tracks; the suitcase is untouched. */
   function deleteExcursion(tripId: string, excursionId: string): void {
+    const trackIds = tripStore.getExcursionTracks(tripId, excursionId).map((track) => track.id)
     const mutation = mutations.deleteExcursion(excursionId)
     enqueueAndDrain('trip', tripId, {
       mutation,
@@ -334,6 +354,62 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
         optimisticDelete(mutation),
       ],
     })
+    void deps.tracks.forget(trackIds)
+  }
+
+  // --- GPX tracks (FR-31.15, ADR-089) ---
+
+  /** An excursion's tracks, in their order. */
+  function tracksOf(tripId: string, excursionId: string): ExcursionTrack[] {
+    return orderTracks(tripStore.getExcursionTracks(tripId, excursionId))
+  }
+
+  /**
+   * A GPX track on an excursion, behind its last one, from what the device
+   * read from the file. Null when the excursion already carries five, so
+   * nothing is sent; a failed upload rejects, and the screen says so.
+   */
+  async function addTrack(excursion: Excursion, upload: TrackUpload): Promise<string | null> {
+    const tracks = tracksOf(excursion.trip_id, excursion.id)
+    if (tracks.length >= MAX_TRACKS) return null
+    const id = newId()
+    await deps.tracks.add(
+      {
+        id,
+        trip_id: excursion.trip_id,
+        excursion_id: excursion.id,
+        position: nextTrackPosition(tracks),
+      },
+      upload,
+    )
+    return id
+  }
+
+  /** „Durch andere Datei ersetzen": the file changes, what was set stays. */
+  function replaceTrack(track: ExcursionTrack, upload: TrackUpload): Promise<void> {
+    return deps.tracks.replace(track, upload)
+  }
+
+  /** Writes only the settings that changed. */
+  function updateTrack(track: ExcursionTrack, settings: TrackSettings): void {
+    const patch = trackSettingsPatch(track, settings)
+    if (Object.keys(patch).length === 0) return
+    const mutation = mutations.make('upsert', TABLE.excursionTracks, track.id, patch)
+    enqueueAndDrain('trip', track.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, excursionTrackRow(track)),
+    })
+  }
+
+  function removeTrack(track: ExcursionTrack): void {
+    const mutation = mutations.make('delete', TABLE.excursionTracks, track.id)
+    enqueueAndDrain('trip', track.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    void deps.tracks.forget([track.id])
+  }
+
+  /** The file as it was uploaded, to download or to edit. */
+  function trackFile(track: ExcursionTrack): Promise<Blob | null> {
+    return deps.tracks.file(track)
   }
 
   /**
@@ -644,6 +720,12 @@ export function createExcursionActions(ctx: SyncContext, deps: { groups: GroupWr
     adoptIntoInventory,
     unlistedNames,
     saveAsGroup,
+    tracksOf,
+    addTrack,
+    replaceTrack,
+    updateTrack,
+    removeTrack,
+    trackFile,
   }
 }
 

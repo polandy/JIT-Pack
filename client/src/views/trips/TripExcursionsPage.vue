@@ -10,7 +10,7 @@
  * with the one undo the act owes.
  */
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage, IonItem, IonLabel } from '@ionic/vue'
-import { addOutline } from 'ionicons/icons'
+import { addOutline, bicycleOutline, walkOutline } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -22,9 +22,11 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { arrangeExcursions, participantsOf, spanOf, sumUnits } from '@/domain/excursions'
+import { orderTracks } from '@/domain/track'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { excursionDays } from '@/lib/excursionText'
+import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/lib/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
 import { tripExcursionsPath } from '@/router/paths'
@@ -63,6 +65,11 @@ function whoLine(excursion: Excursion): string | null {
   return participantsOf(excursion.id, rows, travelers.value)
     .map((p) => p.name)
     .join(', ')
+}
+
+/** FR-31.15: its tracks in a line — the first one's distance and climb, and how many more. */
+function trackLine(excursion: Excursion) {
+  return tracksSummary(orderTracks(tripStore.getExcursionTracks(props.tripId, excursion.id)))
 }
 
 function units(excursion: Excursion) {
@@ -142,6 +149,17 @@ setHeaderTitle(
                 >
                 <span class="name">{{ excursion.name }}</span>
                 <span v-if="whoLine(excursion)" class="who">{{ whoLine(excursion) }}</span>
+                <span
+                  v-if="trackLine(excursion)"
+                  class="tracks jp-num"
+                  :data-testid="`m27-tracks-${excursion.name}`"
+                >
+                  <IonIcon
+                    :icon="trackLine(excursion)!.kind === 'bike' ? bicycleOutline : walkOutline"
+                    aria-hidden="true"
+                  />
+                  {{ trackLine(excursion)!.text }}
+                </span>
               </IonLabel>
               <span slot="end" class="count jp-num" :data-testid="`m27-count-${excursion.name}`">
                 {{ units(excursion).done }}/{{ units(excursion).total }}
@@ -224,6 +242,19 @@ setHeaderTitle(
 .who {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+.tracks {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.tracks ion-icon {
+  color: var(--ct-larch);
+  font-size: var(--jp-icon-xs);
 }
 
 .count {

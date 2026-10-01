@@ -1,7 +1,7 @@
 /**
  * An idea's GPX tracks through the real orchestrator (FR-29.17).
  *
- * The file channel's two modes are `ideaTracks.seam.spec.ts`'s; what is
+ * The file channel's two modes are `trackFiles.seam.spec.ts`'s; what is
  * pinned here is what the planner asks of it — a track behind the last one,
  * never a sixth — and that a setting, a removal and an idea's delete are
  * ordinary trip writes.
@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
-import type { IdeaTrackUpload } from '@/api/types'
+import type { TrackUpload } from '@/api/types'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import type { ModuleHost, TrackFiles } from '@/sync/featureModule'
@@ -44,7 +44,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
   })
 }
 
-const UPLOAD: IdeaTrackUpload = {
+const UPLOAD: TrackUpload = {
   name: 'Rundweg',
   file_name: 'rundweg.gpx',
   kind: 'hike',

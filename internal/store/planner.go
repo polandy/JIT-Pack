@@ -78,17 +78,18 @@ const (
 	columnLine     = "line"
 )
 
-// ideaTrackSettings are the fields of a track a push may change: what a
-// person sets. Everything else is what the file says (ADR-085).
-var ideaTrackSettings = map[string]bool{
+// trackSettings are the fields of a track a push may change: what a person
+// sets. Everything else is what the file says (ADR-085).
+var trackSettings = map[string]bool{
 	columnName: true, columnKind: true, columnWithKid: true, columnPauseMin: true, columnPosition: true,
 }
 
-// validIdeaTrack is FR-29.17's part of the trip partition's write gate. The
-// upload creates a track with its file, so a push may change what a person
+// validTrack is FR-29.17's part of the trip partition's write gate, for an
+// idea's tracks and an excursion's alike (FR-31.15). The upload creates a
+// track with its file, so a push may change what a person
 // sets or delete the track: an insert would be a track without its file, and
 // a changed figure or line would no longer be what the file says.
-func validIdeaTrack(row sync.Row, m *sync.Mutation) RejectReason {
+func validTrack(row sync.Row, m *sync.Mutation) RejectReason {
 	if m.Op == sync.OpDelete {
 		return ReasonNone
 	}
@@ -96,7 +97,7 @@ func validIdeaTrack(row sync.Row, m *sync.Mutation) RejectReason {
 		return ReasonNotAuthorized
 	}
 	for field := range m.Fields {
-		if !ideaTrackSettings[field] {
+		if !trackSettings[field] {
 			return ReasonNotAuthorized
 		}
 	}

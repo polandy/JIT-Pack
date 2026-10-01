@@ -14,8 +14,8 @@
  * - **the write path** — a module queues its mutations through the same outbox
  *   as everything else, with this device's clock.
  */
-import type { IdeaTrackUpload, Mutation, MutationOp, PullChange } from '@/api/types'
-import type { IdeaImage, IdeaTrack } from '@/types/domain'
+import type { TrackUpload, Mutation, MutationOp, PullChange } from '@/api/types'
+import type { IdeaImage, IdeaTrack, TrackFields } from '@/types/domain'
 import type { CascadeRow } from './cascade'
 
 /** One module's store, as the orchestrator reads and writes it. */
@@ -105,26 +105,30 @@ export interface IdeaPictures {
 export type IdeaTrackPlace = Pick<IdeaTrack, 'id' | 'trip_id' | 'idea_id' | 'position'>
 
 /**
- * FR-29.17: a GPX track's file, outside the sync envelope (ADR-085). Like a
- * picture, the row that names a track is created with its file — by the
- * server's upload, or on this device in Local Mode — so neither adding nor
- * replacing one is a mutation; renaming, retiming or deleting one is, and
- * goes through `writeTrip`.
+ * FR-29.17: a GPX track's file, outside the sync envelope (ADR-085) — of an
+ * idea's track by default, or of what else carries tracks (`T`, placed by
+ * `P`; FR-31.15's excursions). Like a picture, the row that names a track is
+ * created with its file — by the server's upload, or on this device in Local
+ * Mode — so neither adding nor replacing one is a mutation; renaming,
+ * retiming or deleting one is, and goes through `writeTrip`.
  */
-export interface TrackFiles {
+export interface TrackFiles<
+  T extends TrackFields & { trip_id: string } = IdeaTrack,
+  P = IdeaTrackPlace,
+> {
   /**
    * Stores a new track from what the device read from its file. Resolves
    * once the row is on this device; rejects when the upload could not be
    * made, and then nothing was written.
    */
-  add(place: IdeaTrackPlace, upload: IdeaTrackUpload): Promise<void>
+  add(place: P, upload: TrackUpload): Promise<void>
   /**
    * Puts another file under a track. What the travellers set — the name,
    * the kind, *Mit Kind*, the pauses — stays. Rejects like `add`.
    */
-  replace(track: IdeaTrack, upload: IdeaTrackUpload): Promise<void>
+  replace(track: T, upload: TrackUpload): Promise<void>
   /** The file as it was uploaded, or null while it is not to be had. */
-  file(track: IdeaTrack): Promise<Blob | null>
+  file(track: T): Promise<Blob | null>
   /** Drops the files of deleted tracks where this device holds them. */
   forget(trackIds: readonly string[]): Promise<void>
 }

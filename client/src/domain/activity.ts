@@ -127,6 +127,7 @@ export const KERNEL_ACTIVITY_AREAS: Partial<Record<SyncTable, ActivityArea>> = {
   [TABLE.excursions]: 'excursions',
   [TABLE.excursionItems]: 'excursions',
   [TABLE.excursionTravelers]: 'excursions',
+  [TABLE.excursionTracks]: 'excursions',
   [TABLE.trips]: 'trip',
   [TABLE.tripMembers]: 'members',
   [TABLE.tripTemplateSources]: 'trip',

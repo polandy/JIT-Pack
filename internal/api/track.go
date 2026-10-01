@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"mime"
 	"net/http"
 
@@ -10,31 +11,48 @@ import (
 const (
 	// gpxContentType is how a track's file is answered (FR-29.17).
 	gpxContentType = "application/gpx+xml"
-	// maxIdeaTrackUploadBytes bounds one upload's JSON. The file travels as a
+	// maxTrackUploadBytes bounds one upload's JSON. The file travels as a
 	// JSON string, and escaping can double a file of quotes; the figures and
 	// the line add at most a few kilobytes. The file's own 5 MB is checked
 	// once it is decoded, so the refusal names the file and not the body.
-	maxIdeaTrackUploadBytes = 2*store.MaxIdeaTrackBytes + maxJSONBodyBytes
+	maxTrackUploadBytes = 2*store.MaxTrackBytes + maxJSONBodyBytes
 )
+
+// trackPut stores a track on its holder — an idea or an excursion, by the
+// store call it is given.
+type trackPut func(ctx context.Context, tripID, userID, holderID, trackID string, f store.TrackFile) (store.Track, error)
+
+// trackGet reads a holder's track file back.
+type trackGet func(ctx context.Context, tripID, holderID, trackID string) (*store.TrackGPX, error)
 
 // handlePutIdeaTrack stores a GPX track on an idea, or replaces the file of
 // one, and tells the trip's devices that its feed advanced (FR-29.17,
 // ADR-085). The file's size is checked here, in the store and by the CHECK
 // constraint — three layers, as for a picture.
 func (s *Server) handlePutIdeaTrack(w http.ResponseWriter, r *http.Request) {
-	var up IdeaTrackUpload
-	if err := decodeJSON(w, r, maxIdeaTrackUploadBytes, &up); err != nil {
+	s.putTrack(w, r, r.PathValue(PathIdeaID), s.store.PutIdeaTrack)
+}
+
+// handlePutExcursionTrack does for an excursion what handlePutIdeaTrack
+// does for an idea (FR-31.15, ADR-089).
+func (s *Server) handlePutExcursionTrack(w http.ResponseWriter, r *http.Request) {
+	s.putTrack(w, r, r.PathValue(PathExcursionID), s.store.PutExcursionTrack)
+}
+
+func (s *Server) putTrack(w http.ResponseWriter, r *http.Request, holderID string, put trackPut) {
+	var up TrackUpload
+	if err := decodeJSON(w, r, maxTrackUploadBytes, &up); err != nil {
 		writeDecodeError(w, err, "malformed track upload")
 		return
 	}
-	if len(up.GPX) > store.MaxIdeaTrackBytes {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, store.ErrIdeaTrackTooLarge.Error())
+	if len(up.GPX) > store.MaxTrackBytes {
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, store.ErrTrackTooLarge.Error())
 		return
 	}
 	tripID := r.PathValue(PathTripID)
 	userID, _ := r.Context().Value(userIDKey).(string)
-	if _, err := s.store.PutIdeaTrack(r.Context(), tripID, userID, r.PathValue(PathIdeaID), r.PathValue(PathTrackID),
-		store.IdeaTrackFile{
+	if _, err := put(r.Context(), tripID, userID, holderID, r.PathValue(PathTrackID),
+		store.TrackFile{
 			Name: up.Name, FileName: up.FileName, Kind: string(up.Kind),
 			DistanceM: up.DistanceM, AscentM: up.AscentM, DescentM: up.DescentM, MaxEleM: up.MaxEleM,
 			PointCount: up.PointCount, Line: up.Line, GPX: []byte(up.GPX),
@@ -53,8 +71,17 @@ func (s *Server) handlePutIdeaTrack(w http.ResponseWriter, r *http.Request) {
 // and always an attachment: a file a member chose is never rendered on this
 // origin.
 func (s *Server) handleGetIdeaTrack(w http.ResponseWriter, r *http.Request) {
-	file, err := s.store.GetIdeaTrackGPX(r.Context(),
-		r.PathValue(PathTripID), r.PathValue(PathIdeaID), r.PathValue(PathTrackID))
+	s.getTrack(w, r, r.PathValue(PathIdeaID), s.store.GetIdeaTrackGPX)
+}
+
+// handleGetExcursionTrack answers an excursion track's file, as
+// handleGetIdeaTrack does an idea's (FR-31.15).
+func (s *Server) handleGetExcursionTrack(w http.ResponseWriter, r *http.Request) {
+	s.getTrack(w, r, r.PathValue(PathExcursionID), s.store.GetExcursionTrackGPX)
+}
+
+func (s *Server) getTrack(w http.ResponseWriter, r *http.Request, holderID string, get trackGet) {
+	file, err := get(r.Context(), r.PathValue(PathTripID), holderID, r.PathValue(PathTrackID))
 	if err != nil {
 		writeStoreError(w, err, "could not read this track")
 		return

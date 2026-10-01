@@ -18,6 +18,14 @@ import { createGroupRefreshActions } from '../actions/groupRefresh'
 import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 
+/** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
+const noTrackFiles = {
+  add: () => Promise.resolve(),
+  replace: () => Promise.resolve(),
+  file: () => Promise.resolve(null),
+  forget: () => Promise.resolve(),
+}
+
 const TRIP_ID = 'trip-1'
 const GROUP_ID = 'grp-hut'
 
@@ -25,7 +33,7 @@ let ctx: SeamContext
 let queued: Recorded[]
 
 function build(c: SeamContext = ctx) {
-  return createExcursionActions(c, { groups: createMasterDataActions(c) })
+  return createExcursionActions(c, { groups: createMasterDataActions(c), tracks: noTrackFiles })
 }
 
 /** A trip that has not started — the seam clock is 2026-06-01. */

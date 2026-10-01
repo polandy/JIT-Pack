@@ -17,6 +17,7 @@ import {
   readTrack,
   simplify,
   stepPause,
+  trackSettingsPatch,
   type TrackPoint,
 } from '../track'
 
@@ -272,5 +273,38 @@ describe('track order (FR-29.17)', () => {
     expect(orderTracks(tracks).map((t) => t.id)).toEqual(['c', 'a', 'b'])
     expect(nextTrackPosition(tracks)).toBe(2)
     expect(nextTrackPosition([])).toBe(0)
+  })
+})
+
+describe('what a person sets on a track (FR-29.17, FR-31.15)', () => {
+  const track = {
+    id: 't',
+    name: 'Alpweg',
+    file_name: 'alp.gpx',
+    kind: 'hike' as const,
+    with_kid: false,
+    pause_min: 15,
+    position: 0,
+    gpx_hash: 'h',
+    distance_m: 1,
+    ascent_m: null,
+    descent_m: null,
+    max_ele_m: null,
+    point_count: 2,
+    line: 'l',
+  }
+
+  it('writes only what changed, the name trimmed and the flag as the column holds it', () => {
+    expect(
+      trackSettingsPatch(track, { name: ' Seeweg ', kind: 'hike', with_kid: true, pause_min: 15 }),
+    ).toEqual({ name: 'Seeweg', with_kid: 1 })
+    expect(trackSettingsPatch(track, { kind: 'bike', pause_min: 0 })).toEqual({
+      kind: 'bike',
+      pause_min: 0,
+    })
+  })
+
+  it('takes a blank name, or the same values, for no change', () => {
+    expect(trackSettingsPatch(track, { name: '  ', with_kid: false, pause_min: 15 })).toEqual({})
   })
 })

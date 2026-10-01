@@ -166,14 +166,37 @@ export async function addToExcursion(
   await writesLanded(page)
 }
 
-/** Choose an entry of the open excursion's ⋮ (edit, save as group, delete). */
+/** Choose an entry of the open excursion's ⋮ (edit, a track, save as group, delete). */
 export async function excursionMenu(
   page: Page,
-  id: 'm27-edit' | 'm27-save-as-group' | 'm27-delete',
+  id: 'm27-edit' | 'm27-track-add' | 'm27-track-draw' | 'm27-save-as-group' | 'm27-delete',
 ) {
   await page.getByTestId('header-overflow').click()
   const sheet = page.locator('ion-action-sheet')
   await expect(sheet).toBeVisible()
   await sheet.getByTestId(id).click()
   await expect(sheet).toHaveCount(0)
+}
+
+/** The open excursion's track lines (FR-31.15). */
+export function excursionTrackRows(page: Page): Locator {
+  return visiblePage(page).locator(
+    '[data-testid^="track-row-"]:not([data-testid^="track-row-facts-"])',
+  )
+}
+
+/**
+ * Add a GPX track to the open excursion through its ⋮ and the file chooser
+ * it opens; ends once the excursion shows one more track line — the
+ * positive signal that it was read and written.
+ */
+export async function addExcursionTrack(page: Page, name: string, gpx: string): Promise<void> {
+  const before = await excursionTrackRows(page).count()
+  const chooser = page.waitForEvent('filechooser')
+  await excursionMenu(page, 'm27-track-add')
+  await (
+    await chooser
+  ).setFiles({ name, mimeType: 'application/gpx+xml', buffer: Buffer.from(gpx) })
+  await expect(excursionTrackRows(page)).toHaveCount(before + 1)
+  await expect(visiblePage(page).getByTestId('m27-track-busy')).toHaveCount(0)
 }

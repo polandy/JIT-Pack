@@ -36,6 +36,8 @@ import type {
   IdeaComment,
   IdeaImage,
   IdeaTrack,
+  ExcursionTrack,
+  TrackFields,
   IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
@@ -288,11 +290,9 @@ export function ideaImageRow(image: IdeaImage): Record<string, unknown> {
   }
 }
 
-/** FR-29.17: a GPX track on an idea — every column, as an optimistic row is rebuilt on. */
-export function ideaTrackRow(track: IdeaTrack): Record<string, unknown> {
+/** The columns every track shares, whatever it hangs on (FR-29.17). */
+function trackFieldsRow(track: TrackFields): Record<string, unknown> {
   return {
-    trip_id: track.trip_id,
-    idea_id: track.idea_id,
     name: track.name,
     file_name: track.file_name,
     kind: track.kind,
@@ -306,6 +306,24 @@ export function ideaTrackRow(track: IdeaTrack): Record<string, unknown> {
     max_ele_m: track.max_ele_m,
     point_count: track.point_count,
     line: track.line,
+  }
+}
+
+/** FR-29.17: a GPX track on an idea — every column, as an optimistic row is rebuilt on. */
+export function ideaTrackRow(track: IdeaTrack): Record<string, unknown> {
+  return {
+    trip_id: track.trip_id,
+    idea_id: track.idea_id,
+    ...trackFieldsRow(track),
+  }
+}
+
+/** FR-31.15: a GPX track on an excursion, the same way. */
+export function excursionTrackRow(track: ExcursionTrack): Record<string, unknown> {
+  return {
+    trip_id: track.trip_id,
+    excursion_id: track.excursion_id,
+    ...trackFieldsRow(track),
   }
 }
 

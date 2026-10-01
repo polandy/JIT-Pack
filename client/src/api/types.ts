@@ -476,7 +476,7 @@ export interface LinkPreviewImageResponse {
 
 /**
  * TrackKind is what a track is walked or ridden as — a closed vocabulary,
- * held by the idea_tracks CHECK too.
+ * held by the idea_tracks and excursion_tracks CHECKs too.
  */
 export type TrackKind = 'hike' | 'bike'
 
@@ -486,14 +486,14 @@ export const TRACK_KIND = {
 } as const
 
 /**
- * IdeaTrackUpload is one GPX file and what the device that chose it read
- * from it (ADR-085): the server stores the file as it is and the rest as the
+ * TrackUpload is one GPX file for an idea or an excursion, and what the
+ * device that chose it read from it (ADR-085): the server stores the file as it is and the rest as the
  * track's row, and reads neither. The heights are null for a file without
  * any; Line is the track thinned to at most 800 points, as a polyline string
  * of precision 5. Replacing a track sends the same shape under its id; the
  * name and the kind are then kept as the travellers set them.
  */
-export interface IdeaTrackUpload {
+export interface TrackUpload {
   name: string
   file_name: string
   kind: TrackKind

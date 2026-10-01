@@ -21,9 +21,9 @@ var testGPX = []byte(`<?xml version="1.0"?><gpx><trk><trkseg>` +
 
 func intp(v int) *int { return &v }
 
-func testTrackFile(gpx []byte) IdeaTrackFile {
-	return IdeaTrackFile{
-		Name: "Rundweg ab Kandersteg", FileName: "oeschinensee.gpx", Kind: IdeaTrackHike,
+func testTrackFile(gpx []byte) TrackFile {
+	return TrackFile{
+		Name: "Rundweg ab Kandersteg", FileName: "oeschinensee.gpx", Kind: TrackHike,
 		DistanceM: 7400, AscentM: intp(520), DescentM: intp(510), MaxEleM: intp(1752),
 		PointCount: 2, Line: "_p~iF~ps|U_ulLnnqC", GPX: gpx,
 	}
@@ -96,7 +96,7 @@ func TestPutIdeaTrack_KeepsMissingHeightsMissing_FR29_17(t *testing.T) {
 func TestPutIdeaTrack_AppendsBehindTheLastTrackAndRefusesASixth_FR29_17(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	for i := range MaxIdeaTracks {
+	for i := range MaxTracks {
 		gpx := append([]byte(nil), testGPX...)
 		gpx = append(gpx, byte(i))
 		track, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", fmt.Sprintf("it-%d", i), testTrackFile(gpx))
@@ -107,8 +107,8 @@ func TestPutIdeaTrack_AppendsBehindTheLastTrackAndRefusesASixth_FR29_17(t *testi
 			t.Errorf("track %d at position %d, want behind the last one", i, track.Position)
 		}
 	}
-	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-sixth", testTrackFile(testGPX)); !errors.Is(err, ErrIdeaTrackLimit) {
-		t.Errorf("sixth track: err = %v, want ErrIdeaTrackLimit", err)
+	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-sixth", testTrackFile(testGPX)); !errors.Is(err, ErrTrackLimit) {
+		t.Errorf("sixth track: err = %v, want ErrTrackLimit", err)
 	}
 }
 
@@ -146,7 +146,7 @@ func TestPutIdeaTrack_AnotherFileReplacesTheFileAndKeepsTheSettings_FR29_17(t *t
 	}
 
 	other := testTrackFile([]byte(`<gpx>another file</gpx>`))
-	other.FileName, other.DistanceM, other.Line, other.Name, other.Kind = "gondel.gpx", 3100, "abc", "ignored", IdeaTrackHike
+	other.FileName, other.DistanceM, other.Line, other.Name, other.Kind = "gondel.gpx", 3100, "abc", "ignored", TrackHike
 	replaced, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-r", other)
 	if err != nil {
 		t.Fatalf("replace: %v", err)
@@ -208,10 +208,10 @@ func TestPutIdeaTrack_AnEditFromBeforeTheReplaceStillCounts_FR29_17(t *testing.T
 func TestPutIdeaTrack_RefusesMoreThan5MB_FR29_17(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
-	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-big", testTrackFile(make([]byte, MaxIdeaTrackBytes+1))); !errors.Is(err, ErrIdeaTrackTooLarge) {
-		t.Errorf("err = %v, want ErrIdeaTrackTooLarge", err)
+	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-big", testTrackFile(make([]byte, MaxTrackBytes+1))); !errors.Is(err, ErrTrackTooLarge) {
+		t.Errorf("err = %v, want ErrTrackTooLarge", err)
 	}
-	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-max", testTrackFile(make([]byte, MaxIdeaTrackBytes))); err != nil {
+	if _, err := s.PutIdeaTrack(ctx, testTrip, testUser, "idea-1", "it-max", testTrackFile(make([]byte, MaxTrackBytes))); err != nil {
 		t.Errorf("exactly 5 MB: err = %v, want it stored", err)
 	}
 }
@@ -222,29 +222,29 @@ func TestIdeaTrackGPX_CheckRefusesMoreThan5MB_FR29_17(t *testing.T) {
 	mustExec(t, s, `INSERT INTO idea_tracks (id, trip_id, idea_id, name, file_name, gpx_hash, distance_m, point_count, line)
 		VALUES ('it-1', ?, 'idea-1', 'n', 'f.gpx', 'h', 0, 2, 'l')`, testTrip)
 	if _, err := s.db.Exec(`INSERT INTO idea_track_gpx (track_id, gpx) VALUES ('it-1', ?)`,
-		make([]byte, MaxIdeaTrackBytes+1)); err == nil {
+		make([]byte, MaxTrackBytes+1)); err == nil {
 		t.Error("the CHECK accepted 5 MB + 1 byte")
 	}
 }
 
 func TestPutIdeaTrack_RefusesWhatTheSchemaWould_FR29_17(t *testing.T) {
-	cases := map[string]func(*IdeaTrackFile){
-		"no name":          func(f *IdeaTrackFile) { f.Name = "" },
-		"a name too long":  func(f *IdeaTrackFile) { f.Name = strings.Repeat("a", MaxIdeaTrackName+1) },
-		"no file name":     func(f *IdeaTrackFile) { f.FileName = "" },
-		"an unknown kind":  func(f *IdeaTrackFile) { f.Kind = "ebike" },
-		"a negative climb": func(f *IdeaTrackFile) { f.AscentM = intp(-1) },
-		"one point":        func(f *IdeaTrackFile) { f.PointCount = 1 },
-		"no line":          func(f *IdeaTrackFile) { f.Line = "" },
-		"a line too long":  func(f *IdeaTrackFile) { f.Line = strings.Repeat("a", MaxIdeaTrackLine+1) },
+	cases := map[string]func(*TrackFile){
+		"no name":          func(f *TrackFile) { f.Name = "" },
+		"a name too long":  func(f *TrackFile) { f.Name = strings.Repeat("a", MaxTrackName+1) },
+		"no file name":     func(f *TrackFile) { f.FileName = "" },
+		"an unknown kind":  func(f *TrackFile) { f.Kind = "ebike" },
+		"a negative climb": func(f *TrackFile) { f.AscentM = intp(-1) },
+		"one point":        func(f *TrackFile) { f.PointCount = 1 },
+		"no line":          func(f *TrackFile) { f.Line = "" },
+		"a line too long":  func(f *TrackFile) { f.Line = strings.Repeat("a", MaxTrackLine+1) },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
 			s := openPlannerStore(t)
 			f := testTrackFile(testGPX)
 			mutate(&f)
-			if _, err := s.PutIdeaTrack(context.Background(), testTrip, testUser, "idea-1", "it-bad", f); !errors.Is(err, ErrIdeaTrackInvalid) {
-				t.Errorf("err = %v, want ErrIdeaTrackInvalid", err)
+			if _, err := s.PutIdeaTrack(context.Background(), testTrip, testUser, "idea-1", "it-bad", f); !errors.Is(err, ErrTrackInvalid) {
+				t.Errorf("err = %v, want ErrTrackInvalid", err)
 			}
 		})
 	}

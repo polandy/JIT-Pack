@@ -32,7 +32,7 @@ import { decodeLine } from '@/domain/track'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
-import { formatDistance, formatMetres } from '@/lib/trackFormat'
+import { tracksSummary } from '@/lib/trackFormat'
 import type { IdeaImage, IdeaTrack } from '@/types/domain'
 import { isPlanTime } from './domain/dayPlan'
 import { linkSite, type IdeaCard } from './domain/ideas'
@@ -65,15 +65,8 @@ const lines = computed(() =>
   })),
 )
 
-/** „7,4 km · ↑ 520 m · +1" — the first track, and how many more there are. */
-const trackFacts = computed(() => {
-  const first = props.tracks[0]
-  if (!first) return null
-  const parts = [formatDistance(first.distance_m)]
-  if (first.ascent_m !== null) parts.push(`↑ ${formatMetres(first.ascent_m)}`)
-  if (props.tracks.length > 1) parts.push(`+${props.tracks.length - 1}`)
-  return { kind: first.kind, text: parts.join(' · ') }
-})
+/** The first track's figures, and how many more there are. */
+const trackFacts = computed(() => tracksSummary(props.tracks))
 </script>
 
 <template>

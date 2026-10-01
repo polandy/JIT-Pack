@@ -51,7 +51,7 @@
         "src/sync/cascade.ts",
         "src/composables/sync/images.ts",
         "src/composables/sync/ideaImages.ts",
-        "src/composables/sync/ideaTracks.ts"
+        "src/composables/sync/trackFiles.ts"
       ],
       "rules": { "no-restricted-imports": "off" }
     },

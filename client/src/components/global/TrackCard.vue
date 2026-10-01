@@ -9,31 +9,19 @@
  * FR-31's excursions can carry the same card. What is done to a track is
  * handed up as an event; the owner writes it.
  */
-import { IonIcon, actionSheetController } from '@ionic/vue'
-import {
-  createOutline,
-  documentOutline,
-  downloadOutline,
-  gitBranchOutline,
-  ellipsisVertical,
-  expandOutline,
-  swapHorizontalOutline,
-  trashOutline,
-} from 'ionicons/icons'
+import { IonIcon } from '@ionic/vue'
+import { documentOutline, expandOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
-import { decodeLine, defaultSource } from '@/domain/track'
+import { decodeLine, defaultSource, type TrackSettings } from '@/domain/track'
 import { formatNumber, t } from '@/i18n'
-import { promptText } from '@/lib/confirm'
-import { useTileState } from '@/lib/mapTiles'
 import type { TrackFields } from '@/types/domain'
 import TrackFigures from './TrackFigures.vue'
 import TrackMap from './TrackMap.vue'
+import TrackMore from './TrackMore.vue'
 import TrackTabs from './TrackTabs.vue'
 import TrackViewer from './TrackViewer.vue'
 import { trackHueClass, type MapLine } from './trackColors'
-
-type TrackSettings = Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>
 
 const props = defineProps<{
   /** In their order; the first is chosen until another is. */
@@ -54,8 +42,6 @@ const emit = defineEmits<{
   /** FR-29.20: the track's route is to be edited — the owner loads its file. */
   edit: [track: TrackFields]
 }>()
-
-const tiles = useTileState()
 
 const chosen = computed(
   () => props.tracks.find((track) => track.id === chosenId.value) ?? props.tracks[0] ?? null,
@@ -94,7 +80,6 @@ const lines = computed<MapLine[]>(() =>
 
 const source = computed(() => defaultSource(lines.value.map((line) => line.points)))
 const viewing = ref(false)
-const replaceInput = ref<HTMLInputElement | null>(null)
 
 function choose(id: string) {
   chosenId.value = id
@@ -104,77 +89,6 @@ function choose(id: string) {
 function openEditorFromViewer() {
   viewing.value = false
   if (chosen.value) emit('edit', chosen.value)
-}
-
-function onReplaceFile(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  // The same file can be picked again after a failed upload.
-  input.value = ''
-  if (file && chosen.value) emit('replace', chosen.value, file)
-}
-
-async function rename(track: TrackFields) {
-  await promptText({
-    header: t('track.rename'),
-    value: track.name,
-    placeholder: t('track.renameLabel'),
-    confirmLabel: t('common.save'),
-    testid: 'track-rename-prompt',
-    onConfirm: (name) => {
-      if (name === '') return false
-      emit('update', track, { name })
-    },
-  })
-}
-
-async function openMenu() {
-  const track = chosen.value
-  if (!track) return
-  const sheet = await actionSheetController.create({
-    header: `${track.name} · ${track.file_name}`,
-    htmlAttributes: { 'data-testid': 'track-menu' },
-    buttons: [
-      {
-        // Without a map no point can be set: offline, or tiles off on this instance.
-        text:
-          tiles.value === 'on'
-            ? t('track.edit')
-            : `${t('track.edit')} – ${t('track.editNeedsMap')}`,
-        icon: gitBranchOutline,
-        disabled: tiles.value !== 'on',
-        htmlAttributes: { 'data-testid': 'track-edit' },
-        handler: () => emit('edit', track),
-      },
-      {
-        text: t('track.rename'),
-        icon: createOutline,
-        htmlAttributes: { 'data-testid': 'track-rename' },
-        handler: () => void rename(track),
-      },
-      {
-        text: t('track.download'),
-        icon: downloadOutline,
-        htmlAttributes: { 'data-testid': 'track-download' },
-        handler: () => emit('download', track),
-      },
-      {
-        text: t('track.replace'),
-        icon: swapHorizontalOutline,
-        htmlAttributes: { 'data-testid': 'track-replace' },
-        handler: () => replaceInput.value?.click(),
-      },
-      {
-        text: t('track.remove'),
-        icon: trashOutline,
-        role: 'destructive',
-        htmlAttributes: { 'data-testid': 'track-remove' },
-        handler: () => emit('remove', track),
-      },
-      { text: t('common.cancel'), role: 'cancel' },
-    ],
-  })
-  await sheet.present()
 }
 </script>
 
@@ -203,22 +117,13 @@ async function openMenu() {
       <span class="file-name" data-testid="track-file">
         {{ t('track.file', { name: chosen.file_name, n: formatNumber(chosen.point_count) }) }}
       </span>
-      <button
-        type="button"
-        class="more"
-        :aria-label="t('track.more')"
-        data-testid="track-more"
-        @click="openMenu"
-      >
-        <IonIcon :icon="ellipsisVertical" aria-hidden="true" />
-      </button>
-      <input
-        ref="replaceInput"
-        type="file"
-        accept=".gpx,application/gpx+xml"
-        hidden
-        data-testid="track-replace-file"
-        @change="onReplaceFile"
+      <TrackMore
+        :track="chosen"
+        @edit="(track) => emit('edit', track)"
+        @update="(track, settings) => emit('update', track, settings)"
+        @download="(track) => emit('download', track)"
+        @replace="(track, file) => emit('replace', track, file)"
+        @remove="(track) => emit('remove', track)"
       />
     </div>
 
@@ -311,19 +216,6 @@ async function openMenu() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.more {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ct-subtext1);
-  cursor: pointer;
 }
 
 ion-icon {

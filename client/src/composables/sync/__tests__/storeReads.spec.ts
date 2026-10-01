@@ -56,6 +56,7 @@ function fakeTripReads(asked: string[] = []): TripReads {
     getExcursions: () => [],
     getExcursionTravelers: () => [],
     getExcursionItems: () => [],
+    getExcursionTracks: () => [],
   }
 }
 

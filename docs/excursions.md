@@ -84,6 +84,23 @@ If you change who goes later (⋮ → **Ausflug bearbeiten**), things you added 
 their own line, someone who stays behind loses the lines not yet packed. A line of theirs already in the bag stays,
 marked **nicht mehr dabei**, with **Herausnehmen** to take it off the list.
 
+## The route
+
+An excursion can carry the way you will walk or ride — up to **five** GPX tracks, like an idea (see
+[GPX tracks](ideas.md#gpx-tracks)). In the excursion's ⋮, **Track hinzufügen …** picks a `.gpx` file (at most 5 MB),
+and **Route zeichnen** draws one on the map along the paths (see
+[Changing a route, or drawing one](ideas.md#changing-a-route-or-drawing-one); it needs the map, so not offline).
+
+Each track is then a line under the progress card and the notes: whether it is a hike or a bike tour, its name, and
+*„3.3 km · ↑ 300 m · 1 h 25"* — the time with the breaks you set. Tap the line to see the track full screen, with its
+figures, **Wandern** / **Velo**, **Mit Kind** and the breaks. **Bearbeiten** at the top changes the route, and the
+**⋮** beside it renames the track, downloads the file, replaces it with another or removes it. The list of
+excursions shows the first track's distance and climb under the excursion's name, with *+1* for each further one.
+
+Everybody on the trip sees the tracks; on a server, adding one needs a connection. In Local mode the files stay on
+your device. Deleting the excursion deletes its tracks. A track on an idea does not move to an excursion by itself:
+download it from the idea and add it to the excursion.
+
 ## Using it again
 
 In the excursion's ⋮, **Als Gruppe speichern** turns its list into a group. Start your next excursion — on this trip or
@@ -91,7 +108,7 @@ another — from that group, or add it to a trip like any other group. Things fo
 things bought on the spot stay *vor Ort*. If the list has things just for this excursion, you are asked first:
 **Mitnehmen** adds them to your inventory so the group can hold them, **Weglassen** saves the group without them.
 
-**Ausflug löschen** in the same menu removes the excursion and its list. The trip's packing list stays as it is, and
+**Ausflug löschen** in the same menu removes the excursion, its list and its tracks. The trip's packing list stays as it is, and
 so do notes written about the excursion — they become ordinary trip notes.
 
 ## Notes about an excursion

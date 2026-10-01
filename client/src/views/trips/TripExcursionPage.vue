@@ -32,8 +32,10 @@ import {
   contractOutline,
   createOutline,
   cubeOutline,
+  documentAttachOutline,
   expandOutline,
   funnelOutline,
+  gitBranchOutline,
   layersOutline,
   trashOutline,
 } from 'ionicons/icons'
@@ -48,6 +50,8 @@ import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddI
 import RevealBar from '@/components/global/RevealBar.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import TrackEditor from '@/components/global/TrackEditor.vue'
+import TrackRows from '@/components/global/TrackRows.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
 import ExcursionItemSheet from '@/components/trips/ExcursionItemSheet.vue'
@@ -64,6 +68,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
+import { useTrackOwner } from '@/composables/useTrackOwner'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { browseRowStates } from '@/domain/browseRows'
 import {
@@ -83,6 +88,7 @@ import {
   type LineFor,
 } from '@/domain/excursions'
 import { durationDays } from '@/domain/instantiate'
+import { MAX_TRACKS } from '@/domain/track'
 import { buildPackingView } from '@/domain/packingView'
 import { packedPercent, stateFor } from '@/domain/packState'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -95,6 +101,7 @@ import { excursionDays } from '@/lib/excursionText'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
+import { useTileState } from '@/lib/mapTiles'
 import {
   activeChips as chipsFor,
   emptyReason as emptyReasonFor,
@@ -115,7 +122,7 @@ import {
 } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, FacetKey, GroupBy, TripItem } from '@/types/domain'
+import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
@@ -880,6 +887,60 @@ async function remove() {
   void router.replace(tripExcursionsPath(props.tripId))
 }
 
+// --- GPX tracks (FR-31.15, ADR-089) ---
+
+const tracksOn = computed(() =>
+  excursion.value ? orchestrator.tracksOf(props.tripId, excursion.value.id) : [],
+)
+const tracks = useTrackOwner<ExcursionTrack>(() => {
+  const ex = excursion.value
+  if (!ex) return null
+  return {
+    tracks: () => orchestrator.tracksOf(ex.trip_id, ex.id),
+    add: (upload) => orchestrator.addTrack(ex, upload),
+    replace: (track, upload) => orchestrator.replaceTrack(track, upload),
+    update: (track, settings) => orchestrator.updateTrack(track, settings),
+    remove: (track) => orchestrator.removeTrack(track),
+    file: (track) => orchestrator.trackFile(track),
+  }
+}, FAB_ANCHOR.m27Excursion)
+const trackBusy = tracks.busy
+const routeEditor = tracks.editor
+const tiles = useTileState()
+const trackInput = ref<HTMLInputElement | null>(null)
+
+/** A sixth track is refused before a file is chosen, and said. */
+function tracksFull(): boolean {
+  if (tracksOn.value.length < MAX_TRACKS) return false
+  void presentToast({
+    message: t('track.full', { max: MAX_TRACKS }),
+    positionAnchor: FAB_ANCHOR.m27Excursion,
+  })
+  return true
+}
+
+function chooseTrackFile() {
+  if (!tracksFull()) trackInput.value?.click()
+}
+
+/** Drawing needs the map: offline, or with tiles off on this instance, it is said instead. */
+function drawRoute() {
+  if (tracksFull()) return
+  if (tiles.value !== 'on') {
+    void presentToast({ message: t('track.editNeedsMap'), positionAnchor: FAB_ANCHOR.m27Excursion })
+    return
+  }
+  void tracks.edit(null)
+}
+
+function onTrackFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // The same file can be picked again after a failed upload.
+  input.value = ''
+  if (file) void tracks.add(file)
+}
+
 /**
  * G-12, as on M4: search, filter and fold-all act on this list and stay in the
  * bar while the header line scrolls away; the excursion's own acts are behind
@@ -909,6 +970,20 @@ setHeaderActions(() =>
           label: t('excursions.edit'),
           overflow: true,
           onClick: () => (editing.value = true),
+        },
+        {
+          id: 'm27-track-add',
+          icon: documentAttachOutline,
+          label: t('track.addFile'),
+          overflow: true,
+          onClick: chooseTrackFile,
+        },
+        {
+          id: 'm27-track-draw',
+          icon: gitBranchOutline,
+          label: t('track.draw'),
+          overflow: true,
+          onClick: drawRoute,
         },
         {
           id: 'm27-save-as-group',
@@ -973,6 +1048,22 @@ setHeaderTitle(
           @select="selectPerson"
         />
         <ExcursionNotes v-if="notes.length > 0" :threads="notes" @open="openNote" />
+        <div v-if="tracksOn.length > 0 || trackBusy" class="excursion-tracks">
+          <TrackRows
+            v-if="tracksOn.length > 0"
+            :tracks="tracksOn"
+            :title="excursion?.name ?? ''"
+            :trip-id="tripId"
+            @update="(track, settings) => tracks.update(track as ExcursionTrack, settings)"
+            @download="(track) => tracks.download(track as ExcursionTrack)"
+            @replace="(track, file) => tracks.replace(track as ExcursionTrack, file)"
+            @remove="(track) => tracks.remove(track as ExcursionTrack)"
+            @edit="(track) => tracks.edit(track as ExcursionTrack)"
+          />
+          <p v-if="trackBusy" class="track-busy" data-testid="m27-track-busy">
+            {{ t('track.reading') }}
+          </p>
+        </div>
 
         <!-- FR-25.11k: the field exists only while it is being used. -->
         <SearchRow
@@ -1206,6 +1297,25 @@ setHeaderTitle(
         />
       </template>
 
+      <input
+        ref="trackInput"
+        type="file"
+        accept=".gpx,application/gpx+xml"
+        hidden
+        data-testid="m27-track-file"
+        @change="onTrackFile"
+      />
+      <TrackEditor
+        :open="routeEditor.open.value"
+        :title="excursion?.name ?? ''"
+        :original="routeEditor.original.value"
+        :others="routeEditor.others.value"
+        :hue-class="routeEditor.hueClass.value"
+        :can-add-new="routeEditor.canAddNew.value"
+        @close="tracks.closeEditor"
+        @save="tracks.save"
+      />
+
       <ExcursionSheet
         :is-open="editing"
         :travelers="travelers"
@@ -1310,6 +1420,22 @@ setHeaderTitle(
 }
 
 /* M4's header line (PackingListPage): sticky page, one card, yielding to the list. */
+/* FR-31.15: under the notes, in their quiet line (TrackRows), as one block with them. */
+.excursion-tracks {
+  margin: 4px 12px 8px;
+}
+
+.excursion-notes + .excursion-tracks {
+  margin-top: -6px;
+}
+
+.track-busy {
+  margin: 0;
+  padding: 6px 4px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
 .trip-line {
   display: flex;
   padding: 8px 12px;

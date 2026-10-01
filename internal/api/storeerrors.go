@@ -51,9 +51,10 @@ var storeErrorResponses = []errorResponse{
 	{store.ErrIdeaImageTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrIdeaImageLimit, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrIdeaNotFound, http.StatusNotFound, ErrNotFound, "no such idea on this trip"},
-	{store.ErrIdeaTrackTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
-	{store.ErrIdeaTrackLimit, http.StatusUnprocessableEntity, ErrValidation, ""},
-	{store.ErrIdeaTrackInvalid, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrExcursionNotFound, http.StatusNotFound, ErrNotFound, "no such excursion on this trip"},
+	{store.ErrTrackTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrTrackLimit, http.StatusUnprocessableEntity, ErrValidation, ""},
+	{store.ErrTrackInvalid, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrAvatarTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrInvalidDisplayName, http.StatusUnprocessableEntity, ErrValidation, ""},
 }

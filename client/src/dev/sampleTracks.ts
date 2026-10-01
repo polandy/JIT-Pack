@@ -1,6 +1,7 @@
 /**
- * GPX files for the dev seed's ideas (FR-29.17): two routes in the Upper
- * Engadin, drawn through a handful of waypoints and filled in between with a
+ * GPX files for the dev seed (FR-29.17, FR-31.15): two routes in the Upper
+ * Engadin for an idea, and a round to the Segantini hut for the hut tour's
+ * excursion, drawn through a handful of waypoints and filled in between with a
  * little deterministic wobble, the way a recording looks. Dev only, like the
  * rest of `src/dev/`.
  */
@@ -42,6 +43,21 @@ export const SAMPLE_ROUTES: readonly SampleRoute[] = [
     ],
   },
 ]
+
+/** FR-31.15: the hut tour's round from Muottas Muragl up to the Segantini hut and back. */
+export const SAMPLE_EXCURSION_ROUTE: SampleRoute = {
+  fileName: 'muottas-muragl-segantinihuette.gpx',
+  name: 'Muottas Muragl – Segantinihütte',
+  type: 'hiking',
+  waypoints: [
+    [46.5236, 9.9047, 2456],
+    [46.5275, 9.9095, 2600],
+    [46.5306, 9.9136, 2731],
+    [46.529, 9.917, 2650],
+    [46.525, 9.91, 2520],
+    [46.5236, 9.9047, 2456],
+  ],
+}
 
 /** Points between each pair of waypoints. */
 const STEPS = 24

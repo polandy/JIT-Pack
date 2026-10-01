@@ -22,9 +22,9 @@ func ideaTrackURL(srv *httptest.Server, ideaID, trackID string) string {
 	return srv.URL + "/api/v1/trips/" + trip + "/ideas/" + ideaID + "/tracks/" + trackID
 }
 
-func trackUpload(gpx string) api.IdeaTrackUpload {
+func trackUpload(gpx string) api.TrackUpload {
 	ascent := 520
-	return api.IdeaTrackUpload{
+	return api.TrackUpload{
 		Name: "Rundweg", FileName: "rundweg.gpx", Kind: api.TrackHike, DistanceM: 7400,
 		AscentM: &ascent, PointCount: 2, Line: "_p~iF~ps|U_ulLnnqC", GPX: gpx,
 	}
@@ -91,7 +91,7 @@ func TestIdeaTrack_RefusedUploads_FR29_17(t *testing.T) {
 		want         int
 	}{
 		{"a sixth track", "idea-1", trackUpload(testTrackGPX), http.StatusUnprocessableEntity},
-		{"over 5 MB", "idea-1", trackUpload(strings.Repeat("a", store.MaxIdeaTrackBytes+1)), http.StatusUnprocessableEntity},
+		{"over 5 MB", "idea-1", trackUpload(strings.Repeat("a", store.MaxTrackBytes+1)), http.StatusUnprocessableEntity},
 		{"an unknown kind", "idea-1", ebike, http.StatusUnprocessableEntity},
 		{"not JSON", "idea-1", "<gpx/>", http.StatusUnprocessableEntity},
 		{"an idea that is not there", "idea-gone", trackUpload(testTrackGPX), http.StatusNotFound},
@@ -109,5 +109,69 @@ func TestIdeaTrack_GetOfAMissingTrackIs404_FR29_17(t *testing.T) {
 	srv, _ := newIdeaImageServer(t)
 	if resp, _ := getWithBearer(t, ideaTrackURL(srv, "idea-1", "it-none"), token(t, userA, testSecret)); resp.StatusCode != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", resp.StatusCode)
+	}
+}
+
+// FR-31.15 (ADR-089): an excursion's tracks, on a route of their own and
+// behind the same membership.
+
+func excursionTrackURL(srv *httptest.Server, excursionID, trackID string) string {
+	return srv.URL + "/api/v1/trips/" + trip + "/excursions/" + excursionID + "/tracks/" + trackID
+}
+
+func newExcursionTrackServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	srv, st := newIdeaImageServer(t)
+	if _, err := st.DB().Exec(`INSERT INTO excursions (id, trip_id, name)
+		VALUES ('exc-1', 'trip-samedan', 'Oeschinensee')`); err != nil {
+		t.Fatalf("seed excursion: %v", err)
+	}
+	return srv
+}
+
+func TestExcursionTrack_AMemberUploadsAndAnotherDownloads_FR31_15(t *testing.T) {
+	srv := newExcursionTrackServer(t)
+	if resp, body := doJSON(t, http.MethodPut, excursionTrackURL(srv, "exc-1", "et-1"), token(t, userA, testSecret),
+		trackUpload(testTrackGPX)); resp.StatusCode != http.StatusOK {
+		t.Fatalf("PUT status = %d: %s", resp.StatusCode, body)
+	}
+	resp, body := getWithBearer(t, excursionTrackURL(srv, "exc-1", "et-1"), token(t, userB, testSecret))
+	if resp.StatusCode != http.StatusOK || string(body) != testTrackGPX {
+		t.Fatalf("GET = %d %q, want the file as it was uploaded", resp.StatusCode, body)
+	}
+	disposition, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
+	if err != nil || disposition != "attachment" || params["filename"] != "rundweg.gpx" {
+		t.Errorf("Content-Disposition = %q, want an attachment named rundweg.gpx", resp.Header.Get("Content-Disposition"))
+	}
+	if resp, _ := getWithBearer(t, ideaTrackURL(srv, "exc-1", "et-1"), token(t, userA, testSecret)); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("read as an idea's: status = %d, want 404", resp.StatusCode)
+	}
+}
+
+func TestExcursionTrack_Refused_FR31_15(t *testing.T) {
+	srv := newExcursionTrackServer(t)
+	stranger := token(t, "user-x", testSecret)
+	member := token(t, userA, testSecret)
+	if resp, _ := doJSON(t, http.MethodPut, excursionTrackURL(srv, "exc-1", "et-1"), stranger,
+		trackUpload(testTrackGPX)); resp.StatusCode != http.StatusForbidden {
+		t.Errorf("stranger PUT status = %d, want 403", resp.StatusCode)
+	}
+	if resp, _ := getWithBearer(t, excursionTrackURL(srv, "exc-1", "et-1"), stranger); resp.StatusCode != http.StatusForbidden {
+		t.Errorf("stranger GET status = %d, want 403", resp.StatusCode)
+	}
+	if resp, _ := doJSON(t, http.MethodPut, excursionTrackURL(srv, "exc-gone", "et-1"), member,
+		trackUpload(testTrackGPX)); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unknown excursion PUT status = %d, want 404", resp.StatusCode)
+	}
+	if resp, _ := doJSON(t, http.MethodPut, excursionTrackURL(srv, "exc-1", "et-1"), member,
+		"<gpx/>"); resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("not JSON: status = %d, want 422", resp.StatusCode)
+	}
+	if resp, _ := doJSON(t, http.MethodPut, excursionTrackURL(srv, "exc-1", "et-1"), member,
+		trackUpload(strings.Repeat("a", store.MaxTrackBytes+1))); resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("over 5 MB: status = %d, want 422", resp.StatusCode)
+	}
+	if resp, _ := getWithBearer(t, excursionTrackURL(srv, "exc-1", "et-none"), member); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("missing track GET status = %d, want 404", resp.StatusCode)
 	}
 }

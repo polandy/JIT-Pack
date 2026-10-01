@@ -1,5 +1,5 @@
 /**
- * FR-29.17 in both modes. A track's file never travels in the sync envelope
+ * FR-29.17 and FR-31.15 in both modes. A track's file never travels in the sync envelope
  * (ADR-085): Server Mode uploads it with what the device read from it under
  * the track's own id and lets a trip drain bring the row back; Local Mode
  * keeps the file on the device and writes the row itself through the pull
@@ -8,15 +8,15 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { API } from '@/api/routes'
-import type { IdeaTrackUpload, PullChange } from '@/api/types'
+import type { TrackUpload, PullChange } from '@/api/types'
 import type { IdeaTrack } from '@/types/domain'
 import { TABLE } from '@/types/tables'
-import { createIdeaTracks, GPX_TYPE } from '../ideaTracks'
+import { createExcursionTracks, createIdeaTracks, GPX_TYPE } from '../trackFiles'
 import type { ImageStore } from '../images'
 import { hashBlob } from '../rows'
 import { stubClient } from './restClientStub'
 
-const UPLOAD: IdeaTrackUpload = {
+const UPLOAD: TrackUpload = {
   name: 'Rundweg',
   file_name: 'rundweg.gpx',
   kind: 'hike',
@@ -203,5 +203,52 @@ describe('a track in Local Mode', () => {
     expect(await (await files.file({ ...TRACK, id: 'it-1' }))!.text()).toBe('<gpx>the file</gpx>')
     await files.forget(['it-1'])
     expect(device.files.size).toBe(0)
+  })
+})
+
+describe('an excursion’s track — FR-31.15', () => {
+  const EXCURSION_PLACE = { id: 'et-1', trip_id: 'trip-1', excursion_id: 'exc-1', position: 0 }
+  const deps = (client: ReturnType<typeof stubClient>, local: ImageStore | null) => {
+    const applied: PullChange[] = []
+    return {
+      applied,
+      files: createExcursionTracks({
+        client,
+        local,
+        applyChanges: (changes) => void applied.push(...changes),
+        drainTrip: () => Promise.resolve(),
+        whenSent: () => Promise.resolve(),
+      }),
+    }
+  }
+
+  it('uploads and reads back on the excursion’s own route in Server Mode', async () => {
+    const client = stubClient()
+    const { files } = deps(client, null)
+    client.answer(undefined)
+    client.answer(new Blob(['<gpx/>']))
+
+    await files.add(EXCURSION_PLACE, UPLOAD)
+    await files.file({ ...TRACK, ...EXCURSION_PLACE, idea_id: undefined } as never)
+
+    expect(client.paths()).toEqual([
+      API.tripExcursionTrack('trip-1', 'exc-1', 'et-1'),
+      API.tripExcursionTrack('trip-1', 'exc-1', 'et-1'),
+    ])
+  })
+
+  it('writes an excursion_tracks row in Local Mode', async () => {
+    const device = deviceStore()
+    const { applied, files } = deps(stubClient(), device)
+
+    await files.add(EXCURSION_PLACE, UPLOAD)
+
+    expect(applied[0]).toMatchObject({
+      table: TABLE.excursionTracks,
+      id: 'et-1',
+      row: { trip_id: 'trip-1', excursion_id: 'exc-1', name: 'Rundweg', position: 0 },
+    })
+    expect(applied[0]!.row).not.toHaveProperty('idea_id')
+    expect(device.files.has('et-1')).toBe(true)
   })
 })
