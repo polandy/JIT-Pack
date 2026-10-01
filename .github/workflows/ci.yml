@@ -173,8 +173,9 @@ jobs:
       # the packing code meet only through kernel contracts App.vue binds.
       - run: node ../scripts/module-boundary-gate.mjs
       # The `changes` job's diff classification (ADR-079), tested here
-      # because that job runs it without a test step of its own.
-      - run: node --test ../scripts/diff-scope.test.mjs
+      # because that job runs it without a test step of its own; and the
+      # red-run digest, whose filter decides what a reader of a failure sees.
+      - run: node --test ../scripts/diff-scope.test.mjs ../scripts/ci-failures.test.mjs
       # And one more of the family: a pull-to-refresh whose handler awaits
       # nothing spins, resolves and tells the user the list is up to date
       # without having asked anybody. Two of six were like that, and no test

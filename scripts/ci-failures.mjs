@@ -22,6 +22,7 @@
  * Node built-ins and the `gh` CLI only.
  */
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 /** Lines per job unless `--lines` says otherwise; a failure's core fits well inside it. */
 const DEFAULT_LINES = 60
@@ -62,7 +63,7 @@ const NOISE = [
 const REPEAT_MIN = 20
 
 /** A GitHub log line is `job \t step \t timestamp text`; keep the text, drop colour codes. */
-function parse(raw) {
+export function parse(raw) {
   const jobs = new Map()
   for (const line of raw.split('\n')) {
     const [job, , rest = ''] = line.split('\t')
@@ -80,7 +81,7 @@ function parse(raw) {
 }
 
 /** The lines worth reading: noise dropped, blank runs and repeats collapsed. */
-function digest(lines) {
+export function digest(lines) {
   const kept = []
   const seen = new Set()
   for (const raw of lines) {
@@ -95,12 +96,26 @@ function digest(lines) {
 }
 
 function gh(args) {
-  return execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
+  return execFileSync('gh', args, {
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+  })
 }
 
 /** The newest failed CI run of a branch. */
 function latestFailed(branch) {
-  const out = gh(['run', 'list', '--branch', branch, '--status', 'failure', '--limit', '1', '--json', 'databaseId'])
+  const out = gh([
+    'run',
+    'list',
+    '--branch',
+    branch,
+    '--status',
+    'failure',
+    '--limit',
+    '1',
+    '--json',
+    'databaseId',
+  ])
   const [run] = JSON.parse(out)
   if (!run) throw new Error(`no failed run on branch ${branch}`)
   return String(run.databaseId)
@@ -116,26 +131,37 @@ function args(argv) {
   return opts
 }
 
-const opts = args(process.argv.slice(2))
-let run = opts.run
-if (!run) {
-  const branch = opts.pr
-    ? JSON.parse(gh(['pr', 'view', opts.pr, '--json', 'headRefName'])).headRefName
-    : execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim()
-  run = latestFailed(branch)
+function main() {
+  const opts = args(process.argv.slice(2))
+  let run = opts.run
+  if (!run) {
+    const branch = opts.pr
+      ? JSON.parse(gh(['pr', 'view', opts.pr, '--json', 'headRefName'])).headRefName
+      : execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+          encoding: 'utf8',
+        }).trim()
+    run = latestFailed(branch)
+  }
+
+  const jobs = parse(gh(['run', 'view', run, '--log-failed']))
+  console.log(
+    `run ${run} — ${jobs.size} failed job(s); full log: gh run view ${run} --log-failed\n`,
+  )
+  for (const [job, lines] of jobs) {
+    const kept = digest(lines)
+    /*
+     * The tail, not the head: a test runner prints its verdict last, and what
+     * precedes the cap is the setup the noise filter did not recognise.
+     */
+    const shown = kept.slice(-opts.lines)
+    const dropped = lines.length - shown.length
+    console.log(
+      `=== ${job} (${shown.length} of ${lines.length} lines${dropped ? `, ${dropped} dropped` : ''})`,
+    )
+    console.log(shown.join('\n').trim())
+    console.log('')
+  }
 }
 
-const jobs = parse(gh(['run', 'view', run, '--log-failed']))
-console.log(`run ${run} — ${jobs.size} failed job(s); full log: gh run view ${run} --log-failed\n`)
-for (const [job, lines] of jobs) {
-  const kept = digest(lines)
-  /*
-   * The tail, not the head: a test runner prints its verdict last, and what
-   * precedes the cap is the setup the noise filter did not recognise.
-   */
-  const shown = kept.slice(-opts.lines)
-  const dropped = lines.length - shown.length
-  console.log(`=== ${job} (${shown.length} of ${lines.length} lines${dropped ? `, ${dropped} dropped` : ''})`)
-  console.log(shown.join('\n').trim())
-  console.log('')
-}
+/* Run when invoked, not when the test imports the two functions above. */
+if (process.argv[1] === fileURLToPath(import.meta.url)) main()

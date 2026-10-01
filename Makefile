@@ -227,7 +227,7 @@ client-purity:
 # `changes` job's diff classification (ADR-079). Node built-ins only.
 client-modules:
 	$(RUN) node scripts/module-boundary-gate.mjs
-	$(RUN) node --test scripts/diff-scope.test.mjs
+	$(RUN) node --test scripts/diff-scope.test.mjs scripts/ci-failures.test.mjs
 
 # A pull-to-refresh that reports success without fetching is worse than an
 # absent one. Node built-ins only, like the three gates above.
