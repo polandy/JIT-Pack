@@ -85,4 +85,21 @@ done
 echo
 
 echo "ci-remote: $(gh run view "$id" --json url --jq .url)"
-exec gh run watch "$id" --exit-status
+
+# Quiet while it runs, one summary when it ends. `gh run watch` redraws the
+# whole job list every few seconds, and without a terminal every redraw is
+# appended rather than replaced: a ten-minute run is hundreds of copies of the
+# same table, all of it read by whoever (or whatever) reads this output. The
+# exit status is all the wait itself has to say.
+echo "ci-remote: waiting for the run to finish (quiet; open the URL above to follow it)"
+status=0
+gh run watch "$id" --exit-status --compact --interval 30 >/dev/null 2>&1 || status=$?
+
+gh run view "$id" --json jobs \
+  --jq '.jobs[] | "\(if .conclusion == "success" then "ok  " elif .conclusion == "skipped" then "skip" else "FAIL" end)  \(.name)"'
+if [ "$status" -ne 0 ]; then
+  echo
+  # What failed, without the image pulls and attachment banners around it.
+  node "$(dirname "$0")/ci-failures.mjs" "$id" || true
+fi
+exit "$status"
