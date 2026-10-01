@@ -406,6 +406,61 @@ func TestHub_Roster_ANewcomerIsToldWhoIsAlreadyThere_FR4_9(t *testing.T) {
 	}
 }
 
+// Two roster broadcasts overtaking each other must not leave the older
+// snapshot as the last word. The authorisation questions are asked outside the
+// hub's lock, so the first broadcast is parked there — snapshot taken, nothing
+// sent — while a second runs start to finish.
+func TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9(t *testing.T) {
+	parked, release := make(chan struct{}), make(chan struct{})
+	var first sync.Once
+	gated := func(context.Context, string, string) bool {
+		first.Do(func() {
+			close(parked)
+			<-release
+		})
+		return true
+	}
+	hub := NewHub(nil, gated)
+	andyPeer, sarahPeer := newFakePeer(false), newFakePeer(false)
+	andy, sarah := newConn(andyPeer, "andy"), newConn(sarahPeer, "sarah")
+	hub.Register(andy)
+	hub.Register(sarah)
+	defer func() {
+		hub.Unregister(andy)
+		hub.Unregister(sarah)
+	}()
+
+	olderDone := make(chan struct{})
+	go func() {
+		hub.SetViewing(andy, "trip-1")
+		close(olderDone)
+	}()
+	<-parked
+	hub.SetViewing(andy, "")
+	close(release)
+	<-olderDone
+
+	// A frame queued after both broadcasts marks where sarah's rosters end.
+	const marker = 42
+	hub.NotifyMasterChanged("sarah", marker)
+	var last []any
+	for {
+		var evt WSEvent
+		if err := json.Unmarshal(<-sarahPeer.got, &evt); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		if evt.Type == EventRoster {
+			last, _ = evt.Payload["users"].([]any)
+		}
+		if evt.Type == EventMasterChanged && evt.Payload["seq"] == float64(marker) {
+			break
+		}
+	}
+	if len(last) != 0 {
+		t.Errorf("sarah's last roster = %v, want empty: andy has left trip-1", last)
+	}
+}
+
 // rosterWithAndyOnTrip1 leaves andy viewing trip-1 and sarah holding exactly
 // that roster, with no frame still in flight. Connecting both before andy acts
 // would race sarah's registration against his broadcast: she can be sent the
