@@ -28,6 +28,11 @@ const cases = [
     want: { appUntouched: false, module: 'shopping' },
   },
   {
+    name: "a change to the planner's words alone runs the planner alone",
+    paths: ['client/src/planner/i18n/en.ts', 'client/src/planner/i18n/de.ts', 'client/src/planner/IdeaCard.vue'],
+    want: { appUntouched: false, module: 'planner' },
+  },
+  {
     name: 'two modules at once are a full run',
     paths: ['client/src/planner/IdeaCard.vue', 'client/src/shopping/ShoppingRows.vue'],
     want: { appUntouched: false, module: '' },

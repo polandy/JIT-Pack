@@ -103,6 +103,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No I/O, exhaustively unit-tested. This is where a Go `internal/domain` ended up, deliberately (invariant 4).
 - `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts (`lib/shoppingSources.ts`, `sync/featureModule.ts`, `lib/tripCards.ts`, `lib/activityReaders.ts`, `lib/dayPlanSources.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions.
 - `client/src/planner` — the second feature module (§3.29, ADR-078): ideas, votes, their discussion, pictures and GPX tracks and the day plan's entries in tables of its own, M28 and M29, its pure rules in `planner/domain/` (held by `domain-purity-gate.mjs` too), its e2e cases in `client/e2e/planner/`.
+- **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.
 
 ## Invariants — do not break these
 

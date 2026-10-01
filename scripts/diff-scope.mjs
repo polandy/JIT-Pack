@@ -13,8 +13,9 @@
  *   may run that module's cases and the `@smoke` set instead of the whole
  *   matrix. Empty otherwise. Inside a module means its client directory, its
  *   e2e directory, and its Go files by prefix; everything else — the schema,
- *   the migrations, `wire.go`, `App.vue`, the router, `lib/`, `sync/`, the i18n
- *   catalogues, the lockfile, this workflow — makes it a full run.
+ *   the migrations, `wire.go`, `App.vue`, the router, `lib/`, `sync/`, the
+ *   kernel's i18n catalogue, the lockfile, this workflow — makes it a full run.
+ *   A module's own words are in `client/src/<m>/i18n/`, inside it.
  *
  * Usage: `git diff --name-only A B | node scripts/diff-scope.mjs` prints
  * `app_untouched=…` and `module=…`, one per line, ready for `$GITHUB_OUTPUT`.

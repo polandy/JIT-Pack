@@ -19,8 +19,9 @@ describe('rejectionReasonKey', () => {
     for (const reason of Object.values(REJECTION_REASON)) {
       const key = rejectionReasonKey(reason)
       expect(key, `no key for ${reason}`).not.toBeNull()
-      expect(en[key!], `no en copy for ${reason}`).toBeTruthy()
-      expect(de[key!], `no de copy for ${reason}`).toBeTruthy()
+      // The kernel's own catalogue: sync code reads no module's words.
+      expect((en as Record<string, string>)[key!], `no en copy for ${reason}`).toBeTruthy()
+      expect((de as Record<string, string>)[key!], `no de copy for ${reason}`).toBeTruthy()
     }
   })
 

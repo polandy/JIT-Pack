@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { de } from '../messages/de'
 import {
+  CATALOGUE_PARTS,
   LOCALE_STORAGE_KEY,
   type Locale,
   currentLocale,
@@ -204,10 +205,16 @@ describe('Intl formatting follows the active locale', () => {
   })
 })
 
-describe('catalogue integrity', () => {
-  it('defines every English key in German too, so no screen falls back silently', async () => {
-    const { en } = await import('../messages/en')
-    const { de } = await import('../messages/de')
+/**
+ * The catalogue comes in parts — the kernel's and one per feature module
+ * (ADR-079) — and every check below holds per part: each part is complete in
+ * German on its own, so a module's copy can change without the kernel's file.
+ */
+describe.each(Object.entries(CATALOGUE_PARTS))('catalogue integrity: %s', (_, part) => {
+  const en: Record<string, string> = part.en
+  const de: Record<string, string> = part.de
+
+  it('defines every English key in German too, so no screen falls back silently', () => {
     expect(Object.keys(de).sort()).toEqual(Object.keys(en).sort())
   })
 
@@ -219,24 +226,46 @@ describe('catalogue integrity', () => {
    * missing string. These two checks are what make the German half of a
    * screen reviewable without reading it against the English one.
    */
-  it('gives every message the same {placeholder} set in both catalogues', async () => {
-    const { en } = await import('../messages/en')
-    const { de } = await import('../messages/de')
+  it('gives every message the same {placeholder} set in both catalogues', () => {
     const slots = (message: string) => [...message.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
-    const mismatched = Object.entries(en).filter(([key, english]) => {
-      const german = (de as Record<string, string>)[key] ?? ''
-      return String(slots(english)) !== String(slots(german))
-    })
+    const mismatched = Object.entries(en).filter(
+      ([key, english]) => String(slots(english)) !== String(slots(de[key] ?? '')),
+    )
     expect(mismatched.map(([key]) => key)).toEqual([])
   })
 
-  it('keeps the singular | plural split on both sides of a pluralized message', async () => {
-    const { en } = await import('../messages/en')
-    const { de } = await import('../messages/de')
+  it('keeps the singular | plural split on both sides of a pluralized message', () => {
     const forms = (message: string) => message.split(' | ').length
     const mismatched = Object.entries(en).filter(
-      ([key, english]) => forms(english) !== forms((de as Record<string, string>)[key] ?? ''),
+      ([key, english]) => forms(english) !== forms(de[key] ?? ''),
     )
     expect(mismatched.map(([key]) => key)).toEqual([])
+  })
+})
+
+describe('catalogue parts', () => {
+  /**
+   * The parts are merged into one table, where a key defined twice would
+   * silently take whichever part came last — the type system sees a union and
+   * cannot tell.
+   */
+  it('define no key twice', () => {
+    const seen = new Map<string, string>()
+    const twice: string[] = []
+    for (const [name, part] of Object.entries(CATALOGUE_PARTS)) {
+      for (const key of Object.keys(part.en)) {
+        const first = seen.get(key)
+        if (first) twice.push(`${key} (${first}, ${name})`)
+        else seen.set(key, name)
+      }
+    }
+    expect(twice).toEqual([])
+  })
+
+  it('are all read through t()', () => {
+    setLocale('de')
+    expect(t('dayPlan.emptyDay')).toBe(CATALOGUE_PARTS.planner.de['dayPlan.emptyDay'])
+    expect(t('shopping.title')).toBe(CATALOGUE_PARTS.shopping.de['shopping.title'])
+    expect(t('common.save')).toBe(CATALOGUE_PARTS.kernel.de['common.save'])
   })
 })
