@@ -126,17 +126,22 @@ func (s *Store) PutIdeaTrack(ctx context.Context, tripID, userID, ideaID, trackI
 	}
 
 	var track IdeaTrack
+	hlc := s.hlc.Next()
 	switch {
 	case before.Exists && before.Fields["gpx_hash"] == hash:
 		position, _ := before.Fields[columnPosition].(int64)
 		return IdeaTrack{ID: trackID, Hash: hash, Position: int(position)}, nil
 	case before.Exists:
-		track, err = s.replaceIdeaTrack(ctx, tx, trackID, hash, before, f)
+		track, err = replaceIdeaTrack(ctx, tx, hlc, trackID, hash, before, f)
 	default:
-		track, err = s.insertIdeaTrack(ctx, tx, tripID, ideaID, trackID, hash, f)
+		track, err = insertIdeaTrack(ctx, tx, hlc, tripID, ideaID, trackID, hash, f)
 	}
 	if err != nil {
 		return IdeaTrack{}, err
+	}
+	if _, err := appendChangeLog(ctx, tx, tripFeed(tripID),
+		sync.Mutation{Table: TableIdeaTracks, ID: trackID, HLC: hlc}, false); err != nil {
+		return IdeaTrack{}, fmt.Errorf("log idea track: %w", err)
 	}
 
 	applied := map[string]any{
@@ -163,7 +168,7 @@ func (s *Store) PutIdeaTrack(ctx context.Context, tripID, userID, ideaID, trackI
 	return track, nil
 }
 
-func (s *Store) insertIdeaTrack(ctx context.Context, tx *sql.Tx, tripID, ideaID, trackID, hash string, f IdeaTrackFile) (IdeaTrack, error) {
+func insertIdeaTrack(ctx context.Context, tx *sql.Tx, hlc sync.HLC, tripID, ideaID, trackID, hash string, f IdeaTrackFile) (IdeaTrack, error) {
 	var count, next int
 	if err := tx.QueryRowContext(ctx,
 		`SELECT count(*), coalesce(max(position) + 1, 0) FROM idea_tracks WHERE idea_id = ?`,
@@ -173,7 +178,6 @@ func (s *Store) insertIdeaTrack(ctx context.Context, tx *sql.Tx, tripID, ideaID,
 	if count >= MaxIdeaTracks {
 		return IdeaTrack{}, ErrIdeaTrackLimit
 	}
-	hlc := s.hlc.Next()
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO idea_tracks (id, trip_id, idea_id, name, file_name, kind, position, gpx_hash,
 		   distance_m, ascent_m, descent_m, max_ele_m, point_count, line, updated_hlc)
@@ -186,10 +190,6 @@ func (s *Store) insertIdeaTrack(ctx context.Context, tx *sql.Tx, tripID, ideaID,
 		`INSERT INTO idea_track_gpx (track_id, gpx) VALUES (?, ?)`, trackID, f.GPX); err != nil {
 		return IdeaTrack{}, fmt.Errorf("store idea track file: %w", err)
 	}
-	if _, err := appendChangeLog(ctx, tx, tripFeed(tripID),
-		sync.Mutation{Table: TableIdeaTracks, ID: trackID, HLC: hlc}, false); err != nil {
-		return IdeaTrack{}, fmt.Errorf("log idea track: %w", err)
-	}
 	return IdeaTrack{ID: trackID, Hash: hash, Position: next}, nil
 }
 
@@ -197,8 +197,7 @@ func (s *Store) insertIdeaTrack(ctx context.Context, tx *sql.Tx, tripID, ideaID,
 // a person set keep the clock they were last written with: one that never
 // had its own is pinned to the row's old clock first, so the new row clock
 // does not make it newer than an edit made before the file was replaced.
-func (s *Store) replaceIdeaTrack(ctx context.Context, tx *sql.Tx, trackID, hash string, before sync.Row, f IdeaTrackFile) (IdeaTrack, error) {
-	hlc := s.hlc.Next()
+func replaceIdeaTrack(ctx context.Context, tx *sql.Tx, hlc sync.HLC, trackID, hash string, before sync.Row, f IdeaTrackFile) (IdeaTrack, error) {
 	clocks := sync.FieldClocks{}
 	for field, clock := range before.Clocks {
 		clocks[field] = clock
@@ -226,11 +225,6 @@ func (s *Store) replaceIdeaTrack(ctx context.Context, tx *sql.Tx, trackID, hash 
 	if _, err := tx.ExecContext(ctx,
 		`UPDATE idea_track_gpx SET gpx = ? WHERE track_id = ?`, f.GPX, trackID); err != nil {
 		return IdeaTrack{}, fmt.Errorf("replace idea track file: %w", err)
-	}
-	tripID, _ := before.Fields[columnTripID].(string)
-	if _, err := appendChangeLog(ctx, tx, tripFeed(tripID),
-		sync.Mutation{Table: TableIdeaTracks, ID: trackID, HLC: hlc}, false); err != nil {
-		return IdeaTrack{}, fmt.Errorf("log idea track: %w", err)
 	}
 	position, _ := before.Fields[columnPosition].(int64)
 	return IdeaTrack{ID: trackID, Hash: hash, Position: int(position)}, nil
