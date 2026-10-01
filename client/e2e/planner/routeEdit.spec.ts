@@ -11,6 +11,7 @@ import {
   stubRouting,
   stubTiles,
   tapBetween,
+  tilesFrom,
   tapMap,
   trackAction,
   trackViewer,
@@ -195,23 +196,49 @@ test.describe('M28 route editing @local @planner', () => {
     await expect(editor.getByTestId('route-ascent')).toHaveText('↑ 150 m')
     await expect(editor.getByTestId('route-descent')).toHaveText('↓ 50 m')
 
+    // The router finds nothing once: the stretch is drawn straight, with swisstopo's heights, and said so.
+    await page.route('https://brouter.de/brouter**', (route) => route.fulfill({ status: 500 }), {
+      times: 1,
+    })
+    await tapMap(editor, 0.7, 0.3)
+    await routeSettled(editor, 3)
+    await expect(page.getByText('No path found here – straight line')).toBeVisible()
+    expect(asked.heights).toBe(1)
+
     await editor.getByTestId('route-follow-line').click()
     await tapMap(editor, 0.4, 0.7)
-    await routeSettled(editor, 3)
-    expect(asked.heights).toBe(1)
+    await routeSettled(editor, 4)
+    expect(asked.heights).toBe(2)
     expect(asked.paths).toHaveLength(1)
 
     await editor.getByTestId('route-undo').click()
-    await routeSettled(editor, 2)
-    await editor.getByTestId('route-redo').click()
     await routeSettled(editor, 3)
-    expect(asked.heights).toBe(1)
+    await editor.getByTestId('route-redo').click()
+    await routeSettled(editor, 4)
+    expect(asked.heights).toBe(2)
+
+    await editor.getByTestId('route-loop').click()
+    await routeSettled(editor, 5)
+    await expect(editor.getByTestId('route-loop')).toBeDisabled()
+    await editor.getByTestId('route-undo').click()
+    await routeSettled(editor, 4)
+
+    // A finger on the height profile names the place and marks it on the map.
+    const profile = editor.getByTestId('route-profile').locator('svg')
+    await profile.hover()
+    await expect(editor.getByTestId('route-profile-reading')).toHaveText(/ km · [\d,]+ m$/)
+    await expect(editor.getByTestId('route-map').locator('.jp-route-scrub')).toHaveCount(1)
+    await page.mouse.move(0, 0)
+    await expect(editor.getByTestId('route-map').locator('.jp-route-scrub')).toHaveCount(0)
+
+    await editor.getByTestId('route-source-osm').click()
+    await expect(tilesFrom(editor.getByTestId('route-map'), 'osm').first()).toBeAttached()
 
     await editor.getByTestId('route-cancel').click()
     const confirm = page.getByTestId('route-discard-confirm')
     await confirm.getByRole('button', { name: 'Cancel' }).click()
     await expect(confirm).toHaveCount(0)
-    await routeSettled(editor, 3)
+    await routeSettled(editor, 4)
 
     await editor.getByTestId('route-done').click()
     const save = editor.getByTestId('route-save')

@@ -3544,9 +3544,12 @@ went.
   old file back, figures and name included.
 * **E2E-M28-20** `local` (FR-29.20, ADR-088) — **implemented** (`planner/routeEdit.spec.ts`): *Draw route* opens an
   empty editor saying *Tap the starting point.*, *Done* off. As a bike tour, two taps ask the router once with the
-  `trekking` profile, the path's *↑ 150 m* and *↓ 50 m* counted. With *Straight line* the next tap asks swisstopo's
-  heights instead. Undo and redo step back and forth without asking again. Leaving asks first and *Cancel* keeps the
-  route. *Done* names it *Bike tour* without a replace option, and saving adds a bike tour with heights.
+  `trekking` profile, the path's *↑ 150 m* and *↓ 50 m* counted. A tap the router finds no path for is drawn straight
+  with swisstopo's heights and toasts *No path found here – straight line*; with *Straight line* chosen the next tap
+  asks swisstopo too. Undo and redo step back and forth without asking again, and *Back to the start* closes the loop
+  and then is off. A pointer on the height profile names distance and height and marks the place on the map, gone again
+  when it leaves; *OSM* draws OpenStreetMap's tiles. Leaving asks first and *Cancel* keeps the route. *Done* names it
+  *Bike tour* without a replace option, and saving adds a bike tour with heights.
 * **E2E-M28-21** `local` (FR-29.20) — **implemented** (`planner/routeEdit.spec.ts`): offline, *Draw route*, ⋮'s
   *Edit route* and the full-screen map's *Edit* are off. Online again, *Edit* closes the full-screen map and opens the
   editor. A reversed route then asks before it is left, and *Discard* keeps the track as it was. The pure rules —

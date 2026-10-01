@@ -587,6 +587,7 @@ async function save(how: SavedRoute['how']) {
             :key="option"
             type="button"
             :aria-pressed="source === option ? 'true' : 'false'"
+            :data-testid="`route-source-${option}`"
             @click="setSource(option)"
           >
             {{ t(`track.source.${option}`) }}
