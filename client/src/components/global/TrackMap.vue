@@ -15,7 +15,7 @@ import { t } from '@/i18n'
 import type { MapSource } from '@/domain/track'
 import { useTileState } from '@/lib/mapTiles'
 import TrackLines from './TrackLines.vue'
-import type { MapLine } from './trackColors'
+import type { MapLine, MapMark } from './trackColors'
 
 const props = withDefaults(
   defineProps<{
@@ -23,8 +23,10 @@ const props = withDefaults(
     source: MapSource
     /** Pans, zooms and chooses by tapping a line; otherwise a still picture. */
     interactive?: boolean
+    /** People on the map (FR-29.19), over the lines and outside the frame. */
+    marks?: MapMark[]
   }>(),
-  { interactive: false },
+  { interactive: false, marks: () => [] },
 )
 
 const emit = defineEmits<{ choose: [id: string] }>()
@@ -54,6 +56,7 @@ const map = shallowRef<Leaflet.Map | null>(null)
 let leaflet: typeof Leaflet | null = null
 let layer: Leaflet.TileLayer | null = null
 let drawn: Leaflet.LayerGroup | null = null
+let people: Leaflet.LayerGroup | null = null
 let resize: ResizeObserver | null = null
 /** Whether the map has been framed since it had a size. */
 let framed = false
@@ -79,6 +82,7 @@ async function mount(): Promise<void> {
   map.value.attributionControl.setPrefix(false)
   setSource(props.source)
   draw()
+  drawMarks()
   // The map's box is often still growing when it mounts — a sheet sliding
   // up, a modal opening — and Leaflet measures once. Re-measure on every
   // change of size, and frame the track the first time there is one.
@@ -97,6 +101,7 @@ function unmount(): void {
   map.value = null
   layer = null
   drawn = null
+  people = null
   framed = false
 }
 
@@ -147,6 +152,48 @@ function draw(): void {
   drawn = group.addTo(map.value)
 }
 
+/**
+ * People's marks, on a layer of their own so a position arriving every few
+ * seconds redraws two markers rather than every line. The text goes in as
+ * text — a name is somebody's input.
+ */
+function drawMarks(): void {
+  if (!map.value || !leaflet) return
+  people?.remove()
+  const L = leaflet
+  const group = L.layerGroup()
+  for (const mark of props.marks) {
+    const at: [number, number] = [mark.lat, mark.lon]
+    if (mark.kind === 'me') {
+      L.circle(at, {
+        radius: mark.accuracyM,
+        className: 'jp-me-accuracy',
+        interactive: false,
+      }).addTo(group)
+      L.circleMarker(at, { radius: 7, className: 'jp-me', interactive: false })
+        .bindTooltip(mark.title)
+        .addTo(group)
+      continue
+    }
+    const badge = document.createElement('span')
+    badge.className = 'jp-person-badge'
+    badge.textContent = mark.initials
+    badge.title = mark.title
+    badge.dataset['testid'] = 'map-mark-person'
+    L.marker(at, {
+      icon: L.divIcon({ html: badge, className: 'jp-person-mark', iconSize: [28, 28] }),
+      title: mark.title,
+      keyboard: false,
+    }).addTo(group)
+  }
+  people = group.addTo(map.value)
+}
+
+/** Moves the map to a point without changing its zoom — the 📍's answer. */
+function focus(lat: number, lon: number): void {
+  map.value?.panTo([lat, lon])
+}
+
 /** Frames the chosen track — and the button in the full-screen map does the same. */
 function fit(): void {
   const points = chosen.value?.points ?? []
@@ -156,7 +203,7 @@ function fit(): void {
   framed = true
 }
 
-defineExpose({ fit })
+defineExpose({ fit, focus })
 
 watch(
   [tiles, host],
@@ -165,6 +212,10 @@ watch(
     else unmount()
   },
   { immediate: true },
+)
+watch(
+  () => props.marks,
+  () => drawMarks(),
 )
 watch(
   () => props.source,
@@ -186,7 +237,7 @@ onBeforeUnmount(unmount)
   <div class="track-map" :data-tiles="tiles" :data-source="source">
     <div v-if="tiles === 'on'" ref="host" class="leaflet-host" />
     <div v-else class="lines-only">
-      <TrackLines :lines="lines" />
+      <TrackLines :lines="lines" :marks="marks" />
       <span v-if="tiles === 'offline'" class="note" data-testid="track-map-offline">
         {{ t('track.offline') }}
       </span>
@@ -285,6 +336,38 @@ onBeforeUnmount(unmount)
 
 .track-map .jp-track-finish {
   fill: var(--ct-ember);
+}
+
+.track-map .jp-me {
+  stroke: var(--ct-base);
+  stroke-width: 3px;
+  fill: var(--ct-glacier);
+  fill-opacity: 1;
+}
+
+.track-map .jp-me-accuracy {
+  stroke: var(--ct-glacier);
+  stroke-width: 1px;
+  fill: var(--ct-glacier);
+  fill-opacity: 0.15;
+}
+
+.track-map .jp-person-mark {
+  background: none;
+  border: 0;
+}
+
+.track-map .jp-person-badge {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--ct-base);
+  border-radius: 50%;
+  background: var(--ct-heather);
+  color: var(--ct-crust);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
 }
 
 .track-map .jp-track-larch {

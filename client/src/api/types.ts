@@ -196,6 +196,7 @@ export type WSEventType =
   | 'presence'
   | 'roster'
   | 'notification.created'
+  | 'location'
   | 'pong'
 
 export const WS_EVENT_TYPE = {
@@ -206,6 +207,7 @@ export const WS_EVENT_TYPE = {
   presence: 'presence',
   roster: 'roster',
   'notification.created': 'notification.created',
+  location: 'location',
   pong: 'pong',
 } as const
 
@@ -238,6 +240,23 @@ export interface PresenceMember {
 export interface RosterMember {
   user_id: string
   trip_ids: string[]
+}
+
+/**
+ * LiveLocation is the payload of an EventLocation frame (FR-29.19): where a
+ * traveller is, as their device said and the server stamped — UserID and At
+ * are the server's, never the client's. Gone ends it, and then carries only
+ * the trip and the person. Nothing of it is stored (ADR-087).
+ */
+export interface LiveLocation {
+  trip_id: string
+  user_id: string
+  lat: number
+  lon: number
+  accuracy_m: number
+  // At is when the server received the fix, RFC3339; empty when Gone.
+  at: string
+  gone: boolean
 }
 
 /**

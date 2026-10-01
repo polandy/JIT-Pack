@@ -345,6 +345,7 @@ async function openCommentMenu(comment: IdeaComment) {
       v-model:chosen="chosenTrack"
       :tracks="tracks"
       :title="idea.title"
+      :trip-id="idea.trip_id"
       @update="(track, settings) => own(track) && emit('updateTrack', own(track)!, settings)"
       @download="(track) => own(track) && emit('downloadTrack', own(track)!)"
       @replace="(track, file) => own(track) && emit('replaceTrack', own(track)!, file)"

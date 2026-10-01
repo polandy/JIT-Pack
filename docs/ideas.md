@@ -84,6 +84,25 @@ the map and the figures then work offline. Offline, or where your administrator 
 [Map tiles](configuration.md#map-tiles)), the map shows the lines without the map behind them. In Local mode the files
 stay on your device.
 
+### Where you are, and where the others are
+
+On the full-screen map, tap the **📍** button below the square one: the browser asks once whether the app may know
+your location, and then your position is a blue dot, the faint circle around it how exact it is, and the map moves
+there. Your position follows you while the map is open. The app only asks when you tap — and only works when your
+instance is served over **HTTPS**; otherwise the map says it cannot show your location.
+
+On a trip you share with others, two switches stand under the map:
+
+- **Meinen Standort teilen** — off until you switch it on, per trip. While it is on, the others on the trip see you
+  on their maps — as long as the app is open on your phone; a phone's browser gives no location from the background.
+  It stays on after you close and reopen the app, until you switch it off.
+- **Mitreisende zeigen** — shows the others who share, as round marks with their initials. Tap one to see who it is
+  and how recent: *„Sia · vor 2 min"*. A mark that has not moved on for five minutes disappears.
+
+Your location is passed on to the others while you share and **kept nowhere** — not on the server, not in the
+activity log, not in any backup. In Local and Single-User mode there is nobody to share with: the 📍 works, the two
+switches are not shown.
+
 ## Deciding
 
 Tap an idea to open it. On a phone it opens from the bottom; on a wide screen beside the board.

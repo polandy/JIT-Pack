@@ -7,7 +7,7 @@
  */
 import { computed } from 'vue'
 
-import type { MapLine } from './trackColors'
+import type { MapLine, MapMark } from './trackColors'
 
 const props = withDefaults(
   defineProps<{
@@ -16,8 +16,10 @@ const props = withDefaults(
     frameAll?: boolean
     /** Dots at the chosen line's start and end. */
     ends?: boolean
+    /** People on the map (FR-29.19), drawn where they fall inside the frame. */
+    marks?: MapMark[]
   }>(),
-  { frameAll: false, ends: true },
+  { frameAll: false, ends: true, marks: () => [] },
 )
 
 const DEG = 180 / Math.PI
@@ -53,6 +55,7 @@ const drawn = computed(() => {
     paths: ordered.map((line) => ({ ...line, d: path(line.points) })),
     start: props.ends && chosen ? end(chosen.points[0]) : null,
     finish: props.ends && chosen ? end(chosen.points[chosen.points.length - 1]) : null,
+    marks: props.marks.map((mark) => ({ ...mark, d: end([mark.lat, mark.lon])! })),
   }
 })
 </script>
@@ -71,6 +74,14 @@ const drawn = computed(() => {
     </g>
     <path v-if="drawn.start" class="end start" :d="drawn.start" />
     <path v-if="drawn.finish" class="end finish" :d="drawn.finish" />
+    <path
+      v-for="mark in drawn.marks"
+      :key="mark.id"
+      class="mark"
+      :class="mark.kind"
+      :d="mark.d"
+      :data-testid="`map-mark-${mark.kind}`"
+    />
   </svg>
 </template>
 
@@ -115,6 +126,18 @@ path {
 
 .finish {
   stroke: var(--ct-ember);
+}
+
+.mark {
+  stroke-width: 14px;
+}
+
+.mark.me {
+  stroke: var(--ct-glacier);
+}
+
+.mark.person {
+  stroke: var(--ct-heather);
 }
 
 .jp-track-larch {

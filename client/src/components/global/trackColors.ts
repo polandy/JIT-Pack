@@ -18,3 +18,20 @@ export interface MapLine {
   hueClass: string
   chosen: boolean
 }
+
+/**
+ * FR-29.19: a person on a map — this device's own position, or another
+ * traveller's — drawn over the lines, never framed by them.
+ */
+export interface MapMark {
+  id: string
+  kind: 'me' | 'person'
+  lat: number
+  lon: number
+  /** The device's uncertainty in metres, drawn as a circle around the own mark. */
+  accuracyM: number
+  /** One or two letters on a person's mark. */
+  initials: string
+  /** What the mark says when asked: „Sia · vor 2 min". */
+  title: string
+}
