@@ -15,6 +15,7 @@ import {
   tripViewEntry,
   tripViewMenu,
   PACKING_VIEWS,
+  absentViews,
   tripViewPills,
   type TripViewId,
 } from '@/lib/tripViews'
@@ -25,8 +26,9 @@ describe('the trip views that earn a pill', () => {
   // FR-7.13: the notes are the fourth view worked in — written in, not read once.
   // FR-31: the excursions the fifth — packed during the trip, more often than the suitcase.
   // §3.29: the ideas the sixth, first — a trip is planned before it is packed.
-  it('shows the six a trip is worked in, in the order it is worked through', () => {
-    const worked = ['ideas', 'packing', 'shopping', 'tasks', 'notes', 'excursions']
+  // FR-29.15: the day plan the seventh, last — where the trip is lived day by day.
+  it('shows the seven a trip is worked in, in the order it is worked through', () => {
+    const worked = ['ideas', 'packing', 'shopping', 'tasks', 'notes', 'excursions', 'dayplan']
     for (const current of [
       'ideas',
       'packing',
@@ -34,9 +36,19 @@ describe('the trip views that earn a pill', () => {
       'tasks',
       'notes',
       'excursions',
+      'dayplan',
     ] as const) {
       expect(tripViewPills(current)).toEqual(worked)
     }
+  })
+
+  /* FR-29.7: the day plan needs both dates; a trip without them has no pill for it. */
+  it('leaves out the day plan while the trip lacks a date, unless it is where you stand', () => {
+    expect(absentViews({ start_date: '2026-07-12', end_date: '2026-07-19' })).toEqual([])
+    expect(absentViews({ start_date: '2026-07-12', end_date: null })).toEqual(['dayplan'])
+    expect(absentViews(undefined)).toEqual(['dayplan'])
+    expect(tripViewPills('packing', ['dayplan'])).not.toContain('dayplan')
+    expect(tripViewPills('dayplan', ['dayplan'])).toContain('dayplan')
   })
 
   /*
@@ -52,6 +64,7 @@ describe('the trip views that earn a pill', () => {
       'tasks',
       'notes',
       'excursions',
+      'dayplan',
       'luggage',
     ])
     expect(tripViewPills('analytics')).toEqual([
@@ -61,6 +74,7 @@ describe('the trip views that earn a pill', () => {
       'tasks',
       'notes',
       'excursions',
+      'dayplan',
       'analytics',
     ])
   })

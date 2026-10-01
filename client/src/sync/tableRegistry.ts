@@ -33,6 +33,7 @@ import type {
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
+  DayEntry,
   Idea,
   IdeaComment,
   IdeaImage,
@@ -74,6 +75,7 @@ import {
   excursionRow,
   excursionTravelerRow,
   excursionItemRow,
+  dayEntryRow,
   ideaCommentRow,
   ideaImageRow,
   ideaTrackRow,
@@ -393,6 +395,20 @@ function rowToIdea(id: string, row: Record<string, unknown>): Idea {
     rain_proof: Boolean(row['rain_proof']),
     state: (row['state'] as Idea['state']) ?? IDEA_STATE_IDEA,
     created_at: (row['created_at'] as string) ?? null,
+    planned_on: (row['planned_on'] as string) ?? null,
+    planned_at: (row['planned_at'] as string) ?? null,
+  }
+}
+
+function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    author_id: row['author_id'] as string,
+    on_date: row['on_date'] as string,
+    at_time: (row['at_time'] as string) ?? null,
+    title: row['title'] as string,
+    note: (row['note'] as string) ?? null,
   }
 }
 
@@ -581,6 +597,7 @@ export const TABLE_CODECS = {
   [TABLE.ideaVotes]: { parse: rowToIdeaVote, encode: ideaVoteRow },
   [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
   [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
+  [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
   [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the

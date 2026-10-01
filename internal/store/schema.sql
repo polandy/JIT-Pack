@@ -736,7 +736,13 @@ CREATE TABLE ideas (
                 CHECK (state IN ('idea','shortlisted','done','dropped')),
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
-    updated_hlc TEXT NOT NULL DEFAULT ''
+    updated_hlc TEXT NOT NULL DEFAULT '',
+    -- FR-29.14: the day an idea is planned on (YYYY-MM-DD) and, optionally,
+    -- when on it (HH:MM). Nothing ties either to the trip's dates or to each
+    -- other: field-level LWW merges each alone, and a CHECK refusing one would
+    -- lose the user's choice. A reader treats a time without a day as none.
+    planned_on  TEXT,
+    planned_at  TEXT
 );
 
 -- FR-29.3: one person's vote on one idea. A row per (idea, person) rather than
@@ -768,6 +774,22 @@ CREATE TABLE idea_comments (
     -- comments.edited_at; NULL is never edited. Only the author may change them.
     edited_at   TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-29.15: the day plan's own entries — what stands on a day of the trip
+-- that is neither an idea, an excursion nor a task (a table booking). Its own
+-- table, because such an entry has no votes, no thread and no state. Any
+-- traveller may change one; `author_id` is stamped by the server.
+CREATE TABLE day_entries (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    author_id   TEXT NOT NULL REFERENCES users(id),
+    on_date     TEXT NOT NULL,
+    at_time     TEXT,
+    title       TEXT NOT NULL,
+    note        TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -970,6 +992,7 @@ CREATE INDEX idx_activity_log_inventory ON activity_log (id) WHERE trip_id IS NU
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
+CREATE INDEX idx_day_entries_trip ON day_entries (trip_id, on_date);
 CREATE INDEX idx_idea_tracks_idea ON idea_tracks (idea_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);

@@ -2,6 +2,7 @@ import type { InjectionKey } from 'vue'
 import {
   briefcaseOutline,
   bulbOutline,
+  calendarOutline,
   cartOutline,
   chatbubblesOutline,
   checkboxOutline,
@@ -14,7 +15,7 @@ import { t, type MessageKey } from '@/i18n'
 import { tripExcursionsPath, tripIdeasPath, tripPath, tripSubPath } from '@/router/paths'
 
 /**
- * The trip's eight views, named once (FR-21.21, ADR-051).
+ * The trip's nine views, named once (FR-21.21, ADR-051).
  *
  * The ids are the vocabulary three places share: the route table says which
  * view a route *is*, the switcher decides which pill is current from that,
@@ -33,9 +34,10 @@ export const TRIP_VIEW_IDS = [
   'excursions',
   'luggage',
   'analytics',
+  'dayplan',
 ] as const
 
-/** One of the trip's eight views — see TRIP_VIEW_IDS. */
+/** One of the trip's nine views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -73,6 +75,9 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  * §3.29 adds the sixth, first in the row: the ideas a trip is planned from,
  * before the packing begins (ADR-051 amendment 4). E2E-G12-07 measures the
  * row again with it, and with a ⋮ view as the seventh.
+ *
+ * FR-29.15 adds the day plan, last in the row and only while the trip has
+ * both dates (`absentViews`): it is where the trip is lived day by day.
  */
 export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'ideas',
@@ -81,7 +86,18 @@ export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'tasks',
   'notes',
   'excursions',
+  'dayplan',
 ]
+
+/**
+ * The views a trip does not have yet: the day plan needs both of the trip's
+ * dates (FR-29.7), so without them it earns neither a pill nor a route's way in.
+ */
+export function absentViews(
+  trip: { start_date: string | null; end_date: string | null } | undefined,
+): TripViewId[] {
+  return trip?.start_date && trip.end_date ? [] : ['dayplan']
+}
 
 /** What one view is called, where it lives, and the glyph it wears (G-12). */
 interface TripViewSpec {
@@ -145,6 +161,11 @@ const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
     nameKey: 'packing.analytics',
     path: (tripId) => tripSubPath(tripId, 'analytics'),
   },
+  dayplan: {
+    icon: calendarOutline,
+    nameKey: 'dayPlan.title',
+    path: (tripId) => tripSubPath(tripId, 'dayplan'),
+  },
 }
 
 /** One view of one trip, ready to render as a pill or as a menu entry. */
@@ -207,10 +228,15 @@ export function tripViewEntry(
  * that marks nothing as current is a row that has stopped saying where you are
  * (ADR-051 amendment 1), which is half of what the switcher is for.
  */
-export function tripViewPills(current: TripViewId): TripViewId[] {
+export function tripViewPills(
+  current: TripViewId,
+  absent: readonly TripViewId[] = [],
+): TripViewId[] {
   // Read out of TRIP_VIEW_IDS rather than out of TRIP_VIEW_PILLS, so the row's
   // order is the one the trip is worked through however that set is written.
-  const pills = TRIP_VIEW_IDS.filter((id) => TRIP_VIEW_PILLS.includes(id))
+  const pills = TRIP_VIEW_IDS.filter(
+    (id) => TRIP_VIEW_PILLS.includes(id) && (id === current || !absent.includes(id)),
+  )
   // The current view goes last: it joins a row that already has an order, and
   // inserting it would move the two pills that are on every screen.
   return pills.includes(current) ? pills : [...pills, current]

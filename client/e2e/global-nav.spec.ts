@@ -1072,6 +1072,39 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('trip-view-bubble')).toHaveCount(0)
   })
 
+  /**
+   * E2E-G12-09 (G-12, FR-29.7): the day plan is the row's last pill, and only
+   * on a trip with both dates. Standing in it at the Pixel 9 Pro's 410 px it
+   * is wholly in view on a row that scrolls; it is reached by its pill,
+   * carries no ⋮, and its back is the packing list.
+   */
+  test('E2E-G12-09: the day plan joins the row with both dates, in view where you stand @planner', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+    await expect(page.getByTestId('trip-view-dayplan')).toHaveCount(0)
+
+    await createTripViaWizard(page, {
+      name: 'Engadin',
+      startDate: '2026-12-20',
+      endDate: '2026-12-31',
+    })
+    await page.setViewportSize({ width: PIXEL_9_PRO.width, height: PIXEL_9_PRO.height })
+    await expect(page.getByTestId('trip-view-dayplan')).toHaveAccessibleName('Day plan')
+    await openTripView(page, 'dayplan')
+    await expect(onVisibleScreen(page, 'm29-strip')).toBeVisible()
+    await expect(page.getByTestId('header-title')).toHaveText('Day plan')
+    await expect(page.getByTestId('trip-view-dayplan')).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByTestId('trip-view-dayplan')).toHaveText('Day plan')
+    await expect(page.getByTestId('trip-view-dayplan')).toBeInViewport({ ratio: 1 })
+    await expect(page.getByTestId('header-overflow')).toHaveCount(0)
+
+    await page.getByTestId('header-back').click()
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+    await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
+  })
+
   /*
    * E2E-G20-01 (G-20): a selection wears the app bar, so starting one moves
    * nothing on the page. A counting bar inserted above the list would push

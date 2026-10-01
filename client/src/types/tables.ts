@@ -43,6 +43,8 @@ export const TABLE = {
   ideaComments: 'idea_comments',
   /** FR-29.5: a picture on an idea — hash and position; the bytes stay out (ADR-002). */
   ideaImages: 'idea_images',
+  /** FR-29.15: the day plan's own entries. */
+  dayEntries: 'day_entries',
   /** FR-29.17: a GPX track on an idea — what was read from the file; the file stays out (ADR-085). */
   ideaTracks: 'idea_tracks',
   /** FR-27.4, the planning-trip refresh (migration 023). */

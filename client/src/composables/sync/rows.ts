@@ -31,6 +31,7 @@ import type {
   TripItem,
   TripMember,
   TripSeries,
+  DayEntry,
   Idea,
   IdeaComment,
   IdeaImage,
@@ -239,6 +240,20 @@ export function ideaRow(idea: Idea): Record<string, unknown> {
     rain_proof: dbBool(idea.rain_proof),
     state: idea.state,
     created_at: idea.created_at,
+    planned_on: idea.planned_on,
+    planned_at: idea.planned_at,
+  }
+}
+
+/** FR-29.15: an entry of the day plan's own. */
+export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
+  return {
+    trip_id: entry.trip_id,
+    author_id: entry.author_id,
+    on_date: entry.on_date,
+    at_time: entry.at_time,
+    title: entry.title,
+    note: entry.note,
   }
 }
 

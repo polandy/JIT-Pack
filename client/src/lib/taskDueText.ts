@@ -24,7 +24,7 @@ export interface DueLabel {
 }
 
 /** A calendar day as a local `Date` — never `new Date(iso)`, which is UTC midnight. */
-function localDay(iso: string): Date {
+export function localDay(iso: string): Date {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
   return new Date(year, month - 1, day)
 }

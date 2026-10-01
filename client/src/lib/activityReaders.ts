@@ -49,6 +49,7 @@ export type ActivityArea =
   | 'notes'
   | 'excursions'
   | 'ideas'
+  | 'dayplan'
   | 'trip'
   | 'members'
   | 'inventory'

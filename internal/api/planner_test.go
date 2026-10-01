@@ -77,3 +77,17 @@ func TestStampActor_VoteUpsertCannotTakeOverAnotherUsersVote_FR29_3(t *testing.T
 		t.Errorf("row = %v, want user-a's 👍 untouched", row)
 	}
 }
+
+func TestStampActor_DayEntryAuthorIsThePusher_FR29_15(t *testing.T) {
+	srv := newTestServer(t)
+	pushOne(t, srv.URL, userB, map[string]any{
+		"mutation_id": "de-1", "op": "insert", "table": "day_entries", "id": "de-forge",
+		"fields": map[string]any{"trip_id": trip, "author_id": userA, "on_date": "2026-07-14", "title": "Mietauto abholen"},
+		"hlc":    "0000000001000-0000-aaaaaaaa",
+	})
+
+	row := pullRow(t, srv.URL, userA, "day_entries", "de-forge")
+	if row["author_id"] != userB {
+		t.Errorf("author_id = %v, want %s — a day entry is stamped to its pusher", row["author_id"], userB)
+	}
+}

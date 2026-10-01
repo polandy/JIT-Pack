@@ -184,7 +184,9 @@ export function seedSampleTrip(
  * note, a vote, a comment, and pictures — one, two and four, so each of the
  * mosaic's shapes is on the board (FR-29.5) — and an idea with two GPX
  * tracks and no picture, a hike and a bike tour, so the board shows a line
- * as a banner and the map has two to choose between (FR-29.17). Written without an identity, as Local Mode
+ * as a banner and the map has two to choose between (FR-29.17). On the
+ * shortlist one is planned on tomorrow and one waits without a day, so M29
+ * has a line and a pool (FR-29.14). Written without an identity, as Local Mode
  * writes; on a server the push stamps the account that seeded. Through the
  * module's own actions, for the reason `buyOneShoppingRow` gives.
  */
@@ -198,12 +200,16 @@ export const SEED_IDEAS: ReadonlyArray<{
   voted?: boolean
   comment?: string
   pictures?: number
+  /** FR-29.14: planned this many days from today, at this time. */
+  plannedIn?: number
+  plannedAt?: string
   tracks?: boolean
 }> = [
   {
     title: 'Bernina Express nach Tirano',
     tag: 'outing',
     link: 'https://www.rhb.ch/de/panoramazuege/bernina-express',
+    state: IDEA_STATE_SHORTLISTED,
     voted: true,
     pictures: 1,
   },
@@ -228,6 +234,8 @@ export const SEED_IDEAS: ReadonlyArray<{
     note: 'Mit der Standseilbahn hoch, dann gut drei Stunden Höhenweg.',
     state: IDEA_STATE_SHORTLISTED,
     pictures: 4,
+    plannedIn: 1,
+    plannedAt: '09:00',
   },
   { title: 'Gleitschirm-Tandemflug', tag: null, state: IDEA_STATE_DROPPED },
 ]
@@ -250,6 +258,10 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     const idea = id === null ? undefined : plannerStore.getIdea(id)
     if (!idea) continue
     if (seed.state) actions.setState(idea, seed.state)
+    const current = plannerStore.getIdea(idea.id)
+    if (current && seed.plannedIn !== undefined) {
+      actions.planIdea(current, isoDay(seed.plannedIn), seed.plannedAt ?? null)
+    }
     if (seed.voted) {
       actions.vote(
         tripId,
@@ -263,6 +275,13 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     if (seed.pictures) void seedPictures(idea, seed.pictures, actions)
     if (seed.tracks) void seedTracks(idea, actions)
   }
+  // FR-29.15: an entry of the day plan's own, tonight.
+  actions.addDayEntry(
+    tripId,
+    isoDay(0),
+    { title: 'Tisch im Gasthaus Bernina', note: '4 Personen', time: '19:30' },
+    null,
+  )
 }
 
 /** One after another, for the reason `seedPictures` gives. */

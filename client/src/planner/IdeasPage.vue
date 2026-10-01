@@ -55,7 +55,7 @@ import type {
   IdeaVoteValue,
   TrackFields,
 } from '@/types/domain'
-import { IDEA_STATE_IDEA, IDEA_STATES } from '@/types/domain'
+import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from '@/types/domain'
 import { createPlannerActions, type IdeaFields } from './actions'
 import {
   IDEA_ORDER_NEWEST,
@@ -65,6 +65,7 @@ import {
   voteTally,
   type IdeaOrder,
 } from './domain/ideas'
+import { tripDays } from './domain/dayPlan'
 import { ideaPictures } from './domain/pictures'
 import IdeaCard from './IdeaCard.vue'
 import IdeaDetail from './IdeaDetail.vue'
@@ -251,6 +252,14 @@ function onVote(value: IdeaVoteValue) {
   if (!idea) return
   const tally = voteTally(idea.id, plannerStore.getVotes(props.tripId), myUserId.value)
   actions.vote(props.tripId, idea.id, tally, nextVote(tally.mine, value), myUserId.value)
+}
+
+/** The trip's days, for planning an idea on one (FR-29.14). */
+const days = computed(() => tripDays(trip.value))
+
+function onPlan(day: string | null, time: string | null) {
+  const idea = openIdea.value
+  if (idea) actions.planIdea(idea, day, time)
 }
 
 function onComment(body: string) {
@@ -470,6 +479,7 @@ const EMPTY_KEYS = {
             :picture-coming="plannerStore.pictureComing(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
+            :plan-shown="days.length > 0 && card.idea.state === IDEA_STATE_SHORTLISTED"
             @open="openSheet(card.idea)"
           />
         </div>
@@ -515,6 +525,7 @@ const EMPTY_KEYS = {
           :my-user-id="myUserId"
           :name-of="nameOf"
           :uploading="uploading"
+          :days="days"
           :track-busy="trackBusy"
           @close="closeSheet"
           @edit="onEdit"
@@ -527,6 +538,7 @@ const EMPTY_KEYS = {
           @add-picture="onAddPicture"
           @cover-picture="onCoverPicture"
           @remove-picture="onRemovePicture"
+          @plan="onPlan"
           @add-track="onAddTrack"
           @update-track="onUpdateTrack"
           @download-track="onDownloadTrack"
@@ -542,6 +554,7 @@ const EMPTY_KEYS = {
             :my-user-id="myUserId"
             :name-of="nameOf"
             :uploading="uploading"
+            :days="days"
             :track-busy="trackBusy"
             @close="closeSheet"
             @edit="onEdit"
@@ -554,6 +567,7 @@ const EMPTY_KEYS = {
             @add-picture="onAddPicture"
             @cover-picture="onCoverPicture"
             @remove-picture="onRemovePicture"
+            @plan="onPlan"
             @add-track="onAddTrack"
             @update-track="onUpdateTrack"
             @download-track="onDownloadTrack"

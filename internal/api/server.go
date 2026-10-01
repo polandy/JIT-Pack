@@ -453,9 +453,10 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 			by: "resolved_by_user_id",
 			at: "resolved_at",
 		}, known, state == taskStateResolved)
-	case store.TableIdeas, store.TableIdeaComments:
-		// FR-29.1/29.4: an idea's author and a discussion entry's, decided
-		// once — store.TableComments' rule above, for its reason.
+	case store.TableIdeas, store.TableIdeaComments, store.TableDayEntries:
+		// FR-29.1/29.4/29.15: an idea's author, a discussion entry's and a
+		// day entry's, decided once — store.TableComments' rule above, for
+		// its reason.
 		stampOnInsert(m, "author_id", userID)
 	case store.TableNoteAcks, store.TableIdeaVotes:
 		// FR-7.9/FR-29.3: whose tick or vote a row is decided once, exactly

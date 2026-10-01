@@ -36,8 +36,10 @@ import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } fr
 import { useRouter } from 'vue-router'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
+import { useTripStore } from '@/stores/tripStore'
 import {
   TRIP_VIEW_COUNTS,
+  absentViews,
   tripViewEntry,
   tripViewPills,
   type TripViewEntry,
@@ -56,8 +58,12 @@ const ionRouter = useIonRouter()
 // root — the frame does not import the module behind the pill.
 const counts = inject(TRIP_VIEW_COUNTS, {})
 
+const tripStore = useTripStore()
+
 const views = computed(() =>
-  tripViewPills(props.current).map((id) => tripViewEntry(id, props.tripId, counts)),
+  tripViewPills(props.current, absentViews(tripStore.getTrip(props.tripId))).map((id) =>
+    tripViewEntry(id, props.tripId, counts),
+  ),
 )
 
 /**
@@ -146,7 +152,17 @@ function revealCurrent() {
   else if (box.left < bounds.left) nav.scrollLeft -= Math.ceil(bounds.left - box.left)
 }
 
-onMounted(revealCurrent)
+// Measured only once the row has a size: a page still hidden in the outlet's
+// transition reports every box as empty, and a reveal then moves nothing.
+let resizes: ResizeObserver | null = null
+onMounted(() => {
+  revealCurrent()
+  if (row.value && typeof ResizeObserver !== 'undefined') {
+    resizes = new ResizeObserver(() => revealCurrent())
+    resizes.observe(row.value)
+  }
+})
+onBeforeUnmount(() => resizes?.disconnect())
 watch(
   () => props.current,
   () => void nextTick(revealCurrent),

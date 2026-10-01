@@ -65,6 +65,7 @@ export type TripSubScreen =
   | 'notes'
   | 'excursions'
   | 'ideas'
+  | 'dayplan'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {

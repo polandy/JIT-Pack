@@ -4,7 +4,8 @@
  * composition root binds (`lib/activityReaders.ts`).
  *
  * An idea, its discussion, its pictures and its tracks read the way every row does —
- * added, changed, removed. A vote is the one row whose write is an act of its
+ * added, changed, removed — and so does an entry of the day plan's own, in an
+ * area of its own (FR-29.15). A vote is the one row whose write is an act of its
  * own: casting it, and taking it back.
  */
 import { ACTIVITY_OP } from '@/api/types'
@@ -15,6 +16,7 @@ import { TABLE } from '@/types/tables'
 const VOTE = 'vote' satisfies keyof IdeaVote
 
 const ideaRows: ActivityReader = { area: 'ideas' }
+const dayPlanRows: ActivityReader = { area: 'dayplan' }
 
 const votes: ActivityReader = {
   area: 'ideas',
@@ -34,4 +36,5 @@ export const plannerActivityReaders: ActivityReaders = {
   [TABLE.ideaImages]: ideaRows,
   [TABLE.ideaTracks]: ideaRows,
   [TABLE.ideaVotes]: votes,
+  [TABLE.dayEntries]: dayPlanRows,
 }

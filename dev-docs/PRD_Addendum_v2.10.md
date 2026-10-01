@@ -3963,12 +3963,13 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8) and **GPX tracks**
-(FR-29.17, ADR-085); the bridge to the packing side and the day plan are specified here and not built. The travellers of
-a trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
-their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
-variants are in `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec),
-the day plan will be **M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
+(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks**
+(FR-29.17, ADR-085) and the **day plan** (FR-29.14/29.15, M29); its connections (FR-29.18), the opening by date and the
+bridge to the packing side are specified here and not built. The travellers of a trip collect what they might do on it
+— a link someone found, a place, a thought — discuss each idea, vote on it with their names, and decide by hand which
+of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
+`dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
+**M29**. It is the North-Star Plan phase's first buildable slice (`Vision_NorthStar_v1.0.md` §3.1).
 
 The planner is the second **feature module** after the shopping list (§3.30, ADR-066): `client/src/planner/`, with its
 own store, actions, screens and pure rules, and its e2e cases under `client/e2e/planner/`.
@@ -4028,13 +4029,13 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   the board to *Ideen*, newest first, so it does not land below the fold. Every empty segment says what belongs in it,
   gated on the settled partition (ADR-033). The idea opens on the route (`?idea=`) as a sheet on a phone and as the
   frame's side panel on a desktop (ADR-064).
-* **FR-29.7 (Where the Planner Is Reached):** *Implemented for the board.* The trip's one switcher (G-12, ADR-051)
-  carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day plan will be
-  the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not built**
-  (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is empty),
-  during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the Pixel 9
-  Pro's 410 px six pills fill the row; a seventh — a ⋮ view joining it, later the day plan — scrolls the row sideways,
-  with the pill you stand on scrolled into view (ADR-051 amendment 4).
+* **FR-29.7 (Where the Planner Is Reached):** *Implemented, the opening by date excepted.* The trip's one switcher
+  (G-12, ADR-051) carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day
+  plan is the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not
+  built** (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is
+  empty), during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the
+  Pixel 9 Pro's 410 px six pills fill the row; a seventh — the day plan, or a ⋮ view joining it — scrolls the row
+  sideways, with the pill you stand on scrolled into view (ADR-051 amendment 4).
 * **FR-29.8 (Notifications):** *Implemented.* Three kinds, each with its own M17 switch, in the recipient's language
   (ADR-037), never to the actor: **`idea`**, a new idea, to every member of the trip; **`idea_shortlisted`**, an idea
   moved to the shortlist, to every member, because the shortlist is the group's decision; **`idea_comment`**, a
@@ -4066,15 +4067,17 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   (`excursions`, `comments` for a task, `shopping_entries`), never a list on the idea (ADR-078), `ON DELETE SET NULL`,
   so deleting either side leaves the other. M25, M27 and M6 name the idea through a kernel lookup the composition root
   binds.
-* **FR-29.14 (Planning an Idea on a Day):** *Specified, not built (slice 2).* An idea on the shortlist gets **a day and
+* **FR-29.14 (Planning an Idea on a Day):** *Implemented.* An idea on the shortlist gets **a day and
   an optional time**; without a day it waits under *noch nicht eingeplant*. No constraint ties the day to the trip's
   dates (field-level LWW), so an idea planned outside them is listed *außerhalb der Reise* rather than lost. Only while
   the trip has both dates.
-* **FR-29.15 (The Day Plan, M29):** *Specified, not built (slice 2).* One screen per trip with a day strip over the
-  trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated excursions (on each
-  of their days), tasks due that day, arrival and departure, and **free entries** of its own (`day_entries`, e.g. a
-  table booking). Tomorrow stands below today; a pool bar lists the shortlisted ideas without a day.
-
+* **FR-29.15 (The Day Plan, M29):** *Implemented, its connections excepted (FR-29.18).* One screen per trip with a day
+  strip over the trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated
+  excursions (on each of their days), tasks due that day, arrival and departure, and **entries of its own**
+  (`day_entries`) of two kinds — a **free entry** (a table booking) and a **connection** (FR-29.18). Timed entries come
+  first by their time, untimed ones after; a time orders, it does not block out hours. Tomorrow stands below today; a
+  pool bar lists the shortlisted ideas without a day and plans one by a day chip. „+" adds a free entry or a connection
+  on the chosen day, or plans an idea.
 * **FR-29.16 (A Link Fills the Idea):** *Implemented.* A link entered in the idea's sheet brings a **suggestion** that
   changes **no field** until it is confirmed, and each half is shown **at its own field**: the suggested title grey in
   the blank title field, the suggested description grey in the blank note, each with *Übernehmen* beside it that puts it
@@ -4142,9 +4145,29 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     offline does — offline with *„Karte offline"*. Local Mode draws tiles.
   * **Not copied, not backed up.** Deleting the idea takes its tracks. Cloning copies none, and they are not in the
     portable backup (FR-29.11). The activity log names an added, renamed or removed track (§3.32).
+* **FR-29.18 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
+  transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
+  being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first
+  departure as *from → to · an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen*, and opens to its legs; the link, where there
+  is one, opens the provider's own app, which has what a stored copy cannot — delays and platforms. ADR-086:
+  * **A connection works anywhere.** Its fields are entered by hand — one leg — and any link may be kept beside them;
+    nothing about it is Swiss.
+  * **A link is read where a reader knows it.** Pasting a link, from the clipboard button or into the field, reads it
+    at once, with no separate button. The first reader is the **SBB app's**: a shared connection is a picture with a
+    short link (`a.sbbmobile.ch/s/…`) whose page links `www.sbb.ch/…/trip?tripId=…`, and that id carries every leg —
+    stations, departure and arrival, line. The read fills a preview of the legs; *Einfügen* writes the connection **on
+    the day the link names**, which may be another day than the one chosen. A link no reader knows, or one that fails,
+    says so and leaves the hand fields, with the link kept.
+  * **The client reads; the server only follows the short link.** Decoding the id is a pure rule in the planner's
+    domain, so a full `sbb.ch` link is read in every mode. The short link is behind another site's page, which only
+    the server can fetch: FR-29.16's read returns, beside title and description, **the page's links**, and the reader
+    picks the trip link among them. In Local Mode, or with previews off, a short link stays a kept link.
+  * **The format is the provider's, not a published one.** When it changes, the reader finds no legs and the hand
+    fields take over; nothing written before is affected, since the legs are stored, not the id.
 
 **Not in the planner:** polls with several options (one idea per option), expenses, group logistics, a map of places
-(a map shows an idea's tracks, FR-29.17, and nothing else), weather, transport, ideas belonging to no trip.
+(a map shows an idea's tracks, FR-29.17, and nothing else), weather, transport beyond a day's connections
+(FR-29.18), ideas belonging to no trip.
 
 ### 3.30 The Shopping List as a Module of Its Own
 

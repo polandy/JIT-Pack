@@ -272,3 +272,45 @@ func TestIdeaDiscussion_UnknownIdeaIsAnError_FR29_8(t *testing.T) {
 		t.Fatal("want an error for an idea that does not exist")
 	}
 }
+
+// FR-29.14/29.15 through the push path: an idea planned on a day and an entry
+// of the day plan's own both travel the trip partition, and both are gone
+// with the trip.
+func TestApplyMutation_DayPlan_PlannedIdeaAndOwnEntry_FR29_15(t *testing.T) {
+	s := openPlannerStore(t)
+	ctx := context.Background()
+
+	plan := upsert("idea-1", "m1", map[string]any{"planned_on": "2026-07-14", "planned_at": "09:00"},
+		"0000000001000-0000-aaaaaaaa")
+	plan.Table = TableIdeas
+	entry := sync.Mutation{
+		MutationID: "m2", Op: sync.OpInsert, Table: TableDayEntries, ID: "de-1",
+		Fields: map[string]any{
+			"trip_id": testTrip, "author_id": testUser, "on_date": "2026-07-14", "at_time": "19:30",
+			"title": "Tisch Su Gologone", "note": "4 Personen",
+		},
+		HLC: sync.HLC("0000000001001-0000-aaaaaaaa"),
+	}
+	for _, m := range []sync.Mutation{plan, entry} {
+		if res, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+			t.Fatalf("%s: outcome %q reason %q err %v, want applied", m.Table, res.Outcome, res.Reason, err)
+		}
+	}
+
+	var on, at string
+	if err := s.db.QueryRow(`SELECT planned_on, planned_at FROM ideas WHERE id = 'idea-1'`).Scan(&on, &at); err != nil {
+		t.Fatalf("read idea: %v", err)
+	}
+	if on != "2026-07-14" || at != "09:00" {
+		t.Errorf("planned = %q %q, want 2026-07-14 09:00", on, at)
+	}
+
+	mustExec(t, s, `DELETE FROM trips WHERE id = ?`, testTrip)
+	var left int
+	if err := s.db.QueryRow(`SELECT count(*) FROM day_entries`).Scan(&left); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if left != 0 {
+		t.Errorf("%d day entries outlived their trip", left)
+	}
+}

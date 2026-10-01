@@ -76,6 +76,8 @@ const (
 	// FR-29.5: a picture on an idea — its hash and position; the bytes stay
 	// outside the envelope (ADR-002).
 	TableIdeaImages = "idea_images"
+	// FR-29.15: the day plan's own entries.
+	TableDayEntries = "day_entries"
 	// FR-29.17: a GPX track on an idea — what the device read from the file;
 	// the file stays outside the envelope (ADR-085).
 	TableIdeaTracks = "idea_tracks"

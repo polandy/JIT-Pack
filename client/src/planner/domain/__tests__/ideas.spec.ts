@@ -29,6 +29,8 @@ function idea(id: string, over: Partial<Idea> = {}): Idea {
     rain_proof: false,
     state: 'idea',
     created_at: '2026-06-01T10:00:00.000Z',
+    planned_on: null,
+    planned_at: null,
     ...over,
   }
 }
