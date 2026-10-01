@@ -16,11 +16,25 @@ import { ref } from 'vue'
 
 import { de } from './messages/de'
 import { en } from './messages/en'
+import { plannerDe } from '@/planner/i18n/de'
+import { plannerEn } from '@/planner/i18n/en'
+import { shoppingDe } from '@/shopping/i18n/de'
+import { shoppingEn } from '@/shopping/i18n/en'
 
 export type Locale = 'en' | 'de'
 
-/** Message keys are those of the English catalogue, which is the source of truth. */
-export type MessageKey = keyof typeof en
+/**
+ * The catalogue in its parts: the kernel's and one per feature module, each
+ * kept beside the code that reads it (ADR-079). `t()` reads them as one.
+ */
+export const CATALOGUE_PARTS = {
+  kernel: { en, de },
+  planner: { en: plannerEn, de: plannerDe },
+  shopping: { en: shoppingEn, de: shoppingDe },
+} as const
+
+/** Message keys are those of the English parts, which are the source of truth. */
+export type MessageKey = keyof typeof en | keyof typeof plannerEn | keyof typeof shoppingEn
 
 /** Values substituted into `{placeholder}` slots; `n` additionally drives pluralization. */
 export type MessageParams = Record<string, string | number>
@@ -30,7 +44,16 @@ export const LOCALE_STORAGE_KEY = 'jitpack_locale'
 /** English is the default, so it is also the fallback for any untranslated key. */
 export const DEFAULT_LOCALE: Locale = 'en'
 
-const catalogues: Record<Locale, Record<string, string>> = { en, de }
+const parts: Record<Locale, Record<string, string>>[] = Object.values(CATALOGUE_PARTS)
+
+/** A key's message in one locale, from whichever part defines it. */
+function lookup(from: Locale, key: string): string | undefined {
+  for (const part of parts) {
+    const message = part[from][key]
+    if (message !== undefined) return message
+  }
+  return undefined
+}
 
 const locale = ref<Locale>(DEFAULT_LOCALE)
 
@@ -112,7 +135,7 @@ function interpolate(message: string, params?: MessageParams): string {
  * space, so the gap is obvious in review instead of silently swallowed.
  */
 export function t(key: MessageKey, params?: MessageParams): string {
-  const message = catalogues[locale.value][key] ?? catalogues[DEFAULT_LOCALE][key] ?? key
+  const message = lookup(locale.value, key) ?? lookup(DEFAULT_LOCALE, key) ?? key
   return interpolate(selectPlural(message, params), params)
 }
 

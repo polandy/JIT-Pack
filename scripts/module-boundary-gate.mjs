@@ -15,9 +15,10 @@
  *    views, stores, domain rules or composables, and never another module.
  * 2. **Nothing reaches into a module** except the composition root: `App.vue`
  *    through the module's public face (its `index.ts`), the router through a
- *    lazily imported page, and the dev seed through the public face. Packing code learns about a module's data only
- *    through kernel contracts such as `lib/shoppingSources.ts`, which the root
- *    binds.
+ *    lazily imported page, the dev seed through the public face, and the
+ *    kernel's catalogue through the module's own (`<module>/i18n/`). Packing
+ *    code learns about a module's data only through kernel contracts such as
+ *    `lib/shoppingSources.ts`, which the root binds.
  *
  * Specs (`__tests__/`) are exempt on both sides: an integration spec may
  * compose a module with the packing code it is wired to in production, which
@@ -31,6 +32,13 @@
  *
  * Unlike that gate, the import scan here matches `from '…'` wherever it
  * stands, so a multi-line import (`} from '…'` on its own line) is seen.
+ *
+ * The kernel's catalogue (`i18n/index.ts`) names each module's own catalogue
+ * (`<module>/i18n/en.ts`, `de.ts`), so the module's copy sits in its directory
+ * and a diff that changes only its words stays a module-only diff (ADR-079).
+ * The words are the module's like its code: **a key a module's catalogue
+ * defines is read only inside that module** — a kernel file naming one would
+ * reach the module through a string.
  *
  * A third rule rides along, because it is about the same list: **every e2e
  * case under `client/e2e/<module>/` is tagged `@<module>`**, in its own title
@@ -102,7 +110,11 @@ const publicFace = (rest) => rest === '' || rest === 'index' || rest === 'index.
 const ROOT_IMPORTS = {
   'App.vue': publicFace,
   'router/index.ts': (rest) => rest.endsWith('Page.vue'),
+  'i18n/index.ts': (rest) => /^i18n\/(en|de)(\.ts)?$/.test(rest),
 }
+
+/** Where a module's own catalogue lives; its English half names the keys. */
+const moduleCatalogue = (module) => resolve(SRC, module, 'i18n/en.ts')
 const DEV_DIR = 'dev/'
 
 function walk(dir) {
@@ -145,6 +157,7 @@ function isKernel(path) {
 }
 
 const problems = []
+const kernelSources = []
 let files = 0
 let moduleFiles = 0
 
@@ -152,8 +165,10 @@ for (const file of walk(SRC)) {
   files += 1
   const from = relative(SRC, file)
   const home = moduleOf(from)
+  const source = readFileSync(file, 'utf8')
   if (home) moduleFiles += 1
-  for (const spec of specifiers(readFileSync(file, 'utf8'))) {
+  else kernelSources.push([from, source])
+  for (const spec of specifiers(source)) {
     const to = target(spec, file)
     if (to === null) continue
     const into = moduleOf(to)
@@ -169,7 +184,28 @@ for (const file of walk(SRC)) {
       if (allowed && allowed(rest)) continue
       problems.push(
         `client/src/${from}: imports \`${spec}\` — only the composition root (App.vue via ` +
-          `the module's index, the router via a lazy page) may reach into \`${into}/\``,
+          `the module's index, the router via a lazy page, i18n/index.ts via its catalogue) ` +
+          `may reach into \`${into}/\``,
+      )
+    }
+  }
+}
+
+const strayKeys = []
+for (const module of MODULES) {
+  let catalogue
+  try {
+    catalogue = readFileSync(moduleCatalogue(module), 'utf8')
+  } catch {
+    continue
+  }
+  const keys = [...catalogue.matchAll(/^\s*'([^']+)':/gm)].map((m) => m[1])
+  for (const [from, source] of kernelSources) {
+    for (const key of keys) {
+      if (![`'${key}'`, `"${key}"`, `\`${key}\``].some((quoted) => source.includes(quoted))) continue
+      strayKeys.push(
+        `client/src/${from}: reads \`${key}\` from ${module}/i18n/ — a key there is the ` +
+          `module's own; one the kernel reads too belongs in i18n/messages/`,
       )
     }
   }
@@ -303,6 +339,12 @@ if (problems.length > 0) {
       '(e.g. lib/shoppingSources.ts) that App.vue binds. Move the shared shape into the kernel, ' +
       'or pass it in from the composition root.',
   )
+  process.exit(1)
+}
+
+if (strayKeys.length > 0) {
+  console.error("module-boundary-gate: kernel code reads a module catalogue's key.\n")
+  for (const line of strayKeys) console.error(`  ${line}`)
   process.exit(1)
 }
 

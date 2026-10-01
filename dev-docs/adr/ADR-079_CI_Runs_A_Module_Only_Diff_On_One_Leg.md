@@ -109,3 +109,20 @@ it saves no wall-clock. `go`, `go-lint`, `client`, `format` and `docker-build` a
 A regression found by `main`'s full run after a PR that ran as module-only, whose cause the smoke set could have
 seen — then the smoke set grows, or the module's paths shrink. Or: the i18n catalogues become the usual reason a
 module diff is a full run, which argues for a catalogue per module.
+
+## Amendment 1 — a catalogue per module
+
+The revisit trigger's second half fired: every planner PR since the day plan changed screen copy, and the copy lived
+in the kernel's `i18n/messages/`, so none of them ran as module-only. Each module now carries its own catalogue,
+`client/src/<m>/i18n/en.ts` and `de.ts`, inside the paths `diff-scope.mjs` already counts as the module's. `t()`
+reads the parts as one: `i18n/index.ts` names each module's catalogue, the one reach into a module the boundary gate
+admits besides the composition root, and looks a key up part by part, so the English fallback stays per key.
+
+A key belongs to a module's catalogue when only that module reads it. A key the kernel reads too — a trip view's
+name in the switcher, a count M1 shows — stays in the kernel's catalogue, even when it carries the module's prefix.
+Two checks hold the split: `module-boundary-gate.mjs` refuses kernel code naming a module catalogue's key, and the
+catalogue-integrity spec refuses a key defined in two parts, which the merged lookup would otherwise resolve
+silently by order. German parity, placeholders and plural forms are checked per part.
+
+Accepted cost: a new string has to be placed by who reads it, and a key that later gains a kernel reader moves
+across — the gate names it when that happens.
