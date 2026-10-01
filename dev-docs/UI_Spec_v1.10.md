@@ -2915,14 +2915,16 @@ token would prove nothing there is anything to prove.
   that names this excursion (`m27-notes`, a line `m27-note-<id>`) — M26's `chatbubblesOutline`, the thread's name, a
   chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
   excursion. Deleting the excursion keeps its notes as trip notes.
-* **Its route** (FR-31.15, ADR-089): under the notes, in their quiet line, one line per GPX track (`TrackRows`,
-  `track-row-<id>`) — the kind glyph in the track's colour (the track card's hues), its name, and *„3.3 km · ↑
-  300 m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron. A tap opens FR-29.17's full-screen
-  map on that track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and
-  pauses; its bar carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*,
-  *Umbenennen*, *GPX herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). None is drawn
-  without a track; while a file is read, *„Track wird gelesen …"* (`m27-track-busy`) stands there. The track card's
-  map, as on M28, is deliberately not used: the list is what the screen is for.
+* **Its route** (FR-31.15, ADR-089): **first, above the progress card**, a card of its own (`TrackSummary`,
+  `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed
+  for it. A still map carries every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets them,
+  the lines alone offline); a tap on it opens FR-29.17's full-screen map. Under it, one line per track
+  (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300 m · 1 h 25"*
+  (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that track,
+  its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar
+  carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
+  herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a
+  file is read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):

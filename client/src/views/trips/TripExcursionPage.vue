@@ -51,7 +51,7 @@ import RevealBar from '@/components/global/RevealBar.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TrackEditor from '@/components/global/TrackEditor.vue'
-import TrackRows from '@/components/global/TrackRows.vue'
+import TrackSummary from '@/components/global/TrackSummary.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
 import ExcursionItemSheet from '@/components/trips/ExcursionItemSheet.vue'
@@ -1024,6 +1024,23 @@ setHeaderTitle(
       @ion-scroll-end="onScrollEnd"
     >
       <template v-if="loaded && excursion">
+        <!-- FR-31.15: the route first, before what to pack for it; it scrolls away. -->
+        <div v-if="tracksOn.length > 0 || trackBusy" class="excursion-tracks">
+          <TrackSummary
+            v-if="tracksOn.length > 0"
+            :tracks="tracksOn"
+            :title="excursion?.name ?? ''"
+            :trip-id="tripId"
+            @update="(track, settings) => tracks.update(track as ExcursionTrack, settings)"
+            @download="(track) => tracks.download(track as ExcursionTrack)"
+            @replace="(track, file) => tracks.replace(track as ExcursionTrack, file)"
+            @remove="(track) => tracks.remove(track as ExcursionTrack)"
+            @edit="(track) => tracks.edit(track as ExcursionTrack)"
+          />
+          <p v-if="trackBusy" class="track-busy" data-testid="m27-track-busy">
+            {{ t('track.reading') }}
+          </p>
+        </div>
         <!-- M4's header line: the progress card, sticky, yielding to the list. -->
         <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m27-header">
           <div class="trip-stats jp-card" data-testid="m27-progress-card">
@@ -1048,22 +1065,6 @@ setHeaderTitle(
           @select="selectPerson"
         />
         <ExcursionNotes v-if="notes.length > 0" :threads="notes" @open="openNote" />
-        <div v-if="tracksOn.length > 0 || trackBusy" class="excursion-tracks">
-          <TrackRows
-            v-if="tracksOn.length > 0"
-            :tracks="tracksOn"
-            :title="excursion?.name ?? ''"
-            :trip-id="tripId"
-            @update="(track, settings) => tracks.update(track as ExcursionTrack, settings)"
-            @download="(track) => tracks.download(track as ExcursionTrack)"
-            @replace="(track, file) => tracks.replace(track as ExcursionTrack, file)"
-            @remove="(track) => tracks.remove(track as ExcursionTrack)"
-            @edit="(track) => tracks.edit(track as ExcursionTrack)"
-          />
-          <p v-if="trackBusy" class="track-busy" data-testid="m27-track-busy">
-            {{ t('track.reading') }}
-          </p>
-        </div>
 
         <!-- FR-25.11k: the field exists only while it is being used. -->
         <SearchRow
@@ -1420,13 +1421,9 @@ setHeaderTitle(
 }
 
 /* M4's header line (PackingListPage): sticky page, one card, yielding to the list. */
-/* FR-31.15: under the notes, in their quiet line (TrackRows), as one block with them. */
+/* FR-31.15: the route's card, above the sticky header line, on its gutter. */
 .excursion-tracks {
-  margin: 4px 12px 8px;
-}
-
-.excursion-notes + .excursion-tracks {
-  margin-top: -6px;
+  margin: 8px 12px 0;
 }
 
 .track-busy {

@@ -4600,9 +4600,9 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   beside a synced row of what was read, the kind, *Mit Kind*, the pauses and the name set by hand, the file renamed,
   downloaded, replaced or removed, and the route edited or drawn along paths (FR-29.20). Added from the excursion's
   ⋮ — ***Track hinzufügen …*** and ***Route zeichnen***, which needs the map (FR-29.20) — and a sixth is refused
-  before a file is asked for. M27 shows each as **one quiet line** under the notes (kind, name, distance, climb,
-  time with the pauses) that opens the full-screen map on it, and M27's list shows the first one's distance and climb
-  with how many more; the track card's map is the idea's, not the excursion's, where it would push the list down.
+  before a file is asked for. The excursion's view shows them **first, above its packing list**, as one card: a
+  still map with every line, then one line per track (kind, name, distance, climb, time with the pauses) that opens
+  the full-screen map on it; M27's list shows the first one's distance and climb with how many more.
   Deleting the excursion deletes its tracks. A track does **not** follow an idea to an excursion: that waits for
   §3.29's bridge to the packing side, and until then the file is downloaded from one and added to the other.
 * **Notes about an excursion** are FR-7.15's: a trip note may name one excursion, which lists it under its progress

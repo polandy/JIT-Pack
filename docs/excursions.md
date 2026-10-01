@@ -91,8 +91,9 @@ An excursion can carry the way you will walk or ride — up to **five** GPX trac
 and **Route zeichnen** draws one on the map along the paths (see
 [Changing a route, or drawing one](ideas.md#changing-a-route-or-drawing-one); it needs the map, so not offline).
 
-Each track is then a line under the progress card and the notes: whether it is a hike or a bike tour, its name, and
-*„3.3 km · ↑ 300 m · 1 h 25"* — the time with the breaks you set. Tap the line to see the track full screen, with its
+The route then stands at the top of the excursion, above its packing list: a small map with every track, and under
+it a line per track — whether it is a hike or a bike tour, its name, and *„3.3 km · ↑ 300 m · 1 h 25"*, the time with
+the breaks you set. Tap the map or a line to see the track full screen, with its
 figures, **Wandern** / **Velo**, **Mit Kind** and the breaks. **Bearbeiten** at the top changes the route, and the
 **⋮** beside it renames the track, downloads the file, replaces it with another or removes it. The list of
 excursions shows the first track's distance and climb under the excursion's name, with *+1* for each further one.

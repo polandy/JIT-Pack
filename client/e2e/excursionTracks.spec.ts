@@ -65,8 +65,8 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
   })
 
   /**
-   * E2E-M27-15: a GPX file from the excursion's ⋮ becomes a line under its
-   * notes — its kind, name, distance, climb and time — and M27's list says
+   * E2E-M27-15: a GPX file from the excursion's ⋮ becomes a line on its
+   * route card, above the packing list — its kind, name, distance, climb and time — and M27's list says
    * the first one's distance and climb, with how many more. The line opens
    * the full-screen map on that track; there its time takes the pauses set
    * by hand, and its ⋮ renames, downloads and removes it (confirmed). A
@@ -78,6 +78,20 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
     await expect(excursionTrackRows(page)).toHaveCount(0)
     await addExcursionTrack(page, 'aufstieg.gpx', CLIMB)
     await addExcursionTrack(page, 'pienza.gpx', PIENZA)
+
+    // The route comes first: its card stands above the progress card.
+    const card = visible(page).getByTestId('track-summary')
+    const progress = visible(page).getByTestId('m27-progress-card')
+    expect((await card.boundingBox())!.y).toBeLessThan((await progress.boundingBox())!.y)
+    await expect(
+      card.getByTestId('track-summary-map').locator('svg path, path.jp-track-line'),
+    ).not.toHaveCount(0)
+
+    await card.getByTestId('track-summary-open').click()
+    await expect(trackViewer(page)).toBeVisible()
+    await expect(trackViewer(page).getByTestId('track-distance')).toHaveText('3.3 km')
+    await trackViewer(page).getByTestId('track-viewer-close').click()
+    await expect(trackViewer(page)).toBeHidden()
 
     const [climb, pienza] = [excursionTrackRows(page).nth(0), excursionTrackRows(page).nth(1)]
     await expect(climb).toContainText('Aufstieg zur Alp')

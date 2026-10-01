@@ -4,7 +4,7 @@
 **Related:** ADR-085 (GPX tracks on an idea, whose shape this repeats), ADR-088 (the route editor), ADR-077
 (excursions), ADR-078 and ADR-066 (feature modules and their boundary), ADR-067 (the migration chain), FR-31.15,
 FR-29.17, invariants 2 and 6, `internal/store/track.go`, `client/src/composables/sync/trackFiles.ts`,
-`client/src/composables/useTrackOwner.ts`, `client/src/components/global/TrackRows.vue`
+`client/src/composables/useTrackOwner.ts`, `client/src/components/global/TrackSummary.vue`
 
 **Decision Drivers (in priority order):**
 1. **Nothing on disk changes meaning.** The family's instance runs in production with tracks on its ideas; their rows
@@ -79,7 +79,7 @@ Move `idea_tracks` into a table both holders share, the holder named by two colu
 
 An excursion keeps its tracks in `excursion_tracks` and `excursion_track_gpx`, shaped as the idea's, behind its own
 `PUT/GET /trips/{id}/excursions/{excursionID}/tracks/{trackID}`; one code path serves both holders on the server
-(`trackHolder`) and on the client (`createTrackFiles`, `useTrackOwner`, the kernel's `TrackMore` and `TrackRows`).
+(`trackHolder`) and on the client (`createTrackFiles`, `useTrackOwner`, the kernel's `TrackMore` and `TrackSummary`).
 
 ## Consequences
 

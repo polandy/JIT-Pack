@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * A set of GPX tracks as quiet lines (FR-31.15): a line per track — its kind
- * in its colour, its name, its distance, climb and time — that opens the
- * full-screen map on it, with the track's ⋮ in the map's bar. An excursion's
- * list carries it, under its notes, where the track card's map would push
- * the list down.
+ * A set of GPX tracks as a card of their own (FR-31.15): a still map with
+ * every line on it, then a line per track — its kind in its colour, its
+ * name, its distance, climb and time. The map opens the full-screen map on
+ * the first track, a line on its own, with the track's ⋮ in the map's bar.
+ * An excursion carries it at the top, above its packing list, so the route
+ * is seen before what to pack for it.
  *
  * Kernel, like the card: it knows tracks, never what they hang on, and
  * hands every act up.
@@ -13,9 +14,11 @@ import { IonIcon } from '@ionic/vue'
 import { bicycleOutline, chevronForward, walkOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import { decodeLine, movingMinutes, type TrackSettings } from '@/domain/track'
+import { decodeLine, defaultSource, movingMinutes, type TrackSettings } from '@/domain/track'
+import { t } from '@/i18n'
 import { formatDistance, formatDuration, formatMetres } from '@/lib/trackFormat'
 import type { TrackFields } from '@/types/domain'
+import TrackMap from './TrackMap.vue'
 import TrackMore from './TrackMore.vue'
 import TrackViewer from './TrackViewer.vue'
 import { trackHueClass, type MapLine } from './trackColors'
@@ -54,6 +57,8 @@ const lines = computed<MapLine[]>(() =>
   })),
 )
 
+const source = computed(() => defaultSource(lines.value.map((line) => line.points)))
+
 /** „16,2 km · ↑ 1'046 m · 6 h 05" — the time with the travellers' own pauses. */
 function facts(track: TrackFields): string {
   const parts = [formatDistance(track.distance_m)]
@@ -81,28 +86,40 @@ function removeChosen(track: TrackFields) {
 </script>
 
 <template>
-  <ul class="track-rows" data-testid="track-rows">
-    <li v-for="(track, index) in tracks" :key="track.id">
+  <section class="track-summary jp-card" data-testid="track-summary">
+    <div class="mini">
+      <TrackMap class="map" :lines="lines" :source="source" data-testid="track-summary-map" />
       <button
         type="button"
-        class="row"
-        :class="trackHueClass(index)"
-        :data-testid="`track-row-${track.id}`"
-        @click="open(track.id)"
-      >
-        <IonIcon
-          class="kind"
-          :icon="track.kind === 'bike' ? bicycleOutline : walkOutline"
-          aria-hidden="true"
-        />
-        <span class="name">{{ track.name }}</span>
-        <span class="facts jp-num" :data-testid="`track-row-facts-${track.id}`">
-          {{ facts(track) }}
-        </span>
-        <IonIcon class="chevron" :icon="chevronForward" aria-hidden="true" />
-      </button>
-    </li>
-  </ul>
+        class="open"
+        :aria-label="t('track.mapOf', { title })"
+        data-testid="track-summary-open"
+        @click="open(chosen!.id)"
+      ></button>
+    </div>
+    <ul class="track-rows" data-testid="track-rows">
+      <li v-for="(track, index) in tracks" :key="track.id">
+        <button
+          type="button"
+          class="row"
+          :class="trackHueClass(index)"
+          :data-testid="`track-row-${track.id}`"
+          @click="open(track.id)"
+        >
+          <IonIcon
+            class="kind"
+            :icon="track.kind === 'bike' ? bicycleOutline : walkOutline"
+            aria-hidden="true"
+          />
+          <span class="name">{{ track.name }}</span>
+          <span class="facts jp-num" :data-testid="`track-row-facts-${track.id}`">
+            {{ facts(track) }}
+          </span>
+          <IonIcon class="chevron" :icon="chevronForward" aria-hidden="true" />
+        </button>
+      </li>
+    </ul>
+  </section>
   <TrackViewer
     :open="viewing"
     :title="title"
@@ -129,13 +146,36 @@ function removeChosen(track: TrackFields) {
 </template>
 
 <style scoped>
-/* The quiet line of an excursion's notes (ExcursionNotes), so the two read as one block. */
+.track-summary {
+  overflow: hidden;
+}
+
+.mini {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border-bottom: 1px solid var(--jp-surface-border);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* The whole map is the button. */
+.open {
+  position: absolute;
+  z-index: 600;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
 .track-rows {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   margin: 0;
-  padding: 0;
+  padding: 4px 8px;
   list-style: none;
 }
 
@@ -144,10 +184,11 @@ function removeChosen(track: TrackFields) {
   align-items: center;
   gap: 8px;
   width: 100%;
+  min-height: 44px;
   padding: 6px 4px;
   border: none;
   background: none;
-  color: var(--ct-subtext1);
+  color: var(--ct-text);
   font: inherit;
   font-size: var(--jp-text-sm);
   text-align: start;
@@ -162,6 +203,7 @@ function removeChosen(track: TrackFields) {
 
 .name {
   flex: 1;
+  font-weight: var(--jp-weight-semibold);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
