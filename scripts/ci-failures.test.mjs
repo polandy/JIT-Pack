@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { digest, parse } from './ci-failures.mjs'
+import { digest, parse, untilFailure } from './ci-failures.mjs'
 
 /** One line as `gh run view --log-failed` prints it: job, step, timestamped text. */
 const logLine = (job, text) => `${job}\tRun e2e\t2026-09-29T23:16:31.9950034Z ${text}`
@@ -12,12 +12,14 @@ const FAILURE = [
   '    Error: expect(locator).toHaveText(expected) failed',
   '    Expected: "Tomorrow"',
   '    Received: "Today"',
-  '    > 556 |     await expect(pill).toHaveText(\'Tomorrow\')',
+  "    > 556 |     await expect(pill).toHaveText('Tomorrow')",
   '        at /w/client/e2e/shopping/shopping.spec.ts:556:24',
 ]
 
 test('parse groups lines by job and strips the timestamp and the colour codes', () => {
-  const raw = [logLine('e2e (4)', '\x1b[31mred\x1b[0m'), logLine('go', '--- FAIL: TestX')].join('\n')
+  const raw = [logLine('e2e (4)', '\x1b[31mred\x1b[0m'), logLine('go', '--- FAIL: TestX')].join(
+    '\n',
+  )
   const jobs = parse(raw)
   assert.deepEqual([...jobs.keys()], ['e2e (4)', 'go'])
   assert.deepEqual(jobs.get('e2e (4)'), ['red'])
@@ -61,7 +63,7 @@ test('digest prints a failure Playwright reports twice only once', () => {
   assert.equal(kept.filter((l) => l === FAILURE[1]).length, 1)
 })
 
-test('digest keeps a short line that repeats, such as a source excerpt\'s bare gutter', () => {
+test("digest keeps a short line that repeats, such as a source excerpt's bare gutter", () => {
   const kept = digest(['    554 |', 'x'.repeat(30), '    554 |'])
   assert.equal(kept.filter((l) => l === '    554 |').length, 2)
 })
@@ -70,4 +72,19 @@ test('digest keeps the text of an ##[error] line, not the marker', () => {
   assert.deepEqual(digest(['##[error]  1) [chromium] › e2e/a.spec.ts:1:1 › a case']), [
     '  1) [chromium] › e2e/a.spec.ts:1:1 › a case',
   ])
+})
+
+test('untilFailure cuts a whole job log after its last error, before the post-job steps', () => {
+  const log = [
+    'setup',
+    '  1 failed',
+    '##[error]Process completed with exit code 1.',
+    'Post job cleanup.',
+    'Uploading artifact',
+  ]
+  assert.deepEqual(untilFailure(log), log.slice(0, 3))
+})
+
+test('untilFailure leaves a log with no error marker whole', () => {
+  assert.deepEqual(untilFailure(['a', 'b']), ['a', 'b'])
 })

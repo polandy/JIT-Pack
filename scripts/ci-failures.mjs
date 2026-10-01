@@ -99,26 +99,82 @@ function gh(args) {
   return execFileSync('gh', args, {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 }
 
-/** The newest failed CI run of a branch. */
-function latestFailed(branch) {
-  const out = gh([
-    'run',
-    'list',
-    '--branch',
-    branch,
-    '--status',
-    'failure',
-    '--limit',
-    '1',
-    '--json',
-    'databaseId',
-  ])
-  const [run] = JSON.parse(out)
-  if (!run) throw new Error(`no failed run on branch ${branch}`)
-  return String(run.databaseId)
+/** The workflow whose runs this reads; the others on a branch (docs, release) are not CI. */
+const WORKFLOW = 'ci.yml'
+
+/** The jobs of a run that have already failed, finished or not. */
+function failedJobs(run) {
+  const { jobs } = JSON.parse(gh(['run', 'view', run, '--json', 'jobs']))
+  return jobs
+    .filter((j) => j.conclusion === 'failure')
+    .map((j) => ({ id: j.databaseId, name: j.name }))
+}
+
+/**
+ * The run to read for a branch: its newest run when a job in it has already
+ * failed — a red leg is worth reading while the other legs still run —
+ * otherwise its newest failed run.
+ */
+function runFor(branch) {
+  const list = (extra) =>
+    JSON.parse(
+      gh([
+        'run',
+        'list',
+        '--workflow',
+        WORKFLOW,
+        '--branch',
+        branch,
+        '--limit',
+        '1',
+        '--json',
+        'databaseId',
+        ...extra,
+      ]),
+    )
+  const [newest] = list([])
+  if (newest && failedJobs(String(newest.databaseId)).length) return String(newest.databaseId)
+  const [failed] = list(['--status', 'failure'])
+  if (!failed) throw new Error(`no failed run on branch ${branch}`)
+  return String(failed.databaseId)
+}
+
+/**
+ * A whole job log runs on past its failure: artifact uploads and the
+ * post-job cleanup come after it, and the tail-first cut would show those.
+ * The runner marks the failing step's end with `##[error]`, so the log is cut
+ * after the last one.
+ */
+export function untilFailure(lines) {
+  const last = lines.findLastIndex((line) => line.includes('##[error]'))
+  return last === -1 ? lines : lines.slice(0, last + 1)
+}
+
+/**
+ * A run's failed-step log, or — while the run is still going, when gh refuses
+ * that — each failed job's whole log from the jobs API, in the same
+ * `job \t step \t text` shape so one parser reads both.
+ */
+function failedLog(run) {
+  try {
+    return gh(['run', 'view', run, '--log-failed'])
+  } catch (err) {
+    if (!/still in progress/.test(String(err.stderr))) throw err
+  }
+  const repo = gh(['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner']).trim()
+  return failedJobs(run)
+    .flatMap(({ id, name }) =>
+      untilFailure(
+        gh(['api', '--allow-escape-sequences', `repos/${repo}/actions/jobs/${id}/logs`]).split(
+          '\n',
+        ),
+      ).map((line) => `${name}\t\t${line}`),
+    )
+    .join('\n')
 }
 
 function args(argv) {
@@ -140,10 +196,10 @@ function main() {
       : execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
           encoding: 'utf8',
         }).trim()
-    run = latestFailed(branch)
+    run = runFor(branch)
   }
 
-  const jobs = parse(gh(['run', 'view', run, '--log-failed']))
+  const jobs = parse(failedLog(run))
   console.log(
     `run ${run} — ${jobs.size} failed job(s); full log: gh run view ${run} --log-failed\n`,
   )
@@ -163,5 +219,16 @@ function main() {
   }
 }
 
-/* Run when invoked, not when the test imports the two functions above. */
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+/*
+ * Run when invoked, not when the test imports the two functions above. A
+ * failing gh call is reported as its own message, not as a Node stack trace
+ * that buries it.
+ */
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    main()
+  } catch (err) {
+    console.error(`ci-failures: ${String(err.stderr || err.message).trim()}`)
+    process.exit(1)
+  }
+}
