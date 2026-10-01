@@ -13,18 +13,20 @@ Work through **all** sections below in order. Collect findings as you go and fix
 ## 0. Gather context
 
 - `gh pr view <PR> --json title,body,baseRefName,headRefName,mergeStateStatus,statusCheckRollup` for metadata and CI status.
-- `gh pr diff <PR>` for the full diff; check out the PR branch (or its worktree under `.claude/worktrees/` if one exists) so you can build and test.
+- `gh pr diff <PR> --name-only` first, then the diff per file or per area (`gh pr diff <PR> | …` or `git diff origin/<base>...HEAD -- <path>`) — a large PR's full diff in one read is mostly files a given section does not need. Check out the PR branch (or its worktree under `.claude/worktrees/` if one exists) so you can build and test.
 - Read the PR description and any linked ADR or FR/NFR id first — the review checks the implementation *against its stated intent*.
-- **Load the project standard**: read `CLAUDE.md` (§Invariants, §Working agreement) and `dev-docs/CODING_PRINCIPLES.md` — these are binding and authoritative. Section 3 below distills the highest-signal checks, but the *files* win where they disagree with this skill. Also skim `.golangci.yml` for the enabled linters.
+- **Load the project standard**: `CLAUDE.md` is already in your context — do not read it again. Read `dev-docs/CODING_PRINCIPLES.md`; it and `CLAUDE.md` (§Invariants, §Working agreement) are binding and authoritative. Section 3 below distills the highest-signal checks, but the *files* win where they disagree with this skill. Also skim `.golangci.yml` for the enabled linters.
+- **Read specs by the section the diff touches, never whole.** `dev-docs/prd-addendum/`, `ui-spec/` and `ui-test-spec/` are one file per section or screen; open the ones the PR's FR ids and screens name. The ledgers (`implementation-log/`, `e2e-ledger/`) are read through their index lines: `grep -h "^- \[" dev-docs/implementation-log/*.md | grep -i <topic>`.
+- **Delegate the mechanical, keep the judgement.** Reading a red CI log, merging `main` in and re-running `make ci`, or sweeping a rename are subagent work at `model: "sonnet"` — ask for a short report back. The findings, the §4.0 table and the verdict stay with you.
 
 ## 1. Documentation ↔ implementation sync
 
 Every requirement or behaviour change is reflected in its spec **in the same PR** — never as a follow-up.
 
-- `dev-docs/PRD_Addendum_v2.10.md` — the authoritative requirement source (it overrides `PRD_Base.md`). New/changed FR or NFR text belongs here.
-- `dev-docs/UI_Spec_v1.10.md` — any new screen, global pattern (G-n) or changed screen behaviour.
+- `dev-docs/prd-addendum/` — the authoritative requirement source (it overrides `PRD_Base.md`), one file per section. New/changed FR or NFR text belongs in its section's file.
+- `dev-docs/ui-spec/` — any new screen (a new `Mnn-*.md`, linked from the README), global pattern (G-n, `global-patterns.md`) or changed screen behaviour.
 - `dev-docs/Sync_API_Spec_v1.3.md` — new endpoints, envelope fields, WebSocket frames, merge-rule changes.
-- `dev-docs/UI_Test_Spec_v1.0.md` — new UI behaviour adds its case + traceability-matrix row.
+- `dev-docs/ui-test-spec/` — new UI behaviour adds its case in the screen's file + a row in `traceability.md`.
 - **Schema**: `internal/store/schema.sql` is the single source of truth — flag any attempt to duplicate the schema into `docs/`.
 - `docs/upgrades.md` — a schema, wire or merge-rule change that is breaking, or that needs a deliberate upgrade step beyond the automatic migration chain, is documented here (or in `Sync_API_Spec_v1.3.md` for a wire/API contract). See §3's breaking-changes check.
 - Check the reverse too: no doc may still describe behaviour this PR removed or changed.
@@ -85,7 +87,7 @@ Three rules follow from the same two misses:
 
 If the PR touches `client/src`:
 
-- **`dev-docs/UI_Spec_v1.10.md` must be updated** in the same PR to describe the new surface, and `dev-docs/UI_Test_Spec_v1.0.md` gains the corresponding case.
+- **`dev-docs/ui-spec/` must be updated** in the same PR to describe the new surface, and `dev-docs/ui-test-spec/` gains the corresponding case.
 - **The feature's UI ships with the feature.** A backend capability with "UI in a follow-up" is a blocker, not a note.
 - **e2e**: new UI behaviour needs a Playwright case in `client/e2e` — one test unit per PR. Check that behaviour assertions exist and that the case runs in the mode(s) the feature actually supports (`jitpack_mode` seeding, see `client/e2e/fixtures.ts`).
 - **Read the spec's case text against the test body, sentence by sentence.** A case id existing is not coverage. The UI-Test-Spec entry is a list of promises, and each clause has to be findable as an assertion — "released on both when cleared **or when one side is deleted**" is two promises, and a PR that tests the first while marking the id *implemented* has written a false spec. Where a promise turns out not to be assertable through the UI, the spec sentence is what changes; do not leave it standing as if a lower-layer unit test satisfied it.
@@ -98,7 +100,7 @@ If the PR touches `client/src`:
 ## 6. CI status — fix failures
 
 - Check `gh pr checks <PR>`. **All checks must be green.**
-- If anything is red: read the failure (`gh run view --log-failed`), fix it on the PR branch, run `make ci`, commit with a Conventional Commit (allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` — `build:` only where Dependabot generates it), push, wait for the re-run. Repeat until green.
+- If anything is red: read the failure with `node scripts/ci-failures.mjs --pr <PR>` — the failing assertions and their source lines, without the image pulls and attachment banners `gh run view --log-failed` buries them in (fall back to that only when the digest is not enough) — fix it on the PR branch, run `make ci`, commit with a Conventional Commit (allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` — `build:` only where Dependabot generates it), push, wait for the re-run. Repeat until green.
 - Note: the `autoformat` job pushes formatting commits back onto the branch. If it did, pull before you push, or your push is rejected.
 
 ## 7. Branch freshness — update if behind

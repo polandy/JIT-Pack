@@ -12,10 +12,10 @@ Review uncommitted or recently committed changes against project standards:
    - Conventional Commits with FR/NFR references where applicable
    - `CLAUDE.md`'s "Not built yet" updated if the change closes an item or opens a new gap — a
      closed item is one line and a pointer, only open work carries detail
-   - `dev-docs/implementation-log.md` appended to **only if the change earns an entry** (see its
+   - `dev-docs/implementation-log/` appended to **only if the change earns an entry** (see its
      "What earns an entry": a rejected option, a wrong premise, an accepted cost, a priced trap —
      not a retelling of the diff), and its index extended with the new section
-   - `dev-docs/e2e-tests.md` updated when the diff adds or retires a Playwright case
+   - `dev-docs/e2e-ledger/` updated when the diff adds or retires a Playwright case
 4. Report findings concisely: what's good, what needs fixing. If everything is clean, say so
    briefly.
 

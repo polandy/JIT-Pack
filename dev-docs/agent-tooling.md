@@ -14,6 +14,7 @@ reason this file exists.
 | Thing | Lives in | Claude Code | Copilot CLI |
 |---|---|---|---|
 | Orientation + invariants | `CLAUDE.md` | loaded automatically | loaded automatically |
+| Subtree detail of the invariants | `client/CLAUDE.md`, `internal/CLAUDE.md` | loaded when a file below is read | not verified — the root `CLAUDE.md` names both, so they are read on demand at worst |
 | Instruction pointer for other surfaces | `.github/copilot-instructions.md` | not read | loaded (also the cloud agent and code review) |
 | Coding principles, specs, ADRs | `dev-docs/` | read on demand | read on demand |
 | Skills | `.claude/skills/*/SKILL.md` | project skills | project skills (`.claude/skills/` is a discovery path) |

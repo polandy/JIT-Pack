@@ -14,5 +14,5 @@ Identify the next task to work on:
 
 Keep the plan short — max 5 steps. Each step is one Conventional Commit with green tests, and the
 final step updates whichever ledger the work belongs to (`CLAUDE.md`'s backlog line,
-`dev-docs/e2e-tests.md`, the worklist item) and — **only if the work earned an entry** by that
-file's own rule — appends to `dev-docs/implementation-log.md` and its index.
+`dev-docs/e2e-ledger/`, the worklist item) and — **only if the work earned an entry** by that
+file's own rule — appends to the current week's file in `dev-docs/implementation-log/` and its index.

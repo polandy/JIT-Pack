@@ -8,7 +8,9 @@ anything.
 **Read, in this order:**
 
 1. [`CLAUDE.md`](../CLAUDE.md) — commands, where things live, the **Invariants** (do not break these),
-   the testing rules and the working agreement.
+   the testing rules and the working agreement — and, for the side you change,
+   [`client/CLAUDE.md`](../client/CLAUDE.md) or [`internal/CLAUDE.md`](../internal/CLAUDE.md), which hold
+   the detail of the rules that only apply there.
 2. [`dev-docs/CODING_PRINCIPLES.md`](../dev-docs/CODING_PRINCIPLES.md) — binding; read before writing
    code.
 3. The spec sections your change actually touches, named in `CLAUDE.md`'s "Where things live" table.
