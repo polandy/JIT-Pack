@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -71,6 +72,11 @@ type Config struct {
 	// unless the value is "false" (ADR-085).
 	MapTiles bool // JITPACK_MAP_TILES, "false" disables
 
+	// RoutingURL is the BRouter a device asks for paths when it edits a
+	// route (FR-29.20, ADR-088): the public one unless JITPACK_ROUTING_URL
+	// names another, and empty where JITPACK_ROUTING is "false".
+	RoutingURL string // JITPACK_ROUTING, JITPACK_ROUTING_URL
+
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
@@ -134,6 +140,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	c.MapTiles = tiles
+
+	routing, err := parseRouting(getenv("JITPACK_ROUTING"), getenv("JITPACK_ROUTING_URL"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.RoutingURL = routing
 
 	if c.SingleUser {
 		if c.LocalUserID == "" {
@@ -213,6 +225,30 @@ func parseOnByDefault(name, raw string) (bool, error) {
 		return false, nil
 	}
 	return false, fmt.Errorf("%s must be true or false, or unset (on)", name)
+}
+
+// DefaultRoutingURL is the public BRouter a device asks unless the operator
+// names another (ADR-088).
+const DefaultRoutingURL = "https://brouter.de/brouter"
+
+// parseRouting reads the routing switch and its address: the address, the
+// public BRouter where none is named, or empty where routing is off. An
+// address that is not an absolute http(s) URL refuses to start, as a
+// misspelt switch does.
+func parseRouting(on, raw string) (string, error) {
+	enabled, err := parseOnByDefault("JITPACK_ROUTING", on)
+	if err != nil || !enabled {
+		return "", err
+	}
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return DefaultRoutingURL, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return "", fmt.Errorf("JITPACK_ROUTING_URL must be an http(s) address, got %q", raw)
+	}
+	return raw, nil
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

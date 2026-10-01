@@ -36,6 +36,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -52,6 +53,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":9090",
 				DBPath:         "/data/app.db",
 				SessionSecret:  "s3cret",
@@ -70,6 +72,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -86,6 +89,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SingleUser:     true,
@@ -105,6 +109,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
 				MapTiles:         true,
+				RoutingURL:       DefaultRoutingURL,
 			},
 		},
 		{
@@ -124,6 +129,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
 				MapTiles:         true,
+				RoutingURL:       DefaultRoutingURL,
 			},
 		},
 		{
@@ -136,6 +142,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
 				SessionSecret:  "s3cret",
@@ -409,6 +416,48 @@ func TestLoadConfig_TaskReminderTime(t *testing.T) {
 			}
 			if cfg.TaskReminderAt != tc.want {
 				t.Errorf("TaskReminderAt = %v, want %v", cfg.TaskReminderAt, tc.want)
+			}
+		})
+	}
+}
+
+// FR-29.20: routing is on with the public BRouter unless the operator turns
+// it off or names another; a misspelt switch or an address that is no
+// http(s) URL refuses to start.
+func TestLoadConfig_Routing_FR29_20(t *testing.T) {
+	cases := []struct {
+		name    string
+		on, url string
+		want    string
+		wantErr string
+	}{
+		{name: "unset is the public BRouter", want: DefaultRoutingURL},
+		{name: "false turns it off", on: "false", url: "https://ignored.example", want: ""},
+		{name: "an address of its own", url: " https://router.example/brouter ", want: "https://router.example/brouter"},
+		{name: "a misspelt switch refuses", on: "off", wantErr: "JITPACK_ROUTING"},
+		{name: "an address without a scheme refuses", url: "router.example", wantErr: "JITPACK_ROUTING_URL"},
+		{name: "a file address refuses", url: "file:///etc/passwd", wantErr: "JITPACK_ROUTING_URL"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_ROUTING":       tc.on,
+				"JITPACK_ROUTING_URL":   tc.url,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("loadConfigFrom = %v, want an error naming %s", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom: %v", err)
+			}
+			if cfg.RoutingURL != tc.want {
+				t.Errorf("RoutingURL = %q, want %q", cfg.RoutingURL, tc.want)
 			}
 		})
 	}

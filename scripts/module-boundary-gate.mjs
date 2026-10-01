@@ -88,6 +88,9 @@ const KERNEL_PATHS = [
   // A GPX track's rules (FR-29.17): a file, its figures and its time — no
   // idea and no excursion in sight, since both carry tracks (ADR-085).
   'domain/track',
+  // Editing a track's route (FR-29.20): handles, legs and the GPX written
+  // from them — a route, nothing it hangs on (ADR-088).
+  'domain/route',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

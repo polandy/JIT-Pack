@@ -3964,7 +3964,8 @@ the tail is where a symbol system is actually decided. Results:
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
 (FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks** (FR-29.17,
-ADR-085) with **where everybody is** (FR-29.19, ADR-087) and the **day plan** (FR-29.14/29.15, M29); its connections
+ADR-085) with **where everybody is** (FR-29.19, ADR-087) and **their routes edited and drawn** (FR-29.20,
+ADR-088), and the **day plan** (FR-29.14/29.15, M29); its connections
 (FR-29.18), the opening by date and the bridge to the packing side are specified here and not built. The travellers of a
 trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
 their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
@@ -4185,6 +4186,43 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
     says, when asked, *„Sia · vor 2 min"*.
   * **Modes:** Local and Single-User Mode have nobody to share with: the 📍 works, the two switches are not shown
     (G-8). Without map tiles the marks are drawn on the lines alone, where they fall inside the frame.
+* **FR-29.20 (Editing and Drawing a Track's Route):** *Implemented.* A track's route is changed on the map, the way the
+  swisstopo app plans one, or a route is drawn where there is no file (ADR-088). The rules are
+  `client/src/domain/route.ts`, in the kernel beside `track.ts`, and the editor is `TrackEditor.vue`.
+  * **Where it opens.** ⋮ on a track offers *Route bearbeiten*, and the full-screen map *Bearbeiten*. Beside *GPX
+    hinzufügen* stands *Route zeichnen*, while the idea has fewer than five tracks. All three need the map: offline,
+    or where the operator turned the tiles off, they are off.
+  * **What an edit starts from.** The track's own file, read again on the device: its points become at most **14
+    handles**, the ones that best keep its shape. Between two handles the file's own line stays, heights and all,
+    until a handle beside it moves. The figures therefore start as the track's own.
+  * **Editing.** A tap on the map adds a handle at the end. A handle is dragged, and its two stretches are made again.
+    A tap on the line sets a handle there and splits the stretch without changing it. Where the route runs more than
+    once within a finger's reach, the editor asks *„Auf welchem Durchgang?"*. It names each pass — *Hinweg* and
+    *Rückweg* for two, numbered beyond — with how far along it lies and the way it runs, and shows a short stretch of
+    each on the map. A tap on a handle offers *Hier starten*, *Hier enden* and *Punkt löschen*. *Zurück zum Start*
+    closes a loop, *Richtung umkehren* walks it the other way. Every step can be undone and redone.
+  * **New stretches.** *Wegen folgen* asks the router for the path between the two handles, for the track's kind (a
+    hiking profile, or one for bike tours). *Luftlinie* joins them straight, with swisstopo's heights where both lie
+    in Switzerland and none elsewhere. A stretch the router finds no path for is drawn straight, and the editor says
+    so. A handle is drawn where the path begins or ends, which is on a path. While a stretch is fetched it is dashed,
+    and *Fertig* waits.
+  * **What it shows.** Arrows along the line show the direction, here and on every map of a track. A stretch that is
+    no longer the file's is drawn in its own colour — alpenrose, heather where the track is alpenrose; never blue,
+    which is water on the Landeskarte. It lies over the file's line, which is dotted underneath, and a legend names
+    the three. Distance, ascent, descent and the time follow every change. *„Vorher"* gives the original's distance
+    and time and the difference, and the height profile colours the changed stretches. A finger on it shows the
+    place on the map.
+  * **Saving.** *Fertig* asks for a name — *„… (Variante)"*, or *Wanderung*/*Velotour* for a new route — and how.
+    *Als neuer Track* adds it beside the original, with the original's *Mit Kind* and pauses. *„…" ersetzen* puts the
+    new file under the same track, keeping its name, kind, *Mit Kind* and pauses; the toast's *Rückgängig* uploads the
+    old file again. A new route chooses its kind in the editor. Either way the device writes a **GPX file of its
+    own** — one track, every point with its height, the kind as `<type>` — and uploads it as FR-29.17 does; the server
+    and the schema do not change. Leaving with changes asks first.
+  * **The router.** BRouter, asked by the device, the public one at `brouter.de` by default. `JITPACK_ROUTING=false`
+    turns it off, and `JITPACK_ROUTING_URL` names another; any other switch value, or an address that is not
+    http(s), refuses to start. The instance's config hands the address on, empty when off: the editor then offers
+    no *Wegen folgen*, joins handles straight and says why. Local Mode asks the public one. The router learns the
+    device's address and the two points of each stretch, as the tile servers learn the area looked at.
 
 **Not in the planner:** polls with several options (one idea per option), expenses, group logistics, a map of places (a
 map shows an idea's tracks, FR-29.17, and who is where, FR-29.19, and nothing else), weather, transport beyond a day's

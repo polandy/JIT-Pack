@@ -631,7 +631,7 @@ These patterns apply to every screen and are specified once.
 | M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
-| M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17 |
+| M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17, 29.19, 29.20 |
 | M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
 
 ---
@@ -3038,54 +3038,86 @@ token would prove nothing there is anything to prove.
   `idea-track-count`; gone at five), which opens the device's file picker for `.gpx`; *„Wird gelesen …"* while the file
   is read and sent, and a file that is no track (*„In dieser Datei ist kein Track."*), too large (*„Die Datei ist
   grösser als 5 MB."*) or not sent (*„Der Track ließ sich nicht hochladen. Bist du online?"*) toasts and keeps nothing.
-  A new track is chosen. Under the buttons the **track card** (`track-card`, the kernel's
-  `components/global/TrackCard.vue`): a row of chips, one per track with its kind's glyph and colour and its name
-  (`track-tab-<id>`, `aria-pressed` on the chosen one) — a single track's chip is its name; a map 16 : 7 (`track-map`,
-  `data-tiles` `on`/`off`/`offline`, `data-source` `swisstopo`/`osm`) carrying every track of the idea, the chosen one
-  in full colour with a start and an end dot, the others paler, and the map's source named in its corner (*Landeskarte*
-  or *OSM*), the tiles' attribution in the other, and in the top corner the glyph that says the map opens
+  A new track is chosen. Beside it *Route zeichnen* (`idea-track-draw`) opens the route editor empty (below; off without
+  a map). Under the buttons the **track card** (`track-card`, the kernel's `components/global/TrackCard.vue`): a row of
+  chips, one per track with its kind's glyph and colour and its name (`track-tab-<id>`, `aria-pressed` on the chosen
+  one) — a single track's chip is its name; a map 16 : 7 (`track-map`, `data-tiles` `on`/`off`/`offline`, `data-source`
+  `swisstopo`/`osm`) carrying every track of the idea, the chosen one in full colour with a start and an end dot and
+  arrows along it that show its direction, the others paler, and the map's source named in its corner (*Landeskarte* or
+  *OSM*), the tiles' attribution in the other, and in the top corner the glyph that says the map opens
   (`track-map-open`, the whole map being that button); **without tiles** the lines alone on the sunken surface with a
   faint grid, with *„Karte offline"* in the corner where the device is offline. A tap on the map opens **the full-screen
-  map** (`track-viewer`): the idea's title and ✕ at the top, the map panning and zooming by touch, a tap on a line
-  choosing its track, a switch *Landeskarte · OSM* (`track-source-swisstopo`, `track-source-osm`; *Landeskarte* off
-  where a track lies outside Switzerland), a button that fits the chosen track again (`track-fit`), the tiles'
-  attribution, and at its foot the same chips and figures as the card. **Where people are (FR-29.19):** under the fit
-  button a 📍 (`track-locate`, *„Meinen Standort zeigen"*, pressed while the device's position is followed) asks the
-  browser for the device's position — never on its own — draws it as a dot in glacier with its accuracy as a faint
-  circle (`jp-me`), and moves the map to it; refused, a line over the map's foot says *„Standort nicht freigegeben – in
-  den Einstellungen des Browsers erlauben."* (`track-locate-note`), and without a position at all — no HTTPS — *„Dieses
-  Gerät kann seinen Standort hier nicht zeigen."*. Where somebody else is on the trip (G-8: not in Local or Single-User
-  Mode), a row of two switches stands between the map and its foot (`track-people`): *Meinen Standort teilen*
-  (`track-share`, off by default) and *Mitreisende zeigen* (`track-show-others`, on by default), each kept on the
-  device. Every other traveller who shares is a round heather mark with their initials (`map-mark-person`), saying when
-  asked *„Sia · vor 2 min"* or *„Sia · gerade eben"*; a mark quiet for 5 minutes is gone. Without tiles the marks are
-  dots on the lines alone, where they fall inside the frame. Under the map the **four figures** of the chosen track —
-  *Distanz*, *Aufstieg*, *Abstieg*, *Höchster Punkt* (`track-distance`, `track-ascent`, `track-descent`,
-  `track-highest`; *–* without heights) — and the **time**: *Wandern · Velo* as one segmented control
-  (`track-kind-hike`, `track-kind-bike`) and the chip *Mit Kind* (`track-kid`, pressed where set), over the sum *„3 h 25
-  Gehzeit + 1 h 00 Pausen = 4 h 25 Unterwegs"* — *Fahrzeit* for a bike tour — whose pauses are a − / + stepper in
-  quarter hours (`track-pause-less`, `track-pause-more`, `track-pause`; − off at 0, + off at 8 h), with *Unterwegs* in
-  the action colour (`track-total`). Under it, small, what the time assumes: *„Formel der Schweizer Wanderwege"*, or the
-  paces where *Mit Kind* or *Velo* is chosen. Each change is written at once. At the card's foot the file's name and its
-  number of points, and ⋮ (`track-more`) offering *Umbenennen* (`track-rename`, a field in an alert,
-  `track-rename-prompt`), *GPX herunterladen* (`track-download`), *Durch andere Datei ersetzen* (`track-replace`; name,
-  kind, *Mit Kind* and pauses stay) and *Track entfernen* — a destructive confirmation (`track-remove-confirm`) *„Der
-  Track verschwindet für alle, die an der Reise teilnehmen."*. The link as a card that opens the site in a new tab
-  (`noopener noreferrer`); the note; **the four states as one segmented control** (`idea-state-<state>`) — a tap moves
-  the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves it back unless somebody has moved it since;
-  **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars (`idea-vote-up`/`-down`, pressed where
-  the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the **discussion** (*Kommentare* with its
-  count), oldest first, each entry with its avatar, words, and who and when, and a field at the foot (*„Kommentar
-  schreiben…"*) with a send button; a tap on one of my entries offers *Bearbeiten* — its words edited in place,
-  *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and *Kommentar löschen*. At the foot *Bearbeiten*
-  and *Idee löschen* — a destructive confirmation (`idea-remove-confirm`) *„„…" löschen?"* / *„Die Idee verschwindet mit
-  ihren Stimmen, Kommentaren, Bildern und Tracks für alle. Verwerfen behält sie."*.
+  map** (`track-viewer`): the idea's title, *Bearbeiten* (`track-viewer-edit`, off without a map) and ✕ at the top,
+  the map panning and zooming by touch, a tap on a line choosing its track, a switch *Landeskarte · OSM*
+  (`track-source-swisstopo`, `track-source-osm`; *Landeskarte* off where a track lies outside Switzerland), a button
+  that fits the chosen track again (`track-fit`), the tiles' attribution, and at its foot the same chips and figures
+  as the card. **Where people are (FR-29.19):** under the fit button a 📍 (`track-locate`, *„Meinen Standort zeigen"*,
+  pressed while the device's position is followed) asks the browser for the device's position — never on its own —
+  draws it as a dot in glacier with its accuracy as a faint circle (`jp-me`), and moves the map to it; refused, a line
+  over the map's foot says *„Standort nicht freigegeben – in den Einstellungen des Browsers erlauben."*
+  (`track-locate-note`), and without a position at all — no HTTPS — *„Dieses Gerät kann seinen Standort hier nicht
+  zeigen."*. Where somebody else is on the trip (G-8: not in Local or Single-User Mode), a row of two switches stands
+  between the map and its foot (`track-people`): *Meinen Standort teilen* (`track-share`, off by default) and
+  *Mitreisende zeigen* (`track-show-others`, on by default), each kept on the device. Every other traveller who shares
+  is a round heather mark with their initials (`map-mark-person`), saying when asked *„Sia · vor 2 min"* or *„Sia ·
+  gerade eben"*; a mark quiet for 5 minutes is gone. Without tiles the marks are dots on the lines alone, where they
+  fall inside the frame. Under the map the **four figures** of the chosen track — *Distanz*, *Aufstieg*, *Abstieg*,
+  *Höchster Punkt* (`track-distance`, `track-ascent`, `track-descent`, `track-highest`; *–* without heights) — and the
+  **time**: *Wandern · Velo* as one segmented control (`track-kind-hike`, `track-kind-bike`) and the chip *Mit Kind*
+  (`track-kid`, pressed where set), over the sum *„3 h 25 Gehzeit + 1 h 00 Pausen = 4 h 25 Unterwegs"* — *Fahrzeit*
+  for a bike tour — whose pauses are a − / + stepper in quarter hours (`track-pause-less`, `track-pause-more`,
+  `track-pause`; − off at 0, + off at 8 h), with *Unterwegs* in the action colour (`track-total`). Under it, small,
+  what the time assumes: *„Formel der Schweizer Wanderwege"*, or the paces where *Mit Kind* or *Velo* is chosen. Each
+  change is written at once. At the card's foot the file's name and its number of points, and ⋮ (`track-more`)
+  offering *Route bearbeiten* (`track-edit`, off without a map), *Umbenennen* (`track-rename`, a field in an alert,
+  `track-rename-prompt`), *GPX herunterladen* (`track-download`), *Durch andere Datei ersetzen* (`track-replace`;
+  name, kind, *Mit Kind* and pauses stay) and *Track entfernen* — a destructive confirmation (`track-remove-confirm`)
+  *„Der Track verschwindet für alle, die an der Reise teilnehmen."*. **The route editor** (`route-editor`, FR-29.20,
+  ADR-088, the kernel's `TrackEditor.vue`), full screen on the crust surface: ✕ (`route-cancel`; with changes it asks
+  first, `route-discard-confirm`, *„Änderungen verwerfen?"*), *Route bearbeiten* or *Neue Route* over the track's
+  name, and *Fertig* (`route-done`; off until something changed, and *„Rechnet …"* while a stretch is fetched). The
+  map (`route-map`, `data-handles`, `data-settled`) fills the rest: *Landeskarte · OSM* top left; down the right edge
+  *Rückgängig*, *Wiederholen*, *Zurück zum Start*, *Richtung umkehren* and *Ganze Route* (`route-undo`, `route-redo`,
+  `route-loop`, `route-reverse`, `route-fit`); bottom left *Wegen folgen · Luftlinie* (`route-follow-paths`,
+  `route-follow-line`; absent where routing is off). The handles are white dots ringed in the track's colour
+  (`route-handle-<n>`), the start green and the end red; the legs are the track's colour, a changed one alpenrose
+  (heather on an alpenrose track) over the file's line dotted, a leg being fetched dashed, arrows along all of it, and
+  the idea's other tracks faint underneath. A tap on a handle rings it and raises a card (`route-point`): *„Punkt 4 ·
+  bei 3,2 km"* (*Startpunkt*, *Endpunkt*) with *Hier starten*, *Hier enden* and *Punkt löschen* (`route-start-here`,
+  `route-end-here`, `route-remove-point`). A tap on the line where the route runs more than once raises *„Auf welchem
+  Durchgang?"* (`route-passes`): one row per pass (`route-pass-<n>`) with its number, *Hinweg*/*Rückweg* (or *„3.
+  Durchgang"*), *„bei 1,7 km"* and an arrow turned the way it runs, while the map highlights each pass's next stretch
+  with its number. At the foot the four figures *Distanz*, *Aufstieg*, *Abstieg* and *Gehzeit*/*Fahrzeit*
+  (`route-distance`, `route-ascent`, `route-descent`, `route-moving`); where a stretch changed, the legend
+  *Unverändert · Geändert · Ursprünglich* (`route-legend`); for an edit *„Vorher 7,4 km · 3 h 25"* with the difference
+  in pine or ember (`route-before`, `route-delta`), for a new route *Wandern · Velo* (`route-kind-hike`,
+  `route-kind-bike`); the height profile (`route-profile`), its changed stretches coloured and a mark per handle, a
+  finger on it naming distance and height (`route-profile-reading`) and showing the place on the map; and a line with
+  the hint (`route-hint`: *„Tippe auf den Startpunkt."*, then *„Tippe aufs Ziel – die Route folgt den Wegen."*, then
+  *„Tippen verlängert · Punkte lassen sich ziehen"*) and the sources (*„Wege: BRouter · © OpenStreetMap"*, *„Höhen:
+  swisstopo"*, or *„Routing ist auf dieser Instanz aus – nur Luftlinie"*). A stretch with no path toasts *„Hier fand
+  sich kein Weg – gerade Linie"* at the top. *Fertig* raises a sheet (`route-save`): *Route speichern*, the figures,
+  the name (`route-save-name`, *„… (Variante)"* or *Wanderung*/*Velotour*), *Als neuen Track* (`route-save-new`,
+  *„Track speichern"* for a new route; off at five tracks, saying so), *„„…" ersetzen"* (`route-save-replace`, edits
+  only) and *Weiter bearbeiten*. A replacement toasts *„„…" ersetzt"* with *Rückgängig*; a new track is chosen on the
+  card. Where the track's file cannot be read back, *„Der Track ließ sich nicht laden. Bist du online?"*. The link as
+  a card that opens the site in a new tab (`noopener noreferrer`); the note; **the four states as one segmented
+  control** (`idea-state-<state>`) — a tap moves the idea and toasts *„„…": Shortlist"* with *Rückgängig*, which moves
+  it back unless somebody has moved it since; **the votes** — 👍 and 👎 as buttons with their counts and the voters'
+  avatars (`idea-vote-up`/`-down`, pressed where the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*;
+  the **discussion** (*Kommentare* with its count), oldest first, each entry with its avatar, words, and who and when,
+  and a field at the foot (*„Kommentar schreiben…"*) with a send button; a tap on one of my entries offers
+  *Bearbeiten* — its words edited in place, *Speichern* / *Abbrechen*, and the entry marked *bearbeitet* after — and
+  *Kommentar löschen*. At the foot *Bearbeiten* and *Idee löschen* — a destructive confirmation
+  (`idea-remove-confirm`) *„„…" löschen?"* / *„Die Idee verschwindet mit ihren Stimmen, Kommentaren, Bildern und
+  Tracks für alle. Verwerfen behält sie."*.
 * **Who is shown (FR-29.3, G-8):** votes, the vote order and author names appear only where somebody else reads them —
   an identity and another account on the trip, M26's rule for its share hint. In Local and Single-User Mode, and on a
   trip nobody shares, the board is a list of one's own plans: no vote buttons or tallies, no ⋮, no names.
 * **Modes:** all three; votes only where there is another account. A picture is uploaded at once in Server and
   Single-User Mode and kept on the device in Local Mode (ADR-081), and so is a track (ADR-085). The tiles are on
-  in Local Mode and wherever the operator left `JITPACK_MAP_TILES` on.
+  in Local Mode and wherever the operator left `JITPACK_MAP_TILES` on; the router likewise, under `JITPACK_ROUTING`
+  (ADR-088).
 * **Notifications (FR-29.8):** a new idea (*„Alice hat „Tiscali" vorgeschlagen"*) and a move to the Shortlist
   (*„Alice hat „Tiscali" auf die Shortlist gesetzt"*) tell every co-traveller but the actor; a comment
   (*„Bob zu „Tiscali": Nur mit Guide"*) tells the idea's author and its earlier commenters. Votes tell nobody. A tap

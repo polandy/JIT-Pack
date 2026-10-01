@@ -92,3 +92,23 @@ func TestInstanceConfig_MapTilesOnUnlessTurnedOff_FR29_17(t *testing.T) {
 		t.Error("map_tiles = true with NoMapTiles, want false")
 	}
 }
+
+// FR-29.20: the router a device asks is the one the operator configured,
+// and none where routing is off.
+func TestInstanceConfig_HandsOnTheRoutingURL_FR29_20(t *testing.T) {
+	if got := instanceConfig(t, newTestServer(t)).RoutingURL; got != "" {
+		t.Errorf("routing_url = %q without RoutingURL, want empty", got)
+	}
+
+	st, err := store.OpenForTest(t.TempDir())
+	if err != nil {
+		t.Fatalf("store.OpenForTest: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	const router = "https://router.example/brouter"
+	srv := httptest.NewServer(api.NewSingleUser(st, "local-user", api.Options{RoutingURL: router}).Handler())
+	t.Cleanup(srv.Close)
+	if got := instanceConfig(t, srv).RoutingURL; got != router {
+		t.Errorf("routing_url = %q, want %q", got, router)
+	}
+}

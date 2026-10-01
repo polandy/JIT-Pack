@@ -434,10 +434,16 @@ export interface AuthConfigResponse {
  * MapTiles says whether a device draws a map's background tiles, fetched
  * from swisstopo and OpenStreetMap by the device itself (FR-29.17,
  * ADR-085). False draws a track's line alone, as a device offline does.
+ *
+ * RoutingURL is the BRouter a device asks for the path between two points
+ * of a route it edits (FR-29.20, ADR-088), asked by the device itself.
+ * Empty where the operator turned routing off: the points are then joined
+ * by straight lines.
  */
 export interface InstanceConfigResponse {
   currency: string
   map_tiles: boolean
+  routing_url: string
 }
 
 /**

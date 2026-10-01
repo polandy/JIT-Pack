@@ -454,6 +454,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A pasted link fills the idea (2026-09-28)](#a-pasted-link-fills-the-idea-2026-09-28) — one shared timeout lost real pictures; the owner chose on-by-default.
 - [The leftovers follow the trip (2026-09-29)](#the-leftovers-follow-the-trip-2026-09-29) — most of I-8 already existed; two accepted costs on the task tag.
 - [GPX tracks on an idea (2026-10-01)](#gpx-tracks-on-an-idea-2026-10-01) — who reads the file; a replaced file must not age a setting; a cached tile makes no request.
+- [A track's route is edited on the map (2026-10-01)](#a-tracks-route-is-edited-on-the-map-2026-10-01) — the row's line has no heights; a routed handle hangs beside the path; blue is water; a closed modal stays in the DOM.
 
 ## Deviations
 
@@ -17974,4 +17975,29 @@ fractional zoom; a transparent outline on each tile closes it.
 once in Chromium: a tile the browser already held was drawn without a request, and none came. The cases now assert
 the tile *drawn* from that source (`tilesFrom`), and every tile is answered on the device so no run reaches
 swisstopo or OpenStreetMap.
+
+## A track's route is edited on the map (2026-10-01)
+
+FR-29.20, ADR-088. Asked for as "it should feel like the swisstopo app". Decided over an interactive mockup that used
+the real public BRouter (`mockup-route-edit.html`, not committed) and four questions: BRouter asked by the device
+behind a switch, both ways of saving, *Route zeichnen* in the same PR, editing locked offline. The owner's feedback
+on the mockup added the direction arrows, the changed stretches in a colour of their own, and the question which
+pass a tap on a doubled path means.
+
+**The row's line cannot be edited.** The synced row carries the line thinned to 800 points and no heights, enough to
+draw. Editing from it would have lost the heights of every stretch left alone, so the editor reads the track's file
+back (`trackFile`, the download's path) and turns it into at most 14 handles, keeping the file's own points between
+them. A track whose file cannot be read back — offline in Server Mode — cannot be edited, and says so.
+
+**A routed handle hangs beside the path.** BRouter snaps both ends of a request to the nearest way, so a handle
+dropped in a meadow was joined to a path that stopped short of it. Moving the handle onto the snapped end would have
+changed the request's key and asked again. The handle is instead *drawn* where the path ends (`handlePlace`), and the
+request keeps the point the finger chose.
+
+**Blue is water.** The changed stretches were glacier blue in the first mockup; on the Landeskarte that is a stream.
+Alpenrose, with heather where the track itself is alpenrose.
+
+**Two traps in the e2e cases.** A closed `IonModal` stays in the DOM, so `toHaveCount(0)` on the editor never held;
+`toBeHidden()` does. And `toBeDisabled()` reads an `ion-button` as enabled whatever its `disabled`; its
+`aria-disabled` is what the cases assert, as the idea sheet's do.
 
