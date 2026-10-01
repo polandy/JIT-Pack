@@ -11,29 +11,19 @@
  * imports them (FR-29.9).
  */
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
-import {
-  addOutline,
-  bulbOutline,
-  calendarOutline,
-  carOutline,
-  checkboxOutline,
-  chevronForward,
-  createOutline,
-  trailSignOutline,
-} from 'ionicons/icons'
+import { addOutline, calendarOutline, chevronForward } from 'ionicons/icons'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
-import ProgressRing from '@/components/global/ProgressRing.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
-import { formatDate, t } from '@/i18n'
+import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
 import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -41,21 +31,21 @@ import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
 import { tripIdeasPath } from '@/router/paths'
 import type { DayEntry, Idea } from '@/types/domain'
-import { IDEA_STATE_DONE, IDEA_STATE_SHORTLISTED } from '@/types/domain'
 import { createPlannerActions, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
+import DayLineRow from './DayLineRow.vue'
+import { stripDay } from './dayLineText'
 import {
-  DAY_LINE,
   dayCounts,
   dayLines,
   ideasOutsideTrip,
   nextDay,
   openingDay,
+  stateAfterTick,
   tripDays,
   unplannedIdeas,
   type DayInput,
   type DayLine,
-  type DayLineKind,
 } from './domain/dayPlan'
 import { usePlannerStore } from './store'
 
@@ -116,18 +106,6 @@ const tomorrowLines = computed(() => (tomorrow.value ? dayLines(tomorrow.value, 
 const pool = computed(() => unplannedIdeas(plannerStore.getIdeas(props.tripId)))
 const outside = computed(() => ideasOutsideTrip(plannerStore.getIdeas(props.tripId), days.value))
 
-/** „Mi., 15.7." — a strip tile's two halves and the day's own heading. */
-function weekday(day: string): string {
-  return formatDate(localDay(day), { weekday: 'short' })
-}
-function dayOfMonth(day: string): string {
-  return formatDate(localDay(day), { day: 'numeric' })
-}
-function localDay(day: string): Date {
-  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
-  return new Date(year, month - 1, date)
-}
-
 const chosenHeading = computed(() =>
   chosen.value
     ? t('dayPlan.dayOf', {
@@ -140,33 +118,6 @@ const chosenHeading = computed(() =>
 
 // --- one line ---
 
-const KIND_ICON: Record<DayLineKind, string> = {
-  [DAY_LINE.arrival]: carOutline,
-  [DAY_LINE.departure]: carOutline,
-  [DAY_LINE.excursion]: trailSignOutline,
-  [DAY_LINE.idea]: bulbOutline,
-  [DAY_LINE.task]: checkboxOutline,
-  [DAY_LINE.entry]: createOutline,
-}
-
-function kindLabel(line: DayLine): string {
-  const label = t(`dayPlan.kind.${line.kind}`)
-  if (line.span === 'start') return `${label} · ${t('dayPlan.spanStart')}`
-  if (line.span === 'return') return `${label} · ${t('dayPlan.spanReturn')}`
-  return label
-}
-
-function titleOf(line: DayLine): string {
-  if (line.kind === DAY_LINE.arrival) return t('dayPlan.arrival')
-  if (line.kind === DAY_LINE.departure) return t('dayPlan.departure')
-  return line.title
-}
-
-function detailOf(line: DayLine): string | null {
-  if (line.kind === DAY_LINE.task) return nameOf(line.source?.assignee ?? null)
-  return line.detail
-}
-
 function open(line: DayLine) {
   if (line.idea) void router.push(tripIdeasPath(props.tripId, line.idea.id))
   else if (line.entry) editing.value = { entry: line.entry }
@@ -174,11 +125,8 @@ function open(line: DayLine) {
 }
 
 function tick(line: DayLine) {
-  if (line.idea) {
-    actions.setState(line.idea, line.done ? IDEA_STATE_SHORTLISTED : IDEA_STATE_DONE)
-  } else {
-    line.source?.toggle?.()
-  }
+  if (line.idea) actions.setState(line.idea, stateAfterTick(line.done === true))
+  else line.source?.toggle?.()
 }
 
 // --- the pool and the ＋ ---
@@ -244,8 +192,8 @@ async function onRemove() {
               :data-testid="`m29-day-${day}`"
               @click="chosen = day"
             >
-              <small>{{ weekday(day) }}</small>
-              <b class="jp-num">{{ dayOfMonth(day) }}</b>
+              <small>{{ stripDay(day).weekday }}</small>
+              <b class="jp-num">{{ stripDay(day).date }}</b>
               <span class="dots" aria-hidden="true">
                 <i v-for="n in Math.min(3, counts.get(day) ?? 0)" :key="n" />
               </span>
@@ -257,42 +205,14 @@ async function onRemove() {
             <p v-if="chosenLines.length === 0" class="empty" data-testid="m29-empty">
               {{ t('dayPlan.emptyDay') }}
             </p>
-            <div
+            <DayLineRow
               v-for="line in chosenLines"
               :key="line.key"
-              class="line"
-              :data-kind="line.kind"
-              :data-done="line.done ? 'true' : undefined"
-              :data-testid="`m29-line-${line.key}`"
-            >
-              <button type="button" class="open" @click="open(line)">
-                <span class="time jp-num">{{ line.time ?? t('dayPlan.noTime') }}</span>
-                <span class="body">
-                  <span class="kind">
-                    <IonIcon :icon="KIND_ICON[line.kind]" aria-hidden="true" />
-                    {{ kindLabel(line) }}
-                  </span>
-                  <span class="title">{{ titleOf(line) }}</span>
-                  <span v-if="detailOf(line)" class="detail">{{ detailOf(line) }}</span>
-                </span>
-              </button>
-              <ProgressRing
-                v-if="line.progress !== null"
-                :percent="line.progress * 100"
-                :size="28"
-              />
-              <button
-                v-else-if="line.done !== null"
-                type="button"
-                class="tick"
-                :aria-pressed="line.done ? 'true' : 'false'"
-                :aria-label="t('dayPlan.tick', { title: titleOf(line) })"
-                :data-testid="`m29-tick-${line.key}`"
-                @click="tick(line)"
-              >
-                <span aria-hidden="true">{{ line.done ? '✓' : '' }}</span>
-              </button>
-            </div>
+              :line="line"
+              :name-of="nameOf"
+              @open="open(line)"
+              @tick="tick(line)"
+            />
           </div>
 
           <template v-if="tomorrow">
@@ -302,24 +222,14 @@ async function onRemove() {
             </h3>
             <div class="timeline jp-card" data-testid="m29-tomorrow-list">
               <p v-if="tomorrowLines.length === 0" class="empty">{{ t('dayPlan.emptyDay') }}</p>
-              <div
+              <DayLineRow
                 v-for="line in tomorrowLines"
                 :key="line.key"
-                class="line"
-                :data-kind="line.kind"
-                :data-done="line.done ? 'true' : undefined"
-              >
-                <button type="button" class="open" @click="open(line)">
-                  <span class="time jp-num">{{ line.time ?? t('dayPlan.noTime') }}</span>
-                  <span class="body">
-                    <span class="kind">
-                      <IonIcon :icon="KIND_ICON[line.kind]" aria-hidden="true" />
-                      {{ kindLabel(line) }}
-                    </span>
-                    <span class="title">{{ titleOf(line) }}</span>
-                  </span>
-                </button>
-              </div>
+                :line="line"
+                :name-of="nameOf"
+                @open="open(line)"
+                @tick="tick(line)"
+              />
             </div>
           </template>
 
@@ -329,18 +239,17 @@ async function onRemove() {
               <span class="jp-num">{{ outside.length }}</span>
             </h3>
             <div class="timeline jp-card">
-              <div v-for="idea in outside" :key="idea.id" class="line" data-kind="idea">
-                <button
-                  type="button"
-                  class="open"
-                  @click="router.push(tripIdeasPath(tripId, idea.id))"
-                >
-                  <span class="time jp-num">{{ shortDueDay(idea.planned_on!) }}</span>
-                  <span class="body"
-                    ><span class="title">{{ idea.title }}</span></span
-                  >
-                </button>
-              </div>
+              <button
+                v-for="idea in outside"
+                :key="idea.id"
+                type="button"
+                class="outside-row"
+                :data-testid="`m29-outside-${idea.id}`"
+                @click="router.push(tripIdeasPath(tripId, idea.id))"
+              >
+                <span class="day jp-num">{{ shortDueDay(idea.planned_on!) }}</span>
+                <span class="name">{{ idea.title }}</span>
+              </button>
             </div>
           </template>
 
@@ -504,105 +413,30 @@ async function onRemove() {
   font-size: var(--jp-text-sm);
 }
 
-.line {
+/* An idea planned on a day the trip no longer has: its day, then its title. */
+.outside-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 10px;
+  width: calc(100% - 16px);
   margin: 6px 8px;
-  padding-right: 10px;
-  border-left: 4px solid var(--ct-overlay0);
+  padding: 9px 10px;
+  border: 0;
   border-radius: var(--jp-r-sm);
   background: var(--jp-surface-sunken);
-}
-
-.line[data-kind='idea'] {
-  border-left-color: var(--ct-larch);
-}
-.line[data-kind='excursion'] {
-  border-left-color: var(--ct-moss);
-}
-.line[data-kind='task'] {
-  border-left-color: var(--ct-glacier);
-}
-.line[data-kind='entry'] {
-  border-left-color: var(--ct-heather);
-}
-.line[data-kind='arrival'],
-.line[data-kind='departure'] {
-  border-left-color: var(--ct-straw);
-}
-
-.open {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 9px 4px 9px 10px;
-  border: 0;
-  background: transparent;
   color: var(--ct-text);
   font: inherit;
   text-align: start;
   cursor: pointer;
 }
 
-.time {
-  flex: 0 0 44px;
+.outside-row .day {
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
 }
 
-.body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.kind {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
-}
-
-.kind ion-icon {
-  font-size: var(--jp-icon-xs);
-}
-
-.title {
+.outside-row .name {
   font-weight: var(--jp-weight-semibold);
   overflow-wrap: anywhere;
-}
-
-.line[data-done='true'] .title {
-  color: var(--ct-subtext0);
-  text-decoration: line-through;
-}
-
-.detail {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.tick {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--ct-surface2);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ct-base);
-  font: inherit;
-  cursor: pointer;
-}
-
-.tick[aria-pressed='true'] {
-  border-color: var(--jp-done);
-  background: var(--jp-done);
 }
 
 .group {

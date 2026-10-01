@@ -214,6 +214,16 @@ function fixed(kind: typeof DAY_LINE.arrival | typeof DAY_LINE.departure, day: s
   }
 }
 
+/**
+ * The state a tick on an idea's line moves it to: a ticked idea is done, and
+ * unticking puts it back on the shortlist it was planned from (FR-29.15).
+ */
+export function stateAfterTick(
+  done: boolean,
+): typeof IDEA_STATE_DONE | typeof IDEA_STATE_SHORTLISTED {
+  return done ? IDEA_STATE_SHORTLISTED : IDEA_STATE_DONE
+}
+
 /** How many lines stand on each day — the strip's dots. */
 export function dayCounts(days: readonly string[], input: DayInput): Map<string, number> {
   return new Map(days.map((day) => [day, dayLines(day, input).length]))

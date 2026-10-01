@@ -14,5 +14,10 @@ export const MODULES = ['shopping', 'planner']
  */
 export const MODULE_E2E_MARKERS = {
   shopping: [/openTripView\(\s*page,\s*'shopping'/, /trip-view-shopping/, /dashboard-shopping-/],
-  planner: [/openTripView\(\s*page,\s*'ideas'/, /trip-view-ideas/],
+  planner: [
+    /openTripView\(\s*page,\s*'ideas'/,
+    /trip-view-ideas/,
+    /openTripView\(\s*page,\s*'dayplan'/,
+    /trip-view-dayplan/,
+  ],
 }

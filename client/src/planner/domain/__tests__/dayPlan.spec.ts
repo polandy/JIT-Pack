@@ -13,6 +13,7 @@ import {
   isPlanTime,
   nextDay,
   openingDay,
+  stateAfterTick,
   tripDays,
   unplannedIdeas,
   type DayInput,
@@ -194,5 +195,12 @@ describe('dayLines (FR-29.15)', () => {
   it('counts each day’s lines for the strip', () => {
     const counts = dayCounts(tripDays(TRIP), input({ entries: [entry('e', '2026-07-13', null)] }))
     expect([...counts.values()]).toEqual([1, 1, 0, 1])
+  })
+})
+
+describe('stateAfterTick', () => {
+  it('ticks an idea done and unticks it back onto the shortlist', () => {
+    expect(stateAfterTick(false)).toBe('done')
+    expect(stateAfterTick(true)).toBe('shortlisted')
   })
 })
