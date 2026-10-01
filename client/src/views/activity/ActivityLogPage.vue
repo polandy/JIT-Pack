@@ -42,7 +42,7 @@ import {
   timeOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
@@ -59,6 +59,7 @@ import {
   type ActivityKind,
 } from '@/domain/activity'
 import { t, formatDate, formatDay, type MessageKey } from '@/i18n'
+import { ACTIVITY_READERS } from '@/lib/activityReaders'
 import { FIELD_LABELS } from '@/lib/fieldLabels'
 import { hasCollaborativeSession } from '@/mode'
 import { useTripStore } from '@/stores/tripStore'
@@ -67,6 +68,8 @@ const props = defineProps<{ tripId?: string }>()
 
 const orchestrator = useOrchestrator()
 const trips = useTripStore()
+/** The feature modules' readings of their own rows, bound by `App.vue`. */
+const readers = inject(ACTIVITY_READERS, {})
 const { directory, load: loadIdentity } = useIdentity(orchestrator)
 
 /** Single-User has one person; a name on every line would say nothing. */
@@ -155,7 +158,7 @@ function localDay(iso: string): string {
 }
 
 const days = computed(() =>
-  groupActivity(readActivity(entries.value, SHOWN_FIELDS, { isTask }), localDay),
+  groupActivity(readActivity(entries.value, SHOWN_FIELDS, { isTask, readers }), localDay),
 )
 
 function dayTitle(day: string): string {

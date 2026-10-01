@@ -3521,6 +3521,9 @@ went.
   Alice's trip; Alice opens *Activity* from M4's ⋮ and reads one *packed* line for both, *2× packed*, named after Bob
   (the server's stamp, invariant 3) and naming both things, above her own *added* line; the line opens to its two
   parts.
+* **E2E-M30-03** `server` (FR-32.2) — **implemented** (`server/activity.spec.ts`): Bob's vote on Alice's idea is a
+  *voted* line under *Ideas*, named after Bob — the planner's own reading of its rows, bound by the composition root;
+  without that binding the vote would read as a bare *added* line.
 * **E2E-M30-02** `server` (FR-32.3) — **implemented** (`server/activity.spec.ts`): an inventory item Alice creates is an
   *added* line in the inventory's activity Bob opens from M9's ⋮, named after Alice.
 * Local Mode offers neither entry (G-8): M4's ⋮ is asserted without it inside E2E-G12-07, on a sheet that demonstrably
@@ -3887,7 +3890,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
 | FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
 | FR-32.1 | E2E+SERVER | M30-01 (the actor stamped, not claimed); Go: `TestActivity_*` in `internal/store` (what is recorded and what is not, the trip a master row belongs to, the names through a foreign key, the side paths, every table's name sources) and `internal/api` (membership, paging, refusals) |
-| FR-32.2 | E2E+UNIT | M30-01 (a run folded and opened); `domain/__tests__/activity.spec.ts` (every act, the areas, the folding), `ActivityLogPage.spec.ts` (Single-User names nobody, the older page, the empty and failed states) |
+| FR-32.2 | E2E+UNIT | M30-01 (a run folded and opened), M30-03 (a module's reader bound); `domain/__tests__/activity.spec.ts` (every act, the areas, the folding), the modules' own `activity.spec.ts` and `activityReadersWiring.spec.ts` (every table read by one side), `ActivityLogPage.spec.ts` (Single-User names nobody, the older page, the empty and failed states) |
 | FR-32.3 | E2E+UNIT+SERVER | M30-02; G12-07 and `ItemInventoryPage.spec.ts` (hidden in Local Mode); Go: `TestActivity_Inventory_FollowsMasterVisibility_FR32_1` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

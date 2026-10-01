@@ -5,13 +5,24 @@
  * The server records a write as it happened — a table, a row, each field's
  * before and after (FR-32.1). Whether that was a pack, a purchase or a task
  * ticked off is a rule about the trip's rows, and those rules live here
- * (invariant 4), beside the ones that write them.
+ * (invariant 4), beside the ones that write them. A feature module's rows
+ * are the exception: the module reads them itself and hands the reading in
+ * (`lib/activityReaders.ts`), so this file knows no module's columns.
  *
  * Some writes are bookkeeping nobody made on purpose — a claim taken while a
  * row is open (G-3), the generation's record of what it produced — and read
  * as nothing: {@link classifyActivity} answers null for them.
  */
 import { ACTIVITY_OP, type ActivityEntry } from '@/api/types'
+import {
+  changedField as changed,
+  truthy,
+  valueAfter as after,
+  valueBefore as before,
+  type ActivityArea,
+  type ActivityKind,
+  type ActivityReaders,
+} from '@/lib/activityReaders'
 import { TABLE, type SyncTable } from '@/types/tables'
 import {
   STATE_PACKED,
@@ -19,52 +30,17 @@ import {
   STATE_SKIPPED,
   type ItemState,
   type ItemTodo,
+  type MasterItem,
   type NoteAck,
-  type ShoppingEntry,
+  type Tag,
   type TodoState,
   type TripItem,
 } from '@/types/domain'
 
+export type { ActivityArea, ActivityKind } from '@/lib/activityReaders'
+
 const STATE_PARTIAL = 'partial' as const satisfies ItemState
 const TASK_RESOLVED = 'resolved' as const satisfies TodoState
-
-/** What a write did, in the words the log uses. */
-export type ActivityKind =
-  | 'added'
-  | 'removed'
-  | 'changed'
-  | 'reordered'
-  | 'packed'
-  | 'unpacked'
-  | 'skipped'
-  | 'bought'
-  | 'unbought'
-  | 'done'
-  | 'reopened'
-  | 'read'
-  | 'unread'
-  | 'voted'
-  | 'unvoted'
-  | 'retired'
-  | 'restored'
-
-/** Which part of the app a write happened in — the log's second word. */
-export type ActivityArea =
-  | 'packing'
-  | 'luggage'
-  | 'travellers'
-  | 'shopping'
-  | 'tasks'
-  | 'notes'
-  | 'excursions'
-  | 'ideas'
-  | 'dayplan'
-  | 'trip'
-  | 'members'
-  | 'inventory'
-  | 'tags'
-  | 'templates'
-  | 'series'
 
 /**
  * The columns the rules below read, each checked against the row type it
@@ -82,17 +58,17 @@ const FIELD = {
   packedBy: 'packed_by_user_id' satisfies keyof TripItem,
   packedAt: 'packed_at' satisfies keyof TripItem,
   shoppingPosition: 'shopping_position' satisfies keyof TripItem,
-  bought: 'bought' satisfies keyof ShoppingEntry,
   taskState: 'task_state' satisfies keyof ItemTodo,
   resolvedAt: 'resolved_at' satisfies keyof ItemTodo,
   resolvedBy: 'resolved_by_user_id' satisfies keyof ItemTodo,
   position: 'position' satisfies keyof ItemTodo,
+  // A wire column the client folds into which list a comment sits in; no
+  // row type carries it.
   isTask: 'is_task',
   acked: 'acked' satisfies keyof NoteAck,
   seenThrough: 'seen_through' satisfies keyof NoteAck,
-  vote: 'vote',
-  sortOrder: 'sort_order',
-  retiredAt: 'retired_at',
+  sortOrder: 'sort_order' satisfies keyof Tag,
+  retiredAt: 'retired_at' satisfies keyof MasterItem,
 } as const
 
 /** Moving a row among its siblings, and nothing else. */
@@ -138,21 +114,19 @@ const BOOKKEEPING: ReadonlySet<SyncTable> = new Set([
   TABLE.tripAppliedChanges,
 ])
 
-const AREA: Record<SyncTable, ActivityArea> = {
+/**
+ * Where a write to a kernel table happened. A feature module's tables are
+ * not here: their reader says (`lib/activityReaders.ts`).
+ */
+export const KERNEL_ACTIVITY_AREAS: Partial<Record<SyncTable, ActivityArea>> = {
   [TABLE.tripItems]: 'packing',
   [TABLE.containers]: 'luggage',
   [TABLE.travelers]: 'travellers',
-  [TABLE.shoppingEntries]: 'shopping',
   [TABLE.comments]: 'notes',
   [TABLE.noteAcks]: 'notes',
   [TABLE.excursions]: 'excursions',
   [TABLE.excursionItems]: 'excursions',
   [TABLE.excursionTravelers]: 'excursions',
-  [TABLE.ideas]: 'ideas',
-  [TABLE.ideaVotes]: 'ideas',
-  [TABLE.ideaComments]: 'ideas',
-  [TABLE.ideaImages]: 'ideas',
-  [TABLE.dayEntries]: 'dayplan',
   [TABLE.trips]: 'trip',
   [TABLE.tripMembers]: 'members',
   [TABLE.tripTemplateSources]: 'trip',
@@ -175,6 +149,8 @@ const AREA: Record<SyncTable, ActivityArea> = {
 
 /** What the reader knows that the entry does not say. */
 export interface ActivityContext {
+  /** The feature modules' readers of their own tables, bound by `App.vue`. */
+  readers?: ActivityReaders
   /**
    * Whether a comment the trip still holds is a task. An edit to a task's
    * words carries no `is_task`, and without this it would read as a note.
@@ -198,25 +174,8 @@ export interface ActivityLine {
   details: FieldChange[]
 }
 
-function before(entry: ActivityEntry, field: string): unknown {
-  return entry.changes?.[field]?.[0] ?? null
-}
-
-function after(entry: ActivityEntry, field: string): unknown {
-  return entry.changes?.[field]?.[1] ?? null
-}
-
-function changed(entry: ActivityEntry, field: string): boolean {
-  return entry.changes?.[field] !== undefined
-}
-
 function changedFields(entry: ActivityEntry): string[] {
   return Object.keys(entry.changes ?? {})
-}
-
-/** A stored boolean arrives as 0/1 or true/false, depending on who wrote it. */
-function truthy(v: unknown): boolean {
-  return v === true || v === 1
 }
 
 function onlyWithin(fields: string[], allowed: ReadonlySet<string>): boolean {
@@ -254,10 +213,6 @@ function updateKind(entry: ActivityEntry): ActivityKind | null {
       if (kind !== undefined) return kind
       break
     }
-    case TABLE.shoppingEntries:
-      if (changed(entry, FIELD.bought))
-        return truthy(after(entry, FIELD.bought)) ? 'bought' : 'unbought'
-      break
     case TABLE.comments:
       if (changed(entry, FIELD.taskState)) {
         return after(entry, FIELD.taskState) === TASK_RESOLVED ? 'done' : 'reopened'
@@ -265,20 +220,26 @@ function updateKind(entry: ActivityEntry): ActivityKind | null {
       break
     case TABLE.noteAcks:
       return changed(entry, FIELD.acked) && !truthy(after(entry, FIELD.acked)) ? 'unread' : 'read'
-    case TABLE.ideaVotes:
-      return after(entry, FIELD.vote) ? 'voted' : 'unvoted'
   }
   return 'changed'
 }
 
-/** What one write did, or null for a write that is bookkeeping and not an act. */
-export function classifyActivity(entry: ActivityEntry): ActivityKind | null {
+/**
+ * What one write did, or null for a write that is bookkeeping and not an act.
+ * A feature module's reader is asked first; what it leaves undecided reads
+ * the way every row does.
+ */
+export function classifyActivity(
+  entry: ActivityEntry,
+  readers: ActivityReaders = {},
+): ActivityKind | null {
   const table = entry.entity_table as SyncTable
   if (BOOKKEEPING.has(table)) return null
+  const own = readers[table]?.classify?.(entry)
+  if (own !== undefined) return own
   switch (entry.op) {
     case ACTIVITY_OP.insert:
       if (table === TABLE.noteAcks) return truthy(after(entry, FIELD.acked)) ? 'read' : null
-      if (table === TABLE.ideaVotes) return after(entry, FIELD.vote) ? 'voted' : null
       return 'added'
     case ACTIVITY_OP.delete:
       return 'removed'
@@ -301,7 +262,7 @@ export function activityArea(
       : ctx.isTask?.(entry.entity_id)
     if (known || changed(entry, FIELD.taskState)) return 'tasks'
   }
-  return AREA[table] ?? 'trip'
+  return ctx.readers?.[table]?.area ?? KERNEL_ACTIVITY_AREAS[table] ?? 'trip'
 }
 
 /**
@@ -322,7 +283,7 @@ export function readActivity(
 ): ActivityLine[] {
   const out: ActivityLine[] = []
   for (const entry of entries) {
-    const kind = classifyActivity(entry)
+    const kind = classifyActivity(entry, ctx.readers)
     if (kind === null) continue
     out.push({
       entry,

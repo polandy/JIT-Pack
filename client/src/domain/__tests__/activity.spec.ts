@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ActivityEntry, ActivityOp } from '@/api/types'
+import type { ActivityReaders } from '@/lib/activityReaders'
 import { TABLE } from '@/types/tables'
 import {
   activityArea,
@@ -76,18 +77,10 @@ describe('classifyActivity (FR-32.2)', () => {
       update(TABLE.excursionItems, { bought_at: [null, '2026-09-30'] }),
       'bought',
     ],
-    ['a shopping entry bought', update(TABLE.shoppingEntries, { bought: [0, true] }), 'bought'],
-    [
-      'a shopping entry un-bought',
-      update(TABLE.shoppingEntries, { bought: [1, false] }),
-      'unbought',
-    ],
     ['a task resolved', update(TABLE.comments, { task_state: ['open', 'resolved'] }), 'done'],
     ['a task reopened', update(TABLE.comments, { task_state: ['resolved', 'open'] }), 'reopened'],
     ['a note ticked', entry(TABLE.noteAcks, 'insert', { acked: [null, 1] }), 'read'],
     ['a note un-ticked', update(TABLE.noteAcks, { acked: [1, 0] }), 'unread'],
-    ['a vote cast', entry(TABLE.ideaVotes, 'insert', { vote: [null, 'up'] }), 'voted'],
-    ['a vote taken back', update(TABLE.ideaVotes, { vote: ['up', null] }), 'unvoted'],
     ['a row moved by hand', update(TABLE.shoppingEntries, { position: [1, 3] }), 'reordered'],
     [
       'an item hidden (FR-24.3)',
@@ -100,6 +93,31 @@ describe('classifyActivity (FR-32.2)', () => {
   ]
   it.each(cases)('%s', (_name, e, want) => {
     expect(classifyActivity(e)).toBe(want)
+  })
+})
+
+describe("a feature module's reader (FR-32.2)", () => {
+  const readers: ActivityReaders = {
+    [TABLE.shoppingEntries]: {
+      area: 'shopping',
+      classify: (e) => (e.changes?.['bought'] ? 'bought' : undefined),
+    },
+  }
+
+  it('is asked first, for its own table only', () => {
+    const bought = update(TABLE.shoppingEntries, { bought: [0, 1] })
+    expect(classifyActivity(bought, readers)).toBe('bought')
+    expect(classifyActivity(update(TABLE.tripItems, { bought: [0, 1] }), readers)).toBe('changed')
+  })
+
+  it('leaves what it does not decide to the shared reading', () => {
+    const moved = update(TABLE.shoppingEntries, { position: [1, 3] })
+    expect(classifyActivity(moved, readers)).toBe('reordered')
+  })
+
+  it('names the area its table belongs to', () => {
+    const [line] = readActivity([entry(TABLE.shoppingEntries, 'insert')], new Set(), { readers })
+    expect(line!.area).toBe('shopping')
   })
 })
 
