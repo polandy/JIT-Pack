@@ -19,7 +19,7 @@ what runs.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
   trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items, ideas, idea_votes,
-  idea_comments, idea_images) and one **master
+  idea_comments, idea_images, day_entries) and one **master
   partition per user** (items, tags, item_tags, task_tags, templates, template_items, template_includes,
   template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members,
   trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition —
@@ -258,7 +258,12 @@ constraint; a withdrawn vote is `vote: null`, never a delete. `ideas.link` is re
 `shortlisted`, `done`, `dropped`. **A discussion entry's words are its author's**: a mutation touching `body` or
 `edited_at` of an existing `idea_comments` row pushed by anyone else is refused as `not_authorized`; a delete stays
 everybody's, as a note's. Deleting an idea cascades to its votes, discussion and pictures, tombstoned like any
-cascade. `created_at` on both is the client's clock, like a comment's.
+cascade. `created_at` on both is the client's clock, like a comment's. `ideas.planned_on` (`YYYY-MM-DD`) and
+`planned_at` (`HH:MM`) are the day an idea is planned on and when (FR-29.14); neither is checked against the trip's
+dates or the other, since each merges alone.
+
+`day_entries` (FR-29.15) is the day plan's own entry — `on_date`, `at_time`, `title`, `note` — in the trip partition,
+changed by any member; `author_id` is stamped by the server on the insert, like an idea's.
 
 `idea_images` (FR-29.5, ADR-081) names one picture on an idea — `idea_id`, `image_hash`, `position` — and is **created
 only by the upload** (`PUT /trips/{id}/ideas/{ideaID}/images/{imageID}`, §8), which writes the row and its bytes in one

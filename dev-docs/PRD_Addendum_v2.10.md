@@ -3963,8 +3963,9 @@ the tail is where a symbol system is actually decided. Results:
 ### 3.29 The Planner — Ideas, Votes and a Day Plan Inside a Trip
 
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
-(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082) and the **notifications** (FR-29.8); the bridge to the
-packing side and the day plan are specified here and not built. The travellers of a trip collect what
+(FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8) and the **day plan**
+(FR-29.14/29.15, M29); its connections (FR-29.17), the opening by date and the bridge to the packing side are specified
+here and not built. The travellers of a trip collect what
 they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with their names, and
 decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation variants are in
 `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec), the day plan
@@ -4028,13 +4029,13 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   the board to *Ideen*, newest first, so it does not land below the fold. Every empty segment says what belongs in it,
   gated on the settled partition (ADR-033). The idea opens on the route (`?idea=`) as a sheet on a phone and as the
   frame's side panel on a desktop (ADR-064).
-* **FR-29.7 (Where the Planner Is Reached):** *Implemented for the board.* The trip's one switcher (G-12, ADR-051)
-  carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day plan will be
-  the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not built**
-  (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is empty),
-  during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the Pixel 9
-  Pro's 410 px six pills fill the row; a seventh — a ⋮ view joining it, later the day plan — scrolls the row sideways,
-  with the pill you stand on scrolled into view (ADR-051 amendment 4).
+* **FR-29.7 (Where the Planner Is Reached):** *Implemented, the opening by date excepted.* The trip's one switcher
+  (G-12, ADR-051) carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day
+  plan is the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not
+  built** (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is
+  empty), during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the
+  Pixel 9 Pro's 410 px six pills fill the row; a seventh — the day plan, or a ⋮ view joining it — scrolls the row
+  sideways, with the pill you stand on scrolled into view (ADR-051 amendment 4).
 * **FR-29.8 (Notifications):** *Implemented.* Three kinds, each with its own M17 switch, in the recipient's language
   (ADR-037), never to the actor: **`idea`**, a new idea, to every member of the trip; **`idea_shortlisted`**, an idea
   moved to the shortlist, to every member, because the shortlist is the group's decision; **`idea_comment`**, a
@@ -4066,16 +4067,17 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   (`excursions`, `comments` for a task, `shopping_entries`), never a list on the idea (ADR-078), `ON DELETE SET NULL`,
   so deleting either side leaves the other. M25, M27 and M6 name the idea through a kernel lookup the composition root
   binds.
-* **FR-29.14 (Planning an Idea on a Day):** *Specified, not built (slice 2).* An idea on the shortlist gets **a day and
+* **FR-29.14 (Planning an Idea on a Day):** *Implemented.* An idea on the shortlist gets **a day and
   an optional time**; without a day it waits under *noch nicht eingeplant*. No constraint ties the day to the trip's
   dates (field-level LWW), so an idea planned outside them is listed *außerhalb der Reise* rather than lost. Only while
   the trip has both dates.
-* **FR-29.15 (The Day Plan, M29):** *Specified, not built (slice 2).* One screen per trip with a day strip over the
-  trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated excursions (on each
-  of their days), tasks due that day, arrival and departure, and **entries of its own** (`day_entries`) of two kinds — a
-  **free entry** (a table booking) and a **connection** (FR-29.17). Timed entries come first by their time, untimed ones
-  after; a time orders, it does not block out hours. Tomorrow stands below today; a pool bar lists the shortlisted ideas
-  without a day and plans one by a day chip. „+" adds a free entry or a connection on the chosen day, or plans an idea.
+* **FR-29.15 (The Day Plan, M29):** *Implemented, its connections excepted (FR-29.17).* One screen per trip with a day
+  strip over the trip's dates and a timeline for the chosen day: planned ideas (ticking one sets *Gemacht*), dated
+  excursions (on each of their days), tasks due that day, arrival and departure, and **entries of its own**
+  (`day_entries`) of two kinds — a **free entry** (a table booking) and a **connection** (FR-29.17). Timed entries come
+  first by their time, untimed ones after; a time orders, it does not block out hours. Tomorrow stands below today; a
+  pool bar lists the shortlisted ideas without a day and plans one by a day chip. „+" adds a free entry or a connection
+  on the chosen day, or plans an idea.
 * **FR-29.17 (A Connection in the Day Plan):** *Specified, not built (slice 2).* A connection is a journey by public
   transport: **its legs** — each with where from, where to, departure, arrival and its line (*IC 1*, *Bus 604*), a walk
   being a leg without a line — and optionally **the link it came from**. It stands in the timeline at its first

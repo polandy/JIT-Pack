@@ -528,6 +528,29 @@ export interface Idea {
   state: IdeaState
   /** When it was written — the client names it, like a comment's. */
   created_at: string | null
+  /**
+   * FR-29.14: the day it is planned on, `YYYY-MM-DD`, and when on it, `HH:MM`;
+   * null for none. A time without a day reads as no time.
+   */
+  planned_on: string | null
+  planned_at: string | null
+}
+
+/**
+ * FR-29.15: an entry of the day plan's own — what stands on a day that is
+ * neither an idea, an excursion nor a task (a table booking).
+ */
+export interface DayEntry {
+  id: string
+  trip_id: string
+  /** Stamped by the server on the insert (invariant 3). */
+  author_id: string
+  /** `YYYY-MM-DD`. */
+  on_date: string
+  /** `HH:MM`, or null for a day without a time. */
+  at_time: string | null
+  title: string
+  note: string | null
 }
 
 /**

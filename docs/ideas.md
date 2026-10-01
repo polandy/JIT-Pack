@@ -68,6 +68,9 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
 
 The link opens the website in a new tab.
 
+On the **Shortlist**, while the trip has both dates, an idea also gets a **Tag** — the day you mean to do it — and,
+if you like, a time. It then stands on that day of the [Day plan](day-plan.md).
+
 ## Who is told
 
 On a trip you share, the others hear about the planning without having to look:

@@ -39,4 +39,6 @@ export const FAB_ANCHOR = {
   m27Excursion: 'm27-excursion-fab-anchor',
   /** M28 — a trip's ideas (§3.29). */
   m28: 'm28-fab-anchor',
+  /** M29: the day plan's ＋ (FR-29.15). */
+  m29: 'm29-fab-anchor',
 } as const

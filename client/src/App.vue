@@ -65,6 +65,9 @@ import { createExcursionShoppingSource } from '@/composables/excursionShoppingSo
 import { pendingExcursionCount } from '@/domain/excursions'
 import { localIsoDate } from '@/domain/trips'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
+import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
+import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
+import { useTripTasks } from '@/composables/useTripTasks'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
 import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
@@ -215,6 +218,25 @@ const shoppingSources = orchestrator
     ]
   : []
 provide(SHOPPING_SOURCES, shoppingSources)
+/*
+ * FR-29.15: the day plan shows the packing side's excursions and dated tasks;
+ * bound here, like the shopping sources, so the planner never imports them.
+ */
+provide(
+  DAY_PLAN_SOURCES,
+  orchestrator
+    ? [
+        createDayPlanSource(
+          {
+            getExcursions: (tripId) => useTripStore().getExcursions(tripId),
+            getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
+            tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+          },
+          { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
+        ),
+      ]
+    : [],
+)
 provide(TRIP_VIEW_COUNTS, {
   // §3.29: the ideas nobody has decided on yet.
   ideas: ideasCount(),

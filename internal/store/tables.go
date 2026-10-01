@@ -616,6 +616,8 @@ var tableSpecs = map[string]tableSpec{
 		columns: toSet(
 			"trip_id", "author_id", "title", "note", "link", "tag",
 			"rain_proof", "state", "created_at",
+			// FR-29.14: the day it is planned on, and when on it.
+			"planned_on", "planned_at",
 		),
 		cascades: []childQuery{
 			{TableIdeaVotes, `SELECT id FROM idea_votes WHERE idea_id = ?`},
@@ -653,6 +655,16 @@ var tableSpecs = map[string]tableSpec{
 		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
 		columns:   toSet("trip_id", "idea_id", "image_hash", columnPosition),
 		export: exportQuery{query: `SELECT x.* FROM idea_images x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.15: an entry of the day plan's own. `author_id` is listed so the
+	// server's stamp can be persisted; stampActor discards a client value.
+	TableDayEntries: {
+		partition: partitionTrip,
+		label:     activityLabel{name: own("title")},
+		columns:   toSet("trip_id", "author_id", "on_date", "at_time", "title", "note"),
+		export: exportQuery{query: `SELECT x.* FROM day_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

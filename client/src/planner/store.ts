@@ -1,6 +1,7 @@
 /**
  * The planner's rows (§3.29): a trip's ideas, the votes on them, their
- * discussion and their pictures, held apart from the packing rows.
+ * discussion and their pictures, and the day plan's own entries (FR-29.15),
+ * held apart from the packing rows.
  *
  * The planner's own store, as the shopping list has its own: nothing the
  * packing side reads can reach an idea, and the orchestrator reaches these
@@ -14,7 +15,7 @@ import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
 import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
-import type { Idea, IdeaComment, IdeaImage, IdeaVote } from '@/types/domain'
+import type { DayEntry, Idea, IdeaComment, IdeaImage, IdeaVote } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
 /** The tables this module holds. */
@@ -23,6 +24,7 @@ const PLANNER_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.ideaVotes,
   TABLE.ideaComments,
   TABLE.ideaImages,
+  TABLE.dayEntries,
 ])
 
 export const usePlannerStore = defineStore('planner', () => {
@@ -32,6 +34,8 @@ export const usePlannerStore = defineStore('planner', () => {
   const votes = ref<Map<string, IdeaVote>>(new Map())
   const comments = ref<Map<string, IdeaComment>>(new Map())
   const images = ref<Map<string, IdeaImage>>(new Map())
+  /** FR-29.15: the day plan's own entries. */
+  const dayEntries = ref<Map<string, DayEntry>>(new Map())
   /**
    * FR-29.16: the ideas whose link's picture is on its way, which the board
    * shows coming. This device's state, not a row: nothing syncs it.
@@ -68,6 +72,14 @@ export const usePlannerStore = defineStore('planner', () => {
     return [...images.value.values()].filter((image) => image.trip_id === tripId)
   }
 
+  function getDayEntries(tripId: string): DayEntry[] {
+    return [...dayEntries.value.values()].filter((entry) => entry.trip_id === tripId)
+  }
+
+  function getDayEntry(id: string): DayEntry | undefined {
+    return dayEntries.value.get(id)
+  }
+
   function applyChanges(changes: PullChange[]): void {
     for (const change of changes) {
       switch (change.table) {
@@ -84,6 +96,11 @@ export const usePlannerStore = defineStore('planner', () => {
           break
         case TABLE.ideaImages:
           apply(images.value, change, (id, row) => TABLE_CODECS[TABLE.ideaImages].parse(id, row))
+          break
+        case TABLE.dayEntries:
+          apply(dayEntries.value, change, (id, row) =>
+            TABLE_CODECS[TABLE.dayEntries].parse(id, row),
+          )
           break
       }
     }
@@ -111,6 +128,7 @@ export const usePlannerStore = defineStore('planner', () => {
       ...getComments(tripId).map((comment) => ({ table: TABLE.ideaComments, id: comment.id })),
       ...getImages(tripId).map((image) => ({ table: TABLE.ideaImages, id: image.id })),
       ...getIdeas(tripId).map((idea) => ({ table: TABLE.ideas, id: idea.id })),
+      ...getDayEntries(tripId).map((entry) => ({ table: TABLE.dayEntries, id: entry.id })),
     ]
   }
 
@@ -119,6 +137,7 @@ export const usePlannerStore = defineStore('planner', () => {
     for (const comment of getComments(tripId)) comments.value.delete(comment.id)
     for (const image of getImages(tripId)) images.value.delete(image.id)
     for (const idea of getIdeas(tripId)) ideas.value.delete(idea.id)
+    for (const entry of getDayEntries(tripId)) dayEntries.value.delete(entry.id)
   }
 
   return {
@@ -127,6 +146,8 @@ export const usePlannerStore = defineStore('planner', () => {
     getVotes,
     getComments,
     getImages,
+    getDayEntries,
+    getDayEntry,
     pictureComing,
     setPictureComing,
     applyChanges,

@@ -17,6 +17,7 @@ import { cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { TABLE_CODECS } from '@/sync/tableRegistry'
 import type {
+  DayEntry,
   Idea,
   IdeaComment,
   IdeaImage,
@@ -29,6 +30,14 @@ import { TABLE } from '@/types/tables'
 import type { VoteTally } from './domain/ideas'
 import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'
 import type { usePlannerStore } from './store'
+
+/** What the day plan's entry sheet writes (FR-29.15). */
+export interface DayEntryFields {
+  title: string
+  note: string | null
+  /** `HH:MM`, or null for none. */
+  time: string | null
+}
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
 export interface IdeaFields {
@@ -47,6 +56,7 @@ export function createPlannerActions(
   const encodeVote = TABLE_CODECS[TABLE.ideaVotes].encode
   const encodeComment = TABLE_CODECS[TABLE.ideaComments].encode
   const encodeImage = TABLE_CODECS[TABLE.ideaImages].encode
+  const encodeDayEntry = TABLE_CODECS[TABLE.dayEntries].encode
 
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
@@ -92,6 +102,62 @@ export function createPlannerActions(
       const now = plannerStore.getIdea(idea.id)
       if (now && now.state === state) writeIdea(now, { state: idea.state })
     }
+  }
+
+  /**
+   * FR-29.14: plans an idea on a day, and when on it — or takes its day away
+   * (null). Writes only the fields that change; a time without a day is not
+   * kept, since it would read as none.
+   */
+  function planIdea(idea: Idea, day: string | null, time: string | null): void {
+    const at = day === null ? null : time
+    const patch: Record<string, unknown> = {}
+    if (day !== idea.planned_on) patch['planned_on'] = day
+    if (at !== idea.planned_at) patch['planned_at'] = at
+    writeIdea(idea, patch)
+  }
+
+  /** FR-29.15: an entry of the day plan's own. A blank title is not an entry. */
+  function addDayEntry(
+    tripId: string,
+    day: string,
+    fields: DayEntryFields,
+    me: string | null,
+  ): string | null {
+    const title = fields.title.trim()
+    if (title === '') return null
+    const id = newId()
+    const mutation = host.mutation('insert', TABLE.dayEntries, id, {
+      trip_id: tripId,
+      author_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
+      on_date: day,
+      at_time: fields.time,
+      title,
+      note: blankToNull(fields.note),
+    })
+    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    return id
+  }
+
+  /** FR-29.15: an edit writes only what changed, so it overwrites no one else's field. */
+  function updateDayEntry(entry: DayEntry, fields: DayEntryFields): void {
+    const patch: Record<string, unknown> = {}
+    const title = fields.title.trim()
+    if (title !== '' && title !== entry.title) patch['title'] = title
+    const note = blankToNull(fields.note)
+    if (note !== entry.note) patch['note'] = note
+    if (fields.time !== entry.at_time) patch['at_time'] = fields.time
+    if (Object.keys(patch).length === 0) return
+    const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)),
+    })
+  }
+
+  function removeDayEntry(entry: DayEntry): void {
+    const mutation = host.mutation('delete', TABLE.dayEntries, entry.id)
+    host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
   }
 
   /**
@@ -265,6 +331,10 @@ export function createPlannerActions(
     addIdea,
     updateIdea,
     setState,
+    planIdea,
+    addDayEntry,
+    updateDayEntry,
+    removeDayEntry,
     removeIdea,
     addPicture,
     addLinkPicture,

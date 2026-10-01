@@ -58,6 +58,7 @@ export type ActivityArea =
   | 'notes'
   | 'excursions'
   | 'ideas'
+  | 'dayplan'
   | 'trip'
   | 'members'
   | 'inventory'
@@ -151,6 +152,7 @@ const AREA: Record<SyncTable, ActivityArea> = {
   [TABLE.ideaVotes]: 'ideas',
   [TABLE.ideaComments]: 'ideas',
   [TABLE.ideaImages]: 'ideas',
+  [TABLE.dayEntries]: 'dayplan',
   [TABLE.trips]: 'trip',
   [TABLE.tripMembers]: 'members',
   [TABLE.tripTemplateSources]: 'trip',

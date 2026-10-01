@@ -3052,56 +3052,68 @@ token would prove nothing there is anything to prove.
   (*„Bob zu „Tiscali": Nur mit Guide"*) tells the idea's author and its earlier commenters. Votes tell nobody. A tap
   opens the idea over the board (`?idea=`). M17 carries three switches, *Neue Ideen*, *Kommentare zu Ideen* and
   *Ideen auf der Shortlist*, hidden in Single-User Mode with every other second-party row.
-* **Not built yet** (§3.29): *Daraus gemacht* — an excursion, task or shopping entry made from an idea (FR-29.13) — a
-  day for a shortlisted idea (FR-29.14) and the day plan, M29 (FR-29.15, FR-29.17).
+* **A day (FR-29.14):** on the Shortlist, while the trip has both dates, the card says its day and the detail sets it —
+  M29's way in from the board (see M29).
+* **Not built yet** (§3.29): *Daraus gemacht* — an excursion, task or shopping entry made from an idea (FR-29.13).
 * (E2E-M28-01…05, E2E-M28-07, E2E-M28-10 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11 `server`,
   E2E-G12-07)
 
-### M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.17) — *specified, not built*
+### M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.17) — *built, its connections specified*
 
 * **What it is:** what the travellers do on each day of the trip, read together from where it is written — planned
   ideas, excursions, tasks, arrival and departure — with entries of its own beside them (Addendum FR-29.15). Reasoning:
-  `dev-docs/planner-concept.md` §4.4. The screen is the planner module's (`client/src/planner/`).
+  `dev-docs/planner-concept.md` §4.4. The screen is the planner module's (`client/src/planner/DayPlanPage.vue`); the
+  excursions and tasks reach it from the packing side through `lib/dayPlanSources.ts`, bound by `App.vue`.
 * **Where it lives:** the last pill of the G-9 switcher, glyph `calendarOutline` (`/trips/:id/dayplan`, `meta.tripView:
-  'dayplan'`), **drawn only while the trip has both dates**. Back is M4.
-* **The head:** the page title *Tagesplan* and under it the chosen day, *„Mi 15.7. · Tag 4 von 8"*.
-* **The day strip:** one tile per day of the trip — weekday small over the date, up to three dots for what stands on it
-  — scrolled sideways; today chosen during the trip, the first day before it. Days before today are dimmed. A tile
-  chooses its day. An idea planned on a day outside the trip's dates is listed under *außerhalb der Reise* after the
-  last tile.
-* **The timeline** of the chosen day, one card: timed entries first by their time, untimed ones after, each with its
-  time (*–* where it has none), a coloured left edge and a small label naming its kind:
+  'dayplan'`, `trip-view-dayplan`), **drawn only while the trip has both dates** (`absentViews`). The page's name is
+  *Tagesplan*, its meta line the trip's name. Back is M4. A trip without both dates that is opened on the route says
+  *„Der Tagesplan braucht Start- und Enddatum der Reise."* (`m29-no-dates`).
+* **The day strip** (`m29-strip`): one tile per day of the trip (`m29-day-<YYYY-MM-DD>`, `role="tab"`) — the weekday
+  small over the date, up to three dots for what stands on it — scrolled sideways; today chosen during the trip, the
+  first day otherwise. Days before today are dimmed. A tile chooses its day. Under the strip the chosen day in words,
+  *„Mi., 15.7. · Tag 4 von 8"* (`m29-day-heading`).
+* **The timeline** of the chosen day (`m29-timeline`), one card: timed entries first by their time, untimed ones after,
+  each line (`m29-line-<key>`, `data-kind`) with its time (*–* where it has none), a coloured left edge and a small
+  label naming its kind:
   * **🚗 Anreise / Abreise** on the first and last day, from the trip's dates.
   * **🪧 Ausflug** on each of its days (*Start* on the first, *Rückkehr* on the last of several), with its rucksack's
-    progress as a ring; a tap opens it on M27.
-  * **💡 Idee**, with its votes and note, and a tick that sets *Gemacht* (and back); a tap opens it over M28.
-  * **☑ Aufgabe** due that day, with its assignee and M25's tick.
-  * **✎ Eintrag**, a free entry: its title and note.
-  * **🚆 Verbindung** (FR-29.17): *„Samedan → Bern, Cäcilienstrasse"*, under it *„an 15:46 · RE 3, IC 3, IC 1, T 6 · 3×
-    umsteigen"*; ▸ opens its legs in place — each *„10:58 [RE 3] Samedan → Landquart · an 12:39"*, a walk with 🚶 for
-    its line — and, where it came with a link, *„In der App öffnen ›"*, which opens the link.
-  An empty day says *„Noch nichts geplant."*.
-* **Tomorrow** stands below as a second card, headed *„Morgen · Do 16.7."* with its count.
-* **The pool bar**, floating at the foot beside the FAB where shortlisted ideas have no day: *„2 Ideen auf der
-  Shortlist noch ohne Tag ›"*. It opens a sheet listing them, each with a chip per day of the trip; a chip plans the
-  idea on that day and the row leaves the sheet.
-* **„+" (the FAB)** opens *„Neu am Mi 15.7."* with three segments:
-  * **✎ Eintrag** — a title (*„z. B. Tisch reserviert, Mietauto abholen"*), a note and an optional time; *Hinzufügen*.
-  * **🚆 Verbindung** — *„In der SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort
-    gelesen."*, a button *📋 Link aus Zwischenablage einfügen* and a link field. **A link is read the moment it is
-    pasted** (or the button fetched it): *„Verbindung wird gelesen …"*, then *„✓ 5 Teilstrecken gelesen."* with a
-    preview of the legs and *„Am Sa 10.10. einfügen"* — the day the link names. A link nobody can read says *„Diesen
-    Link kann ich nicht lesen – bitte von Hand eintragen."*. Under the link, unless a preview stands, the hand fields:
-    *Von* and *ab*, *Nach* and *an*, *Linie*; *Hinzufügen* writes one leg, with the link kept.
-  * **💡 Idee** — the shortlisted ideas without a day as chips; one plans it on the chosen day.
-* **Editing:** a tap on a free entry or a connection opens its sheet with its fields, *Speichern*, and a destructive
-  *Eintrag löschen*.
-* **A day on an idea (FR-29.14):** M28's detail carries, for an idea on the shortlist and while the trip has both
-  dates, *Tag* as a chip per day plus *kein Tag*, and an optional *Uhrzeit*; the Shortlist's card shows *📅 Mi 15.7. ·
-  10:00* or *noch nicht eingeplant*.
-* **Modes:** all three. Single-User and Local Mode hide votes and names as M28 does. A short link (`a.sbbmobile.ch`)
-  needs the server's read, so in Local Mode, or with link previews off, it stays a kept link beside the hand fields; a
-  full `sbb.ch/…/trip?tripId=` link is read everywhere.
+    packed share as a ring where it has lines; a tap opens it on M27.
+  * **💡 Idee**, with its note, and a tick (`m29-tick-<key>`) that sets *Gemacht* and back, striking the line through;
+    a tap opens it over M28.
+  * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.
+  * **✎ Eintrag**, an entry of the plan's own: its title and note; a tap opens its sheet.
+  An empty day says *„Noch nichts geplant."* (`m29-empty`).
+* **Tomorrow** stands below as a second card (`m29-tomorrow`), headed *„Morgen · Do., 16.7."* with its count, while
+  the trip has a next day.
+* **Ideas outside the trip** — planned on a day the trip no longer has, because its dates moved — are listed under
+  *Außerhalb der Reise* (`m29-outside`) below, each with its day; a tap opens the idea.
+* **The pool bar** (`m29-pool`), floating at the foot beside the FAB where shortlisted ideas have no day: *„2 Ideen auf
+  der Shortlist noch ohne Tag"*. It opens *Shortlist ohne Tag* (`m29-pool-sheet`), each idea with a chip per day of the
+  trip; a chip plans the idea on that day and toasts *„„…" steht am Fr., 2.10."*. With none left the sheet says *„Alle
+  Ideen auf der Shortlist haben einen Tag."* and the bar is gone.
+* **„+" (the FAB, `m29-fab`, `FAB_ANCHOR.m29`)** opens *„Neu am Mi., 15.7."* (`day-entry`) with two segments:
+  * **Eintrag** — a title (*„z. B. Tisch reserviert, Mietauto abholen"*), *Notiz (optional)* and *Uhrzeit (optional)*;
+    *Hinzufügen*.
+  * **Idee** — the shortlisted ideas without a day as chips; one plans it on the chosen day.
+* **Editing:** a tap on an entry opens *Eintrag bearbeiten* with its fields, *Speichern*, and *Eintrag löschen* — a
+  destructive confirmation (`day-entry-remove-confirm`) *„„…" löschen?"* / *„Der Eintrag verschwindet für alle, die an
+  der Reise teilnehmen."*.
+* **A day on an idea (FR-29.14):** M28's detail carries, for an idea on the shortlist and while the trip has both dates,
+  *Tag* as a chip per day (`idea-plan-day-<YYYY-MM-DD>`) plus *kein Tag* (`idea-plan-none`), and, once it has a day,
+  *Uhrzeit (optional)* (`idea-plan-time`); taking the day away takes the time with it. The Shortlist's card shows
+  *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
+* **Connections (FR-29.17) — specified, not built:** a third segment *🚆 Verbindung* in the ＋ sheet — *„In der
+  SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort gelesen."*, a button *📋 Link aus
+  Zwischenablage einfügen* and a link field; **a link is read the moment it is pasted** (or the button fetched it):
+  *„Verbindung wird gelesen …"*, then *„✓ 5 Teilstrecken gelesen."* with a preview of the legs and *„Am Sa., 10.10.
+  einfügen"* — the day the link names. A link nobody can read says *„Diesen Link kann ich nicht lesen – bitte von Hand
+  eintragen."*; under the link, unless a preview stands, the hand fields *Von* and *ab*, *Nach* and *an*, *Linie*. On
+  the timeline a **🚆 Verbindung** reads *„Samedan → Bern, Cäcilienstrasse"*, under it *„an 15:46 · RE 3, IC 3, IC 1,
+  T 6 · 3× umsteigen"*; ▸ opens its legs in place — each *„10:58 [RE 3] Samedan → Landquart · an 12:39"*, a walk with
+  🚶 for its line — and, where it came with a link, *„In der App öffnen ›"*.
+* **Modes:** all three; the plan reads and writes the device's rows. Single-User and Local Mode name nobody, as M28
+  does.
+* (E2E-M29-01…04 `local`, E2E-G12-09)
 
 ### M30 — Aktivität (Activity Log, §3.32) — *built*
 

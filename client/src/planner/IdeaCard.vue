@@ -3,7 +3,8 @@
  * One idea on the board (FR-29.6): its cover as a flat banner when it has
  * pictures (FR-29.5), its title, the tag, the rain mark and the link's site
  * as chips, and a foot with the two tallies and the discussion's size.
- * Tapping it opens the idea.
+ * Tapping it opens the idea. On the shortlist, while the trip has its dates,
+ * it also says which day it is planned on, or that it has none (FR-29.14).
  *
  * The tallies show who voted, as avatars, because votes are open (FR-29.3);
  * where nobody else votes — Local and Single-User Mode, a trip nobody shares
@@ -11,6 +12,7 @@
  */
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
+  calendarOutline,
   chatbubbleOutline,
   linkOutline,
   thumbsDownOutline,
@@ -21,7 +23,9 @@ import {
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
+import { shortDueDay } from '@/lib/taskDueText'
 import type { IdeaImage } from '@/types/domain'
+import { isPlanTime } from './domain/dayPlan'
 import { linkSite, type IdeaCard } from './domain/ideas'
 import IdeaPicture from './IdeaPicture.vue'
 
@@ -34,6 +38,8 @@ defineProps<{
   /** Whether votes are shown at all (FR-29.3's G-8). */
   votesShown: boolean
   nameOf: NameOf
+  /** Whether the card says its day (FR-29.14): a shortlisted idea on a trip with dates. */
+  planShown: boolean
 }>()
 
 const emit = defineEmits<{ open: [] }>()
@@ -82,6 +88,19 @@ const emit = defineEmits<{ open: [] }>()
         <IonIcon :icon="linkOutline" aria-hidden="true" />
         {{ linkSite(card.idea.link) }}
       </span>
+    </span>
+    <span
+      v-if="planShown"
+      class="plan-chip"
+      :class="{ none: !card.idea.planned_on }"
+      :data-testid="`idea-card-plan-${card.idea.id}`"
+    >
+      <IonIcon :icon="calendarOutline" aria-hidden="true" />
+      <template v-if="card.idea.planned_on">
+        {{ shortDueDay(card.idea.planned_on) }}
+        <template v-if="isPlanTime(card.idea.planned_at)"> · {{ card.idea.planned_at }}</template>
+      </template>
+      <template v-else>{{ t('ideas.notPlanned') }}</template>
     </span>
     <span v-if="votesShown || card.comments > 0" class="foot jp-num">
       <template v-if="votesShown">
@@ -186,6 +205,26 @@ const emit = defineEmits<{ open: [] }>()
 .title {
   font-weight: var(--jp-weight-semibold);
   overflow-wrap: anywhere;
+}
+
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+}
+
+.plan-chip.none {
+  border-style: dashed;
+  border-color: var(--ct-surface2);
+  background: transparent;
+  color: var(--ct-subtext0);
 }
 
 .chips,

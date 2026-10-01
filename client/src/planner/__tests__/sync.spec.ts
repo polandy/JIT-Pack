@@ -232,6 +232,88 @@ describe('Server Mode', () => {
   })
 })
 
+describe('the day plan (FR-29.14, FR-29.15)', () => {
+  /* FR-29.14: a day and a time, written as the fields that change; no day takes the time with it. */
+  it('plans an idea on a day and takes the day away again', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const id = actions.addIdea('t1', GORROPU, 'user-andy')!
+    const idea = () => plannerStore.getIdea(id)!
+
+    actions.planIdea(idea(), '2026-07-14', '09:00')
+    expect(idea()).toMatchObject({ planned_on: '2026-07-14', planned_at: '09:00' })
+    actions.planIdea(idea(), '2026-07-14', '09:00')
+    actions.planIdea(idea(), null, '09:00')
+    expect(idea()).toMatchObject({ planned_on: null, planned_at: null })
+    await orch.drainTrip('t1')
+
+    const plans = harness.pushedMutations().filter((m) => m.op === 'upsert')
+    expect(plans.map((m) => m.fields)).toEqual([
+      { planned_on: '2026-07-14', planned_at: '09:00' },
+      { planned_on: null, planned_at: null },
+    ])
+  })
+
+  it('writes an entry of its own, edits it field by field and deletes it', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+
+    expect(
+      actions.addDayEntry('t1', '2026-07-14', { title: '  ', note: null, time: null }, null),
+    ).toBeNull()
+    const id = actions.addDayEntry(
+      't1',
+      '2026-07-14',
+      { title: 'Tisch Su Gologone', note: '4 Personen', time: '19:30' },
+      'user-andy',
+    )!
+    const entry = () => plannerStore.getDayEntry(id)!
+    actions.updateDayEntry(entry(), {
+      title: 'Tisch Su Gologone',
+      note: '4 Personen',
+      time: '20:00',
+    })
+    expect(entry()).toMatchObject({ at_time: '20:00', title: 'Tisch Su Gologone' })
+    actions.removeDayEntry(entry())
+    expect(plannerStore.getDayEntries('t1')).toEqual([])
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations().map((m) => [m.table, m.op, m.fields])).toEqual([
+      [
+        TABLE.dayEntries,
+        'insert',
+        {
+          trip_id: 't1',
+          author_id: 'user-andy',
+          on_date: '2026-07-14',
+          at_time: '19:30',
+          title: 'Tisch Su Gologone',
+          note: '4 Personen',
+        },
+      ],
+      [TABLE.dayEntries, 'upsert', { at_time: '20:00' }],
+      [TABLE.dayEntries, 'delete', undefined],
+    ])
+  })
+
+  it('a trip’s tombstone takes its day entries off the device', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    actions.addDayEntry('t1', '2026-07-14', { title: 'Mietauto', note: null, time: null }, null)
+
+    harness.mockPull([{ seq: 9, table: TABLE.trips, id: 't1', deleted: true, row: null }])
+    await orch.drainMaster()
+
+    expect(plannerStore.getDayEntries('t1')).toEqual([])
+  })
+})
+
 describe('pictures (FR-29.5)', () => {
   it('routes a pulled picture to the planner store', async () => {
     const orch = serverOrch()

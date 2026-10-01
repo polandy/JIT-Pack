@@ -80,6 +80,11 @@ describe('seedSampleTrip (dev)', () => {
     expect(ideas.some((idea) => idea.rain_proof)).toBe(true)
     expect(planner.getVotes(tripId).filter((vote) => vote.vote === 'up')).toHaveLength(1)
     expect(planner.getComments(tripId)).toHaveLength(1)
+    // FR-29.14/29.15: M29 has a planned idea, one in its pool and an entry of its own.
+    const shortlisted = ideas.filter((idea) => idea.state === 'shortlisted')
+    expect(shortlisted.filter((idea) => idea.planned_on !== null)).toHaveLength(1)
+    expect(shortlisted.filter((idea) => idea.planned_on === null)).toHaveLength(1)
+    expect(planner.getDayEntries(tripId)).toHaveLength(1)
   })
 
   it('leaves a fresh device with both kinds of task (FR-7.6)', () => {
