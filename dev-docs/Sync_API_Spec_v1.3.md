@@ -682,8 +682,11 @@ make this possible.
 * Client → server frames: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`, `{"unsubscribe": ["trip:<id>"]}`, `{"cursor":
   {"trip_id": "<id>", "seq": <n>}}` — the client reports its pull cursor after each trip pull so the server can
   recompute `in_sync` — `{"viewing": {"trip_id": "<id>"}}` — the trip whose packing list is open on this connection,
-  `""` for none; a trip the caller is not a member of counts as none (FR-4.9) — and `{"ping": true}`, the §9
-  keepalive, answered with a `pong` event. `user:` frames are
+  `""` for none; a trip the caller is not a member of counts as none (FR-4.9) — `{"location": {"trip_id": "<id>",
+  "lat": <n>, "lon": <n>, "accuracy_m": <n>}}` or `{"location": {"trip_id": "<id>", "stop": true}}` — this device's
+  position shared on a trip, or no longer (FR-29.19, ADR-087); a position for a trip the caller is not a member of, one
+  off the Earth, or one less than 2 s after the connection's last is dropped without a word — and `{"ping": true}`, the
+  §9 keepalive, answered with a `pong` event. `user:` frames are
   accepted but redundant: `notification.created` is delivered to every connection *authenticated* as the target user, so
   a client can never miss (or steal) the event by (mis)subscribing.
 * **A subscription ends when the permission does, and the server decides that on every send (ADR-056).** `subscribe`
@@ -730,6 +733,7 @@ make this possible.
 | `presence` | `{trip_id, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
 | `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta, and never older than the last one that connection was sent; a newcomer gets it on connect only when it is non-empty |
 | `notification.created` | `{notification_id}` | fetch via `GET /notifications` + toast/OS notification (FR-6.2) |
+| `location` | `{trip_id, user_id, lat, lon, accuracy_m, at, gone}` | a trip member's live position, or its end (`gone`, the rest empty) — FR-29.19, ADR-087. Sent to the trip's subscribers **but the sharer's own connections**; `user_id` and `at` are the server's, never the client's. The hub keeps the newest fix per connection **in memory only** and gives the live ones to a connection that subscribes later; a stop, an unsubscribe or the socket closing sends `gone` — unless another device of the person still shares, whose fix is sent instead. Never stored, logged or pulled |
 | `pong` | — | answers a client `{"ping": true}`; consumed by the client's liveness watchdog, never surfaced (§9) |
 
 * Locks (`packing_now`) are **also** persisted via normal mutations; the ephemeral event only lowers latency, and

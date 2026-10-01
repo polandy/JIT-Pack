@@ -194,6 +194,9 @@ const (
 	// it answers a question about the account, asked from any screen.
 	EventRoster              WSEventType = "roster"
 	EventNotificationCreated WSEventType = "notification.created"
+	// EventLocation is one person's live position on a trip, or its end
+	// (FR-29.19, ADR-087). Sent to the trip's other subscribers only.
+	EventLocation WSEventType = "location"
 	// EventPong answers a client {"ping": true} frame (Sync-API §7/§9).
 	// It carries no payload: its arrival is the information — the client's
 	// liveness watchdog eats it, nothing else reads it.
@@ -223,6 +226,21 @@ type PresenceMember struct {
 type RosterMember struct {
 	UserID  string   `json:"user_id"`
 	TripIDs []string `json:"trip_ids"`
+}
+
+// LiveLocation is the payload of an EventLocation frame (FR-29.19): where a
+// traveller is, as their device said and the server stamped — UserID and At
+// are the server's, never the client's. Gone ends it, and then carries only
+// the trip and the person. Nothing of it is stored (ADR-087).
+type LiveLocation struct {
+	TripID    string  `json:"trip_id"`
+	UserID    string  `json:"user_id"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	AccuracyM float64 `json:"accuracy_m"`
+	// At is when the server received the fix, RFC3339; empty when Gone.
+	At   string `json:"at"`
+	Gone bool   `json:"gone"`
 }
 
 // --- Conflict log (Sync-API §8, NFR-4.2a) ---

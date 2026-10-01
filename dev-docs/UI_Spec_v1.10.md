@@ -3049,8 +3049,18 @@ token would prove nothing there is anything to prove.
   map** (`track-viewer`): the idea's title and ✕ at the top, the map panning and zooming by touch, a tap on a line
   choosing its track, a switch *Landeskarte · OSM* (`track-source-swisstopo`, `track-source-osm`; *Landeskarte* off
   where a track lies outside Switzerland), a button that fits the chosen track again (`track-fit`), the tiles'
-  attribution, and at its foot the same chips and figures as the card. Under the map the **four figures** of the chosen
-  track — *Distanz*, *Aufstieg*, *Abstieg*, *Höchster Punkt* (`track-distance`, `track-ascent`, `track-descent`,
+  attribution, and at its foot the same chips and figures as the card. **Where people are (FR-29.19):** under the fit
+  button a 📍 (`track-locate`, *„Meinen Standort zeigen"*, pressed while the device's position is followed) asks the
+  browser for the device's position — never on its own — draws it as a dot in glacier with its accuracy as a faint
+  circle (`jp-me`), and moves the map to it; refused, a line over the map's foot says *„Standort nicht freigegeben – in
+  den Einstellungen des Browsers erlauben."* (`track-locate-note`), and without a position at all — no HTTPS — *„Dieses
+  Gerät kann seinen Standort hier nicht zeigen."*. Where somebody else is on the trip (G-8: not in Local or Single-User
+  Mode), a row of two switches stands between the map and its foot (`track-people`): *Meinen Standort teilen*
+  (`track-share`, off by default) and *Mitreisende zeigen* (`track-show-others`, on by default), each kept on the
+  device. Every other traveller who shares is a round heather mark with their initials (`map-mark-person`), saying when
+  asked *„Sia · vor 2 min"* or *„Sia · gerade eben"*; a mark quiet for 5 minutes is gone. Without tiles the marks are
+  dots on the lines alone, where they fall inside the frame. Under the map the **four figures** of the chosen track —
+  *Distanz*, *Aufstieg*, *Abstieg*, *Höchster Punkt* (`track-distance`, `track-ascent`, `track-descent`,
   `track-highest`; *–* without heights) — and the **time**: *Wandern · Velo* as one segmented control
   (`track-kind-hike`, `track-kind-bike`) and the chip *Mit Kind* (`track-kid`, pressed where set), over the sum *„3 h 25
   Gehzeit + 1 h 00 Pausen = 4 h 25 Unterwegs"* — *Fahrzeit* for a bike tour — whose pauses are a − / + stepper in

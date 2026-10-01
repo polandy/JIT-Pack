@@ -69,6 +69,7 @@ import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
 import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
 import { useTripTasks } from '@/composables/useTripTasks'
+import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/useLiveLocation'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
 import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
@@ -206,6 +207,21 @@ async function showNotificationToast(n: ServerNotification) {
 }
 
 provide(ORCHESTRATOR, orchestrator)
+
+// FR-29.19: the device's position and what it shares, one per app; a trip
+// shared when the app was last open is shared again from the start.
+const liveLocation = orchestrator
+  ? createLiveLocation({
+      host: orchestrator,
+      geo: browserGeo(),
+      storage: localStorage,
+      now: () => Date.now(),
+    })
+  : null
+if (liveLocation) {
+  provide(LIVE_LOCATION, liveLocation)
+  liveLocation.resume()
+}
 
 /*
  * FR-30.2/30.3 (ADR-066): the composition root is the one place that knows

@@ -253,3 +253,43 @@ func TestWS_ANewConnectionIsToldWhoIsAlreadyPacking_FR4_9(t *testing.T) {
 		t.Errorf("b's first roster = %v, want [%s]", got, userA)
 	}
 }
+
+// nextLocationFrame reads frames up to the next location frame.
+func nextLocationFrame(t *testing.T, ws *websocket.Conn) map[string]any {
+	t.Helper()
+	for {
+		evt := wsReadMsg(t, ws)
+		if evt["type"] == "location" {
+			return evt["payload"].(map[string]any)
+		}
+	}
+}
+
+// FR-29.19 through the socket: a member's position reaches the trip's other
+// member with the sharer named by the server; a non-member's frame is not
+// passed on. The member's fix, sent second, is the positive signal — the
+// stranger's would have arrived first.
+func TestWS_ALocationReachesTheTripsOtherMemberAndNoStrangersDoes_FR29_19(t *testing.T) {
+	srv := newTestWSServer(t)
+	b := wsConnectAuth(t, srv, userB)
+	wsSendMsg(t, b, map[string]any{"subscribe": []string{"trip:" + trip}})
+	// Subscribed once the hub answers with the trip's presence: a fix sent
+	// before that would reach b twice, as the subscriber's snapshot and live.
+	for wsReadMsg(t, b)["type"] != "presence" {
+	}
+	x := wsConnectAuth(t, srv, "user-x")
+	a := wsConnectAuth(t, srv, userA)
+
+	wsSendMsg(t, x, map[string]any{"location": map[string]any{"trip_id": trip, "lat": 1.0, "lon": 1.0, "accuracy_m": 5}})
+	wsSendMsg(t, a, map[string]any{"location": map[string]any{"trip_id": trip, "lat": 46.5, "lon": 9.84, "accuracy_m": 12}})
+
+	got := nextLocationFrame(t, b)
+	if got["user_id"] != userA || got["lat"] != 46.5 {
+		t.Errorf("b's first location = %v, want a's at 46.5", got)
+	}
+
+	wsSendMsg(t, a, map[string]any{"location": map[string]any{"trip_id": trip, "stop": true}})
+	if got := nextLocationFrame(t, b); got["user_id"] != userA || got["gone"] != true {
+		t.Errorf("after a stopped b got %v, want a gone", got)
+	}
+}

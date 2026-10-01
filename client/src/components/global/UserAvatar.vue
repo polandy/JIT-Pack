@@ -19,6 +19,7 @@
  * so the same person is the same colour on every screen and across reloads
  * without anything being stored.
  */
+import { initialsOf } from '@/lib/initials'
 import { computed, ref, watch } from 'vue'
 
 const props = withDefaults(
@@ -69,17 +70,7 @@ const label = computed(() => props.name ?? props.seed ?? '?')
 const LARGE_FROM_PX = 32
 const sizeClass = computed(() => (props.size >= LARGE_FROM_PX ? 's-lg' : 's-sm'))
 
-const initials = computed(() => {
-  const words = (props.name ?? '').trim().split(/\s+/).filter(Boolean)
-  if (words.length >= 2) return (words[0]![0]! + words[1]![0]!).toUpperCase()
-  const source = words[0] ?? props.seed ?? ''
-  return (
-    source
-      .replace(/[^\p{L}\p{N}]/gu, '')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  )
-})
+const initials = computed(() => initialsOf(props.name, props.seed))
 
 const color = computed(() => {
   const source = props.seed ?? props.name ?? ''

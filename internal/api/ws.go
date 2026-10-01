@@ -23,6 +23,8 @@ const wsIdleTimeout = 5 * time.Minute
 //	{"subscribe":   ["trip:<id>", "user:<own-id>"]}
 //	{"unsubscribe": ["trip:<id>"]}
 //	{"cursor":      {"trip_id": "...", "seq": 123}}
+//	{"location":    {"trip_id": "...", "lat": 46.5, "lon": 9.8, "accuracy_m": 12}}
+//	{"location":    {"trip_id": "...", "stop": true}}
 type wsMessage struct {
 	Subscribe   []string  `json:"subscribe,omitempty"`
 	Unsubscribe []string  `json:"unsubscribe,omitempty"`
@@ -35,6 +37,17 @@ type wsMessage struct {
 	// protocol pings, and the client needs a frame it can *see* to know
 	// the connection is still two-way.
 	Ping bool `json:"ping,omitempty"`
+	// Location shares where the sender is on a trip, or stops sharing it
+	// (FR-29.19).
+	Location *wsLocation `json:"location,omitempty"`
+}
+
+type wsLocation struct {
+	TripID    string  `json:"trip_id"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	AccuracyM float64 `json:"accuracy_m"`
+	Stop      bool    `json:"stop"`
 }
 
 type wsViewing struct {
@@ -118,6 +131,14 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		}
 		if msg.Cursor != nil {
 			s.hub.UpdateCursor(c, msg.Cursor.TripID, msg.Cursor.Seq)
+		}
+		if loc := msg.Location; loc != nil {
+			// A stop needs no proof — it only ever takes a position away.
+			if loc.Stop {
+				s.hub.ClearLocation(c, loc.TripID)
+			} else if s.isMember(r, loc.TripID, userID) {
+				s.hub.SetLocation(c, loc.TripID, loc.Lat, loc.Lon, loc.AccuracyM)
+			}
 		}
 	}
 }

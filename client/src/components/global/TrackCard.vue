@@ -38,6 +38,8 @@ const props = defineProps<{
   tracks: TrackFields[]
   /** What the tracks belong to — the full-screen map's title. */
   title: string
+  /** The trip they are on, for who is where on the full-screen map (FR-29.19). */
+  tripId?: string
 }>()
 
 const chosenId = defineModel<string | null>('chosen', { default: null })
@@ -203,6 +205,7 @@ async function openMenu() {
       :tracks="tracks"
       :lines="lines"
       :chosen="chosen"
+      :trip-id="tripId"
       @close="viewing = false"
       @choose="choose"
       @update="(track, settings) => emit('update', track, settings)"

@@ -308,6 +308,33 @@ describe('useWebSocket', () => {
       expect(second.sent).toHaveLength(2)
     })
 
+    /* FR-29.19: a shared position is said again on every new socket, until it is stopped. */
+    it('shares a position, says it again after a drop, and stops it', async () => {
+      const ws = useWebSocket(opts())
+      await ws.connect()
+      latest().simulateOpen()
+      const at = { trip_id: 't1', lat: 46.5, lon: 9.8, accuracy_m: 12 }
+      ws.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 12 })
+      expect(latest().sent).toEqual([JSON.stringify({ location: at })])
+
+      latest().simulateDrop()
+      await vi.advanceTimersByTimeAsync(WS_RECONNECT_BASE_MS)
+      const second = latest()
+      second.simulateOpen()
+      expect(second.sent).toEqual([JSON.stringify({ location: at })])
+
+      ws.shareLocation('t1', null)
+      expect(second.sent.at(-1)).toBe(JSON.stringify({ location: { trip_id: 't1', stop: true } }))
+      // A stop for a trip not shared says nothing.
+      ws.shareLocation('t1', null)
+      expect(second.sent).toHaveLength(2)
+
+      second.simulateDrop()
+      await vi.advanceTimersByTimeAsync(WS_RECONNECT_BASE_MS)
+      latest().simulateOpen()
+      expect(latest().sent).toEqual([])
+    })
+
     it('tells the owner about every open, so the gap can be pulled over', async () => {
       const onOpen = vi.fn()
       const ws = useWebSocket(opts({ onOpen }))
