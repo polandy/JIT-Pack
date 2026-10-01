@@ -57,9 +57,10 @@ func storeErrorNames(t *testing.T) map[error]string {
 		store.ErrIdeaImageTooLarge:       "ErrIdeaImageTooLarge",
 		store.ErrIdeaImageLimit:          "ErrIdeaImageLimit",
 		store.ErrIdeaNotFound:            "ErrIdeaNotFound",
-		store.ErrIdeaTrackTooLarge:       "ErrIdeaTrackTooLarge",
-		store.ErrIdeaTrackLimit:          "ErrIdeaTrackLimit",
-		store.ErrIdeaTrackInvalid:        "ErrIdeaTrackInvalid",
+		store.ErrExcursionNotFound:       "ErrExcursionNotFound",
+		store.ErrTrackTooLarge:           "ErrTrackTooLarge",
+		store.ErrTrackLimit:              "ErrTrackLimit",
+		store.ErrTrackInvalid:            "ErrTrackInvalid",
 	}
 }
 
@@ -139,9 +140,9 @@ func TestStoreErrorResponses_OnlyTheLimitsAnswerWithTheStoresOwnSentence(t *test
 		store.ErrInvalidDisplayName: true,
 		store.ErrIdeaImageTooLarge:  true,
 		store.ErrIdeaImageLimit:     true,
-		store.ErrIdeaTrackTooLarge:  true,
-		store.ErrIdeaTrackLimit:     true,
-		store.ErrIdeaTrackInvalid:   true,
+		store.ErrTrackTooLarge:      true,
+		store.ErrTrackLimit:         true,
+		store.ErrTrackInvalid:       true,
 	}
 	names := storeErrorNames(t)
 	for _, row := range storeErrorResponses {

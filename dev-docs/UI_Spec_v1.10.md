@@ -630,7 +630,7 @@ These patterns apply to every screen and are specified once.
 | M24 | Aufräumen (Inventory Cleanup) | P2 | Addendum 24.12, 24.13 |
 | M25 | Aufgaben (A Trip's Tasks) | MVP | Addendum 7.7 |
 | M26 | Notizen (A Trip's Notes) | MVP | Addendum 7.9, 7.13 |
-| M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.12 |
+| M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.15 |
 | M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17, 29.19, 29.20 |
 | M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
 
@@ -2877,10 +2877,11 @@ token would prove nothing there is anything to prove.
   the upcoming excursions that still have something open (FR-31.10), grey. No ⋮ on the list. Back is M4.
 * **The list:** *Kommende* — by first day, a row per excursion: its days (*„So., 27.9. – Mo., 28.9."*, one day for a day
   hike), its name in the heading weight, the participants' names where not everybody goes, and `done/total` at the end
-  with a chevron; then *Ohne Datum*, by name, the same row without the days line; then a fold *„1 vergangener Ausflug"*,
-  latest first, muted. A row opens that excursion's list. The empty trip says *„Noch keine Ausflüge. Eine
-  Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste an."* **Before the trip
-  partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
+  with a chevron, and under the name, where it carries GPX tracks, the first one's kind glyph, distance and climb with
+  *+n* for the others (`m27-tracks-<name>`, FR-31.15); then *Ohne Datum*, by name, the same row without the days line;
+  then a fold *„1 vergangener Ausflug"*, latest first, muted. A row opens that excursion's list. The empty trip says
+  *„Noch keine Ausflüge. Eine Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste
+  an."* **Before the trip partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
 * **The sheet** (the FAB, ＋, `FAB_ANCHOR.m27`; also *Ausflug bearbeiten* from one excursion's ⋮): *„Neuer Ausflug"* —
   **Name** (*„z. B. Tageswanderung"*), **Wann** — one G-17 range field (*Von → Bis*), optional, offering only the trip's
   days once it has them (FR-31.1); **Wer geht mit** — *Alle* and a chip per traveller (where the trip has two or more),
@@ -2914,6 +2915,20 @@ token would prove nothing there is anything to prove.
   that names this excursion (`m27-notes`, a line `m27-note-<id>`) — M26's `chatbubblesOutline`, the thread's name, a
   chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
   excursion. Deleting the excursion keeps its notes as trip notes.
+* **Its route** (FR-31.15, ADR-089): **first, above the progress card**, a card of its own (`TrackSummary`,
+  `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed for
+  it. Its head (`track-summary-toggle`, map glyph, *Route*, a caret) **folds and unfolds** it: folded, the head alone
+  carries the first track's distance and climb with *+n* (`track-summary-folded`). **While the list has something left
+  to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or unfold is
+  kept per excursion in this browser (`lib/routeFold.ts`), for the phase it was made in: folded while packing, the card
+  is open again once everything is packed. Open, a still map carries every track's line in its colour
+  (`track-summary-map`, tiles as FR-29.17 sets them, the lines alone offline); a tap on it opens FR-29.17's full-screen
+  map. Under it, one line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300
+  m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that
+  track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar
+  carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
+  herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a file is
+  read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
@@ -2962,18 +2977,20 @@ token would prove nothing there is anything to prove.
   two ways (FR-31.14): ***„X" nur für diesen Ausflug*** (*Kommt nicht ins Inventar – Proviant, Wasser, Kleinkram*,
   `quick-add-local-only`) first, and what ✓ does; the inventory's create offer below it.
 * **The ⋮** (G-12, words only): *Ausflug bearbeiten* (the sheet above; a change of who goes rewrites the per-person sets
-  and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Als Gruppe speichern* (a prompt prefilled with the
-  excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen beginnen kannst."*;
-  a taken name is refused in a toast and the prompt stays open; FR-31.11 — where lines for the excursion alone exist,
-  an alert asks first, *„Auch Dinge, die nur für diesen Ausflug sind?"* naming them, with *Mitnehmen* and *Weglassen*,
-  handle `m27-save-group-unlisted`, FR-31.14), *Ausflug löschen* (a destructive
-  confirmation *„„Hüttentour" mit seiner Liste löschen? Die Packliste bleibt, wie sie ist."*, then back to the list).
-  An excursion deleted elsewhere leaves its view for the list.
+  and toasts *„Wer mitgeht, geändert"* with *Rückgängig*), *Track hinzufügen …* (`m27-track-add`, the file chooser;
+  FR-31.15) and *Route zeichnen* (`m27-track-draw`, FR-29.20's editor on nothing; without the map it toasts why) — with
+  five tracks both toast *„Es sind schon 5 Tracks – mehr gehen nicht."* instead —, *Als Gruppe speichern* (a prompt
+  prefilled with the excursion's name and the line *„Die Liste wird eine Gruppe, aus der du andere Ausflüge und Reisen
+  beginnen kannst."*; a taken name is refused in a toast and the prompt stays open; FR-31.11 — where lines for the
+  excursion alone exist, an alert asks first, *„Auch Dinge, die nur für diesen Ausflug sind?"* naming them, with
+  *Mitnehmen* and *Weglassen*, handle `m27-save-group-unlisted`, FR-31.14), *Ausflug löschen* (a destructive
+  confirmation *„„Hüttentour" mit seiner Liste löschen? Die Packliste bleibt, wie sie ist."*, then back to the list). An
+  excursion deleted elsewhere leaves its view for the list.
 * **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
-* (E2E-M27-01…13 `local`, E2E-G12-07)
+* (E2E-M27-01…16 `local`, E2E-G12-07)
 
 ### M28 — Ideen (A Trip's Ideas, §3.29) — *built*
 

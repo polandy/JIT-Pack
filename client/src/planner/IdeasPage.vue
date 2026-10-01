@@ -31,19 +31,16 @@ import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import TrackEditor, { type EditedTrack, type SavedRoute } from '@/components/global/TrackEditor.vue'
-import { trackHueClass, type MapLine } from '@/components/global/trackColors'
+import TrackEditor from '@/components/global/TrackEditor.vue'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useTrackOwner } from '@/composables/useTrackOwner'
 import { useTripScreen } from '@/composables/useTripScreen'
-import type { IdeaTrackUpload } from '@/api/types'
-import { gpxFileName, writeGpx } from '@/domain/route'
-import { MAX_TRACKS, decodeLine, orderTracks, parseGpx, readTrack } from '@/domain/track'
+import { orderTracks } from '@/domain/track'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
-import { saveBlob } from '@/lib/download'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/lib/toast'
@@ -56,7 +53,6 @@ import type {
   IdeaTag,
   IdeaTrack,
   IdeaVoteValue,
-  TrackFields,
 } from '@/types/domain'
 import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from '@/types/domain'
 import { createPlannerActions, type IdeaFields } from './actions'
@@ -318,194 +314,22 @@ async function onRemovePicture(image: IdeaImage) {
   if (confirmed) actions.removePicture(image)
 }
 
-// --- GPX tracks (FR-29.17) ---
+// --- GPX tracks (FR-29.17) and editing their route (FR-29.20) ---
 
-/** Whether a GPX file is being read and sent; the add control waits for it. */
-const trackBusy = ref(false)
-
-function toast(message: string) {
-  void presentToast({ message, positionAnchor: FAB_ANCHOR.m28 })
-}
-
-/**
- * Reads a chosen file on this device (ADR-085) and hands what it read to
- * `send`. A file that is too large or holds no track is said and kept
- * nowhere; so is an upload that failed — Server Mode uploads now or not at
- * all, as for a picture.
- */
-async function withTrackFile(file: File, send: (upload: IdeaTrackUpload) => Promise<unknown>) {
-  if (trackBusy.value) return
-  trackBusy.value = true
-  try {
-    const read = readTrack(await file.text(), file.name, file.size)
-    if (!read.ok) {
-      toast(read.reason === 'too_large' ? t('ideas.trackTooLarge') : t('ideas.trackNone'))
-      return
-    }
-    await send(read.upload)
-  } catch {
-    toast(t('ideas.trackUploadFailed'))
-  } finally {
-    trackBusy.value = false
-  }
-}
-
-async function onAddTrack(file: File) {
+const tracks = useTrackOwner<IdeaTrack>(() => {
   const idea = openIdea.value
-  if (idea) await withTrackFile(file, (upload) => actions.addTrack(idea, upload))
-}
-
-async function onReplaceTrack(track: IdeaTrack, file: File) {
-  await withTrackFile(file, (upload) => actions.replaceTrack(track, upload))
-}
-
-function onUpdateTrack(
-  track: IdeaTrack,
-  settings: Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>,
-) {
-  actions.updateTrack(track, settings)
-}
-
-async function onDownloadTrack(track: IdeaTrack) {
-  const file = await actions.trackFile(track)
-  if (file) saveBlob(file, track.file_name)
-  else toast(t('ideas.trackUploadFailed'))
-}
-
-async function onRemoveTrack(track: IdeaTrack) {
-  const confirmed = await confirmDestructive({
-    header: t('track.remove'),
-    message: t('ideas.removeTrackConfirm'),
-    confirmLabel: t('track.remove'),
-    testid: 'track-remove-confirm',
-  })
-  if (confirmed) actions.removeTrack(track)
-}
-
-// --- Editing a route (FR-29.20, ADR-088) ---
-
-/** The route being edited: on which idea, which track (none when drawn from nothing) and its file. */
-interface RouteEditing {
-  idea: Idea
-  track: IdeaTrack | null
-  original: EditedTrack | null
-  /** The file as it was, for the undo after a replacement. */
-  gpx: string | null
-}
-
-const routeEditing = ref<RouteEditing | null>(null)
-
-const routeTracks = computed(() => (routeEditing.value ? tracksOf(routeEditing.value.idea.id) : []))
-/** The idea's other tracks, faint under the route, in the colours the card gives them. */
-const routeOthers = computed<MapLine[]>(() =>
-  routeTracks.value.flatMap((track, index) =>
-    track.id === routeEditing.value?.track?.id
-      ? []
-      : [
-          {
-            id: track.id,
-            points: decodeLine(track.line),
-            hueClass: trackHueClass(index),
-            chosen: false,
-          },
-        ],
-  ),
-)
-/** The edited track keeps its colour; a new one takes the next. */
-const routeHue = computed(() => {
-  const current = routeEditing.value?.track
-  const index = current
-    ? routeTracks.value.findIndex((track) => track.id === current.id)
-    : routeTracks.value.length
-  return trackHueClass(Math.max(0, index))
-})
-
-/**
- * Opens the editor: on a track's own file, read again from where it is
- * kept (the row's line is thinned and carries no heights), or on nothing.
- */
-async function onEditTrack(track: IdeaTrack | null) {
-  const idea = openIdea.value
-  if (!idea || trackBusy.value) return
-  if (!track) {
-    routeEditing.value = { idea, track: null, original: null, gpx: null }
-    return
+  if (!idea) return null
+  return {
+    tracks: () => tracksOf(idea.id),
+    add: (upload) => actions.addTrack(idea, upload),
+    replace: (track, upload) => actions.replaceTrack(track, upload),
+    update: (track, settings) => actions.updateTrack(track, settings),
+    remove: (track) => actions.removeTrack(track),
+    file: (track) => actions.trackFile(track),
   }
-  trackBusy.value = true
-  try {
-    const file = await actions.trackFile(track)
-    const gpx = file ? await file.text() : null
-    const points = gpx ? parseGpx(gpx).points : []
-    if (!gpx || points.length < 2) {
-      toast(t('ideas.trackLoadFailed'))
-      return
-    }
-    routeEditing.value = {
-      idea,
-      track,
-      gpx,
-      original: { name: track.name, kind: track.kind, withKid: track.with_kid, points },
-    }
-  } finally {
-    trackBusy.value = false
-  }
-}
-
-/**
- * Saves an edited route as the GPX file this device writes (ADR-088),
- * through FR-29.17's upload: a new track — carrying the original's
- * *Mit Kind* and pauses — or the original's file replaced, with an undo
- * that puts the old file back.
- */
-async function onSaveRoute(route: SavedRoute) {
-  const editing = routeEditing.value
-  if (!editing || trackBusy.value) return
-  const xml = writeGpx(route.name, route.kind, route.points)
-  const read = readTrack(xml, gpxFileName(route.name), new Blob([xml]).size)
-  if (!read.ok) {
-    toast(read.reason === 'too_large' ? t('ideas.trackTooLarge') : t('ideas.trackNone'))
-    return
-  }
-  const upload: IdeaTrackUpload = { ...read.upload, name: route.name, kind: route.kind }
-  trackBusy.value = true
-  try {
-    const source = editing.track
-    if (route.how === 'replace' && source && editing.gpx !== null) {
-      await actions.replaceTrack(source, upload)
-      routeEditing.value = null
-      const old = editing.gpx
-      await presentToast({
-        message: t('ideas.routeReplaced', { name: source.name }),
-        positionAnchor: FAB_ANCHOR.m28,
-        cssClass: 'pack-toast',
-        buttons: [{ text: t('packing.undo'), handler: () => void putBack(source, old) }],
-      })
-      return
-    }
-    const id = await actions.addTrack(editing.idea, upload)
-    routeEditing.value = null
-    const added = id ? tracksOf(editing.idea.id).find((track) => track.id === id) : undefined
-    if (added && source && (source.with_kid || source.pause_min > 0)) {
-      actions.updateTrack(added, { with_kid: source.with_kid, pause_min: source.pause_min })
-    }
-    toast(t('ideas.routeSavedNew'))
-  } catch {
-    toast(t('ideas.trackUploadFailed'))
-  } finally {
-    trackBusy.value = false
-  }
-}
-
-/** The replacement's undo: the old file uploaded again under the same id. */
-async function putBack(track: IdeaTrack, gpx: string) {
-  const read = readTrack(gpx, track.file_name, new Blob([gpx]).size)
-  if (!read.ok) return
-  try {
-    await actions.replaceTrack(track, read.upload)
-  } catch {
-    toast(t('ideas.trackUploadFailed'))
-  }
-}
+}, FAB_ANCHOR.m28)
+const trackBusy = tracks.busy
+const routeEditor = tracks.editor
 
 function onEdit() {
   if (openIdea.value) editing.value = { idea: openIdea.value }
@@ -667,12 +491,12 @@ const EMPTY_KEYS = {
           @cover-picture="onCoverPicture"
           @remove-picture="onRemovePicture"
           @plan="onPlan"
-          @add-track="onAddTrack"
-          @update-track="onUpdateTrack"
-          @download-track="onDownloadTrack"
-          @replace-track="onReplaceTrack"
-          @remove-track="onRemoveTrack"
-          @edit-track="onEditTrack"
+          @add-track="tracks.add"
+          @update-track="tracks.update"
+          @download-track="tracks.download"
+          @replace-track="tracks.replace"
+          @remove-track="tracks.remove"
+          @edit-track="tracks.edit"
         />
       </SheetModal>
       <Teleport v-if="isDesktop && openIdea" defer :to="PANEL_HOST_SELECTOR">
@@ -697,24 +521,24 @@ const EMPTY_KEYS = {
             @cover-picture="onCoverPicture"
             @remove-picture="onRemovePicture"
             @plan="onPlan"
-            @add-track="onAddTrack"
-            @update-track="onUpdateTrack"
-            @download-track="onDownloadTrack"
-            @replace-track="onReplaceTrack"
-            @remove-track="onRemoveTrack"
-            @edit-track="onEditTrack"
+            @add-track="tracks.add"
+            @update-track="tracks.update"
+            @download-track="tracks.download"
+            @replace-track="tracks.replace"
+            @remove-track="tracks.remove"
+            @edit-track="tracks.edit"
           />
         </aside>
       </Teleport>
       <TrackEditor
-        :open="routeEditing !== null"
-        :title="routeEditing?.idea.title ?? ''"
-        :original="routeEditing?.original ?? null"
-        :others="routeOthers"
-        :hue-class="routeHue"
-        :can-add-new="routeTracks.length < MAX_TRACKS"
-        @close="routeEditing = null"
-        @save="onSaveRoute"
+        :open="routeEditor.open.value"
+        :title="openIdea?.title ?? ''"
+        :original="routeEditor.original.value"
+        :others="routeEditor.others.value"
+        :hue-class="routeEditor.hueClass.value"
+        :can-add-new="routeEditor.canAddNew.value"
+        @close="tracks.closeEditor"
+        @save="tracks.save"
       />
     </IonContent>
   </IonPage>

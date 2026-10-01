@@ -651,6 +651,12 @@ export interface IdeaTrack extends TrackFields {
   idea_id: string
 }
 
+/** FR-31.15: one GPX track on an excursion, kept as an idea's is (ADR-089). */
+export interface ExcursionTrack extends TrackFields {
+  trip_id: string
+  excursion_id: string
+}
+
 // --- Master data ---
 
 /**

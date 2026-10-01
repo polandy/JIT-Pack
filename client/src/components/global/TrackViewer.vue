@@ -196,6 +196,8 @@ watch(
           <IonIcon :icon="createOutline" aria-hidden="true" />
           {{ t('track.editShort') }}
         </button>
+        <!-- What else the owner offers on the chosen track: an excursion's ⋮ (FR-31.15). -->
+        <slot v-if="chosen" name="actions" :track="chosen" />
         <button
           type="button"
           class="icon-button"

@@ -578,6 +578,7 @@ var tableSpecs = map[string]tableSpec{
 		cascades: []childQuery{
 			{TableExcursionTravelers, `SELECT id FROM excursion_travelers WHERE excursion_id = ?`},
 			{TableExcursionItems, `SELECT id FROM excursion_items WHERE excursion_id = ?`},
+			{TableExcursionTracks, `SELECT id FROM excursion_tracks WHERE excursion_id = ?`},
 		},
 		export: exportQuery{query: `SELECT x.* FROM excursions x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -607,6 +608,20 @@ var tableSpecs = map[string]tableSpec{
 			"shopping_position",
 		),
 		export: exportQuery{query: `SELECT x.* FROM excursion_items x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-31.15: a GPX track on an excursion, as an idea's (TableIdeaTracks).
+	TableExcursionTracks: {
+		partition: partitionTrip,
+		label:     activityLabel{name: own(columnName), subject: via("excursion_id", TableExcursions, "name")},
+		columns: toSet(
+			"trip_id", "excursion_id", columnName, "file_name", columnKind, columnWithKid, columnPauseMin,
+			columnPosition, "gpx_hash", "distance_m", "ascent_m", "descent_m", "max_ele_m",
+			"point_count", columnLine,
+		),
+		unlogged: toSet(columnLine),
+		export: exportQuery{query: `SELECT x.* FROM excursion_tracks x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
@@ -678,7 +693,7 @@ var tableSpecs = map[string]tableSpec{
 
 	// FR-29.17: a GPX track on an idea. The upload creates the row (with its
 	// file, which never syncs); every column is listed so the pull carries
-	// it, and validIdeaTrack lets a push change only what a person sets.
+	// it, and validTrack lets a push change only what a person sets.
 	TableIdeaTracks: {
 		partition: partitionTrip,
 		label:     activityLabel{name: own(columnName), subject: via("idea_id", TableIdeas, "title")},

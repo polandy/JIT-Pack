@@ -206,6 +206,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaTrack), s.authed(s.member(s.handleGetIdeaTrack)))
 	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaTrack), s.authed(s.member(s.handlePutIdeaTrack)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripExcursionTrack), s.authed(s.member(s.handleGetExcursionTrack)))
+	mux.HandleFunc(pattern(http.MethodPut, RouteTripExcursionTrack), s.authed(s.member(s.handlePutExcursionTrack)))
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreview), s.authed(s.member(s.handleLinkPreview)))
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreviewImage), s.authed(s.member(s.handleLinkPreviewImage)))
 

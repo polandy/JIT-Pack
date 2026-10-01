@@ -130,8 +130,4 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'ideas.suggestionAccept': 'Übernehmen',
   'ideas.addTrack': 'GPX hinzufügen',
   'ideas.trackReading': 'Wird gelesen …',
-  'ideas.trackNone': 'In dieser Datei ist kein Track.',
-  'ideas.trackTooLarge': 'Die Datei ist grösser als 5 MB.',
-  'ideas.trackUploadFailed': 'Der Track ließ sich nicht hochladen. Bist du online?',
-  'ideas.removeTrackConfirm': 'Der Track verschwindet für alle, die an der Reise teilnehmen.',
 }

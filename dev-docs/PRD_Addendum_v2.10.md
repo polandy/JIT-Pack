@@ -4600,6 +4600,18 @@ rendered variants are in `dev-docs/excursions-concept.md` and `UI_Concept_Excurs
   creates them in the inventory as FR-31.11 does, ***Weglassen*** saves the Gruppe without them and the inventory
   untouched.
   A *vor Ort* line of this kind keeps FR-31.13's way into the inventory, once bought.
+* **FR-31.15 (The Route of an Excursion):** *Implemented* (ADR-089). An excursion carries up to **5 GPX tracks** exactly
+  as an idea does (FR-29.17): read on the device, the file of at most 5 MB kept outside the sync envelope beside a
+  synced row of what was read, the kind, *Mit Kind*, the pauses and the name set by hand, the file renamed, downloaded,
+  replaced or removed, and the route edited or drawn along paths (FR-29.20). Added from the excursion's ⋮ — ***Track
+  hinzufügen …*** and ***Route zeichnen***, which needs the map (FR-29.20) — and a sixth is refused before a file is
+  asked for. The excursion's view shows them **first, above its packing list**, as one card: a still map with every
+  line, then one line per track (kind, name, distance, climb, time with the pauses) that opens the full-screen map on
+  it; the card **folds** to one line (the first track's distance and climb) — folded by default while the list has
+  something to pack, open once it has not, and a fold or unfold remembered in the browser per excursion for that phase —
+  so the view can be set on packing or on the way; M27's list shows the first one's distance and climb with how many
+  more. Deleting the excursion deletes its tracks. A track does **not** follow an idea to an excursion: that waits for
+  §3.29's bridge to the packing side, and until then the file is downloaded from one and added to the other.
 * **Notes about an excursion** are FR-7.15's: a trip note may name one excursion, which lists it under its progress
   card; deleting the excursion keeps the note.
 * **Modes.** All three. **Local:** everything, but there is no server and so no reminder — M1's block is the reminder.

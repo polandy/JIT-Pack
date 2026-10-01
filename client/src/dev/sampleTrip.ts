@@ -17,13 +17,14 @@ import {
   ITEM_MODE_PACK,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  type Excursion,
   type Idea,
   type IdeaState,
   type IdeaTag,
 } from '@/types/domain'
 import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
 import { samplePicture } from './samplePictures'
-import { SAMPLE_ROUTES, sampleGpx } from './sampleTracks'
+import { SAMPLE_EXCURSION_ROUTE, SAMPLE_ROUTES, sampleGpx } from './sampleTracks'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
@@ -284,6 +285,17 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
   )
 }
 
+/** For the reason `seedPictures` gives, a failed upload is said, not thrown. */
+async function seedExcursionTrack(excursion: Excursion, orchestrator: Orchestrator) {
+  try {
+    const gpx = sampleGpx(SAMPLE_EXCURSION_ROUTE)
+    const read = readTrack(gpx, SAMPLE_EXCURSION_ROUTE.fileName, gpx.length)
+    if (read.ok) await orchestrator.addTrack(excursion, read.upload)
+  } catch (error) {
+    console.warn(`dev seed: no track for „${excursion.name}"`, error)
+  }
+}
+
 /** One after another, for the reason `seedPictures` gives. */
 async function seedTracks(
   idea: Idea,
@@ -323,8 +335,9 @@ async function seedPictures(
 
 /**
  * FR-31: M27 opens with two excursions — a hut tour tomorrow for two of the
- * three, started from the *Hüttentour* group, and an undated boat trip with
- * one thing to buy on the spot. The trip is active, so its suitcase is closed
+ * three, started from the *Hüttentour* group and carrying its round as a
+ * GPX track (FR-31.15), and an undated boat trip with one thing
+ * to buy on the spot. The trip is active, so its suitcase is closed
  * and the hut tour shows *nicht im Gepäck* on what the luggage lacks (FR-31.7)
  * beside the lines it borrows. Through the orchestrator's own actions.
  */
@@ -336,13 +349,17 @@ function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
     .getTravelers(tripId)
     .filter((traveler) => traveler.name !== TRAVELERS[2])
     .map((traveler) => traveler.id)
-  orchestrator.createExcursion(tripId, {
+  const hut = orchestrator.createExcursion(tripId, {
     name: 'Hüttentour Supramonte',
     startsOn: localDay(1),
     endsOn: localDay(2),
     travelerIds: goes,
     templateId: group?.id ?? null,
   })
+  const hutTour = useTripStore()
+    .getExcursions(tripId)
+    .find((excursion) => excursion.id === hut?.excursionId)
+  if (hutTour) void seedExcursionTrack(hutTour, orchestrator)
   const boat = orchestrator.createExcursion(tripId, {
     name: 'Bootsausflug',
     startsOn: null,

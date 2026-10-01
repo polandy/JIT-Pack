@@ -9,8 +9,14 @@
  * painted under a placeholder would not read as mine until the pull came
  * back. Where there is no identity — Local Mode — the placeholder stands.
  */
-import type { IdeaTrackUpload } from '@/api/types'
-import { MAX_TRACKS, nextTrackPosition, orderTracks } from '@/domain/track'
+import type { TrackUpload } from '@/api/types'
+import {
+  MAX_TRACKS,
+  nextTrackPosition,
+  orderTracks,
+  trackSettingsPatch,
+  type TrackSettings,
+} from '@/domain/track'
 import { newId } from '@/lib/ids'
 import { dbBool, jsonColumn } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
@@ -317,7 +323,7 @@ export function createPlannerActions(
    * device read from the file. Null when the idea already carries five, so
    * nothing is sent; a failed upload rejects, and the screen says so.
    */
-  async function addTrack(idea: Idea, upload: IdeaTrackUpload): Promise<string | null> {
+  async function addTrack(idea: Idea, upload: TrackUpload): Promise<string | null> {
     const tracks = tracksOf(idea)
     if (tracks.length >= MAX_TRACKS) return null
     const id = newId()
@@ -329,25 +335,13 @@ export function createPlannerActions(
   }
 
   /** FR-29.17's „Durch andere Datei ersetzen": the file changes, what was set stays. */
-  async function replaceTrack(track: IdeaTrack, upload: IdeaTrackUpload): Promise<void> {
+  async function replaceTrack(track: IdeaTrack, upload: TrackUpload): Promise<void> {
     await host.tracks.replace(track, upload)
   }
 
-  /** What the travellers set on a track (FR-29.17). */
-  type TrackSettings = Partial<Pick<IdeaTrack, 'name' | 'kind' | 'with_kid' | 'pause_min'>>
-
-  /** FR-29.17: writes only the settings that changed. A blank name is not one. */
+  /** FR-29.17: writes only the settings that changed. */
   function updateTrack(track: IdeaTrack, settings: TrackSettings): void {
-    const patch: Record<string, unknown> = {}
-    const name = settings.name?.trim()
-    if (name && name !== track.name) patch['name'] = name
-    if (settings.kind !== undefined && settings.kind !== track.kind) patch['kind'] = settings.kind
-    if (settings.with_kid !== undefined && settings.with_kid !== track.with_kid) {
-      patch['with_kid'] = dbBool(settings.with_kid)
-    }
-    if (settings.pause_min !== undefined && settings.pause_min !== track.pause_min) {
-      patch['pause_min'] = settings.pause_min
-    }
+    const patch = trackSettingsPatch(track, settings)
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.ideaTracks, track.id, patch)
     host.writeTrip(track.trip_id, {

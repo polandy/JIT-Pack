@@ -1,7 +1,7 @@
 /** FR-29.17 — how a track's figures read on its card and on the board. */
 import { describe, expect, it } from 'vitest'
 
-import { formatDistance, formatDuration, formatMetres } from '../trackFormat'
+import { formatDistance, formatDuration, formatMetres, tracksSummary } from '../trackFormat'
 
 describe('a track’s figures (FR-29.17)', () => {
   it('reads a distance with one decimal below ten kilometres and none from there', () => {
@@ -17,5 +17,23 @@ describe('a track’s figures (FR-29.17)', () => {
     expect(formatDuration(218)).toBe('3 h 40')
     expect(formatDuration(62)).toBe('1 h 00')
     expect(formatDuration(0)).toBe('0 h 00')
+  })
+})
+
+describe('a set of tracks in a line (FR-29.17, FR-31.15)', () => {
+  it('says the first one’s distance and climb, and how many more there are', () => {
+    expect(
+      tracksSummary([
+        { kind: 'bike', distance_m: 7_400, ascent_m: 520 },
+        { kind: 'hike', distance_m: 3_000, ascent_m: 100 },
+      ]),
+    ).toEqual({ kind: 'bike', text: '7.4 km · ↑ 520 m · +1' })
+  })
+
+  it('leaves out a climb the file has no heights for, and says nothing for no track', () => {
+    expect(tracksSummary([{ kind: 'hike', distance_m: 3_300, ascent_m: null }])?.text).toBe(
+      '3.3 km',
+    )
+    expect(tracksSummary([])).toBeNull()
   })
 })

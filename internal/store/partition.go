@@ -117,8 +117,8 @@ func tripPartition(tripID, userID string) partition {
 				return validIdeaComment(userID, row, m), nil
 			case TableIdeaImages:
 				return validIdeaImage(row, m), nil
-			case TableIdeaTracks:
-				return validIdeaTrack(row, m), nil
+			case TableIdeaTracks, TableExcursionTracks:
+				return validTrack(row, m), nil
 			}
 			return ReasonNone, nil
 		},

@@ -55,7 +55,7 @@ import { createConflictActions } from './sync/conflicts'
 import { createActivityActions } from './sync/activity'
 import { createIdentityActions } from './sync/identity'
 import { createIdeaPictures } from './sync/ideaImages'
-import { createIdeaTracks } from './sync/ideaTracks'
+import { createExcursionTracks, createIdeaTracks } from './sync/trackFiles'
 import { createLinkPreview } from './sync/linkPreview'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
@@ -618,7 +618,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     groupRefresh: groupRefreshActions,
   })
   const postTripActions = createPostTripActions(ctx, { masterData: masterDataActions })
-  const excursionActions = createExcursionActions(ctx, { groups: masterDataActions })
+  // What a picture's or a track's file needs to reach the server, or this
+  // device's own store in Local Mode.
+  const fileDeps = {
+    client,
+    local,
+    applyChanges: onPullChanges,
+    drainTrip: (tripId: string) => drainTrip(tripId),
+    // In drainTrip's order: a new trip reaches the server through the
+    // master partition, and its rows are refused until it has.
+    whenSent: async (tripId: string) => {
+      await outbox.whenSent('master', null)
+      await outbox.whenSent('trip', tripId)
+    },
+  }
+  const excursionActions = createExcursionActions(ctx, {
+    groups: masterDataActions,
+    tracks: createExcursionTracks(fileDeps),
+  })
   const tripCreationActions = createTripCreationActions(ctx)
   const tripLifecycleActions = createTripLifecycleActions(ctx, {
     comments: commentActions,
@@ -952,18 +969,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * A feature module's write path (FR-30.3): its own rows into a trip's
    * partition, through the same outbox and clock as every other write.
    */
-  const fileDeps = {
-    client,
-    local,
-    applyChanges: onPullChanges,
-    drainTrip: (tripId: string) => drainTrip(tripId),
-    // In drainTrip's order: a new trip reaches the server through the
-    // master partition, and its rows are refused until it has.
-    whenSent: async (tripId: string) => {
-      await outbox.whenSent('master', null)
-      await outbox.whenSent('trip', tripId)
-    },
-  }
   const moduleHost: ModuleHost = {
     mutation: mutations.make,
     nowIso,

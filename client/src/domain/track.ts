@@ -3,17 +3,18 @@
  * the one reader there is (invariant 4): Local Mode has no server, and the
  * server never parses a file.
  *
- * Kernel, not packing: the planner's ideas carry tracks today and FR-31's
- * excursions will, so this module knows no idea and no excursion — only a
- * file, the figures read from it and the time they make.
+ * Kernel, not packing: the planner's ideas carry tracks and so do FR-31's
+ * excursions (FR-31.15), so this module knows no idea and no excursion — only
+ * a file, the figures read from it and the time they make.
  *
  * Deliberately no DOM: a GPX file is a flat list of points, read here by a
  * scanner that runs under Node as well as in a browser.
  */
-import type { IdeaTrackUpload, TrackKind } from '@/api/types'
+import type { TrackUpload, TrackKind } from '@/api/types'
+import { dbBool } from '@/sync/columns'
 import type { TrackFields } from '@/types/domain'
 
-/** How many tracks one idea carries — the server holds the same number. */
+/** How many tracks one idea or excursion carries — the server holds the same number. */
 export const MAX_TRACKS = 5
 /** The largest file taken, in bytes — the server holds the same number. */
 export const MAX_GPX_BYTES = 5 * 1024 * 1024
@@ -327,7 +328,7 @@ export function decodeLine(line: string): [number, number][] {
 export type TrackRefusal = 'too_large' | 'no_track'
 
 /** A file read: the upload's fields, or why there is none. */
-export type ReadTrack = { ok: true; upload: IdeaTrackUpload } | { ok: false; reason: TrackRefusal }
+export type ReadTrack = { ok: true; upload: TrackUpload } | { ok: false; reason: TrackRefusal }
 
 /** A file's name without its `.gpx`, or the name it has. */
 function baseName(fileName: string): string {
@@ -450,4 +451,28 @@ export function orderTracks<T extends Pick<TrackFields, 'id' | 'position'>>(
 /** Where a new track goes: behind the last one, never into a gap. */
 export function nextTrackPosition(tracks: readonly Pick<TrackFields, 'position'>[]): number {
   return tracks.reduce((last, track) => Math.max(last, track.position + 1), 0)
+}
+
+/** What the travellers set on a track (FR-29.17) — everything else is the file's. */
+export type TrackSettings = Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>
+
+/**
+ * The settings that changed, as the row's columns — empty when none did.
+ * A blank name is not a change: a track always has one.
+ */
+export function trackSettingsPatch(
+  track: TrackFields,
+  settings: TrackSettings,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {}
+  const name = settings.name?.trim()
+  if (name && name !== track.name) patch['name'] = name
+  if (settings.kind !== undefined && settings.kind !== track.kind) patch['kind'] = settings.kind
+  if (settings.with_kid !== undefined && settings.with_kid !== track.with_kid) {
+    patch['with_kid'] = dbBool(settings.with_kid)
+  }
+  if (settings.pause_min !== undefined && settings.pause_min !== track.pause_min) {
+    patch['pause_min'] = settings.pause_min
+  }
+  return patch
 }

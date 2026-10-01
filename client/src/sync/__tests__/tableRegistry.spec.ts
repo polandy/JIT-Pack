@@ -54,18 +54,27 @@ function bodyOf(source: string, name: string): string {
   throw new Error(`unbalanced body for ${name}`)
 }
 
-/** The row columns a parser reads. */
-function parsedColumns(fn: string): Set<string> {
-  return new Set(
-    [...bodyOf(registrySource, fn).matchAll(/row\['(\w+)'\]/g)].map((m) => m[1] as string),
-  )
+/** The functions a body spreads in — `...rowToTrackFields(id, row)` — whose columns are its own. */
+function spreads(body: string): string[] {
+  return [...body.matchAll(/\.\.\.(\w+)\(/g)].map((m) => m[1] as string)
 }
 
-/** The row columns a builder writes. */
+/** The row columns a parser reads, with those of the parsers it spreads in. */
+function parsedColumns(fn: string): Set<string> {
+  const body = bodyOf(registrySource, fn)
+  return new Set([
+    ...[...body.matchAll(/row\['(\w+)'\]/g)].map((m) => m[1] as string),
+    ...spreads(body).flatMap((inner) => [...parsedColumns(inner)]),
+  ])
+}
+
+/** The row columns a builder writes, with those of the builders it spreads in. */
 function encodedColumns(fn: string): Set<string> {
-  return new Set(
-    [...bodyOf(buildersSource, fn).matchAll(/^ {4}(\w+):/gm)].map((m) => m[1] as string),
-  )
+  const body = bodyOf(buildersSource, fn)
+  return new Set([
+    ...[...body.matchAll(/^ {4}(\w+):/gm)].map((m) => m[1] as string),
+    ...spreads(body).flatMap((inner) => [...encodedColumns(inner)]),
+  ])
 }
 
 /**
@@ -86,6 +95,11 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.ideaImages, parse: 'rowToIdeaImage', encode: 'ideaImageRow' },
   { table: TABLE.dayEntries, parse: 'rowToDayEntry', encode: 'dayEntryRow' },
   { table: TABLE.ideaTracks, parse: 'rowToIdeaTrack', encode: 'ideaTrackRow' },
+  {
+    table: TABLE.excursionTracks,
+    parse: 'rowToExcursionTrack',
+    encode: 'excursionTrackRow',
+  },
   { table: TABLE.destinationProfiles, parse: 'rowToProfile', encode: 'profileRow' },
   {
     table: TABLE.destinationChecklistItems,

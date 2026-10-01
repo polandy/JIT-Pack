@@ -350,7 +350,7 @@ async function openCommentMenu(comment: IdeaComment) {
           @click="emit('editTrack', null)"
         >
           <IonIcon slot="start" :icon="gitBranchOutline" />
-          {{ t('ideas.drawTrack') }}
+          {{ t('track.draw') }}
         </IonButton>
         <span v-if="tracks.length > 0" class="of-max jp-num" data-testid="idea-track-count">
           {{ t('ideas.picturesOfMax', { n: tracks.length, max: MAX_TRACKS }) }}

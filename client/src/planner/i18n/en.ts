@@ -133,8 +133,4 @@ export const plannerEn = {
   'ideas.suggestionAccept': 'Use it',
   'ideas.addTrack': 'Add GPX',
   'ideas.trackReading': 'Reading …',
-  'ideas.trackNone': 'There is no track in this file.',
-  'ideas.trackTooLarge': 'The file is larger than 5 MB.',
-  'ideas.trackUploadFailed': 'The track could not be uploaded. Are you online?',
-  'ideas.removeTrackConfirm': 'The track goes for everyone on the trip.',
 } as const

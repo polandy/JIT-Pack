@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** ADR-002 (bytes outside the envelope), ADR-081 (idea pictures, whose upload path this follows), ADR-082
 (the other request on by default), ADR-078 (the planner), FR-29.17, NFR-4.3, invariants 4 and 6,
-`internal/store/ideatrack.go`, `internal/api/ideatrack.go`, `client/src/domain/track.ts`,
+`internal/store/track.go`, `internal/api/track.go`, `client/src/domain/track.ts`,
 `client/src/components/global/TrackMap.vue`
 
 **Decision Drivers (in priority order):**

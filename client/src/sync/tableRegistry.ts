@@ -39,6 +39,8 @@ import type {
   IdeaComment,
   IdeaImage,
   IdeaTrack,
+  ExcursionTrack,
+  TrackFields,
   IdeaVote,
   ShoppingEntry,
   TaskFacts,
@@ -87,6 +89,7 @@ import {
   ideaCommentRow,
   ideaImageRow,
   ideaTrackRow,
+  excursionTrackRow,
   ideaRow,
   ideaVoteRow,
   profileRow,
@@ -478,11 +481,10 @@ function nullableNumber(value: unknown): number | null {
   return value === null || value === undefined ? null : Number(value)
 }
 
-function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
+/** The columns every track shares, whatever it hangs on (FR-29.17). */
+function rowToTrackFields(id: string, row: Record<string, unknown>): TrackFields {
   return {
     id,
-    trip_id: row['trip_id'] as string,
-    idea_id: row['idea_id'] as string,
     name: row['name'] as string,
     file_name: row['file_name'] as string,
     kind: row['kind'] === TRACK_KIND.bike ? TRACK_KIND.bike : TRACK_KIND.hike,
@@ -496,6 +498,22 @@ function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
     max_ele_m: nullableNumber(row['max_ele_m']),
     point_count: Number(row['point_count'] ?? 0),
     line: (row['line'] as string) ?? '',
+  }
+}
+
+function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
+  return {
+    ...rowToTrackFields(id, row),
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+  }
+}
+
+function rowToExcursionTrack(id: string, row: Record<string, unknown>): ExcursionTrack {
+  return {
+    ...rowToTrackFields(id, row),
+    trip_id: row['trip_id'] as string,
+    excursion_id: row['excursion_id'] as string,
   }
 }
 
@@ -629,6 +647,7 @@ export const TABLE_CODECS = {
   [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
   [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
   [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },
+  [TABLE.excursionTracks]: { parse: rowToExcursionTrack, encode: excursionTrackRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.
