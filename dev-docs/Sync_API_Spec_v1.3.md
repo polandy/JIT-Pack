@@ -714,7 +714,7 @@ make this possible.
 | `master.changed` | `{seq}` | pull master partition |
 | `item.locked` / `item.unlocked` | `{trip_id, item_id, by_user, name}` | render lock overlay (G-3) — ephemeral, not persisted |
 | `presence` | `{trip_id, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
-| `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta; a newcomer gets it on connect only when it is non-empty |
+| `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta, and never older than the last one that connection was sent; a newcomer gets it on connect only when it is non-empty |
 | `notification.created` | `{notification_id}` | fetch via `GET /notifications` + toast/OS notification (FR-6.2) |
 | `pong` | — | answers a client `{"ping": true}`; consumed by the client's liveness watchdog, never surfaced (§9) |
 
