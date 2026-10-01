@@ -92,6 +92,21 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     await openFromTripList(page, 'Engadin vorbei')
     await expect(page.getByTestId('header-title')).toHaveText('Engadin vorbei')
     await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
+
+    // From a series' history (M20) too: a trip under way, on its day plan.
+    await createTripViaWizard(page, {
+      name: 'Engadin Serie',
+      startDate: day[-1],
+      endDate: day[2],
+      travelers: ['Andy'],
+      series: 'Engadin',
+    })
+    await writesLanded(page)
+    await page.goto(PATH.trips)
+    await visiblePage(page).getByTestId('series-header-Engadin').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Engadin')
+    await visiblePage(page).getByTestId('m16-trip-Engadin Serie').click()
+    await expect(dayPlan(page).getByTestId('m29-strip')).toBeVisible()
   })
 
   /**
