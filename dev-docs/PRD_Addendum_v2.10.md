@@ -4496,15 +4496,16 @@ the server applied, with the person who made it. The screen is **M30** (UI-Spec)
   trip's; everything else is the inventory's. A trip's log goes with the trip, and its deletion is recorded nowhere.
   **The log starts when this is deployed**: nothing before recorded who made a change. Nothing is pruned, like the
   conflict log (a household's log stays small). It is read, never synced.
-* **FR-32.2 (Reading It):** The client decides what an entry means (invariant 4, `domain/activity.ts`): added, deleted,
-  changed; packed, unpacked, *bewusst nicht eingepackt*; bought and taken back; a task done or reopened; a note ticked
-  or un-ticked; a vote cast or withdrawn; reordered; hidden and shown again (FR-24.3). A G-3 claim alone and the
-  generation's bookkeeping (`trip_generated_positions`, `trip_template_sources`, `trip_applied_changes`) are no act and
-  are not shown. Each line names the thing, the act, the part of the app (*Packliste, Einkauf, Aufgaben, Notizen,
-  Ausflüge, Ideen, Mitglieder, Reise, Inventar, …*), the person and the time; a *changed* line names the fields a reader
-  can read, before → after. **Consecutive lines by one person of one act in one place on one day fold into one** —
-  *„Badehose, Socken, Zahnbürste · 3× eingepackt · Bob · 21:24"* — which opens to its parts; a run somebody else
-  interrupted is two lines. Days are headed *Heute, Gestern*, then the date. Newest first, a page at a time.
+* **FR-32.2 (Reading It):** The client decides what an entry means (invariant 4, `domain/activity.ts`, and a feature
+  module's own reader for its tables): added, deleted, changed; packed, unpacked, *bewusst nicht eingepackt*; bought and
+  taken back; a task done or reopened; a note ticked or un-ticked; a vote cast or withdrawn; reordered; hidden and shown
+  again (FR-24.3). A G-3 claim alone and the generation's bookkeeping (`trip_generated_positions`,
+  `trip_template_sources`, `trip_applied_changes`) are no act and are not shown. Each line names the thing, the act, the
+  part of the app (*Packliste, Einkauf, Aufgaben, Notizen, Ausflüge, Ideen, Mitglieder, Reise, Inventar, …*), the person
+  and the time; a *changed* line names the fields a reader can read, before → after. **Consecutive lines by one person
+  of one act in one place on one day fold into one** — *„Badehose, Socken, Zahnbürste · 3× eingepackt · Bob · 21:24"* —
+  which opens to its parts; a run somebody else interrupted is two lines. Days are headed *Heute, Gestern*, then the
+  date. Newest first, a page at a time.
 * **FR-32.3 (Two Logs):** A trip's log is read by its members (`GET /trips/{id}/activity`), from M4's ⋮. The
   inventory's (`GET /master/activity`) is read by every account from M9's ⋮, filtered like a master pull: shared master
   data is everyone's, a series only its owner's.

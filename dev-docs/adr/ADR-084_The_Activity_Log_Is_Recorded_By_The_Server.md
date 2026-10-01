@@ -88,7 +88,13 @@ moment from a per-table declaration in `tableSpecs`. Two read endpoints, paged; 
   owner-only rows (a series) are only ever written by their owner, so their entries are that owner's.
 - **What a change means is the client's** (`domain/activity.ts`): the server records fields, the client says
   "packed". A new table needs a name declaration (`TestActivity_EveryLabelSourceNamesARealColumn_FR32_1` refuses a
-  missing one) and, where its writes mean more than added/changed/deleted, a rule there.
+  missing one) and, where its writes mean more than added/changed/deleted, a rule there — or, for a feature module's
+  table, in the module's own reader, which `App.vue` binds through `lib/activityReaders.ts` (ADR-066);
+  `activityReadersWiring.spec.ts` refuses a table read by neither side or by both.
+- **A write path outside the push pipeline records its own entry.**
+  `TestActivity_EveryChangeLogWriterRecordsActivity_FR32_1` refuses a function that appends to the change log without
+  calling `recordActivity`, unless it is named, with its reason, among the deliberate exceptions (re-deliveries, the G-3
+  claim).
 
 ## Revisit trigger
 

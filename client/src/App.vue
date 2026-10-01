@@ -74,11 +74,13 @@ import {
   ShoppingDashboardCard,
   shoppingCloseCrossing,
   shoppingCount,
+  shoppingActivityReaders,
   shoppingFeatureStore,
   useShoppingStore,
 } from '@/shopping'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
-import { ideasCount, plannerFeatureStore } from '@/planner'
+import { ideasCount, plannerActivityReaders, plannerFeatureStore } from '@/planner'
+import { ACTIVITY_READERS } from '@/lib/activityReaders'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -253,6 +255,9 @@ provide(
       ]
     : [],
 )
+
+// FR-32.2: each module reads the activity log's entries about its own rows.
+provide(ACTIVITY_READERS, { ...shoppingActivityReaders, ...plannerActivityReaders })
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
