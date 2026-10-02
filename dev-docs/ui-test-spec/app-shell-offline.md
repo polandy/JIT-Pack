@@ -56,5 +56,13 @@
   the page head's last pixel, and its box lies inside the content column's. A layer drawn over the head and across the
   full width fails the first by 80 px and the second by 288 px on either side at the default 1280 viewport.
 
+* **E2E-PWA-07** `local` (NFR-4.13, ADR-019): a start under the worker carries no `modulepreload` hint — neither in
+  the document after a reload under the worker nor once a lazy route (M7, reached from the rail) has rendered, since
+  Vite injects its own before a dynamic import. Settled on the painted app and on M7's FAB, never a clock. *Why the
+  condition and not the outcome:* the defect is a race between a preloaded chunk and the module loader under the worker
+  — a reload that loses a preload to ERR_ABORTED leaves the module graph unsettled and the page blank, with no error —
+  and it cannot be provoked on demand; a duplicate-fetch count is no stand-in either, since the CI image's Chromium
+  shares the preload with the loader where a desktop build fetches twice. Red against a build with hints (61 found).
+
 *Chromium only:* Playwright hosts service workers only there; the worker under test is engine-independent and identical
 in WebKit.

@@ -105,6 +105,17 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT__: JSON.stringify(appCommit),
   },
+  build: {
+    /*
+     * No `modulepreload` hints, in the HTML or injected before a lazy route.
+     * Under the shell worker a hint is a second way to a chunk the module
+     * loader fetches anyway, and a start that loses the preload to an abort
+     * waits on it for good: no error, main.ts never runs, the page stays
+     * blank. The worker's cache is the speed-up the hints were for. See
+     * ADR-019, amendment 1.
+     */
+    modulePreload: false,
+  },
   /*
    * `vite preview` is the server the Playwright suite drives. The API sets
    * no CORS headers — same-origin is a hard requirement of every real

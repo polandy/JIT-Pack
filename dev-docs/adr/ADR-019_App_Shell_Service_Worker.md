@@ -1,7 +1,8 @@
 # ADR-019: App-shell caching — a hand-rolled service worker vs. vite-plugin-pwa
 
 **Status:** Accepted (2026-08-20); update policy amended by ADR-044 (2026-09-02) — `skipWaiting()` is reachable, but
-only from an explicit press, never from `install`
+only from an explicit press, never from `install`; the build emits no `modulepreload` hints (amendment
+1, 2026-10-02)
 **Related:** NFR-4.13 (installable PWA, app shell), NFR-4.6 (Web Push — the same worker script), NFR-4.3 (footprint),
 NFR-4.2a (why `/api`, `/ws`, `/health` are never cached), invariant 8 (pinning), ADR-005 (push), `client/public/sw.js`,
 `client/vite.config.ts` (`jitpack-sw-precache`), `client/src/pwa/register.ts`
@@ -117,6 +118,28 @@ The `install` handler still never does, which is the half of this sentence that 
 - Dev builds never register the shell worker (`import.meta.env.PROD` guard);
   `sw.js` served raw by the dev server stays inert via its injected-globals
   fallbacks.
+
+## Amendment 1 — no module preload hints under the worker (2026-10-02)
+
+**Context.** E2E-FLOW-09 timed out twice in one CI run, each time right after a `page.goto`: the document and every
+asset answered, then nothing for 180 s. The trace settles where it stopped. `<html>` never got Ionic's `ion-ce` class,
+so `main.ts` never ran, and the only requests that failed were six or seven of the chunks the document names as
+`<link rel="modulepreload">` — `net::ERR_ABORTED`, under the worker's control, never requested again. A preloaded
+chunk that is lost leaves the module graph waiting on it: no error, no `catch` to reach, a blank page for good. The two
+ways to one chunk (the preload and the module loader) are reconciled differently by Chromium builds — a desktop build
+refuses every preload under the worker as a "cross-world service worker resource mismatch" and fetches the module a
+second time, the CI image's build shares one request — and the race was lost in the second.
+
+**Options.**
+- *Keep the hints, harden the start* — a watchdog that reloads a page that has not mounted. Rejected: it can only be
+  a timer, and it turns a hang into a reload loop on a device where the race repeats.
+- *Drop the hints from the HTML only* (`resolveDependencies` returning nothing for the document). Rejected: Vite
+  injects the same hint before every lazy route's import, which is the same race one tap later.
+- *No hints at all* (`build.modulePreload: false`) — accepted.
+
+**Cost.** The first visit, before the worker holds the bundle, discovers a module's imports only by parsing it, so
+its static graph loads in a few round trips instead of one flight. Every later start is served from the shell cache,
+where a round trip is a cache read. Held by E2E-PWA-07.
 
 ## Revisit Trigger
 
