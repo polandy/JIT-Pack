@@ -18,7 +18,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { WizardComposition } from './useWizardComposition'
-import type { WizardMetadata } from './useWizardMetadata'
+import { NEW_SERIES, type WizardMetadata } from './useWizardMetadata'
 
 /** Step 4's draft and the rows the trip will be created from. */
 export type WizardReview = ReturnType<typeof useWizardReview>
@@ -48,7 +48,7 @@ export function useWizardReview(metadata: WizardMetadata, composition: WizardCom
   const includeChecklist = ref(true)
 
   const offeredChecklist = computed(() => {
-    if (!seriesChoice.value || seriesChoice.value === 'new') return []
+    if (!seriesChoice.value || seriesChoice.value === NEW_SERIES) return []
     const profile = masterStore.getDestinationProfile(seriesChoice.value)
     return profile ? masterStore.getChecklistItems(profile.id) : []
   })
@@ -102,7 +102,8 @@ export function useWizardReview(metadata: WizardMetadata, composition: WizardCom
 
   /** The series' own trips — the history FR-14.2's median is taken over. */
   const seriesTrips = computed(() => {
-    const seriesId = seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null
+    const seriesId =
+      seriesChoice.value && seriesChoice.value !== NEW_SERIES ? seriesChoice.value : null
     return seriesId ? tripStore.tripList.filter((t) => t.series_id === seriesId) : []
   })
 

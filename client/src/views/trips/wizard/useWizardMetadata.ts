@@ -11,6 +11,9 @@ import { durationDays } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
+/** The series select's value for "a new series, named inline" (FR-13.1); '' is none. */
+export const NEW_SERIES = 'new'
+
 /** Step 1's draft and what is derived from it. */
 export type WizardMetadata = ReturnType<typeof useWizardMetadata>
 
@@ -53,7 +56,7 @@ export function useWizardMetadata(preselect: unknown) {
   const accommodation = ref('')
   const tagsInput = ref('')
 
-  // --- Series picker (FR-13.1) — '' none, 'new' inline creation ---
+  // --- Series picker (FR-13.1) ---
   const seriesChoice = ref<string>('')
   const newSeriesName = ref('')
 
@@ -61,7 +64,7 @@ export function useWizardMetadata(preselect: unknown) {
   function pickSeries(choice: string) {
     seriesChoice.value = choice
     const defaults =
-      choice && choice !== 'new' ? masterStore.getSeries(choice)?.default_attributes : null
+      choice && choice !== NEW_SERIES ? masterStore.getSeries(choice)?.default_attributes : null
     if (!defaults) return
     if (!season.value && typeof defaults.season === 'string') season.value = defaults.season
     if (!transportMode.value && typeof defaults.transport_mode === 'string')
@@ -103,7 +106,7 @@ export function useWizardMetadata(preselect: unknown) {
     }
     const series = masterStore.seriesList.find((s) => s.id === seriesChoice.value)
     if (series) parts.push(series.name)
-    else if (seriesChoice.value === 'new' && newSeriesName.value.trim()) {
+    else if (seriesChoice.value === NEW_SERIES && newSeriesName.value.trim()) {
       parts.push(newSeriesName.value.trim())
     }
     // Through the catalogue, not raw: the summary is the only place these
@@ -122,7 +125,7 @@ export function useWizardMetadata(preselect: unknown) {
    * silently would be a choice made on their behalf about whose series it is.
    */
   const seriesTaken = computed(() =>
-    seriesChoice.value === 'new'
+    seriesChoice.value === NEW_SERIES
       ? (orchestrator.seriesNameCollision(newSeriesName.value) ?? null)
       : null,
   )

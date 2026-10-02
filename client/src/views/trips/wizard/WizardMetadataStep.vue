@@ -19,6 +19,7 @@ import SectionHead from '@/components/global/SectionHead.vue'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import type { WizardCore } from './useWizardCore'
+import { NEW_SERIES } from './useWizardMetadata'
 
 const { core } = defineProps<{ core: WizardCore }>()
 
@@ -116,10 +117,10 @@ const {
             <IonSelectOption v-for="s in masterStore.seriesList" :key="s.id" :value="s.id">
               {{ s.name }}
             </IonSelectOption>
-            <IonSelectOption value="new">{{ t('wizard.seriesNew') }}</IonSelectOption>
+            <IonSelectOption :value="NEW_SERIES">{{ t('wizard.seriesNew') }}</IonSelectOption>
           </IonSelect>
         </IonItem>
-        <IonItem v-if="seriesChoice === 'new'">
+        <IonItem v-if="seriesChoice === NEW_SERIES">
           <IonInput
             :label="t('wizard.seriesName')"
             label-placement="stacked"

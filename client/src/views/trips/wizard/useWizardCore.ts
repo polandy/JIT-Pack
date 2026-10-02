@@ -13,7 +13,7 @@ import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useSubmitOnce } from '@/composables/useSubmitOnce'
 import { useWizardComposition } from './useWizardComposition'
-import { useWizardMetadata } from './useWizardMetadata'
+import { NEW_SERIES, useWizardMetadata } from './useWizardMetadata'
 import { useWizardReview } from './useWizardReview'
 import { useWizardTravelers } from './useWizardTravelers'
 
@@ -40,7 +40,7 @@ export function useWizardCore() {
       // only thing that can be missing here is a name.
       return (
         metadata.name.value.trim() !== '' &&
-        (metadata.seriesChoice.value !== 'new' ||
+        (metadata.seriesChoice.value !== NEW_SERIES ||
           (metadata.newSeriesName.value.trim() !== '' && metadata.seriesTaken.value === null))
       )
     }
@@ -91,8 +91,9 @@ export function useWizardCore() {
         // time is what lets a group added to the Vorlage later reach the trip.
         sourceTemplateIds: [...composition.selectedTemplateIds.value],
         tripTasks: composition.generation.value.tripTasks,
-        seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
-        newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
+        seriesId:
+          seriesChoice.value && seriesChoice.value !== NEW_SERIES ? seriesChoice.value : null,
+        newSeriesName: seriesChoice.value === NEW_SERIES ? newSeriesName.value.trim() : null,
         checklistItems: review.includeChecklist.value
           ? review.offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
           : [],
