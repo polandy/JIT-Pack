@@ -19,7 +19,15 @@ function trip(over: Partial<OpeningTrip> = {}): OpeningTrip {
 }
 
 function facts(over: Partial<OpeningFacts> = {}): OpeningFacts {
-  return { today: TODAY, lastView: null, packingEmpty: false, ...over }
+  return {
+    today: TODAY,
+    lastView: null,
+    packingEmpty: false,
+    todayEmpty: false,
+    shoppingOpen: 0,
+    tasksOpen: 0,
+    ...over,
+  }
 }
 
 describe('openingView', () => {
@@ -47,6 +55,21 @@ describe('openingView', () => {
 
   it('opens on the day plan once the trip was started early', () => {
     expect(openingView(trip({ status: 'active' }), facts({ lastView: 'ideas' }))).toBe('dayplan')
+  })
+
+  it('opens on the shopping list while today has nothing on the plan', () => {
+    const quiet = { today: '2026-07-22', todayEmpty: true }
+    expect(openingView(trip(), facts({ ...quiet, shoppingOpen: 2, tasksOpen: 3 }))).toBe('shopping')
+    expect(openingView(trip(), facts(quiet))).toBe('shopping')
+  })
+
+  it('opens on the tasks while today has nothing on the plan and nothing is to buy', () => {
+    const quiet = { today: '2026-07-22', todayEmpty: true, shoppingOpen: 0 }
+    expect(openingView(trip(), facts({ ...quiet, tasksOpen: 1 }))).toBe('tasks')
+  })
+
+  it('opens on the day plan while its rows are not on the device', () => {
+    expect(openingView(trip(), facts({ today: '2026-07-22', todayEmpty: null }))).toBe('dayplan')
   })
 
   it('opens on the packing list after the last day, and once the trip is closed', () => {

@@ -74,6 +74,7 @@ import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/useLiveLocation'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
+import { tripTodoProgress } from '@/domain/tripTodos'
 import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
 import { useTripStore } from '@/stores/tripStore'
 import {
@@ -88,6 +89,7 @@ import {
 } from '@/shopping'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
 import {
+  dayPlanEmpty,
   ideasCount,
   plannerActivityReaders,
   plannerFeatureStore,
@@ -248,21 +250,19 @@ provide(SHOPPING_SOURCES, shoppingSources)
  * FR-29.15: the day plan shows the packing side's excursions and dated tasks;
  * bound here, like the shopping sources, so the planner never imports them.
  */
-provide(
-  DAY_PLAN_SOURCES,
-  orchestrator
-    ? [
-        createDayPlanSource(
-          {
-            getExcursions: (tripId) => useTripStore().getExcursions(tripId),
-            getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
-            tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
-          },
-          { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
-        ),
-      ]
-    : [],
-)
+const dayPlanSources = orchestrator
+  ? [
+      createDayPlanSource(
+        {
+          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
+          getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
+          tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+        },
+        { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
+      ),
+    ]
+  : []
+provide(DAY_PLAN_SOURCES, dayPlanSources)
 provide(TRIP_VIEW_COUNTS, {
   // §3.29: the ideas nobody has decided on yet.
   ideas: ideasCount(),
@@ -293,6 +293,9 @@ if (orchestrator) {
     itemCount: (tripId) => useTripStore().getItems(tripId).length,
     tripDataLoaded: orchestrator.tripDataLoaded,
     today: orchestrator.today,
+    dayPlanEmpty: dayPlanEmpty(dayPlanSources),
+    shoppingOpen: shoppingCount(shoppingSources),
+    tasksOpen: (tripId) => tripTodoProgress(useTripTasks().tasksOf(tripId)).open,
   })
 }
 // FR-30.7 and FR-29.7: the dashboard's cards under each trip — today's plan

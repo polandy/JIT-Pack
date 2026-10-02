@@ -456,6 +456,9 @@ export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Pr
   const pill = page.getByTestId(TRIP_VIEW[view])
   await expect(pill).toBeVisible()
   await pill.click()
+  // Ends on the view: a caller that navigates next would otherwise overtake
+  // the pill's own navigation, and the trip would remember the view before.
+  await expect(pill).toHaveAttribute('aria-current', 'page')
 }
 
 /**

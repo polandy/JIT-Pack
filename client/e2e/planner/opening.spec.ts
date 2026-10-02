@@ -4,6 +4,7 @@ import { addIdea, ideaDetail, ideasBoard, openIdea, openIdeas } from '../helpers
 import { addDayEntry, dayPlan, openDayPlan } from '../helpers/m29'
 import { browserDay } from '../helpers/page'
 import { askToStart, openTripView } from '../helpers/trips'
+import { addTripTodo } from '../helpers/m4'
 import type { Page } from '@playwright/test'
 
 /**
@@ -40,8 +41,8 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
   /**
    * E2E-M29-10: a trip opens on the view its dates decide — before them on
    * the view last visited, on a first visit with an empty packing list on the
-   * ideas; from the first day to the last on the day plan, from M2 and from
-   * M1 alike; afterwards on the packing list, whatever was visited last.
+   * ideas; from the first day to the last on the day plan, today holding an
+   * entry, from M2 and from M1 alike; afterwards on the packing list, whatever was visited last.
    */
   test('E2E-M29-10: a trip opens on the view its dates decide', async ({ page }) => {
     const day = await days(page, [-9, -5, -1, 0, 2, 30, 33])
@@ -62,13 +63,15 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     await openFromTripList(page, 'Sardinien später')
     await expect(ideasBoard(page)).toBeVisible()
 
-    // Under way: the day plan, from M2 …
+    // Under way, with something on today's plan: the day plan, from M2 …
     await createTripViaWizard(page, {
       name: 'Engadin jetzt',
       startDate: day[-1],
       endDate: day[2],
       travelers: ['Andy'],
     })
+    await openDayPlan(page)
+    await addDayEntry(page, { title: 'Velo mieten' })
     await openTripView(page, 'shopping')
     await openFromTripList(page, 'Engadin jetzt')
     await expect(dayPlan(page).getByTestId('m29-strip')).toBeVisible()
@@ -101,12 +104,65 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
       travelers: ['Andy'],
       series: 'Engadin',
     })
+    await openDayPlan(page)
+    await addDayEntry(page, { title: 'Muottas Muragl' })
     await writesLanded(page)
     await page.goto(PATH.trips)
     await visiblePage(page).getByTestId('series-header-Engadin').click()
     await expect(page.getByTestId('header-title')).toHaveText('Engadin')
     await visiblePage(page).getByTestId('m16-trip-Engadin Serie').click()
     await expect(dayPlan(page).getByTestId('m29-strip')).toBeVisible()
+  })
+
+  /**
+   * E2E-M29-12: a trip under way whose day plan holds nothing today opens on
+   * the shopping list — while it is empty too, on the tasks if any are open,
+   * and on the shopping list again once neither has anything; something on
+   * today's plan brings the day plan back.
+   */
+  test('E2E-M29-12: a trip under way with nothing on today’s plan opens on its errands', async ({
+    page,
+  }) => {
+    const day = await days(page, [-1, 0, 2])
+    await createTripViaWizard(page, {
+      name: 'Engadin jetzt',
+      startDate: day[-1],
+      endDate: day[2],
+      travelers: ['Andy'],
+    })
+    const shopping = () => visiblePage(page).getByTestId('m6-page')
+
+    // Nothing anywhere: the shopping list, where the next errand is added.
+    await openTripView(page, 'packing')
+    await openFromTripList(page, 'Engadin jetzt')
+    await expect(shopping()).toBeVisible()
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
+
+    // Nothing to buy, a task open: the tasks.
+    await openTripView(page, 'packing')
+    await addTripTodo(page, 'Velo pumpen', 'during')
+    await openFromTripList(page, 'Engadin jetzt')
+    await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
+    await expect(page.getByTestId('trip-view-tasks')).toHaveAttribute('aria-current', 'page')
+
+    // Something to buy: the shopping list, the task notwithstanding.
+    await openTripView(page, 'shopping')
+    await shopping().getByTestId('m6-add-input').locator('input').fill('Sonnencreme')
+    await shopping().getByTestId('m6-add-submit').click()
+    await expect(shopping().getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
+    await openTripView(page, 'tasks')
+    await openFromTripList(page, 'Engadin jetzt')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
+
+    // Something on today's plan: the day plan again.
+    await openDayPlan(page)
+    await addDayEntry(page, { title: 'Bernina Express' })
+    await openTripView(page, 'tasks')
+    await openFromTripList(page, 'Engadin jetzt')
+    await expect(dayPlan(page).getByTestId(`m29-day-${day[0]}`)).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
   })
 
   /**

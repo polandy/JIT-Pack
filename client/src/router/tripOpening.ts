@@ -12,6 +12,12 @@ export interface TripOpeningSource {
   /** How many rows the trip's packing list has. */
   itemCount: (tripId: string) => number
   tripDataLoaded: (tripId: string) => boolean
+  /** Whether the trip's day plan holds nothing on a day — the planner's answer. */
+  dayPlanEmpty: (tripId: string, trip: OpeningTrip, day: string) => boolean
+  /** The shopping list's open purchases — the shopping module's count. */
+  shoppingOpen: (tripId: string) => number
+  /** The trip's open tasks. */
+  tasksOpen: (tripId: string) => number
   today: () => string
 }
 
@@ -27,10 +33,15 @@ export interface TripOpeningSource {
 export function openingTarget(tripId: string, source: TripOpeningSource): string {
   const trip = source.getTrip(tripId)
   if (!trip) return tripPath(tripId)
+  const today = source.today()
+  const loaded = source.tripDataLoaded(tripId)
   const view = openingView(trip, {
-    today: source.today(),
+    today,
     lastView: readLastView(tripId),
-    packingEmpty: source.tripDataLoaded(tripId) ? source.itemCount(tripId) === 0 : null,
+    packingEmpty: loaded ? source.itemCount(tripId) === 0 : null,
+    todayEmpty: loaded ? source.dayPlanEmpty(tripId, trip, today) : null,
+    shoppingOpen: source.shoppingOpen(tripId),
+    tasksOpen: source.tasksOpen(tripId),
   })
   return tripViewEntry(view, tripId).path
 }

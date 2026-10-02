@@ -10,8 +10,9 @@ The day plan is the **calendar** — the last icon in the row under the trip's n
 both a start and an end date; set them in the trip's properties if the icon is missing.
 
 **During the trip you land on it.** From the trip's first day to its last — or from *Reise starten* if you started it
-early — tapping the trip on the overview or in the trip list opens the day plan on today. Before the trip, the trip
-opens where you last left it on this device (on a first visit the ideas, while nothing is on the packing list yet);
+early — tapping the trip on the overview or in the trip list opens the day plan on today. On a day with nothing planned
+it opens the shopping list instead — or the tasks, if nothing is to buy but a task is still open. Before the trip, the
+trip opens where you last left it on this device (on a first visit the ideas, while nothing is on the packing list yet);
 after the trip, on the packing list. The pills under the trip's name still take you to any view.
 
 **Today on the overview.** On each day of the trip, the overview shows a **Heute** card under the trip: the next three

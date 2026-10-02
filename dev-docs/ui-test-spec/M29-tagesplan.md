@@ -38,10 +38,16 @@
   `TestLinkPreview_CarriesThePagesLinks_FR29_18`.
 * **E2E-M29-10** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): a trip ahead opened from M2 lands on
   the view last visited (*Aufgaben*), and with that forgotten — a first visit on this device — on *Ideen*, its packing
-  list being empty; a trip containing today lands on the day plan with today chosen, from M2 and from M1's *Geplant*
-  row, whatever view was last; a trip whose last day has passed lands on the packing list though the day plan was
-  last. The rule's other branches — a start before the date, a closed trip, a trip without both dates, rows not yet
-  on the device — are `lib/__tests__/tripOpening.spec.ts` and `router/__tests__/tripOpening.spec.ts`.
+  list being empty; a trip containing today, with an entry on today's plan, lands on the day plan with today chosen,
+  from M2 and from M1's *Geplant* row, whatever view was last; a trip whose last day has passed lands on the packing
+  list though the day plan was last. The rule's other branches — a start before the date, a closed trip, a trip without
+  both dates, rows not yet on the device — are `lib/__tests__/tripOpening.spec.ts` and
+  `router/__tests__/tripOpening.spec.ts`.
+* **E2E-M29-12** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): a trip under way whose plan holds
+  nothing today opens on *Einkauf* while nothing is open anywhere, on *Aufgaben* once a task is open and nothing is to
+  buy, on *Einkauf* again once something is, and on the day plan with today chosen once an entry stands on today. The
+  partition not yet on the device is `router/__tests__/tripOpening.spec.ts`; what counts as an empty day —
+  arrival and departure do not — is `dayHoldsNothing` in `planner/domain/__tests__/dayPlan.spec.ts`.
 * **E2E-M29-11** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute* card
   lists three of today's four lines and says *„+ 1 more · day plan"*; a trip ahead has no card; an idea ticked on the
   card is done, and the link opens M29 on today with the idea ticked there. Which lines are still to come at a time of
