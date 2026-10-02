@@ -2,7 +2,8 @@
 
 * **What it is:** a trip's excursions — a day hike, a hut night, a boat trip — each with **its own small packing list**
   (Addendum §3.31, ADR-077). Reasoning: `dev-docs/excursions-concept.md`; the rendered variants, all three open points
-  decided as variant A, are `UI_Concept_Excursions_variants.html` (`node dev-docs/build-excursions-variants.mjs`).
+  decided as variant A, are `UI_Concept_Excursions_variants.html` at `6b148419` (`build-excursions-variants.mjs` at
+  `6b148419`).
 * **Where it lives:** the fifth pill of the G-9 switcher, after *Notizen*, glyph `trailSignOutline` — a signpost, which
   fits a hike, a boat and a town trip alike (`/trips/:id/excursions`, `meta.tripView: 'excursions'`). Its badge counts
   the upcoming excursions that still have something open (FR-31.10), grey. No ⋮ on the list. Back is M4.

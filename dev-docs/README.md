@@ -12,6 +12,27 @@ names every file (`scripts/log-index-gate.mjs` holds that), so a change to §3.2
 reads one file, not the whole specification. Find a file by its number (`ls dev-docs/ui-spec/M28*`)
 or by grep, then read only the part you need.
 
+## The three documentation tiers
+
+Which tier a document belongs to is decided by **who reads it**, never by what it is about:
+
+| Tier | Audience | Content |
+|---|---|---|
+| `README.md` | someone deciding whether to care | A shop window: what, why, quickstart, links onward. No configuration reference, no deployment detail. |
+| `docs/` | people **running** JIT-Pack | User manual, published via MkDocs Material (`mkdocs.yml`). Second person, task-oriented. |
+| `dev-docs/` | people **developing** JIT-Pack | PRDs, ADRs, specs, log, prototype. Never published; indexed here. |
+
+- **A user-visible change updates `docs/`, not just the spec.** A feature is complete when the person running the
+  instance can find out how to use it. **Never document what is not implemented**: every claim in `docs/` is verified
+  against the code, not the spec.
+- A new page goes into `nav:` in `mkdocs.yml`; CI runs `mkdocs build --strict`. Never link to `dev-docs/` from
+  `docs/` with a relative path — link to GitHub or restate.
+- **A `dev-docs/` document wraps at 120 characters** (`scripts/spec-width-gate.mjs`). Exempt: table rows, ATX
+  headings, fenced code, and the two append-only ledgers.
+- A spec states the current product only: no revision notes, no dated provenance, no "amended"/"used to" narration —
+  git holds the history. The two append-only ledgers and the ADRs are the exception, since recording history is their
+  job.
+
 ## Product
 
 - [`PRD_Base.md`](PRD_Base.md) — the original product definition: what JIT-Pack is for.
@@ -27,6 +48,10 @@ or by grep, then read only the part you need.
   cost, with its consequences and a revisit trigger. One file per decision.
 - [`CODING_PRINCIPLES.md`](CODING_PRINCIPLES.md) — **binding**; read before writing
   code.
+- [`ci.md`](ci.md) — what runs locally and what on GitHub, reading a red run, the e2e legs,
+  the workflows and `main`'s protection.
+- [`agent-tooling.md`](agent-tooling.md) — which agent CLI reads which configuration: hooks,
+  skills, MCP servers.
 - [`implementation-log/`](implementation-log/README.md) — append-only history of what was
   built and why it was built that way. One file per week, each opening with the
   **index** of its own sections — grep the index lines, never read a file to find something.
@@ -72,51 +97,15 @@ migrations come back.
   `node dev-docs/assets/shoot-screens.mjs`.
 
 **Variant rounds.** Where a decision came down to how something *looks*, it was rendered
-side by side in the prototype's own stylesheet and decided on the pixels. Each page is
-generated — edit the builder, not the HTML:
+side by side in the prototype's own stylesheet and decided on the pixels. Once decided, a
+round's page and its generator were deleted: the decision lives in the spec section that
+names the round, and the pages stay readable at commit `6b148419`
+(`git show 6b148419:dev-docs/UI_Concept_<Name>_variants.html`). A new round follows the same
+path — rendered while open, removed in the PR that settles it.
 
-- [`UI_Concept_GroupPeek_variants.html`](UI_Concept_GroupPeek_variants.html) — looking
-  inside a group before taking it (FR-27.12); `node dev-docs/build-group-peek-variants.mjs`.
-- [`UI_Concept_ResolvedList_variants.html`](UI_Concept_ResolvedList_variants.html) — showing
-  a Vorlage its resulting items (FR-27.14); `node dev-docs/build-resolved-list-variants.mjs`.
-- [`UI_Concept_ReviewStep_variants.html`](UI_Concept_ReviewStep_variants.html) — how much
-  editing M3's review step should carry (FR-2.6, **variant A chosen**);
-  `node dev-docs/build-review-step-variants.mjs`.
-- [`UI_Concept_M4Title_variants.html`](UI_Concept_M4Title_variants.html) — where M4's trip
-  name lives once the G-12 cluster fills the app bar (UI-Spec M4, **B chosen without its
-  condensation**); each phone reproduces the visual baseline's own icon geometry rather than
-  a comfortable approximation, which is the point of the round;
-  `node dev-docs/build-m4-title-variants.mjs`.
-- [`UI_Concept_ItemMark_variants.html`](UI_Concept_ItemMark_variants.html) — what stands
-  left of the item name (§3.28, G-15): emoji vs. icon library vs. photo-first vs. a bare
-  initial, plus a working picker with keyword search and name-derived suggestions;
-  `node dev-docs/build-item-mark-variants.mjs`.
-- [`UI_Concept_ClosingPass_variants.html`](UI_Concept_ClosingPass_variants.html) — where the
-  FR-9.3 closing pass lives: its own screen against a mode of M4, with the table of what each
-  answer costs; `node dev-docs/build-closing-pass-variants.mjs`.
-- [`UI_Concept_ClosePacking_variants.html`](UI_Concept_ClosePacking_variants.html) — finishing
-  the packing (FR-5.10) and what „vor der Abreise" stops meaning (FR-30.8): five questions
-  rendered against one trip — where the step lives, whether it confirms a count or a list, what a
-  half-packed row becomes, whether „abgeschlossen" is a stamp or a reading, and which M6 tab
-  opens; `node dev-docs/build-close-packing-variants.mjs`.
-- [`UI_Concept_PerPersonRows_variants.html`](UI_Concept_PerPersonRows_variants.html) — what a
-  per-person item may cost in rendered lines (FR-25.1/25.21/25.22): today's always-open cluster
-  against a foldable one, an avatar-button row, a me-first list and a cluster that only expands
-  once its children differ; `node dev-docs/build-perperson-rows-variants.mjs`.
-- [`UI_Concept_QuickAssign_variants.html`](UI_Concept_QuickAssign_variants.html) — where
-  assignment and the late-packer flag are operated (FR-25.25/25.26): the row's edge avatar and
-  its menu, and a cluster head that sets both for every instance at once. Hand-written, no
-  generator — it is five states of one screen rather than a matrix of variants.
-- [`UI_Concept_TripNotes_variants.html`](UI_Concept_TripNotes_variants.html) — trip notes read by
-  every traveller and ticked per person (decided, reasoning in
-  [`trip-notes-concept.md`](trip-notes-concept.md)): where they live and whether M1 may tick.
-  Hand-written, with an interactive who-am-I switch.
-- [`UI_Concept_Excursions_variants.html`](UI_Concept_Excursions_variants.html) — excursions,
-  a small packing list inside a trip (decided and built as FR-31/ADR-077, reasoning in
-  [`excursions-concept.md`](excursions-concept.md)): the pill's glyph, whether one excursion is a
-  page or a sheet, how *nicht im Gepäck* looks, and a thing per participant;
-  `node dev-docs/build-excursions-variants.mjs`.
-- [`UI_Concept_PlannerNav_variants.html`](UI_Concept_PlannerNav_variants.html) — where the
-  planner's ideas and day plan live (decided as variant B, two more pills in the one switcher;
-  slice 1a built as §3.29/M28, ADR-078, reasoning in [`planner-concept.md`](planner-concept.md)),
-  with one idea opened; `node dev-docs/build-planner-nav-variants.mjs`.
+**Concept notes** — the reasoning a feature was decided from; the FR, the screen and the ADR they
+name are authoritative wherever they differ: [`api-tokens-concept.md`](api-tokens-concept.md)
+(FR-23.7), [`trip-notes-concept.md`](trip-notes-concept.md) (FR-7.9),
+[`trip-note-threads-concept.md`](trip-note-threads-concept.md) (FR-7.13),
+[`excursions-concept.md`](excursions-concept.md) (§3.31) and
+[`planner-concept.md`](planner-concept.md) (§3.29).

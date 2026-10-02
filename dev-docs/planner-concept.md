@@ -4,8 +4,8 @@
 FR-29.1–29.15 in the PRD Addendum, M28 in the UI Spec, ADR-078 and ADR-051 amendment 4; the loop as ADR-079. Those are
 now authoritative; this file is the reasoning, and where it and they differ, they win. Written 2026-09-26 on the owner's
 request; the walk-through settled the points in §2 the same evening, and the navigation was chosen on the rendered
-mockup (`dev-docs/UI_Concept_PlannerNav_variants.html`, built by `node dev-docs/build-planner-nav-variants.mjs`). It
-takes the Idea Board draft as its base — §3.29 on the unmerged branch `docs/idea-board-spec` (commit `53130c83`,
+mockup (`UI_Concept_PlannerNav_variants.html` at `6b148419`, built by `build-planner-nav-variants.mjs` at `6b148419`).
+It takes the Idea Board draft as its base — §3.29 on the unmerged branch `docs/idea-board-spec` (commit `53130c83`,
 2026-09-19) — and adds what the draft left out: the bridge from an idea to the packing side, a fourth state, and the day
 plan.
 

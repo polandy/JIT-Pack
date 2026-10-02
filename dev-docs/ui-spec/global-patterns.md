@@ -517,8 +517,8 @@ These patterns apply to every screen and are specified once.
 * **G-15 (The Item Mark — ADR-021, Addendum 3.28):** An item may carry **one emoji** as its mark, and that mark is drawn
   in a **fixed slot at the row's leading edge** — one geometry across M4, M5, M9 and M10, so a list stays aligned
   whether its rows are marked or not. Decided on a rendered four-way round
-  (`dev-docs/UI_Concept_ItemMark_variants.html`); the losing options and their measured costs are in Addendum 3.28. An
-  icon library would fit the token tables and still loses: at 34 px its strokes stop being distinguishable, and its
+  (`UI_Concept_ItemMark_variants.html` at `6b148419`); the losing options and their measured costs are in Addendum 3.28.
+  An icon library would fit the token tables and still loses: at 34 px its strokes stop being distinguishable, and its
   substitute rate is the *higher* of the two.
   * **The slot holds its width when it is empty.** An item with no mark is the normal case (FR-28.1), and a column that
     collapses on unmarked rows re-rags the names on every list.

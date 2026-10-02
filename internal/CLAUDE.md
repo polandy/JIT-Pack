@@ -44,3 +44,20 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
 - **Real in-memory SQLite** for store and api tests — never a mocked database. Hand-written fakes behind small
   consumer-side interfaces; no mocking frameworks.
 - **Always `-race`** — `make test` does; `go test ./...` from the root does not stay inside `GO_PKGS` (see the root file).
+
+## Packages
+
+- `cmd/jitpackd` — wiring only: env-parsed `Config` → one `api.Options`, graceful shutdown. No logic.
+- `internal/sync` — HLC generator + field-level merge (NFR-4.2a). Pure, zero I/O, zero internal imports.
+- `internal/wiregen` — `wire.go` → the client's `types.ts` and `routes.ts` (ADR-026/027). Pure leaf: `go/ast` in, string
+  out. `cmd/wiregen` is the thin main.
+- `internal/store` — the only package importing `database/sql`. SQLite repositories, change/conflict logs, the two sync
+  partitions (master; trip), the schema and its migration chain (ADR-067).
+- `internal/linkpreview` — FR-29.16: reads a pasted link's page for its title, description, picture and links
+  (FR-29.18), through a dialer that admits public addresses on 80/443 only (ADR-082). Standard library only, a leaf —
+  the one place the server fetches an address a user chose.
+- `internal/webui` — serves the built client beside the API on one origin (ADR-043). Standard library only; does
+  **not** import `internal/api` (prefixes are passed in).
+- `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), notifications, Web Push, admin,
+  export. **`wire.go` is the contract** — envelopes, frame, conflict shapes, error vocabulary, routes. **Export only** —
+  importing is the client's (invariant 4, ADR-025).

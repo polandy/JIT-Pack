@@ -5,7 +5,7 @@ icons (ADR-051 amendment 3, #601), then the threads as **FR-7.13** in PRD Addend
 their own (**M26**). The FR and UI-Spec M26 are authoritative. This file is the reasoning: where §1–§4 describe M25's
 segment or replies newest first, §7a (question 6) and §7b (the UX rework) decide otherwise — a thread has its own
 view, read top to bottom. The reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a
-rule). The interactive mockup is `dev-docs/UI_Concept_TripNoteThreads_variants.html`. It builds on FR-7.9 as built
+rule). The interactive mockup is `UI_Concept_TripNoteThreads_variants.html` at `6b148419`. It builds on FR-7.9 as built
 (`dev-docs/trip-notes-concept.md`, ADR-073) and changes nothing that concept decided unless §2 says so.
 
 **Scope:** notes work like a forum with threads. One note can have several notes attached to it, one level only.

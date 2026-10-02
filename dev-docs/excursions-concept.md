@@ -210,8 +210,8 @@ its own excursion rather than one re-packed list).
 Rows 13–14 followed the same evening, on the owner's addition that an excursion must be able to say *a sleeping
 bag per participant*; both took the recommended option.
 
-**Settled on the rendered mockup** (`dev-docs/UI_Concept_Excursions_variants.html`, built by
-`node dev-docs/build-excursions-variants.mjs`), the recommended variant each time:
+**Settled on the rendered mockup** (`UI_Concept_Excursions_variants.html` at `6b148419`, built by
+`build-excursions-variants.mjs` at `6b148419`), the recommended variant each time:
 
 * **The pill's glyph** is the signpost, `trailSignOutline` — it fits a hike, a boat trip and a town trip alike.
 * **One excursion is its own route** under the trip, not a sheet or an accordion — room for the whole list, and a URL
