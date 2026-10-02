@@ -9,6 +9,8 @@ import {
   MAX_PLAN_DAYS,
   dayCounts,
   dayLines,
+  dayHoldsNothing,
+  openingDayHoldsNothing,
   hasPlanDates,
   entriesOutsideTrip,
   ideasOutsideTrip,
@@ -201,6 +203,32 @@ describe('dayLines (FR-29.15)', () => {
   it('counts each day’s lines for the strip', () => {
     const counts = dayCounts(tripDays(TRIP), input({ entries: [entry('e', '2026-07-13', null)] }))
     expect([...counts.values()]).toEqual([1, 1, 0, 1])
+  })
+})
+
+describe('dayHoldsNothing — where a trip under way opens (FR-29.7)', () => {
+  it('counts a day with only its arrival or departure as holding nothing', () => {
+    expect(dayHoldsNothing('2026-07-12', input())).toBe(true)
+    expect(dayHoldsNothing('2026-07-15', input())).toBe(true)
+  })
+
+  it('counts an idea, an entry or a dated line on the day, done or not', () => {
+    const day = '2026-07-13'
+    expect(dayHoldsNothing(day, input({ ideas: [idea('i1', 'done', day)] }))).toBe(false)
+    expect(dayHoldsNothing(day, input({ entries: [entry('e1', day, null)] }))).toBe(false)
+    expect(dayHoldsNothing(day, input({ lines: [line('task:1', 'task', day)] }))).toBe(false)
+  })
+
+  it('does not count what stands on another day', () => {
+    const plan = input({ entries: [entry('e1', '2026-07-14', null)] })
+    expect(dayHoldsNothing('2026-07-13', plan)).toBe(true)
+  })
+
+  it('asks about the first day of a trip started early, the day the plan opens on', () => {
+    const plan = input({ entries: [entry('e1', '2026-07-12', null)] })
+    expect(openingDayHoldsNothing('2026-07-10', plan)).toBe(false)
+    expect(openingDayHoldsNothing('2026-07-10', input())).toBe(true)
+    expect(openingDayHoldsNothing('2026-07-13', plan)).toBe(true)
   })
 })
 

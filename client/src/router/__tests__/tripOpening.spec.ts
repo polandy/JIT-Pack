@@ -17,6 +17,9 @@ function source(over: Partial<TripOpeningSource> = {}): TripOpeningSource {
     itemCount: () => 0,
     tripDataLoaded: () => true,
     today: () => '2026-07-14',
+    dayPlanEmpty: () => false,
+    shoppingOpen: () => 0,
+    tasksOpen: () => 0,
     ...over,
   }
 }
@@ -39,6 +42,34 @@ describe('openingTarget', () => {
 
   it('leads to the day plan during the trip', () => {
     expect(openingTarget('t1', source({ today: () => '2026-07-21' }))).toBe('/trips/t1/dayplan')
+  })
+
+  it('asks the day plan about today, and leads past an empty one to the tasks it counts', () => {
+    const asked: string[] = []
+    const target = openingTarget(
+      't1',
+      source({
+        today: () => '2026-07-21',
+        dayPlanEmpty: (tripId, _trip, day) => (asked.push(`${tripId}:${day}`), true),
+        tasksOpen: () => 2,
+      }),
+    )
+    expect(asked).toEqual(['t1:2026-07-21'])
+    expect(target).toBe('/trips/t1/tasks')
+  })
+
+  it('does not ask the day plan while the partition is not on the device', () => {
+    const target = openingTarget(
+      't1',
+      source({
+        today: () => '2026-07-21',
+        tripDataLoaded: () => false,
+        dayPlanEmpty: () => {
+          throw new Error('asked')
+        },
+      }),
+    )
+    expect(target).toBe('/trips/t1/dayplan')
   })
 
   it('leads a trip not on the device yet to the packing list, which waits for it', () => {

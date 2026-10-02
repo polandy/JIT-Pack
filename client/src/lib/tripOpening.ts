@@ -35,6 +35,15 @@ export interface OpeningFacts {
    * not on the device, which is not an empty list (ADR-033).
    */
   packingEmpty: boolean | null
+  /**
+   * Whether today's day plan holds nothing of the travellers' own — null
+   * while the trip's partition is not on the device, as above.
+   */
+  todayEmpty: boolean | null
+  /** The shopping list's open purchases. */
+  shoppingOpen: number
+  /** The trip's open tasks. */
+  tasksOpen: number
 }
 
 /** Whether the trip is over: closed, or its last day has passed. */
@@ -57,7 +66,11 @@ export function isUnderWay(trip: OpeningTrip, today: string): boolean {
 export function openingView(trip: OpeningTrip, facts: OpeningFacts): TripViewId {
   if (isOver(trip, facts.today)) return 'packing'
   const absent = absentViews(trip)
-  if (isUnderWay(trip, facts.today) && !absent.includes('dayplan')) return 'dayplan'
+  if (isUnderWay(trip, facts.today) && !absent.includes('dayplan')) {
+    if (facts.todayEmpty !== true) return 'dayplan'
+    // An empty list stays the landing too: it is where the next errand is added.
+    return facts.shoppingOpen === 0 && facts.tasksOpen > 0 ? 'tasks' : 'shopping'
+  }
   if (facts.lastView && !absent.includes(facts.lastView)) return facts.lastView
   return facts.packingEmpty === true ? 'ideas' : 'packing'
 }

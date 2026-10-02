@@ -4,6 +4,8 @@
  * through (the router's lazy page import aside). The dev seed uses it too,
  * to write its ideas through the module's own actions.
  */
+import type { DayPlanSource } from '@/lib/dayPlanSources'
+import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
 import { usePlannerStore } from './store'
 
@@ -17,4 +19,21 @@ export { voteTally } from './domain/ideas'
 export function ideasCount(): (tripId: string) => number {
   const plannerStore = usePlannerStore()
   return (tripId) => undecidedCount(plannerStore.getIdeas(tripId))
+}
+
+/**
+ * Whether the day a trip's plan opens on holds nothing (FR-29.7) — what the
+ * kernel's opening rule asks before landing a trip under way on the plan.
+ */
+export function dayPlanEmpty(
+  sources: readonly DayPlanSource[],
+): (tripId: string, trip: TripDates, today: string) => boolean {
+  const plannerStore = usePlannerStore()
+  return (tripId, trip, today) =>
+    openingDayHoldsNothing(today, {
+      trip,
+      ideas: plannerStore.getIdeas(tripId),
+      entries: plannerStore.getDayEntries(tripId),
+      lines: sources.flatMap((source) => source.lines(tripId)),
+    })
 }

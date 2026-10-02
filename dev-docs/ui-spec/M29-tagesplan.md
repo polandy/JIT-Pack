@@ -9,11 +9,12 @@
   *Tagesplan*, its meta line the trip's name. Back is M4. A trip without both dates that is opened on the route says
   *„Der Tagesplan braucht Start- und Enddatum der Reise."* (`m29-no-dates`).
 * **A trip opens here during the trip (FR-29.7).** A tap on a trip from outside it — M1, M2, M20 — goes to
-  `/trips/:id/open` (`tripOpenPath`), which the router replaces with the view the dates decide
-  (`router/tripOpening.ts`, the rule in `lib/tripOpening.ts`): from the first day to the last, or once started early,
-  the day plan on today; before the trip the view last visited on this device (`jp_trip_view_<tripId>`), on a first
-  visit *Ideen* while the packing list is empty; afterwards the packing list. Back from the opened view is its declared
-  parent, as from any trip view (ADR-011).
+  `/trips/:id/open` (`tripOpenPath`), which the router replaces with the view the dates decide (`router/tripOpening.ts`,
+  the rule in `lib/tripOpening.ts`): from the first day to the last, or once started early, the day plan on today —
+  unless that day (the first, when started early) holds nothing but arrival or departure, when the trip opens on
+  *Einkauf*, or on *Aufgaben* while nothing is to buy and a task is open; before the trip the view last visited on this
+  device (`jp_trip_view_<tripId>`), on a first visit *Ideen* while the packing list is empty; afterwards the packing
+  list. Back from the opened view is its declared parent, as from any trip view (ADR-011).
 * **The day strip** (`m29-strip`): one tile per day of the trip (`m29-day-<YYYY-MM-DD>`, `role="tab"`) — the weekday
   small over the date, up to three dots for what stands on it — scrolled sideways; today chosen during the trip, the
   first day otherwise. Days before today are dimmed. A tile chooses its day. Under the strip the chosen day in words,

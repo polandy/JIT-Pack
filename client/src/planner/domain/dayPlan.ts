@@ -210,6 +210,26 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     .map(({ line }) => line)
 }
 
+/**
+ * Whether a day holds nothing of the travellers' own (FR-29.7): arrival and
+ * departure stand on a trip's first and last day whether anyone planned
+ * anything or not, so they do not count. A trip under way opens elsewhere on
+ * such a day.
+ */
+export function dayHoldsNothing(day: string, input: DayInput): boolean {
+  return dayLines(day, input).every(
+    (line) => line.kind === DAY_LINE.arrival || line.kind === DAY_LINE.departure,
+  )
+}
+
+/**
+ * Whether the day the plan opens on holds nothing (FR-29.7): today during
+ * the trip, its first day when it was started early.
+ */
+export function openingDayHoldsNothing(today: string, input: DayInput): boolean {
+  return dayHoldsNothing(openingDay(tripDays(input.trip), today) ?? today, input)
+}
+
 /** Timed before untimed, then by the time itself. */
 function compareTime(a: string | null, b: string | null): number {
   if (a === b) return 0
