@@ -481,6 +481,9 @@ CREATE TABLE comments (
     -- never placed, which reads before every placed task (ADR-083). Any
     -- member may move a task, as any may retag it.
     position     INTEGER,
+    -- FR-29.13: the idea a trip task was made from — excursions.idea_id's
+    -- shape.
+    idea_id      TEXT REFERENCES ideas(id) ON DELETE SET NULL,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
@@ -626,6 +629,8 @@ CREATE TABLE shopping_entries (                   -- FR-30.1
     -- only inside one heading, so two headings may both count from 0; no
     -- CHECK and no UNIQUE, for field-level LWW's sake.
     position          INTEGER,
+    -- FR-29.13: the idea it was made from — excursions.idea_id's shape.
+    idea_id           TEXT REFERENCES ideas(id) ON DELETE SET NULL,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -650,6 +655,11 @@ CREATE TABLE excursions (
     -- „aus Gruppe …" line only. No reference: nothing may keep a group from
     -- being deleted for the sake of a caption.
     source_template_id TEXT,
+    -- FR-29.13: the idea it was made from (ADR-078) — a link on the result,
+    -- never a list on the idea, so an idea may have several. An idea of its
+    -- own trip only; one deleted before the row arrives costs the link.
+    -- ON DELETE SET NULL: the result outlives the idea, and the idea it.
+    idea_id     TEXT REFERENCES ideas(id) ON DELETE SET NULL,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -744,6 +754,11 @@ CREATE TABLE ideas (
     planned_on  TEXT,
     planned_at  TEXT
 );
+
+-- FR-29.13: an idea's delete looks up what came of it to unlink it.
+CREATE INDEX idx_excursions_idea ON excursions(idea_id);
+CREATE INDEX idx_comments_idea ON comments(idea_id);
+CREATE INDEX idx_shopping_entries_idea ON shopping_entries(idea_id);
 
 -- FR-29.3: one person's vote on one idea. A row per (idea, person) rather than
 -- a list on the idea, so two people voting at once both count — ADR-073's

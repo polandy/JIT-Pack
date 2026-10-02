@@ -269,6 +269,8 @@ export interface Excursion {
   ends_on: string | null
   /** The Gruppe it was started from — provenance for a caption only. */
   source_template_id: string | null
+  /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
+  idea_id?: string | null
 }
 
 /**
@@ -454,6 +456,8 @@ export interface TripTodo extends TaskFacts {
   author_id: string
   body: string
   task_state: TodoState
+  /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
+  idea_id?: string | null
 }
 
 /**
@@ -482,6 +486,8 @@ export interface ShoppingEntry {
   carried_over_at?: string | null
   /** FR-30.13: where it stands inside its heading, by hand; null or absent for never placed (ADR-083). */
   position?: number | null
+  /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
+  idea_id?: string | null
 }
 
 // --- The planner (§3.29) ---

@@ -216,6 +216,9 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
 
   // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
   'tasks.title': 'Aufgaben',
+  // FR-29.13: a task made from an idea, and the line naming where a result came from.
+  'tasks.fromIdea': '{title} buchen',
+  'trip.ideaOrigin': 'Aus der Idee „{title}“',
   'tasks.before': 'Vor der Reise',
   'tasks.during': 'Während der Reise',
   'tasks.mine': 'Meine',

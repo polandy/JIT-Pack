@@ -44,6 +44,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
+import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddItem.vue'
@@ -1030,6 +1031,13 @@ setHeaderTitle(
       @ion-scroll-end="onScrollEnd"
     >
       <template v-if="loaded && excursion">
+        <!-- FR-29.13: the idea it was made from, where it was. -->
+        <IdeaOrigin
+          class="excursion-idea"
+          :trip-id="tripId"
+          :idea-id="excursion.idea_id"
+          testid="m27-excursion-idea"
+        />
         <!-- FR-31.15: the route first, before what to pack for it; it scrolls away. -->
         <div v-if="tracksOn.length > 0 || trackBusy" class="excursion-tracks">
           <TrackSummary
@@ -1634,5 +1642,8 @@ ion-content.excursion-content::part(scroll) {
 .cluster-children {
   border-inline-start: 2px solid var(--ct-surface1);
   margin-inline-start: 12px;
+}
+.excursion-idea {
+  margin: 0 16px 6px;
 }
 </style>

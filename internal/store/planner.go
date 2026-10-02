@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"jitpack/internal/sync"
@@ -10,6 +12,36 @@ import (
 // IdeaStateShortlisted is the state an idea is in once it made the shortlist
 // (FR-29.2) — the move FR-29.8 tells the trip about.
 const IdeaStateShortlisted = "shortlisted"
+
+// columnIdeaID names, on an excursion, a task or a shopping entry, the idea
+// it was made from (FR-29.13).
+const columnIdeaID = "idea_id"
+
+// validIdeaResult is FR-29.13's part of the trip partition's write gate: a
+// result names an idea of its own trip. One deleted before the result
+// arrived — on another device, while this one was offline — drops the link
+// and keeps the result, which a foreign-key refusal would have thrown away;
+// one of another trip is a write no screen of this trip can make. FR-7.15's
+// noteExcursion, for the same reasons.
+func validIdeaResult(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+	id, _ := m.Fields[columnIdeaID].(string)
+	if id == "" {
+		return ReasonNone, nil
+	}
+	var ideaTrip string
+	err := tx.QueryRowContext(ctx, `SELECT trip_id FROM ideas WHERE id = ?`, id).Scan(&ideaTrip)
+	if errors.Is(err, sql.ErrNoRows) {
+		delete(m.Fields, columnIdeaID)
+		return ReasonNone, nil
+	}
+	if err != nil {
+		return ReasonNone, fmt.Errorf("idea result lookup: %w", err)
+	}
+	if ideaTrip != tripID {
+		return ReasonConstraintViolated, nil
+	}
+	return ReasonNone, nil
+}
 
 // columnVoter is whose vote an idea_votes row is (FR-29.3), stamped by the
 // server on the insert.

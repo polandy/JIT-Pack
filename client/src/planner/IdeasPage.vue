@@ -22,6 +22,8 @@ import {
   IonPage,
   IonSegment,
   IonSegmentButton,
+  onIonViewDidEnter,
+  onIonViewWillLeave,
 } from '@ionic/vue'
 import { addOutline, bulbOutline, swapVerticalOutline, umbrellaOutline } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -208,6 +210,16 @@ const breakpoint = window.matchMedia(DESKTOP_QUERY)
 const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
 breakpoint.addEventListener('change', onBreakpoint)
 onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+/*
+ * The idea opens once the board has entered, never during the transition
+ * into it. A link from another screen lands here with `?idea=` already set
+ * (FR-29.13's way back, a day plan line, a notification); a panel teleported
+ * into the frame, or a sheet presented, while Ionic animates the pages left
+ * the page it came from unhidden in the outlet (ADR-012).
+ */
+const entered = ref(false)
+onIonViewDidEnter(() => (entered.value = true))
+onIonViewWillLeave(() => (entered.value = false))
 
 /** Read off the route: a tap, a deep link and a reload open the same idea. */
 const openIdeaId = computed(() => {
@@ -225,6 +237,15 @@ const openIdea = computed(() =>
  */
 function openSheet(idea: Idea) {
   void router.push(tripIdeasPath(props.tripId, idea.id))
+}
+
+/**
+ * The sheet's own dismissal — a swipe or a tap beside it — closes the idea.
+ * One that follows the route away (FR-29.13's way to another screen) has
+ * nothing left to close, and closing it would navigate back here.
+ */
+function onSheetDismiss() {
+  if (openIdeaId.value !== null) closeSheet()
 }
 
 function closeSheet() {
@@ -466,9 +487,9 @@ const EMPTY_KEYS = {
 
       <SheetModal
         v-if="!isDesktop"
-        :is-open="openIdea !== null && editing === null"
+        :is-open="entered && openIdea !== null && editing === null"
         testid="m28-idea-modal"
-        @dismiss="closeSheet"
+        @dismiss="onSheetDismiss"
       >
         <IdeaDetail
           v-if="openIdea"
@@ -497,9 +518,10 @@ const EMPTY_KEYS = {
           @replace-track="tracks.replace"
           @remove-track="tracks.remove"
           @edit-track="tracks.edit"
+          @go="(path: string) => router.push(path)"
         />
       </SheetModal>
-      <Teleport v-if="isDesktop && openIdea" defer :to="PANEL_HOST_SELECTOR">
+      <Teleport v-if="isDesktop && entered && openIdea" defer :to="PANEL_HOST_SELECTOR">
         <aside class="idea-panel" data-testid="m28-idea-panel">
           <IdeaDetail
             :idea-id="openIdea.id"
@@ -527,6 +549,7 @@ const EMPTY_KEYS = {
             @replace-track="tracks.replace"
             @remove-track="tracks.remove"
             @edit-track="tracks.edit"
+            @go="(path: string) => router.push(path)"
           />
         </aside>
       </Teleport>

@@ -65,6 +65,8 @@ export interface ExcursionDraft {
   travelerIds: readonly string[] | null
   /** The Gruppe to start from, or null to start empty (FR-31.2). */
   templateId: string | null
+  /** FR-29.13: the idea it is made from; absent for none. */
+  ideaId?: string | null
 }
 
 /** Only the master-data writes saving as a Gruppe needs (FR-31.11). */
@@ -283,6 +285,7 @@ export function createExcursionActions(
       startsOn,
       endsOn,
       sourceTemplateId: draft.templateId,
+      ideaId: draft.ideaId ?? null,
     })
     enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
 

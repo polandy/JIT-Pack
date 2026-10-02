@@ -121,5 +121,11 @@
 * **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.
+* **From an idea (FR-29.13):** entered from an idea's *Ausflug* chip (`?fromIdea=`), the sheet opens with the idea's
+  title as the name and its planned day as both days; the excursion created names the idea and opens its list, which
+  still returns to the idea (`meta.acceptsLinkedFrom` on both routes). On the M27 row and above the excursion's own list
+  the **💡 line** (`IdeaOrigin`, the bulb in `--jp-brand` and the idea's title, small and quiet) names the idea it was
+  made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the device does not
+  hold. Its handles: `m27-idea-<name>` on the row, `m27-excursion-idea` on the list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
 * (E2E-M27-01…16 `local`, E2E-G12-07)

@@ -669,6 +669,7 @@ const CASES: BuilderCase[] = [
         starts_on: '2026-07-16',
         ends_on: '2026-07-17',
         source_template_id: 'grp-hut',
+        idea_id: 'idea-hut',
       })
     },
     read: () => useTripStore().getExcursions(TRIP_ID)[0] as unknown as Record<string, unknown>,
@@ -692,6 +693,7 @@ const CASES: BuilderCase[] = [
       starts_on: '2026-07-16',
       ends_on: '2026-07-17',
       source_template_id: 'grp-hut',
+      idea_id: 'idea-hut',
     } satisfies Record<keyof Excursion, unknown>,
   },
   {

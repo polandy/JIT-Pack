@@ -23,6 +23,8 @@ export function createExcursionsMutations({ make }: MutationContext) {
       startsOn: string | null
       endsOn: string | null
       sourceTemplateId: string | null
+      /** FR-29.13: the idea it is made from. */
+      ideaId?: string | null
     },
   ): { mutation: Mutation; id: string } {
     const id = newId()
@@ -32,6 +34,7 @@ export function createExcursionsMutations({ make }: MutationContext) {
       starts_on: fields.startsOn,
       ends_on: fields.endsOn,
       source_template_id: fields.sourceTemplateId,
+      ...(fields.ideaId ? { idea_id: fields.ideaId } : {}),
     })
     return { mutation, id }
   }

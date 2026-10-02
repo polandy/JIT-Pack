@@ -179,6 +179,12 @@
   heading and before the own entries, A–Z, and such a heading takes no dropped entry — it is not one of this list's
   tags. Checking one off stamps the excursion's line *vor Ort gekauft*; it stays on the excursion's list, still to go
   into the rucksack. *Vor Ort* only. (`m6-group-source-<name>`, E2E-M27-03)
+* **From an idea (FR-29.13):** entered from an idea's *Einkauf* chip (`?fromIdea=`), the composer holds the idea's title
+  on *Vor Ort*, focused; the entry written next names the idea, the one after is the list's own again. The parameter
+  leaves the address once answered; `‹` returns to the idea (`meta.acceptsLinkedFrom`). On an own entry's second line
+  the **💡 line** (`IdeaOrigin`, the bulb in `--jp-brand` and the idea's title, small and quiet) names the idea it was
+  made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the device does not
+  hold. Its handle: `m6-row-idea-<name>`.
 * **States:** An empty screen, once the trip partition is here (ADR-033), shows the G-7 empty state with the hint *„Trag
   oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst."* —
   the one place the screen says where its other lines come from. Both lists empty → the G-9 switcher keeps the

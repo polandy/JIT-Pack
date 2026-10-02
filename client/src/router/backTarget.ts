@@ -1,5 +1,8 @@
 import type { MessageKey } from '@/i18n'
 import type { TripViewId } from '@/lib/tripViews'
+import { ORIGIN_QUERY_PARAM } from './paths'
+
+export { ORIGIN_QUERY_PARAM }
 
 /**
  * The back-target contract (Navigation_Concept §7, ADR-011).
@@ -29,6 +32,13 @@ declare module 'vue-router' {
      */
     acceptsFrom?: boolean
     /**
+     * A screen that returns to an origin **a link carried**, though the
+     * router stamps none on the way in: a trip's view is entered from its
+     * siblings, and back from it means the trip — but entered from an idea
+     * to make something of it (FR-29.13), back means the idea.
+     */
+    acceptsLinkedFrom?: boolean
+    /**
      * A query key that opens an overlay on this same route — M5's sheet
      * over the packing list (`?item=`). While it is present, `‹ back`
      * closes the overlay instead of leaving the screen, which is what a
@@ -54,9 +64,6 @@ declare module 'vue-router' {
   }
 }
 
-/** Query key naming the path a global action or flow was entered from. */
-export const ORIGIN_QUERY_PARAM = 'from'
-
 /** The slice of a route's query this module reads. */
 type OriginQuery = Record<string, string | null | (string | null)[] | undefined> | undefined
 
@@ -65,6 +72,7 @@ export interface BackTargetRoute {
   meta: {
     parent?: string
     acceptsFrom?: boolean
+    acceptsLinkedFrom?: boolean
     overlayQuery?: string
     overlayParent?: string
   }
@@ -120,7 +128,7 @@ export function backTarget(route: BackTargetRoute): string | null {
 
   // The origin is considered only after the overlay: with a sheet in
   // front of them, "back" means close it, wherever the screen came from.
-  if (!overlayOpen && route.meta.acceptsFrom) {
+  if (!overlayOpen && (route.meta.acceptsFrom || route.meta.acceptsLinkedFrom)) {
     const origin = originFrom(route.query)
     if (origin) return origin
   }

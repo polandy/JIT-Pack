@@ -108,3 +108,17 @@
   handles from a file, splits, passes, arrows, LV95, the written GPX — are `domain/__tests__/route.spec.ts`; the
   requests and the history `lib/__tests__/routing.spec.ts` and `routeEditor.spec.ts`; the switch
   `TestLoadConfig_Routing_FR29_20` and `TestInstanceConfig_HandsOnTheRoutingURL_FR29_20`.
+* **E2E-M28-22** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`): an undecided idea offers nothing; on
+  the Shortlist, planned on the trip's third day, it offers *Ausflug*, *Aufgabe* and *Einkauf*. *Ausflug* opens M27's
+  sheet with the title and a day; the excursion's list names the idea, `‹` returns to it, the result chip stands and
+  *Ausflug* is no longer offered. *Aufgabe* opens M25's composer with *„Book …"*; the task is written due and naming the
+  idea, and *Aufgabe* is still offered after it. *Einkauf* opens M6's composer with the title on *Vor Ort*; the entry
+  written names the idea, and its 💡 line opens the idea with three results.
+* **E2E-M28-23** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`): a task made from an idea outlives the
+  idea's deletion, without its 💡 line. The pure rules are `planner/domain/__tests__/bridge.spec.ts` (what is offered),
+  `domain/__tests__/ideaResults.spec.ts` (the due day, the phase), `composables/__tests__/ideaResultSource.spec.ts`; the
+  seeds `ShoppingPage.spec.ts` and `TripTasksPage.spec.ts`; the way back `router/__tests__/backTarget.spec.ts`; the
+  server `internal/store/ideabridge_test.go`.
+* **E2E-M28-24** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`, at 412 px): on a phone the idea is a
+  sheet; *Aufgabe* closes it and M25 stays on screen with its composer pre-filled — the closing does not lead back to
+  the board.
