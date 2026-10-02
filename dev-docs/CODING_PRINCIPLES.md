@@ -177,6 +177,16 @@ a compile-time question.
   for FR-6.2). Tests use the standard library alone — `go-cmp` is *permitted* by the rule above and has not been needed.
   Router: `net/http` `ServeMux` (Go ≥ 1.22 patterns suffice).
 * No ORM. SQL lives as named constants next to the repository that uses it.
+* **Everything resolves to an exact version verified by hash** (CLAUDE.md invariant 8): npm via `package-lock.json`,
+  Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a comment.
+  Never a bare tag. Dependabot updates the digests, **except where a version is also a toolchain decision — then it is
+  made by hand**, because CI compiles through `setup-node`/`setup-go`, not the build image. A **node** major is named in
+  the root `Dockerfile`, `mise.toml` and every `node-version:` in `ci.yml`; a **Go** major in the `Dockerfile`,
+  `mise.toml`, `go.mod` and the `golangci-lint` pins in `mise.toml` and `ci.yml`. `scripts/toolchain-pins-gate.sh`
+  compares them (Dependabot's majors arrive red on purpose); whether a linter is new enough for the go directive is
+  judged by `make ci` running it. **The Playwright image** in `scripts/playwright-image.sh` is bumped by hand
+  (Dependabot cannot see shell scripts, and a bump rewrites every visual baseline — ADR-013); both scripts check it
+  against `@playwright/test` in the lockfile.
 
 ## 6. Workflow
 

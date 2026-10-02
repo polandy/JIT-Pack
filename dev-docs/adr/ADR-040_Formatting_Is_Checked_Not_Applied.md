@@ -1,8 +1,7 @@
 # ADR-040: Formatting is checked, not applied — the bot stops pushing to the branch
 
 **Status:** Accepted
-**Related:** `.github/workflows/ci.yml` (`format` job), `Makefile` (`fmt-check`, `client-fmt`), CLAUDE.md "Don'ts &
-pointers"
+**Related:** `.github/workflows/ci.yml` (`format` job), `Makefile` (`fmt-check`, `client-fmt`), `dev-docs/ci.md`
 
 **Decision Drivers (in priority order):**
 

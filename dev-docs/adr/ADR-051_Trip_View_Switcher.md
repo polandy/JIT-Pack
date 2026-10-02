@@ -4,7 +4,7 @@
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
 contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
 FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,
-`dev-docs/trip-note-threads-concept.md` §7a, `dev-docs/UI_Concept_TripNoteThreads_variants.html`
+`dev-docs/trip-note-threads-concept.md` §7a, `UI_Concept_TripNoteThreads_variants.html` at `6b148419`
 
 **Context.** ADR-050 capped the bar at three glyphs and sent M4's shopping, luggage and analytics entries into the ⋮,
 recording the cost in its own consequences: *"§3.25's 'one tap each' for the trip's three views is spent."* The M4
@@ -196,9 +196,10 @@ made denser for a phone nobody in the household holds.
 
 **Amendment 4 (2026-09-27) — the planner's ideas are the first pill, and a full row scrolls at 410 px too.** The planner
 (§3.29, ADR-078) puts *Ideen* in the one switcher rather than in a phase bar above it — variant B of
-`UI_Concept_PlannerNav_variants.html`, chosen by the owner on the render: one row of navigation, one tap to anything, no
-new pattern. *Ideen* (`bulbOutline`) is the **first** pill, because a trip is planned before it is packed; its badge
-counts the ideas nobody has decided on yet, grey. The day plan will join as the last pill (§3.29 FR-29.7).
+`UI_Concept_PlannerNav_variants.html` at `6b148419`, chosen by the owner on the render: one row of navigation, one tap
+to anything, no new pattern. *Ideen* (`bulbOutline`) is the **first** pill, because a trip is planned before it is
+packed; its badge counts the ideas nobody has decided on yet, grey. The day plan will join as the last pill (§3.29
+FR-29.7).
 
 The mockup said seven glyphs fit 360 px. **Measured in the app, they do not fit 410 px**: its pills are wider than the
 mockup's (a glyph pill ≈ 48 px with its gap, the worded one 90–110 px). Six pills fill the Pixel 9 Pro's row to the edge

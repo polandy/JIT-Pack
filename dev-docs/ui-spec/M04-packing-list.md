@@ -24,12 +24,12 @@
   * **The trip is named once, in the G-9 page head, at every width (ADR-050)**, and M4 registers a title like every
     other screen. **"S…" names nothing:** with search, filter, fold-all, the FR-27.5 lifecycle step, the sync glyph and
     the settings gear beside it, 54 px are left at 390 px and "Samedan 2026" renders as **"S…"** in the bar — measured
-    off the visual baseline, and weighed on a rendered four-way round (`dev-docs/UI_Concept_M4Title_variants.html`). On
-    scroll, *you generally know which packing list you are on*, so identity does not migrate into the app bar. The head
-    collapses on the same gesture as the line (FR-21.17), which is 89 px of a 390×844 phone returned to the list — on
-    the reader's *gesture* and on nothing else: a wheel, a touch drag, a key or the scrollbar. A scroll the browser
-    makes to bring a control into view leaves both standing, because answering it moves every row by the head's height
-    under a finger already on its way to one (E2E-M4-135).
+    off the visual baseline, and weighed on a rendered four-way round (`UI_Concept_M4Title_variants.html` at
+    `6b148419`). On scroll, *you generally know which packing list you are on*, so identity does not migrate into the
+    app bar. The head collapses on the same gesture as the line (FR-21.17), which is 89 px of a 390×844 phone returned
+    to the list — on the reader's *gesture* and on nothing else: a wheel, a touch drag, a key or the scrollbar. A scroll
+    the browser makes to bring a control into view leaves both standing, because answering it moves every row by the
+    head's height under a finger already on its way to one (E2E-M4-135).
   * **The line draws the trip as a figure, not as a fraction** (FR-21.23): a ring, the share in words (*„1/4 gepackt"*)
     and a track, with the weight on the second line under it. It is the same `ProgressFigure` M1's and M2's hero cards
     carry, from the same percentage — the screen where the progress is made carries it too. Measured on a 390×844 phone:

@@ -3,7 +3,7 @@
 * **What it is:** a trip's notes as threads — information one traveller leaves for the others (a key-box code, a
   courier's number) and the answers to it. A thread is a first note with replies, one level deep. Reasoning:
   `dev-docs/trip-note-threads-concept.md` (§7b is the UX rework); the interactive mockup is
-  `UI_Concept_TripNoteThreads_variants.html`.
+  `UI_Concept_TripNoteThreads_variants.html` at `6b148419`.
 * **Where it lives:** the fourth pill of the G-9 switcher, after *Aufgaben*, glyph `chatbubblesOutline`
   (`/trips/:id/notes`, `meta.tripView: 'notes'`). Its badge is the number of entries new for me, in the action colour.
   No ⋮ (ADR-051 amendment 2): nothing here is packing's. Back is M4.

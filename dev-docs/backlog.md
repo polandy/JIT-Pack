@@ -2,8 +2,25 @@
 
 Every numbered item of the original backlog, closed, with the date it closed. **Numbers stay stable** because
 the log and the specs refer to them („item 19“ means NFR-4.12); the reasoning behind each is in
-[`implementation-log/`](implementation-log/README.md). `CLAUDE.md` names where open work comes from, the
-parked sections and the standing decisions; this file is the reference for a number met elsewhere.
+[`implementation-log/`](implementation-log/README.md). `CLAUDE.md` names where open work comes from; this file
+holds the parked sections and the standing decisions below, and is the reference for a number met elsewhere.
+
+## Parked, specified, do not start
+
+§3.26 calendar feed, the North-Star phases beyond §3.29's planner, FR-27.8's per-trip usage history, FR-1.6's
+publish/fork ownership model. Each carries a revisit trigger in its stub. §3.29's bridge to the packing side is
+specified, not built.
+
+## Standing decisions
+
+- **The G-3 lock stays advisory** (owner's decision, ADR-022/023): refusal would wedge an offline device's outbox.
+- **The portable backup carries master data and trips only.** Not in it: trip todos (FR-7.3/7.4), the shopping list's
+  own entries (FR-30), trip notes (FR-7.9/7.13), excursions (FR-31), the planner (§3.29) and the activity log (§3.32).
+- **The item merge moves master data only** (FR-24.15, ADR-069): trip history keeps naming the row it was packed from,
+  and `items.merged_into_id` makes the two pasts read as one.
+- **The task due-day reminder is the one notification Single-User sends** (FR-7.12, ADR-076).
+
+## The closed items
 
 1. Basics first (auth, coverage, pinning, `mise`) — 2026-08-09
 2. §3.27 client package — 2026-08-21

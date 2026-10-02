@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** FR-7.10, FR-5.10, FR-7.4, FR-7.7, FR-30.7, FR-30.8, ADR-066, ADR-071, ADR-060, UI-Spec M1,
 `client/src/components/trips/TripHero.vue`, `client/src/lib/tripCards.ts`,
-`dev-docs/UI_Concept_DashboardAfterPacking.html`
+`UI_Concept_DashboardAfterPacking.html` at `6b148419`
 
 **Context.** FR-5.10 let a finished packing recede into one line on the dashboard. The owner found the line too large
 for what it says and asked that the phase be shown in the date line instead. Taking the line out leaves the hero's

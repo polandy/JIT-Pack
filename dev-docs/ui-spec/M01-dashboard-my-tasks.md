@@ -60,8 +60,8 @@
   left. Once the packing is finished it is a block of the hero after the task block, drawn by `DashboardBlock`
   without a field — a line of the plan wants a time the field cannot take. Before and after the trip's days, and on a
   trip without both dates, there is no card. (E2E-M29-11)
-* **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html`).** Rendered from top to
-  bottom on a trip whose packing is finished:
+* **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html` at `6b148419`).**
+  Rendered from top to bottom on a trip whose packing is finished:
   * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
     then, on every trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is the packing stamp,
     not `listInFocus` (FR-7.10).

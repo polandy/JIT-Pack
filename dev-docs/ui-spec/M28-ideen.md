@@ -2,8 +2,8 @@
 
 * **What it is:** the planner's board — what the travellers might do on the trip, discussed, voted on and decided by
   hand (Addendum §3.29, ADR-078). Reasoning and the navigation variants, B chosen: `dev-docs/planner-concept.md`,
-  `UI_Concept_PlannerNav_variants.html` (`node dev-docs/build-planner-nav-variants.mjs`). The screen is the planner
-  module's (`client/src/planner/`, FR-29.9).
+  `UI_Concept_PlannerNav_variants.html` at `6b148419` (`build-planner-nav-variants.mjs` at `6b148419`). The screen is
+  the planner module's (`client/src/planner/`, FR-29.9).
 * **Where it lives:** the first pill of the G-9 switcher, before *Packliste*, glyph `bulbOutline` (`/trips/:id/ideas`,
   `meta.tripView: 'ideas'`). Its badge counts the ideas in *Ideen* — nobody has decided on them yet — grey. Back is M4.
 * **The board:** four segments, each with its count — *Ideen · Shortlist · Gemacht · Verworfen* (`m28-segment-<state>`,
