@@ -215,10 +215,11 @@ client-purity:
 # FR-30.3 / ADR-066: a feature module (client/src/shopping/) and the packing
 # code never import each other; only the composition root reaches into a
 # module, and its e2e cases carry its tag. Beside it, the test of the CI
-# `changes` job's diff classification (ADR-079). Node built-ins only.
+# `changes` job's diff classification (ADR-079) and its e2e legs (ADR-091).
+# Node built-ins only.
 client-modules:
 	$(RUN) node scripts/module-boundary-gate.mjs
-	$(RUN) node --test scripts/diff-scope.test.mjs
+	$(RUN) node --test scripts/diff-scope.test.mjs scripts/e2e-matrix.test.mjs
 
 # A pull-to-refresh that reports success without fetching is worse than an
 # absent one. Node built-ins only, like the three gates above.
@@ -273,7 +274,7 @@ visual-update: client-build
 # That also makes this target usable on a NixOS host, where a downloaded
 # Chromium does not run at all.
 e2e: client-build
-	scripts/e2e.sh
+	scripts/e2e.sh --project=chromium --project=webkit
 
 # The selection CI runs for a diff that stays inside one feature module
 # (ADR-079): the module's tagged cases and the `@smoke` set. `M` names the

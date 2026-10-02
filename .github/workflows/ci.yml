@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 # A second push to the same PR makes the first run's verdict worthless, but it
-# goes on holding runners — and with the e2e matrix a run is 18 jobs against
-# the 20 a public repo may have in flight, so an abandoned run does not merely
+# goes on holding runners — and with the e2e matrix a run is up to 18 jobs
+# against the 20 a public repo may have in flight, so an abandoned run does not merely
 # waste minutes, it queues the run that replaced it.
 #
 # Superseding is deliberately limited to pull requests. A `push` to main is the
@@ -39,8 +39,10 @@ jobs:
   #   missed regression.
   # - `module`: on a pull request, every app-input path lies inside one
   #   feature module, so e2e runs that module's cases and the `@smoke` set on
-  #   one leg instead of the ten-leg matrix. Empty for anything else — and
-  #   always on a push to main — and then everything runs.
+  #   one leg instead of the matrix. Empty for anything else — and always on
+  #   a push to main — and then everything runs.
+  # - `e2e_matrix`: the e2e legs that follow from those two and the event
+  #   (scripts/e2e-matrix.mjs, ADR-091).
   #
   # A script rather than a third-party paths-filter action (NFR-4.3), run on
   # the bare runner's node — built-ins only.
@@ -55,6 +57,7 @@ jobs:
     outputs:
       app_untouched: ${{ steps.check.outputs.app_untouched }}
       module: ${{ steps.check.outputs.module }}
+      e2e_matrix: ${{ steps.check.outputs.e2e_matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -82,6 +85,9 @@ jobs:
             scope="$(echo "$scope" | sed 's/^module=.*/module=/')"
           fi
           echo "$scope" | tee -a "$GITHUB_OUTPUT"
+          # The e2e legs follow from the event and the module (ADR-091).
+          module="$(echo "$scope" | sed -n 's/^module=//p')"
+          node scripts/e2e-matrix.mjs "$EVENT_NAME" "$module" | tee -a "$GITHUB_OUTPUT"
 
   go:
     runs-on: ubuntu-latest
@@ -172,9 +178,9 @@ jobs:
       # The same idea one level up (FR-30.3, ADR-066): a feature module and
       # the packing code meet only through kernel contracts App.vue binds.
       - run: node ../scripts/module-boundary-gate.mjs
-      # The `changes` job's diff classification (ADR-079), tested here
-      # because that job runs it without a test step of its own.
-      - run: node --test ../scripts/diff-scope.test.mjs
+      # The `changes` job's diff classification (ADR-079) and its e2e legs
+      # (ADR-091), tested here because that job has no test step of its own.
+      - run: node --test ../scripts/diff-scope.test.mjs ../scripts/e2e-matrix.test.mjs
       # And one more of the family: a pull-to-refresh whose handler awaits
       # nothing spins, resolves and tells the user the list is up to date
       # without having asked anybody. Two of six were like that, and no test
@@ -231,16 +237,15 @@ jobs:
   # backend-backed modes have had their own jobs since #192 (`e2e-single`,
   # `e2e-server`, both below).
   #
-  # The shard count is a *measurement*, not a constant: ten, sized
-  # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
-  # the per-browser split that was worse, the 20-job concurrency ceiling that
-  # eight non-shard jobs eat into, and what bounds it from below (not a fixed
-  # per-leg cost but `e2e-single` and `e2e-server` at ~260 s, which do not
-  # shard) — is in dev-docs/implementation-log.md, "The e2e matrix is ten
-  # legs" and the eight-leg section it supersedes. **Re-read the number when
-  # the suite grows**: a green pipeline never says the count has gone stale,
-  # because the only symptom is that every run is slower than it needs to be.
-  # The cheap check is the per-leg times of any recent run.
+  # The legs are `scripts/e2e-matrix.mjs`'s to decide (ADR-091): each browser
+  # sharded on its own axis, and on a pull request WebKit runs only its
+  # `@smoke|@webkit` subset — a push to main runs every case in both. The leg
+  # counts there are a *measurement*, not a constant: **re-read them when the
+  # suite grows**, because a stale count only ever shows as a slower green
+  # run. The cheap check is the per-leg times of any recent run; the history
+  # of the count is in the implementation log ("The e2e matrix is ten legs").
+  # Every leg names its project, so the visual baselines — the `visual` job's —
+  # never ride along.
   #
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
@@ -254,6 +259,7 @@ jobs:
   # those, since they are cheap (docker-build) or not sharded (visual).
   # Also skipped when no app input changed (see `changes` above).
   e2e:
+    name: e2e (${{ matrix.id }})
     needs: [changes]
     if: github.event_name != 'workflow_dispatch' && needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
@@ -264,8 +270,7 @@ jobs:
       # One leg when the diff stays inside a feature module (ADR-079): the
       # module's cases and the smoke set are a few dozen tests, and the
       # matrix's cost is the runners it holds, not only its wall-clock.
-      matrix:
-        shard: ${{ fromJSON(needs.changes.outputs.module == '' && '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]' || '[1]') }}
+      matrix: ${{ fromJSON(needs.changes.outputs.e2e_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Installed and built on the *runner*, not in the container: the image
@@ -274,25 +279,25 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
-      # job-total rather than a repeated literal: the shard count is the
-      # matrix length, and naming it twice is how the two drift apart.
-      # A module-only diff selects by tag instead — `module-boundary-gate.mjs`
-      # holds that every case working the module's surface carries it, and
-      # `@smoke` rides along for the run-time coupling the boundary cannot see.
+      # A module-only diff selects by tag — `module-boundary-gate.mjs` holds
+      # that every case working the module's surface carries it, and `@smoke`
+      # rides along for the run-time coupling the boundary cannot see.
       - env:
-          MODULE: ${{ needs.changes.outputs.module }}
-          SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+          PROJECTS: ${{ matrix.projects }}
+          SHARD: ${{ matrix.shard }}
+          OF: ${{ matrix.of }}
+          GREP: ${{ matrix.grep }}
         run: |
-          if [ -n "$MODULE" ]; then
-            scripts/e2e.sh --grep "@$MODULE|@smoke"
-          else
-            scripts/e2e.sh --shard="$SHARD"
-          fi
+          args=()
+          for p in $PROJECTS; do args+=(--project="$p"); done
+          if [ "$OF" -gt 1 ]; then args+=(--shard="$SHARD/$OF"); fi
+          if [ -n "$GREP" ]; then args+=(--grep "$GREP"); fi
+          scripts/e2e.sh "${args[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           # Unique per leg — a repeated artifact name is an upload error.
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-${{ matrix.id }}
           path: client/playwright-report/
           retention-days: 7
 

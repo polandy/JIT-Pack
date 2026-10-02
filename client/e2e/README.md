@@ -204,8 +204,13 @@ them.
 - **A case id in a title is a coverage claim.** `scripts/case-id-gate.mjs`
   refuses a duplicate definition; when two collided, the loser is struck through
   in the ledger in place and says where its promise went, never renumbered.
-- **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen.
-  Run a slice with `scripts/e2e.sh --grep @local`.
+- **Tags:** `@smoke`, `@local`, `@single`, `@server`, `@webkit`, plus `@mNN` per
+  screen. Run a slice with `scripts/e2e.sh --grep @local`.
+- **`@webkit` marks a case whose subject is an engine difference** — one that
+  has met WebKit behaving unlike Chromium in the app, not one that is merely
+  slow there. A pull request runs WebKit on `@smoke|@webkit` alone and `main`
+  runs everything in both engines (ADR-091), so when `main` goes red on a
+  WebKit-only failure, the case that caught it earns the tag.
 - **A feature module's cases carry its name as a tag** (`@shopping`, `@planner`):
   every case under `e2e/<module>/`, and every case elsewhere that opens the
   module's trip view, switcher entry or dashboard card. CI runs a pull request that

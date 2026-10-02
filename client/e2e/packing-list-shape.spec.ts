@@ -547,7 +547,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * from one percentage, and the sentence counts the units under it
    * (FR-25.22).
    */
-  test('E2E-M4-75: the header line answers the trip as a ring, a sentence and a track', async ({
+  test('E2E-M4-75: the header line answers the trip as a ring, a sentence and a track @webkit', async ({
     page,
   }) => {
     await createTripViaWizard(page, M4_TRIP)
