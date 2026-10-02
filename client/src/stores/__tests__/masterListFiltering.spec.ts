@@ -146,7 +146,8 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     // Named rather than left to the rule above, because these are the screens
     // FR-24.3 is about: the inventory, the pickers, the autocomplete.
     const offerSurfaces = [
-      'src/views/items/ItemInventoryPage.vue',
+      // The inventory's rows are its core's, which the page and its parts read.
+      'src/views/items/inventory/useInventoryCore.ts',
       // ItemEditorPage is `mixed`: its pickers read the active lists, and
       // FR-27.8's containment reads the complete one for the same reason the
       // delete card's count above it does.

@@ -3,7 +3,7 @@
  * them: an item that exists, and the way back to the list.
  */
 import { expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { visiblePage, writesLanded } from './page'
 import { fillIonic } from './ionic'
 
@@ -84,4 +84,36 @@ export async function backToInventory(page: Page): Promise<void> {
   await page.getByTestId('header-back').click()
   await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
   await expect(visiblePage(page).getByTestId('m10-name')).toHaveCount(0)
+}
+
+/**
+ * Commit the creation form and wait for the *edit* page to be painted.
+ *
+ * A helper rather than two lines inline, because leaving this wait out is
+ * invisible until it bites: committing does a `router.replace`, and going
+ * back immediately overlaps two outlet transitions — after which
+ * `ion-router-outlet` intercepts pointer events and the next tap simply
+ * never lands. That surfaces as an unclickable FAB 30 s later, nothing
+ * resembling a navigation error. The edit head exists only once the item
+ * does, so it is a positive signal that the replaced page — and not the
+ * form it replaced — is the one now on screen. The FR-25.15 indicator
+ * inside that head cannot say so: it is silent until it has written
+ * something, and the write that created the item can well have landed
+ * before its page was painted.
+ */
+export async function commitNewItem(page: Page, name: string) {
+  await visiblePage(page).getByTestId('m10-create').click()
+  // Creating ends where editing continues — the saved item, by name.
+  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
+}
+
+/**
+ * The group headings, normalised. Lower-cased on purpose: the heading wears
+ * the `.jp-eyebrow` role, which uppercases in CSS, so the rendered casing is
+ * a styling decision and not the data these cases are about.
+ */
+export async function groupHeadings(scope: Locator): Promise<string[]> {
+  const heads = await scope.getByTestId('m9-group-head').allInnerTexts()
+  return heads.map((h) => h.split('\n')[0]!.trim().toLowerCase())
 }

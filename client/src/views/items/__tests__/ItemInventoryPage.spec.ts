@@ -227,6 +227,56 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
+  it('sorts from the app bar into one alphabetical run, marking the order in force', async () => {
+    seedTag('Hygiene', 't-hyg')
+    seedTag('Camping', 't-camp', 1)
+    seedItem('Zahnbürste', 'i1')
+    seedItem('Apfel', 'i2')
+    assignTag('i1', 't-hyg')
+    assignTag('i2', 't-camp')
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.findAll('[data-testid="m9-group-head"]')).toHaveLength(2)
+
+    /** Press the sort glyph and answer its sheet with `data`. Returns its button texts. */
+    async function chooseSort(data: string) {
+      const texts: string[] = []
+      const create = vi
+        .spyOn(actionSheetController, 'create')
+        .mockImplementation(async (opts: { buttons?: unknown[] } = {}) => {
+          texts.push(...((opts.buttons ?? []) as { text: string }[]).map((b) => b.text))
+          return {
+            present: async () => {},
+            onDidDismiss: async () => ({ data }),
+          } as never
+        })
+      const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+      build()
+        .find((action) => action.id === 'm9-sort')!
+        .onClick()
+      await flushPromises()
+      create.mockRestore()
+      return texts
+    }
+
+    // The order in force is the marked one, and the other is offered unmarked.
+    expect(await chooseSort('alphabetical')).toEqual([
+      `✓ ${t('items.sortGrouped')}`,
+      t('items.sortAlphabetical'),
+      t('common.cancel'),
+    ])
+    const heads = page.findAll('[data-testid="m9-group-head"]')
+    expect(heads).toHaveLength(1)
+    expect(heads[0]!.text()).toContain(t('items.sortAlphabetical'))
+    expect(page.findAll('[data-testid="m9-row"]').map((row) => row.text())).toEqual([
+      expect.stringContaining('Apfel'),
+      expect.stringContaining('Zahnbürste'),
+    ])
+    expect(await chooseSort('grouped')).toContain(`✓ ${t('items.sortAlphabetical')}`)
+    expect(page.findAll('[data-testid="m9-group-head"]')).toHaveLength(2)
+  })
+
   it('offers the clear control only once there is something to clear', async () => {
     seedItem('Sonnencreme')
 
