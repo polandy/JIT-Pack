@@ -12,9 +12,9 @@
  * and the reveal, the counts and the ADR-033 guard read both alike.
  */
 import ListRows from '@/components/global/ListRows.vue'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { IonButton, IonInput, IonSearchbar } from '@ionic/vue'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ShoppingPage from '../ShoppingPage.vue'
@@ -24,6 +24,8 @@ import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 import type { Mutation } from '@/api/types'
 import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/lib/shoppingSources'
+import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
 import type { ShoppingMode } from '@/types/domain'
@@ -36,7 +38,26 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { presentToast } from '@/lib/toast'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 
+// FR-29.13: the route the screen reads `?fromIdea=` off, and what it replaces it with.
+const nav = vi.hoisted(() => ({
+  route: { path: '/trips/t1/shopping', query: {} as Record<string, string> },
+  replaced: [] as unknown[],
+}))
+vi.mock('vue-router', async () => {
+  const { reactive } = await import('vue')
+  const route = reactive(nav.route)
+  nav.route = route
+  return {
+    useRoute: () => route,
+    useRouter: () => ({
+      replace: (to: unknown) => nav.replaced.push(to),
+      push: vi.fn(),
+    }),
+  }
+})
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+// A page left mounted by an earlier case would answer the route as well.
+enableAutoUnmount(afterEach)
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('@/composables/useHeaderSelection', async (actual) => ({
   ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
@@ -144,6 +165,12 @@ function mountPage(sources?: ShoppingSource[], orchestrator: Record<string, unkn
     },
   }
   if (sources) provide[SHOPPING_SOURCES] = sources
+  provide[IDEA_LOOKUP] = {
+    idea: (tripId: string, ideaId: string) =>
+      tripId === 't1' && ideaId === 'idea-1'
+        ? { id: 'idea-1', title: 'Gola Gorropu', plannedOn: '2026-10-10' }
+        : undefined,
+  }
   return mount(ShoppingPage, {
     props: { tripId: 't1' },
     // Ionic's modal presents on an animation nobody controls; the sheet's
@@ -203,6 +230,38 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     expect(rows.map((r) => r.find('h3').text())).toEqual(['Milch'])
     expect(page.find('[data-testid="m6-group-own"]').text()).toContain(t('shopping.ownEntries'))
     expect(input.props('modelValue')).toBe('')
+  })
+
+  it('entered from an idea, holds its title on Vor Ort and writes the entry naming it (FR-29.13)', async () => {
+    nav.route.query = { [FROM_IDEA_QUERY_PARAM]: 'idea-1', from: '%2Ftrips%2Ft1%2Fideas' }
+    nav.replaced.length = 0
+    try {
+      const page = mountPage()
+      await flushPromises()
+
+      const input = page.findComponent(IonInput)
+      expect(input.props('modelValue')).toBe('Gola Gorropu')
+      expect(page.find('[data-testid="m6-list-local"]').attributes('aria-pressed')).toBe('true')
+      // The link is answered once: the parameter goes, the way back stays.
+      expect(nav.replaced).toEqual([
+        { path: '/trips/t1/shopping', query: { from: '%2Ftrips%2Ft1%2Fideas' } },
+      ])
+
+      await page.find('[data-testid="m6-add"]').trigger('submit')
+      expect(written[0]).toMatchObject({
+        op: 'insert',
+        table: 'shopping_entries',
+        fields: { name: 'Gola Gorropu', list: 'buy_local', idea_id: 'idea-1' },
+      })
+      expect(page.find('[data-testid="m6-row-idea-Gola Gorropu"]').text()).toBe('Gola Gorropu')
+
+      // The next entry is the list's own again.
+      await input.setValue('Brot')
+      await page.find('[data-testid="m6-add"]').trigger('submit')
+      expect(written[1]!.fields).not.toHaveProperty('idea_id')
+    } finally {
+      nav.route.query = {}
+    }
   })
 
   it('adds nothing for a blank field', async () => {

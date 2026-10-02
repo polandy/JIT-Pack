@@ -133,6 +133,13 @@
 * **Every act raises the screen's one snackbar with *Rückgängig*** (FR-25.31): the tick, the add, the removal, the
   assignment, the phase move, the due date, the correction of the words, and each batch. The move's undo writes back
   the phase the task actually had, which for a task written before FR-7.7 is none at all.
+* **From an idea (FR-29.13):** entered from an idea's *Aufgabe* chip (`?fromIdea=`), the composer holds *„… buchen"*
+  with the day before the idea's as its due day (the day itself where the day before is past; none for an unplanned
+  idea) and the phase that day falls in; the task written next names the idea, the one after is the list's own again.
+  The parameter leaves the address once answered; `‹` returns to the idea (`meta.acceptsLinkedFrom`). On the task's
+  second line the **💡 line** (`IdeaOrigin`, the bulb in `--jp-brand` and the idea's title, small and quiet) names the
+  idea it was made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the
+  device does not hold. Its handle: `trip-todo-idea-<body>`.
 * **Modes:** all three. Local and Single-User lose the seat, the chip and the *who* of each stamp (G-8) and keep
   everything else — the phases, the move and the moments are client-side rules. **Before the trip partition has
   arrived** the screen shows nothing rather than an empty list (ADR-033).

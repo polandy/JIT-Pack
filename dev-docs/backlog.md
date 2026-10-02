@@ -8,8 +8,7 @@ holds the parked sections and the standing decisions below, and is the reference
 ## Parked, specified, do not start
 
 §3.26 calendar feed, the North-Star phases beyond §3.29's planner, FR-27.8's per-trip usage history, FR-1.6's
-publish/fork ownership model. Each carries a revisit trigger in its stub. §3.29's bridge to the packing side is
-specified, not built.
+publish/fork ownership model. Each carries a revisit trigger in its stub.
 
 ## Standing decisions
 
@@ -71,8 +70,9 @@ specified, not built.
     BRouter asked by the device (FR-29.20, ADR-088) — 2026-10-01. The day plan, M29 (FR-29.14/29.15), the packing side's
     dated rows reaching it through `lib/dayPlanSources.ts` — 2026-10-01; its connections, a pasted SBB link read on the
     device and its short link followed through the page read (FR-29.18, ADR-086) — 2026-10-01. Where a trip opens,
-    decided by date, and M1's *Heute* card (FR-29.7) — 2026-10-02. The bridge to the packing side is specified in §3.29,
-    not built. Not in the portable backup either.
+    decided by date, and M1's *Heute* card (FR-29.7) — 2026-10-02. The bridge to the packing side, an idea made an
+    excursion, a task or a shopping entry on the screen that makes it (FR-29.13, ADR-078 amendment 1) — 2026-10-02. Not
+    in the portable backup either.
 32. §3.32 the activity log — who changed what, recorded by the server with each write (ADR-084), read per trip from M4's
     ⋮ and for the inventory from M9's ⋮ on M30 — 2026-09-30. Starts empty; none in Local Mode; not in the portable
     backup.

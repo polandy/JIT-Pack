@@ -27,13 +27,14 @@
  * reports the tap. Writing a new task is M25's composer's (`TaskComposer`).
  */
 import { IonLabel } from '@ionic/vue'
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
+import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ListRow from '@/components/global/ListRow.vue'
 import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
@@ -44,6 +45,7 @@ import type { RowSelection } from '@/composables/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
+import { IDEA_LOOKUP } from '@/lib/ideaBridge'
 import { tripItemPath } from '@/router/paths'
 
 const props = defineProps<{
@@ -161,8 +163,20 @@ function seatOffered(): boolean {
 }
 
 /** Whether a list row has anything to say under its words. */
+const ideaLookup = inject(IDEA_LOOKUP, null)
+
+/** FR-29.13: whether the task names an idea this device holds. */
+function hasIdea(task: TripTask): boolean {
+  return !!task.idea_id && ideaLookup?.idea(props.tripId, task.idea_id) !== undefined
+}
+
 function hasFacts(task: TripTask): boolean {
-  return (!!props.today && openDueDay(task) !== null) || task.item !== null || !!props.tagOf?.(task)
+  return (
+    (!!props.today && openDueDay(task) !== null) ||
+    task.item !== null ||
+    !!props.tagOf?.(task) ||
+    hasIdea(task)
+  )
 }
 </script>
 
@@ -241,6 +255,11 @@ function hasFacts(task: TripTask): boolean {
           <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
             tagOf(task)
           }}</span>
+          <IdeaOrigin
+            :trip-id="tripId"
+            :idea-id="task.idea_id"
+            :testid="`trip-todo-idea-${task.body}`"
+          />
         </template>
         <!-- FR-7.14: the person at the row's edge, before the tick. Selecting
            takes the seat away with the tick; the avatar stays, since whose a

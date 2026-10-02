@@ -141,6 +141,8 @@ export interface TaskFiling {
   dueDate?: string | null
   /** FR-7.17: the task's place in its group; absent for never placed. */
   position?: number
+  /** FR-29.13: the idea a trip task is made from. */
+  ideaId?: string | null
 }
 
 /**
@@ -715,6 +717,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       ...(filed.dueDate ? { due_date: filed.dueDate } : {}),
       // FR-7.17: a task typed by hand lands at the end of its group.
       ...(filed.position !== undefined ? { position: filed.position } : {}),
+      // FR-29.13: made from an idea, it names the idea.
+      ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
     })
     return { mutation, id }
   }
@@ -912,6 +916,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       startsOn: string | null
       endsOn: string | null
       sourceTemplateId: string | null
+      /** FR-29.13: the idea it is made from. */
+      ideaId?: string | null
     },
   ): { mutation: Mutation; id: string } {
     const id = newId()
@@ -921,6 +927,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       starts_on: fields.startsOn,
       ends_on: fields.endsOn,
       source_template_id: fields.sourceTemplateId,
+      ...(fields.ideaId ? { idea_id: fields.ideaId } : {}),
     })
     return { mutation, id }
   }

@@ -148,7 +148,14 @@
   *Ideen auf der Shortlist*, hidden in Single-User Mode with every other second-party row.
 * **A day (FR-29.14):** on the Shortlist, while the trip has both dates, the card says its day and the detail sets it —
   M29's way in from the board (see M29).
-* **Not built yet** (§3.29): *Daraus gemacht* — an excursion, task or shopping entry made from an idea (FR-29.13).
-* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12 `local`, E2E-M28-06, E2E-M28-08, E2E-M28-09, E2E-M28-11,
-  E2E-M28-13 `server`,
-  E2E-G12-07)
+* **Daraus gemacht (FR-29.13):** in the detail, between the votes and the discussion (`idea-results`), a section
+  *„Daraus gemacht"* — a solid chip per result, its glyph (🪧 `trailSignOutline` for an excursion, ☑ `checkboxOutline`
+  for a task, 🛒 `cartOutline` for a shopping entry) and its title, struck through once ticked or bought
+  (`idea-result-<kind>:<id>`); a tap opens it where it lives. On the Shortlist a **dashed** chip per result it can still
+  become follows — *Ausflug*, *Aufgabe*, *Einkauf* (`idea-make-excursion|task|shopping`; *Ausflug* only while no
+  excursion names the idea). A dashed chip opens the screen that makes it with its creator pre-filled (M27's sheet,
+  M25's and M6's composer — see there), and `‹` there returns to the idea. The section is absent while there is neither.
+  The idea opens only once the board has entered: a link from another screen lands with `?idea=` set, and the sheet or
+  panel waits for the transition; a sheet closed because the route moved on closes nothing.
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12, E2E-M28-22, E2E-M28-23 `local`, E2E-M28-06, E2E-M28-08,
+  E2E-M28-09, E2E-M28-11, E2E-M28-13 `server`, E2E-G12-07)

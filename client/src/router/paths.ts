@@ -159,6 +159,29 @@ export function tripIdeasPath(tripId: string, ideaId?: string): string {
   return `${path}?${query.toString()}`
 }
 
+/** Query key naming the path a screen was entered from (ADR-011 amendment; `backTarget.ts`). */
+export const ORIGIN_QUERY_PARAM = 'from'
+
+/** Query key naming the idea a screen's creator opens pre-filled from (FR-29.13). */
+export const FROM_IDEA_QUERY_PARAM = 'fromIdea'
+
+/** The screens an idea's results are made on (FR-29.13). */
+export type IdeaBridgeScreen = Extract<TripSubScreen, 'excursions' | 'tasks' | 'shopping'>
+
+/**
+ * FR-29.13: the screen that makes one kind of result, its creator open and
+ * pre-filled from an idea — entered from the idea's sheet, so `‹ back`
+ * returns there (`meta.acceptsLinkedFrom`). The origin is encoded once more,
+ * as `enteredFrom` does, because it carries a query of its own.
+ */
+export function ideaBridgePath(tripId: string, screen: IdeaBridgeScreen, ideaId: string): string {
+  const query = new URLSearchParams({
+    [FROM_IDEA_QUERY_PARAM]: ideaId,
+    [ORIGIN_QUERY_PARAM]: encodeURIComponent(tripIdeasPath(tripId, ideaId)),
+  })
+  return `${tripSubPath(tripId, screen)}?${query.toString()}`
+}
+
 /** Query key naming the line whose sheet or panel is open over an excursion's list (M27, like M5's `?item=`). */
 export const LINE_QUERY_PARAM = 'line'
 

@@ -391,6 +391,7 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
     carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
     position: (row['position'] as number | null | undefined) ?? null,
+    idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }
 }
 
@@ -551,6 +552,7 @@ function rowToExcursion(id: string, row: Record<string, unknown>): Excursion {
     starts_on: (row['starts_on'] as string | null | undefined) ?? null,
     ends_on: (row['ends_on'] as string | null | undefined) ?? null,
     source_template_id: (row['source_template_id'] as string | null | undefined) ?? null,
+    idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }
 }
 
@@ -673,6 +675,7 @@ function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
     body: row['body'] as string,
     task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
     ...taskFacts(row),
+    idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }
 }
 

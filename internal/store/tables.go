@@ -516,6 +516,9 @@ var tableSpecs = map[string]tableSpec{
 			"excursion_id",
 			// FR-7.17: the task's place inside its group (ADR-083).
 			"position",
+			// FR-29.13: the idea a trip task was made from; validIdeaResult
+			// checks it.
+			columnIdeaID,
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
@@ -564,6 +567,8 @@ var tableSpecs = map[string]tableSpec{
 			"carried_over_at",
 			// FR-30.13: the entry's place inside its heading (ADR-083).
 			"position",
+			// FR-29.13: the idea it was made from; validIdeaResult checks it.
+			columnIdeaID,
 		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
@@ -574,7 +579,8 @@ var tableSpecs = map[string]tableSpec{
 	TableExcursions: {
 		partition: partitionTrip,
 		label:     activityLabel{name: own("name")},
-		columns:   toSet("trip_id", "name", "starts_on", "ends_on", "source_template_id"),
+		// FR-29.13: idea_id is the idea it was made from; validIdeaResult checks it.
+		columns: toSet("trip_id", "name", "starts_on", "ends_on", "source_template_id", columnIdeaID),
 		cascades: []childQuery{
 			{TableExcursionTravelers, `SELECT id FROM excursion_travelers WHERE excursion_id = ?`},
 			{TableExcursionItems, `SELECT id FROM excursion_items WHERE excursion_id = ?`},

@@ -112,6 +112,8 @@ export interface TripTask {
   due_date: string | null
   /** FR-7.17: where it stands inside its group, by hand; null or absent for never placed. */
   position?: number | null
+  /** FR-29.13: the idea a trip's own task was made from; absent for none. */
+  idea_id?: string | null
 }
 
 /**
@@ -150,6 +152,7 @@ export function tripTasks(
     task_state: todo.task_state,
     item: null,
     ...factsOf(todo),
+    ...(todo.idea_id ? { idea_id: todo.idea_id } : {}),
   }))
 
   const prepared: TripTask[] = []

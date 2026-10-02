@@ -41,7 +41,7 @@ import {
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import DueChips from '@/components/global/DueChips.vue'
@@ -64,6 +64,8 @@ import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
+import { useIdeaSeed } from '@/composables/useIdeaSeed'
+import { taskDueForIdea, taskPhaseForDue } from '@/domain/ideaResults'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { taskBoard } from '@/domain/taskBoard'
 import {
@@ -428,11 +430,31 @@ function pickAssignee(header: string, current: string | null) {
 }
 
 /** FR-7.14: the FAB — M6's, which takes the reader to the field. */
-const composer = ref<{ focus: () => Promise<void> } | null>(null)
+const composer = ref<InstanceType<typeof TaskComposer> | null>(null)
 async function goToComposer() {
   await (contentEl.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
   await composer.value?.focus()
 }
+
+/*
+ * FR-29.13: entered from an idea, the composer holds „… buchen", the day
+ * before the idea's and the phase that day is in — the composer only stands
+ * once the trip has arrived.
+ */
+useIdeaSeed(
+  props.tripId,
+  () => loaded.value,
+  async (idea) => {
+    await nextTick()
+    const day = taskDueForIdea(idea.plannedOn, today.value)
+    await composer.value?.seed({
+      body: t('tasks.fromIdea', { title: idea.title }),
+      day,
+      phase: taskPhaseForDue(day, tripStart.value),
+      ideaId: idea.id,
+    })
+  },
+)
 
 /**
  * FR-7.7: the task's own sheet — the facts that do not fit a line, and the

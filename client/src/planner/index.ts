@@ -5,6 +5,7 @@
  * to write its ideas through the module's own actions.
  */
 import type { DayPlanSource } from '@/lib/dayPlanSources'
+import type { IdeaLookup } from '@/lib/ideaBridge'
 import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
 import { usePlannerStore } from './store'
@@ -36,4 +37,18 @@ export function dayPlanEmpty(
       entries: plannerStore.getDayEntries(tripId),
       lines: sources.flatMap((source) => source.lines(tripId)),
     })
+}
+
+/**
+ * FR-29.13: an idea as the packing side reads it — what a creator is
+ * pre-filled with, and the title a result's origin line names.
+ */
+export function ideaLookup(): IdeaLookup {
+  const plannerStore = usePlannerStore()
+  return {
+    idea(tripId, ideaId) {
+      const idea = plannerStore.getIdeas(tripId).find((candidate) => candidate.id === ideaId)
+      return idea && { id: idea.id, title: idea.title, plannedOn: idea.planned_on ?? null }
+    },
+  }
 }

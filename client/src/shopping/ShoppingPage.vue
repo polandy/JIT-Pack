@@ -29,7 +29,7 @@ import {
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import ChipRow from '@/components/global/ChipRow.vue'
@@ -50,6 +50,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
 import { useTripScreen } from '@/composables/useTripScreen'
+import { useIdeaSeed } from '@/composables/useIdeaSeed'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -574,12 +575,39 @@ const tripStart = computed(() => trip.value?.start_date?.slice(0, 10) ?? null)
 /** The day row waits for something to date, so the composer stays two lines at rest. */
 const showDays = computed(() => draft.value.trim() !== '' || draftDue.value !== null)
 
+/** FR-29.13: the idea the field was seeded from, until an entry is written. */
+const draftIdea = ref<string | null>(null)
+
+/*
+ * FR-29.13: entered from an idea, the field holds its title on *Vor Ort* —
+ * what an outing needs is mostly bought there — focused, for a word more.
+ */
+useIdeaSeed(
+  props.tripId,
+  () => rowsLoaded.value,
+  async (idea) => {
+    draft.value = idea.title
+    chosenList.value = ITEM_MODE_BUY_LOCAL
+    draftIdea.value = idea.id
+    await nextTick()
+    await composer.value?.focus()
+  },
+)
+
 /** FR-30.1: an entry of the list's own, on the list the composer names. */
 function addEntry() {
   if (draft.value.trim() === '') return
-  actions.addEntry(props.tripId, composeList.value, draft.value, draftTag.value, draftDue.value)
+  actions.addEntry(
+    props.tripId,
+    composeList.value,
+    draft.value,
+    draftTag.value,
+    draftDue.value,
+    draftIdea.value,
+  )
   draft.value = ''
   draftDue.value = null
+  draftIdea.value = null
 }
 
 /**
@@ -640,9 +668,10 @@ function confirmEntrySheet() {
   if (sheet.line?.edit) {
     sheet.line.edit({ name: sheet.name, tag: sheet.tag, dueDate: sheet.due })
   } else {
-    actions.addEntry(props.tripId, sheet.list, sheet.name, sheet.tag, sheet.due)
+    actions.addEntry(props.tripId, sheet.list, sheet.name, sheet.tag, sheet.due, draftIdea.value)
     draft.value = ''
     draftDue.value = null
+    draftIdea.value = null
     draftTag.value = sheet.tag
   }
   entrySheet.value = null
