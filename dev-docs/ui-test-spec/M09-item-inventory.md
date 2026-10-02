@@ -3,7 +3,7 @@
 Each id's sentence is read against the test body under it — **only that separates a wrong number from a missing test**:
 a duplicate-id gate sees one use of each, and a coverage count sees the same total either way.
 
-* **E2E-M9-01** `all` (FR-1.1/24.2/24.4) — **implemented** (`e2e/inventory.spec.ts`): tag-grouped list, **lean by
+* **E2E-M9-01** `all` (FR-1.1/24.2/24.4) — **implemented** (`e2e/inventory-list.spec.ts`): tag-grouped list, **lean by
   default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists.
   The case an item on *two* tags is the point: it renders **once**, under its primary tag, and its second tag is not a
   heading. *(Search is E2E-M9-10's.)*
@@ -15,7 +15,7 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   clause is not part of UI-Spec M9. The inventory's own duplicate merge is FR-24.15's (E2E-M9-30). **The clause has a
   second reader**: PRD FR-27.5 rejects fuzzy name matching in M21 partly on the grounds that „a duplicate master item is
   visible in M9 **and can be merged**", and PRD FR-27.5 carries a note on that premise.
-* **E2E-M9-04** `all` (G-7/NFR-4.7) — **implemented** (`e2e/inventory.spec.ts`): an empty inventory offers
+* **E2E-M9-04** `all` (G-7/NFR-4.7) — **implemented** (`e2e/inventory-list.spec.ts`): an empty inventory offers
   the spreadsheet import, and the way back lands on M9 rather than on M15's *other* parent, the trip list. Its own
   describe, because every other case here creates an item first and this one must not. It is the one case rendering this
   state: elsewhere `m9-empty` appears only as E2E-G9-13's *absence* assertion, where it stands in for „not the inventory
@@ -43,32 +43,32 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   first group heading, and FR-24.8 removed the axis. The promise it stood for — a heading
   that does not read as sliding under the control above it — is **E2E-M9-13**'s, which asserts the heading stacked
   below the sticky tool bar.
-* **E2E-M9-11** `all` (FR-24.7) — **implemented** (`e2e/inventory.spec.ts`): the search reaches an umlaut
+* **E2E-M9-11** `all` (FR-24.7) — **implemented** (`e2e/inventory-search.spec.ts`): the search reaches an umlaut
   name from **both** keyboard spellings („gurtel" and „guertel" → „Gürtel") and reaches an item through a **tag**,
   with the row stating what carried the match and the heading reading *Treffer im Tag*. The ranking arithmetic itself
   is `domain/__tests__/itemSearch.spec.ts`, whose three fold cases are red against a plain
   `name.toLowerCase().includes` rule.
-* **E2E-M9-12** `all` (FR-24.7) — **implemented** (`e2e/inventory.spec.ts`): a query under an unrelated tag
+* **E2E-M9-12** `all` (FR-24.7) — **implemented** (`e2e/inventory-search.spec.ts`): a query under an unrelated tag
   chip („socken" under *Hygiene*) is answered by an empty state that **names the tag**, **counts the hits outside it**
   and offers the way out — and taking it **keeps the query**. A bare „Kein Artikel gefunden" while three socks sit in
   the list is the failure it guards.
-* **E2E-M9-13** `all` (FR-24.6) — **implemented** (`e2e/inventory.spec.ts`): the tool bar is in the same
+* **E2E-M9-13** `all` (FR-24.6) — **implemented** (`e2e/inventory-search.spec.ts`): the tool bar is in the same
   place after the list has been scrolled to its end, its field still visible, with the first group heading stacked
   **below** it rather than sliding under it. Geometry on settled boxes, like E2E-M9-08, and the scroll offset is read
   back as the positive signal that the list actually moved. **Proven red** against a build with `position: static` on
   the bar.
-* **E2E-M9-14** `all` (FR-24.8) — **implemented** (`e2e/inventory.spec.ts`): the axis is **gone from the
+* **E2E-M9-14** `all` (FR-24.8) — **implemented** (`e2e/inventory-list.spec.ts`): the axis is **gone from the
   DOM**, the three chips carry their counts, and two tags combine under *alle* — the question a single-select segment
   could not ask. The sheet's own footer count is asserted against the list's, so the two cannot drift into separate
   arithmetic. Its dismissal is read from `data-presented`, because a sheet declared with `:is-open` stays in the DOM.
-* **E2E-M9-15** `all` (FR-24.8) — **implemented** (`e2e/inventory.spec.ts`): the group heading opens the
+* **E2E-M9-15** `all` (FR-24.8) — **implemented** (`e2e/inventory-list.spec.ts`): the group heading opens the
   jump list and the chosen group lands directly under the tool bar, **with every row still in the list** — filtering
   takes rows away, jumping does not. Twelve rows on a 360 px viewport, because the case is only meaningful on a list
   taller than the screen. **The ordering rule it cannot falsify is a unit test**: while an overlay is presented the
   scroll host is locked, and a jump issued in the same breath is clamped (measured at 120 px of a 9 975 px jump on the
   family instance); `ItemInventoryPage.spec.ts` asserts that nothing scrolls until the sheet reports it has dismissed,
   and that a dismissal without a choice scrolls nothing at all.
-* **E2E-M9-16** `all` (FR-24.9) — **implemented** (`e2e/inventory.spec.ts`): three rows of a tag group are
+* **E2E-M9-16** `all` (FR-24.9) — **implemented** (`e2e/inventory-bulk.spec.ts`): three rows of a tag group are
   refiled in **one act** — narrow, „Alle 3", give the tag with „als primär", and the group they came from heads
   nothing any more. Two clauses carry the semantics that are easy to get wrong: the old tag is **kept** (the rows
   still answer its filter — refiling is not retagging), and the snackbar's **Rückgängig** puts all three back.
@@ -77,13 +77,13 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   **not** showing and the note is the way to M23. It lives in the M23 unit rather than M9's, because retiring an item
   is the setup and that unit already owns the dance. A second, untouched item stays active throughout — otherwise
   „the note appeared" would be satisfied by an inventory that had emptied itself.
-* **E2E-M9-21** `all` (FR-24.11) — **implemented** (`e2e/inventory.spec.ts`): „Zelt" finds *Zeltheringe*
+* **E2E-M9-21** `all` (FR-24.11) — **implemented** (`e2e/inventory-search.spec.ts`): „Zelt" finds *Zeltheringe*
   and the tent is **still offered** above that hit — the missing-name rule rather than the empty-result one. The sheet
   opens on the query as the name with the pegs' tag first among the offers; *„Anlegen"* leaves the list **on the same
   query**, with two hits, the new one marked, and the offer gone — the name now existing is the same event reaching
   both places. The toast is asserted **above the FAB** on its settled box, not covering the button, and the item is read
   back under its tag.
-* **E2E-M9-22** `all` (FR-24.11) — **implemented** (`e2e/inventory.spec.ts`): with *Technik* chosen and
+* **E2E-M9-22** `all` (FR-24.11) — **implemented** (`e2e/inventory-search.spec.ts`): with *Technik* chosen and
   nothing matching, the no-match sentence stands and the offer sits above it; the sheet opens with **Technik already
   assigned**, and *„Anlegen und öffnen"* lands in M10 on the saved item. Back on M9 the query and the chip are still
   set and the new row answers both — the survival of the search is what the feature is for.
@@ -100,7 +100,7 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   from the tag manager's mark control through the item mark's picker, and read where it files something — on the group
   heading, and **lent, muted, to a row without its own** (the `borrowed` slot). The mark is read off the tile that was
   tapped rather than hard-coded, so the case does not pin the mark index's ordering.
-* **E2E-M9-26** `all` (FR-24.9 widened, FR-20.1) — **implemented** (`e2e/inventory.spec.ts`): a
+* **E2E-M9-26** `all` (FR-24.9 widened, FR-20.1) — **implemented** (`e2e/inventory-bulk.spec.ts`): a
   dependency declared for two rows at once from the ⋯ sheet, in the **suggested** mode the sheet was switched to, and
   read back on M10's own list for each of them — M9 paints no edges, so a link that wrote nothing would look exactly
   like one that worked. The companion direction is then asserted on the *other* list, since the stored row is the same
@@ -111,25 +111,25 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   afterwards. It is a `server` case because the action only exists there (G-8 needs two accounts), and it picks its
   rows **by name** rather than with „Alle N", because master data is instance-wide and the inventory carries every
   other case's items too.
-* **E2E-M9-17** `all` (FR-24.10) — **implemented** (`e2e/inventory.spec.ts`): a tag is renamed from the
+* **E2E-M9-17** `all` (FR-24.10) — **implemented** (`e2e/inventory-tags.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
   second tag already holds leaves the alert **open**, and the tag keeps its old name on the heading behind it.
-* **E2E-M9-18** `all` (FR-24.10, ADR-063) — **implemented** (`e2e/inventory.spec.ts`): deleting a tag items
+* **E2E-M9-18** `all` (FR-24.10, ADR-063) — **implemented** (`e2e/inventory-tags.spec.ts`): deleting a tag items
   carry is **refused**, and the alert offers the merge. The absence needs a positive signal, so the case reads the
   refusal's own sentence *and* the heading that is still there afterwards — a delete that had gone through would take
   the heading with it.
-* **E2E-M9-19** `all` (FR-24.10, ADR-063) — **implemented** (`e2e/inventory.spec.ts`): the merge itself,
+* **E2E-M9-19** `all` (FR-24.10, ADR-063) — **implemented** (`e2e/inventory-tags.spec.ts`): the merge itself,
   through the refusal. The item that carried the source ends up under the **target's** heading and the source's
   heading is gone — which is the whole promise, because a merge that re-pointed the assignment without carrying the
   position over would leave the row under a third heading entirely.
-* **E2E-M9-28** `all` (FR-24.14) — **implemented** (`e2e/inventory.spec.ts`): three tags for one idea,
+* **E2E-M9-28** `all` (FR-24.14) — **implemented** (`e2e/inventory-tags.spec.ts`): three tags for one idea,
   picked in the manager's selection and merged in one act. One item carries **two** of the sources, which is the case
   a per-pair merge cannot do — it would re-point both of its assignments onto the survivor, and `UNIQUE (item_id,
   tag_id)` refuses the second after the outbox has taken it. What says the plan was made over the whole set is the
   row ending with exactly one tag, under the heading it already had; the manager is reopened afterwards so the
   survivor's count and the two absent rows are read from the screen that owns them.
-* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented** (`e2e/inventory.spec.ts`): two duplicates
+* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented** (`e2e/inventory-bulk.spec.ts`): two duplicates
   merged into one. The loser is built to carry what the survivor lacks — a tag it does not have, a weight it has
   none of, a companion edge pointing at it — because the inventory list after a merge that wrote nothing but the
   delete looks exactly like one that worked; each is read back where it is *rendered* (the heading on M9, the tag
@@ -139,19 +139,19 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names the loser,
   so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own units
   cannot make, because they never wire the page.
-* **E2E-M9-31** `local` (FR-24.9, ADR-075) — **implemented** (`e2e/inventory.spec.ts`): M9 selects
+* **E2E-M9-31** `local` (FR-24.9, ADR-075) — **implemented** (`e2e/inventory-bulk.spec.ts`): M9 selects
   the way M6 and M25 do. A **real right-click** on a row — the hold's desktop twin, whose own pointerdown must not
   re-arm the hold and eat the next tap — starts the mode with that row picked and leaves M9 on screen; the very next tap
   on
   another row picks it (the count moves to two), a tap on the first unpicks it; leaving through the bar's ✕ gives the
   tap back to opening the item, read on M10's title. The grouped heading still carries its count and is still the jump
   control. The long press itself is `useRowSelection`'s unit (fake timers), not this case's.
-* **E2E-M9-32** `local` (FR-24.14, ADR-075) — **implemented** (`e2e/inventory.spec.ts`): the tag
+* **E2E-M9-32** `local` (FR-24.14, ADR-075) — **implemented** (`e2e/inventory-tags.spec.ts`): the tag
   manager selects like the lists. A real right-click on a tag's **name** — the rename control outside the mode —
   opens the shared bar with that row picked and the merge in the bulk bar dimmed; a tap on another row picks it and
   lights the merge; the bar's ✕ gives the rows their acts back. That a touch hold's release click does not also
   rename is `TagManagerSheet.spec.ts`'s: a right-click sends no click, so the absence would be vacuous here.
-* **E2E-M9-33** `local` (FR-24.10, ADR-075) — **implemented** (`e2e/inventory.spec.ts`): a tag is
+* **E2E-M9-33** `local` (FR-24.10, ADR-075) — **implemented** (`e2e/inventory-tags.spec.ts`): a tag is
   moved on the axis by its grip. The pointer lifts *Navigation* by the grip, the gap before *Foto* is marked while it
   hangs there, and after the drop `data-drag` returns to `idle`; the order is read on M9's own headings once the sheet
   is closed — *Navigation* first — not in the sheet that was dragged.
@@ -160,11 +160,11 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name
   once it is switched on, and the account's name typed into the search reaches the same row. A **second item stays
   unassigned throughout**, or „the name is on the row" would be satisfied by a list that printed it on every row.
-* **E2E-M10-21** `all` (FR-24.9) — **implemented** (`e2e/inventory.spec.ts`): M10's assigned chip has two
+* **E2E-M10-21** `all` (FR-24.9) — **implemented** (`e2e/item-editor-tags.spec.ts`): M10's assigned chip has two
   targets. Tapping the **name** makes that tag primary, and the assertion crosses screens — the inventory files the
   row under the new heading, which is the only place the change is observable. The **✕** still removes the tag
   (E2E-M10-08's target, unchanged), and the primary chip's name is disabled, an act already performed being no offer.
-* **E2E-M10-22** `all` (FR-24.9) — **implemented** (`e2e/inventory.spec.ts`): the same chip while
+* **E2E-M10-22** `all` (FR-24.9) — **implemented** (`e2e/item-editor-tags.spec.ts`): the same chip while
   *creating*, where there is no assignment row to move — the draft's order is what gets written, so only the saved
   item says whether the act worked, and the case reads it off M9's heading. **Proven red** against a creating branch
   that ignores the tap.
@@ -177,7 +177,7 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   second assertion is what says so. Mutation-proved: with the `style: currency` option removed the row reads `129.50`
   alone. **M5's context line follows the same rule**, asserted in `ItemDetailSheet.spec.ts` rather than as a second
   `single` case, because what can go wrong there is a bypassed formatter, not the delivery of the code.
-* **E2E-M9-10** `all` (FR-1.1) — **implemented** (`e2e/inventory.spec.ts`): the search **filters**. The field is
+* **E2E-M9-10** `all` (FR-1.1) — **implemented** (`e2e/inventory-search.spec.ts`): the search **filters**. The field is
   permanent (FR-24.6), asserted visible without a magnifier. E2E-G12-02 asserts that the magnifier opens *this* screen's
   field and no other screen's; that typing into it narrows the list is a different promise. A term the inventory matches
   leaves one row and takes the *heading* of the group it emptied with it (the filter runs before the grouping, so a

@@ -25,7 +25,7 @@ import { writesLanded } from './helpers/page'
 /**
  * A tagged master item through M10's own path (E2E-M8-21 needs primary
  * tags, which the plain name-only creation cannot give). Starts and ends
- * on the M9 list; the waits mirror inventory.spec.ts's createItem —
+ * on the M9 list; the waits mirror `helpers/m9.ts`'s createItem —
  * settled offer-or-create branch, painted editor, chevron back.
  */
 async function createTaggedItem(page: Page, name: string, tag: string) {

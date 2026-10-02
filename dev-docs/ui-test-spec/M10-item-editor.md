@@ -1,24 +1,24 @@
 # M10 — Item Editor
 
-Each id is read against the test carrying its number in `inventory.spec.ts`; the ledger's promise table maps each test
-row to the same ids. Two ids over one section (M10-03 and M10-09) are merged into M10-03, and M10-02's delete refusal is
-reversed by FR-24.3.
+Each id is read against the test carrying its number in the `item-editor-*.spec.ts` file it names; the ledger's promise
+table maps each test row to the same ids. Two ids over one section (M10-03 and M10-09) are merged into M10-03, and
+M10-02's delete refusal is reversed by FR-24.3.
 
 * ~~**E2E-M10-01**~~ `all` (FR-1.1) — **retired**, clause by clause rather than as a summary: the name and the
   inline-created tag are **E2E-M10-08**, the weight behind *Mehr ▾* is **E2E-M10-07**, and the price is asserted where
   it is *read* — **E2E-M9-09**, which is the case that can tell a formatted amount from a bare number. What is left is
   the last clause, *no unit control*, and it has nothing to assert against: FR-1.8 retired units and no unit field
   exists.
-* **E2E-M10-08** `all` (FR-24.1) — **implemented** (`e2e/inventory.spec.ts`, two tests): the tag input is a search field
-  — typing filters the chips, tapping a match assigns it (the second item finds the tag instead of duplicating it); an
-  unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋ creates and assigns the tag in one step, clearing the field
-  for the next; unassigning refiles the item in M9. **„Assigned tags stay pinned"** (UI-Spec M10: „so the filter can
-  never hide what the item already carries") is asserted with a *non-empty* query — an empty query is the one state that
-  cannot tell the rule from its absence. The ＋ chip is the positive signal it rides on, so „the chip is still there"
-  cannot be satisfied by a field that filters nothing at all.
-* **E2E-M10-10** `all` (FR-24.1/16.3) — **implemented** (`e2e/inventory.spec.ts`): the item's name is its identity
-  (`UNIQUE (name)`, ADR-014), so creating a second item with an existing name is **reported in the form** — not left to
-  the sync push to reject.
+* **E2E-M10-08** `all` (FR-24.1) — **implemented** (`e2e/item-editor-create.spec.ts`, two tests): the tag input is a
+  search field — typing filters the chips, tapping a match assigns it (the second item finds the tag instead of
+  duplicating it); an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋ creates and assigns the tag in one step,
+  clearing the field for the next; unassigning refiles the item in M9. **„Assigned tags stay pinned"** (UI-Spec M10: „so
+  the filter can never hide what the item already carries") is asserted with a *non-empty* query — an empty query is the
+  one state that cannot tell the rule from its absence. The ＋ chip is the positive signal it rides on, so „the chip is
+  still there" cannot be satisfied by a field that filters nothing at all.
+* **E2E-M10-10** `all` (FR-24.1/16.3) — **implemented** (`e2e/item-editor-create.spec.ts`): the item's name is its
+  identity (`UNIQUE (name)`, ADR-014), so creating a second item with an existing name is **reported in the form** — not
+  left to the sync push to reject.
 * **E2E-M10-17** `all` (FR-27.8): the item names the groups and Vorlagen holding it, each with its
   position count and its scope chip, and one row leads into that template's editor with the way back landing on the item
   again. The list is **mixed on purpose** — a group *and* a Ferien-Vorlage — because both scopes wear the same chip here
@@ -26,11 +26,11 @@ reversed by FR-24.3.
 * **E2E-M10-18** `all` (FR-27.9): a remark written on a trip row through M5's own composer is
   readable at the item, with the trip named. The chain is the app's: master item → quick-add → M5 comment → M10.
   Red-proved by dropping the join in `domain/itemHistory.ts`.
-* **E2E-M10-19** `all` (FR-24.5/FR-27.8/FR-27.9) — **implemented** (`inventory.spec.ts`): an item nothing has used
-  carries **neither** section — absent, not empty. The positive signal is the delete card, which *is* on the screen: a
-  page that failed to load satisfies an absence assertion just as well.
-* **E2E-M10-07** `all` (FR-24.5) — **implemented** (`e2e/inventory.spec.ts`, two tests): creating an item shows the
-  minimal form (name focused, tags, *„Mehr — Gewicht & Preis ▾"*); committing without a name is caught with a hint
+* **E2E-M10-19** `all` (FR-24.5/FR-27.8/FR-27.9) — **implemented** (`item-editor-rear-view.spec.ts`): an item nothing
+  has used carries **neither** section — absent, not empty. The positive signal is the delete card, which *is* on the
+  screen: a page that failed to load satisfies an absence assertion just as well.
+* **E2E-M10-07** `all` (FR-24.5) — **implemented** (`e2e/item-editor-create.spec.ts`, two tests): creating an item shows
+  the minimal form (name focused, tags, *„Mehr — Gewicht & Preis ▾"*); committing without a name is caught with a hint
   rather than a disabled button; after *„Artikel anlegen"* the full editor appears. The absence of the delete card is
   asserted with the photo's and the dependency section's — the sections whose absence proves the mode. It also asserts
   that the optional fields' placeholders are not numbers (FR-24.5): „0" and „0.00" read as a value rather than an
@@ -62,9 +62,9 @@ reversed by FR-24.3.
   item is created and asserted untouched, so "one row fewer" cannot be produced by the list simply failing to paint;
   then the same name is created again, which a retired row holding it would refuse — the rendered proof that the delete
   was physical and that uniqueness ranges over the active rows only.
-* **E2E-M10-16** `all` (FR-24.1, UX-14) (`inventory.spec.ts`): with ten unassigned tags and an empty query the form
-  offers **eight** chips and a *„N weitere per Suche"* tail naming the two held back; the search reaches a tag past the
-  cap; clearing the query (by keys — a programmatic clear is the event-loss path the suite's `fillIonic` exists to
+* **E2E-M10-16** `all` (FR-24.1, UX-14) (`item-editor-tags.spec.ts`): with ten unassigned tags and an empty query the
+  form offers **eight** chips and a *„N weitere per Suche"* tail naming the two held back; the search reaches a tag past
+  the cap; clearing the query (by keys — a programmatic clear is the event-loss path the suite's `fillIonic` exists to
   avoid) returns to the shelf; tapping the tail focuses the search. Runs at phone width and in German, where it also
   measures that the placeholder fits its box — by briefly rendering the text as the value and reading `scrollWidth`,
   because a canvas re-measure can use the wrong font and then cannot fail.
@@ -184,25 +184,26 @@ covers the remove branch and says why it stops there).
   those companions with the reason naming the parent.~~ — **retired, clause by clause.** The required pull and the
   co-skip with its reason are **E2E-M4-40**; that *suggested* companions do not join unasked is **E2E-M5-23**; *and
   reports it* is **E2E-M4-66**.
-* **E2E-M10-03** `all` (FR-20.1/20.4) — **implemented** (`inventory.spec.ts`): the rules of the *„Hängt ab von"*
-  section. Two other cases drive it as *setup* (E2E-M5-23 and the skip-item cascade both declare a dependency through
-  this screen to get a companion onto a trip), and E2E-M10-13 reads its heading for a German word — a heading is not a
-  behaviour, and a fixture is not an assertion. Three clauses, all on M10 itself: a new relation is *nötig* until
+* **E2E-M10-03** `all` (FR-20.1/20.4) — **implemented** (`item-editor-sections.spec.ts`): the rules of the *„Hängt ab
+  von"* section. Two other cases drive it as *setup* (E2E-M5-23 and the skip-item cascade both declare a dependency
+  through this screen to get a companion onto a trip), and E2E-M10-13 reads its heading for a German word — a heading is
+  not a behaviour, and a fixture is not an assertion. Three clauses, all on M10 itself: a new relation is *nötig* until
   someone says otherwise, which is what makes FR-20.4's cascade the default; the **reverse list shows the same mode**
   the declaring side chose; and a dependency that would **close a circle is refused before the write**, naming the hops
   (`Kamera → Ersatzakku → Kamera`) rather than saying *invalid*. The refusal is asserted against a positive signal on
   the same screen: the companion row is still there afterwards, so „no dependency row" cannot be produced by a page that
   rendered nothing. The cycle arithmetic itself stays in `domain/__tests__/dependencies`; what this case adds is that
   the fault reaches a user as a sentence. What the reverse list's rows do is E2E-M10-20's (FR-20.1).
-* **E2E-M10-20** `all` (FR-20.1/20.4) — **implemented** (`inventory.spec.ts`): the *Begleitartikel* list writes its
-  own end of the relation. A companion is declared from the main item, re-moded and removed there, and **every one of
-  those three is asserted on the other item's editor** — the edge is read where it was not declared, which is what
-  separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well, against the
-  dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed it.
-* **E2E-M10-23** `all` (FR-20.1/24.11) — **implemented** (`inventory.spec.ts`): a companion the inventory lacks
-  is created from the *Begleitartikel* picker. The sheet opens on the query with this item's tag offered first; after
-  *„Anlegen"* the editor is still this item's, the picker is closed and the pair is listed — and it is read again from
-  the **new item's** editor, with its tag, which is what says both writes were stored rather than drawn. A second
+* **E2E-M10-20** `all` (FR-20.1/20.4) — **implemented** (`item-editor-sections.spec.ts`): the *Begleitartikel* list
+  writes its own end of the relation. A companion is declared from the main item, re-moded and removed there, and
+  **every one of those three is asserted on the other item's editor** — the edge is read where it was not declared,
+  which is what separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well,
+  against the dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed
+  it.
+* **E2E-M10-23** `all` (FR-20.1/24.11) — **implemented** (`item-editor-sections.spec.ts`): a companion the inventory
+  lacks is created from the *Begleitartikel* picker. The sheet opens on the query with this item's tag offered first;
+  after *„Anlegen"* the editor is still this item's, the picker is closed and the pair is listed — and it is read again
+  from the **new item's** editor, with its tag, which is what says both writes were stored rather than drawn. A second
   companion taken with *„Anlegen und öffnen"* lands in its own editor, already naming this item as its main item.
 * **E2E-M10-24** `all` (FR-20.1/24.11) — **implemented** (`restore-retired.spec.ts`): a retired name in the picker
   is offered back; one tap restores it and declares it, no sheet opens, and M23 is left with nothing to restore.
@@ -210,7 +211,7 @@ covers the remove branch and says why it stops there).
   in hand already depends on the retired one, so declaring it a companion would close a circle: the refusal names
   the path, and the item **stays retired** — asserted as M23 still listing it, the positive signal a restore that
   ran anyway would remove. Mutation-proved: without the check before the restore, this case goes red.
-* **E2E-M10-26** `all` (FR-20.1/24.11) — **implemented** (`inventory.spec.ts`): the *„Hängt ab von"* picker's
+* **E2E-M10-26** `all` (FR-20.1/24.11) — **implemented** (`item-editor-sections.spec.ts`): the *„Hängt ab von"* picker's
   offer. The created item becomes this item's **main item** — asserted as the dependency row here and as this item
   in the new one's *Begleitartikel* list, which is the direction, read from both ends.
 * **E2E-M10-27** `all` (FR-20.1/24.11) — **implemented** (`restore-retired.spec.ts`): a retired name in the
@@ -221,20 +222,20 @@ covers the remove branch and says why it stops there).
 * **E2E-M10-29** `server` (FR-1.9) — **implemented** (`server/multi-user.spec.ts`): Bob is chosen as an item's
   default assignee in M10, Alice records her traveler as Bob's account in M3 step 2, and the review row names Bob and
   is not marked „per person". The choice surviving the create is asserted on the saved item.
-* **E2E-M10-30** `local` (FR-1.9, G-8) — **implemented** (`inventory.spec.ts`): Local Mode has no accounts, so the
-  editor renders no assignee control; the name field and the „Mehr" row beside it are the positive signal.
-* **E2E-M10-31** `local` (FR-20.1) — **implemented** (`inventory.spec.ts`): a dependency's name is a link. From the
-  dependent's *„Depends on"* the main item's M10 renders (its name in the head, the dependent in its companions), and
-  from there the companion's name leads back.
-* **E2E-M10-04** `all` (FR-22.1/22.5) — **implemented** (`inventory.spec.ts`): the reference photo is added, replaced
-  and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Two things make
-  it more than a screenshot: the two sources differ in **shape**, so the assertion is `naturalWidth` and not the object
-  URL, which a rewrite changes whether or not the image did; and the item is left and reopened between the replace and
-  the removal, which is what says the bytes were *stored* — the preview is resolved from `image_hash` through the
-  device, so a round trip proves the write rather than the picker. **The ≤150 KB cap is deliberately not asserted
-  here**: the backoff is measured where it is deterministic, in `lib/__tests__/imageResize.spec.ts`, and enforced again
-  at handler, store and CHECK (invariant 6). An e2e that re-measured it through a real canvas would be asserting the
-  encoder and would be non-deterministic about the one number it claimed to check.
+* **E2E-M10-30** `local` (FR-1.9, G-8) — **implemented** (`item-editor-create.spec.ts`): Local Mode has no accounts, so
+  the editor renders no assignee control; the name field and the „Mehr" row beside it are the positive signal.
+* **E2E-M10-31** `local` (FR-20.1) — **implemented** (`item-editor-sections.spec.ts`): a dependency's name is a link.
+  From the dependent's *„Depends on"* the main item's M10 renders (its name in the head, the dependent in its
+  companions), and from there the companion's name leads back.
+* **E2E-M10-04** `all` (FR-22.1/22.5) — **implemented** (`item-editor-sections.spec.ts`): the reference photo is added,
+  replaced and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Two
+  things make it more than a screenshot: the two sources differ in **shape**, so the assertion is `naturalWidth` and not
+  the object URL, which a rewrite changes whether or not the image did; and the item is left and reopened between the
+  replace and the removal, which is what says the bytes were *stored* — the preview is resolved from `image_hash`
+  through the device, so a round trip proves the write rather than the picker. **The ≤150 KB cap is deliberately not
+  asserted here**: the backoff is measured where it is deterministic, in `lib/__tests__/imageResize.spec.ts`, and
+  enforced again at handler, store and CHECK (invariant 6). An e2e that re-measured it through a real canvas would be
+  asserting the encoder and would be non-deterministic about the one number it claimed to check.
 * ~~**E2E-M10-05**~~ `all` (FR-27.8) — **struck**: the *„Enthalten in"* section's promise is **E2E-M10-17**'s, and its
   absence on an unused item **E2E-M10-19**'s.
 * ~~**E2E-M10-06**~~ `all` (FR-27.9) — **struck**: the remarks-from-trips section's promise is **E2E-M10-18**'s, and its

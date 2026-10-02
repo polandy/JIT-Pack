@@ -3,7 +3,7 @@
  * The read-only "fact" chip — a small pill that states one thing about a
  * row (a quantity, an assignment, a flag), never something pressed
  * (component extraction worklist item 4). Not the interactive filter/toggle
- * chips scattered elsewhere (`FilterSheet.vue`, `ItemInventoryPage.vue`,
+ * chips scattered elsewhere (`FilterSheet.vue`, `InventoryTools.vue`,
  * `PackingListPage.vue`, `ShoppingPage.vue`, `QuantityEditor.vue`'s own
  * `.qty-chip`) — those independently evolved a different surface, border and
  * "on" state each, and unifying them is a real redesign decision, not this

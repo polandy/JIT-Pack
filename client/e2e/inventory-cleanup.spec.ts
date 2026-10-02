@@ -1,6 +1,6 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
-import { backToInventory, createItem } from './helpers/m9'
+import { backToInventory, createItem, groupHeadings } from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -20,12 +20,6 @@ import { PATH } from './routes'
  * suite does not have; the rule, its window and its honesty line are
  * `inventoryHygiene.spec.ts` and `InventoryCleanupPage.spec.ts`.
  */
-
-/** The group headings, normalised — see `inventory.spec.ts` for why lower-cased. */
-async function groupHeadings(scope: Locator): Promise<string[]> {
-  const heads = await scope.getByTestId('m9-group-head').allInnerTexts()
-  return heads.map((h) => h.split('\n')[0]!.trim().toLowerCase())
-}
 
 /** M9's ⋮ word, by the name it is read as. */
 async function openFromOverflow(page: Page, label: string): Promise<void> {
