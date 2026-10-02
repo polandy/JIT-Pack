@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0](https://github.com/polandy/JIT-Pack/compare/v0.23.0...v0.24.0) (2026-10-02)
+
+
+### Features
+
+* **planner:** a trip under way with nothing on today's plan opens on its errands (FR-29.7) ([#658](https://github.com/polandy/JIT-Pack/issues/658)) ([6b14841](https://github.com/polandy/JIT-Pack/commit/6b148419fa824f4758b7a1ee90e07bbaed5dc589))
+* **planner:** an idea becomes an excursion, a task or a shopping entry (FR-29.13) ([#662](https://github.com/polandy/JIT-Pack/issues/662)) ([d35432d](https://github.com/polandy/JIT-Pack/commit/d35432d9ce142f05523c026f6c7e44c96202867a))
+
 ## [0.23.0](https://github.com/polandy/JIT-Pack/compare/v0.22.0...v0.23.0) (2026-10-02)
 
 
