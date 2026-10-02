@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.23.0](https://github.com/polandy/JIT-Pack/compare/v0.22.0...v0.23.0) (2026-10-02)
+
+
+### Features
+
+* a connection in the day plan, read from a pasted SBB link (FR-29.18, ADR-086) ([#644](https://github.com/polandy/JIT-Pack/issues/644)) ([f480bdf](https://github.com/polandy/JIT-Pack/commit/f480bdf52c48c16262034345a74d5f2b001c837b))
+* a new idea, a word about one and the shortlist notify the trip (FR-29.8) ([#632](https://github.com/polandy/JIT-Pack/issues/632)) ([55f282c](https://github.com/polandy/JIT-Pack/commit/55f282c2068ddf44d93f727bd631e8cf4f1a7c04))
+* a track's route is edited and drawn on the map, along paths from BRouter (FR-29.20, ADR-088) ([#643](https://github.com/polandy/JIT-Pack/issues/643)) ([e0515c8](https://github.com/polandy/JIT-Pack/commit/e0515c8eb1c3811012b8b626100cf4ee5e5a6653))
+* a trip opens on the view its dates decide, and M1 shows today's plan (FR-29.7) ([#646](https://github.com/polandy/JIT-Pack/issues/646)) ([0c22c70](https://github.com/polandy/JIT-Pack/commit/0c22c70a6f78d5dc211d614c2ae9fc4366419c87))
+* an activity log — who changed what, per trip and for the inventory (FR-32) ([#633](https://github.com/polandy/JIT-Pack/issues/633)) ([bfb064f](https://github.com/polandy/JIT-Pack/commit/bfb064fafd9c1e3a4d7b416b9e2da4f819e767cc))
+* an excursion carries GPX tracks like an idea, its route first on its page (FR-31.15, ADR-089) ([#645](https://github.com/polandy/JIT-Pack/issues/645)) ([e50ff29](https://github.com/polandy/JIT-Pack/commit/e50ff298a7a5a027dbce6535b7f1ad9fdf1069fe))
+* GPX tracks on an idea — a map, the figures and the time, hike or bike (FR-29.17, ADR-085) ([#636](https://github.com/polandy/JIT-Pack/issues/636)) ([c2410c5](https://github.com/polandy/JIT-Pack/commit/c2410c5fc76b96e1f02e2246803c3fb77b6b1537))
+* several shopping entries deleted in one act, with one undo (FR-30.9) ([#630](https://github.com/polandy/JIT-Pack/issues/630)) ([7a2b28a](https://github.com/polandy/JIT-Pack/commit/7a2b28aa526d160a7980880acf2e7fcd094475a1))
+* the day plan — a trip's days with its planned ideas, excursions, tasks and entries of its own (FR-29.14, FR-29.15) ([#638](https://github.com/polandy/JIT-Pack/issues/638)) ([fa91697](https://github.com/polandy/JIT-Pack/commit/fa91697d036e329865f5dbb9391a3e11ce891622))
+* where everybody is on the track map — my own position, and the others' who share it (FR-29.19, ADR-087) ([#641](https://github.com/polandy/JIT-Pack/issues/641)) ([00fa301](https://github.com/polandy/JIT-Pack/commit/00fa301782442c0bddb8c287dc08a5853ed4760f))
+
+
+### Bug Fixes
+
+* a start under the service worker no longer stalls on a lost module preload (NFR-4.13, ADR-019) ([#656](https://github.com/polandy/JIT-Pack/issues/656)) ([6b945d6](https://github.com/polandy/JIT-Pack/commit/6b945d640fb305a8ba431dfa52894916c9c0d09f))
+* an older roster snapshot is never sent after a newer one (FR-4.9) ([#639](https://github.com/polandy/JIT-Pack/issues/639)) ([6d83d13](https://github.com/polandy/JIT-Pack/commit/6d83d1387a8d613548fe76d9abed26fadcb3574c))
+* the notification toast's Open button speaks the reader's language (NFR-4.12) ([#634](https://github.com/polandy/JIT-Pack/issues/634)) ([0c75806](https://github.com/polandy/JIT-Pack/commit/0c7580642058dc4c9ad0f462451b676aeb18f08e))
+
 ## [0.22.0](https://github.com/polandy/JIT-Pack/compare/v0.21.0...v0.22.0) (2026-09-30)
 
 
