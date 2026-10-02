@@ -23,19 +23,20 @@
  *    (FR-25.20) name their counts, and an empty list distinguishes "all
  *    packed" from "nothing matches" (FR-25.11e) — announcing completion
  *    over a narrowed list is the failure that rule exists to prevent.
+ *
+ * The page is the wiring. Its parts live beside it in `packing/`: the state
+ * they share (`usePackingCore`), each concern's composable, and the header
+ * line, the task window, the list body and the amount popover as components.
  */
 import {
   IonPage,
   IonContent,
-  IonList,
   IonIcon,
   IonButton,
   IonRefresher,
   IonRefresherContent,
   IonFab,
   IonFabButton,
-  IonPopover,
-  actionSheetController,
   onIonViewDidEnter,
   onIonViewWillLeave,
 } from '@ionic/vue'
@@ -43,22 +44,16 @@ import {
   addOutline,
   bagHandleOutline,
   checkmarkDoneOutline,
-  chevronDownOutline,
-  chevronForwardOutline,
   contractOutline,
   expandOutline,
   funnelOutline,
-  peopleOutline,
   textOutline,
   timeOutline,
 } from 'ionicons/icons'
 
-import { packedPercent, stateFor } from '@/domain/packState'
-import { borrowersByTripItem } from '@/domain/excursions'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
-import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
-import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -68,30 +63,12 @@ import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
 import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
-import ClusterHead from '@/components/trips/ClusterHead.vue'
-import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
-import TripTodoList from '@/components/trips/TripTodoList.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
-import {
-  packingWindowTasks,
-  tripTodoProgress,
-  tripTodoStatus,
-  tripTodosUnfolded,
-  type TripTask,
-} from '@/domain/tripTodos'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
-import PackingRow, {
-  type PackingRowNotes,
-  type RowEdgeAvatar,
-} from '@/components/trips/PackingRow.vue'
-import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
-import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
-import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import {
   activeChips as chipsFor,
   emptyReason as emptyReasonFor,
@@ -101,116 +78,74 @@ import {
   groupingAxis,
   onlyOthersHidden as isOnlyOthersHidden,
 } from '@/lib/packingFilterPanel'
-import { hasCollaborativeSession, readMode } from '@/mode'
+import { readMode } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { useTripScreen } from '@/composables/useTripScreen'
-import QuantityEditor from '@/components/global/QuantityEditor.vue'
-import { quantityChoices } from '@/domain/quantityChoices'
-import { durationDays } from '@/domain/instantiate'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useContextSearch } from '@/composables/useContextSearch'
-import { useLongPress } from '@/composables/useLongPress'
+import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { usePackingFilter } from '@/composables/usePackingFilter'
-import { useTripIdentity } from '@/composables/useTripIdentity'
-import { useTripTasks } from '@/composables/useTripTasks'
-import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import type { RowUndoRecord } from '@/composables/useRowUndo'
-import { browseRowStates } from '@/domain/browseRows'
-import type { AddedItemDecision } from '@/sync/mutations'
-import {
-  buildPackingView,
-  isReshaped,
-  type PackingCluster,
-  type PackingEntry,
-  rowEdgeAvatar,
-} from '@/domain/packingView'
-import { avatarAssignable, rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
-import { ROW_MENU_BUTTONS } from '@/lib/rowMenuButtons'
-import {
-  clusterMenuEntries,
-  clusterTargets,
-  type ClusterFanOut,
-  type ClusterInstance,
-  type ClusterMenuContext,
-  type ClusterMenuAction,
-} from '@/domain/clusterActions'
-import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
-import { packingIsFinished, planPackingClose, type ClosePackingPlan } from '@/domain/closePacking'
-import { isPackingClosed } from '@/lib/tripPhase'
-import { formatWeight } from '@/lib/format'
-import { t, type MessageKey } from '@/i18n'
+import { buildPackingView } from '@/domain/packingView'
+import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
-import { useTaskActs } from '@/composables/useTaskActs'
 import { useHeadScroll } from '@/composables/useHeadScroll'
-import { collapseRow } from '@/lib/rowCollapse'
 import { buildReviewProposals } from '@/domain/review'
-import { useMasterStore } from '@/stores/masterStore'
-import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
-import type { FacetKey, GroupBy, MasterItem, TripItem, TripParticipant } from '@/types/domain'
-import {
-  ITEM_MODE_BUY_LOCAL,
-  ITEM_MODE_PACK,
-  STATE_PACKED,
-  STATE_SKIPPED,
-  TRIP_STATUS_ARCHIVED,
-  type TaskPhase,
-} from '@/types/domain'
-import {
-  CLOSING_QUERY_PARAM,
-  ITEM_QUERY_PARAM,
-  STARTING_QUERY_PARAM,
-  tripItemPath,
-  tripPath,
-  tripSubPath,
-} from '@/router/paths'
-import { confirmAction, confirmDestructive } from '@/lib/confirm'
-import { removalSentence } from '@/lib/removalLabels'
-import { removalNeedsConfirm } from '@/domain/rowRemoval'
-import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { SPREAD } from '@/composables/sync/actions/packing'
-import { forWhomColumn, membershipKey, rowsCarryingContent } from '@/domain/membership'
-import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
+import type { FacetKey, GroupBy } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
+
+import PackingGroupList from './packing/PackingGroupList.vue'
+import PackingHeadline from './packing/PackingHeadline.vue'
+import RowQuantityPopover from './packing/RowQuantityPopover.vue'
+import TripTodosSection from './packing/TripTodosSection.vue'
+import { useBrowseAdd } from './packing/useBrowseAdd'
+import { useForWhom } from './packing/useForWhom'
+import { usePackingClose } from './packing/usePackingClose'
+import { usePackingCore } from './packing/usePackingCore'
+import { usePackingMenus } from './packing/usePackingMenus'
+import { usePackingTasks } from './packing/usePackingTasks'
+import { useRowActions } from './packing/useRowActions'
+import { useRowFacts } from './packing/useRowFacts'
+import { useRowQuantity } from './packing/useRowQuantity'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
-const tripStore = useTripStore()
-const { tasksOf } = useTripTasks()
-const masterStore = useMasterStore()
 const router = useRouter()
 const route = useRoute()
-const orchestrator = useOrchestrator()
 
-// ADR-033: `loaded` says whether this trip's partition is on the device. M4's
-// three empty states all read off rows that arrive after the screen paints.
+const core = usePackingCore(props.tripId, useTripScreen(props.tripId, useOrchestrator()))
 const {
+  tripStore,
+  masterStore,
+  orchestrator,
   trip,
-  loaded: rowsLoaded,
-  ensure: ensureTripRows,
-} = useTripScreen(props.tripId, orchestrator)
-
-// --- Identity, for FR-25.19/25.20 ---------------------------------------
-const {
+  rowsLoaded,
   myUserId,
   participants,
   nameOf,
-  load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+  closingPass,
+  allItems,
+  travelers,
+  active,
+  packingClosed,
+  rowUndo,
+  packAnnouncements,
+  announceRenamed,
+} = core
 
 onMounted(async () => {
   // Joins the load `useTripScreen` started; it does not begin a second one.
-  await ensureTripRows()
+  await core.ensureTripRows()
   // FR-27.4: opening the trip is the moment it works out what the groups it
   // follows would change. After the drain, not before — the diff must see the
   // rows the pull just brought, or it would offer what another device already
   // applied.
   orchestrator.proposeTripRefresh(props.tripId)
-  await loadIdentity()
+  await core.loadIdentity()
 })
 
 // --- View state ---------------------------------------------------------
@@ -230,15 +165,24 @@ const {
 const collapsedGroups = ref<string[]>([])
 /** FR-25.24: per-person clusters the user opened; shut is the default. */
 const expandedClusters = ref<string[]>([])
+const filterOpen = ref(false)
+const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 /**
  * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
- * while untouched, and then the todos decide (`tripTodosUnfolded`).
+ * while untouched, and then the tasks decide (`tripTodosUnfolded`).
  */
 const tripTodosFold = ref<boolean | null>(null)
 /** FR-7.4: the section itself, which the header figure scrolls to. */
-const tripTodosSection = ref<HTMLElement | null>(null)
-const filterOpen = ref(false)
-const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
+const todosSection = ref<InstanceType<typeof TripTodosSection> | null>(null)
+
+/**
+ * FR-7.4: the header figure leads to the todos — unfolded, and in view,
+ * because the header line stays while the section may be scrolled past.
+ */
+function revealTripTodos() {
+  tripTodosFold.value = true
+  todosSection.value?.scrollIntoView()
+}
 
 /** Whether the composer is open — the ＋ has nothing to add while it is. */
 const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
@@ -246,6 +190,123 @@ const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
 function openQuickAdd() {
   void quickAdd.value?.open()
 }
+
+const openPrepItems = computed(() => tripStore.itemsWithOpenPrep(props.tripId))
+
+const view = computed(() =>
+  buildPackingView({
+    items: allItems.value,
+    travelers: travelers.value,
+    containers: tripStore.getContainers(props.tripId),
+    participants: participants.value,
+    groupBy: groupBy.value,
+    showDone: showDone.value || closingPass.value,
+    facets: facets.value,
+    search: search.value,
+    currentUserId: myUserId.value,
+    showOthers: showOthers.value,
+    // FR-9.3's closing pass reviews what was taken along, and a late-packer
+    // row was taken along like any other.
+    showLate: showLate.value || closingPass.value,
+    collapsedGroups: collapsedGroups.value,
+    expandedClusters: expandedClusters.value,
+    itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
+    packedOnly: closingPass.value,
+  }),
+)
+
+// --- M5, as a sheet over this list (UI-Spec M5) --------------------------
+// Driven by the route rather than by local state: the same URL opens it
+// from a tap, a deep link and a reload, and `‹ back` closes it because
+// the route declares the item as its overlay (`meta.overlayQuery`).
+//
+// Read off the query, not off a prop: Ionic caches a page's route props
+// for the page's lifetime, and the point of `?item=` (ADR-046) is that
+// this page *keeps* living — a path parameter made every open mount a
+// second copy of the list, which stood beside the first, unhidden, for as
+// long as its children took to become ready.
+const openItemId = computed(() => {
+  const value = route.query[ITEM_QUERY_PARAM]
+  return typeof value === 'string' && value !== '' ? value : null
+})
+
+function closeItem() {
+  router.replace(tripPath(props.tripId))
+}
+
+const forWhom = useForWhom(core, view)
+const facts = useRowFacts(core)
+const acts = useRowActions(core, facts, { openItemId, closeItem })
+const quantity = useRowQuantity(core)
+const menus = usePackingMenus(core, acts, quantity)
+const browse = useBrowseAdd(core, facts)
+const tasks = usePackingTasks(core)
+const closing = usePackingClose(core)
+
+/**
+ * Opening and closing the sheet **replaces** the route rather than
+ * pushing: the sheet is a state of this screen, not a screen of its own,
+ * and one screen keeps one history entry — the browser's back with the
+ * sheet open is router/overlayBackGuard's to answer.
+ */
+function openItem(itemId: string) {
+  if (menus.menuActive()) return
+  // One posture, one meaning (FR-9.3): in the pass the tap is the mark,
+  // and the detail sheet — which asks a dozen other questions — is not
+  // what this screen is asking.
+  if (closingPass.value) return
+  router.replace(tripItemPath(props.tripId, itemId))
+}
+
+/**
+ * G-9: below the breakpoint the detail is a bottom sheet; at or above it
+ * a persistent side panel beside the list, so selecting another row swaps
+ * the panel's content instead of covering the list.
+ */
+const isDesktop = ref(window.matchMedia('(min-width: 900px)').matches)
+const breakpoint = window.matchMedia('(min-width: 900px)')
+const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
+breakpoint.addEventListener('change', onBreakpoint)
+onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+
+// --- Who is working here (FR-4.9) ---------------------------------------
+// The roster on M1 lists people by the trip they have *open*, which is not the
+// subscription — the dashboard follows every active trip and never lets go.
+// Ionic keeps a page mounted under the one that replaced it, so leaving is a
+// view event and unmounting only the fallback.
+onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.setViewing(null))
+onUnmounted(() => orchestrator.setViewing(null))
+
+// --- Header line --------------------------------------------------------
+
+const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+
+const kpis = computed(() =>
+  tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingTodos.value])),
+)
+
+/**
+ * The header line *and the page head above it* yield to the list on the way
+ * down and come back on an upward gesture (FR-21.17) — `useHeadScroll`.
+ */
+const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
+const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(packContent)
+
+/** FR-25.29: every traveler's share of the whole trip — unfiltered, like the trip line. */
+const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
+
+/**
+ * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
+ * quick filters — *mine and the shared ones* is two taps, OR'd like the
+ * sheet's chips. Otherwise narrowing to one alone would cost a trip to the
+ * sheet for exactly the combination a packer wants most.
+ */
+function selectTraveler(value: string) {
+  toggleValue('person', value)
+}
+
+// --- Group proposals and inventory names (FR-27.4, FR-27.16) -------------
 
 /**
  * FR-27.4: what the groups this trip follows would change. Derived on open
@@ -325,891 +386,6 @@ const closingProposals = computed(() =>
   }).slice(0, CLOSING_TEASER_COUNT),
 )
 
-/**
- * Rows whose confirmed removal is still inside the snackbar's undo (FR-25.31).
- * They leave the screen at once and the trip only when the undo lapses — the
- * row, its comments and its todos are never deleted and re-created, so the
- * undo cannot resurrect a note under the wrong author (invariant 3).
- */
-const removingRows = ref(new Set<string>())
-/** The same for the trip's own tasks (FR-7.4). */
-const removingTodos = ref(new Set<string>())
-
-const kpis = computed(() =>
-  tripStore.kpis(props.tripId, new Set([...removingRows.value, ...removingTodos.value])),
-)
-const active = computed(() => isActive(trip.value))
-/** FR-5.10: whether this trip's packing has been declared finished. */
-const packingClosed = computed(() => isPackingClosed(trip.value))
-/** What the card counts: the rows the list currently carries as decided. */
-const skippedCount = computed(
-  () => allItems.value.filter((row) => row.state === STATE_SKIPPED).length,
-)
-/** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
-const judgeable = computed(() => canJudgeUnused(trip.value))
-
-/**
- * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
- * this list's grouping, facets and search — at a hundred and twenty rows
- * that is the whole reason it lives here — and takes the ending the
- * rejected own-screen variant had: *Fertig* archives and opens M14, so
- * the pass leads where the marks are going rather than handing back the
- * list it started in. The only door into it is the archive action.
- */
-const closingPass = ref(false)
-
-const allItems = computed(() =>
-  tripStore.getItems(props.tripId).filter((row) => !removingRows.value.has(row.id)),
-)
-
-/**
- * FR-25.19: the people this trip's rows can be handed to — members of the
- * trip, minus myself. The same rule M5's control uses, and for the same
- * reason: assigning a row to myself says nothing, and in Single-User and
- * Local Mode there is nobody else at all, so the control is absent rather
- * than inert (G-8).
- */
-const assignableMembers = computed(() => {
-  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return participants.value.filter(
-    (person) => members.has(person.user_id) && person.user_id !== myUserId.value,
-  )
-})
-
-/**
- * FR-7.5: who a trip todo can be handed to — every member, *me included*.
- * A row leaves me out because an unassigned row is already mine to see
- * (FR-25.20); a todo has no such filter, and „I'll do it" is the most
- * common thing a household says about one.
- */
-const todoAssignees = computed(() => {
-  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return participants.value.filter((person) => members.has(person.user_id))
-})
-
-/** FR-25.25, decided in the domain (`avatarAssignable`) — see there for why. */
-function assignableRow(item: TripItem): boolean {
-  return avatarAssignable(item, {
-    hasAssignees: assignableMembers.value.length > 0,
-    closingPass: closingPass.value,
-    locked: locked(item),
-  })
-}
-
-/**
- * The person picker for this screen's two callers — the row's avatar and the
- * cluster head's „für alle" (FR-25.25/25.26). The sheet itself is
- * `lib/pickAssignee`, shared with M25 since a task is handed over the same
- * way (FR-7.7); what stays here is only this screen's default audience.
- */
-async function pickAssignee(
-  header: string,
-  current: string | null,
-  people: readonly TripParticipant[] = assignableMembers.value,
-): Promise<string | null | undefined> {
-  return pickAssigneeFrom(header, current, people)
-}
-
-/**
- * FR-25.25: the row's own avatar, tapped.
- *
- * The traveler is passed in rather than resolved here because only the view
- * model knows whether this row is an instance of a per-person item: under a
- * cluster the row is named by its *person*, so a sheet headed with the item
- * alone would not name the row it was opened from. Same composition M4 uses
- * for a lone per-person row's label.
- */
-async function onAssignRow(item: TripItem, traveler?: string | null): Promise<void> {
-  if (!assignableRow(item)) return
-  const header = traveler ? `${item.name} · ${traveler}` : item.name
-  const picked = await pickAssignee(header, item.packer_user_id)
-  if (picked === undefined) return
-  const previous = item.packer_user_id
-  actUndoably(
-    item,
-    picked === null
-      ? t('packing.unassignedToast', { name: item.name })
-      : t('packing.assignedToast', { name: item.name, who: nameOf(picked) ?? '' }),
-    () => orchestrator.setPacker(props.tripId, item, picked),
-    (live) => orchestrator.setPacker(props.tripId, live, previous),
-  )
-}
-
-/**
- * FR-25.13c: what the trip already carries — skipped rows included — is
- * not offered again by the quick-add, and it is the context the composer's
- * chip rows relate to. Bringing a skipped item back is M4's reveal + undo
- * path (FR-5.5), not a second add.
- */
-const quickAddExcludeIds = computed(() => [
-  ...new Set(
-    allItems.value.map((item) => item.source_item_id).filter((id): id is string => id !== null),
-  ),
-])
-/**
- * FR-25.13f: what the browse-sheet's two verbs may do, per master item.
- * Built here rather than in the sheet because only M4 knows the trip's rows
- * and G-3's holders — the sheet renders the answer and emits the verb.
- */
-const browseStates = computed(() =>
-  browseRowStates(
-    allItems.value,
-    (item) => (locked(item) ? (lockNote(item) ?? t('packing.lockedByUnknown')) : null),
-    travelers.value,
-  ),
-)
-
-const openPrepItems = computed(() => tripStore.itemsWithOpenPrep(props.tripId))
-
-/**
- * FR-28.7: the row inherits the master item's photo and mark, it never copies
- * them — the mark is a property of the thing, not of one trip's plan. An
- * ad-hoc row has no master item and therefore no mark, and shows an empty
- * slot rather than a placeholder.
- */
-function masterOf(item: TripItem): MasterItem | null {
-  return (item.source_item_id ? masterStore.getItem(item.source_item_id) : undefined) ?? null
-}
-
-// --- FR-25.28: who an item is for, answered on the row -------------------
-
-/** FR-25.28's *who* column — the rule is `forWhomColumn`'s. */
-const seatColumn = computed(() => forWhomColumn(travelers.value.length, closingPass.value))
-
-/**
- * Which item's strip is open — at most one, so working down a list costs one
- * tap per row to move on. Held by {@link membershipKey} rather than by a row
- * id: the first traveler turns a row into a cluster and the last one turns it
- * back, and the strip has to stay open across both.
- */
-const forWhomKey = ref<string | null>(null)
-
-function forWhomKeyOf(entry: PackingEntry): string | null {
-  if (entry.kind === 'item') return membershipKey(entry.item)
-  const instance = allItems.value.find((i) => i.id === entry.instanceIds[0])
-  return instance ? membershipKey(instance) : null
-}
-
-/**
- * The entry the open strip hangs under: the first one of that item in list
- * order. Grouped by traveler, one item is several rows in several groups, and
- * a strip under each would be one control drawn N times.
- */
-const forWhomAnchor = computed<PackingEntry | null>(() => {
-  if (forWhomKey.value === null || !seatColumn.value) return null
-  for (const group of view.value.groups) {
-    for (const entry of group.entries) {
-      if (forWhomKeyOf(entry) === forWhomKey.value) return entry
-    }
-  }
-  return null
-})
-
-/** What the list shows right now, as `isReshaped` wants it: which items, and which rows. */
-const shownForWhom = computed(() => {
-  const keys = new Set<string>()
-  const rowIds = new Set<string>()
-  for (const group of view.value.groups) {
-    for (const entry of group.entries) {
-      const key = forWhomKeyOf(entry)
-      if (key !== null) keys.add(key)
-      if (entry.kind === 'item') rowIds.add(entry.item.id)
-      else for (const id of entry.instanceIds) rowIds.add(id)
-    }
-  }
-  return { keys, rowIds }
-})
-
-const existingRowIds = computed(() => new Set(allItems.value.map((i) => i.id)))
-
-function forWhomOpenOn(entry: PackingEntry): boolean {
-  return forWhomAnchor.value === entry
-}
-
-function seatFor(entry: PackingEntry): { open: boolean } | null {
-  return seatColumn.value ? { open: forWhomOpenOn(entry) } : null
-}
-
-function toggleForWhom(entry: PackingEntry) {
-  const key = forWhomKeyOf(entry)
-  forWhomKey.value = forWhomKey.value === key ? null : key
-}
-
-/**
- * The same resolution for a per-person cluster, which has no `TripItem` of
- * its own — the head is the item, its children are the travelers.
- */
-function clusterMaster(cluster: PackingCluster): MasterItem | null {
-  return (cluster.sourceItemId ? masterStore.getItem(cluster.sourceItemId) : undefined) ?? null
-}
-
-const travelers = computed(() => tripStore.getTravelers(props.tripId))
-
-/** FR-25.29: every traveler's share of the whole trip — unfiltered, like the trip line. */
-const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
-
-/**
- * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
- * quick filters — *mine and the shared ones* is two taps, OR'd like the
- * sheet's chips. Otherwise narrowing to one alone would cost a trip to the
- * sheet for exactly the combination a packer wants most.
- */
-function selectTraveler(value: string) {
-  toggleValue('person', value)
-}
-
-const view = computed(() =>
-  buildPackingView({
-    items: allItems.value,
-    travelers: travelers.value,
-    containers: tripStore.getContainers(props.tripId),
-    participants: participants.value,
-    groupBy: groupBy.value,
-    showDone: showDone.value || closingPass.value,
-    facets: facets.value,
-    search: search.value,
-    currentUserId: myUserId.value,
-    showOthers: showOthers.value,
-    // FR-9.3's closing pass reviews what was taken along, and a late-packer
-    // row was taken along like any other.
-    showLate: showLate.value || closingPass.value,
-    collapsedGroups: collapsedGroups.value,
-    expandedClusters: expandedClusters.value,
-    itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
-    packedOnly: closingPass.value,
-  }),
-)
-
-// --- M5, as a sheet over this list (UI-Spec M5) --------------------------
-// Driven by the route rather than by local state: the same URL opens it
-// from a tap, a deep link and a reload, and `‹ back` closes it because
-// the route declares the item as its overlay (`meta.overlayQuery`).
-//
-// Read off the query, not off a prop: Ionic caches a page's route props
-// for the page's lifetime, and the point of `?item=` (ADR-046) is that
-// this page *keeps* living — a path parameter made every open mount a
-// second copy of the list, which stood beside the first, unhidden, for as
-// long as its children took to become ready.
-const openItemId = computed(() => {
-  const value = route.query[ITEM_QUERY_PARAM]
-  return typeof value === 'string' && value !== '' ? value : null
-})
-
-/**
- * Opening and closing the sheet **replaces** the route rather than
- * pushing: the sheet is a state of this screen, not a screen of its own,
- * and one screen keeps one history entry — the browser's back with the
- * sheet open is router/overlayBackGuard's to answer.
- */
-function openItem(itemId: string) {
-  if (rowMenuActive) return
-  // One posture, one meaning (FR-9.3): in the pass the tap is the mark,
-  // and the detail sheet — which asks a dozen other questions — is not
-  // what this screen is asking.
-  if (closingPass.value) return
-  router.replace(tripItemPath(props.tripId, itemId))
-}
-
-// --- FR-25.24: how many of this are coming along -------------------------
-//
-// The editor hangs off the row's own count rather than living a screen
-// away: correcting an amount is something a person does to five rows in a
-// row while looking at the list, and a sheet per row would cost the list
-// five times. M5 carries the same control in a block of its own, for the
-// other posture — one row, read properly.
-/**
- * The rows the editor writes: one when a row opened it, every instance the
- * head's *Menge* reaches when a cluster head did (FR-25.26) — the amount is
- * per person, so the same number is written to each of them.
- */
-const quantityRowIds = ref<string[]>([])
-
-/**
- * What the popover names when it stands for several rows — the item and how
- * many people it writes for. Null for a single row, which names itself.
- */
-const quantityClusterLabel = ref<string | null>(null)
-
-/**
- * The tap that opened the editor, which is what Ionic anchors the popover
- * to. Undefined when it was opened from the row menu, where there is no
- * row on screen to point at any more — Ionic then centres it.
- */
-const quantityEvent = ref<MouseEvent | undefined>(undefined)
-
-const quantityRows = computed(() => rowsOf(quantityRowIds.value))
-
-/**
- * The row whose amount the editor shows. For a cluster that is the first
- * instance: the instances may disagree, and the first tap writes one number
- * to every one of them, after which the display is true of all.
- */
-const quantityItem = computed(() => quantityRows.value[0] ?? null)
-
-/** The floor the editor warns about: the most any written row has packed. */
-const quantityPacked = computed(() =>
-  Math.max(0, ...quantityRows.value.map((row) => row.packed_count)),
-)
-
-const quantityChoiceList = computed(() =>
-  quantityChoices({
-    durationDays: durationDays(trip.value?.start_date ?? null, trip.value?.end_date ?? null),
-    travelerCount: travelers.value.length,
-    perPerson: Boolean(quantityItem.value?.assigned_traveler_id),
-  }),
-)
-
-/**
- * G-3 and FR-9.3 keep the editor shut for the same reasons the stepper is
- * inert: somebody else holds the row, or the screen is asking a different
- * question and this is not an answer to it.
- */
-function openQuantity(item: TripItem, event?: MouseEvent): void {
-  if (closingPass.value || locked(item)) return
-  quantityEvent.value = event
-  quantityClusterLabel.value = null
-  quantityRowIds.value = [item.id]
-}
-
-function closeQuantity(): void {
-  quantityRowIds.value = []
-  quantityClusterLabel.value = null
-}
-
-/**
- * The row as the editor found it (FR-25.31). One editing session is one act:
- * three taps on ＋ are one change of amount, and the undo goes back to where
- * the popover opened rather than one step. Announced on close, not per tap —
- * a snackbar raised over the open popover would also be the overlay Escape
- * dismisses first, leaving the popover standing and the undo gone.
- */
-let quantityBefore: TripItem[] | null = null
-
-function onSetQuantity(quantity: number): void {
-  // Snapshotted at the first write rather than at opening, so both openers —
-  // a row and a cluster head (FR-25.26) — share one capture of every row.
-  quantityBefore ??= quantityRows.value.map((row) => ({ ...row }))
-  for (const row of quantityRows.value) orchestrator.setQuantity(props.tripId, row, quantity)
-}
-
-function onQuantityClosed(): void {
-  closeQuantity()
-  const before = quantityBefore
-  quantityBefore = null
-  const first = before?.[0]
-  if (!before || !first) return
-  const now = liveRow(first.id)
-  if (!now || now.quantity === first.quantity) return
-  // Three fields, as the write has them: an amount cut below the packed count
-  // clamps the count, and the undo has to give both back (FR-25.24).
-  rowUndo.armUndo(before, (records) => orchestrator.restoreSkip(props.tripId, records))
-  void announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
-}
-
-// --- Row menu: press and hold (FR-5.5, FR-5.2) --------------------------
-//
-// The same gesture M7 uses, chosen over the swipe it replaces: the swipe
-// was announced by nothing and its option panel broke out of the row's
-// card, which is where it also lost the M7 round. The 500 ms live in
-// useLongPress, unit-tested with fake timers; `contextmenu` covers desktop
-// and is the seam the e2e case drives.
-const hold = useLongPress<TripItem>(openRowMenu)
-
-/**
- * FR-5.5's press-and-hold is the *row's*, and the packing control is not the
- * row (E2E-G6-01). `PackingRow` stops the press at the control itself — the
- * rule lives with the component, not here as a `closest()` coupled to its
- * stylesheet — so a press that reaches this handler is already the row's.
- */
-function onRowPress(item: TripItem, event: PointerEvent): void {
-  hold.down(item, event.clientX, event.clientY)
-}
-
-/**
- * Row taps are ignored while the menu lives — same reasoning as M7's: the
- * release of a hold usually lands on the overlay rather than the row, so a
- * "swallow the next click" flag would go stale and eat a later tap.
- */
-let rowMenuActive = false
-
-function runRowMenu(action: RowMenuAction, item: TripItem): void {
-  switch (action) {
-    case 'takeover':
-      void onTakeOver(item)
-      return
-    case 'release':
-      onReleaseClaim(item)
-      return
-    case 'unskip':
-      onUnskipItem(item)
-      return
-    case 'quantity':
-      // No event to hang it off: the menu is an overlay, and the row it was
-      // opened from may have scrolled. Ionic centres a popover with no
-      // reference, which is where the menu itself just was.
-      openQuantity(item)
-      return
-    case 'packingNow':
-      onPackingNow(item)
-      return
-    case 'skip':
-      onSkipItem(item)
-      return
-    case 'buyLocal':
-      onSetMode(item, ITEM_MODE_BUY_LOCAL)
-      return
-    case 'packInstead':
-      onSetMode(item, ITEM_MODE_PACK)
-      return
-    case 'latePackerOn':
-      onLatePacker(item, true)
-      return
-    case 'latePackerOff':
-      onLatePacker(item, false)
-      return
-    case 'flagUnused':
-      void onFlagUnused(item, true)
-      return
-    case 'unflagUnused':
-      void onFlagUnused(item, false)
-      return
-    case 'remove':
-      void onRemoveItem(item)
-  }
-}
-
-// --- FR-25.26: the cluster head acts on every instance under it ----------
-//
-// The head is the only line that knows an item is one thing several people
-// carry, and `late_packer` and the FR-25.19 assignment are the two fields
-// that are usually a statement about the item rather than about a person —
-// everybody brushes their teeth on the morning the trip leaves. Said
-// instance by instance it cost one trip through M5 per traveler.
-
-/** The same press the rows use; the short tap stays the fold (FR-25.23). */
-const clusterHold = useLongPress<PackingCluster>(openClusterMenu)
-
-/**
- * What the head may act on: the instances it *counts*, with the G-3 holder
- * resolved for each. Rows the filter or FR-25.2 removed are not among them —
- * the head's numbers describe the same set, and an action reaching past what
- * the reader can see would be a second, invisible list.
- */
-function clusterInstances(cluster: PackingCluster): ClusterInstance[] {
-  return cluster.instanceIds.flatMap((id) => {
-    const item = allItems.value.find((row) => row.id === id)
-    if (!item) return []
-    const holder = locked(item) ? orchestrator.lockHolder(props.tripId, item) : null
-    return [
-      {
-        id: item.id,
-        row: item,
-        lockedBy: holder ? nameOf(holder) : null,
-        mine: orchestrator.holdsClaim(props.tripId, item),
-      },
-    ]
-  })
-}
-
-/** What the head's rule reads beyond the instances — a row menu's context. */
-function clusterMenuContext(): ClusterMenuContext {
-  return {
-    closingPass: closingPass.value,
-    canAssign: assignableMembers.value.length > 0,
-    judgeable: judgeable.value,
-  }
-}
-
-/** The rows behind a fan-out plan, in the order the plan names them. */
-function rowsOf(ids: string[]): TripItem[] {
-  return ids.flatMap((id) => allItems.value.filter((row) => row.id === id))
-}
-
-/**
- * Say what a fan-out did — and, where a claim kept it off a row, say that
- * too. A group action that quietly wrote three of four would be indis-
- * tinguishable from one that wrote all four (G-3, advisory).
- */
-function announceFanOut(written: number, total: number, blockedBy: string[]): void {
-  void announceAct(
-    blockedBy.length === 0
-      ? t('packing.fanOutApplied', { n: written })
-      : t('packing.fanOutPartial', {
-          n: written,
-          total,
-          who: blockedBy.join(', '),
-        }),
-  )
-}
-
-/**
- * The name a fan-out's own snackbar reports under: the item, and — where a
- * claim kept the write off some instances — how many it did reach. The skip
- * and the removal carry an undo, so they cannot hand their report to
- * {@link announceFanOut}'s toast without losing it.
- */
-function fanOutName(name: string, plan: ClusterFanOut): string {
-  if (plan.blockedBy.length === 0) return name
-  const total = plan.targetIds.length + plan.blockedBy.length
-  return t('packing.clusterPartialName', { name, n: plan.targetIds.length, total })
-}
-
-/**
- * FR-5.5 over every instance at once: one undo for all of them, the way the
- * row's own skip arms one for its companions. `affected` is gathered from the
- * skips themselves — FR-20.2 co-skips a companion only once no traveler's row
- * still needs it, which only the last instance's skip can see.
- */
-function skipRows(name: string, rows: TripItem[]): void {
-  const affected: TripItem[] = []
-  for (const row of rows) {
-    for (const hit of orchestrator.skipItem(props.tripId, row)) {
-      if (!affected.some((known) => known.id === hit.id)) affected.push(hit)
-    }
-  }
-  rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(props.tripId, records))
-  const targets = new Set(rows.map((row) => row.id))
-  void announceSkipped(
-    name,
-    affected.filter((row) => !targets.has(row.id)).map((row) => row.name),
-  )
-}
-
-/**
- * FR-5.8 over every instance at once, with the row's own two paths: nothing
- * on any of them goes behind one undo, anything the undo cannot return is
- * asked first. The inventory item goes only when these rows were its last use
- * (ADR-065) — the instances are no use of each other.
- */
-async function removeRows(name: string, rows: TripItem[]): Promise<void> {
-  const removal = orchestrator.planRowsRemoval(props.tripId, rows)
-  const leftItem = orchestrator.itemLeftByRemovals(rows)
-  const pruneLeftItem = () => {
-    if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(props.tripId, leftItem)
-  }
-  if (!removalNeedsConfirm(removal)) {
-    const snapshots = rows.map((row) => ({ ...row }))
-    rowUndo.armUndo(
-      snapshots,
-      () => {
-        for (const snapshot of snapshots) orchestrator.restoreRemovedItem(props.tripId, snapshot)
-      },
-      pruneLeftItem,
-    )
-    for (const row of rows) removeRow(row)
-    void announceRemoved(name, leftItem !== null)
-    return
-  }
-  const confirmed = await confirmDestructive({
-    header: t('packing.removeConfirmTitle', { name }),
-    message: removalSentence(removal, leftItem !== null),
-    confirmLabel: t('common.remove'),
-    testid: 'm4-remove-confirm',
-  })
-  if (!confirmed) return
-  removeConfirmed(rows, removal.companions, pruneLeftItem)
-  void announceRemoved(name, leftItem !== null)
-}
-
-async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster): Promise<void> {
-  const instances = clusterInstances(cluster)
-  const plan = clusterTargets(action, instances, clusterMenuContext())
-  const rows = rowsOf(plan.targetIds)
-  const reached = plan.targetIds.length + plan.blockedBy.length
-  const report = () => announceFanOut(rows.length, reached, plan.blockedBy)
-
-  switch (action) {
-    case 'assignAll': {
-      // The head has no assignment of its own to show as picked: its instances
-      // may disagree, and presenting one of them as the cluster's answer would
-      // be a claim the model does not make.
-      const picked = await pickAssignee(cluster.name, null)
-      if (picked === undefined) return
-      // Per row: the instances may have disagreed before the fan-out, and the
-      // undo gives each its own value back (FR-25.31).
-      const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
-      armRowsUndo(rows, (live) =>
-        orchestrator.setPacker(props.tripId, live, previous.get(live.id) ?? null),
-      )
-      orchestrator.setPackerForRows(props.tripId, rows, picked)
-      report()
-      return
-    }
-    case 'latePackerOn':
-    case 'latePackerOff': {
-      const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
-      armRowsUndo(rows, (live) =>
-        orchestrator.setLatePacker(props.tripId, live, previous.get(live.id) ?? false),
-      )
-      orchestrator.setLatePackerForRows(props.tripId, rows, action === 'latePackerOn')
-      report()
-      return
-    }
-    case 'release':
-      armRowsUndo(rows, (live) => {
-        if (!locked(live)) orchestrator.packingNow(props.tripId, live)
-      })
-      for (const row of rows) orchestrator.releaseClaim(props.tripId, row)
-      report()
-      return
-    case 'unskip':
-      rowUndo.armUndo(rows, (records) => orchestrator.restoreSkip(props.tripId, records))
-      for (const row of rows) orchestrator.unskipItem(props.tripId, row)
-      report()
-      return
-    case 'packingNow':
-      armRowsUndo(rows, (live) => {
-        if (orchestrator.holdsClaim(props.tripId, live))
-          orchestrator.releaseClaim(props.tripId, live)
-      })
-      for (const row of rows) orchestrator.packingNow(props.tripId, row)
-      report()
-      return
-    case 'buyLocal':
-    case 'packInstead': {
-      const mode = action === 'buyLocal' ? ITEM_MODE_BUY_LOCAL : ITEM_MODE_PACK
-      const previous = new Map(rows.map((row) => [row.id, row.mode]))
-      armRowsUndo(rows, (live) =>
-        orchestrator.setMode(props.tripId, live, previous.get(live.id) ?? live.mode),
-      )
-      for (const row of rows) orchestrator.setMode(props.tripId, row, mode)
-      report()
-      return
-    }
-    case 'flagUnused':
-    case 'unflagUnused': {
-      const previous = new Map(rows.map((row) => [row.id, row.flag_unused]))
-      armRowsUndo(rows, (live) =>
-        orchestrator.setReviewFlag(props.tripId, live, 'unused', previous.get(live.id) ?? false),
-      )
-      for (const row of rows) {
-        orchestrator.setReviewFlag(props.tripId, row, 'unused', action === 'flagUnused')
-      }
-      report()
-      return
-    }
-    case 'quantity':
-      // Centred, like the row menu's: the head it came from may have moved.
-      quantityEvent.value = undefined
-      quantityClusterLabel.value = fanOutName(cluster.name, plan)
-      quantityRowIds.value = plan.targetIds
-      return
-    case 'skip':
-      skipRows(fanOutName(cluster.name, plan), rows)
-      return
-    case 'remove':
-      await removeRows(fanOutName(cluster.name, plan), rows)
-  }
-}
-
-async function openClusterMenu(cluster: PackingCluster): Promise<void> {
-  clusterHold.cancel()
-  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
-  if (rowMenuActive) return
-  const entries = clusterMenuEntries(clusterInstances(cluster), clusterMenuContext())
-  if (entries.length === 0) return
-
-  rowMenuActive = true
-  try {
-    const sheet = await actionSheetController.create({
-      header: cluster.name,
-      // The scope, before the actions rather than after them: the head writes
-      // several rows, and how many is the part a reader cannot see on a shut
-      // cluster.
-      subHeader: t('packing.clusterScope', { n: cluster.instanceIds.length }),
-      buttons: [
-        ...entries.map((action) => ({
-          text: t(CLUSTER_MENU_BUTTONS[action].labelKey),
-          icon: CLUSTER_MENU_BUTTONS[action].icon,
-          role: CLUSTER_MENU_BUTTONS[action].role,
-          handler: () => {
-            void runClusterMenu(action, cluster)
-          },
-        })),
-        { text: t('common.cancel'), role: 'cancel' },
-      ],
-    })
-    await sheet.present()
-    await sheet.onDidDismiss()
-  } finally {
-    rowMenuActive = false
-  }
-}
-
-/**
- * Label and glyph per cluster entry; the decision is the domain's. The head
- * speaks the row's words for the row's actions — its sub-header already says
- * how many rows they reach — and keeps its own for the three it had first,
- * whose „für alle" wording says what a row's could not.
- */
-const CLUSTER_MENU_BUTTONS: Record<
-  ClusterMenuAction,
-  { labelKey: MessageKey; icon: string; role?: 'destructive' }
-> = {
-  ...ROW_MENU_BUTTONS,
-  latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline },
-  latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline },
-  assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline },
-}
-
-async function openRowMenu(item: TripItem) {
-  hold.cancel()
-  // A touch hold can fire twice (the timer, then the browser's `contextmenu`).
-  if (rowMenuActive) return
-  const entries = rowMenuEntries(item, {
-    closingPass: closingPass.value,
-    locked: locked(item),
-    canTakeOver,
-    mine: orchestrator.holdsClaim(props.tripId, item),
-    judgeable: judgeable.value,
-  })
-  if (entries.length === 0) return
-
-  rowMenuActive = true
-  try {
-    const sheet = await actionSheetController.create({
-      header: item.name,
-      buttons: [
-        ...entries.map((action) => ({
-          text: t(ROW_MENU_BUTTONS[action].labelKey),
-          icon: ROW_MENU_BUTTONS[action].icon,
-          role: ROW_MENU_BUTTONS[action].role,
-          handler: () => runRowMenu(action, item),
-        })),
-        { text: t('common.cancel'), role: 'cancel' },
-      ],
-    })
-    await sheet.present()
-    await sheet.onDidDismiss()
-  } finally {
-    // finally, not after the awaits: a failed present() must not leave the
-    // list permanently tap-dead.
-    rowMenuActive = false
-  }
-}
-
-function closeItem() {
-  router.replace(tripPath(props.tripId))
-}
-
-/**
- * G-9: below the breakpoint the detail is a bottom sheet; at or above it
- * a persistent side panel beside the list, so selecting another row swaps
- * the panel's content instead of covering the list.
- */
-const isDesktop = ref(window.matchMedia('(min-width: 900px)').matches)
-const breakpoint = window.matchMedia('(min-width: 900px)')
-const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
-breakpoint.addEventListener('change', onBreakpoint)
-onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
-
-// --- Who is working here (FR-4.9) ---------------------------------------
-// The roster on M1 lists people by the trip they have *open*, which is not the
-// subscription — the dashboard follows every active trip and never lets go.
-// Ionic keeps a page mounted under the one that replaced it, so leaving is a
-// view event and unmounting only the fallback.
-onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
-onIonViewWillLeave(() => orchestrator.setViewing(null))
-onUnmounted(() => orchestrator.setViewing(null))
-
-// --- Header line --------------------------------------------------------
-
-const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
-
-/**
- * How many faces fit before G-10's "+N" bubble. A question about the
- * header's width, so the screen that owns the header answers it.
- */
-const PRESENCE_FACES_MOBILE = 2
-const PRESENCE_FACES_DESKTOP = 4
-
-/**
- * G-10's faces are named from the same directory the packing stamps use.
- * The presence event carries user ids alone, and an id is a random hex
- * string — a facepile initialled from it says who is here in a code
- * nobody can read.
- */
-const presenceNames = computed<Record<string, string>>(() =>
-  Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
-)
-/**
- * FR-7.6: every task of the trip, its own and its rows' preparations, in one
- * list — what the section shows and what its head and figure count.
- *
- * Two kinds of pending removal are already out of it (FR-25.31): a task whose
- * own ✕ was tapped, and every task of a row that is on its way off the list.
- * The row leaves the screen before its delete is written, and a task still
- * listed for it would carry a chip into a row nobody can see any more.
- */
-const tasks = computed(() =>
-  tasksOf(props.tripId).filter(
-    (task) =>
-      !removingTodos.value.has(task.id) &&
-      !(task.item !== null && removingRows.value.has(task.item.id)),
-  ),
-)
-/**
- * FR-7.7: what M4 keeps of the tasks — the ones that hang off a packing row
- * and are still due before the trip, because those are the ones you do as
- * part of packing. Everything else lives on M25, one pill away.
- *
- * The section's figure counts this list and not the trip's whole one: a head
- * that said „3 von 8" over four lines would be reporting on a screen the
- * reader is not looking at.
- */
-const windowTasks = computed(() => packingWindowTasks(tasks.value, orchestrator.today()))
-const tripTodoCount = computed(() => tripTodoProgress(windowTasks.value))
-const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
-
-/** FR-7.4/7.6: the section head's own check, apart from every packing figure. */
-const tripTodoLine = computed(() => {
-  if (tripTodoState.value === 'none') return null
-  if (tripTodoState.value === 'allDone') return t('tripTodos.allDone')
-  return t('tripTodos.progress', {
-    done: tripTodoCount.value.done,
-    total: tripTodoCount.value.total,
-  })
-})
-
-/** FR-7.4: open while anything is owed, one line once nothing is. */
-const tripTodosOpen = computed(() => tripTodosUnfolded(tripTodoState.value, tripTodosFold.value))
-
-/**
- * FR-7.4: the header figure leads to the todos — unfolded, and in view,
- * because the header line stays while the section may be scrolled past.
- */
-function revealTripTodos() {
-  tripTodosFold.value = true
-  tripTodosSection.value?.scrollIntoView({ block: 'nearest' })
-}
-
-/**
- * The ring in the header line, which is not the hero's: the line yields to
- * the list on the way down (FR-21.17) and is the one figure on the screen
- * that has to earn every pixel it keeps.
- */
-const RING_SIZE_HEADER = 42
-
-/**
- * What qualifies the share: the weight the trip is carrying. Under the
- * sentence rather than beside it, because a figure reads as one line and this
- * is the second (FR-21.23).
- *
- * It leaves out the open preparation: the figure beside it counts those
- * (FR-7.6), and a number stated twice on one line is a number two places
- * can disagree about.
- */
-const statsDetail = computed(() =>
-  kpis.value.totalWeight > 0 ? formatWeight(kpis.value.totalWeight) : null,
-)
-
-/**
- * The header line *and the page head above it* yield to the list on the way
- * down and come back on an upward gesture (FR-21.17) — `useHeadScroll`.
- */
-const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
-const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(packContent)
-
 // --- App-bar cluster (G-12) --------------------------------------------
 
 const allFolded = computed(
@@ -1236,7 +412,7 @@ function toggleCluster(key: string) {
   // The release of a hold lands on the overlay rather than on the head, but
   // a dismissed sheet can still deliver the click — the same swallow the
   // rows do, or opening the head's menu would also fold it.
-  if (rowMenuActive) return
+  if (menus.menuActive()) return
   expandedClusters.value = expandedClusters.value.includes(key)
     ? expandedClusters.value.filter((k) => k !== key)
     : [...expandedClusters.value, key]
@@ -1297,7 +473,7 @@ setHeaderActions(() => {
       icon: checkmarkDoneOutline,
       label: t('packing.closeAction'),
       overflow: true,
-      onClick: onClosePacking,
+      onClick: closing.onClosePacking,
     })
   }
   // FR-32.2: who changed what in this trip. A place to go rather than an
@@ -1315,81 +491,6 @@ setHeaderActions(() => {
   }
   return items
 })
-
-// --- Rows ---------------------------------------------------------------
-
-function openTodoCount(itemId: string): number {
-  return tripStore.getItemTodos(props.tripId, itemId).filter((todo) => todo.task_state === 'open')
-    .length
-}
-
-function locked(item: TripItem): boolean {
-  return orchestrator.isLockedByOther(props.tripId, item)
-}
-
-/** G-3's "in progress by Andy", worded in `lib/rowFacts.ts` (U-2). */
-function lockNote(item: TripItem): string | null {
-  return lockNoteText(orchestrator.lockHolder(props.tripId, item), nameOf)
-}
-
-/**
- * The row I claimed says so to *me*: nothing is locked for my own device,
- * so without a word here I cannot tell that I am holding the row against
- * everyone else.
- */
-function ownClaimNote(item: TripItem): string | null {
-  return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
-}
-
-/** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
-function packedStamp(item: TripItem): string | null {
-  return packedStampText(item, nameOf)
-}
-
-/**
- * FR-5.5, worded in `lib/rowFacts.ts`. A row that is done because it was
- * left behind says so where a packed row carries its FR-25.17 stamp; with
- * nothing there, it is exactly the "forgot it" / "decided against it"
- * confusion FR-5.5 exists to remove.
- */
-function skippedNoteFor(item: TripItem): string | null {
-  return skippedNote(item, allItems.value, masterStore.dependencyList)
-}
-
-/** Named only where it differs from the packer — otherwise it is noise. */
-function responsibleNoteFor(item: TripItem): string | null {
-  return responsibleNote(item, nameOf)
-}
-
-/**
- * The four sentences a row can put under its name, all of them — `PackingRow`
- * owns the order it prefers them in, because both kinds of row prefer the
- * same one and that is the rule worth having in one place.
- */
-/** FR-31.12: which excursions ahead borrow each suitcase row. */
-const borrowers = computed(() =>
-  borrowersByTripItem(
-    tripStore.getExcursions(props.tripId),
-    tripStore.getExcursionItems(props.tripId),
-    orchestrator.today(),
-  ),
-)
-
-function rowNotes(item: TripItem): PackingRowNotes {
-  return {
-    lock: lockNote(item),
-    ownClaim: ownClaimNote(item),
-    skipped: skippedNoteFor(item),
-    packed: packedStamp(item),
-    responsible: responsibleNoteFor(item),
-  }
-}
-
-/** FR-25.19's edge avatar, with the name the row shows resolved here. */
-function edgeAvatarFor(item: TripItem): RowEdgeAvatar | null {
-  const edge = rowEdgeAvatar(item)
-  return edge ? { ...edge, name: nameOf(edge.id) } : null
-}
 
 // --- Empty states (FR-25.11e) ------------------------------------------
 
@@ -1450,940 +551,6 @@ function onToggleSwitch(key: string) {
 
 const activeChips = computed(() => chipsFor(view.value, facets.value))
 
-// --- Actions ------------------------------------------------------------
-
-/**
- * Claiming and giving back are each other's undo (G-3). The release derives
- * the state from the packed count, which is what the row read before the
- * claim; a re-claim is only offered back while nobody else has taken the row.
- */
-function onPackingNow(item: TripItem) {
-  actUndoably(
-    item,
-    t('packing.claimedToast', { name: item.name }),
-    () => orchestrator.packingNow(props.tripId, item),
-    (live) => {
-      if (orchestrator.holdsClaim(props.tripId, live)) orchestrator.releaseClaim(props.tripId, live)
-    },
-  )
-}
-
-/** Give the row back without packing it (G-3). */
-function onReleaseClaim(item: TripItem) {
-  actUndoably(
-    item,
-    t('packing.releasedToast', { name: item.name }),
-    () => orchestrator.releaseClaim(props.tripId, item),
-    (live) => {
-      if (!locked(live)) orchestrator.packingNow(props.tripId, live)
-    },
-  )
-}
-
-/**
- * FR-5.7: the only way past somebody else's claim. Server Mode only —
- * Local Mode has no server and Single-User Mode has one account, so
- * there is nobody to take a row from and the surface is absent rather
- * than shown inert (G-8).
- */
-const canTakeOver = hasCollaborativeSession()
-
-/**
- * The confirmation is the requirement, not politeness: it names whom you
- * are interrupting *before* the fact, and that is the whole difference
- * between a lock that can be broken and a lock that is not a lock.
- */
-async function onTakeOver(item: TripItem) {
-  const holderId = orchestrator.lockHolder(props.tripId, item)
-  const who = holderId ? nameOf(holderId) : ''
-  const confirmed = await confirmAction({
-    header: t('packing.takeoverConfirmTitle'),
-    message: who
-      ? t('packing.takeoverConfirmBody', { who, item: item.name })
-      : t('packing.takeoverConfirmBodyUnknown', { item: item.name }),
-    confirmLabel: t('packing.takeoverAction'),
-  })
-  if (!confirmed) return
-
-  try {
-    const previous = await orchestrator.takeOverClaim(props.tripId, item)
-    const previousName = previous ? nameOf(previous) : ''
-    await presentToast({
-      message: previousName
-        ? t('packing.takeoverDone', { who: previousName })
-        : t('packing.takeoverDoneUnknown'),
-      positionAnchor: FAB_ANCHOR.m4,
-    })
-  } catch {
-    // The claim did not move, and the likeliest reason is that the screen
-    // is behind: the holder packed or released the row while the sheet
-    // was open. Saying so beats a silent no-op.
-    await presentToast({
-      message: t('packing.takeoverFailed'),
-      positionAnchor: FAB_ANCHOR.m4,
-    })
-  }
-}
-
-/**
- * FR-5.5: say that a thing is deliberately not coming, rather than leaving
- * it open and indistinguishable from forgotten.
- *
- * The snackbar is not decoration here: FR-20.2 may take companions along,
- * and a cascade the user never sees is a list that changed behind their
- * back. It names them and offers the one undo that puts the whole cascade
- * back.
- */
-function onSkipItem(item: TripItem) {
-  // Armed from what the skip reports rather than from the row in hand: the
-  // companions are only known once the cascade has run, and `skipItem`
-  // returns them as they were *before* it wrote (pinned by its own test).
-  const affected = orchestrator.skipItem(props.tripId, item)
-  rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(props.tripId, records))
-  void announceSkipped(
-    item.name,
-    affected.slice(1).map((row) => row.name),
-  )
-}
-
-/**
- * The write, and the detail it leaves open: a removed row's M5 would otherwise
- * stand beside the list saying the item cannot be found — true, and about the
- * one thing the reader just did on purpose.
- */
-function removeRow(item: TripItem): void {
-  orchestrator.removeItem(props.tripId, item, [])
-  if (openItemId.value === item.id) closeItem()
-}
-
-/**
- * FR-5.8: off the list altogether. An untouched row goes at once and the
- * snackbar can bring it back; a row carrying packing, notes or companions says
- * what it takes along first, and is asked instead of offered.
- *
- * The inventory item the row was the only use of goes too (ADR-065) — but
- * only once the removal is final, when the snackbar lapses. So the undo only
- * ever re-inserts a row, or, after a confirmation, un-hides one (FR-25.31).
- */
-async function onRemoveItem(item: TripItem) {
-  const removal = orchestrator.planRowRemoval(props.tripId, item)
-  const leftItem = orchestrator.itemLeftByRemoval(item)
-  const pruneLeftItem = () => {
-    if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(props.tripId, leftItem)
-  }
-  if (!removalNeedsConfirm(removal)) {
-    // A copy, not the store's row: the undo re-inserts from it after the row
-    // has left the store.
-    const snapshot = { ...item }
-    rowUndo.armUndo(
-      [snapshot],
-      () => orchestrator.restoreRemovedItem(props.tripId, snapshot),
-      pruneLeftItem,
-    )
-    removeRow(item)
-    void announceRemoved(item.name, leftItem !== null)
-    return
-  }
-  const confirmed = await confirmDestructive({
-    header: t('packing.removeConfirmTitle', { name: item.name }),
-    message: removalSentence(removal, leftItem !== null),
-    confirmLabel: t('common.remove'),
-    testid: 'm4-remove-confirm',
-  })
-  if (!confirmed) return
-  removeConfirmed([item], removal.companions, pruneLeftItem)
-  void announceRemoved(item.name, leftItem !== null)
-}
-
-/**
- * FR-25.31: a confirmed removal has an undo too. Its companions are skipped
- * now — an ordinary write the snackbar can take back — but the rows themselves
- * only leave the screen: deleting them would take their comments and todos
- * along, and those cannot be written back under their own authors. The delete
- * is what lapses, with ADR-065's prune after it.
- */
-function removeConfirmed(
-  rows: readonly TripItem[],
-  companions: readonly TripItem[],
-  afterDelete: () => void,
-): void {
-  const ids = new Set(rows.map((row) => row.id))
-  const unhide = () => {
-    for (const id of ids) removingRows.value.delete(id)
-  }
-  rowUndo.armUndo(
-    [...rows, ...companions],
-    (records) => {
-      unhide()
-      orchestrator.restoreSkip(
-        props.tripId,
-        records.filter((record) => !ids.has(record.itemId)),
-      )
-    },
-    () => {
-      for (const id of ids) {
-        const live = liveRow(id)
-        if (live) orchestrator.removeItem(props.tripId, live, [])
-      }
-      unhide()
-      afterDelete()
-    },
-  )
-  for (const id of ids) removingRows.value.add(id)
-  if (openItemId.value !== null && ids.has(openItemId.value)) closeItem()
-  orchestrator.skipRows(props.tripId, companions)
-}
-
-/**
- * FR-9.3: the flag is a judgement, not a stamp. The same menu entry sets it
- * and takes it back, and the snackbar does too (FR-25.31) — the one undo
- * every act on the list offers.
- */
-function onFlagUnused(item: TripItem, value: boolean) {
-  const previous = item.flag_unused
-  actUndoably(
-    item,
-    value
-      ? t('packing.flagUnusedToast', { item: item.name })
-      : t('packing.unflagUnusedToast', { item: item.name }),
-    () => orchestrator.setReviewFlag(props.tripId, item, 'unused', value),
-    (live) => orchestrator.setReviewFlag(props.tripId, live, 'unused', previous),
-  )
-}
-
-/**
- * The pass's single gesture. It raises the same snackbar as the menu's
- * entry (FR-25.31): one at a time, each replacing the last,
- * so a run of taps leaves one undo for the latest rather than a stack.
- */
-function onPassToggle(item: TripItem) {
-  // G-3 reaches into the leaf: a row somebody else is holding is theirs,
-  // and the pass is no exception. A packed row rarely carries a live claim
-  // — packing ends it — but this control must not be the one place that
-  // decides otherwise.
-  if (locked(item)) return
-  onFlagUnused(item, !item.flag_unused)
-}
-
-function onUnskipItem(item: TripItem) {
-  rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(props.tripId, records))
-  orchestrator.unskipItem(props.tripId, item)
-  void announceAct(t('packing.unskippedToast', { name: item.name }))
-}
-
-function onLatePacker(item: TripItem, latePacker: boolean) {
-  const previous = item.late_packer
-  actUndoably(
-    item,
-    t(latePacker ? 'packing.latePackerOnToast' : 'packing.latePackerOffToast', {
-      name: item.name,
-    }),
-    () => orchestrator.setLatePacker(props.tripId, item, latePacker),
-    (live) => orchestrator.setLatePacker(props.tripId, live, previous),
-  )
-}
-
-/** FR-5.9 from the row menu, taken back like every other act (FR-25.31). */
-function onSetMode(item: TripItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
-  const previous = item.mode
-  actUndoably(
-    item,
-    t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
-      name: item.name,
-    }),
-    () => orchestrator.setMode(props.tripId, item, mode),
-    (live) => orchestrator.setMode(props.tripId, live, previous),
-  )
-}
-
-/**
- * A step of the counter is announced like a pack, and the step that
- * completes the row *is* one — it leaves the list the same way (FR-25.2).
- */
-function onIncrement(item: TripItem) {
-  packStep(item, Math.min(item.packed_count + 1, item.quantity), () =>
-    orchestrator.packIncrement(props.tripId, item),
-  )
-}
-
-function onDecrement(item: TripItem) {
-  packStep(item, Math.max(item.packed_count - 1, 0), () =>
-    orchestrator.packDecrement(props.tripId, item),
-  )
-}
-
-function packStep(item: TripItem, packed: number, act: () => void) {
-  const name = item.name
-  rowUndo.actWithUndo([item], act, restorePacked)
-  void (packed >= item.quantity
-    ? announcePacked(name)
-    : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
-}
-
-function onComplete(item: TripItem) {
-  const name = item.name
-  rowUndo.actWithUndo([item], () => orchestrator.packComplete(props.tripId, item), restorePacked)
-  void announcePacked(name)
-}
-
-function onZero(item: TripItem) {
-  const name = item.name
-  rowUndo.actWithUndo([item], () => orchestrator.packZero(props.tripId, item), restorePacked)
-  void announceAct(t('packing.unpackedToast', { name }))
-}
-
-/* --- FR-25.2: the pack registers, and it can be taken back ------------ */
-
-/**
- * The duration lives in CSS only. The hook below waits on `transitionend`
- * rather than on a number, so there is nothing here to keep in step.
- */
-
-/** Honoured for the row collapse as well as the flash — checked live, since
- *  the setting can change while the screen is open. */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-
-/**
- * Collapse a leaving row to zero height — the rules are in `collapseRow`.
- *
- * **Except where the item is only changing shape** (FR-25.28, `isReshaped`):
- * its old shape goes at once rather than standing beside its replacement.
- */
-function onRowLeave(el: Element, done: () => void) {
-  const { forWhomKey: key, rowId } = (el as HTMLElement).dataset
-  if (
-    key !== undefined &&
-    isReshaped({ key, rowId: rowId ?? null }, shownForWhom.value, existingRowIds.value)
-  ) {
-    done()
-    return
-  }
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
-}
-
-const {
-  rowUndo,
-  packAnnouncements,
-  announcePacked,
-  announceSkipped,
-  announceRemoved,
-  announceRenamed,
-  announceTaskDone,
-  announceAct,
-} = usePackAnnouncer()
-
-/** The row as it is now, or null once it has left the trip. */
-function liveRow(itemId: string): TripItem | null {
-  return tripStore.getItems(props.tripId).find((row) => row.id === itemId) ?? null
-}
-
-/**
- * FR-25.31: act on one row behind the snackbar's undo. `restore` gets the row
- * as it is *when the undo fires* and writes back only the field its act
- * changed — building the write from the row in hand would revert whatever
- * landed in between (the reason `restorePack` re-reads, too). A row deleted
- * meanwhile stays deleted.
- */
-function actUndoably(
-  item: TripItem,
-  message: string,
-  act: () => void,
-  restore: (live: TripItem) => void,
-) {
-  const id = item.id
-  rowUndo.armAction(item.name, () => {
-    const live = liveRow(id)
-    if (live) restore(live)
-  })
-  act()
-  void announceAct(message)
-}
-
-/** The same for a fan-out over several rows (FR-25.26): one undo for all. */
-function armRowsUndo(rows: readonly TripItem[], restore: (live: TripItem) => void) {
-  const ids = rows.map((row) => row.id)
-  rowUndo.armAction(rows[0]?.name ?? '', () => {
-    for (const id of ids) {
-      const live = liveRow(id)
-      if (live) restore(live)
-    }
-  })
-}
-
-/** Put back what a pack changed, and only that (FR-25.2). */
-function restorePacked(records: RowUndoRecord[]) {
-  for (const record of records) {
-    orchestrator.restorePack(props.tripId, record.itemId, record.packedCount, record.state)
-  }
-}
-
-function onToggle(item: TripItem) {
-  // Un-packing a revealed done row is announced too (FR-25.31): its result
-  // is on screen, but a mistap on a list of done rows
-  // is as expensive to find again as one on the open list.
-  const reads = stateFor(item.packed_count, item.quantity)
-  const unpacks = reads === 'packed' || reads === 'skipped'
-  const name = item.name
-  rowUndo.actWithUndo([item], () => orchestrator.packToggle(props.tripId, item), restorePacked)
-  void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
-}
-
-/**
- * FR-7.6/FR-7.7: every act on a task, written once in `useTaskActs` and shared
- * with M25 — the same two kinds of row, the same undo, the same sentences.
- * What stays here is only what belongs to this screen: its snackbar, its
- * picker's audience, and the set of tasks hidden pending a removal.
- */
-const taskActs = useTaskActs(() => props.tripId, {
-  rowUndo,
-  announceAct,
-  announceTaskDone,
-  pickAssignee: (header, current) => pickAssignee(header, current, todoAssignees.value),
-  nameOf,
-  removing: removingTodos,
-})
-
-/**
- * FR-7.7: the task sheet, the same one M25 opens. Held by id rather than by
- * value, so a task ticked off on another device cannot leave a sheet behind
- * claiming it is open.
- */
-const openedTaskId = ref<string | null>(null)
-const openedTask = computed(
-  () => tasks.value.find((task) => task.id === openedTaskId.value) ?? null,
-)
-
-function onOpenTask(task: TripTask) {
-  openedTaskId.value = task.id
-}
-
-function onTaskMove(phase: TaskPhase) {
-  const task = openedTask.value
-  openedTaskId.value = null
-  if (task) taskActs.move(task, phase)
-}
-
-/** FR-7.11: the sheet stays up — the date is one fact of several on it. */
-function onTaskDue(dueDate: string | null) {
-  if (openedTask.value) taskActs.setDue(openedTask.value, dueDate)
-}
-
-/** FR-7.14: finished from the sheet, which closes as the line leaves the window. */
-function onTaskToggleFromSheet() {
-  const task = openedTask.value
-  openedTaskId.value = null
-  if (task) taskActs.toggle(task)
-}
-
-/** FR-7.14: the words, corrected on the sheet. */
-function onTaskRename(body: string) {
-  if (openedTask.value) taskActs.rename(openedTask.value, body)
-}
-
-function onTaskRemoveFromSheet() {
-  const task = openedTask.value
-  openedTaskId.value = null
-  if (task) taskActs.remove(task)
-}
-
-/**
- * FR-25.13f: how to take back what the browse-sheet last did, keyed by the
- * master item its line stands for.
- *
- * A plain `Map` rather than the FR-25.2 snackbar's `useRowUndo`: the sheet's
- * undo lives *in the row* and therefore for as long as the sheet is open,
- * where the snackbar's lives for three seconds and only ever holds one act.
- * Each entry replaces the one before it, because the line only ever offers
- * the way back out of the last thing it did.
- */
-const browseUndo = new Map<string, () => void>()
-
-/** The master item's own fields, as an add takes them (FR-25.7 defaults). */
-function quickAddOptions(item: BrowseAddition) {
-  return {
-    sourceItemId: item.sourceItemId,
-    weightGrams: item.weightGrams,
-    valueCents: item.valueCents,
-    categoryName: item.categoryName,
-  }
-}
-
-/**
- * FR-25.28: a composer add is for whoever the strip over the field names — no
- * traveler is a shared row, as it always was. It goes through the same action
- * FR-25.13h's avatar buttons use, called with no existing rows, so an add for
- * two people and a browse-sheet pick of the same two write identical rows. A
- * decided add (FR-25.13f) only ever comes from the browse-sheet, which answers
- * *for whom* per line and sends no travelers here.
- */
-function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision) {
-  const opts = quickAddOptions(item)
-  // FR-5.10: while the packing is closed, a row typed here is a thing that
-  // travelled and was never on the list — so it lands
-  // *packed* rather than as the one open job on a finished list. An add for
-  // named travelers keeps the open row it always wrote: a row per person is
-  // a plan being made, not a bag being recorded.
-  const decision: AddedItemDecision | undefined =
-    decided ?? (packingClosed.value && item.travelerIds.length === 0 ? STATE_PACKED : undefined)
-  const { id: addedId, companions } = decision
-    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decision)
-    : orchestrator.setTravelerAssignment(
-        props.tripId,
-        item.name,
-        opts,
-        active.value,
-        [],
-        item.travelerIds,
-      )
-  browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
-  announceCompanions(companions)
-}
-
-/**
- * FR-20.4: say what came along. Named rather than counted, the way FR-20.2's
- * skip names what it took with it — a bare number sends the reader looking for
- * what changed, which is the complaint this answers.
- */
-function announceCompanions(companions: string[]) {
-  if (companions.length === 0) return
-  void presentToast({
-    message: t('packing.companionsAdded', {
-      n: companions.length,
-      names: companions.join(', '),
-    }),
-    // Above the composer's own anchor, like every other M4 toast: this one
-    // fires while the quick-add is still open for the next entry.
-    positionAnchor: FAB_ANCHOR.m4,
-  })
-}
-
-/**
- * FR-25.13g: the browse-sheet's „für alle" on a line the trip does not carry
- * yet — one tap adds the row and hands it to every traveler.
- *
- * The undo takes out **every** row the tap left behind, the re-pointed one
- * included: none of them existed before it.
- */
-function onBrowseAddForAll(item: BrowseAddition) {
-  const result = orchestrator.addItemForEveryTraveler(
-    props.tripId,
-    item.name,
-    quickAddOptions(item),
-    active.value,
-  )
-  if (item.sourceItemId) {
-    const ids = result.ids
-    browseUndo.set(item.sourceItemId, () => {
-      for (const id of ids) orchestrator.removeAddedItem(props.tripId, id)
-    })
-  }
-  if (result.outcome !== SPREAD.done) void reportSpreadRefused()
-  announceCompanions(result.companions)
-}
-
-/**
- * FR-25.13h: the browse-sheet's avatar buttons / long-press pick — always
- * sent as the whole desired set of travelers, so a second tap adds a second
- * traveler to the row this run already wrote (or removes one, tapped again)
- * rather than starting a second, unrelated row for the same item.
- *
- * `rowsOfMasterItem` is read fresh rather than passed a cached id: the sheet
- * itself has no row ids to hand back after the first tap (it only ever sees
- * `BrowseAddition`s), and the undo has the same shape — recomputed live at
- * the moment it fires, so it always removes whatever this run currently has
- * for the item rather than a snapshot that a later toggle already changed.
- */
-function onBrowseAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
-  const { companions } = orchestrator.setTravelerAssignment(
-    props.tripId,
-    item.name,
-    quickAddOptions(item),
-    active.value,
-    item.sourceItemId ? rowsOfMasterItem(item.sourceItemId) : [],
-    travelerIds,
-  )
-  if (item.sourceItemId) {
-    const itemId = item.sourceItemId
-    browseUndo.set(itemId, () => {
-      for (const row of rowsOfMasterItem(itemId)) orchestrator.removeAddedItem(props.tripId, row.id)
-    })
-  }
-  announceCompanions(companions)
-}
-
-/**
- * FR-25.13g on a line the trip already carries: the travelers without a row
- * for it get one, and what is already there keeps the amount somebody chose
- * (ADR-036 keep-and-repoint).
- */
-function onBrowseSpread(itemId: string) {
-  const rows = rowsOfMasterItem(itemId)
-  const result = orchestrator.spreadOverEveryTraveler(props.tripId, rows, rowsWithContent(rows))
-  if (result.outcome !== SPREAD.done || !result.restore) {
-    void reportSpreadRefused()
-    return
-  }
-  const restore = result.restore
-  browseUndo.set(itemId, () => orchestrator.restoreMembership(props.tripId, restore))
-}
-
-/** What a delete of these rows would cost beyond the rows (FR-7.1/7.3). */
-function rowsWithContent(rows: TripItem[]): string[] {
-  return rowsCarryingContent(rows, {
-    hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
-    hasTodo: (rowId) => tripStore.getTodos(props.tripId).some((t) => t.trip_item_id === rowId),
-  })
-}
-
-/**
- * A spread declines rather than deletes: its own way back cannot recreate a
- * row, so a plan carrying a delete is refused and said out loud. Deciding it
- * belongs to the membership editor, which has the confirm for it (ADR-036).
- */
-function reportSpreadRefused() {
-  return presentToast({
-    message: t('packing.forAllRefused'),
-    positionAnchor: FAB_ANCHOR.m4,
-  })
-}
-
-/** Every row the trip carries for one master item (FR-25.21's fan-out). */
-function rowsOfMasterItem(itemId: string): TripItem[] {
-  return allItems.value.filter((row) => row.source_item_id === itemId)
-}
-
-/**
- * FR-25.13f: pack everything this master item stands for on the trip, in one
- * tap. A row that is packed already is left alone — packing it again would
- * restamp somebody else's packing record with mine.
- */
-function onBrowsePack(itemId: string) {
-  const rows = rowsOfMasterItem(itemId).filter((row) => row.state !== 'packed')
-  const records = rows.map((row) => ({
-    itemId: row.id,
-    name: row.name,
-    quantity: row.quantity,
-    packedCount: row.packed_count,
-    state: row.state,
-  }))
-  for (const row of rows) orchestrator.packComplete(props.tripId, row)
-  browseUndo.set(itemId, () => restorePacked(records))
-}
-
-/**
- * FR-25.13f: leave everything this master item stands for at home (FR-5.5),
- * companions included — `skipItem` reports what went along, and the undo
- * puts back exactly those rows.
- */
-function onBrowseSkip(itemId: string) {
-  const affected = rowsOfMasterItem(itemId)
-    .filter((row) => row.state !== 'skipped')
-    .flatMap((row) => orchestrator.skipItem(props.tripId, row))
-  const records = affected.map((row) => ({
-    itemId: row.id,
-    quantity: row.quantity,
-    packedCount: row.packed_count,
-    state: row.state,
-  }))
-  browseUndo.set(itemId, () => orchestrator.restoreSkip(props.tripId, records))
-}
-
-/**
- * FR-25.13i: put every row this master item stands for back on the list,
- * whoever decided it and whenever.
- *
- * Not `onBrowseUndo`: that one replays a closure this run recorded, and a
- * decision from yesterday — or from another device — left none. So this is a
- * **reset** rather than a restore, and deliberately the same two writes M4's
- * own row menu makes: a skipped row comes back at amount one (FR-5.5's skip
- * zeroed it, and only the row's own history knows what it was), a packed one
- * keeps its amount and loses its packed count.
- */
-function onBrowseReopen(itemId: string) {
-  for (const row of rowsOfMasterItem(itemId)) {
-    if (row.state === 'skipped') orchestrator.unskipItem(props.tripId, row)
-    else orchestrator.packZero(props.tripId, row)
-  }
-}
-
-function onBrowseUndo(itemId: string) {
-  const undo = browseUndo.get(itemId)
-  if (!undo) return
-  browseUndo.delete(itemId)
-  undo()
-}
-
-/**
- * FR-27.10: one tap in the quick-add expands a whole group onto the trip.
- *
- * **The result is always reported** — which sentence, and why each outcome
- * needs its own, is `groupAdditionMessage`.
- */
-async function onQuickAddGroup(templateId: string) {
-  const report = orchestrator.addGroupToTrip(props.tripId, templateId)
-  await reportGroupAnswer(groupAdditionMessage(report))
-}
-
-/**
- * Starting moves a planning trip into packing (`active`). The wizard only
- * ever creates planning trips, so this is the transition that makes FR-9.1's
- * Missing flagging and the archive action reachable at all — deliberately a
- * plain status change here, not the richer departure ritual the North-Star
- * Plan/During phases own.
- */
-/**
- * Archiving completes the trip and opens the M14 review (FR-9.2).
- * With no FR-9.1 flags there is nothing to judge, so the assistant is
- * skipped with a toast instead of an empty screen (UI-Spec M14 states);
- * the archived M4 leads with the closing card either way.
- */
-/**
- * FR-9.3: *Reise abschliessen* does not archive straight away — it opens
- * the closing pass, the one point in the lifecycle where the user is
- * thinking about the whole trip at once. The pass never gates archiving:
- * *Fertig* finishes it whether or not anything was marked.
- */
-function onArchive() {
-  closingPass.value = true
-}
-
-/**
- * The pass's one door is M2's *Reise abschliessen*, which
- * arrives here as `?closing=1`. Taken only while archiving is the trip's next
- * step — a stale link to an archived or planning trip opens the list — and
- * the flag is dropped from the URL at once, so a reload or a back does not
- * reopen a pass the user has left.
- */
-watch(
-  [() => route.query[CLOSING_QUERY_PARAM], () => nextLifecycleStep(trip.value)],
-  ([asked, step]) => {
-    if (asked === undefined) return
-    if (step === 'archive') onArchive()
-    // Waits for the trip: before it has loaded there is no step to read.
-    if (step === null && !trip.value) return
-    void router.replace(tripPath(props.tripId))
-  },
-  { immediate: true },
-)
-
-/** FR-7.16: *Nur starten* — the trip starts, the packing stays open and nothing moves. */
-function onStartOnly() {
-  closeSheetOpen.value = false
-  closeStarting.value = false
-  orchestrator.activateTrip(props.tripId)
-  void announceAct(t('packing.startedToast'))
-}
-
-/** Leaves the pass without archiving — the door asks, so it can be closed. */
-function onCancelClosingPass() {
-  closingPass.value = false
-}
-
-/**
- * FR-5.10's question, live: what closing *now* would decide. The sheet reads
- * it, and so does the write, so the sentence confirmed and the rows changed
- * come from one rule — and on a shared trip the sheet follows a list that
- * changes while it is open.
- */
-const closePlan = computed<ClosePackingPlan>(() =>
-  planPackingClose(allItems.value, {
-    isClaimed: (row: TripItem) => locked(row),
-    // FR-7.7: the tasks that would cross with the close. Read into the plan
-    // rather than counted beside it, so the sentence the reader confirms and
-    // the write that follows cannot disagree about how many move.
-    tasks: [...tripStore.getTripTodos(props.tripId), ...tripStore.getTodos(props.tripId)],
-  }),
-)
-
-/**
- * FR-7.12: what the modules move with the close (the shopping list's own
- * entries), provided by the composition root; none in a spec that provides
- * none.
- */
-const closeCrossings = inject(PACKING_CLOSE_CROSSINGS, [])
-/** The sheet's shopping number: the packing rows plus every module's own. */
-const closeShoppingCount = computed(
-  () =>
-    closePlan.value.buyRows.length +
-    closeCrossings.reduce((n, crossing) => n + crossing.pending(props.tripId), 0),
-)
-
-/** Whether the question is on screen, and whether it came asked or invited. */
-const closeSheetOpen = ref(false)
-const closePrompted = ref(false)
-/** FR-7.16: the sheet was opened by *Reise starten*, and its confirm starts the trip too. */
-const closeStarting = ref(false)
-
-/**
- * FR-7.16: M2's *Reise starten* on a trip whose packing is open arrives as
- * `?starting=1`, and the list asks FR-5.10's question put for the start.
- * Taken only while starting is the trip's next step; a packing finished in
- * the meantime starts the trip without asking. The flag is dropped from the URL at once, like the closing pass's. Below
- * the sheet's own state, since it runs as soon as it is set up.
- */
-watch(
-  [() => route.query[STARTING_QUERY_PARAM], () => nextLifecycleStep(trip.value)],
-  ([asked, step]) => {
-    if (asked === undefined) return
-    // Waits for the trip: before it has loaded there is no step to read.
-    if (step === null && !trip.value) return
-    if (step === 'start' && !packingClosed.value) {
-      closePrompted.value = false
-      closeStarting.value = true
-      closeSheetOpen.value = true
-    } else if (step === 'start') {
-      // Finished on another device between M2's tap and this arrival: there
-      // is nothing left to ask, and the start was asked for.
-      orchestrator.activateTrip(props.tripId)
-      void announceAct(t('packing.startedToast'))
-    }
-    void router.replace(tripPath(props.tripId))
-  },
-  { immediate: true },
-)
-
-/**
- * FR-5.10's second door: the step is offered where the
- * moment is. Packing the last open row *is* the moment — finding the ⋮
- * afterwards is the part nobody does.
- *
- * Three guards, each paid for by a way this becomes a nuisance:
- *
- *  - it asks on the **transition**, never on arrival at a list that was
- *    already complete — `settled` drops the first reading, which is the one
- *    that describes a moment that passed before the screen opened;
- *  - a reader who says *später* is not asked again for this trip while the
- *    screen lives, or the box would raise it on every tick;
- *  - a list that has not arrived is not an empty one (ADR-033), and a trip
- *    with no rows at all has nothing to finish.
- */
-const packingComplete = computed(() => packingIsFinished(allItems.value))
-const closeDeclined = ref(false)
-/**
- * Whether this screen has read the list *once*. Counted from the partition
- * arriving rather than from the mount: on a cold start M4 renders before its
- * rows land, so the mount's reading says „nothing is open" about a list
- * nobody has read (ADR-033), and the reading after it — the real first one —
- * would otherwise look like the transition this watches for.
- */
-let listRead = false
-/** Whether the offer has been raised for this list, as a bar above it. */
-const closePromptUp = ref(false)
-watch(
-  [rowsLoaded, packingComplete] as const,
-  ([loaded, complete]) => {
-    if (!loaded) return
-    const firstReading = !listRead
-    listRead = true
-    // The offer stands down by itself when the list reopens — a row added or
-    // un-packed — so it never outlives the moment it reports.
-    if (!complete) closePromptUp.value = false
-    if (firstReading || !complete || packingClosed.value || closeDeclined.value) return
-    closePromptUp.value = true
-  },
-  { immediate: true },
-)
-
-/** The bar's own button: the same question, now asked for. */
-function onOpenFromPrompt() {
-  closePrompted.value = true
-  closeSheetOpen.value = true
-}
-
-/** *Später* on the sheet: this trip stops volunteering it while M4 lives. */
-function onDismissPrompt() {
-  closePromptUp.value = false
-  closeDeclined.value = true
-}
-
-/** The ⋮ asks the same question, and says so by not being a prompt. */
-function onClosePacking() {
-  closePrompted.value = false
-  closeSheetOpen.value = true
-}
-
-/** Dismissed: nothing is written, and an offered close stops being offered. */
-function onCloseSheetDismissed() {
-  closeSheetOpen.value = false
-  closeStarting.value = false
-  if (closePrompted.value) onDismissPrompt()
-}
-
-/**
- * FR-5.10: everything still open becomes a decision, and the trip records
- * that the packing is finished.
- *
- * The plan is read twice on purpose — once by the sheet, once inside the
- * action for the write. In between the user reads a question, and on a
- * shared trip the list can change while they do; the write must act on what
- * is there when it runs, not on what the question counted.
- */
-function onConfirmClosePacking() {
-  const starting = closeStarting.value
-  closeSheetOpen.value = false
-  closeStarting.value = false
-  closePromptUp.value = false
-  const { rows, tasks, buyRows } = orchestrator.closePacking(props.tripId, {
-    isClaimed: (row: TripItem) => locked(row),
-    // FR-7.16: the tag the crossing trip tasks are filed under, in the
-    // reader's words.
-    carriedTagName: t('tasks.carriedTag'),
-  })
-  // FR-7.12: a module's own *before* list crosses in the same act, and is
-  // taken back by the same undo.
-  const crossed = closeCrossings.map((crossing) => crossing.cross(props.tripId))
-  // FR-7.16: asked for by *Reise starten* — the start is part of the act,
-  // after the close, so the trip is under way with *before* already closed.
-  if (starting) orchestrator.activateTrip(props.tripId)
-  const shopping = buyRows.length + crossed.reduce((n, effect) => n + effect.count, 0)
-  // One undo for the whole act (FR-25.31), and deliberately one *call*: the
-  // rows travel as the records the snackbar snapshots, the moved tasks in the
-  // closure beside them. Arming a second undo for the tasks would replace the
-  // first — the record holds one action at a time, by design — and the rows
-  // would quietly lose their way back.
-  rowUndo.armUndo(rows, (records) => {
-    orchestrator.restorePackingClose(props.tripId, records, tasks, buyRows)
-    for (const effect of crossed) effect.undo()
-    if (starting) orchestrator.unstartTrip(props.tripId)
-  })
-  const said = [
-    rows.length > 0 ? t('packing.closedToast', { n: rows.length }) : t('packing.closedToastNone'),
-  ]
-  // FR-7.7: the sheet said it would happen; the snackbar says it did, because
-  // the tasks left a screen the reader is still looking at.
-  if (tasks.length > 0) said.push(t('packing.closedToastTasks', { n: tasks.length }))
-  if (shopping > 0) said.push(t('packing.closedToastShopping', { n: shopping }))
-  if (starting) said.push(t('packing.startedToastShort'))
-  void announceAct(said.join(' · '))
-}
-
-/**
- * FR-5.10's way back. No snackbar and no undo: the card that offered it is
- * gone from the top of the list, which is the whole feedback — and reopening
- * is itself the way back out of closing.
- */
-function onReopenPacking() {
-  orchestrator.reopenPacking(props.tripId)
-}
-
-/** FR-9.3's ending: the pass archives the trip and continues into M14. */
-async function onFinishClosingPass() {
-  closingPass.value = false
-  await archiveAndReview()
-}
-
-async function archiveAndReview() {
-  orchestrator.archiveTrip(props.tripId)
-  const flagged = tripStore
-    .getItems(props.tripId)
-    .some((item) => item.flag_unused || item.flag_missing)
-  if (!flagged) {
-    await presentToast({ message: t('review.nothingToast') })
-    return
-  }
-  router.push(tripSubPath(props.tripId, 'review'))
-}
-
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
   await orchestrator.drainTrip(props.tripId)
@@ -2427,70 +594,24 @@ setHeaderTitle(
         <IonRefresherContent />
       </IonRefresher>
 
-      <!-- One header line (G-12): what the trip stands at. Deliberately
-           unfiltered — see FR-25.20. Neither the trip's *other views* nor
-           its name sit here: the name is the page's own head (ADR-050). -->
-      <!-- Collapsed for a second reason (ADR-033): with the figure below
-           waiting for the partition the line holds nothing, and an empty band
-           above the note is a container asserting itself. The state that
-           yields the space already exists, so it is reused rather than
-           doubled. -->
-      <div
-        class="trip-line"
-        :class="{ collapsed: headCollapsed || !rowsLoaded, paired: tripTodoState !== 'none' }"
-        data-testid="m4-header"
-      >
-        <!-- Where the trip stands, and who else is here. Tabular throughout:
-             the weight under the share changes on the same tap as the share
-             itself, and proportional digits shift both as it does. -->
-        <div
-          class="trip-stats jp-card"
-          :class="{ paired: tripTodoState !== 'none' }"
-          data-testid="m4-progress-card"
-        >
-          <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
-               note below declines to give, in the form a reader trusts most.
-               It waits for the partition; 0/0 is honest once measured. -->
-          <ProgressFigure
-            v-if="rowsLoaded"
-            class="figure jp-num"
-            :percent="packedPercent(kpis)"
-            :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"
-            :detail="statsDetail"
-            :ring-size="RING_SIZE_HEADER"
-            :paired="tripTodoState !== 'none'"
-            headline-testid="m4-progress"
-            detail-testid="m4-stats-detail"
-          />
-          <!-- FR-7.4: the second check, beside the share and never inside
-               it; a tap leads to the section that ticks it. -->
-          <button
-            v-if="rowsLoaded && tripTodoState !== 'none'"
-            class="todo-figure-button"
-            data-testid="m4-trip-todos-figure"
-            :aria-label="tripTodoLine ?? undefined"
-            @click="revealTripTodos"
-          >
-            <TripTodoFigure
-              :trip-id="tripId"
-              :ring-size="RING_SIZE_HEADER"
-              :tasks="windowTasks"
-              testid="m4-trip-todos-progress"
-            />
-          </button>
-          <PresenceFacepile
-            v-if="presenceUsers.length > 1"
-            :users="presenceUsers"
-            :names="presenceNames"
-            :max="isDesktop ? PRESENCE_FACES_DESKTOP : PRESENCE_FACES_MOBILE"
-          />
-        </div>
-      </div>
+      <PackingHeadline
+        :trip-id="tripId"
+        :kpis="kpis"
+        :loaded="rowsLoaded"
+        :collapsed="headCollapsed"
+        :tasks="tasks.windowTasks.value"
+        :todo-state="tasks.state.value"
+        :todo-line="tasks.line.value"
+        :presence-users="presenceUsers"
+        :participants="participants"
+        :is-desktop="isDesktop"
+        @reveal-todos="revealTripTodos"
+      />
 
       <ClosingPassBanner
         v-if="closingPass"
-        @finish="onFinishClosingPass"
-        @cancel="onCancelClosingPass"
+        @finish="closing.onFinishClosingPass"
+        @cancel="closing.onCancelClosingPass"
       />
 
       <!-- FR-25.29: who the trip is for, and how far each of them is. Below
@@ -2504,66 +625,27 @@ setHeaderTitle(
         @select="selectTraveler"
       />
 
-      <!-- FR-7.4: the trip's own todos — chores that prepare no row. Written
-           here, in the trip; M1 only reports them. Above the list, because at
-           its foot they went unseen; unfolded while any is open, one line once
-           none is. Always present, because the section is where the first one
-           is typed — but only once the partition is here (ADR-033): before
-           that it would read „folded" and then spring open under a tap that
-           was meant to open it, which closes it again. -->
-      <div
+      <!-- FR-7.4: the trip's own todos. Above the list, because at its foot
+           they went unseen. Always present, because the section is where the
+           first one is found — but only once the partition is here
+           (ADR-033): before that it would read „folded" and then spring open
+           under a tap that was meant to open it, which closes it again. -->
+      <TripTodosSection
         v-if="rowsLoaded && !closingPass"
-        ref="tripTodosSection"
-        class="tasks-section jp-card"
-        :class="{ done: tripTodoState === 'allDone' }"
-        data-testid="m4-trip-todos"
-      >
-        <button
-          class="tasks-header"
-          data-testid="m4-trip-todos-toggle"
-          :aria-expanded="tripTodosOpen ? 'true' : 'false'"
-          @click="tripTodosFold = !tripTodosOpen"
-        >
-          <IonIcon :icon="checkmarkDoneOutline" />
-          <span>
-            {{ t('tasks.whilePacking') }}
-            <template v-if="tripTodoLine">
-              · <span data-testid="m4-trip-todos-status">{{ tripTodoLine }}</span>
-            </template>
-          </span>
-          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: tripTodosOpen }" />
-        </button>
-        <!-- FR-7.7: no composer. Everything this window shows hangs off a
-             packing row, and a trip task typed here would be written into a
-             list that cannot show it. It is written on M25, which the line
-             below leads to. -->
-        <TripTodoList
-          v-if="tripTodosOpen"
-          :trip-id="tripId"
-          :tasks="windowTasks"
-          :assignable="todoAssignees.length > 1"
-          :name-of="nameOf"
-          :today="orchestrator.today()"
-          :empty-text="t('tripTodos.allDone')"
-          @assign="taskActs.assign"
-          @toggle="taskActs.toggle"
-          @remove="taskActs.remove"
-          @open="onOpenTask"
-        />
-        <!-- Always rendered, folded or not: this section is a window
-             (FR-7.7), and a reader who finds it empty is exactly the one who
-             has to be told where the rest of the tasks are. Hiding the way
-             out inside the fold would answer only the readers who did not
-             need it. -->
-        <RouterLink
-          class="tasks-all"
-          :to="tripSubPath(tripId, 'tasks')"
-          data-testid="m4-trip-todos-all"
-        >
-          {{ t('tasks.openAll') }}
-          <IonIcon :icon="chevronForwardOutline" />
-        </RouterLink>
-      </div>
+        ref="todosSection"
+        v-model:fold="tripTodosFold"
+        :trip-id="tripId"
+        :tasks="tasks.windowTasks.value"
+        :state="tasks.state.value"
+        :line="tasks.line.value"
+        :assignable="core.todoAssignees.value.length > 1"
+        :name-of="nameOf"
+        :today="orchestrator.today()"
+        @assign="tasks.acts.assign"
+        @toggle="tasks.acts.toggle"
+        @remove="tasks.acts.remove"
+        @open="tasks.open"
+      />
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
         v-if="searchOpen || search"
@@ -2611,8 +693,8 @@ setHeaderTitle(
       <PackingClosedCard
         v-if="packingClosed && !closingPass && trip?.packing_closed_at"
         :at="trip.packing_closed_at"
-        :skipped="skippedCount"
-        @reopen="onReopenPacking"
+        :skipped="closing.skippedCount.value"
+        @reopen="closing.onReopen"
       />
 
       <ArchivedTripCard
@@ -2631,174 +713,45 @@ setHeaderTitle(
         :offer-groups="true"
         :traveler-count="travelers.length"
         :travelers="travelers"
-        :exclude-item-ids="quickAddExcludeIds"
-        :browse-row-states="browseStates"
-        @add="onQuickAdd"
-        @add-for-all="onBrowseAddForAll"
-        @assign-for-travelers="onBrowseAssignForTravelers"
-        @spread-carried="onBrowseSpread"
-        @add-group="onQuickAddGroup"
-        @pack-carried="onBrowsePack"
-        @skip-carried="onBrowseSkip"
-        @undo-browse="onBrowseUndo"
-        @reopen-carried="onBrowseReopen"
+        :exclude-item-ids="browse.excludeIds.value"
+        :browse-row-states="browse.browseStates.value"
+        @add="browse.onQuickAdd"
+        @add-for-all="browse.onAddForAll"
+        @assign-for-travelers="browse.onAssignForTravelers"
+        @spread-carried="browse.onSpread"
+        @add-group="browse.onAddGroup"
+        @pack-carried="browse.onPack"
+        @skip-carried="browse.onSkip"
+        @undo-browse="browse.onUndo"
+        @reopen-carried="browse.onReopen"
       />
 
-      <IonList v-if="view.groups.length > 0">
-        <template v-for="group in view.groups" :key="group.key">
-          <button
-            class="group-head"
-            :class="{ shut: group.collapsed }"
-            :data-testid="`m4-group-${group.key || 'none'}`"
-            @click="toggleGroup(group.key)"
-          >
-            <IonIcon :icon="chevronDownOutline" class="caret" />
-            <span class="group-name">{{ group.name ?? t('common.none') }}</span>
-            <!-- Collapsed, the header is all that is left of the group, so it
-                 answers what the hidden rows would have (FR-25.16). -->
-            <span class="group-count">
-              {{
-                group.collapsed
-                  ? t('packing.openCount', { n: group.openCount })
-                  : `${group.doneCount}/${group.totalCount}`
-              }}
-            </span>
-          </button>
-
-          <!-- FR-25.2: a packed row leaves rather than vanishes. TransitionGroup
-               keeps the node until its leave finishes, so nothing here has to
-               hold a "still animating" set in the view model — the DOM does it.
-               `tag="div"` because the card needs a block child; `:css="false"`
-               is deliberately *not* used, the height is driven from a hook and
-               the fade from CSS. -->
-          <TransitionGroup
-            v-if="!group.collapsed"
-            name="pack-out"
-            tag="div"
-            class="group-card jp-card"
-            @leave="onRowLeave"
-          >
-            <template
-              v-for="entry in group.entries"
-              :key="entry.kind === 'item' ? entry.item.id : entry.key"
-            >
-              <!-- FR-25.1: a per-person item is named once, with one child
-                   row per traveler under it. -->
-              <div
-                v-if="entry.kind === 'cluster'"
-                class="cluster"
-                :data-for-whom-key="forWhomKeyOf(entry)"
-              >
-                <ClusterHead
-                  :name="entry.name"
-                  :mode="entry.mode"
-                  :late="entry.latePacker"
-                  :done-count="entry.doneCount"
-                  :total-count="entry.totalCount"
-                  :open-count="entry.openCount"
-                  :collapsed="entry.collapsed"
-                  :faces="entry.faces"
-                  :master="clusterMaster(entry)"
-                  :seat="seatFor(entry)"
-                  @for-whom="toggleForWhom(entry)"
-                  @toggle="toggleCluster(entry.key)"
-                  @menu="openClusterMenu(entry)"
-                  @press-start="(e: PointerEvent) => clusterHold.down(entry, e.clientX, e.clientY)"
-                  @press-move="(e: PointerEvent) => clusterHold.move(e.clientX, e.clientY)"
-                  @press-end="clusterHold.cancel()"
-                />
-
-                <ForWhomStrip
-                  v-if="forWhomOpenOn(entry)"
-                  :trip-id="tripId"
-                  :item-id="entry.instanceIds[0] ?? ''"
-                  :participants="participants"
-                  :test-key="entry.name"
-                />
-
-                <div v-if="!entry.collapsed" class="cluster-children">
-                  <PackingRow
-                    v-for="child in entry.children"
-                    :key="child.item.id"
-                    variant="child"
-                    :item="child.item"
-                    :label="child.traveler?.name ?? child.label"
-                    :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
-                    :done="child.done"
-                    :locked="locked(child.item)"
-                    :closing-pass="closingPass"
-                    :notes="rowNotes(child.item)"
-                    :borrowed-by="borrowers.get(child.item.id) ?? []"
-                    :traveler="child.traveler"
-                    :edge-avatar="edgeAvatarFor(child.item)"
-                    :assignable="assignableRow(child.item)"
-                    :seat-column="seatColumn"
-                    @assign="onAssignRow(child.item, child.traveler?.name)"
-                    @open="openItem(child.item.id)"
-                    @menu="openRowMenu(child.item)"
-                    @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
-                    @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                    @press-end="hold.cancel()"
-                    @pass-toggle="onPassToggle(child.item)"
-                    @edit-quantity="(e: MouseEvent) => openQuantity(child.item, e)"
-                    @increment="onIncrement(child.item)"
-                    @decrement="onDecrement(child.item)"
-                    @complete="onComplete(child.item)"
-                    @zero="onZero(child.item)"
-                    @toggle="onToggle(child.item)"
-                  />
-                </div>
-              </div>
-
-              <PackingRow
-                v-else
-                :item="entry.item"
-                :label="entry.label"
-                :test-key="entry.item.name"
-                :done="entry.done"
-                :locked="locked(entry.item)"
-                :closing-pass="closingPass"
-                :notes="rowNotes(entry.item)"
-                :traveler="entry.traveler"
-                :master="masterOf(entry.item)"
-                :prep-count="openTodoCount(entry.item.id)"
-                :borrowed-by="borrowers.get(entry.item.id) ?? []"
-                :edge-avatar="edgeAvatarFor(entry.item)"
-                :assignable="assignableRow(entry.item)"
-                :seat="seatFor(entry)"
-                :data-for-whom-key="forWhomKeyOf(entry)"
-                :data-row-id="entry.item.id"
-                @for-whom="toggleForWhom(entry)"
-                @assign="onAssignRow(entry.item)"
-                @open="openItem(entry.item.id)"
-                @menu="openRowMenu(entry.item)"
-                @press-start="(e: PointerEvent) => onRowPress(entry.item, e)"
-                @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                @press-end="hold.cancel()"
-                @pass-toggle="onPassToggle(entry.item)"
-                @edit-quantity="(e: MouseEvent) => openQuantity(entry.item, e)"
-                @increment="onIncrement(entry.item)"
-                @decrement="onDecrement(entry.item)"
-                @complete="onComplete(entry.item)"
-                @zero="onZero(entry.item)"
-                @toggle="onToggle(entry.item)"
-              />
-              <!-- FR-25.28: the strip unfolds under the row it belongs to, as a
-                   line of the same card. Keyed, because a TransitionGroup
-                   child has to be. -->
-              <ForWhomStrip
-                v-if="entry.kind === 'item' && forWhomOpenOn(entry)"
-                key="for-whom"
-                :data-for-whom-key="forWhomKeyOf(entry)"
-                :trip-id="tripId"
-                :item-id="entry.item.id"
-                :participants="participants"
-                :test-key="entry.item.name"
-              />
-            </template>
-          </TransitionGroup>
-        </template>
-      </IonList>
+      <PackingGroupList
+        v-if="view.groups.length > 0"
+        :trip-id="tripId"
+        :groups="view.groups"
+        :participants="participants"
+        :closing-pass="closingPass"
+        :seat-column="forWhom.seatColumn.value"
+        :facts="facts"
+        :for-whom="forWhom"
+        :row-hold="menus.hold"
+        :cluster-hold="menus.clusterHold"
+        @toggle-group="toggleGroup"
+        @toggle-cluster="toggleCluster"
+        @cluster-menu="menus.openClusterMenu"
+        @row-menu="menus.openRowMenu"
+        @toggle-for-whom="forWhom.toggle"
+        @assign="acts.onAssignRow"
+        @open="openItem"
+        @pass-toggle="acts.onPassToggle"
+        @edit-quantity="quantity.open"
+        @increment="acts.onIncrement"
+        @decrement="acts.onDecrement"
+        @complete="acts.onComplete"
+        @zero="acts.onZero"
+        @toggle="acts.onToggle"
+      />
 
       <!-- An empty list means one of *three* things, and conflating them is how
            a packing app tells someone they are finished when they are not. The
@@ -2846,10 +799,10 @@ setHeaderTitle(
              enters the flow and nothing moves under the finger that packed
              it (ADR-060). The sheet is one deliberate tap away. -->
         <IonButton
-          v-if="closePromptUp && !packingClosed && !closingPass"
+          v-if="closing.promptUp.value && !packingClosed && !closingPass"
           size="small"
           data-testid="m4-close-prompt"
-          @click="onOpenFromPrompt"
+          @click="closing.onOpenFromPrompt"
         >
           <IonIcon slot="start" :icon="checkmarkDoneOutline" />
           {{ t('packing.closeAction') }}
@@ -2924,29 +877,16 @@ setHeaderTitle(
         </IonFabButton>
       </IonFab>
 
-      <!-- FR-25.24: the amount, over the list rather than instead of it —
-           the rows around the one being corrected are what makes the number
-           decidable. -->
-      <IonPopover
-        :is-open="quantityRowIds.length > 0"
-        :event="quantityEvent"
-        data-testid="m4-quantity-popover"
-        @did-dismiss="onQuantityClosed"
-      >
-        <div class="qty-pop">
-          <p class="qty-pop-head">
-            <span class="jp-eyebrow">{{ t('quantity.title') }}</span>
-            <span class="qty-pop-name">{{ quantityClusterLabel ?? quantityItem?.name }}</span>
-          </p>
-          <QuantityEditor
-            v-if="quantityItem"
-            :quantity="quantityItem.quantity"
-            :packed="quantityPacked"
-            :choices="quantityChoiceList"
-            @update="onSetQuantity"
-          />
-        </div>
-      </IonPopover>
+      <RowQuantityPopover
+        :open="quantity.isOpen.value"
+        :event="quantity.event.value"
+        :label="quantity.clusterLabel.value"
+        :item="quantity.item.value"
+        :packed="quantity.packed.value"
+        :choices="quantity.choices.value"
+        @update="quantity.set"
+        @closed="quantity.closed"
+      />
 
       <!-- M5 (UI-Spec M5 + G-9): a sheet on a phone, a side panel on a
            desktop — one content component either way. The sheet is the app's
@@ -2990,43 +930,44 @@ setHeaderTitle(
         </aside>
       </Teleport>
 
-      <!-- FR-5.10: the question, as the round drew it. Also the app's own
-           way of noticing that the last row went in. -->
+      <!-- FR-7.7: the task sheet, the same one M25 opens. -->
       <SheetModal
-        :is-open="openedTask !== null"
+        :is-open="tasks.opened.value !== null"
         testid="m4-task-modal"
-        @dismiss="openedTaskId = null"
+        @dismiss="tasks.close"
       >
         <TripTaskSheet
-          v-if="openedTask"
-          :task="openedTask"
+          v-if="tasks.opened.value"
+          :task="tasks.opened.value"
           :name-of="nameOf"
           :before-locked="packingClosed"
           :today="orchestrator.today()"
           :trip-start="trip?.start_date ?? null"
-          @close="openedTaskId = null"
-          @due="onTaskDue"
-          @move="onTaskMove"
-          @remove="onTaskRemoveFromSheet"
-          @toggle="onTaskToggleFromSheet"
-          @rename="onTaskRename"
+          @close="tasks.close"
+          @due="tasks.onDue"
+          @move="tasks.onMove"
+          @remove="tasks.onRemoveFromSheet"
+          @toggle="tasks.onToggleFromSheet"
+          @rename="tasks.onRename"
         />
       </SheetModal>
 
+      <!-- FR-5.10: the question, as the round drew it. Also the app's own
+           way of noticing that the last row went in. -->
       <SheetModal
-        :is-open="closeSheetOpen"
+        :is-open="closing.sheetOpen.value"
         testid="m4-close-modal"
-        @dismiss="onCloseSheetDismissed"
+        @dismiss="closing.onSheetDismissed"
       >
         <ClosePackingSheet
-          v-if="closeSheetOpen"
-          :plan="closePlan"
-          :shopping="closeShoppingCount"
-          :prompted="closePrompted"
-          :starting="closeStarting"
-          @close="onCloseSheetDismissed"
-          @confirm="onConfirmClosePacking"
-          @start-only="onStartOnly"
+          v-if="closing.sheetOpen.value"
+          :plan="closing.plan.value"
+          :shopping="closing.shoppingCount.value"
+          :prompted="closing.prompted.value"
+          :starting="closing.starting.value"
+          @close="closing.onSheetDismissed"
+          @confirm="closing.onConfirm"
+          @start-only="closing.onStartOnly"
         />
       </SheetModal>
 
@@ -3063,25 +1004,6 @@ setHeaderTitle(
 </template>
 
 <style scoped>
-/* FR-25.24's popover holds one control and its name, so it is padded like
-   a card rather than like a screen. */
-.qty-pop {
-  padding: 16px 14px 12px;
-}
-
-.qty-pop-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0 0 14px;
-  text-align: center;
-}
-
-.qty-pop-name {
-  font-size: var(--jp-text-md);
-  font-weight: var(--jp-weight-semibold);
-}
-
 /* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is the frame's
    second pane, teleported into it, so it is laid out beside the list rather
    than over it and the column re-centres in what is left. Nothing here
@@ -3129,95 +1051,6 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   --padding-bottom: 96px;
 }
 
-/* --- Header line ------------------------------------------------------ */
-.trip-line {
-  display: flex;
-  gap: 2px;
-  /* The page's gutter, so the card inside lines up with the cards below it
-     (G-14). The line itself is page, not card: sticky, it has to hide the
-     rows scrolling under it, margins included. */
-  padding: 8px 12px;
-  /* An explicit token, not --ion-background-color: inside ion-content that
-     one resolves to nothing, so the sticky line was transparent and the
-     rows scrolled *through* the trip's progress figure. */
-  background: var(--jp-surface-page);
-  position: sticky;
-  top: 0;
-  /* Above the rows: ion-item-sliding is a positioned, transformed element,
-     so at z-index 2 the list painted straight over the trip's figures. */
-  z-index: 10;
-  overflow: hidden;
-  /* The figure's own height plus the line's and the card's padding: ring,
-     share, what qualifies it, and the track under them (FR-21.23). */
-  max-height: 118px;
-  /* Clipped, never faded: a half-transparent sticky line reads as two
-     lines printed on top of each other while the list slides past it. */
-  transition:
-    max-height 0.18s ease,
-    padding 0.18s ease;
-}
-
-/* Scrolling down takes the whole line: you
-   know which packing list you are on, and the rows are what the screen is
-   for. Any upward scroll brings it back. The name is not in here —
-   the same flag collapses the frame's page head, see setHeaderTitle. */
-.trip-line.collapsed {
-  max-height: 0;
-  padding-block: 0;
-}
-
-/* A card the width of the cards below it (G-14), with one figure or two. */
-.trip-stats {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  /* 8 px sideways, not the card's usual 12: on a 390 px phone that is what
-     keeps a pair on one line at the 10.5rem basis below. */
-  padding: 10px 8px;
-}
-
-/* A pair wraps to two rows where two columns would ellipsize a sentence —
-   the basis is the header ring, its gap and the longest sentence measured
-   (*„118/118 gepackt"*), as on M1's hero (FR-7.4). */
-.trip-stats.paired {
-  flex-wrap: wrap;
-  row-gap: 8px;
-}
-
-.trip-stats.paired > .figure,
-.trip-stats.paired > .todo-figure-button {
-  flex: 1 1 10.5rem;
-}
-
-/* Two stacked figures are taller than the one the line was sized for;
-   `:not(.collapsed)` so scrolling down still takes the whole line. */
-.trip-line.paired:not(.collapsed) {
-  max-height: 158px;
-}
-
-/* Stretched so a paired figure's two tracks share a level (FR-7.4); the
-   facepile keeps to the middle of the line. */
-.trip-stats > .wrap {
-  align-self: center;
-}
-
-/* The ring is punched in the colour it sits on: the card's. */
-.figure {
-  flex: 1;
-  min-width: 0;
-  --ring-hole: var(--jp-surface-card);
-}
-
-.filter-count {
-  position: absolute;
-  top: 2px;
-  right: 0;
-  font-size: var(--jp-text-3xs);
-  padding: 2px 4px;
-}
-
 /* --- Filter chip row -------------------------------------------------- */
 .filter-bar {
   display: flex;
@@ -3260,203 +1093,5 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 .grouped-by {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
-}
-
-/* --- Groups and rows -------------------------------------------------- */
-.group-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  width: 100%;
-  padding: 20px 6px 8px;
-  background: none;
-  border: none;
-  color: var(--ct-text);
-  /* A group heading outranks the rows under it: micro-type smaller than the
-     item names it heads would invert the hierarchy it exists to state. */
-  font-size: var(--jp-text-lg);
-  font-weight: var(--jp-weight-bold);
-  letter-spacing: var(--jp-tracking-display);
-  cursor: pointer;
-}
-
-.group-name {
-  flex: 1;
-  text-align: start;
-}
-
-.group-count {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  font-weight: var(--jp-weight-medium);
-}
-
-/* Each group is its own block, so the seam between two categories is a
-   real edge rather than a slightly larger gap — which is what made them
-   run into each other on a long list. The plane, rim, radius and lift all
-   come from .jp-card (G-14); this only places it. */
-.group-card {
-  margin: 0 8px;
-}
-
-.group-card ion-item {
-  --padding-start: 12px;
-  --inner-padding-end: 10px;
-}
-
-.caret {
-  transition: transform 0.18s ease;
-}
-
-.group-head.shut .caret {
-  transform: rotate(-90deg);
-}
-
-.tasks-header .caret.open {
-  transform: rotate(180deg);
-}
-
-/* FR-7.7: the way out of the window and into all of them. It reads as a
-   footer of the section rather than an action on it — the tasks are not
-   leaving, the reader is. */
-.tasks-all {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  padding: 2px 16px 10px;
-  color: var(--jp-action);
-  font-size: var(--jp-text-sm);
-  text-decoration: none;
-}
-
-.tasks-all ion-icon {
-  font-size: var(--jp-icon-xs);
-}
-
-/* --- Per-person cluster ----------------------------------------------- */
-
-/*
- * The rule and the step belong to the *children*, not to the block
- * (FR-21.20). On `.cluster` they would carry the head in with them: the
- * item's name would sit 8 px right of every other item name in the list and
- * only 6 px left of its own travelers — so the head would read as one of its
- * children rather than as their heading. The head is a
- * line of the list; the people under it are the ones stepping in.
- */
-.cluster-children {
-  border-inline-start: 2px solid var(--ct-surface1);
-  margin-inline-start: 12px;
-}
-
-/* --- FR-25.2: the pack-out ------------------------------------------- */
-
-/*
- * A packed row leaves in three beats: the done colour washes over it, it
- * collapses to nothing, and it fades. Before this it was simply gone on the
- * next tick — which reads as a glitch rather than as progress, and gives a
- * mistap no evidence it ever happened.
- *
- * The height is driven from `onRowLeave` because `height: auto` does not
- * animate; everything else is here. `overflow: hidden` is what makes the
- * collapse look like a collapse rather than a clip.
- */
-.pack-out-leave-active {
-  transition:
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.3s ease,
-    background-color 0.3s ease;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/*
- * The green is the done role, not a colour picked for the animation — the
- * same one the checkbox turns (G-11).
- *
- * On the *item*, not on the slider around it. Washing both would put the
- * tint over two different grounds — the card behind the empty stretch of
- * row, and the item's own surface behind the label — so the row would come
- * out in two shades split down the middle: the tint over `--ct-base` on one
- * side, the same tint over `--ct-surface0` on the other.
- */
-.pack-out-leave-from {
-  background: color-mix(in srgb, var(--jp-done) 22%, transparent);
-}
-
-.pack-out-leave-to {
-  opacity: 0;
-}
-
-/*
- * Rows below a leaving one slide up instead of jumping. Without this the
- * collapse animates and the list underneath still snaps, which looks worse
- * than no animation at all.
- */
-.pack-out-move {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/*
- * FR-25.2's feedback is the *fact* of the pack, not the motion. With motion
- * reduced the row still leaves and the snackbar still offers the undo; only
- * the travel is dropped. `onRowLeave` matches this by finishing immediately,
- * so the two cannot disagree.
- */
-@media (prefers-reduced-motion: reduce) {
-  /* The header line yields and returns instantly. Its travel is the largest
-     movement on this screen and it happens while the list is moving too,
-     which is exactly the pairing the preference is asking us not to make. */
-  .trip-line {
-    transition: none;
-  }
-
-  .pack-out-leave-active,
-  .pack-out-move {
-    transition: none;
-  }
-
-  .pack-out-leave-from {
-    background: none;
-  }
-}
-
-/* --- Bars, cards and sections ----------------------------------------- */
-.tasks-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 14px;
-  background: none;
-  border: none;
-  color: var(--ct-straw);
-  font-size: var(--jp-text-base);
-  cursor: pointer;
-}
-
-/* FR-7.4: above the list the section is a card of its own, not the strip
-   that closed the page — and it turns to the done role once nothing is owed. */
-.tasks-section {
-  margin: 8px 12px 4px;
-  overflow: hidden;
-}
-
-.tasks-section.done .tasks-header {
-  color: var(--jp-done);
-}
-
-/* The figure is the control; the button only makes it one. It takes the
-   same share of the line as the packing figure, so the two tracks run on
-   one level and one length. */
-.todo-figure-button {
-  min-width: 0;
-  padding: 0;
-  background: none;
-  border: none;
-  color: inherit;
-  text-align: start;
-  cursor: pointer;
-  --ring-hole: var(--jp-surface-card);
 }
 </style>

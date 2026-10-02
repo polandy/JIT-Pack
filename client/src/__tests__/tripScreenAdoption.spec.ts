@@ -16,6 +16,10 @@ import { resolve } from 'node:path'
 
 import { describe, it, expect } from 'vitest'
 
+/** The pieces M4 is built from (`views/trips/packing/`), each needing its trip id. */
+const PART_OF_M4 =
+  'a part of M4, rendered only by `PackingListPage`, which loads the partition for it'
+
 /**
  * Screens whose required `tripId` names a trip they do **not** read the trip
  * partition for. Each has to say why, and a stale entry fails below: a file
@@ -25,6 +29,9 @@ import { describe, it, expect } from 'vitest'
 const NOT_TRIP_PARTITION: Record<string, string> = {
   'src/views/dashboard/DashboardTasksBlock.vue':
     'a block of M1’s hero, not a screen: M1 loads and follows every active trip’s partition itself (`ensureTripData`), and the block asks `tripDataLoaded` before it says nothing is left',
+  'src/views/trips/packing/PackingGroupList.vue': PART_OF_M4,
+  'src/views/trips/packing/PackingHeadline.vue': PART_OF_M4,
+  'src/views/trips/packing/TripTodosSection.vue': PART_OF_M4,
   'src/views/trips/TripMembersPage.vue':
     'the roster is `trip_members`, which is master data — it arrives with the master pull',
 }
