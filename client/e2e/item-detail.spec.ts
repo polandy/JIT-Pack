@@ -145,7 +145,7 @@ test.describe('M5 item detail @local @m5', () => {
   // E2E-M5-12 (G-9, ADR-046): above the breakpoint the same content is a
   // side panel beside the list rather than a sheet over it — and it opens
   // *on* the list the user was looking at, not on a second mount of it.
-  test('E2E-M5-12: on a desktop width the detail is a side panel', async ({ page }) => {
+  test('E2E-M5-12: on a desktop width the detail is a side panel @webkit', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)

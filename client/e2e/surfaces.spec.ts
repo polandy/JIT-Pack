@@ -69,7 +69,7 @@ async function cardWithOneRow(page: Page, trip: string) {
 
 // E2E-G14-01 (G-14/FR-21.8): a card is a plane above the page, not a
 // hairline drawn on it.
-test('E2E-G14-01: the packing card is painted a different plane than its page @local @g14', async ({
+test('E2E-G14-01: the packing card is painted a different plane than its page @local @g14 @webkit', async ({
   page,
   seedMode,
 }) => {
