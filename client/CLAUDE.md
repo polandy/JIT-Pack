@@ -27,6 +27,13 @@ outside the three theme files. Five carve-outs, by rule not allowlist: a `color-
 (font-size is an attribute in the template). **Why this exists:** a card can pass every colour rule and still be the
 colour of the page behind it — only a rendered pixel can tell you (G-14, FR-21.8).
 
+## The kernel's catalogue is split by area
+
+`client/src/i18n/messages/<area>/en.ts` and `de.ts` — `shared`, `inventory`, `templates`, `packing`, `trips`,
+`excursions`, `settings` — assembled by `messages/en.ts`/`de.ts`, which change only when an area is added. A key goes
+into the area its prefix belongs to; a copy change reads that one pair, not the whole catalogue. Each `de.ts` is typed
+against its `en.ts`, so a key missing in German fails the type check in the file it is missing from.
+
 ## Vitest
 
 - **A spec declares its own environment.** Default is `node`; a spec whose subject touches `localStorage`, `document`
