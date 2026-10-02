@@ -133,7 +133,7 @@ test.describe('M1 dashboard @local @m1', () => {
    * in different orders. The screen orders them (`byDepartureSoonestFirst`),
    * not the assertion.
    */
-  test('E2E-M1-09: the trip departing soonest is the hero; the next is a card', async ({
+  test('E2E-M1-09: the trip departing soonest is the hero; the next is a card @webkit', async ({
     page,
   }) => {
     await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026', startDate: '2026-11-02' })

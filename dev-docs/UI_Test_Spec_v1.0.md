@@ -4027,8 +4027,9 @@ browser suite, with the reason stated.
   client + server.
 * **Fixtures**: build the `jitpackd` binary (already built for `docker-build`); a shared harness starts it in `single`
   or `server` mode per test project. Playwright `webServer` starts `vite preview`.
-* **Browsers**: Chromium + WebKit; Playwright browser binaries cached via `actions/cache` keyed on the Playwright
-  version.
+* **Browsers**: Chromium + WebKit, inside the digest-pinned Playwright image (`scripts/e2e.sh`), each sharded on its
+  own axis (`scripts/e2e-matrix.mjs`). A pull request runs WebKit on the `@smoke` and `@webkit` cases only — the ones
+  whose subject is an engine difference — and a push to `main` runs every case in both engines (ADR-091).
 * **Artifacts**: on failure, upload `playwright-report/` (HTML report + trace + video) via `actions/upload-artifact`.
 * **Supply-chain (invariant 8)**: the Playwright dep is pinned in `package-lock.json` (sha512);
   any new Action in the job is pinned by full commit SHA; `playwright install` pinned to the package version.

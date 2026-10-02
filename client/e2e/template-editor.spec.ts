@@ -894,7 +894,7 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     await expect(page.getByTestId('header-title')).toHaveText('Fototage')
   }
 
-  test('E2E-M8-23: the offer states its cost, the guards hold, and the fold is undoable', async ({
+  test('E2E-M8-23: the offer states its cost, the guards hold, and the fold is undoable @webkit', async ({
     seedMode,
     page,
   }) => {

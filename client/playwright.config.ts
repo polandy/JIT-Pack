@@ -244,10 +244,10 @@ export default defineConfig({
         ]
       : []),
     /*
-     * Visual baselines (ADR-013). Excluded from the default run — invoked
-     * by `make visual`, which supplies `--project=visual-*` — because a
-     * baseline check belongs to the maintainer's review loop, not to
-     * every `npm run test:e2e`.
+     * Visual baselines (ADR-013), invoked by `make visual`, which supplies
+     * `--project=visual-*`. The behaviour runs — the CI legs and `make e2e` —
+     * name `--project=chromium`/`webkit` instead, because a bare
+     * `playwright test` runs every project here, these included.
      *
      * Chromium only, and inside the digest-pinned Playwright image on
      * both sides, so local and CI render in the same userland. The

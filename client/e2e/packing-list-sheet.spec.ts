@@ -55,7 +55,7 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   // never leaves the screen and never leaves its offset — an item as a path
   // parameter would mount a second list at the top on every open. The
   // assertion is on the rendered scroll position, never on the URL.
-  test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled', async ({
+  test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled @webkit', async ({
     page,
   }) => {
     // Sixteen rows built through the quick-add (spec §2.4) is real work.

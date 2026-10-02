@@ -320,7 +320,7 @@ test.describe('§3.28 the item mark', () => {
 
   // E2E-M5-15 (FR-28.4/28.7): the sheet's identity slot, and the fact that
   // the mark is not editable there — it belongs to the master item.
-  test('E2E-M5-15: the M5 sheet shows the mark and does not offer to change it @local @m5', async ({
+  test('E2E-M5-15: the M5 sheet shows the mark and does not offer to change it @local @m5 @webkit', async ({
     page,
   }) => {
     await createItem(page, 'Zelt', { mark: '⛺' })
