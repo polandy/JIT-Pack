@@ -20,6 +20,8 @@ export interface TripCardProps {
   packingClosed: boolean
   /** Its first day, or null for an undated trip — FR-30.8 reads it too. */
   startDate: string | null
+  /** Its last day, or null — FR-29.7's *Heute* card shows on the trip's days only. */
+  endDate: string | null
   /**
    * FR-7.10: the card is drawn as a block *of the hero* — seven lines, no chip,
    * folding — once the packing is finished, instead of as the card under it.

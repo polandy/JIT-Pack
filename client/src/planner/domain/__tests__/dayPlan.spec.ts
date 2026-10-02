@@ -13,6 +13,7 @@ import {
   entriesOutsideTrip,
   ideasOutsideTrip,
   isPlanTime,
+  linesAhead,
   nextDay,
   openingDay,
   stateAfterTick,
@@ -252,5 +253,46 @@ describe('a connection on the plan (FR-29.18)', () => {
       'before',
       'later',
     ])
+  })
+})
+
+describe("linesAhead — the dashboard's Heute card (FR-29.7)", () => {
+  const day = '2026-07-12'
+  const leg = { from: 'Olbia', to: 'Nuoro', dep: `${day}T09:15`, arr: `${day}T11:05`, line: '9' }
+  const train: DayEntry = {
+    ...entry('train', day, '09:15'),
+    kind: DAY_ENTRY_CONNECTION,
+    legs: [leg],
+  }
+  const lines = dayLines(
+    day,
+    input({
+      entries: [entry('breakfast', day, '08:00'), entry('table', day, '12:30'), train],
+      ideas: [idea('beach', 'shortlisted', day)],
+    }),
+  )
+  const titles = (now: string) => linesAhead(day, lines, now).map((l) => l.key)
+
+  it('leaves out arrival and departure, which the hero says already', () => {
+    expect(lines.some((l) => l.kind === DAY_LINE.arrival)).toBe(true)
+    expect(linesAhead(day, lines, '00:00').some((l) => l.kind === DAY_LINE.arrival)).toBe(false)
+  })
+
+  it('drops a timed line once its time has passed, keeping the untimed all day', () => {
+    expect(titles('07:59')).toEqual(['entry:breakfast', 'entry:train', 'entry:table', 'idea:beach'])
+    expect(titles('08:01')).toEqual(['entry:train', 'entry:table', 'idea:beach'])
+    expect(titles('23:59')).toEqual(['idea:beach'])
+  })
+
+  it('keeps a connection until its last leg has arrived', () => {
+    expect(titles('10:00')).toContain('entry:train')
+    expect(titles('11:05')).toContain('entry:train')
+    expect(titles('11:06')).not.toContain('entry:train')
+  })
+
+  it('keeps a night train that arrives on the next day', () => {
+    const night: DayEntry = { ...train, legs: [{ ...leg, arr: '2026-07-13T06:00' }] }
+    const withNight = dayLines(day, input({ entries: [night] }))
+    expect(linesAhead(day, withNight, '23:30').map((l) => l.key)).toEqual(['entry:train'])
   })
 })

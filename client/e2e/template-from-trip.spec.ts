@@ -20,6 +20,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { openGroupFromList } from './helpers/templates'
 
 /**
  * M21 — Vorlage aus Reise (§3.27, FR-27.5), plus the lifecycle step that
@@ -95,10 +96,7 @@ async function archiveTrip(page: Page) {
 
 /** Remove one position from the group, so the trip carries what it lacks. */
 async function removeGroupPosition(page: Page, group: string, item: string) {
-  await page.goto(PATH.templates)
-  await visible(page).getByTestId('m7-scope-group').click()
-  await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
-  await expect(page.getByTestId('header-title')).toHaveText(group)
+  await openGroupFromList(page, group)
   await visible(page)
     .locator('ion-item')
     .filter({ hasText: item })

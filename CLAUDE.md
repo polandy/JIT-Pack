@@ -65,7 +65,7 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 
 ## Open work
 
-Every numbered backlog item is closed (`dev-docs/backlog.md`). Real sources of open work, in order: what the owner just asked for — the family's instance runs in production, so this is where its friction arrives; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); a fired revisit trigger in a parked stub or ADR. §3.29's opening by date and its bridge to the packing side are specified, not built.
+Every numbered backlog item is closed (`dev-docs/backlog.md`). Real sources of open work, in order: what the owner just asked for — the family's instance runs in production, so this is where its friction arrives; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); a fired revisit trigger in a parked stub or ADR. §3.29's bridge to the packing side is specified, not built.
 
 **Parked, specified, do not start:** §3.26 calendar feed, the North-Star phases beyond §3.29's planner, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
 

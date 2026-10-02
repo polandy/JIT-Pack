@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router'
 
 import { installOverlayBackGuard } from './overlayBackGuard'
 import { installOriginStamp } from './originStamp'
+import { TRIP_OPEN_ROUTE } from './tripOpening'
 import {
   IDEA_QUERY_PARAM,
   ITEM_ID_PARAM,
@@ -19,6 +20,7 @@ import {
   tripNotesPath,
   tripExcursionsPath,
   tripIdeasPath,
+  tripOpenPath,
   tripPath,
   tripSubPath,
 } from './paths'
@@ -267,6 +269,16 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'dayplan' },
     name: 'trip-dayplan',
     component: () => import('@/planner/DayPlanPage.vue'),
+    props: true,
+  },
+  {
+    // FR-29.7: the trip opened on the view its dates decide. Never rendered —
+    // `installTripOpening` redirects it before it matches a page; the
+    // component is only what a router with no guard installed would show.
+    path: tripOpenPath(TRIP_ID_PARAM),
+    meta: { parent: PATH.trips },
+    name: TRIP_OPEN_ROUTE,
+    component: () => import('@/views/trips/PackingListPage.vue'),
     props: true,
   },
   {

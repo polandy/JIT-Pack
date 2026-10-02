@@ -120,6 +120,7 @@ function mountCard(
       planned: opts.planned ?? false,
       packingClosed: opts.packingClosed ?? false,
       startDate: opts.startDate ?? null,
+      endDate: null,
       embedded: opts.embedded ?? false,
     },
     global: {

@@ -35,7 +35,7 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/typ
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { presentToast } from '@/lib/toast'
-import { PATH, tripPath, tripSubPath } from '@/router/paths'
+import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
@@ -280,7 +280,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             :key="trip.id"
             button
             :data-testid="`m16-trip-${trip.name}`"
-            :router-link="tripPath(trip.id)"
+            :router-link="tripOpenPath(trip.id)"
           >
             <IonLabel>
               <h3>{{ trip.name }}</h3>

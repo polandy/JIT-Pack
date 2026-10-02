@@ -9,6 +9,16 @@ want to remember for a day — a table you booked, the hire car to pick up.
 The day plan is the **calendar** — the last icon in the row under the trip's name. It is there only once the trip has
 both a start and an end date; set them in the trip's properties if the icon is missing.
 
+**During the trip you land on it.** From the trip's first day to its last — or from *Reise starten* if you started it
+early — tapping the trip on the overview or in the trip list opens the day plan on today. Before the trip, the trip
+opens where you last left it on this device (on a first visit the ideas, while nothing is on the packing list yet);
+after the trip, on the packing list. The pills under the trip's name still take you to any view.
+
+**Today on the overview.** On each day of the trip, the overview shows a **Heute** card under the trip: the next three
+things still to come today, as the day plan lists them — something with a time leaves once its time has passed, a
+connection once it has arrived. Tick a task or an idea right there; *+ n weitere · Tagesplan* opens the whole day.
+Once the packing is finished the card sits inside the trip's big card, beside the tasks and the shopping list.
+
 ## Reading a day
 
 The row of days at the top lists every day of the trip. During the trip today is chosen; before it, the first day.

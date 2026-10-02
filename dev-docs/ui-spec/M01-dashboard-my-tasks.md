@@ -50,6 +50,16 @@
   space: the trip's tasks become the card's one figure at the lone ring size (FR-7.4), and the shopping card under it
   opens on *Vor Ort* (FR-30.8). The open-rows preview needs no rule — it lists open rows, of which a finished list has
   none, and a row added afterwards belongs there. (E2E-M1-25)
+* **The *Heute* card (FR-29.7).** On a trip's days, the planner module's card (`PlannerTodayCard.vue`, through
+  `TRIP_CARDS`, first of the two) stands under the trip as a `.jp-card` (`dashboard-today-<trip>`): its head
+  *„Heute · Fr., 2.10."* with the count of what is still to come, a link onto M29 (`dashboard-today-<trip>-head`); then
+  at most **three** of today's lines from the next one on, as M29's `DayLineRow` — a timed line leaves once its time
+  has passed, a connection once its last leg arrived, arrival and departure are left out — ticked and opened as on
+  M29, the plan's own entries opening M29; then *„+ n weitere · Tagesplan ›"* or *„Tagesplan öffnen ›"*
+  (`dashboard-today-<trip>-more`), and *„Für heute ist nichts mehr geplant."* in place of the lines once nothing is
+  left. Once the packing is finished it is a block of the hero after the task block, drawn by `DashboardBlock`
+  without a field — a line of the plan wants a time the field cannot take. Before and after the trip's days, and on a
+  trip without both dates, there is no card. (E2E-M29-11)
 * **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html`).** Rendered from top to
   bottom on a trip whose packing is finished:
   * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until

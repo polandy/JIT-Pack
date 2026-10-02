@@ -66,10 +66,21 @@ export type TripSubScreen =
   | 'excursions'
   | 'ideas'
   | 'dayplan'
+  | 'open'
 
 /** The packing list (M4). */
 export function tripPath(tripId: string): string {
   return `/trips/${tripId}`
+}
+
+/**
+ * The trip, opened on the view its dates decide (FR-29.7) — what a tap on a
+ * trip from outside it leads to. Never rendered: the router turns it into the
+ * view (`router/tripOpening.ts`). A link that means the packing list itself,
+ * or a view switched to inside the trip, names that view instead.
+ */
+export function tripOpenPath(tripId: string): string {
+  return tripSubPath(tripId, 'open')
 }
 
 /** One of the trip's own screens — M4's drill-downs and M14/M15/M16. */
