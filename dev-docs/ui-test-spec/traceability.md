@@ -32,7 +32,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-4.4 | E2E | M4-10, FLOW-01, **M1-03** (the delegation reaches the dashboard live, no reload) |
 | FR-4.5 | E2E | M2-05, M3-04, TripMembers |
 | FR-4.6 | E2E | G10-01, G10-02 (FR-4.6 is the presence indicator; `members.ts`'s role model is FR-4.5/4.7's) |
-| FR-4.7 | E2E | M3-04 (role select) |
+| FR-4.7 | E2E+UNIT | M3-04 (role select); `TripWizardPage.spec.ts` (a share's role reaches the created trip; a share taken back is offered again) |
 | FR-5.1 | E2E | M1-06 (the departure-day section), M1-06b (and no other day); `domain/__tests__/dashboardSections.spec.ts` (the rule, with the date as a parameter) |
 | FR-5.2 | E2E | M4-05 |
 | FR-5.3 | E2E | G3-01, FLOW-01 |
@@ -67,9 +67,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-11.1–11.3 | — | removed (no Repack feature, Addendum §3.11) |
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
-| FR-13.1 | E2E+UNIT | M2-02 (the grouping it describes is what the screen does, by decision; see E2E-M2-15), M16-01 (name, defaults, **and the rename refusal**), M16-03 (history, detach/attach); `composables/__tests__/nameCollision.spec.ts` (the rule: a taken series name is refused before the mutation — M3's wizard note still has no e2e case, named in `e2e-ledger/`) |
+| FR-13.1 | E2E+UNIT | M2-02 (the grouping it describes is what the screen does, by decision; see E2E-M2-15), M16-01 (name, defaults, **and the rename refusal**), M16-03 (history, detach/attach); `composables/__tests__/nameCollision.spec.ts` (the rule: a taken series name is refused before the mutation — M3's wizard note still has no e2e case, named in `e2e-ledger/`); `TripWizardPage.spec.ts` (the wizard's note names the taken series and holds *Next*) |
 | FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts); M3-02 |
-| FR-13.3 | E2E | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer, still unwritten), M6-01 |
+| FR-13.3 | E2E+UNIT | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer, still unwritten), M6-01; `TripWizardPage.spec.ts` (the offer reaches the created trip, and stays behind once unticked) |
 | FR-14.1 | E2E | M3-08 (M5-04 retired — no history on M5, and none owed) |
 | FR-14.2 | E2E+UNIT | M3-08, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |

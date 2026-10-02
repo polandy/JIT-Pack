@@ -46,7 +46,7 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/views/import/ImportPage.vue':
     'FR-16.3 dedup — matching a retired item beats creating a twin',
   'src/views/import/PortableImportPage.vue': 'the same matching, on the portable path',
-  'src/views/trips/TripWizardPage.vue':
+  'src/views/trips/wizard/useWizardComposition.ts':
     'generateTripItems and resolveDependencies (its scope rows use the active list)',
   'src/views/trips/ReviewPage.vue':
     'buildReviewProposals (its retarget offer uses the active list)',
@@ -109,7 +109,7 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     // to the complete lists fails here, which is otherwise asserted nowhere.
     const mixed = [
       'src/views/templates/TemplateEditorPage.vue', // pickers + FR-27.15 folds
-      'src/views/trips/TripWizardPage.vue', // scope rows + the empty hint
+      'src/views/trips/wizard/useWizardComposition.ts', // M3's scope rows
       'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
       'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers
       'src/components/global/QuickAddItem.vue', // chips, group matches, browse door

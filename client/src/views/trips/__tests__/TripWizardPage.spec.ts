@@ -1029,3 +1029,153 @@ describe('M3 step 2 — default travellers that are accounts (FR-2.5a)', () => {
     expect(wrapper.find('[data-testid="wizard-traveler-role"]').exists()).toBe(false)
   })
 })
+
+describe('M3 step 1 — a new series whose name is taken (FR-13.1)', () => {
+  it('points at the existing series and holds Next until the name is free', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.tripSeries,
+      id: 'ser-1',
+      deleted: false,
+      row: { name: 'Sommerferien' },
+    })
+    const seriesNameCollision = vi.fn((name: string) =>
+      useMasterStore().seriesList.find((s) => s.name === name.trim()),
+    )
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, seriesNameCollision } } },
+    })
+    const next = () =>
+      wrapper
+        .findAllComponents({ name: 'IonButton' })
+        .find((button) => button.attributes('data-testid') === 'wizard-next')!
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Sommer 2026' },
+    })
+    await wrapper.get('[data-testid="wizard-more"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-series"]').trigger('ionChange', {
+      detail: { value: 'new' },
+    })
+
+    await wrapper.get('[data-testid="wizard-series-name"]').trigger('ionInput', {
+      detail: { value: 'Sommerferien' },
+    })
+    expect(wrapper.get('[data-testid="wizard-series-name-taken"]').text()).toContain('Sommerferien')
+    expect(next().props('disabled')).toBe(true)
+
+    await wrapper.get('[data-testid="wizard-series-name"]').trigger('ionInput', {
+      detail: { value: 'Herbstferien' },
+    })
+    expect(wrapper.find('[data-testid="wizard-series-name-taken"]').exists()).toBe(false)
+    expect(next().props('disabled')).toBe(false)
+  })
+})
+
+describe('M3 step 4 — the destination checklist the series offers (FR-13.3)', () => {
+  function seedProfile() {
+    const master = useMasterStore()
+    master.applyChange({
+      seq: 0,
+      table: TABLE.tripSeries,
+      id: 'ser-1',
+      deleted: false,
+      row: { name: 'Sommerferien' },
+    })
+    master.applyChange({
+      seq: 0,
+      table: TABLE.destinationProfiles,
+      id: 'prof-1',
+      deleted: false,
+      row: { series_id: 'ser-1' },
+    })
+    master.applyChange({
+      seq: 0,
+      table: TABLE.destinationChecklistItems,
+      id: 'chk-1',
+      deleted: false,
+      row: { profile_id: 'prof-1', label: 'Mückenspray', mode: 'buy_local' },
+    })
+  }
+
+  async function createWithSeries(untick: boolean) {
+    seedProfile()
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
+    })
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Sommer 2026' },
+    })
+    await wrapper.get('[data-testid="wizard-more"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-series"]').trigger('ionChange', {
+      detail: { value: 'ser-1' },
+    })
+    for (let i = 0; i < 3; i++) await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    const step = wrapper.get('[data-testid="wizard-step-4"]')
+    expect(step.text()).toContain('Mückenspray')
+    if (untick) await step.get('ion-checkbox').trigger('ionChange', { detail: { checked: false } })
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+    return (
+      orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+        checklistItems: { label: string; mode: string }[]
+      }
+    ).checklistItems
+  }
+
+  it('takes the series’ checklist along unless it is unticked', async () => {
+    expect(await createWithSeries(false)).toEqual([{ label: 'Mückenspray', mode: 'buy_local' }])
+  })
+
+  it('leaves the checklist behind once it is unticked', async () => {
+    expect(await createWithSeries(true)).toEqual([])
+  })
+})
+
+describe('M3 step 2 — a share’s role and its removal (FR-4.7)', () => {
+  const fetchUsers = vi.fn(async () => [
+    { user_id: 'me', display_name: 'Andy' },
+    { user_id: 'user-b', display_name: 'Sarah' },
+  ])
+  const fetchMe = vi.fn(async () => ({ user_id: 'me' }))
+
+  async function mountWithShare(): Promise<VueWrapper> {
+    collaborative = true
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, fetchUsers, fetchMe } } },
+    })
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Fototour' },
+    })
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await flushPromises()
+    await wrapper
+      .get('[data-testid="wizard-share-add"]')
+      .trigger('ionChange', { detail: { value: 'user-b' } })
+    return wrapper
+  }
+
+  it('creates the trip with the role the share was given', async () => {
+    const wrapper = await mountWithShare()
+
+    await wrapper
+      .get('[data-testid="wizard-share-user-b"]')
+      .get('ion-select')
+      .trigger('ionChange', { detail: { value: 'admin' } })
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+      members: { userId: string; role: string }[]
+    }
+    expect(draft.members).toEqual([{ userId: 'user-b', role: 'admin' }])
+  })
+
+  it('takes a share back and offers the account again', async () => {
+    const wrapper = await mountWithShare()
+
+    await wrapper.get('[data-testid="wizard-share-user-b"]').get('ion-button').trigger('click')
+
+    expect(wrapper.find('[data-testid="wizard-share-user-b"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(true)
+  })
+})
