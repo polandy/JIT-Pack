@@ -62,6 +62,33 @@ test.describe('app shell offline (NFR-4.13)', () => {
     await expect(visiblePage(page)).toBeVisible()
   })
 
+  /*
+   * A start under the worker reaches every module through the module loader
+   * alone. A `modulepreload` hint is a second way to the same chunk, and the
+   * two meet under the worker: in CI a reload lost preloaded chunks to
+   * ERR_ABORTED and stayed blank for good — main.ts never evaluated, and no
+   * error said so. The race itself cannot be provoked on demand, so the case
+   * holds the condition for it: no hint in the document, neither at the start
+   * nor once a lazy route has loaded (Vite injects its own before a dynamic
+   * import). Against a build that emits them this fails at the first count
+   * (ADR-019).
+   */
+  test('E2E-PWA-07: a start under the worker carries no module preload', async ({ page }) => {
+    await page.goto(PATH.dashboard)
+    await serviceWorkerControlsPage(page)
+    await page.reload()
+
+    // Settled: the app painted, so main.ts and its whole static graph ran.
+    await expect(page.getByTestId('header-logo')).toBeVisible()
+    // A route whose chunk the start did not load: its rendered control is
+    // the signal that the dynamic import, and anything injected before it,
+    // has happened.
+    await page.getByTestId('rail-templates').click()
+    await expect(visiblePage(page).getByTestId('m7-fab')).toBeVisible()
+
+    await expect(page.locator('link[rel="modulepreload"]')).toHaveCount(0)
+  })
+
   test('E2E-PWA-02: the worker never answers /api, /ws or /health', async ({ page }) => {
     await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
