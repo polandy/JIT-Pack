@@ -30,9 +30,9 @@ colour of the page behind it — only a rendered pixel can tell you (G-14, FR-21
 ## The kernel's catalogue is split by area
 
 `client/src/i18n/messages/<area>/en.ts` and `de.ts` — `shared`, `inventory`, `templates`, `packing`, `trips`,
-`excursions`, `settings` — assembled by `messages/en.ts`/`de.ts`, which change only when an area is added. A key goes into the
-area its prefix belongs to; a copy change reads that one pair, not the whole catalogue. Each `de.ts` is typed against
-its `en.ts`, so a key missing in German fails the type check in the file it is missing from.
+`excursions`, `settings` — assembled by `messages/en.ts`/`de.ts`, which change only when an area is added. A key goes
+into the area its prefix belongs to; a copy change reads that one pair, not the whole catalogue. Each `de.ts` is typed
+against its `en.ts`, so a key missing in German fails the type check in the file it is missing from.
 
 ## Vitest
 
