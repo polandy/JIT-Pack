@@ -690,6 +690,16 @@ These patterns apply to every screen and are specified once.
   space: the trip's tasks become the card's one figure at the lone ring size (FR-7.4), and the shopping card under it
   opens on *Vor Ort* (FR-30.8). The open-rows preview needs no rule — it lists open rows, of which a finished list has
   none, and a row added afterwards belongs there. (E2E-M1-25)
+* **The *Heute* card (FR-29.7).** On a trip's days, the planner module's card (`PlannerTodayCard.vue`, through
+  `TRIP_CARDS`, first of the two) stands under the trip as a `.jp-card` (`dashboard-today-<trip>`): its head
+  *„Heute · Fr., 2.10."* with the count of what is still to come, a link onto M29 (`dashboard-today-<trip>-head`); then
+  at most **three** of today's lines from the next one on, as M29's `DayLineRow` — a timed line leaves once its time
+  has passed, a connection once its last leg arrived, arrival and departure are left out — ticked and opened as on
+  M29, the plan's own entries opening M29; then *„+ n weitere · Tagesplan ›"* or *„Tagesplan öffnen ›"*
+  (`dashboard-today-<trip>-more`), and *„Für heute ist nichts mehr geplant."* in place of the lines once nothing is
+  left. Once the packing is finished it is a block of the hero after the task block, drawn by `DashboardBlock`
+  without a field — a line of the plan wants a time the field cannot take. Before and after the trip's days, and on a
+  trip without both dates, there is no card. (E2E-M29-11)
 * **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html`).** Rendered from top to
   bottom on a trip whose packing is finished:
   * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
@@ -3157,6 +3167,12 @@ token would prove nothing there is anything to prove.
   'dayplan'`, `trip-view-dayplan`), **drawn only while the trip has both dates** (`absentViews`). The page's name is
   *Tagesplan*, its meta line the trip's name. Back is M4. A trip without both dates that is opened on the route says
   *„Der Tagesplan braucht Start- und Enddatum der Reise."* (`m29-no-dates`).
+* **A trip opens here during the trip (FR-29.7).** A tap on a trip from outside it — M1, M2, M20 — goes to
+  `/trips/:id/open` (`tripOpenPath`), which the router replaces with the view the dates decide
+  (`router/tripOpening.ts`, the rule in `lib/tripOpening.ts`): from the first day to the last, or once started early,
+  the day plan on today; before the trip the view last visited on this device (`jp_trip_view_<tripId>`), on a first
+  visit *Ideen* while the packing list is empty; afterwards the packing list. Back from the opened view is its declared
+  parent, as from any trip view (ADR-011).
 * **The day strip** (`m29-strip`): one tile per day of the trip (`m29-day-<YYYY-MM-DD>`, `role="tab"`) — the weekday
   small over the date, up to three dots for what stands on it — scrolled sideways; today chosen during the trip, the
   first day otherwise. Days before today are dimmed. A tile chooses its day. Under the strip the chosen day in words,

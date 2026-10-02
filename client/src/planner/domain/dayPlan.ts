@@ -245,3 +245,21 @@ export function stateAfterTick(
 export function dayCounts(days: readonly string[], input: DayInput): Map<string, number> {
   return new Map(days.map((day) => [day, dayLines(day, input).length]))
 }
+
+/**
+ * linesAhead is what is still to come on a day at `now` (`HH:MM`) — what the
+ * dashboard's *Heute* card lists (FR-29.7). Arrival and departure are left
+ * out, the hero's day counter says them already; a timed line drops once its
+ * time has passed, a connection once its last leg has arrived; an untimed
+ * line stays all day, ticked or not.
+ */
+export function linesAhead(day: string, lines: readonly DayLine[], now: string): DayLine[] {
+  const at = `${day}T${now}`
+  return lines.filter((line) => {
+    if (line.kind === DAY_LINE.arrival || line.kind === DAY_LINE.departure) return false
+    if (line.time === null) return true
+    const legs = line.entry?.legs
+    const until = legs?.length ? legs[legs.length - 1]!.arr.slice(0, 16) : `${day}T${line.time}`
+    return until >= at
+  })
+}

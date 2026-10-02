@@ -98,3 +98,20 @@ export async function addToGroup(page: Page, group: string, item: string) {
   await expect(page.getByTestId('header-title')).toHaveText(group)
   await addPosition(page, item)
 }
+
+/**
+ * Open a group from M7's *Gruppen* scope; ends on its editor.
+ *
+ * The row is taken only once the scope has narrowed the list. Under *Alle* a
+ * Vorlage's row names the groups it contains, so a row filtered by the group's
+ * name would match the Vorlage above it; a click sent while the segment's
+ * change is still re-rendering lands on that row as it leaves, and nothing
+ * opens. The narrowed list says so itself: one scope draws no section heads.
+ */
+export async function openGroupFromList(page: Page, group: string) {
+  await page.goto(PATH.templates)
+  await visiblePage(page).getByTestId('m7-scope-group').click()
+  await expect(visiblePage(page).locator('.section-head')).toHaveCount(0)
+  await visiblePage(page).locator('ion-item').filter({ hasText: group }).first().click()
+  await expect(page.getByTestId('header-title')).toHaveText(group)
+}

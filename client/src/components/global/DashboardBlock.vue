@@ -27,8 +27,11 @@ const props = defineProps<{
   count: number
   /** The remembered fold's key (`lib/blockFold.ts`). */
   foldKey: string
-  /** The field's placeholder, which is also its label. */
-  addLabel: string
+  /**
+   * The field's placeholder, which is also its label; a block without one has
+   * no field — the day plan's lines need a time the field cannot take.
+   */
+  addLabel?: string
   /** Where the link under the rows leads. */
   moreRoute: string
   /** What the link says, including any remainder. */
@@ -86,7 +89,7 @@ watch(
       </span>
     </button>
 
-    <form class="add" :data-testid="`${testid}-add`" @submit.prevent="add">
+    <form v-if="addLabel" class="add" :data-testid="`${testid}-add`" @submit.prevent="add">
       <input
         v-model="draft"
         type="text"

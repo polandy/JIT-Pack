@@ -15,6 +15,7 @@ import {
 import type { Page } from '@playwright/test'
 import { startTrip } from './helpers/m4'
 import { PATH } from './routes'
+import { openGroupFromList } from './helpers/templates'
 
 /**
  * M14 — Post-Trip Review Assistant (UI-Test-Spec §4, unit "M14 review").
@@ -201,10 +202,7 @@ async function targetOptions(page: Page, item: string, current: string): Promise
 
 /** Open the group in M8 and read its positions back. */
 async function openGroup(page: Page, group: string) {
-  await page.goto(PATH.templates)
-  await visible(page).getByTestId('m7-scope-group').click()
-  await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
-  await expect(page.getByTestId('header-title')).toHaveText(group)
+  await openGroupFromList(page, group)
 }
 
 test.describe('M14 review assistant — the positive half @local @m14', () => {

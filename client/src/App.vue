@@ -59,7 +59,8 @@ import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { PATH, tripPath, tripSubPath } from '@/router/paths'
+import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
+import { installTripOpening } from '@/router/tripOpening'
 import { confirmAction } from '@/lib/confirm'
 import { resolveHead } from '@/composables/useHeaderTitle'
 import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
@@ -86,7 +87,12 @@ import {
   useShoppingStore,
 } from '@/shopping'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
-import { ideasCount, plannerActivityReaders, plannerFeatureStore } from '@/planner'
+import {
+  ideasCount,
+  plannerActivityReaders,
+  plannerFeatureStore,
+  PlannerTodayCard,
+} from '@/planner'
 import { ACTIVITY_READERS } from '@/lib/activityReaders'
 
 const mode = ref(readMode())
@@ -280,8 +286,18 @@ provide(TRIP_VIEW_COUNTS, {
     )
   },
 })
-// FR-30.7: the shopping list, workable on the dashboard under each trip.
-provide(TRIP_CARDS, orchestrator ? [ShoppingDashboardCard] : [])
+// FR-29.7: a trip opens on the view its dates decide.
+if (orchestrator) {
+  installTripOpening(useRouter(), {
+    getTrip: (tripId) => useTripStore().getTrip(tripId),
+    itemCount: (tripId) => useTripStore().getItems(tripId).length,
+    tripDataLoaded: orchestrator.tripDataLoaded,
+    today: orchestrator.today,
+  })
+}
+// FR-30.7 and FR-29.7: the dashboard's cards under each trip — today's plan
+// during the trip, and the shopping list, workable there.
+provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, ShoppingDashboardCard] : [])
 // FR-30.10: Local Mode's opening hint counts the due purchases too.
 if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())
 // FR-7.12: closing the packing ends *before departure* on the shopping list too.
@@ -455,7 +471,7 @@ function openConflicts() {
 
 function openOnlineTrip(id: string) {
   syncDetailOpen.value = false
-  router.push(tripPath(id))
+  router.push(tripOpenPath(id))
 }
 
 function openMasterConflicts() {
