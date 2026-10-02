@@ -13,17 +13,19 @@
  * undo toast and the drag.
  */
 import { IonLabel } from '@ionic/vue'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
+import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ListRow from '@/components/global/ListRow.vue'
 import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
 import { t } from '@/i18n'
+import { IDEA_LOOKUP } from '@/lib/ideaBridge'
 import type { NameOf } from '@/lib/rowFacts'
 import type { ShoppingLine } from '@/lib/shoppingSources'
 
@@ -93,8 +95,22 @@ function assigneeOf(line: ShoppingLine) {
   return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
 }
 
+const ideaLookup = inject(IDEA_LOOKUP, null)
+
+/** FR-29.13: whether the line names an idea this device holds. */
+function hasIdea(line: ShoppingLine): boolean {
+  const from = line.fromIdea
+  return !!from && ideaLookup?.idea(from.tripId, from.ideaId) !== undefined
+}
+
 function hasFacts(line: ShoppingLine): boolean {
-  return !!line.dueDate || line.quantity > 1 || !!props.tagOf?.(line) || line.recipients.length > 0
+  return (
+    !!line.dueDate ||
+    line.quantity > 1 ||
+    !!props.tagOf?.(line) ||
+    line.recipients.length > 0 ||
+    hasIdea(line)
+  )
 }
 </script>
 
@@ -172,6 +188,12 @@ function hasFacts(line: ShoppingLine): boolean {
           />
           <span>{{ t('shopping.forWhom', { names: recipientNames(line) }) }}</span>
         </span>
+        <IdeaOrigin
+          v-if="line.fromIdea"
+          :trip-id="line.fromIdea.tripId"
+          :idea-id="line.fromIdea.ideaId"
+          :testid="`m6-row-idea-${line.name}`"
+        />
       </template>
       <!-- FR-30.12: who is to buy it, at the edge before the tick — a control
            on an own entry, the avatar alone while selecting or on a closed

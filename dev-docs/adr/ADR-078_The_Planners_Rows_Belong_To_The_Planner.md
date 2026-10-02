@@ -1,6 +1,6 @@
 # ADR-078: The planner's rows belong to the planner — its own discussion table vs. a column on `comments`; results named on the result vs. a list on the idea
 
-**Status:** Accepted
+**Status:** Accepted — amended 2026-10-02 (amendment 1: where a result is made)
 **Related:** PRD Addendum §3.29 (FR-29.1–29.4, FR-29.9, FR-29.13), ADR-066 (feature modules), ADR-073 (a row per
 person), ADR-022 (field-level LWW), UI-Spec M28, schema `ideas`, `idea_votes`, `idea_comments`;
 `dev-docs/planner-concept.md` §3, §5a
@@ -103,3 +103,25 @@ A third feature needs a discussion of its own — then the shape is extracted on
 third time. Or a reader outside the planner needs an idea's discussion (a search across the trip, an export that renders
 it): then decide whether it reads the planner's table through a kernel contract or the discussion moves into `comments`
 after all.
+
+## Amendment 1, 2026-10-02: where a result is made — the screen that makes it, not a sheet over the idea
+
+FR-29.13 said "through the existing creator, pre-filled" without saying where that creator stands. Two shapes were
+weighed:
+
+- **A — the target screen.** The chip opens M27, M25 or M6 with its creator open and pre-filled; the result is seen
+  where it lives, and `‹ back` returns to the idea. The three screens stay exactly as they are, the planner imports
+  none of them, and what crosses the boundary is a path (`ideaBridgePath`) and a lookup (`IDEA_LOOKUP`).
+- **B — a sheet over the idea.** The creator opens over M28 and the reader never leaves the idea, which is quicker for
+  several results in a row. But M27's sheet and M25's composer would have to be handed to the planner through a new
+  kernel contract carrying components, and M6's composer is not a component of its own at all.
+
+**A, by the owner's choice.** Its cost is the way back: a trip's view returns to the trip (ADR-011's declared parent),
+and here it has to return to the idea. That is a sixth route class, `meta.acceptsLinkedFrom` — the origin is honoured
+when **a link carried it**, never stamped on the way in, so switching between the views keeps returning to the trip.
+M27's excursion page has the class too, since a new excursion opens its list.
+
+Two traps the shape walked into, both fixed at their cause: an idea's sheet opened **during** the page transition into
+M28 (a panel teleported into the frame, a modal presented) left the page it came from unhidden in the outlet, so the
+idea opens once the board has entered (`ionViewDidEnter`); and the phone's sheet, dismissed because the route moved
+on, navigated back to the board — its dismissal closes the idea only while the route still has one open.

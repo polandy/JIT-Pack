@@ -12,13 +12,15 @@
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage, IonItem, IonLabel } from '@ionic/vue'
 import { addOutline, bicycleOutline, walkOutline } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
+import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ListSection from '@/components/global/ListSection.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useIdeaSeed } from '@/composables/useIdeaSeed'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { arrangeExcursions, participantsOf, spanOf, sumUnits } from '@/domain/excursions'
@@ -29,7 +31,8 @@ import { excursionDays } from '@/lib/excursionText'
 import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/lib/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
-import { tripExcursionsPath } from '@/router/paths'
+import type { IdeaSeed } from '@/lib/ideaBridge'
+import { ORIGIN_QUERY_PARAM, tripExcursionsPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
 import type { Excursion } from '@/types/domain'
 
@@ -38,6 +41,7 @@ const props = defineProps<{ tripId: string }>()
 const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
 const router = useRouter()
+const route = useRoute()
 
 // ADR-033: excursions travel the trip partition; „none" is only true of a
 // partition that has arrived.
@@ -88,12 +92,37 @@ function open(excursion: Excursion) {
 // --- a new excursion ---
 
 const creating = ref(false)
+/** FR-29.13: the idea the sheet was opened from, while it is open. */
+const fromIdea = ref<IdeaSeed | null>(null)
+const seed = computed(() =>
+  fromIdea.value ? { name: fromIdea.value.title, day: fromIdea.value.plannedOn } : null,
+)
+
+useIdeaSeed(
+  props.tripId,
+  () => loaded.value,
+  (idea) => {
+    fromIdea.value = idea
+    creating.value = true
+  },
+)
+
+function dismiss() {
+  creating.value = false
+  fromIdea.value = null
+}
 
 async function create(result: ExcursionSheetResult) {
-  creating.value = false
-  const report = orchestrator.createExcursion(props.tripId, result)
+  const ideaId = fromIdea.value?.id ?? null
+  dismiss()
+  const report = orchestrator.createExcursion(props.tripId, { ...result, ideaId })
   if (!report) return
-  await router.push(tripExcursionsPath(props.tripId, report.excursionId))
+  // Made from an idea, its list keeps the way back to the idea (FR-29.13).
+  const origin = ideaId ? route.query[ORIGIN_QUERY_PARAM] : undefined
+  await router.push({
+    path: tripExcursionsPath(props.tripId, report.excursionId),
+    query: typeof origin === 'string' ? { [ORIGIN_QUERY_PARAM]: origin } : {},
+  })
   await presentToast({
     message:
       report.addedToSuitcase > 0
@@ -149,6 +178,11 @@ setHeaderTitle(
                 >
                 <span class="name">{{ excursion.name }}</span>
                 <span v-if="whoLine(excursion)" class="who">{{ whoLine(excursion) }}</span>
+                <IdeaOrigin
+                  :trip-id="tripId"
+                  :idea-id="excursion.idea_id"
+                  :testid="`m27-idea-${excursion.name}`"
+                />
                 <span
                   v-if="trackLine(excursion)"
                   class="tracks jp-num"
@@ -210,7 +244,8 @@ setHeaderTitle(
         :suitcase-open="suitcaseOpen"
         :trip-start="trip?.start_date"
         :trip-end="trip?.end_date"
-        @dismiss="creating = false"
+        :seed="seed"
+        @dismiss="dismiss"
         @save="create"
       />
     </IonContent>

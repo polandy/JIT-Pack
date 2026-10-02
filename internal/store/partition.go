@@ -110,7 +110,12 @@ func tripPartition(tripID, userID string) partition {
 			case TableTravelers:
 				return validTravelerLink(ctx, tx, tripID, row.Fields, m)
 			case TableComments:
-				return validNoteThread(ctx, tx, tripID, userID, row, m)
+				if reason, err := validNoteThread(ctx, tx, tripID, userID, row, m); reason != ReasonNone || err != nil {
+					return reason, err
+				}
+				return validIdeaResult(ctx, tx, tripID, m)
+			case TableExcursions, TableShoppingEntries:
+				return validIdeaResult(ctx, tx, tripID, m)
 			case TableIdeaVotes:
 				return validIdeaVote(userID, row), nil
 			case TableIdeaComments:

@@ -24,6 +24,9 @@
  * It writes the trip's own kind only (a preparation is declared on its row,
  * FR-7.3), in one insert with its filing, and reports what it wrote so the
  * screen can arm the undo.
+ *
+ * Entered from an idea (FR-29.13), the screen seeds it: the words and the day
+ * stand in the field, and the next task written names the idea.
  */
 import { computed, ref, watch } from 'vue'
 
@@ -66,6 +69,8 @@ const chosenPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
 const phase = computed<TaskPhase>(() => (props.forTheRoad ? TASK_PHASE_DURING : chosenPhase.value))
 const tagId = ref<string | null>(null)
 const day = ref<string | null>(null)
+/** FR-29.13: the idea the field was seeded from, until a task is written. */
+const ideaId = ref<string | null>(null)
 
 // A tag deleted elsewhere must not stay chosen with no chip to unchoose it.
 watch(
@@ -83,13 +88,11 @@ function toggleTag(id: string) {
 }
 
 function write(body: string, filing: { taskTagId: string | null; dueDate: string | null }) {
-  const id = orchestrator.addTripTodo(
-    props.tripId,
-    CLIENT_ACTOR_PLACEHOLDER,
-    body,
-    phase.value,
-    filing,
-  )
+  const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body, phase.value, {
+    ...filing,
+    ...(ideaId.value ? { ideaId: ideaId.value } : {}),
+  })
+  ideaId.value = null
   emit('added', id, body)
 }
 
@@ -137,7 +140,16 @@ async function focus() {
   await composer.value?.focus()
 }
 
-defineExpose({ focus })
+/** FR-29.13: the field filled from an idea — its words, day and phase — and focused. */
+async function seed(fill: { body: string; day: string | null; phase: TaskPhase; ideaId: string }) {
+  draft.value = fill.body
+  day.value = fill.day
+  chosenPhase.value = fill.phase
+  ideaId.value = fill.ideaId
+  await focus()
+}
+
+defineExpose({ focus, seed })
 </script>
 
 <template>

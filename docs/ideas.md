@@ -149,6 +149,27 @@ The link opens the website in a new tab.
 On the **Shortlist**, while the trip has both dates, an idea also gets a **Tag** — the day you mean to do it — and,
 if you like, a time. It then stands on that day of the [Day plan](day-plan.md).
 
+## Making something of an idea
+
+Once an idea is on the **Shortlist**, it can become what you need to actually do it. Under the votes, **Daraus
+gemacht** offers three dashed buttons:
+
+- **Ausflug** opens the trip's [excursions](excursions.md) with a new excursion already named after the idea and set to
+  its day. Pick a group to start from if you like and create it. An idea makes one excursion, so the button goes once
+  there is one.
+- **Aufgabe** opens the trip's [tasks](tasks-and-shopping.md) with *„… buchen"* typed in, due the day before the idea's
+  day — so the morning reminder on a server comes in time. Change the words if you like and add it. You can make as many
+  tasks of one idea as you need.
+- **Einkauf** opens the [shopping list](tasks-and-shopping.md) with the idea's title typed in on **Vor Ort**. Write
+  what you need and add it — again as often as you like.
+
+The back arrow then leads to the idea again. Whatever you made appears under **Daraus gemacht** as a button of its own
+— crossed out once the task is done or the thing bought — and a tap opens it. On the excursion, the task or the shopping
+entry, a small line with the light bulb and the idea's title says where it came from; tap it to open the idea.
+
+Deleting the idea leaves the excursion, tasks and shopping entries in place; they just no longer name it. Deleting
+one of them leaves the idea.
+
 ## Who is told
 
 On a trip you share, the others hear about the planning without having to look:

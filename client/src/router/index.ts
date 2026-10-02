@@ -38,6 +38,8 @@ import type { RouteRecordRaw } from 'vue-router'
  * import flows — additionally carries `meta.acceptsFrom`: it is stamped
  * with its origin on the way in (originStamp.ts) and returns there,
  * keeping `parent` as the fallback for the entry that has no origin.
+ * `meta.acceptsLinkedFrom` honours an origin only where a link carried one
+ * (FR-29.13's bridge from an idea); nothing stamps it.
  */
 export const routes: RouteRecordRaw[] = [
   {
@@ -228,7 +230,8 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: tripSubPath(TRIP_ID_PARAM, 'shopping'),
-    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'shopping' },
+    // FR-29.13: entered from an idea to make something of it, back is the idea.
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'shopping', acceptsLinkedFrom: true },
     name: 'trip-shopping',
     component: () => import('@/shopping/ShoppingPage.vue'),
     props: true,
@@ -236,7 +239,8 @@ export const routes: RouteRecordRaw[] = [
   {
     // M25 (FR-7.7): every task of the trip, in its two phases.
     path: tripSubPath(TRIP_ID_PARAM, 'tasks'),
-    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'tasks' },
+    // FR-29.13: entered from an idea to make something of it, back is the idea.
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'tasks', acceptsLinkedFrom: true },
     name: 'trip-tasks',
     component: () => import('@/views/trips/TripTasksPage.vue'),
     props: true,
@@ -284,7 +288,8 @@ export const routes: RouteRecordRaw[] = [
   {
     // M27 (FR-31): the trip's excursions, each with its own small list.
     path: tripExcursionsPath(TRIP_ID_PARAM),
-    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'excursions' },
+    // FR-29.13: entered from an idea to make something of it, back is the idea.
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'excursions', acceptsLinkedFrom: true },
     name: 'trip-excursions',
     component: () => import('@/views/trips/TripExcursionsPage.vue'),
     props: true,
@@ -295,6 +300,8 @@ export const routes: RouteRecordRaw[] = [
     path: tripExcursionsPath(TRIP_ID_PARAM, EXCURSION_ID_PARAM),
     meta: {
       parent: tripExcursionsPath(TRIP_ID_PARAM),
+      // FR-29.13: one made from an idea opens here and still returns to it.
+      acceptsLinkedFrom: true,
       overlayQuery: LINE_QUERY_PARAM,
       overlayParent: tripExcursionsPath(TRIP_ID_PARAM, EXCURSION_ID_PARAM),
       tripView: 'excursions',

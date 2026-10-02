@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { ORIGIN_QUERY_PARAM, backTarget, enteredFrom, originFrom } from '@/router/backTarget'
+import { FROM_IDEA_QUERY_PARAM, ideaBridgePath } from '@/router/paths'
 import { routes } from '@/router'
 
 /**
@@ -155,6 +156,17 @@ describe('a route that carries its origin (ADR-011 amendment)', () => {
     expect(backTarget({ ...settings, query: enteredFrom(nested) })).toBe(nested)
   })
 
+  it('honours an origin a link carried on a route that accepts one, unstamped (FR-29.13)', () => {
+    const shopping = {
+      meta: { parent: '/trips/:tripId', acceptsLinkedFrom: true },
+      params: { tripId: 't1' },
+    }
+    expect(backTarget({ ...shopping, query: enteredFrom('/trips/t1/ideas?idea=i1') })).toBe(
+      '/trips/t1/ideas?idea=i1',
+    )
+    expect(backTarget({ ...shopping, query: {} })).toBe('/trips/t1')
+  })
+
   it('ignores an origin on a route that does not declare the class', () => {
     // Otherwise any drill-down could be redirected by a crafted link.
     expect(
@@ -209,5 +221,19 @@ describe('originFrom rejects what is not an internal path', () => {
 describe('enteredFrom', () => {
   it('names the origin under the documented query key', () => {
     expect(enteredFrom('/trips/t1')).toEqual({ [ORIGIN_QUERY_PARAM]: '%2Ftrips%2Ft1' })
+  })
+})
+
+/**
+ * FR-29.13: an idea's sheet links to the screen that makes a result, with the
+ * idea to seed from and the idea's own address as the way back.
+ */
+describe('ideaBridgePath (FR-29.13)', () => {
+  it('names the idea to seed from, and returns to the idea’s sheet', () => {
+    const url = new URL(ideaBridgePath('t1', 'tasks', 'i1'), 'http://x')
+    expect(url.pathname).toBe('/trips/t1/tasks')
+    expect(url.searchParams.get(FROM_IDEA_QUERY_PARAM)).toBe('i1')
+    const query = Object.fromEntries(url.searchParams)
+    expect(originFrom(query)).toBe('/trips/t1/ideas?idea=i1')
   })
 })

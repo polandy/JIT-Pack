@@ -69,6 +69,8 @@ export interface ShoppingLine {
    * absent for never placed, which reads before every placed line (ADR-083).
    */
   position?: number | null
+  /** For an own entry made from an idea (FR-29.13): its trip and the idea; absent otherwise. */
+  fromIdea?: { tripId: string; ideaId: string }
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
   /** For a bought line: when it was bought, an ISO instant (FR-30.4). */

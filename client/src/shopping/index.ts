@@ -5,6 +5,8 @@
  * write its entries through the module's own actions.
  */
 import { isDueByTomorrow } from '@/lib/dueDay'
+import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/lib/ideaBridge'
+import { tripSubPath } from '@/router/paths'
 import type { ShoppingSource } from '@/lib/shoppingSources'
 import type { DuePurchaseCount } from '@/lib/tripCards'
 import { SHOPPING_MODES } from '@/types/domain'
@@ -45,4 +47,25 @@ export function duePurchaseCount(): DuePurchaseCount {
           .filter((entry) => isDueByTomorrow(entry.due_date, today)).length,
       0,
     )
+}
+
+/**
+ * FR-29.13: the list's own entries made from an idea, for the idea's *Daraus
+ * gemacht* — the shopping module's half of `lib/ideaBridge.ts`.
+ */
+export function shoppingIdeaResults(): IdeaResultSource {
+  const shoppingStore = useShoppingStore()
+  return {
+    results: (tripId, ideaId) =>
+      shoppingStore
+        .getEntries(tripId)
+        .filter((entry) => entry.idea_id === ideaId)
+        .map((entry) => ({
+          key: `shopping:${entry.id}`,
+          kind: IDEA_RESULT_SHOPPING,
+          title: entry.name,
+          done: entry.bought,
+          path: tripSubPath(tripId, 'shopping'),
+        })),
+  }
 }

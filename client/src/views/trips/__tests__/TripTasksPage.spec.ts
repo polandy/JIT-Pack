@@ -11,9 +11,9 @@
  * The rules themselves are pure and tested without a screen
  * (`domain/__tests__/tripTodos.spec.ts`, `lib/__tests__/taskFacts.spec.ts`).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { IonInput, IonSearchbar } from '@ionic/vue'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -28,9 +28,28 @@ import type { RowUndo } from '@/composables/useRowUndo'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
+import { t } from '@/i18n'
+import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 
+// FR-29.13: the route the screen reads `?fromIdea=` off, and what it replaces it with.
+const nav = vi.hoisted(() => ({
+  route: { path: '/trips/t1/tasks', query: {} as Record<string, string> },
+  replaced: [] as unknown[],
+}))
+vi.mock('vue-router', async () => {
+  const { reactive } = await import('vue')
+  const route = reactive(nav.route)
+  nav.route = route
+  return {
+    useRoute: () => route,
+    useRouter: () => ({ replace: (to: unknown) => nav.replaced.push(to), push: vi.fn() }),
+  }
+})
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+// A page left mounted by an earlier case would answer the route as well.
+enableAutoUnmount(afterEach)
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('@/composables/useHeaderSelection', async (actual) => ({
   ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
@@ -84,6 +103,12 @@ function mountPage() {
           }),
           ...tripScreen,
           ...acts,
+        },
+        [IDEA_LOOKUP]: {
+          idea: (tripId: string, ideaId: string) =>
+            tripId === 't1' && ideaId === 'idea-1'
+              ? { id: 'idea-1', title: 'Gola Gorropu', plannedOn: '2026-07-12' }
+              : undefined,
         },
       },
       // The real `ion-modal` renders an empty element under jsdom, so the
@@ -199,6 +224,46 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await flushPromises()
 
     expect(page.get('[data-testid="m25-before"]').text()).toContain('Salbe holen')
+  })
+
+  it('entered from an idea, holds „… buchen" due the day before and writes the task naming it (FR-29.13)', async () => {
+    const body = t('tasks.fromIdea', { title: 'Gola Gorropu' })
+    seedTrip()
+    nav.route.query = { [FROM_IDEA_QUERY_PARAM]: 'idea-1', from: '%2Ftrips%2Ft1%2Fideas' }
+    nav.replaced.length = 0
+    try {
+      const page = mountPage()
+      await flushPromises()
+
+      const composer = page.findComponent(TaskComposer)
+      expect(composer.findComponent(IonInput).props('modelValue')).toBe(body)
+      expect(nav.replaced).toEqual([
+        { path: '/trips/t1/tasks', query: { from: '%2Ftrips%2Ft1%2Fideas' } },
+      ])
+
+      await composer.get('form').trigger('submit')
+      expect(acts.addTripTodo).toHaveBeenLastCalledWith('t1', expect.any(String), body, 'before', {
+        taskTagId: null,
+        dueDate: '2026-07-11',
+        ideaId: 'idea-1',
+      })
+
+      // The next task is the list's own again.
+      await composer.findComponent(IonInput).setValue('Tanken')
+      await composer.get('form').trigger('submit')
+      expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+        't1',
+        expect.any(String),
+        'Tanken',
+        'before',
+        {
+          taskTagId: null,
+          dueDate: null,
+        },
+      )
+    } finally {
+      nav.route.query = {}
+    }
   })
 
   it('writes what is typed on top, in the phase its chip names (FR-7.14)', async () => {

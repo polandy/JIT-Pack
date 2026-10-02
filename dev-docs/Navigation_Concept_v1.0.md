@@ -374,6 +374,13 @@ Three properties worth naming, because each is load-bearing:
   reverting it, and only for routes that declare it: a drill-down ignores `?from=` entirely, so a crafted link cannot
   redirect one.
 
+**The sixth class: an origin a link carried** (ADR-078 amendment 1). M27, M25 and M6 are trip views whose parent is the
+trip, and switching between the views must keep returning there — so nothing stamps them. But an idea's sheet links to
+them to make an excursion, a task or a shopping entry of it (FR-29.13), and back from there means the idea. A route in
+this class carries `meta.acceptsLinkedFrom`: `backTarget()` honours a `?from=` **the link itself put there**
+(`ideaBridgePath`), validated as above, and falls back to `meta.parent` without one. M27's excursion page has it too, as
+a new excursion opens its list.
+
 ---
 
 ## 8. Onboarding path

@@ -18,6 +18,8 @@ export interface TaskFiling {
   dueDate?: string | null
   /** FR-7.17: the task's place in its group; absent for never placed. */
   position?: number
+  /** FR-29.13: the idea a trip task is made from. */
+  ideaId?: string | null
 }
 
 export function createTasksMutations({ make, nowIso }: MutationContext) {
@@ -64,6 +66,8 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       ...(filed.dueDate ? { due_date: filed.dueDate } : {}),
       // FR-7.17: a task typed by hand lands at the end of its group.
       ...(filed.position !== undefined ? { position: filed.position } : {}),
+      // FR-29.13: made from an idea, it names the idea.
+      ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
     })
     return { mutation, id }
   }

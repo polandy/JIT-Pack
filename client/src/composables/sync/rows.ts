@@ -128,6 +128,7 @@ export function excursionRow(excursion: Excursion): Record<string, unknown> {
     starts_on: excursion.starts_on,
     ends_on: excursion.ends_on,
     source_template_id: excursion.source_template_id,
+    idea_id: excursion.idea_id ?? null,
   }
 }
 
@@ -183,6 +184,7 @@ export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
     is_task: dbBool(true),
     task_state: todo.task_state,
     ...taskFactRow(todo),
+    idea_id: todo.idea_id ?? null,
   }
 }
 
@@ -343,6 +345,7 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     assignee_user_id: entry.assignee_user_id,
     carried_over_at: entry.carried_over_at ?? null,
     position: entry.position ?? null,
+    idea_id: entry.idea_id ?? null,
   }
 }
 

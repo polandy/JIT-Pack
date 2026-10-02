@@ -53,6 +53,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
     name: string,
     tag: string | null = null,
     dueDate: string | null = null,
+    ideaId: string | null = null,
   ): void {
     const trimmed = name.trim()
     if (trimmed === '') return
@@ -66,6 +67,8 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       // FR-30.13: typed by hand, so at the end of whichever heading it is
       // filed under — past every entry of the trip, so past every one there.
       position: nextPosition(places.getEntries(tripId).map((entry) => entry.position)),
+      // FR-29.13: made from an idea, it names the idea.
+      ...(ideaId ? { idea_id: ideaId } : {}),
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
@@ -327,6 +330,7 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): O
       assign: (userId) => actions.assignEntry(entry, userId),
       position: entry.position,
       place: (position) => actions.placeEntry(entry, position),
+      ...(entry.idea_id ? { fromIdea: { tripId: entry.trip_id, ideaId: entry.idea_id } } : {}),
     }
   }
   /** The open entries a selection's line keys name. */

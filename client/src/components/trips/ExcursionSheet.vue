@@ -46,8 +46,10 @@ const props = withDefaults(
     /** The trip's days, which bound the excursion's (FR-31.1); null is unbounded. */
     tripStart?: string | null
     tripEnd?: string | null
+    /** FR-29.13: for a new one made from an idea — its name and day, to start from. */
+    seed?: { name: string; day: string | null } | null
   }>(),
-  { excursion: null, travelerIds: null, tripStart: null, tripEnd: null },
+  { excursion: null, travelerIds: null, tripStart: null, tripEnd: null, seed: null },
 )
 
 const emit = defineEmits<{ dismiss: []; save: [result: ExcursionSheetResult] }>()
@@ -66,9 +68,9 @@ watch(
   () => props.isOpen,
   (open) => {
     if (!open) return
-    name.value = props.excursion?.name ?? ''
-    startsOn.value = props.excursion?.starts_on ?? ''
-    endsOn.value = props.excursion?.ends_on ?? ''
+    name.value = props.excursion?.name ?? props.seed?.name ?? ''
+    startsOn.value = props.excursion?.starts_on ?? props.seed?.day ?? ''
+    endsOn.value = props.excursion?.ends_on ?? props.seed?.day ?? ''
     who.value = props.travelerIds === null ? null : new Set(props.travelerIds)
     templateId.value = null
     query.value = ''

@@ -94,6 +94,10 @@ const KERNEL_PATHS = [
   // the owner's writes are passed in, so it knows a track and no holder —
   // M28 and the packing side's M27 share it (ADR-089).
   'composables/useTrackOwner',
+  // FR-29.13: a screen entered from an idea opens its creator pre-filled — the
+  // route's `?fromIdea=` and the kernel's idea lookup, no packing shape; M6
+  // seeds its composer through it as M25 and M27 do.
+  'composables/useIdeaSeed',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

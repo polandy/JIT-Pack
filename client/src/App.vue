@@ -70,6 +70,8 @@ import { localIsoDate } from '@/domain/trips'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
 import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
+import { createIdeaResultSource } from '@/composables/ideaResultSource'
+import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/lib/ideaBridge'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/useLiveLocation'
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
@@ -85,11 +87,13 @@ import {
   shoppingCount,
   shoppingActivityReaders,
   shoppingFeatureStore,
+  shoppingIdeaResults,
   useShoppingStore,
 } from '@/shopping'
 import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
 import {
   dayPlanEmpty,
+  ideaLookup,
   ideasCount,
   plannerActivityReaders,
   plannerFeatureStore,
@@ -263,6 +267,23 @@ const dayPlanSources = orchestrator
     ]
   : []
 provide(DAY_PLAN_SOURCES, dayPlanSources)
+/*
+ * FR-29.13: the bridge from an idea — the planner names an idea to the
+ * packing side and the shopping module, and both name what came of it back.
+ */
+provide(IDEA_LOOKUP, ideaLookup())
+provide(
+  IDEA_RESULT_SOURCES,
+  orchestrator
+    ? [
+        createIdeaResultSource({
+          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
+          getTripTodos: (tripId) => useTripStore().getTripTodos(tripId),
+        }),
+        shoppingIdeaResults(),
+      ]
+    : [],
+)
 provide(TRIP_VIEW_COUNTS, {
   // §3.29: the ideas nobody has decided on yet.
   ideas: ideasCount(),

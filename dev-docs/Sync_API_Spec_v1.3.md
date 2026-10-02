@@ -306,6 +306,12 @@ field and the rest of the mutation is applied, so a race costs the link and neve
 clears the column (`ON DELETE SET NULL`) inside the engine and writes **no change**, like
 `excursion_items.trip_item_id`: a client reads a link to an excursion it does not hold as no link.
 
+`idea_id` on `excursions`, `comments` and `shopping_entries` (FR-29.13) names the idea a result was made from, or NULL
+— any member may set it, since it says where a row came from rather than who said what. An idea of another trip is
+refused (`constraint_violated`); one that does not exist drops the field and applies the rest, FR-7.15's rule. Deleting
+the idea clears the column inside the engine and writes **no change**, so a client reads a link to an idea it does not
+hold as no link; deleting a result touches the idea not at all.
+
 `task_tags` (FR-7.8, ADR-072) joins the master partition: `{name, sort_order, icon}`, instance-wide like
 `tags`, and a separate vocabulary from it on purpose — a task is filed by what it is *about*, an item by what it *is*,
 and the two never appear in one picker. `comments.task_tag_id` names one of its rows, which makes it a trip-partition

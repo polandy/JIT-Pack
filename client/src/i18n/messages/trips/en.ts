@@ -214,6 +214,9 @@ export const tripsEn = {
 
   // FR-7.7 — M25, a trip's tasks on a screen of their own.
   'tasks.title': 'Tasks',
+  // FR-29.13: a task made from an idea, and the line naming where a result came from.
+  'tasks.fromIdea': 'Book {title}',
+  'trip.ideaOrigin': 'Made from the idea “{title}”',
   'tasks.before': 'Before the trip',
   'tasks.during': 'During the trip',
   'tasks.mine': 'Mine',
