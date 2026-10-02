@@ -10,6 +10,7 @@ import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
 import { openTripTodos } from './helpers/m4'
 import { PATH } from './routes'
+import { openGroupFromList } from './helpers/templates'
 
 /**
  * M3 step 3 — generating a trip from a *composed* template (§3.27).
@@ -62,13 +63,7 @@ async function seedComposition(page: Page) {
 
 /** Hang an FR-27.7 preparation task off the Kamera position of a group. */
 async function addTaskToPosition(page: Page, group: string, item: string, task: string) {
-  await page.goto(PATH.templates)
-  // Filter to the Gruppen scope first: in "Alle" a Ferien-Vorlage row lists
-  // the groups it contains, so a row filtered by the group's name would match
-  // the Vorlage above it.
-  await visible(page).getByTestId('m7-scope-group').click()
-  await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
-  await expect(page.getByTestId('header-title')).toHaveText(group)
+  await openGroupFromList(page, group)
 
   await visible(page).locator('ion-item').filter({ hasText: item }).first().click()
   const composer = page.getByTestId('m8-task-input').locator('input')
