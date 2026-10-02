@@ -2,7 +2,7 @@ import { test, expect } from './fixtures'
 
 /**
  * Scaffold smoke tests — the backend-free floor of the suite
- * (dev-docs/UI_Test_Spec_v1.0.md §10 step 1). They prove the harness end
+ * (dev-docs/ui-test-spec/README.md §10 step 1). They prove the harness end
  * to end: the built client boots in a real browser, first-launch mode
  * selection (M19) renders, and choosing Local Mode lands on the
  * Dashboard (M1) with its empty state. No jitpackd required.

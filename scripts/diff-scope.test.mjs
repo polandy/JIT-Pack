@@ -7,7 +7,7 @@ import { diffScope } from './diff-scope.mjs'
 const cases = [
   {
     name: 'docs and unit tests alone touch no app input',
-    paths: ['dev-docs/PRD_Addendum_v2.10.md', 'client/src/planner/__tests__/store.spec.ts', 'internal/store/planner_test.go'],
+    paths: ['dev-docs/prd-addendum/3.29-planner.md', 'client/src/planner/__tests__/store.spec.ts', 'internal/store/planner_test.go'],
     want: { appUntouched: true, module: '' },
   },
   {
@@ -17,7 +17,7 @@ const cases = [
       'client/e2e/planner/ideas.spec.ts',
       'internal/store/planner.go',
       'internal/api/planner.go',
-      'dev-docs/UI_Spec_v1.10.md',
+      'dev-docs/ui-spec/M28-ideen.md',
       'client/src/planner/__tests__/actions.spec.ts',
     ],
     want: { appUntouched: false, module: 'planner' },

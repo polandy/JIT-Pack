@@ -179,8 +179,9 @@ jobs:
       # the packing code meet only through kernel contracts App.vue binds.
       - run: node ../scripts/module-boundary-gate.mjs
       # The `changes` job's diff classification (ADR-079) and its e2e legs
-      # (ADR-091), tested here because that job has no test step of its own.
-      - run: node --test ../scripts/diff-scope.test.mjs ../scripts/e2e-matrix.test.mjs
+      # (ADR-091), tested here because that job has no test step of its own;
+      # and the red-run digest, whose filter decides what a reader of a failure sees.
+      - run: node --test ../scripts/diff-scope.test.mjs ../scripts/e2e-matrix.test.mjs ../scripts/ci-failures.test.mjs
       # And one more of the family: a pull-to-refresh whose handler awaits
       # nothing spins, resolves and tells the user the list is up to date
       # without having asked anybody. Two of six were like that, and no test
@@ -232,7 +233,7 @@ jobs:
           path: client/test-results/
           retention-days: 7
 
-  # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
+  # Headless-browser E2E (dev-docs/ui-test-spec/). Drives the built
   # client (vite preview) in Chromium + WebKit, Local Mode only — the
   # backend-backed modes have had their own jobs since #192 (`e2e-single`,
   # `e2e-server`, both below).

@@ -85,6 +85,10 @@ Per queue item, in its own turn:
    the context. Writing into another session's worktree behind its back produces two editors on one
    branch.
 3. Wait for green. Do not merge on a red check you have decided is a flake without saying so and why.
+   Wait quietly: `gh run watch <id> --exit-status --interval 30 >/dev/null` in a background task, then one
+   `node scripts/ci-failures.mjs <id>` if it ended red — never a loop that prints the job table every few
+   seconds into your context. A red leg's diagnosis is subagent work at `model: "sonnet"`; you need its
+   verdict, not its log.
 4. Merge — squash, with a hand-written Conventional Commit subject, because release-please derives the
    changelog from it.
 5. Tell the owning session it is merged and to clean up.
@@ -97,7 +101,7 @@ is behind, and two things collide without git saying a word (see `pr-review`, §
 
 - **Two schema changes in `schema.sql`.** The hunks merge cleanly, the fingerprint changes, and neither
   branch's tests ever saw the combination. The next session re-reads the merged file as a whole.
-- **A duplicate e2e case id.** `scripts/case-id-gate.mjs` catches it; the ledger `dev-docs/e2e-tests.md`
+- **A duplicate e2e case id.** `scripts/case-id-gate.mjs` catches it; the ledger `dev-docs/e2e-ledger/`
   is where it gets resolved. On collision the number means what the suite implements — the loser is
   struck through in place, never renumbered.
 - **A duplicate ADR number.** Two branches each add `ADR-0NN_*.md` under different filenames, so git
@@ -111,7 +115,7 @@ is refused with `ErrSchemaStale` and needs a reseed; after that reseed it is on 
 
 ### The file that belongs to several sessions
 
-`implementation-log.md`, `e2e-tests.md`, `UI_Spec_v1.10.md` and `dev-docs/adr/README.md` all collect
+`dev-docs/implementation-log/`, `e2e-ledger/`, `ui-spec/` and `dev-docs/adr/README.md` all collect
 entries from everyone. Three defects of one family have come out of that, and no gate catches any of them —
 each is a *valid-looking* edit to somebody else's paragraph:
 
@@ -126,10 +130,10 @@ each is a *valid-looking* edit to somebody else's paragraph:
 So require a mechanical proof before any push that touched one of these files, rather than a careful look:
 
 ```bash
-git diff origin/main -- dev-docs/implementation-log.md dev-docs/e2e-tests.md   # additions ONLY
-for f in dev-docs/e2e-tests.md dev-docs/UI_Spec_v1.10.md; do                   # foreign ids unchanged
-  diff <(git show origin/main:$f | grep -o 'E2E-M[0-9]*-[0-9]*' | sort | uniq -c) \
-       <(grep -o 'E2E-M[0-9]*-[0-9]*' $f | sort | uniq -c)
+git diff origin/main -- dev-docs/implementation-log/ dev-docs/e2e-ledger/      # additions ONLY
+for d in dev-docs/e2e-ledger dev-docs/ui-spec; do                               # foreign ids unchanged
+  diff <(git grep -ho 'E2E-M[0-9]*-[0-9]*' origin/main -- $d | sort | uniq -c) \
+       <(git grep -ho 'E2E-M[0-9]*-[0-9]*' -- $d | sort | uniq -c)
 done
 git grep -nE '^(<<<<<<<|>>>>>>>|=======$)' -- '*.md' '*.ts' '*.vue' '*.go' '*.sql' '*.yml'
 ```

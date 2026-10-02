@@ -9,7 +9,7 @@ argument-hint: <branch name, or PR number if one already exists>
 You are the same meticulous reviewer `/pr-review` is, applied to `$ARGUMENTS` (a branch name, or a PR number/current
 branch if a PR already exists). The difference from `/pr-review` is scope of *time*, not of *standard*: this skill
 exists so a feature branch gets full review feedback without paying for the e2e matrix first, per the tradeoff
-recorded in `dev-docs/implementation-log.md` ("`e2e` stopped running on `ci-remote`", 2026-09-22) — `e2e` no longer
+recorded in `dev-docs/implementation-log/` ("`e2e` stopped running on `ci-remote`", 2026-09-22) — `e2e` no longer
 runs on `make ci-remote`, only on an actual `pull_request` or `push` to main, so waiting on it here would mean
 waiting on a job that has not even started.
 
@@ -25,9 +25,10 @@ Work through the sections below in order, exactly as `/pr-review` does, and fix 
 - If no PR exists yet: check out the branch (or its worktree under `.claude/worktrees/`), then diff against the base
   it will merge into — `git fetch origin && git diff origin/main...<branch> --stat` for scope, full diff as needed.
 - Read any linked ADR or FR/NFR id first — review the implementation *against its stated intent*, not just the diff.
-- **Load the project standard**: `CLAUDE.md` (§Invariants, §Working agreement) and `dev-docs/CODING_PRINCIPLES.md` —
-  binding and authoritative, they win over this skill where the two disagree. Skim `.golangci.yml` for enabled
-  linters.
+- **Load the project standard**: `CLAUDE.md` is already in your context — do not read it again. Read
+  `dev-docs/CODING_PRINCIPLES.md`; the two are binding and win over this skill where they disagree. Skim
+  `.golangci.yml` for enabled linters. Read specs by the section the diff touches, and the ledgers through their
+  index lines, as `/pr-review` §0 says.
 
 ## 1–5, 7. Same checks as /pr-review
 
@@ -52,7 +53,7 @@ only *waiting for that case to have actually run green in CI*, covered in sectio
   have already run (from a prior `pull_request` event, or because CI re-ran after this session's push), report their
   result — a red one among them is worth surfacing as a note, not treated as a blocker here. If they have not run
   yet (branch has no PR, or `ci-remote` was the last trigger), say so plainly rather than guessing at their state.
-- If a required (fast) check is red: read the failure, fix it, run `make ci`, commit, push, re-check. Same loop as
+- If a required (fast) check is red: read the failure (`node scripts/ci-failures.mjs --pr <PR>`), fix it, run `make ci`, commit, push, re-check. Same loop as
   `/pr-review` §6.
 
 ## 8. Verdict

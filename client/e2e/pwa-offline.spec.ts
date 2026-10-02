@@ -381,7 +381,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
    * and a bar inserted above the content shifts every target below it: the
    * pointer check and the stability check both pass on the old geometry, and
    * the dispatch lands beside the button — a click Playwright reports as a
-   * success, on a page that has not moved on (dev-docs/e2e-tests.md,
+   * success, on a page that has not moved on (dev-docs/e2e-ledger/,
    * `E2E-G14-01`).
    *
    * The measurement is the content box before and after, read in the same

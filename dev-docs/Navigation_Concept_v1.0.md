@@ -1,10 +1,10 @@
 # Navigation & Overall Concept: „JIT-Pack" — Information Architecture (v1.1)
 
 **Document Status:** Proposed for Review — consolidated IA draft
-**Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router
+**Basis:** ui-spec/ (screen inventory M1–M20, global patterns G-1–G-11) + the live client router
 (`client/src/router/index.ts`)
 **Scope:** *how the app is navigated as a whole* — the single home for that. It does not restate each screen's
-internal design (that stays in `UI_Spec_v1.10.md`); it defines the **structure between** screens: the navigation model,
+internal design (that stays in `ui-spec/`); it defines the **structure between** screens: the navigation model,
 the screen graph, and the routing that realises it. Part I is the model; **Part II** elaborates six structural points
 (desktop rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges) against the code, each
 as *As built* vs *Proposal*. The trip-context entries are distributed and status-gated, not a single toolbar. The app
@@ -193,8 +193,9 @@ secondary edges are what make the app feel connected:
 
 ## 3. Global patterns (the rules that hold it together)
 
-Navigation is only half of a coherent app. Eleven patterns (G-1–G-11, defined in full in `UI_Spec_v1.10.md` §0) make
-every screen feel like the same app. Summarised here because they are *cross-navigation* concerns:
+Navigation is only half of a coherent app. Eleven patterns (G-1–G-11, defined in full in
+`ui-spec/global-patterns.md`) make every screen feel like the same app. Summarised here because they are
+*cross-navigation* concerns:
 
 | Pattern | In one line |
 |---|---|
@@ -454,5 +455,5 @@ list→detail — are omitted as implied.)
 ---
 
 *Derived from `client/src/router/index.ts`, `client/src/App.vue`, `client/src/components/global/*`,
-`client/src/views/**`, and `UI_Spec_v1.10.md`. Proposal for discussion; all 20 screens are already implemented (server +
+`client/src/views/**`, and `ui-spec/`. Proposal for discussion; all 20 screens are already implemented (server +
 client).*

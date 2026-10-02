@@ -139,5 +139,5 @@ files (e.g., within a Docker Compose setup). No administrative infrastructure ch
 
 ---
 
-*Superseded by, and to be read alongside, `dev-docs/PRD_Addendum_v2.10.md`, which is authoritative wherever the two
+*Superseded by, and to be read alongside, `dev-docs/prd-addendum/`, which is authoritative wherever the two
 disagree (notably NFR-4.2, revised from a central PostgreSQL backend to embedded SQLite per ADR-001 v2).*

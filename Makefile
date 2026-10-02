@@ -36,7 +36,16 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index spec-width case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
+CI_TARGETS := pins log-index spec-width case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
+
+# One line per target, and a failing target's output in full (see the
+# script's header for why). `make ci V=1` streams everything instead.
+ifeq ($(V),1)
+ci: $(CI_TARGETS)
+else
+ci:
+	@MAKE="$(MAKE)" ./scripts/ci-quiet.sh $(CI_TARGETS)
+endif
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -219,7 +228,7 @@ client-purity:
 # Node built-ins only.
 client-modules:
 	$(RUN) node scripts/module-boundary-gate.mjs
-	$(RUN) node --test scripts/diff-scope.test.mjs scripts/e2e-matrix.test.mjs
+	$(RUN) node --test scripts/diff-scope.test.mjs scripts/e2e-matrix.test.mjs scripts/ci-failures.test.mjs
 
 # A pull-to-refresh that reports success without fetching is worse than an
 # absent one. Node built-ins only, like the three gates above.

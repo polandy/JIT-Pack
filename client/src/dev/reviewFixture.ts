@@ -5,7 +5,7 @@
  * cannot be reached through the app today: a proposal needs an FR-9.1
  * flag or group provenance, and both writers are blocked behind the
  * missing planning→active transition and the unbuilt §3.27 package
- * (see dev-docs/e2e-tests.md, M14 entry). Until those land, this seeds
+ * (see dev-docs/e2e-ledger/, M14 entry). Until those land, this seeds
  * the stores directly — state only, nothing is enqueued for sync or
  * Local persistence, so a reload clears it — and the gallery links to
  * the *real* route so the eyeball sees the true screen.

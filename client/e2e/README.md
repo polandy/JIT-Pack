@@ -4,11 +4,11 @@ Headless-browser tests driving the **built** client. This file is the on-ramp:
 how to run one, what vocabulary to write it in, and the conventions that are
 binding. Two neighbours:
 
-- [`dev-docs/UI_Test_Spec_v1.0.md`](../../dev-docs/UI_Test_Spec_v1.0.md) — what
-  the suite is _supposed_ to cover, per screen, with the traceability matrix.
-- [`dev-docs/e2e-tests.md`](../../dev-docs/e2e-tests.md) — the ledger of what it
-  **actually** covers, and what is owed. It opens with an index; scan that and
-  open only what it names.
+- [`dev-docs/ui-test-spec/`](../../dev-docs/ui-test-spec/README.md) — what
+  the suite is _supposed_ to cover, one file per screen, with the traceability matrix.
+- [`dev-docs/e2e-ledger/`](../../dev-docs/e2e-ledger/README.md) — the ledger of what it
+  **actually** covers (`status.md`), and what is owed. Its narratives are one file per
+  month, each opening with an index; grep the index lines and open only what they name.
 
 ## Run it
 

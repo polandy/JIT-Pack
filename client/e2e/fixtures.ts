@@ -6,7 +6,7 @@ import { unwrappedNavigation } from './helpers/navigation'
 import { visiblePage, writesSettled } from './helpers/page'
 
 /**
- * Shared E2E fixtures for JIT-Pack (dev-docs/UI_Test_Spec_v1.0.md §2.4).
+ * Shared E2E fixtures for JIT-Pack (dev-docs/ui-test-spec/README.md §2.4).
  *
  * Run modes are selected by seeding the same localStorage keys the app
  * itself writes (see src/config.ts, src/App.vue) *before* the first

@@ -1,7 +1,7 @@
 # Vision / North Star: „JIT-Pack" → Family Vacation Companion (v1.0)
 
 **Document Status:** Proposed — directional, not yet a build commitment
-**Basis:** PRD_Base + PRD_Addendum_v2.10 (packing product) + Navigation_Concept_v1.1 (IA) + the six ADRs
+**Basis:** PRD_Base + prd-addendum/ (packing product) + Navigation_Concept_v1.1 (IA) + the six ADRs
 **Purpose:** Capture the *expanded product direction* — from a packing app to a family
 vacation-planning companion — so that the design concept, IA, and data model account for it
 **now**, while the team finishes and ships the packing product first. This document is the

@@ -118,7 +118,7 @@ Renders on real phone sizes; owner eyeball before finalizing (working agreement)
 ### Track B — Server Mode e2e: a backend-backed Playwright project *(blocker B3 · effort L · no dependencies, but see C)*
 
 Files: `client/playwright.config.ts` (new project), `scripts/e2e.sh`, `.github/workflows/ci.yml`, new specs under
-`client/e2e/`, `dev-docs/e2e-tests.md` ledger.
+`client/e2e/`, `dev-docs/e2e-ledger/` ledger.
 
 **Status: both projects exist.** Step 1 and E2E-G2-01 landed with `single` (`2b89504`); step 2's multi-user
 half is the `server` project (ADR-029), whose first run found the defect it was built to find — a takeover the loser's
@@ -133,7 +133,7 @@ with mode `server`.
    or the single-user bypass — decide, note in the ledger which half is covered); server half of the G-2 sheet
    (currently component-test-only, flagged in the ledger).
 3. CI: a new job or a fifth shard; `e2e` stays non-required (protection rationale in CLAUDE.md).
-4. Ledger discipline: every case lands in `dev-docs/e2e-tests.md` with mode `server`.
+4. Ledger discipline: every case lands in `dev-docs/e2e-ledger/` with mode `server`.
 
 Determinism rules apply hard here (no sleeps; wait on settled state / WS-delivered render). Budget note: units that
 build their world through the UI run near the budget on WebKit — smallest seed + `test.slow()`.
@@ -200,10 +200,10 @@ new sections (old file) still succeeds — the current behaviour becomes the doc
 
 ### Track G — UX polish for the vacation *(S3+S4 · effort S–M · no dependencies)*
 
-Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per ADR-012), `dev-docs/e2e-tests.md`.
+Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per ADR-012), `dev-docs/e2e-ledger/`.
 
 1. ~~M4 scroll restoration when a detail sheet closes~~ ✅ done (the ADR-012 overlay amendment's carried cost).
-2. ~~Write E2E-M12-03's positive half~~ ✅ done — both halves, see `dev-docs/e2e-tests.md`.
+2. ~~Write E2E-M12-03's positive half~~ ✅ done — both halves, see `dev-docs/e2e-ledger/`.
 3. **Still owed.** Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's
    M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
@@ -211,8 +211,8 @@ Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per 
 
 Files (once the shape is decided): `client/src/composables/useMutations.ts`, a new trip-properties
 surface under `client/src/views/trips/`, `client/src/domain/` for the consequence rules,
-`router/index.ts`, `dev-docs/PRD_Addendum_v2.10.md` (a new FR), `dev-docs/UI_Spec_v1.10.md`
-(a new screen or an M4 amendment), `dev-docs/UI_Test_Spec_v1.0.md`, `client/e2e/`.
+`router/index.ts`, `dev-docs/prd-addendum/` (a new FR), `dev-docs/ui-spec/`
+(a new screen or an M4 amendment), `dev-docs/ui-test-spec/`, `client/e2e/`.
 
 **Not forgotten — never specified.** The screen inventory runs M1–M21 and none of them edits a
 trip. Metadata is entered in **M3 step 1**, travelers in **M3 step 2**, and after the wizard

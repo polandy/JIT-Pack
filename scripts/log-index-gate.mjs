@@ -2,18 +2,24 @@
  * Holds a document's index against the document itself: every section has an
  * index line, and every index line points at a section that exists.
  *
- * The index is what makes a 275 KB append-only file usable — it is meant to be
- * read *instead of* the log, so that a reader can tell in one screen whether
- * anything in there concerns them. That only works while it is complete: an
- * appended section with no index line is invisible to exactly the reader the
- * index was written for, and it fails silently, because both files stay
- * perfectly valid Markdown. The same failure the sibling gates were written
- * for — a claim a document makes about itself that nothing checks.
+ * The two append-only ledgers — `dev-docs/implementation-log/` and
+ * `dev-docs/e2e-ledger/` — are one file per week or month, each opening with
+ * the index of its own sections. The index is meant to be read *instead of*
+ * the file, so that a reader can tell in one screen whether anything in there
+ * concerns them. That only works while it is complete: an appended section
+ * with no index line is invisible to exactly the reader the index was written
+ * for, and it fails silently, because both files stay perfectly valid
+ * Markdown. The same failure the sibling gates were written for — a claim a
+ * document makes about itself that nothing checks.
+ *
+ * The same holds one level up for every document split into a directory:
+ * its README's table is how a reader finds the file, so a file the README
+ * does not name is unreachable in the same way.
  *
  * Node built-ins only, so it needs no install; wired into `make ci` and the CI
  * client job beside the other two node gates.
  */
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /*
@@ -23,19 +29,22 @@ import { resolve } from 'node:path'
  */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 
-/**
- * Every document that claims to have an index. `preamble` names the headings
- * that describe the file itself rather than being entries in it — the index
- * heading always counts as one.
- *
- * `e2e-tests.md` is here because it grows undated narrative sections behind
- * its status table, and without an index nothing names them — the failure this
- * gate exists for.
- */
-const DOCUMENTS = [
-  { path: 'dev-docs/implementation-log.md', preamble: ['What earns an entry'] },
-  { path: 'dev-docs/e2e-tests.md', preamble: [] },
-]
+/** The ledgers whose dated files each carry an index. */
+const LEDGERS = ['dev-docs/implementation-log', 'dev-docs/e2e-ledger']
+
+/** A ledger's dated file: `2026-09-28.md` (a week) or `2026-09.md` (a month). */
+const DATED = /^\d{4}-\d{2}(-\d{2})?\.md$/
+
+/** Every document split into a directory whose README names each of its files. */
+const SPLIT = [...LEDGERS, 'dev-docs/prd-addendum', 'dev-docs/ui-spec', 'dev-docs/ui-test-spec']
+
+/** Every file that claims to have an index. */
+const DOCUMENTS = LEDGERS.flatMap((dir) =>
+  readdirSync(resolve(root, dir))
+    .filter((name) => DATED.test(name))
+    .sort()
+    .map((name) => ({ path: `${dir}/${name}`, preamble: [] })),
+)
 
 /** The heading whose body holds the index lines, in every document. */
 const INDEX_HEADING = '## Index'
@@ -124,12 +133,30 @@ function check({ path, preamble }) {
   return null
 }
 
+/**
+ * Checks that a split document's README links every file beside it. Returns
+ * the number of files, or null when one is missing from the README.
+ */
+function checkReadme(dir) {
+  const names = readdirSync(resolve(root, dir)).filter((n) => n.endsWith('.md') && n !== 'README.md')
+  const readme = readFileSync(resolve(root, dir, 'README.md'), 'utf8')
+  const missing = names.filter((n) => !readme.includes(`](${n})`))
+  if (!missing.length) return names.length
+  console.error(`log-index-gate: ${dir}/README.md does not link every file beside it.\n`)
+  for (const n of missing) console.error(`  not linked:  ${n}`)
+  console.error('')
+  return null
+}
+
 const results = DOCUMENTS.map((doc) => [doc.path, check(doc)])
-if (results.some(([, n]) => n === null)) {
+const readmes = SPLIT.map((dir) => [dir, checkReadme(dir)])
+if (results.some(([, n]) => n === null) || readmes.some(([, n]) => n === null)) {
   console.error('The index is read instead of the document; a section missing from it is unreachable.')
   process.exit(1)
 }
 
+const sections = results.reduce((sum, [, n]) => sum + n, 0)
 console.log(
-  `log-index-gate: ok (${results.map(([p, n]) => `${p}: ${n} sections`).join(', ')}, all indexed)`,
+  `log-index-gate: ok (${results.length} ledger files, ${sections} sections, all indexed; ` +
+    `${readmes.length} split documents, every file linked from its README)`,
 )

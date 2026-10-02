@@ -34,7 +34,11 @@ import { resolve } from 'node:path'
 
 /* Run from the repository root or from `client/`, like the sibling gates. */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
-const SPEC = resolve(root, 'dev-docs/UI_Test_Spec_v1.0.md')
+/**
+ * The spec is one file per screen; an id is defined once across all of them,
+ * so they are read as one text.
+ */
+const SPEC = resolve(root, 'dev-docs/ui-test-spec')
 
 
 /**
@@ -56,7 +60,11 @@ const ROW_DEFINITION = /^\| (E2E-[A-Z0-9]+-\d+[a-z]*)\b/gm
 /** Every id in a test title — one entry per id, so a two-id title counts twice. */
 const TITLE_IDS = /E2E-[A-Z0-9]+-\d+[a-z]*/g
 
-const spec = readFileSync(SPEC, 'utf8')
+const spec = readdirSync(SPEC)
+  .filter((name) => name.endsWith('.md'))
+  .sort()
+  .map((name) => readFileSync(resolve(SPEC, name), 'utf8'))
+  .join('\n')
 
 /**
  * `E2E-M17-07/07b` is one entry defining two ids — the shorthand the file

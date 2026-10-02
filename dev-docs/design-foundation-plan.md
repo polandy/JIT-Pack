@@ -38,7 +38,7 @@ starts from the tokens.
 - `make ci` green before finishing; `make e2e` where a case is added.
 - Speak German to the owner, write code and docs in English.
 - Runtime claims get verified by running the thing, not by reading the code path
-  (see „Post-#73 review remediation" in `implementation-log.md` for what that cost).
+  (see „Post-#73 review remediation" in `implementation-log/` for what that cost).
 
 ---
 
@@ -82,8 +82,8 @@ count.
 
 **Owes a spec entry.** No document mentions these fonts at all: they exist only
 inside the two prototype HTML files. This PR writes the type system up as a
-global pattern in `UI_Spec_v1.10.md` beside G-11, plus an FR in
-`PRD_Addendum_v2.10.md` §3.21.
+global pattern in `ui-spec/global-patterns.md` beside G-11, plus an FR in
+`prd-addendum/3.21-theming.md`.
 
 **Done when:** the app renders in Fraunces/Hanken Grotesk with no network request
 for a font, and the owner has seen M4 and M2 side by side with the prototype.
@@ -335,7 +335,7 @@ deterministic-seam move the G-2 indicator made for Local Mode writes.
 
 
 **No new requirement is needed. FR-25.2 already specifies this in full** — check
-`PRD_Addendum_v2.10.md:220` before writing anything:
+`prd-addendum/3.21-theming.md` before writing anything:
 
 > Disappearing is **animated** (a brief green flash + control pop, then the row
 > collapses to zero height and fades — ~0.3 s) so the pack registers visibly
@@ -361,7 +361,7 @@ check-pop on the control, the snackbar, and the revert. Guard everything with
 page (`ion-router-outlet > .ion-page:not(.ion-page-hidden)`) → undo → assert the
 row is back. Run Playwright with `use: { reducedMotion: 'reduce' }` so the
 assertion never races the animation. No `waitForTimeout`, ever. Add the case to
-`UI_Test_Spec_v1.0.md` and the `e2e-tests.md` ledger, and **check the id is not
+`ui-test-spec/` and the `e2e-ledger/` ledger, and **check the id is not
 already taken** — two duplicate ids were found in two review passes on #80.
 
 ## PR 5 — Visual baselines and a dev gallery
@@ -410,7 +410,7 @@ PR 1 make stable, and they run at a 390 px mobile viewport as well as desktop.
 - `client/e2e/visual.spec.ts` — the six M4 states and the four tab roots
 - a dev-only gallery route (`import.meta.env.DEV`, beside the existing
   `client/src/dev/sampleTrip.ts`) rendering the global components in each state
-- update `e2e-tests.md` and the UI-Test-Spec
+- update `e2e-ledger/` and the UI-Test-Spec
 
 This is what turns the owner's eyeball pass from a permanent debt into a one-time
 acceptance per change.

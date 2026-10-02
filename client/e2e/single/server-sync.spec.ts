@@ -45,7 +45,7 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  * world under names unique to that test — the master partition (items,
  * trips) is shared state here, unlike in the `local` units.
  *
- * Honesty notes (also in dev-docs/e2e-tests.md):
+ * Honesty notes (also in dev-docs/e2e-ledger/):
  *  - Both browser contexts are the same Single-User identity. The
  *    multi-context cases prove real-time convergence over the wire, not
  *    multi-identity semantics (locks, attribution) — those live in the
