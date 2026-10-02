@@ -401,8 +401,8 @@
   and cancelling the menu leaves the row's ordinary tap working. The release of a hold usually lands on the overlay
   rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. A touch hold
   fires the menu twice — the hold's timer and the browser's own `contextmenu` — and opens **one** sheet. **Not asserted
-  here:** that a G-3-locked row has no menu at all — the guard exists in `PackingListPage.vue`, but a lock needs a
-  second user and therefore `server` mode, which this unit does not have. Recorded rather than implied.
+  here:** that a G-3-locked row has no menu at all — the guard exists in `packing/usePackingMenus.ts`, but a lock needs
+  a second user and therefore `server` mode, which this unit does not have. Recorded rather than implied.
 * **E2E-M4-42** `all` (FR-5.5, FR-25.1) — **implemented**: the same menu on a **per-person child row** inside a cluster
   — skipping one traveler's row leaves the other traveller's standing, and the revealed child carries the mark. The
   gesture is written into *two* templates, and the ordinary row keeping it says nothing about the child; a family trip

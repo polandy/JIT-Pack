@@ -69,16 +69,6 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
     return active
   }
 
-  /**
-   * FR-5.5's press-and-hold is the *row's*, and the packing control is not the
-   * row (E2E-G6-01). `PackingRow` stops the press at the control itself — the
-   * rule lives with the component, not here as a `closest()` coupled to its
-   * stylesheet — so a press that reaches this handler is already the row's.
-   */
-  function onRowPress(item: TripItem, event: PointerEvent): void {
-    hold.down(item, event.clientX, event.clientY)
-  }
-
   function runRowMenu(action: RowMenuAction, item: TripItem): void {
     switch (action) {
       case 'takeover':
@@ -350,5 +340,5 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
     }
   }
 
-  return { hold, clusterHold, onRowPress, openRowMenu, openClusterMenu, menuActive }
+  return { hold, clusterHold, openRowMenu, openClusterMenu, menuActive }
 }
