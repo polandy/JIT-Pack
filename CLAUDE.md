@@ -1,12 +1,12 @@
 # CLAUDE.md — JIT-Pack
 
-Self-hosted, offline-first, multi-user packing-list app. Go backend with embedded SQLite, serving the built client from the same origin (one container, ADR-043); Vue 3 + Ionic client. Runs in three modes from one artifact: **Server** (multi-user, OIDC), **Single-User** (no auth, no membership) and **Local** (no backend at all, IndexedDB).
+Self-hosted, offline-first, multi-user packing-list app. Go backend with embedded SQLite, serving the built client from the same origin (one container, ADR-043); Vue 3 + Ionic client (a Capacitor native shell stays planned per ADR-006). Runs in three modes from one artifact: **Server** (multi-user, OIDC), **Single-User** (no auth, no membership) and **Local** (no backend at all, IndexedDB).
 
 This file is loaded in full by every session and every subagent, so it holds the rules and pointers only. The detail lives with the side it applies to — **`client/CLAUDE.md`** (the client's modules, design tokens, Vitest and Playwright conventions, the dev seed) and **`internal/CLAUDE.md`** (the Go packages, schema chain, server-stamped identity, Go tests). Read the one for the side you change.
 
 ## Commands
 
-- Toolchain pinned in `mise.toml` (`mise install` per machine; the Makefile re-execs through `mise exec`).
+- Toolchain pinned in `mise.toml` (`mise install` per machine; the Makefile re-execs through `mise exec`). Build: `make build`; fast tests without docker or network: `make test`.
 - **Verify before finishing any change: `make ci`** — mirrors the CI jobs 1:1, one line per target, a failing target's output in full. **Not `go test ./...`** (`client/node_modules` ships Go source; `GO_PKGS` in the Makefile decides the scope).
 - **Slow jobs run on GitHub, not here** (owner's rule): `make ci-remote`. `e2e`, `visual` and `docker-build` are not in `make ci`; `make e2e-module M=planner` runs one module's cases.
 - **A red CI run: `node scripts/ci-failures.mjs [<run-id> | --pr <n>]`.**
