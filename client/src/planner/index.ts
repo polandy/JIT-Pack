@@ -5,7 +5,7 @@
  * to write its ideas through the module's own actions.
  */
 import type { DayPlanSource } from '@/lib/dayPlanSources'
-import { dayHoldsNothing, type TripDates } from './domain/dayPlan'
+import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
 import { usePlannerStore } from './store'
 
@@ -22,15 +22,15 @@ export function ideasCount(): (tripId: string) => number {
 }
 
 /**
- * Whether a trip's day plan holds nothing on a day (FR-29.7) — what the
+ * Whether the day a trip's plan opens on holds nothing (FR-29.7) — what the
  * kernel's opening rule asks before landing a trip under way on the plan.
  */
 export function dayPlanEmpty(
   sources: readonly DayPlanSource[],
-): (tripId: string, trip: TripDates, day: string) => boolean {
+): (tripId: string, trip: TripDates, today: string) => boolean {
   const plannerStore = usePlannerStore()
-  return (tripId, trip, day) =>
-    dayHoldsNothing(day, {
+  return (tripId, trip, today) =>
+    openingDayHoldsNothing(today, {
       trip,
       ideas: plannerStore.getIdeas(tripId),
       entries: plannerStore.getDayEntries(tripId),

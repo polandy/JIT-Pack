@@ -10,6 +10,7 @@ import {
   dayCounts,
   dayLines,
   dayHoldsNothing,
+  openingDayHoldsNothing,
   hasPlanDates,
   entriesOutsideTrip,
   ideasOutsideTrip,
@@ -221,6 +222,13 @@ describe('dayHoldsNothing — where a trip under way opens (FR-29.7)', () => {
   it('does not count what stands on another day', () => {
     const plan = input({ entries: [entry('e1', '2026-07-14', null)] })
     expect(dayHoldsNothing('2026-07-13', plan)).toBe(true)
+  })
+
+  it('asks about the first day of a trip started early, the day the plan opens on', () => {
+    const plan = input({ entries: [entry('e1', '2026-07-12', null)] })
+    expect(openingDayHoldsNothing('2026-07-10', plan)).toBe(false)
+    expect(openingDayHoldsNothing('2026-07-10', input())).toBe(true)
+    expect(openingDayHoldsNothing('2026-07-13', plan)).toBe(true)
   })
 })
 

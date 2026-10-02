@@ -222,6 +222,14 @@ export function dayHoldsNothing(day: string, input: DayInput): boolean {
   )
 }
 
+/**
+ * Whether the day the plan opens on holds nothing (FR-29.7): today during
+ * the trip, its first day when it was started early.
+ */
+export function openingDayHoldsNothing(today: string, input: DayInput): boolean {
+  return dayHoldsNothing(openingDay(tripDays(input.trip), today) ?? today, input)
+}
+
 /** Timed before untimed, then by the time itself. */
 function compareTime(a: string | null, b: string | null): number {
   if (a === b) return 0

@@ -46,8 +46,9 @@
 * **E2E-M29-12** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): a trip under way whose plan holds
   nothing today opens on *Einkauf* while nothing is open anywhere, on *Aufgaben* once a task is open and nothing is to
   buy, on *Einkauf* again once something is, and on the day plan with today chosen once an entry stands on today. The
-  partition not yet on the device is `router/__tests__/tripOpening.spec.ts`; what counts as an empty day —
-  arrival and departure do not — is `dayHoldsNothing` in `planner/domain/__tests__/dayPlan.spec.ts`.
+  partition not yet on the device is `router/__tests__/tripOpening.spec.ts`; what counts as an empty day — arrival and
+  departure do not, and a trip started early asks about its first day — is `dayHoldsNothing` and
+  `openingDayHoldsNothing` in `planner/domain/__tests__/dayPlan.spec.ts`.
 * **E2E-M29-11** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute* card
   lists three of today's four lines and says *„+ 1 more · day plan"*; a trip ahead has no card; an idea ticked on the
   card is done, and the link opens M29 on today with the idea ticked there. Which lines are still to come at a time of

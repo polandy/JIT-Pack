@@ -12,8 +12,8 @@ export interface TripOpeningSource {
   /** How many rows the trip's packing list has. */
   itemCount: (tripId: string) => number
   tripDataLoaded: (tripId: string) => boolean
-  /** Whether the trip's day plan holds nothing on a day — the planner's answer. */
-  dayPlanEmpty: (tripId: string, trip: OpeningTrip, day: string) => boolean
+  /** Whether the day the trip's plan opens on holds nothing — the planner's answer. */
+  dayPlanEmpty: (tripId: string, trip: OpeningTrip, today: string) => boolean
   /** The shopping list's open purchases — the shopping module's count. */
   shoppingOpen: (tripId: string) => number
   /** The trip's open tasks. */
