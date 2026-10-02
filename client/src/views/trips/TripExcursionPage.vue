@@ -128,7 +128,7 @@ import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/doma
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
 
-/** M4's header ring (PackingListPage), so the two figures are one size. */
+/** M4's header ring (`packing/PackingHeadline.vue`), so the two figures are one size. */
 const RING_SIZE_HEADER = 42
 
 /** M4's breakpoint for the detail as a side panel (G-9). */
@@ -1428,7 +1428,7 @@ setHeaderTitle(
   --padding-bottom: 88px;
 }
 
-/* M4's header line (PackingListPage): sticky page, one card, yielding to the list. */
+/* M4's header line (`packing/PackingHeadline.vue`): sticky page, one card, yielding to the list. */
 /* FR-31.15: the route's card, above the sticky header line, on its gutter. */
 .excursion-tracks {
   margin: 8px 12px 0;
@@ -1549,7 +1549,7 @@ ion-content.excursion-content::part(scroll) {
   box-shadow: var(--jp-shadow-panel);
 }
 
-/* M4's group heads and cards (PackingListPage), so the two lists read alike. */
+/* M4's group heads and cards (`packing/PackingGroupList.vue`), so the two lists read alike. */
 .excursion-list {
   padding: 0;
   background: transparent;
