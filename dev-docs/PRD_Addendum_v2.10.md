@@ -3965,8 +3965,9 @@ the tail is where a symbol system is actually decided. Results:
 **Status: accepted** — **slice 1a implemented** (the board, votes and discussion; ADR-078), and its **pictures**
 (FR-29.5, ADR-081), the **link preview** (FR-29.16, ADR-082), the **notifications** (FR-29.8), **GPX tracks** (FR-29.17,
 ADR-085) with **where everybody is** (FR-29.19, ADR-087) and **their routes edited and drawn** (FR-29.20,
-ADR-088), and the **day plan** (FR-29.14/29.15, M29) with its **connections** (FR-29.18, ADR-086); the opening by
-date and the bridge to the packing side are specified here and not built. The travellers of a
+ADR-088), the **day plan** (FR-29.14/29.15, M29) with its **connections** (FR-29.18, ADR-086), and the **opening by
+date** with M1's *Heute* card (FR-29.7); the bridge to the packing side is specified here and not built. The
+travellers of a
 trip collect what they might do on it — a link someone found, a place, a thought — discuss each idea, vote on it with
 their names, and decide by hand which of them they mean to do. The reasoning, the decisions and the rendered navigation
 variants are in `dev-docs/planner-concept.md` and `UI_Concept_PlannerNav_variants.html`; the board is **M28** (UI-Spec),
@@ -4030,13 +4031,29 @@ own store, actions, screens and pure rules, and its e2e cases under `client/e2e/
   the board to *Ideen*, newest first, so it does not land below the fold. Every empty segment says what belongs in it,
   gated on the settled partition (ADR-033). The idea opens on the route (`?idea=`) as a sheet on a phone and as the
   frame's side panel on a desktop (ADR-064).
-* **FR-29.7 (Where the Planner Is Reached):** *Implemented, the opening by date excepted.* The trip's one switcher
+* **FR-29.7 (Where the Planner Is Reached):** *Implemented.* The trip's one switcher
   (G-12, ADR-051) carries **💡 Ideen as its first pill**, counting the ideas nobody has decided on yet (*Ideen*). The day
-  plan is the last pill, **shown only while the trip has both dates**. Where a trip opens is **decided by date and not
-  built** (slice 2): before departure on the view last visited (on a first visit *Ideen* while the packing list is
-  empty), during the trip on the day plan, afterwards on the packing list — the *under way* test is FR-7.14's. At the
-  Pixel 9 Pro's 410 px six pills fill the row; a seventh — the day plan, or a ⋮ view joining it — scrolls the row
-  sideways, with the pill you stand on scrolled into view (ADR-051 amendment 4).
+  plan is the last pill, **shown only while the trip has both dates**. At the Pixel 9 Pro's 410 px six pills fill the
+  row; a seventh — the day plan, or a ⋮ view joining it — scrolls the row sideways, with the pill you stand on scrolled
+  into view (ADR-051 amendment 4).
+  * **Where a trip opens is decided by date.** Every link that opens a trip from outside it — M1's cards and its
+    *Geplant* rows, M2's rows and hero, M20's rows, M1's task overview and the online list of G-10 — leads to the view
+    its dates decide (`tripOpenPath`, redirected by the router): **before** the trip on the view last visited on this
+    device, and on a first visit *Ideen* while the packing list is empty, the packing list otherwise; **during** it on
+    the day plan; **afterwards** on the packing list. *During* is **from the first day to the last, or from *Reise
+    starten* when the trip was started early** — a packing finished days ahead does not count, unlike FR-7.14's
+    *before is over*; *afterwards* is past the last day or once the trip is closed. A trip without both dates has no
+    day plan and opens as before it. The last visited view is a viewing preference — this device's storage, never
+    synced; the luggage and the analytics count as the packing list. A packing list whose rows are not on the device
+    yet counts as not empty, so a tap never waits on the network. A link that names a view — the switcher's pills,
+    *Packliste öffnen*, a notification, a new or cloned trip — still lands on that view.
+  * **M1's *Heute* card.** On a trip's days, M1 shows under the trip **what is still to come today** on its day plan:
+    at most **three lines from the next one on** — a timed line leaves once its time has passed, a connection once its
+    last leg has arrived; arrival and departure are left out, since the hero's day counter says them — drawn as M29's
+    rows and ticked and opened as there, under *„Heute · Fr., 2.10."*, with *„+ n weitere · Tagesplan ›"* or
+    *„Tagesplan öffnen ›"* leading onto M29, and *„Für heute ist nichts mehr geplant."* once nothing is left. Once the
+    packing is finished it is a block of the hero (FR-7.10), without a field. The card is the planner module's,
+    reaching M1 through `lib/tripCards.ts` (FR-30.3).
 * **FR-29.8 (Notifications):** *Implemented.* Three kinds, each with its own M17 switch, in the recipient's language
   (ADR-037), never to the actor: **`idea`**, a new idea, to every member of the trip; **`idea_shortlisted`**, an idea
   moved to the shortlist, to every member, because the shortlist is the group's decision; **`idea_comment`**, a

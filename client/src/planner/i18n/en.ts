@@ -10,6 +10,10 @@
  */
 export const plannerEn = {
   'dayPlan.dayOf': '{day} · day {n} of {total}',
+  'dayPlan.todayCard': 'Today · {day}',
+  'dayPlan.todayEmpty': 'Nothing more planned for today.',
+  'dayPlan.todayMore': '+ {n} more · day plan',
+  'dayPlan.todayOpen': 'Open the day plan',
   'dayPlan.noDates': 'The day plan needs the trip’s start and end date.',
   'dayPlan.emptyDay': 'Nothing planned yet.',
   'dayPlan.noTime': '–',

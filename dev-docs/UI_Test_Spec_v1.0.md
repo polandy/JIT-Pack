@@ -3609,6 +3609,16 @@ went.
   connection opens the app through the short link that was pasted. The page read is planted, as in E2E-M28-09; the
   server's half — the page's links in its answer — is `TestParse_ReadsThePagesLinks_FR29_18` and
   `TestLinkPreview_CarriesThePagesLinks_FR29_18`.
+* **E2E-M29-10** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): a trip ahead opened from M2 lands on
+  the view last visited (*Aufgaben*), and with that forgotten — a first visit on this device — on *Ideen*, its packing
+  list being empty; a trip containing today lands on the day plan with today chosen, from M2 and from M1's *Geplant*
+  row, whatever view was last; a trip whose last day has passed lands on the packing list though the day plan was
+  last. The rule's other branches — a start before the date, a closed trip, a trip without both dates, rows not yet
+  on the device — are `lib/__tests__/tripOpening.spec.ts` and `router/__tests__/tripOpening.spec.ts`.
+* **E2E-M29-11** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute* card
+  lists three of today's four lines and says *„+ 1 more · day plan"*; a trip ahead has no card; an idea ticked on the
+  card is done, and the link opens M29 on today with the idea ticked there. Which lines are still to come at a time of
+  day is `linesAhead` in `planner/domain/__tests__/dayPlan.spec.ts`.
 
 ### M30 — Aktivität (who changed what, §3.32)
 
@@ -3981,6 +3991,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.19 | E2E+UNIT+SERVER | M28-16 (the own position, refused and allowed, no sharing alone), M28-17 (shared, named, hidden, stopped); `lib/__tests__/liveLocation.spec.ts` (`shouldShare`, `applyLocation`, `freshPeople`), `useLiveLocation.spec.ts`, `liveLocation.seam.spec.ts` (the orchestrator's frames, a dead socket, Local Mode), `TrackLines.spec.ts` (the marks without tiles), `useWebSocket.spec.ts` (said again after a drop); Go: `TestLiveLocation_*`, `TestWS_ALocationReachesTheTripsOtherMemberAndNoStrangersDoes_FR29_19` |
 | FR-29.8 | E2E+UNIT+SERVER | M28-11 (each kind on the other's screen, the notice opening the idea); `notifications/__tests__/format.spec.ts`, `workerBody.spec.ts` (wording and link, app and worker alike), `SettingsPage.spec.ts` (three switches); Go: `TestPlanNotifications_Ideas_FR29_8`, `TestNotifications_Ideas_NewCommentedAndShortlisted_FR29_8`, `TestIdeaDiscussion_NamesTheIdeasAuthorThenEveryCommenterOnce_FR29_8` |
 | FR-29.6/29.7 | E2E+UNIT | M28-01/02/04, G12-07 (the first pill, the row scrolling at 410 px with the current pill in view); `lib/__tests__/tripViews.spec.ts`, `TripViewNav.spec.ts` |
+| FR-29.7 (opening, *Heute*) | E2E+UNIT | M29-10 (where a trip opens), M29-11 (M1's *Heute* card); `lib/__tests__/tripOpening.spec.ts` (`openingView`, `isUnderWay`, the last visited view), `router/__tests__/tripOpening.spec.ts` (`openingTarget`), `planner/domain/__tests__/dayPlan.spec.ts` (`linesAhead`) |
 | FR-29.14/29.15 | E2E+UNIT+SERVER | M29-01 (the days, arrival and departure), M29-02 (an entry of its own), M29-03 (planned from the pool and from M28, the tick), M29-04 (an excursion on its days), G12-09 (the pill); `planner/domain/__tests__/dayPlan.spec.ts` (`tripDays`, `openingDay`, `unplannedIdeas`, `ideasOutsideTrip`, `dayLines`), `dayPlanSource.spec.ts`, `sync.spec.ts` (planning, the entry's writes, the trip's cascade); Go: `TestApplyMutation_DayPlan_PlannedIdeaAndOwnEntry_FR29_15`, `TestStampActor_DayEntryAuthorIsThePusher_FR29_15` |
 | FR-29.9 | GATE+UNIT | `module-boundary-gate.mjs`, `domain-purity-gate.mjs`; `sync.spec.ts` (the pull funnel, the trip's cascade) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |

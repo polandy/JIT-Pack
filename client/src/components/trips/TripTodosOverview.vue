@@ -23,7 +23,7 @@ import { useTripTasks } from '@/composables/useTripTasks'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { nameFrom } from '@/lib/rowFacts'
-import { tripItemPath, tripPath } from '@/router/paths'
+import { tripItemPath, tripOpenPath } from '@/router/paths'
 import { useIdentityStore } from '@/stores/identityStore'
 import type { Trip } from '@/types/domain'
 
@@ -71,7 +71,7 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
              way into its row. Two links, never one inside the other. -->
         <RouterLink
           class="group-head"
-          :to="tripPath(group.trip.id)"
+          :to="tripOpenPath(group.trip.id)"
           :data-testid="`trip-todos-open-${group.trip.name}`"
         >
           <span class="trip-name">{{ group.trip.name }}</span>

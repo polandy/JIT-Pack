@@ -21,6 +21,7 @@ import {
 import { FOR_WHOM_M5, assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 import { PATH } from '../routes'
+import { openTripView } from '../helpers/trips'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them.
@@ -112,6 +113,9 @@ async function warmTripList(page: Page, tripName: string): Promise<void> {
   await visiblePage(page).getByTestId('trips-filter-planned').click()
   await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
   await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
+  // The row opens the view the trip's dates decide (FR-29.7) — on this
+  // device's first visit to an empty list, the ideas — so M4 is asked for.
+  await openTripView(page, 'packing')
   await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
 }
 
@@ -134,6 +138,9 @@ async function reopenTrip(page: Page, tripName: string) {
   await visiblePage(page).getByTestId('trips-filter-planned').click()
   await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
   await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
+  // The row opens the view the trip's dates decide (FR-29.7) — on this
+  // device's first visit to an empty list, the ideas — so M4 is asked for.
+  await openTripView(page, 'packing')
   await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
 }
 

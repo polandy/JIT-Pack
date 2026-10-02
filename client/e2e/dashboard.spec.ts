@@ -8,8 +8,9 @@ import {
   expectTripOpen,
   visiblePage as visible,
 } from './fixtures'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
+import { openTripView } from './helpers/trips'
 import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 
@@ -45,6 +46,17 @@ async function quickAdd(page: Page, names: string[]) {
 }
 
 /** An active trip with the given rows on it, left on M4. */
+/**
+ * Into the trip through the hero, then onto its packing list: the hero opens
+ * the view the trip was left on (FR-29.7), which is whatever the case did last.
+ */
+async function openHeroOnPacking(page: Page, hero: Locator) {
+  await hero.click()
+  await expect(page.getByTestId('trip-view-packing')).toBeVisible()
+  await openTripView(page, 'packing')
+  await expectTripOpen(page, TRIP.name)
+}
+
 async function activeTripWith(page: Page, items: string[]) {
   await createTripViaWizard(page, TRIP)
   await tripAction(page, 'start')
@@ -379,7 +391,12 @@ test.describe('M1 — the three promises @local @m1', () => {
     // Reported, not operated: no control on the card.
     await expect(card.locator('ion-checkbox, ion-input, input, button')).toHaveCount(0)
 
+    // Into the trip where it was left — the tasks (FR-29.7); its packing list
+    // carries them too.
     await group.getByTestId(`trip-todos-open-${TRIP.name}`).click()
+    await expect(visible(page).getByTestId('m25-page')).toBeVisible()
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
+    await openTripView(page, 'packing')
     await expectTripOpen(page, TRIP.name)
     await expect(visible(page).getByTestId('m4-trip-todos')).toBeVisible()
     // The way on to where these tasks live (FR-7.7).
@@ -408,8 +425,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(tasks).toHaveCount(0)
 
     // An open todo leaves the trip fully packed.
-    await hero.click()
-    await expectTripOpen(page, TRIP.name)
+    await openHeroOnPacking(page, hero)
     await addTripTodo(page, 'Water the plants', 'during')
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('0/1 tasks')
@@ -424,8 +440,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.setViewportSize(viewport)
 
     // Resolving it changes the task check and nothing else.
-    await hero.click()
-    await expectTripOpen(page, TRIP.name)
+    await openHeroOnPacking(page, hero)
     const section = await openTasks(page, 'during')
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
     await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
@@ -434,9 +449,9 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(tasks).toHaveText('1/1 tasks')
     await expect(share).toHaveText('1/1 packed')
 
-    // The reverse: unpacking moves the share, the task check stays done.
-    await hero.click()
-    await expectTripOpen(page, TRIP.name)
+    // The reverse: unpacking moves the share, the task check stays done. The
+    // trip opens on the tasks it was left on (FR-29.7).
+    await openHeroOnPacking(page, hero)
     await visible(page).getByTestId('m4-done-bar').click()
     await visible(page)
       .getByTestId('m4-row-Zelt')
