@@ -1,6 +1,6 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic } from '../helpers/ionic'
-import { addIdea, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
+import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
 import { dayFromToday } from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
 import type { Locator, Page } from '@playwright/test'
@@ -138,5 +138,40 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     const tasks = visiblePage(page)
     await expect(tasks.getByTestId(`trip-todo-${body}`)).toBeVisible()
     await expect(tasks.getByTestId(`trip-todo-idea-${body}`)).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M28-24: on a phone the idea is a sheet. Leaving it for the screen that
+   * makes a task closes the sheet, and that closing must not take the reader
+   * back to the board — M25 stays, its composer pre-filled.
+   */
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 412, height: 915 } })
+
+    test('E2E-M28-24: the sheet closed by leaving it keeps the reader on the screen it led to', async ({
+      page,
+    }) => {
+      await createTripViaWizard(page, {
+        name: 'Sardinien',
+        startDate: FIRST,
+        endDate: LAST,
+        travelers: ['Andy'],
+      })
+      await openIdeas(page)
+      await addIdea(page, { title: IDEA })
+      // The sheet is a modal outside the page, so it is found on the page.
+      await ideaCard(page, IDEA).click()
+      const sheet = page.getByTestId('m28-idea-modal').getByTestId('idea-detail')
+      await sheet.getByTestId('idea-state-shortlisted').click()
+      await sheet.getByTestId('idea-make-task').click()
+
+      const tasks = visiblePage(page)
+      await expect(tasks.getByTestId('m25-composer')).toBeVisible()
+      await expect(page.getByTestId('m28-idea-modal')).toBeHidden()
+      await expect(tasks.getByTestId('trip-todo-input').locator('input')).toHaveValue(
+        `Book ${IDEA}`,
+      )
+      await expect(page).toHaveURL(/\/tasks\?/)
+    })
   })
 })

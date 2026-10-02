@@ -157,5 +157,5 @@
   M25's and M6's composer — see there), and `‹` there returns to the idea. The section is absent while there is neither.
   The idea opens only once the board has entered: a link from another screen lands with `?idea=` set, and the sheet or
   panel waits for the transition; a sheet closed because the route moved on closes nothing.
-* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12, E2E-M28-22, E2E-M28-23 `local`, E2E-M28-06, E2E-M28-08,
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12, E2E-M28-22…24 `local`, E2E-M28-06, E2E-M28-08,
   E2E-M28-09, E2E-M28-11, E2E-M28-13 `server`, E2E-G12-07)

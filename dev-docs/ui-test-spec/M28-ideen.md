@@ -119,3 +119,6 @@
   `domain/__tests__/ideaResults.spec.ts` (the due day, the phase), `composables/__tests__/ideaResultSource.spec.ts`; the
   seeds `ShoppingPage.spec.ts` and `TripTasksPage.spec.ts`; the way back `router/__tests__/backTarget.spec.ts`; the
   server `internal/store/ideabridge_test.go`.
+* **E2E-M28-24** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`, at 412 px): on a phone the idea is a
+  sheet; *Aufgabe* closes it and M25 stays on screen with its composer pre-filled — the closing does not lead back to
+  the board.
