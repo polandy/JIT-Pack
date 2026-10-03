@@ -13,21 +13,25 @@
 
 Packing lists that remember. Items are per-person or per-trip, so party size takes care of itself, and how *many* of each comes from what you actually took on your last trips — rescaled to this one's length and offered as a one-tap default. Check something off and it disappears from everyone else's screen at the same moment. It runs on your own machine — a single Go binary with an embedded SQLite database — and it keeps working on the plane, in the tent, and anywhere else the network is not.
 
-> **Status:** the sync engine, the login broker and the API are in place and tested; large parts of the UI are being rebuilt against a closed concept. See [Not built yet](CLAUDE.md#not-built-yet) for exactly what is and is not there.
+> **Status:** in production use by its author's household; the [changelog](CHANGELOG.md) lists what every release changed.
 
 ## Quickstart
 
 One container, no identity provider, no configuration file:
 
+<!-- x-release-please-start-version -->
 ```bash
 docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
   -e JITPACK_SINGLE_USER=true \
   -e JITPACK_LOCAL_USER_ID=me \
   -e JITPACK_DB_PATH=/data/jitpack.db \
-  ghcr.io/polandy/jit-pack:0.4.0
+  ghcr.io/polandy/jit-pack:0.23.0
 ```
+<!-- x-release-please-end -->
 
 Open <http://localhost:8080> — the same container serves the app and the API. That is single-user mode: no authentication, every change attributed to one person. When you want accounts, hand it an OIDC provider and it brokers the login itself — see **[Authentication](https://polandy.github.io/JIT-Pack/authentication/)**.
+
+Want it on your phone from anywhere, or for the whole household? **[Easy Setup](https://polandy.github.io/JIT-Pack/easy-setup/)** has a ready stack for each — HTTPS included, no identity provider of your own to run.
 
 New here? The **[Getting Started walkthrough](https://polandy.github.io/JIT-Pack/getting-started/)** takes it from nothing to a running instance, and **[Installation](https://polandy.github.io/JIT-Pack/installation/)** covers the reverse proxy in front of it.
 
@@ -52,7 +56,7 @@ New here? The **[Getting Started walkthrough](https://polandy.github.io/JIT-Pack
 - **No account anywhere else** — bring your own identity provider, or run it single-user and skip identity entirely.
 - **Small on purpose** — a static binary and a SPA; no cluster, no message broker, no external database.
 
-**Scope is deliberate.** JIT-Pack leaves identity to a real IdP (Authelia is the reference), TLS and routing to a reverse proxy, and backups to whatever already backs up your server. It does one thing: keep a packing list correct, shared, and available offline.
+**Scope is deliberate.** JIT-Pack leaves identity to a real IdP (Authelia is the reference; the [household stack](deploy/multi-user-pocket-id/) brings Pocket ID along), TLS and routing to a reverse proxy, and backups to whatever already backs up your server. It does one thing: keep a packing list correct, shared, and available offline.
 
 ## Documentation
 

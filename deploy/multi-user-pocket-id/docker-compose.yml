@@ -1,0 +1,59 @@
+# Everything a household needs on one host: JIT-Pack, Pocket ID as the
+# login, and Caddy for TLS. Walkthrough: docs/easy-setup.md.
+
+volumes:
+  data:
+  pocket-id-data:
+  caddy-data:
+  caddy-config:
+
+services:
+  caddy:
+    image: caddy:2.11.6-alpine@sha256:c776e0c6413b544d0459665e54ec7b8b2a15000c0cbee8b254da0067b1d184ff
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      JITPACK_HOST: "${JITPACK_HOST:?set in .env}"
+      AUTH_HOST: "${AUTH_HOST:?set in .env}"
+    networks:
+      default:
+        # jitpackd fetches the issuer by its public name at startup; these
+        # aliases answer that name inside the stack, so it does not depend
+        # on the router looping a request to its own public address back.
+        aliases:
+          - "${JITPACK_HOST}"
+          - "${AUTH_HOST}"
+
+  pocket-id:
+    image: ghcr.io/pocket-id/pocket-id:v2.17.0@sha256:19f556d5852115c8ebbef271f6f7cf610d8803312a1fa63f29e1b342fe9d2939
+    restart: unless-stopped
+    volumes:
+      - pocket-id-data:/app/data
+    environment:
+      APP_URL: "https://${AUTH_HOST}"
+      TRUST_PROXY: "true"
+      ENCRYPTION_KEY: "${POCKET_ID_ENCRYPTION_KEY:?set in .env}"
+
+  app:
+    image: ghcr.io/polandy/jit-pack:0.23.0 # x-release-please-version
+    # Also covers the start-up order: jitpackd exits while the issuer is
+    # still unreachable, and comes back once Pocket ID answers.
+    restart: unless-stopped
+    volumes:
+      - data:/data
+    environment:
+      JITPACK_DB_PATH: "/data/jitpack.db"
+      JITPACK_SESSION_SECRET: "${JITPACK_SESSION_SECRET:?set in .env}"
+      JITPACK_OIDC_ISSUER: "https://${AUTH_HOST}"
+      JITPACK_OIDC_CLIENT_ID: "${JITPACK_OIDC_CLIENT_ID:-}"
+      JITPACK_OIDC_CLIENT_SECRET: "${JITPACK_OIDC_CLIENT_SECRET:-}"
+      JITPACK_ADMIN_EMAILS: "${JITPACK_ADMIN_EMAILS:-}"
+      JITPACK_PUSH_CONTACT: "${JITPACK_PUSH_CONTACT:-}"
+      TZ: "${TZ:-UTC}"

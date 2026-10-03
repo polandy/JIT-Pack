@@ -1,0 +1,16 @@
+{$JITPACK_HOST} {
+	# Browsers fetch the web app manifest without credentials, so
+	# guarding it would stop the app from installing to a home screen.
+	# Neither it nor the icons it names say anything about your data.
+	@public path /manifest.webmanifest /icons/*
+	handle @public {
+		reverse_proxy app:8080
+	}
+
+	handle {
+		basic_auth {
+			{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+		}
+		reverse_proxy app:8080
+	}
+}

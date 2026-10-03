@@ -21,10 +21,11 @@ ghcr.io/polandy/jit-pack
 
 It is built from the repository root `Dockerfile`: the client is compiled by a Node stage into `/srv/web`, `./cmd/jitpackd` by a Go stage with `CGO_ENABLED=0`, and both are copied into Alpine — entrypoint `jitpackd`, `EXPOSE 8080`, `JITPACK_WEB_ROOT=/srv/web`, with an empty `/data` directory prepared for the database.
 
+<!-- x-release-please-start-version -->
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:0.4.0
+    image: ghcr.io/polandy/jit-pack:0.23.0
     restart: unless-stopped
     volumes:
       - jitpack-data:/data
@@ -37,10 +38,11 @@ services:
 volumes:
   jitpack-data:
 ```
+<!-- x-release-please-end -->
 
 Notes on that file:
 
-- **Pin a version tag.** `latest` exists, but it moves with every release — check the [Releases page](https://github.com/polandy/JIT-Pack/releases) for the current version. To freeze the deployment completely, pin the digest as well (`docker buildx imagetools inspect ghcr.io/polandy/jit-pack:0.4.0` prints it; then `image: ghcr.io/polandy/jit-pack:0.4.0@sha256:…`). [Upgrades](upgrades.md) explains when that matters.
+- **Pin a version tag.** `latest` exists, but it moves with every release — check the [Releases page](https://github.com/polandy/JIT-Pack/releases) for the current version. To freeze the deployment completely, pin the digest as well (`docker buildx imagetools inspect ghcr.io/polandy/jit-pack:0.23.0` prints it; then `image: ghcr.io/polandy/jit-pack:0.23.0@sha256:…`). [Upgrades](upgrades.md) explains when that matters. <!-- x-release-please-version -->
 - **The image carries its own healthcheck** — `wget --spider http://localhost:8080/health`, probed every 30 seconds — so `docker ps` reports `healthy` and another service's `depends_on: condition: service_healthy` works without a `healthcheck:` block of your own.
 - **No published port.** Nothing outside needs to reach `8080` directly — the reverse proxy does, over the Docker network. Add `ports:` only if you are debugging, or if you are running without a proxy at all.
 - **The volume must survive recreation.** `/data` holds the database; without the volume, every `docker compose up` starts an empty instance.
@@ -103,7 +105,7 @@ The API keeps its own paths: `/api/v1/…`, `/ws` and `/health` are answered by 
 
 ### The example stack
 
-The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — one service with the OIDC variables wired through and Traefik labels for the one route it needs. It is the shortest path to a production instance.
+The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — one service with the OIDC variables wired through and Traefik labels for the one route it needs. It is the shortest path to a production instance when you already run a reverse proxy and an identity provider; without them, [Easy Setup](easy-setup.md) brings both along.
 
 It is one container on two networks: the database on a named volume, `internal` for the stack itself and your proxy network for the single router that sends the hostname at it. There is no path splitting to get right, because there is nothing to split it between.
 
@@ -135,10 +137,11 @@ What it must get right is small, and each item is something that fails quietly:
 
 One router, one service, and Traefik forwards the upgrade and preserves the original `Host` without extra configuration:
 
+<!-- x-release-please-start-version -->
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:0.4.0
+    image: ghcr.io/polandy/jit-pack:0.23.0
     # unless-stopped also covers the IdP boot race: in the OIDC shape,
     # jitpackd deliberately exits when the issuer is unreachable at
     # startup, and after a host reboot the IdP often comes up later
@@ -167,6 +170,7 @@ services:
 volumes:
   jitpack-data:
 ```
+<!-- x-release-please-end -->
 
 ### nginx
 

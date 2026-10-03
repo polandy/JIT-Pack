@@ -81,8 +81,10 @@ For a household that has been packing with the instance for a season, that is a 
 
 Pin the version **and the digest** before a trip and leave it pinned until you are back:
 
+<!-- x-release-please-start-version -->
 ```yaml
-image: ghcr.io/polandy/jit-pack:0.4.0@sha256:…   # imagetools inspect prints the digest
+image: ghcr.io/polandy/jit-pack:0.23.0@sha256:…   # imagetools inspect prints the digest
 ```
+<!-- x-release-please-end -->
 
 A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while everyone depends on it. Upgrade after the trip. The upgrade itself is unattended now, but a restart is still a restart: somebody is mid-list, offline, with unsynced changes on a phone, and the minute the server is away is the minute they tap *sync*. The same logic applies to any auto-update mechanism — exclude JIT-Pack from it and upgrade deliberately, between trips.

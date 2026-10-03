@@ -28,7 +28,7 @@ The server is then built along a different path entirely: authentication and tri
 This is the mode for a household instance behind your own network: you get sync across your devices and a real backend, without running an identity provider.
 
 !!! warning "Anyone who can reach the port is that user"
-    There is no credential to get wrong in Single-User Mode, which also means there is nothing standing between the network and your data. Bind it to loopback and put a reverse proxy with its own authentication in front, or keep it on a trusted network. Do not expose it to the internet.
+    There is no credential to get wrong in Single-User Mode, which also means there is nothing standing between the network and your data. Bind it to loopback and put a reverse proxy with its own authentication in front, or keep it on a trusted network. Do not expose it to the internet. [Easy Setup](easy-setup.md#just-you-from-anywhere) has a ready stack that puts a password in front.
 
 This is a startup-time choice, never a per-request toggle — there is exactly one constructor path per mode. Switching modes means restarting with different variables.
 
@@ -128,6 +128,18 @@ provider does not advertise "offline_access" (has [openid profile email])
 Worth running after an IdP upgrade as well as before the first login: an option that disappears in a new version of your provider looks exactly like one that was never configured.
 
 What the command cannot check is the login itself — your provider's password page, any second factor, and the consent screen are behind a real user session. Do that once, by hand, with a real account.
+
+---
+
+## Other identity providers
+
+Authelia is the reference, not a requirement. What JIT-Pack needs from a provider is the list the command above checks, and three things around it:
+
+- **A confidential client** with a client secret, authenticating at the token endpoint with `client_secret_basic`, and accepting a PKCE `S256` challenge.
+- **The scopes `openid profile email offline_access`.** The refresh token that `offline_access` asks for is what lets an account disabled at the provider be cut off at the next renewal; give it a lifetime of 90 days, like [Authelia's above](#give-the-client-a-refresh-token-lifetime-that-covers-being-away).
+- **A name and a verified address.** The display name comes from `name`, else `preferred_username`; the [instance-admin role](#instance-admins) needs `email` and `email_verified: true`.
+
+**[Pocket ID](https://pocket-id.org/)** meets all of it and runs as one small container with passkey login. It is what the [household stack](easy-setup.md#a-household) brings along, and its walkthrough covers the three settings a new Pocket ID needs for JIT-Pack: verified e-mail addresses, the client opened to all users, and the refresh-token lifetime.
 
 ---
 

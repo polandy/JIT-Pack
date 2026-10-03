@@ -1,0 +1,7 @@
+{$JITPACK_HOST} {
+	reverse_proxy app:8080
+}
+
+{$AUTH_HOST} {
+	reverse_proxy pocket-id:1411
+}

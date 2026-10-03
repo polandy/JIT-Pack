@@ -15,17 +15,21 @@ This manual covers **running** a JIT-Pack server: installing it, configuring it,
 
 One container, no identity provider, no configuration file:
 
+<!-- x-release-please-start-version -->
 ```bash
 docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
   -e JITPACK_SINGLE_USER=true \
   -e JITPACK_LOCAL_USER_ID=me \
   -e JITPACK_DB_PATH=/data/jitpack.db \
-  ghcr.io/polandy/jit-pack:0.4.0
+  ghcr.io/polandy/jit-pack:0.23.0
 ```
+<!-- x-release-please-end -->
 
 Open <http://localhost:8080>: the same container serves the app and the API. That is [single-user mode](authentication.md): no authentication, every change attributed to one person. It is the fastest way to see the thing run, and a perfectly reasonable way to keep running it for one household.
 
 When you want real accounts, point it at an OIDC provider and it brokers the login itself — no user database of its own, no password to store. See [Authentication](authentication.md).
+
+To reach it from anywhere, or to give a household their own accounts, [Easy Setup](easy-setup.md) has a ready stack for each — HTTPS included, and no identity provider of your own to run.
 
 The [Getting Started walkthrough](getting-started.md) takes it from nothing to a running instance; [Installation](installation.md) covers the reverse proxy you put in front of it for TLS.
 
