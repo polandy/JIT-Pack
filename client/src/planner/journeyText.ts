@@ -19,16 +19,45 @@ export function journeyDuration(minutes: number): string {
   })
 }
 
-/** A way's second line: *„Spiez → Kandersteg · RE · direkt"*. */
-export function journeyDetail(entry: DayEntry): string {
+/** A way in *Der Tag*: *„08:06 Spiez → 08:34 Kandersteg"* over *„RE · direkt"*. */
+export function wayWords(entry: DayEntry): { title: string; detail: string | null } {
   const legs = entry.legs ?? []
-  if (legs.length === 0) return entry.title
+  const times = journeyTimes(entry)
+  if (legs.length === 0) return { title: `${times.dep} ${entry.title}`, detail: null }
+  const first = legs[0]!
+  const last = legs[legs.length - 1]!
   const summary = connectionSummary(legs)
   const changes =
     summary.transfers > 0 ? t('dayPlan.transfers', { n: summary.transfers }) : t('dayPlan.direct')
-  return [entry.title, summary.lines.join(', '), summary.lines.length > 0 ? changes : null]
-    .filter((part) => !!part)
-    .join(' · ')
+  return {
+    title: `${times.dep} ${first.from} → ${times.arr} ${last.to}`,
+    detail: summary.lines.length > 0 ? `${summary.lines.join(', ')} · ${changes}` : null,
+  }
+}
+
+/** What the route leaves, alone: *„4 h 24 Luft"* / *„20 min zu wenig"*; null where nothing is known. */
+function slackWords(budget: JourneyBudget | null): string | null {
+  if (!budget || budget.kind !== 'onSite' || budget.slackMinutes === null) return null
+  return budget.slackMinutes < 0
+    ? t('journey.shortAlone', { missing: journeyDuration(-budget.slackMinutes) })
+    : t('journey.slackAlone', { slack: journeyDuration(budget.slackMinutes) })
+}
+
+/**
+ * *Der Tag* folded to one line: *„08:06 → 3.3 km · ↑ 300 m → 16:23 · 4 h 24
+ * Luft"* — the departures around the route, and what the route leaves.
+ */
+export function daySummary(
+  journey: ExcursionJourney,
+  route: string | null,
+  budget: JourneyBudget | null,
+): string {
+  const sequence = [
+    journey.out ? journeyTimes(journey.out).dep : null,
+    route,
+    journey.back ? journeyTimes(journey.back).dep : null,
+  ].filter((part): part is string => !!part)
+  return [sequence.join(' → '), slackWords(budget)].filter((part) => !!part).join(' · ')
 }
 
 /** How the budget's verdict is toned. */

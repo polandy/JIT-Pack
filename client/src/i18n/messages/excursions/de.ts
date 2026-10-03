@@ -149,6 +149,7 @@ export const excursionsDe: Record<keyof typeof excursionsEn, string> = {
   'excursions.packed': '{done}/{total} gepackt',
   'excursions.toBuy': '{n} vor Ort besorgen',
   'excursions.nothingYet': 'Noch nichts auf der Liste',
+  'excursions.listHead': 'Packliste',
   'excursions.fromLuggage': 'aus dem Gepäck',
   'excursions.bought': 'vor Ort gekauft',
   'excursions.notInLuggage': 'nicht im Gepäck',

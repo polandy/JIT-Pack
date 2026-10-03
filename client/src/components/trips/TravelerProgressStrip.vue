@@ -39,8 +39,8 @@ const emit = defineEmits<{
 }>()
 
 /** Diameter of the ring; the face inside is inset by the arc's width. */
-const RING_PX = 56
-const FACE_PX = 44
+const RING_PX = 36
+const FACE_PX = 28
 /** A row of the strip holds three, the party it is drawn for. */
 const COLUMNS = 3
 
@@ -162,11 +162,11 @@ function faceLabel(share: TravelerShare): string {
 
 <style scoped>
 .strip {
-  padding: 2px 16px 12px;
+  padding: 2px 12px 12px;
 }
 
 .head {
-  margin: 0 0 8px;
+  margin: 0 4px 8px;
 }
 
 .faces {
@@ -175,13 +175,19 @@ function faceLabel(share: TravelerShare): string {
   gap: 8px;
 }
 
+/* Compact: the ring beside the name and the count, so three people take one
+   row of the page's rhythm rather than a block of their own. */
 .face {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'ring name'
+    'ring count';
   align-items: center;
-  gap: 4px;
+  column-gap: 8px;
   min-width: 0;
-  padding: 10px 6px 8px;
+  padding: 7px 10px 7px 7px;
+  text-align: start;
   border: 1px solid var(--jp-surface-border);
   border-radius: var(--jp-r);
   background: var(--jp-surface-card);
@@ -202,10 +208,20 @@ function faceLabel(share: TravelerShare): string {
   outline-offset: 2px;
 }
 
+.face .name {
+  grid-area: name;
+}
+
+.face .count {
+  grid-area: count;
+  line-height: var(--jp-leading-tight);
+}
+
 /* The same construction as ProgressRing: a conic arc with the hole punched
    in the card's own surface, so the face sits in it rather than on it. The
    arc is `--jp-done` — progress has one colour in this app (G-11). */
 .ring {
+  grid-area: ring;
   position: relative;
   display: grid;
   place-items: center;
@@ -250,19 +266,16 @@ function faceLabel(share: TravelerShare): string {
   font-weight: var(--jp-weight-semibold);
 }
 
-.more {
-  justify-content: center;
-}
-
 .more-n {
+  grid-area: ring;
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--jp-surface-sunken);
   color: var(--jp-action);
-  font-size: var(--jp-text-lg);
+  font-size: var(--jp-text-sm);
   font-weight: var(--jp-weight-bold);
 }
 

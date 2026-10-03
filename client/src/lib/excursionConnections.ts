@@ -1,13 +1,15 @@
 /**
- * The contract between an excursion's own screen and the connections that
- * belong to it (FR-29.18).
+ * The contract between an excursion's own screen and its day — the way there,
+ * the route, the way back (FR-29.18, *Der Tag*).
  *
  * A connection is a day-plan entry, written and read by the planner module,
  * while the excursion's screen (M27) is the packing side's — and neither may
  * import the other (`scripts/module-boundary-gate.mjs`). So the planner offers
  * the part of the screen it owns as a component, the composition root
  * (`App.vue`) binds it, and M27 renders it with the excursion it stands on,
- * `tripCards.ts`'s arrangement for the same reason.
+ * `tripCards.ts`'s arrangement for the same reason. The route between the two
+ * ways is the packing side's (an excursion's GPX tracks), so M27 hands it in as
+ * the component's `route` slot, and the card draws the day in its order.
  */
 import type { Component, InjectionKey } from 'vue'
 
@@ -23,6 +25,12 @@ export interface ExcursionConnectionsProps {
   lastDay: string | null
   /** Its first track's time with the pauses, for the time budget; null without a track. */
   routeMinutes: number | null
+  /** The route folded to a line (*„3.3 km · ↑ 300 m"*), null without a track; the route itself is the `route` slot. */
+  routeSummary: string | null
+  /** The first track's distance alone (*„3.3 km"*), where the folded day has the ways beside it. */
+  routeDistance: string | null
+  /** Whether *Der Tag* is open — M27's fold (`lib/routeFold.ts`); the card emits `toggle` to change it. */
+  open: boolean
 }
 
 /** The injection key M27 reads the planner's connections section through; null where there is none. */

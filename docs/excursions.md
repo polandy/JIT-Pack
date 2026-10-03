@@ -91,10 +91,11 @@ An excursion can carry the way you will walk or ride — up to **five** GPX trac
 and **Route zeichnen** draws one on the map along the paths (see
 [Changing a route, or drawing one](ideas.md#changing-a-route-or-drawing-one); it needs the map, so not offline).
 
-The route then stands at the top of the excursion, above its packing list: a small map with every track, and under
-it a line per track — whether it is a hike or a bike tour, its name, and *„3.3 km · ↑ 300 m · 1 h 25"*, the time with
-the breaks you set. While something on the excursion's list is still to pack, the card is folded to one line — tap
-**Route** to open it, and again to fold it. Once everything is packed it opens by itself. The app remembers your choice
+The route then stands at the top of the excursion, above its packing list, in the card **Der Tag** — between the
+way there and the way back (see [There and back](#there-and-back)): a small map with every track, and under it a line
+per track — whether it is a hike or a bike tour, its name, and *„3.3 km · ↑ 300 m · 1 h 25"*, the time with the
+breaks you set. While something on the excursion's list is still to pack, the card is folded to one line — tap **Der
+Tag** to open it, and again to fold it. Once everything is packed it opens by itself. The app remembers your choice
 for each excursion in this browser. Tap the map or a line to see the track full screen, with its
 figures, **Wandern** / **Velo**, **Mit Kind** and the breaks. **Bearbeiten** at the top changes the route, and the
 **⋮** beside it renames the track, downloads the file, replaces it with another or removes it. The list of
@@ -122,8 +123,8 @@ note.
 
 ## There and back
 
-Under the route, the card **Hin und zurück** holds the excursion's way there and its way back. Tap **Hinfahrt
-eintragen** or **Rückfahrt eintragen** and paste the connection's SBB link, or enter it by hand — a boat, a cable car
+**Der Tag** reads like the day itself: the way there, the route, the way back, one under the other. Folded, it says
+the day in one line — *08:06 → 3.3 km → 16:23 · 4 h 24 Luft*. Tap **Hinfahrt eintragen** or **Rückfahrt eintragen** and paste the connection's SBB link, or enter it by hand — a boat, a cable car
 or a bus abroad works the same way. The way there lands on the excursion's first day, the way back on its last; an
 excursion without a date asks for one first. Tap a filled slot to change or delete it.
 

@@ -51,7 +51,7 @@
   the excursion's ⋮ stand as two lines on its route card above the progress card, each with its name and *„3.3 km · ↑
   300 m · 1 h 25"* (no climb for a file without heights). A line opens the full-screen map on its track; two steps of
   pauses there, and the track renamed through the map's ⋮, show on the line after the map is closed (*1 h 55*), and a
-  download hands back the file as it was added. Both survive a reload. *Route* folds the card to its head — no map, no
+  download hands back the file as it was added. Both survive a reload. *Der Tag* folds the card to its head — no map, no
   lines, *„3.3 km · ↑ 300 m · +1"* — and it is still folded after a reload. A line added to the list folds the card by
   default, and packing it opens the card again. With five tracks, *Track hinzufügen …* toasts that no more fit and asks
   for no file. A track removed through the map's ⋮, confirmed, closes the map and leaves the list, and M27's list shows
@@ -63,8 +63,10 @@
   *(variant)*.
 * **E2E-M27-17** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`): an excursion without days says it
   needs one and offers no slot. On a dated one, *Hin* and *Zurück* each open the day plan's sheet headed *Way there* /
-  *Way back*; a leg by hand fills its slot as *„08:06 → 08:34"* over *„Spiez → Kandersteg · RE · direct"*, and both
+  *Way back*; a leg by hand fills its slot as *„08:06 Spiez → 08:34 Kandersteg"* over *„There · RE · direct"*, and both
   survive a reload. The two say *„On the spot 7 h 49"*; a GPX track added makes it *„… · Route 1 h 25 → 6 h 24 to
-  spare"*. M27's list says *„there 08:06 · back 16:23"* under the dated excursion and nothing under the other, and the
-  day plan labels the two *Way there · Oeschinensee* / *Way back · Oeschinensee*. The slot rule, the budget's cases (a
-  route too long, a hut night, a route past midnight) and its words are `journey.spec.ts` and `journeyText.spec.ts`.
+  spare"*. *Der Tag* stands in the day's order — there, the route, back — and folds to *„08:06 → 3.3 km → 16:23 · 6 h 24
+  to spare"*, the ways gone. M27's list says *„there 08:06 · back 16:23"* under the dated excursion and nothing under
+  the other, and the day plan labels the two *Way there · Oeschinensee* / *Way back · Oeschinensee*. The slot rule, the
+  budget's cases (a route too long, a hut night, a route past midnight) and its words are `journey.spec.ts` and
+  `journeyText.spec.ts`.

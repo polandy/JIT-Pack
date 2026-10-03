@@ -38,6 +38,11 @@ const props = defineProps<{
   title: string
   /** The trip they are on, for who is where on the full-screen map (FR-29.19). */
   tripId?: string
+  /**
+   * Drawn inside another card that owns the head and the fold (FR-29.18's
+   * *Der Tag*): no card of its own, no head, always open.
+   */
+  headless?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -99,8 +104,13 @@ function removeChosen(track: TrackFields) {
 </script>
 
 <template>
-  <section class="track-summary jp-card" :class="{ folded: !expanded }" data-testid="track-summary">
+  <section
+    class="track-summary"
+    :class="{ 'jp-card': !headless, folded: !expanded && !headless, headless }"
+    data-testid="track-summary"
+  >
     <button
+      v-if="!headless"
       type="button"
       class="head"
       :aria-expanded="expanded ? 'true' : 'false'"
@@ -114,7 +124,7 @@ function removeChosen(track: TrackFields) {
       </span>
       <IonIcon class="caret" :icon="chevronDown" aria-hidden="true" />
     </button>
-    <div v-if="expanded" class="mini">
+    <div v-if="expanded || headless" class="mini">
       <TrackMap class="map" :lines="lines" :source="source" data-testid="track-summary-map" />
       <button
         type="button"
@@ -124,7 +134,7 @@ function removeChosen(track: TrackFields) {
         @click="open(chosen!.id)"
       ></button>
     </div>
-    <ul v-if="expanded" class="track-rows" data-testid="track-rows">
+    <ul v-if="expanded || headless" class="track-rows" data-testid="track-rows">
       <li v-for="(track, index) in tracks" :key="track.id">
         <button
           type="button"
@@ -315,5 +325,20 @@ function removeChosen(track: TrackFields) {
 
 .jp-track-pine .kind {
   color: var(--ct-pine);
+}
+
+/* Inside *Der Tag*: the map as an inset of the step, the lines flush with its text. */
+.headless .mini {
+  overflow: hidden;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: var(--jp-r-sm);
+}
+
+.headless .track-rows {
+  padding: 4px 0 0;
+}
+
+.headless .row {
+  padding-inline: 0;
 }
 </style>

@@ -12,7 +12,7 @@ import {
   type ConnectionLeg,
   type DayEntry,
 } from '@/types/domain'
-import { budgetWords, journeyDetail, journeyDuration, journeyLine } from '../journeyText'
+import { budgetWords, daySummary, journeyDuration, journeyLine, wayWords } from '../journeyText'
 
 function entry(id: string, legs: ConnectionLeg[]): DayEntry {
   return {
@@ -48,10 +48,13 @@ const BACK = entry('back', [
 describe('journey words (FR-29.18)', () => {
   afterEach(() => setLocale(DEFAULT_LOCALE))
 
-  it('says a way as its stops, its lines and its changes', () => {
+  it('says a way as its times with its stops, then its lines and changes', () => {
     setLocale('de')
-    expect(journeyDetail(OUT)).toBe('Spiez → Kandersteg · RE, B 230 · 1× umsteigen')
-    expect(journeyDetail(BACK)).toBe('Kandersteg → Spiez · RE · direkt')
+    expect(wayWords(OUT)).toEqual({
+      title: '08:06 Spiez → 08:44 Kandersteg',
+      detail: 'RE, B 230 · 1× umsteigen',
+    })
+    expect(wayWords(BACK).detail).toBe('RE · direkt')
   })
 
   it('says a duration in minutes under an hour and in hours above, unrounded', () => {
@@ -96,5 +99,29 @@ describe('journey words (FR-29.18)', () => {
     expect(journeyLine({ out: OUT, back: BACK, others: [] })).toBe('08:06 hin · 16:23 zurück')
     expect(journeyLine({ out: null, back: BACK, others: [] })).toBe('16:23 zurück')
     expect(journeyLine({ out: null, back: null, others: [OUT] })).toBeNull()
+  })
+
+  it('folds the day to its departures around the route, and what the route leaves', () => {
+    setLocale('de')
+    const journey = { out: OUT, back: BACK, others: [] }
+    const bar = { total: 0, arrive: 0, routeEnd: 0, leave: 0 }
+    const budget = {
+      kind: 'onSite' as const,
+      onSiteMinutes: 459,
+      routeMinutes: 205,
+      slackMinutes: 254,
+      bar,
+    }
+    expect(daySummary(journey, '3.3 km · ↑ 300 m', budget)).toBe(
+      '08:06 → 3.3 km · ↑ 300 m → 16:23 · 4 h 14 Luft',
+    )
+    expect(daySummary(journey, null, null)).toBe('08:06 → 16:23')
+    expect(daySummary({ out: null, back: null, others: [] }, '3.3 km · ↑ 300 m', null)).toBe(
+      '3.3 km · ↑ 300 m',
+    )
+    expect(daySummary({ out: null, back: null, others: [] }, null, null)).toBe('')
+    expect(daySummary(journey, '3.3 km', { ...budget, slackMinutes: -20 })).toBe(
+      '08:06 → 3.3 km → 16:23 · 20 min zu wenig',
+    )
   })
 })

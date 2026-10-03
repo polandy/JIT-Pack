@@ -158,14 +158,13 @@
     trip presence facepile and group-sync badge per G-10. The trip's name is the page head's second line (G-9) and
     the trip's other views are the switcher and the ⋮, so the line states figures alone. There is no KPI tile strip:
     Analytics is a named entry rather than a tap on a tile, which testing found undiscoverable.
-  * **Per person (FR-25.29):** under the sticky line, not in it, so it scrolls away with the list —
-    one card per traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and *„x von y"* /
-    *„fertig ✓"* / *„nichts zu packen"* under the name, three to a row; a dashed *Gemeinsam* line with a track under the
-    cards when any row is for nobody. A tap toggles the traveler in the person facet (pressed card, chip in the chip
-    row), so several can be pressed at once — a quick filter, OR'd like the sheet's chips — and a second tap takes that
-    one back out. Beyond six travelers the sixth
-    slot reads *„+N weitere · M noch offen"* and unfolds the rest, *„Weniger zeigen"* folds them again. Absent with
-    fewer than two travelers and during the closing pass.
+  * **Per person (FR-25.29):** under the sticky line, not in it, so it scrolls away with the list — one compact card per
+    traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and, beside it, the name over *„x
+    von y"* / *„fertig ✓"* / *„nichts zu packen"*, three to a row (M27 draws the same); a dashed *Gemeinsam* line with a
+    track under the cards when any row is for nobody. A tap toggles the traveler in the person facet (pressed card, chip
+    in the chip row), so several can be pressed at once — a quick filter, OR'd like the sheet's chips — and a second tap
+    takes that one back out. Beyond six travelers the sixth slot reads *„+N weitere · M noch offen"* and unfolds the
+    rest, *„Weniger zeigen"* folds them again. Absent with fewer than two travelers and during the closing pass.
   * Grouping switcher: *Category / Container / Person / Status*, inside the filter sheet's *Gruppieren nach* section.
     **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.

@@ -69,7 +69,8 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
    * one, *Hin* and *Zurück* each open the day plan's sheet under their own
    * name and keep what is written there — departure → arrival, stops, line,
    * changes — across a reload. The two say how long one is on the spot; a
-   * track adds what its route leaves of it. M27's list names both
+   * track adds what its route leaves of it, standing between the two ways in
+   * *Der Tag*, which folds to one line of the day. M27's list names both
    * departures, and the day plan names each way with the excursion.
    */
   test('E2E-M27-17: the way there and back fill their slots, and the time on the spot follows', async ({
@@ -96,8 +97,8 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
       arr: '08:34',
       line: 'RE',
     })
-    await expect(slot(page, 'out')).toContainText('08:06 → 08:34')
-    await expect(slot(page, 'out')).toContainText('Spiez → Kandersteg · RE · direct')
+    await expect(slot(page, 'out')).toContainText('08:06 Spiez → 08:34 Kandersteg')
+    await expect(slot(page, 'out')).toContainText('There · RE · direct')
 
     await slot(page, 'back').click()
     await fillWay(page, 'Way back', {
@@ -107,17 +108,31 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
       arr: '16:52',
       line: 'RE',
     })
-    await expect(slot(page, 'back')).toContainText('16:23 → 16:52')
+    await expect(slot(page, 'back')).toContainText('16:23 Kandersteg → 16:52 Spiez')
     await expect(m27.getByTestId('m27-journey-budget')).toHaveText('On the spot 7 h 49')
 
     await page.reload()
-    await expect(slot(page, 'out')).toContainText('08:06 → 08:34')
-    await expect(slot(page, 'back')).toContainText('16:23 → 16:52')
+    await expect(slot(page, 'out')).toContainText('08:06 Spiez → 08:34 Kandersteg')
+    await expect(slot(page, 'back')).toContainText('16:23 Kandersteg → 16:52 Spiez')
 
     await addExcursionTrack(page, 'climb.gpx', CLIMB)
     await expect(visiblePage(page).getByTestId('m27-journey-budget')).toHaveText(
       'On the spot 7 h 49 · Route 1 h 25 → 6 h 24 to spare',
     )
+
+    // *Der Tag* in order — there, the route, back — and folded to one line.
+    const out = await slot(page, 'out').boundingBox()
+    const route = await visiblePage(page).getByTestId('m27-day-route').boundingBox()
+    const back = await slot(page, 'back').boundingBox()
+    expect(out!.y).toBeLessThan(route!.y)
+    expect(route!.y).toBeLessThan(back!.y)
+    const toggle = visiblePage(page).getByTestId('m27-day-toggle')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(visiblePage(page).getByTestId('m27-day-folded')).toHaveText(
+      '08:06 → 3.3 km → 16:23 · 6 h 24 to spare',
+    )
+    await expect(slot(page, 'out')).toHaveCount(0)
 
     await page.goBack()
     const list = visiblePage(page)

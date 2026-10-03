@@ -100,6 +100,7 @@ import { t } from '@/i18n'
 import { chooseAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { EXCURSION_CONNECTIONS } from '@/lib/excursionConnections'
 import { excursionDays } from '@/lib/excursionText'
+import { formatDistance, tracksSummary } from '@/lib/trackFormat'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
@@ -897,6 +898,12 @@ async function remove() {
 const tracksOn = computed(() =>
   excursion.value ? orchestrator.tracksOf(props.tripId, excursion.value.id) : [],
 )
+/** FR-31.15: the route folded to a line, as *Der Tag*'s head says it — the first track's distance and climb. */
+const routeSummary = computed(() => tracksSummary(tracksOn.value)?.text ?? null)
+const routeDistance = computed(() => {
+  const first = tracksOn.value[0]
+  return first ? formatDistance(first.distance_m) : null
+})
 /** FR-29.18: the first track's time with its pauses — the route the way there and back frame. */
 const routeMinutes = computed(() => {
   const first = tracksOn.value[0]
@@ -1046,10 +1053,39 @@ setHeaderTitle(
           :idea-id="excursion.idea_id"
           testid="m27-excursion-idea"
         />
-        <!-- FR-31.15: the route first, before what to pack for it; it scrolls away. -->
-        <div v-if="tracksOn.length > 0 || trackBusy" class="excursion-tracks">
+        <!-- FR-29.18/FR-31.15: the day first — there, the route, back — before what to pack for it; it scrolls away. -->
+        <component
+          :is="ConnectionsSection"
+          v-if="ConnectionsSection"
+          class="excursion-day"
+          :trip-id="tripId"
+          :excursion-id="excursionId"
+          :title="excursion.name"
+          :day="excursion.starts_on"
+          :last-day="excursion.ends_on ?? excursion.starts_on"
+          :route-minutes="routeMinutes"
+          :route-summary="routeSummary"
+          :route-distance="routeDistance"
+          :open="routeFold.open.value"
+          @toggle="routeFold.toggle"
+        >
+          <template v-if="tracksOn.length > 0" #route>
+            <TrackSummary
+              headless
+              :tracks="tracksOn"
+              :title="excursion?.name ?? ''"
+              :trip-id="tripId"
+              @update="(track, settings) => tracks.update(track as ExcursionTrack, settings)"
+              @download="(track) => tracks.download(track as ExcursionTrack)"
+              @replace="(track, file) => tracks.replace(track as ExcursionTrack, file)"
+              @remove="(track) => tracks.remove(track as ExcursionTrack)"
+              @edit="(track) => tracks.edit(track as ExcursionTrack)"
+            />
+          </template>
+        </component>
+        <!-- Without the planner bound, the route stands alone. -->
+        <div v-else-if="tracksOn.length > 0" class="excursion-day">
           <TrackSummary
-            v-if="tracksOn.length > 0"
             :open="routeFold.open.value"
             @update:open="routeFold.toggle"
             :tracks="tracksOn"
@@ -1061,21 +1097,10 @@ setHeaderTitle(
             @remove="(track) => tracks.remove(track as ExcursionTrack)"
             @edit="(track) => tracks.edit(track as ExcursionTrack)"
           />
-          <p v-if="trackBusy" class="track-busy" data-testid="m27-track-busy">
-            {{ t('track.reading') }}
-          </p>
         </div>
-        <!-- FR-29.18: the way there and back frame the route, before the packing. -->
-        <component
-          :is="ConnectionsSection"
-          v-if="ConnectionsSection"
-          :trip-id="tripId"
-          :excursion-id="excursionId"
-          :title="excursion.name"
-          :day="excursion.starts_on"
-          :last-day="excursion.ends_on ?? excursion.starts_on"
-          :route-minutes="routeMinutes"
-        />
+        <p v-if="trackBusy" class="track-busy" data-testid="m27-track-busy">
+          {{ t('track.reading') }}
+        </p>
         <!-- M4's header line: the progress card, sticky, yielding to the list. -->
         <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m27-header">
           <div class="trip-stats jp-card" data-testid="m27-progress-card">
@@ -1126,9 +1151,12 @@ setHeaderTitle(
               {{ t('filter.reset') }}
             </button>
           </template>
-          <span v-else class="grouped-by">
-            {{ t('filter.groupedBy', { axis: t(`group.${shownGroupBy}` as const) }) }}
-          </span>
+          <template v-else>
+            <span class="list-head jp-eyebrow">{{ t('excursions.listHead') }}</span>
+            <span class="grouped-by">
+              {{ t('filter.groupedBy', { axis: t(`group.${shownGroupBy}` as const) }) }}
+            </span>
+          </template>
         </div>
 
         <QuickAddItem
@@ -1457,13 +1485,14 @@ setHeaderTitle(
 
 /* M4's header line (`packing/PackingHeadline.vue`): sticky page, one card, yielding to the list. */
 /* FR-31.15: the route's card, above the sticky header line, on its gutter. */
-.excursion-tracks {
-  margin: 8px 12px 0;
+.excursion-day {
+  /* With the header line's own 8 px, one rhythm of 12 px between the blocks. */
+  margin: 8px 12px 4px;
 }
 
 .track-busy {
-  margin: 0;
-  padding: 6px 4px;
+  margin: 0 16px;
+  padding: 6px 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
 }
@@ -1547,6 +1576,15 @@ ion-content.excursion-content::part(scroll) {
 .grouped-by {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
+}
+
+/* The list's own head, in the eyebrow every other block on the page wears. */
+.list-head {
+  padding-inline-start: 4px;
+}
+
+.list-head + .grouped-by {
+  margin-inline-start: auto;
 }
 
 /* M4's amount popover. */

@@ -206,7 +206,9 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:05')
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
-    await expect(excursion.getByTestId('m27-connections')).toContainText('Dorgali → Olbia')
+    await expect(excursion.getByTestId('m27-journey-out')).toContainText(
+      '07:10 Dorgali → 09:05 Olbia',
+    )
 
     await openDayPlan(page)
     await chooseDay(page, THIRD)
