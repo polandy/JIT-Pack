@@ -93,7 +93,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     })
     await openDayPlan(page)
     await openFromTripList(page, 'Engadin vorbei')
-    await expect(page.getByTestId('header-title')).toHaveText('Engadin vorbei')
+    await expect(page.getByTestId('header-meta')).toHaveText('Engadin vorbei')
     await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
 
     // From a series' history (M20) too: a trip under way, on its day plan.
@@ -233,7 +233,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     // Started with its packing finished, the trip is the hero and the card a
     // block of it (FR-7.10) — the same lines, and no field to type into.
     await openTripView(page, 'packing')
-    await expect(page.getByTestId('header-title')).toHaveText('Engadin jetzt')
+    await expect(page.getByTestId('header-meta')).toHaveText('Engadin jetzt')
     await askToStart(page)
     await page.getByTestId('m4-close-sheet-confirm').click()
     await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)

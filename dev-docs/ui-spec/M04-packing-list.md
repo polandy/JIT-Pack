@@ -21,8 +21,9 @@
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line hides
     and any upward scroll brings it back — and so does a list the hiding itself made fit its screen: with nothing left
     to scroll, no upward gesture could, and the view switcher above would stay gone.
-  * **The trip is named once, in the G-9 page head, at every width (ADR-050)**, and M4 registers a title like every
-    other screen. **"S…" names nothing:** with search, filter, fold-all, the FR-27.5 lifecycle step, the sync glyph and
+  * **The page head reads *Packliste* over the trip's name, at every width (ADR-050)** — the same two lines every
+    other view of the trip has, so a switch between views changes the title and never moves the head.
+    **"S…" names nothing:** with search, filter, fold-all, the FR-27.5 lifecycle step, the sync glyph and
     the settings gear beside it, 54 px are left at 390 px and "Samedan 2026" renders as **"S…"** in the bar — measured
     off the visual baseline, and weighed on a rendered four-way round (`UI_Concept_M4Title_variants.html` at
     `6b148419`). On scroll, *you generally know which packing list you are on*, so identity does not migrate into the
@@ -154,9 +155,9 @@
   them, two categories run into each other on a long list.
 * **Elements:**
   * Sticky header: **one row at every width (ADR-050)** — packed/total, weight (FR-8.1), the task figure (FR-7.6),
-    trip presence facepile and group-sync badge per G-10. The name is the page head (G-9) and the trip's other views
-    are the switcher and the ⋮, so the line states figures alone. There is no KPI tile strip: Analytics is a named
-    entry rather than a tap on a tile, which testing found undiscoverable.
+    trip presence facepile and group-sync badge per G-10. The trip's name is the page head's second line (G-9) and
+    the trip's other views are the switcher and the ⋮, so the line states figures alone. There is no KPI tile strip:
+    Analytics is a named entry rather than a tap on a tile, which testing found undiscoverable.
   * **Per person (FR-25.29):** under the sticky line, not in it, so it scrolls away with the list —
     one card per traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and *„x von y"* /
     *„fertig ✓"* / *„nichts zu packen"* under the name, three to a row; a dashed *Gemeinsam* line with a track under the

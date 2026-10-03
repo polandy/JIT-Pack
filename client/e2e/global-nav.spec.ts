@@ -270,8 +270,8 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
     await expect(page.getByTestId('m11-fab')).toHaveCount(0)
     // …and the head comes back with it, rather than leaving the page unnamed.
-    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
-    await expect(page.getByTestId('header-meta')).toHaveCount(0)
+    await expect(page.getByTestId('header-title')).toHaveText('Packing list')
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
   })
 
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the
