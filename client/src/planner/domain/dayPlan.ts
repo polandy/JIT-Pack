@@ -47,6 +47,8 @@ export interface DayLine {
   source?: DayPlanLine
   /** An excursion's line: the idea it was made from, shown as this one line (FR-29.13). */
   origin?: Idea
+  /** A connection's line: the excursion it belongs to (FR-29.18). */
+  excursion?: DayPlanLine
 }
 
 /** The trip's dates, as the plan reads them. */
@@ -180,6 +182,9 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
   const lines: DayLine[] = []
   const withExcursion = ideasWithExcursion(input.lines)
   const ideaOf = new Map(input.ideas.map((idea) => [idea.id, idea]))
+  const excursionOf = new Map(
+    input.lines.filter((line) => line.refId).map((line) => [line.refId!, line]),
+  )
   if (day === input.trip.start_date) lines.push(fixed(DAY_LINE.arrival, day))
   if (day === input.trip.end_date) lines.push(fixed(DAY_LINE.departure, day))
 
@@ -232,6 +237,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       done: null,
       progress: null,
       entry,
+      excursion: entry.excursion_id ? excursionOf.get(entry.excursion_id) : undefined,
     })
   }
 

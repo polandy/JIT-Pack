@@ -35,6 +35,7 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
       const units = sumUnits(items.filter((item) => item.excursion_id === excursion.id))
       lines.push({
         key: `excursion:${excursion.id}`,
+        refId: excursion.id,
         ideaId: excursion.idea_id ?? null,
         kind: DAY_PLAN_EXCURSION,
         title: excursion.name,

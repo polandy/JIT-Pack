@@ -583,6 +583,8 @@ export interface DayEntry {
   link: string | null
   /** A connection's legs, in order; null for a free entry. */
   legs: ConnectionLeg[] | null
+  /** The excursion a connection belongs to (FR-29.18), or null/absent for none. */
+  excursion_id?: string | null
 }
 
 /**

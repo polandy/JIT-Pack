@@ -183,9 +183,12 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
 
   /**
    * E2E-M29-13: an excursion made from an idea stands on the day plan as one
-   * line — the idea has none of its own.
+   * line — the idea has none of its own — and a connection added from that
+   * line belongs to the excursion, which its label names.
    */
-  test('E2E-M29-13: the idea and its excursion are one line', async ({ page }) => {
+  test('E2E-M29-13: the idea and its excursion are one line, and a connection hangs off it', async ({
+    page,
+  }) => {
     const detail = await shortlistedIdea(page)
     await detail.getByTestId('idea-make-excursion').click()
     await page.getByTestId('m27-sheet').getByTestId('m27-save').click()
@@ -199,5 +202,20 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     const line = lines.first()
     await expect(line).toHaveAttribute('data-kind', 'excursion')
     await expect(line).toContainText(`💡 ${IDEA}`)
+
+    await line.locator('[data-testid^="m29-add-connection-"]').click()
+    const sheet = page.getByTestId('day-entry')
+    await expect(sheet.getByTestId('day-entry-excursion')).toContainText(IDEA)
+    await fillIonic(sheet.getByTestId('day-entry-hand-from'), 'Dorgali')
+    await fillIonic(sheet.getByTestId('day-entry-hand-to'), 'Olbia')
+    await sheet.getByTestId('day-entry-hand-dep').locator('input').fill('07:10')
+    await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:05')
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+
+    const connection = timelineLines(page).filter({ hasText: 'Dorgali → Olbia' })
+    await expect(connection).toHaveAttribute('data-kind', 'connection')
+    await expect(connection).toContainText(`Connection · ${IDEA}`)
+    await expect(timelineLines(page)).toHaveCount(2)
   })
 })

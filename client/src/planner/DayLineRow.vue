@@ -25,7 +25,7 @@ import { dayLineWords } from './dayLineText'
 import { DAY_LINE, type DayLine, type DayLineKind } from './domain/dayPlan'
 
 const props = defineProps<{ line: DayLine; nameOf: NameOf }>()
-const emit = defineEmits<{ open: []; tick: [] }>()
+const emit = defineEmits<{ open: []; tick: []; addConnection: [] }>()
 
 const KIND_ICON: Record<DayLineKind, string> = {
   [DAY_LINE.arrival]: carOutline,
@@ -85,6 +85,16 @@ const legsOpen = ref(false)
     >
       <span aria-hidden="true">{{ line.done ? '✓' : '' }}</span>
     </button>
+    <button
+      v-if="line.kind === DAY_LINE.excursion && line.source?.refId"
+      type="button"
+      class="add"
+      :data-testid="`m29-add-connection-${line.key}`"
+      @click="emit('addConnection')"
+    >
+      <IonIcon :icon="trainOutline" aria-hidden="true" />
+      {{ t('dayPlan.addConnection') }}
+    </button>
     <ConnectionLegs
       v-if="legs && legsOpen"
       class="legs"
@@ -111,6 +121,7 @@ const legsOpen = ref(false)
   border-left-color: var(--ct-larch);
 }
 .line[data-kind='excursion'] {
+  flex-wrap: wrap;
   border-left-color: var(--ct-moss);
 }
 .line[data-kind='task'] {
@@ -126,6 +137,20 @@ const legsOpen = ref(false)
 .line[data-kind='arrival'],
 .line[data-kind='departure'] {
   border-left-color: var(--ct-straw);
+}
+
+.add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 8px 54px;
+  padding: 2px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ct-subtext1);
+  font: inherit;
+  font-size: var(--jp-text-xs);
+  cursor: pointer;
 }
 
 .open {

@@ -814,6 +814,10 @@ CREATE TABLE day_entries (
     note        TEXT,
     link        TEXT CHECK (link IS NULL OR link LIKE 'http://%' OR link LIKE 'https://%'),
     legs        TEXT CHECK (legs IS NULL OR json_valid(legs)),
+    -- FR-29.18: the excursion a connection belongs to (its way there or
+    -- back), the author's to choose; noteExcursion keeps it on an excursion of
+    -- the trip. ON DELETE SET NULL: the connection outlives the excursion.
+    excursion_id TEXT REFERENCES excursions(id) ON DELETE SET NULL,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -1049,6 +1053,7 @@ CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
 CREATE INDEX idx_day_entries_trip ON day_entries (trip_id, on_date);
 CREATE INDEX idx_idea_tracks_idea ON idea_tracks (idea_id);
+CREATE INDEX idx_day_entries_excursion ON day_entries(excursion_id);
 CREATE INDEX idx_excursion_tracks_excursion ON excursion_tracks (excursion_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);

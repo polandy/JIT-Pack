@@ -329,6 +329,7 @@ describe("linesAhead — the dashboard's Heute card (FR-29.7)", () => {
 describe('an idea and the excursion made from it (FR-29.13, FR-29.15)', () => {
   const made = (): DayPlanLine => ({
     ...line('excursion:e1', 'excursion', '2026-07-13'),
+    refId: 'e1',
     ideaId: 'i1',
   })
 
@@ -365,5 +366,19 @@ describe('an idea and the excursion made from it (FR-29.13, FR-29.15)', () => {
     expect(unplannedIdeas(ideas, withExcursion).map((i) => i.id)).toEqual(['i3'])
     const late = [idea('i1', 'shortlisted', '2026-08-01')]
     expect(ideasOutsideTrip(late, tripDays(TRIP), withExcursion)).toEqual([])
+  })
+
+  it('names the excursion on a connection that belongs to it', () => {
+    const connection: DayEntry = {
+      ...entry('c1', '2026-07-13', '08:00'),
+      kind: DAY_ENTRY_CONNECTION,
+      legs: [
+        { from: 'A', to: 'B', dep: '2026-07-13T08:00', arr: '2026-07-13T09:00', line: 'IC 1' },
+      ],
+      excursion_id: 'e1',
+    }
+    const lines = dayLines('2026-07-13', input({ entries: [connection], lines: [made()] }))
+    const row = lines.find((l) => l.kind === DAY_LINE.connection)
+    expect(row?.excursion?.refId).toBe('e1')
   })
 })
