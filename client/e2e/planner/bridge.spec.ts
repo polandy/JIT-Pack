@@ -131,7 +131,10 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       .getByTestId('idea-remove-confirm')
       .getByRole('button', { name: /delete idea/i })
       .click()
-    await expect(visiblePage(page).getByTestId('m28-empty-idea')).toBeVisible()
+    // The shortlist's count, not the Ideas segment's empty state: that one
+    // showed before the removal too. The count drops only once the sheet's
+    // route is gone.
+    await expect(visiblePage(page).getByTestId('m28-count-shortlisted')).toHaveText('0')
     await writesLanded(page)
 
     await openTripView(page, 'tasks')

@@ -118,6 +118,7 @@ import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { presentToast } from '@/lib/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
+import { closeOverlayRoute } from '@/lib/closeOverlay'
 import {
   LINE_QUERY_PARAM,
   tripExcursionLinePath,
@@ -565,11 +566,8 @@ function openSheet(line: ExcursionItem) {
   void router.push(tripExcursionLinePath(props.tripId, props.excursionId, line.id))
 }
 
-function closeSheet() {
-  const here = tripExcursionsPath(props.tripId, props.excursionId)
-  const previous = (window.history.state as { back?: unknown } | null)?.back
-  if (previous === here) router.back()
-  else void router.replace(here)
+function closeSheet(): Promise<unknown> {
+  return closeOverlayRoute(router, tripExcursionsPath(props.tripId, props.excursionId))
 }
 
 function openedLine(): ExcursionItem | undefined {
