@@ -549,7 +549,7 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
     // Convergence first, so a failure below is about the log rather than
     // about the merge: B's own screen now carries A's name.
-    await expect(pageB.getByTestId('header-title')).toContainText(`${trip} A`)
+    await expect(pageB.getByTestId('header-meta')).toContainText(`${trip} A`)
 
     // Read the log from the trip list rather than from inside the trip:
     // the master log must not need one open, which is the whole gap.
@@ -617,7 +617,7 @@ test.describe('Single-User backend sync @single', () => {
     await ctxB.setOffline(false)
     await pageB.reload()
     await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
-    await expect(pageB.getByTestId('header-title')).toContainText(`${trip} A`)
+    await expect(pageB.getByTestId('header-meta')).toContainText(`${trip} A`)
 
     await pageB.getByTestId('header-back').click()
     await pageB.getByTestId('sync-indicator').click()
