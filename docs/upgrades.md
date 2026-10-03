@@ -83,7 +83,7 @@ Pin the version **and the digest** before a trip and leave it pinned until you a
 
 <!-- x-release-please-start-version -->
 ```yaml
-image: ghcr.io/polandy/jit-pack:0.23.0@sha256:…   # imagetools inspect prints the digest
+image: ghcr.io/polandy/jit-pack:0.25.0@sha256:…   # imagetools inspect prints the digest
 ```
 <!-- x-release-please-end -->
 

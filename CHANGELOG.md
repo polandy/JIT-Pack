@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.25.0](https://github.com/polandy/JIT-Pack/compare/v0.24.0...v0.25.0) (2026-10-03)
+
+
+### Features
+
+* **deploy:** a household stack with Pocket ID behind Traefik — accounts without an identity provider of your own ([#666](https://github.com/polandy/JIT-Pack/issues/666)) ([e9af339](https://github.com/polandy/JIT-Pack/commit/e9af339339dfab1e697f05269d09dd051d6fcd74))
+* **m27:** an excursion's day — the way there, the route and the way back, with the time on the spot (FR-29.18, FR-31.15) ([30eff85](https://github.com/polandy/JIT-Pack/commit/30eff857b1a190c26b4caaaedbe5f443af76e4a6))
+* **planner:** an excursion's connections are added on its screen and shown on the day plan (FR-29.18) ([876b9b4](https://github.com/polandy/JIT-Pack/commit/876b9b47072d20e1a4acc4a3eaf73d9f1ddba10e))
+* **planner:** an idea and the excursion made from it are one line on the day plan (FR-29.13, FR-29.15) ([708a47e](https://github.com/polandy/JIT-Pack/commit/708a47e57e0621852ff9c032b8c745133596e448))
+
+
+### Bug Fixes
+
+* **m28:** removing an idea waits for its sheet's route to close, so the next tap is not undone (FR-29.13, E2E-M28-23) ([#678](https://github.com/polandy/JIT-Pack/issues/678)) ([d4fb2ed](https://github.com/polandy/JIT-Pack/commit/d4fb2ed92b727d8eb18abab4bb359a1f538fc695))
+* **m4:** the packing list heads itself over the trip's name like every other trip view (G-9, FR-21.27) ([def3bb7](https://github.com/polandy/JIT-Pack/commit/def3bb73fd2da0b685e355e417160bc39f5ca377))
+
 ## [0.24.0](https://github.com/polandy/JIT-Pack/compare/v0.23.0...v0.24.0) (2026-10-02)
 
 
