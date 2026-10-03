@@ -13,6 +13,7 @@ import { usePlannerStore } from './store'
 export { plannerFeatureStore, usePlannerStore } from './store'
 export { createPlannerActions } from './actions'
 export { default as PlannerTodayCard } from './PlannerTodayCard.vue'
+export { default as ExcursionConnections } from './ExcursionConnections.vue'
 export { plannerActivityReaders } from './domain/activity'
 export { voteTally } from './domain/ideas'
 

@@ -31,7 +31,6 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
 import { tripIdeasPath } from '@/router/paths'
-import type { DayPlanLine } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea } from '@/types/domain'
 import { createPlannerActions, type ConnectionFields, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
@@ -51,7 +50,8 @@ import {
   type DayInput,
   type DayLine,
 } from './domain/dayPlan'
-import { connectionDay, type PageLinks } from './domain/connections'
+import { connectionDay } from './domain/connections'
+import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -145,18 +145,7 @@ function tick(line: DayLine) {
 // --- the pool and the ＋ ---
 
 const poolOpen = ref(false)
-const editing = ref<{ entry: DayEntry | null; excursion?: DayPlanLine } | null>(null)
-
-function addConnectionFor(line: DayLine) {
-  if (line.source?.refId) editing.value = { entry: null, excursion: line.source }
-}
-
-/** The excursion a connection being changed belongs to, for the sheet's line. */
-const editingExcursion = computed(() => {
-  const id = editing.value?.entry?.excursion_id
-  if (!id) return editing.value?.excursion?.title ?? null
-  return input.value.lines.find((line) => line.refId === id)?.title ?? null
-})
+const editing = ref<{ entry: DayEntry | null } | null>(null)
 
 function plan(idea: Idea, day: string) {
   actions.planIdea(idea, day, null)
@@ -178,25 +167,14 @@ function onSave(fields: DayEntryFields) {
   else if (chosen.value) actions.addDayEntry(props.tripId, chosen.value, fields, myUserId.value)
 }
 
-/** The server's read of a short link's page, where this device has one (FR-29.16). */
-const pageLinks = computed<PageLinks | null>(() => {
-  const preview = orchestrator.moduleHost.linkPreview
-  if (!preview.offered()) return null
-  return async (url) => (await preview.read(props.tripId, url))?.links ?? null
-})
+const pageLinks = usePageLinks(props.tripId, orchestrator)
 
 /** A connection lands on the day its link names, and the plan goes there with it. */
 function onSaveConnection(fields: ConnectionFields) {
   const current = editing.value
   editing.value = null
   if (current?.entry) actions.updateConnection(current.entry, fields)
-  else {
-    actions.addConnection(
-      props.tripId,
-      { ...fields, excursionId: current?.excursion?.refId ?? null },
-      myUserId.value,
-    )
-  }
+  else actions.addConnection(props.tripId, fields, myUserId.value)
   const day = connectionDay(fields.legs)
   if (days.value.includes(day)) chosen.value = day
 }
@@ -259,7 +237,6 @@ async function onRemove() {
               :name-of="nameOf"
               @open="open(line)"
               @tick="tick(line)"
-              @add-connection="addConnectionFor(line)"
             />
           </div>
 
@@ -277,7 +254,6 @@ async function onRemove() {
                 :name-of="nameOf"
                 @open="open(line)"
                 @tick="tick(line)"
-                @add-connection="addConnectionFor(line)"
               />
             </div>
           </template>
@@ -350,8 +326,6 @@ async function onRemove() {
         :day-text="chosen ? shortDueDay(chosen) : ''"
         :pool="pool"
         :page-links="pageLinks"
-        :excursion-title="editingExcursion"
-        :start-as-connection="editing?.excursion !== undefined"
         @close="editing = null"
         @save="onSave"
         @save-connection="onSaveConnection"

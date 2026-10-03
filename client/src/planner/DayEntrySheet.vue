@@ -57,8 +57,8 @@ const props = defineProps<{
   pageLinks: PageLinks | null
   /** The excursion a new or changed connection belongs to (FR-29.18), or null for none. */
   excursionTitle?: string | null
-  /** Opens on the connection segment, as when asked from an excursion's line. */
-  startAsConnection?: boolean
+  /** Offers nothing but a connection, as the excursion's own screen asks for one. */
+  connectionOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -170,7 +170,7 @@ watch(
     if (!open) return
     const entry = props.entry
     kind.value =
-      props.startAsConnection || (entry?.kind === DAY_ENTRY_CONNECTION && entry.legs)
+      props.connectionOnly || (entry?.kind === DAY_ENTRY_CONNECTION && entry.legs)
         ? ADD_CONNECTION
         : ADD_ENTRY
     title.value = entry?.title ?? ''
@@ -230,7 +230,9 @@ function save() {
       <SheetHead
         :title="
           !entry
-            ? t('dayPlan.newTitle', { day: dayText })
+            ? connectionOnly
+              ? t('dayPlan.addConnection')
+              : t('dayPlan.newTitle', { day: dayText })
             : kind === ADD_CONNECTION
               ? t('dayPlan.editConnectionTitle')
               : t('dayPlan.editTitle')
@@ -240,7 +242,7 @@ function save() {
         @close="emit('close')"
       />
       <IonSegment
-        v-if="!entry"
+        v-if="!entry && !connectionOnly"
         :value="kind"
         class="kinds"
         data-testid="day-entry-kinds"

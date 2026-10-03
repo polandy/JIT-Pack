@@ -48,6 +48,7 @@ export const plannerEn = {
     'Share the connection in the SBB app and copy the link – it is read the moment it is pasted.',
   'dayPlan.fromIdea': '💡 {title}',
   'dayPlan.addConnection': 'Add connection',
+  'excursionConnections.title': 'Connections',
   'dayPlan.connectionFor': 'For “{title}”',
   'dayPlan.pasteLink': 'Paste link from clipboard',
   'dayPlan.linkLabel': 'Link (optional)',

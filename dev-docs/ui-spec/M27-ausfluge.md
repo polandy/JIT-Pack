@@ -61,6 +61,12 @@
   carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
   herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a file is
   read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
+* **Its connections** (FR-29.18): under the notes, one quiet line per connection that belongs to the excursion
+  (`m27-connection-<id>`, train glyph, title, day and time, chevron — a tap opens it to change or delete) and
+  *„Verbindung hinzufügen"* (`m27-add-connection`). It opens the day plan's connection sheet with only the connection
+  form (no *Eintrag* / *Idee* segments) and *„Für „Titel""* (`day-entry-excursion`); the connection is written with the
+  excursion's id, and the day plan shows it on its day. The section is the planner module's, bound through
+  `lib/excursionConnections.ts`.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
