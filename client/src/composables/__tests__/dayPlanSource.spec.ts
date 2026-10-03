@@ -84,6 +84,15 @@ describe('the day plan source (FR-29.15)', () => {
     ])
   })
 
+  it('names the idea an excursion was made from, so the plan shows both as one line (FR-29.13)', () => {
+    const made: Excursion = { ...excursion('ex-1', '2026-07-14', '2026-07-14'), idea_id: 'idea-1' }
+    const { src } = source([made, excursion('ex-2', '2026-07-14', '2026-07-14')], [], [])
+    expect(src.lines('t').map((l) => [l.key, l.ideaId])).toEqual([
+      ['excursion:ex-1', 'idea-1'],
+      ['excursion:ex-2', null],
+    ])
+  })
+
   it('puts a task on its due day, ticked where resolved, and none without a day', () => {
     const { src, toggleTask } = source(
       [],

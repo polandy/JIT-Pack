@@ -43,6 +43,7 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'dayPlan.editConnectionTitle': 'Verbindung bearbeiten',
   'dayPlan.connectionHint':
     'In der SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort gelesen.',
+  'dayPlan.fromIdea': '💡 {title}',
   'dayPlan.pasteLink': 'Link aus Zwischenablage einfügen',
   'dayPlan.linkLabel': 'Link (optional)',
   'dayPlan.reading': 'Verbindung wird gelesen …',

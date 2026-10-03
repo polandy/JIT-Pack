@@ -30,6 +30,8 @@ Under the row, the chosen day lists what is on it — first everything with a ti
 - **Anreise / Abreise** on the first and last day.
 - **Ausflug** — an excursion with a date, on each of its days (*Start* and *Rückkehr* when it spans several), with how
   much of its rucksack is packed. Tap it to open the excursion.
+  An excursion you made from an idea is one line with the idea's title (💡) under it, and at the time you gave the
+  idea — the idea itself does not appear a second time.
 - **Idee** — an idea you planned on this day. Tick it once you did it: it moves to **Gemacht** on the board.
 - **Aufgabe** — a task due this day, with whoever does it. Its tick is the same as on the task list.
 - **Eintrag** — an entry of the day plan's own. Tap it to change or delete it.

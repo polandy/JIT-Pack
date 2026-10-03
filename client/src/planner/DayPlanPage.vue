@@ -41,6 +41,7 @@ import {
   dayLines,
   entriesOutsideTrip,
   ideasOutsideTrip,
+  ideasWithExcursion,
   nextDay,
   openingDay,
   stateAfterTick,
@@ -106,8 +107,13 @@ const tomorrow = computed(() => {
 })
 const tomorrowLines = computed(() => (tomorrow.value ? dayLines(tomorrow.value, input.value) : []))
 
-const pool = computed(() => unplannedIdeas(plannerStore.getIdeas(props.tripId)))
-const outside = computed(() => ideasOutsideTrip(plannerStore.getIdeas(props.tripId), days.value))
+const withExcursion = computed(() => ideasWithExcursion(input.value.lines))
+const pool = computed(() =>
+  unplannedIdeas(plannerStore.getIdeas(props.tripId), withExcursion.value),
+)
+const outside = computed(() =>
+  ideasOutsideTrip(plannerStore.getIdeas(props.tripId), days.value, withExcursion.value),
+)
 const outsideEntries = computed(() =>
   entriesOutsideTrip(plannerStore.getDayEntries(props.tripId), days.value),
 )

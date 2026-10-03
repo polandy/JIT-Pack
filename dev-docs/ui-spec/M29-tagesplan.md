@@ -25,6 +25,9 @@
   * **🚗 Anreise / Abreise** on the first and last day, from the trip's dates.
   * **🪧 Ausflug** on each of its days (*Start* on the first, *Rückkehr* on the last of several), with its rucksack's
     packed share as a ring where it has lines; a tap opens it on M27.
+  * An excursion made from an idea (FR-29.13) is **one line**: the excursion's, whose second line starts *„💡 Titel"*,
+    timed by the idea's time on the day the idea was planned for. The idea has no line of its own, and neither a pool
+    chip nor an *Außerhalb der Reise* place.
   * **💡 Idee**, with its note, and a tick (`m29-tick-<key>`) that sets *Gemacht* and back, striking the line through;
     a tap opens it over M28.
   * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.
@@ -75,4 +78,4 @@
     as the preview they were read as; a new link pasted reads again. *Eintrag löschen* as for any entry.
 * **Modes:** all three; the plan reads and writes the device's rows. Single-User and Local Mode name nobody, as M28
   does.
-* (E2E-M29-01…08 `local`, E2E-M29-09 `server`, E2E-G12-09)
+* (E2E-M29-01…08, E2E-M29-13 `local`, E2E-M29-09 `server`, E2E-G12-09)

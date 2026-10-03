@@ -42,7 +42,11 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
         ? nameOf(line.source?.assignee ?? null)
         : line.kind === DAY_LINE.connection && line.entry?.legs
           ? connectionDetail(line.entry.legs)
-          : line.detail,
+          : line.origin
+            ? [t('dayPlan.fromIdea', { title: line.origin.title }), line.detail]
+                .filter((part) => !!part)
+                .join(' · ')
+            : line.detail,
   }
 }
 

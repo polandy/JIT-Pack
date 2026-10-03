@@ -46,6 +46,7 @@ export const plannerEn = {
   'dayPlan.editConnectionTitle': 'Edit connection',
   'dayPlan.connectionHint':
     'Share the connection in the SBB app and copy the link – it is read the moment it is pasted.',
+  'dayPlan.fromIdea': '💡 {title}',
   'dayPlan.pasteLink': 'Paste link from clipboard',
   'dayPlan.linkLabel': 'Link (optional)',
   'dayPlan.reading': 'Reading the connection …',

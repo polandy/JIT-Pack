@@ -45,6 +45,8 @@ export interface DayLine {
   idea?: Idea
   entry?: DayEntry
   source?: DayPlanLine
+  /** An excursion's line: the idea it was made from, shown as this one line (FR-29.13). */
+  origin?: Idea
 }
 
 /** The trip's dates, as the plan reads them. */
@@ -106,19 +108,42 @@ function onThePlan(idea: Idea): boolean {
   return idea.state === IDEA_STATE_SHORTLISTED || idea.state === IDEA_STATE_DONE
 }
 
+/**
+ * The ideas an excursion was made from. The plan shows such a pair as the
+ * excursion's one line, so the idea has no line, no pool chip and no place
+ * under *außerhalb der Reise* of its own (FR-29.13, FR-29.15).
+ */
+export function ideasWithExcursion(lines: readonly DayPlanLine[]): Set<string> {
+  const ids = new Set<string>()
+  for (const line of lines) {
+    if (line.kind === DAY_PLAN_EXCURSION && line.ideaId) ids.add(line.ideaId)
+  }
+  return ids
+}
+
 /** The shortlisted ideas nobody has given a day yet — the pool bar's (FR-29.15). */
-export function unplannedIdeas(ideas: readonly Idea[]): Idea[] {
-  return ideas.filter((idea) => idea.state === IDEA_STATE_SHORTLISTED && !idea.planned_on)
+export function unplannedIdeas(
+  ideas: readonly Idea[],
+  without: ReadonlySet<string> = new Set(),
+): Idea[] {
+  return ideas.filter(
+    (idea) => idea.state === IDEA_STATE_SHORTLISTED && !idea.planned_on && !without.has(idea.id),
+  )
 }
 
 /**
  * Ideas planned on a day the trip no longer has — the dates moved after the
  * idea was planned. Listed *außerhalb der Reise* rather than lost (FR-29.14).
  */
-export function ideasOutsideTrip(ideas: readonly Idea[], days: readonly string[]): Idea[] {
+export function ideasOutsideTrip(
+  ideas: readonly Idea[],
+  days: readonly string[],
+  without: ReadonlySet<string> = new Set(),
+): Idea[] {
   const inTrip = new Set(days)
   return ideas.filter(
-    (idea) => onThePlan(idea) && !!idea.planned_on && !inTrip.has(idea.planned_on),
+    (idea) =>
+      onThePlan(idea) && !!idea.planned_on && !inTrip.has(idea.planned_on) && !without.has(idea.id),
   )
 }
 
@@ -153,27 +178,34 @@ export interface DayInput {
  */
 export function dayLines(day: string, input: DayInput): DayLine[] {
   const lines: DayLine[] = []
+  const withExcursion = ideasWithExcursion(input.lines)
+  const ideaOf = new Map(input.ideas.map((idea) => [idea.id, idea]))
   if (day === input.trip.start_date) lines.push(fixed(DAY_LINE.arrival, day))
   if (day === input.trip.end_date) lines.push(fixed(DAY_LINE.departure, day))
 
   for (const source of input.lines) {
     if (day < source.from || day > source.to) continue
     const multiDay = source.from !== source.to
+    const origin = source.ideaId ? ideaOf.get(source.ideaId) : undefined
+    // The idea's time stands on the day the idea was planned for.
+    const time =
+      origin?.planned_on === day && isPlanTime(origin.planned_at) ? origin.planned_at : null
     lines.push({
       key: source.key,
       kind: source.kind === DAY_PLAN_EXCURSION ? DAY_LINE.excursion : DAY_LINE.task,
-      time: null,
+      time,
       title: source.title,
       detail: source.detail,
       span: !multiDay ? null : day === source.from ? 'start' : day === source.to ? 'return' : null,
       done: source.done,
       progress: source.progress,
       source,
+      origin,
     })
   }
 
   for (const idea of input.ideas) {
-    if (!onThePlan(idea) || idea.planned_on !== day) continue
+    if (!onThePlan(idea) || idea.planned_on !== day || withExcursion.has(idea.id)) continue
     lines.push({
       key: `idea:${idea.id}`,
       kind: DAY_LINE.idea,
