@@ -46,6 +46,7 @@ import { confirmDestructive } from '@/lib/confirm'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/lib/toast'
+import { closeOverlayRoute } from '@/lib/closeOverlay'
 import { IDEA_QUERY_PARAM, tripIdeasPath } from '@/router/paths'
 import type {
   Idea,
@@ -248,11 +249,8 @@ function onSheetDismiss() {
   if (openIdeaId.value !== null) closeSheet()
 }
 
-function closeSheet() {
-  const here = tripIdeasPath(props.tripId)
-  const previous = (window.history.state as { back?: unknown } | null)?.back
-  if (previous === here) router.back()
-  else void router.replace(here)
+function closeSheet(): Promise<unknown> {
+  return closeOverlayRoute(router, tripIdeasPath(props.tripId))
 }
 
 async function onState(state: IdeaState) {
@@ -366,7 +364,9 @@ async function onRemove() {
     testid: 'idea-remove-confirm',
   })
   if (!confirmed) return
-  closeSheet()
+  // The board shows the removal only once the sheet's route is gone, so
+  // whatever is tapped next is not overtaken by the closing back step.
+  await closeSheet()
   actions.removeIdea(idea)
 }
 
