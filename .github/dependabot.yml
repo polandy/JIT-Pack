@@ -48,6 +48,17 @@ updates:
           - "~> 29.0"
           - "~> 31.0"
           - "~> 33.0"
+  - package-ecosystem: docker-compose
+    # The stacks that face the internet on a reader's machine (Caddy, Pocket
+    # ID): their digests must not age while the manual recommends them.
+    directories:
+      - /deploy/single-user-caddy
+      - /deploy/multi-user-pocket-id
+    schedule:
+      interval: weekly
+    ignore:
+      # release-please rewrites JIT-Pack's own tag with each release.
+      - dependency-name: ghcr.io/polandy/jit-pack
   - package-ecosystem: pip
     # The docs toolchain (mkdocs-material + transitives, hash-pinned via
     # `uv pip compile --generate-hashes`, see docs/requirements.in).
