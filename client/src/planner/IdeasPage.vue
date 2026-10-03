@@ -46,6 +46,7 @@ import { confirmDestructive } from '@/lib/confirm'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/lib/toast'
+import { closeOverlayRoute } from '@/lib/closeOverlay'
 import { IDEA_QUERY_PARAM, tripIdeasPath } from '@/router/paths'
 import type {
   Idea,
@@ -248,22 +249,8 @@ function onSheetDismiss() {
   if (openIdeaId.value !== null) closeSheet()
 }
 
-/**
- * Resolves once the route has left the idea. `router.back()` lands on a later
- * popstate, and a navigation started before it would be undone by it.
- */
 function closeSheet(): Promise<unknown> {
-  const here = tripIdeasPath(props.tripId)
-  const previous = (window.history.state as { back?: unknown } | null)?.back
-  if (previous !== here) return router.replace(here)
-  const closed = new Promise<void>((resolve) => {
-    const stop = router.afterEach(() => {
-      stop()
-      resolve()
-    })
-  })
-  router.back()
-  return closed
+  return closeOverlayRoute(router, tripIdeasPath(props.tripId))
 }
 
 async function onState(state: IdeaState) {
