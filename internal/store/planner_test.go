@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -388,6 +390,8 @@ func TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn(t *testing.T) {
 	s := openPlannerStore(t)
 	ctx := context.Background()
 	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-own', ?, 'Wanderung')`, testTrip)
+	mustExec(t, s, `INSERT INTO trips (id, name, year) VALUES ('trip-other', 'Other', 2026)`)
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-foreign', 'trip-other', 'Fremd')`)
 	cases := []struct {
 		name, excursion string
 		want            sync.Outcome
@@ -395,6 +399,7 @@ func TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn(t *testing.T) {
 	}{
 		{"an excursion of the trip", "ex-own", sync.OutcomeApplied, "ex-own"},
 		{"an excursion that is gone", "ex-gone", sync.OutcomeApplied, nil},
+		{"an excursion of another trip", "ex-foreign", sync.OutcomeRejected, nil},
 	}
 	for i, tc := range cases {
 		id := fmt.Sprintf("de-x%d", i)
@@ -411,7 +416,14 @@ func TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn(t *testing.T) {
 			t.Fatalf("%s: outcome %q reason %q err %v", tc.name, res.Outcome, res.Reason, err)
 		}
 		var got any
-		if err := s.db.QueryRow(`SELECT excursion_id FROM day_entries WHERE id = ?`, id).Scan(&got); err != nil {
+		err = s.db.QueryRow(`SELECT excursion_id FROM day_entries WHERE id = ?`, id).Scan(&got)
+		if tc.want == sync.OutcomeRejected {
+			if !errors.Is(err, sql.ErrNoRows) {
+				t.Errorf("%s: the refused connection was written (err %v)", tc.name, err)
+			}
+			continue
+		}
+		if err != nil {
 			t.Fatalf("%s: read: %v", tc.name, err)
 		}
 		if got != tc.wantLink {
