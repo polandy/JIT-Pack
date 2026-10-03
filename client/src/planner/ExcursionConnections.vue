@@ -7,7 +7,7 @@
  * through `lib/excursionConnections.ts`, so the packing side never imports it.
  */
 import { IonIcon } from '@ionic/vue'
-import { addOutline, chevronForward, trainOutline } from 'ionicons/icons'
+import { addOutline, chevronForward } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
 
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -18,6 +18,7 @@ import type { ExcursionConnectionsProps } from '@/lib/excursionConnections'
 import { shortDueDay } from '@/lib/taskDueText'
 import { DAY_ENTRY_CONNECTION, type DayEntry } from '@/types/domain'
 import { createPlannerActions, type ConnectionFields } from './actions'
+import { timeOf } from './domain/connections'
 import DayEntrySheet from './DayEntrySheet.vue'
 import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
@@ -44,8 +45,11 @@ const connections = computed(() =>
 /** The connection being changed, or null for a new one; undefined while the sheet is shut. */
 const editing = ref<DayEntry | null | undefined>(undefined)
 
-function wording(entry: DayEntry): string {
-  return [shortDueDay(entry.on_date), entry.at_time].filter((part) => !!part).join(' · ')
+/** Departure and, where the legs know it, arrival — the timetable's two columns. */
+function timesOf(entry: DayEntry): { dep: string; arr: string | null } {
+  const legs = entry.legs ?? []
+  if (legs.length === 0) return { dep: entry.at_time ?? '–', arr: null }
+  return { dep: timeOf(legs[0]!.dep), arr: timeOf(legs[legs.length - 1]!.arr) }
 }
 
 function onSave(fields: ConnectionFields) {
@@ -81,23 +85,36 @@ async function onRemove() {
     :aria-label="t('excursionConnections.title')"
     data-testid="m27-connections"
   >
-    <button
-      v-for="entry in connections"
-      :key="entry.id"
-      type="button"
-      class="line"
-      :data-testid="`m27-connection-${entry.id}`"
-      @click="editing = entry"
-    >
-      <IonIcon class="glyph" :icon="trainOutline" aria-hidden="true" />
-      <span class="name">{{ entry.title }}</span>
-      <span class="when jp-num">{{ wording(entry) }}</span>
-      <IonIcon class="chevron" :icon="chevronForward" aria-hidden="true" />
-    </button>
-    <button type="button" class="line add" data-testid="m27-add-connection" @click="editing = null">
-      <IonIcon class="glyph" :icon="addOutline" aria-hidden="true" />
-      <span class="name">{{ t('dayPlan.addConnection') }}</span>
-    </button>
+    <h3 class="jp-eyebrow head">{{ t('excursionConnections.title') }}</h3>
+    <div class="jp-card card">
+      <button
+        v-for="entry in connections"
+        :key="entry.id"
+        type="button"
+        class="row"
+        :data-testid="`m27-connection-${entry.id}`"
+        @click="editing = entry"
+      >
+        <span class="times jp-num">
+          <span class="dep">{{ timesOf(entry).dep }}</span>
+          <span v-if="timesOf(entry).arr" class="arr">{{ timesOf(entry).arr }}</span>
+        </span>
+        <span class="body">
+          <span class="name">{{ entry.title }}</span>
+          <span class="day">{{ shortDueDay(entry.on_date) }}</span>
+        </span>
+        <IonIcon class="chevron" :icon="chevronForward" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        class="row add"
+        data-testid="m27-add-connection"
+        @click="editing = null"
+      >
+        <IonIcon class="plus" :icon="addOutline" aria-hidden="true" />
+        <span class="name">{{ t('dayPlan.addConnection') }}</span>
+      </button>
+    </div>
 
     <DayEntrySheet
       :open="editing !== undefined"
@@ -117,56 +134,84 @@ async function onRemove() {
 
 <style scoped>
 .connections {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 4px 12px 8px;
+  margin: 12px 12px 8px;
 }
 
-.line {
+.head {
+  margin: 0 4px 6px;
+}
+
+.row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  padding: 6px 4px;
+  min-height: 52px;
+  padding: 8px 12px;
   border: none;
+  border-top: 1px solid var(--jp-surface-border);
   background: none;
-  color: var(--ct-subtext1);
+  color: var(--ct-text);
   font: inherit;
-  font-size: var(--jp-text-sm);
+  font-size: var(--jp-text-md);
   text-align: start;
   cursor: pointer;
 }
 
-.line:focus-visible {
-  outline: 2px solid var(--jp-action);
-  outline-offset: 2px;
-  border-radius: var(--jp-r-sm);
+.row:first-child {
+  border-top: none;
 }
 
-.glyph {
+.row:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: -2px;
+}
+
+.times {
+  display: flex;
   flex: none;
+  flex-direction: column;
+  min-width: 44px;
+  line-height: var(--jp-leading-tight);
+}
+
+.arr {
   color: var(--ct-subtext0);
-  font-size: var(--jp-icon-sm);
+  font-size: var(--jp-text-sm);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .name {
-  flex: 1;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.when {
-  flex: none;
+.day {
   color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
+  font-size: var(--jp-text-sm);
 }
 
 .chevron {
   flex: none;
   color: var(--ct-subtext0);
   font-size: var(--jp-icon-xs);
+}
+
+.add {
+  gap: 8px;
+  color: var(--jp-action);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.plus {
+  flex: none;
+  font-size: var(--jp-icon-sm);
 }
 </style>
