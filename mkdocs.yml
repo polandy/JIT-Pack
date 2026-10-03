@@ -43,6 +43,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started:
+      - Easy Setup: easy-setup.md
       - Walkthrough: getting-started.md
       - Installation: installation.md
       - Configuration: configuration.md

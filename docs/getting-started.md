@@ -99,6 +99,7 @@ docker compose up -d         # back up, same database
 
 You now have a working single-user instance built from source. For anything longer-lived:
 
+- **[Easy Setup](easy-setup.md)** — accounts for a household, with Pocket ID as the identity provider.
 - **[Installation](installation.md)** — running the published image instead of a local build, and the reverse-proxy configuration for a real hostname (Traefik and nginx), including the `Host` header rule that quietly breaks sync when it is missing.
 - **[Configuration](configuration.md)** — the full set of environment variables.
 - **[Authentication](authentication.md)** — switching to multi-user mode, where accounts come from your own OIDC identity provider.

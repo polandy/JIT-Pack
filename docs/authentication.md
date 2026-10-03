@@ -131,6 +131,18 @@ What the command cannot check is the login itself — your provider's password p
 
 ---
 
+## Other identity providers
+
+Authelia is the reference, not a requirement. What JIT-Pack needs from a provider is the list the command above checks, and three things around it:
+
+- **A confidential client** with a client secret, authenticating at the token endpoint with `client_secret_basic`, and accepting a PKCE `S256` challenge.
+- **The scopes `openid profile email offline_access`.** The refresh token that `offline_access` asks for is what lets an account disabled at the provider be cut off at the next renewal; give it a lifetime of 90 days, like [Authelia's above](#give-the-client-a-refresh-token-lifetime-that-covers-being-away).
+- **A name and a verified address.** The display name comes from `name`, else `preferred_username`; the [instance-admin role](#instance-admins) needs `email` and `email_verified: true`.
+
+**[Pocket ID](https://pocket-id.org/)** meets all of it and runs as one small container with passkey login. It is what the [household stack](easy-setup.md) brings along, and its walkthrough covers the three settings a new Pocket ID needs for JIT-Pack: verified e-mail addresses, the client opened to all users, and the refresh-token lifetime.
+
+---
+
 ## How a session works
 
 JIT-Pack does not pass the IdP's tokens through to the app. It brokers the login and then issues its **own** session, which is what every subsequent request is authenticated with.

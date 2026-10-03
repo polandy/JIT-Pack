@@ -2,6 +2,15 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "go",
   "packages": {
-    ".": {}
+    ".": {
+      "extra-files": [
+        "README.md",
+        "docs/index.md",
+        "docs/installation.md",
+        "docs/upgrades.md",
+        "deploy/multi-user/docker-compose.yml",
+        "deploy/multi-user-pocket-id/docker-compose.yml"
+      ]
+    }
   }
 }

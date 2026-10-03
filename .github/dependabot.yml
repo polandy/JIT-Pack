@@ -48,6 +48,16 @@ updates:
           - "~> 29.0"
           - "~> 31.0"
           - "~> 33.0"
+  - package-ecosystem: docker-compose
+    # The login stack the manual recommends faces the internet on a reader's
+    # machine: Pocket ID's digest must not age while it does.
+    directories:
+      - /deploy/multi-user-pocket-id
+    schedule:
+      interval: weekly
+    ignore:
+      # release-please rewrites JIT-Pack's own tag with each release.
+      - dependency-name: ghcr.io/polandy/jit-pack
   - package-ecosystem: pip
     # The docs toolchain (mkdocs-material + transitives, hash-pinned via
     # `uv pip compile --generate-hashes`, see docs/requirements.in).

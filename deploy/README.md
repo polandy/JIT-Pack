@@ -10,9 +10,12 @@ make, so start there:
   the one used here.
 - **[Multi-user setup](https://polandy.github.io/JIT-Pack/multi-user-setup/)** —
   from a running multi-user instance to a household actually using it.
+- **[Easy Setup](https://polandy.github.io/JIT-Pack/easy-setup/)** — the
+  walkthrough for the stack that brings its own identity provider.
 
 | Directory | What it is |
 |---|---|
+| [`multi-user-pocket-id/`](multi-user-pocket-id/) | The same shape with its own login: Pocket ID beside JIT-Pack, passkeys instead of passwords, for a household without an identity provider. |
 | [`multi-user/`](multi-user/) | The production shape: the published image behind your own reverse proxy (Traefik labels included), OIDC login, instance admins. |
 
 The repository root's `docker-compose.yml` is the single-user test stack
