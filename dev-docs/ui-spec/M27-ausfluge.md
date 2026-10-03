@@ -10,7 +10,9 @@
 * **The list:** *Kommende* — by first day, a row per excursion: its days (*„So., 27.9. – Mo., 28.9."*, one day for a day
   hike), its name in the heading weight, the participants' names where not everybody goes, and `done/total` at the end
   with a chevron, and under the name, where it carries GPX tracks, the first one's kind glyph, distance and climb with
-  *+n* for the others (`m27-tracks-<name>`, FR-31.15); then *Ohne Datum*, by name, the same row without the days line;
+  *+n* for the others (`m27-tracks-<name>`, FR-31.15), and where it has a way there or back a train glyph with
+  *„08:06 hin · 16:23 zurück"* (`m27-journey-line-<name>`, FR-29.18, the planner's words through
+  `lib/excursionConnections.ts`); then *Ohne Datum*, by name, the same row without the days line;
   then a fold *„1 vergangener Ausflug"*, latest first, muted. A row opens that excursion's list. The empty trip says
   *„Noch keine Ausflüge. Eine Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste
   an."* **Before the trip partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
@@ -47,27 +49,46 @@
   that names this excursion (`m27-notes`, a line `m27-note-<id>`) — M26's `chatbubblesOutline`, the thread's name, a
   chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
   excursion. Deleting the excursion keeps its notes as trip notes.
-* **Its route** (FR-31.15, ADR-089): **first, above the progress card**, a card of its own (`TrackSummary`,
-  `track-summary`) that scrolls away with the page head — the route is what the excursion is, and the list is packed for
-  it. Its head (`track-summary-toggle`, map glyph, *Route*, a caret) **folds and unfolds** it: folded, the head alone
-  carries the first track's distance and climb with *+n* (`track-summary-folded`). **While the list has something left
-  to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or unfold is
-  kept per excursion in this browser (`lib/routeFold.ts`), for the phase it was made in: folded while packing, the card
-  is open again once everything is packed. Open, a still map carries every track's line in its colour
-  (`track-summary-map`, tiles as FR-29.17 sets them, the lines alone offline); a tap on it opens FR-29.17's full-screen
-  map. Under it, one line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300
-  m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that
-  track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar
-  carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
-  herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a file is
-  read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
-* **Its connections** (FR-29.18): under the notes, a card headed *„Verbindungen"* with one timetable row per
-  connection that belongs to the excursion (`m27-connection-<id>`: departure over arrival, title over day, chevron — a
-  tap opens it to change or delete) and, as its last row in the action colour, *„Verbindung hinzufügen"*
-  (`m27-add-connection`). It opens the day plan's connection sheet with only the connection
-  form (no *Eintrag* / *Idee* segments) and *„Für „Titel""* (`day-entry-excursion`); the connection is written with the
-  excursion's id, and the day plan shows it on its day. The section is the planner module's, bound through
-  `lib/excursionConnections.ts`.
+* **Der Tag** (FR-29.18, FR-31.15, ADR-089; `m27-connections`, the planner's card bound through
+  `lib/excursionConnections.ts`): **first, above the progress card**, one card that scrolls away with the page head —
+  the day is what the excursion is, and the list is packed for it. Its head (`m27-day-toggle`, compass glyph, *Der
+  Tag*, a caret) **folds and unfolds** it: folded, the head alone carries the day in one line, *„08:06 → 3.3 km →
+  16:23 · 4 h 24 Luft"* — the ways' departures around the first track's distance, and what the route leaves — or,
+  without a way, the first track's distance and climb with *+n* (`m27-day-folded`). **While the list has something
+  left to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or unfold
+  is kept per excursion in this browser (`lib/routeFold.ts`), for the phase it was made in. A card with nothing yet —
+  no way, no track — is always open and has no caret, since folded it would hide how to start.
+  * **Open, it is a timeline** of the day, each step a dot on a rail: the **way there** (`m27-journey-out`, a train in
+    glacier), the **route** (`m27-day-route`, a walker in larch — FR-31.15's tracks as M27 hands them in, the
+    `TrackSummary` without a head of its own), the **way back** (`m27-journey-back`). A filled way reads *„08:06 Spiez
+    → 08:34 Kandersteg"* in the heading weight over *„Hin · RE · direkt"* (*„1× umsteigen"* with a change), a chevron
+    at the end; an empty one, its dot dashed, *„Hinfahrt eintragen"* / *„Rückfahrt eintragen"* in the action colour.
+    A tap opens the day plan's connection sheet headed *Hinfahrt* / *Rückfahrt*, with only the connection form,
+    *„Für „Titel""* (`day-entry-excursion`), and the hand fields on the excursion's first day for the way there, its
+    last for the way back; a filled way opens its connection to change or delete. **Without days** the first step says
+    *„Gib dem Ausflug einen Tag, dann kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is
+    offered; the route stays. Any other connection of the excursion stands under the timeline as a row of its own
+    (`m27-connection-<id>`: departure, title over day, chevron).
+  * **The route step:** a still map with every track's line in its colour (`track-summary-map`, tiles as FR-29.17
+    sets them, the lines alone offline), inset with the card's small radius; a tap on it opens FR-29.17's full-screen
+    map. Under it, one line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑
+    300 m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on
+    that track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its
+    bar carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
+    herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No step without a track; while a
+    file is read, *„Track wird gelesen …"* (`m27-track-busy`) stands under the card.
+  * **The time budget** (`m27-journey-budget`), the card's foot where FR-29.18 has one: with a track, a thin bar of
+    the day — travel in glacier, the route in the done tone, the slack empty — over *„Vor Ort 7 h 49 · Route 3 h 25 →
+    4 h 24 Luft"*, the verdict in the done tone, straw under an hour, ember where the route does not fit; without a
+    track the line alone, *„Vor Ort 7 h 49"*; from the way there alone *„An 08:34 · Route 3 h 25 → frühestens zurück
+    ab 11:59"*.
+  * Without the planner bound, the route stands alone as `TrackSummary`'s own card, headed *Route*, folding by the
+    same rule.
+* **One rhythm:** every block stands 12 px from the edge and 12 px from the next — *Der Tag*, the progress card, *Pro
+  Person*, the list — and every block names itself the same way: a card in its own head, M4's parts in the eyebrow
+  over them. The chip row opens with the list's own eyebrow, *„Packliste"*, the grouping at its end (*„Gruppiert nach
+  Kategorie"*); with a filter on, the chips stand there instead. The first group's head follows that row closely —
+  its room is for a group above it, and there is none (M4 the same).
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
@@ -135,4 +156,4 @@
   made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the device does not
   hold. Its handles: `m27-idea-<name>` on the row, `m27-excursion-idea` on the list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
-* (E2E-M27-01…16 `local`, E2E-G12-07)
+* (E2E-M27-01…17 `local`, E2E-G12-07)

@@ -147,6 +147,7 @@ export const excursionsEn = {
   'excursions.packed': '{done}/{total} packed',
   'excursions.toBuy': '{n} to buy on the spot',
   'excursions.nothingYet': 'Nothing on the list yet',
+  'excursions.listHead': 'Packing list',
   'excursions.fromLuggage': 'from the luggage',
   'excursions.bought': 'bought on the spot',
   'excursions.notInLuggage': 'not in the luggage',

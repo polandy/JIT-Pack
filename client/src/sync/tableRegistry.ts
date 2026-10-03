@@ -35,6 +35,7 @@ import type {
   ExcursionItem,
   ExcursionTraveler,
   DayEntry,
+  ExcursionRole,
   Idea,
   IdeaComment,
   IdeaImage,
@@ -425,6 +426,7 @@ function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
     link: (row['link'] as string) ?? null,
     legs: parseLegs(row['legs']),
     excursion_id: (row['excursion_id'] as string) ?? null,
+    excursion_role: (row['excursion_role'] as ExcursionRole | null) ?? null,
   }
 }
 

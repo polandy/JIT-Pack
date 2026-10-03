@@ -81,7 +81,7 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
     await addExcursionTrack(page, 'aufstieg.gpx', CLIMB)
     await addExcursionTrack(page, 'pienza.gpx', PIENZA)
 
-    // The route comes first: its card stands above the progress card.
+    // The route comes first, inside *Der Tag*: it stands above the progress card.
     const card = visible(page).getByTestId('track-summary')
     const progress = visible(page).getByTestId('m27-progress-card')
     expect((await card.boundingBox())!.y).toBeLessThan((await progress.boundingBox())!.y)
@@ -133,18 +133,16 @@ test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () =
     await writesLanded(page)
 
     // Folded for packing: the head alone, its first track's figures, and so after a reload.
-    const toggle = visible(page).getByTestId('track-summary-toggle')
+    const toggle = visible(page).getByTestId('m27-day-toggle')
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await expect(visible(page).getByTestId('track-summary-map')).toHaveCount(0)
     await expect(excursionTrackRows(page)).toHaveCount(0)
-    await expect(visible(page).getByTestId('track-summary-folded')).toHaveText(
-      '3.3 km · ↑ 300 m · +1',
-    )
+    await expect(visible(page).getByTestId('m27-day-folded')).toHaveText('3.3 km · ↑ 300 m · +1')
     await writesLanded(page)
     await page.reload()
-    await expect(visible(page).getByTestId('track-summary-folded')).toBeVisible()
-    await visible(page).getByTestId('track-summary-toggle').click()
+    await expect(visible(page).getByTestId('m27-day-folded')).toBeVisible()
+    await visible(page).getByTestId('m27-day-toggle').click()
 
     // Kept.
     await page.reload()

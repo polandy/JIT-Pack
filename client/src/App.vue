@@ -69,7 +69,7 @@ import { pendingExcursionCount } from '@/domain/excursions'
 import { localIsoDate } from '@/domain/trips'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
-import { EXCURSION_CONNECTIONS } from '@/lib/excursionConnections'
+import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
 import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
 import { createIdeaResultSource } from '@/composables/ideaResultSource'
 import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/lib/ideaBridge'
@@ -99,6 +99,7 @@ import {
   plannerActivityReaders,
   plannerFeatureStore,
   ExcursionConnections,
+  excursionJourneyLine,
   PlannerTodayCard,
 } from '@/planner'
 import { ACTIVITY_READERS } from '@/lib/activityReaders'
@@ -324,6 +325,7 @@ if (orchestrator) {
 // FR-30.7 and FR-29.7: the dashboard's cards under each trip — today's plan
 // during the trip, and the shopping list, workable there.
 provide(EXCURSION_CONNECTIONS, orchestrator ? ExcursionConnections : null)
+provide(EXCURSION_JOURNEY_LINE, orchestrator ? excursionJourneyLine() : null)
 provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, ShoppingDashboardCard] : [])
 // FR-30.10: Local Mode's opening hint counts the due purchases too.
 if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())

@@ -7,7 +7,7 @@
 import { formatDate, t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { localDay } from '@/lib/taskDueText'
-import type { ConnectionLeg } from '@/types/domain'
+import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type ConnectionLeg } from '@/types/domain'
 import { connectionSummary } from './domain/connections'
 import { DAY_LINE, type DayLine } from './domain/dayPlan'
 
@@ -21,7 +21,14 @@ export interface DayLineWords {
 }
 
 export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
-  const kind = t(`dayPlan.kind.${line.kind}`)
+  const role = line.entry?.excursion_role
+  // FR-29.18: a connection of an excursion says which way it is.
+  const kind =
+    role === EXCURSION_ROLE_OUT
+      ? t('journey.outTitle')
+      : role === EXCURSION_ROLE_BACK
+        ? t('journey.backTitle')
+        : t(`dayPlan.kind.${line.kind}`)
   const span =
     line.span === 'start'
       ? t('dayPlan.spanStart')

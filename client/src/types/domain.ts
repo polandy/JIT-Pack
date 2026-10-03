@@ -585,7 +585,15 @@ export interface DayEntry {
   legs: ConnectionLeg[] | null
   /** The excursion a connection belongs to (FR-29.18), or null/absent for none. */
   excursion_id?: string | null
+  /** Which way it is on that excursion — there or back (FR-29.18); null for neither. */
+  excursion_role?: ExcursionRole | null
 }
+
+/** FR-29.18: a connection of an excursion is its way there or its way back. */
+export const EXCURSION_ROLES = ['out', 'back'] as const
+export type ExcursionRole = (typeof EXCURSION_ROLES)[number]
+export const EXCURSION_ROLE_OUT = 'out' as const satisfies ExcursionRole
+export const EXCURSION_ROLE_BACK = 'back' as const satisfies ExcursionRole
 
 /**
  * FR-29.3: one person's vote on one idea, a row per (idea, person) so two

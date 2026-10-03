@@ -10,8 +10,8 @@
  * with the one undo the act owes.
  */
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage, IonItem, IonLabel } from '@ionic/vue'
-import { addOutline, bicycleOutline, walkOutline } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { addOutline, bicycleOutline, trainOutline, walkOutline } from 'ionicons/icons'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -27,6 +27,7 @@ import { arrangeExcursions, participantsOf, spanOf, sumUnits } from '@/domain/ex
 import { orderTracks } from '@/domain/track'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
 import { excursionDays } from '@/lib/excursionText'
 import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/lib/toast'
@@ -74,6 +75,12 @@ function whoLine(excursion: Excursion): string | null {
 /** FR-31.15: its tracks in a line — the first one's distance and climb, and how many more. */
 function trackLine(excursion: Excursion) {
   return tracksSummary(orderTracks(tripStore.getExcursionTracks(props.tripId, excursion.id)))
+}
+
+/** FR-29.18: its way there and back in a line, the planner's to say; absent where no planner is bound. */
+const journeyLineOf = inject(EXCURSION_JOURNEY_LINE, null)
+function journeyLine(excursion: Excursion): string | null {
+  return journeyLineOf?.(props.tripId, excursion.id) ?? null
 }
 
 function units(excursion: Excursion) {
@@ -193,6 +200,14 @@ setHeaderTitle(
                     aria-hidden="true"
                   />
                   {{ trackLine(excursion)!.text }}
+                </span>
+                <span
+                  v-if="journeyLine(excursion)"
+                  class="tracks jp-num"
+                  :data-testid="`m27-journey-line-${excursion.name}`"
+                >
+                  <IonIcon :icon="trainOutline" aria-hidden="true" />
+                  {{ journeyLine(excursion) }}
                 </span>
               </IonLabel>
               <span slot="end" class="count jp-num" :data-testid="`m27-count-${excursion.name}`">
