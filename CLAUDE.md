@@ -48,7 +48,7 @@ Every line read is paid for, and the documents here are large.
 
 ## Open work
 
-Every numbered backlog item is closed. Sources of open work, in order: what the owner just asked for (the family's instance runs in production); an open `*REVIEW*.md` worklist in the repo root (untracked); a fired revisit trigger in a parked stub or ADR. **The parked sections must not be started, and the standing decisions hold** — both listed in `dev-docs/backlog.md`.
+Every numbered backlog item is closed. Sources of open work, in order: what the owner just asked for (the family's instance runs in production); `TODO.md` in the repo root (the owner's list, **HIGH** first, added with `/todo`); an open `*REVIEW*.md` worklist in the repo root (untracked); a fired revisit trigger in a parked stub or ADR. **The parked sections must not be started, and the standing decisions hold** — both listed in `dev-docs/backlog.md`.
 
 ## Invariants — do not break these
 
