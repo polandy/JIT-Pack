@@ -43,6 +43,8 @@ export interface DayPlanLine {
   done: boolean | null
   /** Ticks or unticks it, as M25 does; absent for a line without a tick. */
   toggle?: () => void
+  /** For an excursion made from an idea: that idea's id, so the plan shows both as one line (FR-29.13). */
+  ideaId?: string | null
   /** Where a tap on it leads. */
   path: string
 }

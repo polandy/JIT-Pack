@@ -1,7 +1,7 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic } from '../helpers/ionic'
 import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
-import { dayFromToday } from '../helpers/m29'
+import { chooseDay, dayFromToday, openDayPlan, timelineLines } from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
 import type { Locator, Page } from '@playwright/test'
 
@@ -173,5 +173,31 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       )
       await expect(page).toHaveURL(/\/tasks\?/)
     })
+  })
+})
+
+test.describe('M29 an idea and its excursion on the day plan @local @planner', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M29-13: an excursion made from an idea stands on the day plan as one
+   * line — the idea has none of its own.
+   */
+  test('E2E-M29-13: the idea and its excursion are one line', async ({ page }) => {
+    const detail = await shortlistedIdea(page)
+    await detail.getByTestId('idea-make-excursion').click()
+    await page.getByTestId('m27-sheet').getByTestId('m27-save').click()
+    await expect(visiblePage(page).getByTestId('m27-excursion-page')).toBeVisible()
+    await writesLanded(page)
+
+    await openDayPlan(page)
+    await chooseDay(page, THIRD)
+    const lines = timelineLines(page)
+    await expect(lines).toHaveCount(1)
+    const line = lines.first()
+    await expect(line).toHaveAttribute('data-kind', 'excursion')
+    await expect(line).toContainText(`💡 ${IDEA}`)
   })
 })

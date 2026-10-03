@@ -14,6 +14,7 @@ import {
   hasPlanDates,
   entriesOutsideTrip,
   ideasOutsideTrip,
+  ideasWithExcursion,
   isPlanTime,
   linesAhead,
   nextDay,
@@ -322,5 +323,47 @@ describe("linesAhead — the dashboard's Heute card (FR-29.7)", () => {
     const night: DayEntry = { ...train, legs: [{ ...leg, arr: '2026-07-13T06:00' }] }
     const withNight = dayLines(day, input({ entries: [night] }))
     expect(linesAhead(day, withNight, '23:30').map((l) => l.key)).toEqual(['entry:train'])
+  })
+})
+
+describe('an idea and the excursion made from it (FR-29.13, FR-29.15)', () => {
+  const made = (): DayPlanLine => ({
+    ...line('excursion:e1', 'excursion', '2026-07-13'),
+    ideaId: 'i1',
+  })
+
+  it('stands as the excursion’s one line, at the idea’s time, the idea having none of its own', () => {
+    const lines = dayLines(
+      '2026-07-13',
+      input({ ideas: [idea('i1', 'shortlisted', '2026-07-13', '09:30')], lines: [made()] }),
+    )
+    expect(lines.map((l) => l.kind)).toEqual([DAY_LINE.excursion])
+    expect(lines[0]!.time).toBe('09:30')
+    expect(lines[0]!.origin?.id).toBe('i1')
+  })
+
+  it('shows the idea’s line no more on a day the excursion is not on', () => {
+    const lines = dayLines(
+      '2026-07-14',
+      input({ ideas: [idea('i1', 'shortlisted', '2026-07-14')], lines: [made()] }),
+    )
+    expect(lines).toEqual([])
+  })
+
+  it('leaves an idea without an excursion as it was', () => {
+    const lines = dayLines(
+      '2026-07-13',
+      input({ ideas: [idea('i2', 'shortlisted', '2026-07-13')], lines: [made()] }),
+    )
+    expect(lines.map((l) => l.kind)).toEqual([DAY_LINE.excursion, DAY_LINE.idea])
+  })
+
+  it('keeps the idea out of the pool and out of the days outside the trip', () => {
+    const lines = [made()]
+    const withExcursion = ideasWithExcursion(lines)
+    const ideas = [idea('i1', 'shortlisted', null), idea('i3', 'shortlisted', null)]
+    expect(unplannedIdeas(ideas, withExcursion).map((i) => i.id)).toEqual(['i3'])
+    const late = [idea('i1', 'shortlisted', '2026-08-01')]
+    expect(ideasOutsideTrip(late, tripDays(TRIP), withExcursion)).toEqual([])
   })
 })
