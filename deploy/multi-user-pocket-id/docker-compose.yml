@@ -31,7 +31,7 @@ services:
       traefik.docker.network: "proxy"
 
   app:
-    image: ghcr.io/polandy/jit-pack:0.23.0 # x-release-please-version
+    image: ghcr.io/polandy/jit-pack:0.24.0 # x-release-please-version
     # Also covers the start-up order: jitpackd exits while the issuer is
     # still unreachable, and comes back once Pocket ID answers.
     restart: unless-stopped
