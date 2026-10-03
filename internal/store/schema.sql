@@ -818,6 +818,10 @@ CREATE TABLE day_entries (
     -- back), the author's to choose; noteExcursion keeps it on an excursion of
     -- the trip. ON DELETE SET NULL: the connection outlives the excursion.
     excursion_id TEXT REFERENCES excursions(id) ON DELETE SET NULL,
+    -- FR-29.18: which way it is on that excursion — there (`out`) or back
+    -- (`back`); null for a connection of no excursion, or one listed beside
+    -- the two. Two devices filling one slot apart both keep theirs.
+    excursion_role TEXT CHECK (excursion_role IS NULL OR excursion_role IN ('out', 'back')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

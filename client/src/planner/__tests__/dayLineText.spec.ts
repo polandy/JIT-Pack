@@ -55,6 +55,20 @@ describe('dayLineWords', () => {
     )
   })
 
+  it('names a connection of an excursion as its way there or back, with the excursion (FR-29.18)', () => {
+    setLocale('de')
+    const excursion = { title: 'Oeschinensee' } as DayPlanLine
+    const connection = (role: 'out' | 'back' | null) =>
+      line({
+        kind: DAY_LINE.connection,
+        excursion,
+        entry: { excursion_role: role, legs: null } as DayLine['entry'],
+      })
+    expect(dayLineWords(connection('out'), nameOf).kind).toBe('Hinfahrt · Oeschinensee')
+    expect(dayLineWords(connection('back'), nameOf).kind).toBe('Rückfahrt · Oeschinensee')
+    expect(dayLineWords(connection(null), nameOf).kind).toBe('Verbindung · Oeschinensee')
+  })
+
   it('gives a task’s second line to whoever does it, and none to nobody', () => {
     const source = { assignee: 'user-sia' } as DayPlanLine
     expect(dayLineWords(line({ kind: DAY_LINE.task, source }), nameOf).detail).toBe('Sia')

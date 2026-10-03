@@ -27,6 +27,7 @@ import { TABLE_CODECS } from '@/sync/tableRegistry'
 import type {
   ConnectionLeg,
   DayEntry,
+  ExcursionRole,
   Idea,
   IdeaComment,
   IdeaImage,
@@ -56,6 +57,8 @@ export interface ConnectionFields {
   link: string | null
   /** The excursion it belongs to, or null/absent for none. */
   excursionId?: string | null
+  /** Its way there or back on that excursion, or null/absent for neither. */
+  role?: ExcursionRole | null
 }
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
@@ -194,6 +197,7 @@ export function createPlannerActions(
       link: fields.link,
       legs: jsonColumn(fields.legs),
       excursion_id: fields.excursionId ?? null,
+      excursion_role: fields.role ?? null,
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
     return day

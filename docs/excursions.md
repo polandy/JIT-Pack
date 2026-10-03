@@ -120,11 +120,19 @@ A [trip note](trip-notes.md) can say which excursion it is about: pick the excur
 The excursion's list then shows a line for that note right under its progress card, and tapping the line opens the
 note.
 
-## Connections
+## There and back
 
-**Verbindung hinzufügen** on the excursion's screen adds a train or bus connection for the way there or back: paste
-the SBB link or enter it by hand. The connection is listed under the excursion; tap it to change or delete it. The
-[day plan](day-plan.md) shows it on its day, named after the excursion.
+Under the route, the card **Hin und zurück** holds the excursion's way there and its way back. Tap **Hinfahrt
+eintragen** or **Rückfahrt eintragen** and paste the connection's SBB link, or enter it by hand — a boat, a cable car
+or a bus abroad works the same way. The way there lands on the excursion's first day, the way back on its last; an
+excursion without a date asks for one first. Tap a filled slot to change or delete it.
+
+With both ways on one day the card says how long you are on the spot (*Vor Ort 7 h 49*). If the excursion has a GPX
+track, it also says what the route — its time with the pauses — leaves of that (*Route 3 h 25 → 4 h 24 Luft*), or how
+much is missing. With only the way there and a track, it says from when you can head back at the earliest.
+
+The excursions list shows both departures under the excursion (*08:06 hin · 16:23 zurück*), and the
+[day plan](day-plan.md) shows each on its day as *Hinfahrt* or *Rückfahrt* with the excursion's name.
 
 ## Reminders
 

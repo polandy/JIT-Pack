@@ -59,6 +59,8 @@ const props = defineProps<{
   excursionTitle?: string | null
   /** Offers nothing but a connection, as the excursion's own screen asks for one. */
   connectionOnly?: boolean
+  /** The head's words where the caller names what is written — *Hinfahrt*. */
+  heading?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -229,13 +231,15 @@ function save() {
     <section v-if="open" class="sheet">
       <SheetHead
         :title="
-          !entry
-            ? connectionOnly
-              ? t('dayPlan.addConnection')
-              : t('dayPlan.newTitle', { day: dayText })
-            : kind === ADD_CONNECTION
-              ? t('dayPlan.editConnectionTitle')
-              : t('dayPlan.editTitle')
+          heading
+            ? heading
+            : !entry
+              ? connectionOnly
+                ? t('dayPlan.addConnection')
+                : t('dayPlan.newTitle', { day: dayText })
+              : kind === ADD_CONNECTION
+                ? t('dayPlan.editConnectionTitle')
+                : t('dayPlan.editTitle')
         "
         title-testid="day-entry-title"
         close-testid="day-entry-close"

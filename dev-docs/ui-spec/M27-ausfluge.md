@@ -10,7 +10,9 @@
 * **The list:** *Kommende* — by first day, a row per excursion: its days (*„So., 27.9. – Mo., 28.9."*, one day for a day
   hike), its name in the heading weight, the participants' names where not everybody goes, and `done/total` at the end
   with a chevron, and under the name, where it carries GPX tracks, the first one's kind glyph, distance and climb with
-  *+n* for the others (`m27-tracks-<name>`, FR-31.15); then *Ohne Datum*, by name, the same row without the days line;
+  *+n* for the others (`m27-tracks-<name>`, FR-31.15), and where it has a way there or back a train glyph with
+  *„08:06 hin · 16:23 zurück"* (`m27-journey-line-<name>`, FR-29.18, the planner's words through
+  `lib/excursionConnections.ts`); then *Ohne Datum*, by name, the same row without the days line;
   then a fold *„1 vergangener Ausflug"*, latest first, muted. A row opens that excursion's list. The empty trip says
   *„Noch keine Ausflüge. Eine Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste
   an."* **Before the trip partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
@@ -61,13 +63,21 @@
   carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
   herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No card without a track; while a file is
   read, *„Track wird gelesen …"* (`m27-track-busy`) stands there.
-* **Its connections** (FR-29.18): under the notes, a card headed *„Verbindungen"* with one timetable row per
-  connection that belongs to the excursion (`m27-connection-<id>`: departure over arrival, title over day, chevron — a
-  tap opens it to change or delete) and, as its last row in the action colour, *„Verbindung hinzufügen"*
-  (`m27-add-connection`). It opens the day plan's connection sheet with only the connection
-  form (no *Eintrag* / *Idee* segments) and *„Für „Titel""* (`day-entry-excursion`); the connection is written with the
-  excursion's id, and the day plan shows it on its day. The section is the planner module's, bound through
-  `lib/excursionConnections.ts`.
+* **Its way there and back** (FR-29.18, `m27-connections`): under the route card and above the progress card — the
+  journey frames the route, and both come before the packing — a card headed *„Hin und zurück"* with two slots, *Hin*
+  (`m27-journey-out`) and *Zurück* (`m27-journey-back`). A filled slot reads *„08:06 → 08:34"* in the heading weight
+  over *„Spiez → Kandersteg · RE · direkt"* (*„1× umsteigen"* with a change), a chevron at the end; an empty one
+  *„＋ Hinfahrt eintragen"* / *„＋ Rückfahrt eintragen"* in the action colour. A tap opens the day plan's connection
+  sheet headed *Hinfahrt* / *Rückfahrt*, with only the connection form (no *Eintrag* / *Idee* segments), *„Für
+  „Titel""* (`day-entry-excursion`), and the hand fields on the excursion's first day for the way there, its last for
+  the way back; a filled slot opens its connection to change or delete. Any other connection of the excursion stands
+  beneath as a row of its own (`m27-connection-<id>`: departure, title over day, chevron). **Without days** the card
+  says *„Gib dem Ausflug einen Tag, dann kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and offers
+  no slot. **The time budget** (`m27-journey-budget`), last in the card where FR-29.18 has one: with a track, a thin
+  bar of the day — travel in glacier, the route in the done tone, the slack empty — over *„Vor Ort 7 h 49 · Route 3 h
+  25 → 4 h 24 Luft"*, the verdict in the done tone, straw under an hour, ember where the route does not fit; without a
+  track the line alone, *„Vor Ort 7 h 49"*; from the way there alone *„An 08:34 · Route 3 h 25 → frühestens zurück ab
+  11:59"*. The section is the planner module's, bound through `lib/excursionConnections.ts`.
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):
@@ -135,4 +145,4 @@
   made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the device does not
   hold. Its handles: `m27-idea-<name>` on the row, `m27-excursion-idea` on the list.
 * **Modes:** all three; the reminder is not sent in Local Mode (there is no server).
-* (E2E-M27-01…16 `local`, E2E-G12-07)
+* (E2E-M27-01…17 `local`, E2E-G12-07)

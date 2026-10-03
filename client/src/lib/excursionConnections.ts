@@ -17,11 +17,26 @@ export interface ExcursionConnectionsProps {
   excursionId: string
   /** The excursion's name, which the connection sheet says it is for. */
   title: string
-  /** The excursion's first day, `YYYY-MM-DD`, where a connection written by hand lands. */
+  /** The excursion's first day, `YYYY-MM-DD`: the way there's; null while it has none. */
   day: string | null
+  /** The excursion's last day: the way back's — the first for a day out. */
+  lastDay: string | null
+  /** Its first track's time with the pauses, for the time budget; null without a track. */
+  routeMinutes: number | null
 }
 
 /** The injection key M27 reads the planner's connections section through; null where there is none. */
 export const EXCURSION_CONNECTIONS = Symbol(
   'excursionConnections',
 ) as InjectionKey<Component | null>
+
+/**
+ * M27's line under an excursion naming its way there and back
+ * (*„08:06 hin · 16:23 zurück"*), or null with neither.
+ */
+export type ExcursionJourneyLine = (tripId: string, excursionId: string) => string | null
+
+/** The injection key M27's list reads that line through; null where there is none. */
+export const EXCURSION_JOURNEY_LINE = Symbol(
+  'excursionJourneyLine',
+) as InjectionKey<ExcursionJourneyLine | null>

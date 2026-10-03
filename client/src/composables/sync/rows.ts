@@ -262,6 +262,7 @@ export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
     link: entry.link,
     legs: jsonColumn(entry.legs),
     excursion_id: entry.excursion_id ?? null,
+    excursion_role: entry.excursion_role ?? null,
   }
 }
 

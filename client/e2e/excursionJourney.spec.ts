@@ -1,0 +1,140 @@
+import type { Locator, Page } from '@playwright/test'
+
+import { test, expect, createTripViaWizard, visiblePage } from './fixtures'
+import { fillIonic } from './helpers/ionic'
+import { addExcursionTrack, createExcursion, openExcursions } from './helpers/m27'
+import { gpxFile, stubTiles } from './helpers/m28'
+import { chooseDay, dayFromToday, openDayPlan, timelineLines } from './helpers/m29'
+import { writesLanded } from './helpers/page'
+
+/**
+ * M27 — an excursion's way there and back (FR-29.18), in Local Mode: two
+ * slots on its screen, each a connection as the day plan has it, written by
+ * hand here (a link's reading is E2E-M29's), and the time the two leave on
+ * the spot. Days are counted from today, so the excursion stays upcoming.
+ */
+
+const FIRST = dayFromToday(30)
+const HIKE_DAY = dayFromToday(31)
+const LAST = dayFromToday(33)
+
+/** 3.3 km due north, 300 m up: hiked 1 h 25 (`tracks.spec.ts` derives it). */
+const CLIMB = gpxFile(
+  [
+    [46.5, 7.7, 1000],
+    [46.51, 7.7, 1100],
+    [46.52, 7.7, 1200],
+    [46.53, 7.7, 1300],
+  ],
+  { name: 'Aufstieg zur Alp' },
+)
+
+/** One leg by hand in the day plan's sheet, opened from a slot, and saved. */
+async function fillWay(
+  page: Page,
+  heading: string,
+  way: { from: string; dep: string; to: string; arr: string; line: string },
+): Promise<void> {
+  const sheet = page.getByTestId('day-entry')
+  await expect(sheet.getByTestId('day-entry-title')).toHaveText(heading)
+  await fillIonic(sheet.getByTestId('day-entry-hand-from'), way.from)
+  await fillIonic(sheet.getByTestId('day-entry-hand-to'), way.to)
+  await sheet.getByTestId('day-entry-hand-dep').locator('input').fill(way.dep)
+  await sheet.getByTestId('day-entry-hand-arr').locator('input').fill(way.arr)
+  await fillIonic(sheet.getByTestId('day-entry-hand-line'), way.line)
+  await sheet.getByTestId('day-entry-save').click()
+  await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+  await writesLanded(page)
+}
+
+function slot(page: Page, role: 'out' | 'back'): Locator {
+  return visiblePage(page).getByTestId(`m27-journey-${role}`)
+}
+
+test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m27', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await stubTiles(page)
+    await createTripViaWizard(page, {
+      name: 'Berner Oberland',
+      startDate: FIRST,
+      endDate: LAST,
+      travelers: ['Andy'],
+    })
+    await openExcursions(page)
+  })
+
+  /**
+   * E2E-M27-17: an excursion without a day offers no slot and says why. With
+   * one, *Hin* and *Zurück* each open the day plan's sheet under their own
+   * name and keep what is written there — departure → arrival, stops, line,
+   * changes — across a reload. The two say how long one is on the spot; a
+   * track adds what its route leaves of it. M27's list names both
+   * departures, and the day plan names each way with the excursion.
+   */
+  test('E2E-M27-17: the way there and back fill their slots, and the time on the spot follows', async ({
+    page,
+  }) => {
+    const undated = await createExcursion(page, { name: 'Irgendwann' })
+    await expect(undated.getByTestId('m27-journey-no-day')).toBeVisible()
+    await expect(undated.getByTestId('m27-journey-out')).toHaveCount(0)
+
+    await page.goBack()
+    await expect(visiblePage(page).getByTestId('m27-page')).toBeVisible()
+    const m27 = await createExcursion(page, {
+      name: 'Oeschinensee',
+      days: { start: HIKE_DAY, end: HIKE_DAY },
+    })
+    await expect(slot(page, 'out')).toContainText('Add the way there')
+    await expect(slot(page, 'back')).toContainText('Add the way back')
+
+    await slot(page, 'out').click()
+    await fillWay(page, 'Way there', {
+      from: 'Spiez',
+      dep: '08:06',
+      to: 'Kandersteg',
+      arr: '08:34',
+      line: 'RE',
+    })
+    await expect(slot(page, 'out')).toContainText('08:06 → 08:34')
+    await expect(slot(page, 'out')).toContainText('Spiez → Kandersteg · RE · direct')
+
+    await slot(page, 'back').click()
+    await fillWay(page, 'Way back', {
+      from: 'Kandersteg',
+      dep: '16:23',
+      to: 'Spiez',
+      arr: '16:52',
+      line: 'RE',
+    })
+    await expect(slot(page, 'back')).toContainText('16:23 → 16:52')
+    await expect(m27.getByTestId('m27-journey-budget')).toHaveText('On the spot 7 h 49')
+
+    await page.reload()
+    await expect(slot(page, 'out')).toContainText('08:06 → 08:34')
+    await expect(slot(page, 'back')).toContainText('16:23 → 16:52')
+
+    await addExcursionTrack(page, 'climb.gpx', CLIMB)
+    await expect(visiblePage(page).getByTestId('m27-journey-budget')).toHaveText(
+      'On the spot 7 h 49 · Route 1 h 25 → 6 h 24 to spare',
+    )
+
+    await page.goBack()
+    const list = visiblePage(page)
+    await expect(list.getByTestId('m27-page')).toBeVisible()
+    await expect(list.getByTestId('m27-journey-line-Oeschinensee')).toHaveText(
+      'there 08:06 · back 16:23',
+    )
+    await expect(list.getByTestId('m27-journey-line-Irgendwann')).toHaveCount(0)
+
+    await openDayPlan(page)
+    await chooseDay(page, HIKE_DAY)
+    const lines = timelineLines(page)
+    await expect(lines.filter({ hasText: 'Spiez → Kandersteg' })).toContainText(
+      'Way there · Oeschinensee',
+    )
+    await expect(lines.filter({ hasText: 'Kandersteg → Spiez' })).toContainText(
+      'Way back · Oeschinensee',
+    )
+  })
+})

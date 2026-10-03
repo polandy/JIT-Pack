@@ -56,6 +56,6 @@
 * **E2E-M29-13** `local` (FR-29.13/29.15/29.18) — **implemented** (`planner/bridge.spec.ts`): a shortlisted idea
   planned on a day and made into an excursion stands on that day as one *Excursion* line naming *💡 Gola Gorropu* —
   the plan holds one line, not two. A connection written by hand on the excursion's own screen (M27) stands
-  beside it labelled *Connection · Gola Gorropu*. The merge rule
+  beside it labelled *Way there · Gola Gorropu*. The merge rule
   (time, the idea's missing line, pool and outside) is `dayPlan.spec.ts`; the server's check of the link is
   `TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn`.

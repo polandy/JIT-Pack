@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * The connections of one excursion, on its own screen (FR-29.18): one quiet
- * line per connection — the way there or back — and the line that adds one.
- * Adding and changing use the day plan's sheet, which says which excursion the
- * connection is for; the day plan shows the result on its day. M27 renders this
- * through `lib/excursionConnections.ts`, so the packing side never imports it.
+ * An excursion's way there and back, on its own screen (FR-29.18): two slots,
+ * each a connection as the day plan has it, the time the two leave on the
+ * spot, and any other connection of the excursion beneath. Adding and changing
+ * use the day plan's sheet; the day plan shows the result on its day. M27
+ * renders this through `lib/excursionConnections.ts`, so the packing side
+ * never imports it.
  */
 import { IonIcon } from '@ionic/vue'
 import { addOutline, chevronForward } from 'ionicons/icons'
@@ -16,10 +17,16 @@ import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
 import type { ExcursionConnectionsProps } from '@/lib/excursionConnections'
 import { shortDueDay } from '@/lib/taskDueText'
-import { DAY_ENTRY_CONNECTION, type DayEntry } from '@/types/domain'
+import {
+  EXCURSION_ROLE_BACK,
+  EXCURSION_ROLE_OUT,
+  type DayEntry,
+  type ExcursionRole,
+} from '@/types/domain'
 import { createPlannerActions, type ConnectionFields } from './actions'
-import { timeOf } from './domain/connections'
+import { excursionJourney, journeyBudget, journeyTimes } from './domain/journey'
 import DayEntrySheet from './DayEntrySheet.vue'
+import { budgetWords, journeyDetail } from './journeyText'
 import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
 
@@ -33,39 +40,96 @@ const { myUserId, load: loadIdentity } = useTripIdentity(props.tripId, orchestra
 
 onMounted(loadIdentity)
 
-const connections = computed(() =>
-  plannerStore
-    .getDayEntries(props.tripId)
-    .filter((e) => e.kind === DAY_ENTRY_CONNECTION && e.excursion_id === props.excursionId)
-    .sort((a, b) =>
-      `${a.on_date} ${a.at_time ?? ''}`.localeCompare(`${b.on_date} ${b.at_time ?? ''}`),
-    ),
+const journey = computed(() =>
+  excursionJourney(plannerStore.getDayEntries(props.tripId), props.excursionId),
 )
 
-/** The connection being changed, or null for a new one; undefined while the sheet is shut. */
-const editing = ref<DayEntry | null | undefined>(undefined)
+interface Slot {
+  role: ExcursionRole
+  label: string
+  heading: string
+  add: string
+  /** The day a way written by hand lands on. */
+  day: string | null
+  entry: DayEntry | null
+}
 
-/** Departure and, where the legs know it, arrival — the timetable's two columns. */
-function timesOf(entry: DayEntry): { dep: string; arr: string | null } {
-  const legs = entry.legs ?? []
-  if (legs.length === 0) return { dep: entry.at_time ?? '–', arr: null }
-  return { dep: timeOf(legs[0]!.dep), arr: timeOf(legs[legs.length - 1]!.arr) }
+const slots = computed<Slot[]>(() => [
+  {
+    role: EXCURSION_ROLE_OUT,
+    label: t('journey.out'),
+    heading: t('journey.outTitle'),
+    add: t('journey.addOut'),
+    day: props.day,
+    entry: journey.value.out,
+  },
+  {
+    role: EXCURSION_ROLE_BACK,
+    label: t('journey.back'),
+    heading: t('journey.backTitle'),
+    add: t('journey.addBack'),
+    day: props.lastDay ?? props.day,
+    entry: journey.value.back,
+  },
+])
+
+const budget = computed(() =>
+  journeyBudget({
+    out: journey.value.out,
+    back: journey.value.back,
+    routeMinutes: props.routeMinutes,
+  }),
+)
+const budgetText = computed(() => (budget.value ? budgetWords(budget.value) : null))
+
+/** The bar's four stretches — there, the route, what is left, back — as shares of the whole. */
+const bar = computed(() => {
+  const b = budget.value
+  if (!b || b.kind !== 'onSite' || b.routeMinutes === null || b.bar.total <= 0) return null
+  const share = (from: number, to: number) => ({
+    left: `${(Math.max(0, from) / b.bar.total) * 100}%`,
+    width: `${(Math.max(0, Math.min(to, b.bar.total) - Math.max(0, from)) / b.bar.total) * 100}%`,
+  })
+  return [
+    { kind: 'travel', ...share(0, b.bar.arrive) },
+    { kind: 'route', ...share(b.bar.arrive, Math.min(b.bar.routeEnd, b.bar.leave)) },
+    { kind: 'slack', ...share(b.bar.routeEnd, b.bar.leave) },
+    { kind: 'travel', ...share(b.bar.leave, b.bar.total) },
+  ]
+})
+
+/** What the sheet writes: a connection being changed, or the slot a new one fills. */
+interface Editing {
+  entry: DayEntry | null
+  role: ExcursionRole | null
+  day: string | null
+  heading: string | null
+}
+const editing = ref<Editing | null>(null)
+
+function openSlot(slot: Slot) {
+  editing.value = { entry: slot.entry, role: slot.role, day: slot.day, heading: slot.heading }
+}
+
+function openOther(entry: DayEntry) {
+  editing.value = { entry, role: null, day: entry.on_date, heading: null }
 }
 
 function onSave(fields: ConnectionFields) {
   const current = editing.value
-  editing.value = undefined
-  if (current) actions.updateConnection(current, fields)
+  editing.value = null
+  if (!current) return
+  if (current.entry) actions.updateConnection(current.entry, fields)
   else
     actions.addConnection(
       props.tripId,
-      { ...fields, excursionId: props.excursionId },
+      { ...fields, excursionId: props.excursionId, role: current.role },
       myUserId.value,
     )
 }
 
 async function onRemove() {
-  const entry = editing.value
+  const entry = editing.value?.entry
   if (!entry) return
   const confirmed = await confirmDestructive({
     header: t('dayPlan.removeConfirmTitle', { title: entry.title }),
@@ -74,7 +138,7 @@ async function onRemove() {
     testid: 'day-entry-remove-confirm',
   })
   if (!confirmed) return
-  editing.value = undefined
+  editing.value = null
   actions.removeDayEntry(entry)
 }
 </script>
@@ -87,45 +151,72 @@ async function onRemove() {
   >
     <h3 class="jp-eyebrow head">{{ t('excursionConnections.title') }}</h3>
     <div class="jp-card card">
+      <p v-if="!day" class="no-day" data-testid="m27-journey-no-day">{{ t('journey.noDay') }}</p>
+      <template v-else>
+        <button
+          v-for="slot in slots"
+          :key="slot.role"
+          type="button"
+          class="row slot"
+          :data-testid="`m27-journey-${slot.role}`"
+          @click="openSlot(slot)"
+        >
+          <span class="label jp-eyebrow">{{ slot.label }}</span>
+          <span v-if="slot.entry" class="body">
+            <span class="times jp-num">
+              {{ journeyTimes(slot.entry).dep }}
+              <template v-if="journeyTimes(slot.entry).arr">
+                → {{ journeyTimes(slot.entry).arr }}
+              </template>
+            </span>
+            <span class="detail">{{ journeyDetail(slot.entry) }}</span>
+          </span>
+          <span v-else class="body add">
+            <IonIcon class="plus" :icon="addOutline" aria-hidden="true" />
+            {{ slot.add }}
+          </span>
+          <IonIcon v-if="slot.entry" class="chevron" :icon="chevronForward" aria-hidden="true" />
+        </button>
+      </template>
       <button
-        v-for="entry in connections"
+        v-for="entry in journey.others"
         :key="entry.id"
         type="button"
         class="row"
         :data-testid="`m27-connection-${entry.id}`"
-        @click="editing = entry"
+        @click="openOther(entry)"
       >
-        <span class="times jp-num">
-          <span class="dep">{{ timesOf(entry).dep }}</span>
-          <span v-if="timesOf(entry).arr" class="arr">{{ timesOf(entry).arr }}</span>
-        </span>
+        <span class="label jp-num">{{ journeyTimes(entry).dep }}</span>
         <span class="body">
           <span class="name">{{ entry.title }}</span>
-          <span class="day">{{ shortDueDay(entry.on_date) }}</span>
+          <span class="detail">{{ shortDueDay(entry.on_date) }}</span>
         </span>
         <IonIcon class="chevron" :icon="chevronForward" aria-hidden="true" />
       </button>
-      <button
-        type="button"
-        class="row add"
-        data-testid="m27-add-connection"
-        @click="editing = null"
-      >
-        <IonIcon class="plus" :icon="addOutline" aria-hidden="true" />
-        <span class="name">{{ t('dayPlan.addConnection') }}</span>
-      </button>
+      <div v-if="day && budgetText" class="budget" data-testid="m27-journey-budget">
+        <div v-if="bar" class="bar" aria-hidden="true">
+          <i
+            v-for="(stretch, i) in bar"
+            :key="i"
+            :class="stretch.kind"
+            :style="{ left: stretch.left, width: stretch.width }"
+          />
+        </div>
+        <p class="budget-text" :data-tone="budgetText.tone">{{ budgetText.text }}</p>
+      </div>
     </div>
 
     <DayEntrySheet
-      :open="editing !== undefined"
-      :entry="editing ?? null"
-      :day="day"
-      :day-text="day ? shortDueDay(day) : ''"
+      :open="editing !== null"
+      :entry="editing?.entry ?? null"
+      :day="editing?.day ?? day"
+      :day-text="editing?.day ? shortDueDay(editing.day) : ''"
       :pool="[]"
       :page-links="pageLinks"
       :excursion-title="title"
+      :heading="editing?.heading"
       connection-only
-      @close="editing = undefined"
+      @close="editing = null"
       @save-connection="onSave"
       @remove="onRemove"
     />
@@ -134,7 +225,7 @@ async function onRemove() {
 
 <style scoped>
 .connections {
-  margin: 12px 12px 8px;
+  margin: 0 12px 10px;
 }
 
 .head {
@@ -167,17 +258,10 @@ async function onRemove() {
   outline-offset: -2px;
 }
 
-.times {
-  display: flex;
+.label {
   flex: none;
-  flex-direction: column;
-  min-width: 44px;
-  line-height: var(--jp-leading-tight);
-}
-
-.arr {
+  width: 56px;
   color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
 }
 
 .body {
@@ -187,24 +271,25 @@ async function onRemove() {
   min-width: 0;
 }
 
-.name {
+.times {
+  font-weight: var(--jp-weight-semibold);
+}
+
+.name,
+.detail {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.day {
+.detail {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
 }
 
-.chevron {
-  flex: none;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-icon-xs);
-}
-
 .add {
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
   color: var(--jp-action);
   font-weight: var(--jp-weight-semibold);
@@ -213,5 +298,68 @@ async function onRemove() {
 .plus {
   flex: none;
   font-size: var(--jp-icon-sm);
+}
+
+.chevron {
+  flex: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-xs);
+}
+
+.no-day {
+  margin: 0;
+  padding: 12px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.budget {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--jp-surface-border);
+}
+
+.bar {
+  position: relative;
+  height: 4px;
+  margin-bottom: 8px;
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-border);
+}
+
+.bar i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: var(--jp-r-pill);
+}
+
+.bar .travel {
+  background: var(--ct-glacier);
+}
+
+.bar .route {
+  background: var(--jp-done);
+}
+
+.bar .slack {
+  background: transparent;
+}
+
+.budget-text {
+  margin: 0;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+}
+
+.budget-text[data-tone='ok'] {
+  color: var(--jp-done);
+}
+
+.budget-text[data-tone='tight'] {
+  color: var(--ct-straw);
+}
+
+.budget-text[data-tone='short'] {
+  color: var(--ct-ember);
 }
 </style>

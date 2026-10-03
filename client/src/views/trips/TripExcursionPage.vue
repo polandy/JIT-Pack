@@ -89,7 +89,7 @@ import {
   type LineFor,
 } from '@/domain/excursions'
 import { durationDays } from '@/domain/instantiate'
-import { MAX_TRACKS } from '@/domain/track'
+import { MAX_TRACKS, movingMinutes } from '@/domain/track'
 import { buildPackingView } from '@/domain/packingView'
 import { packedPercent, stateFor } from '@/domain/packState'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -897,6 +897,11 @@ async function remove() {
 const tracksOn = computed(() =>
   excursion.value ? orchestrator.tracksOf(props.tripId, excursion.value.id) : [],
 )
+/** FR-29.18: the first track's time with its pauses — the route the way there and back frame. */
+const routeMinutes = computed(() => {
+  const first = tracksOn.value[0]
+  return first ? movingMinutes(first) + first.pause_min : null
+})
 const tracks = useTrackOwner<ExcursionTrack>(() => {
   const ex = excursion.value
   if (!ex) return null
@@ -1060,6 +1065,17 @@ setHeaderTitle(
             {{ t('track.reading') }}
           </p>
         </div>
+        <!-- FR-29.18: the way there and back frame the route, before the packing. -->
+        <component
+          :is="ConnectionsSection"
+          v-if="ConnectionsSection"
+          :trip-id="tripId"
+          :excursion-id="excursionId"
+          :title="excursion.name"
+          :day="excursion.starts_on"
+          :last-day="excursion.ends_on ?? excursion.starts_on"
+          :route-minutes="routeMinutes"
+        />
         <!-- M4's header line: the progress card, sticky, yielding to the list. -->
         <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m27-header">
           <div class="trip-stats jp-card" data-testid="m27-progress-card">
@@ -1084,14 +1100,6 @@ setHeaderTitle(
           @select="selectPerson"
         />
         <ExcursionNotes v-if="notes.length > 0" :threads="notes" @open="openNote" />
-        <component
-          :is="ConnectionsSection"
-          v-if="ConnectionsSection"
-          :trip-id="tripId"
-          :excursion-id="excursionId"
-          :title="excursion.name"
-          :day="excursion.starts_on"
-        />
 
         <!-- FR-25.11k: the field exists only while it is being used. -->
         <SearchRow

@@ -431,3 +431,46 @@ func TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn(t *testing.T) {
 		}
 	}
 }
+
+// FR-29.18: a connection of an excursion is its way there or its way back;
+// a role the schema does not know is refused rather than stored.
+func TestApplyMutation_ConnectionExcursionRole_OutOrBackOnly(t *testing.T) {
+	s := openPlannerStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-own', ?, 'Wanderung')`, testTrip)
+	cases := []struct {
+		name string
+		role any
+		want sync.Outcome
+	}{
+		{"the way there", "out", sync.OutcomeApplied},
+		{"the way back", "back", sync.OutcomeApplied},
+		{"neither", nil, sync.OutcomeApplied},
+		{"a role nobody knows", "sideways", sync.OutcomeRejected},
+	}
+	for i, tc := range cases {
+		id := fmt.Sprintf("de-r%d", i)
+		m := sync.Mutation{
+			MutationID: "mut-" + id, Op: sync.OpInsert, Table: TableDayEntries, ID: id,
+			Fields: map[string]any{
+				"trip_id": testTrip, "author_id": testUser, "on_date": "2026-10-10", "title": "Fahrt",
+				"kind": "connection", "excursion_id": "ex-own", "excursion_role": tc.role,
+			},
+			HLC: sync.HLC(fmt.Sprintf("000000000%d000-0000-aaaaaaaa", i+1)),
+		}
+		res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
+		if err != nil || res.Outcome != tc.want {
+			t.Fatalf("%s: outcome %q reason %q err %v", tc.name, res.Outcome, res.Reason, err)
+		}
+		if tc.want == sync.OutcomeRejected {
+			continue
+		}
+		var got any
+		if err := s.db.QueryRow(`SELECT excursion_role FROM day_entries WHERE id = ?`, id).Scan(&got); err != nil {
+			t.Fatalf("%s: read: %v", tc.name, err)
+		}
+		if got != tc.role {
+			t.Errorf("%s: excursion_role = %v, want %v", tc.name, got, tc.role)
+		}
+	}
+}

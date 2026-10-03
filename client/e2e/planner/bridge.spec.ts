@@ -196,7 +196,7 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     await expect(excursion.getByTestId('m27-excursion-page')).toBeVisible()
     await writesLanded(page)
 
-    await excursion.getByTestId('m27-add-connection').click()
+    await excursion.getByTestId('m27-journey-out').click()
     const sheet = page.getByTestId('day-entry')
     await expect(sheet.getByTestId('day-entry-kinds')).toHaveCount(0)
     await expect(sheet.getByTestId('day-entry-excursion')).toContainText(IDEA)
@@ -217,6 +217,6 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     await expect(line).toContainText(`💡 ${IDEA}`)
     const connection = lines.filter({ hasText: 'Dorgali → Olbia' })
     await expect(connection).toHaveAttribute('data-kind', 'connection')
-    await expect(connection).toContainText(`Connection · ${IDEA}`)
+    await expect(connection).toContainText(`Way there · ${IDEA}`)
   })
 })

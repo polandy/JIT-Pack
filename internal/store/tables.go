@@ -693,6 +693,8 @@ var tableSpecs = map[string]tableSpec{
 			"trip_id", "author_id", columnKind, "on_date", "at_time", "title", "note", columnLink, columnLegs,
 			// FR-29.18: the excursion a connection belongs to; noteExcursion checks it.
 			columnExcursionID,
+			// FR-29.18: the way there or back on that excursion.
+			"excursion_role",
 		),
 		unlogged: toSet(columnLegs),
 		export: exportQuery{query: `SELECT x.* FROM day_entries x
