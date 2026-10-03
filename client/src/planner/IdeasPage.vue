@@ -248,11 +248,22 @@ function onSheetDismiss() {
   if (openIdeaId.value !== null) closeSheet()
 }
 
-function closeSheet() {
+/**
+ * Resolves once the route has left the idea. `router.back()` lands on a later
+ * popstate, and a navigation started before it would be undone by it.
+ */
+function closeSheet(): Promise<unknown> {
   const here = tripIdeasPath(props.tripId)
   const previous = (window.history.state as { back?: unknown } | null)?.back
-  if (previous === here) router.back()
-  else void router.replace(here)
+  if (previous !== here) return router.replace(here)
+  const closed = new Promise<void>((resolve) => {
+    const stop = router.afterEach(() => {
+      stop()
+      resolve()
+    })
+  })
+  router.back()
+  return closed
 }
 
 async function onState(state: IdeaState) {
@@ -366,7 +377,9 @@ async function onRemove() {
     testid: 'idea-remove-confirm',
   })
   if (!confirmed) return
-  closeSheet()
+  // The board shows the removal only once the sheet's route is gone, so
+  // whatever is tapped next is not overtaken by the closing back step.
+  await closeSheet()
   actions.removeIdea(idea)
 }
 
