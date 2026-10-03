@@ -9,8 +9,7 @@
         "docs/installation.md",
         "docs/upgrades.md",
         "deploy/multi-user/docker-compose.yml",
-        "deploy/multi-user-pocket-id/docker-compose.yml",
-        "deploy/single-user-caddy/docker-compose.yml"
+        "deploy/multi-user-pocket-id/docker-compose.yml"
       ]
     }
   }

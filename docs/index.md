@@ -29,7 +29,7 @@ Open <http://localhost:8080>: the same container serves the app and the API. Tha
 
 When you want real accounts, point it at an OIDC provider and it brokers the login itself — no user database of its own, no password to store. See [Authentication](authentication.md).
 
-To reach it from anywhere, or to give a household their own accounts, [Easy Setup](easy-setup.md) has a ready stack for each — HTTPS included, and no identity provider of your own to run.
+To give a household their own accounts without running an identity provider yet, [Easy Setup](easy-setup.md) brings Pocket ID along — passkey login, beside JIT-Pack behind your Traefik.
 
 The [Getting Started walkthrough](getting-started.md) takes it from nothing to a running instance; [Installation](installation.md) covers the reverse proxy you put in front of it for TLS.
 

@@ -1,51 +1,48 @@
-# Everything a household needs on one host: JIT-Pack, Pocket ID as the
-# login, and Caddy for TLS. Walkthrough: docs/easy-setup.md.
+# JIT-Pack with Pocket ID as its login, behind the Traefik you already
+# run (same shape as ../multi-user). Walkthrough: docs/easy-setup.md.
 
 volumes:
   data:
   pocket-id-data:
-  caddy-data:
-  caddy-config:
+
+networks:
+  proxy:
+    external: true
+  internal:
 
 services:
-  caddy:
-    image: caddy:2.11.6-alpine@sha256:c776e0c6413b544d0459665e54ec7b8b2a15000c0cbee8b254da0067b1d184ff
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    environment:
-      JITPACK_HOST: "${JITPACK_HOST:?set in .env}"
-      AUTH_HOST: "${AUTH_HOST:?set in .env}"
-    networks:
-      default:
-        # jitpackd fetches the issuer by its public name at startup; these
-        # aliases answer that name inside the stack, so it does not depend
-        # on the router looping a request to its own public address back.
-        aliases:
-          - "${JITPACK_HOST}"
-          - "${AUTH_HOST}"
-
   pocket-id:
     image: ghcr.io/pocket-id/pocket-id:v2.17.0@sha256:19f556d5852115c8ebbef271f6f7cf610d8803312a1fa63f29e1b342fe9d2939
     restart: unless-stopped
+    networks:
+      - proxy
     volumes:
       - pocket-id-data:/app/data
     environment:
-      APP_URL: "https://${AUTH_HOST}"
+      APP_URL: "https://${AUTH_HOST:?set in .env}"
       TRUST_PROXY: "true"
       ENCRYPTION_KEY: "${POCKET_ID_ENCRYPTION_KEY:?set in .env}"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.pocket-id.rule: "Host(`${AUTH_HOST}`)"
+      traefik.http.routers.pocket-id.entrypoints: "websecure"
+      traefik.http.routers.pocket-id.tls.certresolver: "letsencrypt"
+      traefik.http.services.pocket-id.loadbalancer.server.port: "1411"
+      traefik.docker.network: "proxy"
 
   app:
     image: ghcr.io/polandy/jit-pack:0.23.0 # x-release-please-version
     # Also covers the start-up order: jitpackd exits while the issuer is
     # still unreachable, and comes back once Pocket ID answers.
     restart: unless-stopped
+    networks:
+      - internal
+      - proxy
+    # jitpackd fetches the issuer by its public name at startup. This sends
+    # that name to Traefik on this host, so it does not depend on the
+    # router looping a request to its own public address back in.
+    extra_hosts:
+      - "${AUTH_HOST}:host-gateway"
     volumes:
       - data:/data
     environment:
@@ -57,3 +54,10 @@ services:
       JITPACK_ADMIN_EMAILS: "${JITPACK_ADMIN_EMAILS:-}"
       JITPACK_PUSH_CONTACT: "${JITPACK_PUSH_CONTACT:-}"
       TZ: "${TZ:-UTC}"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jitpack.rule: "Host(`${JITPACK_HOST:?set in .env}`)"
+      traefik.http.routers.jitpack.entrypoints: "websecure"
+      traefik.http.routers.jitpack.tls.certresolver: "letsencrypt"
+      traefik.http.services.jitpack.loadbalancer.server.port: "8080"
+      traefik.docker.network: "proxy"

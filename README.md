@@ -31,7 +31,7 @@ docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
 
 Open <http://localhost:8080> — the same container serves the app and the API. That is single-user mode: no authentication, every change attributed to one person. When you want accounts, hand it an OIDC provider and it brokers the login itself — see **[Authentication](https://polandy.github.io/JIT-Pack/authentication/)**.
 
-Want it on your phone from anywhere, or for the whole household? **[Easy Setup](https://polandy.github.io/JIT-Pack/easy-setup/)** has a ready stack for each — HTTPS included, no identity provider of your own to run.
+Accounts for the whole household, but no identity provider yet? **[Easy Setup](https://polandy.github.io/JIT-Pack/easy-setup/)** brings Pocket ID along — passkey login, beside JIT-Pack behind your Traefik.
 
 New here? The **[Getting Started walkthrough](https://polandy.github.io/JIT-Pack/getting-started/)** takes it from nothing to a running instance, and **[Installation](https://polandy.github.io/JIT-Pack/installation/)** covers the reverse proxy in front of it.
 

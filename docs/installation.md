@@ -105,7 +105,7 @@ The API keeps its own paths: `/api/v1/…`, `/ws` and `/health` are answered by 
 
 ### The example stack
 
-The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — one service with the OIDC variables wired through and Traefik labels for the one route it needs. It is the shortest path to a production instance when you already run a reverse proxy and an identity provider; without them, [Easy Setup](easy-setup.md) brings both along.
+The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — one service with the OIDC variables wired through and Traefik labels for the one route it needs. It is the shortest path to a production instance when you already run a reverse proxy and an identity provider; without the identity provider, [Easy Setup](easy-setup.md) brings Pocket ID along.
 
 It is one container on two networks: the database on a named volume, `internal` for the stack itself and your proxy network for the single router that sends the hostname at it. There is no path splitting to get right, because there is nothing to split it between.
 

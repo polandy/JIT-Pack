@@ -1,74 +1,37 @@
 # Easy Setup
 
-JIT-Pack does not need a homelab. This page picks the smallest setup that does what you want, and for the two that reach beyond your own network it gives you a ready stack: one `docker compose up -d` and a handful of clicks, with TLS certificates obtained for you.
+JIT-Pack's own login is brokered from an OIDC identity provider. If you do not run one yet, this page gives you one: [`deploy/multi-user-pocket-id/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user-pocket-id) puts **[Pocket ID](https://pocket-id.org/)** beside JIT-Pack, so everyone in the household gets an account and signs in with a passkey — the phone's fingerprint or face unlock, no password anywhere.
 
 ## Which setup fits
 
 | Who packs, and from where | Setup | What you run |
 |---|---|---|
 | Just you, in one browser or on one phone | **Local Mode** | Nothing. Open any JIT-Pack instance once and choose *Local*; your data stays on that device. |
-| Just you, at home | **Single-User**, plain | The one `docker run` from the [front page](index.md). |
-| Just you, on every device and from anywhere | **Single-User behind a password** | [`deploy/single-user-caddy/`](#just-you-from-anywhere) |
-| A household, each with their own account | **Multi-user with Pocket ID** | [`deploy/multi-user-pocket-id/`](#a-household) |
-| You already run an identity provider and a reverse proxy | **Multi-user, your own stack** | [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) with [Authentication](authentication.md) |
+| Just you, at home | **Single-User** | The one `docker run` from the [front page](index.md). |
+| A household, each with their own account, no identity provider yet | **Multi-user with Pocket ID** | This page. |
+| You already run an identity provider | **Multi-user, your own provider** | [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) with [Authentication](authentication.md) |
 
-If others are going to join, start with the household stack. A Local Mode device can [move to a server](backup.md#moving-to-a-server) later, but the move carries the inventory, templates and trips — not tasks, notes or the planner.
+If others are going to join, start with accounts. A Local Mode device can [move to a server](backup.md#moving-to-a-server) later, but the move carries the inventory, templates and trips — not tasks, notes or the planner.
 
-## What both stacks need
+## What you need
 
-- **A machine with Docker and the Compose plugin** that stays on — a small VPS, a Raspberry Pi, an old laptop.
-- **Ports 80 and 443 reachable from the internet.** The stacks bring [Caddy](https://caddyserver.com/), which fetches a Let's Encrypt certificate on its own, and Let's Encrypt has to reach it to hand one out. At home that means forwarding both ports on your router to the machine.
-- **A DNS name pointing at the machine** — two for the household stack. Any name works, including a free dynamic-DNS one.
-- **The stack's files.** Clone the repository, or copy the three files of the stack's directory:
+- **Traefik**, already running on the machine, with an entrypoint `websecure` on port 443, a certificate resolver `letsencrypt`, and its containers on an external Docker network called `proxy` — the same shape [Installation](installation.md#the-example-stack) describes for `deploy/multi-user/`. Rename those three in the compose file if yours are called differently.
+- **Two DNS names** pointing at the machine, e.g. `jitpack.example.com` and `auth.example.com`.
+- **The stack's files:**
 
   ```bash
   git clone https://github.com/polandy/JIT-Pack.git
-  cd JIT-Pack/deploy/single-user-caddy        # or deploy/multi-user-pocket-id
+  cd JIT-Pack/deploy/multi-user-pocket-id
   cp .env.example .env
   ```
 
-Everything else lives in Docker volumes. Back them up as described in [Backup](backup.md) — for the household stack that includes `pocket-id-data` (see [below](#back-up-pocket-id-too)).
+The stack is two containers on top of your Traefik: **JIT-Pack** and **Pocket ID**, where the accounts live. Both keep their data in Docker volumes; back them up as described in [Backup](backup.md), `pocket-id-data` included (see [below](#back-up-pocket-id-too)).
 
----
-
-## Just you, from anywhere
-
-`deploy/single-user-caddy/` runs JIT-Pack in [Single-User Mode](authentication.md#single-user-mode) behind Caddy, which adds HTTPS and asks for a user name and password before anything reaches the app.
-
-**1. Fill in `.env`.** Set `JITPACK_HOST` to your DNS name and `BASIC_AUTH_USER` to a user name. The password goes in as a hash, which Caddy computes for you:
-
-```bash
-docker run --rm caddy:2.11.6-alpine caddy hash-password --plaintext 'your password'
-```
-
-Put the result in `BASIC_AUTH_HASH`, inside single quotes — the hash contains `$` signs, and without the quotes Compose would read them as variables.
-
-**2. Start it.**
-
-```bash
-docker compose up -d
-```
-
-**3. Open `https://<your name>`.** The browser asks for the user name and password and remembers them. On the first-run screen choose **Server**: the address is already filled in. There is no further login — you are the instance's one user.
-
-Things to know:
-
-- **The password is the only lock.** Single-User Mode itself checks nothing, so whoever knows the password is you. Choose a long one.
-- **Two things are reachable without it:** the web-app manifest and the app icons. Browsers fetch those without credentials when installing the app to a home screen, and they say nothing about your data.
-
----
-
-## A household
-
-`deploy/multi-user-pocket-id/` gives everyone their own account, without a password anywhere: people sign in with a passkey — the phone's fingerprint or face unlock. Three containers:
-
-- **JIT-Pack** itself.
-- **[Pocket ID](https://pocket-id.org/)**, a small identity provider, where the accounts live.
-- **Caddy**, which serves both under their own names with HTTPS.
+## Step by step
 
 **1. Fill in `.env`.**
 
-- `JITPACK_HOST` and `AUTH_HOST` — two DNS names, both pointing at the machine, e.g. `jitpack.example.com` and `auth.example.com`.
+- `JITPACK_HOST` and `AUTH_HOST` — the two DNS names.
 - `JITPACK_SESSION_SECRET` — generate it with `openssl rand -hex 32`.
 - `POCKET_ID_ENCRYPTION_KEY` — generate it with `openssl rand -base64 32`.
 - `JITPACK_ADMIN_EMAILS` — your own e-mail address. It makes you the instance admin in JIT-Pack.
@@ -82,7 +45,7 @@ Leave `JITPACK_OIDC_CLIENT_ID` and `JITPACK_OIDC_CLIENT_SECRET` empty for now; s
 docker compose up -d
 ```
 
-Pocket ID and Caddy come up. JIT-Pack does not, yet: until step 5 it restarts every few seconds with `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` in `docker compose logs app`. That is expected.
+Pocket ID comes up, and Traefik obtains its certificates. JIT-Pack does not start yet: until step 5 it restarts every few seconds with `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` in `docker compose logs app`. That is expected.
 
 **3. Create your Pocket ID account.** Open `https://<AUTH_HOST>/setup`, fill in your name and user name, and for the e-mail **enter a placeholder** such as `you@setup.invalid` — step 4 explains why. Then add a passkey when asked.
 
@@ -122,6 +85,6 @@ Their JIT-Pack account appears with their first sign-in. From here, [Multi-user 
 
 JIT-Pack knows each person by the identity Pocket ID gave them. If the `pocket-id-data` volume is lost and the accounts are created again, Pocket ID hands out new identities, and JIT-Pack sees new people — the old accounts, with their trips and memberships, are no longer anyone's. Back up `pocket-id-data` alongside `data`.
 
-### Why the stack resolves its own names
+### Why JIT-Pack is pointed at the host for Pocket ID
 
-At startup JIT-Pack fetches `https://<AUTH_HOST>/.well-known/openid-configuration`, and the address must be the very one your browser uses. From inside a container, that name would normally lead out to the internet and back in through your router — which many home routers refuse. The compose file gives Caddy both names inside the stack, so the request stays on the machine and Caddy answers it with the same certificate the browser sees.
+At startup JIT-Pack fetches `https://<AUTH_HOST>/.well-known/openid-configuration`, and the address must be the very one your browser uses. From inside a container, that name would normally lead out to the internet and back in through your router — which many home routers refuse. The compose file maps the name to the Docker host instead (`extra_hosts: <AUTH_HOST>:host-gateway`), so the request reaches your Traefik on this machine and gets the same certificate the browser sees. This needs Traefik to publish port 443 on the host, as it does in the usual setup.
