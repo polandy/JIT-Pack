@@ -51,11 +51,11 @@ needs a trip that follows the group (E2E-M21-03c).
   state a fact about the name. The bundle field is then held to **two** rules — the same taken rule, and the one that
   exists nowhere else in the app: the two names this one screen writes must differ from each other, refused with its own
   sentence because nothing holds that name yet. Mutation-proved twice, once per clause of `canCreate`.
-* **E2E-M4-44** `all` (UI-Spec M4 / G-9, ADR-050): the trip is named **exactly once**, in the **page head**, and the
-  width decides nothing; the app bar names no page. The case asserts the head at 390 px and again at 1280 px, that M4's
-  header line does *not* repeat the name at either width, and that the name **resolves** to the display face — on the
-  computed family, not on the class attribute, which would pass against a role that was never defined. It also walks
-  to a sub-screen and back, where the head states „Shopping" over the trip's name on its second line.
+* **E2E-M4-44** `all` (UI-Spec M4 / G-9, ADR-050): the packing list heads itself **„Packliste" over the trip's name**,
+  like every view of the trip, and the width decides nothing; the app bar names no page. The case asserts the head at
+  390 px and again at 1280 px, that M4's header line does *not* repeat the name, and that the title **resolves** to the
+  display face — on the computed family, not on the class attribute. It also walks to a sub-screen and back and holds
+  that the trip line stays at the same y, so the head does not jump on a switch.
 * **E2E-M4-56** `all` (UX-9): item names form a straight column
   and the controls end in one — a checkbox row and a stepper row start their names at the same x and their `.row-lead`
   boxes have the same width, while their `.row-control` boxes have *different* widths and the same right edge. Both

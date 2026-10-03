@@ -557,25 +557,24 @@ async function handleRefresh(event: CustomEvent) {
   refresher.complete()
 }
 
-const tripName = computed(() => trip.value?.name ?? t('packing.title'))
-
 /**
- * The trip's name, written exactly once, in the page head (ADR-050).
+ * The page head names the screen and puts the trip on the line under it,
+ * like every other view of a trip (G-9, ADR-050): a head that read the trip
+ * here and the view's name everywhere else would jump on every switch.
  *
  * The bar names no page — beside search, filter, fold-all, the lifecycle
  * step, the sync glyph and the gear, 54 px are left and "Samedan 2026"
  * renders as "S…" — so nothing turns on the viewport and the header line is
  * one row of figures at every width.
  *
- * The third argument is why the name is *still* the header line's business:
- * scrolling down takes the whole line, name included, and the head yields on
- * the same gesture. Otherwise the biggest block on the screen would be the
- * one thing that never yields — 89 of a phone's 844 px, permanently, on the
- * screen that is scrolled most.
+ * The third argument is why the head is *still* the header line's business:
+ * scrolling down takes the whole line, and the head yields on the same
+ * gesture. Otherwise the biggest block on the screen would be the one thing
+ * that never yields, on the screen that is scrolled most.
  */
 setHeaderTitle(
-  () => tripName.value,
-  undefined,
+  () => t('packing.title'),
+  () => trip.value?.name,
   () => headCollapsed.value,
 )
 </script>

@@ -841,17 +841,19 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
 
-  // E2E-M4-44 (UI-Spec M4, G-9, ADR-050): the trip is named exactly once,
-  // in the page's own head, and at every width. The bar names no page —
-  // beside six icons at 390 px the name would render as "S…" — so the width
-  // decides nothing, and the header line carries figures alone.
-  test('E2E-M4-44: the trip is named once, in the page head, at either width @shopping', async ({
+  // E2E-M4-44 (UI-Spec M4, G-9, ADR-050): the packing list heads itself like
+  // every other view of the trip — its own name, the trip on the line under
+  // it — so switching views changes one word instead of moving the head. The
+  // trip is named exactly once, and the width decides nothing: the bar names
+  // no page, and the header line carries figures alone.
+  test('E2E-M4-44: the packing list names itself over the trip, as every view does @shopping', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, M4_TRIP)
 
-    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText('Packing list')
+    await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
     // Once: the header line below it states figures, not the name again.
     await expect(visible(page).getByTestId('m4-header')).not.toContainText(M4_TRIP.name)
 
@@ -863,17 +865,21 @@ test.describe('M4 packing list @local @m4', () => {
       .evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase())
     expect(family).toContain('fraunces')
 
-    // A sub-screen names itself and puts the trip on its second line, not
-    // into a composed "Luggage · Samedan" title.
+    // A sibling view has the same two lines, so the head keeps its shape on
+    // the switch: the title swaps, the trip line stays where it was.
+    const metaTop = async () => (await page.getByTestId('header-meta').boundingBox())?.y
+    const onPacking = await metaTop()
     await openTripView(page, 'shopping')
     await expect(page.getByTestId('header-title')).toHaveText('Shopping')
     await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
+    expect(await metaTop()).toBe(onPacking)
     await page.getByTestId('header-back').click()
-    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText('Packing list')
+    await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
 
     // Widened, nothing swaps: the head is the one place either way.
     await page.setViewportSize({ width: 1280, height: 900 })
-    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
+    await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
     await expect(visible(page).getByTestId('m4-header')).not.toContainText(M4_TRIP.name)
   })
 

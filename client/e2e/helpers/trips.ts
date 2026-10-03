@@ -98,11 +98,12 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
 /**
  * M4 is open on the named trip.
  *
- * The name is in the page head at every width (ADR-050), so nothing here
- * branches on the viewport.
+ * The trip is the page head's second line at every width (G-9, ADR-050), so
+ * nothing here branches on the viewport.
  */
 export async function expectTripOpen(page: Page, name: string) {
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await expect(page.getByTestId('header-title')).toHaveText('Packing list')
+  await expect(page.getByTestId('header-meta')).toHaveText(name)
 }
 
 /**
@@ -293,7 +294,7 @@ async function tripCardOnM2(page: Page, name: string): Promise<Locator> {
  * trip's name is read off the page head, so a spec does not repeat it.
  */
 async function openTripMenuOnM2(page: Page) {
-  const name = (await page.getByTestId('header-title').innerText()).trim()
+  const name = (await page.getByTestId('header-meta').innerText()).trim()
   await pageSettled(page)
   // The anchor where the width shows one; inside a trip on a phone the tab
   // bar yields, and M4's back is M2 — its declared parent (ADR-011).
