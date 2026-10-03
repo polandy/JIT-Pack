@@ -87,7 +87,8 @@
 * **One rhythm:** every block stands 12 px from the edge and 12 px from the next — *Der Tag*, the progress card, *Pro
   Person*, the list — and every block names itself the same way: a card in its own head, M4's parts in the eyebrow
   over them. The chip row opens with the list's own eyebrow, *„Packliste"*, the grouping at its end (*„Gruppiert nach
-  Kategorie"*); with a filter on, the chips stand there instead.
+  Kategorie"*); with a filter on, the chips stand there instead. The first group's head follows that row closely —
+  its room is for a group above it, and there is none (M4 the same).
 * **A line** is M4's `PackingRow` (handle `m27-row-*`, a child `m27-child-*`): the §3.28 mark, the name, the mode
   and late glyphs, the stepper or tick at the edge. Under the name, where it has something to say
   (`ExcursionFacts`):

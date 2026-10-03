@@ -1635,6 +1635,12 @@ ion-content.excursion-content::part(scroll) {
   cursor: pointer;
 }
 
+/* The first group follows the chip row directly: its head needs no room
+   from a group above it, only from the row's own words. */
+.group-head:first-child {
+  padding-top: 4px;
+}
+
 .group-name {
   flex: 1;
   text-align: start;

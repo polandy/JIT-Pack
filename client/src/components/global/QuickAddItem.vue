@@ -890,6 +890,11 @@ function onKeydown(event: KeyboardEvent) {
   padding: 8px 16px;
 }
 
+/* Shut and without its trigger (the FAB opens it), it holds nothing and keeps no room. */
+.quick-add:empty {
+  padding: 0;
+}
+
 .quick-add-trigger {
   display: flex;
   align-items: center;
