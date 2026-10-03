@@ -61,3 +61,5 @@
   and saved — with no *Ersetzen* offered — as the excursion's first track, its climb on its line. *Bearbeiten* on its
   full-screen map opens the editor on the track's own file; a moved point saved as a new track stands beside it as
   *(variant)*.
+* Its connections (FR-29.18) — *Verbindung hinzufügen* on the excursion's screen, the line it leaves there and the label
+  it takes on the day plan — are inside **E2E-M29-13** (`planner/bridge.spec.ts`).

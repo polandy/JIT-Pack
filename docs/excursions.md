@@ -120,6 +120,12 @@ A [trip note](trip-notes.md) can say which excursion it is about: pick the excur
 The excursion's list then shows a line for that note right under its progress card, and tapping the line opens the
 note.
 
+## Connections
+
+**Verbindung hinzufügen** on the excursion's screen adds a train or bus connection for the way there or back: paste
+the SBB link or enter it by hand. The connection is listed under the excursion; tap it to change or delete it. The
+[day plan](day-plan.md) shows it on its day, named after the excursion.
+
 ## Reminders
 
 On the day before an excursion and on the day itself, while something on its list is still open, the dashboard shows

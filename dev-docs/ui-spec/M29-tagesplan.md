@@ -28,6 +28,7 @@
   * An excursion made from an idea (FR-29.13) is **one line**: the excursion's, whose second line starts *„💡 Titel"*,
     timed by the idea's time on the day the idea was planned for. The idea has no line of its own, and neither a pool
     chip nor an *Außerhalb der Reise* place.
+  * A connection that belongs to an excursion (added on M27) reads *„🚆 Verbindung · Titel"*; the plan only shows it.
   * **💡 Idee**, with its note, and a tick (`m29-tick-<key>`) that sets *Gemacht* and back, striking the line through;
     a tap opens it over M28.
   * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.

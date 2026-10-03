@@ -29,7 +29,7 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
         ? t('dayPlan.spanReturn')
         : null
   return {
-    kind: span ? `${kind} · ${span}` : kind,
+    kind: [kind, span, line.excursion?.title].filter((part) => !!part).join(' · '),
     title:
       line.kind === DAY_LINE.arrival
         ? t('dayPlan.arrival')

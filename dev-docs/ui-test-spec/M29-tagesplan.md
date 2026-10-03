@@ -53,7 +53,9 @@
   lists three of today's four lines and says *„+ 1 more · day plan"*; a trip ahead has no card; an idea ticked on the
   card is done, and the link opens M29 on today with the idea ticked there. Which lines are still to come at a time of
   day is `linesAhead` in `planner/domain/__tests__/dayPlan.spec.ts`.
-* **E2E-M29-13** `local` (FR-29.13/29.15) — **implemented** (`planner/bridge.spec.ts`): a shortlisted idea
+* **E2E-M29-13** `local` (FR-29.13/29.15/29.18) — **implemented** (`planner/bridge.spec.ts`): a shortlisted idea
   planned on a day and made into an excursion stands on that day as one *Excursion* line naming *💡 Gola Gorropu* —
-  the plan holds one line, not two. The merge rule (time, the idea's missing line, pool and outside) is
-  `dayPlan.spec.ts`.
+  the plan holds one line, not two. A connection written by hand on the excursion's own screen (M27) stands
+  beside it labelled *Connection · Gola Gorropu*. The merge rule
+  (time, the idea's missing line, pool and outside) is `dayPlan.spec.ts`; the server's check of the link is
+  `TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn`.

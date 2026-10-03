@@ -261,6 +261,7 @@ export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
     note: entry.note,
     link: entry.link,
     legs: jsonColumn(entry.legs),
+    excursion_id: entry.excursion_id ?? null,
   }
 }
 

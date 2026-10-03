@@ -183,21 +183,40 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
 
   /**
    * E2E-M29-13: an excursion made from an idea stands on the day plan as one
-   * line — the idea has none of its own.
+   * line — the idea has none of its own. A connection is added on the
+   * excursion's own screen; the day plan shows it, labelled with the excursion.
    */
-  test('E2E-M29-13: the idea and its excursion are one line', async ({ page }) => {
+  test('E2E-M29-13: the idea and its excursion are one line, and a connection is added on the excursion', async ({
+    page,
+  }) => {
     const detail = await shortlistedIdea(page)
     await detail.getByTestId('idea-make-excursion').click()
     await page.getByTestId('m27-sheet').getByTestId('m27-save').click()
-    await expect(visiblePage(page).getByTestId('m27-excursion-page')).toBeVisible()
+    const excursion = visiblePage(page)
+    await expect(excursion.getByTestId('m27-excursion-page')).toBeVisible()
     await writesLanded(page)
+
+    await excursion.getByTestId('m27-add-connection').click()
+    const sheet = page.getByTestId('day-entry')
+    await expect(sheet.getByTestId('day-entry-kinds')).toHaveCount(0)
+    await expect(sheet.getByTestId('day-entry-excursion')).toContainText(IDEA)
+    await fillIonic(sheet.getByTestId('day-entry-hand-from'), 'Dorgali')
+    await fillIonic(sheet.getByTestId('day-entry-hand-to'), 'Olbia')
+    await sheet.getByTestId('day-entry-hand-dep').locator('input').fill('07:10')
+    await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:05')
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await expect(excursion.getByTestId('m27-connections')).toContainText('Dorgali → Olbia')
 
     await openDayPlan(page)
     await chooseDay(page, THIRD)
     const lines = timelineLines(page)
-    await expect(lines).toHaveCount(1)
-    const line = lines.first()
+    await expect(lines).toHaveCount(2)
+    const line = lines.filter({ hasText: IDEA, hasNotText: 'Dorgali' })
     await expect(line).toHaveAttribute('data-kind', 'excursion')
     await expect(line).toContainText(`💡 ${IDEA}`)
+    const connection = lines.filter({ hasText: 'Dorgali → Olbia' })
+    await expect(connection).toHaveAttribute('data-kind', 'connection')
+    await expect(connection).toContainText(`Connection · ${IDEA}`)
   })
 })

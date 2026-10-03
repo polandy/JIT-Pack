@@ -54,6 +54,8 @@ export interface DayEntryFields {
 export interface ConnectionFields {
   legs: ConnectionLeg[]
   link: string | null
+  /** The excursion it belongs to, or null/absent for none. */
+  excursionId?: string | null
 }
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
@@ -191,6 +193,7 @@ export function createPlannerActions(
       note: null,
       link: fields.link,
       legs: jsonColumn(fields.legs),
+      excursion_id: fields.excursionId ?? null,
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
     return day

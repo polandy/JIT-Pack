@@ -424,6 +424,7 @@ function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
     note: (row['note'] as string) ?? null,
     link: (row['link'] as string) ?? null,
     legs: parseLegs(row['legs']),
+    excursion_id: (row['excursion_id'] as string) ?? null,
   }
 }
 

@@ -39,7 +39,7 @@ import {
   layersOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -98,6 +98,7 @@ import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProg
 import { noteThreads, threadsAboutExcursion } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { chooseAction, confirmDestructive, promptText } from '@/lib/confirm'
+import { EXCURSION_CONNECTIONS } from '@/lib/excursionConnections'
 import { excursionDays } from '@/lib/excursionText'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
@@ -139,6 +140,8 @@ const DESKTOP_QUERY = '(min-width: 900px)'
 const GROUPING_CONTAINER = 'container'
 
 const orchestrator = useOrchestrator()
+/** The planner's section for a connection that belongs to this excursion (FR-29.18). */
+const ConnectionsSection = inject(EXCURSION_CONNECTIONS, null)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const router = useRouter()
@@ -1081,6 +1084,14 @@ setHeaderTitle(
           @select="selectPerson"
         />
         <ExcursionNotes v-if="notes.length > 0" :threads="notes" @open="openNote" />
+        <component
+          :is="ConnectionsSection"
+          v-if="ConnectionsSection"
+          :trip-id="tripId"
+          :excursion-id="excursionId"
+          :title="excursion.name"
+          :day="excursion.starts_on"
+        />
 
         <!-- FR-25.11k: the field exists only while it is being used. -->
         <SearchRow

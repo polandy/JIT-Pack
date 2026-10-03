@@ -50,7 +50,8 @@ import {
   type DayInput,
   type DayLine,
 } from './domain/dayPlan'
-import { connectionDay, type PageLinks } from './domain/connections'
+import { connectionDay } from './domain/connections'
+import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -166,12 +167,7 @@ function onSave(fields: DayEntryFields) {
   else if (chosen.value) actions.addDayEntry(props.tripId, chosen.value, fields, myUserId.value)
 }
 
-/** The server's read of a short link's page, where this device has one (FR-29.16). */
-const pageLinks = computed<PageLinks | null>(() => {
-  const preview = orchestrator.moduleHost.linkPreview
-  if (!preview.offered()) return null
-  return async (url) => (await preview.read(props.tripId, url))?.links ?? null
-})
+const pageLinks = usePageLinks(props.tripId, orchestrator)
 
 /** A connection lands on the day its link names, and the plan goes there with it. */
 function onSaveConnection(fields: ConnectionFields) {

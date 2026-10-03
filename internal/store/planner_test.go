@@ -2,6 +2,9 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -377,5 +380,54 @@ func TestSchema_DayConnection_FR29_18(t *testing.T) {
 		testTrip, testUser)
 	if err := s.db.QueryRow(`SELECT kind FROM day_entries WHERE id = 'de-n'`).Scan(&plain); err != nil || plain != "note" {
 		t.Errorf("an entry written without a kind reads %q (err %v), want note — every entry before FR-29.18", plain, err)
+	}
+}
+
+// FR-29.18: a connection may name an excursion of its own trip; one deleted
+// before the connection arrived costs the link, not the connection, and one
+// of another trip is refused.
+func TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn(t *testing.T) {
+	s := openPlannerStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-own', ?, 'Wanderung')`, testTrip)
+	mustExec(t, s, `INSERT INTO trips (id, name, year) VALUES ('trip-other', 'Other', 2026)`)
+	mustExec(t, s, `INSERT INTO excursions (id, trip_id, name) VALUES ('ex-foreign', 'trip-other', 'Fremd')`)
+	cases := []struct {
+		name, excursion string
+		want            sync.Outcome
+		wantLink        any
+	}{
+		{"an excursion of the trip", "ex-own", sync.OutcomeApplied, "ex-own"},
+		{"an excursion that is gone", "ex-gone", sync.OutcomeApplied, nil},
+		{"an excursion of another trip", "ex-foreign", sync.OutcomeRejected, nil},
+	}
+	for i, tc := range cases {
+		id := fmt.Sprintf("de-x%d", i)
+		m := sync.Mutation{
+			MutationID: "mut-" + id, Op: sync.OpInsert, Table: TableDayEntries, ID: id,
+			Fields: map[string]any{
+				"trip_id": testTrip, "author_id": testUser, "on_date": "2026-10-10", "title": "Fahrt",
+				"excursion_id": tc.excursion,
+			},
+			HLC: sync.HLC(fmt.Sprintf("000000000%d000-0000-aaaaaaaa", i+1)),
+		}
+		res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
+		if err != nil || res.Outcome != tc.want {
+			t.Fatalf("%s: outcome %q reason %q err %v", tc.name, res.Outcome, res.Reason, err)
+		}
+		var got any
+		err = s.db.QueryRow(`SELECT excursion_id FROM day_entries WHERE id = ?`, id).Scan(&got)
+		if tc.want == sync.OutcomeRejected {
+			if !errors.Is(err, sql.ErrNoRows) {
+				t.Errorf("%s: the refused connection was written (err %v)", tc.name, err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatalf("%s: read: %v", tc.name, err)
+		}
+		if got != tc.wantLink {
+			t.Errorf("%s: excursion_id = %v, want %v", tc.name, got, tc.wantLink)
+		}
 	}
 }

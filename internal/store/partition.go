@@ -116,6 +116,8 @@ func tripPartition(tripID, userID string) partition {
 				return validIdeaResult(ctx, tx, tripID, m)
 			case TableExcursions, TableShoppingEntries:
 				return validIdeaResult(ctx, tx, tripID, m)
+			case TableDayEntries:
+				return noteExcursion(ctx, tx, tripID, m)
 			case TableIdeaVotes:
 				return validIdeaVote(userID, row), nil
 			case TableIdeaComments:
