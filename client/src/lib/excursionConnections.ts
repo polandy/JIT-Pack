@@ -25,6 +25,8 @@ export interface ExcursionConnectionsProps {
   lastDay: string | null
   /** Its first track's time with the pauses, for the time budget; null without a track. */
   routeMinutes: number | null
+  /** Where its first track starts, `[lat, lon]`, for the timetable search's destination; null without a track. */
+  routeStart: [number, number] | null
   /** The route folded to a line (*„3.3 km · ↑ 300 m"*), null without a track; the route itself is the `route` slot. */
   routeSummary: string | null
   /** The first track's distance alone (*„3.3 km"*), where the folded day has the ways beside it. */

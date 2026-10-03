@@ -124,7 +124,7 @@ note.
 ## There and back
 
 **Der Tag** reads like the day itself: the way there, the route, the way back, one under the other. Folded, it says
-the day in one line — *08:06 → 3.3 km → 16:23 · 4 h 24 Luft*. Tap **Hinfahrt eintragen** or **Rückfahrt eintragen** and paste the connection's SBB link, or enter it by hand — a boat, a cable car
+the day in one line — *08:06 → 3.3 km → 16:23 · 4 h 24 Luft*. Tap **Hinfahrt eintragen** or **Rückfahrt eintragen**. The sheet searches the Swiss timetable first: for the way there, the arrival stop is the one nearest the start of the excursion's GPX track; for the way back, the search starts once the route is walked, and each connection says how much time it leaves (*6 h 24 Luft*) or how early it is (*19 min zu früh*). Or paste the connection's SBB link, or enter it by hand — a boat, a cable car
 or a bus abroad works the same way. The way there lands on the excursion's first day, the way back on its last; an
 excursion without a date asks for one first. Tap a filled slot to change or delete it.
 

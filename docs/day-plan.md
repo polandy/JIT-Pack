@@ -64,6 +64,12 @@ Tap the round **+** to add something to the chosen day: a title, a note and, if 
 
 Tap **+** and choose **Verbindung**.
 
+**Search the timetable:** the sheet opens with a search for Swiss connections. Type the departure and the arrival
+stop (suggestions appear from the third letter), choose **Abfahrt** or **Ankunft** and a time, and tap **Suchen**. Each
+result shows its times, duration, changes and lines; tap one and **Am … einfügen** adds it. If a stop is not found or
+the timetable does not answer, the sheet says so and the link and the fields below stay. The search needs a network
+connection, and your instance can switch it off ([Timetable](configuration.md#timetable)).
+
 **From the SBB app:** open the connection there, share it and copy the link. Then tap **Link aus Zwischenablage
 einfügen**, or paste the link into the field. It is read at once: the sheet lists the legs, and **Am … einfügen** adds
 the connection on the day it runs, even if you had a different day open. The day plan then shows that day.

@@ -70,3 +70,8 @@
   the other, and the day plan labels the two *Way there · Oeschinensee* / *Way back · Oeschinensee*. The slot rule, the
   budget's cases (a route too long, a hut night, a route past midnight) and its words are `journey.spec.ts` and
   `journeyText.spec.ts`.
+* **E2E-M27-18** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`, the timetable stubbed): an empty
+  way there opens with *Nach* filled with the stop nearest the track's start; typing a departure offers stops, a tap
+  takes one, *Search* lists connections, and a tap takes one into the slot. The way back is searched from the way
+  there's arrival plus the route, and each result says what it leaves of it — *„… too early"* for one, *„… to spare"*
+  for another. A stop the service does not know says so (`timetable-message`) and leaves the hand fields.

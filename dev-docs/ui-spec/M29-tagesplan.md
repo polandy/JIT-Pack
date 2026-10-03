@@ -59,6 +59,16 @@
   *Uhrzeit (optional)* (`idea-plan-time`); taking the day away takes the time with it. The Shortlist's card shows
   *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
 * **Connections (FR-29.18, ADR-086)** — the ＋ sheet's *Verbindung* (`day-entry-connection`):
+  * **The timetable search** (`timetable-search`) opens a *new* connection, above the link: *Von* (`timetable-from`)
+    and *Nach* (`timetable-to`) with up to four stop chips under the field from the third typed character
+    (`timetable-from-stops`, `timetable-to-stops`, a chip `timetable-<from|to>-stop-<id>`),
+    *Abfahrt* / *Ankunft* (`timetable-mode`), *Zeit*
+    (`timetable-time`) and *Suchen* (`timetable-submit`). Each result (`timetable-result-<n>`) reads
+    *„08:06 → 08:34"* over *„28 min · direkt · RE 123"*, and, where the sheet knows the earliest time, the slack
+    (`timetable-slack`): *„6 h 24 Luft"*, or *„19 min zu früh"* in the warning colour. A tap takes the connection as a
+    read link would — the legs as the preview, *„Am … einfügen"*. *„Keine Verbindung gefunden …"*, *„Der Fahrplan
+    antwortet nicht …"* (`timetable-message`) leave the link and the hand fields. Hidden when the instance turned the
+    search off, while the device is offline, and when an existing connection is changed.
   * *„In der SBB-App die Verbindung teilen und den Link kopieren – eingefügt wird er sofort gelesen."*, then
     *📋 Link aus Zwischenablage einfügen* (`day-entry-paste`, only where the page may read the clipboard — not over
     plain http) and *Link (optional)* (`day-entry-link`).

@@ -8,7 +8,8 @@
  * A connection's link is read the moment it arrives — pasted into the field
  * or fetched by the clipboard button — never on a keystroke, and the read
  * replaces the hand fields with its legs. A link nobody can read leaves the
- * hand fields, and is kept beside them.
+ * hand fields, and is kept beside them. Above both, the timetable search finds a
+ * connection to take instead (ADR-086).
  */
 import {
   IonButton,
@@ -27,11 +28,13 @@ import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { t } from '@/i18n'
 import { canReadClipboard, readClipboardText } from '@/lib/clipboard'
+import { useTimetableOffered } from '@/lib/timetable'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { ConnectionLeg, DayEntry, Idea } from '@/types/domain'
 import { DAY_ENTRY_CONNECTION } from '@/types/domain'
 import type { ConnectionFields, DayEntryFields } from './actions'
 import ConnectionLegs from './ConnectionLegs.vue'
+import ConnectionSearch from './ConnectionSearch.vue'
 import {
   connectionDay,
   handFieldsOf,
@@ -42,6 +45,7 @@ import {
 } from './domain/connections'
 import { isPlanTime } from './domain/dayPlan'
 import { parseLink } from './domain/ideas'
+import type { SearchSeed } from './domain/timetable'
 
 const props = defineProps<{
   open: boolean
@@ -61,6 +65,10 @@ const props = defineProps<{
   connectionOnly?: boolean
   /** The head's words where the caller names what is written — *Hinfahrt*. */
   heading?: string | null
+  /** Where a new connection's timetable search starts (FR-29.18); the morning of the day where none is given. */
+  searchSeed?: SearchSeed | null
+  /** The place whose nearest stop a new way there arrives at: the route's start. */
+  searchNear?: { lat: number; lon: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -98,6 +106,9 @@ const readLegs = ref<ConnectionLeg[] | null>(null)
 let readFor = ''
 let generation = 0
 const clipboard = canReadClipboard()
+const timetableOffered = useTimetableOffered()
+const DEFAULT_SEED: SearchSeed = { from: '', to: '', time: '08:00', earliest: null }
+const searchable = computed(() => !props.entry && timetableOffered.value && handDay.value !== null)
 
 const parsedLink = computed(() => parseLink(link.value))
 /** The day a connection by hand stands on: the entry's own, or the chosen one. */
@@ -113,6 +124,15 @@ const canSaveConnection = computed(
 
 function setHand(fields: HandFields) {
   Object.assign(hand, fields)
+}
+
+/** A connection taken from the timetable reads as a link would: its legs, the link left empty. */
+function takeSearched(legs: ConnectionLeg[]) {
+  generation++
+  link.value = ''
+  readFor = ''
+  readLegs.value = legs
+  readState.value = READ_DONE
 }
 
 function forgetRead() {
@@ -314,6 +334,13 @@ function save() {
         <p v-if="excursionTitle" class="hint" data-testid="day-entry-excursion">
           {{ t('dayPlan.connectionFor', { title: excursionTitle }) }}
         </p>
+        <ConnectionSearch
+          v-if="searchable"
+          :day="handDay"
+          :seed="searchSeed ?? DEFAULT_SEED"
+          :near="searchNear ?? null"
+          @pick="takeSearched"
+        />
         <p class="hint">{{ t('dayPlan.connectionHint') }}</p>
         <IonButton
           v-if="clipboard"

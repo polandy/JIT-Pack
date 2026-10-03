@@ -39,6 +39,7 @@ import './composables/dragToGroup.css'
 import { initLocale } from './i18n'
 import { initCurrency } from './lib/currency'
 import { initMapTiles } from './lib/mapTiles'
+import { initTimetable } from './lib/timetable'
 import { initRouting } from './lib/routing'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
@@ -54,6 +55,7 @@ initLocale()
 // Local Mode never asks, and its amounts stay unit-less).
 initCurrency()
 initMapTiles()
+initTimetable()
 initRouting()
 if (import.meta.env.PROD) registerAppServiceWorker()
 

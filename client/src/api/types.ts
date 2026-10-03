@@ -435,6 +435,10 @@ export interface AuthConfigResponse {
  * from swisstopo and OpenStreetMap by the device itself (FR-29.17,
  * ADR-085). False draws a track's line alone, as a device offline does.
  *
+ * Timetable says whether a device offers the connection search (FR-29.18,
+ * ADR-086), which it asks transport.opendata.ch itself. False leaves the
+ * link and the hand fields.
+ *
  * RoutingURL is the BRouter a device asks for the path between two points
  * of a route it edits (FR-29.20, ADR-088), asked by the device itself.
  * Empty where the operator turned routing off: the points are then joined
@@ -443,6 +447,7 @@ export interface AuthConfigResponse {
 export interface InstanceConfigResponse {
   currency: string
   map_tiles: boolean
+  timetable: boolean
   routing_url: string
 }
 

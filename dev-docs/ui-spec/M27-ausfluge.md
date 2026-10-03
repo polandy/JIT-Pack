@@ -65,7 +65,11 @@
     at the end; an empty one, its dot dashed, *„Hinfahrt eintragen"* / *„Rückfahrt eintragen"* in the action colour.
     A tap opens the day plan's connection sheet headed *Hinfahrt* / *Rückfahrt*, with only the connection form,
     *„Für „Titel""* (`day-entry-excursion`), and the hand fields on the excursion's first day for the way there, its
-    last for the way back; a filled way opens its connection to change or delete. **Without days** the first step says
+    last for the way back; a filled way opens its connection to change or delete. An empty way opens with the
+    timetable search of M29 above the hand fields: *Nach* of the way there is the stop nearest the first track's start
+    (*„Kein Halt in der Nähe des Routenstarts …"* where none is found), the way back is searched arriving-reversed, from
+    the way there's arrival plus the route's time, and each result says what it leaves of that.
+    **Without days** the first step says
     *„Gib dem Ausflug einen Tag, dann kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is
     offered; the route stays. Any other connection of the excursion stands under the timeline as a row of its own
     (`m27-connection-<id>`: departure, title over day, chevron).

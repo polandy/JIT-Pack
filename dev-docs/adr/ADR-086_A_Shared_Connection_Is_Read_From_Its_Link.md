@@ -1,6 +1,6 @@
 # ADR-086: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
 
-**Status:** Accepted
+**Status:** Accepted — amended 2026-10-03: option C is added beside the link, not instead of it
 **Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.18, invariant 4, invariant 5,
 `dev-docs/planner-concept.md` §3
 
@@ -95,6 +95,20 @@ leaves the hand fields with the link kept. The server only returns a page's link
 
 **Neutral**
 - The day the reader stops finding legs costs nothing stored; only new pastes fall back.
+
+## Amendment (2026-10-03) — the search joins the link
+
+Option C was rejected as *the* path: Switzerland only, so useless abroad (driver 2). The family's excursions are
+mostly Swiss, though, and a paste still costs a trip to another app. The search is therefore added **in front of** the
+link and the hand fields, which stay the way for everything it cannot find:
+
+- The **device** asks transport.opendata.ch, as it asks swisstopo for tiles (ADR-085): Local Mode keeps it, the server
+  gains no outbound call, and the instance can switch it off with `JITPACK_TIMETABLE=false` (on by default, named in
+  `docs/configuration.md`).
+- The cost is a second outbound service that sees the stops searched for and the device's address; a changed answer
+  is a red unit test against a fresh fixture, and in the field a polite "no connection found" with the hand fields.
+- An excursion seeds the search from what it knows — the stop nearest the track's start, the way back reversed from
+  the arrival and the route — which a bare search cannot.
 
 ## Revisit Trigger
 

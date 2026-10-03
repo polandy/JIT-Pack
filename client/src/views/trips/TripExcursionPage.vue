@@ -89,7 +89,7 @@ import {
   type LineFor,
 } from '@/domain/excursions'
 import { durationDays } from '@/domain/instantiate'
-import { MAX_TRACKS, movingMinutes } from '@/domain/track'
+import { MAX_TRACKS, decodeLine, movingMinutes } from '@/domain/track'
 import { buildPackingView } from '@/domain/packingView'
 import { packedPercent, stateFor } from '@/domain/packState'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -907,6 +907,11 @@ const routeMinutes = computed(() => {
   const first = tracksOn.value[0]
   return first ? movingMinutes(first) + first.pause_min : null
 })
+/** FR-29.18: where the first track starts — the stop nearest it is the way there's destination. */
+const routeStart = computed<[number, number] | null>(() => {
+  const first = tracksOn.value[0]
+  return first ? (decodeLine(first.line)[0] ?? null) : null
+})
 const tracks = useTrackOwner<ExcursionTrack>(() => {
   const ex = excursion.value
   if (!ex) return null
@@ -1062,6 +1067,7 @@ setHeaderTitle(
           :day="excursion.starts_on"
           :last-day="excursion.ends_on ?? excursion.starts_on"
           :route-minutes="routeMinutes"
+          :route-start="routeStart"
           :route-summary="routeSummary"
           :route-distance="routeDistance"
           :open="routeFold.open.value"

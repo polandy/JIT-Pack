@@ -6,6 +6,7 @@ import { addExcursionTrack, createExcursion, openExcursions } from './helpers/m2
 import { gpxFile, stubTiles } from './helpers/m28'
 import { chooseDay, dayFromToday, openDayPlan, timelineLines } from './helpers/m29'
 import { writesLanded } from './helpers/page'
+import { stubTimetable } from './helpers/timetable'
 
 /**
  * M27 — an excursion's way there and back (FR-29.18), in Local Mode: two
@@ -150,6 +151,114 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     )
     await expect(lines.filter({ hasText: 'Kandersteg → Spiez' })).toContainText(
       'Way back · Oeschinensee',
+    )
+  })
+
+  /**
+   * E2E-M27-18: the slots search the timetable. The way there asks for the
+   * stop nearest the track's start as *Nach*, offers stops as the departure is
+   * typed, lists connections, and a tap takes one. The way back arrives
+   * reversed, leaving once the route is walked, and every connection says how
+   * much it leaves of that: one too early, one with time to spare. A stop the
+   * service does not know says so and leaves the hand fields.
+   */
+  test('E2E-M27-18: the way there and back are searched in the timetable, each seeded from the other', async ({
+    page,
+  }) => {
+    const stub = await stubTimetable(
+      page,
+      [
+        { id: '8507483', name: 'Kandersteg', lat: 46.5, lon: 7.7 },
+        { id: '8507100', name: 'Spiez', lat: 46.68, lon: 7.68 },
+      ],
+      [
+        {
+          from: 'Spiez',
+          to: 'Kandersteg',
+          dep: '08:06',
+          arr: '08:34',
+          category: 'RE',
+          number: '0123',
+        },
+        {
+          from: 'Spiez',
+          to: 'Kandersteg',
+          dep: '08:36',
+          arr: '09:04',
+          category: 'RE',
+          number: '0125',
+        },
+        {
+          from: 'Kandersteg',
+          to: 'Spiez',
+          dep: '09:40',
+          arr: '10:09',
+          category: 'RE',
+          number: '0130',
+        },
+        {
+          from: 'Kandersteg',
+          to: 'Spiez',
+          dep: '16:23',
+          arr: '16:52',
+          category: 'RE',
+          number: '0145',
+        },
+      ],
+    )
+    await createExcursion(page, { name: 'Oeschinensee', days: { start: HIKE_DAY, end: HIKE_DAY } })
+    await addExcursionTrack(page, 'climb.gpx', CLIMB)
+
+    await slot(page, 'out').click()
+    const sheet = page.getByTestId('day-entry')
+    await expect(sheet.getByTestId('timetable-to').locator('input')).toHaveValue('Kandersteg')
+
+    // A stop the service does not know: said so, and the hand fields stay.
+    await sheet.getByTestId('timetable-from').locator('input').fill('Nirgendwo')
+    await sheet.getByTestId('timetable-submit').click()
+    await expect(sheet.getByTestId('timetable-message')).toHaveText(
+      'No connection found – check the stops or enter the way by hand below.',
+    )
+    await expect(sheet.getByTestId('day-entry-hand')).toBeVisible()
+
+    await sheet.getByTestId('timetable-from').locator('input').fill('Spi')
+    await sheet.getByTestId('timetable-from-stop-8507100').click()
+    await expect(sheet.getByTestId('timetable-from').locator('input')).toHaveValue('Spiez')
+    await sheet.getByTestId('timetable-submit').click()
+    await expect(sheet.getByTestId('timetable-results').locator('li')).toHaveCount(2)
+    await expect(sheet.getByTestId('timetable-result-0')).toContainText('08:06 → 08:34')
+    await expect(sheet.getByTestId('timetable-result-0')).toContainText('RE 123')
+    expect(
+      stub.asked.some(
+        (u) => u.pathname.endsWith('/connections') && u.searchParams.get('date') === HIKE_DAY,
+      ),
+    ).toBe(true)
+
+    await sheet.getByTestId('timetable-result-0').click()
+    await expect(sheet.getByTestId('day-entry-legs')).toContainText('Spiez → Kandersteg')
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await writesLanded(page)
+    await expect(slot(page, 'out')).toContainText('08:06 Spiez → 08:34 Kandersteg')
+
+    // Arriving 08:34 and a route of 1 h 25 → leaving 09:59 at the earliest.
+    await slot(page, 'back').click()
+    await expect(sheet.getByTestId('timetable-from').locator('input')).toHaveValue('Kandersteg')
+    await expect(sheet.getByTestId('timetable-to').locator('input')).toHaveValue('Spiez')
+    await expect(sheet.getByTestId('timetable-time').locator('input')).toHaveValue('09:59')
+    await sheet.getByTestId('timetable-submit').click()
+    await expect(sheet.getByTestId('timetable-result-0').getByTestId('timetable-slack')).toHaveText(
+      '19 min too early',
+    )
+    await expect(sheet.getByTestId('timetable-result-1').getByTestId('timetable-slack')).toHaveText(
+      '6 h 24 to spare',
+    )
+    await sheet.getByTestId('timetable-result-1').click()
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await writesLanded(page)
+    await expect(visiblePage(page).getByTestId('m27-journey-budget')).toHaveText(
+      'On the spot 7 h 49 · Route 1 h 25 → 6 h 24 to spare',
     )
   })
 })

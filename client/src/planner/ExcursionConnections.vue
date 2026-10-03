@@ -33,6 +33,7 @@ import {
 } from '@/types/domain'
 import { createPlannerActions, type ConnectionFields } from './actions'
 import { excursionJourney, journeyBudget, journeyTimes } from './domain/journey'
+import { searchSeed } from './domain/timetable'
 import DayEntrySheet from './DayEntrySheet.vue'
 import { budgetWords, daySummary, wayWords } from './journeyText'
 import { usePageLinks } from './usePageLinks'
@@ -81,6 +82,22 @@ const slots = computed<Slot[]>(() => [
     entry: journey.value.back,
   },
 ])
+
+/** The timetable search's start for the slot being written (FR-29.18). */
+const seed = computed(() =>
+  searchSeed({
+    role: editing.value?.role ?? null,
+    out: journey.value.out,
+    routeMinutes: props.routeMinutes,
+  }),
+)
+/** The way there ends at the stop nearest the route's start. */
+const near = computed(() => {
+  const start = props.routeStart
+  return editing.value?.role === EXCURSION_ROLE_OUT && start
+    ? { lat: start[0], lon: start[1] }
+    : null
+})
 
 const budget = computed(() =>
   journeyBudget({
@@ -260,6 +277,8 @@ async function onRemove() {
       :pool="[]"
       :page-links="pageLinks"
       :excursion-title="title"
+      :search-seed="seed"
+      :search-near="near"
       :heading="editing?.heading"
       connection-only
       @close="editing = null"

@@ -36,6 +36,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				Timetable:      true,
 				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
@@ -53,6 +54,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				Timetable:      true,
 				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":9090",
 				DBPath:         "/data/app.db",
@@ -72,6 +74,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				Timetable:      true,
 				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
@@ -89,6 +92,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				Timetable:      true,
 				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
@@ -109,6 +113,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
 				MapTiles:         true,
+				Timetable:        true,
 				RoutingURL:       DefaultRoutingURL,
 			},
 		},
@@ -129,6 +134,7 @@ func TestLoadConfig(t *testing.T) {
 				OIDCClientSecret: "confidential",
 				LinkPreviews:     true,
 				MapTiles:         true,
+				Timetable:        true,
 				RoutingURL:       DefaultRoutingURL,
 			},
 		},
@@ -142,6 +148,7 @@ func TestLoadConfig(t *testing.T) {
 				TaskReminderAt: defaultReminder,
 				LinkPreviews:   true,
 				MapTiles:       true,
+				Timetable:      true,
 				RoutingURL:     DefaultRoutingURL,
 				Listen:         ":8080",
 				DBPath:         "jitpack.db",
@@ -375,6 +382,43 @@ func TestLoadConfig_MapTiles_FR29_17(t *testing.T) {
 			}
 			if cfg.MapTiles != tc.want {
 				t.Errorf("MapTiles = %v, want %v", cfg.MapTiles, tc.want)
+			}
+		})
+	}
+}
+
+// FR-29.18: the timetable search is on unless the operator says "false",
+// with the same refusal of any other word as the map tiles' switch.
+func TestLoadConfig_Timetable_FR29_18(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset is on", raw: "", want: true},
+		{name: "false turns it off", raw: "false", want: false},
+		{name: "a misspelling refuses to start", raw: "off", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_TIMETABLE":     tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "JITPACK_TIMETABLE") {
+					t.Fatalf("loadConfigFrom(%q) = %v, want an error naming the variable", tc.raw, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.Timetable != tc.want {
+				t.Errorf("Timetable = %v, want %v", cfg.Timetable, tc.want)
 			}
 		})
 	}

@@ -34,6 +34,7 @@ func fullOptions() Options {
 		Now:           func() time.Time { return fixedNow },
 		LinkPreviews:  testPreviewer,
 		NoMapTiles:    true,
+		NoTimetable:   true,
 		RoutingURL:    "https://router.example/brouter",
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
@@ -54,6 +55,7 @@ func fullOptions() Options {
 var applied = map[string]func(*Server) bool{
 	"Currency":    func(s *Server) bool { return s.instance.Currency == "CHF" },
 	"NoMapTiles":  func(s *Server) bool { return !s.instance.MapTiles },
+	"NoTimetable": func(s *Server) bool { return !s.instance.Timetable },
 	"RoutingURL":  func(s *Server) bool { return s.instance.RoutingURL == "https://router.example/brouter" },
 	"PushContact": func(s *Server) bool { return s.pushContact == "mailto:ops@example.com" },
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },

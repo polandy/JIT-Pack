@@ -60,6 +60,7 @@ func main() {
 		Version:     version,
 		UpdateCheck: cfg.UpdateCheck,
 		NoMapTiles:  !cfg.MapTiles,
+		NoTimetable: !cfg.Timetable,
 		RoutingURL:  cfg.RoutingURL,
 	}
 	if cfg.LinkPreviews {
@@ -68,6 +69,9 @@ func main() {
 	}
 	if cfg.MapTiles {
 		log.Printf("map tiles on: devices fetch them from swisstopo and OpenStreetMap (FR-29.17, JITPACK_MAP_TILES=false turns this off)")
+	}
+	if cfg.Timetable {
+		log.Printf("timetable on: devices search transport.opendata.ch for connections (FR-29.18, JITPACK_TIMETABLE=false turns this off)")
 	}
 	if cfg.RoutingURL != "" {
 		log.Printf("routing on: devices ask %s for paths when a route is edited (FR-29.20, JITPACK_ROUTING=false turns this off)", cfg.RoutingURL)

@@ -26,13 +26,17 @@ Nothing you have to undo. Each schema change runs in its own transaction, so a s
 
 ## What a new version may start doing
 
-Most upgrades change nothing you would notice from outside. Three did, and all are on unless you say otherwise:
+Most upgrades change nothing you would notice from outside. Four did, and all are on unless you say otherwise:
 
 - **Link previews.** From the version that brings them, a link pasted into an [idea](ideas.md) is read by your server — it fetches that page from the internet for its title, description and picture. It is the one request the instance makes without you having asked, and it cannot reach into your own network. If the instance should keep contacting nothing, set `JITPACK_LINK_PREVIEWS=false` **before** you start the new image. [Link previews](configuration.md#link-previews) says what a website sees.
 - **Map tiles.** From the version that brings [GPX tracks](ideas.md#gpx-tracks), the devices of the people using
   your instance fetch map tiles from swisstopo and OpenStreetMap to draw a track's map. Your server contacts nobody
   for it. If the devices should not either, set `JITPACK_MAP_TILES=false`. [Map tiles](configuration.md#map-tiles)
   says what those services see.
+- **Timetable search.** From the version that brings it, the sheet for a [connection](day-plan.md#adding-a-connection)
+  searches the Swiss timetable: the devices of the people using your instance ask transport.opendata.ch for stops
+  and connections. Your server contacts nobody for it. Set `JITPACK_TIMETABLE=false` to turn it off;
+  [Timetable](configuration.md#timetable) says what the service sees.
 - **Route planning.** From the version that lets people [edit a route](ideas.md#changing-a-route-or-drawing-one),
   their devices ask the public BRouter route planner for the way along the paths. Your server contacts nobody for
   it. Set `JITPACK_ROUTING=false` to turn it off, or `JITPACK_ROUTING_URL` to use your own;
