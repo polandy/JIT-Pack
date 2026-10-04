@@ -265,10 +265,14 @@ dates or the other, since each merges alone.
 `day_entries` (FR-29.15) is the day plan's own entry — `kind`, `on_date`, `at_time`, `title`, `note` — in the trip
 partition, changed by any member; `author_id` is stamped by the server on the insert, like an idea's. A `connection`
 (FR-29.18, ADR-086) carries `legs`, a JSON array written whole — never merged leg by leg — and the `link` it was read
-from (http(s) only); the activity log leaves `legs` out. A connection may name the excursion it belongs to in
-`excursion_id` — kept only on an excursion of the same trip, dropped when that excursion is gone, refused when it is
-another trip's — and in `excursion_role` which way it is there, `out` or `back` (any other value is refused by the
-schema); both merge field by field like every other column, so two devices filling one way apart both keep a row.
+from (http(s) only); the activity log leaves `legs` out. An entry is a connection while it has `legs`: a client writes
+`kind` with them, `connection` when it adds them and `note` when it takes them off, and shows a row by its `legs`. A leg
+is `from`, `to`, `dep`, `arr`, `line` and, where the search or a link knew them, the optional `mode` (`train`, `bus`,
+`boat`), `fromAt` and `toAt` (`[lat, lon]`) and `via` (the `[lat, lon]` of the stops passed); the server stores the
+array as sent. A connection may name the excursion it belongs to in `excursion_id` — kept only on an excursion of the
+same trip, dropped when that excursion is gone, refused when it is another trip's — and in `excursion_role` which way it
+is there, `out` or `back` (any other value is refused by the schema); both merge field by field like every other column,
+so two devices filling one way apart both keep a row.
 
 `idea_images` (FR-29.5, ADR-081) names one picture on an idea — `idea_id`, `image_hash`, `position` — and is **created
 only by the upload** (`PUT /trips/{id}/ideas/{ideaID}/images/{imageID}`, §8), which writes the row and its bytes in one

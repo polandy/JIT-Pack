@@ -7,8 +7,35 @@
  * timeline says about a connection (its ends, its arrival, its lines and how
  * often one changes) is derived here from the legs alone.
  */
-import type { ConnectionLeg } from '@/types/domain'
+import {
+  LEG_MODE_BOAT,
+  LEG_MODE_BUS,
+  LEG_MODE_TRAIN,
+  type ConnectionLeg,
+  type LatLon,
+  type LegMode,
+} from '@/types/domain'
 import { nextDay } from './dayPlan'
+
+// --- what a leg travels by ---
+
+/** Timetable categories of a boat — the lake steamers' `BAT` first. */
+const BOAT_CATEGORIES = new Set(['BAT', 'BAV', 'FAE', 'SCH'])
+/** Timetable categories of a bus, a replacement bus included. */
+const BUS_CATEGORIES = new Set(['B', 'BUS', 'NFB', 'KB', 'EXB', 'NB', 'EV', 'BN'])
+
+/**
+ * What a ridden leg travels by, from its timetable category (*BAT*, *B*,
+ * *IC*); anything on rails or a rope is drawn as a train. None for a walk,
+ * which has no category.
+ */
+export function legMode(category: string): LegMode | undefined {
+  const word = category.trim().toUpperCase()
+  if (word === '') return undefined
+  if (BOAT_CATEGORIES.has(word)) return LEG_MODE_BOAT
+  if (BUS_CATEGORIES.has(word)) return LEG_MODE_BUS
+  return LEG_MODE_TRAIN
+}
 
 // --- the SBB's shared link ---
 
@@ -52,11 +79,21 @@ const FIELD = '$'
 /** A leg ridden in a vehicle; anything else (`W`, `G@F`) is on foot. */
 const RIDDEN = 'T'
 const STOP_NAME = /(?:^|@)O=([^@]*)/
+/** A stop's place, in millionths of a degree: `X` the longitude, `Y` the latitude. */
+const STOP_X = /(?:^|@)X=(-?\d+)/
+const STOP_Y = /(?:^|@)Y=(-?\d+)/
+const MICRO_DEGREES = 1_000_000
 const STAMP = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/
 
 function stopName(field: string): string | null {
   const name = STOP_NAME.exec(field)?.[1]?.trim()
   return name ? name : null
+}
+
+function stopAt(field: string): LatLon | undefined {
+  const x = STOP_X.exec(field)?.[1]
+  const y = STOP_Y.exec(field)?.[1]
+  return x && y ? [Number(y) / MICRO_DEGREES, Number(x) / MICRO_DEGREES] : undefined
 }
 
 function localTime(stamp: string): string | null {
@@ -94,7 +131,20 @@ export function legsFromContext(text: string): ConnectionLeg[] {
       line: kind === RIDDEN ? lineName(vehicle) : '',
     }
     if (!leg.from || !leg.to || !leg.dep || !leg.arr) return []
-    legs.push({ from: leg.from, to: leg.to, dep: leg.dep, arr: leg.arr, line: leg.line })
+    const read: ConnectionLeg = {
+      from: leg.from,
+      to: leg.to,
+      dep: leg.dep,
+      arr: leg.arr,
+      line: leg.line,
+    }
+    const mode = leg.line ? legMode(leg.line.split(' ')[0]!) : undefined
+    if (mode) read.mode = mode
+    const fromAt = stopAt(from)
+    const toAt = stopAt(to)
+    if (fromAt) read.fromAt = fromAt
+    if (toAt) read.toAt = toAt
+    legs.push(read)
   }
   return legs
 }
@@ -205,6 +255,15 @@ export function dayOf(stamp: string): string {
   return stamp.slice(0, 10)
 }
 
+/**
+ * Where a connection takes one: the stop one gets off at — a walk at the end
+ * left aside — or the walk's end where the whole way is walked.
+ */
+export function connectionDestination(legs: readonly ConnectionLeg[]): string {
+  const ridden = legs.filter((leg) => leg.line !== '')
+  return (ridden[ridden.length - 1] ?? legs[legs.length - 1]!).to
+}
+
 /** The day a connection stands on: its first departure's. */
 export function connectionDay(legs: readonly ConnectionLeg[]): string {
   return dayOf(legs[0]!.dep)
@@ -240,10 +299,81 @@ export function connectionSummary(legs: readonly ConnectionLeg[]): ConnectionSum
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
+/** How long a connection takes: from its first departure to its last arrival, in minutes. */
+export function connectionMinutes(legs: readonly ConnectionLeg[]): number {
+  return minutesOf(legs[legs.length - 1]!.arr) - minutesOf(legs[0]!.dep)
+}
+
+function minutesOf(stamp: string): number {
+  const [day = '', time = ''] = stamp.split('T')
+  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
+  const [hour = 0, minute = 0] = time.split(':').map(Number)
+  return Math.round(Date.UTC(year, month - 1, date, hour, minute) / MS_PER_MINUTE)
+}
+
 function daysBetween(from: string, to: string): number {
   const at = (day: string) => {
     const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
     return Date.UTC(year, month - 1, date)
   }
   return Math.round((at(to) - at(from)) / MS_PER_DAY)
+}
+
+// --- on a map ---
+
+/** A leg's line on a map: its first stop, the stops passed, its last — none where it knows no place. */
+export function legPath(leg: ConnectionLeg): LatLon[] {
+  if (!leg.fromAt || !leg.toAt) return []
+  return [leg.fromAt, ...(leg.via ?? []), leg.toAt]
+}
+
+/** Whether a connection can be drawn: a leg knows where its stops are. */
+export function hasMap(legs: readonly ConnectionLeg[]): boolean {
+  return legs.some((leg) => legPath(leg).length > 1)
+}
+
+// --- from where one is ---
+
+/** Metres walked in a minute, on a straight line — a stroll, with luggage. */
+const METRES_PER_MINUTE = 80
+
+/** How long the walk to a stop takes, from its straight distance. */
+export function walkMinutes(metres: number): number {
+  return Math.ceil(metres / METRES_PER_MINUTE)
+}
+
+/** The walk that opens a connection taken from where one is. */
+export interface WalkStart {
+  /** What the start is called — the device's place has no stop name. */
+  label: string
+  at: LatLon
+  stop: string
+  stopAt: LatLon
+  /** The first ride's departure, `YYYY-MM-DDTHH:MM`. */
+  departure: string
+  minutes: number
+}
+
+/** The walk from where one is to the first stop, ending as the ride leaves. */
+export function walkLeg(start: WalkStart): ConnectionLeg {
+  return {
+    from: start.label,
+    to: start.stop,
+    dep: shiftStamp(start.departure, -start.minutes),
+    arr: start.departure,
+    line: '',
+    fromAt: start.at,
+    toAt: start.stopAt,
+  }
+}
+
+const MS_PER_MINUTE = 60 * 1000
+
+/** A local `YYYY-MM-DDTHH:MM` moved by some minutes, across midnight too. */
+function shiftStamp(stamp: string, minutes: number): string {
+  const [day = '', time = ''] = stamp.split('T')
+  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
+  const [hour = 0, minute = 0] = time.split(':').map(Number)
+  const at = new Date(Date.UTC(year, month - 1, date, hour, minute) + minutes * MS_PER_MINUTE)
+  return at.toISOString().slice(0, 16)
 }

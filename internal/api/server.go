@@ -121,7 +121,7 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
-		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, RoutingURL: opts.RoutingURL},
+		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, Timetable: !opts.NoTimetable, RoutingURL: opts.RoutingURL},
 		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		wsIdleWatch:    idleDeadline,

@@ -10,7 +10,13 @@
 import type { DayPlanLine } from '@/lib/dayPlanSources'
 import { DAY_PLAN_EXCURSION } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea } from '@/types/domain'
-import { DAY_ENTRY_CONNECTION, IDEA_STATE_DONE, IDEA_STATE_SHORTLISTED } from '@/types/domain'
+import {
+  EXCURSION_ROLE_BACK,
+  EXCURSION_ROLE_OUT,
+  IDEA_STATE_DONE,
+  IDEA_STATE_SHORTLISTED,
+  type ExcursionRole,
+} from '@/types/domain'
 
 /** What one line of the timeline is. */
 export const DAY_LINE = {
@@ -228,8 +234,8 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     if (entry.on_date !== day) continue
     lines.push({
       key: `entry:${entry.id}`,
-      kind:
-        entry.kind === DAY_ENTRY_CONNECTION && entry.legs ? DAY_LINE.connection : DAY_LINE.entry,
+      // By its legs, never its kind: two devices merged field by field may leave them apart (FR-29.18).
+      kind: entry.legs && entry.legs.length > 0 ? DAY_LINE.connection : DAY_LINE.entry,
       time: isPlanTime(entry.at_time) ? entry.at_time : null,
       title: entry.title,
       detail: entry.note,
@@ -242,10 +248,35 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
   }
 
   // Stable: equal times keep the kinds' order above.
-  return lines
+  const ordered = lines
     .map((line, index) => ({ line, index }))
     .sort((a, b) => compareTime(a.line.time, b.line.time) || a.index - b.index)
     .map(({ line }) => line)
+  return betweenItsWays(ordered)
+}
+
+/**
+ * FR-29.18: an excursion stands where it happens — right after its way
+ * there on the day, or, with only a way back, right before it — whatever
+ * time it has of its own.
+ */
+function betweenItsWays(lines: DayLine[]): DayLine[] {
+  const placed = [...lines]
+  for (const excursion of lines.filter((line) => line.kind === DAY_LINE.excursion)) {
+    const refId = excursion.source?.refId
+    if (!refId) continue
+    const way = (role: ExcursionRole) =>
+      placed.find(
+        (line) => line.entry?.excursion_id === refId && line.entry.excursion_role === role,
+      )
+    const out = way(EXCURSION_ROLE_OUT)
+    const back = way(EXCURSION_ROLE_BACK)
+    if (!out && !back) continue
+    placed.splice(placed.indexOf(excursion), 1)
+    const at = out ? placed.indexOf(out) + 1 : placed.indexOf(back!)
+    placed.splice(at, 0, excursion)
+  }
+  return placed
 }
 
 /**

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
 import type { DayPlanLine } from '@/lib/dayPlanSources'
-import { connectionDetail, dayLineWords, stripDay } from '../dayLineText'
+import { carriedDetail, connectionDetail, dayLineWords, stripDay } from '../dayLineText'
 import { DAY_LINE, type DayLine } from '../domain/dayPlan'
 
 function line(over: Partial<DayLine>): DayLine {
@@ -171,5 +171,12 @@ describe('a connection in words (FR-29.18)', () => {
       title: 'Samedan → Bern, Cäcilienstrasse',
       detail: 'an 15:46 · RE 3, IC 3, IC 1, T 6 · 3× umsteigen',
     })
+  })
+
+  it('puts an entry’s own title over its connection’s stops and summary', () => {
+    setLocale('de')
+    expect(carriedDetail('Bundeshaus besuchen', legs)).toBe(
+      'Samedan → Bern, Cäcilienstrasse · an 15:46 · RE 3, IC 3, IC 1, T 6 · 3× umsteigen',
+    )
   })
 })

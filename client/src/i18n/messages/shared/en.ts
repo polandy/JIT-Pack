@@ -11,6 +11,7 @@ export const sharedEn = {
   'common.copied': 'Copied',
   'common.close': 'Close',
   'common.clear': 'Clear',
+  'common.timePlaceholder': 'hh:mm',
   'common.back': 'Back',
   'common.chooseFile': 'Choose file',
   'dateField.placeholder': 'Pick a date',

@@ -254,6 +254,13 @@ describe('a connection on the plan (FR-29.18)', () => {
     legs: [leg],
   }
 
+  it('is told by its legs, not its kind — two devices merged field by field may disagree', () => {
+    const merged: DayEntry = { ...connection, kind: DAY_ENTRY_NOTE }
+    const taken: DayEntry = { ...connection, id: 'taken', legs: null }
+    const kinds = dayLines('2026-07-13', input({ entries: [merged, taken] })).map((l) => l.kind)
+    expect(kinds).toEqual([DAY_LINE.connection, DAY_LINE.entry])
+  })
+
   it('stands at its first departure as a line of its own kind', () => {
     const lines = dayLines(
       '2026-07-13',
@@ -380,5 +387,50 @@ describe('an idea and the excursion made from it (FR-29.13, FR-29.15)', () => {
     const lines = dayLines('2026-07-13', input({ entries: [connection], lines: [made()] }))
     const row = lines.find((l) => l.kind === DAY_LINE.connection)
     expect(row?.excursion?.refId).toBe('e1')
+  })
+})
+
+describe('an excursion between its ways there and back (FR-29.15, FR-29.18)', () => {
+  const lej = (): DayPlanLine => ({
+    ...line('excursion:e1', 'excursion', '2026-07-13'),
+    refId: 'e1',
+  })
+  const way = (id: string, role: 'out' | 'back', dep: string, arr: string): DayEntry => ({
+    ...entry(id, '2026-07-13', dep),
+    kind: DAY_ENTRY_CONNECTION,
+    legs: [
+      { from: 'A', to: 'B', dep: `2026-07-13T${dep}`, arr: `2026-07-13T${arr}`, line: 'RE 3' },
+    ],
+    excursion_id: 'e1',
+    excursion_role: role,
+  })
+  const lunch = entry('n1', '2026-07-13', '12:00')
+  const keys = (entries: DayEntry[]) =>
+    dayLines('2026-07-13', input({ entries, lines: [lej()] })).map((l) => l.key)
+
+  it('stands between the way there and the way back, whatever else the day holds', () => {
+    expect(
+      keys([way('out', 'out', '08:06', '08:34'), lunch, way('back', 'back', '16:23', '17:02')]),
+    ).toEqual(['entry:out', 'excursion:e1', 'entry:n1', 'entry:back'])
+  })
+
+  it('follows the way there where there is no way back', () => {
+    expect(keys([lunch, way('out', 'out', '08:06', '08:34')])).toEqual([
+      'entry:out',
+      'excursion:e1',
+      'entry:n1',
+    ])
+  })
+
+  it('goes before the way back where there is no way there', () => {
+    expect(keys([lunch, way('back', 'back', '16:23', '17:02')])).toEqual([
+      'entry:n1',
+      'excursion:e1',
+      'entry:back',
+    ])
+  })
+
+  it('keeps its place among the untimed where it has no way', () => {
+    expect(keys([lunch])).toEqual(['entry:n1', 'excursion:e1'])
   })
 })

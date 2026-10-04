@@ -32,7 +32,7 @@ import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
 import { tripIdeasPath } from '@/router/paths'
 import type { DayEntry, Idea } from '@/types/domain'
-import { createPlannerActions, type ConnectionFields, type DayEntryFields } from './actions'
+import { createPlannerActions, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
 import DayLineRow from './DayLineRow.vue'
 import { stripDay } from './dayLineText'
@@ -160,23 +160,19 @@ function planOnChosen(idea: Idea) {
   if (chosen.value) plan(idea, chosen.value)
 }
 
+const pageLinks = usePageLinks(props.tripId, orchestrator)
+
+/** An entry lands on the day its connection names, and the plan goes there with it. */
 function onSave(fields: DayEntryFields) {
   const current = editing.value
   editing.value = null
   if (current?.entry) actions.updateDayEntry(current.entry, fields)
   else if (chosen.value) actions.addDayEntry(props.tripId, chosen.value, fields, myUserId.value)
-}
-
-const pageLinks = usePageLinks(props.tripId, orchestrator)
-
-/** A connection lands on the day its link names, and the plan goes there with it. */
-function onSaveConnection(fields: ConnectionFields) {
-  const current = editing.value
-  editing.value = null
-  if (current?.entry) actions.updateConnection(current.entry, fields)
-  else actions.addConnection(props.tripId, fields, myUserId.value)
-  const day = connectionDay(fields.legs)
-  if (days.value.includes(day)) chosen.value = day
+  const legs = fields.connection?.legs
+  if (legs) {
+    const day = connectionDay(legs)
+    if (days.value.includes(day)) chosen.value = day
+  }
 }
 
 async function onRemove() {
@@ -328,7 +324,6 @@ async function onRemove() {
         :page-links="pageLinks"
         @close="editing = null"
         @save="onSave"
-        @save-connection="onSaveConnection"
         @remove="onRemove"
         @plan="planOnChosen"
       />

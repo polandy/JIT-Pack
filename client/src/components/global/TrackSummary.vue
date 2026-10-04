@@ -43,6 +43,11 @@ const props = defineProps<{
    * *Der Tag*): no card of its own, no head, always open.
    */
   headless?: boolean
+  /**
+   * Lines that are not tracks, drawn beside them and framed with them — an
+   * excursion's ways there and back (FR-29.18).
+   */
+  beside?: MapLine[]
 }>()
 
 const emit = defineEmits<{
@@ -76,6 +81,7 @@ const lines = computed<MapLine[]>(() =>
 )
 
 const source = computed(() => defaultSource(lines.value.map((line) => line.points)))
+const drawn = computed(() => [...lines.value, ...(props.beside ?? [])])
 
 /** „16,2 km · ↑ 1'046 m · 6 h 05" — the time with the travellers' own pauses. */
 function facts(track: TrackFields): string {
@@ -125,7 +131,13 @@ function removeChosen(track: TrackFields) {
       <IonIcon class="caret" :icon="chevronDown" aria-hidden="true" />
     </button>
     <div v-if="expanded || headless" class="mini">
-      <TrackMap class="map" :lines="lines" :source="source" data-testid="track-summary-map" />
+      <TrackMap
+        class="map"
+        :lines="drawn"
+        :source="source"
+        :frame-all="(beside ?? []).length > 0"
+        data-testid="track-summary-map"
+      />
       <button
         type="button"
         class="open"
@@ -161,7 +173,7 @@ function removeChosen(track: TrackFields) {
     :open="viewing"
     :title="title"
     :tracks="tracks"
-    :lines="lines"
+    :lines="drawn"
     :chosen="chosen"
     :trip-id="tripId"
     @close="viewing = false"

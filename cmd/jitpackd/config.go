@@ -72,6 +72,11 @@ type Config struct {
 	// unless the value is "false" (ADR-085).
 	MapTiles bool // JITPACK_MAP_TILES, "false" disables
 
+	// Timetable lets a device search the Swiss public-transport timetable
+	// when it adds a connection, asking transport.opendata.ch itself
+	// (FR-29.18, ADR-086). On unless the value is "false".
+	Timetable bool // JITPACK_TIMETABLE, "false" disables
+
 	// RoutingURL is the BRouter a device asks for paths when it edits a
 	// route (FR-29.20, ADR-088): the public one unless JITPACK_ROUTING_URL
 	// names another, and empty where JITPACK_ROUTING is "false".
@@ -140,6 +145,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	c.MapTiles = tiles
+
+	timetable, err := parseOnByDefault("JITPACK_TIMETABLE", getenv("JITPACK_TIMETABLE"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.Timetable = timetable
 
 	routing, err := parseRouting(getenv("JITPACK_ROUTING"), getenv("JITPACK_ROUTING_URL"))
 	if err != nil {

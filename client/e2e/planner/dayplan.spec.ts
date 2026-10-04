@@ -142,10 +142,15 @@ test.describe('M29 day plan @local @planner', () => {
       'aria-pressed',
       'true',
     )
+    // The time is typed on the 24-hour clock and kept once the field is left.
+    const time = detail.getByTestId('idea-plan-time').locator('input')
+    await time.fill('1430')
+    await expect(time).toHaveValue('14:30')
+    await time.blur()
     await detail.getByTestId('idea-detail-close').click()
-    await expect(
-      ideaCard(page, 'Segantini-Museum').locator('[data-testid^="idea-card-plan-"]'),
-    ).not.toHaveText(/not planned yet/)
+    const planned = ideaCard(page, 'Segantini-Museum').locator('[data-testid^="idea-card-plan-"]')
+    await expect(planned).not.toHaveText(/not planned yet/)
+    await expect(planned).toContainText('14:30')
 
     // From the pool bar: the other one, on the second day.
     const plan = await openDayPlan(page)
@@ -164,7 +169,7 @@ test.describe('M29 day plan @local @planner', () => {
     const line = timelineLines(page).filter({ hasText: 'Bernina Express' })
     await expect(line).toContainText('Idea')
     await chooseDay(page, THIRD)
-    await expect(timelineLines(page).filter({ hasText: 'Segantini-Museum' })).toBeVisible()
+    await expect(timelineLines(page).filter({ hasText: 'Segantini-Museum' })).toContainText('14:30')
 
     // The tick sets Done: struck through here, counted on M28.
     const museum = timelineLines(page).filter({ hasText: 'Segantini-Museum' })

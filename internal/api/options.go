@@ -58,6 +58,11 @@ type Options struct {
 	// alone. Off by default — the zero value draws tiles, which the
 	// device fetches from swisstopo and OpenStreetMap itself (ADR-085).
 	NoMapTiles bool
+	// NoTimetable turns off the connection search (FR-29.18): the
+	// instance's config says so, and a device offers the link and the hand
+	// fields alone. Off by default — the zero value offers the search,
+	// which the device asks transport.opendata.ch itself (ADR-086).
+	NoTimetable bool
 	// RoutingURL is the BRouter a device asks for paths when it edits a
 	// route (FR-29.20, ADR-088); the instance's config hands it on. Empty
 	// turns routing off, so a device joins a route's points by straight

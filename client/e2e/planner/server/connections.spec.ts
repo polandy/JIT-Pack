@@ -1,7 +1,13 @@
 import type { Route } from '@playwright/test'
 
 import { test, expect, createTripViaWizard } from '../../fixtures'
-import { openConnectionSheet, openDayPlan, pasteLink, timelineLines } from '../../helpers/m29'
+import {
+  openConnectionStep,
+  openDayPlan,
+  openLinkStep,
+  pasteLink,
+  timelineLines,
+} from '../../helpers/m29'
 import { uniq } from '../../serverMode'
 import { SBB_SHORT_LINK, SBB_TRIP_LINK } from '../../../src/planner/domain/__tests__/sbbFixture'
 
@@ -45,14 +51,16 @@ test.describe('Connections from a short link (FR-29.18) @server @planner', () =>
     })
 
     await openDayPlan(alice)
-    const sheet = await openConnectionSheet(alice)
+    const sheet = await openConnectionStep(alice)
+    await openLinkStep(sheet)
     await pasteLink(sheet, SBB_SHORT_LINK)
     await expect(sheet.getByTestId('day-entry-read-state')).toHaveText('✓ 5 legs read.')
     expect(asked).toEqual([SBB_SHORT_LINK])
+    await sheet.getByTestId('connection-take').click()
     await sheet.getByTestId('day-entry-save').click()
     await expect(alice.getByTestId('day-entry-save')).toHaveCount(0)
 
-    const line = timelineLines(alice).filter({ hasText: 'Samedan → Bern, Cäcilienstrasse' })
+    const line = timelineLines(alice).filter({ hasText: 'To Bern, Cäcilienstrasse' })
     await expect(line).toContainText('arr. 15:46')
     await line.locator('[data-testid^="m29-legs-toggle-"]').click()
     // The short link is what was pasted, and what opens the app.

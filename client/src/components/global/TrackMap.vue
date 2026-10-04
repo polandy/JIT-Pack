@@ -28,8 +28,12 @@ const props = withDefaults(
     interactive?: boolean
     /** People on the map (FR-29.19), over the lines and outside the frame. */
     marks?: MapMark[]
+    /** Frames every line, not only the chosen ones — a route with the ways to it (FR-29.18). */
+    frameAll?: boolean
+    /** Stops along the lines, drawn as small dots. */
+    dots?: [number, number][]
   }>(),
-  { interactive: false, marks: () => [] },
+  { interactive: false, marks: () => [], frameAll: false, dots: () => [] },
 )
 
 const emit = defineEmits<{ choose: [id: string] }>()
@@ -49,6 +53,14 @@ let resize: ResizeObserver | null = null
 let framed = false
 
 const chosen = computed(() => props.lines.find((line) => line.chosen) ?? props.lines[0] ?? null)
+/**
+ * Every chosen line, in order: one track, or a connection's legs — one
+ * journey in several lines (FR-29.18), whose ends are the whole's.
+ */
+const chosenLines = computed(() => {
+  const all = props.lines.filter((line) => line.chosen)
+  return all.length > 0 ? all : chosen.value ? [chosen.value] : []
+})
 
 async function mount(): Promise<void> {
   if (!host.value || map.value) return
@@ -113,9 +125,12 @@ function draw(): void {
     }).addTo(group)
     if (props.interactive) path.on('click', () => emit('choose', line.id))
   }
-  const points = chosen.value?.points ?? []
-  // Which way the chosen track is walked (FR-29.20).
-  directionArrows(L, map.value, () => points).addTo(group)
+  for (const dot of props.dots) {
+    L.circleMarker(dot, { className: 'jp-stop', radius: 3, interactive: false }).addTo(group)
+  }
+  const points = chosenLines.value.flatMap((line) => line.points)
+  // Which way the chosen track is walked (FR-29.20); a journey's legs say it by their order.
+  if (chosenLines.value.length === 1) directionArrows(L, map.value, () => points).addTo(group)
   if (points.length > 0) {
     L.circleMarker(points[0]!, {
       className: 'jp-track-start',
@@ -175,7 +190,9 @@ function focus(lat: number, lon: number): void {
 
 /** Frames the chosen track — and the button in the full-screen map does the same. */
 function fit(): void {
-  const points = chosen.value?.points ?? []
+  const points = props.frameAll
+    ? props.lines.flatMap((line) => line.points)
+    : chosenLines.value.flatMap((line) => line.points)
   if (!map.value || !leaflet || points.length === 0 || !host.value?.clientHeight) return
   const padding = props.interactive ? FIT_PADDING.interactive : FIT_PADDING.still
   map.value.fitBounds(leaflet.latLngBounds(points), { padding: [padding, padding] })
@@ -216,7 +233,7 @@ onBeforeUnmount(unmount)
   <div class="track-map" :data-tiles="tiles" :data-source="source">
     <div v-if="tiles === 'on'" ref="host" class="leaflet-host" />
     <div v-else class="lines-only">
-      <TrackLines :lines="lines" :marks="marks" />
+      <TrackLines :lines="lines" :marks="marks" :frame-all="frameAll" :dots="dots" />
       <span v-if="tiles === 'offline'" class="note" data-testid="track-map-offline">
         {{ t('track.offline') }}
       </span>

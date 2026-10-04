@@ -122,18 +122,23 @@ The excursion's list then shows a line for that note right under its progress ca
 note.
 
 ## There and back
-
-**Der Tag** reads like the day itself: the way there, the route, the way back, one under the other. Folded, it says
-the day in one line — *08:06 → 3.3 km → 16:23 · 4 h 24 Luft*. Tap **Hinfahrt eintragen** or **Rückfahrt eintragen** and paste the connection's SBB link, or enter it by hand — a boat, a cable car
-or a bus abroad works the same way. The way there lands on the excursion's first day, the way back on its last; an
-excursion without a date asks for one first. Tap a filled slot to change or delete it.
+ **Der Tag** reads like the day itself: the way there, the route, the way back, one under the other. Folded, it says the
+day in one line — *08:06 → 3.3 km → 16:23 · 4 h 24 Luft*. Tap **Hinfahrt eintragen** or **Rückfahrt eintragen**. The
+sheet opens straight at the timetable search, as in the [day plan](day-plan.md#adding-a-connection): for the way there,
+the arrival stop is the one nearest the start of the excursion's GPX track; for the way back, the search starts once the
+route is walked, and each connection says how much time it leaves (*6 h 24 Luft*) or how early it is (*19 min zu früh*).
+Or paste the connection's SBB link, or enter it by hand — a boat, a cable car or a bus abroad works the same way. The
+way there lands on the excursion's first day, the way back on its last; an excursion without a date asks for one first.
+Tap a filled slot to change or delete it.
 
 With both ways on one day the card says how long you are on the spot (*Vor Ort 7 h 49*). If the excursion has a GPX
 track, it also says what the route — its time with the pauses — leaves of that (*Route 3 h 25 → 4 h 24 Luft*), or how
 much is missing. With only the way there and a track, it says from when you can head back at the earliest.
 
 The excursions list shows both departures under the excursion (*08:06 hin · 16:23 zurück*), and the
-[day plan](day-plan.md) shows each on its day as *Hinfahrt* or *Rückfahrt* with the excursion's name.
+[day plan](day-plan.md) shows each on its day as *Hinfahrt* or *Rückfahrt* with the excursion's name, the excursion
+between them. A way from the timetable or the SBB app is drawn on the route's map beside the GPX track, so you see
+whether it arrives where the route begins.
 
 ## Reminders
 

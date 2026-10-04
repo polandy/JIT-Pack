@@ -46,6 +46,7 @@ import { computed, inject, ref, watch } from 'vue'
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import TimeField from '@/components/global/TimeField.vue'
 import TrackCard from '@/components/global/TrackCard.vue'
 import { MAX_TRACKS, orderTracks } from '@/domain/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -145,9 +146,8 @@ function chooseDay(day: string | null) {
   emit('plan', day, idea.value.planned_at)
 }
 
-function onTime(event: CustomEvent) {
+function onTime(value: string) {
   if (!idea.value?.planned_on) return
-  const value = String((event.detail as { value?: unknown }).value ?? '')
   emit('plan', idea.value.planned_on, isPlanTime(value) ? value : null)
 }
 
@@ -468,15 +468,14 @@ async function openCommentMenu(comment: IdeaComment) {
           {{ t('ideas.planNone') }}
         </ChoiceChip>
       </div>
-      <IonInput
+      <TimeField
         v-if="idea.planned_on"
-        type="time"
         class="plan-time"
         :label="t('ideas.planTime')"
         label-placement="stacked"
-        :value="idea.planned_at ?? ''"
+        :model-value="idea.planned_at ?? ''"
         data-testid="idea-plan-time"
-        @ionChange="onTime"
+        @settle="onTime"
       />
     </section>
 

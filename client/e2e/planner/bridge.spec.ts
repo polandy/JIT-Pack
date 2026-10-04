@@ -1,7 +1,7 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic } from '../helpers/ionic'
 import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
-import { chooseDay, dayFromToday, openDayPlan, timelineLines } from '../helpers/m29'
+import { chooseDay, dayFromToday, openDayPlan, timelineLines, wayByHand } from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
 import type { Locator, Page } from '@playwright/test'
 
@@ -201,12 +201,9 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
 
     await excursion.getByTestId('m27-journey-out').click()
     const sheet = page.getByTestId('day-entry')
-    await expect(sheet.getByTestId('day-entry-kinds')).toHaveCount(0)
-    await expect(sheet.getByTestId('day-entry-excursion')).toContainText(IDEA)
-    await fillIonic(sheet.getByTestId('day-entry-hand-from'), 'Dorgali')
-    await fillIonic(sheet.getByTestId('day-entry-hand-to'), 'Olbia')
-    await sheet.getByTestId('day-entry-hand-dep').locator('input').fill('07:10')
-    await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:05')
+    await expect(sheet.getByTestId('connection-step-sub')).toContainText(IDEA)
+    await wayByHand(sheet, { from: 'Dorgali', dep: '07:10', to: 'Olbia', arr: '09:05' })
+    await expect(sheet.getByTestId('day-entry-title')).toHaveText(IDEA)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await expect(excursion.getByTestId('m27-journey-out')).toContainText(

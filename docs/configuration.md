@@ -24,6 +24,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance makes no release check. See [Release check](#release-check). |
 | `JITPACK_LINK_PREVIEWS` | no | on | When somebody pastes a link into an idea, the server reads that page for its title, description and picture. `false` turns it off; unset or `true` leaves it on; any other value is a **startup error**. See [Link previews](#link-previews). |
 | `JITPACK_MAP_TILES` | no | on | The maps of [GPX tracks](ideas.md#gpx-tracks) show swisstopo's or OpenStreetMap's map behind the line, which each device fetches from them itself. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Map tiles](#map-tiles). |
+| `JITPACK_TIMETABLE` | no | on | When somebody adds a [connection](day-plan.md#adding-a-connection), their device can search the Swiss public-transport timetable at transport.opendata.ch. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Timetable](#timetable). |
 | `JITPACK_ROUTING` | no | on | When somebody [edits or draws a route](ideas.md#changing-a-route-or-drawing-one), their device asks a BRouter route planner for the way along the paths. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Route planning](#route-planning). |
 | `JITPACK_ROUTING_URL` | no | `https://brouter.de/brouter` | The BRouter the devices ask, for example one you run yourself. It must be an `http` or `https` address; anything else is a **startup error**. |
 | `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
@@ -83,6 +84,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | `JITPACK_TASK_REMINDER_TIME` is not a time of day such as `06:00` | `config: JITPACK_TASK_REMINDER_TIME must be a time of day such as 06:00, or unset` |
 | `JITPACK_LINK_PREVIEWS` is neither `true` nor `false` | `config: JITPACK_LINK_PREVIEWS must be true or false, or unset (on)` |
 | `JITPACK_MAP_TILES` is neither `true` nor `false` | `config: JITPACK_MAP_TILES must be true or false, or unset (on)` |
+| `JITPACK_TIMETABLE` is neither `true` nor `false` | `config: JITPACK_TIMETABLE must be true or false, or unset (on)` |
 | `JITPACK_ROUTING` is neither `true` nor `false` | `config: JITPACK_ROUTING must be true or false, or unset (on)` |
 | `JITPACK_ROUTING_URL` is not an `http(s)` address | `config: JITPACK_ROUTING_URL must be an http(s) address, got "…"` |
 | The database file cannot be opened or migrated | `store: …` |
@@ -216,6 +218,27 @@ What to know before you decide:
 - **With it off,** every map shows the tracks' lines on a plain background, the way it does on a device that is
   offline. The figures, the times and the download stay.
 - **Local mode** has no administrator and always shows the map.
+
+## Timetable
+
+When somebody adds a [connection](day-plan.md#adding-a-connection) — to the day plan, or as the way there or back of
+an [excursion](excursions.md#there-and-back) — the sheet opens with a **search of the Swiss timetable**. Each person's
+device asks **transport.opendata.ch** for stops and connections **directly, not through your server**. This is **on
+unless you turn it off**:
+
+```bash
+JITPACK_TIMETABLE=false
+```
+
+What to know before you decide:
+
+- **The service sees the device.** It learns its internet address and the stops and times searched for — and, on an
+  excursion, the coordinates of the route's start, to find the nearest stop. Nothing else about the trip or the people
+  on it is sent.
+- **Your server is not involved.** Turning this off changes only what the devices of the people using it do.
+- **With it off,** the sheet offers the SBB link and the hand fields alone, as before. A connection abroad is entered
+  that way in any case, since the service knows Swiss stops.
+- **Offline,** the search is not offered. **Local mode** has no administrator and always offers it when online.
 
 ## Route planning
 

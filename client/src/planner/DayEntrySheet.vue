@@ -1,47 +1,57 @@
 <script setup lang="ts">
 /**
- * The day plan's sheet for an entry of its own (FR-29.15): a new one on the
- * chosen day — with the shortlisted ideas without a day beside it, any of
- * which can be planned there instead, and a connection (FR-29.18) — or an
- * existing one to change or delete. Nothing is written before its button.
+ * The day plan's sheet for an entry of its own (FR-29.15): one form — what,
+ * time, note — and the connection the entry may carry (FR-29.18), added,
+ * changed or taken off at any time; a new one has the shortlisted ideas
+ * without a day above it, any of which is planned there instead. Nothing is
+ * written before its button.
  *
- * A connection's link is read the moment it arrives — pasted into the field
- * or fetched by the clipboard button — never on a keystroke, and the read
- * replaces the hand fields with its legs. A link nobody can read leaves the
- * hand fields, and is kept beside them.
+ * The connection is found in a step of its own inside the same sheet: the
+ * timetable search first (ADR-086), then a shared link or the hand fields.
+ * A taken connection fills what the entry leaves empty — its title, its time
+ * — and marks it as filled until it is typed into.
+ *
+ * On an excursion's way (M27) the sheet is the connection alone: it opens at
+ * the step, and the slot names and times what is written.
  */
+import { IonButton, IonIcon, IonInput, IonSpinner } from '@ionic/vue'
 import {
-  IonButton,
-  IonIcon,
-  IonInput,
-  IonLabel,
-  IonSegment,
-  IonSegmentButton,
-  IonTextarea,
-} from '@ionic/vue'
-import { bulbOutline, clipboardOutline, trashOutline } from 'ionicons/icons'
-import { computed, onUnmounted, reactive, ref, watch } from 'vue'
+  bulbOutline,
+  chevronBack,
+  clipboardOutline,
+  createOutline,
+  trainOutline,
+  trashOutline,
+} from 'ionicons/icons'
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import TimeField from '@/components/global/TimeField.vue'
 import { t } from '@/i18n'
 import { canReadClipboard, readClipboardText } from '@/lib/clipboard'
+import { useTimetableOffered } from '@/lib/timetable'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { ConnectionLeg, DayEntry, Idea } from '@/types/domain'
-import { DAY_ENTRY_CONNECTION } from '@/types/domain'
 import type { ConnectionFields, DayEntryFields } from './actions'
-import ConnectionLegs from './ConnectionLegs.vue'
+import ConnectionCard from './ConnectionCard.vue'
+import ConnectionSearch from './ConnectionSearch.vue'
 import {
   connectionDay,
+  connectionDestination,
+  connectionTitle,
   handFieldsOf,
   handLeg,
+  hasMap,
   readConnectionLink,
+  timeOf,
   type HandFields,
   type PageLinks,
 } from './domain/connections'
 import { isPlanTime } from './domain/dayPlan'
 import { parseLink } from './domain/ideas'
+import type { SearchSeed } from './domain/timetable'
 
 const props = defineProps<{
   open: boolean
@@ -51,38 +61,139 @@ const props = defineProps<{
   day: string | null
   /** The chosen day in words, for the head of a new one. */
   dayText: string
-  /** The shortlisted ideas without a day, offered beside a new entry. */
+  /** The shortlisted ideas without a day, offered above a new entry. */
   pool: readonly Idea[]
   /** A page's links, read by the server — null where there is none to ask (Local Mode, previews off). */
   pageLinks: PageLinks | null
   /** The excursion a new or changed connection belongs to (FR-29.18), or null for none. */
   excursionTitle?: string | null
-  /** Offers nothing but a connection, as the excursion's own screen asks for one. */
+  /** The connection alone, as an excursion's way asks for it: no title, no time. */
   connectionOnly?: boolean
   /** The head's words where the caller names what is written — *Hinfahrt*. */
   heading?: string | null
+  /** The save button's words where the caller names them — *Als Hinfahrt speichern*. */
+  saveText?: string | null
+  /** Where a new connection's timetable search starts (FR-29.18); the morning of the day where none is given. */
+  searchSeed?: SearchSeed | null
+  /** The place whose nearest stop a new way there arrives at: the route's start. */
+  searchNear?: { lat: number; lon: number } | null
 }>()
 
 const emit = defineEmits<{
   close: []
   save: [fields: DayEntryFields]
-  saveConnection: [fields: ConnectionFields]
   remove: []
   plan: [idea: Idea]
 }>()
 
-const ADD_ENTRY = 'entry'
-const ADD_IDEA = 'idea'
-const ADD_CONNECTION = 'connection'
-type AddKind = typeof ADD_ENTRY | typeof ADD_IDEA | typeof ADD_CONNECTION
-const ADD_KINDS: readonly string[] = [ADD_ENTRY, ADD_CONNECTION, ADD_IDEA]
+const STEP_FORM = 'form'
+const STEP_FIND = 'find'
+const STEP_LINK = 'link'
+const STEP_HAND = 'hand'
+type Step = typeof STEP_FORM | typeof STEP_FIND | typeof STEP_LINK | typeof STEP_HAND
 
-const kind = ref<AddKind>(ADD_ENTRY)
+const step = ref<Step>(STEP_FORM)
+/** The search has been shown since the sheet opened, and keeps what was typed into it. */
+const findShown = ref(false)
+watch(step, (value) => {
+  if (value === STEP_FIND) findShown.value = true
+})
+
+/**
+ * The sheet never shrinks while it is open. A touch on a button is followed
+ * by the click the browser makes of it; were a shorter step to pull the sheet
+ * down under the finger first, that click would land on the backdrop and
+ * dismiss the sheet.
+ */
+const sheetBox = ref<HTMLElement | null>(null)
+const keptHeight = ref(0)
+watch(
+  step,
+  () => {
+    keptHeight.value = Math.max(keptHeight.value, sheetBox.value?.offsetHeight ?? 0)
+  },
+  { flush: 'pre' },
+)
+
 const title = ref('')
 const note = ref('')
 const time = ref('')
+const connection = ref<ConnectionFields | null>(null)
+/** Which of the entry's fields the connection filled, and still holds. */
+const filled = reactive({ title: false, time: false })
 
-// --- a connection ---
+/** The day a connection searched or entered by hand stands on: the entry's own, or the chosen one. */
+const handDay = computed(() => props.entry?.on_date ?? props.day)
+const timetableOffered = useTimetableOffered()
+const searchable = computed(() => timetableOffered.value && handDay.value !== null)
+const DEFAULT_SEED: SearchSeed = { from: '', to: '', time: '08:00', earliest: null }
+
+// --- the connection ---
+
+function filledTitle(legs: readonly ConnectionLeg[]): string {
+  return t('dayPlan.toStop', { stop: connectionDestination(legs) })
+}
+
+/**
+ * A connection taken from any of the three ways, back on the entry's form.
+ * The form is back first and the connection joins it after, so it is seen
+ * to open into the entry rather than to have been there.
+ */
+async function take(legs: ConnectionLeg[], link: string | null) {
+  step.value = STEP_FORM
+  await nextTick()
+  connection.value = { legs, link }
+  if (!props.connectionOnly) {
+    if (title.value.trim() === '' || filled.title) {
+      title.value = filledTitle(legs)
+      filled.title = true
+    }
+    if (time.value === '' || filled.time) {
+      time.value = timeOf(legs[0]!.dep)
+      filled.time = true
+    }
+  }
+  await nextTick()
+  actions.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+
+/** *Entfernen*: the entry stays, with what the connection filled emptied again. */
+function removeConnection() {
+  connection.value = null
+  if (filled.title) title.value = ''
+  if (filled.time) time.value = ''
+  filled.title = false
+  filled.time = false
+}
+
+/** *Zugverbindung hinzufügen* / *Ändern*: the step, the link and the hand fields holding what is there. */
+function findConnection() {
+  const current = connection.value
+  forgetRead()
+  link.value = current?.link ?? ''
+  setHand(
+    current && current.legs.length === 1 && !hasMap(current.legs)
+      ? handFieldsOf(current.legs[0]!)
+      : { from: '', to: '', dep: '', arr: '', line: '' },
+  )
+  step.value = STEP_FIND
+}
+
+function back() {
+  if (step.value === STEP_LINK || step.value === STEP_HAND) step.value = STEP_FIND
+  else if (props.connectionOnly && !connection.value) emit('close')
+  else step.value = STEP_FORM
+}
+
+/** Where the connection moves its entry, when a link names another day. */
+const movesTo = computed(() => {
+  const legs = connection.value?.legs
+  if (!legs || !handDay.value) return null
+  const day = connectionDay(legs)
+  return day !== handDay.value ? shortDueDay(day) : null
+})
+
+// --- by link ---
 
 const READ_IDLE = 'idle'
 const READ_READING = 'reading'
@@ -91,29 +202,13 @@ const READ_FAILED = 'unreadable'
 type ReadState = typeof READ_IDLE | typeof READ_READING | typeof READ_DONE | typeof READ_FAILED
 
 const link = ref('')
-const hand = reactive<HandFields>({ from: '', to: '', dep: '', arr: '', line: '' })
 const readState = ref<ReadState>(READ_IDLE)
 const readLegs = ref<ConnectionLeg[] | null>(null)
 /** The link the read state answers for; an edit of the field leaves it. */
 let readFor = ''
 let generation = 0
 const clipboard = canReadClipboard()
-
 const parsedLink = computed(() => parseLink(link.value))
-/** The day a connection by hand stands on: the entry's own, or the chosen one. */
-const handDay = computed(() => props.entry?.on_date ?? props.day)
-const connectionLegs = computed<ConnectionLeg[] | null>(() => {
-  if (readState.value === READ_DONE) return readLegs.value
-  const leg = handDay.value ? handLeg(handDay.value, hand) : null
-  return leg ? [leg] : null
-})
-const canSaveConnection = computed(
-  () => parsedLink.value.ok && connectionLegs.value !== null && readState.value !== READ_READING,
-)
-
-function setHand(fields: HandFields) {
-  Object.assign(hand, fields)
-}
 
 function forgetRead() {
   generation++
@@ -164,157 +259,325 @@ function onLinkChange() {
   void readLink(link.value.trim())
 }
 
+function takeRead() {
+  const parsed = parsedLink.value
+  if (readState.value !== READ_DONE || !readLegs.value || !parsed.ok) return
+  void take(readLegs.value, parsed.link)
+}
+
 onUnmounted(() => generation++)
+
+// --- by hand ---
+
+const hand = reactive<HandFields>({ from: '', to: '', dep: '', arr: '', line: '' })
+const handLegNow = computed(() => (handDay.value ? handLeg(handDay.value, hand) : null))
+/** A link kept beside the hand fields — one no reader knows. */
+const keptLink = computed(() => (parsedLink.value.ok ? parsedLink.value.link : null))
+
+function setHand(fields: HandFields) {
+  Object.assign(hand, fields)
+}
+
+function takeHand() {
+  if (!handLegNow.value) return
+  void take([handLegNow.value], keptLink.value)
+}
+
+// --- the form ---
+
+/**
+ * The sheet's one row of buttons, brought into view when a connection is
+ * taken — the form scrolled, a pick made with the button out of sight still
+ * shows it.
+ */
+const actions = ref<HTMLElement | null>(null)
 
 watch(
   () => props.open,
   (open) => {
     if (!open) return
     const entry = props.entry
-    kind.value =
-      props.connectionOnly || (entry?.kind === DAY_ENTRY_CONNECTION && entry.legs)
-        ? ADD_CONNECTION
-        : ADD_ENTRY
+    keptHeight.value = 0
+    findShown.value = false
     title.value = entry?.title ?? ''
     note.value = entry?.note ?? ''
     time.value = entry?.at_time ?? ''
+    const legs = entry?.legs ?? null
+    connection.value = legs ? { legs, link: entry?.link ?? null } : null
+    // What a connection filled reads as filled again, so a changed one fills it anew.
+    filled.title =
+      !!legs && (title.value === filledTitle(legs) || title.value === connectionTitle(legs))
+    filled.time = !!legs && time.value === timeOf(legs[0]!.dep)
     forgetRead()
-    link.value = entry?.link ?? ''
+    link.value = ''
     setHand({ from: '', to: '', dep: '', arr: '', line: '' })
-    const legs = entry?.legs
-    if (legs && legs.length === 1) {
-      setHand(handFieldsOf(legs[0]!))
-    } else if (legs) {
-      // Several legs came from a link, and stay what it said until another is pasted.
-      readFor = link.value
-      readLegs.value = legs
-      readState.value = READ_DONE
-    }
+    step.value = props.connectionOnly && !legs ? STEP_FIND : STEP_FORM
+    if (step.value === STEP_FIND) findShown.value = true
   },
   { immediate: true },
 )
 
-const canSave = computed(() => title.value.trim() !== '')
+const canSave = computed(() =>
+  props.connectionOnly
+    ? connection.value !== null
+    : title.value.trim() !== '' || connection.value !== null,
+)
+const saveLabel = computed(
+  () => props.saveText ?? (props.entry ? t('common.save') : t('common.add')),
+)
 
-function onKind(event: CustomEvent) {
-  const value = (event.detail as { value?: unknown }).value
-  if (typeof value === 'string' && ADD_KINDS.includes(value)) kind.value = value as AddKind
-}
-
-function saveConnection() {
-  const parsed = parsedLink.value
-  const legs = connectionLegs.value
-  if (!canSaveConnection.value || !parsed.ok || !legs) return
-  emit('saveConnection', { legs, link: parsed.link })
-}
-
-const connectionSaveLabel = computed(() => {
-  const legs = connectionLegs.value
-  if (readState.value === READ_DONE && legs) {
-    return t('dayPlan.insertOn', { day: shortDueDay(connectionDay(legs)) })
+/** What is written, in words; under an excursion's name where the sheet belongs to one. */
+const headText = computed(() => {
+  if (props.heading) return props.heading
+  if (!props.entry) {
+    return props.connectionOnly
+      ? t('dayPlan.addConnection')
+      : t('dayPlan.newTitle', { day: props.dayText })
   }
-  return props.entry ? t('common.save') : t('common.add')
+  return t('dayPlan.editTitle')
+})
+
+const stepTitle = computed(() =>
+  step.value === STEP_LINK
+    ? t('dayPlan.viaLink')
+    : step.value === STEP_HAND
+      ? t('dayPlan.viaHand')
+      : props.connectionOnly && props.heading
+        ? props.heading
+        : t('dayPlan.stepTitle'),
+)
+const stepSub = computed(() => {
+  if (step.value === STEP_LINK) return t('dayPlan.linkStepHint')
+  if (step.value === STEP_HAND) return t('dayPlan.handStepHint')
+  const day = handDay.value ? shortDueDay(handDay.value) : ''
+  return props.connectionOnly && props.excursionTitle
+    ? t('dayPlan.stepForExcursion', { title: props.excursionTitle, day })
+    : t('dayPlan.stepFor', { title: title.value.trim() || t('dayPlan.newEntry'), day })
 })
 
 function save() {
   if (!canSave.value) return
   emit('save', {
-    title: title.value,
+    title: props.connectionOnly ? '' : title.value,
     note: note.value,
-    time: isPlanTime(time.value) ? time.value : null,
+    time: !props.connectionOnly && isPlanTime(time.value) ? time.value : null,
+    connection: connection.value,
   })
 }
 </script>
 
 <template>
   <SheetModal :is-open="open" testid="day-entry" @dismiss="emit('close')">
-    <section v-if="open" class="sheet">
-      <SheetHead
-        :title="
-          heading
-            ? heading
-            : !entry
-              ? connectionOnly
-                ? t('dayPlan.addConnection')
-                : t('dayPlan.newTitle', { day: dayText })
-              : kind === ADD_CONNECTION
-                ? t('dayPlan.editConnectionTitle')
-                : t('dayPlan.editTitle')
-        "
-        title-testid="day-entry-title"
-        close-testid="day-entry-close"
-        @close="emit('close')"
-      />
-      <IonSegment
-        v-if="!entry && !connectionOnly"
-        :value="kind"
-        class="kinds"
-        data-testid="day-entry-kinds"
-        @ionChange="onKind"
-      >
-        <IonSegmentButton :value="ADD_ENTRY" data-testid="day-entry-kind-entry">
-          <IonLabel>{{ t('dayPlan.kind.entry') }}</IonLabel>
-        </IonSegmentButton>
-        <IonSegmentButton :value="ADD_CONNECTION" data-testid="day-entry-kind-connection">
-          <IonLabel>{{ t('dayPlan.kind.connection') }}</IonLabel>
-        </IonSegmentButton>
-        <IonSegmentButton :value="ADD_IDEA" data-testid="day-entry-kind-idea">
-          <IonLabel>{{ t('dayPlan.kind.idea') }}</IonLabel>
-        </IonSegmentButton>
-      </IonSegment>
+    <section
+      v-if="open"
+      ref="sheetBox"
+      class="sheet"
+      :style="keptHeight ? { minHeight: `${keptHeight}px` } : undefined"
+    >
+      <template v-if="step === STEP_FORM">
+        <SheetHead
+          :title="excursionTitle ? excursionTitle : headText"
+          title-testid="day-entry-title"
+          close-testid="day-entry-close"
+          @close="emit('close')"
+        >
+          <template v-if="excursionTitle" #meta>
+            <span data-testid="day-entry-heading">{{ headText }}</span>
+          </template>
+        </SheetHead>
+        <p v-if="!entry && !connectionOnly" class="sub">{{ t('dayPlan.subtitle') }}</p>
 
-      <template v-if="kind === ADD_ENTRY">
+        <div
+          v-if="!entry && !connectionOnly && pool.length"
+          class="pool"
+          data-testid="day-entry-pool"
+        >
+          <span class="jp-eyebrow">{{ t('dayPlan.poolSuggest') }}</span>
+          <div class="chips">
+            <ChoiceChip
+              v-for="idea in pool"
+              :key="idea.id"
+              class="idea"
+              :pressed="false"
+              :data-testid="`day-entry-plan-${idea.id}`"
+              @click="emit('plan', idea)"
+            >
+              <IonIcon :icon="bulbOutline" aria-hidden="true" />
+              {{ idea.title }}
+            </ChoiceChip>
+          </div>
+        </div>
+
+        <template v-if="!connectionOnly">
+          <IonInput
+            v-model="title"
+            class="title-field"
+            label-placement="stacked"
+            :placeholder="t('dayPlan.titlePlaceholder')"
+            data-testid="day-entry-name"
+            @ionInput="filled.title = false"
+            @keydown.enter.prevent="save"
+          >
+            <div slot="label">
+              {{ t('dayPlan.whatLabel') }}
+              <span v-if="filled.title" class="filled" data-testid="day-entry-filled">
+                {{ t('dayPlan.fromConnection') }}
+              </span>
+            </div>
+          </IonInput>
+          <div class="pair">
+            <TimeField
+              v-model="time"
+              class="time-field"
+              label-placement="stacked"
+              data-testid="day-entry-time"
+              @ionInput="filled.time = false"
+            >
+              <template #label>
+                {{ t('dayPlan.timeShort') }}
+                <IonIcon
+                  v-if="filled.time"
+                  class="filled"
+                  :icon="trainOutline"
+                  role="img"
+                  :aria-label="t('dayPlan.fromConnection')"
+                  data-testid="day-entry-time-filled"
+                />
+              </template>
+            </TimeField>
+            <IonInput
+              v-model="note"
+              :label="t('dayPlan.noteShort')"
+              label-placement="stacked"
+              :placeholder="t('dayPlan.optional')"
+              data-testid="day-entry-note"
+            />
+          </div>
+        </template>
+
+        <Transition name="expand" mode="out-in">
+          <ConnectionCard
+            v-if="connection"
+            class="connection"
+            :legs="connection.legs"
+            :link="connection.link"
+            :title="title.trim() || connectionTitle(connection.legs)"
+            @change="findConnection"
+            @remove="removeConnection"
+          />
+          <button
+            v-else
+            type="button"
+            class="add-connection"
+            data-testid="day-entry-add-connection"
+            @click="findConnection"
+          >
+            <span class="glyph"><IonIcon :icon="trainOutline" aria-hidden="true" /></span>
+            <span class="words">
+              <span class="what">{{ t('dayPlan.addTrain') }}</span>
+              <span class="how">
+                {{ searchable ? t('dayPlan.addTrainHint') : t('dayPlan.addTrainHintNoSearch') }}
+              </span>
+            </span>
+          </button>
+        </Transition>
+        <p v-if="movesTo" class="moves" data-testid="day-entry-moves">
+          {{ t('dayPlan.movesTo', { day: movesTo }) }}
+        </p>
         <IonInput
-          v-model="title"
-          class="title-field"
-          :placeholder="t('dayPlan.titlePlaceholder')"
-          :aria-label="t('dayPlan.titlePlaceholder')"
-          data-testid="day-entry-name"
-          @keydown.enter.prevent="save"
-        />
-        <IonTextarea
+          v-if="connectionOnly && connection"
           v-model="note"
-          auto-grow
-          :rows="2"
-          :placeholder="t('dayPlan.notePlaceholder')"
-          :aria-label="t('dayPlan.notePlaceholder')"
+          :label="t('dayPlan.noteShort')"
+          label-placement="stacked"
+          :placeholder="t('dayPlan.optional')"
           data-testid="day-entry-note"
         />
-        <IonInput
-          v-model="time"
-          type="time"
-          class="time-field"
-          :label="t('dayPlan.timeLabel')"
-          label-placement="stacked"
-          data-testid="day-entry-time"
-        />
-        <div class="actions">
+
+        <div ref="actions" class="actions">
+          <IonButton
+            expand="block"
+            shape="round"
+            :disabled="!canSave"
+            data-testid="day-entry-save"
+            @click="save"
+          >
+            {{ saveLabel }}
+          </IonButton>
           <IonButton
             v-if="entry"
             fill="clear"
             color="danger"
+            size="small"
             data-testid="day-entry-remove"
             @click="emit('remove')"
           >
             <IonIcon slot="start" :icon="trashOutline" aria-hidden="true" />
             {{ t('dayPlan.remove') }}
           </IonButton>
-          <span class="spacer" />
-          <IonButton shape="round" :disabled="!canSave" data-testid="day-entry-save" @click="save">
-            {{ entry ? t('common.save') : t('common.add') }}
-          </IonButton>
         </div>
       </template>
 
-      <div
-        v-else-if="kind === ADD_CONNECTION"
-        class="connection"
-        data-testid="day-entry-connection"
-      >
-        <p v-if="excursionTitle" class="hint" data-testid="day-entry-excursion">
-          {{ t('dayPlan.connectionFor', { title: excursionTitle }) }}
-        </p>
-        <p class="hint">{{ t('dayPlan.connectionHint') }}</p>
+      <template v-else>
+        <header class="step-head" data-testid="connection-step" :data-step="step">
+          <button
+            type="button"
+            class="back"
+            :aria-label="t('dayPlan.back')"
+            data-testid="connection-step-back"
+            @click="back"
+          >
+            <IonIcon :icon="chevronBack" aria-hidden="true" />
+          </button>
+          <h2 class="jp-sheet-title" data-testid="connection-step-title">{{ stepTitle }}</h2>
+        </header>
+        <p class="sub step-sub" data-testid="connection-step-sub">{{ stepSub }}</p>
+      </template>
+
+      <div v-if="findShown" v-show="step === STEP_FIND" class="find">
+        <ConnectionSearch
+          v-if="searchable"
+          :day="handDay"
+          :seed="searchSeed ?? DEFAULT_SEED"
+          :near="searchNear ?? null"
+          @pick="take($event, null)"
+        />
+        <div
+          class="alternatives"
+          :data-large="searchable ? undefined : 'true'"
+          data-testid="connection-alternatives"
+        >
+          <p v-if="!searchable" class="note">{{ t('dayPlan.noSearch') }}</p>
+          <span v-else class="jp-eyebrow">{{ t('dayPlan.notThere') }}</span>
+          <div class="ways">
+            <button
+              type="button"
+              class="way"
+              data-testid="connection-via-link"
+              @click="step = STEP_LINK"
+            >
+              <span class="what"
+                ><IonIcon :icon="clipboardOutline" aria-hidden="true" />
+                {{ t('dayPlan.viaLink') }}</span
+              >
+              <span class="how">{{ t('dayPlan.viaLinkHint') }}</span>
+            </button>
+            <button
+              type="button"
+              class="way"
+              data-testid="connection-via-hand"
+              @click="step = STEP_HAND"
+            >
+              <span class="what"
+                ><IonIcon :icon="createOutline" aria-hidden="true" />
+                {{ t('dayPlan.viaHand') }}</span
+              >
+              <span class="how">{{ t('dayPlan.viaHandHint') }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="step === STEP_LINK" class="by-link">
         <IonButton
           v-if="clipboard"
           fill="outline"
@@ -344,6 +607,7 @@ function save() {
           role="status"
           data-testid="day-entry-read-state"
         >
+          <IonSpinner v-if="readState === READ_READING" name="dots" aria-hidden="true" />
           {{
             readState === READ_READING
               ? t('dayPlan.reading')
@@ -352,13 +616,37 @@ function save() {
                 : t('dayPlan.unreadable')
           }}
         </p>
-        <ConnectionLegs
+        <ConnectionCard
           v-if="readState === READ_DONE && readLegs"
-          class="preview"
           :legs="readLegs"
-          data-testid="day-entry-legs"
+          :link="parsedLink.ok ? parsedLink.link : null"
+          :title="connectionTitle(readLegs)"
+          readonly
         />
-        <div v-else-if="readState !== READ_READING" class="hand" data-testid="day-entry-hand">
+        <IonButton
+          v-if="readState === READ_FAILED"
+          fill="outline"
+          expand="block"
+          data-testid="connection-link-to-hand"
+          @click="step = STEP_HAND"
+        >
+          <IonIcon slot="start" :icon="createOutline" aria-hidden="true" />
+          {{ t('dayPlan.viaHand') }}
+        </IonButton>
+        <IonButton
+          class="take"
+          expand="block"
+          shape="round"
+          :disabled="readState !== READ_DONE"
+          data-testid="connection-take"
+          @click="takeRead"
+        >
+          {{ t('dayPlan.take') }}
+        </IonButton>
+      </div>
+
+      <div v-if="step === STEP_HAND" class="by-hand">
+        <div class="hand" data-testid="day-entry-hand">
           <IonInput
             v-model="hand.from"
             class="stop"
@@ -366,9 +654,8 @@ function save() {
             label-placement="stacked"
             data-testid="day-entry-hand-from"
           />
-          <IonInput
+          <TimeField
             v-model="hand.dep"
-            type="time"
             class="clock"
             :label="t('dayPlan.handDep')"
             label-placement="stacked"
@@ -381,9 +668,8 @@ function save() {
             label-placement="stacked"
             data-testid="day-entry-hand-to"
           />
-          <IonInput
+          <TimeField
             v-model="hand.arr"
-            type="time"
             class="clock"
             :label="t('dayPlan.handArr')"
             label-placement="stacked"
@@ -397,41 +683,17 @@ function save() {
             data-testid="day-entry-hand-line"
           />
         </div>
-        <div class="actions">
-          <IonButton
-            v-if="entry"
-            fill="clear"
-            color="danger"
-            data-testid="day-entry-remove"
-            @click="emit('remove')"
-          >
-            <IonIcon slot="start" :icon="trashOutline" aria-hidden="true" />
-            {{ t('dayPlan.remove') }}
-          </IonButton>
-          <span class="spacer" />
-          <IonButton
-            shape="round"
-            :disabled="!canSaveConnection"
-            data-testid="day-entry-save"
-            @click="saveConnection"
-          >
-            {{ connectionSaveLabel }}
-          </IonButton>
-        </div>
-      </div>
-
-      <div v-else class="pool" data-testid="day-entry-pool">
-        <p v-if="pool.length === 0" class="empty">{{ t('dayPlan.poolEmpty') }}</p>
-        <ChoiceChip
-          v-for="idea in pool"
-          :key="idea.id"
-          :pressed="false"
-          :data-testid="`day-entry-plan-${idea.id}`"
-          @click="emit('plan', idea)"
+        <p v-if="keptLink" class="kept" data-testid="day-entry-kept-link">{{ keptLink }}</p>
+        <IonButton
+          class="take"
+          expand="block"
+          shape="round"
+          :disabled="!handLegNow"
+          data-testid="connection-take"
+          @click="takeHand"
         >
-          <IonIcon :icon="bulbOutline" aria-hidden="true" />
-          {{ idea.title }}
-        </ChoiceChip>
+          {{ t('dayPlan.take') }}
+        </IonButton>
       </div>
     </section>
   </SheetModal>
@@ -439,15 +701,18 @@ function save() {
 
 <style scoped>
 .sheet {
+  display: flex;
+  flex-direction: column;
   padding: 4px 16px 18px;
 }
 
-.kinds {
-  margin-top: 6px;
+.sub {
+  margin: 2px 0 12px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
 }
 
-.sheet ion-input,
-.sheet ion-textarea {
+.sheet ion-input {
   --background: var(--jp-surface-sunken);
   --padding-start: 12px;
   --padding-end: 12px;
@@ -455,34 +720,272 @@ function save() {
   border-radius: var(--jp-r-md);
 }
 
+.pool {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chips .idea {
+  flex: none;
+}
+
+.pool ion-icon {
+  font-size: var(--jp-icon-xs);
+}
+
 .title-field {
   font-weight: var(--jp-weight-semibold);
 }
 
-.time-field {
-  max-width: 180px;
+.filled {
+  margin-left: 4px;
+  color: var(--jp-done);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-medium);
+}
+
+ion-icon.filled {
+  font-size: var(--jp-icon-xs);
+  vertical-align: -1px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  column-gap: 8px;
+}
+
+.connection,
+.add-connection {
+  margin-top: 12px;
+}
+
+.add-connection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px dashed var(--jp-surface-border);
+  border-radius: var(--jp-r-md);
+  background: none;
+  color: var(--ct-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--jp-r-sm);
+  background: color-mix(in srgb, var(--ct-glacier) 18%, transparent);
+  color: var(--ct-glacier);
+}
+
+.glyph ion-icon {
+  font-size: var(--jp-icon-md);
+}
+
+.words,
+.way {
+  display: flex;
+  flex-direction: column;
+}
+
+.what {
+  color: var(--jp-action);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.how {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+.moves {
+  margin: 8px 2px 0;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
 }
 
 .actions {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  margin-top: 16px;
+}
+
+.actions ion-button[expand='block'] {
+  width: 100%;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.step-head h2 {
+  margin: 0;
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--jp-surface-sunken);
+  color: var(--ct-subtext1);
+  cursor: pointer;
+}
+
+.back ion-icon {
+  font-size: var(--jp-icon-sm);
+}
+
+.step-sub {
+  padding-left: 40px;
+}
+
+.alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--jp-surface-border);
 }
 
-.spacer {
-  flex: 1;
+.alternatives[data-large] {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
-.hint {
-  margin: 12px 2px 8px;
-  color: var(--ct-subtext0);
+.note {
+  margin: 0;
+  padding: 7px 10px;
+  border-left: 3px solid var(--ct-straw);
+  border-radius: 0 var(--jp-r-sm) var(--jp-r-sm) 0;
+  background: color-mix(in srgb, var(--ct-straw) 9%, transparent);
+  color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
+}
+
+.ways {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.alternatives[data-large] .ways {
+  grid-template-columns: 1fr;
+}
+
+.way {
+  padding: 10px;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: var(--jp-r-md);
+  background: none;
+  color: var(--ct-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.alternatives[data-large] .way {
+  padding: 14px 12px;
+}
+
+.way .what {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ct-text);
 }
 
 .read-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 10px 2px 0;
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
+}
+
+.read-state ion-spinner {
+  width: 24px;
+  height: 16px;
+  color: var(--jp-action);
+}
+
+/*
+ * A connection taken opens into the form, and the add row closes as it goes:
+ * the entry is seen to gain it. A step comes in the same way.
+ */
+.expand-enter-active,
+.expand-leave-active {
+  overflow: hidden;
+  transition:
+    max-height 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.24s ease,
+    transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  max-height: 520px;
+}
+
+.find,
+.by-link,
+.by-hand,
+.step-head {
+  animation: step-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expand-enter-active,
+  .expand-leave-active {
+    transition: none;
+  }
+
+  .find,
+  .by-link,
+  .by-hand,
+  .step-head {
+    animation: none;
+  }
 }
 
 .read-state[data-state='read'] {
@@ -490,11 +993,13 @@ function save() {
   font-weight: var(--jp-weight-semibold);
 }
 
-.preview {
-  margin-top: 6px;
-  padding: 6px 12px;
-  border-radius: var(--jp-r-md);
-  background: var(--jp-surface-sunken);
+.by-link > * + *,
+.by-hand > * + * {
+  margin-top: 10px;
+}
+
+.take {
+  margin-top: 16px;
 }
 
 /* Von and ab on one row, Nach and an on the next, the line under them. */
@@ -508,19 +1013,9 @@ function save() {
   grid-column: 1 / -1;
 }
 
-.pool {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.pool ion-icon {
-  font-size: var(--jp-icon-xs);
-}
-
-.empty {
-  margin: 4px 2px;
+.kept {
+  margin: 0 2px;
+  overflow-wrap: anywhere;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
 }

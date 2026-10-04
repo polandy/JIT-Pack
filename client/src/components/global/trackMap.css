@@ -88,6 +88,36 @@
   font-weight: var(--jp-weight-semibold);
 }
 
+.track-map .jp-stop {
+  stroke: var(--ct-base);
+  stroke-width: 1.5px;
+  fill: var(--ct-text);
+  fill-opacity: 1;
+}
+
+/* A journey's legs over the Landeskarte's red roads: a heavier line than a track's. */
+.track-map .jp-track-line[class*='jp-leg-'] {
+  stroke-width: 5.5px;
+}
+
+.track-map .jp-leg-train {
+  stroke: var(--ct-ember);
+}
+
+.track-map .jp-leg-bus {
+  stroke: var(--ct-glacier);
+}
+
+.track-map .jp-leg-boat {
+  stroke: var(--ct-heather);
+}
+
+.track-map .jp-leg-walk {
+  stroke: var(--ct-subtext1);
+  stroke-dasharray: 1 7;
+  stroke-linecap: round;
+}
+
 .track-map .jp-track-larch {
   stroke: var(--ct-larch);
 }

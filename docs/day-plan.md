@@ -32,13 +32,15 @@ Under the row, the chosen day lists what is on it — first everything with a ti
   much of its rucksack is packed. Tap it to open the excursion.
   An excursion you made from an idea is one line with the idea's title (💡) under it, and at the time you gave the
   idea — the idea itself does not appear a second time. The way there and back you added on the
-  excursion show as *Hinfahrt* and *Rückfahrt* with the excursion's name.
+  excursion show as *Hinfahrt* and *Rückfahrt* with the excursion's name, and the excursion stands between them —
+  right after the way there, or right before the way back if it has only that.
 - **Idee** — an idea you planned on this day. Tick it once you did it: it moves to **Gemacht** on the board.
 - **Aufgabe** — a task due this day, with whoever does it. Its tick is the same as on the task list.
 - **Eintrag** — an entry of the day plan's own. Tap it to change or delete it.
-- **Verbindung** — a train, bus or ferry journey: from where to where, when it arrives, which lines and how often you
-  change. Tap **▸** to see each leg, and **In der App öffnen** to open the connection in the app it came from — that
-  app knows about delays and platforms.
+- **Verbindung** — an entry with a train, bus or ferry journey: its title, and under it from where to where, when it
+  arrives, which lines and how often you change. Tap **▸** to see each leg, and **In der App öffnen** to open the
+  connection in the app it came from — that app knows about delays and platforms. **Karte ›** shows the journey on a
+  map.
 
 Below the day, **Morgen** shows tomorrow.
 
@@ -57,28 +59,47 @@ Reise**.
 
 ## Your own entries
 
-Tap the round **+** to add something to the chosen day: a title, a note and, if you like, a time. In the same sheet,
-**Idee** lists the shortlisted ideas without a day — tap one to plan it on that day instead.
+Tap the round **+** to add something to the chosen day: **Was**, and if you like a time and a note. Above them, the
+shortlisted ideas without a day are offered — tap one to plan it on that day instead.
+
+Tap an entry to change or delete it.
 
 ## Adding a connection
 
-Tap **+** and choose **Verbindung**.
+Any entry can carry a train, bus or ferry journey — when you write it, or later. Tap **Zugverbindung hinzufügen** in
+the entry; a step opens in the same sheet. **‹** takes you back to the entry.
 
-**From the SBB app:** open the connection there, share it and copy the link. Then tap **Link aus Zwischenablage
-einfügen**, or paste the link into the field. It is read at once: the sheet lists the legs, and **Am … einfügen** adds
-the connection on the day it runs, even if you had a different day open. The day plan then shows that day.
+**Search the timetable:** type the departure and the arrival stop (suggestions appear from the third letter); **⇅**
+swaps them. Choose **Abfahrt** or **Ankunft** and a time. The connections appear as soon as both stops are set — while
+the timetable answers, the sheet says *Verbindungen werden gesucht …*. **‹ Früher** and **Später ›** add more. Tap one
+and it is added to the entry. If a stop is not found or the timetable does not answer, the sheet says so. The search
+needs a network connection and covers Switzerland, and your instance can switch it off
+([Timetable](configuration.md#timetable)).
+
+**From where you are:** tap **📍 Mein Standort** beside **Von**. Your phone is asked once where it is; the stops
+nearest to you are offered with their distance, and each connection starts with the walk there (*🚶 3 min · los um
+08:03*). Your position goes from your phone to the timetable service, not to your JIT-Pack server. The button needs
+the page to be served over HTTPS.
+
+**From the SBB app:** under **Nicht dabei?** tap **SBB-Link**. In the SBB app, open the connection, share it and copy
+the link. Then tap **Link aus Zwischenablage einfügen**, or paste the link into the field. It is read at once, and
+**Übernehmen** adds the connection to the entry. If the link names another day, the entry moves to that day; the day
+plan then shows it.
 
 - The SBB app's short link (`a.sbbmobile.ch/s/…`) is read through your server. In Local Mode, or if your instance has
   link previews switched off, only the full `sbb.ch` link is read. Open the short link in a browser and copy the address
   it leads to.
 - The paste button needs the page to be served over HTTPS. Without it, paste into the field.
 
-**Anywhere else:** fill in **Von**, **ab**, **Nach**, **an** and, if you like, **Linie**. If the arrival time is
-earlier than the departure, it is counted as the next morning, as on a night train. You can put any link in the field
-too, a booking for example. JIT-Pack keeps it and offers it under the connection. A link it cannot read says so, and
-you fill in the fields.
+**Anywhere else:** under **Nicht dabei?** tap **Von Hand** and fill in **Von**, **ab**, **Nach**, **an** and, if you
+like, **Linie**. If the arrival time is earlier than the departure, it is counted as the next morning, as on a night
+train. A link JIT-Pack cannot read says so, keeps the link and offers the hand fields.
 
-Tap the connection to change or delete it.
+An entry without a title takes *Nach …* from the connection, and one without a time its departure — marked so, until
+you type something else. **Entfernen** takes the connection off again and leaves the entry. **Ändern** finds another.
+
+**On a map:** a connection from the timetable or the SBB app shows a small map in the entry — each leg in its colour,
+the walks dotted. Tap it for the whole screen. A connection entered by hand has no map.
 
 ## Good to know
 

@@ -62,11 +62,22 @@
   full-screen map opens the editor on the track's own file; a moved point saved as a new track stands beside it as
   *(variant)*.
 * **E2E-M27-17** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`): an excursion without days says it
-  needs one and offers no slot. On a dated one, *Hin* and *Zurück* each open the day plan's sheet headed *Way there* /
-  *Way back*; a leg by hand fills its slot as *„08:06 Spiez → 08:34 Kandersteg"* over *„There · RE · direct"*, and both
-  survive a reload. The two say *„On the spot 7 h 49"*; a GPX track added makes it *„… · Route 1 h 25 → 6 h 24 to
-  spare"*. *Der Tag* stands in the day's order — there, the route, back — and folds to *„08:06 → 3.3 km → 16:23 · 6 h 24
-  to spare"*, the ways gone. M27's list says *„there 08:06 · back 16:23"* under the dated excursion and nothing under
-  the other, and the day plan labels the two *Way there · Oeschinensee* / *Way back · Oeschinensee*. The slot rule, the
-  budget's cases (a route too long, a hut night, a route past midnight) and its words are `journey.spec.ts` and
-  `journeyText.spec.ts`.
+  needs one and offers no slot. On a dated one, *Hin* and *Zurück* each open the day plan's sheet at its connection step
+  headed *Way there* / *Way back*; a leg by hand fills its slot as *„08:06 Spiez → 08:34 Kandersteg"* over *„There · RE
+  · direct"*, and both survive a reload. The two say *„On the spot 7 h 49"*; a GPX track added makes it *„… · Route 1 h
+  25 → 6 h 24 to spare"*. *Der Tag* stands in the day's order — there, the route, back — and folds to *„08:06 → 3.3 km →
+  16:23 · 6 h 24 to spare"*, the ways gone. M27's list says *„there 08:06 · back 16:23"* under the dated excursion and
+  nothing under the other, and the day plan labels the two *Way there · Oeschinensee* / *Way back · Oeschinensee*, the
+  excursion's own line standing between them (FR-29.15). The slot rule, the budget's cases (a route too long, a hut
+  night, a route past midnight) and its words are `journey.spec.ts` and `journeyText.spec.ts`.
+* **E2E-M27-18** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`, the timetable stubbed): an empty
+  way there opens at the step with *To* filled with the stop nearest the track's start; a departure the service does
+  not know, typed and left, says so (`timetable-message`) and leaves the link and the hand fields; typing a departure
+  offers stops, a tap takes one, the connections come without a button, and a tap takes one into the slot. The way
+  back is searched from the way there's arrival plus the route, and each result says what it leaves of it — *„… too
+  early"* for one, *„… to spare"* for another.
+* **E2E-M27-19** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`, the timetable and the tiles
+  stubbed): an empty way there opens the sheet at the connection step headed *Way there*, *To* marked *nearest stop to
+  the start*; the connection taken shows the form without *What* and *Time*, as its card and *Note*, and *Save as way
+  there* writes it into the slot. The route step's map then draws the way's train leg beside the track's line
+  (`track-summary-map`).

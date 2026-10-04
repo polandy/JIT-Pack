@@ -93,6 +93,24 @@ func TestInstanceConfig_MapTilesOnUnlessTurnedOff_FR29_17(t *testing.T) {
 	}
 }
 
+// FR-29.18: the timetable search is offered unless the operator turned it off.
+func TestInstanceConfig_TimetableOnUnlessTurnedOff_FR29_18(t *testing.T) {
+	if !instanceConfig(t, newTestServer(t)).Timetable {
+		t.Error("timetable = false by default, want true — the search is on unless switched off")
+	}
+
+	st, err := store.OpenForTest(t.TempDir())
+	if err != nil {
+		t.Fatalf("store.OpenForTest: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	srv := httptest.NewServer(api.New(st, testSecret, api.Options{NoTimetable: true}).Handler())
+	t.Cleanup(srv.Close)
+	if instanceConfig(t, srv).Timetable {
+		t.Error("timetable = true with NoTimetable, want false")
+	}
+}
+
 // FR-29.20: the router a device asks is the one the operator configured,
 // and none where routing is off.
 func TestInstanceConfig_HandsOnTheRoutingURL_FR29_20(t *testing.T) {

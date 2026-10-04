@@ -2,8 +2,9 @@
 /**
  * One line of the day plan's timeline (FR-29.15): its time, its kind with a
  * coloured edge, its title and second line, and — by kind — an excursion's
- * packed ring or a tick, or for a connection its legs opened in place
- * (FR-29.18). Today's card and tomorrow's render the same row.
+ * packed ring or a tick, or for an entry carrying a connection its legs
+ * opened in place and its map (FR-29.18). Today's card and tomorrow's render
+ * the same row.
  */
 import { IonIcon } from '@ionic/vue'
 import {
@@ -21,7 +22,9 @@ import ProgressRing from '@/components/global/ProgressRing.vue'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import ConnectionLegs from './ConnectionLegs.vue'
+import ConnectionMapView from './ConnectionMapView.vue'
 import { dayLineWords } from './dayLineText'
+import { hasMap } from './domain/connections'
 import { DAY_LINE, type DayLine, type DayLineKind } from './domain/dayPlan'
 
 const props = defineProps<{ line: DayLine; nameOf: NameOf }>()
@@ -42,6 +45,8 @@ const legs = computed(() =>
   props.line.kind === DAY_LINE.connection ? (props.line.entry?.legs ?? null) : null,
 )
 const legsOpen = ref(false)
+const drawable = computed(() => !!legs.value && hasMap(legs.value))
+const mapOpen = ref(false)
 </script>
 
 <template>
@@ -61,6 +66,16 @@ const legsOpen = ref(false)
         <span class="title">{{ words.title }}</span>
         <span v-if="words.detail" class="detail">{{ words.detail }}</span>
       </span>
+    </button>
+    <button
+      v-if="drawable"
+      type="button"
+      class="map"
+      :aria-label="t('dayPlan.mapOf', { title: words.title })"
+      :data-testid="`m29-map-${line.key}`"
+      @click="mapOpen = true"
+    >
+      {{ t('dayPlan.openMap') }} ›
     </button>
     <button
       v-if="legs"
@@ -92,6 +107,14 @@ const legsOpen = ref(false)
       :link="line.entry?.link"
       :data-testid="`m29-legs-${line.key}`"
     />
+    <ConnectionMapView
+      v-if="drawable && legs"
+      :open="mapOpen"
+      :legs="legs"
+      :link="line.entry?.link"
+      :title="words.title"
+      @close="mapOpen = false"
+    />
   </div>
 </template>
 
@@ -119,6 +142,18 @@ const legsOpen = ref(false)
 .line[data-kind='entry'] {
   border-left-color: var(--ct-heather);
 }
+.map {
+  flex: none;
+  padding: 4px 2px;
+  border: none;
+  background: none;
+  color: var(--jp-action);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-semibold);
+  cursor: pointer;
+}
+
 .line[data-kind='connection'] {
   flex-wrap: wrap;
   border-left-color: var(--ct-glacier);
