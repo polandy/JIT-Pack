@@ -28,7 +28,7 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
       ? t('journey.outTitle')
       : role === EXCURSION_ROLE_BACK
         ? t('journey.backTitle')
-        : t(`dayPlan.kind.${line.kind}`)
+        : (line.source?.label ?? t(`dayPlan.kind.${line.kind}`))
   const span =
     line.span === 'start'
       ? t('dayPlan.spanStart')
@@ -47,14 +47,26 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
     detail:
       line.kind === DAY_LINE.task
         ? nameOf(line.source?.assignee ?? null)
-        : line.kind === DAY_LINE.connection && line.entry?.legs
-          ? carriedDetail(line.entry.title, line.entry.legs)
-          : line.origin
-            ? [t('dayPlan.fromIdea', { title: line.origin.title }), line.detail]
-                .filter((part) => !!part)
-                .join(' · ')
-            : line.detail,
+        : line.kind === DAY_LINE.meal
+          ? mealDetail(line, nameOf)
+          : line.kind === DAY_LINE.connection && line.entry?.legs
+            ? carriedDetail(line.entry.title, line.entry.legs)
+            : line.origin
+              ? [t('dayPlan.fromIdea', { title: line.origin.title }), line.detail]
+                  .filter((part) => !!part)
+                  .join(' · ')
+              : line.detail,
   }
+}
+
+/** FR-33.5: a meal's second line — who cooks it, where a person is named, before what the source says. */
+function mealDetail(line: DayLine, nameOf: NameOf): string | null {
+  const cook = nameOf(line.source?.assignee ?? null)
+  return (
+    [cook ? t('dayPlan.cooks', { name: cook }) : null, line.detail]
+      .filter((part) => !!part)
+      .join(' · ') || null
+  )
 }
 
 /**

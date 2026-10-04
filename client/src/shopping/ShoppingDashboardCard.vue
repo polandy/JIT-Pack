@@ -27,7 +27,7 @@ import InlineHint from '@/components/global/InlineHint.vue'
 
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
-import { isPressingDay, sortByDue } from '@/lib/dueDay'
+import { sortByDue } from '@/lib/dueDay'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import { presentToast } from '@/lib/toast'
 import type { TripCardProps } from '@/lib/tripCards'
@@ -35,7 +35,7 @@ import { tripSubPath } from '@/router/paths'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import { createShoppingActions, ownEntriesSource } from './actions'
-import { listInFocus } from './list'
+import { isPressingLine, listInFocus } from './list'
 import { useShoppingStore } from './store'
 
 const props = defineProps<TripCardProps>()
@@ -76,7 +76,7 @@ function linesOf(which: ShoppingMode): { line: ShoppingLine; own: boolean }[] {
     ),
   ]
   return sortByDue(all, today.value, ({ line }) =>
-    isPressingDay(line.dueDate ?? null, today.value) ? (line.dueDate ?? null) : null,
+    isPressingLine(line, today.value) ? (line.dueDate ?? null) : null,
   )
 }
 

@@ -186,6 +186,12 @@
   heading and before the own entries, A–Z, and such a heading takes no dropped entry — it is not one of this list's
   tags. Checking one off stamps the excursion's line *vor Ort gekauft*; it stays on the excursion's list, still to go
   into the rucksack. *Vor Ort* only. (`m6-group-source-<name>`, E2E-M27-03)
+* **The meal plan's heading (FR-33.3 — *built*).** A meal's ingredients stand under ***Essensplan***, ranked after
+  every excursion's heading (`ShoppingLine.sectionRank`), in the order of their meals, each naming its amount and meal
+  on the second line (*„1 kg · Mo. Abend · Raclette"*, `ShoppingLine.detail`). An ingredient is due on its meal's day
+  (*Vor der Reise*: the eve of departure) and **enters the *Fällig* block on that day only** (`pressingDays: 0`); a
+  line in the block names a source's heading where an entry names its tag. Buying one is the meal's own tick
+  (M31); a past meal's open ingredients are not listed. (`m6-group-source-Essensplan`, E2E-M31-03)
 * **From an idea (FR-29.13):** entered from an idea's *Einkauf* chip (`?fromIdea=`), the composer holds the idea's title
   on *Vor Ort*, focused; the entry written next names the idea, the one after is the list's own again. The parameter
   leaves the address once answered; `‹` returns to the idea (`meta.acceptsLinkedFrom`). On an own entry's second line

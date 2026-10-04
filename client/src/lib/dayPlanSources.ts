@@ -16,10 +16,13 @@
  */
 import type { InjectionKey } from 'vue'
 
-/** The packing side's kinds of dated row. */
+/** The kinds of dated row other code puts on the plan. */
 export const DAY_PLAN_EXCURSION = 'excursion'
 export const DAY_PLAN_TASK = 'task'
-export type DayPlanLineKind = typeof DAY_PLAN_EXCURSION | typeof DAY_PLAN_TASK
+/** FR-33.5: a meal of the meal plan (§3.33). */
+export const DAY_PLAN_MEAL = 'meal'
+export type DayPlanLineKind =
+  typeof DAY_PLAN_EXCURSION | typeof DAY_PLAN_TASK | typeof DAY_PLAN_MEAL
 
 /** One dated row of the packing side, as the day plan shows it. */
 export interface DayPlanLine {
@@ -49,6 +52,22 @@ export interface DayPlanLine {
   ideaId?: string | null
   /** Where a tap on it leads. */
   path: string
+  /**
+   * Opens the line where it is edited, over the screen it was tapped on,
+   * instead of following `path` — a meal's sheet (FR-33.5).
+   */
+  open?: () => void
+  /** Its own time, `HH:MM`, where the source knows one — a meal's (FR-33.5). */
+  time?: string | null
+  /**
+   * Where an untimed line stands among the timed ones, `HH:MM` — a meal at
+   * its slot's place (FR-33.1). Absent: after every timed line.
+   */
+  placeAt?: string
+  /** What the time column says for such a line instead of a dash — the slot's word. */
+  timeWord?: string
+  /** The small label over the title, where the source names its kind itself — the meal's slot. */
+  label?: string
 }
 
 /** One source of dated lines, for one trip. */

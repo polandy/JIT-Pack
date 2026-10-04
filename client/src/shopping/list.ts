@@ -10,7 +10,7 @@
  * — „Brot" typed here and „Brot" on the packing list are two decisions,
  * and the list says so rather than guessing that they are one (ADR-066).
  */
-import { isPressingDay, pressingGroupsFirst, sortByDue } from '@/lib/dueDay'
+import { DUE_SOON_DAYS, daysBetween, pressingGroupsFirst, sortByDue } from '@/lib/dueDay'
 import { byHand, dropInto, renumber, type Placement } from '@/lib/handOrder'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import { beforeIsOver, type TripStanding } from '@/lib/tripPhase'
@@ -70,6 +70,16 @@ function dueDayOf(line: ShoppingLine): string | null {
 }
 
 /**
+ * Whether a line is one to look at now (FR-30.10): overdue, or due within the
+ * days its source gives it — FR-30.10's two for an entry, none for a meal's
+ * ingredient, which presses on its meal's day only (FR-33.3).
+ */
+export function isPressingLine(line: ShoppingLine, today: string): boolean {
+  const day = dueDayOf(line)
+  return day !== null && daysBetween(today, day) <= (line.pressingDays ?? DUE_SOON_DAYS)
+}
+
+/**
  * buildSections files the lines under their headings: every source's lines
  * first, combined under one heading regardless of category, since none of
  * them are this list's own tags to file separately by — then the own entries, a section per tag A–Z, then the untagged ones
@@ -98,7 +108,7 @@ export function buildSections(
   }))
   if (today === undefined) return sections
   return pressingGroupsFirst(sections, (section) =>
-    section.lines.some((line) => isPressingDay(dueDayOf(line), today)),
+    section.lines.some((line) => isPressingLine(line, today)),
   )
 }
 
@@ -144,7 +154,11 @@ function fileSections(own: ShoppingLine[], sourced: ShoppingLine[]): ShoppingSec
   for (const line of sourced) {
     if (line.section) bySection.set(line.section, [...(bySection.get(line.section) ?? []), line])
   }
-  for (const name of [...bySection.keys()].sort((a, b) => a.localeCompare(b))) {
+  // FR-33.3: a source may rank its heading after the others — the meal plan's
+  // stands last whatever its name, since a week of cooking is the bulk.
+  const rankOf = (name: string) => bySection.get(name)?.[0]?.sectionRank ?? 0
+  const named = [...bySection.keys()].sort((a, b) => rankOf(a) - rankOf(b) || a.localeCompare(b))
+  for (const name of named) {
     sections.push({
       key: `source:${name}`,
       own: false,
@@ -225,7 +239,7 @@ export function shoppingBoard(
   open: Record<ShoppingMode, { own: ShoppingLine[]; sourced: ShoppingLine[] }>,
   today: string,
 ): ShoppingBoard {
-  const pressing = (line: ShoppingLine) => isPressingDay(dueDayOf(line), today)
+  const pressing = (line: ShoppingLine) => isPressingLine(line, today)
   const keyed = new Map<string, ShoppingMode>()
   const due: ShoppingLine[] = []
   const lists = {} as Record<ShoppingMode, ListShelf>

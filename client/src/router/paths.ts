@@ -66,6 +66,7 @@ export type TripSubScreen =
   | 'excursions'
   | 'ideas'
   | 'dayplan'
+  | 'meals'
   | 'open'
 
 /** The packing list (M4). */

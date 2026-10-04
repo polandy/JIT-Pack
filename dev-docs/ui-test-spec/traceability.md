@@ -227,6 +227,13 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
 | FR-32.1 | E2E+SERVER | M30-01 (the actor stamped, not claimed); Go: `TestActivity_*` in `internal/store` (what is recorded and what is not, the trip a master row belongs to, the names through a foreign key, the side paths, every table's name sources) and `internal/api` (membership, paging, refusals) |
 | FR-32.2 | E2E+UNIT | M30-01 (a run folded and opened), M30-03 (a module's reader bound); `domain/__tests__/activity.spec.ts` (every act, the areas, the folding), the modules' own `activity.spec.ts` and `activityReadersWiring.spec.ts` (every table read by one side), `ActivityLogPage.spec.ts` (Single-User names nobody, the older page, the empty and failed states) |
+| FR-33.1/33.2/33.9 | E2E+UNIT+SERVER | M31-01 (the pill, the days, the slots), M31-02 (planned, changed, deleted, eaten out); `meals/domain/__tests__/mealPlan.spec.ts`, `meals/__tests__/sync.spec.ts`; Go: `TestApplyMutation_DeletingAMealTombstonesItsIngredients_FR33_9`, `TestSchema_MealVocabulary_FR33_1`, `TestApplyMutation_IngredientNamesAMealOfItsTrip_FR33_2` |
+| FR-33.3 | E2E+UNIT+SERVER | M31-03 (the lines of M6, both ways, *Due* on the day, a past meal), M31-08 (the buyer); `shopping/__tests__/list.spec.ts` (the heading's rank, the day's press), `meals/__tests__/sources.spec.ts`; Go: `TestPush_MealIngredientPurchase_StampsTheBuyer_FR33_3` |
+| FR-33.4 | E2E+UNIT | M31-04 (offered, filtered, taken); `mealPlan.spec.ts` (`earlierDishes`, `matchingDishes`) |
+| FR-33.5 | E2E+UNIT | M31-05 (at its slot's place, opened over M29); `planner/domain/__tests__/dayPlan.spec.ts` (a meal on the plan), `sources.spec.ts` |
+| FR-33.6 | E2E+UNIT+SERVER | M31-06 (taken along, packed, counted, named on M29, left again); `lib/__tests__/excursionExtraLines.spec.ts`, `dayPlanSource.spec.ts`, `sync.spec.ts`; Go: `TestApplyMutation_MealExcursion_KeepsItOnTheTripsOwn_FR33_6` |
+| FR-33.7 | E2E+UNIT | M31-07 (the block, opened, the *Heute* card without meals); `dayPlan.spec.ts` (`linesAhead`) |
+| FR-33.8 | E2E | M31-08 (a member cooks, on M31 and M29) |
 | FR-32.3 | E2E+UNIT+SERVER | M30-02; G12-07 and `ItemInventoryPage.spec.ts` (hidden in Local Mode); Go: `TestActivity_Inventory_FollowsMasterVisibility_FR32_1` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

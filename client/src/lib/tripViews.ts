@@ -7,6 +7,7 @@ import {
   chatbubblesOutline,
   checkboxOutline,
   listOutline,
+  restaurantOutline,
   statsChartOutline,
   trailSignOutline,
 } from 'ionicons/icons'
@@ -35,9 +36,10 @@ export const TRIP_VIEW_IDS = [
   'luggage',
   'analytics',
   'dayplan',
+  'meals',
 ] as const
 
-/** One of the trip's nine views — see TRIP_VIEW_IDS. */
+/** One of the trip's ten views — see TRIP_VIEW_IDS. */
 export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 
 /**
@@ -78,6 +80,8 @@ export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripVie
  *
  * FR-29.15 adds the day plan, last in the row and only while the trip has
  * both dates (`absentViews`): it is where the trip is lived day by day.
+ * §3.33 adds the meal plan after it, on the same condition (ADR-092): the
+ * row scrolls sideways, and a meal plan one tap deeper would not be used.
  */
 export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'ideas',
@@ -87,16 +91,18 @@ export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'notes',
   'excursions',
   'dayplan',
+  'meals',
 ]
 
 /**
- * The views a trip does not have yet: the day plan needs both of the trip's
- * dates (FR-29.7), so without them it earns neither a pill nor a route's way in.
+ * The views a trip does not have yet: the day plan and the meal plan need
+ * both of the trip's dates (FR-29.7, FR-33.1), so without them they earn
+ * neither a pill nor a route's way in.
  */
 export function absentViews(
   trip: { start_date: string | null; end_date: string | null } | undefined,
 ): TripViewId[] {
-  return trip?.start_date && trip.end_date ? [] : ['dayplan']
+  return trip?.start_date && trip.end_date ? [] : ['dayplan', 'meals']
 }
 
 /** What one view is called, where it lives, and the glyph it wears (G-12). */
@@ -165,6 +171,11 @@ const TRIP_VIEW_SPECS: Record<TripViewId, TripViewSpec> = {
     icon: calendarOutline,
     nameKey: 'dayPlan.title',
     path: (tripId) => tripSubPath(tripId, 'dayplan'),
+  },
+  meals: {
+    icon: restaurantOutline,
+    nameKey: 'meals.title',
+    path: (tripId) => tripSubPath(tripId, 'meals'),
   },
 }
 

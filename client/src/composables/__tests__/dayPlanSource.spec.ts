@@ -148,4 +148,30 @@ describe('ticking a task from the day plan (FR-7.6)', () => {
     toggleTask(w, { getTripTodos: () => [], getItemTodos: () => [] }, 't', withItem)
     expect(w.resolvePrepTodo).toHaveBeenCalledTimes(1)
   })
+
+  it('counts a picnic taken along in the excursion’s share and names it (FR-33.6)', () => {
+    const src = createDayPlanSource(
+      {
+        getExcursions: () => [excursion('ex-1', '2026-07-14', '2026-07-14')],
+        getExcursionItems: () => [item('a', 1, 1)],
+        tasksOf: () => [],
+        extraLines: (_trip, ex) =>
+          ex === 'ex-1'
+            ? [
+                {
+                  key: 'meal:m1',
+                  group: 'Essen',
+                  title: 'Picknick',
+                  detail: null,
+                  packed: false,
+                  toggle() {},
+                  open() {},
+                },
+              ]
+            : [],
+      },
+      { toggleTask: vi.fn() },
+    )
+    expect(src.lines('t')[0]).toMatchObject({ progress: 1 / 2, detail: '1/2 packed · 🍽 Picknick' })
+  })
 })

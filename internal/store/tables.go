@@ -701,6 +701,42 @@ var tableSpecs = map[string]tableSpec{
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
+	// FR-33.1: a meal of the meal plan. Its ingredients hang off it and go
+	// with it (ON DELETE CASCADE), so a deleted meal leaves no line on any
+	// device's shopping list (FR-33.9).
+	TableMeals: {
+		partition: partitionTrip,
+		label:     activityLabel{name: own("title")},
+		columns: toSet(
+			"trip_id", "on_date", "slot", "title", columnKind, "at_time", "note", "place",
+			// FR-33.8: who cooks — the client's to choose, like an assignee.
+			"cook_user_id",
+			// FR-33.6: the excursion a picnic is taken on; noteExcursion checks it.
+			columnExcursionID, "excursion_packed_at",
+		),
+		cascades: []childQuery{
+			{TableMealIngredients, `SELECT id FROM meal_ingredients WHERE meal_id = ?`},
+		},
+		export: exportQuery{query: `SELECT x.* FROM meals x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-33.2: an ingredient of a meal; validIngredientMeal keeps it on a
+	// meal of its own trip.
+	TableMealIngredients: {
+		partition: partitionTrip,
+		label:     activityLabel{name: own("name"), subject: via("meal_id", TableMeals, "title")},
+		columns: toSet(
+			"trip_id", "meal_id", "name", "amount", "list", columnPosition, "bought",
+			// FR-30.4, stamped by stampActor.
+			"bought_at", "bought_by_user_id",
+			// FR-30.13: the line's place on M6 (ADR-083).
+			"shopping_position",
+		),
+		export: exportQuery{query: `SELECT x.* FROM meal_ingredients x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
 	// FR-29.17: a GPX track on an idea. The upload creates the row (with its
 	// file, which never syncs); every column is listed so the pull carries
 	// it, and validTrack lets a push change only what a person sets.

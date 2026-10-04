@@ -7,12 +7,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { KERNEL_ACTIVITY_AREAS } from '@/domain/activity'
+import { mealActivityReaders } from '@/meals'
 import { plannerActivityReaders } from '@/planner'
 import { shoppingActivityReaders } from '@/shopping'
 import { FEATURE_STORE_TABLES } from '@/sync/routing'
 import { TABLE } from '@/types/tables'
 
-const moduleReaders = [shoppingActivityReaders, plannerActivityReaders]
+const moduleReaders = [shoppingActivityReaders, plannerActivityReaders, mealActivityReaders]
 
 describe('activity readers wiring (FR-32.2)', () => {
   it('gives every module table a reader, and no table two', () => {

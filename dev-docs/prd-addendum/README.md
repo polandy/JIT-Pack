@@ -4,8 +4,8 @@
 **Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (built, item tags & master-item lifecycle)**,
 **3.25 (built, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed and parked, calendar-reminder
 iCalendar subscription — Variant B)**, **3.27 (accepted, template composition)**, **3.28 (built, one emoji mark per
-item)**, **3.30 (accepted, the shopping list as a module of its own)** and **3.31 (built, excursions — a small
-packing list inside a trip)**, clarifications to existing FRs, and
+item)**, **3.30 (accepted, the shopping list as a module of its own)**, **3.31 (built, excursions — a small
+packing list inside a trip)** and **3.33 (built, the meal plan)**, clarifications to existing FRs, and
 refined/added NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base PRD; a retired FR/NFR number
 keeps a removal stub and is never reused.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation
@@ -44,6 +44,7 @@ sections (3.1–3.9), Part C the non-functional requirements.
 | 3.30 The Shopping List as a Module of Its Own | [`3.30-shopping-list-module.md`](3.30-shopping-list-module.md) |
 | 3.31 Excursions — A Small Packing List Inside a Trip | [`3.31-excursions.md`](3.31-excursions.md) |
 | 3.32 The Activity Log — Who Changed What | [`3.32-activity-log.md`](3.32-activity-log.md) |
+| 3.33 The Meal Plan — What the Family Eats, Day by Day | [`3.33-meal-plan.md`](3.33-meal-plan.md) |
 | 3.1 Template & Master Data Management | [`3.1-template-master-data-management.md`](3.1-template-master-data-management.md) |
 | 3.2 Trip Management | [`3.2-trip-management.md`](3.2-trip-management.md) |
 | 3.4 Multi-User & Collaboration | [`3.4-multi-user-collaboration.md`](3.4-multi-user-collaboration.md) |

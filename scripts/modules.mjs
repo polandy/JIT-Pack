@@ -1,10 +1,10 @@
 /**
- * The feature modules (FR-30.3, ADR-066; §3.29, ADR-078) — one directory each
+ * The feature modules (FR-30.3, ADR-066; §3.29, ADR-078; §3.33, ADR-092) — one directory each
  * under `client/src`, and the one list every script that knows about them
  * reads: `module-boundary-gate.mjs` holds their import boundary and their e2e
  * tags, `diff-scope.mjs` decides when CI may run one of them alone (ADR-079).
  */
-export const MODULES = ['shopping', 'planner']
+export const MODULES = ['shopping', 'planner', 'meals']
 
 /**
  * What in an e2e spec outside `client/e2e/<module>/` says a case works a
@@ -20,4 +20,5 @@ export const MODULE_E2E_MARKERS = {
     /openTripView\(\s*page,\s*'dayplan'/,
     /trip-view-dayplan/,
   ],
+  meals: [/openTripView\(\s*page,\s*'meals'/, /trip-view-meals/, /dashboard-meals-/, /m31-/],
 }

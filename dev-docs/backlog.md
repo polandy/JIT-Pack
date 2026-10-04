@@ -14,7 +14,8 @@ publish/fork ownership model. Each carries a revisit trigger in its stub.
 
 - **The G-3 lock stays advisory** (owner's decision, ADR-022/023): refusal would wedge an offline device's outbox.
 - **The portable backup carries master data and trips only.** Not in it: trip todos (FR-7.3/7.4), the shopping list's
-  own entries (FR-30), trip notes (FR-7.9/7.13), excursions (FR-31), the planner (§3.29) and the activity log (§3.32).
+  own entries (FR-30), trip notes (FR-7.9/7.13), excursions (FR-31), the planner (§3.29), the meal plan (§3.33) and the
+  activity log (§3.32).
 - **The item merge moves master data only** (FR-24.15, ADR-069): trip history keeps naming the row it was packed from,
   and `items.merged_into_id` makes the two pasts read as one.
 - **The task due-day reminder is the one notification Single-User sends** (FR-7.12, ADR-076).

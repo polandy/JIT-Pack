@@ -216,9 +216,10 @@ These patterns apply to every screen and are specified once.
   revisit trigger is in ADR-050.
 * **A trip's screen names the trip's other screens (FR-21.21, ADR-051 and its amendments 1, 3 and 4).** Under the page
   head, and inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the views a trip is
-  *worked* in are a row of pills: *Ideen (n)* (§3.29), *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen* (FR-7.13)
-  and *Ausflüge (n)* (FR-31), plus the view being looked at when it is none of them, so the row always marks where you
-  are. **The current one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word);
+  *worked* in are a row of pills: *Ideen (n)* (§3.29), *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen*
+  (FR-7.13), *Ausflüge (n)* (FR-31), *Tagesplan* (FR-29.15) and *Essen* (§3.33) — the last two only while the trip has
+  both dates — plus the view being looked at when it is none of them, so the row always marks where you are. **The
+  current one is marked, inert and the only one in words** (its glyph at `--jp-icon-sm` beside the word);
   every other view is its G-12 glyph at `--jp-icon-md`, its count a badge on the glyph's corner, and its whole label
   (*„Einkaufen (12)"*) its `aria-label` and `title` — six words and their counts do not fit a phone. **Holding a glyph
   shows that label in a bubble** below it, which stays a moment after the release and does not navigate; a tap is one

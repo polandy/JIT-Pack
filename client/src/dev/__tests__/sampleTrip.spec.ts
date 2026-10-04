@@ -24,7 +24,8 @@ import { seedSampleMaster } from '../sampleMaster'
 import { plannerFeatureStore, usePlannerStore } from '@/planner'
 import { IDEA_STATES } from '@/types/domain'
 
-import { SEED_IDEAS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
+import { SEED_IDEAS, SEED_MEALS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
+import { mealFeatureStore, useMealStore } from '@/meals'
 import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
 import { decodeLine, defaultSource, readTrack } from '@/domain/track'
 
@@ -226,5 +227,28 @@ describe('seedSampleTrip (dev)', () => {
     expect(lines.some((l) => l.for_all_participants)).toBe(true)
     expect(lines.some((l) => l.mode === 'buy_local')).toBe(true)
     expect(lines.some((l) => l.not_in_luggage)).toBe(true)
+  })
+
+  /*
+   * §3.33: M31 shows its fold, a meal eaten out, a half-bought dinner and the
+   * picnic on the hut tour only if the seed spreads them so.
+   */
+  it('leaves a fresh device with a meal plan across the days, one picnic on the hut tour (§3.33)', async () => {
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+      features: [mealFeatureStore()],
+    })
+    await orchestrator.connect()
+    const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)
+    const meals = useMealStore().getMeals(tripId)
+
+    expect(meals).toHaveLength(SEED_MEALS.length)
+    expect(meals.some((meal) => meal.kind === 'out')).toBe(true)
+    expect(meals.filter((meal) => meal.excursion_id !== null)).toHaveLength(1)
+    const ingredients = useMealStore().getIngredients(tripId)
+    expect(ingredients.some((ingredient) => ingredient.bought)).toBe(true)
+    expect(ingredients.some((ingredient) => !ingredient.bought)).toBe(true)
   })
 })

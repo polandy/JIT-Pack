@@ -13,6 +13,7 @@ import {
   checkboxOutline,
   chevronForward,
   createOutline,
+  restaurantOutline,
   trailSignOutline,
   trainOutline,
 } from 'ionicons/icons'
@@ -38,6 +39,7 @@ const KIND_ICON: Record<DayLineKind, string> = {
   [DAY_LINE.task]: checkboxOutline,
   [DAY_LINE.entry]: createOutline,
   [DAY_LINE.connection]: trainOutline,
+  [DAY_LINE.meal]: restaurantOutline,
 }
 
 const words = computed(() => dayLineWords(props.line, props.nameOf))
@@ -57,7 +59,10 @@ const mapOpen = ref(false)
     :data-testid="`m29-line-${line.key}`"
   >
     <button type="button" class="open" @click="emit('open')">
-      <span class="time jp-num">{{ line.time ?? t('dayPlan.noTime') }}</span>
+      <!-- FR-33.5: an untimed meal says its slot where another line says nothing. -->
+      <span class="time jp-num" :class="{ word: !line.time && !!line.source?.timeWord }">{{
+        line.time ?? line.source?.timeWord ?? t('dayPlan.noTime')
+      }}</span>
       <span class="body">
         <span class="kind">
           <IonIcon :icon="KIND_ICON[line.kind]" aria-hidden="true" />
@@ -142,6 +147,9 @@ const mapOpen = ref(false)
 .line[data-kind='entry'] {
   border-left-color: var(--ct-heather);
 }
+.line[data-kind='meal'] {
+  border-left-color: var(--ct-alpenrose);
+}
 .map {
   flex: none;
   padding: 4px 2px;
@@ -182,6 +190,9 @@ const mapOpen = ref(false)
   flex: 0 0 44px;
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
+}
+.time.word {
+  color: var(--ct-subtext0);
 }
 
 .body {

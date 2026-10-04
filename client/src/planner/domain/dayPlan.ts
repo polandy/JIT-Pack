@@ -8,7 +8,7 @@
  * Which day is shown, what stands on it and in which order is derived here.
  */
 import type { DayPlanLine } from '@/lib/dayPlanSources'
-import { DAY_PLAN_EXCURSION } from '@/lib/dayPlanSources'
+import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea } from '@/types/domain'
 import {
   EXCURSION_ROLE_BACK,
@@ -27,6 +27,7 @@ export const DAY_LINE = {
   task: 'task',
   entry: 'entry',
   connection: 'connection',
+  meal: 'meal',
 } as const
 export type DayLineKind = (typeof DAY_LINE)[keyof typeof DAY_LINE]
 
@@ -39,6 +40,8 @@ export interface DayLine {
   kind: DayLineKind
   /** `HH:MM`, or null for a line without a time. */
   time: string | null
+  /** An untimed line's place among the timed ones (a meal's slot, FR-33.5); absent for after them. */
+  placeAt?: string
   title: string
   /** The words under the title, where there are any. */
   detail: string | null
@@ -56,6 +59,13 @@ export interface DayLine {
   /** A connection's line: the excursion it belongs to (FR-29.18). */
   excursion?: DayPlanLine
 }
+
+/** A source's kind of line as the timeline's. */
+const KIND_OF_SOURCE = {
+  [DAY_PLAN_EXCURSION]: DAY_LINE.excursion,
+  [DAY_PLAN_TASK]: DAY_LINE.task,
+  [DAY_PLAN_MEAL]: DAY_LINE.meal,
+} as const satisfies Record<DayPlanLine['kind'], DayLineKind>
 
 /** The trip's dates, as the plan reads them. */
 export interface TripDates {
@@ -199,12 +209,16 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     const multiDay = source.from !== source.to
     const origin = source.ideaId ? ideaOf.get(source.ideaId) : undefined
     // The idea's time stands on the day the idea was planned for.
-    const time =
-      origin?.planned_on === day && isPlanTime(origin.planned_at) ? origin.planned_at : null
+    const time = isPlanTime(source.time)
+      ? source.time
+      : origin?.planned_on === day && isPlanTime(origin.planned_at)
+        ? origin.planned_at
+        : null
     lines.push({
       key: source.key,
-      kind: source.kind === DAY_PLAN_EXCURSION ? DAY_LINE.excursion : DAY_LINE.task,
+      kind: KIND_OF_SOURCE[source.kind],
       time,
+      ...(isPlanTime(source.placeAt) ? { placeAt: source.placeAt } : {}),
       title: source.title,
       detail: source.detail,
       span: !multiDay ? null : day === source.from ? 'start' : day === source.to ? 'return' : null,
@@ -247,10 +261,12 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     })
   }
 
-  // Stable: equal times keep the kinds' order above.
+  // Stable: equal times keep the kinds' order above. A meal without a time
+  // stands at its slot's place (FR-33.5).
+  const orderTime = (line: DayLine) => line.time ?? line.placeAt ?? null
   const ordered = lines
     .map((line, index) => ({ line, index }))
-    .sort((a, b) => compareTime(a.line.time, b.line.time) || a.index - b.index)
+    .sort((a, b) => compareTime(orderTime(a.line), orderTime(b.line)) || a.index - b.index)
     .map(({ line }) => line)
   return betweenItsWays(ordered)
 }
@@ -346,6 +362,8 @@ export function linesAhead(day: string, lines: readonly DayLine[], now: string):
   const at = `${day}T${now}`
   return lines.filter((line) => {
     if (line.kind === DAY_LINE.arrival || line.kind === DAY_LINE.departure) return false
+    // FR-33.7: today's meals have a block of their own on the dashboard.
+    if (line.kind === DAY_LINE.meal) return false
     if (line.time === null) return true
     const legs = line.entry?.legs
     const until = legs?.length ? legs[legs.length - 1]!.arr.slice(0, 16) : `${day}T${line.time}`

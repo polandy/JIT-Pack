@@ -26,9 +26,19 @@ describe('the trip views that earn a pill', () => {
   // FR-7.13: the notes are the fourth view worked in — written in, not read once.
   // FR-31: the excursions the fifth — packed during the trip, more often than the suitcase.
   // §3.29: the ideas the sixth, first — a trip is planned before it is packed.
-  // FR-29.15: the day plan the seventh, last — where the trip is lived day by day.
-  it('shows the seven a trip is worked in, in the order it is worked through', () => {
-    const worked = ['ideas', 'packing', 'shopping', 'tasks', 'notes', 'excursions', 'dayplan']
+  // FR-29.15: the day plan the seventh — where the trip is lived day by day.
+  // §3.33: the meal plan the eighth, last — beside the day it is eaten on.
+  it('shows the eight a trip is worked in, in the order it is worked through', () => {
+    const worked = [
+      'ideas',
+      'packing',
+      'shopping',
+      'tasks',
+      'notes',
+      'excursions',
+      'dayplan',
+      'meals',
+    ]
     for (const current of [
       'ideas',
       'packing',
@@ -37,16 +47,18 @@ describe('the trip views that earn a pill', () => {
       'notes',
       'excursions',
       'dayplan',
+      'meals',
     ] as const) {
       expect(tripViewPills(current)).toEqual(worked)
     }
   })
 
-  /* FR-29.7: the day plan needs both dates; a trip without them has no pill for it. */
-  it('leaves out the day plan while the trip lacks a date, unless it is where you stand', () => {
+  /* FR-29.7/FR-33.1: the day and meal plans need both dates; without them, no pill. */
+  it('leaves out the day and meal plans while the trip lacks a date, unless it is where you stand', () => {
     expect(absentViews({ start_date: '2026-07-12', end_date: '2026-07-19' })).toEqual([])
-    expect(absentViews({ start_date: '2026-07-12', end_date: null })).toEqual(['dayplan'])
-    expect(absentViews(undefined)).toEqual(['dayplan'])
+    expect(absentViews({ start_date: '2026-07-12', end_date: null })).toEqual(['dayplan', 'meals'])
+    expect(absentViews(undefined)).toEqual(['dayplan', 'meals'])
+    expect(tripViewPills('packing', ['dayplan', 'meals'])).not.toContain('meals')
     expect(tripViewPills('packing', ['dayplan'])).not.toContain('dayplan')
     expect(tripViewPills('dayplan', ['dayplan'])).toContain('dayplan')
   })
@@ -65,6 +77,7 @@ describe('the trip views that earn a pill', () => {
       'notes',
       'excursions',
       'dayplan',
+      'meals',
       'luggage',
     ])
     expect(tripViewPills('analytics')).toEqual([
@@ -75,6 +88,7 @@ describe('the trip views that earn a pill', () => {
       'notes',
       'excursions',
       'dayplan',
+      'meals',
       'analytics',
     ])
   })

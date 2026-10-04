@@ -219,6 +219,7 @@ const AREA_LABEL: Record<ActivityArea, MessageKey> = {
   excursions: 'excursions.title',
   ideas: 'ideas.title',
   dayplan: 'dayPlan.title',
+  meals: 'meals.title',
   trip: 'activity.area.trip',
   members: 'members.title',
   inventory: 'items.title',
