@@ -8,7 +8,7 @@ import { formatDate, t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { localDay } from '@/lib/taskDueText'
 import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type ConnectionLeg } from '@/types/domain'
-import { connectionSummary } from './domain/connections'
+import { connectionSummary, connectionTitle } from './domain/connections'
 import { DAY_LINE, type DayLine } from './domain/dayPlan'
 
 /** What one line says. */
@@ -48,13 +48,24 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
       line.kind === DAY_LINE.task
         ? nameOf(line.source?.assignee ?? null)
         : line.kind === DAY_LINE.connection && line.entry?.legs
-          ? connectionDetail(line.entry.legs)
+          ? carriedDetail(line.entry.title, line.entry.legs)
           : line.origin
             ? [t('dayPlan.fromIdea', { title: line.origin.title }), line.detail]
                 .filter((part) => !!part)
                 .join(' · ')
             : line.detail,
   }
+}
+
+/**
+ * The second line of an entry carrying a connection (FR-29.18): its stops
+ * before what {@link connectionDetail} says — *„Luzern → Hergiswil Matt · an
+ * 08:31 · S 4 · direkt"* — unless the title already names them.
+ */
+export function carriedDetail(title: string, legs: readonly ConnectionLeg[]): string {
+  const route = connectionTitle(legs)
+  const detail = connectionDetail(legs)
+  return title === route ? detail : `${route} · ${detail}`
 }
 
 /** A connection's second line: *„an 15:46 · RE 3, IC 3, IC 1 · 3× umsteigen"* (FR-29.18). */

@@ -5,6 +5,7 @@
  * answers with the hand fields.
  */
 import {
+  nearStops,
   nearestStop,
   optionsFrom,
   stopsFrom,
@@ -33,6 +34,8 @@ export interface ConnectionQuery {
 export interface TimetableApi {
   stops(query: string): Promise<TimetableStop[] | null>
   stopNear(lat: number, lon: number): Promise<TimetableStop | null>
+  /** The few stops nearest a place, each with its distance — where one starts from. */
+  stopsNear(lat: number, lon: number): Promise<TimetableStop[] | null>
   connections(query: ConnectionQuery): Promise<TimetableOption[] | null>
 }
 
@@ -53,6 +56,10 @@ export function createTimetableApi(fetchFn: typeof fetch = (...a) => fetch(...a)
     async stopNear(lat, lon) {
       const body = await ask('locations', { x: String(lat), y: String(lon) })
       return body === null ? null : nearestStop(stopsFrom(body))
+    },
+    async stopsNear(lat, lon) {
+      const body = await ask('locations', { x: String(lat), y: String(lon) })
+      return body === null ? null : nearStops(stopsFrom(body))
     },
     async connections({ from, to, day, time, arrive }) {
       const body = await ask('connections', {

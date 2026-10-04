@@ -57,20 +57,55 @@ export async function addDayEntry(
   await dayPlan(page).getByTestId('m29-fab').click()
   const sheet = page.getByTestId('day-entry')
   await fillIonic(sheet.getByTestId('day-entry-name'), entry.title)
-  if (entry.note) await sheet.getByTestId('day-entry-note').locator('textarea').fill(entry.note)
+  if (entry.note) await fillIonic(sheet.getByTestId('day-entry-note'), entry.note)
   if (entry.time) await sheet.getByTestId('day-entry-time').locator('input').fill(entry.time)
   await sheet.getByTestId('day-entry-save').click()
   await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
   await expect(timelineLines(page).filter({ hasText: entry.title })).toBeVisible()
 }
 
-/** Open the ＋ sheet on its *Connection* segment; ends with the link field on screen. */
-export async function openConnectionSheet(page: Page): Promise<Locator> {
+/**
+ * Open the ＋ sheet and its connection step (FR-29.18), with a title typed
+ * first where one is given; ends with the step on screen.
+ */
+export async function openConnectionStep(page: Page, title?: string): Promise<Locator> {
   await dayPlan(page).getByTestId('m29-fab').click()
   const sheet = page.getByTestId('day-entry')
-  await sheet.getByTestId('day-entry-kind-connection').click()
-  await expect(sheet.getByTestId('day-entry-link')).toBeVisible()
+  if (title) await fillIonic(sheet.getByTestId('day-entry-name'), title)
+  await sheet.getByTestId('day-entry-add-connection').click()
+  await expect(sheet.getByTestId('connection-step')).toBeVisible()
   return sheet
+}
+
+/** From the step, the shared link's own step; ends with its field on screen. */
+export async function openLinkStep(sheet: Locator): Promise<void> {
+  await sheet.getByTestId('connection-via-link').click()
+  await expect(sheet.getByTestId('day-entry-link')).toBeVisible()
+}
+
+/** One leg by hand, from the step, taken back to the entry's form. */
+export async function wayByHand(
+  sheet: Locator,
+  way: { from: string; dep: string; to: string; arr: string; line?: string },
+): Promise<void> {
+  await sheet.getByTestId('connection-via-hand').click()
+  await fillIonic(sheet.getByTestId('day-entry-hand-from'), way.from)
+  await fillIonic(sheet.getByTestId('day-entry-hand-to'), way.to)
+  await sheet.getByTestId('day-entry-hand-dep').locator('input').fill(way.dep)
+  await sheet.getByTestId('day-entry-hand-arr').locator('input').fill(way.arr)
+  if (way.line) await fillIonic(sheet.getByTestId('day-entry-hand-line'), way.line)
+  await sheet.getByTestId('connection-take').click()
+  await expect(sheet.getByTestId('day-entry-connection')).toBeVisible()
+}
+
+/**
+ * A stop typed into the search and left, which is when the search takes it
+ * as standing (FR-29.18) — there is no search button.
+ */
+export async function typeStop(sheet: Locator, field: 'from' | 'to', name: string): Promise<void> {
+  const input = sheet.getByTestId(`timetable-${field}`).locator('input')
+  await input.fill(name)
+  await input.blur()
 }
 
 /**

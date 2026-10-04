@@ -8,14 +8,22 @@ import { describe, expect, it } from 'vitest'
 import { DAY_ENTRY_CONNECTION, EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT } from '@/types/domain'
 import type { ConnectionLeg, DayEntry, ExcursionRole } from '@/types/domain'
 import {
+  nearStops,
   nearestStop,
   optionsFrom,
+  startFromHere,
   searchSeed,
   slackMinutes,
   stopsFrom,
   type TimetableOption,
 } from '../timetable'
-import { CONNECTIONS_FIXTURE, LOCATIONS_FIXTURE, NEAR_FIXTURE } from './timetableFixture'
+import {
+  BOAT_FIXTURE,
+  CONNECTIONS_FIXTURE,
+  LOCATIONS_FIXTURE,
+  NEAR_FIXTURE,
+  NEAR_LUZERN_FIXTURE,
+} from './timetableFixture'
 
 describe('stopsFrom', () => {
   it('reads a stop with its name, id and place — x being the latitude', () => {
@@ -43,6 +51,20 @@ describe('stopsFrom', () => {
   })
 })
 
+describe('nearStops (FR-29.18, from where one is)', () => {
+  it('offers the three stops nearest a place, each with its distance', () => {
+    expect(nearStops(stopsFrom(NEAR_LUZERN_FIXTURE))).toEqual([
+      { id: '8505000', name: 'Luzern', lat: 47.050165, lon: 8.310172, distance: 66 },
+      { id: '8508450', name: 'Luzern, Bahnhof', lat: 47.05074, lon: 8.310247, distance: 94 },
+      { id: '8508492', name: 'Luzern Bahnhofquai', lat: 47.051182, lon: 8.310136, distance: 126 },
+    ])
+  })
+
+  it('reads a stop found by its name without a distance', () => {
+    expect(stopsFrom(LOCATIONS_FIXTURE)[0]!.distance).toBeNull()
+  })
+})
+
 describe('nearestStop', () => {
   it('is the first stop the service names — it sorts by distance', () => {
     const stops = stopsFrom(NEAR_FIXTURE)
@@ -59,7 +81,7 @@ describe('optionsFrom', () => {
 
   it('reads every connection with its legs, each in the stop’s own local time', () => {
     expect(options).toHaveLength(5)
-    expect(options[0]!.legs).toEqual([
+    expect(options[0]!.legs).toMatchObject([
       {
         from: 'Interlaken Ost',
         to: 'Lauterbrunnen',
@@ -144,6 +166,60 @@ describe('optionsFrom', () => {
   it('answers none for anything that is not a list of connections', () => {
     expect(optionsFrom(null)).toEqual([])
     expect(optionsFrom({ connections: 3 })).toEqual([])
+  })
+
+  it('reads where each stop lies and the stations passed, for the map (FR-29.18)', () => {
+    const [walk, boat] = optionsFrom(BOAT_FIXTURE)[0]!.legs
+    expect(walk).toEqual({
+      from: 'Luzern',
+      to: 'Luzern Bahnhofquai',
+      dep: '2026-10-10T08:05',
+      arr: '2026-10-10T08:12',
+      line: '',
+      fromAt: [47.050165, 8.310172],
+      toAt: [47.051182, 8.310136],
+    })
+    expect(boat).toEqual({
+      from: 'Luzern Bahnhofquai',
+      to: 'Vitznau',
+      dep: '2026-10-10T08:12',
+      arr: '2026-10-10T09:09',
+      line: 'BAT 3600',
+      mode: 'boat',
+      fromAt: [47.051182, 8.310136],
+      toAt: [47.009345, 8.482383],
+      via: [
+        [47.0511, 8.334865],
+        [47.026876, 8.403448],
+        [47.031408, 8.433211],
+      ],
+    })
+  })
+})
+
+describe('startFromHere (FR-29.18, from where one is)', () => {
+  const [option] = optionsFrom(BOAT_FIXTURE)
+  const here = { label: 'Mein Standort', lat: 47.0505, lon: 8.3093 }
+  const stop = { id: '8505000', name: 'Luzern', lat: 47.050165, lon: 8.310172, distance: 66 }
+
+  it('opens the connection with the walk to its first stop, as long as the distance takes', () => {
+    const started = startFromHere(option!, here, stop)
+    expect(started.walk).toBe(1)
+    expect(started.option.legs[0]).toEqual({
+      from: 'Mein Standort',
+      to: 'Luzern',
+      dep: '2026-10-10T08:04',
+      arr: '2026-10-10T08:05',
+      line: '',
+      fromAt: [47.0505, 8.3093],
+      toAt: [47.050165, 8.310172],
+    })
+    expect(started.option.legs.slice(1)).toEqual(option!.legs)
+    expect(started.option.minutes).toBe(option!.minutes + 1)
+  })
+
+  it('takes a stop without a distance as one at the door', () => {
+    expect(startFromHere(option!, here, { ...stop, distance: null }).walk).toBe(0)
   })
 })
 

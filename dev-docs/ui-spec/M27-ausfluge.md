@@ -60,33 +60,30 @@
   no way, no track — is always open and has no caret, since folded it would hide how to start.
   * **Open, it is a timeline** of the day, each step a dot on a rail: the **way there** (`m27-journey-out`, a train in
     glacier), the **route** (`m27-day-route`, a walker in larch — FR-31.15's tracks as M27 hands them in, the
-    `TrackSummary` without a head of its own), the **way back** (`m27-journey-back`). A filled way reads *„08:06 Spiez
-    → 08:34 Kandersteg"* in the heading weight over *„Hin · RE · direkt"* (*„1× umsteigen"* with a change), a chevron
-    at the end; an empty one, its dot dashed, *„Hinfahrt eintragen"* / *„Rückfahrt eintragen"* in the action colour.
-    A tap on an empty way opens the day plan's sheet **at M29's connection step** (*specified 2026-10-04, not built*),
-    headed *Hinfahrt* / *Rückfahrt*, *„Ausflug Rigi · Start der Route 09:00 · Di., 15.7."* under it
-    (`day-entry-excursion`), on the excursion's first day for the way there, its last for the way back; its ‹ closes
-    the sheet. *Nach* of the way there is the stop nearest the first track's start, marked *nächster Halt zum Start*
-    (*„Kein Halt in der Nähe des Routenstarts …"* where none is found), the way back is searched arriving-reversed,
-    from the way there's arrival plus the route's time, and each result says what it leaves of that. A connection
-    taken shows the form of that sheet without *Was* and *Uhrzeit* — the slot names it, the departure times it — as
-    its card and *Notiz*, with *Als Hinfahrt speichern* / *Als Rückfahrt speichern*. A filled way opens that form to
-    change or delete.
-    **Without days** the first step says
-    *„Gib dem Ausflug einen Tag, dann kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is
-    offered; the route stays. Any other connection of the excursion stands under the timeline as a row of its own
-    (`m27-connection-<id>`: departure, title over day, chevron).
+    `TrackSummary` without a head of its own), the **way back** (`m27-journey-back`). A filled way reads *„08:06 Spiez →
+    08:34 Kandersteg"* in the heading weight over *„Hin · RE · direkt"* (*„1× umsteigen"* with a change), a chevron at
+    the end; an empty one, its dot dashed, *„Hinfahrt eintragen"* / *„Rückfahrt eintragen"* in the action colour. A tap
+    on an empty way opens the day plan's sheet **at M29's connection step**, headed *Hinfahrt* / *Rückfahrt*, *„Ausflug
+    Rigi · Di., 15.7."* under it (`connection-step-sub`), on the excursion's first day for the way there, its last for
+    the way back; its ‹ closes the sheet. *Nach* of the way there is the stop nearest the first track's start, marked
+    *nächster Halt zum Start* (*„Kein Halt in der Nähe des Routenstarts …"* where none is found), the way back is
+    searched arriving-reversed, from the way there's arrival plus the route's time, and each result says what it leaves
+    of that. A connection taken shows the form of that sheet without *Was* and *Uhrzeit* — the slot names it, the
+    departure times it — as its card and *Notiz*, with *Als Hinfahrt speichern* / *Als Rückfahrt speichern*. A filled
+    way opens that form to change or delete. **Without days** the first step says *„Gib dem Ausflug einen Tag, dann
+    kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is offered; the route stays. Any other
+    connection of the excursion stands under the timeline as a row of its own (`m27-connection-<id>`: departure, title
+    over day, chevron).
   * **The route step:** a still map with every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets
-    them, the lines alone offline), inset with the card's small radius, and — *specified 2026-10-04, not built* — the
-    ways' legs that have positions drawn with it as M29's connection map draws them, so the way there's last stop and
-    the track's start stand side by side; a tap on it opens FR-29.17's full-screen map, which draws them too and lists
-    them in its legend (*Schiff*, *Bahn*, *Route*). The connection sheet's own small map shows the same. Under it, one
-    line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑ 300 m · 1 h 25"*
-    (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on that track, its
-    tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its bar carries
-    *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX herunterladen*,
-    *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No step without a track; while a file is read, *„Track
-    wird gelesen …"* (`m27-track-busy`) stands under the card.
+    them, the lines alone offline), inset with the card's small radius, and the ways' legs that have positions drawn
+    with it as M29's connection map draws them, so the way there's last stop and the track's start stand side by side; a
+    tap on it opens FR-29.17's full-screen map, which draws them too. The connection sheet's own small map shows the
+    same. Under it, one line per track (`track-row-<id>`): the kind glyph in the track's colour, its name, *„3.3 km · ↑
+    300 m · 1 h 25"* (`track-row-facts-<id>`, the time with the pauses), a chevron — a tap opens the full-screen map on
+    that track, its tabs choosing among the excursion's tracks and its figures setting kind, *Mit Kind* and pauses; its
+    bar carries *Bearbeiten* (FR-29.20) and the track's **⋮** (`TrackMore`: *Route bearbeiten*, *Umbenennen*, *GPX
+    herunterladen*, *Durch andere Datei ersetzen*, *Track entfernen*, confirmed). No step without a track; while a file
+    is read, *„Track wird gelesen …"* (`m27-track-busy`) stands under the card.
   * **The time budget** (`m27-journey-budget`), the card's foot where FR-29.18 has one: with a track, a thin bar of
     the day — travel in glacier, the route in the done tone, the slack empty — over *„Vor Ort 7 h 49 · Route 3 h 25 →
     4 h 24 Luft"*, the verdict in the done tone, straw under an hour, ember where the route does not fit; without a

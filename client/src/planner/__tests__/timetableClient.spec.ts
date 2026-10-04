@@ -8,6 +8,7 @@ import {
   CONNECTIONS_FIXTURE,
   LOCATIONS_FIXTURE,
   NEAR_FIXTURE,
+  NEAR_LUZERN_FIXTURE,
 } from '../domain/__tests__/timetableFixture'
 import { TIMETABLE_URL, createTimetableApi } from '../timetableClient'
 
@@ -33,6 +34,17 @@ describe('createTimetableApi (FR-29.18)', () => {
     const stop = await api.stopNear(46.6, 7.9)
     expect(asked[0]).toBe(`${TIMETABLE_URL}/locations?x=46.6&y=7.9`)
     expect(stop).not.toBeNull()
+  })
+
+  it('asks for the stops near the device, the nearest first, with their distance', async () => {
+    const { asked, api } = fake(NEAR_LUZERN_FIXTURE)
+    const stops = await api.stopsNear(47.0505, 8.3093)
+    expect(asked[0]).toBe(`${TIMETABLE_URL}/locations?x=47.0505&y=8.3093`)
+    expect(stops!.map((s) => [s.name, s.distance])).toEqual([
+      ['Luzern', 66],
+      ['Luzern, Bahnhof', 94],
+      ['Luzern Bahnhofquai', 126],
+    ])
   })
 
   it('asks for connections on a day and time, departing or arriving', async () => {
@@ -61,6 +73,7 @@ describe('createTimetableApi (FR-29.18)', () => {
     const { api } = fake({}, false)
     expect(await api.stops('Bern')).toBeNull()
     expect(await api.stopNear(1, 2)).toBeNull()
+    expect(await api.stopsNear(1, 2)).toBeNull()
     expect(
       await api.connections({ from: 'a', to: 'b', day: 'd', time: 't', arrive: false }),
     ).toBeNull()

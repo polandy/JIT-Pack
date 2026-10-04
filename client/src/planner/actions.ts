@@ -36,29 +36,36 @@ import type {
   IdeaTag,
   IdeaVoteValue,
 } from '@/types/domain'
-import { DAY_ENTRY_CONNECTION, IDEA_STATE_IDEA } from '@/types/domain'
+import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE, IDEA_STATE_IDEA } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 import { connectionDay, connectionTitle, timeOf } from './domain/connections'
 import type { VoteTally } from './domain/ideas'
 import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'
 import type { usePlannerStore } from './store'
 
-/** What the day plan's entry sheet writes (FR-29.15). */
-export interface DayEntryFields {
-  title: string
-  note: string | null
-  /** `HH:MM`, or null for none. */
-  time: string | null
-}
-
 /** What the day plan's sheet writes for a connection (FR-29.18). The link is already parsed. */
 export interface ConnectionFields {
   legs: ConnectionLeg[]
   link: string | null
-  /** The excursion it belongs to, or null/absent for none. */
-  excursionId?: string | null
-  /** Its way there or back on that excursion, or null/absent for neither. */
-  role?: ExcursionRole | null
+}
+
+/**
+ * What the day plan's entry sheet writes (FR-29.15): its own fields and the
+ * connection it carries (FR-29.18) — null for none. Left out, a new entry has
+ * none and a changed one keeps what it had.
+ */
+export interface DayEntryFields {
+  title: string
+  note: string | null
+  /** `HH:MM`, or null for none — with a connection, its first departure. */
+  time: string | null
+  connection?: ConnectionFields | null
+}
+
+/** The excursion a new entry is a way of (FR-29.18), and which way. */
+export interface WayFields {
+  excursionId: string
+  role: ExcursionRole | null
 }
 
 /** What the add and edit sheets write (FR-29.1). The link is already parsed. */
@@ -140,83 +147,82 @@ export function createPlannerActions(
     writeIdea(idea, patch)
   }
 
-  /** FR-29.15: an entry of the day plan's own. A blank title is not an entry. */
+  /**
+   * FR-29.15/29.18: an entry of the day plan's own, and the connection it may
+   * carry. With one it stands on the connection's day — which a link may name
+   * — at its first departure where it has no time of its own, and is named by
+   * its stops where it has no title; without one a blank title is no entry.
+   */
   function addDayEntry(
     tripId: string,
     day: string,
     fields: DayEntryFields,
     me: string | null,
+    way?: WayFields,
   ): string | null {
-    const title = fields.title.trim()
+    const connection = fields.connection ?? null
+    const title = entryTitle(fields.title, connection)
     if (title === '') return null
     const id = newId()
-    const mutation = host.mutation('insert', TABLE.dayEntries, id, {
+    const own = {
       trip_id: tripId,
       author_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
-      on_date: day,
-      at_time: fields.time,
+      on_date: connection ? connectionDay(connection.legs) : day,
+      at_time: entryTime(fields.time, connection),
       title,
       note: blankToNull(fields.note),
-    })
+    }
+    const mutation = host.mutation(
+      'insert',
+      TABLE.dayEntries,
+      id,
+      connection
+        ? {
+            ...own,
+            kind: DAY_ENTRY_CONNECTION,
+            link: connection.link,
+            legs: jsonColumn(connection.legs),
+            excursion_id: way?.excursionId ?? null,
+            excursion_role: way?.role ?? null,
+          }
+        : own,
+    )
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
     return id
   }
 
-  /** FR-29.15: an edit writes only what changed, so it overwrites no one else's field. */
+  /**
+   * FR-29.15/29.18: an edit writes only what changed, so it overwrites no one
+   * else's field. A connection added or changed moves the entry to its day
+   * and makes it one; taken off, the entry is a note again. The legs are
+   * written whole, never leg by leg.
+   */
   function updateDayEntry(entry: DayEntry, fields: DayEntryFields): void {
     const patch: Record<string, unknown> = {}
-    const title = fields.title.trim()
+    const connection =
+      fields.connection === undefined
+        ? entry.legs
+          ? { legs: entry.legs, link: entry.link }
+          : null
+        : fields.connection
+    const title = entryTitle(fields.title, connection)
     if (title !== '' && title !== entry.title) patch['title'] = title
     const note = blankToNull(fields.note)
     if (note !== entry.note) patch['note'] = note
-    if (fields.time !== entry.at_time) patch['at_time'] = fields.time
-    if (Object.keys(patch).length === 0) return
-    const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)),
-    })
-  }
-
-  /**
-   * FR-29.18: a connection, on the day of its first departure — which may be
-   * another day than the one chosen, when a link names it — at that time, and
-   * named by its first and last stop. Returns its day.
-   */
-  function addConnection(tripId: string, fields: ConnectionFields, me: string | null): string {
-    const id = newId()
-    const day = connectionDay(fields.legs)
-    const mutation = host.mutation('insert', TABLE.dayEntries, id, {
-      trip_id: tripId,
-      author_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
-      kind: DAY_ENTRY_CONNECTION,
-      on_date: day,
-      at_time: timeOf(fields.legs[0]!.dep),
-      title: connectionTitle(fields.legs),
-      note: null,
-      link: fields.link,
-      legs: jsonColumn(fields.legs),
-      excursion_id: fields.excursionId ?? null,
-      excursion_role: fields.role ?? null,
-    })
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
-    return day
-  }
-
-  /** FR-29.18: a changed connection. The legs are written whole, never leg by leg. */
-  function updateConnection(entry: DayEntry, fields: ConnectionFields): void {
-    const patch: Record<string, unknown> = {}
-    const legs = jsonColumn(fields.legs)
-    if (legs !== jsonColumn(entry.legs)) {
+    const time = entryTime(fields.time, connection)
+    if (time !== entry.at_time) patch['at_time'] = time
+    const legs = connection ? jsonColumn(connection.legs) : null
+    if (legs !== (entry.legs ? jsonColumn(entry.legs) : null)) {
       patch['legs'] = legs
-      const day = connectionDay(fields.legs)
-      if (day !== entry.on_date) patch['on_date'] = day
-      const at = timeOf(fields.legs[0]!.dep)
-      if (at !== entry.at_time) patch['at_time'] = at
-      const title = connectionTitle(fields.legs)
-      if (title !== entry.title) patch['title'] = title
+      if (connection) {
+        const day = connectionDay(connection.legs)
+        if (day !== entry.on_date) patch['on_date'] = day
+      }
     }
-    if (fields.link !== entry.link) patch['link'] = fields.link
+    const kind = connection ? DAY_ENTRY_CONNECTION : DAY_ENTRY_NOTE
+    if (kind !== entry.kind) patch['kind'] = kind
+    const link = connection?.link ?? null
+    if (link !== entry.link) patch['link'] = link
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
     host.writeTrip(entry.trip_id, {
@@ -457,8 +463,6 @@ export function createPlannerActions(
     planIdea,
     addDayEntry,
     updateDayEntry,
-    addConnection,
-    updateConnection,
     removeDayEntry,
     removeIdea,
     addPicture,
@@ -482,4 +486,15 @@ export function createPlannerActions(
 function blankToNull(value: string | null): string | null {
   const trimmed = (value ?? '').trim()
   return trimmed === '' ? null : trimmed
+}
+
+/** An entry's title: its own, or with a connection and none, the connection's stops. */
+function entryTitle(title: string, connection: ConnectionFields | null): string {
+  const own = title.trim()
+  return own === '' && connection ? connectionTitle(connection.legs) : own
+}
+
+/** An entry's time: its own, or with a connection and none, its first departure. */
+function entryTime(time: string | null, connection: ConnectionFields | null): string | null {
+  return time ?? (connection ? timeOf(connection.legs[0]!.dep) : null)
 }

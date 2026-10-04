@@ -98,6 +98,10 @@ const KERNEL_PATHS = [
   // route's `?fromIdea=` and the kernel's idea lookup, no packing shape; M6
   // seeds its composer through it as M25 and M27 do.
   'composables/useIdeaSeed',
+  // The device's one position (FR-29.19, ADR-087), made by the composition
+  // root and injected — no packing shape; the kernel's track map reads it,
+  // and the planner's connection search and map (FR-29.18) do too.
+  'composables/useLiveLocation',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',

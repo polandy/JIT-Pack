@@ -1073,9 +1073,10 @@ setHeaderTitle(
           :open="routeFold.open.value"
           @toggle="routeFold.toggle"
         >
-          <template v-if="tracksOn.length > 0" #route>
+          <template v-if="tracksOn.length > 0" #route="{ ways }">
             <TrackSummary
               headless
+              :beside="ways"
               :tracks="tracksOn"
               :title="excursion?.name ?? ''"
               :trip-id="tripId"

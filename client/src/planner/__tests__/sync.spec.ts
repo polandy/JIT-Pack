@@ -300,6 +300,96 @@ describe('the day plan (FR-29.14, FR-29.15)', () => {
     ])
   })
 
+  it('an entry gains a connection, keeps its own title, and is a note again without it (FR-29.18)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const legs = [
+      {
+        from: 'Luzern',
+        to: 'Hergiswil Matt',
+        dep: '2026-07-16T08:06',
+        arr: '2026-07-16T08:31',
+        line: 'S 4',
+        mode: 'train' as const,
+        fromAt: [47.05, 8.31] as [number, number],
+        toAt: [46.99, 8.3] as [number, number],
+      },
+    ]
+    const id = actions.addDayEntry(
+      't1',
+      '2026-07-14',
+      { title: 'Glasi Hergiswil', note: null, time: '09:30' },
+      'user-andy',
+    )!
+    const entry = () => plannerStore.getDayEntry(id)!
+
+    actions.updateDayEntry(entry(), {
+      title: 'Glasi Hergiswil',
+      note: null,
+      time: '09:30',
+      connection: { legs, link: null },
+    })
+    expect(entry()).toMatchObject({
+      kind: 'connection',
+      title: 'Glasi Hergiswil',
+      at_time: '09:30',
+      on_date: '2026-07-16',
+      legs,
+    })
+
+    actions.updateDayEntry(entry(), {
+      title: 'Glasi Hergiswil',
+      note: null,
+      time: '09:30',
+      connection: null,
+    })
+    expect(entry()).toMatchObject({ kind: 'note', legs: null, link: null })
+    await orch.drainTrip('t1')
+
+    expect(
+      harness
+        .pushedMutations()
+        .slice(1)
+        .map((m) => m.fields),
+    ).toEqual([
+      { kind: 'connection', legs: JSON.stringify(legs), on_date: '2026-07-16' },
+      { kind: 'note', legs: null },
+    ])
+  })
+
+  it('a new entry with a connection and no time stands at its first departure (FR-29.18)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const legs = [
+      {
+        from: 'Spiez',
+        to: 'Kandersteg',
+        dep: '2026-07-14T08:06',
+        arr: '2026-07-14T08:34',
+        line: 'RE',
+      },
+    ]
+    const id = actions.addDayEntry(
+      't1',
+      '2026-07-14',
+      { title: '', note: null, time: null, connection: { legs, link: null } },
+      null,
+      { excursionId: 'exc-1', role: 'out' },
+    )!
+
+    expect(plannerStore.getDayEntry(id)).toMatchObject({
+      kind: 'connection',
+      title: 'Spiez → Kandersteg',
+      at_time: '08:06',
+      excursion_id: 'exc-1',
+      excursion_role: 'out',
+    })
+  })
+
   it('a trip’s tombstone takes its day entries off the device', async () => {
     const orch = serverOrch()
     harness.mockDrain()

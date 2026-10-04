@@ -18,8 +18,10 @@ const props = withDefaults(
     ends?: boolean
     /** People on the map (FR-29.19), drawn where they fall inside the frame. */
     marks?: MapMark[]
+    /** Stops along the lines, drawn as small dots. */
+    dots?: [number, number][]
   }>(),
-  { frameAll: false, ends: true, marks: () => [] },
+  { frameAll: false, ends: true, marks: () => [], dots: () => [] },
 )
 
 const DEG = 180 / Math.PI
@@ -50,11 +52,18 @@ const drawn = computed(() => {
   const chosen = props.lines.find((line) => line.chosen) ?? null
   const end = (point: [number, number] | undefined) =>
     point ? `M${point[1].toFixed(5)} ${y(point[0]).toFixed(5)}h0` : null
+  // Several chosen lines are one journey — a connection's legs: its ends are the whole's.
+  const chosenLines = props.lines.filter((line) => line.chosen)
+  const firstLine = chosenLines[0] ?? chosen
+  const lastLine = chosenLines[chosenLines.length - 1] ?? chosen
+  const first = firstLine?.points[0]
+  const last = lastLine?.points[lastLine.points.length - 1]
   return {
     viewBox: `${x0 - pad} ${y0 - pad} ${width + 2 * pad} ${height + 2 * pad}`,
     paths: ordered.map((line) => ({ ...line, d: path(line.points) })),
-    start: props.ends && chosen ? end(chosen.points[0]) : null,
-    finish: props.ends && chosen ? end(chosen.points[chosen.points.length - 1]) : null,
+    start: props.ends ? end(first) : null,
+    finish: props.ends ? end(last) : null,
+    dots: props.dots.map((dot) => end(dot)!),
     marks: props.marks.map((mark) => ({ ...mark, d: end([mark.lat, mark.lon])! })),
   }
 })
@@ -68,10 +77,16 @@ const drawn = computed(() => {
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
-    <g v-for="line in drawn.paths" :key="line.id" :class="{ other: !line.chosen }">
+    <g
+      v-for="line in drawn.paths"
+      :key="line.id"
+      :class="{ other: !line.chosen }"
+      data-testid="map-line"
+    >
       <path class="halo" :d="line.d" />
       <path class="line" :class="line.hueClass" :d="line.d" />
     </g>
+    <path v-for="(dot, index) in drawn.dots" :key="`dot-${index}`" class="dot" :d="dot" />
     <path v-if="drawn.start" class="end start" :d="drawn.start" />
     <path v-if="drawn.finish" class="end finish" :d="drawn.finish" />
     <path
@@ -138,6 +153,28 @@ path {
 
 .mark.person {
   stroke: var(--ct-heather);
+}
+
+.dot {
+  stroke: var(--ct-text);
+  stroke-width: 6px;
+}
+
+.jp-leg-train {
+  stroke: var(--ct-ember);
+}
+
+.jp-leg-bus {
+  stroke: var(--ct-glacier);
+}
+
+.jp-leg-boat {
+  stroke: var(--ct-heather);
+}
+
+.jp-leg-walk {
+  stroke: var(--ct-subtext1);
+  stroke-dasharray: 1 6;
 }
 
 .jp-track-larch {

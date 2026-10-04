@@ -9,8 +9,9 @@ import {
   type ConnectionLeg,
   type DayEntry,
   type ExcursionRole,
+  type LatLon,
 } from '@/types/domain'
-import { timeOf } from './connections'
+import { legMode, timeOf, walkLeg, walkMinutes } from './connections'
 
 /** A stop the timetable knows. */
 export interface TimetableStop {
@@ -18,6 +19,8 @@ export interface TimetableStop {
   name: string
   lat: number
   lon: number
+  /** Metres from the place asked about; null where the stop was found by its name. */
+  distance: number | null
 }
 
 /** One connection the search found. */
@@ -68,9 +71,18 @@ export function stopsFrom(body: unknown): TimetableStop[] {
     const lat = at?.x
     const lon = at?.y
     if (!id || !name || typeof lat !== 'number' || typeof lon !== 'number') continue
-    stops.push({ id, name, lat, lon })
+    const distance = typeof e?.distance === 'number' ? e.distance : null
+    stops.push({ id, name, lat, lon, distance })
   }
   return stops
+}
+
+/** How many stops near the device are offered to start from. */
+export const NEAR_STOP_COUNT = 3
+
+/** The stops nearest a place, to start from — the service sorts by distance. */
+export function nearStops(stops: readonly TimetableStop[]): TimetableStop[] {
+  return stops.slice(0, NEAR_STOP_COUNT)
 }
 
 /** The stop nearest a place — the service sorts by distance. */
@@ -98,6 +110,22 @@ function lineOf(journey: Json | null): string {
   return [category, number].filter(Boolean).join(' ')
 }
 
+/** Where a station lies — the service sends x as the latitude and y as the longitude. */
+function placeOf(station: unknown): LatLon | null {
+  const at = record(record(station)?.coordinate)
+  return typeof at?.x === 'number' && typeof at.y === 'number' ? [at.x, at.y] : null
+}
+
+/** The stations a ride calls at between its two ends, where the service lists them. */
+function passedOf(journey: Json | null): LatLon[] {
+  const list = journey?.passList
+  if (!Array.isArray(list)) return []
+  return list
+    .slice(1, -1)
+    .map((stop) => placeOf(record(stop)?.station))
+    .filter((at): at is LatLon => at !== null)
+}
+
 function legOf(section: unknown): ConnectionLeg | null {
   const s = record(section)
   const dep = record(s?.departure)
@@ -107,7 +135,17 @@ function legOf(section: unknown): ConnectionLeg | null {
   const depAt = localStamp(dep?.departure)
   const arrAt = localStamp(arr?.arrival)
   if (!from || !to || !depAt || !arrAt) return null
-  return { from, to, dep: depAt, arr: arrAt, line: lineOf(record(s?.journey)) }
+  const journey = record(s?.journey)
+  const leg: ConnectionLeg = { from, to, dep: depAt, arr: arrAt, line: lineOf(journey) }
+  const mode = legMode(text(journey?.category))
+  if (mode) leg.mode = mode
+  const fromAt = placeOf(dep?.station)
+  const toAt = placeOf(arr?.station)
+  if (fromAt) leg.fromAt = fromAt
+  if (toAt) leg.toAt = toAt
+  const via = passedOf(journey)
+  if (via.length > 0) leg.via = via
+  return leg
 }
 
 /** The connections of a `connections` answer; one with a leg unread is left out whole. */
@@ -127,6 +165,35 @@ export function optionsFrom(body: unknown): TimetableOption[] {
     })
   }
   return options
+}
+
+/** Where the device is, to start a connection from. */
+export interface Here {
+  /** What the start is called on the connection's first leg. */
+  label: string
+  lat: number
+  lon: number
+}
+
+/**
+ * A connection started from where one is: the walk to its first stop put in
+ * front, ending as the first ride leaves, and how many minutes it takes.
+ */
+export function startFromHere(
+  option: TimetableOption,
+  here: Here,
+  stop: TimetableStop,
+): { option: TimetableOption; walk: number } {
+  const walk = walkMinutes(stop.distance ?? 0)
+  const first = walkLeg({
+    label: here.label,
+    at: [here.lat, here.lon],
+    stop: stop.name,
+    stopAt: [stop.lat, stop.lon],
+    departure: option.legs[0]!.dep,
+    minutes: walk,
+  })
+  return { option: { legs: [first, ...option.legs], minutes: option.minutes + walk }, walk }
 }
 
 /** What a departure leaves after the earliest time one could leave; null without one. */

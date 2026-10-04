@@ -550,9 +550,22 @@ export type DayEntryKind = (typeof DAY_ENTRY_KINDS)[number]
 export const DAY_ENTRY_NOTE = 'note' as const satisfies DayEntryKind
 export const DAY_ENTRY_CONNECTION = 'connection' as const satisfies DayEntryKind
 
+/** FR-29.18: what a ridden leg travels by, as its map draws it; a walk has none. */
+export const LEG_MODES = ['train', 'bus', 'boat'] as const
+export type LegMode = (typeof LEG_MODES)[number]
+export const LEG_MODE_TRAIN = 'train' as const satisfies LegMode
+export const LEG_MODE_BUS = 'bus' as const satisfies LegMode
+export const LEG_MODE_BOAT = 'boat' as const satisfies LegMode
+
+/** A place on the map, `[lat, lon]`. */
+export type LatLon = [number, number]
+
 /**
  * FR-29.18: one leg of a connection. Times are local `YYYY-MM-DDTHH:MM`, so a
- * night train arrives on its own day; a walk has an empty line.
+ * night train arrives on its own day; a walk has an empty line. Where the
+ * timetable search or a link knew them, the leg also says what it travels by
+ * and where its stops lie — the stops passed on the way included — so the
+ * connection can be drawn; a leg entered by hand has none of them.
  */
 export interface ConnectionLeg {
   from: string
@@ -560,12 +573,18 @@ export interface ConnectionLeg {
   dep: string
   arr: string
   line: string
+  mode?: LegMode
+  fromAt?: LatLon
+  toAt?: LatLon
+  /** The stops passed between the two ends, in order. */
+  via?: LatLon[]
 }
 
 /**
  * FR-29.15: an entry of the day plan's own — what stands on a day that is
- * neither an idea, an excursion nor a task (a table booking), or a connection
- * (FR-29.18).
+ * neither an idea, an excursion nor a task (a table booking) — and the
+ * connection it may carry (FR-29.18): an entry is a connection while it has
+ * legs, and its `kind` follows them.
  */
 export interface DayEntry {
   id: string
@@ -575,13 +594,13 @@ export interface DayEntry {
   kind: DayEntryKind
   /** `YYYY-MM-DD`. */
   on_date: string
-  /** `HH:MM`, or null for a day without a time. A connection's is its first departure. */
+  /** `HH:MM`, or null for a day without a time; given a connection and no time, its first departure. */
   at_time: string | null
   title: string
   note: string | null
   /** The provider's address a connection was read from, kept for its app; null for none. */
   link: string | null
-  /** A connection's legs, in order; null for a free entry. */
+  /** The legs of the connection it carries, in order; null for none. */
   legs: ConnectionLeg[] | null
   /** The excursion a connection belongs to (FR-29.18), or null/absent for none. */
   excursion_id?: string | null

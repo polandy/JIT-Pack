@@ -11,6 +11,17 @@ export function trackHueClass(index: number): string {
   return `jp-track-${TRACK_HUES[index % TRACK_HUES.length]}`
 }
 
+/**
+ * FR-29.18: a connection's legs on a map, by what each travels by — the
+ * colours the timetable's own line chips use — and a walk dotted.
+ */
+export const LEG_HUE_CLASS = {
+  train: 'jp-leg-train',
+  bus: 'jp-leg-bus',
+  boat: 'jp-leg-boat',
+  walk: 'jp-leg-walk',
+} as const
+
 /** One line on a map: whose it is, where it runs and whether it is the chosen one. */
 export interface MapLine {
   id: string

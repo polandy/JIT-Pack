@@ -462,3 +462,201 @@ export const NEAR_FIXTURE = {
     },
   ],
 }
+
+/**
+ * Luzern to Vitznau by lake steamer (2026-10-04), with the stations the boat
+ * calls at on the way (`passList`) and the walk to the pier first — what the
+ * connection's map is drawn from.
+ */
+export const BOAT_FIXTURE = {
+  connections: [
+    {
+      sections: [
+        {
+          journey: null,
+          walk: {
+            duration: null,
+          },
+          departure: {
+            station: {
+              id: '8505000',
+              name: 'Luzern',
+              coordinate: {
+                type: 'WGS84',
+                x: 47.050165,
+                y: 8.310172,
+              },
+            },
+            departure: '2026-10-10T08:05:00+0200',
+          },
+          arrival: {
+            station: {
+              id: '8508492',
+              name: 'Luzern Bahnhofquai',
+              coordinate: {
+                type: 'WGS84',
+                x: 47.051182,
+                y: 8.310136,
+              },
+            },
+            arrival: '2026-10-10T08:12:00+0200',
+          },
+        },
+        {
+          journey: {
+            category: 'BAT',
+            number: '3600',
+            passList: [
+              {
+                station: {
+                  id: '8508492',
+                  name: 'Luzern Bahnhofquai',
+                  coordinate: {
+                    type: 'WGS84',
+                    x: 47.051182,
+                    y: 8.310136,
+                  },
+                },
+                arrival: '2026-10-10T08:12:00+0200',
+                departure: '2026-10-10T08:12:00+0200',
+              },
+              {
+                station: {
+                  id: '8508459',
+                  name: 'Verkehrshaus-Lido',
+                  coordinate: {
+                    type: 'WGS84',
+                    x: 47.0511,
+                    y: 8.334865,
+                  },
+                },
+                arrival: '2026-10-10T08:22:00+0200',
+                departure: '2026-10-10T08:22:00+0200',
+              },
+              {
+                station: {
+                  id: '8508462',
+                  name: 'Hertenstein (See)',
+                  coordinate: {
+                    type: 'WGS84',
+                    x: 47.026876,
+                    y: 8.403448,
+                  },
+                },
+                arrival: '2026-10-10T08:43:00+0200',
+                departure: '2026-10-10T08:43:00+0200',
+              },
+              {
+                station: {
+                  id: '8508463',
+                  name: 'Weggis',
+                  coordinate: {
+                    type: 'WGS84',
+                    x: 47.031408,
+                    y: 8.433211,
+                  },
+                },
+                arrival: '2026-10-10T08:53:00+0200',
+                departure: '2026-10-10T08:53:00+0200',
+              },
+              {
+                station: {
+                  id: '8508464',
+                  name: 'Vitznau',
+                  coordinate: {
+                    type: 'WGS84',
+                    x: 47.009345,
+                    y: 8.482383,
+                  },
+                },
+                arrival: '2026-10-10T09:09:00+0200',
+                departure: null,
+              },
+            ],
+          },
+          walk: null,
+          departure: {
+            station: {
+              id: '8508492',
+              name: 'Luzern Bahnhofquai',
+              coordinate: {
+                type: 'WGS84',
+                x: 47.051182,
+                y: 8.310136,
+              },
+            },
+            departure: '2026-10-10T08:12:00+0200',
+          },
+          arrival: {
+            station: {
+              id: '8508464',
+              name: 'Vitznau',
+              coordinate: {
+                type: 'WGS84',
+                x: 47.009345,
+                y: 8.482383,
+              },
+            },
+            arrival: '2026-10-10T09:09:00+0200',
+          },
+        },
+      ],
+    },
+  ],
+}
+
+/** Around Luzern station: an address without an id first, then stops with their distance in metres. */
+export const NEAR_LUZERN_FIXTURE = {
+  stations: [
+    {
+      id: null,
+      name: 'Bahnhofplatz 2, Luzern',
+      coordinate: {
+        type: 'WGS84',
+        x: null,
+        y: null,
+      },
+      distance: 22.8158708651517,
+    },
+    {
+      id: '8505000',
+      name: 'Luzern',
+      coordinate: {
+        type: 'WGS84',
+        x: 47.050165,
+        y: 8.310172,
+      },
+      distance: 66,
+    },
+    {
+      id: '8508450',
+      name: 'Luzern, Bahnhof',
+      coordinate: {
+        type: 'WGS84',
+        x: 47.05074,
+        y: 8.310247,
+      },
+      distance: 94,
+    },
+    {
+      id: '8508492',
+      name: 'Luzern Bahnhofquai',
+      coordinate: {
+        type: 'WGS84',
+        x: 47.051182,
+        y: 8.310136,
+      },
+      distance: 126,
+    },
+    {
+      id: '8589801',
+      name: 'Luzern, Kantonalbank',
+      coordinate: {
+        type: 'WGS84',
+        x: 47.048855,
+        y: 8.306229,
+      },
+      distance: 277,
+    },
+  ],
+}

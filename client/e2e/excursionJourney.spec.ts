@@ -4,7 +4,14 @@ import { test, expect, createTripViaWizard, visiblePage } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { addExcursionTrack, createExcursion, openExcursions } from './helpers/m27'
 import { gpxFile, stubTiles } from './helpers/m28'
-import { chooseDay, dayFromToday, openDayPlan, timelineLines } from './helpers/m29'
+import {
+  chooseDay,
+  dayFromToday,
+  openDayPlan,
+  timelineLines,
+  typeStop,
+  wayByHand,
+} from './helpers/m29'
 import { writesLanded } from './helpers/page'
 import { stubTimetable } from './helpers/timetable'
 
@@ -30,19 +37,23 @@ const CLIMB = gpxFile(
   { name: 'Aufstieg zur Alp' },
 )
 
-/** One leg by hand in the day plan's sheet, opened from a slot, and saved. */
+/**
+ * One leg by hand in the day plan's sheet, opened from a slot at its
+ * connection step, and saved. The step is headed by the way, the excursion
+ * under it; the form it returns to by the excursion, the way under it.
+ */
 async function fillWay(
   page: Page,
+  excursion: string,
   heading: string,
   way: { from: string; dep: string; to: string; arr: string; line: string },
 ): Promise<void> {
   const sheet = page.getByTestId('day-entry')
-  await expect(sheet.getByTestId('day-entry-title')).toHaveText(heading)
-  await fillIonic(sheet.getByTestId('day-entry-hand-from'), way.from)
-  await fillIonic(sheet.getByTestId('day-entry-hand-to'), way.to)
-  await sheet.getByTestId('day-entry-hand-dep').locator('input').fill(way.dep)
-  await sheet.getByTestId('day-entry-hand-arr').locator('input').fill(way.arr)
-  await fillIonic(sheet.getByTestId('day-entry-hand-line'), way.line)
+  await expect(sheet.getByTestId('connection-step-title')).toHaveText(heading)
+  await expect(sheet.getByTestId('connection-step-sub')).toContainText(`Excursion ${excursion}`)
+  await wayByHand(sheet, way)
+  await expect(sheet.getByTestId('day-entry-title')).toHaveText(excursion)
+  await expect(sheet.getByTestId('day-entry-heading')).toHaveText(heading)
   await sheet.getByTestId('day-entry-save').click()
   await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
   await writesLanded(page)
@@ -72,7 +83,8 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
    * changes — across a reload. The two say how long one is on the spot; a
    * track adds what its route leaves of it, standing between the two ways in
    * *Der Tag*, which folds to one line of the day. M27's list names both
-   * departures, and the day plan names each way with the excursion.
+   * departures, and the day plan names each way with the excursion, the
+   * excursion standing between the two.
    */
   test('E2E-M27-17: the way there and back fill their slots, and the time on the spot follows', async ({
     page,
@@ -91,7 +103,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(slot(page, 'back')).toContainText('Add the way back')
 
     await slot(page, 'out').click()
-    await fillWay(page, 'Way there', {
+    await fillWay(page, 'Oeschinensee', 'Way there', {
       from: 'Spiez',
       dep: '08:06',
       to: 'Kandersteg',
@@ -102,7 +114,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(slot(page, 'out')).toContainText('There · RE · direct')
 
     await slot(page, 'back').click()
-    await fillWay(page, 'Way back', {
+    await fillWay(page, 'Oeschinensee', 'Way back', {
       from: 'Kandersteg',
       dep: '16:23',
       to: 'Spiez',
@@ -152,6 +164,10 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(lines.filter({ hasText: 'Kandersteg → Spiez' })).toContainText(
       'Way back · Oeschinensee',
     )
+    await expect(lines).toHaveCount(3)
+    await expect(lines.nth(0)).toContainText('Way there')
+    await expect(lines.nth(1)).toHaveAttribute('data-kind', 'excursion')
+    await expect(lines.nth(2)).toContainText('Way back')
   })
 
   /**
@@ -160,7 +176,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
    * typed, lists connections, and a tap takes one. The way back arrives
    * reversed, leaving once the route is walked, and every connection says how
    * much it leaves of that: one too early, one with time to spare. A stop the
-   * service does not know says so and leaves the hand fields.
+   * service does not know says so and leaves the link and the hand fields.
    */
   test('E2E-M27-18: the way there and back are searched in the timetable, each seeded from the other', async ({
     page,
@@ -213,19 +229,17 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     const sheet = page.getByTestId('day-entry')
     await expect(sheet.getByTestId('timetable-to').locator('input')).toHaveValue('Kandersteg')
 
-    // A stop the service does not know: said so, and the hand fields stay.
-    await sheet.getByTestId('timetable-from').locator('input').fill('Nirgendwo')
-    await sheet.getByTestId('timetable-submit').click()
+    // A stop the service does not know: said so, and the link and hand fields stay.
+    await typeStop(sheet, 'from', 'Nirgendwo')
     await expect(sheet.getByTestId('timetable-message')).toHaveText(
       'No connection found – check the stops or enter the way by hand below.',
     )
-    await expect(sheet.getByTestId('day-entry-hand')).toBeVisible()
+    await expect(sheet.getByTestId('connection-via-hand')).toBeVisible()
 
     await sheet.getByTestId('timetable-from').locator('input').fill('Spi')
     await sheet.getByTestId('timetable-from-stop-8507100').click()
     await expect(sheet.getByTestId('timetable-from').locator('input')).toHaveValue('Spiez')
-    await sheet.getByTestId('timetable-submit').click()
-    await expect(sheet.getByTestId('timetable-results').locator('li')).toHaveCount(2)
+    await expect(sheet.locator('[data-testid^="timetable-result-"]')).toHaveCount(2)
     await expect(sheet.getByTestId('timetable-result-0')).toContainText('08:06 → 08:34')
     await expect(sheet.getByTestId('timetable-result-0')).toContainText('RE 123')
     expect(
@@ -235,7 +249,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     ).toBe(true)
 
     await sheet.getByTestId('timetable-result-0').click()
-    await expect(sheet.getByTestId('day-entry-legs')).toContainText('Spiez → Kandersteg')
+    await expect(sheet.getByTestId('day-entry-connection')).toContainText('Spiez → Kandersteg')
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await writesLanded(page)
@@ -246,7 +260,6 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(sheet.getByTestId('timetable-from').locator('input')).toHaveValue('Kandersteg')
     await expect(sheet.getByTestId('timetable-to').locator('input')).toHaveValue('Spiez')
     await expect(sheet.getByTestId('timetable-time').locator('input')).toHaveValue('09:59')
-    await sheet.getByTestId('timetable-submit').click()
     await expect(sheet.getByTestId('timetable-result-0').getByTestId('timetable-slack')).toHaveText(
       '19 min too early',
     )
@@ -260,5 +273,59 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(visiblePage(page).getByTestId('m27-journey-budget')).toHaveText(
       'On the spot 7 h 49 · Route 1 h 25 → 6 h 24 to spare',
     )
+  })
+
+  /**
+   * E2E-M27-19: a way opens the sheet at its connection step, *Nach* marked
+   * as the stop nearest the route's start; the connection taken shows a form
+   * without *What* and *Time* — the slot names and times it — with its card
+   * and a note, saved *as way there*. The route's map then draws the way's
+   * legs beside the track.
+   */
+  test('E2E-M27-19: a way is found at its step, saved as the way there and drawn beside the route', async ({
+    page,
+  }) => {
+    await stubTimetable(
+      page,
+      [
+        { id: '8507483', name: 'Kandersteg', lat: 46.5, lon: 7.7 },
+        { id: '8507100', name: 'Spiez', lat: 46.68, lon: 7.68 },
+        { id: '8507482', name: 'Frutigen', lat: 46.588, lon: 7.649 },
+      ],
+      [
+        {
+          from: 'Spiez',
+          to: 'Kandersteg',
+          dep: '08:06',
+          arr: '08:34',
+          category: 'RE',
+          number: '0123',
+          via: ['Frutigen'],
+        },
+      ],
+    )
+    await createExcursion(page, { name: 'Oeschinensee', days: { start: HIKE_DAY, end: HIKE_DAY } })
+    await addExcursionTrack(page, 'climb.gpx', CLIMB)
+
+    await slot(page, 'out').click()
+    const sheet = page.getByTestId('day-entry')
+    await expect(sheet.getByTestId('connection-step-title')).toHaveText('Way there')
+    await expect(sheet.getByTestId('timetable-near-start')).toHaveText('nearest stop to the start')
+    await typeStop(sheet, 'from', 'Spiez')
+    await sheet.getByTestId('timetable-result-0').click()
+
+    await expect(sheet.getByTestId('day-entry-connection')).toContainText('08:06 → 08:34')
+    await expect(sheet.getByTestId('day-entry-name')).toHaveCount(0)
+    await expect(sheet.getByTestId('day-entry-time')).toHaveCount(0)
+    await fillIonic(sheet.getByTestId('day-entry-note'), 'Halbtax mitnehmen')
+    const save = sheet.getByTestId('day-entry-save')
+    await expect(save).toHaveText('Save as way there')
+    await save.click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await writesLanded(page)
+
+    const map = visiblePage(page).getByTestId('track-summary-map')
+    await expect(map.locator('path.jp-track-line.jp-leg-train')).toHaveCount(1)
+    await expect(map.locator('path.jp-track-line:not([class*="jp-leg-"])')).toHaveCount(1)
   })
 })

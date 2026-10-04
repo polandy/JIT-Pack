@@ -31,7 +31,8 @@ import {
   type DayEntry,
   type ExcursionRole,
 } from '@/types/domain'
-import { createPlannerActions, type ConnectionFields } from './actions'
+import { createPlannerActions, type DayEntryFields } from './actions'
+import { connectionLines } from './connectionMap'
 import { excursionJourney, journeyBudget, journeyTimes } from './domain/journey'
 import { searchSeed } from './domain/timetable'
 import DayEntrySheet from './DayEntrySheet.vue'
@@ -59,6 +60,8 @@ interface Slot {
   label: string
   heading: string
   add: string
+  /** The save button's words: *Als Hinfahrt speichern*. */
+  save: string
   /** The day a way written by hand lands on. */
   day: string | null
   entry: DayEntry | null
@@ -70,6 +73,7 @@ const slots = computed<Slot[]>(() => [
     label: t('journey.out'),
     heading: t('journey.outTitle'),
     add: t('journey.addOut'),
+    save: t('journey.saveOut'),
     day: props.day,
     entry: journey.value.out,
   },
@@ -78,6 +82,7 @@ const slots = computed<Slot[]>(() => [
     label: t('journey.back'),
     heading: t('journey.backTitle'),
     add: t('journey.addBack'),
+    save: t('journey.saveBack'),
     day: props.lastDay ?? props.day,
     entry: journey.value.back,
   },
@@ -148,29 +153,47 @@ interface Editing {
   role: ExcursionRole | null
   day: string | null
   heading: string | null
+  save: string | null
 }
 const editing = ref<Editing | null>(null)
 
 function openSlot(slot: Slot) {
-  editing.value = { entry: slot.entry, role: slot.role, day: slot.day, heading: slot.heading }
+  editing.value = {
+    entry: slot.entry,
+    role: slot.role,
+    day: slot.day,
+    heading: slot.heading,
+    save: slot.save,
+  }
 }
 
 function openOther(entry: DayEntry) {
-  editing.value = { entry, role: null, day: entry.on_date, heading: null }
+  editing.value = { entry, role: null, day: entry.on_date, heading: null, save: null }
 }
 
-function onSave(fields: ConnectionFields) {
+function onSave(fields: DayEntryFields) {
   const current = editing.value
   editing.value = null
   if (!current) return
-  if (current.entry) actions.updateConnection(current.entry, fields)
-  else
-    actions.addConnection(
-      props.tripId,
-      { ...fields, excursionId: props.excursionId, role: current.role },
-      myUserId.value,
-    )
+  if (current.entry) actions.updateDayEntry(current.entry, fields)
+  else if (current.day)
+    actions.addDayEntry(props.tripId, current.day, fields, myUserId.value, {
+      excursionId: props.excursionId,
+      role: current.role,
+    })
 }
+
+/**
+ * The ways drawn on the route's map (FR-29.18): where the way there arrives
+ * beside where the route begins — beside the tracks, never chosen among
+ * them. Handed to M27's route through the slot.
+ */
+const wayLines = computed(() =>
+  [
+    ...connectionLines(journey.value.out?.legs ?? [], 'way-out'),
+    ...connectionLines(journey.value.back?.legs ?? [], 'way-back'),
+  ].map((line) => ({ ...line, chosen: false })),
+)
 
 async function onRemove() {
   const entry = editing.value?.entry
@@ -210,7 +233,7 @@ async function onRemove() {
         <template v-for="(slot, index) in slots" :key="slot.role">
           <li v-if="index === 1 && routeSummary" class="step" data-testid="m27-day-route">
             <span class="dot route" aria-hidden="true"><IonIcon :icon="walkOutline" /></span>
-            <div class="body"><slot name="route" /></div>
+            <div class="body"><slot name="route" :ways="wayLines" /></div>
           </li>
           <li v-if="day" class="step">
             <span class="dot" :class="{ open: !slot.entry }" aria-hidden="true">
@@ -280,9 +303,10 @@ async function onRemove() {
       :search-seed="seed"
       :search-near="near"
       :heading="editing?.heading"
+      :save-text="editing?.save"
       connection-only
       @close="editing = null"
-      @save-connection="onSave"
+      @save="onSave"
       @remove="onRemove"
     />
   </section>

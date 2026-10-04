@@ -12,6 +12,7 @@ export const sharedDe: Record<keyof typeof sharedEn, string> = {
   'common.copied': 'Kopiert',
   'common.close': 'Schliessen',
   'common.clear': 'Leeren',
+  'common.timePlaceholder': 'hh:mm',
   'common.back': 'Zurück',
   'common.chooseFile': 'Datei wählen',
   'dateField.placeholder': 'Datum wählen',
