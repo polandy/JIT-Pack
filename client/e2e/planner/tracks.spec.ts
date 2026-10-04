@@ -77,7 +77,8 @@ test.describe('M28 GPX tracks @local @planner', () => {
     await expect(card.getByTestId('track-distance')).toHaveText('3.3 km')
     await expect(card.getByTestId('track-ascent')).toHaveText('↑ 300 m')
     await expect(card.getByTestId('track-descent')).toHaveText('↓ 0 m')
-    await expect(card.getByTestId('track-highest')).toHaveText("1'300 m")
+    // The engine's ICU picks the Swiss group mark: WebKit's writes ’, Chromium's '.
+    await expect(card.getByTestId('track-highest')).toHaveText(/^1['’]300 m$/)
     await expect(card.getByTestId('track-file')).toHaveText('aufstieg.gpx · 4 points')
     await expect(card.getByTestId('track-kind-hike')).toHaveAttribute('aria-pressed', 'true')
     await expect(card.getByTestId('track-moving')).toHaveText('1 h 25')

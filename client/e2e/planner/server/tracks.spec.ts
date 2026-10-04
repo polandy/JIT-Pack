@@ -78,7 +78,8 @@ test.describe('Idea tracks across identities (FR-29.17) @server @planner', () =>
       '3.3 km · ↑ 300 m',
     )
     const card = (await openIdea(bob, title)).getByTestId('track-card')
-    await expect(card.getByTestId('track-highest')).toHaveText("1'300 m")
+    // The engine's ICU picks the Swiss group mark: WebKit's writes ’, Chromium's '.
+    await expect(card.getByTestId('track-highest')).toHaveText(/^1['’]300 m$/)
     await expect(card.getByTestId('track-map')).toHaveAttribute('data-tiles', 'off')
     await expect(card.getByTestId('track-map').locator('svg path.line')).toHaveCount(1)
     await expect(card.getByTestId('track-map-offline')).toHaveCount(0)

@@ -226,7 +226,8 @@ test.describe('M28 route editing @local @planner', () => {
     // A finger on the height profile names the place and marks it on the map.
     const profile = editor.getByTestId('route-profile').locator('svg')
     await profile.hover()
-    await expect(editor.getByTestId('route-profile-reading')).toHaveText(/ km · [\d']+ m$/)
+    // The engine's ICU picks the Swiss group mark: WebKit's writes ’, Chromium's '.
+    await expect(editor.getByTestId('route-profile-reading')).toHaveText(/ km · [\d'’]+ m$/)
     await expect(editor.getByTestId('route-map').locator('.jp-route-scrub')).toHaveCount(1)
     await page.mouse.move(0, 0)
     await expect(editor.getByTestId('route-map').locator('.jp-route-scrub')).toHaveCount(0)
