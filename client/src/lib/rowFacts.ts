@@ -14,7 +14,7 @@
  */
 import { relativeStamp, type RelativeStamp } from '@/domain/stamp'
 import { skippedVia } from '@/domain/dependencies'
-import { currentLocale, t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import type { ItemDependency, TripItem } from '@/types/domain'
 
 /** Anything that can name a user — the directory, the roster, or both. */
@@ -62,9 +62,7 @@ export function packedStampText(
   now: Date = new Date(),
 ): string | null {
   if (!item.packed_at && !item.packed_by_user_id) return null
-  const when = stampText(
-    item.packed_at ? relativeStamp(item.packed_at, now, currentLocale()) : null,
-  )
+  const when = stampText(item.packed_at ? relativeStamp(item.packed_at, now, intlLocale()) : null)
   const who = nameOf(item.packed_by_user_id)
   if (who) return t('packing.packedBy', { who, when })
   return when ? t('packing.packedByUnknown', { when }) : null
@@ -82,7 +80,7 @@ export function boughtStampText(
   now: Date = new Date(),
 ): string | null {
   if (!at && !by) return null
-  const when = stampText(at ? relativeStamp(at, now, currentLocale()) : null)
+  const when = stampText(at ? relativeStamp(at, now, intlLocale()) : null)
   const who = nameOf(by ?? null)
   if (who) return t('shopping.boughtBy', { who, when })
   return when ? t('shopping.boughtByUnknown', { when }) : null

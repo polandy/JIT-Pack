@@ -15,7 +15,6 @@ import { mount } from '@vue/test-utils'
 import SyncDetailSheet from '../SyncDetailSheet.vue'
 import type { StorageStatus } from '@/local/storageStatus'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
-import { currentLocale } from '@/i18n'
 
 const DAY = 86_400_000
 const NOW = 1_760_000_000_000
@@ -447,16 +446,19 @@ describe('SyncDetailSheet — the last completed sync (FR-19.6)', () => {
   it('says when the last cycle completed, as a time of day on the same day', () => {
     const wrapper = mountSheet({ lastSyncedAt: NOW - 60_000 })
 
-    const time = new Date(NOW - 60_000).toLocaleTimeString(currentLocale(), { timeStyle: 'short' })
-    expect(text(wrapper, 'sync-detail-last-synced')).toContain(time)
+    expect(text(wrapper, 'sync-detail-last-synced')).toContain(
+      new Date(NOW - 60_000).toLocaleTimeString('en-CH', { timeStyle: 'short' }),
+    )
   })
 
   it('carries the date once the last sync was on another day', () => {
     const at = NOW - 3 * DAY
     const wrapper = mountSheet({ lastSyncedAt: at })
 
-    const date = new Date(at).toLocaleDateString(currentLocale(), { dateStyle: 'medium' })
-    expect(text(wrapper, 'sync-detail-last-synced')).toContain(date)
+    // The device's region: day before month (the specs run in Zurich).
+    expect(text(wrapper, 'sync-detail-last-synced')).toContain(
+      new Date(at).toLocaleDateString('en-CH', { dateStyle: 'medium' }),
+    )
   })
 
   it('is absent until a cycle has completed this session', () => {

@@ -33,7 +33,7 @@ import { computed } from 'vue'
 
 import { SYNC_GLYPHS } from './syncGlyphs'
 import type { RequestFailure } from '@/api/client'
-import { currentLocale, formatNumber, t } from '@/i18n'
+import { intlLocale, formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
@@ -171,7 +171,7 @@ const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 
 const lastFailureText = computed(() => {
   const failure = props.lastFailure
   if (!failure || isLocal.value) return null
-  const when = new Date(failure.at).toLocaleTimeString(currentLocale())
+  const when = new Date(failure.at).toLocaleTimeString(intlLocale())
   const { method, path, status } = failure
   return status === null
     ? t('sync.detail.lastFailureUnreachable', { when, method, path })
@@ -188,8 +188,8 @@ const lastSyncedText = computed(() => {
   if (at == null || isLocal.value) return null
   const sameDay = new Date(at).toDateString() === new Date(props.now).toDateString()
   const when = sameDay
-    ? new Date(at).toLocaleTimeString(currentLocale(), { timeStyle: 'short' })
-    : new Date(at).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+    ? new Date(at).toLocaleTimeString(intlLocale(), { timeStyle: 'short' })
+    : new Date(at).toLocaleString(intlLocale(), { dateStyle: 'medium', timeStyle: 'short' })
   return t('sync.detail.lastSynced', { when })
 })
 

@@ -154,6 +154,14 @@ them.
   wait a fixed time for it. If a case can only pass by waiting and hoping, the
   fault is in the production code — give it a deterministic seam. `writesLanded`
   exists because E2E-M4-32 needed to know when the data was actually on disk.
+- **Never the real clock where it shows.** Whatever a case renders or decides
+  from today — a day counter, _„in 28 days"_, which day the plan opens on —
+  either counts from the browser's own day (`browserDay`) or sets it:
+  `setClock(page, '2026-10-05T09:00:00+02:00')` before `page.goto` starts the
+  browser's clock at that instant and lets it run, so the write path's timers
+  still see time pass. The visual suite sets it for every baseline
+  (`BASELINE_NOW`); a picture holding today's date is a picture that goes stale
+  by itself. Unit specs inject the clock (`lib/clock.ts`, `orchestrator.today`).
 - **Navigation waits for the outbox, and you get that for free.** `page.goto`
   and `page.reload` are wrapped by the `page` fixture: they settle the device's
   writes before leaving the screen. A write is on the device once the outbox

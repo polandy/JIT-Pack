@@ -49,7 +49,7 @@ describe('DateField (ADR-035)', () => {
     )
     setLocale('en')
     expect(mountField({ value: '2026-09-13' }).findComponent(IonInputStub).props('value')).toBe(
-      'Sep 13, 2026',
+      '13 Sept 2026',
     )
   })
 
@@ -65,7 +65,8 @@ describe('DateField (ADR-035)', () => {
     await wrapper.find('[data-stub="input"]').trigger('click')
     const datetime = wrapper.findComponent(IonDatetimeStub)
     expect(datetime.exists()).toBe(true)
-    expect(datetime.props('locale')).toBe('de')
+    // The app's language in the device's region (the specs run in Zurich).
+    expect(datetime.props('locale')).toBe('de-CH')
     expect(datetime.props('firstDayOfWeek')).toBe(1)
     expect(datetime.props('value')).toBe('2026-09-13')
   })

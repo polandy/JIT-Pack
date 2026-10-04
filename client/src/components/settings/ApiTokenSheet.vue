@@ -15,7 +15,7 @@ import { IonButton, IonIcon } from '@ionic/vue'
 import { copyOutline, checkmarkOutline } from 'ionicons/icons'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { copyText } from '@/lib/clipboard'
-import { t } from '@/i18n'
+import { formatDate, t } from '@/i18n'
 
 const props = defineProps<{ open: boolean; token: string; expiresAt: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -35,11 +35,11 @@ async function copy() {
   copied.value = await copyText(props.token)
 }
 
-/** The expiry as the person set it, in their own locale. */
+/** The expiry as the person set it, in the app's language and the device's region. */
 function expirySentence(): string {
   if (!props.expiresAt) return t('settings.tokenNeverExpires')
   return t('settings.tokenExpiresAt', {
-    date: new Date(props.expiresAt).toLocaleDateString(),
+    date: formatDate(new Date(props.expiresAt)),
   })
 }
 </script>

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
-import { setLocale } from '@/i18n'
+import { pinDeviceTimeZone, setLocale } from '@/i18n'
 
 import { formatTripPeriod, formatValue, formatWeight } from '../format'
 
@@ -29,7 +29,7 @@ describe('formatTripPeriod (M1/M2/M16, UX-5)', () => {
 
   it('renders the range with short months in English', () => {
     setLocale('en')
-    expect(plain(formatTripPeriod(dated))).toBe('Aug 22 – Sep 5, 2026')
+    expect(plain(formatTripPeriod(dated))).toBe('22 Aug – 5 Sept 2026')
   })
 
   it('renders a cross-year range with both years', () => {
@@ -46,14 +46,14 @@ describe('formatTripPeriod (M1/M2/M16, UX-5)', () => {
     )
     setLocale('en')
     expect(formatTripPeriod({ year: 2026, start_date: null, end_date: '2026-12-31' })).toBe(
-      'until Dec 31, 2026',
+      'until 31 Dec 2026',
     )
   })
 
   it('a start date alone reads as "from"', () => {
     setLocale('en')
     expect(formatTripPeriod({ year: 2026, start_date: '2026-08-22', end_date: null })).toBe(
-      'from Aug 22, 2026',
+      'from 22 Aug 2026',
     )
   })
 
@@ -64,12 +64,13 @@ describe('formatTripPeriod (M1/M2/M16, UX-5)', () => {
 })
 
 describe('formatValue (M11/M9, UX-11)', () => {
-  it('renders cents as a two-decimal amount in the active locale', () => {
+  it('renders cents as a two-decimal amount in the device’s region, not by toFixed', () => {
+    // The specs run in Zurich: both languages write the Swiss amount.
     setLocale('en')
-    expect(formatValue(123450)).toBe('1,234.50')
+    expect(formatValue(123450)).toBe("1'234.50")
     setLocale('de')
-    // Plain 'de' resolves to de-DE conventions in tests (no de-CH browser
-    // tag around); the point is the locale decides, not toFixed.
+    expect(formatValue(1050)).toBe('10.50')
+    pinDeviceTimeZone('Europe/Berlin')
     expect(formatValue(1050)).toBe('10,50')
   })
 })

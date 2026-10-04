@@ -173,7 +173,7 @@ export async function excursionMenu(
 ) {
   await page.getByTestId('header-overflow').click()
   const sheet = page.locator('ion-action-sheet')
-  await expect(sheet).toBeVisible()
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
   await sheet.getByTestId(id).click()
   await expect(sheet).toHaveCount(0)
 }

@@ -10,7 +10,7 @@ import {
   tripAction,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
-import { writesLanded } from './helpers/page'
+import { setClock, writesLanded } from './helpers/page'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
@@ -55,24 +55,19 @@ useReducedMotion(test)
  * traveler's id — into a palette colour. Left alone, every run paints the
  * avatars differently and every baseline fails on its second execution.
  *
- * **The clock is deliberately not frozen**, and that is a finding rather
- * than an omission. `page.clock.setFixedTime` looks like the obvious
- * companion — a pinned instant means a rendered year cannot drift — but
- * with it the pack never reaches the store: the checkbox flips and the
- * header count, which reads the store, stays where it was, so the row never
- * leaves.
- *
- * The cause was **not** traced, and the obvious suspect is already ruled
- * out: `HLCGenerator.next()` handles equal timestamps correctly
- * (`if (now <= lastMillis) counter++`), so it is something else in the
- * write path. None of these baselines renders a date — only the greeting's
- * hour and a note's time of day (M26) read the clock, and `freeze` below pins
- * both — so the full freeze bought nothing and cost the one state that
- * exercises FR-25.2; it was dropped rather than investigated. If a dated
- * screen is added here later, pin the date on the *trip* rather than on the
- * browser, and expect to find this note first.
+ * **The clock is set, not frozen.** Every baseline starts at one instant,
+ * {@link BASELINE_NOW}, through `setClock`: a day counter (*„Day 7"*, *„in 28
+ * days"*) or a rendered year then reads the same on every run. It is set
+ * with `setSystemTime` and keeps running from there — `setFixedTime`, which
+ * stops it, kept a pack from ever reaching the store, so the row never left;
+ * a clock that runs from a fixed start is as deterministic for a picture and
+ * leaves the write path its timers.
  */
+/** The instant every baseline starts at — a Monday morning in Zurich. */
+const BASELINE_NOW = '2026-10-05T09:00:00+02:00'
+
 async function freeze(page: Page) {
+  await setClock(page, BASELINE_NOW)
   await page.addInitScript(() => {
     // The counter lives in `sessionStorage` rather than in this closure,
     // because `addInitScript` runs again on **every navigation** — a local
@@ -89,18 +84,10 @@ async function freeze(page: Page) {
       return `00000000-0000-4000-8000-${hex}` as `${string}-${string}-${string}-${string}-${string}`
     }
     Object.defineProperty(crypto, 'randomUUID', { value: uuid, configurable: true })
-    // The dashboard greeting reads the wall clock's hour — the one
-    // time-of-day the suite renders. Unpinned, a 19:49 UTC run meets a
-    // baseline recorded in the morning, and the job is green only inside the
-    // baseline's own time window. Pinning the *hour* keeps
-    // Date.now() untouched (freezing it breaks the Local Mode write path
-    // — see the header), so the seam is exactly as wide as the defect.
-    Date.prototype.getHours = () => 9
-    // A note's stamp (FR-7.13, `domain/stamp.ts`) prints its time of day
-    // through `toLocaleTimeString`, which never asks `getHours` — so M26's
-    // baseline would hold the minute it was recorded in and fail at any
-    // other. Pinned to one instant's rendering, in the caller's own locale
-    // and options, for the pin above's reason.
+    // A note's stamp (FR-7.13, `domain/stamp.ts`) prints its time of day,
+    // and the clock runs from BASELINE_NOW: a case that takes over a minute
+    // would print 09:01 where the baseline holds 09:00. Pinned to one
+    // instant's rendering, in the caller's own locale and options.
     const timeOf = Date.prototype.toLocaleTimeString
     const pinned = new Date(2026, 0, 1, 9, 0)
     Date.prototype.toLocaleTimeString = function (...args: Parameters<Date['toLocaleTimeString']>) {

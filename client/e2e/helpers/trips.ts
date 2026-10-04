@@ -253,7 +253,7 @@ function isTripWide(action: keyof typeof TRIP_ACTION): action is TripWideAction 
 async function openTripMenu(page: Page) {
   await page.getByTestId('header-overflow').click()
   const sheet = page.locator('ion-action-sheet')
-  await expect(sheet).toBeVisible()
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
   return sheet
 }
 
@@ -310,7 +310,7 @@ async function openCardMenu(page: Page, name: string): Promise<Locator> {
   const card = await tripCardOnM2(page, name)
   await card.dispatchEvent('contextmenu')
   const sheet = page.locator('ion-action-sheet').last()
-  await expect(sheet).toBeVisible()
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
   return sheet
 }
 
@@ -545,7 +545,7 @@ export async function openTripRowMenu(page: Page, trip: string): Promise<Locator
   // a confirm that followed it was answered quickly (E2E-M2-05), and M2 opens
   // the new one meanwhile rather than swallowing the request.
   const sheet = page.locator('ion-action-sheet').last()
-  await expect(sheet).toBeVisible()
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
   return sheet
 }
 

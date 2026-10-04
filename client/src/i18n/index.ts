@@ -22,6 +22,7 @@ import { plannerDe } from '@/planner/i18n/de'
 import { plannerEn } from '@/planner/i18n/en'
 import { shoppingDe } from '@/shopping/i18n/de'
 import { shoppingEn } from '@/shopping/i18n/en'
+import { ZONE_REGIONS } from './zoneRegions'
 
 export type Locale = 'en' | 'de'
 
@@ -144,15 +145,51 @@ export function t(key: MessageKey, params?: MessageParams): string {
 }
 
 /**
- * The concrete BCP-47 tag handed to Intl: the browser's own regional variant
- * of the active language when it offers one (`de` → `de-CH` on a Swiss
- * device), else the bare language code. The language is the app's choice,
- * the regional conventions (decimal separators, date punctuation) are the
- * device's — a de-CH household writes 12.50 where de-DE writes 12,50.
+ * The concrete BCP-47 tag handed to Intl: the active language in the
+ * device's region. The language is the app's choice, the regional
+ * conventions (date order, decimal separators, the 24-hour clock) are the
+ * region's — a Swiss household writes 4.10. and 12.50 in English too.
+ *
+ * A browser names its region only through its time zone: `navigator.languages`
+ * is the device's *language*, which on an English phone in Zurich says `en-US`
+ * and would write the 4th of October as 10/4. So the zone's country wins
+ * (`zoneRegions.ts`); a zone it does not know falls back to the browser's
+ * own regional variant of the language, then to the bare language code.
  */
+export function regionalLocale(
+  language: Locale,
+  languages: readonly string[],
+  timeZone: string | undefined,
+): string {
+  const region = timeZone ? ZONE_REGIONS[timeZone] : undefined
+  if (region) return `${language}-${region}`
+  return languages.find((tag) => tag.toLowerCase().startsWith(language)) ?? language
+}
+
+let pinnedTimeZone: string | undefined
+
+/**
+ * Pins the device's time zone in place of the browser's — the seam a spec
+ * uses, since a formatted date must not follow the machine it runs on.
+ * `undefined` hands it back to the browser.
+ */
+export function pinDeviceTimeZone(timeZone: string | undefined): void {
+  pinnedTimeZone = timeZone
+}
+
+/** The device's time zone, as the browser names it; undefined where it names none. */
+function deviceTimeZone(): string | undefined {
+  if (pinnedTimeZone) return pinnedTimeZone
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    return undefined
+  }
+}
+
+/** The Intl tag for the active language in the device's region — see {@link regionalLocale}. */
 export function intlLocale(): string {
-  const languages = globalThis.navigator?.languages ?? []
-  return languages.find((tag) => tag.toLowerCase().startsWith(locale.value)) ?? locale.value
+  return regionalLocale(locale.value, globalThis.navigator?.languages ?? [], deviceTimeZone())
 }
 
 /** Locale-aware number formatting (NFR-4.12 scope note). */

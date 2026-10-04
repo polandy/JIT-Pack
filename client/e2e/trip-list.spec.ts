@@ -48,8 +48,9 @@ test.describe('M2 trip list @local @m2', () => {
     // itself; the tap stays, so this case keeps testing the dates alone.
     await visiblePage(page).getByTestId('trips-filter-planned').click()
     const when = visiblePage(page).getByTestId('trip-row-Elba').getByTestId('trip-when')
-    // Whitespace-tolerant: Intl is free to use thin spaces around the dash.
-    await expect(when).toHaveText(/^Aug 22\s*–\s*Sep 5, 2026$/)
+    // Whitespace-tolerant: Intl is free to use thin spaces around the dash. The
+    // device is in Zurich, so day before month in English too (NFR-4.12).
+    await expect(when).toHaveText(/^22 Aug\s*–\s*5 Sept 2026$/)
   })
 })
 
