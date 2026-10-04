@@ -134,6 +134,7 @@ const chosenHeading = computed(() =>
 function open(line: DayLine) {
   if (line.idea) void router.push(tripIdeasPath(props.tripId, line.idea.id))
   else if (line.entry) editing.value = { entry: line.entry }
+  else if (line.source?.open) line.source.open()
   else if (line.source) void router.push(line.source.path)
 }
 

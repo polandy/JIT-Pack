@@ -20,6 +20,8 @@
  */
 import { TRACK_KIND } from '@/api/types'
 import type {
+  Meal,
+  MealIngredient,
   AppliedChange,
   ConnectionLeg,
   Container,
@@ -69,6 +71,10 @@ import {
   IDEA_STATE_IDEA,
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
+  MEAL_KIND_COOK,
+  MEAL_KIND_OUT,
+  MEAL_SLOT_DINNER,
+  MEAL_SLOTS,
   toIdeaTag,
 } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/types/tables'
@@ -87,6 +93,8 @@ import {
   excursionTravelerRow,
   excursionItemRow,
   dayEntryRow,
+  mealRow,
+  mealIngredientRow,
   ideaCommentRow,
   ideaImageRow,
   ideaTrackRow,
@@ -413,6 +421,40 @@ function rowToIdea(id: string, row: Record<string, unknown>): Idea {
   }
 }
 
+function rowToMeal(id: string, row: Record<string, unknown>): Meal {
+  const slot = row['slot'] as Meal['slot']
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    on_date: row['on_date'] as string,
+    slot: MEAL_SLOTS.includes(slot) ? slot : MEAL_SLOT_DINNER,
+    title: row['title'] as string,
+    kind: row['kind'] === MEAL_KIND_OUT ? MEAL_KIND_OUT : MEAL_KIND_COOK,
+    at_time: (row['at_time'] as string) ?? null,
+    note: (row['note'] as string) ?? null,
+    place: (row['place'] as string) ?? null,
+    cook_user_id: (row['cook_user_id'] as string) ?? null,
+    excursion_id: (row['excursion_id'] as string) ?? null,
+    excursion_packed_at: (row['excursion_packed_at'] as string) ?? null,
+  }
+}
+
+function rowToMealIngredient(id: string, row: Record<string, unknown>): MealIngredient {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    meal_id: row['meal_id'] as string,
+    name: row['name'] as string,
+    amount: (row['amount'] as string) ?? null,
+    list: (row['list'] as MealIngredient['list']) ?? ITEM_MODE_BUY_LOCAL,
+    position: (row['position'] as number | null | undefined) ?? null,
+    bought: Boolean(row['bought']),
+    bought_at: (row['bought_at'] as string) ?? null,
+    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
+    shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
+  }
+}
+
 function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
   return {
     id,
@@ -651,6 +693,8 @@ export const TABLE_CODECS = {
   [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
   [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
   [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
+  [TABLE.meals]: { parse: rowToMeal, encode: mealRow },
+  [TABLE.mealIngredients]: { parse: rowToMealIngredient, encode: mealIngredientRow },
   [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },
   [TABLE.excursionTracks]: { parse: rowToExcursionTrack, encode: excursionTrackRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the

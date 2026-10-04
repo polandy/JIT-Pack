@@ -434,3 +434,44 @@ describe('an excursion between its ways there and back (FR-29.15, FR-29.18)', ()
     expect(keys([lunch])).toEqual(['entry:n1', 'excursion:e1'])
   })
 })
+
+describe('a meal on the plan (FR-33.5)', () => {
+  const day = '2026-07-13'
+  const meal = (key: string, time: string | null, placeAt: string): DayPlanLine => ({
+    ...line(key, 'meal', day),
+    time,
+    placeAt,
+    timeWord: 'dinner',
+  })
+
+  it('stands at its own time when it has one', () => {
+    const lines = dayLines(day, input({ lines: [meal('meal:m1', '19:30', '18:30')] }))
+    expect(lines[0]).toMatchObject({ kind: DAY_LINE.meal, time: '19:30' })
+  })
+
+  it('stands at its slot’s place without a time, among the timed lines, before the untimed', () => {
+    const lines = dayLines(
+      day,
+      input({
+        entries: [
+          entry('late', day, '20:00'),
+          entry('early', day, '10:00'),
+          entry('loose', day, null),
+        ],
+        lines: [meal('meal:dinner', null, '18:30')],
+      }),
+    )
+    expect(lines.map((l) => l.key)).toEqual([
+      'entry:early',
+      'meal:dinner',
+      'entry:late',
+      'entry:loose',
+    ])
+    expect(lines[1]).toMatchObject({ time: null, placeAt: '18:30' })
+  })
+
+  it('is left to the dashboard’s own meal block, not the Heute card (FR-33.7)', () => {
+    const lines = dayLines(day, input({ lines: [meal('meal:m1', '19:30', '18:30')] }))
+    expect(linesAhead(day, lines, '08:00')).toEqual([])
+  })
+})

@@ -1,6 +1,6 @@
 /**
  * Holds `client/src/domain` — and a feature module's own rule directory, the
- * planner's `planner/domain` — to invariant 4: it is the layer the rules live in,
+ * planner's `planner/domain` and the meal plan's `meals/domain` — to invariant 4: it is the layer the rules live in,
  * and it never points at the layers that call it.
  *
  * The direction is the whole value of the package. Its modules are exhaustively
@@ -33,7 +33,7 @@ const SRC = resolve(root, 'client/src')
  * its own directory (§3.29, FR-29.9) and answer to the same direction; each
  * may also import its own siblings.
  */
-const DOMAINS = ['domain', 'planner/domain']
+const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
 
 /**
  * The layers a rule module may reach into, as an allowlist rather than a list

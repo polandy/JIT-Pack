@@ -28,6 +28,8 @@ export const plannerEn = {
   'dayPlan.kind.task': 'Task',
   'dayPlan.kind.entry': 'Entry',
   'dayPlan.kind.connection': 'Connection',
+  'dayPlan.kind.meal': 'Meal',
+  'dayPlan.cooks': '{name} cooks',
   'dayPlan.spanStart': 'Start',
   'dayPlan.spanReturn': 'Return',
   'dayPlan.tick': 'Tick “{title}”',

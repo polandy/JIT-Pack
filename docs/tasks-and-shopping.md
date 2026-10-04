@@ -40,8 +40,9 @@ removed on that row.
 - **Fällig** comes next, when anything is pressing: everything overdue, due today or in the next two days, from both
   lists, earliest first, each row naming its tag underneath.
 - Then **Vor der Reise** and **Vor Ort**, one under the other, each with how much is still open. Under each come
-  the packing list's own positions (under **Packliste**), then your entries under their tags, then the untagged ones
-  under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
+  the packing list's own positions (under **Packliste**), then an excursion's under its name and the
+  [meal plan's](meal-plan.md) ingredients under **Essensplan**, then your entries under their tags, then the untagged
+  ones under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
   end of each list, where you can untick it again.
 - Bought it and need it again — milk, bread? Tap **＋ Nochmal** on its line under **gekauft**: it is back on the list
   with its tag, and the purchase stays where it is. While it stands open again the line says **Auf der Liste**.

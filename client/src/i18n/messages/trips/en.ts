@@ -308,6 +308,7 @@ export const tripsEn = {
   // The planner's two trip views by name, which the switcher and M30 read too;
   // the rest of its copy is in planner/i18n/.
   'dayPlan.title': 'Day plan',
+  'meals.title': 'Meals',
   'ideas.title': 'Ideas',
   'ideas.viewCount': 'Ideas ({n})',
 

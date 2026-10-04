@@ -153,6 +153,10 @@
   *Mitnehmen* and *Weglassen*, handle `m27-save-group-unlisted`, FR-31.14), *Ausflug löschen* (a destructive
   confirmation *„„Hüttentour" mit seiner Liste löschen? Die Packliste bleibt, wie sie ist."*, then back to the list). An
   excursion deleted elsewhere leaves its view for the list.
+* **Another module's lines (FR-33.6):** a picnic taken on the excursion from the meal plan stands above the list under
+  *Essen* (`m27-extra`, a line `m27-extra-meal:<id>`) — its dish and its day and slot, ticked as packed here, a tap on
+  its name opening the meal's sheet — and counts in the progress card's share and the list's `done/total`. It is no
+  M4 row: no amount, no person, nothing borrowed from the suitcase (`lib/excursionExtraLines.ts`).
 * **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.

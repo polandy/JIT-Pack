@@ -140,6 +140,12 @@ The excursions list shows both departures under the excursion (*08:06 hin · 16:
 between them. A way from the timetable or the SBB app is drawn on the route's map beside the GPX track, so you see
 whether it arrives where the route begins.
 
+## A picnic
+
+A breakfast, lunch or snack from the [meal plan](meal-plan.md) on the excursion's day can go along: it then stands
+above the list under **Essen**, ticked when it is in the rucksack and counted in what is packed. Tap its name to open
+the meal.
+
 ## Reminders
 
 On the day before an excursion and on the day itself, while something on its list is still open, the dashboard shows

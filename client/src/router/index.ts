@@ -276,6 +276,14 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // M31 (§3.33): the trip's meal plan — the meals module's screen.
+    path: tripSubPath(TRIP_ID_PARAM, 'meals'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'meals' },
+    name: 'trip-meals',
+    component: () => import('@/meals/MealPlanPage.vue'),
+    props: true,
+  },
+  {
     // FR-29.7: the trip opened on the view its dates decide. Never rendered —
     // `installTripOpening` redirects it before it matches a page; the
     // component is only what a router with no guard installed would show.

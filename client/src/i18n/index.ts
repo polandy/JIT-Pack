@@ -16,6 +16,8 @@ import { ref } from 'vue'
 
 import { de } from './messages/de'
 import { en } from './messages/en'
+import { mealsDe } from '@/meals/i18n/de'
+import { mealsEn } from '@/meals/i18n/en'
 import { plannerDe } from '@/planner/i18n/de'
 import { plannerEn } from '@/planner/i18n/en'
 import { shoppingDe } from '@/shopping/i18n/de'
@@ -32,10 +34,12 @@ export const CATALOGUE_PARTS = {
   kernel: { en, de },
   planner: { en: plannerEn, de: plannerDe },
   shopping: { en: shoppingEn, de: shoppingDe },
+  meals: { en: mealsEn, de: mealsDe },
 } as const
 
 /** Message keys are those of the English parts, which are the source of truth. */
-export type MessageKey = keyof typeof en | keyof typeof plannerEn | keyof typeof shoppingEn
+export type MessageKey =
+  keyof typeof en | keyof typeof plannerEn | keyof typeof shoppingEn | keyof typeof mealsEn
 
 /** Values substituted into `{placeholder}` slots; `n` additionally drives pluralization. */
 export type MessageParams = Record<string, string | number>

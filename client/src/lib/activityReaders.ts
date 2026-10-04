@@ -50,6 +50,7 @@ export type ActivityArea =
   | 'excursions'
   | 'ideas'
   | 'dayplan'
+  | 'meals'
   | 'trip'
   | 'members'
   | 'inventory'

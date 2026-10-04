@@ -109,6 +109,7 @@ function hasFacts(line: ShoppingLine): boolean {
     line.quantity > 1 ||
     !!props.tagOf?.(line) ||
     line.recipients.length > 0 ||
+    !!line.detail ||
     hasIdea(line)
   )
 }
@@ -177,6 +178,10 @@ function hasFacts(line: ShoppingLine): boolean {
         <DueBadge :day="line.dueDate ?? null" :today="today" :testid="`m6-row-due-${line.name}`" />
         <span v-if="line.quantity > 1">{{ line.quantity }}×</span>
         <span v-if="tagOf?.(line)" :data-testid="`m6-row-tag-${line.name}`">{{ tagOf(line) }}</span>
+        <!-- FR-33.3: the source's own word on the line — an ingredient's meal. -->
+        <span v-if="line.detail" :data-testid="`m6-row-detail-${line.name}`">{{
+          line.detail
+        }}</span>
         <!-- FR-25.6: for whom, derived from membership — never a control. -->
         <span v-if="line.recipients.length > 0" class="recipients" data-testid="m6-row-for">
           <UserAvatar

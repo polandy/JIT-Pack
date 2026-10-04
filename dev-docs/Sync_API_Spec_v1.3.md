@@ -19,7 +19,7 @@ what runs.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
   trip_generated_positions, shopping_entries, excursions, excursion_travelers, excursion_items, excursion_tracks, ideas,
-  idea_votes, idea_comments, idea_images, idea_tracks, day_entries) and one **master
+  idea_votes, idea_comments, idea_images, idea_tracks, day_entries, meals, meal_ingredients) and one **master
   partition per user** (items, tags, item_tags, task_tags, templates, template_items, template_includes,
   template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members,
   trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition —
@@ -273,6 +273,16 @@ array as sent. A connection may name the excursion it belongs to in `excursion_i
 same trip, dropped when that excursion is gone, refused when it is another trip's — and in `excursion_role` which way it
 is there, `out` or `back` (any other value is refused by the schema); both merge field by field like every other column,
 so two devices filling one way apart both keep a row.
+
+`meals` (§3.33) is a meal of the meal plan — `on_date`, `slot` (`breakfast`, `lunch`, `snack`, `dinner`), `title`,
+`kind` (`cook`, `out`), `at_time`, `note`, `place`, `cook_user_id` (the client's to set, like an assignee) — in the trip
+partition; a slot is no uniqueness rule, so two devices planning one dinner both keep theirs. A picnic names the
+excursion it is taken on in `excursion_id` — `day_entries`' rule: kept on the trip's own, dropped when gone, refused
+when another trip's — and `excursion_packed_at` when it went into the rucksack. `meal_ingredients` (FR-33.2) hang off
+their meal (`meal_id`, refused unless it names a meal of the same trip) — `name`, `amount` (free text), `list`
+(`buy_before`, `buy_local`), `position`, `shopping_position` — and carry `shopping_entries`' purchase record: `bought`,
+`bought_at` the tap's, `bought_by_user_id` stamped by the server from the pusher and cleared with the purchase.
+Deleting a meal tombstones its ingredients on the trip's feed.
 
 `idea_images` (FR-29.5, ADR-081) names one picture on an idea — `idea_id`, `image_hash`, `position` — and is **created
 only by the upload** (`PUT /trips/{id}/ideas/{ideaID}/images/{imageID}`, §8), which writes the row and its bytes in one

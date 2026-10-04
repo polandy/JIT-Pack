@@ -10,6 +10,8 @@
  * `satisfies Record<keyof T, unknown>`.
  */
 import type {
+  Meal,
+  MealIngredient,
   Container,
   DestinationChecklistItem,
   DestinationProfile,
@@ -263,6 +265,39 @@ export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
     legs: jsonColumn(entry.legs),
     excursion_id: entry.excursion_id ?? null,
     excursion_role: entry.excursion_role ?? null,
+  }
+}
+
+/** FR-33.1: a meal of the meal plan. */
+export function mealRow(meal: Meal): Record<string, unknown> {
+  return {
+    trip_id: meal.trip_id,
+    on_date: meal.on_date,
+    slot: meal.slot,
+    title: meal.title,
+    kind: meal.kind,
+    at_time: meal.at_time,
+    note: meal.note,
+    place: meal.place,
+    cook_user_id: meal.cook_user_id,
+    excursion_id: meal.excursion_id,
+    excursion_packed_at: meal.excursion_packed_at,
+  }
+}
+
+/** FR-33.2: an ingredient of a meal. */
+export function mealIngredientRow(ingredient: MealIngredient): Record<string, unknown> {
+  return {
+    trip_id: ingredient.trip_id,
+    meal_id: ingredient.meal_id,
+    name: ingredient.name,
+    amount: ingredient.amount,
+    list: ingredient.list,
+    position: ingredient.position,
+    bought: dbBool(ingredient.bought),
+    bought_at: ingredient.bought_at,
+    bought_by_user_id: ingredient.bought_by_user_id,
+    shopping_position: ingredient.shopping_position,
   }
 }
 

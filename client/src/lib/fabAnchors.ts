@@ -41,4 +41,5 @@ export const FAB_ANCHOR = {
   m28: 'm28-fab-anchor',
   /** M29: the day plan's ＋ (FR-29.15). */
   m29: 'm29-fab-anchor',
+  m31: 'm31-fab-anchor',
 } as const

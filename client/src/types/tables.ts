@@ -49,6 +49,9 @@ export const TABLE = {
   dayEntries: 'day_entries',
   /** FR-29.17: a GPX track on an idea — what was read from the file; the file stays out (ADR-085). */
   ideaTracks: 'idea_tracks',
+  /** §3.33: a trip's meals and their ingredients — shopping lines by projection (ADR-092). */
+  meals: 'meals',
+  mealIngredients: 'meal_ingredients',
   /** FR-27.4, the planning-trip refresh (migration 023). */
   tripTemplateSources: 'trip_template_sources',
   tripGeneratedPositions: 'trip_generated_positions',

@@ -102,7 +102,25 @@ import {
   ExcursionConnections,
   excursionJourneyLine,
   PlannerTodayCard,
+  usePlannerStore,
 } from '@/planner'
+import {
+  MealSheet,
+  MealsTodayCard,
+  createMealActions,
+  createMealDayPlanSource,
+  createMealExcursionSource,
+  createMealShoppingSource,
+  mealActivityReaders,
+  mealFeatureStore,
+  useMealSheet,
+  useMealStore,
+  type MealSourceDeps,
+} from '@/meals'
+import { EXCURSION_EXTRA_LINES } from '@/lib/excursionExtraLines'
+import { MEAL_CONTEXT, type MealContext } from '@/lib/mealContext'
+import { spanOf } from '@/domain/excursions'
+import { IDEA_STATE_SHORTLISTED } from '@/types/domain'
 import { ACTIVITY_READERS } from '@/lib/activityReaders'
 
 const mode = ref(readMode())
@@ -149,7 +167,7 @@ const orchestrator = mode.value
       onRejections: showRejectionToast,
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
       // their rows without importing a module.
-      features: [shoppingFeatureStore(), plannerFeatureStore()],
+      features: [shoppingFeatureStore(), plannerFeatureStore(), mealFeatureStore()],
     })
   : null
 
@@ -246,11 +264,54 @@ if (liveLocation) {
  * buy-mode rows into the shopping list as a source, and hands the switcher
  * the module's count — so neither side imports the other.
  */
+/*
+ * §3.33: what the meal plan reads of the trip — its trips, excursions and
+ * shortlisted ideas — answered here, so the module imports neither side.
+ */
+const mealContext: MealContext = {
+  trips: () =>
+    useTripStore().tripList.map((trip) => ({
+      id: trip.id,
+      name: trip.name,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+    })),
+  excursions: (tripId) =>
+    useTripStore()
+      .getExcursions(tripId)
+      .flatMap((excursion) => {
+        const span = spanOf(excursion)
+        return span
+          ? [{ id: excursion.id, name: excursion.name, from: span.from, to: span.to }]
+          : []
+      }),
+  shortlist: (tripId) =>
+    usePlannerStore()
+      .getIdeas(tripId)
+      .filter((idea) => idea.state === IDEA_STATE_SHORTLISTED)
+      .map((idea) => ({ id: idea.id, title: idea.title })),
+}
+provide(MEAL_CONTEXT, mealContext)
+const mealSources: MealSourceDeps | null = orchestrator
+  ? {
+      store: useMealStore(),
+      actions: createMealActions(orchestrator.moduleHost, useMealStore()),
+      sheet: useMealSheet(),
+      context: mealContext,
+      today: orchestrator.today,
+    }
+  : null
+const mealExcursionSources = mealSources ? [createMealExcursionSource(mealSources)] : []
+// FR-33.6: a picnic on its excursion's list, counted in the rucksack's share.
+provide(EXCURSION_EXTRA_LINES, mealExcursionSources)
+
 const shoppingSources = orchestrator
   ? [
       createPackingShoppingSource(useTripStore(), orchestrator),
       // FR-31.8: an excursion's vor-Ort lines, bought at the kiosk on the way.
       createExcursionShoppingSource(useTripStore(), orchestrator),
+      // FR-33.3: a meal's ingredients, under the meal plan's heading.
+      ...(mealSources ? [createMealShoppingSource(mealSources)] : []),
     ]
   : []
 provide(SHOPPING_SOURCES, shoppingSources)
@@ -265,9 +326,13 @@ const dayPlanSources = orchestrator
           getExcursions: (tripId) => useTripStore().getExcursions(tripId),
           getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
           tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+          extraLines: (tripId, excursionId) =>
+            mealExcursionSources.flatMap((source) => source.lines(tripId, excursionId)),
         },
         { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
       ),
+      // FR-33.5: the meals, each at its time or its slot's place.
+      ...(mealSources ? [createMealDayPlanSource(mealSources)] : []),
     ]
   : []
 provide(DAY_PLAN_SOURCES, dayPlanSources)
@@ -327,7 +392,8 @@ if (orchestrator) {
 // during the trip, and the shopping list, workable there.
 provide(EXCURSION_CONNECTIONS, orchestrator ? ExcursionConnections : null)
 provide(EXCURSION_JOURNEY_LINE, orchestrator ? excursionJourneyLine() : null)
-provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, ShoppingDashboardCard] : [])
+// FR-33.7: today's meals, a block of their own beside today's plan.
+provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, MealsTodayCard, ShoppingDashboardCard] : [])
 // FR-30.10: Local Mode's opening hint counts the due purchases too.
 if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())
 // FR-7.12: closing the packing ends *before departure* on the shopping list too.
@@ -344,7 +410,11 @@ provide(
 )
 
 // FR-32.2: each module reads the activity log's entries about its own rows.
-provide(ACTIVITY_READERS, { ...shoppingActivityReaders, ...plannerActivityReaders })
+provide(ACTIVITY_READERS, {
+  ...shoppingActivityReaders,
+  ...plannerActivityReaders,
+  ...mealActivityReaders,
+})
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
@@ -620,6 +690,8 @@ async function saveBackup() {
           @open-trip="openOnlineTrip"
         />
       </SheetModal>
+      <!-- §3.33: the one meal sheet, opened from M31, the day plan, an excursion and M1. -->
+      <MealSheet v-if="orchestrator" />
     </template>
   </IonApp>
 </template>

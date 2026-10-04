@@ -925,6 +925,56 @@ CREATE TABLE excursion_track_gpx (
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
 
+-- FR-33.1: a meal of a trip's meal plan (§3.33, ADR-092) — a dish on a day,
+-- in one of four slots, cooked or eaten out. A slot is a place on the day,
+-- not a uniqueness rule: two devices planning the same dinner offline both
+-- keep theirs. `on_date` and `at_time` are day_entries' shapes; no CHECK on
+-- them for field-level LWW's sake.
+CREATE TABLE meals (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    on_date     TEXT NOT NULL,
+    slot        TEXT NOT NULL DEFAULT 'dinner'
+                CHECK (slot IN ('breakfast', 'lunch', 'snack', 'dinner')),
+    title       TEXT NOT NULL,
+    kind        TEXT NOT NULL DEFAULT 'cook' CHECK (kind IN ('cook', 'out')),
+    at_time     TEXT,
+    note        TEXT,
+    -- Eaten out: where — free text, a shortlisted idea's title copied in.
+    place       TEXT,
+    -- FR-33.8: who cooks it — shopping_entries.assignee_user_id's shape, the
+    -- client's to set (invariant 3 concerns who acted).
+    cook_user_id TEXT REFERENCES users(id),
+    -- FR-33.6: the excursion a picnic is taken on, and when it went into
+    -- that excursion's rucksack (NULL while not). ON DELETE SET NULL: the
+    -- meal outlives the excursion; noteExcursion keeps it on the trip's own.
+    excursion_id TEXT REFERENCES excursions(id) ON DELETE SET NULL,
+    excursion_packed_at TEXT,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-33.2: an ingredient of a meal, and a line of the trip's shopping list
+-- by projection (FR-33.3) — never a copy in shopping_entries. The amount is
+-- free text, never summed. The purchase record is FR-30.4's, stamped by the
+-- server; `position` orders the meal's own list, `shopping_position` the
+-- line's place on M6 (FR-30.13, ADR-083).
+CREATE TABLE meal_ingredients (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    meal_id     TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    amount      TEXT,
+    list        TEXT NOT NULL DEFAULT 'buy_local' CHECK (list IN ('buy_before', 'buy_local')),
+    position    INTEGER,
+    bought      INTEGER NOT NULL DEFAULT 0 CHECK (bought IN (0, 1)),
+    bought_at         TEXT,
+    bought_by_user_id TEXT REFERENCES users(id),
+    shopping_position INTEGER,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE destination_profiles (               -- FR-13.2
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     series_id   TEXT NOT NULL UNIQUE REFERENCES trip_series(id) ON DELETE CASCADE,
@@ -1057,6 +1107,8 @@ CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
 CREATE INDEX idx_day_entries_trip ON day_entries (trip_id, on_date);
+CREATE INDEX idx_meals_trip ON meals (trip_id, on_date);
+CREATE INDEX idx_meal_ingredients_meal ON meal_ingredients (meal_id);
 CREATE INDEX idx_idea_tracks_idea ON idea_tracks (idea_id);
 CREATE INDEX idx_day_entries_excursion ON day_entries(excursion_id);
 CREATE INDEX idx_excursion_tracks_excursion ON excursion_tracks (excursion_id);

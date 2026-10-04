@@ -43,6 +43,7 @@ One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-
 | M28 — Ideen (A Trip's Ideas, §3.29) — *built* | [`M28-ideen.md`](M28-ideen.md) |
 | M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.18) — *built* | [`M29-tagesplan.md`](M29-tagesplan.md) |
 | M30 — Aktivität (Activity Log, §3.32) — *built* | [`M30-aktivitat.md`](M30-aktivitat.md) |
+| M31 — Essen (A Trip's Meal Plan, §3.33) — *built* | [`M31-essen.md`](M31-essen.md) |
 | M21 — Vorlage aus Reise (Template from Trip) | [`M21-vorlage-aus-reise.md`](M21-vorlage-aus-reise.md) |
 ## 1. Screen Inventory
 
@@ -75,6 +76,7 @@ One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.15 |
 | M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17, 29.19, 29.20 |
 | M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
+| M31 | Essen (Meal Plan) | P2 | Addendum 33.1–33.11 |
 
 ## 3. Cross-Screen Flows (Reference)
 

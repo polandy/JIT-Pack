@@ -83,6 +83,10 @@ const (
 	TableIdeaTracks = "idea_tracks"
 	// FR-31.15: a GPX track on an excursion, kept as an idea's is (ADR-089).
 	TableExcursionTracks = "excursion_tracks"
+	// §3.33: a trip's meals and their ingredients — the shopping list's
+	// lines by projection (ADR-092).
+	TableMeals           = "meals"
+	TableMealIngredients = "meal_ingredients"
 	// FR-27.4, the planning-trip refresh (migration 023).
 	TableTripTemplateSources    = "trip_template_sources"
 	TableTripGeneratedPositions = "trip_generated_positions"

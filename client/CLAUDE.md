@@ -73,6 +73,9 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
 - `client/src/planner` — the second feature module (§3.29, ADR-078): ideas, votes, their discussion, pictures and GPX
   tracks and the day plan's entries in tables of its own, M28 and M29, its pure rules in `planner/domain/` (held by
   `domain-purity-gate.mjs` too), its e2e cases in `client/e2e/planner/`.
+- `client/src/meals` — the third (§3.33, ADR-092): meals and their ingredients, M31 and the one meal sheet the shell
+  mounts, its rules in `meals/domain/`. It reads the trip through `lib/mealContext.ts` and reaches M6, M29, M27 and
+  M1 through `lib/shoppingSources.ts`, `lib/dayPlanSources.ts`, `lib/excursionExtraLines.ts` and `lib/tripCards.ts`.
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.
