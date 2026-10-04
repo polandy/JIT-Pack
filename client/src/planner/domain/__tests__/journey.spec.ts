@@ -57,6 +57,14 @@ describe('excursionJourney (FR-29.18)', () => {
     expect(journey.others).toEqual([])
   })
 
+  it('takes a way by its legs, not its kind — two devices merged field by field may disagree', () => {
+    const merged: DayEntry = { ...OUT, kind: 'note' }
+    const taken: DayEntry = { ...BACK, legs: null }
+    const journey = excursionJourney([merged, taken], 'x1')
+    expect(journey.out?.id).toBe('out')
+    expect(journey.back).toBeNull()
+  })
+
   it('ignores another excursion’s connections, free entries and connections of no excursion', () => {
     const note: DayEntry = { ...OUT, id: 'note', kind: DAY_ENTRY_NOTE, legs: null }
     const elsewhere = connection('else', OUT.legs!, EXCURSION_ROLE_OUT, 'x2')

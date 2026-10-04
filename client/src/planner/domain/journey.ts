@@ -3,12 +3,7 @@
  * which slot, and the time the two leave on the spot. Pure, so the excursion's
  * card and M27's list read one rule.
  */
-import {
-  DAY_ENTRY_CONNECTION,
-  EXCURSION_ROLE_BACK,
-  EXCURSION_ROLE_OUT,
-  type DayEntry,
-} from '@/types/domain'
+import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type DayEntry } from '@/types/domain'
 import { dayOf, timeOf } from './connections'
 
 /** An excursion's connections, by the slot they fill. */
@@ -39,7 +34,8 @@ export function excursionJourney(
   excursionId: string,
 ): ExcursionJourney {
   const own = entries
-    .filter((e) => e.kind === DAY_ENTRY_CONNECTION && e.excursion_id === excursionId)
+    // A way by its legs, never its kind: a merge of two devices' edits may leave them apart.
+    .filter((e) => !!e.legs && e.legs.length > 0 && e.excursion_id === excursionId)
     .sort(byDeparture)
   const outs = own.filter((e) => e.excursion_role === EXCURSION_ROLE_OUT)
   const backs = own.filter((e) => e.excursion_role === EXCURSION_ROLE_BACK)

@@ -8,9 +8,10 @@
   a note and a time stands on the chosen day above the untimed arrival; a tap opens it to change its time, which the
   line follows; deleting it asks first and takes the line away.
 * **E2E-M29-03** `local` (FR-29.14/29.15) — **implemented** (`planner/dayplan.spec.ts`): a shortlisted idea's card says
-  *not planned yet*; a day chosen in its detail changes the card and puts the idea on that day of the plan. The pool bar
-  names the one still without a day; its sheet plans it on another day with a chip and says every idea has a day, and
-  the bar is gone. Ticking the idea on the plan strikes it through and M28 counts it *Done*.
+  *not planned yet*; a day chosen in its detail, and a time typed as *1430* and kept as *14:30*, change the card and put
+  the idea on that day of the plan at that time. The pool bar names the one still without a day; its sheet plans it on
+  another day with a chip and says every idea has a day, and the bar is gone. Ticking the idea on the plan strikes it
+  through and M28 counts it *Done*.
 * **E2E-M29-04** `local` (FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): an excursion with two days stands on
   both — *Excursion · Start* on the first, *Excursion · Return* on the last — and a tap opens its list on M27. The line
   comes from the packing side through `lib/dayPlanSources.ts`, so the case also proves `App.vue`'s binding (it went red

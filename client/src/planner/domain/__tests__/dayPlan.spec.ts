@@ -254,6 +254,13 @@ describe('a connection on the plan (FR-29.18)', () => {
     legs: [leg],
   }
 
+  it('is told by its legs, not its kind — two devices merged field by field may disagree', () => {
+    const merged: DayEntry = { ...connection, kind: DAY_ENTRY_NOTE }
+    const taken: DayEntry = { ...connection, id: 'taken', legs: null }
+    const kinds = dayLines('2026-07-13', input({ entries: [merged, taken] })).map((l) => l.kind)
+    expect(kinds).toEqual([DAY_LINE.connection, DAY_LINE.entry])
+  })
+
   it('stands at its first departure as a line of its own kind', () => {
     const lines = dayLines(
       '2026-07-13',

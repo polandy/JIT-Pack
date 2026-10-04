@@ -11,7 +11,6 @@ import type { DayPlanLine } from '@/lib/dayPlanSources'
 import { DAY_PLAN_EXCURSION } from '@/lib/dayPlanSources'
 import type { DayEntry, Idea } from '@/types/domain'
 import {
-  DAY_ENTRY_CONNECTION,
   EXCURSION_ROLE_BACK,
   EXCURSION_ROLE_OUT,
   IDEA_STATE_DONE,
@@ -235,8 +234,8 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     if (entry.on_date !== day) continue
     lines.push({
       key: `entry:${entry.id}`,
-      kind:
-        entry.kind === DAY_ENTRY_CONNECTION && entry.legs ? DAY_LINE.connection : DAY_LINE.entry,
+      // By its legs, never its kind: two devices merged field by field may leave them apart (FR-29.18).
+      kind: entry.legs && entry.legs.length > 0 ? DAY_LINE.connection : DAY_LINE.entry,
       time: isPlanTime(entry.at_time) ? entry.at_time : null,
       title: entry.title,
       detail: entry.note,
