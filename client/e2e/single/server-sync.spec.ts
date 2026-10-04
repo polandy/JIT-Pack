@@ -572,10 +572,13 @@ test.describe('Single-User backend sync @single', () => {
     // quotes and all, and a containment assertion is green either way.
     await expect(row.getByTestId('conflict-losing')).toHaveText(`${trip} B`)
     await expect(row.getByTestId('conflict-winning')).toHaveText(`${trip} A`)
-    // The timestamp follows the app's language, not the device's. The suite
-    // runs on a de-CH device with the app pinned to English (see the config):
+    // The timestamp's words follow the app's language, its order and clock
+    // the region's (NFR-4.12). The suite runs on a de-CH device in
+    // Europe/Zurich with the app pinned to English (see the config):
     // `toLocaleString()` took the device and rendered `22.08.2026`.
-    await expect(row.getByTestId('conflict-time')).toContainText(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
+    await expect(row.getByTestId('conflict-time')).toContainText(
+      /^\d{1,2} [A-Z][a-z]{2,3} \d{4}, \d{2}:\d{2}$/,
+    )
 
     await ctxA.close()
     await ctxB.close()

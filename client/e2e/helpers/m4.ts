@@ -117,7 +117,7 @@ export async function packRow(page: Page, name: string): Promise<void> {
  */
 export async function openRowMenu(page: Page, name: string): Promise<void> {
   await page.getByTestId(`m4-row-${name}`).dispatchEvent('contextmenu')
-  await expect(page.locator('ion-action-sheet')).toBeVisible()
+  await expect(page.locator('ion-action-sheet')).toHaveAttribute('data-presented', 'true')
 }
 
 /**

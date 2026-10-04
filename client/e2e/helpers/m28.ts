@@ -185,7 +185,8 @@ export async function trackAction(
   const page = card.page()
   await card.getByTestId('track-more').click()
   const sheet = page.locator('ion-action-sheet')
-  await expect(sheet).toBeVisible()
+  // Arrived, not just visible: a tap during the slide-in can lose its click.
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
   await sheet.getByTestId(`track-${action}`).click()
   await expect(sheet).toHaveCount(0)
 }

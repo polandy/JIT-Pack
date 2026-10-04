@@ -41,6 +41,7 @@ import { initCurrency } from './lib/currency'
 import { initMapTiles } from './lib/mapTiles'
 import { initTimetable } from './lib/timetable'
 import { initRouting } from './lib/routing'
+import { markPresentedActionSheets } from './lib/presented'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
  * start, not only when push is enabled. Production only — the dev server has
@@ -57,6 +58,7 @@ initCurrency()
 initMapTiles()
 initTimetable()
 initRouting()
+markPresentedActionSheets()
 if (import.meta.env.PROD) registerAppServiceWorker()
 
 const app = createApp(App)
