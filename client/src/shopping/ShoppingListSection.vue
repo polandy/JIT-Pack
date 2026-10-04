@@ -174,7 +174,13 @@ function boughtStamp(line: ShoppingLine): string | null {
             data-testid="m6-bought-label"
             @click="line.edit && !readonly && emit('open', line)"
           >
-            <h3 class="row-name">{{ line.name }}</h3>
+            <div class="name-line">
+              <h3 class="row-name">{{ line.name }}</h3>
+              <!-- FR-33.14: a summed line's total, as on the open list. -->
+              <span v-if="line.total" class="total" data-testid="m6-bought-total"
+                >· {{ line.total }}</span
+              >
+            </div>
           </IonLabel>
           <template v-if="line.tag || line.boughtNote || boughtStamp(line)" #facts>
             <!-- FR-30.9: the fold is flat, so the tag is said in the row. -->
@@ -217,6 +223,18 @@ function boughtStamp(line: ShoppingLine): string | null {
 </template>
 
 <style scoped>
+/* The name and a summed line's total on one line (FR-33.14). */
+.name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.total {
+  flex: none;
+  color: var(--ct-subtext0);
+}
+
 .tappable {
   cursor: pointer;
 }

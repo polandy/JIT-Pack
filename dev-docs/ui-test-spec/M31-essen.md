@@ -30,3 +30,12 @@
   *Eating today* with today's meals and their open ingredients; a tap opens the meal's sheet, *Meal plan ›* the view.
 * **E2E-M31-08** `server` (FR-33.8) — **implemented** (`meals/mealplan.server.spec.ts`): on a trip with two members the
   sheet offers *Who cooks*; the cook chosen stands on M31 and on the day plan, and a bought ingredient names its buyer.
+* **E2E-M31-09** `local` (FR-33.12/33.13) — **implemented** (`meals/ingredients.spec.ts`): on a second trip the
+  ingredient field offers nothing before a letter; *„r"* offers the first trip's *Rahm* and *Reis*, with the amount
+  used last and *used 1× · last on Tessin*; *„300 g Bu"* offers *Butter* at *300 g*, which a tap adds and empties the
+  field. Cream reads *🌿 fresh* and butter *keeps* from the built-in list; butter set fresh by hand is written with the
+  meal, and the next meal's suggestion of it brings *used 2× · last on Engadin*, *300 g* and fresh along.
+* **E2E-M31-10** `local` (FR-33.14) — **implemented** (`meals/ingredients.spec.ts`): butter on three meals of a trip is
+  one line of M6, *· 1.5 kg* and *3×*, no *🌿*; cream on the first two days is one fresh line *· 3 dl*, the fifth
+  day's a line of its own. A tap opens the butter's three parts with their meals and amounts; its tick buys all three,
+  each meal showing *1 of 2 ingredients bought*. Cream ticked in one meal leaves the summed line with the rest.

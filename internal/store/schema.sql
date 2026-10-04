@@ -956,9 +956,10 @@ CREATE TABLE meals (
 
 -- FR-33.2: an ingredient of a meal, and a line of the trip's shopping list
 -- by projection (FR-33.3) — never a copy in shopping_entries. The amount is
--- free text, never summed. The purchase record is FR-30.4's, stamped by the
+-- free text, as typed. The purchase record is FR-30.4's, stamped by the
 -- server; `position` orders the meal's own list, `shopping_position` the
--- line's place on M6 (FR-30.13, ADR-083).
+-- line's place on M6 (FR-30.13, ADR-083). The amount is summed on M6 only
+-- (FR-33.14), never written back.
 CREATE TABLE meal_ingredients (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -971,6 +972,10 @@ CREATE TABLE meal_ingredients (
     bought_at         TEXT,
     bought_by_user_id TEXT REFERENCES users(id),
     shopping_position INTEGER,
+    -- FR-33.13: fresh (1) or durable (0), set by hand; NULL until set, when
+    -- the name's last setting on the device or the built-in list decides —
+    -- a client-side rule (invariant 4), so the column only stores the choice.
+    fresh       INTEGER CHECK (fresh IS NULL OR fresh IN (0, 1)),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

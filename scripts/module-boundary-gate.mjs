@@ -111,6 +111,9 @@ const KERNEL_PATHS = [
   // Editing a track's route (FR-29.20): handles, legs and the GPX written
   // from them — a route, nothing it hangs on (ADR-088).
   'domain/route',
+  // The app's one search fold (FR-24.7): umlauts either way. A module that
+  // matches typed text matches it as the inventory does (FR-33.12).
+  'domain/search',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

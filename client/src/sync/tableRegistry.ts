@@ -452,6 +452,7 @@ function rowToMealIngredient(id: string, row: Record<string, unknown>): MealIngr
     bought_at: (row['bought_at'] as string) ?? null,
     bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
     shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
+    fresh: row['fresh'] === null || row['fresh'] === undefined ? null : Boolean(row['fresh']),
   }
 }
 

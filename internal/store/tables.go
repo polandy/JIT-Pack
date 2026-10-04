@@ -732,6 +732,8 @@ var tableSpecs = map[string]tableSpec{
 			"bought_at", "bought_by_user_id",
 			// FR-30.13: the line's place on M6 (ADR-083).
 			"shopping_position",
+			// FR-33.13: fresh or durable, set by hand.
+			"fresh",
 		),
 		export: exportQuery{query: `SELECT x.* FROM meal_ingredients x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},

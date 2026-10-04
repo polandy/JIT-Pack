@@ -234,6 +234,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-33.6 | E2E+UNIT+SERVER | M31-06 (taken along, packed, counted, named on M29, left again); `lib/__tests__/excursionExtraLines.spec.ts`, `dayPlanSource.spec.ts`, `sync.spec.ts`; Go: `TestApplyMutation_MealExcursion_KeepsItOnTheTripsOwn_FR33_6` |
 | FR-33.7 | E2E+UNIT | M31-07 (the block, opened, the *Heute* card without meals); `dayPlan.spec.ts` (`linesAhead`) |
 | FR-33.8 | E2E | M31-08 (a member cooks, on M31 and M29) |
+| FR-33.12 | E2E+UNIT | M31-09 (offered from the first letter, the last amount, a typed amount wins); `meals/domain/__tests__/ingredients.spec.ts` (`ingredientSuggestions`) |
+| FR-33.13 | E2E+UNIT+SERVER | M31-09 (the built-in guess, set by hand, kept for the name); `ingredients.spec.ts` (`builtInFresh`, `learnedFreshness`, `isFresh`), `meals/__tests__/sync.spec.ts`; Go: `TestApplyMutation_IngredientFreshness_FR33_13`, `TestSchema_MealVocabulary_FR33_1` |
+| FR-33.14 | E2E+UNIT | M31-10 (one line, fresh across a day, parts opened, bought together, the rest); `ingredients.spec.ts` (`sumAmounts`, `sumGroups`), `meals/__tests__/sources.spec.ts` |
 | FR-32.3 | E2E+UNIT+SERVER | M30-02; G12-07 and `ItemInventoryPage.spec.ts` (hidden in Local Mode); Go: `TestActivity_Inventory_FollowsMasterVisibility_FR32_1` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

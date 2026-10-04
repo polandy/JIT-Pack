@@ -283,6 +283,7 @@ function seedMeals(tripId: string, orchestrator: Orchestrator): void {
         amount: ingredient.amount,
         list: ITEM_MODE_BUY_LOCAL,
         bought: ingredient.bought ?? false,
+        fresh: null,
       })),
     )
   }

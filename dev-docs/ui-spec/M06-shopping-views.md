@@ -192,6 +192,13 @@
   (*Vor der Reise*: the eve of departure) and **enters the *Fällig* block on that day only** (`pressingDays: 0`); a
   line in the block names a source's heading where an entry names its tag. Buying one is the meal's own tick
   (M31); a past meal's open ingredients are not listed. (`m6-group-source-Essensplan`, E2E-M31-03)
+  * **Summed (FR-33.14 — *built*).** One name's ingredients are one line (`ShoppingLine.parts`): the name, then its
+    total in the quiet tone (*„· 1,5 kg"*, `m6-row-total-<name>`), how many meals it serves (*„3×"*,
+    `m6-row-uses-<name>`) and *🌿* for fresh food (`m6-row-fresh-<name>`, `ShoppingLine.fresh`; a single fresh
+    ingredient wears it too). Its second line lists the parts, *„Mo. Abend 200 g · Di. Früh 300 g"*, wrapping rather
+    than running off the row. A tap on the name opens the parts under it (`aria-expanded`, `m6-row-parts-<name>`), a
+    row each (`m6-row-part`) with its meal and dish on the left and its amount on the right; a second tap closes them.
+    The tick buys every part; in the bought fold the line keeps its total (`m6-bought-total`). (E2E-M31-10)
 * **From an idea (FR-29.13):** entered from an idea's *Einkauf* chip (`?fromIdea=`), the composer holds the idea's title
   on *Vor Ort*, focused; the entry written next names the idea, the one after is the list's own again. The parameter
   leaves the address once answered; `‹` returns to the idea (`meta.acceptsLinkedFrom`). On an own entry's second line

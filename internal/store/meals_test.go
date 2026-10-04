@@ -75,8 +75,9 @@ func TestApplyMutation_DeletingAMealTombstonesItsIngredients_FR33_9(t *testing.T
 	}
 }
 
-// FR-33.1/33.2: what a column cannot hold — a fifth slot, a third kind, a
-// list without its vocabulary — is refused by the table itself.
+// FR-33.1/33.2/33.13: what a column cannot hold — a fifth slot, a third kind,
+// a list without its vocabulary, a freshness other than fresh or durable — is
+// refused by the table itself.
 func TestSchema_MealVocabulary_FR33_1(t *testing.T) {
 	s := openTestStore(t)
 	mustExec(t, s, `INSERT INTO meals (id, trip_id, on_date, title) VALUES ('meal-v', ?, '2026-10-12', 'x')`, testTrip)
@@ -91,6 +92,9 @@ func TestSchema_MealVocabulary_FR33_1(t *testing.T) {
 		{"no third kind", "meals", "kind", "delivery", false},
 		{"bought before", "meal_ingredients", "list", "buy_before", true},
 		{"never packed", "meal_ingredients", "list", "pack", false},
+		{"fresh", "meal_ingredients", "fresh", "1", true},
+		{"durable", "meal_ingredients", "fresh", "0", true},
+		{"no third freshness", "meal_ingredients", "fresh", "2", false},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -183,5 +187,49 @@ func TestApplyMutation_IngredientNamesAMealOfItsTrip_FR33_2(t *testing.T) {
 	}
 	if res, err := s.ApplyMutation(ctx, testTrip, testUser, upd); err != nil || res.Outcome != sync.OutcomeApplied {
 		t.Errorf("amount change: outcome %q reason %q err %v, want applied", res.Outcome, res.Reason, err)
+	}
+}
+
+// FR-33.13: an ingredient's freshness travels the push path like any of its
+// fields — set on one device, cleared back to unset on another.
+func TestApplyMutation_IngredientFreshness_FR33_13(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO meals (id, trip_id, on_date, title) VALUES ('meal-1', ?, '2026-10-12', 'Raclette')`, testTrip)
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, insertIngredient("ing-1", "meal-1", "0000000001000-0000-aaaaaaaa")); err != nil || res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("insert: outcome %q reason %q err %v", res.Outcome, res.Reason, err)
+	}
+	read := func() any {
+		var fresh sql.NullInt64
+		if err := s.db.QueryRow(`SELECT fresh FROM meal_ingredients WHERE id = 'ing-1'`).Scan(&fresh); err != nil {
+			t.Fatalf("read: %v", err)
+		}
+		if !fresh.Valid {
+			return nil
+		}
+		return fresh.Int64
+	}
+	if got := read(); got != nil {
+		t.Errorf("a new ingredient: fresh = %v, want unset", got)
+	}
+	steps := []struct {
+		value any
+		hlc   string
+		want  any
+	}{
+		{1, "0000000002000-0000-aaaaaaaa", int64(1)},
+		{nil, "0000000003000-0000-aaaaaaaa", nil},
+	}
+	for _, step := range steps {
+		m := sync.Mutation{
+			MutationID: "m-" + step.hlc, Op: sync.OpUpsert, Table: TableMealIngredients, ID: "ing-1",
+			Fields: map[string]any{"fresh": step.value}, HLC: sync.HLC(step.hlc),
+		}
+		if res, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil || res.Outcome != sync.OutcomeApplied {
+			t.Fatalf("fresh = %v: outcome %q reason %q err %v", step.value, res.Outcome, res.Reason, err)
+		}
+		if got := read(); got != step.want {
+			t.Errorf("after fresh = %v: stored %v, want %v", step.value, got, step.want)
+		}
 	}
 }

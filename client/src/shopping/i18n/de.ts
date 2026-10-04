@@ -15,6 +15,7 @@ export const shoppingDe: Record<keyof typeof shoppingEn, string> = {
   'shopping.packingList': 'Packliste',
   'shopping.forWhom': 'für {names}',
   'shopping.bought': 'Gekauft: {name}',
+  'shopping.fresh': 'frisch',
   'shopping.undoBought': 'Doch nicht gekauft: {name}',
   'shopping.listUnknown': 'Einkaufsliste wird geladen …',
   // FR-30.10 — der Tag, an dem ein Einkauf fällig ist.

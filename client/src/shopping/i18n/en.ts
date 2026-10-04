@@ -19,6 +19,8 @@ export const shoppingEn = {
   'shopping.packingList': 'Packing list',
   'shopping.forWhom': 'for {names}',
   'shopping.bought': 'Bought: {name}',
+  // FR-33.13: the mark on fresh food.
+  'shopping.fresh': 'fresh',
   'shopping.undoBought': 'Not bought after all: {name}',
   'shopping.listUnknown': 'Loading the shopping list …',
   'shopping.dueField': 'Due',

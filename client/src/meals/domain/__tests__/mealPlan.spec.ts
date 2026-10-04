@@ -57,6 +57,7 @@ function ingredient(
     bought_at: null,
     bought_by_user_id: null,
     shopping_position: null,
+    fresh: null,
     ...over,
   }
 }
