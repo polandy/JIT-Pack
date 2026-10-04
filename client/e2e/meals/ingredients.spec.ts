@@ -208,6 +208,11 @@ test.describe('M31 — remembered and summed ingredients @local @meals', () => {
     // One tick buys every part: each of the three meals has its butter.
     await butter.locator('ion-checkbox').click()
     await expect(lines(page, 'Butter')).toHaveCount(0)
+    // In the bought fold it is still one line, with its total.
+    await m6(page).getByTestId('m6-bought-bar').click()
+    const boughtButter = m6(page).getByTestId('m6-bought-row').filter({ hasText: 'Butter' })
+    await expect(boughtButter).toHaveCount(1)
+    await expect(boughtButter.getByTestId('m6-bought-total')).toHaveText('· 1.5 kg')
     await writesLanded(page)
     await openTripView(page, 'meals')
     await expect(mealRow(page, day(30), 'Rösti')).toContainText('1 of 2 ingredients bought')

@@ -40,4 +40,5 @@
 * **E2E-M31-10** `local` (FR-33.14) — **implemented** (`meals/ingredients.spec.ts`): butter on three meals of a trip is
   one line of M6, *· 1.5 kg* and *3×*, no *🌿*; cream on the first two days is one fresh line *· 3 dl*, the fifth
   day's a line of its own. A tap opens the butter's three parts with their meals and amounts; its tick buys all three,
-  each meal showing *1 of 2 ingredients bought*. Cream ticked in one meal leaves the summed line with the rest.
+  one line with *· 1.5 kg* in the bought fold, each meal showing *1 of 2 ingredients bought*. Cream ticked in one meal
+  leaves the summed line with the rest.

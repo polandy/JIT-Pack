@@ -76,3 +76,9 @@ merge in their head every morning.
   a guess.
 - Ingredient suggestions (FR-33.12) read the same rows: no ingredient catalogue exists, as no recipe book does
   (FR-33.4).
+
+## Revisit trigger
+
+Reopen when the family buys fresh food for more than one day ahead and splits a summed line by hand, or when a
+fresh line keeps being bought days early — then the window, not the mark, is wrong. Reopen too when ingredients and
+own entries of one name are asked to merge (FR-30.2).
