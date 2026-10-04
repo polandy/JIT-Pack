@@ -60,7 +60,9 @@
     it, written by the button — and its list (*Vor Ort* / *Vor der Reise*, `meal-ingredient-list-<name>`, a toggle
     only before the trip's first day and on an open ingredient); ✕
     (`meal-ingredient-remove-<name>`). Last, the field *„Zutat, z. B. 500 g Hörnli"* (`meal-ingredient-add`) with its
-    ＋, Enter adding too and keeping the focus. From the first letter a card of **remembered ingredients** stands under
+    ＋, Enter adding too and keeping the focus. Between the field and ＋, while a leading amount is typed, the amount
+    the field reads stands as a chip in the action tone (`meal-ingredient-preview`, *„2 Zehen"*; only *„2"* where the
+    unit is not in `units.ts`). From the first letter a card of **remembered ingredients** stands under
     the field (FR-33.12, `meal-ingredient-suggestions`), at most five rows (`meal-ingredient-suggestion-<name>`): the
     name in bold with *🌿* where fresh, under it *„7× · zuletzt Engadin"*, and on the right the amount it would bring —
     one typed in front of the name, else the one used last. A tap adds it and empties the field. Under the list:

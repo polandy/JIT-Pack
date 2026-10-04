@@ -564,6 +564,14 @@ function takePlace(title: string) {
             data-testid="meal-ingredient-add"
             @keydown.enter.prevent="addIngredient"
           />
+          <!-- FR-33.2: the amount the field reads off what is typed — a unit
+               it does not know stays out of it, before the ＋ is tapped. -->
+          <span
+            v-if="typedAmount"
+            class="amount preview jp-num"
+            data-testid="meal-ingredient-preview"
+            >{{ typedAmount }}</span
+          >
           <button
             type="button"
             class="plus"
@@ -979,6 +987,16 @@ function takePlace(title: string) {
 
 .add ion-input {
   margin-top: 6px;
+}
+
+/* The amount read off the field, as a chip the ＋ will turn into the row's amount. */
+.preview {
+  flex: none;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r-pill);
+  color: var(--jp-action);
 }
 
 .plus {

@@ -94,6 +94,18 @@ test.describe('M31 — remembered and summed ingredients @local @meals', () => {
     await expect(sheet.getByTestId('meal-ingredient-Butter')).toContainText('300 g')
     await expect(sheet.getByTestId('meal-ingredient-suggestions')).toHaveCount(0)
 
+    // The field shows the amount it reads off what is typed, unit and all —
+    // and leaves a unit it does not know in the name (FR-33.2).
+    await expect(sheet.getByTestId('meal-ingredient-preview')).toHaveCount(0)
+    await fillIonic(field, '2 Zehen Knoblauch')
+    await expect(sheet.getByTestId('meal-ingredient-preview')).toHaveText('2 Zehen')
+    await fillIonic(field, '2 Kellen Suppe')
+    await expect(sheet.getByTestId('meal-ingredient-preview')).toHaveText('2')
+    await fillIonic(field, '2 Zehen Knoblauch')
+    await field.locator('input').press('Enter')
+    await expect(sheet.getByTestId('meal-ingredient-Knoblauch')).toContainText('2 Zehen')
+    await expect(sheet.getByTestId('meal-ingredient-preview')).toHaveCount(0)
+
     // The built-in list takes cream for fresh food and butter for food that keeps.
     await addIngredient(page, '1 dl Rahm')
     await expect(sheet.getByTestId('meal-ingredient-fresh-Rahm')).toHaveAttribute(

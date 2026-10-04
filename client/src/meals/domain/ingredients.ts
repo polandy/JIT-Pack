@@ -8,6 +8,7 @@ import { daysBetween } from '@/lib/dueDay'
 import type { MealTrip } from '@/lib/mealContext'
 import type { Meal, MealIngredient } from '@/types/domain'
 import { parseIngredient } from './mealPlan'
+import { namedTotal, unitOf, type Unit, type UnitFamily } from './units'
 
 /** How many remembered ingredients the field offers at once (FR-33.12). */
 export const MAX_SUGGESTIONS = 5
@@ -200,22 +201,8 @@ function startsWith(name: string, query: string): boolean {
 /** One part of a summed amount: a number in a unit (`''` for a count), or text that adds up to nothing. */
 export type AmountTotal = { value: number; unit: string } | { text: string }
 
-/** A measure's family, the base unit it is counted in, and how many of those one unit holds. */
-const MEASURES: Record<string, { family: string; factor: number }> = {
-  mg: { family: 'mass', factor: 0.001 },
-  g: { family: 'mass', factor: 1 },
-  kg: { family: 'mass', factor: 1000 },
-  ml: { family: 'volume', factor: 1 },
-  cl: { family: 'volume', factor: 10 },
-  dl: { family: 'volume', factor: 100 },
-  l: { family: 'volume', factor: 1000 },
-  '': { family: 'count', factor: 1 },
-  stk: { family: 'count', factor: 1 },
-  stück: { family: 'count', factor: 1 },
-}
-
 /** A family's total in the unit it reads best in — the larger one once it reaches one. */
-function display(family: string, base: number): { value: number; unit: string } {
+function display(family: UnitFamily, base: number): { value: number; unit: string } {
   if (family === 'mass') return base >= 1000 ? scaled(base, 1000, 'kg') : scaled(base, 1, 'g')
   if (family === 'volume') {
     if (base >= 1000) return scaled(base, 1000, 'l')
@@ -231,17 +218,23 @@ function scaled(base: number, factor: number, unit: string): { value: number; un
 
 const AMOUNT = /^(\d+(?:[.,]\d+)?)\s*(.*)$/
 
+/** A running total of one unit (or family): its base amount and the spelling it was first typed in. */
+interface Running {
+  unit: Unit | undefined
+  base: number
+  spelling: string
+}
+
 /**
- * What a line's amounts add up to (FR-33.14): grams with kilograms, the
- * volumes with each other, a bare count with pieces, and one named unit with
- * itself (case aside, the first spelling kept); what does not add up stands
- * beside it in the order it came, and no amount adds nothing.
+ * What a line's amounts add up to (FR-33.14), by `units.ts`: a mass with
+ * masses, a volume with volumes, a bare count with pieces, and one named unit
+ * with itself in any spelling, written in the first one's words (*1 Glas* +
+ * *2 Gläser* = *3 Gläser*). A unit the table does not hold adds only to the
+ * same word. What does not add up stands beside it in the order it came, and
+ * no amount adds nothing.
  */
 export function sumAmounts(amounts: readonly (string | null)[]): AmountTotal[] {
-  const totals = new Map<
-    string,
-    { family: string; base: number; unit: string } | { text: string }
-  >()
+  const totals = new Map<string, Running | { text: string }>()
   for (const raw of amounts) {
     const amount = raw?.trim() ?? ''
     if (amount === '') continue
@@ -251,19 +244,27 @@ export function sumAmounts(amounts: readonly (string | null)[]): AmountTotal[] {
       continue
     }
     const value = Number(match[1]!.replace(',', '.'))
-    const unit = match[2]!.trim()
-    const measure = MEASURES[unit.toLowerCase().replace(/\.$/, '')]
-    const family = measure?.family ?? `unit:${unit.toLowerCase()}`
-    const known = totals.get(family)
-    const base = value * (measure?.factor ?? 1)
+    const spelling = match[2]!.trim()
+    const unit = spelling === '' ? unitOf('Stk.') : unitOf(spelling)
+    const key = !unit
+      ? `word:${spelling.toLowerCase()}`
+      : unit.family === 'named'
+        ? `named:${unit.id}`
+        : unit.family
+    const base = value * (unit?.factor ?? 1)
+    const known = totals.get(key)
     if (known && 'base' in known) known.base += base
-    else totals.set(family, { family, base, unit })
+    else totals.set(key, { unit, base, spelling })
   }
   return [...totals.values()].map((total) => {
     if ('text' in total) return total
-    if (total.family.startsWith('unit:'))
-      return { value: scaled(total.base, 1, '').value, unit: total.unit }
-    return display(total.family, total.base)
+    const { unit, base, spelling } = total
+    if (!unit) return { value: scaled(base, 1, '').value, unit: spelling }
+    if (unit.family === 'named') {
+      const value = scaled(base, 1, '').value
+      return { value, unit: namedTotal(unit, spelling, value) }
+    }
+    return display(unit.family, base)
   })
 }
 

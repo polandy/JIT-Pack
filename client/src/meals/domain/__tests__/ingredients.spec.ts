@@ -208,7 +208,7 @@ describe('sumAmounts (FR-33.14)', () => {
     ['into litres', ['5 dl', '1 l'], [{ value: 1.5, unit: 'l' }]],
     ['small volumes stay millilitres', ['20 ml', '3 cl'], [{ value: 50, unit: 'ml' }]],
     ['a bare count and pieces', ['6', '2 Stk.', '1 Stück'], [{ value: 9, unit: '' }]],
-    ['a named unit, its first spelling', ['1 Glas', '2 glas'], [{ value: 3, unit: 'Glas' }]],
+    ['a named unit, in its words for many', ['1 Glas', '2 glas'], [{ value: 3, unit: 'Gläser' }]],
     [
       'what does not add up stands side by side',
       ['200 g', '1 Stück', '100 g'],
