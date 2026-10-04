@@ -11,23 +11,29 @@ day plan, it is there only once the trip has both a start and an end date.
 
 ## Reading it
 
-The days stand one under another, from today during the trip (the first day before it). The days already behind fold
-into one line on top — tap it to see them. Each day shows its **Frühstück**, **Mittag** and **Abend**: a meal with its
-dish, who cooks it, how much is bought (in words and as a ring), or an empty dashed **＋ Abendessen** to plan one. A
-snack or an afternoon cake has its own place too — **＋ Zwischendurch** at the end of the day.
+You rarely plan every day, so the meal plan shows only what is planned. From today on during the trip (the whole trip
+before it), each day with a meal stands as a card with just those meals — the dish, who cooks it and how much is bought
+(in words and as a ring). The days in between with nothing planned are one dashed line, *„Di. – Do., 15.10. · nichts
+geplant · ＋"*; tap it and each of those days shows up with **＋ planen**. Meals already eaten fold into one line on
+top — tap it to see them.
+
+Nothing planned yet? The meal plan then says so, with **＋ Mahlzeit planen** and the dishes you cooked on earlier trips
+— tap one and it is planned for dinner with its ingredients.
 
 While anything is still to buy, a bar on top says how much, and how much of it is for today. **Einkaufen ›** opens the
 shopping list.
 
 ## Planning a meal
 
-Tap an empty meal, or the round **+** for the next free one. The sheet asks for:
+Tap **＋** beside a day that already has a meal, **＋ planen** on a free day, or the round **+** for the next free
+meal. The sheet asks for:
 
 - **Gericht** — the dish. As you type, dishes you cooked on earlier trips are offered with their ingredients
   (*„Rösti mit Spiegelei · 4 Zutaten · Tessin"*). Tap one and its ingredients are filled in; change them as you like.
 - **Selbst kochen** or **Auswärts**. A meal eaten out has no ingredients, just **Wo** — your shortlisted
   [ideas](ideas.md) are offered there, so the restaurant you picked is one tap away.
-- **Mahlzeit** and **Tag**, to move it; **Uhrzeit** if it has a time (without one it stands where its meal belongs —
+- **Mahlzeit** (*Frühstück*, *Mittagessen*, *Zwischendurch* for a snack or an afternoon cake, *Abendessen*) and
+  **Tag**, to move it — a day that already has a meal wears a dot; **Uhrzeit** if it has a time (without one it stands where its meal belongs —
   breakfast in the morning, dinner in the evening); a **Notiz**.
 - **Wer kocht** — with a server, once more than one person is on the trip.
 - **Zutaten** — type *„500 g Hörnli"* and press Enter: the amount is split off by itself, and the field is ready for

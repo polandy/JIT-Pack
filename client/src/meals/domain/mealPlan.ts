@@ -285,3 +285,71 @@ function dayAfter(iso: string): string {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10)
 }
+
+/** One stretch of the agenda (M31): a day that holds meals, or a run of days that holds none. */
+export type AgendaItem = { kind: 'day'; day: string } | { kind: 'gap'; days: string[] }
+
+/**
+ * The agenda M31 draws: only the days that
+ * hold a meal stand as days; a run of days between them that holds none is
+ * one item, drawn as a single line — meals are planned now and then, not for
+ * every day. From today on during the trip, every day before it and after it;
+ * `withPast` adds the days already behind.
+ */
+export function agenda(
+  days: readonly string[],
+  meals: readonly Pick<Meal, 'on_date'>[],
+  today: string,
+  withPast: boolean,
+): AgendaItem[] {
+  const planned = new Set(meals.map((meal) => meal.on_date))
+  const shown =
+    withPast || !days.some((day) => day >= today) ? days : days.filter((day) => day >= today)
+  const items: AgendaItem[] = []
+  let gap: string[] = []
+  const flush = () => {
+    if (gap.length > 0) items.push({ kind: 'gap', days: gap })
+    gap = []
+  }
+  for (const day of shown) {
+    if (planned.has(day)) {
+      flush()
+      items.push({ kind: 'day', day })
+    } else gap.push(day)
+  }
+  flush()
+  return items
+}
+
+/** The meals already eaten — on a day before today — which M31 folds into one line. */
+export function pastMeals<T extends Pick<Meal, 'on_date'>>(
+  meals: readonly T[],
+  today: string,
+): T[] {
+  return meals.filter((meal) => meal.on_date < today)
+}
+
+/**
+ * Where a meal planned from the empty plan goes (M31): tonight's dinner during
+ * the trip, else the first day's.
+ */
+export function startingDay(days: readonly string[], today: string): string {
+  return days.includes(today)
+    ? today
+    : (days.find((day) => day >= today) ?? days[days.length - 1] ?? today)
+}
+
+/** The order a day's ＋ fills its slots in: dinner first, since a single planned meal is most often one. */
+const PLAN_ORDER: readonly MealSlot[] = [MEAL_SLOT_DINNER, MEAL_SLOT_LUNCH, MEAL_SLOT_BREAKFAST]
+
+/**
+ * The slot a new meal on a given day opens on (M31): its dinner while that is
+ * free, then lunch, then breakfast — and dinner again on a full day.
+ */
+export function slotToPlan(
+  meals: readonly Pick<Meal, 'on_date' | 'slot'>[],
+  day: string,
+): MealSlot {
+  const taken = new Set(meals.filter((meal) => meal.on_date === day).map((meal) => meal.slot))
+  return PLAN_ORDER.find((slot) => !taken.has(slot)) ?? MEAL_SLOT_DINNER
+}

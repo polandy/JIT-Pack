@@ -1,21 +1,25 @@
 # M31 — Essen (a trip's meal plan, §3.33)
 
 * **E2E-M31-01** `local` (FR-33.1/33.10) — **implemented** (`meals/mealplan.spec.ts`): a trip with only an end date has
-  no *Meals* pill; one with both has it after *Day plan*, and its days stand one under another, each with an empty
-  *＋ Breakfast*, *＋ Lunch* and *＋ Dinner* and the quiet *＋ Snack* at the card's foot, *Arrival* on the first day and
-  *Departure* on the last.
-* **E2E-M31-02** `local` (FR-33.1/33.2) — **implemented** (`meals/mealplan.spec.ts`): an empty dinner opens a new meal
-  on that day; a dish and three ingredients typed as *„500 g Hörnli"* (the amount split off, Enter keeping the focus)
-  are written by *Add*, and the slot shows the dish and *0 of 3 ingredients bought*. Opened again, a time and *Out*
-  change it — the ingredients go when it is saved — and deleting it asks first, naming the open ingredients, and
-  empties the slot.
+  no *Meals* pill; one with both has it after *Day plan*. An empty plan is the start (*Nothing planned yet*, no day,
+  no shopping bar), whose *Plan a meal* opens the first day's dinner; written, only that day stands as a day (with
+  *Arrival*), and the fourteen free days after it are one line, which opens into a row per day; planning from the last
+  opens the sheet on its dinner, the day chips scrolled to it, where the planned day wears its dot and a free one
+  does not.
+* **E2E-M31-02** `local` (FR-33.1/33.2/33.9) — **implemented** (`meals/mealplan.spec.ts`): a new dinner through the ＋;
+  a dish and three ingredients typed as *„500 g Hörnli"* (the amount split off, Enter keeping the focus) are written
+  by *Add*, and its row shows *0 of 3 ingredients bought* and the shopping bar *3 ingredients still to buy*. Opened
+  again, a time is kept (*· 19:00*); deleting it asks first, naming the three open ingredients, and leaves the empty
+  plan with no shopping bar. A meal eaten out reads *eaten out · Pizzeria Mulin*.
 * **E2E-M31-03** `local` (FR-33.3) — **implemented** (`meals/mealplan.spec.ts`): a meal's ingredients stand on M6
-  under *🍽 Meal plan*, each naming its meal; the one of today's meal leads the *Due* block, tomorrow's stays under
-  the heading with its pill. Buying one on M6 ticks it in the meal's sheet, and the ring and the shopping bar follow;
-  ticking one in the sheet takes it off M6's open list. A past meal's open ingredient is not on the list.
-* **E2E-M31-04** `local` (FR-33.4) — **implemented** (`meals/mealplan.spec.ts`): a meal cooked on an earlier trip is
-  offered by its dish on a new meal of another trip, filtered by what is typed; taking it fills the dish and its
-  ingredients, none bought, marked as coming from that trip.
+  under *Meal plan*, each naming its meal; the one of today's meal leads the *Due* block, tomorrow's stays under
+  the heading. Buying one on M6 ticks it in the meal's sheet, and the row follows; ticking one in the sheet takes it
+  off M6's open list. Yesterday's meal folds into *1 meal already eaten* without a day of its own, and its open
+  ingredient is not on the list.
+* **E2E-M31-04** `local` (FR-33.4) — **implemented** (`meals/mealplan.spec.ts`): the dishes cooked on an earlier trip
+  are offered on the empty plan of another, the newest first; a tap opens a dinner — tonight's, the first day's
+  before the trip — with the dish and its ingredients taken, marked as coming from that trip. On a new meal they are
+  offered by what is typed; taking one fills the dish and its ingredients, none bought.
 * **E2E-M31-05** `local` (FR-33.5) — **implemented** (`meals/mealplan.spec.ts`): a meal stands on the day plan as a
   *meal* line — untimed at its slot's place after a timed line before it, with *dinner* in the time column and its
   bought share — and a tap opens its sheet over the day plan.

@@ -14,7 +14,11 @@ import {
   mealsOn,
   parseIngredient,
   placeOf,
+  agenda,
+  pastMeals,
   planDays,
+  slotToPlan,
+  startingDay,
   shoppingFigures,
 } from '../mealPlan'
 
@@ -236,5 +240,57 @@ describe('the plan’s days and its shopping bar (M31)', () => {
       ingredient('e', 'gone'),
     ]
     expect(shoppingFigures(meals, ings, '2026-10-12', '2026-10-10')).toEqual({ open: 2, today: 1 })
+  })
+})
+
+describe('the agenda (M31)', () => {
+  const days = ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15']
+  const meals = [
+    meal('a', { on_date: '2026-10-10' }),
+    meal('b', { on_date: '2026-10-12' }),
+    meal('c', { on_date: '2026-10-12', slot: 'lunch' }),
+    meal('d', { on_date: '2026-10-15' }),
+  ]
+
+  it('stands only the planned days as days, each run of empty ones as one gap, from today on', () => {
+    expect(agenda(days, meals, '2026-10-11', false)).toEqual([
+      { kind: 'gap', days: ['2026-10-11'] },
+      { kind: 'day', day: '2026-10-12' },
+      { kind: 'gap', days: ['2026-10-13', '2026-10-14'] },
+      { kind: 'day', day: '2026-10-15' },
+    ])
+  })
+
+  it('adds the days behind when asked, and shows the whole trip before it starts and after it ended', () => {
+    expect(agenda(days, meals, '2026-10-11', true)[0]).toEqual({ kind: 'day', day: '2026-10-10' })
+    expect(agenda(days, meals, '2026-09-01', false)[0]).toEqual({ kind: 'day', day: '2026-10-10' })
+    expect(agenda(days, meals, '2026-11-01', false)).toHaveLength(5)
+  })
+
+  it('is one gap for a trip with nothing planned', () => {
+    expect(agenda(days, [], '2026-09-01', false)).toEqual([{ kind: 'gap', days }])
+  })
+
+  it('folds the meals of the days behind, and starts an empty plan tonight or on the first day', () => {
+    expect(pastMeals(meals, '2026-10-12').map((m) => m.id)).toEqual(['a'])
+    expect(startingDay(days, '2026-10-12')).toBe('2026-10-12')
+    expect(startingDay(days, '2026-09-01')).toBe('2026-10-10')
+    expect(startingDay(days, '2026-11-01')).toBe('2026-10-15')
+  })
+})
+
+describe('a day’s ＋ (M31)', () => {
+  it('opens on dinner while it is free, then lunch, then breakfast, and dinner on a full day', () => {
+    const day = '2026-10-12'
+    expect(slotToPlan([], day)).toBe('dinner')
+    expect(slotToPlan([meal('d', { on_date: day })], day)).toBe('lunch')
+    expect(
+      slotToPlan([meal('d', { on_date: day }), meal('l', { on_date: day, slot: 'lunch' })], day),
+    ).toBe('breakfast')
+    const full = (['breakfast', 'lunch', 'dinner'] as const).map((slot) =>
+      meal(slot, { on_date: day, slot }),
+    )
+    expect(slotToPlan(full, day)).toBe('dinner')
+    expect(slotToPlan([meal('other', { on_date: '2026-10-13' })], day)).toBe('dinner')
   })
 })

@@ -55,11 +55,29 @@ export interface MealSeed {
   out?: string
 }
 
-/** Plan a meal from its empty slot on M31 (the snack from the card's foot); ends with its row. */
-export async function addMeal(page: Page, meal: MealSeed): Promise<void> {
-  await mealPlan(page).getByTestId(`m31-add-${meal.day}-${meal.slot}`).click()
+/**
+ * Open a new meal's sheet through M31's ＋ and choose its day and slot there —
+ * the one way in that every state of the plan has (a free day is a line, not a
+ * slot); ends with the sheet on that day and slot.
+ */
+export async function openNewMeal(
+  page: Page,
+  day: string,
+  slot: MealSeed['slot'],
+): Promise<Locator> {
+  await mealPlan(page).getByTestId('m31-fab').click()
   const sheet = mealSheet(page)
   await expect(sheet.getByTestId('meal-title')).toBeVisible()
+  await sheet.getByTestId(`meal-day-${day}`).click()
+  await sheet.getByTestId(`meal-slot-${slot}`).click()
+  await expect(sheet.getByTestId(`meal-day-${day}`)).toHaveAttribute('aria-pressed', 'true')
+  await expect(sheet.getByTestId(`meal-slot-${slot}`)).toHaveAttribute('aria-pressed', 'true')
+  return sheet
+}
+
+/** Plan a meal through M31's ＋; ends with its row. */
+export async function addMeal(page: Page, meal: MealSeed): Promise<void> {
+  const sheet = await openNewMeal(page, meal.day, meal.slot)
   await fillIonic(sheet.getByTestId('meal-title'), meal.title)
   if (meal.out) {
     await sheet.getByTestId('meal-kind-out').click()

@@ -12,6 +12,7 @@ import {
   mealSheet,
   mealsOfDay,
   openMeals,
+  openNewMeal,
 } from '../helpers/m31'
 import { browserDay } from '../helpers/page'
 import { fillIonic } from '../helpers/ionic'
@@ -50,13 +51,15 @@ test.describe('M31 meal plan @local @meals', () => {
 
   /**
    * E2E-M31-01: the meal plan needs both of the trip's dates (FR-33.1). With
-   * them its pill stands after the day plan's, and every day shows its three
-   * standing slots empty, the snack only as a quiet ＋ at the card's foot.
+   * them its pill stands after the day plan's; an empty plan is a start, not
+   * a wall of empty slots, and once a meal is planned only its day stands as a
+   * day — the free days after it are one line that opens into them, each one
+   * planned from there, and the sheet marks the day that already has a meal.
    */
-  test('E2E-M31-01: the pill appears only with both dates, and every day offers its slots', async ({
+  test('E2E-M31-01: the pill only with both dates; only planned days stand, free ones are one line', async ({
     page,
   }) => {
-    const day = await days(page, [30, 31, 32])
+    const day = await days(page, [30, 31, 32, 44])
     await createTripViaWizard(page, { name: 'Ohne Anfang', endDate: day(32), travelers: ['Andy'] })
     await expect(page.getByTestId('trip-view-dayplan')).toHaveCount(0)
     await expect(page.getByTestId('trip-view-meals')).toHaveCount(0)
@@ -64,21 +67,47 @@ test.describe('M31 meal plan @local @meals', () => {
     await createTripViaWizard(page, {
       name: 'Engadin Tage',
       startDate: day(30),
-      endDate: day(32),
+      endDate: day(44),
       travelers: ['Andy'],
     })
     const plan = await openMeals(page)
     await expect(page.getByTestId('header-title')).toHaveText('Meals')
-    await expect(plan.locator('[data-testid^="m31-day-"]')).toHaveCount(3)
-    const first = mealsOfDay(page, day(30))
-    await expect(first).toContainText('Arrival')
-    await expect(mealsOfDay(page, day(32))).toContainText('Departure')
-    for (const slot of ['breakfast', 'lunch', 'dinner']) {
-      await expect(first.getByTestId(`m31-add-${day(30)}-${slot}`)).toBeVisible()
-    }
-    await expect(first.getByTestId(`m31-add-${day(30)}-snack`)).toHaveText('＋ Snack')
-    // No shopping bar while nothing is to buy.
+    const start = plan.getByTestId('m31-empty')
+    await expect(start).toContainText('Nothing planned yet')
+    await expect(plan.locator('[data-testid^="m31-day-"]')).toHaveCount(0)
     await expect(plan.getByTestId('m31-shop')).toHaveCount(0)
+
+    // The start plans the first day's dinner.
+    await start.getByTestId('m31-empty-plan').click()
+    const sheet = mealSheet(page)
+    await expect(sheet.getByTestId('meal-sheet-title')).toHaveText('New: Dinner')
+    await expect(sheet.getByTestId(`meal-day-${day(30)}`)).toHaveAttribute('aria-pressed', 'true')
+    await fillIonic(sheet.getByTestId('meal-title'), 'Pizza')
+    await sheet.getByTestId('meal-save').click()
+    await expect(mealSheet(page)).toHaveCount(0)
+
+    await expect(plan.locator('[data-testid^="m31-day-"]')).toHaveCount(1)
+    await expect(mealsOfDay(page, day(30))).toContainText('Arrival')
+    await expect(mealRow(page, day(30), 'Pizza')).toBeVisible()
+    const gap = plan.getByTestId(`m31-gap-${day(31)}`)
+    await expect(gap).toContainText('nothing planned')
+    // The free days after it, all fourteen, are one line.
+    await expect(gap).toHaveAttribute('data-days', new RegExp(`^${day(31)} .* ${day(44)}$`))
+    await expect(plan.locator('[data-testid^="m31-gap-"]')).toHaveCount(1)
+    await gap.click()
+    await expect(plan.getByTestId(`m31-plan-${day(31)}`)).toBeVisible()
+    await plan.getByTestId(`m31-plan-${day(44)}`).click()
+    // A free day opens on its dinner, the sheet's day chips scrolled to it.
+    await expect(sheet.getByTestId('meal-sheet-title')).toHaveText('New: Dinner')
+    await expect(sheet.getByTestId(`meal-day-${day(44)}`)).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByTestId(`meal-day-${day(44)}`)).toBeInViewport()
+    await expect(sheet.getByTestId(`meal-day-${day(30)}`)).toHaveAttribute('data-planned', 'true')
+    await expect(sheet.getByTestId(`meal-day-${day(31)}`)).not.toHaveAttribute(
+      'data-planned',
+      'true',
+    )
+    await sheet.getByTestId('meal-sheet-close').click()
+    await expect(mealSheet(page)).toHaveCount(0)
   })
 
   /**
@@ -98,10 +127,7 @@ test.describe('M31 meal plan @local @meals', () => {
       travelers: ['Andy'],
     })
     await openMeals(page)
-    await mealPlan(page)
-      .getByTestId(`m31-add-${day(31)}-dinner`)
-      .click()
-    const sheet = mealSheet(page)
+    const sheet = await openNewMeal(page, day(31), 'dinner')
     await expect(sheet.getByTestId('meal-sheet-title')).toHaveText('New: Dinner')
     await fillIonic(sheet.getByTestId('meal-title'), 'Älplermagronen')
     await addIngredient(page, '500 g Hörnli')
@@ -131,7 +157,7 @@ test.describe('M31 meal plan @local @meals', () => {
     await expect(confirm).toContainText('3 open ingredients leave the shopping list.')
     await confirm.getByRole('button', { name: 'Delete' }).click()
     await expect(row).toHaveCount(0)
-    await expect(mealPlan(page).getByTestId(`m31-add-${day(31)}-dinner`)).toBeVisible()
+    await expect(mealPlan(page).getByTestId('m31-empty')).toBeVisible()
     await expect(mealPlan(page).getByTestId('m31-shop')).toHaveCount(0)
 
     await addMeal(page, { day: day(31), slot: 'lunch', title: 'Pizza', out: 'Pizzeria Mulin' })
@@ -163,15 +189,17 @@ test.describe('M31 meal plan @local @meals', () => {
       ingredients: ['1 kg Kartoffeln', 'Essiggurken'],
     })
     await addMeal(page, { day: day(1), slot: 'dinner', title: 'Fondue', ingredients: ['Brot'] })
-    await mealPlan(page).getByTestId('m31-past').click()
-    await addMeal(page, {
-      day: day(-1),
-      slot: 'dinner',
-      title: 'Bolognese',
-      ingredients: ['Hörnli'],
-    })
+    // Yesterday's meal is planned too, and goes behind the fold of what was eaten.
+    const past = await openNewMeal(page, day(-1), 'dinner')
+    await fillIonic(past.getByTestId('meal-title'), 'Bolognese')
+    await addIngredient(page, 'Hörnli')
+    await past.getByTestId('meal-save').click()
+    await expect(mealSheet(page)).toHaveCount(0)
     await expect(mealPlan(page).getByTestId('m31-shop')).toContainText('3 ingredients still to buy')
     await expect(mealPlan(page).getByTestId('m31-shop')).toContainText('2 of them for today')
+    // The meal already eaten folds into one line above the days.
+    await expect(mealPlan(page).getByTestId('m31-past')).toContainText('1 meal already eaten')
+    await expect(mealsOfDay(page, day(-1))).toHaveCount(0)
 
     await openTripView(page, 'shopping')
     const due = m6(page).getByTestId('m6-due')
@@ -250,10 +278,16 @@ test.describe('M31 meal plan @local @meals', () => {
       travelers: ['Andy'],
     })
     await openMeals(page)
-    await mealPlan(page)
-      .getByTestId(`m31-add-${day(40)}-dinner`)
-      .click()
-    const sheet = mealSheet(page)
+    // The empty plan offers them as a start; a tap opens tonight's dinner with the dish taken.
+    const offers = mealPlan(page).locator('[data-testid^="m31-empty-dish-"]')
+    await expect(offers).toHaveText(['Risotto', 'Rösti mit Spiegelei'])
+    await offers.filter({ hasText: 'Risotto' }).click()
+    await expect(mealSheet(page).getByTestId('meal-earlier-from')).toHaveText('from “Tessin”')
+    await expect(mealSheet(page).getByTestId('meal-ingredient-Reis')).toContainText('400 g')
+    await mealSheet(page).getByTestId('meal-sheet-close').click()
+    await expect(mealSheet(page)).toHaveCount(0)
+
+    const sheet = await openNewMeal(page, day(40), 'dinner')
     await expect(sheet.getByTestId('meal-earlier')).toContainText('Cooked before')
     await expect(
       sheet.locator('[data-testid^="meal-earlier-"]').filter({ hasText: 'Risotto' }),
@@ -337,10 +371,7 @@ test.describe('M31 meal plan @local @meals', () => {
     await createExcursion(page, { name: 'Gletscher', days: { start: day(31), end: day(31) } })
 
     await openMeals(page)
-    await mealPlan(page)
-      .getByTestId(`m31-add-${day(31)}-lunch`)
-      .click()
-    const sheet = mealSheet(page)
+    const sheet = await openNewMeal(page, day(31), 'lunch')
     await fillIonic(sheet.getByTestId('meal-title'), 'Picknick')
     const along = sheet.getByTestId('meal-excursion')
     await expect(along).toContainText('Take on the excursion “Gletscher”')

@@ -12,7 +12,8 @@ import type { MealSlot } from '@/types/domain'
 
 /** What the sheet is asked to show: a meal, or a new one on a day and slot. */
 export type MealSheetRequest =
-  { tripId: string; mealId: string } | { tripId: string; mealId: null; day: string; slot: MealSlot }
+  | { tripId: string; mealId: string }
+  | { tripId: string; mealId: null; day: string; slot: MealSlot; dish?: string }
 
 export const useMealSheet = defineStore('mealSheet', () => {
   const request = ref<MealSheetRequest | null>(null)
@@ -21,8 +22,9 @@ export const useMealSheet = defineStore('mealSheet', () => {
     request.value = { tripId, mealId }
   }
 
-  function openNew(tripId: string, day: string, slot: MealSlot): void {
-    request.value = { tripId, mealId: null, day, slot }
+  /** A new meal on a day and slot — with an earlier dish already taken, by its title (FR-33.4). */
+  function openNew(tripId: string, day: string, slot: MealSlot, dish?: string): void {
+    request.value = { tripId, mealId: null, day, slot, ...(dish ? { dish } : {}) }
   }
 
   function close(): void {

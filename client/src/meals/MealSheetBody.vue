@@ -11,7 +11,7 @@
  */
 import { IonButton, IonIcon, IonInput, IonLabel, IonSegment, IonSegmentButton } from '@ionic/vue'
 import { addOutline, bulbOutline, closeOutline, trashOutline } from 'ionicons/icons'
-import { computed, inject, onMounted, reactive, ref } from 'vue'
+import { computed, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -47,7 +47,11 @@ import type { MealSheetRequest } from './sheet'
 import { ingredientsOfMeal } from './sources'
 import { useMealStore } from './store'
 
-const props = defineProps<{ request: MealSheetRequest }>()
+const props = defineProps<{
+  request: MealSheetRequest
+  /** Whether the sheet stands laid out on screen — before it, nothing can be scrolled into view. */
+  presented: boolean
+}>()
 const emit = defineEmits<{ close: [] }>()
 
 const orchestrator = useOrchestrator()
@@ -57,6 +61,24 @@ const context = inject(MEAL_CONTEXT, null)
 const tripId = props.request.tripId
 const { assignees, nameOf, load: loadIdentity } = useTripIdentity(tripId, orchestrator)
 onMounted(() => void loadIdentity())
+
+/**
+ * The day chips scrolled to the chosen one, which on a long trip stands
+ * off-screen — once the sheet is laid out, whenever that was.
+ */
+const dayChips = ref<HTMLElement | null>(null)
+watch(
+  () => props.presented,
+  (presented) => {
+    if (!presented) return
+    void nextTick(() =>
+      dayChips.value
+        ?.querySelector('[aria-pressed="true"]')
+        ?.scrollIntoView({ block: 'nearest', inline: 'center' }),
+    )
+  },
+  { immediate: true },
+)
 
 const meal = props.request.mealId ? (mealStore.getMeal(props.request.mealId) ?? null) : null
 const trip = computed(() => context?.trips().find((candidate) => candidate.id === tripId) ?? null)
@@ -140,6 +162,22 @@ function takeDish(dish: EarlierDish) {
   }))
   takenFrom.value = dish.tripName
 }
+
+/** M31's empty plan hands a dish over by its title; it is taken as its chip would take it. */
+const preset = props.request.mealId === null ? props.request.dish : undefined
+const presetDish = preset ? dishes.value.find((candidate) => candidate.title === preset) : undefined
+if (presetDish) takeDish(presetDish)
+
+/** M31: the days that already hold a meal wear a dot on their chip, so a free one is found. */
+const plannedDays = computed(
+  () =>
+    new Set(
+      mealStore
+        .getMeals(tripId)
+        .filter((candidate) => candidate.id !== meal?.id)
+        .map((candidate) => candidate.on_date),
+    ),
+)
 
 // --- FR-33.6: the picnic ---
 
@@ -319,13 +357,20 @@ function takePlace(title: string) {
       </ChoiceChip>
     </div>
 
-    <span class="jp-eyebrow label">{{ t('meals.dayLabel') }}</span>
-    <div class="chips">
+    <span class="jp-eyebrow label"
+      >{{ t('meals.dayLabel') }}
+      <span v-if="plannedDays.size > 0" class="planned-hint"
+        >· {{ t('meals.dayPlanned') }}</span
+      ></span
+    >
+    <div ref="dayChips" class="chips">
       <ChoiceChip
         v-for="day in days"
         :key="day"
         :pressed="draft.day === day"
         :data-testid="`meal-day-${day}`"
+        :data-planned="plannedDays.has(day) ? 'true' : undefined"
+        :class="{ planned: plannedDays.has(day) }"
         @click="draft.day = day"
       >
         {{ shortDueDay(day) }}
@@ -553,6 +598,25 @@ function takePlace(title: string) {
 
 .chips > * {
   flex: none;
+}
+
+.planned-hint {
+  text-transform: none;
+}
+
+.chips .planned {
+  position: relative;
+}
+
+.chips .planned::after {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jp-action);
+  content: '';
 }
 
 .chips ion-icon {

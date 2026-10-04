@@ -6,7 +6,7 @@
  * opens over it. The body is keyed by the request, so each opening starts
  * from the meal as it is stored.
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import SheetModal from '@/components/global/SheetModal.vue'
 import MealSheetBody from './MealSheetBody.vue'
@@ -19,10 +19,29 @@ const key = computed(() => {
   if (!r) return ''
   return r.mealId ?? `new:${r.day}:${r.slot}`
 })
+/**
+ * Whether the sheet stands laid out on screen — a state rather than the
+ * `present` event, so a body mounted after it still knows (CODING_PRINCIPLES §3).
+ */
+const presented = ref(false)
+watch(request, (current) => {
+  if (current === null) presented.value = false
+})
 </script>
 
 <template>
-  <SheetModal :is-open="request !== null" testid="meal" @dismiss="sheet.close()">
-    <MealSheetBody v-if="request" :key="key" :request="request" @close="sheet.close()" />
+  <SheetModal
+    :is-open="request !== null"
+    testid="meal"
+    @present="presented = true"
+    @dismiss="sheet.close()"
+  >
+    <MealSheetBody
+      v-if="request"
+      :key="key"
+      :request="request"
+      :presented="presented"
+      @close="sheet.close()"
+    />
   </SheetModal>
 </template>

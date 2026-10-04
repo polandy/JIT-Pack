@@ -3,17 +3,19 @@
  * M31 — a trip's meal plan (§3.33): what the family eats on each day, who
  * cooks it, and what is still to buy for it.
  *
- * The days one under another from today — the past ones folded into a line
- * above — each with its breakfast, lunch and dinner, the snack only while it
- * holds a meal; a shopping bar on top while an ingredient is open; the ＋ for
- * the first empty slot. Every meal opens the one sheet the composition root
+ * Meals are planned now and then, not for every day: only the days that hold a meal stand as cards, from today on,
+ * the meals already eaten folded into a line above; a run of free days between
+ * them is one dashed line that opens into its days. A shopping bar on top while
+ * an ingredient is open, a start with earlier dishes on an empty plan, the ＋
+ * for the first empty slot. Every meal opens the one sheet the composition root
  * mounts (`MealSheet.vue`).
  */
-import { IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
+import { IonButton, IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, cartOutline, restaurantOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ProgressRing from '@/components/global/ProgressRing.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -21,21 +23,26 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
-import { t } from '@/i18n'
+import { formatDate, t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { MEAL_CONTEXT } from '@/lib/mealContext'
-import { shortDueDay } from '@/lib/taskDueText'
+import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
-import type { Meal, MealSlot } from '@/types/domain'
-import { MEAL_KIND_OUT, MEAL_SLOT_SNACK } from '@/types/domain'
+import type { Meal } from '@/types/domain'
+import { MEAL_KIND_OUT, MEAL_SLOT_DINNER } from '@/types/domain'
 import {
-  STANDING_SLOTS,
+  agenda,
   boughtShare,
+  earlierDishes,
   excursionFor,
   firstFreeSlot,
+  matchingDishes,
   mealsOn,
+  pastMeals,
   planDays,
   shoppingFigures,
+  slotToPlan,
+  startingDay,
 } from './domain/mealPlan'
 import { useMealSheet } from './sheet'
 import { mealFacts } from './sources'
@@ -67,29 +74,48 @@ const today = computed(() => orchestrator.today())
 const meals = computed(() => mealStore.getMeals(props.tripId))
 const ingredients = computed(() => mealStore.getIngredients(props.tripId))
 
-/** The days already behind, folded into one line above the rest while the trip is under way. */
-const pastDays = computed(() => days.value.filter((day) => day < today.value))
-const comingDays = computed(() => days.value.filter((day) => day >= today.value))
+/** The meals of the days behind, folded into one line above the rest (M31). */
+const eaten = computed(() => pastMeals(meals.value, today.value))
 const pastOpen = ref(false)
-const pastMeals = computed(() => meals.value.filter((meal) => meal.on_date < today.value).length)
-const shownDays = computed(() =>
-  pastOpen.value ? days.value : comingDays.value.length > 0 ? comingDays.value : days.value,
-)
+/** Only the planned days stand as days; a run of free ones is one line (M31). */
+const items = computed(() => agenda(days.value, meals.value, today.value, pastOpen.value))
+/** The free runs opened in place, by their first day. */
+const openGaps = ref<Set<string>>(new Set())
 
 const figures = computed(() =>
   shoppingFigures(meals.value, ingredients.value, today.value, trip.value?.start_date ?? null),
 )
 
-/** A day's slots as M31 draws them: breakfast, lunch and dinner always, the snack while it holds a meal. */
-function slotsOf(day: string): { slot: MealSlot; meals: Meal[] }[] {
-  const ofDay = mealsOn(meals.value, day)
-  const slots = [...STANDING_SLOTS]
-  if (ofDay.some((meal) => meal.slot === MEAL_SLOT_SNACK)) slots.splice(2, 0, MEAL_SLOT_SNACK)
-  return slots.map((slot) => ({ slot, meals: ofDay.filter((meal) => meal.slot === slot) }))
+/** FR-33.4: an empty plan offers the dishes of earlier trips, each planned tonight with a tap. */
+const offered = computed(() =>
+  meals.value.length > 0 || !context
+    ? []
+    : matchingDishes(
+        earlierDishes({
+          meals: mealStore.allMeals(),
+          ingredients: mealStore.allIngredients(),
+          trips: context.trips(),
+          tripId: props.tripId,
+        }),
+        '',
+      ),
+)
+
+/** A run of free days in words: one day, or its first and last. */
+function gapText(run: readonly string[]): string {
+  const first = run[0]!
+  const last = run[run.length - 1]!
+  return run.length === 1
+    ? t('meals.gapOne', { day: shortDueDay(first) })
+    : t('meals.gapMany', { from: shortWeekday(first), to: shortDueDay(last) })
 }
 
-function hasSnack(day: string): boolean {
-  return meals.value.some((meal) => meal.on_date === day && meal.slot === MEAL_SLOT_SNACK)
+function shortWeekday(day: string): string {
+  return formatDate(localDay(day), { weekday: 'short' })
+}
+
+function openGap(run: readonly string[]) {
+  openGaps.value = new Set([...openGaps.value, run[0]!])
 }
 
 /** What a day's head says beside its date: arrival, departure, or the excursion of the day. */
@@ -122,6 +148,11 @@ function excursionName(meal: Meal): string | null {
 function openNew() {
   const free = firstFreeSlot(meals.value, days.value, today.value)
   sheet.openNew(props.tripId, free.day, free.slot)
+}
+
+/** A day's own ＋ and a free day's: a new meal there, dinner first. */
+function planOn(day: string) {
+  sheet.openNew(props.tripId, day, slotToPlan(meals.value, day))
 }
 </script>
 
@@ -156,7 +187,7 @@ function openNew() {
           </button>
 
           <button
-            v-if="pastDays.length > 0 && comingDays.length > 0"
+            v-if="eaten.length > 0"
             type="button"
             class="past"
             :aria-expanded="pastOpen ? 'true' : 'false'"
@@ -164,90 +195,131 @@ function openNew() {
             @click="pastOpen = !pastOpen"
           >
             {{
-              pastOpen
-                ? `⌃ ${t('meals.pastClose')}`
-                : `› ${t('meals.past', {
-                    n: pastDays.length,
-                    meals: t('meals.mealCount', { n: pastMeals }),
-                  })}`
+              pastOpen ? `⌃ ${t('meals.pastClose')}` : `› ${t('meals.eaten', { n: eaten.length })}`
             }}
           </button>
 
-          <section
-            v-for="day in shownDays"
-            :key="day"
-            class="day"
-            :class="{ gone: day < today && comingDays.length > 0 }"
-            :data-testid="`m31-day-${day}`"
-          >
-            <h2 class="day-head">
-              <span class="date">{{ shortDueDay(day) }}</span>
-              <span v-if="day === today" class="today">{{ t('meals.today') }}</span>
-              <span v-if="dayEvent(day)" class="event">{{ dayEvent(day) }}</span>
-              <span class="n jp-num">{{ t('meals.dayN', { n: days.indexOf(day) + 1 }) }}</span>
-            </h2>
-            <div class="jp-card slots">
-              <template v-for="row in slotsOf(day)" :key="row.slot">
-                <button
-                  v-for="meal in row.meals"
-                  :key="meal.id"
-                  type="button"
-                  class="slot"
-                  :data-slot="row.slot"
-                  :data-testid="`m31-meal-${meal.id}`"
-                  @click="sheet.openMeal(tripId, meal.id)"
-                >
-                  <span class="label jp-eyebrow">{{ t(`meals.slotShort.${row.slot}`) }}</span>
-                  <span class="body">
-                    <span class="title">
-                      <template v-if="meal.kind === MEAL_KIND_OUT">🍴 </template>{{ meal.title }}
-                      <span v-if="meal.at_time" class="time jp-num">· {{ meal.at_time }}</span>
-                    </span>
-                    <span class="facts">
-                      <template v-if="cookOf(meal)">
-                        <UserAvatar :name="cookOf(meal)!" :seed="meal.cook_user_id!" :size="18" />
-                        {{ t('meals.cooks', { name: cookOf(meal)! }) }} ·
-                      </template>
-                      {{ mealFacts(meal, ingredientsOf(meal)) }}
-                      <template v-if="excursionName(meal)">
-                        · {{ t('meals.takenAlong', { name: excursionName(meal)! }) }}
-                      </template>
-                    </span>
-                  </span>
-                  <ProgressRing
-                    v-if="share(meal) !== null"
-                    :percent="share(meal)!"
-                    :size="24"
-                    :data-testid="`m31-ring-${meal.id}`"
-                  />
-                </button>
-                <button
-                  v-if="row.meals.length === 0"
-                  type="button"
-                  class="slot empty"
-                  :aria-label="
-                    t('meals.addAria', { slot: t(`meals.slot.${row.slot}`), day: shortDueDay(day) })
+          <section v-if="meals.length === 0" class="start" data-testid="m31-empty">
+            <IonIcon :icon="restaurantOutline" class="start-icon" aria-hidden="true" />
+            <h2 class="start-title">{{ t('meals.emptyTitle') }}</h2>
+            <p class="start-text">{{ t('meals.emptyText') }}</p>
+            <IonButton
+              shape="round"
+              data-testid="m31-empty-plan"
+              @click="sheet.openNew(tripId, startingDay(days, today), MEAL_SLOT_DINNER)"
+            >
+              <IonIcon slot="start" :icon="addOutline" aria-hidden="true" />
+              {{ t('meals.emptyPlan') }}
+            </IonButton>
+            <div v-if="offered.length > 0" class="start-dishes">
+              <span class="jp-eyebrow">{{ t('meals.emptyEarlier') }}</span>
+              <div class="dishes">
+                <ChoiceChip
+                  v-for="(dish, n) in offered"
+                  :key="dish.title"
+                  :pressed="false"
+                  :data-testid="`m31-empty-dish-${n}`"
+                  @click="
+                    sheet.openNew(tripId, startingDay(days, today), MEAL_SLOT_DINNER, dish.title)
                   "
-                  :data-testid="`m31-add-${day}-${row.slot}`"
-                  @click="sheet.openNew(tripId, day, row.slot)"
                 >
-                  <span class="label jp-eyebrow">{{ t(`meals.slotShort.${row.slot}`) }}</span>
-                  <span class="add">{{
-                    t('meals.add', { slot: t(`meals.slot.${row.slot}`) })
-                  }}</span>
-                </button>
-              </template>
-              <button
-                v-if="!hasSnack(day)"
-                type="button"
-                class="snack-add"
-                :data-testid="`m31-add-${day}-${MEAL_SLOT_SNACK}`"
-                @click="sheet.openNew(tripId, day, MEAL_SLOT_SNACK)"
-              >
-                {{ t('meals.add', { slot: t(`meals.slot.${MEAL_SLOT_SNACK}`) }) }}
-              </button>
+                  {{ dish.title }}
+                </ChoiceChip>
+              </div>
             </div>
           </section>
+
+          <template v-else>
+            <template
+              v-for="item in items"
+              :key="item.kind === 'day' ? item.day : `gap:${item.days[0]}`"
+            >
+              <section
+                v-if="item.kind === 'day'"
+                class="day"
+                :class="{ gone: item.day < today }"
+                :data-testid="`m31-day-${item.day}`"
+              >
+                <h2 class="day-head">
+                  <span class="date">{{ shortDueDay(item.day) }}</span>
+                  <span v-if="item.day === today" class="today">{{ t('meals.today') }}</span>
+                  <span v-if="dayEvent(item.day)" class="event">{{ dayEvent(item.day) }}</span>
+                  <button
+                    type="button"
+                    class="day-add"
+                    :aria-label="t('meals.addOn', { day: shortDueDay(item.day) })"
+                    :data-testid="`m31-add-${item.day}`"
+                    @click="planOn(item.day)"
+                  >
+                    ＋
+                  </button>
+                </h2>
+                <div class="jp-card slots">
+                  <button
+                    v-for="meal in mealsOn(meals, item.day)"
+                    :key="meal.id"
+                    type="button"
+                    class="slot"
+                    :data-slot="meal.slot"
+                    :data-testid="`m31-meal-${meal.id}`"
+                    @click="sheet.openMeal(tripId, meal.id)"
+                  >
+                    <span class="label jp-eyebrow">{{ t(`meals.slotShort.${meal.slot}`) }}</span>
+                    <span class="body">
+                      <span class="title">
+                        <template v-if="meal.kind === MEAL_KIND_OUT">🍴 </template>{{ meal.title }}
+                        <span v-if="meal.at_time" class="time jp-num">· {{ meal.at_time }}</span>
+                      </span>
+                      <span class="facts">
+                        <template v-if="cookOf(meal)">
+                          <UserAvatar :name="cookOf(meal)!" :seed="meal.cook_user_id!" :size="18" />
+                          {{ t('meals.cooks', { name: cookOf(meal)! }) }} ·
+                        </template>
+                        {{ mealFacts(meal, ingredientsOf(meal)) }}
+                        <template v-if="excursionName(meal)">
+                          · {{ t('meals.takenAlong', { name: excursionName(meal)! }) }}
+                        </template>
+                      </span>
+                    </span>
+                    <ProgressRing
+                      v-if="share(meal) !== null"
+                      :percent="share(meal)!"
+                      :size="24"
+                      :data-testid="`m31-ring-${meal.id}`"
+                    />
+                  </button>
+                </div>
+              </section>
+              <div
+                v-else-if="openGaps.has(item.days[0]!)"
+                class="free-days"
+                :data-testid="`m31-free-${item.days[0]}`"
+              >
+                <button
+                  v-for="day in item.days"
+                  :key="day"
+                  type="button"
+                  class="free-day"
+                  :data-testid="`m31-plan-${day}`"
+                  @click="planOn(day)"
+                >
+                  <b>{{ shortDueDay(day) }}</b>
+                  <span v-if="day === today">{{ t('meals.today') }}</span>
+                  <span class="plan">＋ {{ t('meals.plan') }}</span>
+                </button>
+              </div>
+              <button
+                v-else
+                type="button"
+                class="gap"
+                :data-days="item.days.join(' ')"
+                :data-testid="`m31-gap-${item.days[0]}`"
+                @click="openGap(item.days)"
+              >
+                <span>{{ gapText(item.days) }} · ＋</span>
+              </button>
+            </template>
+          </template>
         </template>
       </template>
 
@@ -359,13 +431,6 @@ function openNew() {
   white-space: nowrap;
 }
 
-.n {
-  margin-left: auto;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-regular);
-}
-
 .slots {
   overflow: hidden;
 }
@@ -415,43 +480,127 @@ function openNew() {
   gap: 4px;
 }
 
-.slot.empty {
-  padding-block: 6px;
-}
-
-.slot .add {
-  justify-self: start;
-  padding: 3px 10px;
-  border: 1px dashed var(--ct-surface1);
-  border-radius: var(--jp-r-sm);
-  color: var(--ct-overlay1);
-  font-size: var(--jp-text-sm);
-}
-
-.slot.empty:hover .add {
-  border-color: var(--jp-action);
-  color: var(--jp-action);
-}
-
-.snack-add {
-  display: block;
-  width: 100%;
-  padding: 5px 12px 7px;
+.day-add {
+  margin-left: auto;
+  padding: 0 4px;
   border: 0;
-  background: transparent;
-  color: var(--ct-overlay1);
+  background: none;
+  color: var(--jp-action);
   font: inherit;
-  font-size: var(--jp-text-sm);
-  text-align: end;
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
   cursor: pointer;
 }
 
-.snack-add:hover {
+/* A run of free days: one quiet dashed line between the planned ones. */
+.gap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--ct-overlay1);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.gap::before,
+.gap::after {
+  flex: 1;
+  border-top: 1px dashed var(--ct-surface1);
+  content: '';
+}
+
+.gap:hover {
   color: var(--jp-action);
 }
 
+.free-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 12px 12px;
+}
+
+.free-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border: 1px dashed var(--ct-surface1);
+  border-radius: var(--jp-r-md);
+  background: transparent;
+  color: var(--ct-subtext0);
+  font: inherit;
+  font-size: var(--jp-text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.free-day b {
+  min-width: 92px;
+  color: var(--ct-subtext1);
+}
+
+.free-day .plan {
+  margin-left: auto;
+  color: var(--jp-action);
+  font-weight: var(--jp-weight-semibold);
+}
+
+/* An empty plan: a start rather than a wall of empty slots. */
+.start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 12px;
+  text-align: center;
+}
+
+.start-icon {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-2xl);
+}
+
+.start-title {
+  margin: 8px 0 4px;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.start-text {
+  max-width: 300px;
+  margin: 0 0 14px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.start-dishes {
+  align-self: stretch;
+  margin-top: 18px;
+  text-align: start;
+}
+
+.start-dishes .jp-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ct-subtext0);
+}
+
+.dishes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .slot:focus-visible,
-.snack-add:focus-visible,
+.gap:focus-visible,
+.free-day:focus-visible,
+.day-add:focus-visible,
 .shop-bar:focus-visible,
 .past:focus-visible {
   outline: 2px solid var(--jp-action);
