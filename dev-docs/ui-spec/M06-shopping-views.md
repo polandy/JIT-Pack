@@ -174,6 +174,13 @@
   *„gekauft von Andy · heute 14:32"* with the buyer's avatar, or *„gekauft · heute 14:32"* where nobody can be named
   (Local Mode) — under its note. **An entry (FR-30.1)** is revealed the same way, with **no note** — it was never
   anywhere but here.
+* **Bought again (FR-30.14, *built*):** an own entry's row in a *gekauft* fold carries a pill ***＋ Nochmal***
+  (`m6-bought-again`, label *„<Name> nochmal kaufen"*) at its edge before the tick, in the brand colour so it never
+  reads as the tick's green. A tap writes a new open entry with the row's name and tag on its list (*Vor Ort* once
+  *Vor der Reise* is over), the purchase staying in the fold; a toast *„„Milch" steht wieder auf der Liste"* with
+  **Rückgängig** removes the new entry. While an own entry of that name stands open, the pill is a quiet *✓ Auf der
+  Liste* (`m6-bought-listed`) that does nothing. No pill on a packing line, on a finished packing's *Vor der Reise*
+  (FR-7.12) or on the dashboard card. (E2E-M6-41)
 * **A source's own heading (FR-31.8 — *built*).** A source may name the heading its lines are filed under
   (`ShoppingLine.section`): an excursion's *vor Ort* lines stand under the excursion's name, after the combined packing
   heading and before the own entries, A–Z, and such a heading takes no dropped entry — it is not one of this list's

@@ -1467,3 +1467,129 @@ describe('M6 — who buys it (FR-30.12)', () => {
     ])
   })
 })
+
+/*
+ * FR-30.14: a staple bought again and again — milk, bread — goes back on the
+ * list as a new entry straight from its bought row, so the purchase keeps its
+ * record and nothing is typed anew.
+ */
+describe('M6 — bought again, as a new entry (FR-30.14)', () => {
+  const againOf = (page: ReturnType<typeof mountPage>, name: string) =>
+    page
+      .findAll('[data-testid="m6-bought-row"]')
+      .find((r) => r.find('h3').text() === name)!
+      .find('[data-testid="m6-bought-again"]')
+
+  it('writes a new open entry with the name and the tag from the row, leaving the purchase as it was', async () => {
+    seedEntry('e1', {
+      name: 'Milch',
+      tag: 'Supermarkt',
+      bought: 1,
+      bought_at: '2026-09-18T09:00:00.000Z',
+      bought_by_user_id: 'u-sia',
+      due_date: '2026-09-18',
+      assignee_user_id: 'u-sia',
+    })
+    const page = mountPage()
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
+
+    await againOf(page, 'Milch').trigger('click')
+
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({
+      op: 'insert',
+      table: 'shopping_entries',
+      fields: { trip_id: 't1', name: 'Milch', list: 'buy_before', bought: 0, tag: 'Supermarkt' },
+    })
+    expect(written[0]!.id).not.toBe('e1')
+    // Neither the day nor the person carries over: both belonged to that purchase.
+    expect(written[0]!.fields).toMatchObject({ due_date: null })
+    expect(written[0]!.fields).not.toHaveProperty('assignee_user_id')
+    expect(page.findAll('[data-testid="m6-row"]').map((r) => r.find('h3').text())).toEqual([
+      'Milch',
+    ])
+    expect(
+      useShoppingStore()
+        .boughtEntries('t1', 'buy_before')
+        .map((e) => e.id),
+    ).toEqual(['e1'])
+  })
+
+  it('says the entry is on the list again while it stands there open, and offers nothing twice', async () => {
+    seedEntry('e1', { name: 'Milch', bought: 1 })
+    seedEntry('e2', { name: 'Brot', bought: 1 })
+    const page = mountPage()
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
+    await againOf(page, 'Milch').trigger('click')
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+
+    const milk = page
+      .findAll('[data-testid="m6-bought-row"]')
+      .find((r) => r.find('h3').text() === 'Milch')!
+    expect(milk.find('[data-testid="m6-bought-again"]').exists()).toBe(false)
+    expect(milk.find('[data-testid="m6-bought-listed"]').text()).toBe(t('shopping.onListAgain'))
+    expect(againOf(page, 'Brot').exists()).toBe(true)
+  })
+
+  it('undoes from the toast by removing the new entry, never the bought one', async () => {
+    seedEntry('e1', { name: 'Milch', bought: 1 })
+    const page = mountPage()
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
+    await againOf(page, 'Milch').trigger('click')
+    const added = written[0]!.id
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('shopping.boughtAgain', { name: 'Milch' }))
+    expect(toast.positionAnchor).toBe(FAB_ANCHOR.m6)
+    await (toast.buttons![0] as { handler: () => void }).handler()
+
+    expect(written.at(-1)).toMatchObject({ op: 'delete', table: 'shopping_entries', id: added })
+    expect(
+      useShoppingStore()
+        .getEntries('t1')
+        .map((e) => e.id),
+    ).toEqual(['e1'])
+  })
+
+  it('puts a purchase made at the destination back on that list', async () => {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active' },
+    })
+    seedEntry('e1', { name: 'Brot', list: 'buy_local', bought: 1 })
+    const page = mountPage()
+    await flushPromises()
+    await page.find('[data-testid="m6-local-fold"]').trigger('click')
+
+    await againOf(page, 'Brot').trigger('click')
+
+    expect(written.at(-1)).toMatchObject({
+      op: 'insert',
+      fields: { name: 'Brot', list: 'buy_local' },
+    })
+  })
+
+  it('offers nothing on a packing line, nor on a finished packing’s record of before departure (FR-7.12)', async () => {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'planning', packing_closed_at: TAP },
+    })
+    seedEntry('e1', { name: 'Sonnencreme', bought: 1 })
+    const page = mountPage([
+      source({}, { buy_local: [line({ name: 'Regenjacke', boughtNote: 'eingepackt' })] }),
+    ])
+    await flushPromises()
+    await page.find('[data-testid="m6-before-fold"]').trigger('click')
+    await page.find('[data-testid="m6-local-fold"]').trigger('click')
+
+    const rows = page.findAll('[data-testid="m6-bought-row"]')
+    expect(rows.map((r) => r.find('h3').text()).sort()).toEqual(['Regenjacke', 'Sonnencreme'])
+    expect(page.find('[data-testid="m6-bought-again"]').exists()).toBe(false)
+  })
+})

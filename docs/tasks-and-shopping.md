@@ -43,6 +43,8 @@ removed on that row.
   the packing list's own positions (under **Packliste**), then your entries under their tags, then the untagged ones
   under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
   end of each list, where you can untick it again.
+- Bought it and need it again — milk, bread? Tap **＋ Nochmal** on its line under **gekauft**: it is back on the list
+  with its tag, and the purchase stays where it is. While it stands open again the line says **Auf der Liste**.
 
 To change an entry, tap its name: the sheet holds the name, the day, the tag and **Speichern**. An entry has no ✕ on
 its line — remove it with **Entfernen** in that sheet, or select several and use **Löschen**.

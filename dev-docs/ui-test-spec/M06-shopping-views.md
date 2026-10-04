@@ -164,6 +164,10 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   one are selected (a hold, then a tap) and removed with **Löschen**; only the unselected entry stays, and the mode
   ends. The toast's undo puts both back under their headings, and after a reload they are still there — re-created,
   not only repainted.
+* **E2E-M6-41** `local` (FR-30.14) — **implemented** (`shopping/shopping.spec.ts`): an entry tagged *Laden* is
+  bought; its bought row's *＋ Nochmal* puts a new *Milch* under *Laden* while the purchase stays in the fold. After a
+  reload both stand, and the bought row reads *On the list* with no pill. The new one bought too, a tap on the pill and
+  the toast's undo leave nothing open and both purchases in the fold.
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

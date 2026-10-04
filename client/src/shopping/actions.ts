@@ -44,8 +44,9 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
   const encode = TABLE_CODECS[TABLE.shoppingEntries].encode
 
   /**
-   * Adds an entry to one of the trip's two lists. A blank name is not an
-   * entry — the field's own content decides, not the button.
+   * Adds an entry to one of the trip's two lists and answers its id. A blank
+   * name is not an entry — the field's own content decides, not the button —
+   * and answers null.
    */
   function addEntry(
     tripId: string,
@@ -54,10 +55,11 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
     tag: string | null = null,
     dueDate: string | null = null,
     ideaId: string | null = null,
-  ): void {
+  ): string | null {
     const trimmed = name.trim()
-    if (trimmed === '') return
-    const mutation = host.mutation('insert', TABLE.shoppingEntries, newId(), {
+    if (trimmed === '') return null
+    const id = newId()
+    const mutation = host.mutation('insert', TABLE.shoppingEntries, id, {
       trip_id: tripId,
       name: trimmed,
       list,
@@ -71,6 +73,26 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       ...(ideaId ? { idea_id: ideaId } : {}),
     })
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    return id
+  }
+
+  /**
+   * FR-30.14: a bought entry put on the list once more, as an entry of its
+   * own — the purchase keeps its record. Name and tag come along; the day
+   * and the person belonged to that purchase and do not. The undo removes
+   * the new entry, and only it.
+   */
+  function addAgain(
+    tripId: string,
+    list: ShoppingMode,
+    fields: { name: string; tag: string | null },
+  ): (() => void) | null {
+    const id = addEntry(tripId, list, fields.name, fields.tag)
+    if (id === null) return null
+    return () => {
+      const entry = places.getEntries(tripId).find((candidate) => candidate.id === id)
+      if (entry) removeEntry(entry)
+    }
   }
 
   /**
@@ -254,6 +276,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
 
   return {
     addEntry,
+    addAgain,
     updateEntry,
     setBought,
     assignEntry,
