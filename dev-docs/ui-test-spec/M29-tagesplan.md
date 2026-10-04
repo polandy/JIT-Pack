@@ -59,3 +59,28 @@
   beside it labelled *Way there · Gola Gorropu*. The merge rule
   (time, the idea's missing line, pool and outside) is `dayPlan.spec.ts`; the server's check of the link is
   `TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn`.
+* **E2E-M29-14** `local` (FR-29.15/29.18) — **specified** (`planner/connections.spec.ts`, the timetable stubbed): an
+  entry written through the ＋ without a connection — title and *09:30*, no connection — is opened again and gains
+  one: *Add train connection* opens the step, *Von* and *Nach* typed list results with no search button pressed, a
+  tap brings the step back to the form with the connection's card, the title and *09:30* untouched. Saved, the
+  entry's line keeps its title and time and carries *🚆 Luzern → Hergiswil · arr. 08:34 · S 4 · direct* under it.
+  Opened once more, *Remove* takes the connection off and *Save* leaves the entry alone on its line — the connection
+  line gone, the title still there.
+* **E2E-M29-15** `local` (FR-29.15/29.18) — **specified** (`planner/connections.spec.ts`, the timetable stubbed): on a
+  new entry with *What* and *Time* empty, a connection taken fills *What* with *To Hergiswil* and *Time* with *08:06*,
+  both labelled *from the connection* (`day-entry-filled`); typing into *What* drops its label and keeps the typed
+  title, and *Remove* empties *Time* again but not the typed title. In the step, ⇅ swaps *Von* and *Nach* and the
+  results follow; *Later ›* adds later connections. ‹ leaves the step with nothing taken.
+* **E2E-M29-16** `local` (FR-29.18) — **specified** (`planner/connections.spec.ts`, the timetable stubbed, the
+  position planted through the browser context's geolocation): *📍 My location* sets *Von* to the nearest stop with
+  its distance and offers three nearby stops, the nearest pressed; each result opens with *„🚶 3 min · leave at
+  08:03"*, and the connection written begins with the walk from *My location*. With the permission refused the step
+  says so and *Von* keeps what it held.
+* **E2E-M29-17** `local` (FR-29.18) — **specified** (`planner/connections.spec.ts`, the timetable stubbed, tiles
+  off): a connection taken from the search shows the small map (`connection-map`) with a line per leg; *⤢ Map*
+  opens the full map with a row per leg, and ‹ returns to the form. Written, the plan's line offers *Map ›*
+  (`m29-map-<key>`), which opens the same map. A connection entered by hand has neither map nor *Map ›*.
+* **E2E-M29-18** `local` (FR-29.18) — **specified** (`planner/connections.spec.ts`): with the search turned off by
+  the instance, the step offers no search and shows *SBB link* and *By hand* as its two large rows; an SBB link
+  pasted there is read and taken into the form as a card. E2E-M29-05…08 reach the link and the hand fields through
+  *Not there?* and the ＋'s one form — no segments.

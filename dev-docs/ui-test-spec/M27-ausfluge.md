@@ -75,3 +75,8 @@
   takes one, *Search* lists connections, and a tap takes one into the slot. The way back is searched from the way
   there's arrival plus the route, and each result says what it leaves of it — *„… too early"* for one, *„… to spare"*
   for another. A stop the service does not know says so (`timetable-message`) and leaves the hand fields.
+* **E2E-M27-19** `local` (FR-29.18) — **specified** (`excursionJourney.spec.ts`, the timetable stubbed, tiles off):
+  an empty way there opens the sheet at the connection step, *Nach* marked *nearest stop to the start*; a connection
+  taken shows the form without *What* and *Time*, as its card and *Note*, and *Save as way there* writes it into the
+  slot. The route step's map then draws the way's legs beside the track (`track-summary-map`), and the full-screen
+  map's legend names *Boat*, *Train* and *Route*.

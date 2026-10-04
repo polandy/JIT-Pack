@@ -1,6 +1,7 @@
 # ADR-086: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
 
-**Status:** Accepted — amended 2026-10-03: option C is added beside the link, not instead of it
+**Status:** Accepted — amended 2026-10-03: option C is added beside the link, not instead of it; amended 2026-10-04:
+an entry carries its connection, which may start where the device is and is drawn on a map
 **Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.18, invariant 4, invariant 5,
 `dev-docs/planner-concept.md` §3
 
@@ -109,6 +110,31 @@ link and the hand fields, which stay the way for everything it cannot find:
   is a red unit test against a fresh fixture, and in the field a polite "no connection found" with the hand fields.
 - An excursion seeds the search from what it knows — the stop nearest the track's start, the way back reversed from
   the arrival and the route — which a bare search cannot.
+
+## Amendment (2026-10-04) — an entry carries its connection
+
+The Decision made a connection a day-plan entry *of its own kind*, and the sheet asked for the kind first. In use that
+reads backwards: one writes *Glasi Hergiswil besuchen* and then wants the train there, and an entry written without a
+connection could never gain one. Three ways were weighed:
+
+- **Two kinds, convertible.** A note could be turned into a connection and back. The plan would still show two lines
+  for one plan — the visit and the train to it — and the sheet would still ask for the kind first.
+- **A connection linked to an entry.** Two rows, one pointing at the other. It keeps the kinds apart but costs a
+  column, a migration and two rows to keep in step across devices that edit them apart.
+- **An entry carries a connection** *(accepted)*. The legs are a field of the entry: added, changed or taken off like
+  any other field, under the same field-level LWW. `kind` stays and is written with the legs, so nothing older reads
+  a row wrongly. The cost: the title is the person's now, not *first → last stop*; an entry left without one takes
+  *„Nach …"* from the connection.
+
+Two further additions, each a cost taken knowingly:
+
+- **The start from where one is.** *📍 Mein Standort* sends the device's position to transport.opendata.ch for the
+  stops near it — on a tap, never on its own. The service learns where the device is at that moment, as swisstopo
+  learns roughly where a map is looked at (ADR-085). Nothing goes through the server, and `JITPACK_TIMETABLE=false`
+  removes the button with the search.
+- **The map.** The legs keep their stops' positions, which the search answers and the SBB link carries anyway
+  (`@X=…@Y=…` per stop), as optional keys of the legs' JSON — no migration. A leg by hand has none and draws no map;
+  looking its stops up by name afterwards was rejected as a second lookup that guesses.
 
 ## Revisit Trigger
 
