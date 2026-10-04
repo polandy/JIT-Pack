@@ -269,8 +269,9 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await page.goBack()
     await expect(visible(page).getByTestId('m27-page')).toBeVisible()
     const when = visible(page).getByTestId('m27-when-Hüttentour')
-    await expect(when).toContainText('10/12')
-    await expect(when).toContainText('10/13')
+    // The device is in Zurich: day before month, in English too (NFR-4.12).
+    await expect(when).toContainText('12.10')
+    await expect(when).toContainText('13.10')
   })
 
   /**

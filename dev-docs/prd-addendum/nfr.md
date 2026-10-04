@@ -107,6 +107,14 @@
   (like the theme, FR-21), defaulting to the browser locale when that is German and to English otherwise. Scope note:
   this is UI-string localization plus locale-aware date/number formatting; it does **not** imply localizing user
   *content* (item names, template names, comments stay as the user typed them). Additional locales are additive later.
+  * **Dates and numbers follow the device's region, not its language.** The language is the app's; the date order,
+    the clock and the separators are the region's — an English phone in Zurich writes *„Sun, 4.10."*, *14:32* and
+    *1'234.50*, not *10/4*, *2:32 PM* and *1,234.50*. A browser names its region only through its time zone
+    (`navigator.languages` is the device's *language*, `en-US` on most English phones), so the zone's country decides
+    (`client/src/i18n/zoneRegions.ts`, generated from the tz database's `zone.tab` by `scripts/zone-regions.mjs`); a
+    zone it does not know falls back to the browser's regional variant of the language, then to the bare language.
+    Every formatting call goes through `intlLocale()`. The specs run in Zurich (`deviceRegion.setup.ts`, the e2e
+    suite's `de-CH` / `Europe/Zurich`), so an expectation is a Swiss format on every machine.
   * **Notifications are localized too (ADR-037)** — both the in-app toast and the OS notification the service worker
     shows, which cannot import modules and cannot read `localStorage`. The wording is in the catalogue like every
     other string:

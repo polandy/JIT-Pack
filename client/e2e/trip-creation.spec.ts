@@ -63,7 +63,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   // formatDayRange, never the ISO strings its state holds — the picked days
   // prove the picker wrote through, the wording proves the browser does not
   // own the text.
-  await expect(page.getByTestId('wizard-dates-value')).toHaveText('Sep 13 – 20, 2026')
+  await expect(page.getByTestId('wizard-dates-value')).toHaveText('13–20 Sept 2026')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it
   // counts both endpoints, so the 13th to the 20th is 8 travel days.
@@ -273,13 +273,13 @@ test('E2E-M3-20: an end tapped before the start becomes the start, never an inve
   await picker.locator('[data-day="2026-09-05"]').click()
 
   // Both halves: the earlier day is the start now, and the end is open again.
-  await expect(picker.getByTestId('wizard-dates-start')).toContainText('Sep 5, 2026')
+  await expect(picker.getByTestId('wizard-dates-start')).toContainText('5 Sept 2026')
   await expect(picker.getByTestId('wizard-dates-end')).toContainText('—')
   await expect(picker.getByTestId('wizard-dates-hint')).toHaveText('Tap the last day')
 
   await picker.locator('[data-day="2026-09-15"]').click()
   await picker.getByTestId('wizard-dates-apply').click()
-  await expect(page.getByTestId('wizard-dates-value')).toHaveText('Sep 5 – 15, 2026')
+  await expect(page.getByTestId('wizard-dates-value')).toHaveText('5–15 Sept 2026')
 })
 
 // E2E-M3-22 (G-17): the create is one act. It writes the whole trip and then

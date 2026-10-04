@@ -16,6 +16,8 @@ import {
   formatDate,
   formatNumber,
   initLocale,
+  pinDeviceTimeZone,
+  regionalLocale,
   resolveLocale,
   setLocale,
   t,
@@ -185,14 +187,47 @@ describe('setLocale / initLocale', () => {
   })
 })
 
+/**
+ * NFR-4.12: the language is the app's, the conventions the region's — and a
+ * browser names its region only through its time zone. An English phone in
+ * Zurich reports `en-US` as its language, which would write the 4th of October
+ * as 10/4; the zone says Switzerland, so it reads 4.10.
+ */
+describe('regionalLocale — the device’s region from its time zone', () => {
+  it('takes the region of the time zone, whatever region the language tag names', () => {
+    expect(regionalLocale('en', ['en-US'], 'Europe/Zurich')).toBe('en-CH')
+    expect(regionalLocale('de', ['de-DE', 'en-US'], 'Europe/Zurich')).toBe('de-CH')
+    expect(regionalLocale('en', ['de-CH'], 'Europe/Zurich')).toBe('en-CH')
+    expect(regionalLocale('en', ['en-US'], 'America/New_York')).toBe('en-US')
+  })
+
+  it('falls back to the language tag for a zone it does not know, and to the bare language last', () => {
+    expect(regionalLocale('de', ['de-AT'], 'Etc/UTC')).toBe('de-AT')
+    expect(regionalLocale('en', ['de-CH'], undefined)).toBe('en')
+  })
+
+  it('writes an English date day-first in Switzerland, month-first in the US', () => {
+    const day = new Date(2026, 9, 4, 12)
+    const short = (tag: string) =>
+      new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'numeric' }).format(
+        day,
+      )
+    expect(short(regionalLocale('en', ['en-US'], 'Europe/Zurich'))).toMatch(/4\.10/)
+    expect(short(regionalLocale('en', ['en-US'], 'America/Chicago'))).toMatch(/10\/4/)
+  })
+})
+
 describe('Intl formatting follows the active locale', () => {
-  it('formats numbers with the locale separator', () => {
+  beforeEach(() => pinDeviceTimeZone('Europe/Berlin'))
+
+  it('writes numbers by the region, in either language', () => {
     setLocale('en')
-    const english = formatNumber(1234.5)
+    expect(formatNumber(1234.5)).toBe('1.234,5')
     setLocale('de')
-    const german = formatNumber(1234.5)
-    expect(english).not.toBe(german)
-    expect(german).toContain(',')
+    expect(formatNumber(1234.5)).toBe('1.234,5')
+    pinDeviceTimeZone('America/New_York')
+    setLocale('en')
+    expect(formatNumber(1234.5)).toBe('1,234.5')
   })
 
   it('formats dates per locale', () => {

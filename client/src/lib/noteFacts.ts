@@ -9,12 +9,12 @@
  */
 import { relativeStamp } from '@/domain/stamp'
 import type { NoteThread } from '@/domain/tripNotes'
-import { currentLocale, t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import type { ItemComment } from '@/types/domain'
 import { stampText, type NameOf } from './rowFacts'
 
 function when(at: string | null, now: Date): string {
-  return at ? stampText(relativeStamp(at, now, currentLocale())) : ''
+  return at ? stampText(relativeStamp(at, now, intlLocale())) : ''
 }
 
 function joined(parts: readonly string[]): string {

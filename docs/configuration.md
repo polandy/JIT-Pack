@@ -149,7 +149,7 @@ Item values are stored as a plain amount. `JITPACK_CURRENCY` says what that amou
 JITPACK_CURRENCY=CHF
 ```
 
-Every place that shows a value — the inventory, an item's details, the trip analytics — then shows it with that currency, formatted the way each person's language expects: `CHF 1'250.00` for a Swiss German device, `1.250,00 CHF` for a German one.
+Every place that shows a value — the inventory, an item's details, the trip analytics — then shows it with that currency, formatted the way the region of each device expects: `CHF 1'250.00` on a device in Switzerland, `1.250,00 CHF` on one in Germany — whatever language the app is set to.
 
 Three things worth knowing before you set it:
 

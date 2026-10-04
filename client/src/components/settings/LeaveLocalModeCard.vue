@@ -19,7 +19,7 @@ import {
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import { currentLocale, t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import { isValidServerUrl } from '@/mode'
 
 const props = defineProps<{
@@ -46,7 +46,7 @@ const lastBackupText = computed(() =>
   props.lastBackupAt === null
     ? t('settings.move.backupNever')
     : t('settings.move.backupLast', {
-        when: new Date(props.lastBackupAt).toLocaleString(currentLocale()),
+        when: new Date(props.lastBackupAt).toLocaleString(intlLocale()),
       }),
 )
 </script>

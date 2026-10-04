@@ -82,14 +82,13 @@ describe('packedStampText (FR-25.17)', () => {
       nameOf,
       NOW,
     )
-    const time = relativeStamp('2026-03-01T14:32:00', NOW, 'en')!.time
-    expect(text).toBe(`packed by Andy · today ${time}`)
+    // The device's region writes the 24-hour clock (the specs run in Zurich).
+    expect(text).toBe('packed by Andy · today 14:32')
   })
 
   it('states the act without a who where the packer cannot be named', () => {
     const text = packedStampText(row({ packed_at: '2026-03-01T14:32:00' }), nameOf, NOW)
-    const time = relativeStamp('2026-03-01T14:32:00', NOW, 'en')!.time
-    expect(text).toBe(`packed · today ${time}`)
+    expect(text).toBe('packed · today 14:32')
   })
 
   it('names the packer even when the timestamp is missing', () => {
@@ -186,15 +185,14 @@ describe('skippedNote (FR-5.5/20.2)', () => {
 
 describe('boughtStampText (FR-30.4)', () => {
   const at = '2026-03-01T14:32:00'
-  const time = () => relativeStamp(at, NOW, 'en')!.time
 
   it('names who bought it and when', () => {
-    expect(boughtStampText(at, 'u-nina', nameOf, NOW)).toBe(`bought by Nina · today ${time()}`)
+    expect(boughtStampText(at, 'u-nina', nameOf, NOW)).toBe('bought by Nina · today 14:32')
   })
 
   it('states the purchase without a who where the buyer cannot be named', () => {
-    expect(boughtStampText(at, null, nameOf, NOW)).toBe(`bought · today ${time()}`)
-    expect(boughtStampText(at, 'u-gone', nameOf, NOW)).toBe(`bought · today ${time()}`)
+    expect(boughtStampText(at, null, nameOf, NOW)).toBe('bought · today 14:32')
+    expect(boughtStampText(at, 'u-gone', nameOf, NOW)).toBe('bought · today 14:32')
   })
 
   it('says nothing where the purchase knows neither who nor when', () => {
