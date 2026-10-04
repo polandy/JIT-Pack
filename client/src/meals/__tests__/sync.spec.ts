@@ -46,6 +46,7 @@ const draft = (name: string, amount: string | null = null): DraftIngredient => (
   amount,
   list: 'buy_local',
   bought: false,
+  fresh: null,
 })
 
 describe('the meal plan through the orchestrator (§3.33)', () => {
@@ -111,7 +112,14 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
       .sort((a, b) => a.position! - b.position!)
 
     actions.saveMeal('t1', mealStore.getMeal(id)!, { ...RACLETTE, time: '19:00' }, [
-      { id: potatoes!.id, name: 'Kartoffeln', amount: '1 kg', list: 'buy_local', bought: false },
+      {
+        id: potatoes!.id,
+        name: 'Kartoffeln',
+        amount: '1 kg',
+        list: 'buy_local',
+        bought: false,
+        fresh: null,
+      },
       draft('Silberzwiebeln'),
     ])
     await orch.drainTrip('t1')
@@ -128,6 +136,34 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
       { op: 'delete', table: TABLE.mealIngredients, id: pickles!.id },
     ])
     expect(Object.keys(edit[0]!.fields ?? {})).toEqual(['at_time'])
+  })
+
+  it('writes an ingredient’s freshness when it is set, and only the column that changed (FR-33.13)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const mealStore = useMealStore()
+    const actions = createMealActions(orch.moduleHost, mealStore)
+    const id = actions.saveMeal('t1', null, RACLETTE, [{ ...draft('Rahm', '2 dl'), fresh: true }])!
+    await orch.drainTrip('t1')
+    const [cream] = mealStore.ingredientsOf(id)
+    expect(cream!.fresh).toBe(true)
+    expect(harness.pushedMutations()[1]).toMatchObject({ fields: { name: 'Rahm', fresh: 1 } })
+
+    actions.saveMeal('t1', mealStore.getMeal(id)!, RACLETTE, [
+      {
+        id: cream!.id,
+        name: 'Rahm',
+        amount: '2 dl',
+        list: 'buy_local',
+        bought: false,
+        fresh: false,
+      },
+    ])
+    await orch.drainTrip('t1')
+    const set = harness.pushedMutations()[2]!
+    expect(set).toMatchObject({ op: 'upsert', id: cream!.id, fields: { fresh: 0 } })
+    expect(Object.keys(set.fields ?? {})).toEqual(['fresh'])
+    expect(mealStore.ingredientsOf(id)[0]!.fresh).toBe(false)
   })
 
   it('drops the ingredients of a meal turned into one eaten out', async () => {
@@ -171,10 +207,10 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
     const actions = createMealActions(orch.moduleHost, mealStore)
     const id = actions.saveMeal('t1', null, RACLETTE, [draft('Kartoffeln')])!
     const potatoes = mealStore.ingredientsOf(id)[0]!
-    actions.setBought(potatoes, true)
+    actions.setBought([potatoes], true)
     expect(mealStore.ingredientsOf(id)[0]).toMatchObject({ bought: true })
     expect(mealStore.ingredientsOf(id)[0]!.bought_at).not.toBeNull()
-    actions.setBought(mealStore.ingredientsOf(id)[0]!, false)
+    actions.setBought([mealStore.ingredientsOf(id)[0]!], false)
     expect(mealStore.ingredientsOf(id)[0]).toMatchObject({ bought: false, bought_at: null })
   })
 

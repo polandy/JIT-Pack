@@ -76,7 +76,7 @@ One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-
 | M27 | Ausflüge (A Trip's Excursions) | MVP | Addendum 31.1–31.15 |
 | M28 | Ideen (A Trip's Ideas) | MVP | Addendum 29.1–29.17, 29.19, 29.20 |
 | M30 | Aktivität (Activity Log) | P2 | Addendum 32.1–32.3 |
-| M31 | Essen (Meal Plan) | P2 | Addendum 33.1–33.11 |
+| M31 | Essen (Meal Plan) | P2 | Addendum 33.1–33.14 |
 
 ## 3. Cross-Screen Flows (Reference)
 

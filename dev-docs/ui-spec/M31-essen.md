@@ -54,11 +54,19 @@
     Einkaufsliste."* under it.
   * **Zutaten** (`meal-ingredients`), cooked meals: *„2 von 4 eingekauft"* at the label's end; a row per ingredient
     (`meal-ingredient-<name>`) — a round tick (`meal-ingredient-tick-<name>`, `aria-pressed`), the name (struck
-    through once bought, *„gekauft von Lena"* under it in Server Mode), the amount, its list as a small chip (*Vor Ort*
-    / *Vor der Reise*, `meal-ingredient-list-<name>`, a toggle only before the trip's first day and on an open
-    ingredient), ✕ (`meal-ingredient-remove-<name>`). Last, the field *„Zutat, z. B. 500 g Hörnli"*
-    (`meal-ingredient-add`) with its ＋, Enter adding too and keeping the focus. Under the list: *„Steht in Einkaufen
-    unter Essensplan, fällig am Mo., 12.10."*.
+    through once bought, *„gekauft von Lena"* under it in Server Mode), the amount at the row's end, and under the
+    name two small chips, so the name and its amount keep the row's width: its freshness (FR-33.13,
+    `meal-ingredient-fresh-<name>`, `aria-pressed`) — *🌿 frisch* in the done tone or *haltbar* quiet, a tap toggling
+    it, written by the button — and its list (*Vor Ort* / *Vor der Reise*, `meal-ingredient-list-<name>`, a toggle
+    only before the trip's first day and on an open ingredient); ✕
+    (`meal-ingredient-remove-<name>`). Last, the field *„Zutat, z. B. 500 g Hörnli"* (`meal-ingredient-add`) with its
+    ＋, Enter adding too and keeping the focus. Between the field and ＋, while a leading amount is typed, the amount
+    the field reads stands as a chip in the action tone (`meal-ingredient-preview`, *„2 Zehen"*; only *„2"* where the
+    unit is not in `units.ts`). From the first letter a card of **remembered ingredients** stands under
+    the field (FR-33.12, `meal-ingredient-suggestions`), at most five rows (`meal-ingredient-suggestion-<name>`): the
+    name in bold with *🌿* where fresh, under it *„7× · zuletzt Engadin"*, and on the right the amount it would bring —
+    one typed in front of the name, else the one used last. A tap adds it and empties the field. Under the list:
+    *„Steht in Einkaufen unter Essensplan, fällig am Mo., 12.10."*.
   * **Wo** (`meal-place`, *„Restaurant, Hütte …"*), a meal eaten out, and under it **Von der Ideen-Shortlist**: a 💡
     chip per shortlisted idea (`meal-place-idea-<id>`) that fills *Wo* and an empty dish.
   * **Hinzufügen** / **Speichern** (`meal-save`), full width, on once the meal has a dish or a place; it toasts
@@ -72,4 +80,4 @@
   (FR-33.3, `m6-group-source-Essensplan`), M27 a picnic as a line of the excursion's list (FR-33.6,
   `m27-extra-meal:<id>`), M1 *Heute essen* (FR-33.7, `dashboard-meals-<trip>`).
 * **Modes:** all three; Single-User and Local Mode name nobody.
-* (E2E-M31-01…08)
+* (E2E-M31-01…10)

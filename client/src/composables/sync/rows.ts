@@ -298,6 +298,7 @@ export function mealIngredientRow(ingredient: MealIngredient): Record<string, un
     bought_at: ingredient.bought_at,
     bought_by_user_id: ingredient.bought_by_user_id,
     shopping_position: ingredient.shopping_position,
+    fresh: ingredient.fresh === null ? null : dbBool(ingredient.fresh),
   }
 }
 

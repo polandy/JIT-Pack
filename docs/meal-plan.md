@@ -36,8 +36,15 @@ meal. The sheet asks for:
   **Tag**, to move it — a day that already has a meal wears a dot; **Uhrzeit** if it has a time (without one it stands where its meal belongs —
   breakfast in the morning, dinner in the evening); a **Notiz**.
 - **Wer kocht** — with a server, once more than one person is on the trip.
-- **Zutaten** — type *„500 g Hörnli"* and press Enter: the amount is split off by itself, and the field is ready for
-  the next one.
+- **Zutaten** — type the amount in front of the name, *„500 g Hörnli"*, and press Enter: the amount is split off by
+  itself, and the field is ready for the next one. While you type, the amount the field has read stands beside it as a
+  small chip — if it shows only *2* for *„2 Kellen Suppe"*, the unit is not one it knows and stays in the name (see
+  [Units](#units)). From the first letter, the ingredients of your earlier meals — on every trip on this device — are
+  offered below the field, the ones you use most first, with the amount you used last (*„Butter · 7× · zuletzt
+  Engadin"*). Tap one to add it; an amount you typed in front (*„300 g Bu"*) is kept.
+- Each ingredient says whether it is **🌿 frisch** or **haltbar**. JIT-Pack guesses the first time (milk, cream,
+  meat, salad, bread … are fresh); tap the chip to change it, and every later meal takes what you set for that
+  name.
 
 **Hinzufügen** writes it. Tap a meal to change it; **Mahlzeit löschen** deletes it with its ingredients — the question
 says how many open ones leave the shopping list.
@@ -48,6 +55,29 @@ Every ingredient is a line of **Einkaufen**, under **Essensplan**, in the order 
 meal under it (*„1 kg · Mo. Abend · Raclette"*). Buy it there or tick it in the meal — it is the same tick, and both
 places show it at once. An ingredient moves into **Fällig** on the day of its meal; the days before, it waits under
 **Essensplan**. Once the meal's day has passed, whatever was not bought leaves the open list — you ate something else.
+
+The same ingredient of several meals is **one line**, its amounts added up — *„Butter · 600 g · 3×"*, the meals and
+their amounts under it; tap the line to see each one. Ticking it buys all of them. Food that keeps is added up over
+the whole trip and is due at the first meal that needs it, so you buy it once. Fresh food is added up only for meals
+at most a day apart: Monday's and Tuesday's cream are one line, Friday's is a line of its own. Amounts in g and kg, in
+ml, dl and l, plain counts and the same unit (*1 Glas* + *1 Glas*) add up; anything else stands side by side
+(*„200 g + 1 Stück"*). Things you put on the list yourself are never added to an ingredient.
+
+## Units
+
+The amount is a number — *500*, *1,5* or *1.5* — and one of these units, in German or English, upper or lower case:
+
+| Kind | Units | Adds up as |
+|---|---|---|
+| Weight | mg, g (Gramm, gram), kg (Kilo, Kilogramm) | g and kg |
+| Volume | ml, cl, dl, l (Liter, litre) | ml, dl and l |
+| Pieces | a bare number (*6 Eier*), Stk., Stück, piece, pc | a number |
+| Containers and portions | Glas, Dose (can, tin), Packung (Pck., pack, packet), Flasche (Fl., bottle), Becher (tub), Tube, Beutel (bag), Topf (pot) | each with itself |
+| Kitchen measures | EL (Esslöffel, tbsp), TL (Teelöffel, tsp), Tasse (cup), Prise (pinch), Bund (bunch) | each with itself |
+| Parts | Zehe (clove), Scheibe (slice), Kopf (head), Stange (stick) | each with itself |
+
+One and many are the same unit: *1 Glas* and *2 Gläser* add up to *3 Gläser*. A unit not in this list stays part of
+the name — *„2 Kellen Suppe"* is two of *Kellen Suppe* — and adds up only with the same word.
 
 Before the trip, tap **Vor Ort** beside an ingredient to buy it at home instead (**Vor der Reise**) — the cheese you
 bring from your own cheese shop.
@@ -67,5 +97,5 @@ counts in what is packed. Its ingredients stay on the shopping list.
 ## Modes and backup
 
 The meal plan works in all three modes; only **Wer kocht** needs a server with more than one person on the trip. In
-**Local Mode** the earlier dishes come from the trips on this device. Meals are **not in the portable backup** file,
+**Local Mode** the earlier dishes and ingredients come from the trips on this device. Meals are **not in the portable backup** file,
 like a trip's tasks, notes and excursions.

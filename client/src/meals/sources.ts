@@ -5,7 +5,7 @@
  * kernel contract, with the module's writes bound in — a projection read from
  * the rows on every render, never a copy.
  */
-import { formatDate, t } from '@/i18n'
+import { formatDate, formatNumber, t } from '@/i18n'
 import type { DayPlanLine, DayPlanSource } from '@/lib/dayPlanSources'
 import { DAY_PLAN_MEAL } from '@/lib/dayPlanSources'
 import type { ExcursionExtraSource } from '@/lib/excursionExtraLines'
@@ -24,6 +24,14 @@ import {
   inOrder,
   isMealTime,
 } from './domain/mealPlan'
+import type { AmountTotal } from './domain/ingredients'
+import {
+  ingredientKey,
+  isFresh,
+  learnedFreshness,
+  sumAmounts,
+  sumGroups,
+} from './domain/ingredients'
 import type { useMealSheet } from './sheet'
 import type { useMealStore } from './store'
 
@@ -59,7 +67,18 @@ export function mealFacts(meal: Meal, ingredients: readonly MealIngredient[]): s
   return t('meals.bought', share)
 }
 
-/** FR-33.3: every meal's ingredients as lines of M6, under one heading. */
+/** One ingredient as the shopping list reads it: its meal, its due day and whether it is fresh. */
+interface ShoppingPart {
+  meal: Meal
+  ingredient: MealIngredient
+  due: string
+  fresh: boolean
+}
+
+/**
+ * FR-33.3/33.14: every meal's ingredients as lines of M6, under one heading —
+ * one name's summed into one line by FR-33.14's rule.
+ */
 export function createMealShoppingSource(deps: MealSourceDeps): ShoppingSource {
   function tripStart(tripId: string): string | null {
     return deps.context.trips().find((trip) => trip.id === tripId)?.start_date ?? null
@@ -69,14 +88,16 @@ export function createMealShoppingSource(deps: MealSourceDeps): ShoppingSource {
     const meals = new Map(deps.store.getMeals(tripId).map((meal) => [meal.id, meal]))
     const start = tripStart(tripId)
     const today = deps.today()
-    return deps.store
+    const learned = learnedFreshness(deps.store.allMeals(), deps.store.allIngredients())
+    const parts: ShoppingPart[] = deps.store
       .getIngredients(tripId)
       .filter((ingredient) => ingredient.list === list && ingredient.bought === bought)
       .flatMap((ingredient) => {
         const meal = meals.get(ingredient.meal_id)
         if (!meal || meal.kind !== MEAL_KIND_COOK) return []
         if (!bought && !ingredientOnOpenList(meal, today)) return []
-        return [{ meal, ingredient }]
+        const due = ingredientDue(meal, ingredient, start)
+        return [{ meal, ingredient, due, fresh: isFresh(ingredient, learned) }]
       })
       .sort(
         (a, b) =>
@@ -84,28 +105,75 @@ export function createMealShoppingSource(deps: MealSourceDeps): ShoppingSource {
           SLOT_PLACE[a.meal.slot].localeCompare(SLOT_PLACE[b.meal.slot]) ||
           (a.ingredient.position ?? 0) - (b.ingredient.position ?? 0),
       )
-      .map(({ meal, ingredient }) => line(meal, ingredient, start))
+    return sumGroups(parts, (part) => ({
+      key: ingredientKey(part.ingredient.name),
+      due: part.due,
+      fresh: part.fresh,
+    })).map((group) => (group.length === 1 ? single(group[0]!) : summed(group)))
   }
 
-  function line(meal: Meal, ingredient: MealIngredient, start: string | null): ShoppingLine {
+  function single({ meal, ingredient, due, fresh }: ShoppingPart): ShoppingLine {
     const when = t('meals.shoppingDetail', { when: mealWhen(meal), title: meal.title })
     return {
-      key: `meal:${ingredient.id}`,
-      name: ingredient.name,
+      ...shared([ingredient], due, fresh),
+      detail: [ingredient.amount, when].filter((part) => !!part).join(' · '),
+      boughtNote: ingredient.bought ? when : undefined,
+    }
+  }
+
+  /** FR-33.14: one name's ingredients as one line — their total beside the name, each part on the second line. */
+  function summed(group: readonly ShoppingPart[]): ShoppingLine {
+    const first = group[0]!
+    const ingredients = group.map((part) => part.ingredient)
+    const total = sumAmounts(ingredients.map((ingredient) => ingredient.amount))
+      .map(amountText)
+      .join(' + ')
+    return {
+      ...shared(
+        ingredients,
+        first.due,
+        group.some((part) => part.fresh),
+      ),
+      total: total === '' ? null : total,
+      detail: group
+        .map(({ meal, ingredient }) =>
+          [mealWhen(meal), ingredient.amount].filter(Boolean).join(' '),
+        )
+        .join(' · '),
+      parts: group.map(({ meal, ingredient }) => ({
+        key: ingredient.id,
+        label: t('meals.shoppingDetail', { when: mealWhen(meal), title: meal.title }),
+        amount: ingredient.amount,
+      })),
+      boughtNote: first.ingredient.bought
+        ? group.map(({ meal }) => mealWhen(meal)).join(' · ')
+        : undefined,
+    }
+  }
+
+  /** What a line of one ingredient and a summed one share — the first part names, dates and places it. */
+  function shared(
+    ingredients: readonly MealIngredient[],
+    due: string,
+    fresh: boolean,
+  ): Omit<ShoppingLine, 'detail' | 'boughtNote'> {
+    const first = ingredients[0]!
+    return {
+      key: `meal:${first.id}`,
+      name: first.name,
       quantity: 1,
       recipients: [],
       section: t('meals.shoppingHeading'),
       sectionRank: MEAL_SECTION_RANK,
-      detail: [ingredient.amount, when].filter((part) => !!part).join(' · '),
-      dueDate: ingredient.bought ? null : ingredientDue(meal, ingredient, start),
+      dueDate: first.bought ? null : due,
       pressingDays: 0,
-      position: ingredient.shopping_position,
-      boughtNote: ingredient.bought ? when : undefined,
-      boughtAt: ingredient.bought_at,
-      boughtBy: ingredient.bought_by_user_id,
-      buy: () => deps.actions.setBought(ingredient, true),
-      unbuy: () => deps.actions.setBought(ingredient, false),
-      place: (position) => deps.actions.placeOnShopping(ingredient, position),
+      position: first.shopping_position,
+      fresh,
+      boughtAt: first.bought_at,
+      boughtBy: first.bought_by_user_id,
+      buy: () => deps.actions.setBought(ingredients, true),
+      unbuy: () => deps.actions.setBought(ingredients, false),
+      place: (position) => deps.actions.placeOnShopping(ingredients, position),
     }
   }
 
@@ -113,6 +181,13 @@ export function createMealShoppingSource(deps: MealSourceDeps): ShoppingSource {
     open: (tripId, list) => lines(tripId, list, false),
     bought: (tripId, list) => lines(tripId, list, true),
   }
+}
+
+/** One part of a summed amount in the reader's numbers — „1,4 kg", „3", „etwas". */
+function amountText(total: AmountTotal): string {
+  if ('text' in total) return total.text
+  const value = formatNumber(total.value, { maximumFractionDigits: 2 })
+  return total.unit === '' ? value : `${value} ${total.unit}`
 }
 
 /** FR-33.5: every meal as a line of the day plan, opening its sheet over the plan. */

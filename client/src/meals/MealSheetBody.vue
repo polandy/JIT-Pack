@@ -43,6 +43,12 @@ import {
   planDays,
   type EarlierDish,
 } from './domain/mealPlan'
+import {
+  freshByName,
+  ingredientSuggestions,
+  learnedFreshness,
+  type IngredientSuggestion,
+} from './domain/ingredients'
 import type { MealSheetRequest } from './sheet'
 import { ingredientsOfMeal } from './sources'
 import { useMealStore } from './store'
@@ -111,6 +117,7 @@ const draft = reactive({
       list: ingredient.list,
       bought: ingredient.bought,
       boughtBy: ingredient.bought_by_user_id,
+      fresh: ingredient.fresh,
     }),
   ),
 })
@@ -159,6 +166,7 @@ function takeDish(dish: EarlierDish) {
     list: ITEM_MODE_BUY_LOCAL,
     bought: false,
     boughtBy: null,
+    fresh: null,
   }))
   takenFrom.value = dish.tripName
 }
@@ -202,16 +210,61 @@ const dueText = computed(() => shortDueDay(draft.day))
 function addIngredient() {
   const parsed = parseIngredient(newIngredient.value)
   if (!parsed) return
+  pushIngredient(parsed.name, parsed.amount)
+}
+
+function pushIngredient(name: string, amount: string | null) {
   draft.ingredients.push({
     key: `new-${nextKey++}`,
     id: null,
-    name: parsed.name,
-    amount: parsed.amount,
+    name,
+    amount,
     list: ITEM_MODE_BUY_LOCAL,
     bought: false,
     boughtBy: null,
+    fresh: null,
   })
   newIngredient.value = ''
+}
+
+// --- FR-33.12/33.13: ingredients remembered across trips, fresh or durable ---
+
+/** The last freshness set for each name on the device. */
+const learned = computed(() => learnedFreshness(mealStore.allMeals(), mealStore.allIngredients()))
+
+const suggestions = computed(() =>
+  cooked.value
+    ? ingredientSuggestions({
+        meals: mealStore.allMeals(),
+        ingredients: mealStore.allIngredients(),
+        trips: context?.trips() ?? [],
+        typed: newIngredient.value,
+        taken: draft.ingredients.map((ingredient) => ingredient.name),
+      })
+    : [],
+)
+
+/** A remembered ingredient, with its last amount — an amount typed in front wins. */
+function takeSuggestion(suggestion: IngredientSuggestion) {
+  pushIngredient(suggestion.name, typedAmount.value ?? suggestion.amount)
+}
+
+/** The amount a suggestion would bring: one typed in front, else the one used last. */
+const typedAmount = computed(() => parseIngredient(newIngredient.value)?.amount ?? null)
+
+/** How often a remembered ingredient was used, and on which trip last. */
+function suggestionSource(suggestion: IngredientSuggestion): string {
+  return suggestion.tripName
+    ? t('meals.suggestionSourceTrip', { n: suggestion.uses, trip: suggestion.tripName })
+    : t('meals.suggestionSource', { n: suggestion.uses })
+}
+
+function freshOf(ingredient: SheetIngredient): boolean {
+  return freshByName(ingredient.name, learned.value, ingredient.fresh)
+}
+
+function toggleFresh(ingredient: SheetIngredient) {
+  ingredient.fresh = !freshOf(ingredient)
 }
 
 /** A saved ingredient's tick is a purchase, written at once; a new one's is the draft's. */
@@ -220,7 +273,7 @@ function tick(ingredient: SheetIngredient) {
   const saved = ingredient.id
     ? mealStore.ingredientsOf(meal?.id ?? '').find((i) => i.id === ingredient.id)
     : undefined
-  if (saved) actions.setBought(saved, ingredient.bought)
+  if (saved) actions.setBought([saved], ingredient.bought)
 }
 
 function toggleList(ingredient: SheetIngredient) {
@@ -467,18 +520,32 @@ function takePlace(title: string) {
             <small v-if="ingredient.bought && nameOf(ingredient.boughtBy)">{{
               t('meals.boughtBy', { name: nameOf(ingredient.boughtBy) ?? '' })
             }}</small>
+            <!-- The chips under the name: the name and its amount keep the row's width. -->
+            <span class="chips-line">
+              <!-- FR-33.13: fresh is bought for its day, durable once for the trip. -->
+              <button
+                type="button"
+                class="fresh"
+                :class="{ on: freshOf(ingredient) }"
+                :aria-pressed="freshOf(ingredient) ? 'true' : 'false'"
+                :data-testid="`meal-ingredient-fresh-${ingredient.name}`"
+                @click="toggleFresh(ingredient)"
+              >
+                {{ freshOf(ingredient) ? t('meals.fresh') : t('meals.durable') }}
+              </button>
+              <button
+                type="button"
+                class="list"
+                :class="{ before: ingredient.list === ITEM_MODE_BUY_BEFORE }"
+                :disabled="!beforeTrip || ingredient.bought"
+                :data-testid="`meal-ingredient-list-${ingredient.name}`"
+                @click="toggleList(ingredient)"
+              >
+                {{ t(`meals.list.${ingredient.list}`) }}
+              </button>
+            </span>
           </span>
           <span v-if="ingredient.amount" class="amount jp-num">{{ ingredient.amount }}</span>
-          <button
-            type="button"
-            class="list"
-            :class="{ before: ingredient.list === ITEM_MODE_BUY_BEFORE }"
-            :disabled="!beforeTrip || ingredient.bought"
-            :data-testid="`meal-ingredient-list-${ingredient.name}`"
-            @click="toggleList(ingredient)"
-          >
-            {{ t(`meals.list.${ingredient.list}`) }}
-          </button>
           <button
             type="button"
             class="remove"
@@ -497,6 +564,14 @@ function takePlace(title: string) {
             data-testid="meal-ingredient-add"
             @keydown.enter.prevent="addIngredient"
           />
+          <!-- FR-33.2: the amount the field reads off what is typed — a unit
+               it does not know stays out of it, before the ＋ is tapped. -->
+          <span
+            v-if="typedAmount"
+            class="amount preview jp-num"
+            data-testid="meal-ingredient-preview"
+            >{{ typedAmount }}</span
+          >
           <button
             type="button"
             class="plus"
@@ -505,6 +580,30 @@ function takePlace(title: string) {
             @click="addIngredient"
           >
             <IonIcon :icon="addOutline" aria-hidden="true" />
+          </button>
+        </li>
+      </ul>
+      <!-- FR-33.12: what earlier meals used, from the first letter typed. -->
+      <ul
+        v-if="suggestions.length > 0"
+        class="suggestions"
+        data-testid="meal-ingredient-suggestions"
+      >
+        <li v-for="suggestion in suggestions" :key="suggestion.name">
+          <button
+            type="button"
+            class="suggestion"
+            :data-testid="`meal-ingredient-suggestion-${suggestion.name}`"
+            @click="takeSuggestion(suggestion)"
+          >
+            <span class="what">
+              <b>{{ suggestion.name }}</b>
+              <span v-if="suggestion.fresh" role="img" :aria-label="t('meals.fresh')"> 🌿</span>
+              <small>{{ suggestionSource(suggestion) }}</small>
+            </span>
+            <span v-if="typedAmount ?? suggestion.amount" class="amount jp-num">{{
+              typedAmount ?? suggestion.amount
+            }}</span>
           </button>
         </li>
       </ul>
@@ -787,6 +886,13 @@ function takePlace(title: string) {
   text-decoration: line-through;
 }
 
+.chips-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
 .name small {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
@@ -798,7 +904,8 @@ function takePlace(title: string) {
   white-space: nowrap;
 }
 
-.list {
+.list,
+.fresh {
   padding: 1px 8px;
   border: 1px solid var(--ct-surface1);
   border-radius: var(--jp-r-pill);
@@ -810,6 +917,11 @@ function takePlace(title: string) {
   cursor: pointer;
 }
 
+.fresh.on {
+  border-color: var(--jp-done);
+  color: var(--jp-done);
+}
+
 .list.before {
   border-color: var(--ct-glacier);
   color: var(--ct-glacier);
@@ -817,6 +929,41 @@ function takePlace(title: string) {
 
 .list:disabled {
   cursor: default;
+}
+
+/* FR-33.12: the remembered ingredients, a card of rows under the field. */
+.suggestions {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-md);
+  list-style: none;
+  overflow: hidden;
+}
+
+.suggestions li + li {
+  border-top: 1px solid var(--ct-surface0);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ct-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.suggestion .what small {
+  display: block;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 .remove,
@@ -840,6 +987,16 @@ function takePlace(title: string) {
 
 .add ion-input {
   margin-top: 6px;
+}
+
+/* The amount read off the field, as a chip the ＋ will turn into the row's amount. */
+.preview {
+  flex: none;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r-pill);
+  color: var(--jp-action);
 }
 
 .plus {

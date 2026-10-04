@@ -13,7 +13,7 @@
  * undo toast and the drag.
  */
 import { IonLabel } from '@ionic/vue'
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
@@ -73,10 +73,30 @@ function isSelected(line: ShoppingLine): boolean {
   return props.selection?.selected.value.has(line.key) ?? false
 }
 
-/** Not selecting → the name opens the entry's sheet; selecting → it toggles the row. */
+/** FR-33.14: a line summing several things — a tap opens what it stands for. */
+function hasParts(line: ShoppingLine): boolean {
+  return (line.parts?.length ?? 0) > 1
+}
+
+/** The summed lines whose parts are open, by key — the reader's view, never written. */
+const opened = ref<ReadonlySet<string>>(new Set())
+
+function toggleParts(line: ShoppingLine) {
+  const next = new Set(opened.value)
+  if (!next.delete(line.key)) next.add(line.key)
+  opened.value = next
+}
+
+/** Whether the name answers a tap: an entry's sheet, or a summed line's parts. */
+function tappable(line: ShoppingLine): boolean {
+  return !!line.edit || hasParts(line)
+}
+
+/** Not selecting → the name opens the entry's sheet or the line's parts; selecting → it toggles the row. */
 function onClick(line: ShoppingLine) {
   if (props.selection?.click(line.key, !!line.edit)) return
   if (line.edit) emit('open', line)
+  else if (hasParts(line)) toggleParts(line)
 }
 
 /** The recipients, named in roster order (FR-25.6). */
@@ -158,9 +178,10 @@ function hasFacts(line: ShoppingLine): boolean {
         <DragGrip v-else slot="start" off />
       </template>
       <IonLabel
-        :class="{ tappable: !!line.edit, selectable: selecting && !!line.edit }"
-        :role="line.edit ? 'button' : undefined"
-        :tabindex="line.edit ? 0 : undefined"
+        :class="{ tappable: tappable(line), selectable: selecting && !!line.edit }"
+        :role="tappable(line) ? 'button' : undefined"
+        :tabindex="tappable(line) ? 0 : undefined"
+        :aria-expanded="hasParts(line) ? opened.has(line.key) : undefined"
         data-testid="m6-row-label"
         @click="onClick(line)"
         @keyup.enter="onClick(line)"
@@ -170,7 +191,25 @@ function hasFacts(line: ShoppingLine): boolean {
         @pointercancel="selection?.release()"
         @contextmenu.prevent="line.edit && selection?.contextMenu(line.key)"
       >
-        <h3 class="row-name">{{ line.name }}</h3>
+        <div class="name-line">
+          <h3 class="row-name">{{ line.name }}</h3>
+          <!-- FR-33.14: what a summed line adds up to, and how many it serves. -->
+          <span v-if="line.total" class="total" :data-testid="`m6-row-total-${line.name}`"
+            >· {{ line.total }}</span
+          >
+          <span v-if="hasParts(line)" class="uses" :data-testid="`m6-row-uses-${line.name}`"
+            >{{ line.parts!.length }}×</span
+          >
+          <!-- FR-33.13: fresh food, bought for its day. -->
+          <span
+            v-if="line.fresh"
+            class="fresh"
+            role="img"
+            :aria-label="t('shopping.fresh')"
+            :data-testid="`m6-row-fresh-${line.name}`"
+            >🌿</span
+          >
+        </div>
       </IonLabel>
       <!-- M25's second line: what is known about the line. The pill stays
            while selecting — when a thing is due is part of choosing it. -->
@@ -179,7 +218,7 @@ function hasFacts(line: ShoppingLine): boolean {
         <span v-if="line.quantity > 1">{{ line.quantity }}×</span>
         <span v-if="tagOf?.(line)" :data-testid="`m6-row-tag-${line.name}`">{{ tagOf(line) }}</span>
         <!-- FR-33.3: the source's own word on the line — an ingredient's meal. -->
-        <span v-if="line.detail" :data-testid="`m6-row-detail-${line.name}`">{{
+        <span v-if="line.detail" class="detail" :data-testid="`m6-row-detail-${line.name}`">{{
           line.detail
         }}</span>
         <!-- FR-25.6: for whom, derived from membership — never a control. -->
@@ -199,6 +238,15 @@ function hasFacts(line: ShoppingLine): boolean {
           :idea-id="line.fromIdea.ideaId"
           :testid="`m6-row-idea-${line.name}`"
         />
+      </template>
+      <!-- FR-33.14: a summed line's parts, each with what it is for and its amount. -->
+      <template v-if="hasParts(line) && opened.has(line.key)" #below>
+        <ul class="parts" :data-testid="`m6-row-parts-${line.name}`">
+          <li v-for="part in line.parts" :key="part.key" data-testid="m6-row-part">
+            <span>{{ part.label }}</span>
+            <span v-if="part.amount" class="jp-num">{{ part.amount }}</span>
+          </li>
+        </ul>
       </template>
       <!-- FR-30.12: who is to buy it, at the edge before the tick — a control
            on an own entry, the avatar alone while selecting or on a closed
@@ -238,6 +286,49 @@ function hasFacts(line: ShoppingLine): boolean {
 /* The person's own gap to the tick, M25's measure. */
 .person {
   margin-inline-start: 8px;
+}
+
+.name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.name-line .row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.total,
+.uses {
+  flex: none;
+  color: var(--ct-subtext0);
+}
+
+.uses {
+  font-size: var(--jp-text-sm);
+}
+
+/* A summed line's parts may outgrow the row: they wrap rather than run off it. */
+.shop-row .facts > .detail {
+  white-space: normal;
+}
+
+.parts {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.parts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 4px;
+  border-top: 1px solid var(--ct-surface0);
 }
 
 .recipients {

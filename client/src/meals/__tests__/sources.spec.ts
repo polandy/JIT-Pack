@@ -128,7 +128,10 @@ describe('the ingredients on the shopping list (FR-33.3)', () => {
     const source = createMealShoppingSource(d)
     expect(source.bought('t1', 'buy_before').map((l) => l.name)).toEqual(['Raclettekäse'])
     source.open('t1', 'buy_local')[0]!.buy()
-    expect(actions.setBought).toHaveBeenCalledWith(expect.objectContaining({ id: 'i-apple' }), true)
+    expect(actions.setBought).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'i-apple' })],
+      true,
+    )
   })
 
   it('makes an ingredient bought before the trip due on the eve of departure', () => {
@@ -141,6 +144,134 @@ describe('the ingredients on the shopping list (FR-33.3)', () => {
       }),
     ])
     expect(createMealShoppingSource(d).open('t1', 'buy_before')[0]?.dueDate).toBe('2026-10-09')
+  })
+})
+
+describe('one name summed into one line (FR-33.13/33.14)', () => {
+  /** Two more dinners: butter on the 12th, 13th and 16th; cream on the 12th, 13th and 16th. */
+  function withWeek() {
+    const { d, mealStore, actions } = deps()
+    mealStore.applyChanges([
+      row(TABLE.meals, 'tue', {
+        on_date: '2026-10-13',
+        slot: 'breakfast',
+        title: 'Zmorge',
+        kind: 'cook',
+      }),
+      row(TABLE.meals, 'fri', {
+        on_date: '2026-10-16',
+        slot: 'dinner',
+        title: 'Älplermagronen',
+        kind: 'cook',
+      }),
+      row(TABLE.mealIngredients, 'b-mo', {
+        meal_id: 'dinner',
+        name: 'Butter',
+        amount: '200 g',
+        position: 2,
+      }),
+      row(TABLE.mealIngredients, 'b-di', {
+        meal_id: 'tue',
+        name: 'butter',
+        amount: '300 g',
+        position: 0,
+      }),
+      row(TABLE.mealIngredients, 'b-fr', {
+        meal_id: 'fri',
+        name: 'Butter',
+        amount: '1 kg',
+        position: 0,
+      }),
+      row(TABLE.mealIngredients, 'r-mo', {
+        meal_id: 'dinner',
+        name: 'Rahm',
+        amount: '2 dl',
+        position: 3,
+      }),
+      row(TABLE.mealIngredients, 'r-di', {
+        meal_id: 'tue',
+        name: 'Rahm',
+        amount: '1 dl',
+        position: 1,
+      }),
+      row(TABLE.mealIngredients, 'r-fr', {
+        meal_id: 'fri',
+        name: 'Rahm',
+        amount: '2 dl',
+        position: 1,
+      }),
+    ])
+    return { d, actions, open: createMealShoppingSource(d).open('t1', 'buy_local') }
+  }
+
+  it('sums durable food over the trip, due at its first meal, its parts on the second line', () => {
+    const { open } = withWeek()
+    const butter = open.filter((l) => l.name === 'Butter')
+    expect(butter).toHaveLength(1)
+    expect(butter[0]).toMatchObject({
+      key: 'meal:b-mo',
+      total: '1.5 kg',
+      fresh: false,
+      dueDate: '2026-10-12',
+      detail: expect.stringMatching(/^Mo\.? Abend 200 g · Di\.? Früh 300 g · Fr\.? Abend 1 kg$/),
+    })
+    expect(butter[0]!.parts!.map((p) => p.amount)).toEqual(['200 g', '300 g', '1 kg'])
+    expect(butter[0]!.parts![2]!.label).toMatch(/^Fr\.? Abend · Älplermagronen$/)
+  })
+
+  it('sums fresh food only across one day — Friday’s cream is a line of its own', () => {
+    const { open } = withWeek()
+    const cream = open.filter((l) => l.name === 'Rahm')
+    expect(cream.map((l) => [l.total ?? null, l.dueDate, l.fresh])).toEqual([
+      ['3 dl', '2026-10-12', true],
+      [null, '2026-10-16', true],
+    ])
+    expect(cream[1]!.parts).toBeUndefined()
+  })
+
+  it('buys, puts back and places every part of a summed line', () => {
+    const { open, actions } = withWeek()
+    const butter = open.find((l) => l.name === 'Butter')!
+    const ids = ['b-mo', 'b-di', 'b-fr'].map((id) => expect.objectContaining({ id }))
+    butter.buy()
+    expect(actions.setBought).toHaveBeenLastCalledWith(ids, true)
+    butter.unbuy()
+    expect(actions.setBought).toHaveBeenLastCalledWith(ids, false)
+    butter.place(4)
+    expect(actions.placeOnShopping).toHaveBeenLastCalledWith(ids, 4)
+  })
+
+  it('shows the rest once a part is bought in its meal, and a durable name set fresh splits', () => {
+    const { d, mealStore } = deps()
+    mealStore.applyChanges([
+      row(TABLE.meals, 'fri', {
+        on_date: '2026-10-16',
+        slot: 'dinner',
+        title: 'Rösti',
+        kind: 'cook',
+      }),
+      row(TABLE.mealIngredients, 'b-mo', { meal_id: 'dinner', name: 'Butter', amount: '200 g' }),
+      row(TABLE.mealIngredients, 'b-fr', {
+        meal_id: 'fri',
+        name: 'Butter',
+        amount: '100 g',
+        bought: 1,
+      }),
+    ])
+    const source = createMealShoppingSource(d)
+    const rest = source.open('t1', 'buy_local').find((l) => l.name === 'Butter')!
+    expect(rest.key).toBe('meal:b-mo')
+    expect(rest.parts).toBeUndefined()
+    // Friday's butter back on the list, set fresh: the name is fresh now, and four days apart.
+    mealStore.applyChanges([
+      row(TABLE.mealIngredients, 'b-fr', {
+        meal_id: 'fri',
+        name: 'Butter',
+        amount: '100 g',
+        fresh: 1,
+      }),
+    ])
+    expect(source.open('t1', 'buy_local').filter((l) => l.name === 'Butter')).toHaveLength(2)
   })
 })
 

@@ -280,7 +280,8 @@ partition; a slot is no uniqueness rule, so two devices planning one dinner both
 excursion it is taken on in `excursion_id` — `day_entries`' rule: kept on the trip's own, dropped when gone, refused
 when another trip's — and `excursion_packed_at` when it went into the rucksack. `meal_ingredients` (FR-33.2) hang off
 their meal (`meal_id`, refused unless it names a meal of the same trip) — `name`, `amount` (free text), `list`
-(`buy_before`, `buy_local`), `position`, `shopping_position` — and carry `shopping_entries`' purchase record: `bought`,
+(`buy_before`, `buy_local`), `position`, `shopping_position`, `fresh` (FR-33.13: `1`, `0` or `null` for never set) —
+and carry `shopping_entries`' purchase record: `bought`,
 `bought_at` the tap's, `bought_by_user_id` stamped by the server from the pusher and cleared with the purchase.
 Deleting a meal tombstones its ingredients on the trip's feed.
 

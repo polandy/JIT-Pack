@@ -25,6 +25,15 @@ export interface ShoppingRecipient {
   name: string
 }
 
+/** One of the things a summed line stands for (FR-33.14). */
+export interface ShoppingLinePart {
+  /** Stable across renders and unique inside its line. */
+  key: string
+  /** What the part is for, in the reader's words — an ingredient's meal. */
+  label: string
+  amount: string | null
+}
+
 /** One thing to buy, whoever it comes from. */
 export interface ShoppingLine {
   /** Stable across renders and unique across every source of the list. */
@@ -86,6 +95,16 @@ export interface ShoppingLine {
    * absent for never placed, which reads before every placed line (ADR-083).
    */
   position?: number | null
+  /**
+   * FR-33.14: what a line sums up, in their order — a meal plan's ingredients
+   * of one name; absent for a line of one thing. The list opens them on a
+   * tap, and checking the line off buys every one.
+   */
+  parts?: readonly ShoppingLinePart[]
+  /** FR-33.14: what the parts add up to, read beside the name; absent for none. */
+  total?: string | null
+  /** FR-33.13: fresh food, marked as such; absent for a source that does not say. */
+  fresh?: boolean
   /** For an own entry made from an idea (FR-29.13): its trip and the idea; absent otherwise. */
   fromIdea?: { tripId: string; ideaId: string }
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */

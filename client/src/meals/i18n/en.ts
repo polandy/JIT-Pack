@@ -73,6 +73,11 @@ export const mealsEn = {
   'meals.boughtBy': 'bought by {name}',
   'meals.ingredientPlaceholder': 'Ingredient, e.g. 500 g Hörnli',
   'meals.addIngredient': 'Add ingredient',
+  // FR-33.12/33.13: remembered ingredients, fresh or durable.
+  'meals.suggestionSource': 'used {n}×',
+  'meals.suggestionSourceTrip': 'used {n}× · last on {trip}',
+  'meals.fresh': '🌿 fresh',
+  'meals.durable': 'keeps',
   'meals.removeIngredient': 'Remove {name}',
   'meals.tickIngredient': '{name} bought',
   'meals.list.buy_local': 'At the destination',

@@ -534,7 +534,7 @@ export interface MealIngredient {
   trip_id: string
   meal_id: string
   name: string
-  /** Free text — „500 g", „1 Glas" — never summed; null for none. */
+  /** Free text as typed — „500 g", „1 Glas" — summed on M6 only (FR-33.14); null for none. */
   amount: string | null
   list: ShoppingMode
   /** Its order in the meal. */
@@ -546,6 +546,11 @@ export interface MealIngredient {
   bought_by_user_id: string | null
   /** FR-30.13: its place on M6, by hand; null for never placed (ADR-083). */
   shopping_position: number | null
+  /**
+   * FR-33.13: fresh or durable, as somebody set it; null for never set, when
+   * `isFresh` asks the name's last setting and the built-in list.
+   */
+  fresh: boolean | null
 }
 
 // --- The planner (§3.29) ---

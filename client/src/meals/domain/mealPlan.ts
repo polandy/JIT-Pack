@@ -8,6 +8,7 @@
 import { daysBetween } from '@/lib/dueDay'
 import type { MealExcursion, MealTrip } from '@/lib/mealContext'
 import type { Meal, MealIngredient, MealKind, MealSlot } from '@/types/domain'
+import { UNIT_PATTERN } from './units'
 import {
   ITEM_MODE_BUY_BEFORE,
   MEAL_KIND_COOK,
@@ -90,13 +91,16 @@ export function boughtShare(ingredients: readonly MealIngredient[]): {
   }
 }
 
-/** A leading amount: a number (with a decimal comma or point) and an optional unit. */
-const LEADING_AMOUNT =
-  /^(\d+(?:[.,]\d+)?\s*(?:g|kg|mg|l|dl|cl|ml|el|tl|stk\.?|stück|glas|gläser|dose|dosen|pck\.?|packung|fl\.?|flasche|bund|prise)?)\s+(.+)$/i
+/** A leading amount: a number (with a decimal comma or point) and an optional unit of `units.ts`. */
+const LEADING_AMOUNT = new RegExp(
+  `^(\\d+(?:[.,]\\d+)?\\s*(?:(?:${UNIT_PATTERN})(?=\\s))?)\\s+(.+)$`,
+  'iu',
+)
 
 /**
  * What the ingredient field's text means (FR-33.2): *„500 g Hörnli"* is
- * Hörnli, 500 g. Null for nothing typed.
+ * Hörnli, 500 g. A unit the table does not hold stays in the name, the
+ * number alone being the amount. Null for nothing typed.
  */
 export function parseIngredient(text: string): { name: string; amount: string | null } | null {
   const trimmed = text.trim()

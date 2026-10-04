@@ -43,6 +43,8 @@ export interface DraftIngredient {
   amount: string | null
   list: ShoppingMode
   bought: boolean
+  /** FR-33.13: fresh or durable as set by hand; null for never set. */
+  fresh: boolean | null
 }
 
 export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof useMealStore>) {
@@ -127,6 +129,7 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
           bought_at: draft.bought ? host.nowIso() : null,
           bought_by_user_id: null,
           shopping_position: null,
+          fresh: draft.fresh === null ? null : dbBool(draft.fresh),
         })
         writes.push({ mutation, optimistic: optimisticInsert(mutation) })
         return
@@ -137,6 +140,9 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
       if (draft.amount !== current.amount) patch['amount'] = draft.amount
       if (draft.list !== current.list) patch['list'] = draft.list
       if (position !== current.position) patch['position'] = position
+      if (draft.fresh !== current.fresh) {
+        patch['fresh'] = draft.fresh === null ? null : dbBool(draft.fresh)
+      }
       if (Object.keys(patch).length === 0) return
       const mutation = host.mutation('upsert', TABLE.mealIngredients, current.id, patch)
       writes.push({ mutation, optimistic: optimisticUpdate(mutation, encodeIngredient(current)) })
@@ -150,30 +156,39 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
 
   /**
    * FR-33.3: the purchase, FR-30.4's record — the tap's time travels with it
-   * and the server stamps who; taking it back clears both.
+   * and the server stamps who; taking it back clears both. Every ingredient
+   * of a summed line in one write (FR-33.14), all of one trip.
    */
-  function setBought(ingredient: MealIngredient, bought: boolean): void {
-    const mutation = host.mutation('upsert', TABLE.mealIngredients, ingredient.id, {
+  function setBought(ingredients: readonly MealIngredient[], bought: boolean): void {
+    writeEach(ingredients, () => ({
       bought: dbBool(bought),
       bought_at: bought ? host.nowIso() : null,
       bought_by_user_id: null,
-    })
-    host.writeTrip(ingredient.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeIngredient(ingredient)),
-    })
+    }))
   }
 
-  /** FR-30.13: the ingredient's place inside its heading on M6. */
-  function placeOnShopping(ingredient: MealIngredient, position: number): void {
-    if (position === ingredient.shopping_position) return
-    const mutation = host.mutation('upsert', TABLE.mealIngredients, ingredient.id, {
-      shopping_position: position,
-    })
-    host.writeTrip(ingredient.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeIngredient(ingredient)),
-    })
+  /** FR-30.13: the place inside its heading on M6, of every ingredient a line stands for. */
+  function placeOnShopping(ingredients: readonly MealIngredient[], position: number): void {
+    writeEach(
+      ingredients.filter((ingredient) => ingredient.shopping_position !== position),
+      () => ({ shopping_position: position }),
+    )
+  }
+
+  /** One patch per ingredient, written together on their trip. */
+  function writeEach(
+    ingredients: readonly MealIngredient[],
+    patch: () => Record<string, unknown>,
+  ): void {
+    const first = ingredients[0]
+    if (!first) return
+    host.writeTrip(
+      first.trip_id,
+      ...ingredients.map((ingredient) => {
+        const mutation = host.mutation('upsert', TABLE.mealIngredients, ingredient.id, patch())
+        return { mutation, optimistic: optimisticUpdate(mutation, encodeIngredient(ingredient)) }
+      }),
+    )
   }
 
   /** FR-33.6: the picnic packed into its excursion's rucksack, or taken out again. */

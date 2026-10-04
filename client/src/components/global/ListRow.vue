@@ -3,8 +3,8 @@
  * One line of a list that is ticked off — a task on M25 (and M4's window),
  * a thing to buy on M6 (one component so the two lists cannot drift
  * apart). The leading slot (the grip or the selection box), the
- * name, a second line with what is known about it, anything else at the
- * trailing edge, and the tick last, so its outer edge is the row's (UI-Spec
+ * name, a second line with what is known about it, what the row opens
+ * under that (`below`), anything else at the trailing edge, and the tick last, so its outer edge is the row's (UI-Spec
  * M4).
  *
  * It decides nothing: the caller renders the name and the facts and is told
@@ -44,6 +44,7 @@ const slots = useSlots()
     <div class="text">
       <slot />
       <div v-if="slots.facts" class="facts" :data-testid="factsTestid"><slot name="facts" /></div>
+      <slot name="below" />
     </div>
     <slot name="end" />
     <IonCheckbox
