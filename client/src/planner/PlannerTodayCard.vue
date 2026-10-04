@@ -88,7 +88,6 @@ const moreLabel = computed(() =>
 /** A tap leads where it leads on M29; the plan's own entries open on M29 itself. */
 function open(line: DayLine) {
   if (line.idea) void router.push(tripIdeasPath(props.tripId, line.idea.id))
-  else if (line.source?.open) line.source.open()
   else if (line.source) void router.push(line.source.path)
   else void router.push(dayPlanPath.value)
 }

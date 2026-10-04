@@ -362,6 +362,9 @@ test.describe('M31 meal plan @local @meals', () => {
     await picnic.locator('ion-checkbox').click()
     await expect(excursion.getByTestId('m27-figure')).toHaveText('1/1 packed')
     await writesLanded(page)
+    // The list of excursions counts it too.
+    await page.getByTestId('header-back').click()
+    await expect(visiblePage(page).getByTestId('m27-count-Gletscher')).toHaveText('1/1')
 
     await openDayPlan(page)
     await chooseDay(page, day(31))
