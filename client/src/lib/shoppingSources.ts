@@ -46,6 +46,16 @@ export interface ShoppingLine {
    */
   section?: string | null
   /**
+   * Where the line's heading stands among the source headings — 0 or absent
+   * for A–Z with the others, higher after them (FR-33.3: the meal plan's).
+   */
+  sectionRank?: number
+  /**
+   * What the source says on the line's second line beside the facts the list
+   * draws itself — the meal an ingredient is for (FR-33.3); absent for none.
+   */
+  detail?: string | null
+  /**
    * FR-7.16: the close of the packing carried the line here from *before
    * departure*. Filed under *Von vor der Abreise* where nothing files it more
    * precisely — a tag of its own or a source's own heading.
@@ -53,10 +63,17 @@ export interface ShoppingLine {
   carriedOver?: boolean
   /**
    * The day an open line is due (FR-30.10), `YYYY-MM-DD`; null or absent for
-   * none — and for a bought line, which is never overdue. Only the list's own
-   * entries carry one: a packing line's moment is the list it sits on.
+   * none — and for a bought line, which is never overdue. The list's own
+   * entries carry one, and a meal's ingredients its meal's (FR-33.3): a
+   * packing line's moment is the list it sits on.
    */
   dueDate?: string | null
+  /**
+   * How many days before its due day the line counts as pressing (FR-30.10's
+   * *Fällig*): two when absent; none for a meal's ingredient, which presses
+   * on its meal's day only (FR-33.3).
+   */
+  pressingDays?: number
   /**
    * Who is to buy the line (FR-30.12), as a user id; null for nobody in
    * particular. Absent where the source does not hand lines over — a packing

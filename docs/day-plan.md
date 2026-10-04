@@ -17,7 +17,8 @@ after the trip, on the packing list. The pills under the trip's name still take 
 
 **Today on the overview.** On each day of the trip, the overview shows a **Heute** card under the trip: the next three
 things still to come today, as the day plan lists them — something with a time leaves once its time has passed, a
-connection once it has arrived. Tick a task or an idea right there; *+ n weitere · Tagesplan* opens the whole day.
+connection once it has arrived; meals are left to the **Heute essen** card beside it. Tick a task or an idea right
+there; *+ n weitere · Tagesplan* opens the whole day.
 Once the packing is finished the card sits inside the trip's big card, beside the tasks and the shopping list.
 
 ## Reading a day
@@ -41,6 +42,8 @@ Under the row, the chosen day lists what is on it — first everything with a ti
   arrives, which lines and how often you change. Tap **▸** to see each leg, and **In der App öffnen** to open the
   connection in the app it came from — that app knows about delays and platforms. **Karte ›** shows the journey on a
   map.
+- **Mahlzeit** — a meal from the [meal plan](meal-plan.md), named by its meal (*Abendessen*), with who cooks and how
+  much is bought. Without a time it stands where its meal belongs, the time column saying *abends*. Tap it to open it.
 
 Below the day, **Morgen** shows tomorrow.
 

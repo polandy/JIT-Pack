@@ -59,7 +59,12 @@
   (`dashboard-today-<trip>-more`), and *„Für heute ist nichts mehr geplant."* in place of the lines once nothing is
   left. Once the packing is finished it is a block of the hero after the task block, drawn by `DashboardBlock`
   without a field — a line of the plan wants a time the field cannot take. Before and after the trip's days, and on a
-  trip without both dates, there is no card. (E2E-M29-11)
+  trip without both dates, there is no card. Meals are left out: *Heute essen* says them. (E2E-M29-11)
+* ***Heute essen* (FR-33.7).** On a trip's days with meals, the meals module's card (`MealsTodayCard.vue`, through
+  `TRIP_CARDS`, after *Heute*) under the trip (`dashboard-meals-<trip>`): its head and *Essensplan ›* onto M31
+  (`dashboard-meals-<trip>-head`), then today's meals in their order (`dashboard-meal-<id>`) — the slot, the dish,
+  *„Lena kocht · 2 Zutaten offen"* (*alles da*; *auswärts · …*) and the bought share as a ring; a tap opens the meal's
+  sheet over M1. Once the packing is finished it is a block of the hero. (E2E-M31-07)
 * **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html` at `6b148419`).**
   Rendered from top to bottom on a trip whose packing is finished:
   * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until

@@ -191,6 +191,8 @@ const nothingAtAll = computed(
 /** A line in the *Fällig* block stands outside its group, so its row names it. */
 function tagOfDue(line: ShoppingLine): string | null {
   if (line.tag) return line.tag
+  // FR-31.8/FR-33.3: a source that names its heading names it here too.
+  if (line.section) return line.section
   return line.edit ? t('shopping.ownEntries') : t('shopping.packingList')
 }
 

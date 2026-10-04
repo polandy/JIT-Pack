@@ -313,6 +313,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   // Die zwei Reise-Ansichten des Planers mit Namen, die auch der Umschalter und
   // M30 lesen; der Rest seiner Texte steht in planner/i18n/.
   'dayPlan.title': 'Tagesplan',
+  'meals.title': 'Essen',
   'ideas.title': 'Ideen',
   'ideas.viewCount': 'Ideen ({n})',
 

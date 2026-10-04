@@ -46,6 +46,8 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
+import ExcursionExtraList from '@/components/trips/ExcursionExtraList.vue'
+import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/lib/excursionExtraLines'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddItem.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
@@ -234,7 +236,10 @@ function openNote(threadId: string) {
   void router.push(tripNotesPath(props.tripId, threadId))
 }
 
-const units = computed(() => sumUnits(lines.value))
+/** FR-33.6: another module's lines on this list — a picnic — counted in its share. */
+const extraSources = inject(EXCURSION_EXTRA_LINES, [])
+const extras = computed(() => extraLinesOf(extraSources, props.tripId, props.excursionId))
+const units = computed(() => withExtraUnits(sumUnits(lines.value), extras.value))
 const toBuy = computed(() => lines.value.filter(isOpenPurchase).length)
 const tripItems = computed(() => tripStore.getItems(props.tripId))
 
@@ -1184,6 +1189,8 @@ setHeaderTitle(
           @undo-browse="onBrowseUndo"
           @reopen-carried="onBrowseReopen"
         />
+
+        <ExcursionExtraList :lines="extras" />
 
         <IonList v-if="view.groups.length > 0" class="excursion-list">
           <template v-for="group in view.groups" :key="group.key">

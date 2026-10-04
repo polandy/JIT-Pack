@@ -15,17 +15,21 @@ import {
   IDEA_STATE_SHORTLISTED,
   IDEA_VOTE_UP,
   ITEM_MODE_PACK,
+  MEAL_KIND_COOK,
+  MEAL_KIND_OUT,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
   type Excursion,
   type Idea,
   type IdeaState,
   type IdeaTag,
+  type MealSlot,
 } from '@/types/domain'
 import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
 import { samplePicture } from './samplePictures'
 import { SAMPLE_EXCURSION_ROUTE, SAMPLE_ROUTES, sampleGpx } from './sampleTracks'
 import { createShoppingActions, useShoppingStore } from '@/shopping'
+import { createMealActions, useMealStore } from '@/meals'
 
 /**
  * A ready-made trip to test against, for development only.
@@ -176,7 +180,112 @@ export function seedSampleTrip(
   seedTripNotes(id, orchestrator)
   seedExcursions(id, orchestrator)
   seedIdeas(id, orchestrator)
+  seedMeals(id, orchestrator)
   return id
+}
+
+/** One meal of the seed: its day from today, its slot, its dish and its ingredients. */
+interface SeedMeal {
+  day: number
+  slot: MealSlot
+  title: string
+  out?: string
+  /** The picnic goes on the hut tour (FR-33.6). */
+  hut?: boolean
+  ingredients?: { name: string; amount: string; bought?: boolean }[]
+}
+
+/**
+ * §3.33: M31 opens on a plan worth reading — yesterday's dinner folded above,
+ * today's lunch eaten out and dinner half bought, tomorrow's breakfast and the
+ * picnic taken on the hut tour, and a dinner after it with nothing bought.
+ */
+export const SEED_MEALS: SeedMeal[] = [
+  {
+    day: -1,
+    slot: 'dinner',
+    title: 'Spaghetti Bolognese',
+    ingredients: [
+      { name: 'Spaghetti', amount: '500 g', bought: true },
+      { name: 'Hackfleisch', amount: '400 g', bought: true },
+    ],
+  },
+  { day: 0, slot: 'lunch', title: 'Pizza im Dorf', out: 'Pizzeria Mulin, Pontresina' },
+  {
+    day: 0,
+    slot: 'dinner',
+    title: 'Raclette',
+    ingredients: [
+      { name: 'Raclettekäse', amount: '600 g', bought: true },
+      { name: 'Kartoffeln', amount: '1 kg' },
+      { name: 'Essiggurken', amount: '1 Glas' },
+      { name: 'Silberzwiebeln', amount: '1 Glas', bought: true },
+    ],
+  },
+  {
+    day: 1,
+    slot: 'breakfast',
+    title: 'Zmorge',
+    ingredients: [
+      { name: 'Zopf', amount: '1' },
+      { name: 'Butter', amount: '250 g' },
+      { name: 'Konfitüre', amount: '1 Glas' },
+    ],
+  },
+  {
+    day: 1,
+    slot: 'lunch',
+    title: 'Picknick auf der Hütte',
+    hut: true,
+    ingredients: [
+      { name: 'Bürli', amount: '4' },
+      { name: 'Salami', amount: '1' },
+      { name: 'Äpfel', amount: '4' },
+    ],
+  },
+  {
+    day: 2,
+    slot: 'dinner',
+    title: 'Älplermagronen',
+    ingredients: [
+      { name: 'Hörnli', amount: '500 g' },
+      { name: 'Kartoffeln', amount: '400 g' },
+      { name: 'Rahm', amount: '2 dl' },
+      { name: 'Bergkäse', amount: '200 g' },
+    ],
+  },
+]
+
+function seedMeals(tripId: string, orchestrator: Orchestrator): void {
+  const mealStore = useMealStore()
+  const actions = createMealActions(orchestrator.moduleHost, mealStore)
+  const hut = useTripStore()
+    .getExcursions(tripId)
+    .find((excursion) => excursion.starts_on !== null)
+  for (const seed of SEED_MEALS) {
+    actions.saveMeal(
+      tripId,
+      null,
+      {
+        day: isoDay(seed.day),
+        slot: seed.slot,
+        title: seed.title,
+        kind: seed.out ? MEAL_KIND_OUT : MEAL_KIND_COOK,
+        time: null,
+        note: null,
+        place: seed.out ?? null,
+        cookUserId: null,
+        excursionId: seed.hut ? (hut?.id ?? null) : null,
+      },
+      (seed.ingredients ?? []).map((ingredient) => ({
+        id: null,
+        name: ingredient.name,
+        amount: ingredient.amount,
+        list: ITEM_MODE_BUY_LOCAL,
+        bought: ingredient.bought ?? false,
+      })),
+    )
+  }
 }
 
 /**

@@ -407,6 +407,7 @@ const TRIP_VIEW = {
   luggage: 'trip-view-luggage',
   analytics: 'trip-view-analytics',
   dayplan: 'trip-view-dayplan',
+  meals: 'trip-view-meals',
 } as const
 
 /**
@@ -423,6 +424,7 @@ const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = [
   'notes',
   'excursions',
   'dayplan',
+  'meals',
 ]
 
 /**

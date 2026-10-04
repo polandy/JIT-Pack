@@ -28,6 +28,7 @@ import { orderTracks } from '@/domain/track'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
+import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/lib/excursionExtraLines'
 import { excursionDays } from '@/lib/excursionText'
 import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/lib/toast'
@@ -83,8 +84,13 @@ function journeyLine(excursion: Excursion): string | null {
   return journeyLineOf?.(props.tripId, excursion.id) ?? null
 }
 
+/** FR-33.6: another module's lines on an excursion's list count in its share. */
+const extraSources = inject(EXCURSION_EXTRA_LINES, [])
 function units(excursion: Excursion) {
-  return sumUnits(tripStore.getExcursionItems(props.tripId, excursion.id))
+  return withExtraUnits(
+    sumUnits(tripStore.getExcursionItems(props.tripId, excursion.id)),
+    extraLinesOf(extraSources, props.tripId, excursion.id),
+  )
 }
 
 /** The days, or null for an undated one — its section already says so. */

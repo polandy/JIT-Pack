@@ -7,6 +7,7 @@
  */
 import type { DayPlanLine, DayPlanSource } from '@/lib/dayPlanSources'
 import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/lib/dayPlanSources'
+import { withExtraUnits, type ExcursionExtraLine } from '@/lib/excursionExtraLines'
 import { spanOf, sumUnits } from '@/domain/excursions'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
@@ -18,6 +19,8 @@ export interface DayPlanReads {
   getExcursions(tripId: string): Excursion[]
   getExcursionItems(tripId: string): ExcursionItem[]
   tasksOf(tripId: string): TripTask[]
+  /** Another module's lines on an excursion's list — a picnic (FR-33.6); absent for none. */
+  extraLines?(tripId: string, excursionId: string): ExcursionExtraLine[]
 }
 
 /** The one write a tick on the plan means: M25's. */
@@ -32,7 +35,17 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
     for (const excursion of reads.getExcursions(tripId)) {
       const span = spanOf(excursion)
       if (!span) continue
-      const units = sumUnits(items.filter((item) => item.excursion_id === excursion.id))
+      const extras = reads.extraLines?.(tripId, excursion.id) ?? []
+      const units = withExtraUnits(
+        sumUnits(items.filter((item) => item.excursion_id === excursion.id)),
+        extras,
+      )
+      const packed =
+        units.total > 0 ? t('excursions.packed', { done: units.done, total: units.total }) : null
+      const along =
+        extras.length > 0
+          ? t('excursions.takenAlong', { titles: extras.map((line) => line.title).join(', ') })
+          : null
       lines.push({
         key: `excursion:${excursion.id}`,
         refId: excursion.id,
@@ -41,8 +54,7 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         title: excursion.name,
         from: span.from,
         to: span.to,
-        detail:
-          units.total > 0 ? t('excursions.packed', { done: units.done, total: units.total }) : null,
+        detail: [packed, along].filter((part) => !!part).join(' · ') || null,
         progress: units.total > 0 ? units.done / units.total : null,
         done: null,
         path: tripExcursionsPath(tripId, excursion.id),

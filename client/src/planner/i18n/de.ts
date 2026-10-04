@@ -24,6 +24,8 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'dayPlan.kind.task': 'Aufgabe',
   'dayPlan.kind.entry': 'Eintrag',
   'dayPlan.kind.connection': 'Verbindung',
+  'dayPlan.kind.meal': 'Mahlzeit',
+  'dayPlan.cooks': '{name} kocht',
   'dayPlan.spanStart': 'Start',
   'dayPlan.spanReturn': 'Rückkehr',
   'dayPlan.tick': '„{title}“ abhaken',

@@ -490,6 +490,64 @@ export interface ShoppingEntry {
   idea_id?: string | null
 }
 
+// --- The meal plan (§3.33) ---
+
+/** FR-33.1: the four places of a day a meal stands at, in the day's order. */
+export const MEAL_SLOTS = ['breakfast', 'lunch', 'snack', 'dinner'] as const
+export type MealSlot = (typeof MEAL_SLOTS)[number]
+export const MEAL_SLOT_BREAKFAST = 'breakfast' as const satisfies MealSlot
+export const MEAL_SLOT_LUNCH = 'lunch' as const satisfies MealSlot
+export const MEAL_SLOT_SNACK = 'snack' as const satisfies MealSlot
+export const MEAL_SLOT_DINNER = 'dinner' as const satisfies MealSlot
+
+/** FR-33.1: cooked by the travellers, with ingredients, or eaten out. */
+export const MEAL_KIND_COOK = 'cook' as const
+export const MEAL_KIND_OUT = 'out' as const
+export type MealKind = typeof MEAL_KIND_COOK | typeof MEAL_KIND_OUT
+
+/** FR-33.1: a meal of the trip's meal plan. */
+export interface Meal {
+  id: string
+  trip_id: string
+  /** `YYYY-MM-DD`. */
+  on_date: string
+  slot: MealSlot
+  /** The dish. */
+  title: string
+  kind: MealKind
+  /** `HH:MM`, or null for one that stands at its slot's place. */
+  at_time: string | null
+  note: string | null
+  /** Eaten out: where; null otherwise. */
+  place: string | null
+  /** FR-33.8: who cooks it, a member's user id; null for nobody named. */
+  cook_user_id: string | null
+  /** FR-33.6: the excursion a picnic is taken on; null for none. */
+  excursion_id: string | null
+  /** FR-33.6: when it went into that excursion's rucksack; null while it is not. */
+  excursion_packed_at: string | null
+}
+
+/** FR-33.2: an ingredient of a meal — and a line of the shopping list (FR-33.3). */
+export interface MealIngredient {
+  id: string
+  trip_id: string
+  meal_id: string
+  name: string
+  /** Free text — „500 g", „1 Glas" — never summed; null for none. */
+  amount: string | null
+  list: ShoppingMode
+  /** Its order in the meal. */
+  position: number | null
+  bought: boolean
+  /** FR-30.4: the tap's time; null while it is not bought. */
+  bought_at: string | null
+  /** FR-30.4: stamped by the server (invariant 3); null in Local Mode. */
+  bought_by_user_id: string | null
+  /** FR-30.13: its place on M6, by hand; null for never placed (ADR-083). */
+  shopping_position: number | null
+}
+
 // --- The planner (§3.29) ---
 
 /**

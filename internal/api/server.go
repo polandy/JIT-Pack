@@ -470,9 +470,10 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 		// users racing an upsert on the same row id steal each other's row
 		// instead of getting the UNIQUE(…, user_id) refusal they should.
 		stampOnInsert(m, "user_id", userID)
-	case store.TableShoppingEntries:
-		// FR-30.4: the entry's purchase record. `bought` is the flag the
-		// record describes, sent as a JSON number or boolean.
+	case store.TableShoppingEntries, store.TableMealIngredients:
+		// FR-30.4/FR-33.3: the entry's or the ingredient's purchase record.
+		// `bought` is the flag the record describes, sent as a JSON number
+		// or boolean.
 		bought, known := m.Fields["bought"]
 		stampPurchase(m, userID, now, known, truthy(bought))
 	case store.TableTripItems:

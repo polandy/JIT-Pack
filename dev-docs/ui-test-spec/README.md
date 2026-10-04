@@ -47,6 +47,7 @@ non-functional journeys and the traceability matrix. `scripts/case-id-gate.mjs` 
 | M28 — Ideen (a trip's ideas, §3.29) | [`M28-ideen.md`](M28-ideen.md) |
 | M29 — Tagesplan (a trip's day plan, FR-29.14/29.15) | [`M29-tagesplan.md`](M29-tagesplan.md) |
 | M30 — Aktivität (who changed what, §3.32) | [`M30-aktivitat.md`](M30-aktivitat.md) |
+| M31 — Essen (a trip's meal plan, §3.33) | [`M31-essen.md`](M31-essen.md) |
 | 6. Non-Functional Journeys | [`non-functional.md`](non-functional.md) |
 | 7. Requirement Traceability Matrix | [`traceability.md`](traceability.md) |
 ## 1.1 Layered coverage (decided)

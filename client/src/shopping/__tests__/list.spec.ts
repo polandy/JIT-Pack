@@ -424,3 +424,60 @@ describe('planDrop (FR-30.13)', () => {
     expect(canDrop(board, wasser, 'buy_before', sectionOf(board, 'own'))).toBe(false)
   })
 })
+
+describe('a meal’s ingredients on the list (FR-33.3)', () => {
+  const TODAY = '2026-10-12'
+  const ingredient = (name: string, dueDate: string): ShoppingLine => ({
+    ...line(name, null, dueDate),
+    section: 'Meal plan',
+    sectionRank: 1,
+    pressingDays: 0,
+  })
+
+  it('files the meal plan’s heading after every source heading, whatever its name', () => {
+    const sections = buildSections(
+      [],
+      [
+        ingredient('Kartoffeln', '2026-10-15'),
+        { ...line('Gletscherbrille'), section: 'Zermatt' },
+        { ...line('Seil'), section: 'Bergtour' },
+      ],
+    )
+    expect(sections.map((s) => s.name)).toEqual(['Bergtour', 'Zermatt', 'Meal plan'])
+  })
+
+  it('lifts an ingredient into the block on its own day only, not two days ahead', () => {
+    const board = shoppingBoard(
+      {
+        buy_before: { own: [], sourced: [] },
+        buy_local: {
+          own: [line('Milch', null, '2026-10-13')],
+          sourced: [
+            ingredient('Raclettekäse', '2026-10-12'),
+            ingredient('Spaghetti', '2026-10-13'),
+          ],
+        },
+      },
+      TODAY,
+    )
+    expect(board.due.map((l) => l.name)).toEqual(['Raclettekäse', 'Milch'])
+    expect(board.lists.buy_local.sections.flatMap((s) => s.lines.map((l) => l.name))).toEqual([
+      'Spaghetti',
+    ])
+  })
+
+  it('does not move the meal plan’s heading up for an ingredient that is not yet pressing', () => {
+    const sections = buildSections(
+      [line('Brot', null, null)],
+      [ingredient('Spaghetti', '2026-10-13')],
+      TODAY,
+    )
+    expect(sections.map((s) => s.key)).toEqual(['source:Meal plan', 'own'])
+    const pressingFirst = buildSections(
+      [line('Brot', null, '2026-10-13')],
+      [ingredient('Spaghetti', '2026-10-13')],
+      TODAY,
+    )
+    expect(pressingFirst.map((s) => s.key)).toEqual(['own', 'source:Meal plan'])
+  })
+})
