@@ -193,7 +193,7 @@
   line in the block names a source's heading where an entry names its tag. Buying one is the meal's own tick
   (M31); a past meal's open ingredients are not listed. (`m6-group-source-Essensplan`, E2E-M31-03)
   * **Summed (FR-33.14 — *built*).** One name's ingredients are one line (`ShoppingLine.parts`): the name, then its
-    total in the quiet tone (*„· 1,5 kg"*, `m6-row-total-<name>`), how many meals it serves (*„3×"*,
+    total in the quiet tone (*„· 1.5 kg"*, `m6-row-total-<name>`), how many meals it serves (*„3×"*,
     `m6-row-uses-<name>`) and *🌿* for fresh food (`m6-row-fresh-<name>`, `ShoppingLine.fresh`; a single fresh
     ingredient wears it too). Its second line lists the parts, *„Mo. Abend 200 g · Di. Früh 300 g"*, wrapping rather
     than running off the row. A tap on the name opens the parts under it (`aria-expanded`, `m6-row-parts-<name>`), a

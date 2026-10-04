@@ -210,7 +210,7 @@ describe('one name summed into one line (FR-33.13/33.14)', () => {
     expect(butter).toHaveLength(1)
     expect(butter[0]).toMatchObject({
       key: 'meal:b-mo',
-      total: '1,5 kg',
+      total: '1.5 kg',
       fresh: false,
       dueDate: '2026-10-12',
       detail: expect.stringMatching(/^Mo\.? Abend 200 g · Di\.? Früh 300 g · Fr\.? Abend 1 kg$/),
