@@ -79,11 +79,12 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await expect(aliceRow).toContainText('alice@example.test')
     await expect(aliceRow).toContainText(/trips?/)
     await expect(aliceRow).toContainText(/templates?/)
-    // …and the date is in the *app's* language, not the device's. The suite
-    // runs a de-CH device with the app pinned to English, so a bare
-    // `toLocaleDateString()` prints `28.8.2026` under "Provisioned". A month
-    // abbreviation is something the numeric German form cannot produce.
-    await expect(aliceRow).toContainText(/Provisioned \w{3} \d{1,2}, \d{4}/)
+    // …and the date's words are in the *app's* language, its order the
+    // region's (NFR-4.12). The suite runs a de-CH device in Europe/Zurich with
+    // the app pinned to English, so a bare `toLocaleDateString()` prints
+    // `28.8.2026` under "Provisioned". A month abbreviation is something the
+    // numeric German form cannot produce; day first is the Swiss order.
+    await expect(aliceRow).toContainText(/Provisioned \d{1,2} [A-Z][a-z]{2,3} \d{4}/)
     // The two markers that only ever belong on this row of this instance.
     await expect(aliceRow.getByTestId('admin-self')).toBeVisible()
     await expect(aliceRow.getByTestId('admin-role-chip')).toBeVisible()

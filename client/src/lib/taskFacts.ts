@@ -13,7 +13,7 @@
  * and a line then states the moment alone rather than inventing a person.
  */
 import { relativeStamp } from '@/domain/stamp'
-import { currentLocale, t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import { stampText, type NameOf } from './rowFacts'
 
 /** The FR-7.7 facts a line or a sheet reads off a task. */
@@ -63,7 +63,7 @@ function stampSentence(
   },
 ): string | null {
   if (!at && !by) return null
-  const when = stampText(at ? relativeStamp(at, now, currentLocale()) : null)
+  const when = stampText(at ? relativeStamp(at, now, intlLocale()) : null)
   const who = nameOf(by)
   if (who) return t(keys.withWho, { who, when })
   return when ? t(keys.withoutWho, { when }) : null

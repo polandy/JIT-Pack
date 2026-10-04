@@ -388,7 +388,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     // Folded again — with what was set now stated on the row itself.
     await expect(page.getByTestId('wizard-dates')).toHaveCount(0)
-    await expect(page.getByTestId('wizard-more-summary')).toContainText('Sep 20, 2026')
+    await expect(page.getByTestId('wizard-more-summary')).toContainText('20 Sept 2026')
   })
 
   // E2E-G2-02 (G-2/FR-19.6): the glyph names the state, so a symbol alone

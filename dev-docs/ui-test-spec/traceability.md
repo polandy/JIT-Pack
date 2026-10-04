@@ -247,7 +247,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
 | NFR-4.11 | E2E | M17-07, M18-05/06/07/08, M19-01; **NFR-03/03b** carry the request itself — the one clause the sheet cannot show. |
-| NFR-4.12 | E2E+UNIT | M17-10; `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity), `lib/__tests__/roleLabels.spec.ts` |
+| NFR-4.12 | E2E+UNIT | M17-10, M2-12 (an English trip date in Zurich, day first); `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity; `regionalLocale` — the region from the time zone), `lib/__tests__/roleLabels.spec.ts`, the region's formats where they are written: `format.spec.ts`, `rowFacts.spec.ts`, `taskFacts.spec.ts`, `SyncDetailSheet.spec.ts`, `LeaveLocalModeCard.spec.ts`, `ApiTokenSheet.spec.ts`, `PackingClosedCard.spec.ts` |
 
 **No requirement with a UI surface is left uncovered.** Rows tagged SERVER or DOC/N-A are intentionally outside the
 browser suite, with the reason stated.

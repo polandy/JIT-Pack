@@ -167,7 +167,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // G-17 (ADR-035): the date is set through the app's picker, and the field
     // renders the locale display — never the ISO the state holds.
     await setDateRange(page, 'trip-edit-dates', { start: '2026-10-03', end: '2026-10-10' })
-    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('Oct 3 – 10, 2026')
+    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('3–10 Oct 2026')
 
     // Asserted on the rendered screen, never on the URL: the name has to come
     // back through the store and repaint M4, which is the whole point.
@@ -177,7 +177,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     // The date write survived the round trip too, not only the optimistic paint.
     await openTripEdit(page)
-    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('Oct 3 – 10, 2026')
+    await expect(visible(page).getByTestId('trip-edit-dates-value')).toHaveText('3–10 Oct 2026')
   })
 
   test('E2E-M22-02: a traveller added extends the per-person rows straight away', async ({

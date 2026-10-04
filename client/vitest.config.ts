@@ -42,6 +42,8 @@ export default mergeConfig(
       // out with its own `vi.unstubAllGlobals()`; this is that, for every
       // file, so the protection is not per-author.
       unstubGlobals: true,
+      // The device's region, pinned for every spec — see the file.
+      setupFiles: ['src/__tests__/deviceRegion.setup.ts'],
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },

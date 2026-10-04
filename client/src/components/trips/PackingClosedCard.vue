@@ -15,7 +15,7 @@ import { IonButton, IonIcon } from '@ionic/vue'
 import { checkmarkCircleOutline } from 'ionicons/icons'
 
 import { relativeStamp } from '@/domain/stamp'
-import { currentLocale, t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import { stampText } from '@/lib/rowFacts'
 
 const props = defineProps<{
@@ -28,7 +28,7 @@ const props = defineProps<{
 const emit = defineEmits<{ reopen: [] }>()
 
 /** „heute 18:40" — the same stamp a packed row wears (FR-25.17). */
-const when = () => stampText(relativeStamp(props.at, new Date(), currentLocale()))
+const when = () => stampText(relativeStamp(props.at, new Date(), intlLocale()))
 </script>
 
 <template>

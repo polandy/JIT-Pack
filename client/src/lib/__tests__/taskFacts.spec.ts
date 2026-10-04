@@ -74,4 +74,13 @@ describe('createdStampText / resolvedStampText (FR-7.7)', () => {
       'erledigt · heute 09:15',
     )
   })
+
+  /**
+   * NFR-4.12: an English stamp in Zurich keeps the 24-hour clock — the
+   * region's convention, not the language's (the specs run in Zurich).
+   */
+  it('writes the region’s clock in English too', () => {
+    setLocale('en')
+    expect(createdStampText(task(), nameOf, NOW)).toBe('written by Andy · today 14:32')
+  })
 })

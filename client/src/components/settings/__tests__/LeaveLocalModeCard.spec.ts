@@ -51,6 +51,13 @@ describe('LeaveLocalModeCard', () => {
     expect(wrapper.find('[data-testid="settings-move-guard"]').exists()).toBe(false)
   })
 
+  /** NFR-4.12: the last backup in the device's region — day first, 24 hours (the specs run in Zurich). */
+  it('says when the last backup was, in the region’s format', () => {
+    const wrapper = mountCard({ lastBackupAt: new Date(2026, 9, 4, 14, 32).getTime() })
+
+    expect(byId(wrapper, 'settings-move-last-backup').text()).toContain('04.10.2026, 14:32')
+  })
+
   it('says when there has never been a backup', () => {
     const wrapper = mountCard({ lastBackupAt: null })
 
