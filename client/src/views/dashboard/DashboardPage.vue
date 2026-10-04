@@ -897,10 +897,10 @@ async function handleRefresh(event: CustomEvent) {
   --min-height: 36px;
 }
 
-/* The preview rows sit inside the card's link, and an ion-item there still
-   runs its own click handling: a tap on one fell through to the browser as a
-   full page load of the trip instead of the router's navigation. Read-only,
-   they hand the tap to the link. */
+/* The preview rows sit inside the card's link, and an ion-item there runs
+   its own click handling, which turns a tap into a full page load of the
+   trip beside the router's navigation. Read-only, they hand the tap to the
+   link (E2E-M1-01). */
 .preview-item {
   pointer-events: none;
 }

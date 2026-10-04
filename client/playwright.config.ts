@@ -181,10 +181,10 @@ export default defineConfig({
        * file whose subject it is — allows it back. Under Playwright a start
        * the worker answers from its cache now and then loses one static
        * module import to `net::ERR_ABORTED`, with no error and no retry, so
-       * main.ts never runs and the case times out on a blank page. It hit
-       * E2E-FLOW-09, the case with the most `goto`s, after the module
-       * preloads were gone (E2E-PWA-07) — so not a preload. A case about
-       * packing gains nothing from the worker but that lottery.
+       * main.ts never runs and the case times out on a blank page — most
+       * often E2E-FLOW-09, the case with the most `goto`s, and with no module
+       * preload in the document (E2E-PWA-07). A case about packing gains
+       * nothing from the worker but that lottery.
        */
       use: { ...devices['Desktop Chrome'], serviceWorkers: 'block' },
     },

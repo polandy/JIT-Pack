@@ -33,9 +33,11 @@
   puts a section on the screen — the reason E2E-FLOW-02 filters its toast by item, the same trap here. Red-proved
   by dropping the join in `domain/dashboardSections.ts`.
 * **E2E-M1-04** `all` (FR-6.3/G-4) — **half covered, half unbuilt.** That the card leads into M4 is asserted inside
-  E2E-M1-01. ~~at the item~~: the preview rows are plain list items, not links, so M1 has no per-item deep link; the G-4
-  landing itself is E2E-G4-01's, from a notification. The clause is retired here rather than left open, because the
-  screen answering it would be a *new* affordance and G-4's own case already keeps the promise it names.
+  E2E-M1-01 — tapped on a preview row, and *in the document*: a mark left on `window` before the tap must survive it,
+  since an `ion-item` inside the card's link can turn the tap into a full page load. ~~at the item~~: the preview rows
+  are plain list items, not links, so M1 has no per-item deep link; the G-4 landing itself is E2E-G4-01's, from a
+  notification. The clause is retired here rather than left open, because the screen answering it would be a *new*
+  affordance and G-4's own case already keeps the promise it names.
 * **E2E-M1-05** `all` (G-7) — **implemented** (`trip-creation.spec.ts`, with E2E-M3-10): the empty state offers exactly
   one way forward and it reaches M3.
 * **E2E-M1-06** `all` (**FR-5.1**, not FR-5.4) — **implemented** (`dashboard.spec.ts`): a trip departing **today**
