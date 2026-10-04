@@ -407,6 +407,68 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
   })
 
   /**
+   * E2E-M6-41 (FR-30.14): a staple bought once goes back on the list straight
+   * from its bought row, as a new entry under its tag — and the purchase
+   * stays in the fold with its record. While the new entry stands open the
+   * row says so instead of offering a double. The reload proves both rows
+   * are stored, not only painted; the toast's undo takes only the new one.
+   */
+  test('E2E-M6-41: a bought entry is put back on the list from its row, the purchase kept (FR-30.14)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Milch')
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Milch' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Laden')
+    await page.getByTestId('tag-pick-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Milch' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+
+    await m6(page).getByTestId('m6-before-fold').click()
+    const boughtMilk = m6(page).getByTestId('m6-bought-row').filter({ hasText: 'Milch' })
+    await boughtMilk.getByTestId('m6-bought-again').click()
+
+    await expect(m6(page).getByTestId('m6-group-tag-Laden').locator('h3')).toHaveText(['Milch'])
+    await page.reload()
+    await expect(m6(page).getByTestId('m6-group-tag-Laden').locator('h3')).toHaveText(['Milch'])
+    await m6(page).getByTestId('m6-bought-bar').click()
+    await expect(boughtMilk.getByTestId('m6-bought-listed')).toHaveText('On the list')
+    await expect(boughtMilk.getByTestId('m6-bought-again')).toHaveCount(0)
+
+    // Undo from the toast: the new entry goes, the purchase stays and offers itself again.
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Milch' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+    await m6(page).getByTestId('m6-before-fold').click()
+    await expect(m6(page).getByTestId('m6-bought-row')).toHaveCount(2)
+    await m6(page)
+      .getByTestId('m6-bought-row')
+      .filter({ hasText: 'Milch' })
+      .first()
+      .getByTestId('m6-bought-again')
+      .click()
+    const toast = page.locator('ion-toast.pack-toast').filter({ hasText: 'back on the list' })
+    await expect(toast).toContainText('“Milch” is back on the list')
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-bought-row')).toHaveCount(2)
+  })
+
+  /**
    * E2E-M6-33 (FR-25.11j): a bought row leaves the open list with a smooth
    * effect rather than vanishing, and its own toast — not a trip through the
    * reveal bar — is the fast way to take a mistap back. M4's own shape

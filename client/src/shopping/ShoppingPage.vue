@@ -69,7 +69,7 @@ import {
 import { isPackingClosed, standingOf } from '@/lib/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
 import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } from './list'
-import ShoppingListSection from './ShoppingListSection.vue'
+import ShoppingListSection, { type AgainState } from './ShoppingListSection.vue'
 import ShoppingRows from './ShoppingRows.vue'
 import ShoppingTagChooser from './ShoppingTagChooser.vue'
 import { useShoppingStore } from './store'
@@ -677,6 +677,32 @@ function confirmEntrySheet() {
   entrySheet.value = null
 }
 
+/**
+ * FR-30.14: whether a bought line can go back on the list as a new entry —
+ * only an own entry can, and not while one of its name stands open already,
+ * so a second tap never makes a double.
+ */
+function againState(line: ShoppingLine): AgainState {
+  if (!line.edit) return null
+  const name = line.name.trim().toLocaleLowerCase()
+  const listed = ownOpenLines.value.some((open) => open.name.trim().toLocaleLowerCase() === name)
+  return listed ? 'listed' : 'offer'
+}
+
+/** FR-30.14: the bought line once more, as a new entry with its name and tag. */
+async function buyAgain(line: ShoppingLine, list: ShoppingMode) {
+  // A purchase made before departure is bought again where the trip now is (FR-30.8).
+  const target = beforeOpen.value ? list : ITEM_MODE_BUY_LOCAL
+  const undo = actions.addAgain(props.tripId, target, { name: line.name, tag: line.tag ?? null })
+  if (!undo) return
+  await presentToast({
+    message: t('shopping.boughtAgain', { name: line.name }),
+    positionAnchor: FAB_ANCHOR.m6,
+    cssClass: 'pack-toast',
+    buttons: [{ text: t('packing.undo'), handler: () => undo() }],
+  })
+}
+
 function removeFromSheet() {
   entrySheet.value?.line?.remove?.()
   entrySheet.value = null
@@ -829,8 +855,10 @@ setHeaderTitle(
             :selection="selection"
             :leave="onRowLeave"
             :assignable="assignable"
+            :again="againState"
             @buy="buyLine"
             @unbuy="(line) => line.unbuy()"
+            @again="(line) => buyAgain(line, list)"
             @open="openEditSheet"
             @lift="onLift"
             @assign="assignLine"
@@ -865,7 +893,9 @@ setHeaderTitle(
               :today="today"
               :name-of="nameOf"
               :drop-key="dropKeyOf(list)"
+              :again="againState"
               @unbuy="(line) => line.unbuy()"
+              @again="(line) => buyAgain(line, list)"
               @open="openEditSheet"
             />
           </RestLine>

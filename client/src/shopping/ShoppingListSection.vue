@@ -1,3 +1,12 @@
+<script lang="ts">
+/**
+ * FR-30.14: what a bought line offers — a way back on the list as a new
+ * entry (`offer`), word that it stands there open already (`listed`), or
+ * nothing (null: a source's line).
+ */
+export type AgainState = 'offer' | 'listed' | null
+</script>
+
 <script setup lang="ts">
 /**
  * One list of M6 — *Vor der Reise* or *Vor Ort* — on `ListSection`,
@@ -12,7 +21,8 @@
  *
  * The acts are reported, never written: the page owns the toast and the drag.
  */
-import { IonLabel, IonList } from '@ionic/vue'
+import { IonIcon, IonLabel, IonList } from '@ionic/vue'
+import { addOutline, checkmarkOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import FoldToggle from '@/components/global/FoldToggle.vue'
@@ -53,6 +63,8 @@ const props = withDefaults(
     leave?: (el: Element, done: () => void) => void
     /** FR-30.12: whether a line can be handed to somebody — `ShoppingRows`' prop. */
     assignable?: boolean
+    /** FR-30.14: what each bought line offers; absent offers nothing. */
+    again?: (line: ShoppingLine) => AgainState
   }>(),
   {
     readonly: false,
@@ -61,12 +73,14 @@ const props = withDefaults(
     selection: undefined,
     leave: undefined,
     assignable: false,
+    again: undefined,
   },
 )
 
 const emit = defineEmits<{
   buy: [line: ShoppingLine]
   unbuy: [line: ShoppingLine]
+  again: [line: ShoppingLine]
   open: [line: ShoppingLine]
   lift: [line: ShoppingLine, event: PointerEvent]
   assign: [line: ShoppingLine]
@@ -90,6 +104,11 @@ function sectionTitle(section: ShoppingSection): string {
   if (section.packing) return t('shopping.packingList')
   if (section.own) return t('shopping.ownEntries')
   return section.name ?? ''
+}
+
+/** FR-30.14: a closed list is a record and offers nothing again (FR-7.12). */
+function againOf(line: ShoppingLine): AgainState {
+  return props.readonly ? null : (props.again?.(line) ?? null)
 }
 
 /** „gekauft von Andy · heute 14:32" — who bought the line, and when. */
@@ -172,6 +191,25 @@ function boughtStamp(line: ShoppingLine): string | null {
               <span>{{ boughtStamp(line) }}</span>
             </span>
           </template>
+          <!-- FR-30.14: before the tick, in the thumb's reach, and worded —
+               the tick beside it still means *not bought after all*. -->
+          <template v-if="againOf(line)" #end>
+            <button
+              v-if="againOf(line) === 'offer'"
+              type="button"
+              class="again"
+              :aria-label="t('shopping.buyAgainLabel', { name: line.name })"
+              data-testid="m6-bought-again"
+              @click="emit('again', line)"
+            >
+              <IonIcon :icon="addOutline" aria-hidden="true" />
+              {{ t('shopping.buyAgain') }}
+            </button>
+            <span v-else class="again listed" data-testid="m6-bought-listed">
+              <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
+              {{ t('shopping.onListAgain') }}
+            </span>
+          </template>
         </ListRow>
       </IonList>
     </template>
@@ -181,6 +219,29 @@ function boughtStamp(line: ShoppingLine): string | null {
 <style scoped>
 .tappable {
   cursor: pointer;
+}
+
+.again {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 12px;
+  padding: 5px 11px;
+  border: 1px solid color-mix(in srgb, var(--jp-brand) 55%, transparent);
+  border-radius: var(--jp-r-pill);
+  background: color-mix(in srgb, var(--jp-brand) 10%, transparent);
+  color: var(--jp-brand);
+  font-size: var(--jp-text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.again.listed {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ct-subtext0);
+  cursor: default;
 }
 
 .recipients {
