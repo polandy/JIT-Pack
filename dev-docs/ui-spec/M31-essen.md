@@ -54,10 +54,11 @@
     Einkaufsliste."* under it.
   * **Zutaten** (`meal-ingredients`), cooked meals: *„2 von 4 eingekauft"* at the label's end; a row per ingredient
     (`meal-ingredient-<name>`) — a round tick (`meal-ingredient-tick-<name>`, `aria-pressed`), the name (struck
-    through once bought, *„gekauft von Lena"* under it in Server Mode), the amount, its list as a small chip (*Vor Ort*
-    / *Vor der Reise*, `meal-ingredient-list-<name>`, a toggle only before the trip's first day and on an open
-    ingredient), its freshness as a chip after the amount (FR-33.13, `meal-ingredient-fresh-<name>`, `aria-pressed`):
-    *🌿 frisch* in the done tone or *haltbar* quiet, a tap toggling it, written by the button; ✕
+    through once bought, *„gekauft von Lena"* under it in Server Mode), the amount at the row's end, and under the
+    name two small chips, so the name and its amount keep the row's width: its freshness (FR-33.13,
+    `meal-ingredient-fresh-<name>`, `aria-pressed`) — *🌿 frisch* in the done tone or *haltbar* quiet, a tap toggling
+    it, written by the button — and its list (*Vor Ort* / *Vor der Reise*, `meal-ingredient-list-<name>`, a toggle
+    only before the trip's first day and on an open ingredient); ✕
     (`meal-ingredient-remove-<name>`). Last, the field *„Zutat, z. B. 500 g Hörnli"* (`meal-ingredient-add`) with its
     ＋, Enter adding too and keeping the focus. From the first letter a card of **remembered ingredients** stands under
     the field (FR-33.12, `meal-ingredient-suggestions`), at most five rows (`meal-ingredient-suggestion-<name>`): the

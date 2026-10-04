@@ -520,29 +520,32 @@ function takePlace(title: string) {
             <small v-if="ingredient.bought && nameOf(ingredient.boughtBy)">{{
               t('meals.boughtBy', { name: nameOf(ingredient.boughtBy) ?? '' })
             }}</small>
+            <!-- The chips under the name: the name and its amount keep the row's width. -->
+            <span class="chips-line">
+              <!-- FR-33.13: fresh is bought for its day, durable once for the trip. -->
+              <button
+                type="button"
+                class="fresh"
+                :class="{ on: freshOf(ingredient) }"
+                :aria-pressed="freshOf(ingredient) ? 'true' : 'false'"
+                :data-testid="`meal-ingredient-fresh-${ingredient.name}`"
+                @click="toggleFresh(ingredient)"
+              >
+                {{ freshOf(ingredient) ? t('meals.fresh') : t('meals.durable') }}
+              </button>
+              <button
+                type="button"
+                class="list"
+                :class="{ before: ingredient.list === ITEM_MODE_BUY_BEFORE }"
+                :disabled="!beforeTrip || ingredient.bought"
+                :data-testid="`meal-ingredient-list-${ingredient.name}`"
+                @click="toggleList(ingredient)"
+              >
+                {{ t(`meals.list.${ingredient.list}`) }}
+              </button>
+            </span>
           </span>
           <span v-if="ingredient.amount" class="amount jp-num">{{ ingredient.amount }}</span>
-          <!-- FR-33.13: fresh is bought for its day, durable once for the trip. -->
-          <button
-            type="button"
-            class="fresh"
-            :class="{ on: freshOf(ingredient) }"
-            :aria-pressed="freshOf(ingredient) ? 'true' : 'false'"
-            :data-testid="`meal-ingredient-fresh-${ingredient.name}`"
-            @click="toggleFresh(ingredient)"
-          >
-            {{ freshOf(ingredient) ? t('meals.fresh') : t('meals.durable') }}
-          </button>
-          <button
-            type="button"
-            class="list"
-            :class="{ before: ingredient.list === ITEM_MODE_BUY_BEFORE }"
-            :disabled="!beforeTrip || ingredient.bought"
-            :data-testid="`meal-ingredient-list-${ingredient.name}`"
-            @click="toggleList(ingredient)"
-          >
-            {{ t(`meals.list.${ingredient.list}`) }}
-          </button>
           <button
             type="button"
             class="remove"
@@ -873,6 +876,13 @@ function takePlace(title: string) {
 .bought .word {
   color: var(--ct-subtext0);
   text-decoration: line-through;
+}
+
+.chips-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .name small {
