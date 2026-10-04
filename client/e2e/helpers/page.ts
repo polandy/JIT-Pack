@@ -225,3 +225,18 @@ export async function browserDay(page: Page, offset: number): Promise<string> {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   }, offset)
 }
+
+/**
+ * Sets the browser's clock to a fixed starting instant before the app boots —
+ * the deterministic "now" a case asks for, so nothing it renders or decides
+ * follows the day the suite happens to run on. Call before `page.goto`.
+ *
+ * `setSystemTime`, not `setFixedTime`: the clock starts at `at` and then runs,
+ * so the write path's timers and the HLC see time pass as on a real device. A
+ * frozen clock stops exactly that — a pack never reached the store under
+ * `setFixedTime` (see `visual.spec.ts`). Give `at` with its offset, since the
+ * runner's zone is not the browser's.
+ */
+export async function setClock(page: Page, at: string): Promise<void> {
+  await page.clock.setSystemTime(new Date(at))
+}
