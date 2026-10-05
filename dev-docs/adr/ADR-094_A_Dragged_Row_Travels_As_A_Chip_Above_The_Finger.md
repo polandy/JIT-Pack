@@ -98,6 +98,15 @@ neither framed nor dropped on. M6, M25, M9's tag manager and M31 all supply thei
 - The tests' handles stay: `data-drag-ghost` is the chip, `data-drag` the state; the chip adds `data-carry-title` and
   `data-carry-where`.
 
+## Amendment (2026-10-05): a second choice rides in the chip
+
+M31 lets a drag change the slot as well as the day. Fields laid over the target day were tried in the mockup first:
+the finger covered the very field it was on, and the owner found them hard to hit. So the choice rides in the chip
+too — as wide as the row, its fields over the list's own columns, the one over the finger lit — which is this ADR's
+driver 1 applied to the choice: nothing the finger decides is under the finger. A finger dragged straight down from
+the grip stays over the field that keeps, so a drag that only meant the day still changes only the day. The chip is
+wide only where a screen offers a choice (`DragCarry.choices`).
+
 ## Revisit Trigger
 
 A screen whose drag needs the row itself to be seen while carrying it (a thumbnail, a colour that decides where it

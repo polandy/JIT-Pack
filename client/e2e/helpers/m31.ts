@@ -98,6 +98,9 @@ export async function sheetGone(page: Page): Promise<void> {
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 }
 
+/** How far into a row a finger keeps the meal's slot: inside the chip's first field (G-21). */
+const KEEP_X = 0.15
+
 /** A meal's grip on M31, by its day and dish (FR-33.15). */
 export function mealGrip(page: Page, day: string, title: string): Locator {
   return mealRow(page, day, title).locator('[data-testid^="m31-grip-"]')
@@ -129,7 +132,9 @@ export async function liftMealOnto(
   const place = target()
   await expect(place).toBeVisible()
   const t = (await place.boundingBox())!
-  await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2, { steps: 8 })
+  // Near the leading edge, under the grip's column: where a finger dragged
+  // straight down stays, and the meal keeps its slot (G-21).
+  await page.mouse.move(t.x + t.width * KEEP_X, t.y + t.height / 2, { steps: 8 })
   await expect(place).toHaveAttribute('data-drop-over', '')
   return {
     release: async () => {

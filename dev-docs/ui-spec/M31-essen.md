@@ -24,19 +24,23 @@
     Gletscher"* where it goes on an excursion; eaten out *„🍴 auswärts · Pizzeria Mulin"*, the dish led by 🍴. At its
     end the ring of its bought share (`m31-ring-<id>`), in the done tone when full, absent without ingredients. A tap
     opens its sheet.
-  * **A meal is moved to another day by its grip (FR-33.15, G-21)** — `DragGrip` at the row's leading edge
+  * A meal is moved to another day by its grip (FR-33.15, G-21)** — `DragGrip` at the row's leading edge
     (`m31-grip-<id>`, *„Raclette verschieben"*) on every meal from today on; one already eaten holds the grip's place
     with the dashed ring. Lifted, **every run of free days opens into its rows** (`m31-plan-<day>`), each a place to
-    drop with its event (*🪧 Gletscher*), and the days behind fold away, so every day ahead is a target; the list
-    glides open around the meal, shifted so its row stays under the finger, and glides shut on the drop; held at the
-    top or bottom edge, it scrolls to the days beyond (G-21). The chip
-    above the finger says *„Raclette ABEND"* over *„→ Do., 15.10."*, or *„bleibt am Mo., 12.10."* over its own day
-    and over nothing; the round ＋ steps aside meanwhile. The day under the finger takes M6's frame and tint and says
-    *hier ablegen* in place of its ＋; its own day takes nothing and frames nothing. Letting go moves only its day —
-    slot, time, cook and ingredients stay, and two meals of one slot on a day are fine, so there is never a question
-    — and the meal slides from the chip into its new day. The toast *„„Raclette" ist jetzt am Do., 15.10."* carries
-    **Rückgängig**, and *„· 🎒 nicht mehr im Rucksack für Bernina Express"* (*„· 🎒 jetzt im Rucksack für …"*) where
-    its excursion changed with it. The mockup is the "Mahlzeit verschieben" artifact (2026-10-05). (E2E-M31-11)
+    drop with its event (*🪧 Gletscher*), and the days behind fold away, so every day ahead is a target; the list glides
+    open around the meal, shifted so its row stays under the finger, and glides shut on the drop; held at the top or
+    bottom edge, it scrolls to the days beyond (G-21). The chip above the finger says *„Raclette ABEND"* over *„→ Do.,
+    15.10."*, or *„bleibt am Mo., 12.10."* over its own day and over nothing; the round ＋ steps aside meanwhile. **The
+    slot is chosen in the chip** (G-21): it spans the row, and under its head *„bleibt Abend · Früh · Mittag · Zw. ·
+    Abend"* stand over the list's columns — sliding right lights the slot over the finger, *„→ Do., 15.10. · Mittag"*;
+    on its own day too, so a dinner becomes a lunch in place. The day under the finger takes M6's frame and tint and
+    says *hier ablegen* in place of its ＋; its own day takes nothing and frames nothing. Letting go moves its day, and
+    its slot where another was chosen — cook, note and ingredients stay, a time goes with a changed slot, and two meals
+    of one slot on a day are fine, so there is never a question — and the meal slides from the chip into its new place.
+    The toast *„„Raclette" ist jetzt am Do., 15.10."* carries **Rückgängig**, *„„Raclette" ist jetzt am Do., 15.10. ·
+    Mittag"* with a new slot, *„· ohne Uhrzeit, sie war 19:00"* where a time went, and *„· 🎒 nicht mehr im Rucksack für
+    Bernina Express"* (*„· 🎒 jetzt im Rucksack für …"*) where its excursion changed with it. The mockup is the "Mahlzeit
+    verschieben" artifact (2026-10-05). (E2E-M31-11, E2E-M31-13)
   * **A run of free days** between, before or after the planned ones is **one dashed line** (`m31-gap-<first day>`,
     `data-days`): *„Di., 13.10. · nichts geplant · ＋"*, *„Di. – Do., 15.10. · nichts geplant · ＋"* for several. A tap
     opens it in place into a slim dashed row per day (`m31-plan-<YYYY-MM-DD>`, *„Mi., 14.10. · ＋ planen"*), which
@@ -95,4 +99,4 @@
   (FR-33.3, `m6-group-source-Essensplan`), M27 a picnic as a line of the excursion's list (FR-33.6,
   `m27-extra-meal:<id>`), M1 *Heute essen* (FR-33.7, `dashboard-meals-<trip>`).
 * **Modes:** all three; Single-User and Local Mode name nobody.
-* (E2E-M31-01…12)
+* (E2E-M31-01…13)

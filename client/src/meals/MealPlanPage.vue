@@ -36,8 +36,8 @@ import { MEAL_CONTEXT } from '@/lib/mealContext'
 import { presentToast } from '@/lib/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
-import type { Meal } from '@/types/domain'
-import { MEAL_KIND_OUT, MEAL_SLOT_DINNER } from '@/types/domain'
+import type { Meal, MealSlot } from '@/types/domain'
+import { MEAL_KIND_OUT, MEAL_SLOT_DINNER, MEAL_SLOTS } from '@/types/domain'
 import { createMealActions } from './actions'
 import {
   agenda,
@@ -146,19 +146,36 @@ function gapOpen(run: readonly string[]): boolean {
   return lifted.value !== null || openGaps.value.has(run[0]!)
 }
 
+/** The short name of a slot, as the rows and the chip's fields say it. */
+const slotWord = (slot: MealSlot) => t(`meals.slotShort.${slot}`)
+
 /**
- * FR-33.15: the drag. Only a day ahead takes a meal; the day it already
- * stands on is no place to go, so the chip says it stays and nothing frames.
+ * FR-33.15: the drag. Only a day ahead takes a meal; the slot is chosen in
+ * the chip's fields by how far right the finger is (G-21). Where neither the
+ * day nor the slot would change there is no place to go, so the chip says it
+ * stays and nothing frames.
  */
 const drag = useDragToGroup<Meal>({
   carry: {
     title: (meal) => meal.title,
-    tag: (meal) => t(`meals.slotShort.${meal.slot}`),
-    target: (meal, place, label) => (place.target === meal.on_date ? null : label),
+    tag: (meal) => slotWord(meal.slot),
+    target: (meal, place, label, choice) => {
+      const slot = (choice as MealSlot | null) ?? meal.slot
+      if (place.target === meal.on_date && slot === meal.slot) return null
+      return slot === meal.slot ? label : `${label} · ${slotWord(slot)}`
+    },
     stays: (meal) => t('meals.moveStays', { day: shortDueDay(meal.on_date) }),
+    choices: (meal) => ({
+      keep: t('meals.moveKeepsSlot', { slot: slotWord(meal.slot) }),
+      options: MEAL_SLOTS.map((slot) => ({
+        key: slot,
+        label: slotWord(slot),
+        current: slot === meal.slot,
+      })),
+    }),
   },
   accepts: (_meal, place) => takesMeal(place.target, today.value),
-  onDrop: (meal, place) => move(meal, place.target),
+  onDrop: (meal, place) => move(meal, place.target, (place.choice as MealSlot | null) ?? meal.slot),
 })
 watch(
   () => contentEl.value?.$el ?? null,
@@ -223,23 +240,27 @@ async function settleAround(meal: Meal, before: Map<string, number>, anchor: num
   glide(root, before)
 }
 
-/** FR-33.15: the move written, and said in a toast whose undo puts it back. */
-function move(meal: Meal, day: string) {
-  if (day === meal.on_date) return
+/** FR-33.15: the move written, and said in a toast — with the time it dropped — whose undo puts it back. */
+function move(meal: Meal, day: string, slot: MealSlot) {
+  if (day === meal.on_date && slot === meal.slot) return
   const excursions = context?.excursions(props.tripId) ?? []
-  const to = movedMeal(meal, day, excursions)
+  const to = movedMeal(meal, day, excursions, slot)
   const undo = actions.moveMeal(meal, to)
   const nameOf = (id: string | null) => excursions.find((e) => e.id === id)?.name ?? null
   const leftFor = to.excursion_id !== meal.excursion_id ? nameOf(meal.excursion_id) : null
   const along = to.excursion_id !== meal.excursion_id ? nameOf(to.excursion_id) : null
-  const moved = t('meals.moved', { title: meal.title, day: shortDueDay(day) })
-  const note = along
-    ? t('meals.movedAlong', { name: along })
-    : leftFor
-      ? t('meals.movedOff', { name: leftFor })
-      : null
+  const words = { title: meal.title, day: shortDueDay(day), slot: slotWord(slot) }
+  const moved = t(slot === meal.slot ? 'meals.moved' : 'meals.movedSlot', words)
+  const notes = [
+    meal.at_time && to.at_time === null ? t('meals.movedTimeGone', { time: meal.at_time }) : null,
+    along
+      ? t('meals.movedAlong', { name: along })
+      : leftFor
+        ? t('meals.movedOff', { name: leftFor })
+        : null,
+  ].filter((note) => note !== null)
   void presentToast({
-    message: note ? `${moved} · ${note}` : moved,
+    message: [moved, ...notes].join(' · '),
     positionAnchor: FAB_ANCHOR.m31,
     cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => undo() }],

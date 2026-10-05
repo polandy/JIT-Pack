@@ -241,6 +241,8 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
 
     const undo = actions.moveMeal(mealStore.getMeal(id)!, {
       on_date: '2026-10-15',
+      slot: 'dinner',
+      at_time: null,
       excursion_id: null,
     })
     expect(mealStore.getMeal(id)).toMatchObject({ on_date: '2026-10-15', slot: 'dinner' })
@@ -264,6 +266,8 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
 
     const undo = actions.moveMeal(mealStore.getMeal(id)!, {
       on_date: '2026-10-13',
+      slot: 'lunch',
+      at_time: null,
       excursion_id: null,
     })
     expect(mealStore.getMeal(id)).toMatchObject({
@@ -277,6 +281,29 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
       excursion_id: 'ex-1',
       excursion_packed_at: packedAt,
     })
+  })
+
+  it('writes a move into another slot as its slot and its dropped time, and the undo brings both back (FR-33.15)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const mealStore = useMealStore()
+    const actions = createMealActions(orch.moduleHost, mealStore)
+    const id = actions.saveMeal('t1', null, { ...RACLETTE, time: '19:00' }, [])!
+    await orch.drainTrip('t1')
+
+    const undo = actions.moveMeal(mealStore.getMeal(id)!, {
+      on_date: '2026-10-12',
+      slot: 'lunch',
+      at_time: null,
+      excursion_id: null,
+    })
+    expect(mealStore.getMeal(id)).toMatchObject({ slot: 'lunch', at_time: null })
+    await orch.drainTrip('t1')
+    const move = harness.pushedMutations().at(-1)!
+    expect(Object.keys(move.fields ?? {}).sort()).toEqual(['at_time', 'slot'])
+
+    undo()
+    expect(mealStore.getMeal(id)).toMatchObject({ slot: 'dinner', at_time: '19:00' })
   })
 
   it('deletes a meal with every ingredient, bought or not (FR-33.9)', () => {

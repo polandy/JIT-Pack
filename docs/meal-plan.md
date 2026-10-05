@@ -59,9 +59,12 @@ drag:
   near the top or bottom of the screen and the list scrolls to the days beyond.
 - A small chip floats above your finger with the meal's name and where it would land — *„→ Do., 15.10."* — so the day
   under your finger stays visible. Over its own day it says *„bleibt am …"*.
-- Let go and the meal is on its new day. Only the day changes: the meal (lunch, dinner …), its time, who cooks and
-  its ingredients stay, and the ingredients are due on the new day on the shopping list. A day that already has a
-  dinner simply has two.
+- **Another meal of the day:** the chip shows *bleibt Abend · Früh · Mittag · Zw. · Abend* above your finger. Slide
+  right and the one above your finger lights up — dinner becomes lunch, on the same day too. Dragged straight down
+  it stays what it was.
+- Let go and the meal is there. Who cooks and its ingredients stay, and the ingredients are due on the new day on the
+  shopping list. A time goes when the meal changes (a lunch at 19:00 would be wrong). A day that already has a dinner
+  simply has two.
 - A snackbar offers **Rückgängig**. If the meal was going on an excursion, it says when it leaves the rucksack — or
   joins the rucksack of the new day's excursion.
 

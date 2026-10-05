@@ -62,6 +62,24 @@ export const CARRY_LIFT_PX = 22
 export const CARRY_GRIP_PX = 24
 /** The least room the chip keeps to either edge of the screen. */
 export const CARRY_EDGE_PX = 8
+/**
+ * The share of the row's width, from its leading edge, over which the finger
+ * keeps what the payload has: the grip is there, so a finger dragged straight
+ * down changes the place and nothing else.
+ */
+export const CHOICE_KEEP_SHARE = 0.34
+
+/**
+ * Which option a finger at `x` picks across a row starting at `left`, `width`
+ * wide: null over the first share, which keeps; else the option's index, the
+ * rest split evenly, the last one held past the far edge.
+ */
+export function choiceAt(x: number, left: number, width: number, count: number): number | null {
+  const keep = width * CHOICE_KEEP_SHARE
+  if (x < left + keep) return null
+  return Math.min(count - 1, Math.floor((x - left - keep) / ((width - keep) / count)))
+}
+
 /** How near the scroller's top or bottom edge a held finger starts the list scrolling. */
 export const EDGE_SCROLL_ZONE_PX = 64
 /**
@@ -159,6 +177,29 @@ export interface DropPlace {
    * positions — a group that only answers „in here" says nothing about order.
    */
   index: number | null
+  /**
+   * The option picked in the chip's row of fields (`DragCarry.choices`), null
+   * where the finger is over the first one, which keeps; absent on a screen
+   * that offers no choice.
+   */
+  choice?: string | null
+}
+
+/** One option a drop can choose besides its place: M31's slot. */
+export interface DragOption {
+  /** What the drop reports in `DropPlace.choice`. */
+  key: string
+  /** The field's word. */
+  label: string
+  /** The option the payload has now, marked so the eye finds its way back. */
+  current?: boolean
+}
+
+/** The fields a carried payload offers, left to right after the one that keeps. */
+export interface DragChoices {
+  /** The first field's words: what stays as it is (*„bleibt Abend"*). */
+  keep: string
+  options: DragOption[]
 }
 
 /**
@@ -176,9 +217,21 @@ export interface DragCarry<T> {
    * there would change nothing: such a place is no place — not framed, and a
    * drop on it writes nothing.
    */
-  target: (payload: T, place: DropPlace, label: string | null) => string | null
+  target: (
+    payload: T,
+    place: DropPlace,
+    label: string | null,
+    choice: string | null,
+  ) => string | null
   /** The chip's line while a drop would change nothing: „bleibt am Mo., 12.10.". */
   stays: (payload: T) => string
+  /**
+   * A second thing a drop can change besides the place — chosen by how far
+   * right the finger is, and shown above it as a row of fields in a chip as
+   * wide as the row, each field over its own column of the list (G-21). Absent
+   * or null: the compact chip, and no choice.
+   */
+  choices?: (payload: T) => DragChoices | null
 }
 
 export interface DragToGroupOptions<T> {
@@ -245,6 +298,8 @@ interface Lifted<T> {
   ghost: HTMLElement
   /** The chip's second line, rewritten as the place under the finger changes. */
   where: HTMLElement
+  /** The chip's row of fields and the option each stands for (null: keeps); null for no choice. */
+  choices: { row: HTMLElement; fields: { el: HTMLElement; key: string | null }[] } | null
   from: number | null
   /** The place the row was lifted out of, or null where it stood in none. */
   home: string | null
@@ -366,7 +421,13 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     } catch {
       // A pointer already gone has nothing to hold on to.
     }
-    const { ghost, where } = chip(payload)
+    const { ghost, where, choices } = chip(payload)
+    if (choices) {
+      // As wide as the row, so each field stands over its own column.
+      const box = row.getBoundingClientRect()
+      ghost.style.left = `${box.left}px`
+      ghost.style.width = `${box.width}px`
+    }
     document.body.appendChild(ghost)
     row.setAttribute('data-drag-source', '')
     markRefused(payload)
@@ -375,6 +436,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       row,
       ghost,
       where,
+      choices,
       from: indexOf(row),
       home: row.closest(`[${DROP_TARGET_ATTRIBUTE}]`)?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null,
     }
@@ -383,7 +445,11 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   }
 
   /** The chip: a grip, what is carried with its tag, and the line saying where it lands. */
-  function chip(payload: T): { ghost: HTMLElement; where: HTMLElement } {
+  function chip(payload: T): {
+    ghost: HTMLElement
+    where: HTMLElement
+    choices: Lifted<T>['choices']
+  } {
     const ghost = document.createElement('div')
     ghost.setAttribute('data-drag-ghost', '')
     ghost.style.position = 'fixed'
@@ -408,8 +474,44 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     const where = document.createElement('span')
     where.setAttribute('data-carry-where', '')
     words.append(where)
-    ghost.append(grip, words)
-    return { ghost, where }
+    const offered = opts.carry.choices?.(payload) ?? null
+    if (!offered) {
+      ghost.append(grip, words)
+      return { ghost, where, choices: null }
+    }
+    ghost.setAttribute('data-carry-wide', '')
+    const head = document.createElement('span')
+    head.setAttribute('data-carry-head', '')
+    head.append(grip, words)
+    const row = document.createElement('span')
+    row.setAttribute('data-carry-choices', '')
+    const fields = [
+      { key: null, label: offered.keep, current: false },
+      ...offered.options.map((option) => ({ ...option, current: option.current ?? false })),
+    ].map(({ key, label, current }) => {
+      const el = document.createElement('span')
+      el.setAttribute('data-carry-choice', key ?? '')
+      if (current) el.setAttribute('data-current', '')
+      el.textContent = label
+      row.append(el)
+      return { el, key }
+    })
+    ghost.append(head, row)
+    return { ghost, where, choices: { row, fields } }
+  }
+
+  /** The option under the finger — lit in the chip — or null where it keeps. */
+  function choose(x: number): string | null {
+    const choices = lifted?.choices
+    if (!choices) return null
+    const box = choices.row.getBoundingClientRect()
+    const index = choiceAt(x, box.left, box.width, choices.fields.length - 1)
+    const key = index === null ? null : (choices.fields[index + 1]?.key ?? null)
+    for (const field of choices.fields) {
+      if (field.key === key) field.el.setAttribute('data-on', '')
+      else field.el.removeAttribute('data-on')
+    }
+    return key
   }
 
   /**
@@ -418,6 +520,10 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
    * clears the finger.
    */
   function float(ghost: HTMLElement, x: number, y: number): void {
+    if (lifted?.choices) {
+      ghost.style.top = `${y - ghost.offsetHeight - CARRY_LIFT_PX}px`
+      return
+    }
     const room = window.innerWidth - ghost.offsetWidth - CARRY_EDGE_PX
     ghost.style.left = `${Math.max(CARRY_EDGE_PX, Math.min(room, x - CARRY_GRIP_PX))}px`
     ghost.style.top = `${y - ghost.offsetHeight - CARRY_LIFT_PX}px`
@@ -467,11 +573,18 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
     const found = placeUnder(ev.clientX, ev.clientY)
     const name = found?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null
+    const choice = choose(ev.clientX)
     const next: DropPlace | null =
-      found && name !== null ? { target: name, index: gapAt(found, ev.clientY) } : null
+      found && name !== null
+        ? {
+            target: name,
+            index: gapAt(found, ev.clientY),
+            ...(lifted.choices ? { choice } : {}),
+          }
+        : null
     const allowed = next !== null && (opts.accepts?.(lifted.payload, next) ?? true)
     const lands = allowed
-      ? opts.carry.target(lifted.payload, next, found!.getAttribute(DROP_LABEL_ATTRIBUTE))
+      ? opts.carry.target(lifted.payload, next, found!.getAttribute(DROP_LABEL_ATTRIBUTE), choice)
       : null
 
     if (!allowed || lands === null) {
@@ -484,7 +597,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       return
     }
     say(stays(next) ? null : lands)
-    const changed = over !== found || place?.index !== next.index
+    const changed = over !== found || place?.index !== next.index || place?.choice !== next.choice
     if (over !== found) {
       over?.removeAttribute(DROP_OVER_ATTRIBUTE)
       over = found

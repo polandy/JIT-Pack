@@ -53,3 +53,8 @@
   meal, the last day is below the fold; the meal held just above the bottom edge — the save's toast still lying over
   it — scrolls the plan (`data-drag-scroll` reads *down*) until the last day is in view; moved off the edge the list
   stands *still*, and the meal dropped on the last day stands there.
+* **E2E-M31-13** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): Raclette, a dinner at 19:00,
+  lifted by its grip: the chip is wide, and straight down its first field (*keeps*) is lit; slid right over its own day
+  until *Lunch* in the chip is lit, the chip ends above the finger and says *· Lunch*. Let go, the row reads *Lunch*
+  without *19:00*; the toast's *Undo* (*no time, it was 19:00*) brings back *Dinner* and *19:00*. The picnic put into
+  *Dinner* the same way leaves the rucksack (*no longer in the rucksack for Gletscher*).

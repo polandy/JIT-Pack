@@ -254,21 +254,30 @@ export function takesMeal(day: string, today: string): boolean {
 }
 
 /**
- * FR-33.15: what a meal moved to another day writes. Its slot, time and
- * ingredients stay; a meal taken on an excursion goes on the one of its new
- * day, or leaves it where none covers that day — what the sheet would write
- * with the day changed and *take it along* still on (FR-33.6).
+ * FR-33.15: what a meal moved to another day — and, chosen in the drag's
+ * chip, another slot — writes. Its cook, note and ingredients stay; its time
+ * stays with its slot and goes with it, since a lunch at 19:00 would be
+ * wrong; a meal taken on an excursion goes on the one of its new day, or
+ * leaves it where none covers that day or its new slot is dinner — what the
+ * sheet would write with the day and slot changed and *take it along* still
+ * on (FR-33.6).
  */
 export function movedMeal(
   meal: Meal,
   day: string,
   excursions: readonly MealExcursion[],
-): { on_date: string; excursion_id: string | null } {
+  slot: MealSlot = meal.slot,
+): { on_date: string; slot: MealSlot; at_time: string | null; excursion_id: string | null } {
   const along =
-    meal.excursion_id !== null && canTakeAlong({ ...meal, on_date: day }, excursions)
+    meal.excursion_id !== null && canTakeAlong({ ...meal, on_date: day, slot }, excursions)
       ? (excursionFor(day, excursions)?.id ?? null)
       : null
-  return { on_date: day, excursion_id: along }
+  return {
+    on_date: day,
+    slot,
+    at_time: slot === meal.slot ? meal.at_time : null,
+    excursion_id: along,
+  }
 }
 
 /** The calendar day before an ISO day, through UTC so no zone moves it. */

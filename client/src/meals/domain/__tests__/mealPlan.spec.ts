@@ -319,15 +319,14 @@ describe('a meal moved to another day (FR-33.15)', () => {
   })
 
   it('changes its day and nothing else of a meal on no excursion', () => {
-    expect(movedMeal(meal('m', { on_date: '2026-10-12' }), '2026-10-14', excursions)).toEqual({
-      on_date: '2026-10-14',
-      excursion_id: null,
-    })
+    expect(
+      movedMeal(meal('m', { on_date: '2026-10-12', at_time: '19:00' }), '2026-10-14', excursions),
+    ).toEqual({ on_date: '2026-10-14', slot: 'dinner', at_time: '19:00', excursion_id: null })
   })
 
   it('leaves its excursion for a day no excursion covers', () => {
     const picnic = meal('m', { on_date: '2026-10-14', slot: 'lunch', excursion_id: 'bernina' })
-    expect(movedMeal(picnic, '2026-10-13', excursions)).toEqual({
+    expect(movedMeal(picnic, '2026-10-13', excursions)).toMatchObject({
       on_date: '2026-10-13',
       excursion_id: null,
     })
@@ -335,10 +334,30 @@ describe('a meal moved to another day (FR-33.15)', () => {
 
   it('goes along on the excursion of the day it is moved to, as the sheet would take it', () => {
     const picnic = meal('m', { on_date: '2026-10-14', slot: 'lunch', excursion_id: 'bernina' })
-    expect(movedMeal(picnic, '2026-10-16', excursions)).toEqual({
+    expect(movedMeal(picnic, '2026-10-16', excursions)).toMatchObject({
       on_date: '2026-10-16',
       excursion_id: 'roseg',
     })
+  })
+
+  it('takes another slot, and drops a time that belonged to the old one', () => {
+    const raclette = meal('m', { on_date: '2026-10-12', slot: 'dinner', at_time: '19:00' })
+    expect(movedMeal(raclette, '2026-10-12', excursions, 'lunch')).toEqual({
+      on_date: '2026-10-12',
+      slot: 'lunch',
+      at_time: null,
+      excursion_id: null,
+    })
+  })
+
+  it('keeps its time when the slot it is given is its own', () => {
+    const raclette = meal('m', { on_date: '2026-10-12', slot: 'dinner', at_time: '19:00' })
+    expect(movedMeal(raclette, '2026-10-13', excursions, 'dinner').at_time).toBe('19:00')
+  })
+
+  it('leaves the rucksack when the picnic becomes a dinner, which is never taken along', () => {
+    const picnic = meal('m', { on_date: '2026-10-14', slot: 'lunch', excursion_id: 'bernina' })
+    expect(movedMeal(picnic, '2026-10-14', excursions, 'dinner').excursion_id).toBeNull()
   })
 
   it('is not put on an excursion it was not taken on', () => {

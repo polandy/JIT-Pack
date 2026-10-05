@@ -203,19 +203,27 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
   }
 
   /**
-   * FR-33.15: a meal moved to another day by its grip — the day, and the
-   * excursion that day takes it on (`movedMeal`), written as the fields that
-   * changed; a picnic leaving its excursion leaves its packed state there, as
-   * from the sheet. Hands back the undo, which writes the three back.
+   * FR-33.15: a meal moved by its grip — its day and slot, the time that goes
+   * with the slot and the excursion the day takes it on (`movedMeal`), written
+   * as the fields that changed; a picnic leaving its excursion leaves its
+   * packed state there, as from the sheet. Hands back the undo, which writes
+   * them all back.
    */
-  function moveMeal(meal: Meal, to: { on_date: string; excursion_id: string | null }): () => void {
+  function moveMeal(
+    meal: Meal,
+    to: { on_date: string; slot: MealSlot; at_time: string | null; excursion_id: string | null },
+  ): () => void {
     const before = {
       on_date: meal.on_date,
+      slot: meal.slot,
+      at_time: meal.at_time,
       excursion_id: meal.excursion_id,
       excursion_packed_at: meal.excursion_packed_at,
     }
     const patch: Record<string, unknown> = {}
     if (to.on_date !== meal.on_date) patch['on_date'] = to.on_date
+    if (to.slot !== meal.slot) patch['slot'] = to.slot
+    if (to.at_time !== meal.at_time) patch['at_time'] = to.at_time
     if (to.excursion_id !== meal.excursion_id) {
       patch['excursion_id'] = to.excursion_id
       if (meal.excursion_packed_at !== null) patch['excursion_packed_at'] = null

@@ -22,6 +22,8 @@ import {
   DROP_REFUSED_ATTRIBUTE,
   CARRY_GRIP_PX,
   CARRY_LIFT_PX,
+  CHOICE_KEEP_SHARE,
+  choiceAt,
   EDGE_SCROLL_MAX_PX_PER_S,
   EDGE_SCROLL_ZONE_PX,
   edgeSpeed,
@@ -710,5 +712,106 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
     drag.move(at(10, 395))
     paint()
     expect(outer.scrollTop).toBeGreaterThan(0)
+  })
+})
+
+/*
+ * M31's slot: a second thing a drop can change besides the place. It is
+ * chosen by how far right the finger is, and shown above the finger in the
+ * chip's own row of fields — a field under the finger cannot be read.
+ */
+describe('choiceAt — which field the finger is under', () => {
+  it('keeps over the first share of the width, where a finger dragged straight down stays', () => {
+    expect(choiceAt(0, 0, 400, 4)).toBeNull()
+    expect(choiceAt(400 * CHOICE_KEEP_SHARE - 1, 0, 400, 4)).toBeNull()
+  })
+
+  it('splits the rest into the options, left to right, and holds the last past the edge', () => {
+    const keep = 400 * CHOICE_KEEP_SHARE
+    const field = (400 - keep) / 4
+    expect(choiceAt(keep + 1, 0, 400, 4)).toBe(0)
+    expect(choiceAt(keep + field * 1.5, 0, 400, 4)).toBe(1)
+    expect(choiceAt(399, 0, 400, 4)).toBe(3)
+    expect(choiceAt(900, 0, 400, 4)).toBe(3)
+  })
+})
+
+describe('useDragToGroup — a choice carried above the finger', () => {
+  const choosing: DragCarry<string> = {
+    ...carry,
+    target: (_p, place, _label, choice) => `${place.target}${choice ? ` · ${choice}` : ''}`,
+    choices: () => ({
+      keep: 'keeps dinner',
+      options: [
+        { key: 'breakfast', label: 'Früh' },
+        { key: 'lunch', label: 'Mittag' },
+        { key: 'snack', label: 'Zw.' },
+        { key: 'dinner', label: 'Abend', current: true },
+      ],
+    }),
+  }
+  const ghost = () => document.querySelector<HTMLElement>('[data-drag-ghost]')!
+  const fields = () => [...ghost().querySelectorAll<HTMLElement>('[data-carry-choice]')]
+
+  beforeEach(() => {
+    rows[0]!.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 20, height: 20, left: 0, right: 400, width: 400, x: 0, y: 0 }) as DOMRect
+  })
+
+  it('widens the chip to the row, its fields in the row’s own columns, the current one marked', () => {
+    const drag = useDragToGroup<string>({ carry: choosing, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(ghost().hasAttribute('data-carry-wide')).toBe(true)
+    expect(ghost().style.width).toBe('400px')
+    expect(ghost().style.left).toBe('0px')
+    expect(fields().map((f) => f.textContent)).toEqual([
+      'keeps dinner',
+      'Früh',
+      'Mittag',
+      'Zw.',
+      'Abend',
+    ])
+    expect(fields()[4]!.hasAttribute('data-current')).toBe(true)
+  })
+
+  it('lights the field over the finger and hands the choice to the words and the drop', async () => {
+    const onDrop = vi.fn()
+    const drag = useDragToGroup<string>({ carry: choosing, onDrop })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    // jsdom lays nothing out: the field row is measured as the row it spans.
+    ghost().querySelector<HTMLElement>('[data-carry-choices]')!.getBoundingClientRect = () =>
+      ({ left: 0, width: 400, right: 400 }) as DOMRect
+    const keep = 400 * CHOICE_KEEP_SHARE
+    drag.move(at(keep + ((400 - keep) / 4) * 1.5, 50))
+    expect(
+      fields()
+        .filter((f) => f.hasAttribute('data-on'))
+        .map((f) => f.textContent),
+    ).toEqual(['Mittag'])
+    expect(ghost().querySelector('[data-carry-where]')!.textContent).toBe('→ b · lunch')
+    drag.up(at(keep + ((400 - keep) / 4) * 1.5, 50))
+    await Promise.resolve()
+    expect(onDrop).toHaveBeenCalledWith('one', { target: 'b', index: null, choice: 'lunch' }, 0)
+  })
+
+  it('keeps over the first field, which lights while the finger is there', () => {
+    const drag = useDragToGroup<string>({ carry: choosing, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    ghost().querySelector<HTMLElement>('[data-carry-choices]')!.getBoundingClientRect = () =>
+      ({ left: 0, width: 400, right: 400 }) as DOMRect
+    drag.move(at(10, 50))
+    expect(fields()[0]!.hasAttribute('data-on')).toBe(true)
+    expect(ghost().querySelector('[data-carry-where]')!.textContent).toBe('→ b')
+  })
+
+  it('stays the compact chip where the screen offers no choice', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(ghost().hasAttribute('data-carry-wide')).toBe(false)
+    expect(fields()).toEqual([])
   })
 })

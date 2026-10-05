@@ -603,6 +603,13 @@ These patterns apply to every screen and are specified once.
     would change nothing. Its bottom edge floats 22 px above the fingertip and its grip sits over the finger; it keeps
     8 px from either edge of the screen. The finger aims, so the place it aims at is never under the chip, and a place
     the hand itself covers is still named on the chip. It appears with a short scale-in, none under reduced motion.
+  * **A second choice rides in the chip, never under the finger.** Where a drop can change something besides the
+    place (M31's slot), the chip is as wide as the lifted row (`data-carry-wide`) and carries a row of fields under
+    its head (`data-carry-choices`): first the one that keeps (*„bleibt Abend"*, the leading 34 % of the row, where
+    the grip is and a finger dragged straight down stays), then one per option (*Früh · Mittag · Zw. · Abend*), the
+    current one outlined. Each field stands over its own column of the list, so the field lit (`data-on`) is the one
+    directly above the finger: up and down chooses the place, how far right the option. The chip's line says both,
+    *„→ Do., 15.10. · Mittag"*. Elsewhere the chip stays compact.
   * **The list scrolls under a finger held at its edge**: within 64 px of the scroller's top or bottom it scrolls that
     way, slowly as the finger enters the zone and faster deeper in (by the square of the depth, a quarter of the top
     speed half-way in), at most 360 px a second — measured in time, not frames, so a 120 Hz phone scrolls no faster
