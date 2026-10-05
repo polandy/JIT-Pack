@@ -153,7 +153,8 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   rename is `TagManagerSheet.spec.ts`'s: a right-click sends no click, so the absence would be vacuous here.
 * **E2E-M9-33** `local` (FR-24.10, ADR-075) — **implemented** (`e2e/inventory-tags.spec.ts`): a tag is
   moved on the axis by its grip. The pointer lifts *Navigation* by the grip, the gap before *Foto* is marked while it
-  hangs there, and after the drop `data-drag` returns to `idle`; the order is read on M9's own headings once the sheet
+  hangs there, the chip above the finger reads *Navigation* and *→ position 1* (G-21), and after the drop `data-drag`
+  returns to `idle`; the order is read on M9's own headings once the sheet
   is closed — *Navigation* first — not in the sheet that was dragged.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the

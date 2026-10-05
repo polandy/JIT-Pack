@@ -549,6 +549,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await expect(fromPacking).toHaveCSS('opacity', '0.5')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(fromPacking).not.toHaveAttribute('data-drop-over', '')
+    // The chip above the finger says it stays (G-21): a refusing heading is no place.
+    await expect(page.locator('[data-drag-ghost] [data-carry-where]')).toHaveText(
+      'stays where it is',
+    )
     await page.mouse.up()
     await expect(host).toHaveAttribute('data-drag', 'idle')
     await expect(fromPacking).toHaveCSS('opacity', '1')
@@ -566,6 +570,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
     await page.mouse.move(target.x + target.width / 2, target.y + 10, { steps: 8 })
     await expect(apotheke).toHaveAttribute('data-drop-over', '')
+    // The chip above the finger names the heading it would land under (G-21).
+    await expect(page.locator('[data-drag-ghost] [data-carry-title]')).toHaveText('Brot')
+    await expect(page.locator('[data-drag-ghost] [data-carry-where]')).toContainText('→')
+    await expect(page.locator('[data-drag-ghost] [data-carry-where]')).toContainText('Apotheke')
     // The heading says so out loud, too — not only the highlight the CSS
     // gate would already catch.
     await expect(apotheke.getByText('drop here')).toHaveCSS('opacity', '1')

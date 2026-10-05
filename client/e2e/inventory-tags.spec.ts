@@ -290,6 +290,9 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // Above the middle of the first row: the gap before it.
     await page.mouse.move(t.x + t.width / 2, t.y + 6, { steps: 8 })
     await expect(target).toHaveClass(/gap-before/)
+    // The chip above the finger names the place on the axis (G-21).
+    await expect(page.locator('[data-drag-ghost] [data-carry-title]')).toHaveText('Navigation')
+    await expect(page.locator('[data-drag-ghost] [data-carry-where]')).toHaveText('→ position 1')
     await page.mouse.up()
     await expect(host).toHaveAttribute('data-drag', 'idle')
     await writesLanded(page)

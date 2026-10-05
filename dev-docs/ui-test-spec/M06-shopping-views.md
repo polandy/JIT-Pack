@@ -128,8 +128,9 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   pre-drop snapshot. The packing list's combined heading refuses the drop — it never highlights and never takes it —
   since it carries no tag of its own to file under; while the entry is in the air, that heading dims rather than
   sitting inert (an untouched heading reads as broken, not as ineligible). The packing line carries a grip of its own
-  (FR-30.13) and the line below the list says where it may go. Also asserts the travelling clone's border, drawn from
-  `composables/dragToGroup.css` rather than this screen's own style.
+  (FR-30.13) and the line below the list says where it may go. Also asserts the travelling chip's border, drawn from
+  `composables/dragToGroup.css` rather than this screen's own style, and its words (G-21): *stays where it is* over
+  the refusing heading, *Brot* and *→ … Apotheke* over the one that takes it.
 * **E2E-M6-35** `local` (FR-30.10) — **implemented** (`shopping/shopping.spec.ts`): a due day on an
   own entry. On a running trip, *Pasta* gets tomorrow in the entry sheet through the app's date control, written on
   *Save*. On the list it wears *Tomorrow* (the *soon* state) and *Brot* wears nothing; *Pasta* stands in the **Fällig**
