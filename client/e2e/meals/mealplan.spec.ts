@@ -715,6 +715,7 @@ test.describe('M31 meal plan @local @meals', () => {
       .filter({ hasText: `“Bruschetta” is now on ${nextLabel}` })
     await expect(oneDay).toHaveCount(1)
     await expect(oneDay).not.toContainText('already bought')
+    await expect(oneDay).toHaveJSProperty('duration', 3000)
     await writesLanded(page)
     await undoFromSnackbar(page, `“Bruschetta” is now on ${nextLabel}`)
     await expect(mealRow(page, day(30), 'Bruschetta')).toBeVisible()
@@ -730,6 +731,8 @@ test.describe('M31 meal plan @local @meals', () => {
     const toast = page.locator('ion-toast.pack-toast').filter({ hasText: asked })
     await expect(toast).toHaveCount(1)
     await expect(toast).not.toContainText('Olivenöl')
+    // A question takes longer to read than a confirmation: it stays longer.
+    await expect(toast).toHaveJSProperty('duration', 8000)
     await expect(mealRow(page, day(33), 'Bruschetta')).toBeVisible()
     await writesLanded(page)
     // Only a question: the undo puts it back.
@@ -744,11 +747,11 @@ test.describe('M31 meal plan @local @meals', () => {
     await again.getByTestId(`meal-day-${day(34)}`).click()
     await again.getByTestId('meal-save').click()
     await expect(mealRow(page, day(34), 'Bruschetta')).toBeVisible()
-    await expect(
-      page.locator('ion-toast').filter({
-        hasText: `🌿 Brot, Rucola are already bought – will they last until ${await weekdayOf(day(34))}?`,
-      }),
-    ).toHaveCount(1)
+    const saved = page.locator('ion-toast').filter({
+      hasText: `🌿 Brot, Rucola are already bought – will they last until ${await weekdayOf(day(34))}?`,
+    })
+    await expect(saved).toHaveCount(1)
+    await expect(saved).toHaveJSProperty('duration', 8000)
   })
 
   /**

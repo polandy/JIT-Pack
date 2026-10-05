@@ -33,7 +33,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { formatDate, t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { MEAL_CONTEXT } from '@/lib/mealContext'
-import { presentToast } from '@/lib/toast'
+import { presentToast, TOAST_DURATION_MS } from '@/lib/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
 import type { Meal, MealSlot } from '@/types/domain'
@@ -58,7 +58,7 @@ import {
 } from './domain/mealPlan'
 import { learnedFreshness } from './domain/ingredients'
 import { glide, GLIDE_ATTRIBUTE, snapshot } from './glide'
-import { freshNote } from './moveNote'
+import { FRESH_NOTE_TOAST_MS, freshNote } from './moveNote'
 import { useMealSheet } from './sheet'
 import { mealFacts } from './sources'
 import { useMealStore } from './store'
@@ -261,6 +261,7 @@ function move(meal: Meal, day: string, slot: MealSlot) {
   const along = to.excursion_id !== meal.excursion_id ? nameOf(to.excursion_id) : null
   const words = { title: meal.title, day: shortDueDay(day), slot: slotWord(slot) }
   const moved = t(slot === meal.slot ? 'meals.moved' : 'meals.movedSlot', words)
+  const fresh = freshNote(meal.on_date, day, ingredientsOf(meal), learned())
   const notes = [
     meal.at_time && to.at_time === null ? t('meals.movedTimeGone', { time: meal.at_time }) : null,
     along
@@ -268,10 +269,11 @@ function move(meal: Meal, day: string, slot: MealSlot) {
       : leftFor
         ? t('meals.movedOff', { name: leftFor })
         : null,
-    freshNote(meal.on_date, day, ingredientsOf(meal), learned()),
+    fresh,
   ].filter((note) => note !== null)
   void presentToast({
     message: [moved, ...notes].join(' · '),
+    duration: fresh ? FRESH_NOTE_TOAST_MS : TOAST_DURATION_MS,
     positionAnchor: FAB_ANCHOR.m31,
     cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => undo() }],

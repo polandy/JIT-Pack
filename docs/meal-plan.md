@@ -69,7 +69,7 @@ drag:
   joins the rucksack of the new day's excursion.
 - **Fresh food already bought:** move a meal more than a day later while its fresh ingredients (🌿) are already
   bought, and the snackbar asks — *„🌿 Brot, Rucola sind schon gekauft – reicht es bis Sa.?"*. It is only a reminder:
-  the meal is moved, and **Rückgängig** still puts it back. Food that keeps, or is not bought yet, is not named.
+  the meal is moved, and **Rückgängig** still puts it back. This snackbar stays a little longer than the others. Food that keeps, or is not bought yet, is not named.
 
 Without dragging, open the meal and pick another **Tag**: the sheet shows *„Mo., 12.10. → Do., 15.10."* and marks the
 day it leaves, and **Speichern** moves it — with the same question about fresh food already bought. Meals already

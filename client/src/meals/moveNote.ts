@@ -9,6 +9,12 @@ import type { MealIngredient } from '@/types/domain'
 import { isFresh } from './domain/ingredients'
 import { freshBoughtTooEarly } from './domain/mealPlan'
 
+/**
+ * How long a toast carrying the question stays: it is read and thought about,
+ * where `TOAST_DURATION_MS` only confirms.
+ */
+export const FRESH_NOTE_TOAST_MS = 8000
+
 /** How many ingredients the question names before it counts the rest. */
 export const FRESH_NAMED = 2
 

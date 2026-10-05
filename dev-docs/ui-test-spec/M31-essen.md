@@ -61,5 +61,5 @@
 * **E2E-M31-14** `local` (FR-33.15, FR-33.13) — **implemented** (`meals/mealplan.spec.ts`): Bruschetta with Brot (fresh
   by the built-in list), Rucola (made fresh by hand) and Olivenöl (keeps), all three bought. Dragged one day later, its
   toast says where it went and asks nothing; undone, then dragged three days later, the toast ends *🌿 Brot, Rucola are
-  already bought – will they last until <weekday>?* without Olivenöl, and its *Undo* puts it back. Moved four days by
-  the sheet's day chip, the save's toast asks the same.
+  already bought – will they last until <weekday>?* without Olivenöl, stays 8 s where the one-day toast stays 3 s, and
+  its *Undo* puts it back. Moved four days by the sheet's day chip, the save's toast asks the same and stays 8 s too.
