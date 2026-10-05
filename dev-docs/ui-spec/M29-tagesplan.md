@@ -88,9 +88,10 @@
   * **The card** (`day-entry-connection`) stands in the form where *Zugverbindung hinzufügen* stood: *„08:06 → 08:34"*
     with *„28 min · direkt"* at its end, under it *„🚆 Luzern → Hergiswil"* and its lines as chips in what they travel
     by; the small map (`connection-map`, below); then *Teilstrecken ▾* (`day-entry-legs-toggle`), opening its legs in
-    place (`day-entry-legs`, each a `connection-leg`), *Ändern* (`day-entry-connection-change`, the step again) and, at
-    the end, *Entfernen* (`day-entry-connection-remove`), which takes the connection off the entry — no confirmation,
-    the entry is not written before its button. A connection taken **opens into the form**: the add row closes and the
+    place (`day-entry-legs`, each a `connection-leg`), *Ändern* (`day-entry-connection-change`, the step again,
+    searching from the connection's own stops and departure, the hand fields holding them) and, at the end, *Entfernen*
+    (`day-entry-connection-remove`), which takes the connection off the entry — no confirmation, the entry is not
+    written before its button. A connection taken **opens into the form**: the add row closes and the
     card unfolds in its place; *Entfernen* runs the same the other way (none of it under reduced motion).
   * **What it fills:** taking a connection fills an empty *Was* with *„Nach Hergiswil"* — the last stop, a walk's end
     left aside — labelled *aus der Verbindung* in the done tone (`day-entry-filled`), and an empty *Uhrzeit* with its

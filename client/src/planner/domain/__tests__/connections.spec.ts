@@ -169,12 +169,21 @@ describe('FR-29.18 a connection by hand', () => {
 
   it('gives its fields back for a change', () => {
     const leg = handLeg('2026-07-14', fields)!
-    expect(handFieldsOf(leg)).toEqual({
+    expect(handFieldsOf([leg])).toEqual({
       from: 'Olbia',
       to: 'Nuoro',
       dep: '09:15',
       arr: '11:05',
       line: 'ARST 9',
+    })
+  })
+  it('holds a searched connection from its first stop to its last, its lines in one field', () => {
+    expect(handFieldsOf(SAMEDAN_TO_BERN)).toEqual({
+      from: 'Samedan',
+      to: 'Bern, Cäcilienstrasse',
+      dep: '10:58',
+      arr: '15:46',
+      line: 'RE 3 · IC 3 · IC 1 · T 6',
     })
   })
 })

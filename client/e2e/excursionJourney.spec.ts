@@ -328,4 +328,66 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(map.locator('path.jp-track-line.jp-leg-train')).toHaveCount(1)
     await expect(map.locator('path.jp-track-line:not([class*="jp-leg-"])')).toHaveCount(1)
   })
+
+  /**
+   * E2E-M27-20: *Ändern* on a way there taken from the timetable starts from
+   * what is there — the search at its own stops and departure, not the slot's
+   * morning and the route's nearest stop; the hand fields hold its stops,
+   * times and line, and an arrival changed there is the slot's.
+   */
+  test('E2E-M27-20: changing the way there starts from its stops and times, editable by hand', async ({
+    page,
+  }) => {
+    await stubTimetable(
+      page,
+      [
+        { id: '8507483', name: 'Kandersteg', lat: 46.5, lon: 7.7 },
+        { id: '8507100', name: 'Spiez', lat: 46.68, lon: 7.68 },
+        { id: '8507482', name: 'Frutigen', lat: 46.588, lon: 7.649 },
+      ],
+      [
+        {
+          from: 'Spiez',
+          to: 'Kandersteg',
+          dep: '09:06',
+          arr: '09:34',
+          category: 'RE',
+          number: '0127',
+          via: ['Frutigen'],
+        },
+      ],
+    )
+    await createExcursion(page, { name: 'Oeschinensee', days: { start: HIKE_DAY, end: HIKE_DAY } })
+    await addExcursionTrack(page, 'climb.gpx', CLIMB)
+
+    await slot(page, 'out').click()
+    const sheet = page.getByTestId('day-entry')
+    await typeStop(sheet, 'from', 'Spiez')
+    await sheet.getByTestId('timetable-result-0').click()
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await writesLanded(page)
+    await expect(slot(page, 'out')).toContainText('09:06 Spiez → 09:34 Kandersteg')
+
+    await slot(page, 'out').click()
+    await sheet.getByTestId('day-entry-connection-change').click()
+    await expect(sheet.getByTestId('timetable-from').locator('input')).toHaveValue('Spiez')
+    await expect(sheet.getByTestId('timetable-to').locator('input')).toHaveValue('Kandersteg')
+    await expect(sheet.getByTestId('timetable-time').locator('input')).toHaveValue('09:06')
+    await expect(sheet.getByTestId('timetable-near-start')).toHaveCount(0)
+    await expect(sheet.getByTestId('timetable-result-0')).toContainText('09:06 → 09:34')
+
+    await sheet.getByTestId('connection-via-hand').click()
+    await expect(sheet.getByTestId('day-entry-hand-from').locator('input')).toHaveValue('Spiez')
+    await expect(sheet.getByTestId('day-entry-hand-to').locator('input')).toHaveValue('Kandersteg')
+    await expect(sheet.getByTestId('day-entry-hand-dep').locator('input')).toHaveValue('09:06')
+    await expect(sheet.getByTestId('day-entry-hand-arr').locator('input')).toHaveValue('09:34')
+    await expect(sheet.getByTestId('day-entry-hand-line').locator('input')).toHaveValue('RE 127')
+    await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:41')
+    await sheet.getByTestId('connection-take').click()
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await writesLanded(page)
+    await expect(slot(page, 'out')).toContainText('09:06 Spiez → 09:41 Kandersteg')
+  })
 })

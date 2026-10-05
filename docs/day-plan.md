@@ -111,7 +111,8 @@ like, **Linie**. If the arrival time is earlier than the departure, it is counte
 train. A link JIT-Pack cannot read says so, keeps the link and offers the hand fields.
 
 An entry without a title takes *Nach …* from the connection, and one without a time its departure — marked so, until
-you type something else. **Entfernen** takes the connection off again and leaves the entry. **Ändern** finds another.
+you type something else. **Entfernen** takes the connection off again and leaves the entry. **Ändern** finds another: the
+search starts at the connection's own stops and departure, and **Von Hand** holds its stops, times and lines to correct.
 
 **On a map:** a connection from the timetable or the SBB app shows a small map in the entry — each leg in its colour,
 the walks dotted. Tap it for the whole screen. A connection entered by hand has no map.

@@ -45,7 +45,6 @@ import {
   connectionTitle,
   handFieldsOf,
   handLeg,
-  hasMap,
   readConnectionLink,
   timeOf,
   type HandFields,
@@ -53,7 +52,7 @@ import {
 } from './domain/connections'
 import { isPlanTime } from './domain/dayPlan'
 import { parseLink } from './domain/ideas'
-import type { SearchSeed } from './domain/timetable'
+import { changeSeed, type SearchSeed } from './domain/timetable'
 
 const props = defineProps<{
   open: boolean
@@ -185,16 +184,20 @@ function removeConnection() {
   filled.time = false
 }
 
+/** The connection *Ändern* was tapped on, whose stops and departure the search starts from. */
+const changing = ref<readonly ConnectionLeg[] | null>(null)
+const seed = computed(() => {
+  const slot = props.searchSeed ?? DEFAULT_SEED
+  return changing.value ? changeSeed(changing.value, slot.earliest) : slot
+})
+
 /** *Zugverbindung hinzufügen* / *Ändern*: the step, the link and the hand fields holding what is there. */
 function findConnection() {
   const current = connection.value
   forgetRead()
   link.value = current?.link ?? ''
-  setHand(
-    current && current.legs.length === 1 && !hasMap(current.legs)
-      ? handFieldsOf(current.legs[0]!)
-      : { from: '', to: '', dep: '', arr: '', line: '' },
-  )
+  setHand(current ? handFieldsOf(current.legs) : { from: '', to: '', dep: '', arr: '', line: '' })
+  changing.value = current?.legs ?? null
   step.value = STEP_FIND
 }
 
@@ -328,6 +331,7 @@ watch(
     filled.title =
       !!legs && (title.value === filledTitle(legs) || title.value === connectionTitle(legs))
     filled.time = !!legs && time.value === timeOf(legs[0]!.dep)
+    changing.value = null
     forgetRead()
     link.value = ''
     setHand({ from: '', to: '', dep: '', arr: '', line: '' })
@@ -568,7 +572,7 @@ function save() {
         <ConnectionSearch
           v-if="searchable"
           :day="handDay"
-          :seed="searchSeed ?? DEFAULT_SEED"
+          :seed="seed"
           :near="searchNear ?? null"
           @pick="take($event, null)"
         />

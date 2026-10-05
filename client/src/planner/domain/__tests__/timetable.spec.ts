@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { DAY_ENTRY_CONNECTION, EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT } from '@/types/domain'
 import type { ConnectionLeg, DayEntry, ExcursionRole } from '@/types/domain'
 import {
+  changeSeed,
   nearStops,
   nearestStop,
   optionsFrom,
@@ -308,5 +309,53 @@ describe('searchSeed', () => {
 
   it('seeds a connection without a role with the day’s morning', () => {
     expect(searchSeed({ role: null, out: null, routeMinutes: null }).time).toBe('08:00')
+  })
+})
+
+describe('changeSeed', () => {
+  const walkThenRide: ConnectionLeg[] = [
+    {
+      from: 'Mein Standort',
+      to: 'Spiez',
+      dep: '2026-10-10T07:58',
+      arr: '2026-10-10T08:06',
+      line: '',
+    },
+    {
+      from: 'Spiez',
+      to: 'Frutigen',
+      dep: '2026-10-10T08:06',
+      arr: '2026-10-10T08:20',
+      line: 'RE',
+    },
+    {
+      from: 'Frutigen',
+      to: 'Kandersteg',
+      dep: '2026-10-10T08:22',
+      arr: '2026-10-10T08:34',
+      line: 'S 1',
+    },
+  ]
+
+  it("FR-29.18: a change searches from the connection's own stops at its departure", () => {
+    expect(changeSeed(walkThenRide, null)).toEqual({
+      from: 'Spiez',
+      to: 'Kandersteg',
+      time: '08:06',
+      earliest: null,
+    })
+  })
+
+  it("keeps what bounds the slot's departure", () => {
+    expect(changeSeed(walkThenRide, '12:59').earliest).toBe('12:59')
+  })
+
+  it("searches between a walk's own ends where the connection rides nothing", () => {
+    expect(changeSeed([walkThenRide[0]!], null)).toEqual({
+      from: 'Mein Standort',
+      to: 'Spiez',
+      time: '07:58',
+      earliest: null,
+    })
   })
 })

@@ -81,3 +81,7 @@
   the start*; the connection taken shows the form without *What* and *Time*, as its card and *Note*, and *Save as way
   there* writes it into the slot. The route step's map then draws the way's train leg beside the track's line
   (`track-summary-map`).
+* **E2E-M27-20** `local` (FR-29.18) — **implemented** (`excursionJourney.spec.ts`, the timetable stubbed): *Ändern* on
+  a way there taken from the timetable searches from its own *From*, *To* and departure — not the slot's morning, *To*
+  not marked *nearest stop to the start* — and *By hand* holds its stops, times and line; an arrival changed there is
+  the slot's. The seed's rule, a walk's start left aside, is `timetable.spec.ts`.
