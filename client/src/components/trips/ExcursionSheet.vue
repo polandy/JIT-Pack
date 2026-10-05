@@ -11,10 +11,10 @@
 import { IonButton, IonInput } from '@ionic/vue'
 import { computed, ref, watch } from 'vue'
 
-import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import WhoChips from '@/components/global/WhoChips.vue'
 import { resolveTemplate, searchGroups, type GroupSearchCandidate } from '@/domain/templates'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -60,7 +60,7 @@ const name = ref('')
 const startsOn = ref('')
 const endsOn = ref('')
 /** Null is everybody; a set is the named people. */
-const who = ref<Set<string> | null>(null)
+const who = ref<string[] | null>(null)
 const templateId = ref<string | null>(null)
 const query = ref('')
 
@@ -71,7 +71,7 @@ watch(
     name.value = props.excursion?.name ?? props.seed?.name ?? ''
     startsOn.value = props.excursion?.starts_on ?? props.seed?.day ?? ''
     endsOn.value = props.excursion?.ends_on ?? props.seed?.day ?? ''
-    who.value = props.travelerIds === null ? null : new Set(props.travelerIds)
+    who.value = props.travelerIds === null ? null : [...props.travelerIds]
     templateId.value = null
     query.value = ''
   },
@@ -84,27 +84,6 @@ function onDates(start: string, end: string) {
 }
 
 const creating = computed(() => props.excursion === null)
-
-function goes(id: string): boolean {
-  return who.value === null || who.value.has(id)
-}
-
-/**
- * A person tapped while everybody goes names just them — the tap says *who*,
- * not *who not*. From there each tap adds or takes one; naming everybody, or
- * taking the last one off, is everybody again (an excursion nobody goes on is
- * not one).
- */
-function toggle(id: string) {
-  if (who.value === null) {
-    who.value = new Set([id])
-    return
-  }
-  const next = new Set(who.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  who.value = next.size === 0 || next.size === props.travelers.length ? null : next
-}
 
 /** The groups the picker offers, each with what it resolves to. */
 const candidates = computed<GroupSearchCandidate[]>(() => {
@@ -146,10 +125,7 @@ function save() {
     name: name.value.trim(),
     startsOn: startsOn.value || null,
     endsOn: endsOn.value || null,
-    travelerIds:
-      who.value === null
-        ? null
-        : props.travelers.filter((tr) => who.value!.has(tr.id)).map((tr) => tr.id),
+    travelerIds: who.value,
     templateId: templateId.value,
   })
 }
@@ -190,20 +166,13 @@ function save() {
 
       <div v-if="travelers.length > 1" class="block">
         <p class="label">{{ t('excursions.who') }}</p>
-        <div class="chips" data-testid="m27-who">
-          <ChoiceChip :pressed="who === null" data-testid="m27-who-all" @click="who = null">
-            {{ t('excursions.everybody') }}
-          </ChoiceChip>
-          <ChoiceChip
-            v-for="traveler in travelers"
-            :key="traveler.id"
-            :pressed="who !== null && goes(traveler.id)"
-            :data-testid="`m27-who-${traveler.name}`"
-            @click="toggle(traveler.id)"
-          >
-            {{ traveler.name }}
-          </ChoiceChip>
-        </div>
+        <WhoChips
+          :travelers="travelers"
+          :who="who"
+          :all-label="t('excursions.everybody')"
+          test-key="m27"
+          @update="who = $event"
+        />
       </div>
 
       <div v-if="creating" class="block">
@@ -287,12 +256,6 @@ function save() {
   margin: 0 2px 6px;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 .groups {

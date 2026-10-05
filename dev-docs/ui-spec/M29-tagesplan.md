@@ -35,6 +35,9 @@
   * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.
   * **✎ Eintrag**, an entry of the plan's own: its title and note; a tap opens its sheet. An entry that carries a
     connection (FR-29.18) has it as a second line under the title — see *Connections* below.
+  * **Whom a line is for** (FR-29.15): an entry that names travellers, and an excursion narrowed to some (FR-31.3), say
+    *„für Sia, Leonardo"* under the title and its note (`m29-who-<key>`), the names in roster order, a shade lighter
+    than the title and darker than the note. A line for everybody says nothing.
   * **🍽 Mahlzeit** (§3.33, FR-33.5), from the meal plan through `lib/dayPlanSources.ts` (`data-kind="meal"`, the
     alpenrose edge): its slot as the label (*Abendessen*), the dish, *„Lena kocht · 2 von 4 Zutaten eingekauft"*
     (*„auswärts · Pizzeria Mulin"* eaten out) and the bought share as a ring. Without a time it stands at its slot's
@@ -42,6 +45,13 @@
     column. A tap opens the meal's sheet over the plan (M31). An excursion's line names a picnic taken on it
     (*„… · 🍽 Picknick"*, FR-33.6) and counts it in its ring.
   An empty day says *„Noch nichts geplant."* (`m29-empty`).
+* **Für** (`who-m29`), under the strip where the trip has more than one traveller: *Alle* (`who-all-m29`) and a chip
+  per traveller (`who-m29-<Name>`), the *Für wen* chips and rule — one or several chosen, everybody or nobody being
+  *Alle*. It narrows the chosen day, *Morgen* and the strip's dots to the lines that concern the chosen (FR-29.15); a
+  card that leaves lines out ends in *„2 Zeilen für andere"* with *Alle zeigen* (`m29-hidden`, `m29-show-all`;
+  `m29-tomorrow-hidden` under *Morgen*), and says *„Noch nichts geplant."* only where nothing is left out. The device
+  remembers the choice per trip; the first visit opens on the traveller linked to my account, else on *Alle*. A new
+  entry's *Für wen* starts on the chosen.
 * **Tomorrow** stands below as a second card (`m29-tomorrow`), headed *„Morgen · Do., 16.7."* with its count, while
   the trip has a next day.
 * **Outside the trip** — an idea planned, or an entry written, on a day the trip does not have, because its dates
@@ -58,6 +68,10 @@
     sheet and toasts *„„…" steht am Di., 15.7."*. Without such ideas the row is not there.
   * **Was** (`day-entry-name`, *„z. B. Tisch reserviert, Mietauto abholen"*), then *Uhrzeit* (`day-entry-time`, 24 h,
     *hh:mm* while empty) beside *Notiz* (`day-entry-note`, *optional*).
+  * **Für wen** (`who-day-entry`), where the trip has more than one traveller: *Alle* (`who-all-day-entry`), then a
+    chip per traveller (`who-day-entry-<Name>`) — the chips and the behaviour of M27's *Wer geht mit*: *Alle* is chosen
+    on a new entry; a name tapped while *Alle* is chosen names just that person, each next tap adds or takes one, and
+    naming everybody or nobody is *Alle* again. Not asked on an excursion's way, which goes with its people.
   * **🚆 Zugverbindung hinzufügen** (`day-entry-add-connection`), a dashed row, *„Im Fahrplan suchen, SBB-Link oder von
     Hand"* under it (*„SBB-Link einfügen oder von Hand"* where the search is not offered). A tap opens the connection
     step (*Connections* below). With a connection taken, the row is its card instead.

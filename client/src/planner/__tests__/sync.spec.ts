@@ -390,6 +390,100 @@ describe('the day plan (FR-29.14, FR-29.15)', () => {
     })
   })
 
+  it('an entry names whom it is for, row by row, and nobody named is everybody again (FR-29.15)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const whom = () =>
+      plannerStore
+        .getDayEntryTravelers('t1')
+        .map((row) => row.traveler_id)
+        .sort()
+
+    const id = actions.addDayEntry(
+      't1',
+      '2026-07-15',
+      { title: 'Coiffeur', note: null, time: '10:30', travelerIds: ['tr-sia'] },
+      null,
+    )!
+    const entry = () => plannerStore.getDayEntry(id)!
+    expect(whom()).toEqual(['tr-sia'])
+
+    actions.updateDayEntry(entry(), {
+      title: 'Coiffeur',
+      note: null,
+      time: '10:30',
+      travelerIds: ['tr-sia', 'tr-leo'],
+    })
+    expect(whom()).toEqual(['tr-leo', 'tr-sia'])
+
+    actions.updateDayEntry(entry(), { title: 'Coiffeur', note: null, time: '10:30' })
+    expect(whom()).toEqual(['tr-leo', 'tr-sia'])
+
+    actions.updateDayEntry(entry(), {
+      title: 'Coiffeur',
+      note: null,
+      time: '10:30',
+      travelerIds: null,
+    })
+    expect(whom()).toEqual([])
+    await orch.drainTrip('t1')
+
+    expect(
+      harness.pushedMutations().map((m) => [m.table, m.op, m.fields?.['traveler_id']]),
+    ).toEqual([
+      [TABLE.dayEntries, 'insert', undefined],
+      [TABLE.dayEntryTravelers, 'insert', 'tr-sia'],
+      [TABLE.dayEntryTravelers, 'insert', 'tr-leo'],
+      [TABLE.dayEntryTravelers, 'delete', undefined],
+      [TABLE.dayEntryTravelers, 'delete', undefined],
+    ])
+  })
+
+  it('a deleted entry takes whom it was for with it, in one mutation (FR-29.15)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const id = actions.addDayEntry(
+      't1',
+      '2026-07-15',
+      { title: 'Kinderclub', note: null, time: '09:00', travelerIds: ['tr-leo'] },
+      null,
+    )!
+    await orch.drainTrip('t1')
+    harness.mockDrain()
+
+    actions.removeDayEntry(plannerStore.getDayEntry(id)!)
+    await orch.drainTrip('t1')
+
+    expect(plannerStore.getDayEntryTravelers('t1')).toEqual([])
+    expect(
+      harness
+        .pushedMutations()
+        .slice(2)
+        .map((m) => [m.table, m.op]),
+    ).toEqual([[TABLE.dayEntries, 'delete']])
+  })
+
+  it('a traveller taken off the trip is named by the planner’s cascade (FR-29.15)', () => {
+    const orch = serverOrch()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    actions.addDayEntry(
+      't1',
+      '2026-07-15',
+      { title: 'Coiffeur', note: null, time: null, travelerIds: ['tr-sia', 'tr-leo'] },
+      null,
+    )
+    const sia = plannerStore.getDayEntryTravelers('t1').find((row) => row.traveler_id === 'tr-sia')!
+
+    expect(plannerFeatureStore(plannerStore).travelerChildRows?.('tr-sia')).toEqual([
+      { table: TABLE.dayEntryTravelers, id: sia.id },
+    ])
+  })
+
   it('a trip’s tombstone takes its day entries off the device', async () => {
     const orch = serverOrch()
     harness.mockDrain()

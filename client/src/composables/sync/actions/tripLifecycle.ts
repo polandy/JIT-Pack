@@ -331,13 +331,14 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       packingActions.assignTraveler(tripId, item, null)
     }
 
-    // FR-31.5: off the trip is off its excursions, with their own lines
-    // there — the server's cascade, mirrored for this device.
+    // FR-31.5/29.15: off the trip is off its excursions, with their own
+    // lines there, and off the day plan's entries — the server's cascade,
+    // mirrored for this device.
     const mutation = mutations.removeTravelerRow(travelerId)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.travelers, travelerId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.travelers, travelerId, { tripStore, masterStore, features }),
         optimisticDelete(mutation),
       ],
     })

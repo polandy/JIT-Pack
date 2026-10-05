@@ -19,7 +19,7 @@ import {
 } from '@/domain/track'
 import { newId } from '@/lib/ids'
 import { dbBool, jsonColumn } from '@/sync/columns'
-import type { ModuleHost } from '@/sync/featureModule'
+import type { ModuleHost, QueuedModuleMutation } from '@/sync/featureModule'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
@@ -60,6 +60,11 @@ export interface DayEntryFields {
   /** `HH:MM`, or null for none — with a connection, its first departure. */
   time: string | null
   connection?: ConnectionFields | null
+  /**
+   * Whom it is for — null for everybody (FR-29.15). Left out, a new entry is
+   * for everybody and a changed one keeps whom it had.
+   */
+  travelerIds?: readonly string[] | null
 }
 
 /** The excursion a new entry is a way of (FR-29.18), and which way. */
@@ -187,7 +192,11 @@ export function createPlannerActions(
           }
         : own,
     )
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    host.writeTrip(
+      tripId,
+      { mutation, optimistic: optimisticInsert(mutation) },
+      ...travelerWrites(tripId, id, fields.travelerIds ?? null),
+    )
     return id
   }
 
@@ -223,17 +232,60 @@ export function createPlannerActions(
     if (kind !== entry.kind) patch['kind'] = kind
     const link = connection?.link ?? null
     if (link !== entry.link) patch['link'] = link
-    if (Object.keys(patch).length === 0) return
-    const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)),
-    })
+    const writes =
+      fields.travelerIds === undefined
+        ? []
+        : travelerWrites(entry.trip_id, entry.id, fields.travelerIds)
+    if (Object.keys(patch).length > 0) {
+      const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
+      writes.unshift({ mutation, optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)) })
+    }
+    if (writes.length > 0) host.writeTrip(entry.trip_id, ...writes)
   }
 
+  /**
+   * FR-29.15: the rows that make an entry for `travelerIds` — null for
+   * everybody — from the rows it has: one inserted per person newly named,
+   * one deleted per person no longer, none touched for a person kept, so two
+   * devices naming different people both keep theirs.
+   */
+  function travelerWrites(
+    tripId: string,
+    entryId: string,
+    travelerIds: readonly string[] | null,
+  ): QueuedModuleMutation[] {
+    const rows = plannerStore
+      .getDayEntryTravelers(tripId)
+      .filter((row) => row.day_entry_id === entryId)
+    const wanted = new Set(travelerIds ?? [])
+    const writes: QueuedModuleMutation[] = []
+    for (const row of rows) {
+      if (wanted.has(row.traveler_id)) continue
+      const mutation = host.mutation('delete', TABLE.dayEntryTravelers, row.id)
+      writes.push({ mutation, optimistic: optimisticDelete(mutation) })
+    }
+    for (const travelerId of wanted) {
+      if (rows.some((row) => row.traveler_id === travelerId)) continue
+      const mutation = host.mutation('insert', TABLE.dayEntryTravelers, newId(), {
+        trip_id: tripId,
+        day_entry_id: entryId,
+        traveler_id: travelerId,
+      })
+      writes.push({ mutation, optimistic: optimisticInsert(mutation) })
+    }
+    return writes
+  }
+
+  /** FR-29.15: an entry's delete takes whom it was for, as one mutation (`sync/cascade.ts`). */
   function removeDayEntry(entry: DayEntry): void {
     const mutation = host.mutation('delete', TABLE.dayEntries, entry.id)
-    host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    host.writeTrip(entry.trip_id, {
+      mutation,
+      optimistic: [
+        ...cascadeTombstones(plannerStore.dayEntryChildRows(entry.id)),
+        optimisticDelete(mutation),
+      ],
+    })
   }
 
   /**

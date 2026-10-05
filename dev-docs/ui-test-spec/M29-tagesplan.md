@@ -52,10 +52,11 @@
   partition not yet on the device is `router/__tests__/tripOpening.spec.ts`; what counts as an empty day — arrival and
   departure do not, and a trip started early asks about its first day — is `dayHoldsNothing` and
   `openingDayHoldsNothing` in `planner/domain/__tests__/dayPlan.spec.ts`.
-* **E2E-M29-11** `local` (FR-29.7) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute* card
-  lists three of today's four lines and says *„+ 1 more · day plan"*; a trip ahead has no card; an idea ticked on the
-  card is done, and the link opens M29 on today with the idea ticked there. Which lines are still to come at a time of
-  day is `linesAhead` in `planner/domain/__tests__/dayPlan.spec.ts`.
+* **E2E-M29-11** `local` (FR-29.7, FR-29.15) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute*
+  card lists three of today's four lines and says *„+ 1 more · day plan"*, each entry for Sia saying *for Sia* as on M29
+  (FR-29.15); a trip ahead has no card; an idea ticked on the card is done, and the link opens M29 on today with the
+  idea ticked there. Which lines are still to come at a time of day is `linesAhead` in
+  `planner/domain/__tests__/dayPlan.spec.ts`.
 * **E2E-M29-13** `local` (FR-29.13/29.15/29.18) — **implemented** (`planner/bridge.spec.ts`): a shortlisted idea
   planned on a day and made into an excursion stands on that day as one *Excursion* line naming *💡 Gola Gorropu* —
   the plan holds one line, not two. A connection written by hand on the excursion's own screen (M27) stands
@@ -93,3 +94,16 @@
   fields through *Not there?* and the ＋'s one form. Local Mode keeps the search on at start (it has no instance to
   turn it off), so the instance's switch is `TestInstanceConfig_TimetableOnUnlessTurnedOff_FR29_18`'s and
   `lib/__tests__/timetable.spec.ts`'s.
+* **E2E-M29-19** `local` (FR-29.15, FR-31.3) — **implemented** (`planner/dayplan.spec.ts`): on a trip of three, a new
+  entry's *For whom* has *Everybody* chosen; tapping *Sia* names her alone and the line says *for Sia*, while an entry
+  nobody narrowed says nothing. Reopened, the sheet has *Sia* chosen; *Everybody* saved takes the words off. An
+  excursion narrowed to Sia on M27 says *for Sia* on its day. E2E-M29-02's trip of one shows no *For whom* row. The
+  chip rule is `lib/__tests__/whoGoes.spec.ts`'s, whom a line names `domain/__tests__/dayPlan.spec.ts`'s, the rows a
+  save writes and a delete takes `planner/__tests__/sync.spec.ts`'s, and the server's cascade and scope
+  `TestApplyMutation_DayEntryTraveler*`.
+* **E2E-M29-20** `local` (FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): on a trip of three in Local Mode the
+  *For* chips start on *Everybody*; Sia chosen leaves out Leonardo's entry and the excursion only Andy goes on and says
+  *2 lines for others*, Leonardo added brings his entry back, and a new entry's *For whom* starts on the two. The
+  choice outlives a reload; *Show all* is everybody again. Which lines concern whom — a task by its assignee's account,
+  a way by its excursion — is `concerns`' in `domain/__tests__/dayPlan.spec.ts`, the first visit on my own traveller
+  `openingFilter`'s, the remembered choice `planner/__tests__/dayPlanFilter.spec.ts`'s.

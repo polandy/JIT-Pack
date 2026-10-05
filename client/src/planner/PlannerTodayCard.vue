@@ -16,7 +16,7 @@ import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
-import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { TripCardProps } from '@/lib/tripCards'
 import { tripIdeasPath, tripSubPath } from '@/router/paths'
@@ -38,6 +38,7 @@ const orchestrator = useOrchestrator()
 const plannerStore = usePlannerStore()
 const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const sources = inject(DAY_PLAN_SOURCES, [])
+const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
 const router = useRouter()
 const { nameOf } = useTripIdentity(props.tripId, orchestrator)
 
@@ -66,6 +67,8 @@ const ahead = computed<DayLine[]>(() => {
     ideas: plannerStore.getIdeas(props.tripId),
     entries: plannerStore.getDayEntries(props.tripId),
     lines: sources.flatMap((source) => source.lines(props.tripId)),
+    travelers: travelersOf(props.tripId),
+    entryTravelers: plannerStore.getDayEntryTravelers(props.tripId),
   })
   return linesAhead(today.value, lines, now.value)
 })

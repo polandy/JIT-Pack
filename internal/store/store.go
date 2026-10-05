@@ -78,6 +78,9 @@ const (
 	TableIdeaImages = "idea_images"
 	// FR-29.15: the day plan's own entries.
 	TableDayEntries = "day_entries"
+	// FR-29.15: whom a day-plan entry is for — a row per traveller, none
+	// meaning everybody.
+	TableDayEntryTravelers = "day_entry_travelers"
 	// FR-29.17: a GPX track on an idea — what the device read from the file;
 	// the file stays outside the envelope (ADR-085).
 	TableIdeaTracks = "idea_tracks"

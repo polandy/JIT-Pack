@@ -217,7 +217,7 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
 
     await excursionMenu(page, 'm27-edit')
     const sheet = page.getByTestId('m27-sheet')
-    await sheet.getByTestId('m27-who-Lio').click()
+    await sheet.getByTestId('who-m27-Lio').click()
     await sheet.getByTestId('m27-save').click()
     await expect(children).toHaveCount(3)
     await expect(visible(page).getByTestId('m27-child-Schlafsack-Lio')).toBeVisible()

@@ -120,6 +120,8 @@ func tripPartition(tripID, userID string) partition {
 				return noteExcursion(ctx, tx, tripID, m)
 			case TableMealIngredients:
 				return validIngredientMeal(ctx, tx, tripID, m)
+			case TableDayEntryTravelers:
+				return validDayEntryTraveler(ctx, tx, tripID, m)
 			case TableIdeaVotes:
 				return validIdeaVote(userID, row), nil
 			case TableIdeaComments:

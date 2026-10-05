@@ -47,6 +47,8 @@ export const TABLE = {
   ideaImages: 'idea_images',
   /** FR-29.15: the day plan's own entries. */
   dayEntries: 'day_entries',
+  /** FR-29.15: whom a day-plan entry is for — a row per traveller, none for everybody. */
+  dayEntryTravelers: 'day_entry_travelers',
   /** FR-29.17: a GPX track on an idea — what was read from the file; the file stays out (ADR-085). */
   ideaTracks: 'idea_tracks',
   /** §3.33: a trip's meals and their ingredients — shopping lines by projection (ADR-092). */

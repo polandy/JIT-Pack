@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The day plan's sheet for an entry of its own (FR-29.15): one form — what,
- * time, note — and the connection the entry may carry (FR-29.18), added,
+ * time, note, whom it is for — and the connection the entry may carry (FR-29.18), added,
  * changed or taken off at any time; a new one has the shortlisted ideas
  * without a day above it, any of which is planned there instead. Nothing is
  * written before its button.
@@ -12,7 +12,8 @@
  * — and marks it as filled until it is typed into.
  *
  * On an excursion's way (M27) the sheet is the connection alone: it opens at
- * the step, and the slot names and times what is written.
+ * the step, and the slot names and times what is written. Such a way goes
+ * with the excursion's people, so it asks no one whom it is for.
  */
 import { IonButton, IonIcon, IonInput, IonSpinner } from '@ionic/vue'
 import {
@@ -26,6 +27,7 @@ import {
 import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
+import WhoChips from '@/components/global/WhoChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TimeField from '@/components/global/TimeField.vue'
@@ -33,7 +35,7 @@ import { t } from '@/i18n'
 import { canReadClipboard, readClipboardText } from '@/lib/clipboard'
 import { useTimetableOffered } from '@/lib/timetable'
 import { shortDueDay } from '@/lib/taskDueText'
-import type { ConnectionLeg, DayEntry, Idea } from '@/types/domain'
+import type { ConnectionLeg, DayEntry, Idea, Traveler } from '@/types/domain'
 import type { ConnectionFields, DayEntryFields } from './actions'
 import ConnectionCard from './ConnectionCard.vue'
 import ConnectionSearch from './ConnectionSearch.vue'
@@ -63,6 +65,10 @@ const props = defineProps<{
   dayText: string
   /** The shortlisted ideas without a day, offered above a new entry. */
   pool: readonly Idea[]
+  /** The trip's travellers, whom an entry may be for (FR-29.15). */
+  travelers?: readonly Traveler[]
+  /** Whom the entry is for now — null for everybody (FR-29.15). */
+  travelerIds?: readonly string[] | null
   /** A page's links, read by the server — null where there is none to ask (Local Mode, previews off). */
   pageLinks: PageLinks | null
   /** The excursion a new or changed connection belongs to (FR-29.18), or null for none. */
@@ -119,6 +125,19 @@ const title = ref('')
 const note = ref('')
 const time = ref('')
 const connection = ref<ConnectionFields | null>(null)
+/** FR-29.15: whom it is for — null for everybody. */
+const who = ref<string[] | null>(null)
+/**
+ * FR-29.15: asked where there is more than one traveller to choose from, and
+ * never for an excursion's way, which goes with the excursion's people.
+ */
+const asksWho = computed(
+  () =>
+    !props.connectionOnly &&
+    !props.excursionTitle &&
+    !props.entry?.excursion_id &&
+    (props.travelers?.length ?? 0) > 1,
+)
 /** Which of the entry's fields the connection filled, and still holds. */
 const filled = reactive({ title: false, time: false })
 
@@ -302,6 +321,7 @@ watch(
     title.value = entry?.title ?? ''
     note.value = entry?.note ?? ''
     time.value = entry?.at_time ?? ''
+    who.value = props.travelerIds ? [...props.travelerIds] : null
     const legs = entry?.legs ?? null
     connection.value = legs ? { legs, link: entry?.link ?? null } : null
     // What a connection filled reads as filled again, so a changed one fills it anew.
@@ -362,6 +382,7 @@ function save() {
     note: note.value,
     time: !props.connectionOnly && isPlanTime(time.value) ? time.value : null,
     connection: connection.value,
+    ...(asksWho.value ? { travelerIds: who.value } : {}),
   })
 }
 </script>
@@ -451,6 +472,16 @@ function save() {
               label-placement="stacked"
               :placeholder="t('dayPlan.optional')"
               data-testid="day-entry-note"
+            />
+          </div>
+          <div v-if="asksWho" class="who">
+            <span class="jp-eyebrow">{{ t('dayPlan.whoLabel') }}</span>
+            <WhoChips
+              :travelers="travelers ?? []"
+              :who="who"
+              :all-label="t('dayPlan.everybody')"
+              test-key="day-entry"
+              @update="who = $event"
             />
           </div>
         </template>
@@ -731,6 +762,14 @@ function save() {
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 2px;
+}
+
+/* FR-29.15: whom it is for, labelled as the pool above it is. */
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .chips .idea {

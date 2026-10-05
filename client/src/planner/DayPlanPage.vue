@@ -26,7 +26,7 @@ import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
-import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
@@ -36,14 +36,19 @@ import { createPlannerActions, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
 import DayLineRow from './DayLineRow.vue'
 import { stripDay } from './dayLineText'
+import WhoChips from '@/components/global/WhoChips.vue'
+import { readDayPlanFilter, writeDayPlanFilter } from './dayPlanFilter'
 import {
+  concerns,
   dayCounts,
   dayLines,
   entriesOutsideTrip,
+  forOf,
   ideasOutsideTrip,
   ideasWithExcursion,
   nextDay,
   openingDay,
+  openingFilter,
   stateAfterTick,
   tripDays,
   unplannedIdeas,
@@ -61,6 +66,9 @@ const plannerStore = usePlannerStore()
 const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const router = useRouter()
 const sources = inject(DAY_PLAN_SOURCES, [])
+const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
+/** FR-29.15: whom an entry may be for, in roster order. */
+const travelers = computed(() => travelersOf(props.tripId))
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
@@ -68,7 +76,43 @@ const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, o
 onMounted(async () => {
   await ensure()
   await loadIdentity()
+  identityLoaded.value = true
 })
+
+// --- whom the plan is narrowed to (FR-29.15) ---
+
+/** The chosen people — null for everybody — as tapped, before the roster is applied. */
+const forFilter = ref<string[] | null>(null)
+/** The chosen people still on the trip, in roster order; null for everybody. */
+const chosenFor = computed(() =>
+  forFilter.value === null ? null : forOf(forFilter.value, travelers.value),
+)
+
+/** Who I am is known — the first visit opens on my traveller. */
+const identityLoaded = ref(false)
+/** The opening choice is made once, and never over a tap. */
+let filterOpened = false
+/*
+ * Once the roster is here: after a reload the trip's travellers arrive after
+ * the page mounts, and a choice read against an empty roster is everybody.
+ */
+watch([identityLoaded, travelers], ([ready, roster]) => {
+  if (!ready || filterOpened || roster.length < 2) return
+  filterOpened = true
+  forFilter.value = openingFilter(readDayPlanFilter(props.tripId), roster, myUserId.value)
+})
+
+function onFilter(next: string[] | null) {
+  filterOpened = true
+  forFilter.value = next
+  writeDayPlanFilter(props.tripId, next)
+}
+
+/** One day's lines that concern the chosen, and how many others it leaves out. */
+function narrowed(lines: DayLine[]): { lines: DayLine[]; hidden: number } {
+  const shown = lines.filter((line) => concerns(line, chosenFor.value, travelers.value))
+  return { lines: shown, hidden: lines.length - shown.length }
+}
 
 setHeaderTitle(
   () => t('dayPlan.title'),
@@ -96,17 +140,23 @@ const input = computed<DayInput>(() => ({
   ideas: plannerStore.getIdeas(props.tripId),
   entries: plannerStore.getDayEntries(props.tripId),
   lines: sources.flatMap((source) => source.lines(props.tripId)),
+  travelers: travelers.value,
+  entryTravelers: plannerStore.getDayEntryTravelers(props.tripId),
 }))
 
-const counts = computed(() => dayCounts(days.value, input.value))
+const counts = computed(() => dayCounts(days.value, input.value, chosenFor.value))
 const today = computed(() => orchestrator.today())
-const chosenLines = computed(() => (chosen.value ? dayLines(chosen.value, input.value) : []))
+const chosenDay = computed(() => narrowed(chosen.value ? dayLines(chosen.value, input.value) : []))
+const chosenLines = computed(() => chosenDay.value.lines)
 const tomorrow = computed(() => {
   if (!chosen.value) return null
   const day = nextDay(chosen.value)
   return days.value.includes(day) ? day : null
 })
-const tomorrowLines = computed(() => (tomorrow.value ? dayLines(tomorrow.value, input.value) : []))
+const tomorrowDay = computed(() =>
+  narrowed(tomorrow.value ? dayLines(tomorrow.value, input.value) : []),
+)
+const tomorrowLines = computed(() => tomorrowDay.value.lines)
 
 const withExcursion = computed(() => ideasWithExcursion(input.value.lines))
 const pool = computed(() =>
@@ -164,6 +214,19 @@ function planOnChosen(idea: Idea) {
 const pageLinks = usePageLinks(props.tripId, orchestrator)
 
 /** An entry lands on the day its connection names, and the plan goes there with it. */
+/** FR-29.15: whom the entry being changed is for — null for everybody, as for a new one. */
+const editingWho = computed(() => {
+  const id = editing.value?.entry?.id
+  if (!id) return null
+  const named = plannerStore
+    .getDayEntryTravelers(props.tripId)
+    .filter((row) => row.day_entry_id === id)
+    .map((row) => row.traveler_id)
+  // In roster order and without anyone gone from the trip, as the line names them.
+  const roster = travelers.value.filter((traveler) => named.includes(traveler.id))
+  return roster.length > 0 ? roster.map((traveler) => traveler.id) : null
+})
+
 function onSave(fields: DayEntryFields) {
   const current = editing.value
   editing.value = null
@@ -222,9 +285,24 @@ async function onRemove() {
             </button>
           </div>
 
+          <div v-if="travelers.length > 1" class="filter">
+            <span class="jp-eyebrow">{{ t('dayPlan.filterLabel') }}</span>
+            <WhoChips
+              :travelers="travelers"
+              :who="chosenFor"
+              :all-label="t('dayPlan.everybody')"
+              test-key="m29"
+              @update="onFilter"
+            />
+          </div>
+
           <h2 class="day-heading" data-testid="m29-day-heading">{{ chosenHeading }}</h2>
           <div class="timeline jp-card" data-testid="m29-timeline">
-            <p v-if="chosenLines.length === 0" class="empty" data-testid="m29-empty">
+            <p
+              v-if="chosenLines.length === 0 && chosenDay.hidden === 0"
+              class="empty"
+              data-testid="m29-empty"
+            >
               {{ t('dayPlan.emptyDay') }}
             </p>
             <DayLineRow
@@ -235,6 +313,12 @@ async function onRemove() {
               @open="open(line)"
               @tick="tick(line)"
             />
+            <p v-if="chosenDay.hidden > 0" class="hidden" data-testid="m29-hidden">
+              <span>{{ t('dayPlan.hiddenLines', { n: chosenDay.hidden }) }}</span>
+              <button type="button" data-testid="m29-show-all" @click="onFilter(null)">
+                {{ t('dayPlan.showAll') }}
+              </button>
+            </p>
           </div>
 
           <template v-if="tomorrow">
@@ -243,7 +327,9 @@ async function onRemove() {
               <span class="jp-num">{{ tomorrowLines.length }}</span>
             </h3>
             <div class="timeline jp-card" data-testid="m29-tomorrow-list">
-              <p v-if="tomorrowLines.length === 0" class="empty">{{ t('dayPlan.emptyDay') }}</p>
+              <p v-if="tomorrowLines.length === 0 && tomorrowDay.hidden === 0" class="empty">
+                {{ t('dayPlan.emptyDay') }}
+              </p>
               <DayLineRow
                 v-for="line in tomorrowLines"
                 :key="line.key"
@@ -252,6 +338,10 @@ async function onRemove() {
                 @open="open(line)"
                 @tick="tick(line)"
               />
+              <p v-if="tomorrowDay.hidden > 0" class="hidden" data-testid="m29-tomorrow-hidden">
+                <span>{{ t('dayPlan.hiddenLines', { n: tomorrowDay.hidden }) }}</span>
+                <button type="button" @click="onFilter(null)">{{ t('dayPlan.showAll') }}</button>
+              </p>
             </div>
           </template>
 
@@ -323,6 +413,8 @@ async function onRemove() {
         :day-text="chosen ? shortDueDay(chosen) : ''"
         :pool="pool"
         :page-links="pageLinks"
+        :travelers="travelers"
+        :traveler-ids="editing?.entry ? editingWho : chosenFor"
         @close="editing = null"
         @save="onSave"
         @remove="onRemove"
@@ -440,6 +532,36 @@ async function onRemove() {
 .timeline {
   margin: 0 12px 12px;
   padding: 4px 0;
+}
+
+/* FR-29.15: whom the plan is narrowed to, under the strip. */
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 16px 12px;
+}
+
+/* What the filter leaves out, said so nothing seems lost. */
+.hidden {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 8px;
+  padding: 8px;
+  border-top: 1px dashed var(--ct-surface1);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.hidden button {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jp-action);
+  font: inherit;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .empty {

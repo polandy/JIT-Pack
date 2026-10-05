@@ -649,6 +649,17 @@ export interface ConnectionLeg {
  * connection it may carry (FR-29.18): an entry is a connection while it has
  * legs, and its `kind` follows them.
  */
+/**
+ * FR-29.15: one traveller a day-plan entry is for. No rows for an entry means
+ * every traveller of the trip.
+ */
+export interface DayEntryTraveler {
+  id: string
+  trip_id: string
+  day_entry_id: string
+  traveler_id: string
+}
+
 export interface DayEntry {
   id: string
   trip_id: string

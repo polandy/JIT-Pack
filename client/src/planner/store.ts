@@ -1,7 +1,7 @@
 /**
  * The planner's rows (§3.29): a trip's ideas, the votes on them, their
  * discussion, their pictures and their tracks, and the day plan's own entries
- * (FR-29.15), held apart from the packing rows.
+ * and whom each is for (FR-29.15), held apart from the packing rows.
  *
  * The planner's own store, as the shopping list has its own: nothing the
  * packing side reads can reach an idea, and the orchestrator reaches these
@@ -15,7 +15,15 @@ import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
 import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
-import type { DayEntry, Idea, IdeaComment, IdeaImage, IdeaTrack, IdeaVote } from '@/types/domain'
+import type {
+  DayEntry,
+  DayEntryTraveler,
+  Idea,
+  IdeaComment,
+  IdeaImage,
+  IdeaTrack,
+  IdeaVote,
+} from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
 /** The tables this module holds. */
@@ -25,6 +33,7 @@ const PLANNER_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.ideaComments,
   TABLE.ideaImages,
   TABLE.dayEntries,
+  TABLE.dayEntryTravelers,
   TABLE.ideaTracks,
 ])
 
@@ -37,6 +46,8 @@ export const usePlannerStore = defineStore('planner', () => {
   const images = ref<Map<string, IdeaImage>>(new Map())
   /** FR-29.15: the day plan's own entries. */
   const dayEntries = ref<Map<string, DayEntry>>(new Map())
+  /** FR-29.15: whom an entry is for — none of an entry's means everybody. */
+  const entryTravelers = ref<Map<string, DayEntryTraveler>>(new Map())
   const tracks = ref<Map<string, IdeaTrack>>(new Map())
   /**
    * FR-29.16: the ideas whose link's picture is on its way, which the board
@@ -82,6 +93,11 @@ export const usePlannerStore = defineStore('planner', () => {
     return dayEntries.value.get(id)
   }
 
+  /** FR-29.15: a trip's rows naming whom its entries are for. */
+  function getDayEntryTravelers(tripId: string): DayEntryTraveler[] {
+    return [...entryTravelers.value.values()].filter((row) => row.trip_id === tripId)
+  }
+
   /** A trip's GPX tracks, as rows — `domain/track.ts` orders them (FR-29.17). */
   function getTracks(tripId: string): IdeaTrack[] {
     return [...tracks.value.values()].filter((track) => track.trip_id === tripId)
@@ -109,6 +125,11 @@ export const usePlannerStore = defineStore('planner', () => {
             TABLE_CODECS[TABLE.dayEntries].parse(id, row),
           )
           break
+        case TABLE.dayEntryTravelers:
+          apply(entryTravelers.value, change, (id, row) =>
+            TABLE_CODECS[TABLE.dayEntryTravelers].parse(id, row),
+          )
+          break
         case TABLE.ideaTracks:
           apply(tracks.value, change, (id, row) => TABLE_CODECS[TABLE.ideaTracks].parse(id, row))
           break
@@ -134,6 +155,20 @@ export const usePlannerStore = defineStore('planner', () => {
     ]
   }
 
+  /** The rows an entry's delete takes with it — whom it was for (FR-29.15). */
+  function dayEntryChildRows(entryId: string): CascadeRow[] {
+    return [...entryTravelers.value.values()]
+      .filter((row) => row.day_entry_id === entryId)
+      .map((row) => ({ table: TABLE.dayEntryTravelers, id: row.id }))
+  }
+
+  /** The rows a traveller taken off the trip takes along — their place on entries (FR-29.15). */
+  function travelerChildRows(travelerId: string): CascadeRow[] {
+    return [...entryTravelers.value.values()]
+      .filter((row) => row.traveler_id === travelerId)
+      .map((row) => ({ table: TABLE.dayEntryTravelers, id: row.id }))
+  }
+
   /** Everything a deleted trip takes with it, leaf-first. */
   function tripChildRows(tripId: string): CascadeRow[] {
     return [
@@ -142,6 +177,10 @@ export const usePlannerStore = defineStore('planner', () => {
       ...getImages(tripId).map((image) => ({ table: TABLE.ideaImages, id: image.id })),
       ...getTracks(tripId).map((track) => ({ table: TABLE.ideaTracks, id: track.id })),
       ...getIdeas(tripId).map((idea) => ({ table: TABLE.ideas, id: idea.id })),
+      ...getDayEntryTravelers(tripId).map((row) => ({
+        table: TABLE.dayEntryTravelers,
+        id: row.id,
+      })),
       ...getDayEntries(tripId).map((entry) => ({ table: TABLE.dayEntries, id: entry.id })),
     ]
   }
@@ -152,6 +191,7 @@ export const usePlannerStore = defineStore('planner', () => {
     for (const image of getImages(tripId)) images.value.delete(image.id)
     for (const track of getTracks(tripId)) tracks.value.delete(track.id)
     for (const idea of getIdeas(tripId)) ideas.value.delete(idea.id)
+    for (const row of getDayEntryTravelers(tripId)) entryTravelers.value.delete(row.id)
     for (const entry of getDayEntries(tripId)) dayEntries.value.delete(entry.id)
   }
 
@@ -163,11 +203,14 @@ export const usePlannerStore = defineStore('planner', () => {
     getImages,
     getDayEntries,
     getDayEntry,
+    getDayEntryTravelers,
     getTracks,
     pictureComing,
     setPictureComing,
     applyChanges,
     ideaChildRows,
+    dayEntryChildRows,
+    travelerChildRows,
     tripChildRows,
     forgetTrip,
   }
@@ -190,6 +233,7 @@ export function plannerFeatureStore(
     tables: PLANNER_TABLES,
     applyChanges: (changes) => plannerStore.applyChanges(changes),
     tripChildRows: (tripId) => plannerStore.tripChildRows(tripId),
+    travelerChildRows: (travelerId) => plannerStore.travelerChildRows(travelerId),
     forgetTrip: (tripId) => plannerStore.forgetTrip(tripId),
   }
 }

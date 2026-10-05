@@ -69,7 +69,7 @@ import { createExcursionShoppingSource } from '@/composables/excursionShoppingSo
 import { pendingExcursionCount } from '@/domain/excursions'
 import { localIsoDate } from '@/domain/trips'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
-import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
 import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
 import { createIdeaResultSource } from '@/composables/ideaResultSource'
@@ -325,6 +325,7 @@ const dayPlanSources = orchestrator
         {
           getExcursions: (tripId) => useTripStore().getExcursions(tripId),
           getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
+          getExcursionTravelers: (tripId) => useTripStore().getExcursionTravelers(tripId),
           tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
           extraLines: (tripId, excursionId) =>
             mealExcursionSources.flatMap((source) => source.lines(tripId, excursionId)),
@@ -336,6 +337,7 @@ const dayPlanSources = orchestrator
     ]
   : []
 provide(DAY_PLAN_SOURCES, dayPlanSources)
+provide(DAY_PLAN_TRAVELERS, (tripId: string) => useTripStore().getTravelers(tripId))
 /*
  * FR-29.13: the bridge from an idea — the planner names an idea to the
  * packing side and the shopping module, and both name what came of it back.

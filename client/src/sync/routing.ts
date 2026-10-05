@@ -64,6 +64,7 @@ export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.ideaComments,
   TABLE.ideaImages,
   TABLE.dayEntries,
+  TABLE.dayEntryTravelers,
   TABLE.ideaTracks,
   TABLE.meals,
   TABLE.mealIngredients,

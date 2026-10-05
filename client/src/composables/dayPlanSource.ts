@@ -12,12 +12,20 @@ import { spanOf, sumUnits } from '@/domain/excursions'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type { Excursion, ExcursionItem, ItemTodo, TripTodo } from '@/types/domain'
+import type {
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
+  ItemTodo,
+  TripTodo,
+} from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and the trip's tasks. */
 export interface DayPlanReads {
   getExcursions(tripId: string): Excursion[]
   getExcursionItems(tripId: string): ExcursionItem[]
+  /** FR-31.3: who goes on which excursion — none of an excursion's for everybody. */
+  getExcursionTravelers(tripId: string): ExcursionTraveler[]
   tasksOf(tripId: string): TripTask[]
   /** Another module's lines on an excursion's list — a picnic (FR-33.6); absent for none. */
   extraLines?(tripId: string, excursionId: string): ExcursionExtraLine[]
@@ -31,6 +39,7 @@ export interface DayPlanWrites {
 export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites): DayPlanSource {
   function excursionLines(tripId: string): DayPlanLine[] {
     const items = reads.getExcursionItems(tripId)
+    const goers = reads.getExcursionTravelers(tripId)
     const lines: DayPlanLine[] = []
     for (const excursion of reads.getExcursions(tripId)) {
       const span = spanOf(excursion)
@@ -46,8 +55,12 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         extras.length > 0
           ? t('excursions.takenAlong', { titles: extras.map((line) => line.title).join(', ') })
           : null
+      const going = goers
+        .filter((row) => row.excursion_id === excursion.id)
+        .map((row) => row.traveler_id)
       lines.push({
         key: `excursion:${excursion.id}`,
+        ...(going.length > 0 ? { travelerIds: going } : {}),
         refId: excursion.id,
         ideaId: excursion.idea_id ?? null,
         kind: DAY_PLAN_EXCURSION,

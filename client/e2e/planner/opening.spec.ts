@@ -1,7 +1,7 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { PATH } from '../routes'
 import { addIdea, ideaDetail, ideasBoard, openIdea, openIdeas } from '../helpers/m28'
-import { addDayEntry, dayPlan, openDayPlan } from '../helpers/m29'
+import { addDayEntry, dayPlan, openDayPlan, timelineLines } from '../helpers/m29'
 import { browserDay } from '../helpers/page'
 import { askToStart, openTripView } from '../helpers/trips'
 import { addTripTodo } from '../helpers/m4'
@@ -185,7 +185,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
       name: 'Engadin jetzt',
       startDate: day[-1],
       endDate: day[2],
-      travelers: ['Andy'],
+      travelers: ['Andy', 'Sia'],
     })
     // An idea on today's plan, and three entries of the plan's own.
     await openIdeas(page)
@@ -203,6 +203,17 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     for (const title of ['Velo mieten', 'Postkarten', 'Tisch reservieren']) {
       await addDayEntry(page, { title })
     }
+    // FR-29.15: each of them for Sia alone, which M1's lines say as M29's do —
+    // all three, since which two of them the card shows is not fixed.
+    const sheet = page.getByTestId('day-entry')
+    for (const title of ['Velo mieten', 'Postkarten', 'Tisch reservieren']) {
+      await timelineLines(page).filter({ hasText: title }).getByRole('button').first().click()
+      await sheet.getByTestId('who-day-entry-Sia').click()
+      await sheet.getByTestId('day-entry-save').click()
+      await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    }
+    // The goto reloads the app: what it reads back has to be on the disk first.
+    await writesLanded(page)
 
     await page.goto(PATH.dashboard)
     const card = todayCard(page, 'Engadin jetzt')
@@ -213,6 +224,8 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     await expect(card.getByTestId('dashboard-today-Engadin jetzt-more')).toHaveText(
       /\+ 1 more · day plan/,
     )
+    // The idea and two of the entries: the entries say whom they are for.
+    await expect(card.locator('[data-testid^="m29-who-"]')).toHaveText(['for Sia', 'for Sia'])
 
     // The idea's tick, from M1, is M29's: the idea is done.
     const idea = lines.filter({ hasText: 'Bernina Express' })

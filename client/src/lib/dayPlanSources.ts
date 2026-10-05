@@ -16,6 +16,8 @@
  */
 import type { InjectionKey } from 'vue'
 
+import type { Traveler } from '@/types/domain'
+
 /** The kinds of dated row other code puts on the plan. */
 export const DAY_PLAN_EXCURSION = 'excursion'
 export const DAY_PLAN_TASK = 'task'
@@ -68,6 +70,12 @@ export interface DayPlanLine {
   timeWord?: string
   /** The small label over the title, where the source names its kind itself — the meal's slot. */
   label?: string
+  /**
+   * Whom it is for, as traveller ids — an excursion narrowed to some
+   * (FR-31.3), shown as the day plan's own entries show theirs (FR-29.15).
+   * Absent for everybody.
+   */
+  travelerIds?: readonly string[]
 }
 
 /** One source of dated lines, for one trip. */
@@ -77,3 +85,12 @@ export interface DayPlanSource {
 
 /** The injection key the day plan reads its sources from. */
 export const DAY_PLAN_SOURCES = Symbol('dayPlanSources') as InjectionKey<readonly DayPlanSource[]>
+
+/**
+ * FR-29.15: a trip's travellers in roster order — whom an entry may be for,
+ * and the names a line says it is for.
+ */
+export type DayPlanTravelers = (tripId: string) => Traveler[]
+
+/** The injection key the day plan reads the trip's travellers from. */
+export const DAY_PLAN_TRAVELERS = Symbol('dayPlanTravelers') as InjectionKey<DayPlanTravelers>

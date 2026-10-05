@@ -22,6 +22,7 @@ import type {
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
+  DayEntryTraveler,
   ShoppingEntry,
   TaskFacts,
   TripTodo,
@@ -265,6 +266,15 @@ export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
     legs: jsonColumn(entry.legs),
     excursion_id: entry.excursion_id ?? null,
     excursion_role: entry.excursion_role ?? null,
+  }
+}
+
+/** FR-29.15: one traveller a day-plan entry is for. */
+export function dayEntryTravelerRow(row: DayEntryTraveler): Record<string, unknown> {
+  return {
+    trip_id: row.trip_id,
+    day_entry_id: row.day_entry_id,
+    traveler_id: row.traveler_id,
   }
 }
 

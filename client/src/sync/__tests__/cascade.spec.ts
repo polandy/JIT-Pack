@@ -144,6 +144,19 @@ describe('cascadeOf', () => {
     expect(names(TABLE.travelers, 'trav1')).toEqual([])
   })
 
+  it("takes a traveller's place on a feature module's rows with them (FR-29.15)", () => {
+    const planner = {
+      tripChildRows: () => [],
+      travelerChildRows: (id: string) =>
+        id === 'trav1' ? [{ table: TABLE.dayEntryTravelers, id: 'det1' }] : [],
+    }
+    const shopping = { tripChildRows: () => [] }
+
+    const taken = cascadeOf(TABLE.travelers, 'trav1', { ...stores, features: [planner, shopping] })
+
+    expect(taken).toEqual([{ table: TABLE.dayEntryTravelers, id: 'det1' }])
+  })
+
   it('produces tombstones, never rows', () => {
     stores.masterStore.applyChanges([
       row(TABLE.tags, 'g1', { name: 'Foto' }),

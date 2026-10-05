@@ -453,6 +453,21 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     { title: 'Tisch im Gasthaus Bernina', note: '4 Personen', time: '19:30' },
     null,
   )
+  // FR-29.15: and one for the child alone, tomorrow morning.
+  const child = useTripStore()
+    .getTravelers(tripId)
+    .find((traveler) => traveler.name === TRAVELERS[2])
+  actions.addDayEntry(
+    tripId,
+    isoDay(1),
+    {
+      title: 'Kinderclub',
+      note: 'Abholen 12:00',
+      time: '09:00',
+      travelerIds: child ? [child.id] : null,
+    },
+    null,
+  )
 }
 
 /** For the reason `seedPictures` gives, a failed upload is said, not thrown. */
