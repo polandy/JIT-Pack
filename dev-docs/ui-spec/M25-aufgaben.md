@@ -68,7 +68,8 @@
   rows.
   * **The grip** (FR-7.8) is M6's own `DragGrip.vue`; it lifts the task at once, and **only the grip does** — a hold
     on the words selects instead (ADR-075). While a task is in the air the group under the pointer says *hier
-    ablegen*; the row stays in the list, dimmed, and a clone travels (ADR-060), in the shared frame of
+    ablegen*; the row stays in the list, dimmed (ADR-060), and a chip above the fingertip names the task and the
+    group it would land in, *„→ Vor der Reise · Haus"* (G-21, ADR-094), in the shared frame of
     `composables/dragToGroup.css`. The gesture's state is on the page as `data-drag`, always set, and returns to `idle`
     only once the write has landed. A row in the *Fällig* block is lifted into a group the same way.
   * **Put where it belongs (FR-7.17).** Inside the group under the pointer, M6's insert line marks the gap the task

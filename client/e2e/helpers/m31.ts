@@ -89,3 +89,52 @@ export async function addMeal(page: Page, meal: MealSeed): Promise<void> {
   await expect(mealRow(page, meal.day, meal.title)).toBeVisible()
   await writesLanded(page)
 }
+
+/**
+ * Every sheet gone — one still fading out takes the pointer meant for the
+ * plan underneath (E2E-M25-08 found the same).
+ */
+export async function sheetGone(page: Page): Promise<void> {
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+}
+
+/** A meal's grip on M31, by its day and dish (FR-33.15). */
+export function mealGrip(page: Page, day: string, title: string): Locator {
+  return mealRow(page, day, title).locator('[data-testid^="m31-grip-"]')
+}
+
+/** The chip a drag carries above the finger (ADR-094), and its line saying where it lands. */
+export function carriedWhere(page: Page): Locator {
+  return page.locator('[data-drag-ghost] [data-carry-where]')
+}
+
+/**
+ * Lift a meal by its grip and hold it over `target`, the pointer still down;
+ * ends with the target framed. `release` lets go and waits for the write.
+ */
+export async function liftMealOnto(
+  page: Page,
+  grip: Locator,
+  target: () => Locator,
+): Promise<{ release: () => Promise<void> }> {
+  const host = mealPlan(page)
+  await expect(host).toHaveAttribute('data-drag', 'idle')
+  await sheetGone(page)
+  await grip.hover()
+  const g = (await grip.boundingBox())!
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+  await page.mouse.down()
+  await expect(host).toHaveAttribute('data-drag', 'dragging')
+  // The free days open on the lift, so the target is read only now.
+  const place = target()
+  await expect(place).toBeVisible()
+  const t = (await place.boundingBox())!
+  await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2, { steps: 8 })
+  await expect(place).toHaveAttribute('data-drop-over', '')
+  return {
+    release: async () => {
+      await page.mouse.up()
+      await expect(host).toHaveAttribute('data-drag', 'idle')
+    },
+  }
+}

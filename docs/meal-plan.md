@@ -49,6 +49,24 @@ meal. The sheet asks for:
 **Hinzufügen** writes it. Tap a meal to change it; **Mahlzeit löschen** deletes it with its ingredients — the question
 says how many open ones leave the shopping list.
 
+## Moving a meal to another day
+
+Plans change: it rains, so the picnic becomes tomorrow's and the fondue moves a day back. Every meal from today on
+has a grip (three short lines) at its left edge — the same grip as on the shopping list and the tasks. Press it and
+drag:
+
+- While you hold a meal, every free day opens into a row of its own, so any day ahead is a place to drop it.
+- A small chip floats above your finger with the meal's name and where it would land — *„→ Do., 15.10."* — so the day
+  under your finger stays visible. Over its own day it says *„bleibt am …"*.
+- Let go and the meal is on its new day. Only the day changes: the meal (lunch, dinner …), its time, who cooks and
+  its ingredients stay, and the ingredients are due on the new day on the shopping list. A day that already has a
+  dinner simply has two.
+- A snackbar offers **Rückgängig**. If the meal was going on an excursion, it says when it leaves the rucksack — or
+  joins the rucksack of the new day's excursion.
+
+Without dragging, open the meal and pick another **Tag**: the sheet shows *„Mo., 12.10. → Do., 15.10."* and marks the
+day it leaves, and **Speichern** moves it. Meals already eaten stay where they were.
+
 ## The shopping list
 
 Every ingredient is a line of **Einkaufen**, under **Essensplan**, in the order of the meals, with its amount and its

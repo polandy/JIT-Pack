@@ -243,6 +243,34 @@ export function canTakeAlong(
   )
 }
 
+/** FR-33.15: whether a meal is moved by its grip — one still ahead, today's included. */
+export function canMove(meal: Pick<Meal, 'on_date'>, today: string): boolean {
+  return meal.on_date >= today
+}
+
+/** FR-33.15: whether a day takes a meal let go over it — today or a day ahead, never one behind. */
+export function takesMeal(day: string, today: string): boolean {
+  return day >= today
+}
+
+/**
+ * FR-33.15: what a meal moved to another day writes. Its slot, time and
+ * ingredients stay; a meal taken on an excursion goes on the one of its new
+ * day, or leaves it where none covers that day — what the sheet would write
+ * with the day changed and *take it along* still on (FR-33.6).
+ */
+export function movedMeal(
+  meal: Meal,
+  day: string,
+  excursions: readonly MealExcursion[],
+): { on_date: string; excursion_id: string | null } {
+  const along =
+    meal.excursion_id !== null && canTakeAlong({ ...meal, on_date: day }, excursions)
+      ? (excursionFor(day, excursions)?.id ?? null)
+      : null
+  return { on_date: day, excursion_id: along }
+}
+
 /** The calendar day before an ISO day, through UTC so no zone moves it. */
 function dayBefore(iso: string): string {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)

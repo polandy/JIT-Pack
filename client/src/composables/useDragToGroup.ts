@@ -32,6 +32,13 @@
  *    list under the finger holding it — the same reason `data-scroll-gesture`
  *    is written this way, and the reason ADR-060 exists at all.
  *
+ * **What travels is a chip, not the row** (ADR-094): it names what is carried
+ * and, in words, where a drop would put it, and it rides above the fingertip
+ * rather than under it. The finger aims, so the place it aims at is never
+ * hidden under what it carries — and a place the hand itself covers can still
+ * be read off the chip. The words are the screen's (`DragCarry`); the frame
+ * is `./dragToGroup.css`'s, the same on every screen.
+ *
  * The drop target is the nearest ancestor of the pointer carrying
  * `data-drop-target`; its value is handed back untouched, and nothing here
  * knows what it names. Where the target's children carry `data-drop-index`,
@@ -39,10 +46,17 @@
  * consumer that has to show rows making way can, and including the gap past
  * the last child, which no hit test against an element can express.
  */
+import { reorderThreeOutline } from 'ionicons/icons'
+
+import { t } from '@/i18n'
 import { useLongPress, LONG_PRESS_SLOP_PX } from './useLongPress'
 
-/** How far the travelling clone steps in from its row's leading edge — the grip's column. */
-export const GHOST_INSET_PX = 56
+/** How far the chip's bottom edge floats above the fingertip — clear of a finger's pad (ADR-094). */
+export const CARRY_LIFT_PX = 22
+/** How far the chip starts left of the fingertip: its grip glyph sits over the finger. */
+export const CARRY_GRIP_PX = 24
+/** The least room the chip keeps to either edge of the screen. */
+export const CARRY_EDGE_PX = 8
 
 /** Where the gesture is, as the attribute spells it. */
 export type DragState = 'idle' | 'lifting' | 'dragging' | 'settling'
@@ -53,6 +67,12 @@ export const DRAG_STATE_ATTRIBUTE = 'data-drag'
 export const DROP_TARGET_ATTRIBUTE = 'data-drop-target'
 /** What marks a child of a target as occupying a position in it. */
 export const DROP_INDEX_ATTRIBUTE = 'data-drop-index'
+/**
+ * The words a place is named by on the chip (ADR-094) — a heading's title, a
+ * day's date. Handed to `DragCarry.target`, so a screen that already prints
+ * the name need not look it up a second time.
+ */
+export const DROP_LABEL_ATTRIBUTE = 'data-drop-label'
 /** Put on the target under the pointer, for the screen to style. */
 export const DROP_OVER_ATTRIBUTE = 'data-drop-over'
 /**
@@ -80,7 +100,29 @@ export interface DropPlace {
   index: number | null
 }
 
+/**
+ * What the travelling chip says (ADR-094) — the screen's words, since only
+ * the screen knows what its payload and its places are called.
+ */
+export interface DragCarry<T> {
+  /** What is in the hand: a meal's dish, a task's words, an entry's name. */
+  title: (payload: T) => string
+  /** A quiet word beside it — a slot, an amount; null or absent for none. */
+  tag?: (payload: T) => string | null
+  /**
+   * The name of the place a drop would put it in, said as „→ name"; `label`
+   * is the place's own `data-drop-label`, null without one. Null where a drop
+   * there would change nothing: such a place is no place — not framed, and a
+   * drop on it writes nothing.
+   */
+  target: (payload: T, place: DropPlace, label: string | null) => string | null
+  /** The chip's line while a drop would change nothing: „bleibt am Mo., 12.10.". */
+  stays: (payload: T) => string
+}
+
 export interface DragToGroupOptions<T> {
+  /** The chip's words (ADR-094). */
+  carry: DragCarry<T>
   /**
    * Whether this payload may land here. A place that cannot hold it is never
    * highlighted and never receives it — a heading that would not be true of
@@ -140,7 +182,8 @@ interface Lifted<T> {
   payload: T
   row: HTMLElement
   ghost: HTMLElement
-  dy: number
+  /** The chip's second line, rewritten as the place under the finger changes. */
+  where: HTMLElement
   from: number | null
   /** The place the row was lifted out of, or null where it stood in none. */
   home: string | null
@@ -194,9 +237,9 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   }
 
   /**
-   * The ghost is a clone rather than the row itself: the row stays in the
-   * list, marked, so the list does not close up under the finger and reopen
-   * on the drop (ADR-060 — nothing moves that the hand did not move). Both
+   * The row stays in the list, marked, so the list does not close up under
+   * the finger and reopen on the drop (ADR-060 — nothing moves that the hand
+   * did not move); what travels is a chip built here (ADR-094). Both
    * `data-drag-ghost` and the marked row's `data-drag-source` carry one
    * shared look from `./dragToGroup.css`, imported once in `main.ts` — a
    * screen never redraws them (`data-drop-over` is the one exception: what a
@@ -204,17 +247,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
    * own call, see `DROP_OVER_ATTRIBUTE`).
    */
   function lift(ev: PointerEvent, payload: T, row: HTMLElement): void {
-    const box = row.getBoundingClientRect()
-    const ghost = row.cloneNode(true) as HTMLElement
-    ghost.setAttribute('data-drag-ghost', '')
-    ghost.style.position = 'fixed'
-    ghost.style.pointerEvents = 'none'
-    // Stepped in from the row's leading edge by the grip's width: the clone
-    // rides up and down over the list, and the gap mark it is dropped at
-    // starts in that margin, where the clone never covers it.
-    ghost.style.width = `${box.width - GHOST_INSET_PX}px`
-    ghost.style.left = `${box.left + GHOST_INSET_PX}px`
-    ghost.style.top = `${box.top}px`
+    const { ghost, where } = chip(payload)
     document.body.appendChild(ghost)
     row.setAttribute('data-drag-source', '')
     markRefused(payload)
@@ -222,12 +255,65 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       payload,
       row,
       ghost,
-      dy: ev.clientY - box.top,
+      where,
       from: indexOf(row),
       home: row.closest(`[${DROP_TARGET_ATTRIBUTE}]`)?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null,
     }
     setState('dragging')
     track(ev)
+  }
+
+  /** The chip: a grip, what is carried with its tag, and the line saying where it lands. */
+  function chip(payload: T): { ghost: HTMLElement; where: HTMLElement } {
+    const ghost = document.createElement('div')
+    ghost.setAttribute('data-drag-ghost', '')
+    ghost.style.position = 'fixed'
+    ghost.style.pointerEvents = 'none'
+    const grip = document.createElement('ion-icon') as HTMLElement & { icon?: string }
+    grip.icon = reorderThreeOutline
+    grip.setAttribute('aria-hidden', 'true')
+    const words = document.createElement('span')
+    words.setAttribute('data-carry-words', '')
+    const title = document.createElement('b')
+    title.setAttribute('data-carry-title', '')
+    title.textContent = opts.carry.title(payload)
+    words.append(title)
+    const tag = opts.carry.tag?.(payload) ?? null
+    if (tag !== null) {
+      const quiet = document.createElement('span')
+      quiet.setAttribute('data-carry-tag', '')
+      quiet.className = 'jp-eyebrow'
+      quiet.textContent = tag
+      words.append(quiet)
+    }
+    const where = document.createElement('span')
+    where.setAttribute('data-carry-where', '')
+    words.append(where)
+    ghost.append(grip, words)
+    return { ghost, where }
+  }
+
+  /**
+   * Above the fingertip, its grip over the finger, inside the screen. Read
+   * from the chip's own height, so a long title wrapping to two lines still
+   * clears the finger.
+   */
+  function float(ghost: HTMLElement, x: number, y: number): void {
+    const room = window.innerWidth - ghost.offsetWidth - CARRY_EDGE_PX
+    ghost.style.left = `${Math.max(CARRY_EDGE_PX, Math.min(room, x - CARRY_GRIP_PX))}px`
+    ghost.style.top = `${y - ghost.offsetHeight - CARRY_LIFT_PX}px`
+  }
+
+  /** The chip's line: where it lands, or that it stays. */
+  function say(lands: string | null): void {
+    if (!lifted) return
+    if (lands === null) {
+      lifted.where.textContent = opts.carry.stays(lifted.payload)
+      lifted.where.removeAttribute('data-lands')
+    } else {
+      lifted.where.textContent = t('list.dropTo', { place: lands })
+      lifted.where.setAttribute('data-lands', '')
+    }
   }
 
   /** Marks the places under the host that would refuse `payload` wherever it landed. */
@@ -256,17 +342,19 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function track(ev: PointerEvent): void {
     if (!lifted) return
-    // Up and down only: the clone stays flush with the list it came from, so
-    // it never hides the gap mark or the heading it is carried to.
-    lifted.ghost.style.top = `${ev.clientY - lifted.dy}px`
+    float(lifted.ghost, ev.clientX, ev.clientY)
 
     const found = placeUnder(ev.clientX, ev.clientY)
     const name = found?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null
     const next: DropPlace | null =
       found && name !== null ? { target: name, index: gapAt(found, ev.clientY) } : null
     const allowed = next !== null && (opts.accepts?.(lifted.payload, next) ?? true)
+    const lands = allowed
+      ? opts.carry.target(lifted.payload, next, found!.getAttribute(DROP_LABEL_ATTRIBUTE))
+      : null
 
-    if (!allowed) {
+    if (!allowed || lands === null) {
+      say(null)
       markGapAt(null, null)
       if (over) over.removeAttribute(DROP_OVER_ATTRIBUTE)
       if (over !== null || place !== null) opts.onHover?.(null)
@@ -274,6 +362,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       place = null
       return
     }
+    say(stays(next) ? null : lands)
     const changed = over !== found || place?.index !== next.index
     if (over !== found) {
       over?.removeAttribute(DROP_OVER_ATTRIBUTE)
@@ -289,6 +378,15 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     if (changed) opts.onHover?.(next)
   }
 
+  /** Whether a drop in this gap would leave the row where it is: either gap beside it, in its own place. */
+  function stays(at: DropPlace): boolean {
+    if (!lifted || !opts.markGap || at.index === null) return false
+    const from = lifted.from
+    return (
+      lifted.home === at.target && from !== null && (at.index === from || at.index === from + 1)
+    )
+  }
+
   /**
    * Moves the gap mark to the child the drop would land next to. A plain
    * attribute on an element already there, like `data-drop-over`: nothing
@@ -297,11 +395,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   function markGapAt(target: HTMLElement | null, at: DropPlace | null): void {
     gapMark?.removeAttribute(DROP_GAP_ATTRIBUTE)
     gapMark = null
-    if (!lifted || !target || at === null || at.index === null) return
-    const from = lifted.from
-    const stays =
-      lifted.home === at.target && from !== null && (at.index === from || at.index === from + 1)
-    if (stays) return
+    if (!lifted || !target || at === null || at.index === null || stays(at)) return
     const kids = [...target.querySelectorAll<HTMLElement>(`[${DROP_INDEX_ATTRIBUTE}]`)]
     const before = kids.find((kid) => indexOf(kid) === at.index)
     const last = kids[kids.length - 1]

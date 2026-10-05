@@ -132,13 +132,19 @@ const heading = computed(() =>
     ? t('meals.sheetNew', { slot: t(`meals.slot.${draft.slot}`) })
     : t(`meals.slot.${draft.slot}`),
 )
-const subline = computed(() =>
-  t('meals.sheetSub', {
+/** FR-33.15: the day a saved meal is being moved away from, while another is chosen. */
+const movedFrom = computed(() => (meal && meal.on_date !== draft.day ? meal.on_date : null))
+
+const subline = computed(() => {
+  const words = {
     day: shortDueDay(draft.day),
     n: days.value.indexOf(draft.day) + 1,
     total: days.value.length,
-  }),
-)
+  }
+  return movedFrom.value
+    ? t('meals.sheetSubMoved', { ...words, from: shortDueDay(movedFrom.value) })
+    : t('meals.sheetSub', words)
+})
 
 // --- FR-33.4: dishes of earlier trips ---
 
@@ -423,7 +429,8 @@ function takePlace(title: string) {
         :pressed="draft.day === day"
         :data-testid="`meal-day-${day}`"
         :data-planned="plannedDays.has(day) ? 'true' : undefined"
-        :class="{ planned: plannedDays.has(day) }"
+        :data-moved-from="movedFrom === day ? 'true' : undefined"
+        :class="{ planned: plannedDays.has(day), 'moved-from': movedFrom === day }"
         @click="draft.day = day"
       >
         {{ shortDueDay(day) }}
@@ -705,6 +712,10 @@ function takePlace(title: string) {
 
 .chips .planned {
   position: relative;
+}
+
+.chips .moved-from {
+  border-style: dashed;
 }
 
 .chips .planned::after {

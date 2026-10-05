@@ -209,4 +209,6 @@ export const sharedEn = {
   'selection.all': 'All {n}',
   'selection.start': 'Select',
   'list.dropHere': 'drop here',
+  'list.dropTo': '→ {place}',
+  'list.dropStays': 'stays where it is',
 } as const

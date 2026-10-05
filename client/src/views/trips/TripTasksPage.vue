@@ -256,6 +256,11 @@ const readDropKey = (place: DropPlace) => {
 const contentEl = ref<{ $el: HTMLElement } | null>(null)
 const dragHost = computed(() => contentEl.value?.$el ?? null)
 const drag = useDragToGroup<TripTask>({
+  carry: {
+    title: (task) => task.body,
+    target: (_task, _place, label) => label,
+    stays: () => t('list.dropStays'),
+  },
   markGap: true,
   accepts: (task, place) => {
     const before = { locked: beforeLocked.value, over: forTheRoad.value }

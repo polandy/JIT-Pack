@@ -591,3 +591,22 @@ These patterns apply to every screen and are specified once.
     measured on a loaded WebKit at 0.6–4.6 s. A calendar mounted into a laid-out sheet is ready on the fallback's own
     clock. The sheet keeps its height across the swap, because the second calendar is the size of the first (G-2: an
     auto-height sheet is measured once at presentation).
+* **G-21 (Dragging a Row — ADR-094):** Wherever a row is moved by its **grip** (`DragGrip.vue`; M6's lines, M25's
+  tasks, M9's tag manager, M31's meals), one gesture does it, `useDragToGroup`, and it feels the same everywhere:
+  * **The grip lifts at once**; a hold on the rest of the row selects instead (ADR-075), or does nothing where the
+    screen has no selection (M31).
+  * **The row stays where it was, dimmed** (`data-drag-source`), so nothing moves under the finger (ADR-060).
+  * **What travels is a chip above the fingertip**, not a copy of the row under it (`data-drag-ghost`): the grip's
+    glyph, what is carried (`data-carry-title`) with a quiet word beside it where the screen has one (a meal's slot,
+    `data-carry-tag`), and **where a drop would put it** (`data-carry-where`) — *„→ Do., 15.10."*, *„→ Vor der Reise ·
+    Haus"*, *„→ Platz 3"* in the action ink, or quiet *„bleibt am Mo., 12.10."* / *„bleibt, wo es ist"* while a drop
+    would change nothing. Its bottom edge floats 22 px above the fingertip and its grip sits over the finger; it keeps
+    8 px from either edge of the screen. The finger aims, so the place it aims at is never under the chip, and a place
+    the hand itself covers is still named on the chip. It appears with a short scale-in, none under reduced motion.
+  * **The place under the finger is framed** in the action colour with its tint and says *hier ablegen*; a place that
+    would refuse the row dims for as long as it is in the air (`data-drop-refused`); a place where a drop would change
+    nothing is not framed at all, and a drop there writes nothing.
+  * **Letting go writes at once** and raises the screen's toast with **Rückgängig**. `data-drag` on the page reads
+    `idle`, `lifting`, `dragging` or `settling`, and returns to `idle` only once the write has landed.
+  * The chip's frame, the dimmed row and M6's insert line are drawn once, in `composables/dragToGroup.css`; a place's
+    name comes from its own `data-drop-label` (a heading's title by default, `ListGroup.vue`).

@@ -110,6 +110,7 @@ export const inventoryEn = {
   'items.manageTags': 'Manage tags',
   'items.tagsTitle': 'Manage tags',
   'items.tagsHint': '{n} tags · rename, merge, reorder',
+  'items.tagsDropAt': 'position {n}',
   'items.tagsSearch': 'Find a tag …',
   'items.tagsEmpty': 'There is no tag yet.',
   'items.tagsNoMatch': 'No tag matches that search.',

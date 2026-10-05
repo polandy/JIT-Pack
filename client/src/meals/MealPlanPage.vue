@@ -9,16 +9,23 @@
  * an ingredient is open, a start with earlier dishes on an empty plan, the ＋
  * for the first empty slot. Every meal opens the one sheet the composition root
  * mounts (`MealSheet.vue`).
+ *
+ * A meal still ahead is moved to another day by its grip (FR-33.15), M6's and
+ * M25's gesture (`useDragToGroup`): while it is in the air every free day
+ * opens into a row of its own, so each day of the trip is a place to drop,
+ * and the plan glides open and shut around it (`glide.ts`).
  */
 import { IonButton, IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, cartOutline, restaurantOutline } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
+import DragGrip from '@/components/global/DragGrip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ProgressRing from '@/components/global/ProgressRing.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { useDragToGroup } from '@/composables/useDragToGroup'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
@@ -26,24 +33,30 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { formatDate, t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { MEAL_CONTEXT } from '@/lib/mealContext'
+import { presentToast } from '@/lib/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
 import type { Meal } from '@/types/domain'
 import { MEAL_KIND_OUT, MEAL_SLOT_DINNER } from '@/types/domain'
+import { createMealActions } from './actions'
 import {
   agenda,
   boughtShare,
+  canMove,
   earlierDishes,
   excursionFor,
   firstFreeSlot,
   matchingDishes,
   mealsOn,
+  movedMeal,
   pastMeals,
   planDays,
   shoppingFigures,
   slotToPlan,
   startingDay,
+  takesMeal,
 } from './domain/mealPlan'
+import { glide, GLIDE_ATTRIBUTE, snapshot } from './glide'
 import { useMealSheet } from './sheet'
 import { mealFacts } from './sources'
 import { useMealStore } from './store'
@@ -53,13 +66,19 @@ const props = defineProps<{ tripId: string }>()
 const orchestrator = useOrchestrator()
 const mealStore = useMealStore()
 const sheet = useMealSheet()
+const actions = createMealActions(orchestrator.moduleHost, mealStore)
 const context = inject(MEAL_CONTEXT, null)
 const router = useRouter()
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
 
+const contentEl = ref<InstanceType<typeof IonContent> | null>(null)
+/** The page's scroller, read once: a move keeps the meal under the finger through it. */
+let scroller: HTMLElement | null = null
+
 onMounted(async () => {
+  scroller = (await contentEl.value?.$el.getScrollElement?.()) ?? null
   await ensure()
   await loadIdentity()
 })
@@ -77,8 +96,12 @@ const ingredients = computed(() => mealStore.getIngredients(props.tripId))
 /** The meals of the days behind, folded into one line above the rest (M31). */
 const eaten = computed(() => pastMeals(meals.value, today.value))
 const pastOpen = ref(false)
+/** The meal in the air (FR-33.15): while there is one, the days behind fold and every free day opens. */
+const lifted = ref<Meal | null>(null)
 /** Only the planned days stand as days; a run of free ones is one line (M31). */
-const items = computed(() => agenda(days.value, meals.value, today.value, pastOpen.value))
+const items = computed(() =>
+  agenda(days.value, meals.value, today.value, pastOpen.value && lifted.value === null),
+)
 /** The free runs opened in place, by their first day. */
 const openGaps = ref<Set<string>>(new Set())
 
@@ -116,6 +139,111 @@ function shortWeekday(day: string): string {
 
 function openGap(run: readonly string[]) {
   openGaps.value = new Set([...openGaps.value, run[0]!])
+}
+
+/** A run of free days stands as a row per day: opened by a tap, or while a meal is in the air. */
+function gapOpen(run: readonly string[]): boolean {
+  return lifted.value !== null || openGaps.value.has(run[0]!)
+}
+
+/**
+ * FR-33.15: the drag. Only a day ahead takes a meal; the day it already
+ * stands on is no place to go, so the chip says it stays and nothing frames.
+ */
+const drag = useDragToGroup<Meal>({
+  carry: {
+    title: (meal) => meal.title,
+    tag: (meal) => t(`meals.slotShort.${meal.slot}`),
+    target: (meal, place, label) => (place.target === meal.on_date ? null : label),
+    stays: (meal) => t('meals.moveStays', { day: shortDueDay(meal.on_date) }),
+  },
+  accepts: (_meal, place) => takesMeal(place.target, today.value),
+  onDrop: (meal, place) => move(meal, place.target),
+})
+watch(
+  () => contentEl.value?.$el ?? null,
+  (el) => drag.bindHost(el),
+  { immediate: true },
+)
+
+/** The block a meal's row is keyed by, for the glide and for staying under the finger. */
+const mealKey = (meal: Pick<Meal, 'id'>) => `meal:${meal.id}`
+
+/**
+ * The grip lifts at once. The free days open around the meal, the list
+ * shifted so the row under the finger stays there (ADR-060), and every block
+ * glides to its new place.
+ */
+function onLift(ev: PointerEvent, meal: Meal) {
+  const row = (ev.currentTarget as HTMLElement).closest<HTMLElement>(`[${GLIDE_ATTRIBUTE}]`)
+  const root = contentEl.value?.$el as HTMLElement | undefined
+  if (!row || !root) return
+  const before = snapshot(root)
+  drag.down(ev, meal, row, true)
+  lifted.value = meal
+  void settleAround(meal, before, before.get(mealKey(meal)) ?? null)
+}
+
+/** Let go: the free days close, and the meal slides from where the chip was into its day. */
+function onUp(ev: PointerEvent) {
+  const meal = lifted.value
+  const root = contentEl.value?.$el as HTMLElement | undefined
+  if (!meal || !root) return drag.up(ev)
+  const before = snapshot(root)
+  const chip = document.querySelector('[data-drag-ghost]')?.getBoundingClientRect().top ?? null
+  if (chip !== null) before.set(mealKey(meal), chip)
+  drag.up(ev)
+  lifted.value = null
+  void settleAround(meal, before, chip)
+}
+
+function onCancel() {
+  const meal = lifted.value
+  const root = contentEl.value?.$el as HTMLElement | undefined
+  drag.cancel()
+  if (!meal || !root) return
+  const before = snapshot(root)
+  lifted.value = null
+  void settleAround(meal, before, before.get(mealKey(meal)) ?? null)
+}
+
+/**
+ * Once the plan has re-laid itself: scrolled so the meal's row stands at
+ * `anchor` — where the finger or the chip was — then every block glides from
+ * where `before` saw it.
+ */
+async function settleAround(meal: Meal, before: Map<string, number>, anchor: number | null) {
+  await nextTick()
+  const root = contentEl.value?.$el as HTMLElement | undefined
+  if (!root) return
+  const row = root.querySelector<HTMLElement>(`[${GLIDE_ATTRIBUTE}="${mealKey(meal)}"]`)
+  if (row && scroller && anchor !== null) {
+    scroller.scrollTop += row.getBoundingClientRect().top - anchor
+  }
+  glide(root, before)
+}
+
+/** FR-33.15: the move written, and said in a toast whose undo puts it back. */
+function move(meal: Meal, day: string) {
+  if (day === meal.on_date) return
+  const excursions = context?.excursions(props.tripId) ?? []
+  const to = movedMeal(meal, day, excursions)
+  const undo = actions.moveMeal(meal, to)
+  const nameOf = (id: string | null) => excursions.find((e) => e.id === id)?.name ?? null
+  const leftFor = to.excursion_id !== meal.excursion_id ? nameOf(meal.excursion_id) : null
+  const along = to.excursion_id !== meal.excursion_id ? nameOf(to.excursion_id) : null
+  const moved = t('meals.moved', { title: meal.title, day: shortDueDay(day) })
+  const note = along
+    ? t('meals.movedAlong', { name: along })
+    : leftFor
+      ? t('meals.movedOff', { name: leftFor })
+      : null
+  void presentToast({
+    message: note ? `${moved} · ${note}` : moved,
+    positionAnchor: FAB_ANCHOR.m31,
+    cssClass: 'pack-toast',
+    buttons: [{ text: t('packing.undo'), handler: () => undo() }],
+  })
 }
 
 /** What a day's head says beside its date: arrival, departure, or the excursion of the day. */
@@ -158,7 +286,14 @@ function planOn(day: string) {
 
 <template>
   <IonPage>
-    <IonContent class="meal-content" data-testid="m31-page">
+    <IonContent
+      ref="contentEl"
+      class="meal-content"
+      data-testid="m31-page"
+      @pointermove="drag.move"
+      @pointerup="onUp"
+      @pointercancel="onCancel"
+    >
       <template v-if="loaded">
         <EmptyState
           v-if="days.length === 0"
@@ -239,6 +374,9 @@ function planOn(day: string) {
                 class="day"
                 :class="{ gone: item.day < today }"
                 :data-testid="`m31-day-${item.day}`"
+                :data-drop-target="item.day"
+                :data-drop-label="shortDueDay(item.day)"
+                :data-glide="`day:${item.day}`"
               >
                 <h2 class="day-head">
                   <span class="date">{{ shortDueDay(item.day) }}</span>
@@ -253,6 +391,7 @@ function planOn(day: string) {
                   >
                     ＋
                   </button>
+                  <span class="drop-here">{{ t('list.dropHere') }}</span>
                 </h2>
                 <div class="jp-card slots">
                   <button
@@ -262,8 +401,17 @@ function planOn(day: string) {
                     class="slot"
                     :data-slot="meal.slot"
                     :data-testid="`m31-meal-${meal.id}`"
+                    :data-glide="mealKey(meal)"
                     @click="sheet.openMeal(tripId, meal.id)"
                   >
+                    <DragGrip
+                      v-if="canMove(meal, today)"
+                      :label="t('meals.drag', { title: meal.title })"
+                      :data-testid="`m31-grip-${meal.id}`"
+                      @pointerdown.stop="onLift($event, meal)"
+                      @click.stop
+                    />
+                    <DragGrip v-else off />
                     <span class="label jp-eyebrow">{{ t(`meals.slotShort.${meal.slot}`) }}</span>
                     <span class="body">
                       <span class="title">
@@ -291,7 +439,7 @@ function planOn(day: string) {
                 </div>
               </section>
               <div
-                v-else-if="openGaps.has(item.days[0]!)"
+                v-else-if="gapOpen(item.days)"
                 class="free-days"
                 :data-testid="`m31-free-${item.days[0]}`"
               >
@@ -301,11 +449,16 @@ function planOn(day: string) {
                   type="button"
                   class="free-day"
                   :data-testid="`m31-plan-${day}`"
+                  :data-drop-target="lifted ? day : undefined"
+                  :data-drop-label="shortDueDay(day)"
+                  :data-glide="`day:${day}`"
                   @click="planOn(day)"
                 >
                   <b>{{ shortDueDay(day) }}</b>
                   <span v-if="day === today">{{ t('meals.today') }}</span>
-                  <span class="plan">＋ {{ t('meals.plan') }}</span>
+                  <span v-if="dayEvent(day) && lifted" class="event">{{ dayEvent(day) }}</span>
+                  <span v-if="lifted" class="drop-here">{{ t('list.dropHere') }}</span>
+                  <span v-else class="plan">＋ {{ t('meals.plan') }}</span>
                 </button>
               </div>
               <button
@@ -314,6 +467,7 @@ function planOn(day: string) {
                 class="gap"
                 :data-days="item.days.join(' ')"
                 :data-testid="`m31-gap-${item.days[0]}`"
+                :data-glide="`day:${item.days[0]}`"
                 @click="openGap(item.days)"
               >
                 <span>{{ gapText(item.days) }} · ＋</span>
@@ -324,7 +478,7 @@ function planOn(day: string) {
       </template>
 
       <IonFab
-        v-if="days.length > 0"
+        v-if="days.length > 0 && !lifted"
         :id="FAB_ANCHOR.m31"
         slot="fixed"
         vertical="bottom"
@@ -437,7 +591,7 @@ function planOn(day: string) {
 
 .slot {
   display: grid;
-  grid-template-columns: 62px 1fr auto;
+  grid-template-columns: auto 54px 1fr auto;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -550,6 +704,50 @@ function planOn(day: string) {
   margin-left: auto;
   color: var(--jp-action);
   font-weight: var(--jp-weight-semibold);
+}
+
+/* FR-33.15: a day under a meal in the air — the frame and tint of a group on
+   M6 (ListGroup.vue), and its words in place of the ＋. The day it already
+   stands on takes nothing and so shows nothing; a day behind dims. */
+.day[data-drop-over],
+.free-day[data-drop-over] {
+  border-radius: var(--jp-r-md);
+  background: color-mix(in srgb, var(--jp-action) 8%, transparent);
+  box-shadow: 0 0 0 1px var(--jp-action);
+}
+
+.day[data-drop-refused] {
+  opacity: 0.5;
+}
+
+.free-day[data-drop-over] {
+  border-style: solid;
+  border-color: var(--jp-action);
+}
+
+.drop-here {
+  margin-left: auto;
+  color: var(--jp-action);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+  opacity: 0;
+}
+
+.day .drop-here {
+  display: none;
+}
+
+.day[data-drop-over] .drop-here {
+  display: inline;
+  opacity: 1;
+}
+
+.day[data-drop-over] .day-add {
+  display: none;
+}
+
+.free-day[data-drop-over] .drop-here {
+  opacity: 1;
 }
 
 /* An empty plan: a start rather than a wall of empty slots. */

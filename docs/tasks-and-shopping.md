@@ -72,8 +72,9 @@ one again. As soon as something is open under it again, the part is back in its 
 
 ## Putting a row where it belongs
 
-Every open row carries a grip (three short lines) at its left edge. Press it and drag: a thin line shows the gap the
-row will land in, and letting go puts it there. The order is yours — the aisles of the shop you walk, or the order you
+Every open row carries a grip (three short lines) at its left edge. Press it and drag: a small chip floats above your
+finger with the row's name and where it would land, so your finger never hides the place you aim at; a thin line
+shows the gap the row will land in, and letting go puts it there. The order is yours — the aisles of the shop you walk, or the order you
 will do things in — and everyone on the trip sees it. New rows you type land at the end of their heading; a list you
 never rearranged keeps the order it always had (tasks with a due day first, then by name). Positions that come from
 the packing list or an excursion move too, but only inside their own heading, and they start at its top until you

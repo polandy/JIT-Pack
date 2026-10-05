@@ -30,6 +30,8 @@ const props = withDefaults(
     title: string
     /** The name a drop here is reported under; absent means not a target. */
     dropTarget?: string
+    /** What the drag's chip calls this place (ADR-094); the heading where absent. */
+    dropLabel?: string
     /** False: never a place to drop — dimmed while a drag is in the air. */
     droppable?: boolean
     /** How many rows the group holds, shown beside the name. */
@@ -45,6 +47,7 @@ const props = withDefaults(
   }>(),
   {
     dropTarget: undefined,
+    dropLabel: undefined,
     droppable: true,
     count: undefined,
     sticky: false,
@@ -65,6 +68,7 @@ function jump() {
   <IonItemGroup
     class="list-group"
     :data-drop-target="dropTarget"
+    :data-drop-label="dropTarget === undefined ? undefined : (dropLabel ?? title)"
     :data-droppable="dropTarget === undefined ? undefined : String(droppable)"
   >
     <IonItemDivider

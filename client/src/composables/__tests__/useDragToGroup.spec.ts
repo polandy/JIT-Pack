@@ -19,7 +19,9 @@ import {
   DROP_GAP_ATTRIBUTE,
   DROP_OVER_ATTRIBUTE,
   DROP_REFUSED_ATTRIBUTE,
-  GHOST_INSET_PX,
+  CARRY_GRIP_PX,
+  CARRY_LIFT_PX,
+  type DragCarry,
   type DropPlace,
 } from '../useDragToGroup'
 import { LONG_PRESS_MS } from '../useLongPress'
@@ -27,6 +29,14 @@ import { LONG_PRESS_MS } from '../useLongPress'
 /** A pointer event with only the parts the composable reads. */
 const at = (x: number, y: number) =>
   ({ clientX: x, clientY: y, preventDefault: vi.fn() }) as unknown as PointerEvent
+
+/** What the chip says, the same for every case: the payload is its own name, a place its target's. */
+const carry: DragCarry<string> = {
+  title: (payload) => payload,
+  tag: () => 'tag',
+  target: (_payload, place) => place.target,
+  stays: (payload) => `${payload} stays`,
+}
 
 let host: HTMLElement
 let groupA: HTMLElement
@@ -59,7 +69,7 @@ beforeEach(() => {
         <div class="row" data-drop-index="0">one</div>
         <div class="row" data-drop-index="1">two</div>
       </div>
-      <div id="b" data-drop-target="b"></div>
+      <div id="b" data-drop-target="b" data-drop-label="Group B"></div>
     </div>`
   host = document.getElementById('host')!
   groupA = document.getElementById('a')!
@@ -81,7 +91,7 @@ afterEach(() => {
 
 describe('useDragToGroup — the state the suite waits on', () => {
   it('always carries a value, starting at idle', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
     // Not „absent" — an absence with four possible states says nothing, which
     // is why this differs from `data-scroll-gesture`'s on/off attribute.
@@ -92,6 +102,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
     vi.useFakeTimers()
     const seen: string[] = []
     const drag = useDragToGroup<string>({
+      carry,
       onDrop: () => {
         seen.push(host.getAttribute(DRAG_STATE_ATTRIBUTE)!)
       },
@@ -121,7 +132,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
   it('reaches idle even when the drop writes nothing', async () => {
     vi.useFakeTimers()
     const onDrop = vi.fn()
-    const drag = useDragToGroup<string>({ onDrop })
+    const drag = useDragToGroup<string>({ carry, onDrop })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!, true)
@@ -140,7 +151,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
   it('reaches idle when it is let go over nothing at all', async () => {
     vi.useFakeTimers()
     const onDrop = vi.fn()
-    const drag = useDragToGroup<string>({ onDrop })
+    const drag = useDragToGroup<string>({ carry, onDrop })
     drag.bindHost(host)
     document.elementFromPoint = () => document.body
 
@@ -163,6 +174,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
     vi.useFakeTimers()
     const onError = vi.fn()
     const drag = useDragToGroup<string>({
+      carry,
       onDrop: () => {
         throw new Error('the mutation refused')
       },
@@ -187,6 +199,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
     vi.useFakeTimers()
     const onError = vi.fn()
     const drag = useDragToGroup<string>({
+      carry,
       onDrop: () => Promise.reject(new Error('the push was refused')),
       onError,
     })
@@ -205,7 +218,7 @@ describe('useDragToGroup — the state the suite waits on', () => {
 
   it('puts the attribute back when the finger turns out to be scrolling', () => {
     vi.useFakeTimers()
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!)
@@ -225,10 +238,10 @@ describe('useDragToGroup — where it says the thing will land', () => {
    * never be dragged to the end of its list. The index is what expresses it.
    */
   it('reports the gap past the last row, which no element can', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
     const hovered: (DropPlace | null)[] = []
-    const d2 = useDragToGroup<string>({ onDrop: vi.fn(), onHover: (p) => hovered.push(p) })
+    const d2 = useDragToGroup<string>({ carry, onDrop: vi.fn(), onHover: (p) => hovered.push(p) })
     d2.bindHost(host)
 
     d2.down(at(10, 5), 'one', rows[0]!, true)
@@ -238,7 +251,7 @@ describe('useDragToGroup — where it says the thing will land', () => {
 
   it('reports the gap continuously, not only at the drop', () => {
     const hovered: (DropPlace | null)[] = []
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), onHover: (p) => hovered.push(p) })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), onHover: (p) => hovered.push(p) })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!, true)
@@ -261,7 +274,7 @@ describe('useDragToGroup — where it says the thing will land', () => {
    */
   it('hands the drop the position the drag started from', () => {
     const onDrop = vi.fn()
-    const drag = useDragToGroup<string>({ onDrop })
+    const drag = useDragToGroup<string>({ carry, onDrop })
     drag.bindHost(host)
 
     drag.down(at(10, 25), 'two', rows[1]!, true)
@@ -285,7 +298,7 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
     )
 
   it('marks the row a drop would land before, and the last row for the gap past it', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), markGap: true })
     drag.bindHost(host)
     // Lifted from outside the group, as from the Fällig block: every gap moves it.
     const outside = document.createElement('div')
@@ -302,7 +315,7 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
   })
 
   it('marks nothing beside the row itself, where the drop would move nothing', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), markGap: true })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!, true)
@@ -315,7 +328,7 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
   })
 
   it('takes the mark off when the drag ends', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), markGap: true })
     drag.bindHost(host)
     drag.down(at(10, 5), 'one', rows[0]!, true)
     drag.move(at(10, 35))
@@ -324,7 +337,7 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
   })
 
   it('frames a place the row goes to, never the one it is moved inside', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), markGap: true })
     drag.bindHost(host)
     drag.down(at(10, 5), 'one', rows[0]!, true)
     drag.move(at(10, 35))
@@ -333,18 +346,8 @@ describe('useDragToGroup — the gap it marks (markGap)', () => {
     expect(groupB.hasAttribute(DROP_OVER_ATTRIBUTE)).toBe(true)
   })
 
-  it('carries the clone up and down only, flush with the list', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn(), markGap: true })
-    drag.bindHost(host)
-    drag.down(at(10, 5), 'one', rows[0]!, true)
-    drag.move(at(80, 35))
-    const ghost = document.querySelector<HTMLElement>('[data-drag-ghost]')!
-    expect(ghost.style.left).toBe(`${GHOST_INSET_PX}px`)
-    expect(ghost.style.top).toBe('30px')
-  })
-
   it('marks nothing unless asked', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
     drag.down(at(10, 5), 'one', rows[0]!, true)
     drag.move(at(10, 35))
@@ -357,6 +360,7 @@ describe('useDragToGroup — a place that cannot hold it', () => {
     vi.useFakeTimers()
     const onDrop = vi.fn()
     const drag = useDragToGroup<string>({
+      carry,
       onDrop,
       accepts: (_payload, place) => place.target !== 'b',
     })
@@ -375,6 +379,7 @@ describe('useDragToGroup — a place that cannot hold it', () => {
 
   it('marks every place that would refuse it while it is in the air, and only those', () => {
     const drag = useDragToGroup<string>({
+      carry,
       onDrop: vi.fn(),
       accepts: (_payload, place) => place.target === 'a',
     })
@@ -387,7 +392,7 @@ describe('useDragToGroup — a place that cannot hold it', () => {
   })
 
   it('marks the place under the pointer, and unmarks the one it left', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!, true)
@@ -403,8 +408,8 @@ describe('useDragToGroup — a place that cannot hold it', () => {
    * around the lifted row would move every row below it under the finger that
    * had just pressed one — ADR-060, which this app has paid for once.
    */
-  it('leaves the row where it was and travels a clone', () => {
-    const drag = useDragToGroup<string>({ onDrop: vi.fn() })
+  it('leaves the row where it was and travels a chip', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
     drag.bindHost(host)
 
     drag.down(at(10, 5), 'one', rows[0]!, true)
@@ -418,5 +423,128 @@ describe('useDragToGroup — a place that cannot hold it', () => {
     drag.cancel()
     expect(document.querySelector('[data-drag-ghost]')).toBeNull()
     expect(rows[0]!.hasAttribute('data-drag-source')).toBe(false)
+  })
+})
+
+/*
+ * ADR-094: what travels is a chip above the fingertip, not a clone of the row
+ * under it. The finger aims; the place under it stays in sight, and the chip
+ * says in words where the drop lands — so a place the hand covers is still
+ * one the reader can name.
+ */
+describe('useDragToGroup — the chip it carries (ADR-094)', () => {
+  const ghost = () => document.querySelector<HTMLElement>('[data-drag-ghost]')!
+  const where = () => ghost().querySelector<HTMLElement>('[data-carry-where]')!
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: 400, configurable: true })
+  })
+
+  it('names what is carried, with its quiet tag', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(ghost().querySelector('[data-carry-title]')!.textContent).toBe('one')
+    expect(ghost().querySelector('[data-carry-tag]')!.textContent).toBe('tag')
+  })
+
+  it('leaves the tag out where the payload has none', () => {
+    const drag = useDragToGroup<string>({ carry: { ...carry, tag: () => null }, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(ghost().querySelector('[data-carry-tag]')).toBeNull()
+  })
+
+  it('rides above the fingertip, its grip over the finger, never over the place it aims at', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(100, 5), 'one', rows[0]!, true)
+    drag.move(at(120, 250))
+    // jsdom lays nothing out: the chip is 0 tall, so its bottom is its top.
+    expect(ghost().style.top).toBe(`${250 - CARRY_LIFT_PX}px`)
+    expect(ghost().style.left).toBe(`${120 - CARRY_GRIP_PX}px`)
+  })
+
+  it('stays inside the screen at either edge', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(5, 5), 'one', rows[0]!, true)
+    expect(Number.parseFloat(ghost().style.left)).toBeGreaterThanOrEqual(0)
+    drag.move(at(399, 50))
+    expect(Number.parseFloat(ghost().style.left)).toBeLessThanOrEqual(400)
+  })
+
+  it('says where the drop lands over a place that takes it', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 50))
+    expect(where().textContent).toBe('→ b')
+    expect(where().hasAttribute('data-lands')).toBe(true)
+  })
+
+  it('says it stays over nothing, and over a place the screen names no move into', () => {
+    // A day a meal already stands on: the screen knows a drop there changes nothing.
+    const home: DragCarry<string> = {
+      ...carry,
+      target: (_p, place) => (place.target === 'a' ? null : place.target),
+    }
+    const drag = useDragToGroup<string>({ carry: home, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    expect(where().textContent).toBe('one stays')
+    expect(where().hasAttribute('data-lands')).toBe(false)
+    drag.move(at(10, 50))
+    drag.move(at(10, 15))
+    expect(where().textContent).toBe('one stays')
+    expect(where().hasAttribute('data-lands')).toBe(false)
+  })
+
+  it('hands the screen the name the place carries', () => {
+    const named: DragCarry<string> = { ...carry, target: (_p, _place, label) => label }
+    const drag = useDragToGroup<string>({ carry: named, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 50))
+    expect(where().textContent).toBe('→ Group B')
+  })
+
+  it('says it stays over a place that would refuse it', () => {
+    const drag = useDragToGroup<string>({
+      carry,
+      onDrop: vi.fn(),
+      accepts: (_payload, place) => place.target !== 'b',
+    })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 50))
+    expect(where().textContent).toBe('one stays')
+  })
+
+  it('says it stays in the gaps beside the row itself, where markGap marks nothing', () => {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn(), markGap: true })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 15))
+    expect(where().textContent).toBe('one stays')
+    drag.move(at(10, 35))
+    expect(where().textContent).toBe('→ a')
+  })
+
+  it('frames and drops nowhere a place the screen names no move into', async () => {
+    const onDrop = vi.fn()
+    const home: DragCarry<string> = {
+      ...carry,
+      target: (_p, place) => (place.target === 'a' ? null : place.target),
+    }
+    const drag = useDragToGroup<string>({ carry: home, onDrop })
+    drag.bindHost(host)
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    drag.move(at(10, 15))
+    expect(groupA.hasAttribute(DROP_OVER_ATTRIBUTE)).toBe(false)
+    drag.up(at(10, 15))
+    await Promise.resolve()
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(host.getAttribute(DRAG_STATE_ATTRIBUTE)).toBe('idle')
   })
 })

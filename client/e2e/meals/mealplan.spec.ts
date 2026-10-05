@@ -2,11 +2,15 @@ import type { Page } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { PATH } from '../routes'
-import { createExcursion, openExcursions } from '../helpers/m27'
+import { createExcursion, openExcursions, undoFromSnackbar } from '../helpers/m27'
 import { addDayEntry, chooseDay, openDayPlan, timelineLines } from '../helpers/m29'
 import {
   addIngredient,
   addMeal,
+  carriedWhere,
+  liftMealOnto,
+  mealGrip,
+  sheetGone,
   mealPlan,
   mealRow,
   mealSheet,
@@ -411,6 +415,101 @@ test.describe('M31 meal plan @local @meals', () => {
     await openExcursions(page)
     await visiblePage(page).getByTestId('m27-excursion-Gletscher').click()
     await expect(visiblePage(page).getByTestId('m27-extra')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M31-11: a meal is moved to another day by its grip (FR-33.15, ADR-094).
+   * Lifted, every free day opens into a row of its own, so a free day is a
+   * place to drop; the chip rides above the finger and says where the meal
+   * would land, so the day under the finger stays in sight. Let go, the meal
+   * stands on its new day, its old day folds back into the free line, and the
+   * toast's undo puts it back. A picnic moved off its excursion's day leaves
+   * the rucksack, and the toast says so. Without the drag, the sheet's day
+   * chips move a meal too, naming the day it leaves.
+   */
+  test('E2E-M31-11: a meal is dragged by its grip onto a free day, and back by the undo', async ({
+    page,
+  }) => {
+    const day = await days(page, [30, 31, 32, 33, 34])
+    await createTripViaWizard(page, {
+      name: 'Engadin Herbst',
+      startDate: day(30),
+      endDate: day(34),
+      travelers: ['Andy'],
+    })
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Gletscher', days: { start: day(32), end: day(32) } })
+    await openMeals(page)
+    await addMeal(page, { day: day(30), slot: 'dinner', title: 'Raclette', ingredients: ['Käse'] })
+    const sheet = await openNewMeal(page, day(32), 'lunch')
+    await fillIonic(sheet.getByTestId('meal-title'), 'Picknick')
+    await sheet.getByTestId('meal-excursion').click()
+    await sheet.getByTestId('meal-save').click()
+    await expect(mealRow(page, day(32), 'Picknick')).toContainText('taken on Gletscher')
+    await writesLanded(page)
+    // Before the lift the free day is folded into its line, not a row.
+    await expect(mealPlan(page).getByTestId(`m31-gap-${day(31)}`)).toBeVisible()
+    await expect(mealPlan(page).getByTestId(`m31-plan-${day(31)}`)).toHaveCount(0)
+
+    const grip = mealGrip(page, day(30), 'Raclette')
+    await sheetGone(page)
+    await grip.hover()
+    const g = (await grip.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    // Over its own day it stays, and its day takes nothing.
+    await expect(carriedWhere(page)).toContainText('stays on')
+    await page.mouse.up()
+    await expect(mealPlan(page)).toHaveAttribute('data-drag', 'idle')
+    await expect(mealRow(page, day(30), 'Raclette')).toBeVisible()
+
+    const freeDay = () => mealPlan(page).getByTestId(`m31-plan-${day(33)}`)
+    const held = await liftMealOnto(page, grip, freeDay)
+    const label = await freeDay().getAttribute('data-drop-label')
+    await expect(carriedWhere(page)).toHaveText(`→ ${label}`)
+    // The ＋ steps aside while a meal is in the air: it stood over the last days' drop words.
+    await expect(mealPlan(page).getByTestId('m31-fab')).toHaveCount(0)
+    // The chip rides above the finger, clear of the day it aims at.
+    const chip = (await page.locator('[data-drag-ghost]').boundingBox())!
+    const target = (await freeDay().boundingBox())!
+    expect(chip.y + chip.height).toBeLessThan(target.y + target.height / 2)
+    await held.release()
+
+    await expect(mealRow(page, day(33), 'Raclette')).toBeVisible()
+    await expect(mealPlan(page).getByTestId('m31-fab')).toBeVisible()
+    await expect(mealsOfDay(page, day(30))).toHaveCount(0)
+    await expect(mealPlan(page).getByTestId(`m31-gap-${day(30)}`)).toBeVisible()
+    await writesLanded(page)
+    await undoFromSnackbar(page, `“Raclette” is now on ${label}`)
+    await expect(mealRow(page, day(30), 'Raclette')).toBeVisible()
+    await expect(mealsOfDay(page, day(33))).toHaveCount(0)
+    await writesLanded(page)
+
+    const picnic = await liftMealOnto(page, mealGrip(page, day(32), 'Picknick'), () =>
+      mealPlan(page).getByTestId(`m31-plan-${day(31)}`),
+    )
+    await picnic.release()
+    await expect(
+      page
+        .locator('ion-toast.pack-toast')
+        .filter({ hasText: 'no longer in the rucksack for Gletscher' }),
+    ).toHaveCount(1)
+    await expect(mealRow(page, day(31), 'Picknick')).not.toContainText('taken on')
+    await expect(mealRow(page, day(31), 'Picknick')).toContainText('Lunch')
+    await writesLanded(page)
+
+    // Without the drag: the sheet's day chips move it too, and say from where.
+    await sheetGone(page)
+    await mealRow(page, day(30), 'Raclette').click()
+    const raclette = mealSheet(page)
+    await raclette.getByTestId(`meal-day-${day(34)}`).click()
+    await expect(raclette.getByTestId(`meal-day-${day(30)}`)).toHaveAttribute(
+      'data-moved-from',
+      'true',
+    )
+    await expect(raclette).toContainText('→')
+    await raclette.getByTestId('meal-save').click()
+    await expect(mealRow(page, day(34), 'Raclette')).toBeVisible()
   })
 
   /**

@@ -202,6 +202,46 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
     })
   }
 
+  /**
+   * FR-33.15: a meal moved to another day by its grip — the day, and the
+   * excursion that day takes it on (`movedMeal`), written as the fields that
+   * changed; a picnic leaving its excursion leaves its packed state there, as
+   * from the sheet. Hands back the undo, which writes the three back.
+   */
+  function moveMeal(meal: Meal, to: { on_date: string; excursion_id: string | null }): () => void {
+    const before = {
+      on_date: meal.on_date,
+      excursion_id: meal.excursion_id,
+      excursion_packed_at: meal.excursion_packed_at,
+    }
+    const patch: Record<string, unknown> = {}
+    if (to.on_date !== meal.on_date) patch['on_date'] = to.on_date
+    if (to.excursion_id !== meal.excursion_id) {
+      patch['excursion_id'] = to.excursion_id
+      if (meal.excursion_packed_at !== null) patch['excursion_packed_at'] = null
+    }
+    writeMeal(meal, patch)
+    return () => {
+      const now = mealStore.getMeal(meal.id)
+      if (!now) return
+      const back: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(before)) {
+        if (value !== now[key as keyof Meal]) back[key] = value
+      }
+      writeMeal(now, back)
+    }
+  }
+
+  /** One patch of a meal's own fields, nothing written where nothing changed. */
+  function writeMeal(meal: Meal, patch: Record<string, unknown>): void {
+    if (Object.keys(patch).length === 0) return
+    const mutation = host.mutation('upsert', TABLE.meals, meal.id, patch)
+    host.writeTrip(meal.trip_id, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, encodeMeal(meal)),
+    })
+  }
+
   /** FR-33.9: deletes a meal with every ingredient it has, bought or not. */
   function removeMeal(meal: Meal): void {
     const mutation = host.mutation('delete', TABLE.meals, meal.id)
@@ -214,7 +254,7 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
     })
   }
 
-  return { saveMeal, setBought, placeOnShopping, setPacked, removeMeal }
+  return { saveMeal, setBought, placeOnShopping, setPacked, moveMeal, removeMeal }
 }
 
 export type MealActions = ReturnType<typeof createMealActions>

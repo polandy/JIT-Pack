@@ -116,8 +116,8 @@
   flat lists with neither grip nor headings.
 * **A line, put where it belongs (FR-30.13, *built*):** while nothing is selected, every open row carries a **grip**
   (`reorderThreeOutline`, label *„<Name> verschieben"*) at its leading edge, in the checkbox's own place. Pressed and
-  carried, it lifts the row (a clone follows the pointer up and down, stepped in by the grip's width, framed in the
-  accent colour, while the row itself only dims in place); inside the heading under the pointer a **3 px bar in the
+  carried, it lifts the row (G-21: a chip above the fingertip names the line and the heading it would land in, while
+  the row itself only dims in place); inside the heading under the pointer a **3 px bar in the
   action colour, led by a dot,** marks the gap the row will land in — laid over the neighbouring row's edge
   (`data-drop-gap`), so no row moves under the finger, and drawn only where the drop would move something. Inside its
   own heading the row gets no frame and no *hier ablegen*: the bar says it all. Letting go puts the row there. Packing
@@ -130,10 +130,10 @@
   in, through the same `bulkSetTag` a selection's *Tag vergeben* uses (a batch of one), and raises the same toast with
   **Rückgängig**. The gesture itself is `useDragToGroup` (FR-7.8's own, first built for the trip's tasks) — a
   lift-carry-drop with no shape of its own beyond a place's name, the gap and what was dropped on it. The frame is the
-  mockup's blue outline, on both the lifted clone and the target heading. **A heading that refuses the row in hand dims
+  mockup's blue outline, on both the carried chip and the target heading. **A heading that refuses the row in hand dims
   for as long as it is in the air** (`data-drop-refused`, set by the gesture from the screen's own rule): the packing
   heading under an own entry, every other heading under a packing line. A line below the list says once in words that
-  a packing line moves only inside its heading, next to the checkbox's own hint. The lifted clone's frame, the dimmed
+  a packing line moves only inside its heading, next to the checkbox's own hint. The carried chip's frame, the dimmed
   row it left behind and the insert line are drawn once, in `composables/dragToGroup.css`, and reach every screen that
   lifts something with `useDragToGroup` — M25's own drag (FR-7.8) draws the identical frame for the same reason.
   (E2E-M6-34)

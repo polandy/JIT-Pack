@@ -481,6 +481,11 @@ function placeOf(place: DropPlace): { list: ShoppingMode; section: ShoppingSecti
 const dragHost = computed(() => content.value?.$el ?? null)
 
 const drag = useDragToGroup<ShoppingLine>({
+  carry: {
+    title: (line) => line.name,
+    target: (_line, _place, label) => label,
+    stays: () => t('list.dropStays'),
+  },
   markGap: true,
   accepts: (line, place) => {
     const at = placeOf(place)
