@@ -33,7 +33,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { formatDate, t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { MEAL_CONTEXT } from '@/lib/mealContext'
-import { presentToast } from '@/lib/toast'
+import { presentToast, TOAST_DURATION_MS } from '@/lib/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
 import type { Meal, MealSlot } from '@/types/domain'
@@ -56,7 +56,9 @@ import {
   startingDay,
   takesMeal,
 } from './domain/mealPlan'
+import { learnedFreshness } from './domain/ingredients'
 import { glide, GLIDE_ATTRIBUTE, snapshot } from './glide'
+import { FRESH_NOTE_TOAST_MS, freshNote } from './moveNote'
 import { useMealSheet } from './sheet'
 import { mealFacts } from './sources'
 import { useMealStore } from './store'
@@ -240,7 +242,15 @@ async function settleAround(meal: Meal, before: Map<string, number>, anchor: num
   glide(root, before)
 }
 
-/** FR-33.15: the move written, and said in a toast — with the time it dropped — whose undo puts it back. */
+/** FR-33.13: each name's last freshness, asked once a move needs it. */
+function learned() {
+  return learnedFreshness(mealStore.allMeals(), mealStore.allIngredients())
+}
+
+/**
+ * FR-33.15: the move written, and said in a toast — with the time it dropped
+ * and the bought fresh ingredients it may outlast — whose undo puts it back.
+ */
 function move(meal: Meal, day: string, slot: MealSlot) {
   if (day === meal.on_date && slot === meal.slot) return
   const excursions = context?.excursions(props.tripId) ?? []
@@ -251,6 +261,7 @@ function move(meal: Meal, day: string, slot: MealSlot) {
   const along = to.excursion_id !== meal.excursion_id ? nameOf(to.excursion_id) : null
   const words = { title: meal.title, day: shortDueDay(day), slot: slotWord(slot) }
   const moved = t(slot === meal.slot ? 'meals.moved' : 'meals.movedSlot', words)
+  const fresh = freshNote(meal.on_date, day, ingredientsOf(meal), learned())
   const notes = [
     meal.at_time && to.at_time === null ? t('meals.movedTimeGone', { time: meal.at_time }) : null,
     along
@@ -258,9 +269,11 @@ function move(meal: Meal, day: string, slot: MealSlot) {
       : leftFor
         ? t('meals.movedOff', { name: leftFor })
         : null,
+    fresh,
   ].filter((note) => note !== null)
   void presentToast({
     message: [moved, ...notes].join(' · '),
+    duration: fresh ? FRESH_NOTE_TOAST_MS : TOAST_DURATION_MS,
     positionAnchor: FAB_ANCHOR.m31,
     cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => undo() }],

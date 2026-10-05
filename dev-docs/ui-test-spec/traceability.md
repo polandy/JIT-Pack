@@ -237,6 +237,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-33.12 | E2E+UNIT | M31-09 (offered from the first letter, the last amount, a typed amount wins; the amount read as one types); `meals/domain/__tests__/ingredients.spec.ts` (`ingredientSuggestions`), `units.spec.ts` (the units split off and summed) |
 | FR-33.13 | E2E+UNIT+SERVER | M31-09 (the built-in guess, set by hand, kept for the name); `ingredients.spec.ts` (`builtInFresh`, `learnedFreshness`, `isFresh`), `meals/__tests__/sync.spec.ts`; Go: `TestApplyMutation_IngredientFreshness_FR33_13`, `TestSchema_MealVocabulary_FR33_1` |
 | FR-33.14 | E2E+UNIT | M31-10 (one line, fresh across a day, parts opened, bought together, the rest); `ingredients.spec.ts` (`sumAmounts`, `sumGroups`), `meals/__tests__/sources.spec.ts` |
+| FR-33.15 | E2E+UNIT | M31-11 (dragged onto a free day, undone, the sheet's day chips), M31-12 (scrolled at the edge), M31-13 (another slot, its time gone), M31-14 (bought fresh ingredients asked after); `mealPlan.spec.ts` (`canMove`, `takesMeal`, `movedMeal`, `freshBoughtTooEarly`), `meals/__tests__/moveNote.spec.ts`, `meals/__tests__/glide.spec.ts` |
 | FR-32.3 | E2E+UNIT+SERVER | M30-02; G12-07 and `ItemInventoryPage.spec.ts` (hidden in Local Mode); Go: `TestActivity_Inventory_FollowsMasterVisibility_FR32_1` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

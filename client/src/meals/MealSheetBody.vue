@@ -23,7 +23,7 @@ import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
 import { MEAL_CONTEXT } from '@/lib/mealContext'
 import { shortDueDay } from '@/lib/taskDueText'
-import { presentToast } from '@/lib/toast'
+import { presentToast, TOAST_DURATION_MS } from '@/lib/toast'
 import type { MealKind, MealSlot } from '@/types/domain'
 import {
   ITEM_MODE_BUY_BEFORE,
@@ -51,6 +51,7 @@ import {
 } from './domain/ingredients'
 import type { MealSheetRequest } from './sheet'
 import { ingredientsOfMeal } from './sources'
+import { FRESH_NOTE_TOAST_MS, freshNote } from './moveNote'
 import { useMealStore } from './store'
 
 const props = defineProps<{
@@ -299,6 +300,7 @@ const canSave = computed(
 
 function save() {
   if (!canSave.value) return
+  const from = meal?.on_date ?? null
   const id = actions.saveMeal(
     tripId,
     meal,
@@ -319,7 +321,13 @@ function save() {
   const saved = mealStore.getMeal(id)
   const open = cooked.value ? draft.ingredients.filter((i) => !i.bought).length : 0
   const words = { title: saved?.title ?? draft.title, day: shortDueDay(draft.day), n: open }
-  void presentToast({ message: open > 0 ? t('meals.savedWith', words) : t('meals.saved', words) })
+  const fresh =
+    from === null ? null : freshNote(from, draft.day, mealStore.ingredientsOf(id), learned.value)
+  const said = open > 0 ? t('meals.savedWith', words) : t('meals.saved', words)
+  void presentToast({
+    message: fresh ? `${said} · ${fresh}` : said,
+    duration: fresh ? FRESH_NOTE_TOAST_MS : TOAST_DURATION_MS,
+  })
   emit('close')
 }
 
