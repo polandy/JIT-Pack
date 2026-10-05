@@ -61,6 +61,11 @@ export interface DayLine {
   excursion?: DayPlanLine
   /** Whom it is for, by name in roster order — null for everybody (FR-29.15). */
   who: string[] | null
+  /**
+   * Whom it concerns, by traveller id — null for everybody (FR-29.15): its own
+   * people, or for an excursion's way the excursion's.
+   */
+  forIds: string[] | null
 }
 
 /** A source's kind of line as the timeline's. */
@@ -201,10 +206,61 @@ export interface DayInput {
  * traveller, comes to.
  */
 export function whoOf(ids: readonly string[], travelers: readonly Traveler[]): string[] | null {
+  const named = forOf(ids, travelers)
+  return named && travelers.filter((traveler) => named.includes(traveler.id)).map((t) => t.name)
+}
+
+/**
+ * FR-29.15: the travellers among `ids` still on the trip, in roster order —
+ * null for everybody, which naming nobody, or every traveller, comes to.
+ */
+export function forOf(ids: readonly string[], travelers: readonly Traveler[]): string[] | null {
   const named = travelers.filter((traveler) => ids.includes(traveler.id))
   return named.length === 0 || named.length === travelers.length
     ? null
-    : named.map((traveler) => traveler.name)
+    : named.map((traveler) => traveler.id)
+}
+
+/**
+ * FR-29.15: whether a line concerns any of the `chosen` travellers — null for
+ * everybody, which every line concerns. A line for everybody concerns
+ * anyone; one naming people concerns them; a task concerns the one whose
+ * account it is assigned to, or anyone while it is nobody's. A meal's cook is
+ * no reason to leave it out: everybody eats it.
+ */
+export function concerns(
+  line: DayLine,
+  chosen: readonly string[] | null,
+  travelers: readonly Traveler[],
+): boolean {
+  if (chosen === null) return true
+  if (line.kind === DAY_LINE.task) {
+    const assignee = line.source?.assignee ?? null
+    if (assignee === null) return true
+    return travelers.some(
+      (traveler) => chosen.includes(traveler.id) && traveler.linked_user_id === assignee,
+    )
+  }
+  return line.forIds === null || line.forIds.some((id) => chosen.includes(id))
+}
+
+/**
+ * FR-29.15: whom the day plan is narrowed to when it opens — the choice this
+ * device remembered (`null` for everybody, `undefined` for none yet), without
+ * anyone gone from the trip; the first time, the traveller linked to me. A
+ * trip of one is never narrowed.
+ */
+export function openingFilter(
+  remembered: readonly string[] | null | undefined,
+  travelers: readonly Traveler[],
+  myUserId: string | null,
+): string[] | null {
+  if (travelers.length < 2) return null
+  if (remembered !== undefined) return remembered === null ? null : forOf(remembered, travelers)
+  const me = myUserId
+    ? travelers.find((traveler) => traveler.linked_user_id === myUserId)
+    : undefined
+  return me ? [me.id] : null
 }
 
 /**
@@ -246,6 +302,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       source,
       origin,
       who: whoOf(source.travelerIds ?? [], input.travelers),
+      forIds: forOf(source.travelerIds ?? [], input.travelers),
     })
   }
 
@@ -262,6 +319,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       progress: null,
       idea,
       who: null,
+      forIds: null,
     })
   }
 
@@ -270,6 +328,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
     const named = input.entryTravelers
       .filter((row) => row.day_entry_id === entry.id)
       .map((row) => row.traveler_id)
+    const way = entry.excursion_id ? excursionOf.get(entry.excursion_id) : undefined
     lines.push({
       key: `entry:${entry.id}`,
       // By its legs, never its kind: two devices merged field by field may leave them apart (FR-29.18).
@@ -281,8 +340,10 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       done: null,
       progress: null,
       entry,
-      excursion: entry.excursion_id ? excursionOf.get(entry.excursion_id) : undefined,
+      excursion: way,
       who: whoOf(named, input.travelers),
+      // An excursion's way goes with the excursion's people.
+      forIds: forOf(way ? (way.travelerIds ?? []) : named, input.travelers),
     })
   }
 
@@ -359,6 +420,7 @@ function fixed(kind: typeof DAY_LINE.arrival | typeof DAY_LINE.departure, day: s
     done: null,
     progress: null,
     who: null,
+    forIds: null,
   }
 }
 
@@ -373,8 +435,18 @@ export function stateAfterTick(
 }
 
 /** How many lines stand on each day — the strip's dots. */
-export function dayCounts(days: readonly string[], input: DayInput): Map<string, number> {
-  return new Map(days.map((day) => [day, dayLines(day, input).length]))
+/** How many lines each day holds — of those that concern the `chosen`, while some are (FR-29.15). */
+export function dayCounts(
+  days: readonly string[],
+  input: DayInput,
+  chosen: readonly string[] | null = null,
+): Map<string, number> {
+  return new Map(
+    days.map((day) => [
+      day,
+      dayLines(day, input).filter((line) => concerns(line, chosen, input.travelers)).length,
+    ]),
+  )
 }
 
 /**

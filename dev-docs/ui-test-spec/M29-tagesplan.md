@@ -100,3 +100,9 @@
   chip rule is `lib/__tests__/whoGoes.spec.ts`'s, whom a line names `domain/__tests__/dayPlan.spec.ts`'s, the rows a
   save writes and a delete takes `planner/__tests__/sync.spec.ts`'s, and the server's cascade and scope
   `TestApplyMutation_DayEntryTraveler*`.
+* **E2E-M29-20** `local` (FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): on a trip of three in Local Mode the
+  *For* chips start on *Everybody*; Sia chosen leaves out Leonardo's entry and the excursion only Andy goes on and says
+  *2 lines for others*, Leonardo added brings his entry back, and a new entry's *For whom* starts on the two. The
+  choice outlives a reload; *Show all* is everybody again. Which lines concern whom — a task by its assignee's account,
+  a way by its excursion — is `concerns`' in `domain/__tests__/dayPlan.spec.ts`, the first visit on my own traveller
+  `openingFilter`'s, the remembered choice `planner/__tests__/dayPlanFilter.spec.ts`'s.

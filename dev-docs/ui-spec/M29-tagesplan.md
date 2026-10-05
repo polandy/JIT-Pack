@@ -45,6 +45,13 @@
     column. A tap opens the meal's sheet over the plan (M31). An excursion's line names a picnic taken on it
     (*„… · 🍽 Picknick"*, FR-33.6) and counts it in its ring.
   An empty day says *„Noch nichts geplant."* (`m29-empty`).
+* **Für** (`who-m29`), under the strip where the trip has more than one traveller: *Alle* (`who-all-m29`) and a chip
+  per traveller (`who-m29-<Name>`), the *Für wen* chips and rule — one or several chosen, everybody or nobody being
+  *Alle*. It narrows the chosen day, *Morgen* and the strip's dots to the lines that concern the chosen (FR-29.15); a
+  card that leaves lines out ends in *„2 Zeilen für andere"* with *Alle zeigen* (`m29-hidden`, `m29-show-all`;
+  `m29-tomorrow-hidden` under *Morgen*), and says *„Noch nichts geplant."* only where nothing is left out. The device
+  remembers the choice per trip; the first visit opens on the traveller linked to my account, else on *Alle*. A new
+  entry's *Für wen* starts on the chosen.
 * **Tomorrow** stands below as a second card (`m29-tomorrow`), headed *„Morgen · Do., 16.7."* with its count, while
   the trip has a next day.
 * **Outside the trip** — an idea planned, or an entry written, on a day the trip does not have, because its dates

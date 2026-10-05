@@ -268,4 +268,79 @@ test.describe('M29 day plan @local @planner', () => {
     const hut = timelineLines(page).filter({ hasText: 'Hüttentour' })
     await expect(hut.locator('[data-testid^="m29-who-"]')).toHaveText('for Sia')
   })
+
+  /**
+   * E2E-M29-20: the plan narrowed to some travellers (FR-29.15). The chips
+   * under the strip start on *Everybody* in Local Mode; Sia chosen leaves
+   * Leonardo's entry and the excursion Andy goes on out and says so, Leonardo
+   * added brings his back, and a new entry starts on the two chosen. The
+   * choice outlives a reload; *Show all* is everybody again.
+   */
+  test('E2E-M29-20: the plan narrowed to some travellers shows what concerns them and says what it leaves out', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Engadin Tage',
+      startDate: FIRST,
+      endDate: LAST,
+      travelers: ['Andy', 'Sia', 'Leonardo'],
+    })
+    await openExcursions(page)
+    await createExcursion(page, {
+      name: 'Velotour',
+      who: ['Andy'],
+      days: { start: FIRST, end: FIRST },
+    })
+    await openDayPlan(page)
+    const sheet = page.getByTestId('day-entry')
+    for (const [title, person] of [
+      ['Coiffeur', 'Sia'],
+      ['Kinderclub', 'Leonardo'],
+    ] as const) {
+      await dayPlan(page).getByTestId('m29-fab').click()
+      await fillIonic(sheet.getByTestId('day-entry-name'), title)
+      await sheet.getByTestId(`who-day-entry-${person}`).click()
+      await sheet.getByTestId('day-entry-save').click()
+      await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    }
+    await addDayEntry(page, { title: 'Frühstück', time: '08:30' })
+    await expect(timelineLines(page)).toHaveCount(5)
+    await writesLanded(page)
+
+    const plan = dayPlan(page)
+    await expect(plan.getByTestId('who-all-m29')).toHaveAttribute('aria-pressed', 'true')
+    await plan.getByTestId('who-m29-Sia').click()
+    await expect(timelineLines(page)).toHaveCount(3)
+    await expect(timeline(page)).toContainText('Coiffeur')
+    await expect(timeline(page)).toContainText('Frühstück')
+    await expect(timeline(page)).not.toContainText('Kinderclub')
+    await expect(timeline(page)).not.toContainText('Velotour')
+    await expect(plan.getByTestId('m29-hidden')).toContainText('2 lines for others')
+
+    await plan.getByTestId('who-m29-Leonardo').click()
+    await expect(timeline(page)).toContainText('Kinderclub')
+    await expect(plan.getByTestId('m29-hidden')).toContainText('One line for others')
+
+    await plan.getByTestId('m29-fab').click()
+    await expect(sheet.getByTestId('who-day-entry-Sia')).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByTestId('who-day-entry-Leonardo')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(sheet.getByTestId('who-day-entry-Andy')).toHaveAttribute('aria-pressed', 'false')
+    await sheet.getByTestId('day-entry-close').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+
+    await page.reload()
+    await expect(dayPlan(page).getByTestId('who-m29-Leonardo')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(timelineLines(page)).toHaveCount(4)
+
+    await dayPlan(page).getByTestId('m29-show-all').click()
+    await expect(timelineLines(page)).toHaveCount(5)
+    await expect(dayPlan(page).getByTestId('m29-hidden')).toHaveCount(0)
+    await expect(dayPlan(page).getByTestId('who-all-m29')).toHaveAttribute('aria-pressed', 'true')
+  })
 })

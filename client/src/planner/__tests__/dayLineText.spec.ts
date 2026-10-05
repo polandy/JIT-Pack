@@ -20,6 +20,7 @@ function line(over: Partial<DayLine>): DayLine {
     done: null,
     progress: null,
     who: null,
+    forIds: null,
     ...over,
   }
 }

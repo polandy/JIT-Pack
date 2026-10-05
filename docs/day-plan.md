@@ -48,6 +48,12 @@ Under the row, the chosen day lists what is on it — first everything with a ti
 
 Below the day, **Morgen** shows tomorrow.
 
+**Für**, under the row of days, narrows the plan to some of you: tap a name, or several, and the day shows only what
+concerns them — entries for them or for everyone, excursions they go on, tasks assigned to them or to nobody. Ideas,
+meals and arrival and departure stay. The bottom of the day says how many lines are left out; **Alle zeigen** brings
+them back. Your phone remembers the choice for each trip; the first time it starts on you, if your account is linked
+to one of the travellers.
+
 ## Planning an idea
 
 Only ideas on the **Shortlist** go on the plan. Give one a day in either of two places:
