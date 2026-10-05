@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.25.0](https://github.com/polandy/JIT-Pack/compare/v0.24.0...v0.25.0) (2026-10-05)
+
+
+### Features
+
+* **deploy:** a household stack with Pocket ID behind Traefik — accounts without an identity provider of your own ([#666](https://github.com/polandy/JIT-Pack/issues/666)) ([e9af339](https://github.com/polandy/JIT-Pack/commit/e9af339339dfab1e697f05269d09dd051d6fcd74))
+* **m27:** an excursion's day — the way there, the route and the way back, with the time on the spot (FR-29.18, FR-31.15) ([30eff85](https://github.com/polandy/JIT-Pack/commit/30eff857b1a190c26b4caaaedbe5f443af76e4a6))
+* **m29:** an entry carries its connection — the Swiss timetable in a step, from where one is, on a map (FR-29.15, FR-29.18, ADR-086) ([#682](https://github.com/polandy/JIT-Pack/issues/682)) ([ba213e8](https://github.com/polandy/JIT-Pack/commit/ba213e8775ea62befecdba751d1295c4f2e1c73e))
+* **m31:** a meal is dragged to another day and slot; every drag carries a chip above the finger and scrolls at the edge (FR-33.15, G-21, ADR-094) ([#689](https://github.com/polandy/JIT-Pack/issues/689)) ([7694ee5](https://github.com/polandy/JIT-Pack/commit/7694ee52d7e40b26b824b74304dc9e4cb9664e96))
+* **m31:** a meal moved days later asks whether its bought fresh ingredients last (FR-33.15) ([#690](https://github.com/polandy/JIT-Pack/issues/690)) ([f26e201](https://github.com/polandy/JIT-Pack/commit/f26e201631fdd52baf5b59b7b0645c9a65239b30))
+* **m31:** a trip's meal plan — meals on the day plan, their ingredients on the shopping list (§3.33, ADR-092) ([#684](https://github.com/polandy/JIT-Pack/issues/684)) ([9ce0730](https://github.com/polandy/JIT-Pack/commit/9ce07308f010a1d5339f4ad57183b8455c775779))
+* **m31:** ingredients are remembered across trips and summed on the shopping list, fresh food only across a day (FR-33.12–33.14, ADR-093) ([#686](https://github.com/polandy/JIT-Pack/issues/686)) ([e888907](https://github.com/polandy/JIT-Pack/commit/e888907ff8f2f214222487ed97fc9899f1fbf212))
+* **m6:** a bought entry goes back on the list from its row, the purchase kept (FR-30.14, E2E-M6-41) ([b7ee9de](https://github.com/polandy/JIT-Pack/commit/b7ee9de3bc69395571bc52191f8b8d1119885a83))
+* **planner:** an excursion's connections are added on its screen and shown on the day plan (FR-29.18) ([876b9b4](https://github.com/polandy/JIT-Pack/commit/876b9b47072d20e1a4acc4a3eaf73d9f1ddba10e))
+* **planner:** an idea and the excursion made from it are one line on the day plan (FR-29.13, FR-29.15) ([708a47e](https://github.com/polandy/JIT-Pack/commit/708a47e57e0621852ff9c032b8c745133596e448))
+
+
+### Bug Fixes
+
+* **i18n:** dates and numbers follow the device's region, read from its time zone (NFR-4.12) ([#685](https://github.com/polandy/JIT-Pack/issues/685)) ([b2a86cc](https://github.com/polandy/JIT-Pack/commit/b2a86cc524caf389d4c0bec40753411b880c1c0d))
+* **m1:** a tap on the hero's preview opens the trip in place; the e2e worker is blocked outside the PWA cases (E2E-M1-01, E2E-FLOW-09) ([#688](https://github.com/polandy/JIT-Pack/issues/688)) ([1014368](https://github.com/polandy/JIT-Pack/commit/1014368788b0b4dd90881c4ea518f1ac8f5957c3))
+* **m28:** removing an idea waits for its sheet's route to close, so the next tap is not undone (FR-29.13, E2E-M28-23) ([#678](https://github.com/polandy/JIT-Pack/issues/678)) ([d4fb2ed](https://github.com/polandy/JIT-Pack/commit/d4fb2ed92b727d8eb18abab4bb359a1f538fc695))
+* **m4:** the packing list heads itself over the trip's name like every other trip view (G-9, FR-21.27) ([def3bb7](https://github.com/polandy/JIT-Pack/commit/def3bb73fd2da0b685e355e417160bc39f5ca377))
+
 ## [0.24.0](https://github.com/polandy/JIT-Pack/compare/v0.23.0...v0.24.0) (2026-10-02)
 
 
