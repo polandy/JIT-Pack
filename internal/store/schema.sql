@@ -827,6 +827,19 @@ CREATE TABLE day_entries (
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
+-- FR-29.15: whom a day-plan entry is for. A row per traveller, as
+-- excursion_travelers keeps an excursion's, so two devices naming different
+-- people both win. No rows means every traveller of the trip, so a traveller
+-- added to the trip later is on every entry nobody narrowed.
+CREATE TABLE day_entry_travelers (
+    id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id      TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    day_entry_id TEXT NOT NULL REFERENCES day_entries(id) ON DELETE CASCADE,
+    traveler_id  TEXT NOT NULL REFERENCES travelers(id) ON DELETE CASCADE,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
 -- FR-29.5: one picture on an idea. The row syncs — which picture, its hash,
 -- where it stands — and the bytes do not: they live in idea_image_bytes and
 -- move over their own endpoints (ADR-002). A row is created only by the
@@ -1116,6 +1129,7 @@ CREATE INDEX idx_meals_trip ON meals (trip_id, on_date);
 CREATE INDEX idx_meal_ingredients_meal ON meal_ingredients (meal_id);
 CREATE INDEX idx_idea_tracks_idea ON idea_tracks (idea_id);
 CREATE INDEX idx_day_entries_excursion ON day_entries(excursion_id);
+CREATE INDEX idx_day_entry_travelers_entry ON day_entry_travelers (day_entry_id);
 CREATE INDEX idx_excursion_tracks_excursion ON excursion_tracks (excursion_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);

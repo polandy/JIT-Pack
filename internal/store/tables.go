@@ -456,6 +456,9 @@ var tableSpecs = map[string]tableSpec{
 		cascades: []childQuery{
 			{TableExcursionTravelers, `SELECT id FROM excursion_travelers WHERE traveler_id = ?`},
 			{TableExcursionItems, `SELECT id FROM excursion_items WHERE assigned_traveler_id = ?`},
+			// FR-29.15: the same for a day-plan entry; one left naming nobody
+			// is for everybody again.
+			{TableDayEntryTravelers, `SELECT id FROM day_entry_travelers WHERE traveler_id = ?`},
 		},
 	},
 
@@ -697,7 +700,20 @@ var tableSpecs = map[string]tableSpec{
 			"excursion_role",
 		),
 		unlogged: toSet(columnLegs),
+		cascades: []childQuery{
+			{TableDayEntryTravelers, `SELECT id FROM day_entry_travelers WHERE day_entry_id = ?`},
+		},
 		export: exportQuery{query: `SELECT x.* FROM day_entries x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.15: one traveller a day-plan entry is for — see schema.sql for
+	// why a row per person. validDayEntryTraveler keeps both on the trip.
+	TableDayEntryTravelers: {
+		partition: partitionTrip,
+		label:     activityLabel{name: via("traveler_id", TableTravelers, "name"), subject: via("day_entry_id", TableDayEntries, "title")},
+		columns:   toSet("trip_id", "day_entry_id", "traveler_id"),
+		export: exportQuery{query: `SELECT x.* FROM day_entry_travelers x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
