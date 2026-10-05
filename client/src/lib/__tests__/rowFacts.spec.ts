@@ -199,4 +199,10 @@ describe('boughtStampText (FR-30.4)', () => {
     expect(boughtStampText(null, null, nameOf, NOW)).toBeNull()
     expect(boughtStampText(undefined, undefined, nameOf, NOW)).toBeNull()
   })
+
+  it('says only the time where a heading above already names the day (FR-30.15)', () => {
+    const opts = { withDay: false }
+    expect(boughtStampText(at, 'u-nina', nameOf, NOW, opts)).toBe('bought by Nina · 14:32')
+    expect(boughtStampText(at, null, nameOf, NOW, opts)).toBe('bought · 14:32')
+  })
 })

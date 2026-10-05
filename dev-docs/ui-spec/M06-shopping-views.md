@@ -78,8 +78,9 @@
   blank. Nothing is written before the button; *Speichern* writes the fields that changed. There is no inline field for
   a new tag. A packing row's name opens nothing. **An untagged own row carries no label of its own** — a *＋ Tag*
   repeated under every such row reads as clutter at any real list length; the row's own tappability is the whole
-  affordance, exactly as a tagged row's is. **The reveal of what was bought is not grouped:** its rows say their tag as
-  a small label under the name, and its check (which puts the line back) is at the end like the open rows'. (E2E-M6-31)
+  affordance, exactly as a tagged row's is. **The reveal of what was bought is not grouped by tag** — it is filed by day
+  (FR-30.15): its rows say their tag as a small label under the name, and its check (which puts the line back) is at
+  the end like the open rows'. (E2E-M6-31)
 * ***Meine* (FR-30.12, *built*):** M25's chip above the composer (`m6-mine`), where anybody else is on the trip: only
   the lines I am to buy, on both lists and in the *Fällig* block; a packing line leaves too. With nothing of mine the
   lists fold to their end lines rather than the empty state. (E2E-M6-37)
@@ -171,9 +172,15 @@
   checkbox is the way back — unchecking restores the mode it was bought from and clears the record. Each list has its
   own fold, and the fold is **absent, not empty**, when nothing was bought from that list. Deliberately **not**
   remembered across a session the way M4's switch is (FR-25.18). **Every revealed line carries FR-30.4's stamp** —
-  *„gekauft von Andy · heute 14:32"* with the buyer's avatar, or *„gekauft · heute 14:32"* where nobody can be named
-  (Local Mode) — under its note. **An entry (FR-30.1)** is revealed the same way, with **no note** — it was never
-  anywhere but here.
+  *„gekauft von Andy · 14:32"* with the buyer's avatar, or *„gekauft · 14:32"* where nobody can be named (Local Mode)
+  — under its note; the day is its heading's (FR-30.15). **An entry (FR-30.1)** is revealed the same way, with **no
+  note** — it was never anywhere but here.
+* **Bought, by day (FR-30.15, *built*):** inside a *gekauft* fold the rows stand under the day they were bought on,
+  the latest day first and the latest purchase first within it — `ListGroup`'s heading (`m6-bought-day`, its words
+  `m6-bought-day-head`, `data-day` the local `YYYY-MM-DD`): *„Heute"* or *„Gestern"* with the date in the quieter
+  note beside it (*„Mo., 5. Okt."*), an older day as its date alone, and the day's count at the end. With the day in
+  the heading, the row's stamp is *„gekauft von Andy · 08:14"* — the time alone. A purchase without a moment stands
+  under *„Ohne Datum"*, last. Drawn even when every purchase is from one day. (E2E-M6-42)
 * **Bought again (FR-30.14, *built*):** an own entry's row in a *gekauft* fold carries a pill ***＋ Nochmal***
   (`m6-bought-again`, label *„<Name> nochmal kaufen"*) at its edge before the tick, in the brand colour so it never
   reads as the tick's green. A tap writes a new open entry with the row's name and tag on its list (*Vor Ort* once

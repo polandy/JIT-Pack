@@ -72,15 +72,18 @@ export function packedStampText(
  * FR-30.4: "gekauft von Andy · heute 14:32" — FR-25.17's stamp for a
  * purchase, on both kinds of shopping line. `null` when the line says
  * neither who nor when; the reveal has already said it was bought.
+ * `withDay: false` drops the day where a heading above names it (FR-30.15).
  */
 export function boughtStampText(
   at: string | null | undefined,
   by: string | null | undefined,
   nameOf: NameOf,
   now: Date = new Date(),
+  { withDay = true }: { withDay?: boolean } = {},
 ): string | null {
   if (!at && !by) return null
-  const when = stampText(at ? relativeStamp(at, now, intlLocale()) : null)
+  const stamp = at ? relativeStamp(at, now, intlLocale()) : null
+  const when = withDay ? stampText(stamp) : (stamp?.time ?? '')
   const who = nameOf(by ?? null)
   if (who) return t('shopping.boughtBy', { who, when })
   return when ? t('shopping.boughtByUnknown', { when }) : null

@@ -16,6 +16,7 @@ import { createItem } from '../helpers/m9'
 import { addBuyRowOnM4, setMemberInM5, startTrip } from '../helpers/m4'
 import { setDateField } from '../helpers/ionic'
 import { dropBeside } from '../helpers/drag'
+import { setClock } from '../helpers/page'
 
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
@@ -176,8 +177,10 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     // It was never anywhere but here, so it names nowhere it went.
     await expect(bought.getByTestId('m6-bought-note')).toHaveCount(0)
     // FR-30.4: when it was bought — and survived the reload with it. No who:
-    // Local Mode has no account to name (G-8); E2E-M6-29 names one.
-    await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
+    // Local Mode has no account to name (G-8); E2E-M6-29 names one. The day
+    // is the heading's (FR-30.15).
+    await expect(bought.getByTestId('m6-bought-stamp')).toHaveText(/^bought · \d\d:\d\d$/)
+    await expect(m6(page).getByTestId('m6-bought-day-head')).toHaveText(/^Today/)
 
     await bought.locator('ion-checkbox').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
@@ -271,14 +274,17 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     const label = await row.locator('h3').boundingBox()
     expect(box!.x).toBeGreaterThan(label!.x + label!.width)
 
-    // Bought: leaves its group, and the flat reveal names the tag.
+    // Bought: leaves its group, and the reveal — filed by day, not by tag
+    // (FR-30.15) — names the tag in the row.
     await row.locator('ion-checkbox').click()
     await expect(supermarkt.locator('h3')).toHaveText(['Pasta'])
     await list(page, 'before').getByTestId('m6-bought-bar').click()
     await expect(m6(page).getByTestId('m6-bought-row').getByTestId('m6-bought-tag')).toHaveText([
       'Supermarkt',
     ])
-    await expect(m6(page).getByTestId('m6-bought-list').locator('ion-item-group')).toHaveCount(0)
+    const boughtGroups = m6(page).getByTestId('m6-bought-list').locator('ion-item-group')
+    await expect(boughtGroups).toHaveCount(1)
+    await expect(boughtGroups).toHaveAttribute('data-testid', 'm6-bought-day')
 
     // The tags survive a reload — they are a column of the row.
     await writesLanded(page)
@@ -466,6 +472,49 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await toast.getByRole('button', { name: 'Undo' }).click()
     await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
     await expect(m6(page).getByTestId('m6-bought-row')).toHaveCount(2)
+  })
+
+  /**
+   * E2E-M6-42 (FR-30.15): what was bought stands under the day it was bought
+   * on — the latest day first, today and yesterday by name, an older day by
+   * its date — and the stamp keeps only the time, since the heading says the
+   * day. The browser's clock is moved between purchases the way days pass on
+   * a trip; the reload proves the grouping is read from the stored moments.
+   */
+  test('E2E-M6-42: bought entries are grouped under the day they were bought, the latest first (FR-30.15)', async ({
+    page,
+  }) => {
+    await setClock(page, '2026-10-03T15:20:00+02:00')
+    await createTripViaWizard(page, { ...TRIP, startDate: '2026-12-01' })
+    await openTripView(page, 'shopping')
+
+    const buy = async (name: string) => {
+      await addEntry(page, name)
+      const row = m6(page).getByTestId('m6-row').filter({ hasText: name })
+      await row.locator('ion-checkbox').click()
+      await expect(row).toHaveCount(0)
+    }
+    await buy('Pflaster')
+    await page.clock.setSystemTime(new Date('2026-10-04T17:40:00+02:00'))
+    await buy('Sonnencreme')
+    await page.clock.setSystemTime(new Date('2026-10-05T08:12:00+02:00'))
+    await buy('Milch')
+    await buy('Brot')
+
+    await page.reload()
+    await m6(page).getByTestId('m6-before-fold').click()
+    const days = m6(page).getByTestId('m6-bought-day')
+    await expect(days.getByTestId('m6-bought-day-head')).toHaveText([
+      /^Today\s*Mon, 5 Oct$/,
+      /^Yesterday\s*Sun, 4 Oct$/,
+      'Sat, 3 Oct',
+    ])
+    await expect(days.nth(0).locator('h3')).toHaveText(['Brot', 'Milch'])
+    await expect(days.nth(0).locator('.count')).toHaveText('2')
+    await expect(days.nth(1).locator('h3')).toHaveText(['Sonnencreme'])
+    await expect(days.nth(2).locator('h3')).toHaveText(['Pflaster'])
+    // The day is the heading's: the stamp says the time alone.
+    await expect(days.nth(2).getByTestId('m6-bought-stamp')).toHaveText('bought · 15:20')
   })
 
   /**
@@ -783,7 +832,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
     // FR-30.4: the purchase keeps its time although the row is a packing row
     // again — the record lives beside `bought_from`, not in the mode.
-    await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
+    await expect(bought.getByTestId('m6-bought-stamp')).toHaveText(/^bought · \d\d:\d\d$/)
     // Open now, and still saying what it holds rather than what it would do.
     await expect(bar).toHaveAttribute('aria-expanded', 'true')
     await expect(bar).toHaveText('Before the trip · nothing open · 1 bought')

@@ -54,7 +54,8 @@ test.describe('M6 — who bought it, and when (FR-30.4) @single @m6 @shopping', 
     const stamps = m6(fresh).getByTestId('m6-bought-stamp')
     await expect(stamps).toHaveCount(2)
     for (const stamp of await stamps.all()) {
-      await expect(stamp).toContainText(`bought by ${who} · today`)
+      // FR-30.15: the day is the heading's, the stamp keeps the time.
+      await expect(stamp).toContainText(new RegExp(`bought by ${who} · \\d\\d:\\d\\d$`))
     }
   })
 })

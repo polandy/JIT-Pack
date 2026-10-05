@@ -585,7 +585,9 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const stamp = page.find('[data-testid="m6-bought-stamp"]')
     // The span, not the line: the avatar beside it contributes its initials.
-    expect(stamp.findAll('span').at(-1)?.text()).toMatch(/^bought by Sia · today \S/)
+    // FR-30.15: the day is the heading's, so the stamp says only the time.
+    expect(stamp.findAll('span').at(-1)?.text()).toMatch(/^bought by Sia · \d\d:\d\d$/)
+    expect(page.find('[data-testid="m6-bought-day-head"]').text()).toMatch(/^Today\b/)
     expect(stamp.find('[data-testid="user-avatar"]').exists()).toBe(true)
   })
 
@@ -603,7 +605,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     const row = page.find('[data-testid="m6-bought-row"]')
     expect(row.find('[data-testid="m6-bought-note"]').text()).toBe(t('shopping.wentToPacking'))
     expect(row.findAll('[data-testid="m6-bought-stamp"] span').at(-1)?.text()).toMatch(
-      /^bought by Andy · today /,
+      /^bought by Andy · \d\d:\d\d$/,
     )
   })
 
@@ -614,7 +616,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
 
     await page.find('[data-testid="m6-before-fold"]').trigger('click')
     const stamp = page.find('[data-testid="m6-bought-stamp"]')
-    expect(stamp.text()).toMatch(/^bought · today \S/)
+    expect(stamp.text()).toMatch(/^bought · \d\d:\d\d$/)
     expect(stamp.find('[data-testid="user-avatar"]').exists()).toBe(false)
   })
 
@@ -876,15 +878,17 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     expect(supermarkt.findAll('h3').map((h) => h.text())).toEqual(['Brot', 'Pasta'])
   })
 
-  it('does not group what is bought: the reveal stays flat and names the tag in the row', async () => {
+  it('does not group what is bought by tag: the reveal files by day and names the tag in the row', async () => {
     seedEntry('e1', { name: 'Brot', tag: 'Supermarkt', bought: 1 })
     seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke', bought: 1 })
     const page = mountPage()
     expect(headings(page)).toEqual([])
 
     await page.find('[data-testid="m6-before-fold"]').trigger('click')
-    expect(page.findAll('ion-item-group')).toHaveLength(0)
-    // By name (Brot, Mückenspray), not by tag: nothing is filed under a heading.
+    // FR-30.15: neither carries a moment, so both share the one undated day.
+    expect(page.findAll('[data-testid="m6-bought-day-head"]').map((h) => h.text())).toEqual([
+      t('shopping.boughtUndated'),
+    ])
     expect(page.findAll('[data-testid="m6-bought-tag"]').map((p) => p.text())).toEqual([
       'Supermarkt',
       'Apotheke',

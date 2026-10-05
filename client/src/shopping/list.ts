@@ -355,3 +355,59 @@ export function openCount(tripId: string, sources: readonly ShoppingSource[]): n
     0,
   )
 }
+
+/** The key of the group that holds purchases with no readable moment (FR-30.15). */
+export const UNDATED_BOUGHT_DAY = 'undated'
+
+/** One day of a list's *gekauft* fold and what was bought on it (FR-30.15). */
+export interface BoughtDay {
+  /** The local calendar day as `YYYY-MM-DD`, or {@link UNDATED_BOUGHT_DAY}. */
+  key: string
+  /** Midnight of that day in local time; null for the undated group. */
+  day: Date | null
+  /** Whether the day is near enough to name rather than date. */
+  relative: 'today' | 'yesterday' | null
+  lines: ShoppingLine[]
+}
+
+function localDayKey(at: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
+}
+
+/**
+ * FR-30.15: a list's bought lines filed under the local calendar day they
+ * were bought on (FR-30.4's `boughtAt`) — the latest day first and, within a
+ * day, the latest purchase first. A purchase with no readable moment goes
+ * to one undated group at the end, in the order it came.
+ */
+export function boughtByDay(lines: readonly ShoppingLine[], now: Date): BoughtDay[] {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+  const dated: { line: ShoppingLine; at: Date }[] = []
+  const undated: ShoppingLine[] = []
+  for (const line of lines) {
+    const at = line.boughtAt ? new Date(line.boughtAt) : null
+    if (at && !Number.isNaN(at.getTime())) dated.push({ line, at })
+    else undated.push(line)
+  }
+  dated.sort((a, b) => b.at.getTime() - a.at.getTime())
+
+  const days: BoughtDay[] = []
+  for (const { line, at } of dated) {
+    const key = localDayKey(at)
+    let group = days.at(-1)
+    if (group?.key !== key) {
+      const day = new Date(at.getFullYear(), at.getMonth(), at.getDate())
+      const relative =
+        key === localDayKey(today) ? 'today' : key === localDayKey(yesterday) ? 'yesterday' : null
+      group = { key, day, relative, lines: [] }
+      days.push(group)
+    }
+    group.lines.push(line)
+  }
+  if (undated.length > 0) {
+    days.push({ key: UNDATED_BOUGHT_DAY, day: null, relative: null, lines: undated })
+  }
+  return days
+}
