@@ -15,7 +15,7 @@ import { createTripLifecycleActions } from '../actions/tripLifecycle'
 import { createCommentActions } from '../actions/comments'
 import { createPackingActions } from '../actions/packing'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
-import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
+import { changesOf, makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 
 /** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
@@ -331,6 +331,35 @@ describe('deleting — FR-31.1, FR-31.5', () => {
 
     expect(ctx.tripStore.getExcursionTravelers(TRIP_ID)).toEqual([])
     expect(lines().some((l) => l.assigned_traveler_id === 'tr-sia')).toBe(false)
+  })
+
+  it('takes a traveller off a feature module’s rows too, in the same write (FR-29.15)', () => {
+    seedTrip()
+    ctx.features = [
+      {
+        tables: new Set([TABLE.dayEntryTravelers]),
+        applyChanges: () => {},
+        tripChildRows: () => [],
+        travelerChildRows: (id) =>
+          id === 'tr-sia' ? [{ table: TABLE.dayEntryTravelers, id: 'det-sia' }] : [],
+        forgetTrip: () => {},
+      },
+    ]
+    const comments = createCommentActions(ctx)
+    const lifecycle = createTripLifecycleActions(ctx, {
+      comments,
+      packing: createPackingActions(ctx),
+      groupRefresh: createGroupRefreshActions(ctx, { comments }),
+    })
+
+    lifecycle.removeTraveler(TRIP_ID, 'tr-sia')
+
+    const removal = queued
+      .flatMap((q) => q.muts)
+      .find((m) => m.mutation.table === TABLE.travelers && m.mutation.op === 'delete')!
+    expect(changesOf(removal)).toContainEqual(
+      expect.objectContaining({ table: TABLE.dayEntryTravelers, id: 'det-sia', deleted: true }),
+    )
   })
 })
 

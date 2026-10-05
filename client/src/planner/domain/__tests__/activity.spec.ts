@@ -47,12 +47,18 @@ describe('the planner reads its own rows in the activity log (FR-32.2)', () => {
     expect(lines.map((l) => l.area)).toEqual(['ideas', 'ideas', 'ideas', 'ideas'])
   })
 
-  it('files an entry of the day plan under the day plan (FR-29.15)', () => {
+  it('files an entry of the day plan, and whom it is for, under the day plan (FR-29.15)', () => {
     const lines = readActivity(
-      [entry(TABLE.dayEntries, 'insert', { title: [null, 'Tisch reserviert'] })],
+      [
+        entry(TABLE.dayEntries, 'insert', { title: [null, 'Tisch reserviert'] }),
+        entry(TABLE.dayEntryTravelers, 'insert', { traveler_id: [null, 'tr-sia'] }),
+      ],
       new Set(),
       { readers: plannerActivityReaders },
     )
-    expect(lines.map((l) => [l.area, l.kind])).toEqual([['dayplan', 'added']])
+    expect(lines.map((l) => [l.area, l.kind])).toEqual([
+      ['dayplan', 'added'],
+      ['dayplan', 'added'],
+    ])
   })
 })
