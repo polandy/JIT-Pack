@@ -109,7 +109,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   next entry has no tag; the same sheet, opened from an entry's name, is prefilled and renames it and files it under a
   new tag, which A–Z puts first and which empties the *Eingetragen* section. The check-off's bounding box is right of
   the name's — the positive signal for „at the end", which a checkbox left at the start would fail. Buying a tagged
-  entry takes it out of its group, the reveal is flat and names the tag in the row, and the tags survive a reload.
+  entry takes it out of its group, the reveal files it under its day rather than its tag (FR-30.15) and names the tag in
+  the row, and the tags survive a reload.
   The entries stay on *Vor der Reise*, *Probe* is removed through its sheet, and the fold is that list's (FR-30.11).
 * **E2E-M6-32** `local` (FR-30.9) — **implemented** (`shopping/shopping.spec.ts`): several own
   entries, already tagged or not, are retagged in one act. A long press (`contextmenu`, its deterministic seam) on an
@@ -169,6 +170,10 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   bought; its bought row's *＋ Nochmal* puts a new *Milch* under *Laden* while the purchase stays in the fold. After a
   reload both stand, and the bought row reads *On the list* with no pill. The new one bought too, a tap on the pill and
   the toast's undo leave nothing open and both purchases in the fold.
+* **E2E-M6-42** `local` (FR-30.15) — **implemented** (`shopping/shopping.spec.ts`): with the browser's clock moved
+  from Saturday to Monday between purchases, four entries are bought on three days. After a reload the fold's
+  headings read *Today · Mon, 5 Oct*, *Yesterday · Sun, 4 Oct* and *Sat, 3 Oct* in that order, Monday's two rows the
+  later first with the count 2, and Saturday's stamp the time alone (*bought · 15:20*).
 * **E2E-M1-25** `local` (FR-5.10 with FR-7.10 on M1) — **implemented** (`close-packing.spec.ts`): a
   trip is packed; while its packing is open the hero's date line names the phase *Packen*. Once the packing is
   finished the hero carries **no packing figure**, **no** *Packen abgeschlossen* line, and the phase reads *Vor Ort*.

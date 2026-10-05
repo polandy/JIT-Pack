@@ -43,7 +43,8 @@ removed on that row.
   the packing list's own positions (under **Packliste**), then an excursion's under its name and the
   [meal plan's](meal-plan.md) ingredients under **Essensplan**, then your entries under their tags, then the untagged
   ones under **Eingetragen**. Tick a line at its right edge; what you bought folds away under one **N gekauft** line at the
-  end of each list, where you can untick it again.
+  end of each list, where you can untick it again. Opened, it sorts what was bought by day — **Heute**, **Gestern**,
+  then the date — the latest first, each line saying who bought it and at what time.
 - Bought it and need it again — milk, bread? Tap **＋ Nochmal** on its line under **gekauft**: it is back on the list
   with its tag, and the purchase stays where it is. While it stands open again the line says **Auf der Liste**.
 

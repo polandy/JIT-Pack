@@ -28,6 +28,8 @@ const props = withDefaults(
   defineProps<{
     /** The heading. */
     title: string
+    /** Quieter words after the heading, e.g. the date under *Heute*. */
+    note?: string
     /** The name a drop here is reported under; absent means not a target. */
     dropTarget?: string
     /** What the drag's chip calls this place (ADR-094); the heading where absent. */
@@ -46,6 +48,7 @@ const props = withDefaults(
     jumpTestid?: string
   }>(),
   {
+    note: undefined,
     dropTarget: undefined,
     dropLabel: undefined,
     droppable: true,
@@ -88,6 +91,7 @@ function jump() {
       <IonLabel>
         <span class="head" :data-testid="headTestid">
           <span v-if="$slots.mark" class="mark"><slot name="mark" /></span>{{ title }}
+          <span v-if="note" class="note">{{ note }}</span>
         </span>
       </IonLabel>
       <span v-if="count !== undefined" slot="end" class="count jp-num">{{ count }}</span>
@@ -122,6 +126,13 @@ function jump() {
 ion-item-divider {
   top: var(--list-group-top, 0px);
   z-index: 1;
+}
+
+.note {
+  margin-inline-start: 8px;
+  color: var(--ion-color-medium);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-regular);
 }
 
 .count {

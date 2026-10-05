@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import {
+  boughtByDay,
   buildSections,
   canDrop,
   dropTag,
@@ -479,5 +480,87 @@ describe('a meal’s ingredients on the list (FR-33.3)', () => {
       TODAY,
     )
     expect(pressingFirst.map((s) => s.key)).toEqual(['own', 'source:Meal plan'])
+  })
+})
+
+describe('boughtByDay (FR-30.15)', () => {
+  const NOW = new Date(2026, 9, 5, 15, 10)
+  const at = (day: number, hour: number, minute: number) =>
+    new Date(2026, 9, day, hour, minute).toISOString()
+  function bought(name: string, boughtAt: string | null): ShoppingLine {
+    return { ...line(name), boughtAt }
+  }
+  const names = (days: ReturnType<typeof boughtByDay>) =>
+    days.map((d) => [d.key, d.lines.map((l) => l.name)])
+
+  it('files each purchase under the calendar day it was bought, the latest day first', () => {
+    const days = boughtByDay(
+      [
+        bought('Pflaster', at(3, 15, 31)),
+        bought('Milch', at(5, 8, 12)),
+        bought('Sonnencreme', at(4, 17, 40)),
+      ],
+      NOW,
+    )
+    expect(names(days)).toEqual([
+      ['2026-10-05', ['Milch']],
+      ['2026-10-04', ['Sonnencreme']],
+      ['2026-10-03', ['Pflaster']],
+    ])
+  })
+
+  it('puts the latest purchase of a day first', () => {
+    const days = boughtByDay(
+      [
+        bought('Bananen', at(4, 9, 5)),
+        bought('Regenjacke', at(4, 17, 52)),
+        bought('Sonnencreme', at(4, 17, 40)),
+      ],
+      NOW,
+    )
+    expect(names(days)).toEqual([['2026-10-04', ['Regenjacke', 'Sonnencreme', 'Bananen']]])
+  })
+
+  it('counts days between local calendar days, so 23:50 and 00:10 are two days', () => {
+    const days = boughtByDay([bought('Brot', at(5, 0, 10)), bought('Wein', at(4, 23, 50))], NOW)
+    expect(names(days)).toEqual([
+      ['2026-10-05', ['Brot']],
+      ['2026-10-04', ['Wein']],
+    ])
+  })
+
+  it('names today and yesterday, and dates only what lies further back', () => {
+    const days = boughtByDay(
+      [
+        bought('Milch', at(5, 8, 12)),
+        bought('Bananen', at(4, 9, 5)),
+        bought('Pflaster', at(3, 15, 31)),
+      ],
+      NOW,
+    )
+    expect(days.map((d) => d.relative)).toEqual(['today', 'yesterday', null])
+    expect(days.map((d) => d.day?.getDate())).toEqual([5, 4, 3])
+  })
+
+  it('files a purchase without a readable moment under one undated group, last', () => {
+    const days = boughtByDay(
+      [
+        bought('Zahnbürste', null),
+        bought('Milch', at(5, 8, 12)),
+        bought('Kaputt', 'not a date'),
+        { ...line('Ohne Feld') },
+      ],
+      NOW,
+    )
+    expect(names(days)).toEqual([
+      ['2026-10-05', ['Milch']],
+      ['undated', ['Zahnbürste', 'Kaputt', 'Ohne Feld']],
+    ])
+    expect(days[1]?.day).toBeNull()
+    expect(days[1]?.relative).toBeNull()
+  })
+
+  it('is empty when nothing was bought', () => {
+    expect(boughtByDay([], NOW)).toEqual([])
   })
 })

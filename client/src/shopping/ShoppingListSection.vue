@@ -31,12 +31,12 @@ import ListRow from '@/components/global/ListRow.vue'
 import ListSection from '@/components/global/ListSection.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
-import { t } from '@/i18n'
+import { intlLocale, t } from '@/i18n'
 import { boughtStampText, type NameOf } from '@/lib/rowFacts'
 import type { ShoppingLine } from '@/lib/shoppingSources'
 import { ITEM_MODE_BUY_BEFORE, type ShoppingMode } from '@/types/domain'
 
-import type { ListShelf, ShoppingSection } from './list'
+import { boughtByDay, type BoughtDay, type ListShelf, type ShoppingSection } from './list'
 import ShoppingRows from './ShoppingRows.vue'
 
 const props = withDefaults(
@@ -111,9 +111,29 @@ function againOf(line: ShoppingLine): AgainState {
   return props.readonly ? null : (props.again?.(line) ?? null)
 }
 
-/** „gekauft von Andy · heute 14:32" — who bought the line, and when. */
+/** FR-30.15: the fold's purchases under the day each was bought on. */
+const boughtDays = computed(() => boughtByDay(props.bought, new Date()))
+
+/** *Heute*, *Gestern*, then the date — „Sa., 3. Okt.". */
+function dayTitle(day: BoughtDay): string {
+  if (!day.day) return t('shopping.boughtUndated')
+  if (day.relative === 'today') return t('shopping.boughtToday')
+  if (day.relative === 'yesterday') return t('shopping.boughtYesterday')
+  return dayDate(day.day)
+}
+
+/** The date beside *Heute* and *Gestern*; a dated heading already is one. */
+function dayNote(day: BoughtDay): string | undefined {
+  return day.day && day.relative ? dayDate(day.day) : undefined
+}
+
+function dayDate(day: Date): string {
+  return day.toLocaleDateString(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** „gekauft von Andy · 14:32" — who bought the line, and at what time of its day. */
 function boughtStamp(line: ShoppingLine): string | null {
-  return boughtStampText(line.boughtAt, line.boughtBy, props.nameOf)
+  return boughtStampText(line.boughtAt, line.boughtBy, props.nameOf, undefined, { withDay: false })
 }
 </script>
 
@@ -164,64 +184,75 @@ function boughtStamp(line: ShoppingLine): string | null {
         @toggle="showBought = !showBought"
       />
       <IonList v-if="showBought || headless" class="list-groups" data-testid="m6-bought-list">
-        <ListRow
-          v-for="line in bought"
-          :key="line.key"
-          done
-          :checked="true"
-          :tick-disabled="readonly"
-          :tick-label="t('shopping.undoBought', { name: line.name })"
-          data-testid="m6-bought-row"
-          @tick="emit('unbuy', line)"
+        <ListGroup
+          v-for="day in boughtDays"
+          :key="day.key"
+          :title="dayTitle(day)"
+          :note="dayNote(day)"
+          :count="day.lines.length"
+          :data-day="day.key"
+          data-testid="m6-bought-day"
+          head-testid="m6-bought-day-head"
         >
-          <IonLabel
-            :class="{ tappable: !!line.edit && !readonly }"
-            data-testid="m6-bought-label"
-            @click="line.edit && !readonly && emit('open', line)"
+          <ListRow
+            v-for="line in day.lines"
+            :key="line.key"
+            done
+            :checked="true"
+            :tick-disabled="readonly"
+            :tick-label="t('shopping.undoBought', { name: line.name })"
+            data-testid="m6-bought-row"
+            @tick="emit('unbuy', line)"
           >
-            <div class="name-line">
-              <h3 class="row-name">{{ line.name }}</h3>
-              <!-- FR-33.14: a summed line's total, as on the open list. -->
-              <span v-if="line.total" class="total" data-testid="m6-bought-total"
-                >· {{ line.total }}</span
-              >
-            </div>
-          </IonLabel>
-          <template v-if="line.tag || line.boughtNote || boughtStamp(line)" #facts>
-            <!-- FR-30.9: the fold is flat, so the tag is said in the row. -->
-            <span v-if="line.tag" data-testid="m6-bought-tag">{{ line.tag }}</span>
-            <span v-if="line.boughtNote" data-testid="m6-bought-note">{{ line.boughtNote }}</span>
-            <!-- FR-30.4: who bought it, and when. -->
-            <span v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
-              <UserAvatar
-                v-if="line.boughtBy && nameOf(line.boughtBy)"
-                :name="nameOf(line.boughtBy)"
-                :seed="line.boughtBy"
-                :size="18"
-              />
-              <span>{{ boughtStamp(line) }}</span>
-            </span>
-          </template>
-          <!-- FR-30.14: before the tick, in the thumb's reach, and worded —
-               the tick beside it still means *not bought after all*. -->
-          <template v-if="againOf(line)" #end>
-            <button
-              v-if="againOf(line) === 'offer'"
-              type="button"
-              class="again"
-              :aria-label="t('shopping.buyAgainLabel', { name: line.name })"
-              data-testid="m6-bought-again"
-              @click="emit('again', line)"
+            <IonLabel
+              :class="{ tappable: !!line.edit && !readonly }"
+              data-testid="m6-bought-label"
+              @click="line.edit && !readonly && emit('open', line)"
             >
-              <IonIcon :icon="addOutline" aria-hidden="true" />
-              {{ t('shopping.buyAgain') }}
-            </button>
-            <span v-else class="again listed" data-testid="m6-bought-listed">
-              <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
-              {{ t('shopping.onListAgain') }}
-            </span>
-          </template>
-        </ListRow>
+              <div class="name-line">
+                <h3 class="row-name">{{ line.name }}</h3>
+                <!-- FR-33.14: a summed line's total, as on the open list. -->
+                <span v-if="line.total" class="total" data-testid="m6-bought-total"
+                  >· {{ line.total }}</span
+                >
+              </div>
+            </IonLabel>
+            <template v-if="line.tag || line.boughtNote || boughtStamp(line)" #facts>
+              <!-- FR-30.9: the fold is filed by day, not tag, so the tag is said in the row. -->
+              <span v-if="line.tag" data-testid="m6-bought-tag">{{ line.tag }}</span>
+              <span v-if="line.boughtNote" data-testid="m6-bought-note">{{ line.boughtNote }}</span>
+              <!-- FR-30.4: who bought it, and when. -->
+              <span v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
+                <UserAvatar
+                  v-if="line.boughtBy && nameOf(line.boughtBy)"
+                  :name="nameOf(line.boughtBy)"
+                  :seed="line.boughtBy"
+                  :size="18"
+                />
+                <span>{{ boughtStamp(line) }}</span>
+              </span>
+            </template>
+            <!-- FR-30.14: before the tick, in the thumb's reach, and worded —
+               the tick beside it still means *not bought after all*. -->
+            <template v-if="againOf(line)" #end>
+              <button
+                v-if="againOf(line) === 'offer'"
+                type="button"
+                class="again"
+                :aria-label="t('shopping.buyAgainLabel', { name: line.name })"
+                data-testid="m6-bought-again"
+                @click="emit('again', line)"
+              >
+                <IonIcon :icon="addOutline" aria-hidden="true" />
+                {{ t('shopping.buyAgain') }}
+              </button>
+              <span v-else class="again listed" data-testid="m6-bought-listed">
+                <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
+                {{ t('shopping.onListAgain') }}
+              </span>
+            </template>
+          </ListRow>
+        </ListGroup>
       </IonList>
     </template>
   </ListSection>
