@@ -49,10 +49,10 @@
   *Undo* puts it back. The picnic carried off its excursion's day leaves the rucksack (*no longer in the rucksack for
   Gletscher*) and keeps its lunch slot. In the sheet, another day chip moves a meal too: the day it leaves is marked,
   the head reads *→*, and *Save* moves it.
-* **E2E-M31-12** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): on a trip of 21 days with one
+* **E2E-M31-12** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): on a trip of 16 days with one
   meal, the last day is below the fold; the meal held just above the bottom edge — the save's toast still lying over
-  it — scrolls the plan (`data-drag-scroll` reads *down*) until the last day is in view; moved off the edge the list
-  stands *still*, and the meal dropped on the last day stands there.
+  it — scrolls the plan (`data-drag-scroll` reads *down*) to its end, where it stops by itself (*still*) with the last
+  day wholly in view; moved off the edge the list stands *still*, and the meal dropped on the last day stands there.
 * **E2E-M31-13** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): Raclette, a dinner at 19:00,
   lifted by its grip: the chip is wide, and straight down its first field (*keeps*) is lit; slid right over its own day
   until *Lunch* in the chip is lit, the chip ends above the finger and says *· Lunch*. Let go, the row reads *Lunch*
