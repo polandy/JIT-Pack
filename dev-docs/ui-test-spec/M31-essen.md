@@ -42,3 +42,19 @@
   day's a line of its own. A tap opens the butter's three parts with their meals and amounts; its tick buys all three,
   one line with *· 1.5 kg* in the bought fold, each meal showing *1 of 2 ingredients bought*. Cream ticked in one meal
   leaves the summed line with the rest.
+* **E2E-M31-11** `local` (FR-33.15, G-21, ADR-094) — **implemented** (`meals/mealplan.spec.ts`): Raclette lifted by
+  its grip over its own day is carried as a chip saying *stays on …*, and let go there it stays. Lifted again, the free
+  days open into rows of their own; over one the row is framed and the chip, above the finger and clear of the row,
+  says *→* and the day's name. Let go, the meal stands on that day, its old day is a free line again, and the toast's
+  *Undo* puts it back. The picnic carried off its excursion's day leaves the rucksack (*no longer in the rucksack for
+  Gletscher*) and keeps its lunch slot. In the sheet, another day chip moves a meal too: the day it leaves is marked,
+  the head reads *→*, and *Save* moves it.
+* **E2E-M31-12** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): on a trip of 21 days with one
+  meal, the last day is below the fold; the meal held just above the bottom edge — the save's toast still lying over
+  it — scrolls the plan (`data-drag-scroll` reads *down*) until the last day is in view; moved off the edge the list
+  stands *still*, and the meal dropped on the last day stands there.
+* **E2E-M31-13** `local` (FR-33.15, G-21) — **implemented** (`meals/mealplan.spec.ts`): Raclette, a dinner at 19:00,
+  lifted by its grip: the chip is wide, and straight down its first field (*keeps*) is lit; slid right over its own day
+  until *Lunch* in the chip is lit, the chip ends above the finger and says *· Lunch*. Let go, the row reads *Lunch*
+  without *19:00*; the toast's *Undo* (*no time, it was 19:00*) brings back *Dinner* and *19:00*. The picnic put into
+  *Dinner* the same way leaves the rucksack (*no longer in the rucksack for Gletscher*).

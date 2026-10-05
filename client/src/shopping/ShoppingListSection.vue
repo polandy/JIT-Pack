@@ -130,6 +130,11 @@ function boughtStamp(line: ShoppingLine): string | null {
         :key="section.key"
         :title="sectionTitle(section)"
         :drop-target="dropKey(section)"
+        :drop-label="
+          headless
+            ? sectionTitle(section)
+            : `${t(before ? 'shopping.beforeDeparture' : 'shopping.atDestination')} · ${sectionTitle(section)}`
+        "
         :droppable="!readonly"
         :data-testid="`m6-group-${section.carried ? 'carried' : section.packing ? 'packing' : section.own ? 'own' : section.tagged ? `tag-${section.name}` : `source-${section.name}`}`"
       >

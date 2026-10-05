@@ -32,6 +32,7 @@ function deps(today = '2026-10-12') {
     setBought: vi.fn(),
     placeOnShopping: vi.fn(),
     setPacked: vi.fn(),
+    moveMeal: vi.fn(),
     removeMeal: vi.fn(),
   } satisfies MealActions
   const d: MealSourceDeps = {

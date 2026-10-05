@@ -76,7 +76,8 @@
   says which tag has it. A delete is **refused while items carry the tag** and the refusal offers *„Zusammenführen …"*
   in the same alert; merging asks for the target, confirms with the number of items moving, and deletes the source
   once it is empty. **The grip** sits at the row's leading edge (ADR-075), M6's and M25's: it lifts at once, a
-  line in the action colour marks the gap the tag would land in, and the drop moves it there in one act. While a
+  line in the action colour marks the gap the tag would land in, the carried chip names its new place (*„→ Platz
+  3"*, G-21), and the drop moves it there in one act. While a
   search narrows the list the grip is dashed and inert — it moves a tag on the axis, and a move between two rows
   eleven apart on it is an ordering nobody can predict; while picking, the selection box takes its place.
 * **Several tags merged in one act (FR-24.14).** A hold or right-click on a tag row starts a **selection** with that

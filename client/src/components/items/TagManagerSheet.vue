@@ -126,6 +126,14 @@ const sheetBody = ref<HTMLElement | null>(null)
 const lifted = ref<number | null>(null)
 const gap = ref<number | null>(null)
 const drag = useDragToGroup<number>({
+  carry: {
+    title: (index) => props.tags[index]?.name ?? '',
+    target: (from, place) => {
+      const to = reorderTarget(from, place.index)
+      return to === null ? null : t('items.tagsDropAt', { n: to + 1 })
+    },
+    stays: () => t('list.dropStays'),
+  },
   onHover: (place) => (gap.value = place?.index ?? null),
   onDrop: (from, place) => {
     const to = reorderTarget(from, place.index)

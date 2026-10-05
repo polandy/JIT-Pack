@@ -462,7 +462,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    *    arrives only once the write has resolved. Waiting on the animation
    *    instead is what E2E-M4-135 paid for.
    *  - **The group under the pointer says so** while the task is in the air,
-   *    or the drop is made blind.
+   *    or the drop is made blind — and so does the chip above the finger,
+   *    which names it (ADR-094).
    *  - **Nothing moves that the hand did not move** (ADR-060): the list's
    *    scroll position is read before the lift and after it, because a list
    *    that grew a drop target under the finger would have shifted every row
@@ -500,14 +501,21 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.mouse.down()
     await page.mouse.move(g.x + 12, g.y + 12, { steps: 3 })
     await expect(host).toHaveAttribute('data-drag', 'dragging')
-    // The clone travelling under the pointer carries `useDragToGroup`'s own
+    // The chip travelling above the pointer carries `useDragToGroup`'s own
     // shared frame (`composables/dragToGroup.css`) — this screen never drew
     // one of its own before it, so a lost import would silently drop it back
     // to no frame at all rather than change a colour.
-    await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')
+    const chip = page.locator('[data-drag-ghost]')
+    await expect(chip).toHaveCSS('border-style', 'solid')
+    await expect(chip.locator('[data-carry-title]')).toHaveText('Salbe holen')
     await page.mouse.move(t.x + t.width / 2, t.y + 10, { steps: 8 })
-    // It says where it will land before it lands.
+    // It says where it will land before it lands — the group framed, and the
+    // chip naming it above the finger, where the finger does not cover it
+    // (ADR-094).
     await expect(target).toHaveAttribute('data-drop-over', '')
+    await expect(chip.locator('[data-carry-where]')).toContainText('→')
+    await expect(chip.locator('[data-carry-where]')).toContainText('Haus')
+    expect((await chip.boundingBox())!.y).toBeLessThan(t.y + 10)
     await page.mouse.up()
 
     // `idle` means the write is real, not that the animation finished.

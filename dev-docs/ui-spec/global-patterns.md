@@ -591,3 +591,36 @@ These patterns apply to every screen and are specified once.
     measured on a loaded WebKit at 0.6–4.6 s. A calendar mounted into a laid-out sheet is ready on the fallback's own
     clock. The sheet keeps its height across the swap, because the second calendar is the size of the first (G-2: an
     auto-height sheet is measured once at presentation).
+* **G-21 (Dragging a Row — ADR-094):** Wherever a row is moved by its **grip** (`DragGrip.vue`; M6's lines, M25's
+  tasks, M9's tag manager, M31's meals), one gesture does it, `useDragToGroup`, and it feels the same everywhere:
+  * **The grip lifts at once**; a hold on the rest of the row selects instead (ADR-075), or does nothing where the
+    screen has no selection (M31).
+  * **The row stays where it was, dimmed** (`data-drag-source`), so nothing moves under the finger (ADR-060).
+  * **What travels is a chip above the fingertip**, not a copy of the row under it (`data-drag-ghost`): the grip's
+    glyph, what is carried (`data-carry-title`) with a quiet word beside it where the screen has one (a meal's slot,
+    `data-carry-tag`), and **where a drop would put it** (`data-carry-where`) — *„→ Do., 15.10."*, *„→ Vor der Reise ·
+    Haus"*, *„→ Platz 3"* in the action ink, or quiet *„bleibt am Mo., 12.10."* / *„bleibt, wo es ist"* while a drop
+    would change nothing. Its bottom edge floats 22 px above the fingertip and its grip sits over the finger; it keeps
+    8 px from either edge of the screen. The finger aims, so the place it aims at is never under the chip, and a place
+    the hand itself covers is still named on the chip. It appears with a short scale-in, none under reduced motion.
+  * **A second choice rides in the chip, never under the finger.** Where a drop can change something besides the
+    place (M31's slot), the chip is as wide as the lifted row (`data-carry-wide`) and carries a row of fields under
+    its head (`data-carry-choices`): first the one that keeps (*„bleibt Abend"*, the leading 34 % of the row, where
+    the grip is and a finger dragged straight down stays), then one per option (*Früh · Mittag · Zw. · Abend*), the
+    current one outlined. Each field stands over its own column of the list, so the field lit (`data-on`) is the one
+    directly above the finger: up and down chooses the place, how far right the option. The chip's line says both,
+    *„→ Do., 15.10. · Mittag"*. Elsewhere the chip stays compact.
+  * **The list scrolls under a finger held at its edge**: within 64 px of the scroller's top or bottom it scrolls that
+    way, slowly as the finger enters the zone and faster deeper in (by the square of the depth, a quarter of the top
+    speed half-way in), at most 360 px a second — measured in time, not frames, so a 120 Hz phone scrolls no faster
+    than a 60 Hz one — and stops when the finger leaves the zone or the list its end, so a place below the fold is
+    reached without letting go and the rows going by can still be read. The scroller is the screen's
+    Ionic content, or the nearest scrolling ancestor. The pointer is held from the lift, so a toast lying over the
+    bottom edge never takes the finger's moves. `data-drag-scroll` on the page reads `up`, `down` or `still`.
+  * **The place under the finger is framed** in the action colour with its tint and says *hier ablegen*; a place that
+    would refuse the row dims for as long as it is in the air (`data-drop-refused`); a place where a drop would change
+    nothing is not framed at all, and a drop there writes nothing.
+  * **Letting go writes at once** and raises the screen's toast with **Rückgängig**. `data-drag` on the page reads
+    `idle`, `lifting`, `dragging` or `settling`, and returns to `idle` only once the write has landed.
+  * The chip's frame, the dimmed row and M6's insert line are drawn once, in `composables/dragToGroup.css`; a place's
+    name comes from its own `data-drop-label` (a heading's title by default, `ListGroup.vue`).

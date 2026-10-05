@@ -208,4 +208,6 @@ export const sharedDe: Record<keyof typeof sharedEn, string> = {
   'selection.all': 'Alle {n}',
   'selection.start': 'Auswählen',
   'list.dropHere': 'hier ablegen',
+  'list.dropTo': '→ {place}',
+  'list.dropStays': 'bleibt, wo es ist',
 }

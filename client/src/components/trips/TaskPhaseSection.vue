@@ -100,6 +100,11 @@ function groupName(group: TaskGroup): string {
         :key="group.key"
         :title="groupName(group)"
         :drop-target="dropKey(group)"
+        :drop-label="
+          headless
+            ? groupName(group)
+            : `${t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')} · ${groupName(group)}`
+        "
         :droppable="!readonly"
         :data-testid="`m25-group-${group.key}`"
       >
