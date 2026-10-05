@@ -613,8 +613,10 @@ These patterns apply to every screen and are specified once.
   * **The list scrolls under a finger held at its edge**: within 64 px of the scroller's top or bottom it scrolls that
     way, slowly as the finger enters the zone and faster deeper in (by the square of the depth, a quarter of the top
     speed half-way in), at most 360 px a second — measured in time, not frames, so a 120 Hz phone scrolls no faster
-    than a 60 Hz one — and stops when the finger leaves the zone or the list its end, so a place below the fold is
-    reached without letting go and the rows going by can still be read. The scroller is the screen's
+    than a 60 Hz one and a busy one painting as few as four frames a second no slower, while a page that hung for
+    seconds moves on by a short step (at most a quarter of a second's worth), not by the whole stall — and stops when
+    the finger leaves the zone or the list its end (at once where it already stands there), so a place below the fold
+    is reached without letting go and the rows going by can still be read. The scroller is the screen's
     Ionic content, or the nearest scrolling ancestor. The pointer is held from the lift, so a toast lying over the
     bottom edge never takes the finger's moves. `data-drag-scroll` on the page reads `up`, `down` or `still`.
   * **The place under the finger is framed** in the action colour with its tint and says *hier ablegen*; a place that

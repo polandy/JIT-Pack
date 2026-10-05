@@ -540,12 +540,15 @@ test.describe('M31 meal plan @local @meals', () => {
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
     await expect(host).toHaveAttribute('data-drag', 'dragging')
+    // The first day's grip may lie in the top edge zone, where the list
+    // would creep up by a pixel or two: held mid-screen it stands still.
+    const view = page.viewportSize()!
+    await page.mouse.move(g.x + g.width / 2, view.height / 2, { steps: 4 })
     await expect(host).toHaveAttribute('data-drag-scroll', 'still')
     const last = host.getByTestId(`m31-plan-${day(45)}`)
     await expect(last).not.toBeInViewport()
 
     // Held just above the bottom of the plan, the list scrolls by itself.
-    const view = page.viewportSize()!
     await page.mouse.move(g.x + g.width / 2, view.height - 4, { steps: 8 })
     await expect(host).toHaveAttribute('data-drag-scroll', 'down')
     // Held there until the list cannot go further and stops by itself: the
