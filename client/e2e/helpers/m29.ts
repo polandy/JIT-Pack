@@ -95,7 +95,19 @@ export async function wayByHand(
   await sheet.getByTestId('day-entry-hand-arr').locator('input').fill(way.arr)
   if (way.line) await fillIonic(sheet.getByTestId('day-entry-hand-line'), way.line)
   await sheet.getByTestId('connection-take').click()
+  await connectionTaken(sheet)
+}
+
+/**
+ * A connection taken, standing on the entry's form. The card is in the page,
+ * its words and all, a frame or two before it opens and pushes what is below
+ * it down — still for long enough to read as stable, so a press aimed at the
+ * save button then can come up on the card and be lost. The sheet's own
+ * signal says when it stands.
+ */
+export async function connectionTaken(sheet: Locator): Promise<void> {
   await expect(sheet.getByTestId('day-entry-connection')).toBeVisible()
+  await expect(sheet.getByTestId('day-entry-body')).toHaveAttribute('data-settled', 'true')
 }
 
 /**

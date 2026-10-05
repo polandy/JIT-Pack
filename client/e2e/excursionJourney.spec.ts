@@ -6,6 +6,7 @@ import { addExcursionTrack, createExcursion, openExcursions } from './helpers/m2
 import { gpxFile, stubTiles } from './helpers/m28'
 import {
   chooseDay,
+  connectionTaken,
   dayFromToday,
   openDayPlan,
   timelineLines,
@@ -250,6 +251,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
 
     await sheet.getByTestId('timetable-result-0').click()
     await expect(sheet.getByTestId('day-entry-connection')).toContainText('Spiez → Kandersteg')
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await writesLanded(page)
@@ -267,6 +269,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
       '6 h 24 to spare',
     )
     await sheet.getByTestId('timetable-result-1').click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await writesLanded(page)
@@ -313,6 +316,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(sheet.getByTestId('timetable-near-start')).toHaveText('nearest stop to the start')
     await typeStop(sheet, 'from', 'Spiez')
     await sheet.getByTestId('timetable-result-0').click()
+    await connectionTaken(sheet)
 
     await expect(sheet.getByTestId('day-entry-connection')).toContainText('08:06 → 08:34')
     await expect(sheet.getByTestId('day-entry-name')).toHaveCount(0)
@@ -364,6 +368,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     const sheet = page.getByTestId('day-entry')
     await typeStop(sheet, 'from', 'Spiez')
     await sheet.getByTestId('timetable-result-0').click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await writesLanded(page)
@@ -385,6 +390,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(sheet.getByTestId('day-entry-hand-line').locator('input')).toHaveValue('RE 127')
     await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('09:41')
     await sheet.getByTestId('connection-take').click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
     await writesLanded(page)

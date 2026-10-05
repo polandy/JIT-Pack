@@ -35,6 +35,7 @@ import { t } from '@/i18n'
 import { canReadClipboard, readClipboardText } from '@/lib/clipboard'
 import { useTimetableOffered } from '@/lib/timetable'
 import { shortDueDay } from '@/lib/taskDueText'
+import { useTransitionSettled } from '@/lib/transitionSettled'
 import type { ConnectionLeg, DayEntry, Idea, Traveler } from '@/types/domain'
 import type { ConnectionFields, DayEntryFields } from './actions'
 import ConnectionCard from './ConnectionCard.vue'
@@ -119,6 +120,18 @@ watch(
   },
   { flush: 'pre' },
 )
+
+/**
+ * The connection opening into the form or closing out of it moves what
+ * stands below it; the sheet says when it stands (`data-settled`). Whatever
+ * was still moving goes with the step or the sheet that held it.
+ */
+const {
+  settled: connectionSettled,
+  hooks: connectionMotion,
+  reset: connectionStands,
+} = useTransitionSettled()
+watch(step, connectionStands)
 
 const title = ref('')
 const note = ref('')
@@ -320,6 +333,7 @@ watch(
     if (!open) return
     const entry = props.entry
     keptHeight.value = 0
+    connectionStands()
     findShown.value = false
     title.value = entry?.title ?? ''
     note.value = entry?.note ?? ''
@@ -397,6 +411,8 @@ function save() {
       v-if="open"
       ref="sheetBox"
       class="sheet"
+      data-testid="day-entry-body"
+      :data-settled="connectionSettled ? 'true' : 'false'"
       :style="keptHeight ? { minHeight: `${keptHeight}px` } : undefined"
     >
       <template v-if="step === STEP_FORM">
@@ -490,7 +506,7 @@ function save() {
           </div>
         </template>
 
-        <Transition name="expand" mode="out-in">
+        <Transition name="expand" mode="out-in" v-bind="connectionMotion">
           <ConnectionCard
             v-if="connection"
             class="connection"
