@@ -589,17 +589,33 @@ describe('edgeSpeed — how fast the edge scrolls', () => {
 })
 
 describe('useDragToGroup — the list scrolls under a finger at its edge', () => {
-  let frames: FrameRequestCallback[]
+  /** The frames asked for and not yet run, by the id handed out; a cancelled one is gone. */
+  let frames: Map<number, FrameRequestCallback>
+  let lastFrameId = 0
   let scroller: HTMLElement
 
+  /** Content of `content` pixels in a box of `height`: scrollTop stops at either end, as a browser's does. */
+  function scrollable(el: HTMLElement, height = 400, content = 2000) {
+    box(el, 0, height)
+    let top = 0
+    Object.defineProperty(el, 'clientHeight', { value: height })
+    Object.defineProperty(el, 'scrollHeight', { value: content })
+    Object.defineProperty(el, 'scrollTop', {
+      get: () => top,
+      set: (to: number) => (top = Math.max(0, Math.min(content - height, to))),
+    })
+  }
+
   beforeEach(() => {
-    frames = []
-    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb))
-    vi.stubGlobal('cancelAnimationFrame', () => (frames = []))
+    frames = new Map()
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      frames.set(++lastFrameId, cb)
+      return lastFrameId
+    })
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id))
     // An Ionic content: the scroller is handed out by getScrollElement.
     scroller = document.createElement('div')
-    box(scroller, 0, 400)
-    Object.defineProperty(scroller, 'scrollTop', { value: 0, writable: true })
+    scrollable(scroller)
     ;(host as HTMLElement & { getScrollElement?: () => Promise<HTMLElement> }).getScrollElement =
       () => Promise.resolve(scroller)
   })
@@ -608,13 +624,21 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
     vi.unstubAllGlobals()
   })
 
-  /** Runs the frames asked for so far, as the browser would on its next paint. */
+  /**
+   * Runs the frames asked for so far, as the browser would on its next paint:
+   * one asked for during the paint waits for the next, and one cancelled
+   * before its turn does not run.
+   */
   let clock = 0
   function paint(frameMs = 1000 / 60) {
     clock += frameMs
-    const now = frames
-    frames = []
-    now.forEach((cb) => cb(clock))
+    const due = [...frames.keys()]
+    for (const id of due) {
+      const cb = frames.get(id)
+      if (!cb) continue
+      frames.delete(id)
+      cb(clock)
+    }
   }
 
   async function lifted() {
@@ -653,6 +677,68 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
     const at120 = scroller.scrollTop - start - at60
     expect(at60).toBeGreaterThan(EDGE_SCROLL_MAX_PX_PER_S * 0.9)
     expect(Math.abs(at120 - at60)).toBeLessThanOrEqual(2)
+  })
+
+  /*
+   * Every frame scrolls the list and reads the place under the finger again;
+   * that read must not ask for a frame of its own beside the one the loop
+   * asks for, or each frame that moves the list leaves one more loop running.
+   */
+  it('asks for one frame at a time however long the list scrolls', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 395))
+    for (let n = 0; n < 10; n++) paint()
+    expect(scroller.scrollTop).toBeGreaterThan(0)
+    expect(frames.size).toBe(1)
+  })
+
+  /*
+   * A slow phone, or a busy one, paints a few frames a second: the list still
+   * scrolls as far in a second, in bigger steps, rather than crawling.
+   */
+  it('keeps its pace when the frames come slowly', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 420))
+    paint()
+    const start = scroller.scrollTop
+    for (let n = 0; n < 3; n++) paint(1000 / 3)
+    expect(scroller.scrollTop - start).toBeGreaterThan(EDGE_SCROLL_MAX_PX_PER_S * 0.9)
+  })
+
+  it('does not jump the list when a tab hidden mid-drag comes back', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 420))
+    paint()
+    const start = scroller.scrollTop
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    visibility.mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    paint(60_000)
+    expect(scroller.scrollTop - start).toBeLessThanOrEqual(EDGE_SCROLL_MAX_PX_PER_S / 60 + 1)
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('down')
+  })
+
+  /*
+   * Held just inside the edge the list moves a fraction of a pixel a frame;
+   * where it cannot move that way at all it says so at once, not after the
+   * fractions have added up to a pixel it finds it cannot take.
+   */
+  it('stands still at once where the list is already at its end', async () => {
+    scroller.scrollTop = 2000
+    const drag = await lifted()
+    drag.move(at(10, 400 - EDGE_SCROLL_ZONE_PX + 2))
+    paint()
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('still')
+    expect(frames.size).toBe(0)
+  })
+
+  it('stands still at once where the list is already at its top', async () => {
+    const drag = await lifted()
+    drag.move(at(10, EDGE_SCROLL_ZONE_PX - 2))
+    paint()
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('still')
+    expect(frames.size).toBe(0)
   })
 
   it('scrolls up near the top', async () => {
@@ -704,8 +790,7 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
     delete (host as HTMLElement & { getScrollElement?: unknown }).getScrollElement
     const outer = document.createElement('div')
     outer.style.overflowY = 'auto'
-    box(outer, 0, 400)
-    Object.defineProperty(outer, 'scrollTop', { value: 0, writable: true })
+    scrollable(outer)
     host.parentElement!.insertBefore(outer, host)
     outer.appendChild(host)
     const drag = await lifted()

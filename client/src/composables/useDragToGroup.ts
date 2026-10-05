@@ -88,10 +88,12 @@ export const EDGE_SCROLL_ZONE_PX = 64
  * faster than a 60 Hz one. Slow enough to read the days going by.
  */
 export const EDGE_SCROLL_MAX_PX_PER_S = 360
-/** The time a frame is taken to last where there is no frame before it to measure from. */
+/**
+ * The time a frame is taken to last where there is no frame before it to
+ * measure from — the first one, and the first after the tab was hidden, so a
+ * paused tab does not jump the list on its return.
+ */
 const FIRST_FRAME_MS = 1000 / 60
-/** The longest step counted between two frames: a paused tab must not jump the list on its return. */
-const LONGEST_FRAME_MS = 50
 
 /**
  * How fast the list scrolls under a finger at `y` (G-21), in pixels a second:
@@ -370,15 +372,25 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
    * asked for while it stays there. The place under the finger is read again
    * after each step, since the list moved under it; a list that cannot move
    * further ends the frames until the finger moves again.
+   *
+   * `edgeFrame` keeps this frame's id while it runs, so the `track` below
+   * sees a loop running and does not start a second one beside it.
    */
   function edgeScroll(now: number): void {
-    edgeFrame = null
     if (!lifted || !scroller || !pointer) return stopEdgeScroll()
     const box = scroller.getBoundingClientRect()
     const speed = edgeSpeed(pointer.clientY, box.top, box.bottom)
     if (speed === 0) return stopEdgeScroll()
-    const elapsed =
-      lastFrameAt === null ? FIRST_FRAME_MS : Math.min(now - lastFrameAt, LONGEST_FRAME_MS)
+    // Already at its end that way: still now, not once the fractions of a
+    // slow speed add up to a pixel it then cannot take.
+    const room =
+      speed > 0
+        ? scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
+        : scroller.scrollTop
+    if (room <= 0) return stopEdgeScroll()
+    // The time the frame really took, however long: a step counted short on
+    // a device painting a few frames a second would slow the list to a crawl.
+    const elapsed = lastFrameAt === null ? FIRST_FRAME_MS : now - lastFrameAt
     lastFrameAt = now
     // Whole pixels only, the rest carried on: a slow speed is a fraction of a
     // pixel a frame, which a scroller rounding to pixels would lose for ever.
@@ -401,6 +413,11 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
     lastFrameAt = null
     carried = 0
     host?.setAttribute(DRAG_SCROLL_ATTRIBUTE, EDGE_STILL)
+  }
+
+  /** A hidden tab paints nothing: its first frame back is measured afresh. */
+  function forgetLastFrame(): void {
+    lastFrameAt = null
   }
 
   /**
@@ -440,6 +457,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
       from: indexOf(row),
       home: row.closest(`[${DROP_TARGET_ATTRIBUTE}]`)?.getAttribute(DROP_TARGET_ATTRIBUTE) ?? null,
     }
+    document.addEventListener('visibilitychange', forgetLastFrame)
     setState('dragging')
     track(ev)
   }
@@ -673,6 +691,7 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function clear(): void {
     stopEdgeScroll()
+    document.removeEventListener('visibilitychange', forgetLastFrame)
     pointer = null
     lifted?.ghost.remove()
     lifted?.row.removeAttribute('data-drag-source')
