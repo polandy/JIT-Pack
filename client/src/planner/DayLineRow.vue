@@ -70,6 +70,9 @@ const mapOpen = ref(false)
         </span>
         <span class="title">{{ words.title }}</span>
         <span v-if="words.detail" class="detail">{{ words.detail }}</span>
+        <span v-if="words.who" class="who" :data-testid="`m29-who-${line.key}`">{{
+          words.who
+        }}</span>
       </span>
     </button>
     <button
@@ -225,6 +228,12 @@ const mapOpen = ref(false)
 
 .detail {
   color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+/* FR-29.15: whom the line is for — a shade above its detail, so a name reads first. */
+.who {
+  color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
 }
 

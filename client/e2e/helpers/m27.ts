@@ -40,8 +40,8 @@ export async function createExcursion(page: Page, seed: ExcursionSeed): Promise<
   // The first name tapped while everybody goes names just them; each next
   // one joins (FR-31.3).
   for (const person of seed.who ?? []) {
-    await sheet.getByTestId(`m27-who-${person}`).click()
-    await expect(sheet.getByTestId(`m27-who-${person}`)).toHaveAttribute('aria-pressed', 'true')
+    await sheet.getByTestId(`who-m27-${person}`).click()
+    await expect(sheet.getByTestId(`who-m27-${person}`)).toHaveAttribute('aria-pressed', 'true')
   }
   if (seed.days) {
     await setDateRange(page, 'm27-dates', seed.days)

@@ -36,6 +36,7 @@ import type {
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
+  DayEntryTraveler,
   DayEntry,
   ExcursionRole,
   Idea,
@@ -93,6 +94,7 @@ import {
   excursionTravelerRow,
   excursionItemRow,
   dayEntryRow,
+  dayEntryTravelerRow,
   mealRow,
   mealIngredientRow,
   ideaCommentRow,
@@ -611,6 +613,15 @@ function rowToExcursionTraveler(id: string, row: Record<string, unknown>): Excur
   }
 }
 
+function rowToDayEntryTraveler(id: string, row: Record<string, unknown>): DayEntryTraveler {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    day_entry_id: row['day_entry_id'] as string,
+    traveler_id: row['traveler_id'] as string,
+  }
+}
+
 function rowToExcursionItem(id: string, row: Record<string, unknown>): ExcursionItem {
   return {
     id,
@@ -694,6 +705,7 @@ export const TABLE_CODECS = {
   [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
   [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
   [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
+  [TABLE.dayEntryTravelers]: { parse: rowToDayEntryTraveler, encode: dayEntryTravelerRow },
   [TABLE.meals]: { parse: rowToMeal, encode: mealRow },
   [TABLE.mealIngredients]: { parse: rowToMealIngredient, encode: mealIngredientRow },
   [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },

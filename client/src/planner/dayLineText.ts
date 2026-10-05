@@ -18,6 +18,8 @@ export interface DayLineWords {
   title: string
   /** The line under the title, or null for none. */
   detail: string | null
+  /** Whom it is for — *„für Sia, Leonardo"* — or null for everybody (FR-29.15). */
+  who: string | null
 }
 
 export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
@@ -56,6 +58,7 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
                   .filter((part) => !!part)
                   .join(' · ')
               : line.detail,
+    who: line.who ? t('dayPlan.forWhom', { names: line.who.join(', ') }) : null,
   }
 }
 

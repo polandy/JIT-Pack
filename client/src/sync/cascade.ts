@@ -55,7 +55,10 @@ export interface CascadeStores {
    * The feature modules' stores (FR-30.3, ADR-066). A deleted trip takes
    * their rows too, and nothing but this list says which those are.
    */
-  features?: ReadonlyArray<{ tripChildRows(tripId: string): CascadeRow[] }>
+  features?: ReadonlyArray<{
+    tripChildRows(tripId: string): CascadeRow[]
+    travelerChildRows?(travelerId: string): CascadeRow[]
+  }>
 }
 
 /**
@@ -79,8 +82,12 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
       // FR-31.1: an excursion takes its participants and its lines.
       return tripStore.excursionChildRows(id)
     case TABLE.travelers:
-      // FR-31.5: a traveller taken off the trip is off its excursions too.
-      return tripStore.travelerChildRows(id)
+      // FR-31.5/29.15: a traveller taken off the trip is off its excursions
+      // and the day plan's entries too.
+      return [
+        ...features.flatMap((f) => f.travelerChildRows?.(id) ?? []),
+        ...tripStore.travelerChildRows(id),
+      ]
     case TABLE.templates:
       // The master half, plus the trip-partition table a group's delete ends:
       // FR-27.4's source registry lives in the trip store but travels the

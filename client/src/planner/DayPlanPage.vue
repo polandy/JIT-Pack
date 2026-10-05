@@ -26,7 +26,7 @@ import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
-import { DAY_PLAN_SOURCES } from '@/lib/dayPlanSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/lib/toast'
@@ -61,6 +61,9 @@ const plannerStore = usePlannerStore()
 const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const router = useRouter()
 const sources = inject(DAY_PLAN_SOURCES, [])
+const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
+/** FR-29.15: whom an entry may be for, in roster order. */
+const travelers = computed(() => travelersOf(props.tripId))
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
 const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
@@ -96,6 +99,8 @@ const input = computed<DayInput>(() => ({
   ideas: plannerStore.getIdeas(props.tripId),
   entries: plannerStore.getDayEntries(props.tripId),
   lines: sources.flatMap((source) => source.lines(props.tripId)),
+  travelers: travelers.value,
+  entryTravelers: plannerStore.getDayEntryTravelers(props.tripId),
 }))
 
 const counts = computed(() => dayCounts(days.value, input.value))
@@ -164,6 +169,19 @@ function planOnChosen(idea: Idea) {
 const pageLinks = usePageLinks(props.tripId, orchestrator)
 
 /** An entry lands on the day its connection names, and the plan goes there with it. */
+/** FR-29.15: whom the entry being changed is for — null for everybody, as for a new one. */
+const editingWho = computed(() => {
+  const id = editing.value?.entry?.id
+  if (!id) return null
+  const named = plannerStore
+    .getDayEntryTravelers(props.tripId)
+    .filter((row) => row.day_entry_id === id)
+    .map((row) => row.traveler_id)
+  // In roster order and without anyone gone from the trip, as the line names them.
+  const roster = travelers.value.filter((traveler) => named.includes(traveler.id))
+  return roster.length > 0 ? roster.map((traveler) => traveler.id) : null
+})
+
 function onSave(fields: DayEntryFields) {
   const current = editing.value
   editing.value = null
@@ -323,6 +341,8 @@ async function onRemove() {
         :day-text="chosen ? shortDueDay(chosen) : ''"
         :pool="pool"
         :page-links="pageLinks"
+        :travelers="travelers"
+        :traveler-ids="editingWho"
         @close="editing = null"
         @save="onSave"
         @remove="onRemove"

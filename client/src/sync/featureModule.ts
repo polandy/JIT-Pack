@@ -27,6 +27,12 @@ export interface FeatureStore {
   /** The module's rows that go with a deleted trip, leaf-first. */
   tripChildRows(tripId: string): CascadeRow[]
   /**
+   * The module's rows that go with a traveller taken off the trip — the
+   * planner's names on day-plan entries (FR-29.15). Absent for a module that
+   * names no traveller.
+   */
+  travelerChildRows?(travelerId: string): CascadeRow[]
+  /**
    * Drops everything the module holds for a trip. Called when a trip's own
    * tombstone arrives — the only news of the delete another device gets.
    */

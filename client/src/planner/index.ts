@@ -38,6 +38,9 @@ export function dayPlanEmpty(
       ideas: plannerStore.getIdeas(tripId),
       entries: plannerStore.getDayEntries(tripId),
       lines: sources.flatMap((source) => source.lines(tripId)),
+      // Whom a line is for decides nothing about whether the day holds it.
+      travelers: [],
+      entryTravelers: [],
     })
 }
 

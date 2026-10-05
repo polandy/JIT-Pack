@@ -1,4 +1,5 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
+import { fillIonic } from '../helpers/ionic'
 import { createExcursion, openExcursions } from '../helpers/m27'
 import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas, showSegment } from '../helpers/m28'
 import {
@@ -91,6 +92,8 @@ test.describe('M29 day plan @local @planner', () => {
     await timelineLines(page).first().getByRole('button').first().click()
     const sheet = page.getByTestId('day-entry')
     await expect(sheet.getByTestId('day-entry-title')).toHaveText('Edit entry')
+    // FR-29.15: a trip of one asks nobody whom an entry is for (E2E-M29-19 shows the row).
+    await expect(sheet.getByTestId('who-day-entry')).toHaveCount(0)
     await sheet.getByTestId('day-entry-time').locator('input').fill('20:15')
     await sheet.getByTestId('day-entry-save').click()
     await expect(timelineLines(page).first()).toContainText('20:15')
@@ -208,5 +211,61 @@ test.describe('M29 day plan @local @planner', () => {
     await expect(visiblePage(page).getByTestId('m27-excursion-page')).toBeVisible()
     await expect(page.getByTestId('header-title')).toHaveText('Hüttentour')
     await expect(dayPlan(page)).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M29-19: an entry names whom it is for (FR-29.15). *Alle* is chosen
+   * until a person is tapped; the line then says *for Sia*, an entry nobody
+   * narrowed says nothing, and *Alle* again takes the words off. An excursion
+   * narrowed on M27 says its people the same way (FR-31.3).
+   */
+  test('E2E-M29-19: an entry is for some travellers or everybody, and its line says whom', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Engadin Tage',
+      startDate: FIRST,
+      endDate: LAST,
+      travelers: ['Andy', 'Sia', 'Leonardo'],
+    })
+    await openExcursions(page)
+    await createExcursion(page, {
+      name: 'Hüttentour',
+      who: ['Sia'],
+      days: { start: SECOND, end: SECOND },
+    })
+    await openDayPlan(page)
+
+    await dayPlan(page).getByTestId('m29-fab').click()
+    const sheet = page.getByTestId('day-entry')
+    await expect(sheet.getByTestId('who-all-day-entry')).toHaveAttribute('aria-pressed', 'true')
+    await fillIonic(sheet.getByTestId('day-entry-name'), 'Coiffeur')
+    await sheet.getByTestId('day-entry-time').locator('input').fill('10:30')
+    await sheet.getByTestId('who-day-entry-Sia').click()
+    await expect(sheet.getByTestId('who-day-entry-Sia')).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByTestId('who-all-day-entry')).toHaveAttribute('aria-pressed', 'false')
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await addDayEntry(page, { title: 'Frühstück', time: '08:30' })
+
+    const coiffeur = timelineLines(page).filter({ hasText: 'Coiffeur' })
+    const breakfast = timelineLines(page).filter({ hasText: 'Frühstück' })
+    await expect(coiffeur.locator('[data-testid^="m29-who-"]')).toHaveText('for Sia')
+    await expect(breakfast).toBeVisible()
+    await expect(breakfast.locator('[data-testid^="m29-who-"]')).toHaveCount(0)
+    await writesLanded(page)
+
+    await coiffeur.getByRole('button').first().click()
+    await expect(sheet.getByTestId('day-entry-title')).toHaveText('Edit entry')
+    await expect(sheet.getByTestId('who-day-entry-Sia')).toHaveAttribute('aria-pressed', 'true')
+    await sheet.getByTestId('who-all-day-entry').click()
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await expect(coiffeur).toContainText('10:30')
+    await expect(coiffeur.locator('[data-testid^="m29-who-"]')).toHaveCount(0)
+
+    await chooseDay(page, SECOND)
+    const hut = timelineLines(page).filter({ hasText: 'Hüttentour' })
+    await expect(hut.locator('[data-testid^="m29-who-"]')).toHaveText('for Sia')
   })
 })

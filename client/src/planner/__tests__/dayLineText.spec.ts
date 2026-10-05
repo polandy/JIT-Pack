@@ -19,6 +19,7 @@ function line(over: Partial<DayLine>): DayLine {
     span: null,
     done: null,
     progress: null,
+    who: null,
     ...over,
   }
 }
@@ -34,7 +35,18 @@ describe('dayLineWords', () => {
       kind: 'Eintrag',
       title: 'Tisch reserviert',
       detail: '4 Personen',
+      who: null,
     })
+  })
+
+  it('says whom a line is for where it names some, and nothing for everybody (FR-29.15)', () => {
+    setLocale('de')
+    expect(dayLineWords(line({ who: ['Sia', 'Leonardo'] }), nameOf).who).toBe('für Sia, Leonardo')
+    expect(dayLineWords(line({ kind: DAY_LINE.excursion, who: ['Andy'] }), nameOf).who).toBe(
+      'für Andy',
+    )
+    setLocale('en')
+    expect(dayLineWords(line({ who: ['Sia'] }), nameOf).who).toBe('for Sia')
   })
 
   it('titles arrival and departure from the catalogue, not the line', () => {
@@ -170,6 +182,7 @@ describe('a connection in words (FR-29.18)', () => {
       kind: 'Verbindung',
       title: 'Samedan → Bern, Cäcilienstrasse',
       detail: 'an 15:46 · RE 3, IC 3, IC 1, T 6 · 3× umsteigen',
+      who: null,
     })
   })
 

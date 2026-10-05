@@ -2,14 +2,15 @@
  * The day plan's rules (FR-29.14, FR-29.15) — pure, so Local Mode keeps
  * every one and a spec needs no component to reach them.
  *
- * The plan stores one table of its own (`day_entries`) and reads four others:
- * the planned ideas, the packing side's dated lines (excursions, tasks — see
- * `lib/dayPlanSources.ts`) and the trip's dates for arrival and departure.
+ * The plan stores two tables of its own (`day_entries` and whom each is for)
+ * and reads the planned ideas, the packing side's dated lines (excursions,
+ * tasks — see `lib/dayPlanSources.ts`), the trip's travellers and its dates
+ * for arrival and departure.
  * Which day is shown, what stands on it and in which order is derived here.
  */
 import type { DayPlanLine } from '@/lib/dayPlanSources'
 import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/lib/dayPlanSources'
-import type { DayEntry, Idea } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea, Traveler } from '@/types/domain'
 import {
   EXCURSION_ROLE_BACK,
   EXCURSION_ROLE_OUT,
@@ -58,6 +59,8 @@ export interface DayLine {
   origin?: Idea
   /** A connection's line: the excursion it belongs to (FR-29.18). */
   excursion?: DayPlanLine
+  /** Whom it is for, by name in roster order — null for everybody (FR-29.15). */
+  who: string[] | null
 }
 
 /** A source's kind of line as the timeline's. */
@@ -186,6 +189,22 @@ export interface DayInput {
   ideas: readonly Idea[]
   entries: readonly DayEntry[]
   lines: readonly DayPlanLine[]
+  /** The trip's travellers in roster order (FR-29.15). */
+  travelers: readonly Traveler[]
+  /** Whom the entries are for — none of an entry's for everybody (FR-29.15). */
+  entryTravelers: readonly DayEntryTraveler[]
+}
+
+/**
+ * FR-29.15: the names of the travellers among `ids`, in roster order — null
+ * for everybody, which is also what naming nobody still on the trip, or every
+ * traveller, comes to.
+ */
+export function whoOf(ids: readonly string[], travelers: readonly Traveler[]): string[] | null {
+  const named = travelers.filter((traveler) => ids.includes(traveler.id))
+  return named.length === 0 || named.length === travelers.length
+    ? null
+    : named.map((traveler) => traveler.name)
 }
 
 /**
@@ -226,6 +245,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       progress: source.progress,
       source,
       origin,
+      who: whoOf(source.travelerIds ?? [], input.travelers),
     })
   }
 
@@ -241,11 +261,15 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       done: idea.state === IDEA_STATE_DONE,
       progress: null,
       idea,
+      who: null,
     })
   }
 
   for (const entry of input.entries) {
     if (entry.on_date !== day) continue
+    const named = input.entryTravelers
+      .filter((row) => row.day_entry_id === entry.id)
+      .map((row) => row.traveler_id)
     lines.push({
       key: `entry:${entry.id}`,
       // By its legs, never its kind: two devices merged field by field may leave them apart (FR-29.18).
@@ -258,6 +282,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       progress: null,
       entry,
       excursion: entry.excursion_id ? excursionOf.get(entry.excursion_id) : undefined,
+      who: whoOf(named, input.travelers),
     })
   }
 
@@ -333,6 +358,7 @@ function fixed(kind: typeof DAY_LINE.arrival | typeof DAY_LINE.departure, day: s
     span: null,
     done: null,
     progress: null,
+    who: null,
   }
 }
 

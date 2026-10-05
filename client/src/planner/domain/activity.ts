@@ -37,4 +37,5 @@ export const plannerActivityReaders: ActivityReaders = {
   [TABLE.ideaTracks]: ideaRows,
   [TABLE.ideaVotes]: votes,
   [TABLE.dayEntries]: dayPlanRows,
+  [TABLE.dayEntryTravelers]: dayPlanRows,
 }

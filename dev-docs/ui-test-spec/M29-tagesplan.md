@@ -93,3 +93,10 @@
   fields through *Not there?* and the ＋'s one form. Local Mode keeps the search on at start (it has no instance to
   turn it off), so the instance's switch is `TestInstanceConfig_TimetableOnUnlessTurnedOff_FR29_18`'s and
   `lib/__tests__/timetable.spec.ts`'s.
+* **E2E-M29-19** `local` (FR-29.15, FR-31.3) — **implemented** (`planner/dayplan.spec.ts`): on a trip of three, a new
+  entry's *For whom* has *Everybody* chosen; tapping *Sia* names her alone and the line says *for Sia*, while an entry
+  nobody narrowed says nothing. Reopened, the sheet has *Sia* chosen; *Everybody* saved takes the words off. An
+  excursion narrowed to Sia on M27 says *for Sia* on its day. E2E-M29-02's trip of one shows no *For whom* row. The
+  chip rule is `lib/__tests__/whoGoes.spec.ts`'s, whom a line names `domain/__tests__/dayPlan.spec.ts`'s, the rows a
+  save writes and a delete takes `planner/__tests__/sync.spec.ts`'s, and the server's cascade and scope
+  `TestApplyMutation_DayEntryTraveler*`.

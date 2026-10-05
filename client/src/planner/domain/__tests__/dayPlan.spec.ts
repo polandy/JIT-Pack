@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { DayPlanLine } from '@/lib/dayPlanSources'
-import type { DayEntry, Idea, IdeaState } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea, IdeaState, Traveler } from '@/types/domain'
 import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '@/types/domain'
 import {
   DAY_LINE,
@@ -69,7 +69,15 @@ function line(key: string, kind: DayPlanLine['kind'], from: string, to = from): 
 }
 
 function input(over: Partial<DayInput> = {}): DayInput {
-  return { trip: TRIP, ideas: [], entries: [], lines: [], ...over }
+  return {
+    trip: TRIP,
+    ideas: [],
+    entries: [],
+    lines: [],
+    travelers: [],
+    entryTravelers: [],
+    ...over,
+  }
 }
 
 describe('tripDays', () => {
@@ -143,6 +151,69 @@ describe('the pool and the ideas outside the trip (FR-29.14)', () => {
 })
 
 describe('dayLines (FR-29.15)', () => {
+  describe('whom a line is for', () => {
+    const roster: Traveler[] = ['Andy', 'Sia', 'Leonardo'].map((name) => ({
+      id: `tr-${name}`,
+      trip_id: 't1',
+      name,
+      linked_user_id: null,
+    }))
+    const named = (entryId: string, ...names: string[]): DayEntryTraveler[] =>
+      names.map((name) => ({
+        id: `${entryId}-${name}`,
+        trip_id: 't1',
+        day_entry_id: entryId,
+        traveler_id: `tr-${name}`,
+      }))
+    const whom = (over: Partial<DayInput>) =>
+      dayLines('2026-07-13', input({ travelers: roster, ...over })).map((l) => [l.key, l.who])
+
+    it('names an entry’s people in roster order, and nobody for one that names none', () => {
+      expect(
+        whom({
+          entries: [entry('a', '2026-07-13', '09:00'), entry('b', '2026-07-13', '10:00')],
+          entryTravelers: named('a', 'Leonardo', 'Sia'),
+        }),
+      ).toEqual([
+        ['entry:a', ['Sia', 'Leonardo']],
+        ['entry:b', null],
+      ])
+    })
+
+    it('says nobody where every traveller is named — that is everybody', () => {
+      expect(
+        whom({
+          entries: [entry('a', '2026-07-13', '09:00')],
+          entryTravelers: named('a', 'Andy', 'Sia', 'Leonardo'),
+        }),
+      ).toEqual([['entry:a', null]])
+    })
+
+    it('forgets a name no longer on the trip, and says nobody where none is left', () => {
+      expect(
+        whom({
+          entries: [entry('a', '2026-07-13', '09:00'), entry('b', '2026-07-13', '10:00')],
+          entryTravelers: [
+            ...named('a', 'Sia'),
+            { id: 'x', trip_id: 't1', day_entry_id: 'a', traveler_id: 'tr-gone' },
+            { id: 'y', trip_id: 't1', day_entry_id: 'b', traveler_id: 'tr-gone' },
+          ],
+        }),
+      ).toEqual([
+        ['entry:a', ['Sia']],
+        ['entry:b', null],
+      ])
+    })
+
+    it('names who goes on an excursion narrowed to some (FR-31.3)', () => {
+      expect(
+        whom({
+          lines: [{ ...line('excursion:e', 'excursion', '2026-07-13'), travelerIds: ['tr-Andy'] }],
+        }),
+      ).toEqual([['excursion:e', ['Andy']]])
+    })
+  })
+
   it('puts arrival on the first day and departure on the last', () => {
     expect(dayLines('2026-07-12', input()).map((l) => l.kind)).toEqual([DAY_LINE.arrival])
     expect(dayLines('2026-07-15', input()).map((l) => l.kind)).toEqual([DAY_LINE.departure])

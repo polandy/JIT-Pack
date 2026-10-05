@@ -37,7 +37,8 @@ Under the row, the chosen day lists what is on it — first everything with a ti
   right after the way there, or right before the way back if it has only that.
 - **Idee** — an idea you planned on this day. Tick it once you did it: it moves to **Gemacht** on the board.
 - **Aufgabe** — a task due this day, with whoever does it. Its tick is the same as on the task list.
-- **Eintrag** — an entry of the day plan's own. Tap it to change or delete it.
+- **Eintrag** — an entry of the day plan's own. Tap it to change or delete it. An entry for only some of you says
+  so under it — *für Sia*; an excursion only some go on says who the same way.
 - **Verbindung** — an entry with a train, bus or ferry journey: its title, and under it from where to where, when it
   arrives, which lines and how often you change. Tap **▸** to see each leg, and **In der App öffnen** to open the
   connection in the app it came from — that app knows about delays and platforms. **Karte ›** shows the journey on a
@@ -64,6 +65,11 @@ Reise**.
 
 Tap the round **+** to add something to the chosen day: **Was**, and if you like a time and a note. Above them, the
 shortlisted ideas without a day are offered — tap one to plan it on that day instead.
+
+**Für wen** says whom the entry is for — the hairdresser for one, the kids' club for another. It starts on **Alle**.
+Tap a name to make the entry that person's alone, tap more names to add them, and tap **Alle** to make it everyone's
+again. A trip with a single traveller doesn't ask. Someone who joins the trip later is on every entry left for
+**Alle**; someone who leaves it is taken off the entries that named them.
 
 Tap an entry to change or delete it.
 

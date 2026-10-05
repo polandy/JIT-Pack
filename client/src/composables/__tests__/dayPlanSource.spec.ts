@@ -6,7 +6,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createDayPlanSource, toggleTask } from '../dayPlanSource'
 import type { TripTask } from '@/domain/tripTodos'
-import type { Excursion, ExcursionItem, ItemTodo, TripTodo } from '@/types/domain'
+import type {
+  Excursion,
+  ExcursionItem,
+  ExcursionTraveler,
+  ItemTodo,
+  TripTodo,
+} from '@/types/domain'
 
 function excursion(id: string, startsOn: string | null, endsOn: string | null): Excursion {
   return {
@@ -56,10 +62,20 @@ function task(id: string, due: string | null, state: TripTask['task_state'] = 'o
   }
 }
 
-function source(excursions: Excursion[], items: ExcursionItem[], tasks: TripTask[]) {
+function source(
+  excursions: Excursion[],
+  items: ExcursionItem[],
+  tasks: TripTask[],
+  goers: ExcursionTraveler[] = [],
+) {
   const toggleTask = vi.fn()
   const src = createDayPlanSource(
-    { getExcursions: () => excursions, getExcursionItems: () => items, tasksOf: () => tasks },
+    {
+      getExcursions: () => excursions,
+      getExcursionItems: () => items,
+      getExcursionTravelers: () => goers,
+      tasksOf: () => tasks,
+    },
     { toggleTask },
   )
   return { src, toggleTask }
@@ -81,6 +97,28 @@ describe('the day plan source (FR-29.15)', () => {
         progress: 1 / 3,
         path: '/trips/t/excursions/ex-1',
       },
+    ])
+  })
+
+  it('names who goes on an excursion narrowed to some, and nobody on one everybody goes on (FR-29.15, FR-31.3)', () => {
+    const goer = (id: string, excursionId: string, travelerId: string): ExcursionTraveler => ({
+      id,
+      trip_id: 't',
+      excursion_id: excursionId,
+      traveler_id: travelerId,
+    })
+    const { src } = source(
+      [
+        excursion('ex-1', '2026-07-14', '2026-07-14'),
+        excursion('ex-2', '2026-07-15', '2026-07-15'),
+      ],
+      [],
+      [],
+      [goer('g1', 'ex-1', 'tr-sia'), goer('g2', 'ex-1', 'tr-andy')],
+    )
+    expect(src.lines('t').map((l) => [l.key, l.travelerIds])).toEqual([
+      ['excursion:ex-1', ['tr-sia', 'tr-andy']],
+      ['excursion:ex-2', undefined],
     ])
   })
 
@@ -154,6 +192,7 @@ describe('ticking a task from the day plan (FR-7.6)', () => {
       {
         getExcursions: () => [excursion('ex-1', '2026-07-14', '2026-07-14')],
         getExcursionItems: () => [item('a', 1, 1)],
+        getExcursionTravelers: () => [],
         tasksOf: () => [],
         extraLines: (_trip, ex) =>
           ex === 'ex-1'
