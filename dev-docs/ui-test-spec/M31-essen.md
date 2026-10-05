@@ -58,3 +58,8 @@
   until *Lunch* in the chip is lit, the chip ends above the finger and says *· Lunch*. Let go, the row reads *Lunch*
   without *19:00*; the toast's *Undo* (*no time, it was 19:00*) brings back *Dinner* and *19:00*. The picnic put into
   *Dinner* the same way leaves the rucksack (*no longer in the rucksack for Gletscher*).
+* **E2E-M31-14** `local` (FR-33.15, FR-33.13) — **implemented** (`meals/mealplan.spec.ts`): Bruschetta with Brot (fresh
+  by the built-in list), Rucola (made fresh by hand) and Olivenöl (keeps), all three bought. Dragged one day later, its
+  toast says where it went and asks nothing; undone, then dragged three days later, the toast ends *🌿 Brot, Rucola are
+  already bought – will they last until <weekday>?* without Olivenöl, and its *Undo* puts it back. Moved four days by
+  the sheet's day chip, the save's toast asks the same.

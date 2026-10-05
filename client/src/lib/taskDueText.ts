@@ -15,7 +15,7 @@ import {
   DUE_TODAY,
   type DueState,
 } from '@/lib/dueDay'
-import { formatDate, t } from '@/i18n'
+import { formatDate, intlLocale, t } from '@/i18n'
 
 /** What a line or a sheet shows for a task's date, or null for none. */
 export interface DueLabel {
@@ -29,12 +29,27 @@ export function localDay(iso: string): Date {
   return new Date(year, month - 1, day)
 }
 
+const SHORT_DUE_DAY: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'numeric',
+}
+
 /**
  * „Fr., 17.7." — the day a task is due, short enough for a line: the badge
  * sits beside the task's words and must never be what squeezes them.
  */
 export function shortDueDay(iso: string): string {
-  return formatDate(localDay(iso), { weekday: 'short', day: 'numeric', month: 'numeric' })
+  return formatDate(localDay(iso), SHORT_DUE_DAY)
+}
+
+/**
+ * „Sa." — a day's weekday as {@link shortDueDay} writes it. Read from the
+ * dated form, since ICU writes German's stand-alone weekday without its period.
+ */
+export function shortWeekday(iso: string): string {
+  const parts = new Intl.DateTimeFormat(intlLocale(), SHORT_DUE_DAY).formatToParts(localDay(iso))
+  return parts.find((part) => part.type === 'weekday')?.value ?? ''
 }
 
 /**

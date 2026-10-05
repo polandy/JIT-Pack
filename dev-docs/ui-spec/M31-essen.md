@@ -41,6 +41,11 @@
     Mittag"* with a new slot, *„· ohne Uhrzeit, sie war 19:00"* where a time went, and *„· 🎒 nicht mehr im Rucksack für
     Bernina Express"* (*„· 🎒 jetzt im Rucksack für …"*) where its excursion changed with it. The mockup is the "Mahlzeit
     verschieben" artifact (2026-10-05). (E2E-M31-11, E2E-M31-13)
+    Moved more than a day later with fresh ingredients already bought (FR-33.13), it ends *„· 🌿 Brot ist schon gekauft –
+    reicht es bis Sa.?"*, *„· 🌿 Brot, Rucola sind schon gekauft …"* for two, *„· 🌿 Brot, Rucola + 2 weitere sind schon
+    gekauft …"* for more — the new day as its weekday, last of the notes, and the sheet's **Speichern** toast carries it
+    too; durable or unbought ones are never named. The mockup is the "Frische Zutaten verschoben" artifact (2026-10-05).
+    (E2E-M31-14)
   * **A run of free days** between, before or after the planned ones is **one dashed line** (`m31-gap-<first day>`,
     `data-days`): *„Di., 13.10. · nichts geplant · ＋"*, *„Di. – Do., 15.10. · nichts geplant · ＋"* for several. A tap
     opens it in place into a slim dashed row per day (`m31-plan-<YYYY-MM-DD>`, *„Mi., 14.10. · ＋ planen"*), which

@@ -31,6 +31,9 @@ export const mealsDe: Record<keyof typeof mealsEn, string> = {
   'meals.movedTimeGone': 'ohne Uhrzeit, sie war {time}',
   'meals.movedAlong': '🎒 jetzt im Rucksack für {name}',
   'meals.movedOff': '🎒 nicht mehr im Rucksack für {name}',
+  'meals.movedFresh':
+    '🌿 {names} ist schon gekauft – reicht es bis {day}? | 🌿 {names} sind schon gekauft – reicht es bis {day}?',
+  'meals.movedFreshMore': '{names} + {more} weitere',
   'meals.arrival': '🚗 Anreise',
   'meals.departure': '🚗 Abreise',
   'meals.slot.breakfast': 'Frühstück',

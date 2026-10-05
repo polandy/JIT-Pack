@@ -9,6 +9,7 @@ import {
   earlierDishes,
   excursionFor,
   firstFreeSlot,
+  freshBoughtTooEarly,
   ingredientDue,
   ingredientOnOpenList,
   matchingDishes,
@@ -363,5 +364,44 @@ describe('a meal moved to another day (FR-33.15)', () => {
   it('is not put on an excursion it was not taken on', () => {
     const lunch = meal('m', { on_date: '2026-10-13', slot: 'lunch' })
     expect(movedMeal(lunch, '2026-10-14', excursions).excursion_id).toBeNull()
+  })
+})
+
+describe('a meal moved later while its fresh ingredients are bought (FR-33.15)', () => {
+  const bruschetta = meal('m', { on_date: '2026-10-08' })
+  const fresh = (i: MealIngredient) => i.fresh === true
+  const bread = ingredient('brot', 'm', { name: 'Brot', bought: true, fresh: true, position: 1 })
+  const rocket = ingredient('rucola', 'm', {
+    name: 'Rucola',
+    bought: true,
+    fresh: true,
+    position: 0,
+  })
+
+  it('names the bought fresh ones, in the meal’s order, when it moves more than a day later', () => {
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-10', [bread, rocket], fresh)).toEqual([
+      rocket,
+      bread,
+    ])
+  })
+
+  it('asks nothing when it moves by one day only', () => {
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-09', [bread], fresh)).toEqual([])
+  })
+
+  it('asks nothing when it moves forward, or stays on its day in another slot', () => {
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-06', [bread], fresh)).toEqual([])
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-08', [bread], fresh)).toEqual([])
+  })
+
+  it('leaves out what is not bought yet, and what keeps', () => {
+    const open = ingredient('tomaten', 'm', { name: 'Tomaten', fresh: true })
+    const oil = ingredient('oel', 'm', { name: 'Olivenöl', bought: true, fresh: false })
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-12', [open, oil], fresh)).toEqual([])
+  })
+
+  it('asks freshness through the predicate it is given — the learned and built-in rule live elsewhere', () => {
+    const unset = ingredient('x', 'm', { name: 'Basilikum', bought: true, fresh: null })
+    expect(freshBoughtTooEarly(bruschetta, '2026-10-12', [unset], () => true)).toEqual([unset])
   })
 })

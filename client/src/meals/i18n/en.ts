@@ -34,6 +34,9 @@ export const mealsEn = {
   'meals.movedTimeGone': 'no time, it was {time}',
   'meals.movedAlong': '🎒 now in the rucksack for {name}',
   'meals.movedOff': '🎒 no longer in the rucksack for {name}',
+  'meals.movedFresh':
+    '🌿 {names} is already bought – will it last until {day}? | 🌿 {names} are already bought – will they last until {day}?',
+  'meals.movedFreshMore': '{names} + {more} more',
   'meals.arrival': '🚗 Arrival',
   'meals.departure': '🚗 Departure',
   'meals.slot.breakfast': 'Breakfast',

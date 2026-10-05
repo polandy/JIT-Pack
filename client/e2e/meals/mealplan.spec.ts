@@ -643,6 +643,115 @@ test.describe('M31 meal plan @local @meals', () => {
   })
 
   /**
+   * E2E-M31-14: a meal whose fresh ingredients are already bought, moved more
+   * than a day later, has its toast ask whether they last until then
+   * (FR-33.15, FR-33.13) — naming the bought fresh ones only, never what keeps.
+   * A move by one day asks nothing, the undo still puts it back, and the
+   * sheet's day chips ask the same.
+   */
+  test('E2E-M31-14: a meal moved days later asks whether its bought fresh ingredients last', async ({
+    page,
+  }) => {
+    const day = await days(page, [30, 31, 32, 33, 34])
+    await createTripViaWizard(page, {
+      name: 'Engadin Frisch',
+      startDate: day(30),
+      endDate: day(34),
+      travelers: ['Andy'],
+    })
+    await openMeals(page)
+    await addMeal(page, {
+      day: day(30),
+      slot: 'dinner',
+      title: 'Bruschetta',
+      ingredients: ['Brot', 'Rucola', 'Olivenöl'],
+    })
+    await mealRow(page, day(30), 'Bruschetta').click()
+    const sheet = mealSheet(page)
+    // Bread is fresh by the built-in list; rocket is made fresh by hand; the oil keeps.
+    await expect(sheet.getByTestId('meal-ingredient-fresh-Brot')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await sheet.getByTestId('meal-ingredient-fresh-Rucola').click()
+    await expect(sheet.getByTestId('meal-ingredient-fresh-Rucola')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(sheet.getByTestId('meal-ingredient-fresh-Olivenöl')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    for (const name of ['Brot', 'Rucola', 'Olivenöl']) {
+      await sheet.getByTestId(`meal-ingredient-tick-${name}`).click()
+      await expect(sheet.getByTestId(`meal-ingredient-tick-${name}`)).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+    }
+    await sheet.getByTestId('meal-save').click()
+    await expect(mealRow(page, day(30), 'Bruschetta')).toContainText('all bought')
+    await writesLanded(page)
+
+    /** The weekday the plan's own label for a day starts with — „Sat" here, „Sa." in German. */
+    async function weekdayOf(target: string) {
+      const label = await mealPlan(page)
+        .locator(`[data-drop-label][data-glide="day:${target}"]`)
+        .getAttribute('data-drop-label')
+      return /^\p{L}+\.?/u.exec(label ?? '')![0]
+    }
+    const grip = mealGrip(page, day(30), 'Bruschetta')
+
+    // One day later: the toast says where it went and asks nothing.
+    const nextDay = await liftMealOnto(page, grip, () =>
+      mealPlan(page).getByTestId(`m31-plan-${day(31)}`),
+    )
+    const nextLabel = await mealPlan(page)
+      .getByTestId(`m31-plan-${day(31)}`)
+      .getAttribute('data-drop-label')
+    await nextDay.release()
+    const oneDay = page
+      .locator('ion-toast.pack-toast')
+      .filter({ hasText: `“Bruschetta” is now on ${nextLabel}` })
+    await expect(oneDay).toHaveCount(1)
+    await expect(oneDay).not.toContainText('already bought')
+    await writesLanded(page)
+    await undoFromSnackbar(page, `“Bruschetta” is now on ${nextLabel}`)
+    await expect(mealRow(page, day(30), 'Bruschetta')).toBeVisible()
+    await writesLanded(page)
+
+    // Three days later: the bought fresh ones are named, the oil is not.
+    const later = await liftMealOnto(page, mealGrip(page, day(30), 'Bruschetta'), () =>
+      mealPlan(page).getByTestId(`m31-plan-${day(33)}`),
+    )
+    const saturday = await weekdayOf(day(33))
+    await later.release()
+    const asked = `🌿 Brot, Rucola are already bought – will they last until ${saturday}?`
+    const toast = page.locator('ion-toast.pack-toast').filter({ hasText: asked })
+    await expect(toast).toHaveCount(1)
+    await expect(toast).not.toContainText('Olivenöl')
+    await expect(mealRow(page, day(33), 'Bruschetta')).toBeVisible()
+    await writesLanded(page)
+    // Only a question: the undo puts it back.
+    await undoFromSnackbar(page, asked)
+    await expect(mealRow(page, day(30), 'Bruschetta')).toBeVisible()
+    await writesLanded(page)
+
+    // The sheet's day chips ask the same.
+    await sheetGone(page)
+    await mealRow(page, day(30), 'Bruschetta').click()
+    const again = mealSheet(page)
+    await again.getByTestId(`meal-day-${day(34)}`).click()
+    await again.getByTestId('meal-save').click()
+    await expect(mealRow(page, day(34), 'Bruschetta')).toBeVisible()
+    await expect(
+      page.locator('ion-toast').filter({
+        hasText: `🌿 Brot, Rucola are already bought – will they last until ${await weekdayOf(day(34))}?`,
+      }),
+    ).toHaveCount(1)
+  })
+
+  /**
    * E2E-M31-07: during the trip M1 carries *Eating today* (FR-33.7): today's
    * meals with what is still to buy; a tap opens the meal's sheet over the
    * dashboard, the head leads onto M31.

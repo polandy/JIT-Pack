@@ -56,7 +56,9 @@ import {
   startingDay,
   takesMeal,
 } from './domain/mealPlan'
+import { learnedFreshness } from './domain/ingredients'
 import { glide, GLIDE_ATTRIBUTE, snapshot } from './glide'
+import { freshNote } from './moveNote'
 import { useMealSheet } from './sheet'
 import { mealFacts } from './sources'
 import { useMealStore } from './store'
@@ -240,7 +242,15 @@ async function settleAround(meal: Meal, before: Map<string, number>, anchor: num
   glide(root, before)
 }
 
-/** FR-33.15: the move written, and said in a toast — with the time it dropped — whose undo puts it back. */
+/** FR-33.13: each name's last freshness, asked once a move needs it. */
+function learned() {
+  return learnedFreshness(mealStore.allMeals(), mealStore.allIngredients())
+}
+
+/**
+ * FR-33.15: the move written, and said in a toast — with the time it dropped
+ * and the bought fresh ingredients it may outlast — whose undo puts it back.
+ */
 function move(meal: Meal, day: string, slot: MealSlot) {
   if (day === meal.on_date && slot === meal.slot) return
   const excursions = context?.excursions(props.tripId) ?? []
@@ -258,6 +268,7 @@ function move(meal: Meal, day: string, slot: MealSlot) {
       : leftFor
         ? t('meals.movedOff', { name: leftFor })
         : null,
+    freshNote(meal.on_date, day, ingredientsOf(meal), learned()),
   ].filter((note) => note !== null)
   void presentToast({
     message: [moved, ...notes].join(' · '),

@@ -280,6 +280,25 @@ export function movedMeal(
   }
 }
 
+/** How many days later a meal may move before its bought fresh ingredients are asked after (FR-33.15). */
+export const FRESH_MOVE_SLACK_DAYS = 1
+
+/**
+ * FR-33.15: the fresh ingredients (FR-33.13) already bought for a meal moved
+ * more than {@link FRESH_MOVE_SLACK_DAYS} later, in the meal's order — the
+ * move's toast asks whether they last until the new day. Empty for any other
+ * move. `fresh` is passed in, since `ingredients.ts` builds on this module.
+ */
+export function freshBoughtTooEarly(
+  meal: Pick<Meal, 'on_date'>,
+  day: string,
+  ingredients: readonly MealIngredient[],
+  fresh: (ingredient: MealIngredient) => boolean,
+): MealIngredient[] {
+  if (daysBetween(meal.on_date, day) <= FRESH_MOVE_SLACK_DAYS) return []
+  return inOrder(ingredients.filter((ingredient) => ingredient.bought && fresh(ingredient)))
+}
+
 /** The calendar day before an ISO day, through UTC so no zone moves it. */
 function dayBefore(iso: string): string {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
