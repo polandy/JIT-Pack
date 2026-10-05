@@ -32,7 +32,8 @@ went.
   drag. A task is lifted by its grip, carried into another tag's group and let go. Three clauses, each a way the
   gesture fails on its own: **`data-drag` is the signal** and the case waits for `idle`, which arrives only once the
   write has resolved — waiting on the animation is what E2E-M4-135 paid for; **the group under the pointer says so**
-  while the task is in the air, or the drop is made blind; and **the list's scroll position is read before the lift
+  while the task is in the air, or the drop is made blind — framed, and named on the chip above the finger, which
+  says *→* and the group (G-21, ADR-094); and **the list's scroll position is read before the lift
   and after it**, because a list that grew a drop target under the finger would have shifted every row below it
   (ADR-060). Run in both browsers. Also asserts the travelling clone's border, which comes from
   `composables/dragToGroup.css`, shared with M6's.

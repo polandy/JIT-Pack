@@ -117,6 +117,7 @@ export const inventoryDe: Record<keyof typeof inventoryEn, string> = {
   'items.manageTags': 'Tags verwalten',
   'items.tagsTitle': 'Tags verwalten',
   'items.tagsHint': '{n} Tags · umbenennen, zusammenführen, sortieren',
+  'items.tagsDropAt': 'Platz {n}',
   'items.tagsSearch': 'Tag suchen …',
   'items.tagsEmpty': 'Es gibt noch keinen Tag.',
   'items.tagsNoMatch': 'Kein Tag passt zur Suche.',

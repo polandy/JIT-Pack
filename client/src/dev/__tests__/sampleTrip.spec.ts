@@ -251,4 +251,17 @@ describe('seedSampleTrip (dev)', () => {
     expect(ingredients.some((ingredient) => ingredient.bought)).toBe(true)
     expect(ingredients.some((ingredient) => !ingredient.bought)).toBe(true)
   })
+
+  /*
+   * FR-33.15: a plan longer than a phone's screen, with free days between, so
+   * a meal dragged on M31 has days below the fold to reach — the edge scroll
+   * is tried on the seed, not on a plan typed in by hand.
+   */
+  it('plans meals far enough across the trip that M31 runs past one screen (FR-33.15)', () => {
+    const ahead = new Set(SEED_MEALS.filter((meal) => meal.day >= 0).map((meal) => meal.day))
+    expect(ahead.size).toBeGreaterThanOrEqual(8)
+    expect(Math.max(...ahead)).toBeGreaterThanOrEqual(11)
+    const days = [...ahead].sort((a, b) => a - b)
+    expect(days.some((day, n) => n > 0 && day - days[n - 1]! > 1)).toBe(true)
+  })
 })
