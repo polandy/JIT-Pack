@@ -39,6 +39,11 @@
  * be read off the chip. The words are the screen's (`DragCarry`); the frame
  * is `./dragToGroup.css`'s, the same on every screen.
  *
+ * **The list scrolls under a finger held at its edge** (G-21): near the top or
+ * bottom of the scroller, frame after frame, faster the nearer — so a place
+ * below the fold is reached without letting go. The scroller is the host's
+ * own Ionic content, or its nearest scrolling ancestor.
+ *
  * The drop target is the nearest ancestor of the pointer carrying
  * `data-drop-target`; its value is handed back untouched, and nothing here
  * knows what it names. Where the target's children carry `data-drop-index`,
@@ -57,12 +62,68 @@ export const CARRY_LIFT_PX = 22
 export const CARRY_GRIP_PX = 24
 /** The least room the chip keeps to either edge of the screen. */
 export const CARRY_EDGE_PX = 8
+/** How near the scroller's top or bottom edge a held finger starts the list scrolling. */
+export const EDGE_SCROLL_ZONE_PX = 64
+/**
+ * The fastest the list scrolls under a finger at the very edge, in pixels a
+ * second — per second rather than per frame, so a 120 Hz phone scrolls no
+ * faster than a 60 Hz one. Slow enough to read the days going by.
+ */
+export const EDGE_SCROLL_MAX_PX_PER_S = 360
+/** The time a frame is taken to last where there is no frame before it to measure from. */
+const FIRST_FRAME_MS = 1000 / 60
+/** The longest step counted between two frames: a paused tab must not jump the list on its return. */
+const LONGEST_FRAME_MS = 50
+
+/**
+ * How fast the list scrolls under a finger at `y` (G-21), in pixels a second:
+ * nothing away from the edges; within `EDGE_SCROLL_ZONE_PX` of the bottom,
+ * down, easing in by the square of how deep the finger is — a quarter of the
+ * top speed half-way in — and the same upward at the top. Past an edge it is
+ * no faster than at it.
+ */
+export function edgeSpeed(y: number, top: number, bottom: number): number {
+  const eased = (into: number) => {
+    const depth = Math.min(into, EDGE_SCROLL_ZONE_PX) / EDGE_SCROLL_ZONE_PX
+    return EDGE_SCROLL_MAX_PX_PER_S * depth * depth
+  }
+  if (y > bottom - EDGE_SCROLL_ZONE_PX) return eased(y - (bottom - EDGE_SCROLL_ZONE_PX))
+  if (y < top + EDGE_SCROLL_ZONE_PX) return -eased(top + EDGE_SCROLL_ZONE_PX - y)
+  return 0
+}
+
+const EDGE_STILL = 'still'
+const EDGE_UP = 'up'
+const EDGE_DOWN = 'down'
+
+/** An Ionic content, whose scroller lives in its shadow root and is handed out on request. */
+type IonicContent = HTMLElement & { getScrollElement?: () => Promise<HTMLElement> }
+
+/**
+ * The element that scrolls under `el`: the nearest Ionic content's scroller,
+ * or the nearest ancestor that scrolls by its own style; null for none.
+ */
+async function scrollerOf(el: HTMLElement): Promise<HTMLElement | null> {
+  for (let at: HTMLElement | null = el; at; at = at.parentElement) {
+    const content = at as IonicContent
+    if (typeof content.getScrollElement === 'function') return content.getScrollElement()
+    const overflow = getComputedStyle(at).overflowY
+    if (overflow === 'auto' || overflow === 'scroll') return at
+  }
+  return null
+}
 
 /** Where the gesture is, as the attribute spells it. */
 export type DragState = 'idle' | 'lifting' | 'dragging' | 'settling'
 
 /** The attribute the state is mirrored onto — the suite's only way in. */
 export const DRAG_STATE_ATTRIBUTE = 'data-drag'
+/**
+ * Whether the list is scrolling under a finger held at its edge: `up`,
+ * `down` or `still`, always set on the host like `data-drag` — the suite's
+ * way to know the list has stopped before it aims at a place.
+ */
+export const DRAG_SCROLL_ATTRIBUTE = 'data-drag-scroll'
 /** What marks an element as something a drag can be dropped on. */
 export const DROP_TARGET_ATTRIBUTE = 'data-drop-target'
 /** What marks a child of a target as occupying a position in it. */
@@ -218,6 +279,13 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   let place: DropPlace | null = null
   let gapMark: HTMLElement | null = null
   let refused: HTMLElement[] = []
+  let scroller: HTMLElement | null = null
+  /** Where the finger last was, for the frames that scroll under it. */
+  let pointer: { clientX: number; clientY: number } | null = null
+  let edgeFrame: number | null = null
+  /** When the last scrolling frame ran, and the part of a pixel it left over. */
+  let lastFrameAt: number | null = null
+  let carried = 0
   let pending: { ev: PointerEvent; payload: T; row: HTMLElement; x: number; y: number } | null =
     null
 
@@ -233,7 +301,51 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function bindHost(el: HTMLElement | null): void {
     host = el
+    scroller = null
     host?.setAttribute(DRAG_STATE_ATTRIBUTE, state)
+    host?.setAttribute(DRAG_SCROLL_ATTRIBUTE, EDGE_STILL)
+    if (el)
+      void scrollerOf(el).then((found) => {
+        if (host === el) scroller = found
+      })
+  }
+
+  /**
+   * One frame of scrolling under a finger held at the edge, and the next one
+   * asked for while it stays there. The place under the finger is read again
+   * after each step, since the list moved under it; a list that cannot move
+   * further ends the frames until the finger moves again.
+   */
+  function edgeScroll(now: number): void {
+    edgeFrame = null
+    if (!lifted || !scroller || !pointer) return stopEdgeScroll()
+    const box = scroller.getBoundingClientRect()
+    const speed = edgeSpeed(pointer.clientY, box.top, box.bottom)
+    if (speed === 0) return stopEdgeScroll()
+    const elapsed =
+      lastFrameAt === null ? FIRST_FRAME_MS : Math.min(now - lastFrameAt, LONGEST_FRAME_MS)
+    lastFrameAt = now
+    // Whole pixels only, the rest carried on: a slow speed is a fraction of a
+    // pixel a frame, which a scroller rounding to pixels would lose for ever.
+    carried += (speed * elapsed) / 1000
+    const step = Math.trunc(carried)
+    carried -= step
+    if (step !== 0) {
+      const before = scroller.scrollTop
+      scroller.scrollTop = before + step
+      if (scroller.scrollTop === before) return stopEdgeScroll()
+      track(pointer as PointerEvent)
+    }
+    host?.setAttribute(DRAG_SCROLL_ATTRIBUTE, speed > 0 ? EDGE_DOWN : EDGE_UP)
+    edgeFrame = requestAnimationFrame(edgeScroll)
+  }
+
+  function stopEdgeScroll(): void {
+    if (edgeFrame !== null) cancelAnimationFrame(edgeFrame)
+    edgeFrame = null
+    lastFrameAt = null
+    carried = 0
+    host?.setAttribute(DRAG_SCROLL_ATTRIBUTE, EDGE_STILL)
   }
 
   /**
@@ -247,6 +359,13 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
    * own call, see `DROP_OVER_ATTRIBUTE`).
    */
   function lift(ev: PointerEvent, payload: T, row: HTMLElement): void {
+    // Every move reaches the gesture from here on, even over a toast laid
+    // across the bottom edge, where the list is scrolled from (G-21).
+    try {
+      ;(ev.target as Element | null)?.setPointerCapture?.(ev.pointerId)
+    } catch {
+      // A pointer already gone has nothing to hold on to.
+    }
     const { ghost, where } = chip(payload)
     document.body.appendChild(ghost)
     row.setAttribute('data-drag-source', '')
@@ -342,6 +461,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function track(ev: PointerEvent): void {
     if (!lifted) return
+    pointer = { clientX: ev.clientX, clientY: ev.clientY }
+    if (edgeFrame === null) edgeFrame = requestAnimationFrame(edgeScroll)
     float(lifted.ghost, ev.clientX, ev.clientY)
 
     const found = placeUnder(ev.clientX, ev.clientY)
@@ -421,9 +542,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
 
   function move(ev: PointerEvent): void {
     if (lifted) {
-      // While a task is in the air the page must not scroll under it. A
-      // consumer that wants edge-scrolling reads the same events and does it
-      // itself; nothing here swallows them.
+      // While a task is in the air the page must not scroll under it but by
+      // the edge (`edgeScroll`), which only a held finger starts.
       ev.preventDefault()
       track(ev)
       return
@@ -439,6 +559,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
   }
 
   function clear(): void {
+    stopEdgeScroll()
+    pointer = null
     lifted?.ghost.remove()
     lifted?.row.removeAttribute('data-drag-source')
     lifted = null

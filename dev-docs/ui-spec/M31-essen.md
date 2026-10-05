@@ -28,7 +28,8 @@
     (`m31-grip-<id>`, *„Raclette verschieben"*) on every meal from today on; one already eaten holds the grip's place
     with the dashed ring. Lifted, **every run of free days opens into its rows** (`m31-plan-<day>`), each a place to
     drop with its event (*🪧 Gletscher*), and the days behind fold away, so every day ahead is a target; the list
-    glides open around the meal, shifted so its row stays under the finger, and glides shut on the drop. The chip
+    glides open around the meal, shifted so its row stays under the finger, and glides shut on the drop; held at the
+    top or bottom edge, it scrolls to the days beyond (G-21). The chip
     above the finger says *„Raclette ABEND"* over *„→ Do., 15.10."*, or *„bleibt am Mo., 12.10."* over its own day
     and over nothing; the round ＋ steps aside meanwhile. The day under the finger takes M6's frame and tint and says
     *hier ablegen* in place of its ＋; its own day takes nothing and frames nothing. Letting go moves only its day —
@@ -94,4 +95,4 @@
   (FR-33.3, `m6-group-source-Essensplan`), M27 a picnic as a line of the excursion's list (FR-33.6,
   `m27-extra-meal:<id>`), M1 *Heute essen* (FR-33.7, `dashboard-meals-<trip>`).
 * **Modes:** all three; Single-User and Local Mode name nobody.
-* (E2E-M31-01…11)
+* (E2E-M31-01…12)

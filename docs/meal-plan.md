@@ -55,7 +55,8 @@ Plans change: it rains, so the picnic becomes tomorrow's and the fondue moves a 
 has a grip (three short lines) at its left edge — the same grip as on the shopping list and the tasks. Press it and
 drag:
 
-- While you hold a meal, every free day opens into a row of its own, so any day ahead is a place to drop it.
+- While you hold a meal, every free day opens into a row of its own, so any day ahead is a place to drop it. Hold it
+  near the top or bottom of the screen and the list scrolls to the days beyond.
 - A small chip floats above your finger with the meal's name and where it would land — *„→ Do., 15.10."* — so the day
   under your finger stays visible. Over its own day it says *„bleibt am …"*.
 - Let go and the meal is on its new day. Only the day changes: the meal (lunch, dinner …), its time, who cooks and

@@ -513,6 +513,54 @@ test.describe('M31 meal plan @local @meals', () => {
   })
 
   /**
+   * E2E-M31-12: a list longer than the screen scrolls under a finger held at
+   * its edge (G-21), so a meal reaches a day below the fold without being let
+   * go: held near the bottom, the trip's last day comes into view, and the
+   * meal is dropped there.
+   */
+  test('E2E-M31-12: a meal held at the bottom edge scrolls the plan to a day below the fold', async ({
+    page,
+  }) => {
+    const offsets = Array.from({ length: 21 }, (_, n) => 30 + n)
+    const day = await days(page, offsets)
+    await createTripViaWizard(page, {
+      name: 'Lange Ferien',
+      startDate: day(30),
+      endDate: day(50),
+      travelers: ['Andy'],
+    })
+    await openMeals(page)
+    await addMeal(page, { day: day(30), slot: 'dinner', title: 'Raclette' })
+
+    const host = mealPlan(page)
+    const grip = mealGrip(page, day(30), 'Raclette')
+    await sheetGone(page)
+    await grip.hover()
+    const g = (await grip.boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await expect(host).toHaveAttribute('data-drag', 'dragging')
+    await expect(host).toHaveAttribute('data-drag-scroll', 'still')
+    const last = host.getByTestId(`m31-plan-${day(50)}`)
+    await expect(last).not.toBeInViewport()
+
+    // Held just above the bottom of the plan, the list scrolls by itself.
+    const view = page.viewportSize()!
+    await page.mouse.move(g.x + g.width / 2, view.height - 12, { steps: 8 })
+    await expect(host).toHaveAttribute('data-drag-scroll', 'down')
+    await expect(last).toBeInViewport()
+    // Out of the edge the list stands still, and the day can be aimed at.
+    await page.mouse.move(g.x + g.width / 2, view.height / 2, { steps: 4 })
+    await expect(host).toHaveAttribute('data-drag-scroll', 'still')
+    const box = (await last.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 })
+    await expect(last).toHaveAttribute('data-drop-over', '')
+    await page.mouse.up()
+    await expect(host).toHaveAttribute('data-drag', 'idle')
+    await expect(mealRow(page, day(50), 'Raclette')).toBeVisible()
+  })
+
+  /**
    * E2E-M31-07: during the trip M1 carries *Eating today* (FR-33.7): today's
    * meals with what is still to buy; a tap opens the meal's sheet over the
    * dashboard, the head leads onto M31.

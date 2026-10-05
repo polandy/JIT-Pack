@@ -198,7 +198,10 @@ interface SeedMeal {
 /**
  * §3.33: M31 opens on a plan worth reading — yesterday's dinner folded above,
  * today's lunch eaten out and dinner half bought, tomorrow's breakfast and the
- * picnic taken on the hut tour, and a dinner after it with nothing bought.
+ * picnic taken on the hut tour, and a dinner after it with nothing bought —
+ * then meals on most of the days to the end of the trip, free days between,
+ * so the plan runs past one screen and a drag has days below the fold
+ * (FR-33.15).
  */
 export const SEED_MEALS: SeedMeal[] = [
   {
@@ -253,6 +256,63 @@ export const SEED_MEALS: SeedMeal[] = [
       { name: 'Rahm', amount: '2 dl' },
       { name: 'Bergkäse', amount: '200 g' },
     ],
+  },
+  {
+    day: 4,
+    slot: 'dinner',
+    title: 'Capuns',
+    ingredients: [
+      { name: 'Mangoldblätter', amount: '16' },
+      { name: 'Bündnerfleisch', amount: '100 g' },
+      { name: 'Mehl', amount: '250 g' },
+    ],
+  },
+  {
+    day: 5,
+    slot: 'breakfast',
+    title: 'Birchermüesli',
+    ingredients: [
+      { name: 'Haferflocken', amount: '300 g' },
+      { name: 'Joghurt', amount: '500 g' },
+      { name: 'Äpfel', amount: '3' },
+    ],
+  },
+  { day: 5, slot: 'dinner', title: 'Hütte Paradis', out: 'Berghütte Paradis, Diavolezza' },
+  {
+    day: 7,
+    slot: 'lunch',
+    title: 'Grillieren am See',
+    ingredients: [
+      { name: 'Cervelats', amount: '6' },
+      { name: 'Brot', amount: '1' },
+      { name: 'Senf', amount: '1 Tube' },
+    ],
+  },
+  {
+    day: 8,
+    slot: 'dinner',
+    title: 'Pizzoccheri',
+    ingredients: [
+      { name: 'Pizzoccheri', amount: '500 g' },
+      { name: 'Wirz', amount: '1' },
+      { name: 'Casera', amount: '250 g' },
+    ],
+  },
+  {
+    day: 10,
+    slot: 'dinner',
+    title: 'Käsefondue',
+    ingredients: [
+      { name: 'Fonduemischung', amount: '800 g' },
+      { name: 'Brot', amount: '2' },
+    ],
+  },
+  { day: 11, slot: 'lunch', title: 'Bündner Gerstensuppe', out: 'Restaurant Murtaröl, Samedan' },
+  {
+    day: 12,
+    slot: 'breakfast',
+    title: 'Reste-Zmorge',
+    ingredients: [{ name: 'Eier', amount: '6' }],
   },
 ]
 

@@ -15,12 +15,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import {
   useDragToGroup,
+  DRAG_SCROLL_ATTRIBUTE,
   DRAG_STATE_ATTRIBUTE,
   DROP_GAP_ATTRIBUTE,
   DROP_OVER_ATTRIBUTE,
   DROP_REFUSED_ATTRIBUTE,
   CARRY_GRIP_PX,
   CARRY_LIFT_PX,
+  EDGE_SCROLL_MAX_PX_PER_S,
+  EDGE_SCROLL_ZONE_PX,
+  edgeSpeed,
   type DragCarry,
   type DropPlace,
 } from '../useDragToGroup'
@@ -546,5 +550,165 @@ describe('useDragToGroup — the chip it carries (ADR-094)', () => {
     await Promise.resolve()
     expect(onDrop).not.toHaveBeenCalled()
     expect(host.getAttribute(DRAG_STATE_ATTRIBUTE)).toBe('idle')
+  })
+})
+
+/*
+ * A list longer than the screen: the finger near its top or bottom edge
+ * scrolls it, faster the nearer it is, so a place below the fold can be
+ * reached without letting go — on every screen that drags (G-21).
+ */
+describe('edgeSpeed — how fast the edge scrolls', () => {
+  const top = 100
+  const bottom = 700
+
+  it('stands still away from both edges', () => {
+    expect(edgeSpeed(400, top, bottom)).toBe(0)
+    expect(edgeSpeed(top + EDGE_SCROLL_ZONE_PX, top, bottom)).toBe(0)
+    expect(edgeSpeed(bottom - EDGE_SCROLL_ZONE_PX, top, bottom)).toBe(0)
+  })
+
+  it('scrolls down near the bottom, slowly as the finger enters the zone and faster deeper in', () => {
+    const near = edgeSpeed(bottom - EDGE_SCROLL_ZONE_PX + 8, top, bottom)
+    const half = edgeSpeed(bottom - EDGE_SCROLL_ZONE_PX / 2, top, bottom)
+    const deep = edgeSpeed(bottom - 4, top, bottom)
+    expect(near).toBeGreaterThan(0)
+    expect(near).toBeLessThan(EDGE_SCROLL_MAX_PX_PER_S / 10)
+    // Half-way in it is a quarter of the top speed: the zone eases in.
+    expect(half).toBe(EDGE_SCROLL_MAX_PX_PER_S / 4)
+    expect(deep).toBeGreaterThan(half)
+  })
+
+  it('scrolls up near the top, and no faster past the edge than at it', () => {
+    expect(edgeSpeed(top + 4, top, bottom)).toBeLessThan(0)
+    expect(edgeSpeed(top - 50, top, bottom)).toBe(-EDGE_SCROLL_MAX_PX_PER_S)
+    expect(edgeSpeed(bottom + 50, top, bottom)).toBe(EDGE_SCROLL_MAX_PX_PER_S)
+  })
+})
+
+describe('useDragToGroup — the list scrolls under a finger at its edge', () => {
+  let frames: FrameRequestCallback[]
+  let scroller: HTMLElement
+
+  beforeEach(() => {
+    frames = []
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb))
+    vi.stubGlobal('cancelAnimationFrame', () => (frames = []))
+    // An Ionic content: the scroller is handed out by getScrollElement.
+    scroller = document.createElement('div')
+    box(scroller, 0, 400)
+    Object.defineProperty(scroller, 'scrollTop', { value: 0, writable: true })
+    ;(host as HTMLElement & { getScrollElement?: () => Promise<HTMLElement> }).getScrollElement =
+      () => Promise.resolve(scroller)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** Runs the frames asked for so far, as the browser would on its next paint. */
+  let clock = 0
+  function paint(frameMs = 1000 / 60) {
+    clock += frameMs
+    const now = frames
+    frames = []
+    now.forEach((cb) => cb(clock))
+  }
+
+  async function lifted() {
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    await Promise.resolve()
+    await Promise.resolve()
+    drag.down(at(10, 5), 'one', rows[0]!, true)
+    return drag
+  }
+
+  it('scrolls down while the finger rests near the bottom, frame after frame, and says so', async () => {
+    const drag = await lifted()
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('still')
+    drag.move(at(10, 395))
+    paint()
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('down')
+    const first = scroller.scrollTop
+    expect(first).toBeGreaterThan(0)
+    paint()
+    expect(scroller.scrollTop).toBeGreaterThan(first)
+  })
+
+  /*
+   * A Pixel paints 120 frames a second, an older phone 60: the list must move
+   * as fast on both, so the step is read from the time between frames.
+   */
+  it('scrolls as far in a second at 120 frames a second as at 60', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 420))
+    paint()
+    const start = scroller.scrollTop
+    for (let n = 0; n < 60; n++) paint(1000 / 60)
+    const at60 = scroller.scrollTop - start
+    for (let n = 0; n < 120; n++) paint(1000 / 120)
+    const at120 = scroller.scrollTop - start - at60
+    expect(at60).toBeGreaterThan(EDGE_SCROLL_MAX_PX_PER_S * 0.9)
+    expect(Math.abs(at120 - at60)).toBeLessThanOrEqual(2)
+  })
+
+  it('scrolls up near the top', async () => {
+    scroller.scrollTop = 200
+    const drag = await lifted()
+    drag.move(at(10, 3))
+    paint()
+    expect(scroller.scrollTop).toBeLessThan(200)
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('up')
+  })
+
+  it('stops once the finger leaves the edge, and once the row is let go', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 395))
+    paint()
+    drag.move(at(10, 200))
+    paint()
+    const resting = scroller.scrollTop
+    paint()
+    expect(scroller.scrollTop).toBe(resting)
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('still')
+    drag.move(at(10, 395))
+    drag.cancel()
+    paint()
+    expect(scroller.scrollTop).toBe(resting)
+    expect(host.getAttribute(DRAG_SCROLL_ATTRIBUTE)).toBe('still')
+  })
+
+  /*
+   * A toast over the bottom of the screen is where the edge scroll is needed
+   * most: the pointer is captured at the lift, so its moves keep reaching the
+   * gesture whatever lies over the list.
+   */
+  it('holds on to the pointer from the lift, so nothing laid over the edge takes it', async () => {
+    const grip = document.createElement('span')
+    grip.setPointerCapture = vi.fn()
+    const drag = useDragToGroup<string>({ carry, onDrop: vi.fn() })
+    drag.bindHost(host)
+    drag.down(
+      { ...at(10, 5), target: grip, pointerId: 7 } as unknown as PointerEvent,
+      'one',
+      rows[0]!,
+      true,
+    )
+    expect(grip.setPointerCapture).toHaveBeenCalledWith(7)
+  })
+
+  it('finds a plain scrolling ancestor where the host is no Ionic content', async () => {
+    delete (host as HTMLElement & { getScrollElement?: unknown }).getScrollElement
+    const outer = document.createElement('div')
+    outer.style.overflowY = 'auto'
+    box(outer, 0, 400)
+    Object.defineProperty(outer, 'scrollTop', { value: 0, writable: true })
+    host.parentElement!.insertBefore(outer, host)
+    outer.appendChild(host)
+    const drag = await lifted()
+    drag.move(at(10, 395))
+    paint()
+    expect(outer.scrollTop).toBeGreaterThan(0)
   })
 })
