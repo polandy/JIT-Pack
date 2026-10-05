@@ -515,18 +515,18 @@ test.describe('M31 meal plan @local @meals', () => {
   /**
    * E2E-M31-12: a list longer than the screen scrolls under a finger held at
    * its edge (G-21), so a meal reaches a day below the fold without being let
-   * go: held near the bottom, the trip's last day comes into view, and the
-   * meal is dropped there.
+   * go: held near the bottom, the list runs to its end and stops there by
+   * itself, the trip's last day in view, and the meal is dropped on it.
    */
   test('E2E-M31-12: a meal held at the bottom edge scrolls the plan to a day below the fold', async ({
     page,
   }) => {
-    const offsets = Array.from({ length: 21 }, (_, n) => 30 + n)
+    const offsets = Array.from({ length: 16 }, (_, n) => 30 + n)
     const day = await days(page, offsets)
     await createTripViaWizard(page, {
       name: 'Lange Ferien',
       startDate: day(30),
-      endDate: day(50),
+      endDate: day(45),
       travelers: ['Andy'],
     })
     await openMeals(page)
@@ -541,14 +541,18 @@ test.describe('M31 meal plan @local @meals', () => {
     await page.mouse.down()
     await expect(host).toHaveAttribute('data-drag', 'dragging')
     await expect(host).toHaveAttribute('data-drag-scroll', 'still')
-    const last = host.getByTestId(`m31-plan-${day(50)}`)
+    const last = host.getByTestId(`m31-plan-${day(45)}`)
     await expect(last).not.toBeInViewport()
 
     // Held just above the bottom of the plan, the list scrolls by itself.
     const view = page.viewportSize()!
-    await page.mouse.move(g.x + g.width / 2, view.height - 12, { steps: 8 })
+    await page.mouse.move(g.x + g.width / 2, view.height - 4, { steps: 8 })
     await expect(host).toHaveAttribute('data-drag-scroll', 'down')
-    await expect(last).toBeInViewport()
+    // Held there until the list cannot go further and stops by itself: the
+    // last day merely peeking in may still lie in the edge zone, half below
+    // the screen, where it cannot be aimed at.
+    await expect(host).toHaveAttribute('data-drag-scroll', 'still')
+    await expect(last).toBeInViewport({ ratio: 1 })
     // Out of the edge the list stands still, and the day can be aimed at.
     await page.mouse.move(g.x + g.width / 2, view.height / 2, { steps: 4 })
     await expect(host).toHaveAttribute('data-drag-scroll', 'still')
@@ -557,7 +561,7 @@ test.describe('M31 meal plan @local @meals', () => {
     await expect(last).toHaveAttribute('data-drop-over', '')
     await page.mouse.up()
     await expect(host).toHaveAttribute('data-drag', 'idle')
-    await expect(mealRow(page, day(50), 'Raclette')).toBeVisible()
+    await expect(mealRow(page, day(45), 'Raclette')).toBeVisible()
   })
 
   /**
