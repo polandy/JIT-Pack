@@ -70,9 +70,11 @@
     searched arriving-reversed, from the way there's arrival plus the route's time, and each result says what it leaves
     of that. A connection taken shows the form of that sheet without *Was* and *Uhrzeit* — the slot names it, the
     departure times it — as its card and *Notiz*, with *Als Hinfahrt speichern* / *Als Rückfahrt speichern*. A filled
-    way opens that form to change or delete. **Without days** the first step says *„Gib dem Ausflug einen Tag, dann
-    kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is offered; the route stays. Any other
-    connection of the excursion stands under the timeline as a row of its own (`m27-connection-<id>`: departure, title
+    way opens that form to change or delete; its *Ändern* searches from the way's own stops and departure, not the
+    slot's morning and nearest stop, and *Von Hand* holds them. **Without days** the first step says *„Gib dem Ausflug
+    einen Tag, dann kannst du Hin- und Rückfahrt eintragen."* (`m27-journey-no-day`) and no way is offered; the route
+    stays. Any other connection of the excursion stands under the timeline as a row of its own (`m27-connection-<id>`:
+    departure, title
     over day, chevron).
   * **The route step:** a still map with every track's line in its colour (`track-summary-map`, tiles as FR-29.17 sets
     them, the lines alone offline), inset with the card's small radius, and the ways' legs that have positions drawn

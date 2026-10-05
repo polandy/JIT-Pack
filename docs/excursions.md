@@ -129,7 +129,7 @@ the arrival stop is the one nearest the start of the excursion's GPX track; for 
 route is walked, and each connection says how much time it leaves (*6 h 24 Luft*) or how early it is (*19 min zu früh*).
 Or paste the connection's SBB link, or enter it by hand — a boat, a cable car or a bus abroad works the same way. The
 way there lands on the excursion's first day, the way back on its last; an excursion without a date asks for one first.
-Tap a filled slot to change or delete it.
+Tap a filled slot to change or delete it; **Ändern** starts from its stops and times, which **Von Hand** lets you correct.
 
 With both ways on one day the card says how long you are on the spot (*Vor Ort 7 h 49*). If the excursion has a GPX
 track, it also says what the route — its time with the pauses — leaves of that (*Route 3 h 25 → 4 h 24 Luft*), or how

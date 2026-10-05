@@ -230,3 +230,15 @@ export function searchSeed(input: {
   const time = at < MINUTES_PER_DAY ? clock(at) : timeOf(last.arr)
   return { from: last.to, to: first.from, time, earliest: time }
 }
+
+/**
+ * Where the search starts when a connection is changed: its own stops and
+ * departure, a walk's start being no stop to search from. What bounds the
+ * slot's departure still bounds it.
+ */
+export function changeSeed(legs: readonly ConnectionLeg[], earliest: string | null): SearchSeed {
+  const ridden = legs.filter((leg) => leg.line !== '')
+  const span = ridden.length > 0 ? ridden : legs
+  const first = span[0]!
+  return { from: first.from, to: span[span.length - 1]!.to, time: timeOf(first.dep), earliest }
+}

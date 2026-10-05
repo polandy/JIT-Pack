@@ -232,16 +232,24 @@ export function handLeg(day: string, fields: HandFields): ConnectionLeg | null {
   }
 }
 
-/** The hand fields one leg fills, for changing a connection entered by hand. */
-export function handFieldsOf(leg: ConnectionLeg): HandFields {
+/**
+ * The hand fields a connection fills, for changing it: its first stop and
+ * departure, its last stop and arrival, and the lines it rides.
+ */
+export function handFieldsOf(legs: readonly ConnectionLeg[]): HandFields {
+  const first = legs[0]!
+  const last = legs[legs.length - 1]!
   return {
-    from: leg.from,
-    to: leg.to,
-    dep: timeOf(leg.dep),
-    arr: timeOf(leg.arr),
-    line: leg.line,
+    from: first.from,
+    to: last.to,
+    dep: timeOf(first.dep),
+    arr: timeOf(last.arr),
+    line: connectionSummary(legs).lines.join(LINE_SEPARATOR),
   }
 }
+
+/** Between the lines of a connection held in one hand field. */
+const LINE_SEPARATOR = ' · '
 
 // --- what the timeline says ---
 
