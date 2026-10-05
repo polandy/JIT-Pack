@@ -26,6 +26,10 @@ test.skip(
   'service workers run under Playwright only in Chromium',
 )
 
+// The behaviour project blocks the worker for every other case
+// (playwright.config.ts); here it is the subject.
+test.use({ serviceWorkers: 'allow' })
+
 /**
  * Settled means: the registration is active *and* this page is controlled.
  * Both are real lifecycle signals — `ready` resolves once the install

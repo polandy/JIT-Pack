@@ -115,9 +115,14 @@ test.describe('M1 dashboard @local @m1', () => {
     await expect(card.getByTestId(`dashboard-more-${TRIP.name}`)).toHaveText('+1 more')
 
     // E2E-M1-04's built half: the card is the way into the trip. (Landing
-    // *at the item* is not built — the preview rows are not links.)
+    // *at the item* is not built — the preview rows are not links.) The
+    // click lands on a preview row, and it is the router that opens the
+    // trip, not a full page load: a mark left on the window outlives only
+    // the former.
+    await page.evaluate(() => Object.assign(window, { jpSameDocument: true }))
     await card.click()
     await expectTripOpen(page, TRIP.name)
+    expect(await page.evaluate(() => 'jpSameDocument' in window)).toBe(true)
   })
 
   /*

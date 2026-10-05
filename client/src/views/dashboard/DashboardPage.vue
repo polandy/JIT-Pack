@@ -627,7 +627,7 @@ async function handleRefresh(event: CustomEvent) {
             v-for="item in previewItems(heroTrip.id)"
             :key="item.id"
             lines="none"
-            class="dashboard-item"
+            class="dashboard-item preview-item"
             :data-testid="`dashboard-preview-${item.name}`"
           >
             <IonCheckbox
@@ -725,7 +725,7 @@ async function handleRefresh(event: CustomEvent) {
               v-for="item in previewItems(trip.id)"
               :key="item.id"
               lines="none"
-              class="dashboard-item"
+              class="dashboard-item preview-item"
               :data-testid="`dashboard-preview-${item.name}`"
             >
               <IonCheckbox
@@ -895,6 +895,14 @@ async function handleRefresh(event: CustomEvent) {
 
 .dashboard-item {
   --min-height: 36px;
+}
+
+/* The preview rows sit inside the card's link, and an ion-item there runs
+   its own click handling, which turns a tap into a full page load of the
+   trip beside the router's navigation. Read-only, they hand the tap to the
+   link (E2E-M1-01). */
+.preview-item {
+  pointer-events: none;
 }
 
 /* FR-7.10: only the words lead into the trip — the tick beside them is its
