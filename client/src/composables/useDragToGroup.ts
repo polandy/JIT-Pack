@@ -94,6 +94,12 @@ export const EDGE_SCROLL_MAX_PX_PER_S = 360
  * paused tab does not jump the list on its return.
  */
 const FIRST_FRAME_MS = 1000 / 60
+/**
+ * The longest step counted between two frames: a page that hung for seconds
+ * moves the list on by a short step rather than by the whole stall, while a
+ * device painting as few as four frames a second still keeps the full pace.
+ */
+const LONGEST_FRAME_MS = 250
 
 /**
  * How fast the list scrolls under a finger at `y` (G-21), in pixels a second:
@@ -388,9 +394,8 @@ export function useDragToGroup<T>(opts: DragToGroupOptions<T>): DragToGroup<T> {
         ? scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
         : scroller.scrollTop
     if (room <= 0) return stopEdgeScroll()
-    // The time the frame really took, however long: a step counted short on
-    // a device painting a few frames a second would slow the list to a crawl.
-    const elapsed = lastFrameAt === null ? FIRST_FRAME_MS : now - lastFrameAt
+    const elapsed =
+      lastFrameAt === null ? FIRST_FRAME_MS : Math.min(now - lastFrameAt, LONGEST_FRAME_MS)
     lastFrameAt = now
     // Whole pixels only, the rest carried on: a slow speed is a fraction of a
     // pixel a frame, which a scroller rounding to pixels would lose for ever.

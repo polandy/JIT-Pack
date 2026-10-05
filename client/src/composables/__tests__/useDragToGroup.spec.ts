@@ -693,16 +693,33 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
   })
 
   /*
-   * A slow phone, or a busy one, paints a few frames a second: the list still
-   * scrolls as far in a second, in bigger steps, rather than crawling.
+   * A slow phone, or a busy one, paints a few frames a second: down to four,
+   * the list still scrolls as far in a second, in bigger steps, rather than
+   * crawling.
    */
   it('keeps its pace when the frames come slowly', async () => {
     const drag = await lifted()
     drag.move(at(10, 420))
     paint()
     const start = scroller.scrollTop
-    for (let n = 0; n < 3; n++) paint(1000 / 3)
+    for (let n = 0; n < 4; n++) paint(1000 / 4)
     expect(scroller.scrollTop - start).toBeGreaterThan(EDGE_SCROLL_MAX_PX_PER_S * 0.9)
+  })
+
+  /*
+   * A page that hangs for seconds — a long sync, a garbage collection — while
+   * the finger rests at the edge: the list moves on by a short step, not by
+   * everything the stalled seconds would have scrolled.
+   */
+  it('moves on by a short step after the page hung, not by the whole stall', async () => {
+    const drag = await lifted()
+    drag.move(at(10, 420))
+    paint()
+    const start = scroller.scrollTop
+    paint(2000)
+    const step = scroller.scrollTop - start
+    expect(step).toBeGreaterThan(0)
+    expect(step).toBeLessThanOrEqual(EDGE_SCROLL_MAX_PX_PER_S / 4 + 1)
   })
 
   it('does not jump the list when a tab hidden mid-drag comes back', async () => {
