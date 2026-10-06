@@ -74,7 +74,7 @@ password. The docs page says so.
 ## 7. What building it is
 
 FR-7.9 in §3.7, a screen entry in the UI-Spec plus the M1 card, an **ADR** on per-person state as a table, the
-`note_acks` table in `schema.sql` **with** its migration (invariant 2), the stamp in `stampActor` with failure-path
+`note_acks` table in `schema.sql` **with** its migration (invariant 2), the stamp in `serverOwned` with failure-path
 tests, the pure „new for me" rule in `client/src/domain` (invariant 4), the `de`/`en` catalogues, the `docs/` page, the
 dev-seed extension (standing rule: sample notes from two authors), and e2e cases: **a note written by one member is new
 for another**, **a tick is mine alone** (second identity, ADR-029), **M1 lists it and stops once ticked**.

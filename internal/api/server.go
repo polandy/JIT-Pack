@@ -403,11 +403,9 @@ func writePullPage(w http.ResponseWriter, page store.PullPage) {
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
 	userID, _ := r.Context().Value(userIDKey).(string)
-	out, pushed, ok := applyPushBatch(w, r,
-		func(m *syncpkg.Mutation) { stampActor(m, userID, s.now) },
-		func(m syncpkg.Mutation) (store.MutationResult, error) {
-			return s.store.ApplyMutation(r.Context(), tripID, userID, m)
-		})
+	out, pushed, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
+		return s.store.ApplyMutation(r.Context(), tripID, userID, m)
+	})
 	if !ok {
 		return
 	}
@@ -426,215 +424,9 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// stampActor fills server-owned actor columns from the authenticated
-// pusher (FR-4.2): comment authors, a note's per-person tick (FR-7.9), the
-// packing-now locker (FR-5.7) and the packer. Client-sent values are
-// placeholders (the client may not know its user id) and are never
-// trusted, so each of those columns is removed from the mutation first and
-// written back only where this function decides it — invariant 3 holds
-// for every op, not only the one the client happens to send.
-func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
-	switch m.Table {
-	case store.TableComments:
-		// Authorship is decided once, when the comment comes into being.
-		// Re-stamping the pusher on a later op would be the opposite
-		// defect — flagging a foreign comment as a task (FR-7.2) is an
-		// upsert, and would transfer its authorship — so the field is
-		// taken away from every op and given back only to the insert.
-		// An upsert that creates a comment then has no author and is
-		// refused by the NOT NULL column, which is what the one shape no
-		// client produces should get.
-		delete(m.Fields, "author_id")
-		if m.Op == syncpkg.OpInsert {
-			m.Set("author_id", userID)
-		}
-
-		// FR-7.7: the resolution record, following the state the way the
-		// purchase follows its flag. `phase` is not touched at all — when a
-		// task is due is the user's statement, not an identity claim.
-		state, known := m.Fields[columnTaskState].(string)
-		stampRecord(m, userID, now, recordColumns{
-			by: "resolved_by_user_id",
-			at: "resolved_at",
-		}, known, state == taskStateResolved)
-	case store.TableIdeas, store.TableIdeaComments, store.TableDayEntries:
-		// FR-29.1/29.4/29.15: an idea's author, a discussion entry's and a
-		// day entry's, decided once — store.TableComments' rule above, for
-		// its reason.
-		stampOnInsert(m, "author_id", userID)
-	case store.TableNoteAcks, store.TableIdeaVotes:
-		// FR-7.9/FR-29.3: whose tick or vote a row is decided once, exactly
-		// like a comment's authorship (same shape as store.TableComments
-		// above). An upsert must only flip `acked` or `vote`, never reassign
-		// the row to somebody else — stamping unconditionally would let two
-		// users racing an upsert on the same row id steal each other's row
-		// instead of getting the UNIQUE(…, user_id) refusal they should.
-		stampOnInsert(m, "user_id", userID)
-	case store.TableShoppingEntries, store.TableMealIngredients:
-		// FR-30.4/FR-33.3: the entry's or the ingredient's purchase record.
-		// `bought` is the flag the record describes, sent as a JSON number
-		// or boolean.
-		bought, known := m.Fields["bought"]
-		stampPurchase(m, userID, now, known, truthy(bought))
-	case store.TableTripItems:
-		// FR-30.4: a packing row's purchase record follows `bought_from`,
-		// the list it was bought from (FR-25.11j) — set on the purchase,
-		// cleared when it is taken back.
-		from, known := m.Fields["bought_from"]
-		stampPurchase(m, userID, now, known, from != nil)
-
-		// FR-25.19: packer_user_id is the *assignment* and belongs to the
-		// client, so it is left untouched here. The record of who packed
-		// the row is server-owned — a record you can pick is not a record
-		// — so whatever the client sent is discarded first, before the
-		// state below decides what the record should be.
-		delete(m.Fields, "packed_by_user_id")
-
-		// The *when* of the record (FR-25.17) is server-owned in the same
-		// way, with one deliberate difference: a client may name the moment
-		// it was tapped, because packing happens offline and the push can
-		// land days later. A clock is not an identity claim, so invariant 3
-		// does not reach it; an unparseable value is replaced rather than
-		// trusted. Same shape as packing_now_at beside it.
-		tapped, _ := m.Fields["packed_at"].(string)
-		delete(m.Fields, "packed_at")
-
-		// G-3's claim holder is server-owned the same way (FR-5.7): the
-		// claim *is* the state, so only the switch below may name a
-		// holder. Without the strip, a mutation carrying packing_now_by
-		// and no state never meets that switch and the row names whoever
-		// the pusher chose — which the takeover and M4's row then read as
-		// authoritative. Its clock follows the claim, on the same terms
-		// as packed_at above.
-		delete(m.Fields, "packing_now_by")
-		claimed, _ := m.Fields["packing_now_at"].(string)
-		delete(m.Fields, "packing_now_at")
-
-		state, hasState := m.Fields[syncpkg.FieldState].(string)
-		switch {
-		case state == syncpkg.StatePackingNow:
-			m.Set("packing_now_by", userID)
-			m.Set("packing_now_at", tapTime(claimed, now))
-			m.Set("packed_by_user_id", nil)
-			m.Set("packed_at", nil)
-		case state == syncpkg.StatePacked:
-			m.Set("packing_now_by", nil)
-			m.Set("packing_now_at", nil)
-			m.Set("packed_by_user_id", userID)
-			m.Set("packed_at", tapTime(tapped, now))
-		case hasState:
-			// Un-packed in any way (open, partial, skipped): both stamps
-			// are cleared with the state they described (FR-25.17/FR-5.3),
-			// never left to outlive it. A released claim may not depend on
-			// the client nulling it itself.
-			m.Set("packing_now_by", nil)
-			m.Set("packing_now_at", nil)
-			m.Set("packed_by_user_id", nil)
-			m.Set("packed_at", nil)
-		}
-	}
-}
-
-// stampOnInsert removes an actor column from every op and gives it back to
-// the insert alone, as the pusher: who wrote a row is decided once, when it
-// comes into being, and a later op may not move it to somebody else.
-func stampOnInsert(m *syncpkg.Mutation, column, userID string) {
-	delete(m.Fields, column)
-	if m.Op == syncpkg.OpInsert {
-		m.Set(column, userID)
-	}
-}
-
 // columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
 // handed to — one column name on both tables.
 const columnAssignee = "assignee_user_id"
-
-// Purchase record columns (FR-30.4), shared by trip_items and
-// shopping_entries.
-const (
-	columnBoughtBy = "bought_by_user_id"
-	columnBoughtAt = "bought_at"
-)
-
-// The task columns FR-7.7's resolution record follows: the state that decides
-// whether there is a record, and the value that state carries when there is.
-const (
-	columnTaskState   = "task_state"
-	taskStateResolved = "resolved"
-)
-
-// recordColumns names one who-and-when pair — the shape three records in the
-// schema share (FR-25.17's packing, FR-30.4's purchase, FR-7.7's resolution).
-type recordColumns struct {
-	by string
-	at string
-}
-
-// stampRecord writes who did a thing and when, for a record whose truth is
-// decided by a state the same mutation carries.
-//
-// The rule is FR-25.19's, and it is written once because three records
-// obey it: the person is the pusher and never a client value (invariant 3),
-// while the time may be the client's tap, because packing, shopping and
-// ticking a task off all happen away from a network and the push lands later.
-//
-// `known` says whether this mutation speaks about the record's state at all.
-// One that does not carries no record — not even a null, which would erase
-// what another device already recorded (NFR-4.2a's field-level merge has no
-// way to tell an erasure from an absence once it is written).
-func stampRecord(
-	m *syncpkg.Mutation,
-	userID string,
-	now func() time.Time,
-	cols recordColumns,
-	known, done bool,
-) {
-	delete(m.Fields, cols.by)
-	tapped, _ := m.Fields[cols.at].(string)
-	delete(m.Fields, cols.at)
-	switch {
-	case !known:
-	case done:
-		m.Set(cols.by, userID)
-		m.Set(cols.at, tapTime(tapped, now))
-	default:
-		m.Set(cols.by, nil)
-		m.Set(cols.at, nil)
-	}
-}
-
-// stampPurchase writes who bought a thing and when (FR-30.4) — stampRecord
-// under the purchase's own column names, kept as its own function because
-// two tables reach it and each reads a different flag to decide `bought`.
-func stampPurchase(m *syncpkg.Mutation, userID string, now func() time.Time, known, bought bool) {
-	stampRecord(m, userID, now, recordColumns{by: columnBoughtBy, at: columnBoughtAt}, known, bought)
-}
-
-// truthy reads a 0/1 column as JSON delivers it: a number, or a boolean
-// from a client that sends one.
-func truthy(v any) bool {
-	switch x := v.(type) {
-	case bool:
-		return x
-	case float64:
-		return x != 0
-	case int:
-		return x != 0
-	case int64:
-		return x != 0
-	}
-	return false
-}
-
-// tapTime keeps the client's tap time when it is a real instant and
-// falls back to now otherwise, so an offline row keeps the moment it was
-// actually packed or claimed instead of the moment its push arrived.
-func tapTime(tapped string, now func() time.Time) string {
-	if _, err := time.Parse(time.RFC3339, tapped); err == nil {
-		return tapped
-	}
-	return now().UTC().Format(time.RFC3339)
-}
 
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the
@@ -674,10 +466,10 @@ func (p pushedMutation) landed() bool {
 }
 
 // applyPushBatch decodes the push envelope and applies each mutation via
-// apply, calling prepare (if set) first. It answers every mutation twice in
+// apply. It answers every mutation twice in
 // step: once on the wire, once as a pushedMutation for the side effects. It
 // reports ok=false after writing an error response itself.
-func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []pushedMutation, bool) {
+func applyPushBatch(w http.ResponseWriter, r *http.Request, apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []pushedMutation, bool) {
 	var req PushRequest
 	if err := decodeJSON(w, r, maxPushBodyBytes, &req); err != nil {
 		writeDecodeError(w, err, "malformed push envelope")
@@ -710,9 +502,6 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 				Error: string(store.ReasonMalformedHLC),
 			})
 			continue
-		}
-		if prepare != nil {
-			prepare(&mut)
 		}
 		// FR-28.9: refused by length before the store sees it, so the client
 		// is told which field was wrong rather than meeting a CHECK.

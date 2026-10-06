@@ -316,7 +316,7 @@ func planComment(
 
 // isTripNote reports whether a comment insert is FR-7.9's shape: trip-level
 // (no `trip_item_id`) and not a task. It is checked on the mutation's own
-// fields, before any row is loaded — the same fields `stampActor` and the
+// fields, before any row is loaded — the same fields the store's stamp step and the
 // client's `is_task` routing already read.
 func isTripNote(m syncpkg.Mutation) bool {
 	itemID, _ := m.Fields["trip_item_id"].(string)

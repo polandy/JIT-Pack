@@ -1,8 +1,8 @@
 // Package store — partition.go holds the one push pipeline both sync
 // partitions run, and the value that says which partition is running it.
 //
-// The trip and master paths (Sync-API §5) run the same thirteen steps —
-// validate, transaction, idempotency memo, load, scope, merge, reference
+// The trip and master paths (Sync-API §5) run the same fourteen steps —
+// validate, transaction, idempotency memo, load, stamp, scope, merge, reference
 // check, cascade collection, persist, change_log + tombstones, activity_log,
 // conflict_log, memo + commit — and their four real differences are named here rather than
 // spread through two copies, so a rule such as ADR-031's re-log or FR-24.3's
@@ -43,9 +43,9 @@ func (f feed) where() (string, []any) {
 	return "trip_id = ?", []any{f.tripID}
 }
 
-// scopeRule decides whether a mutation may be applied at all, and may stamp
-// server-owned columns while it looks (which is why it takes a pointer).
-// ReasonNone means the mutation proceeds.
+// scopeRule decides whether a mutation may be applied at all. It sees the
+// mutation after the stamp step, so a server-owned column it reads is the
+// server's. ReasonNone means the mutation proceeds.
 type scopeRule func(ctx context.Context, tx *sql.Tx, m *sync.Mutation, row sync.Row) (RejectReason, error)
 
 // changeHook runs after a partition's own change_log entry landed, for the
@@ -175,6 +175,7 @@ func (s *Store) applyMutation(ctx context.Context, m sync.Mutation, p partition)
 		return MutationResult{}, err
 	}
 
+	stampServerOwned(&m, row, p.actorID, s.now)
 	refused, err := p.scope(ctx, tx, &m, row)
 	if err != nil {
 		return MutationResult{}, err

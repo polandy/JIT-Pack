@@ -22,12 +22,15 @@ word. Whoever merges second renumbers.
 
 ## Invariant 3 — the client's identity claims are never trusted
 
-The server stamps actor columns itself (`stampActor` in `internal/api/server.go`): comment `author_id`, a note's
-`note_acks.user_id` (FR-7.9), an idea's, its discussion's and a day entry's `author_id` and a vote's
-`idea_votes.user_id` (§3.29), `packing_now_by`/`packing_now_at`, `packed_by_user_id` — also stripped from incoming
-`trip_items` mutations; a shared position's `user_id` and `at` on the WebSocket (FR-29.19). `packer_user_id` is
-deliberately *not* stamped: since FR-25.19 it is the assignment. A client placeholder like `'current-user'` must never
-reach a foreign key. Clients can never grant `owner`, and the trip creator's membership row is immutable.
+The server stamps actor columns itself. Which columns a table owns is declared once, as `serverOwned` on its
+`tableSpec` (`internal/store/tables.go`, rules in `stamp.go`); the store's write pipeline strips them from every
+mutation and stamps them back from the actor before the scope rule runs — on a push of either partition and on a
+conflict revert alike. Among them: comment `author_id` and the task's resolution record, `note_acks.user_id`
+(FR-7.9), an idea's, its discussion's and a day entry's `author_id` and `idea_votes.user_id` (§3.29), the packing
+claim and record and the purchase record, the master creator columns (`owner_id`, `created_by`).
+`TestServerOwned_NoForgedValueSurvives_Invariant3` sweeps every table. Outside the sync envelope: a shared position's
+`user_id` and `at` on the WebSocket (FR-29.19). `packer_user_id` is deliberately *not* stamped: since FR-25.19 it is
+the assignment. A client placeholder like `'current-user'` must never reach a foreign key. Clients can never grant `owner`, and the trip creator's membership row is immutable.
 
 ## Invariant 6 — binary uploads stay outside the sync envelope (ADR-002)
 

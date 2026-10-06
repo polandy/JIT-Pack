@@ -6,7 +6,7 @@ import type { NowIso } from '@/lib/clock'
 /**
  * What the client writes into an actor column it is not allowed to decide.
  * The server stamps those columns itself — `comments.author_id` and
- * `packing_now_by` among them (`stampActor`, invariant 3) — so the placeholder
+ * `packing_now_by` among them (`serverOwned`, invariant 3) — so the placeholder
  * never reaches a foreign key in Server or Single-User Mode; in Local Mode
  * there is exactly one author and no directory to name.
  */

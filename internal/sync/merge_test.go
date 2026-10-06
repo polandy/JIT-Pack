@@ -117,6 +117,63 @@ func TestMerge_PackedBeatsPackingNow_RegardlessOfHLC(t *testing.T) {
 	}
 }
 
+// FR-5.7 + FR-25.17: the claim and the packing record describe the state,
+// so they follow its rule-2 verdict rather than their own clocks. A newer
+// packing_now against a packed row must not leave the claim holder behind
+// on a row whose packer it erased.
+func TestMerge_StateRecordLosesWithTheGroup_NotLogged(t *testing.T) {
+	current := packedItem()
+	current["packed_by_user_id"] = "user-sia"
+	m := Mutation{
+		Op: OpUpsert,
+		Fields: map[string]any{
+			"state": "packing_now", "packing_now_by": "user-x", "packing_now_at": "2026-07-11T08:00:00Z",
+			"packed_by_user_id": nil, "packed_at": nil,
+		},
+		HLC: newerHLC,
+	}
+
+	res := Merge(rowAt(current, rowHLC), m)
+
+	for _, f := range []string{"packing_now_by", "packing_now_at", "packed_by_user_id", "packed_at"} {
+		if _, ok := res.Applied[f]; ok {
+			t.Errorf("%s applied although the state it describes was dropped", f)
+		}
+		if hasConflictFor(res.Conflicts, f) {
+			t.Errorf("%s logged as a conflict; the state's entry carries the loss", f)
+		}
+	}
+	if !hasConflictFor(res.Conflicts, "state") {
+		t.Errorf("the state itself must still be logged, got %v", res.Conflicts)
+	}
+}
+
+// The other half of rule 2: packed beats a newer packing_now, and the
+// record moves with it even where its own clock is older — or the packed row
+// keeps the released claim and never names its packer.
+func TestMerge_StateRecordWinsWithTheGroup_RegardlessOfItsClock(t *testing.T) {
+	current := openItem()
+	current["state"] = "packing_now"
+	current["packing_now_by"] = "user-sia"
+	m := Mutation{
+		Op: OpUpsert,
+		Fields: map[string]any{
+			"state": "packed", "packed_count": 5,
+			"packing_now_by": nil, "packing_now_at": nil, "packed_by_user_id": "user-x",
+		},
+		HLC: olderHLC,
+	}
+
+	res := Merge(rowAt(current, rowHLC), m)
+
+	if got, ok := res.Applied["packing_now_by"]; !ok || got != nil {
+		t.Errorf("packing_now_by = %v (applied %v), want the claim released", got, ok)
+	}
+	if got := res.Applied["packed_by_user_id"]; got != "user-x" {
+		t.Errorf("packed_by_user_id = %v, want user-x", got)
+	}
+}
+
 // FR-5.4: packed_count and state are causally coupled and merge as a unit —
 // dropping one must drop the other, otherwise 3/5 could pair with "open".
 func TestMerge_PackedCountAndState_DropAsOneUnit(t *testing.T) {
