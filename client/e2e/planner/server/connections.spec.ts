@@ -2,6 +2,7 @@ import type { Route } from '@playwright/test'
 
 import { test, expect, createTripViaWizard } from '../../fixtures'
 import {
+  connectionTaken,
   openConnectionStep,
   openDayPlan,
   openLinkStep,
@@ -57,6 +58,7 @@ test.describe('Connections from a short link (FR-29.18) @server @planner', () =>
     await expect(sheet.getByTestId('day-entry-read-state')).toHaveText('✓ 5 legs read.')
     expect(asked).toEqual([SBB_SHORT_LINK])
     await sheet.getByTestId('connection-take').click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(alice.getByTestId('day-entry-save')).toHaveCount(0)
 

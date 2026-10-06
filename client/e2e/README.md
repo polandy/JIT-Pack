@@ -179,6 +179,15 @@ them.
   apart that way on one machine while CI agreed — a property of the two hosts,
   not of the layout. Take every rectangle in a single pass and compare the
   numbers afterwards.
+- **"Stable" is not settled under a Vue `<Transition>`.** An entering element
+  sits at its `-enter-from` state for a double animation frame before it moves,
+  which Playwright's two-frame stability check reads as done; its hit check
+  covers only the press's first event, so a click begun there comes up on
+  whatever slid under it and is silently lost. Where a transition pushes a
+  control a case then presses, the component says when it stands
+  (`useTransitionSettled` in `lib/transitionSettled.ts`, `data-settled`) and the
+  case waits on that — `connectionTaken(sheet)` for the day entry's connection
+  (E2E-M27-18 lost its save on a 3-frames-a-second WebKit runner).
 - **Seed through the app, not around it** (spec §2.4). `createTripViaWizard` and
   friends. A fast path that writes rows directly is allowed only for `server`
   preconditions that are not themselves under test.

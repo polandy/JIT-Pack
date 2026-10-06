@@ -5,6 +5,7 @@ import { stubTiles } from '../helpers/m28'
 import {
   addDayEntry,
   chooseDay,
+  connectionTaken,
   dayFromToday,
   dayPlan,
   openConnectionStep,
@@ -185,6 +186,7 @@ test.describe('M29 connections @local @planner', () => {
     await pasteLink(sheet, SBB_TRIP_LINK)
     await expect(sheet.getByTestId('day-entry-read-state')).toHaveText('✓ 5 legs read.')
     await sheet.getByTestId('connection-take').click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
 
@@ -257,6 +259,7 @@ test.describe('M29 connections @local @planner', () => {
     await expect(edit.getByTestId('day-entry-hand-from').locator('input')).toHaveValue('Olbia')
     await edit.getByTestId('day-entry-hand-arr').locator('input').fill('07:10')
     await edit.getByTestId('connection-take').click()
+    await connectionTaken(edit)
     await edit.getByTestId('day-entry-save').click()
     await expect(line).toContainText('arr. 07:10 (+1)')
     await expect(dayPlan(page).getByTestId(`m29-day-${first}`)).toHaveAttribute(
@@ -401,6 +404,7 @@ test.describe('M29 connections @local @planner', () => {
 
     await sheet.getByTestId('day-entry-add-connection').click()
     await sheet.getByTestId('timetable-result-1').click()
+    await connectionTaken(sheet)
     const name = sheet.getByTestId('day-entry-name').locator('input')
     const time = sheet.getByTestId('day-entry-time').locator('input')
     await expect(name).toHaveValue('To Hergiswil Matt')
@@ -493,6 +497,7 @@ test.describe('M29 connections @local @planner', () => {
     await typeStop(sheet, 'from', 'Luzern')
     await typeStop(sheet, 'to', 'Hergiswil Matt')
     await sheet.getByTestId('timetable-result-0').click()
+    await connectionTaken(sheet)
 
     const small = sheet.getByTestId('connection-map')
     await expect(small).toBeVisible()
