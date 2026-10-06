@@ -114,7 +114,6 @@ export const tripsEn = {
   'trips.appliedChanged': '“{group}”: {item} changed',
   // M2 trip list (FR-2.x, FR-13.1). The FR-27.4 chips and log are above.
   'trips.title': 'Trips',
-  'trips.importPortable': 'Import trip from file',
   'trips.filterActive': 'Active',
   'trips.filterPlanned': 'Planned',
   'trips.filterArchived': 'Archived',

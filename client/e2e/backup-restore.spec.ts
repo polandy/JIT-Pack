@@ -20,7 +20,7 @@ import {
   openQuickAdd,
   visiblePage as visible,
 } from './fixtures'
-import { writesLanded } from './helpers/page'
+import { chooseBarEntry, writesLanded } from './helpers/page'
 import { addBuyRowOnM4 } from './helpers/m4'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
@@ -95,7 +95,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // satisfied by data that was already there.
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
-    await restored.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(restored, 'm2-portable-import')
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
 
@@ -193,7 +193,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.goto(PATH.trips)
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
-    await restored.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(restored, 'm2-portable-import')
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
     await restored.getByTestId('portable-restore-commit').click()
@@ -267,7 +267,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
       // twice and passes twice out of twice with this line.
       await writesLanded(restored)
       await restored.goto(PATH.trips)
-      await restored.getByTestId('m2-portable-import').click()
+      await chooseBarEntry(restored, 'm2-portable-import')
       await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
       await restored.getByTestId('portable-preview').click()
       await expect(restored.getByTestId('portable-restore')).toBeVisible()
@@ -337,7 +337,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const oneDocument = await readFile(await (await downloadPromise).path(), 'utf8')
 
     await page.goto(PATH.trips)
-    await page.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(page, 'm2-portable-import')
     await page.getByTestId('portable-paste').locator('textarea').fill(oneDocument)
     await page.getByTestId('portable-preview').click()
 
@@ -387,7 +387,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(0)
 
     await restored.goto(PATH.trips)
-    await restored.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(restored, 'm2-portable-import')
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
     await restored.getByTestId('portable-restore-commit').click()
@@ -510,7 +510,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.goto(PATH.trips)
     await expect(restored.getByTestId('trip-row-Fototour 2026')).toHaveCount(0)
 
-    await restored.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(restored, 'm2-portable-import')
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
     // The restore list says the trip follows a group — the only place that is
@@ -594,7 +594,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.goto(PATH.trips)
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
-    await restored.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(restored, 'm2-portable-import')
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
     // One trip and no template is one document, so the file opens M18's merge

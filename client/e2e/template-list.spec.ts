@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, chooseBarEntry } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -375,7 +375,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await createTemplate(page, 'group', 'Makro')
     await backToList(page)
 
-    await page.getByTestId('m7-portable-import').click()
+    await chooseBarEntry(page, 'm7-portable-import')
     await expect(visible(page).getByTestId('portable-paste')).toBeVisible()
 
     await page.getByTestId('header-back').click()

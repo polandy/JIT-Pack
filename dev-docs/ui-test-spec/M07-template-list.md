@@ -21,12 +21,12 @@ the FAB's import menu — and are retired in place with their reason.
   portable document of that Gruppe (its kind, name and scope); a share that fails other than by dismissal saves
   `Makro.yaml` instead and a toast says so; where the browser cannot share a file the menu carries *Export* and no share
   entry. The share sheet itself is the operating system's, so the case stubs `navigator.share` and asserts the call.
-* **E2E-M7-05** `all` (FR-18.4) — **implemented; the FAB-menu clause is struck by decision.** Import from M7 is a header
-  icon beside the page title and reaches M18; the FAB opens the scope chooser. A second door to a function that already
-  has one buys nothing, and E2E-M7-06 applies the same reasoning to this screen's empty state — create is the FAB,
-  import is the header icon, both already on screen. The case asserts that the icon opens M18 and the way back lands on
-  **M7**, which is not M18's declared parent (E2E-G9-12 asserts the same rule for the entrance from M2 and names M7
-  without covering it, so this entrance could silently have returned to Settings).
+* **E2E-M7-05** `all` (FR-18.4) — **implemented; the FAB-menu clause is struck by decision.** Import from M7 is the word
+  *Datei importieren* behind the app bar's ⋮ (UX-05) and reaches M18; the FAB opens the scope chooser. A second door to
+  a function that already has one buys nothing, and E2E-M7-06 applies the same reasoning to this screen's empty state —
+  create is the FAB, import is the ⋮ entry, both already in reach. The case asserts that the entry opens M18 and the way
+  back lands on **M7**, which is not M18's declared parent (E2E-G9-12 asserts the same rule for the entrance from M2 and
+  names M7 without covering it, so this entrance could silently have returned to Settings).
 * **E2E-M7-06** `all` (G-7) — **implemented, and its CTA clause is retired.** The empty state carries **no CTA buttons
   of its own**, by the decision in UI-Spec M7's *States* line: create is the FAB and import is the header icon, both
   already on screen. What the case asserts instead is the two empty states the screen really has, which share one

@@ -1,4 +1,12 @@
-import { test, expect, seed, visiblePage, createTripViaWizard, chooseInSelect } from './fixtures'
+import {
+  test,
+  expect,
+  chooseBarEntry,
+  seed,
+  visiblePage,
+  createTripViaWizard,
+  chooseInSelect,
+} from './fixtures'
 import { PATH } from './routes'
 
 /**
@@ -318,7 +326,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
 
     // Back through M2's own entry, so the second import is the app's own path.
     await page.getByTestId('rail-trips').click()
-    await page.getByTestId('m2-spreadsheet-import').click()
+    await chooseBarEntry(page, 'm2-spreadsheet-import')
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(DUPLICATE_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
     await visiblePage(page).getByTestId('import-next').click()

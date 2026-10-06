@@ -5,7 +5,7 @@
  * measures its height for the headings that stick beneath it.
  */
 import { IonIcon } from '@ionic/vue'
-import { closeOutline, funnelOutline } from 'ionicons/icons'
+import { closeOutline, funnelOutline, optionsOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -29,6 +29,8 @@ const { search, selection, counts, filtering, filterOpen, selectionLabel } = cor
  * tag name this instance carries; a fourth wraps the row.
  */
 const TOP_TAG_COUNT = 3
+
+const hasTags = computed(() => masterStore.tagList.length > 0)
 
 /** The three the tool bar offers without opening anything (FR-24.8). */
 const topTags = computed(() => topTagsByCount(masterStore.tagList, counts.value, TOP_TAG_COUNT))
@@ -90,16 +92,17 @@ function dropSelected(id: string) {
         <span class="chip-count jp-num">{{ counts.get(tag.id) ?? 0 }}</span>
       </button>
 
+      <!-- Shown even with no tag: the sheet's head is also where the sort and
+           the shown properties live (UX-05), and then it is all the sheet is. -->
       <button
-        v-if="masterStore.tagList.length > 0"
         type="button"
         class="chip"
         :class="{ active: filtering }"
         data-testid="m9-filter-open"
         @click="filterOpen = true"
       >
-        <IonIcon :icon="funnelOutline" />
-        {{ t('items.filterAll', { n: masterStore.tagList.length }) }}
+        <IonIcon :icon="hasTags ? funnelOutline : optionsOutline" />
+        {{ hasTags ? t('items.filterAll', { n: masterStore.tagList.length }) : t('items.view') }}
         <span v-if="selection.length > 0" class="chip-count jp-num">{{ selection.length }}</span>
       </button>
 

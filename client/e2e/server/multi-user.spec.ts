@@ -26,6 +26,7 @@ import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
+import { holdRow, openViewSheet } from '../helpers/m9'
 import { PATH } from '../routes'
 
 /**
@@ -1398,8 +1399,8 @@ test.describe('Two accounts on one instance @server', () => {
     await openInventory()
     await expect(list.getByTestId('m9-row')).toHaveCount(2)
 
-    await alice.getByTestId('m9-select').click()
-    for (const name of items) await list.getByTestId(`m9-row-check-${name}`).click()
+    await holdRow(list, items[0]!)
+    for (const name of items.slice(1)) await list.getByTestId(`m9-row-check-${name}`).click()
     await expect(alice.getByTestId('m9-select-count')).toContainText('2')
 
     await list.getByTestId('m9-bulk-more').click()
@@ -1484,10 +1485,10 @@ test.describe('Two accounts on one instance @server', () => {
     // Lean by default (FR-24.4): nothing says it until the device asks.
     await expect(list.getByTestId('m9-row-assignee')).toHaveCount(0)
 
-    await alice.getByTestId('m9-properties').click()
-    await expect(alice.getByTestId('m9-properties-sheet')).toBeVisible()
-    await alice.getByTestId('m9-property-assignee').click()
-    await alice.keyboard.press('Escape')
+    const view = await openViewSheet(alice)
+    await view.getByTestId('m9-property-assignee').click()
+    await view.getByTestId('m9-filter-apply').click()
+    await expect(view).not.toHaveAttribute('data-presented', 'true')
 
     // One row names Bob; the other names nobody rather than „Nobody".
     await expect(list.getByTestId('m9-row-assignee')).toHaveCount(1)

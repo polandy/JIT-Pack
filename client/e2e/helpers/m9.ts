@@ -117,3 +117,29 @@ export async function groupHeadings(scope: Locator): Promise<string[]> {
   const heads = await scope.getByTestId('m9-group-head').allInnerTexts()
   return heads.map((h) => h.split('\n')[0]!.trim().toLowerCase())
 }
+
+/**
+ * Start M9's selection the way the family does — a hold on a row, here its
+ * right-click twin (FR-24.9, ADR-075) — with that row picked. The bar has no
+ * selection glyph (UX-05). Matched on the row's whole name, so „Stirnlampe"
+ * does not also catch „Stirnlampe Petzl".
+ */
+export async function holdRow(scope: Locator, name: string): Promise<void> {
+  // The heading may also wear the fresh row's „Neu" (FR-24.5).
+  const exact = new RegExp(
+    `^\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s+(New|Neu))?\\s*$`,
+  )
+  const row = scope
+    .getByTestId('m9-row')
+    .filter({ has: scope.page().locator('h2', { hasText: exact }) })
+  await row.click({ button: 'right' })
+  await expect(scope.getByTestId(`m9-row-check-${name}`)).toHaveClass(/\bon\b/)
+}
+
+/** Open M9's „Ansicht & Filter" sheet (FR-24.4, FR-24.8) and wait for it. */
+export async function openViewSheet(page: Page): Promise<Locator> {
+  await visiblePage(page).getByTestId('m9-filter-open').click()
+  const sheet = page.getByTestId('m9-filter-sheet')
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
+  return sheet
+}

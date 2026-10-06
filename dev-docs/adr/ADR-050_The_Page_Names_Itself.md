@@ -130,3 +130,28 @@ count riding in the word because an action sheet renders no badge.
 The first screen on which the fixed head measurably costs more than it gives — a list where the head plus M4's own
 line leaves less than half the viewport for rows on a 390 px phone. The answer then is to let the head collapse on
 downward scroll the way M4's header line already does, which is a change to one component rather than to any screen.
+
+## Amendment 1 (2026-10-07) — a tab root's budget is one
+
+The budget of three was written for the drill-downs, where M4 had stood at seven. The tab roots fell under it too, and
+the UX review (item UX-05) read what had gathered there on renders at 412 and 360 px: M2 carried search, a document (the
+portable import) and a cloud-upload (the spreadsheet import); M7 search and the document; M9 an eye (the properties
+sheet), ↕ (the sort), ✓✓ (the selection) and the ⋮. The imports are done a few times a year, and the eye and the
+double tick have no literal reading — against G-12's own rule that a glyph must be literal and that an action a glyph
+does not carry belongs behind the ⋮ as a word. The roots are the family's first row on every visit, which is where an
+unreadable glyph costs most. Two ways were put to the owner on renders, both with the same bar:
+
+- **The bar on a tab root holds one glyph** — chosen. M1, M2, M7 and M9 show at most the magnifier and the ⋮ before
+  the sync glyph. The imports are words in the ⋮ (*Datei importieren* — M18's own title — and *Tabelle importieren*);
+  M9's sort and shown properties head the sheet behind its tag chips, renamed *Ansicht & Filter*, as a segment and
+  toggle chips (variant B, which retired the properties sheet; variant A kept that sheet behind a row); M9's selection
+  starts on a row's hold, which FR-24.9 already offered. With no tag the chip reads *Ansicht*, so the view never depends
+  on a tag existing. Cost: every one of those actions is one tap further away, and the selection now has a single,
+  gestural entrance.
+- *Leave the roots at three and move the glyphs page by page* — rejected: it is how the roots filled up, because
+  nothing said a root was different, and the next root action would land as a glyph again.
+
+The budget is held by `AppHeader` (`MAX_ROOT_BAR_ACTIONS`, read off the left slot: no back target means a root), not
+by the pages, so a root action registered tomorrow becomes a word without anyone remembering the rule. The *Neutral*
+consequence above — the roots' import controls becoming bar actions — is superseded: they are ⋮ entries. E2E-G12-02
+reads the bar of every root at both widths and finds each moved action as its ⋮ word.

@@ -84,14 +84,15 @@ const {
 } = useContextSearch()
 setHeaderTitle(() => t('templates.title'))
 
-// M18's portable import is a bar action, since the screen's name is the
-// frame's (ADR-050, FR-18.4).
+// M18's portable import is a ⋮ word, as on M2: a tab root carries search and
+// the ⋮, nothing else (G-12, ADR-050 amendment 1, FR-18.4).
 setHeaderActions(() => [
   action(),
   {
     id: 'm7-portable-import',
     icon: documentTextOutline,
-    label: t('templates.import'),
+    label: t('nav.title.importFile'),
+    overflow: true,
     onClick: () => router.push(PATH.importFile),
   },
 ])

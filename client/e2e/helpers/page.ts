@@ -240,3 +240,12 @@ export async function browserDay(page: Page, offset: number): Promise<string> {
 export async function setClock(page: Page, at: string): Promise<void> {
   await page.clock.setSystemTime(new Date(at))
 }
+
+/**
+ * Choose an entry behind the app bar's ⋮ (G-12). The entry wears the id the
+ * action would carry as a glyph, so a case names the action, not its shape.
+ */
+export async function chooseBarEntry(page: Page, id: string): Promise<void> {
+  await page.getByTestId('header-overflow').click()
+  await page.locator('ion-action-sheet').getByTestId(id).click()
+}

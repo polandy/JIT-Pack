@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import type { Page, WebSocketRoute } from '@playwright/test'
 
 import {
+  chooseBarEntry,
   addInComposer,
   test,
   expect,
@@ -1637,7 +1638,7 @@ test.describe('Single-User backend sync @single', () => {
     // be satisfied by data that was already there.
     await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
 
-    await pageA.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(pageA, 'm2-portable-import')
     await pageA.getByTestId('portable-paste').locator('textarea').fill(backup)
     await pageA.getByTestId('portable-preview').click()
     await expect(pageA.getByTestId('portable-restore')).toBeVisible()
