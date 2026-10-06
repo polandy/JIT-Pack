@@ -24,6 +24,12 @@ on:
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
 
+# A second push to the same PR supersedes its docs build, as in ci.yml; a
+# push to main is never cancelled (the deploy job has its own `pages` group).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # Allow the deploy job to publish to Pages via OIDC.
 permissions:
   contents: read
