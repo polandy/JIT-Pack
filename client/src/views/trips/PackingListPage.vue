@@ -693,6 +693,7 @@ setHeaderTitle(
         v-if="packingClosed && !closingPass && trip?.packing_closed_at"
         :at="trip.packing_closed_at"
         :skipped="closing.skippedCount.value"
+        :now="orchestrator.now()"
         @reopen="closing.onReopen"
       />
 

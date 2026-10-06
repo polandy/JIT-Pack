@@ -9,6 +9,8 @@ export interface TripScreenStub extends TripScreenSource {
   loadedTrips: Set<string>
   /** FR-7.11: the day a task's due date is read against. */
   today: () => string
+  /** The instant behind `today`, for a screen that shows a time or counts days. */
+  now: () => number
 }
 
 /** The day `tripScreenStub().today()` answers — a fixed one, so a due badge is a value. */
@@ -35,5 +37,6 @@ export function tripScreenStub(): TripScreenStub {
     drainTrip: vi.fn(() => Promise.resolve()),
     tripDataLoaded: vi.fn((tripId: string) => loadedTrips.has(tripId)),
     today: vi.fn(() => STUB_TODAY),
+    now: vi.fn(() => new Date(`${STUB_TODAY}T12:00:00`).getTime()),
   }
 }

@@ -1012,6 +1012,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // reach?" answers with the same date the refresh itself uses — two
     // clocks would let the warning and the behaviour disagree by a day.
     today,
+    // The instant behind it, for a screen that shows a time or counts days:
+    // a screen reading the real clock past this seam is what a test cannot
+    // set and what put FR-5.1 on the UTC day (`clockSeam.spec.ts`).
+    now,
     proposeTripRefresh: groupRefreshActions.proposeTripRefresh,
     acceptTripRefresh: groupRefreshActions.acceptTripRefresh,
     declineTripRefresh: groupRefreshActions.declineTripRefresh,

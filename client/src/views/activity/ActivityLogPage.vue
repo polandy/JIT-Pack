@@ -162,8 +162,12 @@ const days = computed(() =>
 )
 
 function dayTitle(day: string): string {
-  const today = localDay(new Date().toISOString())
-  const yesterday = localDay(new Date(Date.now() - 86_400_000).toISOString())
+  const now = new Date(orchestrator.now())
+  const today = localDay(now.toISOString())
+  // The calendar's day before, not 24 hours back: a DST night is 23 or 25.
+  const yesterday = localDay(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString(),
+  )
   if (day === today) return t('activity.today')
   if (day === yesterday) return t('activity.yesterday')
   return formatDay(day)

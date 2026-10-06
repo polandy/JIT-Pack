@@ -33,6 +33,7 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/useRowSelection'
 import { intlLocale, t } from '@/i18n'
 import { boughtStampText, type NameOf } from '@/lib/rowFacts'
+import { localDay } from '@/lib/taskDueText'
 import type { ShoppingLine } from '@/lib/shoppingSources'
 import { ITEM_MODE_BUY_BEFORE, type ShoppingMode } from '@/types/domain'
 
@@ -112,7 +113,7 @@ function againOf(line: ShoppingLine): AgainState {
 }
 
 /** FR-30.15: the fold's purchases under the day each was bought on. */
-const boughtDays = computed(() => boughtByDay(props.bought, new Date()))
+const boughtDays = computed(() => boughtByDay(props.bought, localDay(props.today)))
 
 /** *Heute*, *Gestern*, then the date — „Sa., 3. Okt.". */
 function dayTitle(day: BoughtDay): string {

@@ -97,7 +97,7 @@ function phaseOf(trip: Trip) {
   return { label: phaseWord(isPackingClosed(trip)), done: isPackingClosed(trip) }
 }
 function counterOf(trip: Trip) {
-  return dayText(tripDay(trip, new Date()))
+  return dayText(tripDay(trip, new Date(orchestrator.now())))
 }
 
 const activeTrips = computed(() =>
@@ -197,7 +197,7 @@ function travelerLine(trip: Trip): string | null {
   return names.length > 0 ? names.join(', ') : null
 }
 
-const greeting = computed(() => t(greetingKey(new Date().getHours())))
+const greeting = computed(() => t(greetingKey(new Date(orchestrator.now()).getHours())))
 
 // G-9/ADR-050: M1's name is its greeting, and the frame draws it like every
 // other screen's — a heading written into the content would sit 26 px lower
@@ -316,12 +316,13 @@ function noteLine(row: DashboardNoteRow): string {
 
 /**
  * FR-5.1: the things somebody put off until the last morning, on the morning
- * that is. `todayISO` is read once per mount rather than per render — a
- * computed calling `new Date()` re-answers on every unrelated store change,
- * and a dashboard left open overnight is a rarer case than a list that
- * flickers. It refreshes on the next visit, which is when the section matters.
+ * that is — the orchestrator's local day, the one every rule behind it reads.
+ * `todayISO` is read once per mount rather than per render: a computed asking
+ * the clock re-answers on every unrelated store change, and a dashboard left
+ * open overnight is a rarer case than a list that flickers. It refreshes on
+ * the next visit, which is when the section matters.
  */
-const todayISO = new Date().toISOString().slice(0, 10)
+const todayISO = orchestrator.today()
 const latePackers = computed(() => latePackersDepartingToday(sectionTrips.value, todayISO))
 
 /**
@@ -586,7 +587,10 @@ async function handleRefresh(event: CustomEvent) {
           <DashboardTasksBlock
             :trip-id="heroTrip.id"
             :phase-in-front="
-              taskPhaseInFront(tripDay(heroTrip, new Date()), isPackingClosed(heroTrip))
+              taskPhaseInFront(
+                tripDay(heroTrip, new Date(orchestrator.now())),
+                isPackingClosed(heroTrip),
+              )
             "
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
