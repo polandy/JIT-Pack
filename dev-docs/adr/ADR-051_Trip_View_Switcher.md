@@ -1,6 +1,6 @@
 # ADR-051: The trip's views are a switcher in the page — vs. entries behind the bar's ⋮
 
-**Status:** Accepted (2026-09-08); amended 2026-09-20 and twice on 2026-09-25
+**Status:** Accepted (2026-09-08); amended 2026-09-20, twice on 2026-09-25, 2026-09-27 and 2026-10-06
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
 contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
 FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,
@@ -218,6 +218,24 @@ stand there, overflows by 36 px. Three ways were put to the owner:
 The row now brings the pill you stand on inside its own clip when it overflows (`TripViewNav`'s `revealCurrent`, the
 row's own scroll offset, never the page's). E2E-G12-07 asserts, at 410 px, the six pills on one line with the current
 one wholly in view, and standing on the luggage the row scrolling with that pill wholly in view.
+
+**Amendment 5 (2026-10-06) — a row that scrolls says so.** Amendment 4 accepted the sideways scroll but not the cue
+for it, and the UX review (item UX-04) read the result on the render: a glyph cut at a hard edge, on one side or both,
+reads as a layout bug, and *Tagesplan* and *Essen* sat beyond M4's edge behind a gesture nothing invited. Measured on
+the sample trip, the row needs 458–547 px against 380 at 412 px and 328 at 360. The reveal also had a defect: it ran
+before the trip loaded, while the day plan and the meals were absent, and was not repeated when they joined, so on
+*Gepäck* and *Auswertung* the current pill stood wholly outside the row. Two ways were put to the owner on renders of
+the sample trip at 360 and 412 px:
+
+- **Keep the 48 px glyph pills and add the cue** — chosen: a 24 px fade on each side that holds more pills and on no
+  other, `scroll-snap-type: x proximity` so a swipe rests on a whole pill, and the current pill scrolled to the row's
+  centre as near as the ends allow, again whenever the pills change. Centred, it shows what lies on either side of
+  where you are. Cost: the row still does not show every destination at once on the phone it is laid out for.
+- *40 px glyph pills* — rejected: still 41 px too wide for M4 at 412 px (421 needed; 406 with 4 px gaps), so the row
+  scrolls anyway and needs the same cue. Fitting eight pills takes glyph pills of 32–36 px, below G-13's tap target.
+
+E2E-G12-07 now measures, at 360 and 412 px, the row resting at its start on the packing list (faded at the end), at
+its end on the luggage (faded at the start), and centred on the notes (faded on both sides).
 
 ## Consequences
 

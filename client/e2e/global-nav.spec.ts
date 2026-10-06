@@ -92,6 +92,49 @@ async function dismissMenu(page: Page) {
  */
 const PIXEL_9_PRO = { width: 410, height: 914 }
 
+/**
+ * The widths the switcher's scroll cue is measured at (ADR-051 amendment 5):
+ * the narrowest phone still in use and the Pixel 9 Pro's rendered width.
+ */
+const CUE_PHONES = [
+  { width: 360, height: 800 },
+  { width: 412, height: 915 },
+] as const
+
+/** Where the trip switcher's row rests, and on which sides it fades — both read off the rendered row. */
+interface RowCue {
+  /**
+   * `centred` on the current pill, `start`/`end` where the row is held at an
+   * end because centring would pass it, otherwise how far off it rests.
+   */
+  rest: string
+  /** The sides the computed `mask-image` fades out. */
+  faded: 'none' | 'start' | 'end' | 'both'
+}
+
+function rowCue(page: Page): Promise<RowCue> {
+  return page.getByTestId('trip-views').evaluate((nav): RowCue => {
+    const box = nav.getBoundingClientRect()
+    const pill = nav.querySelector('[aria-current="page"]')!.getBoundingClientRect()
+    const offCentre = pill.left + pill.width / 2 - (box.left + box.width / 2)
+    const max = nav.scrollWidth - nav.clientWidth
+    const rest =
+      Math.abs(offCentre) <= 1
+        ? 'centred'
+        : offCentre < 0 && nav.scrollLeft === 0
+          ? 'start'
+          : offCentre > 0 && nav.scrollLeft >= max - 1
+            ? 'end'
+            : `${Math.round(offCentre)} px off centre at ${nav.scrollLeft} of ${max}`
+    // A gradient's transparent stop computes to rgba(0, 0, 0, 0): one per faded side.
+    const mask = getComputedStyle(nav).maskImage
+    const clear = mask.split('rgba(0, 0, 0, 0)').length - 1
+    const faded =
+      clear === 0 ? 'none' : clear === 2 ? 'both' : mask.includes('to left') ? 'end' : 'start'
+    return { rest, faded }
+  })
+}
+
 const ANCHOR_RUN = ['trips', 'templates', 'items', 'trips', 'dashboard', 'trips'] as const
 
 function visiblePages(page: Page) {
@@ -909,7 +952,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   test("E2E-G12-07: the trip's views are named, and reachable from each other @shopping @planner", async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
+    // Both dates, so the day plan and the meals stand in the row too: eight
+    // pills, the row's longest shape, and one with a middle to centre in.
+    await createTripViaWizard(page, { ...TRIP, startDate: '2026-12-20' })
 
     // Named, not merely present — a glyph is read by its name — and the view
     // you stand on says its word on screen, because a row of glyphs that
@@ -929,8 +974,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     // The row is measured rather than assumed, at the width it is laid out
     // for — the Pixel 9 Pro's 410 px (ADR-051). Six pills fill it to the edge
-    // and a seventh (a view that joins the row) does not fit, so the row
-    // scrolls sideways (ADR-051 amendment 4). What holds in every shape: one
+    // and more do not fit, so the row scrolls sideways (ADR-051 amendment 4). What holds in every shape: one
     // line, since a row that wrapped would have „fitted" by every width
     // assertion on its own, and the pill you stand on wholly in view — inside
     // the row's own clip, not merely the viewport's.
@@ -959,6 +1003,26 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     expect(await row.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(true)
     await expect(page.getByTestId('trip-view-luggage')).toBeInViewport({ ratio: 1 })
     await oneLine([...pillIds, 'trip-view-luggage'])
+
+    // That the row scrolls must be visible (ADR-051 amendment 5): the pill you
+    // stand on rests at the row's centre, as near as the row's ends allow, and
+    // the row fades out on exactly the sides that hold more — a glyph cut at a
+    // hard edge read as a layout bug. Measured at both phone widths, at the
+    // row's start, its end and its middle.
+    for (const phone of CUE_PHONES) {
+      await page.setViewportSize(phone)
+      for (const [view, cue] of [
+        ['packing', { rest: 'start', faded: 'end' }],
+        ['luggage', { rest: 'end', faded: 'start' }],
+        ['notes', { rest: 'centred', faded: 'both' }],
+      ] as const) {
+        await openTripView(page, view)
+        await expect
+          .poll(() => rowCue(page), { message: `${view} at ${phone.width} px` })
+          .toEqual(cue)
+      }
+    }
+    await openTripView(page, 'packing')
     await page.setViewportSize(viewport)
     await openTripView(page, 'packing')
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
