@@ -176,6 +176,16 @@ before and on the day itself, the person who buys it is reminded — or everyone
 (see [Notifications & Push](notifications.md)),
 and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkäufe fällig"*).
 
+## The overview during the trip
+
+The overview's big card shows the trip that is next. Before the trip it is about packing: how much is packed, what is
+still open, and the shopping card under it. **From the trip's first day** — or earlier, once you tap **Packen
+abschliessen** — the card says **Vor Ort** and works the day in place, in this order: **Heute** (the day plan),
+**Heute essen**, the shopping list and the tasks. Tick things off and add new ones right there. If the packing is not
+finished, the packing list is one line at the bottom (*10/26 gepackt · 13 offen · Packliste*); tap it to finish
+packing. A trip that has not started yet shows what is left to buy for it under **Geplant**, without a field — add to
+that list on the trip's shopping list.
+
 ## When the packing is finished
 
 **Packen abschliessen** on the packing list ends *before the trip*:

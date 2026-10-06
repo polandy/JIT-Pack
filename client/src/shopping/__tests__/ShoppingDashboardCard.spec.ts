@@ -250,19 +250,26 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
   })
 
   it('adds an entry to the list it shows', async () => {
-    const card = mountCard({ planned: true, sources: [source({ buy_before: [line('Adapter')] })] })
+    const card = mountCard({ sources: [source({ buy_local: [line('Adapter')] })] })
     await card.get('[data-testid="dash-shop-add-input"]').setValue('  Vignette ')
     await card.get('[data-testid="dash-shop-add"]').trigger('submit')
 
     expect(written).toHaveLength(1)
     expect(written[0]).toMatchObject({
       op: 'insert',
-      fields: { trip_id: 't1', name: 'Vignette', list: 'buy_before' },
+      fields: { trip_id: 't1', name: 'Vignette', list: 'buy_local' },
     })
     expect(rows(card)).toEqual(['Vignette', 'Adapter'])
     expect(
       (card.get('[data-testid="dash-shop-add-input"]').element as HTMLInputElement).value,
     ).toBe('')
+  })
+
+  it('shows a planned trip its lines without a field — M6 takes the entry (UX-02)', () => {
+    const card = mountCard({ planned: true, sources: [source({ buy_before: [line('Adapter')] })] })
+    expect(rows(card)).toEqual(['Adapter'])
+    expect(card.find('[data-testid="dash-shop-add"]').exists()).toBe(false)
+    expect(card.find('[data-testid="dash-shop-more"]').exists()).toBe(true)
   })
 
   it('shows no card for a planned trip with nothing to buy — once its rows are here', async () => {

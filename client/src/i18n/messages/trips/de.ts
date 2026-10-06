@@ -367,6 +367,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'dashboard.dayRemaining': 'noch {n} Tag | noch {n} Tage',
   'dashboard.openPackingList': 'Packliste öffnen',
   'dashboard.openCount': '{n} offen',
+  'dashboard.packingList': 'Packliste',
   'dashboard.moreItems': '+{n} weitere',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).

@@ -11,7 +11,10 @@
  * It shows one of the two lists — the one that is *now*: at the destination
  * for a running trip, before departure for a planned one — with a chip to
  * switch, and at most five lines. A planned trip with nothing to buy shows no
- * card at all, so the list of what comes next stays a list.
+ * card at all, so the list of what comes next stays a list; one with
+ * something shows its lines without a field — a second text field on the
+ * start screen, for a trip months away, is one too many, and M6 takes the
+ * entry.
  *
  * It lives in the shopping module and reaches M1 through `lib/tripCards.ts`
  * (FR-30.3): M1 renders it without importing it.
@@ -216,7 +219,7 @@ function switchTo(which: ShoppingMode) {
       </div>
     </div>
 
-    <form class="add" data-testid="dash-shop-add" @submit.prevent="add">
+    <form v-if="!planned" class="add" data-testid="dash-shop-add" @submit.prevent="add">
       <input
         v-model="draft"
         :aria-label="t('shopping.addPlaceholder')"

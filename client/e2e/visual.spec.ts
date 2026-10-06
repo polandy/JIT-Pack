@@ -502,10 +502,12 @@ test('E2E-VIS-12: visual: M1 below the hero @local @visual', async ({ page, seed
   await seedMode({ mode: 'local' })
   // Every trip carries a departure date: which one is the hero is
   // `byDepartureSoonestFirst`, and a dateless pair orders by nothing — the
-  // trap E2E-M1-09 describes.
+  // trap E2E-M1-09 describes. The hero's trip has not left at BASELINE_NOW:
+  // a trip on its days takes its cards into the hero (FR-7.10), and this
+  // shot is of the cards below it.
   await createTripViaWizard(page, {
     name: 'Samedan 2026',
-    startDate: '2026-09-20',
+    startDate: '2026-10-20',
     travelers: ['Andy', 'Mia'],
   })
   for (const name of ['Zelt', 'Schlafsack']) {

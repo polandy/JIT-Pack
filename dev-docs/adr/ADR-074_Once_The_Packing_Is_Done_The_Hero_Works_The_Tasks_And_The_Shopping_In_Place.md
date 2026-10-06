@@ -100,6 +100,27 @@ actions is amended to say *except the shopping card and the hero's two blocks*.
 **Neutral**
 - No schema change and no new table; the portable backup is unaffected.
 
+## Amendment 1 — the date moves the hero on, not only the stamp (2026-10-06)
+
+**Context.** The hero switched on the packing stamp alone. A family that never taps *Packen abschliessen* — the
+common case, since a bag is never quite finished — opened M1 on day three of fifteen to a packing ring and the word
+*Packen*, a separate *Aufgaben* card above it, and the day's plan, its meals and the village shopping below it: an
+order for the week before the trip, held for the whole stay (UX-review item UX-02).
+
+**Options.**
+- *Stamp only, and nudge* — from the first day the hero offers *Packen abschliessen?*. Rejected: it makes the family
+  do something for the screen to become right, and a declined nudge leaves it wrong.
+- *A separate day card above the packing hero.* Rejected: a second hero is a second answer to what you are on.
+- *The date moves it too* (`pastPacking`: the stamp, or the first day has come) — accepted. The blocks lead with the
+  day (*Heute*, *Heute essen*), then *Einkauf*, then *Aufgaben*; an unfinished packing becomes its figure in the foot
+  control, still one tap from M4.
+
+**Cost.** The phase word on a card below the hero can now say *Vor Ort* beside a ring that is not full, which this
+ADR's Consequences had avoided; both statements are true once the trip has left. The stamp keeps its own meaning for
+FR-7.12 (*before* closes) and for a trip whose packing is finished ahead of its first day. A planned trip's shopping
+card on M1 loses its field in the same change (FR-30.7): two composers on the start screen, one for a trip months away,
+was the other half of the finding.
+
 ## Revisit Trigger
 
 The owner asks for the packing list's own rows to be worked from the dashboard as well — that would put a third workable
