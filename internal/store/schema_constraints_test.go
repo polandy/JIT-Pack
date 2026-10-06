@@ -19,7 +19,7 @@ import (
 // accepting so the next reader does not "tighten" it back.
 
 // FR-4.5: a trip has exactly one Owner, the creator. Clients cannot reach
-// the role at all (authorizeMaster refuses any client-sent 'owner' and
+// the role at all (memberAdministration refuses any client-sent 'owner' and
 // freezes the creator's row), so the partial unique index below can only
 // ever be hit by a server bug — which is exactly what it is there to catch.
 func TestSchema_TripHasExactlyOneOwner(t *testing.T) {
