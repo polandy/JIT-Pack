@@ -227,9 +227,11 @@ These patterns apply to every screen and are specified once.
   there, from the same `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view
   cannot be named differently in the two. The row is laid out for the Pixel 9 Pro's 410 CSS px (ADR-051); six pills fill
   it, and where they do not fit — a narrower phone, a longer word, a seventh pill while standing on one of the ⋮'s views
-  — **the row scrolls sideways, with the pill you stand on scrolled into view** (amendment 4; E2E-G12-07 measures both
-  shapes). **The notes' badge counts what is new for me, never the total, in the action colour** (`count-new`) where
-  every other badge is grey.
+  — **the row scrolls sideways, with the pill you stand on scrolled to its centre** (amendments 4 and 5; E2E-G12-07
+  measures both shapes), as near as the row's ends allow. **A 24 px fade marks each side that holds more pills**, and
+  a swipe rests on a whole pill (`scroll-snap-type: x proximity`), so a glyph is never cut at a hard edge. **The notes'
+  badge counts what is new for me, never the total, in the action colour** (`count-new`) where every other badge is
+  grey.
 * **The bar's cluster is capped at three glyphs (ADR-050).** A page describes its actions in registration order (G-12);
   the bar renders the first three that are not marked for the ⋮ and puts everything after them into the menu, ahead of
   the actions the page marked itself. Without a cap a screen gathers glyphs one at a time, because nothing says what
