@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * FR-25.28 — the for-whom seat: the row's leading *who* column, and the door
- * to the strip. A shared row shows an empty seat (FR-25.25's idiom, mirrored
- * to the other edge), a lone per-person row its traveler, and a cluster head
- * how many travelers it holds — the faces themselves are the child rows under
- * it, and the column stays one avatar wide so the names keep their x (FR-21.19).
+ * FR-25.28 — the for-whom seat: the door to the strip, laid over the row's
+ * lead slot. It draws nothing of its own — the caller puts in what the slot
+ * already holds, the item's mark or a lone per-person row's face — because a
+ * glyph saying *shared* on nine rows in ten would cost every name a column
+ * (UX-03). The row's press-and-hold menu names the same door (*Für wen …*).
  *
  * It is a `role="button"` span rather than the native element because one of
  * its two hosts, the cluster head, *is* one, and interactive content may not nest.
@@ -14,20 +14,11 @@
  * path, so without the class a tap on the seat rippled the whole row — which
  * says *this opens the item*, the one thing the seat does not do.
  */
-import { IonIcon } from '@ionic/vue'
-import { peopleOutline } from 'ionicons/icons'
-
-import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
-import type { Traveler } from '@/types/domain'
 
 defineProps<{
   /** The item's name, for the accessible label. */
   itemName: string
-  /** How many travelers the item is for; 0 is *gemeinsam*. */
-  memberCount: number
-  /** The one traveler of a lone per-person row; a cluster head passes none. */
-  traveler?: Traveler | null
   open: boolean
   testKey: string
 }>()
@@ -52,20 +43,19 @@ const emit = defineEmits<{ toggle: [] }>()
     @keydown.space.stop.prevent="emit('toggle')"
     @pointerdown.stop
   >
-    <UserAvatar v-if="traveler" :name="traveler.name" :seed="traveler.id" />
-    <span v-else-if="memberCount > 0" class="count jp-num">{{ memberCount }}</span>
-    <IonIcon v-else :icon="peopleOutline" class="empty" aria-hidden="true" />
+    <slot />
   </span>
 </template>
 
 <style scoped>
+/* The lead slot's own box — the mark's 22px + 10px, the face's 24px + 8px —
+   so a name starts at one x whether its slot is a door or not (FR-21.19). */
 .seat {
   flex: none;
   display: grid;
   place-items: center;
-  width: 28px;
+  width: 32px;
   height: 40px;
-  margin-inline-end: 4px;
   border-radius: var(--jp-r-pill);
   cursor: pointer;
 }
@@ -73,25 +63,5 @@ const emit = defineEmits<{ toggle: [] }>()
 .seat.open,
 .seat.ion-activated {
   background: color-mix(in srgb, var(--jp-action) 16%, transparent);
-}
-
-.empty {
-  font-size: var(--jp-icon-xs);
-  color: var(--ct-overlay0);
-  border: 1px dashed var(--ct-surface2);
-  border-radius: 50%;
-  padding: 4px;
-}
-
-.count {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--jp-action);
-  color: var(--ct-on-accent);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-bold);
 }
 </style>

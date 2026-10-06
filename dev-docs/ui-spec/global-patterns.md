@@ -536,6 +536,9 @@ These patterns apply to every screen and are specified once.
     is presentational for assistive technology — the row's name is its accessible name, and no count, filter or state is
     ever expressed by a mark alone. The FR-25.4 procurement glyphs (🧳/🛒/📍) and the ⏰ late flag are **not** marks: they
     are a fixed app-owned state vocabulary, and they are the ceiling rather than a precedent.
+  * **On M4 the slot is one slot whatever else it does** (UX-03). Where the list carries FR-25.28's *who* column the
+    slot is also the door to the for-whom strip and a lone per-person row's face takes the mark's place; no glyph is
+    drawn beside it, so the name column keeps every pixel the slot does not need (UX-9).
   * **The emoji face is served by the instance**, subsetted to the picker's curated set (FR-28.6) — the same rule as the
     two text faces (G-13). Platform emoji would render a *shared* list as a different picture per device, which is the
     failure this pattern exists to avoid; being available offline is the second reason, not the first.

@@ -27,6 +27,7 @@ function ctx(overrides: Partial<RowMenuContext> = {}): RowMenuContext {
     canTakeOver: false,
     mine: false,
     judgeable: false,
+    forWhom: false,
     ...overrides,
   }
 }
@@ -86,6 +87,30 @@ const cases: Case[] = [
     item: SKIPPED,
     ctx: {},
     want: ['unskip', 'remove'],
+  },
+  {
+    name: 'a list with the who column offers „Für wen …“ after the amount — the seat is no longer drawn (FR-25.28, UX-03)',
+    item: OPEN,
+    ctx: { forWhom: true },
+    want: ['quantity', 'forWhom', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'remove'],
+  },
+  {
+    name: 'a skipped row offers „Für wen …“ after the way back — the strip asks before taking it along (FR-25.28)',
+    item: SKIPPED,
+    ctx: { forWhom: true },
+    want: ['unskip', 'forWhom', 'remove'],
+  },
+  {
+    name: 'a row I hold offers no „Für wen …“ — only the release (FR-25.28, G-3)',
+    item: OPEN,
+    ctx: { mine: true, forWhom: true },
+    want: ['release'],
+  },
+  {
+    name: 'somebody else’s row offers no „Für wen …“ — its seat still opens the strip to read (FR-25.28, G-3)',
+    item: OPEN,
+    ctx: { locked: true, canTakeOver: true, forWhom: true },
+    want: ['takeover'],
   },
   {
     name: 'a row I hold offers only the release — packing it is the checkbox’s job',

@@ -25,8 +25,6 @@ const props = defineProps<{
   groups: PackingGroup[]
   participants: TripParticipant[]
   closingPass: boolean
-  /** FR-25.28's *who* column. */
-  seatColumn: boolean
   facts: RowFacts
   forWhom: ForWhom
   /** FR-5.5's press and hold, on a row and on a cluster head. */
@@ -172,7 +170,6 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
                 :traveler="child.traveler"
                 :edge-avatar="facts.edgeAvatarFor(child.item)"
                 :assignable="facts.assignableRow(child.item)"
-                :seat-column="seatColumn"
                 @assign="$emit('assign', child.item, child.traveler?.name)"
                 @open="$emit('open', child.item.id)"
                 @menu="$emit('rowMenu', child.item)"

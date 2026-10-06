@@ -53,6 +53,8 @@ export interface ClusterMenuContext {
   canAssign: boolean
   /** FR-9.3's window, exactly as a row's menu reads it. */
   judgeable: boolean
+  /** FR-25.28: the list carries the *who* column, exactly as a row's menu reads it. */
+  forWhom: boolean
 }
 
 /**
@@ -64,6 +66,7 @@ const CLUSTER_ORDER: readonly ClusterMenuAction[] = [
   'release',
   'unskip',
   'quantity',
+  'forWhom',
   'packingNow',
   'skip',
   'buyLocal',
@@ -96,6 +99,7 @@ function rowOffers(instance: ClusterInstance, ctx: ClusterMenuContext): RowMenuA
     canTakeOver: false,
     mine: instance.lockedBy === null && instance.mine,
     judgeable: ctx.judgeable,
+    forWhom: ctx.forWhom,
   })
 }
 

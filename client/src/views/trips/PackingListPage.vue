@@ -238,7 +238,7 @@ const forWhom = useForWhom(core, view)
 const facts = useRowFacts(core)
 const acts = useRowActions(core, facts, { openItemId, closeItem })
 const quantity = useRowQuantity(core)
-const menus = usePackingMenus(core, acts, quantity)
+const menus = usePackingMenus(core, acts, quantity, forWhom)
 const browse = useBrowseAdd(core, facts)
 const tasks = usePackingTasks(core)
 const closing = usePackingClose(core)
@@ -732,7 +732,6 @@ setHeaderTitle(
         :groups="view.groups"
         :participants="participants"
         :closing-pass="closingPass"
-        :seat-column="forWhom.seatColumn.value"
         :facts="facts"
         :for-whom="forWhom"
         :row-hold="menus.hold"

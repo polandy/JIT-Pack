@@ -893,6 +893,7 @@ export function excursionMenuEntries(line: ExcursionItem): ExcursionMenuAction[]
     canTakeOver: false,
     mine: false,
     judgeable: false,
+    forWhom: false,
   }).filter((action) => !SUITCASE_ONLY.has(action))
   const extra: ExcursionMenuAction[] = []
   if (line.state !== STATE_SKIPPED && line.mode === ITEM_MODE_BUY_LOCAL) {

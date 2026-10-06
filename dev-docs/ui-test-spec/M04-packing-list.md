@@ -189,6 +189,16 @@
   focus moved to the last row's first control, which the browser scrolls into view. The scroll is asserted (well past
   the yield threshold), the window is closed, and the header line does not change state once. Red before the rule on
   both engines: one class change, the head yielded under a focus.
+* **E2E-M4-153** `local` (UX-03, FR-25.28, FR-21.19) — **implemented** (`packing-list-shape.spec.ts`): at 412 px, the
+  sample trip's *Kleidung* group imported as the seed writes it (a shared stepper row, a three- and a two-person
+  cluster, three travelers) and a lone per-person row in another group. Every item row and head carries its seat; the
+  seat is the row's mark (🧦, no glyph of its own) or, on the lone row, the traveler's face with no mark slot beside it;
+  the heads' people chips read *3* and *2*. Measured on rendered boxes: every name — rows, heads, the lone row — at one
+  x, one slot (32 px) in from the card; the lead column 32 px on every kind; and the name column from the name to the
+  row's other edge at least 205 px on *Kleidung* (175–198 px with the seat beside the mark).
+* **E2E-M4-154** `local` (FR-25.28, UX-03) — **implemented** (`packing-list-shape.spec.ts`): *For whom …* in a shared
+  row's press-and-hold menu opens its strip under it and lights its seat; the same entry in a cluster head's menu moves
+  the one strip under the head.
 * **E2E-M4-127** `local` (FR-25.2) — **implemented** (`packing-list-sheet.spec.ts`): tapping the words
   of the *Erledigte* switch turns it on and it stays on — the regression it guards is a tick that comes and goes, the
   label forwarding the tap to a checkbox that has already toggled itself. Closing the sheet shows the packed row.
@@ -338,14 +348,14 @@
 * **E2E-M4-100** `local` (FR-25.28) — **implemented** (`e2e/membership.spec.ts`): the for-whom seat on a shared row
   unfolds the strip **under the row**, *Gemeinsam* lit and the summary saying so. Lighting one traveler renames the row
   *„… · Andy"* and lighting a second turns it into a cluster — a different element under a different list key — and the
-  strip is **still open** after each, without a second tap: it is held by the item, not by the row. The seat then reads
-  **2**, M5 and `ion-alert` were never presented, another row's seat **moves** the strip rather than opening a second
-  one, and the seat that opened it folds it. A build that animates the old row out beside its replacement has the
-  control twice for the length of the collapse, and this case fails on a strict-mode violation — the defect, not a test
-  artefact. Read at once as the strip opens, while the rows under it are still sliding down, **nothing paints over the
-  strip's foot** — rows drawn across it for 0.3 s look like a background too transparent to hide them; mutation-proved
-  by removing the strip's stacking. And at TRIP's three travelers **every name under a face is whole**, not ellipsized —
-  the line is laid out for three.
+  strip is **still open** after each, without a second tap: it is held by the item, not by the row. The head's people
+  chip then reads **2** (UX-03), M5 and `ion-alert` were never presented, another row's seat **moves** the strip rather
+  than opening a second one, and the seat that opened it folds it. A build that animates the old row out beside its
+  replacement has the control twice for the length of the collapse, and this case fails on a strict-mode violation — the
+  defect, not a test artefact. Read at once as the strip opens, while the rows under it are still sliding down,
+  **nothing paints over the strip's foot** — rows drawn across it for 0.3 s look like a background too transparent to
+  hide them; mutation-proved by removing the strip's stacking. And at TRIP's three travelers **every name under a face
+  is whole**, not ellipsized — the line is laid out for three.
 * **E2E-M4-101** `local` (FR-25.28) — **implemented** (`e2e/membership.spec.ts`): the last traveler
   leaving makes the item *gemeinsam* **without a question** — FR-25.28's narrowing of FR-25.21 (iii). The row is given
   progress first (`1/3`), because that is what a silent path could lose: afterwards *Gemeinsam* is lit, no question

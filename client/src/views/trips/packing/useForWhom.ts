@@ -6,6 +6,7 @@ import { computed, ref, type ComputedRef } from 'vue'
 
 import { forWhomColumn, membershipKey } from '@/domain/membership'
 import { isReshaped, type PackingEntry, type PackingView } from '@/domain/packingView'
+import type { TripItem } from '@/types/domain'
 
 import type { PackingCore } from './usePackingCore'
 
@@ -74,7 +75,18 @@ export function useForWhom(core: PackingCore, view: ComputedRef<PackingView>) {
   }
 
   function toggle(entry: PackingEntry) {
-    const key = keyOf(entry)
+    toggleKey(keyOf(entry))
+  }
+
+  /**
+   * The row menu's door (FR-25.28): it knows the row, not the entry it stands
+   * in, and a child row's item is its head's — the strip hangs under that.
+   */
+  function toggleItem(item: TripItem) {
+    toggleKey(membershipKey(item))
+  }
+
+  function toggleKey(key: string | null) {
     openKey.value = openKey.value === key ? null : key
   }
 
@@ -87,5 +99,5 @@ export function useForWhom(core: PackingCore, view: ComputedRef<PackingView>) {
     return isReshaped({ key, rowId }, shown.value, existingRowIds.value)
   }
 
-  return { seatColumn, keyOf, openOn, seatFor, toggle, reshaped }
+  return { seatColumn, keyOf, openOn, seatFor, toggle, toggleItem, reshaped }
 }

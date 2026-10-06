@@ -46,7 +46,7 @@ function instance(spec: InstanceSpec = {}): ClusterInstance {
 }
 
 function ctx(overrides: Partial<ClusterMenuContext> = {}): ClusterMenuContext {
-  return { closingPass: false, canAssign: false, judgeable: false, ...overrides }
+  return { closingPass: false, canAssign: false, judgeable: false, forWhom: false, ...overrides }
 }
 
 /** What an open cluster offers when the flag is still off, as a row does. */
@@ -90,6 +90,24 @@ const menuCases: MenuCase[] = [
     instances: [instance({ id: 'a' }), instance({ id: 'b' })],
     ctx: { canAssign: true },
     want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'assignAll', 'remove'],
+  },
+  {
+    name: 'a head on a list with the who column offers „Für wen …“ after the amount (FR-25.28, UX-03)',
+    instances: [instance({ id: 'a' }), instance({ id: 'b' })],
+    ctx: { forWhom: true },
+    want: ['quantity', 'forWhom', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'remove'],
+  },
+  {
+    name: 'a head I am packing through offers no „Für wen …“, as my row does not (FR-25.28, G-3)',
+    instances: [instance({ id: 'a', mine: true }), instance({ id: 'b', mine: true })],
+    ctx: { forWhom: true },
+    want: ['release', 'latePackerOn'],
+  },
+  {
+    name: 'a head held through by other people offers no „Für wen …“ either — its seat still reads (G-3)',
+    instances: [instance({ id: 'a', lockedBy: 'Sia' }), instance({ id: 'b', lockedBy: 'Sia' })],
+    ctx: { forWhom: true },
+    want: [],
   },
   {
     name: 'the closing pass takes the head’s menu away, exactly as it takes a row’s (FR-9.3)',

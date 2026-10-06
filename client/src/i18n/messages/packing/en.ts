@@ -36,6 +36,8 @@ export const packingEn = {
   'packing.clusterLatePackerOff': 'Late packer off for everyone',
   'packing.clusterAssignAll': 'Assign all to …',
   'packing.clusterScope': '{n} row | {n} rows',
+  'packing.forWhomAction': 'For whom …',
+  'packing.clusterPeople': '{n} person | {n} people',
   'packing.clusterPartialName': '{name} ({n} of {total})',
   'packing.fanOutApplied': '{n} row changed | {n} rows changed',
   // Never silently partial (G-3): the count says how much landed, the names

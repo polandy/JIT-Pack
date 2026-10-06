@@ -60,6 +60,27 @@ describe('ClusterHead (FR-25.1)', () => {
     expect(wrapper.text()).toContain('⛺')
   })
 
+  /**
+   * UX-03: the number of people carrying one is a grey fact chip after the
+   * name; the seat is the head's mark and nothing else, so no filled circle
+   * stands in the lead column to be read as an unread badge.
+   */
+  it('says how many carry one in a chip after the name; the seat holds the mark alone (FR-25.28, UX-03)', () => {
+    const wrapper = mountHead({ faces, master, seat: { open: false } })
+    const chip = wrapper.get('[data-testid="m4-cluster-people-Zelt"]')
+    expect(chip.text()).toBe('2')
+    expect(chip.element.parentElement?.classList.contains('cluster-title')).toBe(true)
+    const seat = wrapper.get('[data-testid="for-whom-seat-Zelt"]')
+    expect(seat.text()).toBe('⛺')
+  })
+
+  it('a tap on its seat folds the strip, not the cluster (FR-25.28, FR-25.23)', async () => {
+    const wrapper = mountHead({ seat: { open: false } })
+    await wrapper.get('[data-testid="for-whom-seat-Zelt"]').trigger('click')
+    expect(wrapper.emitted('forWhom')).toHaveLength(1)
+    expect(wrapper.emitted('toggle')).toBeUndefined()
+  })
+
   it('keeps the mark’s column even when the item has no mark', () => {
     // The slot holds its width regardless — otherwise a list where most rows
     // carry no mark starts its names at two different x positions.

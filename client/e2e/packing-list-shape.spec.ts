@@ -801,4 +801,149 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     expect(Math.round(a.x)).toBe(Math.round(b.x))
     expect(Math.round(a.x + a.width)).toBe(Math.round(b.x + b.width))
   })
+  /**
+   * The sample trip's *Kleidung* group, as the dev seed writes it: a shared
+   * row on a stepper, a three-person cluster, a two-person one to be bought —
+   * and a lone per-person row in another group, the shape whose face shares
+   * the lead slot. Imported, because the seed is a portable document too and
+   * a quantity above one can only come from one (spec §2.4). The shared row
+   * resolves to an inventory item, which is where its mark comes from
+   * (FR-28.7); the per-person rows stay ad-hoc so they share one key and
+   * cluster.
+   */
+  const KLEIDUNG_TRIP = [
+    'kind: trip',
+    'schema_version: 1',
+    'name: Samedan Sommer',
+    'end_date: "2026-12-31"',
+    'travelers:',
+    '  - name: Andy',
+    '  - name: Sia',
+    '  - name: Leonardo',
+    'containers: []',
+    'items:',
+    '  - { name: Wandersocken, icon: "🧦", from_inventory: true, quantity: 6, packed_count: 4, category: Kleidung, mode: pack }',
+    ...['Andy', 'Sia', 'Leonardo'].map(
+      (who) => `  - { name: Regenjacke, traveler: ${who}, category: Kleidung, mode: pack }`,
+    ),
+    ...['Sia', 'Leonardo'].map(
+      (who) => `  - { name: Sonnenhut, traveler: ${who}, category: Kleidung, mode: buy_before }`,
+    ),
+    '  - { name: Wanderstöcke, traveler: Andy, category: Aktivität, mode: pack }',
+  ].join('\n')
+
+  async function importKleidung(page: Page): Promise<Locator> {
+    await page.goto(PATH.importFile)
+    await page.getByTestId('portable-paste').locator('textarea').fill(KLEIDUNG_TRIP)
+    await page.getByTestId('portable-preview').click()
+    await page.getByTestId('portable-commit').click()
+    const group = visible(page).getByTestId('m4-group-Kleidung')
+    await expect(group).toBeVisible()
+    return visible(page)
+  }
+
+  /** The reference device's width, at which UX-03 measured the names. */
+  const PIXEL_9_PRO = { width: 412, height: 915 }
+
+  /**
+   * One lead slot — the mark, or the face in its place (FR-21.19). The seat
+   * column beside it cost every name 32 px: at 412 px the names started at
+   * x 101 and *Kleidung*'s columns were 175–198 px wide.
+   */
+  const LEAD_SLOT_PX = 32
+  const KLEIDUNG_NAME_MIN_PX = 205
+
+  /**
+   * E2E-M4-153 (UX-03, FR-25.28, FR-21.19): on a list with the *who* column
+   * every name still starts one lead slot in. The seat is the row's mark or
+   * face and draws no glyph of its own; the head's number is a chip after its
+   * name. The names are measured on rendered boxes, against the card's edge,
+   * so a wider seat or a second column fails here before anyone sees it.
+   */
+  test('E2E-M4-153: the who column costs the names nothing — one lead slot on Kleidung', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.setViewportSize(PIXEL_9_PRO)
+    const list = await importKleidung(page)
+
+    const socks = list.getByTestId('m4-row-Wandersocken')
+    const jacket = list.getByTestId('m4-cluster-Regenjacke')
+    const hat = list.getByTestId('m4-cluster-Sonnenhut')
+    const lone = list.getByTestId('m4-row-Wanderstöcke')
+
+    // The who column is on: every item row and head carries its seat — the
+    // positive signal the measurements below are about that list.
+    for (const name of ['Wandersocken', 'Regenjacke', 'Sonnenhut', 'Wanderstöcke']) {
+      await expect(list.getByTestId(`for-whom-seat-${name}`)).toBeVisible()
+    }
+    // The seat is the mark, or the face on the lone row — never a glyph of its own.
+    await expect(list.getByTestId('for-whom-seat-Wandersocken')).toHaveText('🧦')
+    await expect(list.getByTestId('for-whom-seat-Wandersocken').locator('ion-icon')).toHaveCount(0)
+    await expect(
+      list.getByTestId('for-whom-seat-Wanderstöcke').getByTestId('user-avatar'),
+    ).toBeVisible()
+    await expect(lone.getByTestId('item-mark-slot')).toHaveCount(0)
+    // The head's number stands after its name.
+    await expect(list.getByTestId('m4-cluster-people-Regenjacke')).toHaveText('3')
+    await expect(list.getByTestId('m4-cluster-people-Sonnenhut')).toHaveText('2')
+
+    const card = (await list
+      .locator('[data-testid="m4-group-Kleidung"] + .group-card')
+      .boundingBox())!
+    const box = async (l: Locator) => (await l.boundingBox())!
+    const names = {
+      socks: await box(socks.locator('h3').first()),
+      jacket: await box(jacket.locator('.cluster-name')),
+      hat: await box(hat.locator('.cluster-name')),
+      lone: await box(lone.locator('h3').first()),
+    }
+    // One x for every name, across kinds and groups (FR-21.19/21.20).
+    for (const n of [names.jacket, names.hat, names.lone]) expect(n.x).toBe(names.socks.x)
+
+    // One slot wide: the lead column is the mark's box, seat or no seat.
+    for (const row of [socks, lone]) {
+      expect(Math.round((await box(row.locator('.row-lead'))).width)).toBe(LEAD_SLOT_PX)
+    }
+    expect(Math.round((await box(list.getByTestId('for-whom-seat-Regenjacke'))).width)).toBe(
+      LEAD_SLOT_PX,
+    )
+
+    // And the column that buys: from the name to the first thing at the
+    // row's other edge — the stepper, or a shut head's faces.
+    const columns = [
+      (await box(socks.locator('.row-end'))).x - names.socks.x,
+      (await box(jacket.locator('.cluster-faces'))).x - names.jacket.x,
+      (await box(hat.locator('.mode-icon'))).x - names.hat.x,
+    ]
+    for (const width of columns) expect(width).toBeGreaterThanOrEqual(KLEIDUNG_NAME_MIN_PX)
+    // The name starts one slot in from the card, not two.
+    expect(names.socks.x - card.x).toBeLessThan(2 * LEAD_SLOT_PX + LEAD_SLOT_PX / 2)
+  })
+
+  /**
+   * E2E-M4-154 (FR-25.28, UX-03): the seat draws no glyph, so the menu names
+   * the door. A shared row's *For whom …* opens its strip under it; the head's
+   * opens the cluster's.
+   */
+  test('E2E-M4-154: “For whom …” in a row’s and a head’s menu opens the strip', async ({
+    page,
+  }) => {
+    const list = await importKleidung(page)
+
+    await openRowMenu(page, 'Wandersocken')
+    await chooseInRowMenu(page, /^For whom/)
+    await expect(list.getByTestId('for-whom-strip-Wandersocken')).toBeVisible()
+    await expect(list.getByTestId('for-whom-seat-Wandersocken')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+
+    await list.getByTestId('m4-cluster-Regenjacke').dispatchEvent('contextmenu')
+    await expect(page.locator('ion-action-sheet')).toHaveAttribute('data-presented', 'true')
+    await chooseInRowMenu(page, /^For whom/)
+    // At most one strip: the head's moves it rather than adding a second.
+    await expect(list.getByTestId('for-whom-strip-Regenjacke')).toBeVisible()
+    await expect(list.getByTestId('for-whom-strip-Wandersocken')).toHaveCount(0)
+  })
 })

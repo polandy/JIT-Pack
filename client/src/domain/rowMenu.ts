@@ -20,6 +20,8 @@ export type RowMenuAction =
   | 'release'
   | 'unskip'
   | 'quantity'
+  /** FR-25.28: fold the row's for-whom strip open — the seat's tap, for a reader who holds. */
+  | 'forWhom'
   | 'packingNow'
   | 'skip'
   /** FR-5.9: the row is bought at the destination instead (`buy_local`). */
@@ -50,6 +52,12 @@ export interface RowMenuContext {
   mine: boolean
   /** FR-9.3's window: whether *unused* is a judgement that means anything yet. */
   judgeable: boolean
+  /**
+   * FR-25.28: the list carries the *who* column. The seat is the row's mark
+   * or face and draws no glyph of its own (UX-03), so the menu names the door
+   * a reader cannot see.
+   */
+  forWhom: boolean
 }
 
 /** The row fields the menu reads; a `TripItem` satisfies it. */
@@ -115,6 +123,7 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
   // one that makes it mine.
   if (ctx.locked) return ctx.canTakeOver ? ['takeover'] : []
 
+  const forWhom: RowMenuAction[] = ctx.forWhom ? ['forWhom'] : []
   const entries: RowMenuAction[] = ctx.mine
     ? // A row I am holding offers the way out of that and nothing else:
       // packing it is already the checkbox's job, and skipping something
@@ -125,9 +134,10 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
         // is 1, so setting one on a skipped row would be an *unskip* that
         // leaves the row's FR-20.2 companions behind — the one thing the
         // entry above does correctly.
-        ['unskip']
+        ['unskip', ...forWhom]
       : [
           'quantity',
+          ...forWhom,
           'packingNow',
           'skip',
           ...modeEntries(item),
