@@ -246,10 +246,8 @@ watch(
 
 <style scoped>
 /* The row scrolls rather than wraps: a second line would push the list down
-   by as much as the head above it. Four glyphs and one word fit the
-   narrowest phone with room to spare, but the current view's
-   word carries a count, and a count has no upper bound. The top padding is
-   the badges' — a scroller clips whatever overhangs it. */
+   by as much as the head above it, and eight pills fit no phone. The top
+   padding is the badges' — a scroller clips whatever overhangs it. */
 .trip-views {
   display: flex;
   gap: 6px;

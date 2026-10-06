@@ -103,8 +103,11 @@ const CUE_PHONES = [
 
 /** Where the trip switcher's row rests, and on which sides it fades — both read off the rendered row. */
 interface RowCue {
-  /** `centred` on the current pill, or the end the row is held at because centring would pass it. */
-  rest: 'centred' | 'start' | 'end' | string
+  /**
+   * `centred` on the current pill, `start`/`end` where the row is held at an
+   * end because centring would pass it, otherwise how far off it rests.
+   */
+  rest: string
   /** The sides the computed `mask-image` fades out. */
   faded: 'none' | 'start' | 'end' | 'both'
 }
