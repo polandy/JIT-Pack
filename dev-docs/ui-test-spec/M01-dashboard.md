@@ -42,8 +42,9 @@
   one way forward and it reaches M3.
 * **E2E-M1-06** `all` (**FR-5.1**, not FR-5.4) — **implemented** (`dashboard.spec.ts`): a trip departing **today**
   contributes its flagged, still-open rows to a cross-trip section, and only those rows; the section leads to each row.
-  "Today" is *computed by the case* rather than waited for, so the clock is an input and not a race — the rule itself
-  takes the date as a parameter (`domain/dashboardSections.ts`).
+  The clock is *set by the case* to half past midnight in Zurich, still the day before in UTC, so the section is
+  proved to read the device's local day (`orchestrator.today()`) — the rule itself takes the date as a parameter
+  (`domain/dashboardSections.ts`).
 * **E2E-M1-06b** `all` (FR-5.1): the same flagged row on a trip departing **later** produces no
   section at all. The positive signal is the trip card, which is on the screen either way, because an absence read off a
   page that failed to load says nothing.
