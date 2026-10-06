@@ -25,9 +25,8 @@ inputs:
       Pull the pinned Playwright image (scripts/playwright-image.sh) in the
       background while the dependencies install and the bundle builds, and
       wait for it as the last step. The e2e and visual jobs run inside that
-      image, and `docker run` pulling it only once the bundle was ready put
-      ~30 s of download after ~35 s of install on every leg; overlapped, the
-      pull is finished before anything asks for it.
+      image: a leg spends ~35 s installing and building and ~30 s pulling,
+      and overlapped the pull is done before anything asks for it.
     required: false
     default: 'false'
 

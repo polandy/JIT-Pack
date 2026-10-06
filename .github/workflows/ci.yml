@@ -131,10 +131,9 @@ jobs:
 
   # The client's static checks and its production build. The unit suite is
   # `client-test` below, and the required check `client` is the sum of the
-  # two: on one runner the suite's ~2 minutes came after the ~85 s of
-  # everything here, which made this the longest job of the merge gate (201 s
-  # against go's 152 s). Split, the gate's length is `go`'s. `visual` waits
-  # on this job alone, so a baseline run no longer queues behind the suite.
+  # two: this job is ~85 s and the suite ~2 minutes, so on one runner they
+  # are the merge gate's longest job (`go` is ~150 s); apart, the gate's
+  # length is `go`'s. `visual` waits on this job alone, not on the suite.
   client-build:
     runs-on: ubuntu-latest
     defaults:
@@ -442,8 +441,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          # gofmt reads source, never a module: restoring the module and
-          # build cache here was ~10 s for nothing.
+          # gofmt reads source, never a module: the ~10 s cache restore has
+          # no reader in this job.
           cache: false
       - uses: ./.github/actions/client-setup
       # `gofmt -l` exits 0 even when files need formatting, so the emptiness
