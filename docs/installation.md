@@ -25,7 +25,7 @@ It is built from the repository root `Dockerfile`: the client is compiled by a N
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:0.25.0
+    image: ghcr.io/polandy/jit-pack:0.26.0
     restart: unless-stopped
     volumes:
       - jitpack-data:/data
@@ -42,7 +42,7 @@ volumes:
 
 Notes on that file:
 
-- **Pin a version tag.** `latest` exists, but it moves with every release — check the [Releases page](https://github.com/polandy/JIT-Pack/releases) for the current version. To freeze the deployment completely, pin the digest as well (`docker buildx imagetools inspect ghcr.io/polandy/jit-pack:0.25.0` prints it; then `image: ghcr.io/polandy/jit-pack:0.23.0@sha256:…`). [Upgrades](upgrades.md) explains when that matters. <!-- x-release-please-version -->
+- **Pin a version tag.** `latest` exists, but it moves with every release — check the [Releases page](https://github.com/polandy/JIT-Pack/releases) for the current version. To freeze the deployment completely, pin the digest as well (`docker buildx imagetools inspect ghcr.io/polandy/jit-pack:0.26.0` prints it; then `image: ghcr.io/polandy/jit-pack:0.23.0@sha256:…`). [Upgrades](upgrades.md) explains when that matters. <!-- x-release-please-version -->
 - **The image carries its own healthcheck** — `wget --spider http://localhost:8080/health`, probed every 30 seconds — so `docker ps` reports `healthy` and another service's `depends_on: condition: service_healthy` works without a `healthcheck:` block of your own.
 - **No published port.** Nothing outside needs to reach `8080` directly — the reverse proxy does, over the Docker network. Add `ports:` only if you are debugging, or if you are running without a proxy at all.
 - **The volume must survive recreation.** `/data` holds the database; without the volume, every `docker compose up` starts an empty instance.
@@ -141,7 +141,7 @@ One router, one service, and Traefik forwards the upgrade and preserves the orig
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:0.25.0
+    image: ghcr.io/polandy/jit-pack:0.26.0
     # unless-stopped also covers the IdP boot race: in the OIDC shape,
     # jitpackd deliberately exits when the issuer is unreachable at
     # startup, and after a host reboot the IdP often comes up later

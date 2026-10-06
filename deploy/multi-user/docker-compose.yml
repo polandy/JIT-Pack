@@ -10,7 +10,7 @@ services:
   # One container serves the API and the client on the same origin
   # (ADR-043), so Traefik routes the whole app to a single service.
   app:
-    image: ghcr.io/polandy/jit-pack:0.25.0 # x-release-please-version
+    image: ghcr.io/polandy/jit-pack:0.26.0 # x-release-please-version
     restart: unless-stopped
     networks:
       - internal

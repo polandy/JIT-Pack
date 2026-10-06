@@ -21,7 +21,7 @@ docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
   -e JITPACK_SINGLE_USER=true \
   -e JITPACK_LOCAL_USER_ID=me \
   -e JITPACK_DB_PATH=/data/jitpack.db \
-  ghcr.io/polandy/jit-pack:0.25.0
+  ghcr.io/polandy/jit-pack:0.26.0
 ```
 <!-- x-release-please-end -->
 
