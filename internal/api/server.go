@@ -403,7 +403,7 @@ func writePullPage(w http.ResponseWriter, page store.PullPage) {
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
 	userID, _ := r.Context().Value(userIDKey).(string)
-	out, muts, ok := applyPushBatch(w, r,
+	out, pushed, ok := applyPushBatch(w, r,
 		func(m *syncpkg.Mutation) { stampActor(m, userID, s.now) },
 		func(m syncpkg.Mutation) (store.MutationResult, error) {
 			return s.store.ApplyMutation(r.Context(), tripID, userID, m)
@@ -415,14 +415,14 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 
 	// Ephemeral G-3 lock events first (§7 fast path), then the
 	// trip.changed ping so clients pull the persisted state.
-	s.notifyLockEvents(tripID, userID, muts, out.Results)
+	s.notifyLockEvents(tripID, userID, pushed)
 	if out.PullHint.NextCursor > 0 {
 		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
 	}
 	// FR-6.2 side effects last — FR-17.3: no second party in Single-User
 	// Mode, so no detection at all.
 	if s.identity.hasSecondParty() {
-		s.emitNotifications(r.Context(), tripID, userID, muts, out.Results)
+		s.emitNotifications(r.Context(), tripID, userID, pushed)
 	}
 }
 
@@ -639,12 +639,10 @@ func tapTime(tapped string, now func() time.Time) string {
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the
 // events are ephemeral hints, clients converge via pull (§7).
-func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation, results []MutationResult) {
-	for i, m := range muts {
-		if i >= len(results) || m.Table != store.TableTripItems {
-			continue
-		}
-		if results[i].Outcome != OutcomeApplied && results[i].Outcome != OutcomeMerged {
+func (s *Server) notifyLockEvents(tripID, userID string, pushed []pushedMutation) {
+	for _, p := range pushed {
+		m := p.mut
+		if !p.landed() || m.Table != store.TableTripItems {
 			continue
 		}
 		state, ok := m.Fields[syncpkg.FieldState].(string)
@@ -660,10 +658,26 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 	}
 }
 
+// pushedMutation is one mutation of a push together with the verdict it got.
+// The side effects that run after the push read the two as one value, so a
+// mutation refused before the store saw it cannot hand its neighbour's
+// verdict to the next one.
+type pushedMutation struct {
+	mut     syncpkg.Mutation
+	outcome MutationOutcome
+}
+
+// landed reports whether the mutation changed the trip — applied whole or
+// merged in part — which is what earns a side effect.
+func (p pushedMutation) landed() bool {
+	return p.outcome == OutcomeApplied || p.outcome == OutcomeMerged
+}
+
 // applyPushBatch decodes the push envelope and applies each mutation via
-// apply, calling prepare (if set) first. It reports ok=false after
-// writing an error response itself.
-func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []syncpkg.Mutation, bool) {
+// apply, calling prepare (if set) first. It answers every mutation twice in
+// step: once on the wire, once as a pushedMutation for the side effects. It
+// reports ok=false after writing an error response itself.
+func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []pushedMutation, bool) {
 	var req PushRequest
 	if err := decodeJSON(w, r, maxPushBodyBytes, &req); err != nil {
 		writeDecodeError(w, err, "malformed push envelope")
@@ -676,7 +690,11 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 	}
 
 	var out PushResponse
-	muts := make([]syncpkg.Mutation, 0, len(req.Mutations))
+	pushed := make([]pushedMutation, 0, len(req.Mutations))
+	answer := func(mut syncpkg.Mutation, res MutationResult) {
+		out.Results = append(out.Results, res)
+		pushed = append(pushed, pushedMutation{mut: mut, outcome: res.Outcome})
+	}
 	for _, m := range req.Mutations {
 		mut := syncpkg.Mutation{
 			MutationID: m.MutationID, Op: syncpkg.Op(m.Op), Table: m.Table,
@@ -687,7 +705,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// above every real clock rather than failing to sort. Refused before
 		// the store sees it, like the mark below.
 		if !syncpkg.Valid(mut.HLC) {
-			out.Results = append(out.Results, MutationResult{
+			answer(mut, MutationResult{
 				MutationID: m.MutationID, Outcome: OutcomeRejected,
 				Error: string(store.ReasonMalformedHLC),
 			})
@@ -699,16 +717,15 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// FR-28.9: refused by length before the store sees it, so the client
 		// is told which field was wrong rather than meeting a CHECK.
 		if err := capMark(&mut); err != nil {
-			out.Results = append(out.Results, MutationResult{
+			answer(mut, MutationResult{
 				MutationID: m.MutationID, Outcome: OutcomeRejected, Error: err.Error(),
 			})
 			continue
 		}
-		muts = append(muts, mut)
 		res, err := apply(mut)
 		switch {
 		case errors.Is(err, store.ErrUnknownTable), errors.Is(err, store.ErrUnknownColumn):
-			out.Results = append(out.Results, MutationResult{
+			answer(mut, MutationResult{
 				MutationID: m.MutationID, Outcome: OutcomeRejected, Error: err.Error(),
 			})
 			continue
@@ -720,7 +737,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// what happened instead of parking the mutation in silence. The
 		// vocabulary is the store's; the sentence is the client's, because
 		// only it knows the user's language.
-		out.Results = append(out.Results, MutationResult{
+		answer(mut, MutationResult{
 			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome),
 			Conflicts: toWireConflicts(res.Conflicts), Error: string(res.Reason),
 		})
@@ -728,7 +745,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 			out.PullHint.NextCursor = res.Seq
 		}
 	}
-	return out, muts, true
+	return out, pushed, true
 }
 
 func toWireConflicts(conflicts []syncpkg.Conflict) []MutationConflict {

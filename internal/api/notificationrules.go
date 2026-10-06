@@ -86,8 +86,7 @@ type ideaResolver func(ideaID string) (ideaFacts, bool)
 // Mode never produces a notification without the handler having to know it.
 func planNotifications(
 	tripID, actor string,
-	muts []syncpkg.Mutation,
-	results []MutationResult,
+	pushed []pushedMutation,
 	members []store.MemberName,
 	resolve itemResolver,
 	resolveTraveler travelerResolver,
@@ -101,12 +100,11 @@ func planNotifications(
 	actorName := displayNameOf(members, actor)
 
 	var plan []plannedNotification
-	for i, m := range muts {
-		// Results are positional: the push answers one per mutation, in
-		// order. A short vector means the mutation was never judged.
-		if i >= len(results) || (results[i].Outcome != OutcomeApplied && results[i].Outcome != OutcomeMerged) {
+	for _, p := range pushed {
+		if !p.landed() {
 			continue
 		}
+		m := p.mut
 		switch m.Table {
 		case store.TableTripItems:
 			plan = append(plan, planDelegation(tripID, actor, actorName, m, resolve)...)

@@ -12,7 +12,6 @@ import (
 	"net/http"
 
 	"jitpack/internal/store"
-	syncpkg "jitpack/internal/sync"
 )
 
 const (
@@ -108,7 +107,7 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 // notificationrules.go); everything here is the I/O that carries it out.
 // Failures are logged, never surfaced — notifications are a side effect,
 // the push already succeeded.
-func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, muts []syncpkg.Mutation, results []MutationResult) {
+func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, pushed []pushedMutation) {
 	members, err := s.store.TripMemberNames(ctx, tripID)
 	if err != nil {
 		slog.Error("notification member lookup", "trip", tripID, "error", err)
@@ -158,7 +157,7 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return ideaFacts{Title: idea.Title, Participants: idea.Participants}, true
 	}
-	plan := planNotifications(tripID, actor, muts, results, members,
+	plan := planNotifications(tripID, actor, pushed, members,
 		resolve, resolveTraveler, resolveWords, resolveThread, resolveIdea)
 	for _, n := range plan {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
