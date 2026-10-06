@@ -139,7 +139,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control — closed by FR-25.21 |
 | FR-25.21 | E2E | M5-18, M5-19, M5-20, M5-21 (the state follows the numbers), G3-04 (M6-05/06 carry the FR-25.6 half) |
 | FR-25.30 | E2E+UNIT | M4-113 (filtered to one traveler, the instance is a plain row ticked without opening; the cluster returns with the filter); packingView.ts (only the person facet shapes, the label drops the one filtered name) |
-| FR-25.28 | E2E | M4-100 (the seat, and a strip that follows its item from row to cluster), M4-101 (the last traveler leaves silently), M4-102 (a browse-sheet add is deaf to the strip), M5-29 (the sheet closes with the row it stood on); M5-18/-19/-20/-21/-26 and M4-12/-58/-64 run through the strip; G3-04 is its lock |
+| FR-25.28 | E2E | M4-100 (the seat, and a strip that follows its item from row to cluster), M4-101 (the last traveler leaves silently), M4-102 (a browse-sheet add is deaf to the strip), M4-153 (UX-03: the seat is the lead slot, one x for every name, measured at 412 px), M4-154 (UX-03: *For whom …* in the row's and the head's menu), M5-29 (the sheet closes with the row it stood on); M5-18/-19/-20/-21/-26 and M4-12/-58/-64 run through the strip; G3-04 is its lock |
 | FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
 | FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens, and the two-character autocomplete gate); M8-14 (same edit sheet) |
 | FR-25.13a | E2E | M6-12 (all three at add time, no wipe on chip tap), M6-13 (assignee carries over), M6-16/M4-21 (visible confirm, no keyboard) |
