@@ -85,6 +85,28 @@ func TestEveryMasterTableDeclaresExactlyOneVisibilityRule(t *testing.T) {
 	}
 }
 
+// G-2 for the write gate. The trip partition's switch answered „no rule"
+// for any table it did not list and the master partition's „refused" — so a
+// new trip table got no validator without a word, and a new master table was
+// unwritable until somebody noticed. Every spec now names its guard, and a
+// table that needs none says so with `unguarded` and the reason beside it.
+func TestEverySpecDeclaresAWriteGuard(t *testing.T) {
+	for table, spec := range tableSpecs {
+		if spec.guard == nil {
+			t.Errorf("%q declares no guard — set one, or `unguarded` with the reason it needs none", table)
+		}
+	}
+}
+
+// A table the registry does not know is refused by the guard lookup rather
+// than waved through: failing closed is the only safe answer to a missing rule.
+func TestGuardFor_AnUndeclaredTableIsRefused(t *testing.T) {
+	reason, err := guardFor("no_such_table")(t.Context(), nil, guardInput{})
+	if err != nil || reason != ReasonNotAuthorized {
+		t.Errorf("guardFor(undeclared) = %v, %v; want %v, nil", reason, err, ReasonNotAuthorized)
+	}
+}
+
 // NFR-4.5 promises a backup of everything the caller can see. A syncable
 // table missing from the export is data that survives no disaster, and the
 // hand-kept query list this replaced had lost two of them: `item_dependencies`

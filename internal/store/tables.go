@@ -1,9 +1,9 @@
 // Package store — tables.go is the one place a syncable table is declared.
 //
-// Per-table knowledge — the push whitelist, the two partition sets, the
-// FR-24.3 lifecycle set, the blocking references, the cascade switch, the
-// master pull's visibility filter, the NFR-4.5 backup's query list and the
-// API layer's mark whitelist — is declared here once (G-2). Kept as separate
+// Per-table knowledge — the push whitelist, the write guards, the two
+// partition sets, the FR-24.3 lifecycle set, the blocking references, the
+// cascade switch, the master pull's visibility filter, the NFR-4.5 backup's
+// query list and the API layer's mark whitelist — is declared here once (G-2). Kept as separate
 // registries, a table added to four of them and missed in the fifth is not a
 // build error — it is a rule that silently does not apply, which is the
 // failure CODING_PRINCIPLES §4a was written after. They are all views derived
@@ -109,6 +109,10 @@ type tableSpec struct {
 	// may decide, stripped from every mutation and stamped back from the
 	// actor (stamp.go). The zero value owns nothing.
 	serverOwned serverOwned
+	// guard is the table's write rule (guard.go), run after the stamp step
+	// and, on the trip partition, after the trip-membership check. Never
+	// left nil: a table that needs none declares `unguarded`, with why.
+	guard guardRule
 }
 
 // tableSpecs declares every syncable table. The maps and lookups below are
@@ -124,6 +128,7 @@ var tableSpecs = map[string]tableSpec{
 	// in Single-User and Local Mode there is nobody else to disagree.
 	TableTaskTags: {
 		partition: partitionMaster,
+		guard:     unguarded, // shared master data like `tags`: created in the picker by typing a word
 		label:     activityLabel{name: own("name")},
 		columns:   toSet("name", "sort_order", MarkColumn),
 		visible:   visibilityRule{everyone: true},
@@ -139,6 +144,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTags: {
 		partition: partitionMaster,
+		guard:     unguarded, // shared master data (FR-24.1): any account creates one by typing it in M10
 		label:     activityLabel{name: own("name")},
 		columns:   toSet("name", "sort_order", MarkColumn), // the mark: FR-24.13
 		visible:   visibilityRule{everyone: true},
@@ -156,6 +162,7 @@ var tableSpecs = map[string]tableSpec{
 	// concurrent edits. position 0 is the primary tag (FR-24.2).
 	TableItemTags: {
 		partition: partitionMaster,
+		guard:     unguarded, // an assignment of shared master data (FR-24.1); a dangling id fails the FK
 		label:     activityLabel{name: via("tag_id", TableTags, "name"), subject: via("item_id", TableItems, "name")},
 		columns:   toSet("item_id", "tag_id", "position"),
 		visible:   visibilityRule{everyone: true},
@@ -170,6 +177,7 @@ var tableSpecs = map[string]tableSpec{
 	TableItems: {
 		serverOwned: stampedOnCreate(columnCreatedBy),
 		partition:   partitionMaster,
+		guard:       unguarded, // shared instance-wide (FR-24.1)
 		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"name", "weight_grams", "value_cents",
@@ -199,6 +207,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableItemDependencies: {
 		partition: partitionMaster,
+		guard:     unguarded, // shared like the items they relate (FR-20.1); a dangling endpoint fails the FK
 		label:     activityLabel{name: via("depends_on_item_id", TableItems, "name"), subject: via("item_id", TableItems, "name")},
 		columns:   toSet("item_id", "depends_on_item_id", "mode", "quantity"),
 		visible:   visibilityRule{everyone: true},
@@ -212,6 +221,7 @@ var tableSpecs = map[string]tableSpec{
 	TableTemplates: {
 		serverOwned: stampedOnCreate(columnOwnerID),
 		partition:   partitionMaster,
+		guard:       validKindSwitch,
 		label:       activityLabel{name: own("name")},
 		columns:     toSet("owner_id", "name", "kind", MarkColumn, RetiredColumn),
 		retirable:   true,
@@ -244,6 +254,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTemplateItems: {
 		partition: partitionMaster,
+		guard:     unguarded, // follows its template's governance (FR-1.6 MVP: shared); a dangling parent fails the FK
 		label:     activityLabel{name: via("item_id", TableItems, "name"), subject: via("template_id", TableTemplates, "name")},
 		columns: toSet(
 			"template_id", "item_id", "quantity", "assignment",
@@ -258,6 +269,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTemplateIncludes: {
 		partition: partitionMaster,
+		guard:     validInclude,
 		label:     activityLabel{name: via("included_template_id", TableTemplates, "name"), subject: via("template_id", TableTemplates, "name")},
 		columns:   toSet("template_id", "included_template_id"),
 		visible:   visibilityRule{everyone: true},
@@ -266,6 +278,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTemplateItemTasks: {
 		partition: partitionMaster,
+		guard:     unguarded, // follows its template's governance (FR-27.7, FR-1.6 MVP: shared)
 		label:     activityLabel{name: own("task")},
 		columns:   toSet("template_item_id", "task"),
 		visible:   visibilityRule{everyone: true},
@@ -274,6 +287,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTemplateTasks: {
 		partition: partitionMaster,
+		guard:     unguarded, // follows its template's governance (FR-7.4, FR-1.6 MVP: shared)
 		label:     activityLabel{name: own("task"), subject: via("template_id", TableTemplates, "name")},
 		// FR-7.7: `phase` is the phase the instantiated task starts in.
 		columns: toSet("template_id", "task", "phase"),
@@ -284,6 +298,7 @@ var tableSpecs = map[string]tableSpec{
 	TableTripSeries: {
 		serverOwned: stampedOnCreate(columnOwnerID),
 		partition:   partitionMaster,
+		guard:       seriesOwner,
 		label:       activityLabel{name: own("name")},
 		columns:     toSet("owner_id", "name", "default_attributes"),
 		visible:     visibilityRule{ownerQuery: `SELECT owner_id FROM trip_series WHERE id = ?`},
@@ -300,6 +315,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableDestinationProfiles: {
 		partition: partitionMaster,
+		guard:     profileSeriesOwner,
 		label:     activityLabel{name: via("series_id", TableTripSeries, "name")},
 		columns:   toSet("series_id", "notes"),
 		// Ownership follows the series chain (FR-13.2), for reading as for
@@ -315,6 +331,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableDestinationChecklistItems: {
 		partition: partitionMaster,
+		guard:     checklistSeriesOwner,
 		label:     activityLabel{name: own("label")},
 		columns:   toSet("profile_id", "label", "mode"),
 		visible: visibilityRule{ownerQuery: `SELECT s.owner_id FROM destination_checklist_items ci
@@ -328,6 +345,7 @@ var tableSpecs = map[string]tableSpec{
 	TableTrips: {
 		serverOwned: stampedOnCreate(columnCreatedBy),
 		partition:   partitionMaster,
+		guard:       tripMembership,
 		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"series_id", "name", "year", "start_date", "end_date", "status",
@@ -350,6 +368,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableTripMembers: {
 		partition: partitionMaster,
+		guard:     memberAdministration,
 		label:     activityLabel{name: via("user_id", tableUsers, "display_name")},
 		columns:   toSet("trip_id", "user_id", "role"),
 		// The roster is visible to every member of its trip — including the
@@ -371,6 +390,7 @@ var tableSpecs = map[string]tableSpec{
 	// generation, read by the refresh diff and by M8's blast-radius note.
 	TableTripTemplateSources: {
 		partition: partitionMaster,
+		guard:     tripEditor,
 		label:     activityLabel{name: via("template_id", TableTemplates, "name")},
 		columns:   toSet("trip_id", "template_id"),
 		visible:   visibilityRule{tripQuery: `SELECT trip_id FROM trip_template_sources WHERE id = ?`},
@@ -385,6 +405,7 @@ var tableSpecs = map[string]tableSpec{
 	// which is the only device that knows — the server never runs the diff.
 	TableTripAppliedChanges: {
 		partition: partitionMaster,
+		guard:     tripEditor,
 		label:     activityLabel{name: own("item_name"), subject: own("source_template_name")},
 		columns: toSet(
 			"trip_id", "source_template_id", "source_template_name",
@@ -403,6 +424,7 @@ var tableSpecs = map[string]tableSpec{
 	TableTripItems: {
 		serverOwned: tripItemOwned,
 		partition:   partitionTrip,
+		guard:       unguarded, // membership in the trip is the whole gate; the records are stamped (stamp.go)
 		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "source_item_id", "source_template_id", "name",
@@ -450,6 +472,7 @@ var tableSpecs = map[string]tableSpec{
 	// sending it is rejected rather than silently ignored.
 	TableTravelers: {
 		partition: partitionTrip,
+		guard:     validTravelerLink,
 		label:     activityLabel{name: own("name")},
 		columns:   toSet("trip_id", "name", "linked_user_id"),
 		export: exportQuery{query: `SELECT x.* FROM travelers x
@@ -473,6 +496,7 @@ var tableSpecs = map[string]tableSpec{
 
 	TableContainers: {
 		partition: partitionTrip,
+		guard:     unguarded, // membership in the trip is the whole gate
 		label:     activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "name", "carrier_traveler_id", "max_weight_grams",
@@ -489,6 +513,7 @@ var tableSpecs = map[string]tableSpec{
 	TableComments: {
 		serverOwned: commentOwned,
 		partition:   partitionTrip,
+		guard:       allOf(validNoteThread, validIdeaResult),
 		label: activityLabel{
 			name: own("title", "body"),
 			// A task on a packing row names the row; a reply names its thread.
@@ -552,6 +577,7 @@ var tableSpecs = map[string]tableSpec{
 	TableNoteAcks: {
 		serverOwned: stampedOnInsert(columnUserID),
 		partition:   partitionTrip,
+		guard:       unguarded, // membership in the trip is the whole gate; whose tick it is, is stamped
 		label:       activityLabel{name: append(via("comment_id", TableComments, "title"), via("comment_id", TableComments, "body")...)},
 		columns:     toSet("trip_id", "comment_id", "user_id", "acked", "seen_through"),
 		export: exportQuery{query: `SELECT x.* FROM note_acks x
@@ -564,6 +590,7 @@ var tableSpecs = map[string]tableSpec{
 	TableShoppingEntries: {
 		serverOwned: boughtFlagOwned,
 		partition:   partitionTrip,
+		guard:       validIdeaResult,
 		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "name", "list", "bought",
@@ -593,6 +620,7 @@ var tableSpecs = map[string]tableSpec{
 	// with it (ON DELETE CASCADE), leaf-first.
 	TableExcursions: {
 		partition: partitionTrip,
+		guard:     validIdeaResult,
 		label:     activityLabel{name: own("name")},
 		// FR-29.13: idea_id is the idea it was made from; validIdeaResult checks it.
 		columns: toSet("trip_id", "name", "starts_on", "ends_on", "source_template_id", columnIdeaID),
@@ -609,6 +637,7 @@ var tableSpecs = map[string]tableSpec{
 	// row per person.
 	TableExcursionTravelers: {
 		partition: partitionTrip,
+		guard:     unguarded, // membership in the trip is the whole gate
 		label:     activityLabel{name: via("traveler_id", TableTravelers, "name"), subject: via("excursion_id", TableExcursions, "name")},
 		columns:   toSet("trip_id", "excursion_id", "traveler_id"),
 		export: exportQuery{query: `SELECT x.* FROM excursion_travelers x
@@ -619,6 +648,7 @@ var tableSpecs = map[string]tableSpec{
 	// SET NULL, so a suitcase row's delete cascades nothing here.
 	TableExcursionItems: {
 		partition: partitionTrip,
+		guard:     unguarded, // membership in the trip is the whole gate
 		label:     activityLabel{name: own("name"), subject: via("excursion_id", TableExcursions, "name")},
 		columns: toSet(
 			"trip_id", "excursion_id", "trip_item_id", "source_item_id",
@@ -635,6 +665,7 @@ var tableSpecs = map[string]tableSpec{
 	// FR-31.15: a GPX track on an excursion, as an idea's (TableIdeaTracks).
 	TableExcursionTracks: {
 		partition: partitionTrip,
+		guard:     validTrack,
 		label:     activityLabel{name: own(columnName), subject: via("excursion_id", TableExcursions, "name")},
 		columns: toSet(
 			"trip_id", "excursion_id", columnName, "file_name", columnKind, columnWithKid, columnPauseMin,
@@ -652,6 +683,7 @@ var tableSpecs = map[string]tableSpec{
 	TableIdeas: {
 		serverOwned: stampedOnInsert(columnAuthorID),
 		partition:   partitionTrip,
+		guard:       unguarded, // membership in the trip is the whole gate; the author is stamped
 		label:       activityLabel{name: own("title")},
 		columns: toSet(
 			"trip_id", "author_id", "title", "note", "link", "tag",
@@ -674,6 +706,7 @@ var tableSpecs = map[string]tableSpec{
 	TableIdeaVotes: {
 		serverOwned: stampedOnInsert(columnUserID),
 		partition:   partitionTrip,
+		guard:       validIdeaVote,
 		label:       activityLabel{name: via("idea_id", TableIdeas, "title")},
 		columns:     toSet("trip_id", "idea_id", "user_id", "vote"),
 		export: exportQuery{query: `SELECT x.* FROM idea_votes x
@@ -684,6 +717,7 @@ var tableSpecs = map[string]tableSpec{
 	TableIdeaComments: {
 		serverOwned: stampedOnInsert(columnAuthorID),
 		partition:   partitionTrip,
+		guard:       validIdeaComment,
 		label:       activityLabel{name: own("body"), subject: via("idea_id", TableIdeas, "title")},
 		columns:     toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
 		export: exportQuery{query: `SELECT x.* FROM idea_comments x
@@ -695,6 +729,7 @@ var tableSpecs = map[string]tableSpec{
 	// it, and validIdeaImage lets a push only move a picture or delete it.
 	TableIdeaImages: {
 		partition: partitionTrip,
+		guard:     validIdeaImage,
 		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
 		columns:   toSet("trip_id", "idea_id", "image_hash", columnPosition),
 		export: exportQuery{query: `SELECT x.* FROM idea_images x
@@ -707,6 +742,7 @@ var tableSpecs = map[string]tableSpec{
 	TableDayEntries: {
 		serverOwned: stampedOnInsert(columnAuthorID),
 		partition:   partitionTrip,
+		guard:       noteExcursion,
 		label:       activityLabel{name: own("title")},
 		columns: toSet(
 			"trip_id", "author_id", columnKind, "on_date", "at_time", "title", "note", columnLink, columnLegs,
@@ -727,6 +763,7 @@ var tableSpecs = map[string]tableSpec{
 	// why a row per person. validDayEntryTraveler keeps both on the trip.
 	TableDayEntryTravelers: {
 		partition: partitionTrip,
+		guard:     validDayEntryTraveler,
 		label:     activityLabel{name: via("traveler_id", TableTravelers, "name"), subject: via("day_entry_id", TableDayEntries, "title")},
 		columns:   toSet("trip_id", "day_entry_id", "traveler_id"),
 		export: exportQuery{query: `SELECT x.* FROM day_entry_travelers x
@@ -738,6 +775,7 @@ var tableSpecs = map[string]tableSpec{
 	// device's shopping list (FR-33.9).
 	TableMeals: {
 		partition: partitionTrip,
+		guard:     noteExcursion,
 		label:     activityLabel{name: own("title")},
 		columns: toSet(
 			"trip_id", "on_date", "slot", "title", columnKind, "at_time", "note", "place",
@@ -758,6 +796,7 @@ var tableSpecs = map[string]tableSpec{
 	TableMealIngredients: {
 		serverOwned: boughtFlagOwned,
 		partition:   partitionTrip,
+		guard:       validIngredientMeal,
 		label:       activityLabel{name: own("name"), subject: via("meal_id", TableMeals, "title")},
 		columns: toSet(
 			"trip_id", "meal_id", "name", "amount", "list", columnPosition, "bought",
@@ -777,6 +816,7 @@ var tableSpecs = map[string]tableSpec{
 	// it, and validTrack lets a push change only what a person sets.
 	TableIdeaTracks: {
 		partition: partitionTrip,
+		guard:     validTrack,
 		label:     activityLabel{name: own(columnName), subject: via("idea_id", TableIdeas, "title")},
 		columns: toSet(
 			"trip_id", "idea_id", columnName, "file_name", columnKind, columnWithKid, columnPauseMin,
@@ -795,6 +835,7 @@ var tableSpecs = map[string]tableSpec{
 	// lets the refresh tell a manual edit from its own previous work.
 	TableTripGeneratedPositions: {
 		partition: partitionTrip,
+		guard:     unguarded, // membership in the trip is the whole gate
 		label:     activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "trip_item_id", "source_template_id", "source_item_id",

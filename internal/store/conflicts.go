@@ -214,7 +214,7 @@ func (s *Store) RevertTripConflict(ctx context.Context, tripID, userID, conflict
 // RevertMasterConflict restores the logged losing value of one
 // master-partition conflict for userID (NFR-4.2a). Visibility is the rule
 // the master log is read by, and the write itself is authorized by the
-// partition's scope, authorizeMaster — a user may see a conflict on a row
+// partition's scope and the table's guard — a user may see a conflict on a row
 // they may not write.
 func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID string) (int64, error) {
 	e, err := s.loadConflictEntry(ctx, conflictID)
