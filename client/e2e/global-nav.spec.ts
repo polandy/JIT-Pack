@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
 import {
+  chooseBarEntry,
   addInComposer,
   test,
   expect,
@@ -16,7 +17,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
-import { backToInventory, createItem } from './helpers/m9'
+import { backToInventory, createItem, openViewSheet } from './helpers/m9'
 import { addTripNote, openThread } from './helpers/m4'
 
 /**
@@ -198,7 +199,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The positive signal the count stands against: the screen the URL
     // names is not merely alone, it still answers a tap. With a leaked page
     // this click is intercepted by a page two anchors old.
-    await page.getByTestId('m2-spreadsheet-import').click()
+    await chooseBarEntry(page, 'm2-spreadsheet-import')
     await expect(page).toHaveURL(/\/import(\?|$)/)
   })
 
@@ -219,7 +220,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page).toHaveURL(/\/tabs\/trips$/)
     await expect(visiblePages(page)).toHaveCount(1)
 
-    await page.getByTestId('m2-spreadsheet-import').click()
+    await chooseBarEntry(page, 'm2-spreadsheet-import')
     await expect(page).toHaveURL(/\/import(\?|$)/)
   })
 
@@ -347,7 +348,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // the magnifier — the one exception to G-12, and a screen without the action
   // cannot carry the case for it. M7 is the nearest equivalent: a master-data
   // list with a header search, reached as a tab.
-  test('E2E-G12-02: the magnifier travels to the template list and searches it there', async ({
+  test('E2E-G12-02: the magnifier travels to the template list, and a tab root holds search and ⋮ alone', async ({
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
@@ -362,6 +363,52 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // without one — the exception, asserted where the rule is.
     await page.goto(PATH.items)
     await expect(page.getByTestId('search')).toHaveCount(0)
+
+    // UX-05 (ADR-050 amendment 1): a tab root carries search and the ⋮ before
+    // the sync glyph, nothing else — at the reference width and the narrow one.
+    // A tagged item, so M9 has a tag to manage and a sheet with tags in it.
+    await createItem(page, 'Zelt', { tags: ['Camping'] })
+    await backToInventory(page)
+    const ROOT_BARS: [string, string[], string[]][] = [
+      [PATH.dashboard, [], []],
+      [PATH.trips, ['search', 'header-overflow'], ['m2-portable-import', 'm2-spreadsheet-import']],
+      [PATH.templates, ['search', 'header-overflow'], ['m7-portable-import']],
+      [PATH.items, ['header-overflow'], ['m9-manage-tags', 'm9-cleanup']],
+    ]
+    for (const width of [412, 360]) {
+      await page.setViewportSize({ width, height: 900 })
+      for (const [path, bar, menu] of ROOT_BARS) {
+        await page.goto(path)
+        await expect(page.getByTestId('header-logo')).toBeVisible()
+        // Read from the toolbar in document order: what stands before G-2.
+        await expect
+          .poll(() =>
+            page.evaluate(() => {
+              const toolbar = document.querySelector('ion-header ion-toolbar')!
+              const sync = toolbar.querySelector('[data-testid="sync-indicator"]')!
+              return [...toolbar.querySelectorAll('ion-buttons[slot="end"] > [data-testid]')]
+                .filter((el) => el.compareDocumentPosition(sync) & Node.DOCUMENT_POSITION_FOLLOWING)
+                .map((el) => el.getAttribute('data-testid'))
+            }),
+          )
+          .toEqual(bar)
+        if (menu.length === 0) continue
+        // Every action that left the bar is a word behind the ⋮.
+        await page.getByTestId('header-overflow').click()
+        const sheet = page.locator('ion-action-sheet')
+        for (const id of menu) await expect(sheet.getByTestId(id)).toBeVisible()
+        await sheet.getByRole('button', { name: 'Cancel' }).click()
+        await expect(sheet).toHaveCount(0)
+      }
+    }
+    await expect(page.getByTestId('m2-portable-import')).toHaveCount(0)
+
+    // M9's sort and shown properties left the bar for the view sheet's head;
+    // the selection starts on a row's hold (E2E-M9-31).
+    const view = await openViewSheet(page)
+    await expect(view.getByTestId('m9-sort-alphabetical')).toBeVisible()
+    await expect(view.getByTestId('m9-property-weight')).toBeVisible()
+    await expect(view.getByTestId('m9-filter-tag-Camping')).toBeVisible()
   })
 
   // E2E-M4-32: a cold boot straight into M4. The teleported app-bar
@@ -725,9 +772,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.trips)
-    await expect(page.getByTestId('m2-portable-import')).toBeVisible()
-
-    await page.getByTestId('m2-portable-import').click()
+    await chooseBarEntry(page, 'm2-portable-import')
     await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
 
     await page.getByTestId('header-back').click()
@@ -750,9 +795,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.trips)
-    await expect(page.getByTestId('m2-spreadsheet-import')).toBeVisible()
-
-    await page.getByTestId('m2-spreadsheet-import').click()
+    await chooseBarEntry(page, 'm2-spreadsheet-import')
     await expect(onVisibleScreen(page, 'import-paste')).toBeVisible()
     // M15 names itself and puts its step on the head's second line, not into
     // a composed "Import · step 1/4" title (ADR-050).
@@ -1231,7 +1274,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('header-logo')).toBeVisible()
     await expect(page.getByTestId('header-back')).toHaveCount(0)
 
-    await page.getByTestId('m7-portable-import').click()
+    await chooseBarEntry(page, 'm7-portable-import')
     await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
 
     await page.goto(PATH.items)
