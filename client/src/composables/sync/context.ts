@@ -9,6 +9,7 @@
  */
 import type { Mutation, PullChange } from '@/api/types'
 import type { createMutations } from '@/sync/mutations'
+import type { PartitionType } from '@/sync/partition'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
@@ -134,7 +135,7 @@ export interface QueuedMutation {
  * stay one batch in the queue.
  */
 export type EnqueueAndDrain = (
-  type: 'trip' | 'master',
+  type: PartitionType,
   id: string | null,
   ...muts: QueuedMutation[]
 ) => void
@@ -144,11 +145,7 @@ export type EnqueueAndDrain = (
  * named partition, without pushing. It is what a cascade writing across both
  * partitions uses — every row through the funnel, one push at the end.
  */
-export type Enqueue = (
-  type: 'trip' | 'master',
-  id: string | null,
-  ...muts: QueuedMutation[]
-) => void
+export type Enqueue = (type: PartitionType, id: string | null, ...muts: QueuedMutation[]) => void
 
 /**
  * drainPartitions pushes what a cascade queued: the master partition first,

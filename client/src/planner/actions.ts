@@ -23,7 +23,7 @@ import type { ModuleHost, QueuedModuleMutation } from '@/sync/featureModule'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_CODECS } from '@/sync/tableRegistry'
+import { TABLE_SPECS } from '@/sync/tableRegistry'
 import type {
   ConnectionLeg,
   DayEntry,
@@ -86,12 +86,12 @@ export function createPlannerActions(
   host: ModuleHost,
   plannerStore: ReturnType<typeof usePlannerStore>,
 ) {
-  const encodeIdea = TABLE_CODECS[TABLE.ideas].encode
-  const encodeVote = TABLE_CODECS[TABLE.ideaVotes].encode
-  const encodeComment = TABLE_CODECS[TABLE.ideaComments].encode
-  const encodeImage = TABLE_CODECS[TABLE.ideaImages].encode
-  const encodeDayEntry = TABLE_CODECS[TABLE.dayEntries].encode
-  const encodeTrack = TABLE_CODECS[TABLE.ideaTracks].encode
+  const encodeIdea = TABLE_SPECS[TABLE.ideas].encode
+  const encodeVote = TABLE_SPECS[TABLE.ideaVotes].encode
+  const encodeComment = TABLE_SPECS[TABLE.ideaComments].encode
+  const encodeImage = TABLE_SPECS[TABLE.ideaImages].encode
+  const encodeDayEntry = TABLE_SPECS[TABLE.dayEntries].encode
+  const encodeTrack = TABLE_SPECS[TABLE.ideaTracks].encode
 
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
