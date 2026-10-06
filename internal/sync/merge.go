@@ -97,6 +97,19 @@ type MergeResult struct {
 // newest of the two.
 var stateGroup = map[string]bool{FieldState: true, "packed_count": true}
 
+// stateRecord names the columns that describe the state group rather than
+// decide it: who holds the packing_now claim and since when (FR-5.7), who
+// packed the row and when (FR-25.17). The server derives them from the
+// state the same mutation carries, so they win or lose with the group —
+// a record that outlived the state it describes is a packed row with a
+// claim holder and no packer. They stay out of the group's clock, which is
+// the clock of the two fields that decide, and a dropped one is not logged:
+// the loss is the state's, and its entry already says so.
+var stateRecord = map[string]bool{
+	"packing_now_by": true, "packing_now_at": true,
+	"packed_by_user_id": true, "packed_at": true,
+}
+
 // GroupedWith returns every field that merges as one unit with field —
 // the field itself included, and just the field where nothing is coupled
 // to it. A caller that re-issues one logged field (NFR-4.2a's revert) has
@@ -156,6 +169,10 @@ func Merge(row Row, m Mutation) MergeResult {
 			res.apply(f, v, m.HLC)
 		case stateGroup[f] && !applyGroup:
 			res.drop(f, v, row.Fields[f])
+		case stateRecord[f] && applyGroup:
+			res.apply(f, v, m.HLC)
+		case stateRecord[f]:
+			// Dropped with the group and not logged — see stateRecord.
 		case m.HLC > row.clockOf(f):
 			res.apply(f, v, m.HLC)
 		default:

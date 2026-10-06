@@ -20,8 +20,8 @@ import (
 // Beyond the trip-partition pipeline it enforces authorization (FR-4.5):
 // trips are writable only by members (delete: owner/admin) and series only
 // by their owner, while templates and master items are shared instance-wide
-// (FR-1.6 MVP). Server-owned columns (owner_id, created_by) are stamped on
-// insert and never rewritten afterwards. Unauthorized
+// (FR-1.6 MVP). Server-owned columns (owner_id, created_by) are stamped
+// when the row is created and never rewritten afterwards. Unauthorized
 // mutations return outcome "rejected" instead of an error so the push
 // batch continues (spec §5).
 func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.Mutation) (MutationResult, error) {
@@ -82,8 +82,8 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 	return nil
 }
 
-// authorizeMaster decides whether userID may apply m and stamps
-// server-owned columns on insert. current is the existing row, if any.
+// authorizeMaster decides whether userID may apply m. current is the
+// existing row, if any; the server-owned columns are already stamped.
 // It answers ReasonNone when the mutation may proceed and otherwise the
 // reason it may not — the two structural rules (FR-27.1/27.6) refuse for a
 // different reason than the permission rules, and the user is owed the
@@ -98,28 +98,18 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// picker, by typing a word that is not there yet.
 		return ReasonNone, nil
 
-	case TableItems:
-		if !exists && m.Op != sync.OpDelete {
-			m.Set("created_by", userID)
-		}
-		return ReasonNone, nil
-
-	case TableItemDependencies:
-		// Shared like the items they connect (FR-20.1): anyone may relate
-		// two master items; invalid endpoints fail the FK and reject.
+	case TableItems, TableItemDependencies:
+		// Shared instance-wide (FR-24.1), and so are the relations between
+		// two of them (FR-20.1): invalid endpoints fail the FK and reject.
 		return ReasonNone, nil
 
 	case TableTemplates:
 		// Shared instance-wide like master items (FR-1.6 MVP simplification):
-		// everyone edits every template. owner_id is stamped
-		// once as creator metadata and never rewritten afterwards — an
-		// editor is not an owner, and the FR-1.6 stub needs the creator back
-		// if the parked ownership model returns.
-		if !exists && m.Op != sync.OpDelete {
-			m.Set("owner_id", userID)
-			return ReasonNone, nil
-		}
-		if m.Op == sync.OpDelete {
+		// everyone edits every template. owner_id is creator metadata,
+		// stamped once (stampedOnCreate) — an editor is not an owner, and
+		// the FR-1.6 stub needs the creator back if the parked ownership
+		// model returns.
+		if !exists || m.Op == sync.OpDelete {
 			return ReasonNone, nil
 		}
 		return validKindSwitch(ctx, tx, current, m)
@@ -143,9 +133,6 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 
 	case TableTripSeries:
 		if !exists {
-			if m.Op != sync.OpDelete {
-				m.Set("owner_id", userID)
-			}
 			return ReasonNone, nil
 		}
 		return authorized(current["owner_id"] == userID), nil
@@ -165,9 +152,6 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 
 	case TableTrips:
 		if !exists {
-			if m.Op != sync.OpDelete {
-				m.Set("created_by", userID)
-			}
 			return ReasonNone, nil
 		}
 		role, err := memberRole(ctx, tx, m.ID, userID)

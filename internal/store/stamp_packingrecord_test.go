@@ -1,18 +1,18 @@
-package api
+package store
 
 import (
 	"testing"
 	"time"
 
-	syncpkg "jitpack/internal/sync"
+	"jitpack/internal/sync"
 )
 
 // FR-25.19 at the stamping layer. The record of who packed a row is
 // written from the authenticated pusher and never from the client:
 // "a record you can pick is not a record". The assignment beside it is
-// the opposite — a deliberate client choice — so stampActor must leave
+// the opposite — a deliberate client choice — so the stamp step must leave
 // it alone.
-func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
+func TestStamp_PackingRecord_FR25_19(t *testing.T) {
 	const acting = "user-andy"
 
 	tests := []struct {
@@ -61,9 +61,9 @@ func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
+			m := &sync.Mutation{Table: "trip_items", Op: sync.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting, time.Now)
+			stampFor(m, acting, time.Now)
 
 			assertField(t, m, "packed_by_user_id", tc.wantRecord)
 			assertField(t, m, "packer_user_id", tc.wantAssign)
@@ -80,7 +80,7 @@ func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
 // moment the push finally lands is not the moment the row was packed.
 // Invariant 3 governs identity claims, not clocks, and the neighbouring
 // packing_now_at has taken client values since it was written.
-func TestStampActor_PackedAt_FR25_17(t *testing.T) {
+func TestStamp_PackedAt_FR25_17(t *testing.T) {
 	const acting = "user-andy"
 	const tapped = "2026-08-01T10:00:00Z"
 
@@ -123,9 +123,9 @@ func TestStampActor_PackedAt_FR25_17(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
+			m := &sync.Mutation{Table: "trip_items", Op: sync.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting, time.Now)
+			stampFor(m, acting, time.Now)
 
 			if tc.want == "" {
 				got, _ := m.Fields["packed_at"].(string)
@@ -139,13 +139,13 @@ func TestStampActor_PackedAt_FR25_17(t *testing.T) {
 	}
 }
 
-// A delete carries no fields at all. stampActor still runs on it, so the
+// A delete carries no fields at all. the stamp step still runs on it, so the
 // nil map must survive both the strip and the state switch — a panic
 // here would 500 every item deletion.
-func TestStampActor_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
-	m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpDelete}
+func TestStamp_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
+	m := &sync.Mutation{Table: "trip_items", Op: sync.OpDelete}
 
-	stampActor(m, "user-andy", time.Now)
+	stampFor(m, "user-andy", time.Now)
 
 	if len(m.Fields) != 0 {
 		t.Errorf("a delete grew fields: %v", m.Fields)
@@ -155,7 +155,7 @@ func TestStampActor_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
 // assertField compares one mutation field against an expectation, where
 // nil means the key must not be present at all — the difference between
 // "clear it" (explicit nil value) and "do not touch it" matters here.
-func assertField(t *testing.T, m *syncpkg.Mutation, key string, want any) {
+func assertField(t *testing.T, m *sync.Mutation, key string, want any) {
 	t.Helper()
 	got, present := m.Fields[key]
 	if want == nil {
@@ -174,18 +174,18 @@ func assertField(t *testing.T, m *syncpkg.Mutation, key string, want any) {
 
 // The record must not be settable through the normal push path either —
 // the whitelist lets it through so the *server's* stamp can be written,
-// which is exactly why stampActor has to own it unconditionally.
-func TestStampActor_ClearsRecordOnEveryTripItemMutation_Invariant3(t *testing.T) {
-	m := &syncpkg.Mutation{
+// which is exactly why the stamp step has to own it unconditionally.
+func TestStamp_ClearsRecordOnEveryTripItemMutation_Invariant3(t *testing.T) {
+	m := &sync.Mutation{
 		Table: "trip_items",
-		Op:    syncpkg.OpUpsert,
+		Op:    sync.OpUpsert,
 		Fields: map[string]any{
 			"name":              "Zelt",
 			"packed_by_user_id": "user-sia",
 		},
 	}
 
-	stampActor(m, "user-andy", time.Now)
+	stampFor(m, "user-andy", time.Now)
 
 	if v, ok := m.Fields["packed_by_user_id"]; ok && v != nil {
 		t.Errorf("client-sent packing record reached the store: %v", v)
@@ -194,11 +194,11 @@ func TestStampActor_ClearsRecordOnEveryTripItemMutation_Invariant3(t *testing.T)
 
 // FR-25.11j: which list a row was bought from is a decision the person made
 // on screen, not a claim about who they are, so it belongs to the client the
-// way the FR-25.19 assignment does. stampActor must leave it untouched — a
+// way the FR-25.19 assignment does. the stamp step must leave it untouched — a
 // stripped value would take the undo with it, and a row bought at the
 // destination is packed in the same mutation, which is where the stamping
 // rules above do reach.
-func TestStampActor_BoughtFrom_IsTheClientsToChoose_FR25_11j(t *testing.T) {
+func TestStamp_BoughtFrom_IsTheClientsToChoose_FR25_11j(t *testing.T) {
 	const acting = "user-andy"
 
 	tests := []struct {
@@ -225,11 +225,17 @@ func TestStampActor_BoughtFrom_IsTheClientsToChoose_FR25_11j(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
+			m := &sync.Mutation{Table: "trip_items", Op: sync.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting, time.Now)
+			stampFor(m, acting, time.Now)
 
 			assertField(t, m, "bought_from", tc.want)
 		})
 	}
+}
+
+// stampFor runs the stamp step for a mutation that finds no row, the way a
+// push of a new row meets it.
+func stampFor(m *sync.Mutation, actorID string, now Now) {
+	stampServerOwned(m, sync.Row{}, actorID, now)
 }

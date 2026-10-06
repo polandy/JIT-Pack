@@ -195,10 +195,11 @@ type revertEntry struct {
 // feed like any other write, and stays beatable by a later edit. The
 // returned seq is the pull hint.
 //
-// Membership is the trip partition's only write gate and the caller's
-// `member` middleware has already applied it, so the only scope question
-// left here is whether the entry is this trip's at all (Sync-API P-3).
-// userID is who tapped it, which is whom the activity log names.
+// Membership is applied by the caller's `member` middleware; the entry must
+// be this trip's (Sync-API P-3), and the row-level rules of the partition's
+// scope — a vote is its voter's (FR-29.3) — hold for a revert as for a push.
+// userID is who tapped it: the write is theirs, so the activity log and the
+// stamped server-owned columns name them.
 func (s *Store) RevertTripConflict(ctx context.Context, tripID, userID, conflictID string) (int64, error) {
 	e, err := s.loadConflictEntry(ctx, conflictID)
 	if err != nil {
@@ -207,13 +208,14 @@ func (s *Store) RevertTripConflict(ctx context.Context, tripID, userID, conflict
 	if !e.tripID.Valid || e.tripID.String != tripID {
 		return 0, ErrConflictNotFound
 	}
-	return s.applyRevert(ctx, conflictID, e, tripPartition(tripID, userID), nil)
+	return s.applyRevert(ctx, conflictID, e, tripPartition(tripID, userID))
 }
 
 // RevertMasterConflict restores the logged losing value of one
 // master-partition conflict for userID (NFR-4.2a). Visibility is the rule
-// the master log is read by, and the write itself is authorized by
-// authorizeMaster — a user may see a conflict on a row they may not write.
+// the master log is read by, and the write itself is authorized by the
+// partition's scope, authorizeMaster — a user may see a conflict on a row
+// they may not write.
 func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID string) (int64, error) {
 	e, err := s.loadConflictEntry(ctx, conflictID)
 	if err != nil {
@@ -234,11 +236,7 @@ func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID str
 		// leak ListMasterConflicts exists to avoid.
 		return 0, ErrConflictNotFound
 	}
-	authorize := func(tx *sql.Tx, m *sync.Mutation, current map[string]any) (bool, error) {
-		reason, err := authorizeMaster(ctx, tx, userID, m, current, true)
-		return reason == ReasonNone, err
-	}
-	return s.applyRevert(ctx, conflictID, e, masterPartition(userID), authorize)
+	return s.applyRevert(ctx, conflictID, e, masterPartition(userID))
 }
 
 func (s *Store) loadConflictEntry(ctx context.Context, conflictID string) (revertEntry, error) {
@@ -310,28 +308,15 @@ func anyArgs(values []string) []any {
 	return out
 }
 
-// revertAuthorizer decides whether the caller may write the row a revert
-// names. The trip partition passes none — its middleware already checked
-// the only gate it has — while the master partition's row-level ownership
-// can be judged only once the row is loaded.
-type revertAuthorizer func(*sql.Tx, *sync.Mutation, map[string]any) (bool, error)
-
 // applyRevert writes the restore and the entry's reverted flag in one
 // transaction, so a refusal further down rolls the flag back with it and
-// the two can never disagree. p says which partition's tables the entry may
-// name and which feed the restore is written to (§4).
-//
-// The authorizer stays a parameter rather than `p.scope`: the push's gate
-// and the revert's are not the same question. The trip partition's write
-// gate is membership, which the `member` middleware has already applied by
-// the time a revert reaches here, so a revert passes none.
-func (s *Store) applyRevert(
-	ctx context.Context,
-	conflictID string,
-	e revertEntry,
-	p partition,
-	authorize revertAuthorizer,
-) (int64, error) {
+// the two can never disagree. p is the partition the entry was pushed to:
+// its tables, its feed (§4), and the steps of applyMutation a revert shares —
+// the stamp, the scope and the extra change_log entries. What it does not
+// share is what a server-built write has no use for: the memo (the claim is
+// its idempotency), the tombstone check (a gone row is refused first), and
+// the retire and cascade of a delete. See ADR-023.
+func (s *Store) applyRevert(ctx context.Context, conflictID string, e revertEntry, p partition) (int64, error) {
 	fields, groupIDs, err := s.revertGroup(ctx, e)
 	if err != nil {
 		return 0, err
@@ -374,17 +359,14 @@ func (s *Store) applyRevert(
 	if !row.Exists {
 		return 0, ErrConflictRowGone
 	}
-	if authorize != nil {
-		allowed, err := authorize(tx, &m, row.Fields)
-		if err != nil {
-			return 0, err
-		}
-		if !allowed {
-			return 0, ErrRevertForbidden
-		}
+	stampServerOwned(&m, row, p.actorID, s.now)
+	if refused, err := p.scope(ctx, tx, &m, row); err != nil {
+		return 0, err
+	} else if refused != ReasonNone {
+		return 0, ErrRevertForbidden
 	}
 
-	// Fold the row's own clock in before stamping. A device whose wall
+	// Fold the row's own clock in before minting the revert's. A device whose wall
 	// clock runs ahead leaves an HLC the server has never seen, and a
 	// revert that is not strictly newer would be dropped by its own merge.
 	// A row that never went through sync carries the schema default and
@@ -409,6 +391,11 @@ func (s *Store) applyRevert(
 	seq, err := appendChangeLog(ctx, tx, p.feed, m, false)
 	if err != nil {
 		return 0, err
+	}
+	if p.afterChange != nil {
+		if seq, err = p.afterChange(ctx, tx, p, writeOutcome{m: m, row: row, seq: seq}); err != nil {
+			return 0, err
+		}
 	}
 	if err := recordActivity(ctx, tx, s.nowMillis(), activityWrite{
 		feed: p.feed, actorID: p.actorID, table: m.Table, id: m.ID,

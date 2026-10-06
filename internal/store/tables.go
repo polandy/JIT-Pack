@@ -105,6 +105,10 @@ type tableSpec struct {
 	// unlogged names the columns an activity entry leaves out: data no
 	// reader of the log reads, too large to copy into every entry.
 	unlogged map[string]bool
+	// serverOwned is the table's part of invariant 3: the columns no client
+	// may decide, stripped from every mutation and stamped back from the
+	// actor (stamp.go). The zero value owns nothing.
+	serverOwned serverOwned
 }
 
 // tableSpecs declares every syncable table. The maps and lookups below are
@@ -164,8 +168,9 @@ var tableSpecs = map[string]tableSpec{
 	// category_id is gone with FR-24.1 (migration 022) — a client still
 	// sending it is rejected rather than silently ignored.
 	TableItems: {
-		partition: partitionMaster,
-		label:     activityLabel{name: own("name")},
+		serverOwned: stampedOnCreate(columnCreatedBy),
+		partition:   partitionMaster,
+		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"name", "weight_grams", "value_cents",
 			"created_by",
@@ -205,10 +210,11 @@ var tableSpecs = map[string]tableSpec{
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	TableTemplates: {
-		partition: partitionMaster,
-		label:     activityLabel{name: own("name")},
-		columns:   toSet("owner_id", "name", "kind", MarkColumn, RetiredColumn),
-		retirable: true,
+		serverOwned: stampedOnCreate(columnOwnerID),
+		partition:   partitionMaster,
+		label:       activityLabel{name: own("name")},
+		columns:     toSet("owner_id", "name", "kind", MarkColumn, RetiredColumn),
+		retirable:   true,
 		// Instance-wide like the master items they are built from, so they
 		// export unfiltered as well (FR-1.6 MVP).
 		visible: visibilityRule{everyone: true},
@@ -276,11 +282,12 @@ var tableSpecs = map[string]tableSpec{
 	},
 
 	TableTripSeries: {
-		partition: partitionMaster,
-		label:     activityLabel{name: own("name")},
-		columns:   toSet("owner_id", "name", "default_attributes"),
-		visible:   visibilityRule{ownerQuery: `SELECT owner_id FROM trip_series WHERE id = ?`},
-		export:    exportQuery{query: `SELECT * FROM trip_series WHERE owner_id = ?`, scoped: true},
+		serverOwned: stampedOnCreate(columnOwnerID),
+		partition:   partitionMaster,
+		label:       activityLabel{name: own("name")},
+		columns:     toSet("owner_id", "name", "default_attributes"),
+		visible:     visibilityRule{ownerQuery: `SELECT owner_id FROM trip_series WHERE id = ?`},
+		export:      exportQuery{query: `SELECT * FROM trip_series WHERE owner_id = ?`, scoped: true},
 		blockedBy: []blockingReference{
 			{TableTrips, "series_id"},
 		},
@@ -319,8 +326,9 @@ var tableSpecs = map[string]tableSpec{
 	},
 
 	TableTrips: {
-		partition: partitionMaster,
-		label:     activityLabel{name: own("name")},
+		serverOwned: stampedOnCreate(columnCreatedBy),
+		partition:   partitionMaster,
+		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"series_id", "name", "year", "start_date", "end_date", "status",
 			"attributes", "packing_closed_at", "imported", "created_by",
@@ -393,24 +401,25 @@ var tableSpecs = map[string]tableSpec{
 	// --- trip partition -----------------------------------------------
 
 	TableTripItems: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("name")},
+		serverOwned: tripItemOwned,
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "source_item_id", "source_template_id", "name",
 			"weight_grams", "value_cents", "category_name", "quantity",
 			"packed_count", "state", "mode", "late_packer",
 			// FR-25.11j: the list the row was bought from. A client-chosen
 			// value like packer_user_id beside it — it records a decision the
-			// person made, not an identity claim, so stampActor leaves it alone.
+			// person made, not an identity claim, so it is not server-owned.
 			"bought_from",
-			// FR-30.4: the purchase's record, stamped by stampActor the way
+			// FR-30.4: the purchase's record, server-owned the way
 			// packed_by_user_id is — listed so the stamp can be persisted.
 			"bought_at", "bought_by_user_id",
 			"assigned_traveler_id", "packer_user_id", "container_id",
 			"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 			"outbound_packed",
 			// Listed so the server's own stamp can be persisted through the
-			// push path; stampActor discards any client-sent value first
+			// push path; the stamp step discards any client-sent value first
 			// (FR-25.19, invariant 3). packed_at is the same record's time
 			// (FR-25.17) and goes through the same gate.
 			"packed_by_user_id", "packed_at",
@@ -478,7 +487,8 @@ var tableSpecs = map[string]tableSpec{
 	},
 
 	TableComments: {
-		partition: partitionTrip,
+		serverOwned: commentOwned,
+		partition:   partitionTrip,
 		label: activityLabel{
 			name: own("title", "body"),
 			// A task on a packing row names the row; a reply names its thread.
@@ -495,7 +505,7 @@ var tableSpecs = map[string]tableSpec{
 			// FR-7.7: when the task is meant to be done (the client's
 			// choice), and the resolution's record. `resolved_by_user_id`
 			// is listed so the server's own stamp can be persisted through
-			// the push path — stampActor discards any client-sent value
+			// the push path — the stamp step discards any client-sent value
 			// first (invariant 3), exactly as it does for packed_by_user_id.
 			"phase", "resolved_at", "resolved_by_user_id",
 			// FR-7.8: the one tag the task carries, the user's own statement
@@ -540,9 +550,10 @@ var tableSpecs = map[string]tableSpec{
 	// FR-7.9: one row per (note, person) who has ticked it — see schema.sql
 	// for why this is a table and not a column on comments.
 	TableNoteAcks: {
-		partition: partitionTrip,
-		label:     activityLabel{name: append(via("comment_id", TableComments, "title"), via("comment_id", TableComments, "body")...)},
-		columns:   toSet("trip_id", "comment_id", "user_id", "acked", "seen_through"),
+		serverOwned: stampedOnInsert(columnUserID),
+		partition:   partitionTrip,
+		label:       activityLabel{name: append(via("comment_id", TableComments, "title"), via("comment_id", TableComments, "body")...)},
+		columns:     toSet("trip_id", "comment_id", "user_id", "acked", "seen_through"),
 		export: exportQuery{query: `SELECT x.* FROM note_acks x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
@@ -551,13 +562,14 @@ var tableSpecs = map[string]tableSpec{
 	// and they reference nothing but their trip, so they block no delete
 	// and cascade nothing (ADR-066).
 	TableShoppingEntries: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("name")},
+		serverOwned: boughtFlagOwned,
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("name")},
 		columns: toSet(
 			"trip_id", "name", "list", "bought",
 			// FR-30.9: the entry's one tag, client-chosen free text.
 			"tag",
-			// FR-30.4, stamped by stampActor.
+			// FR-30.4, server-owned (stamp.go).
 			"bought_at", "bought_by_user_id",
 			// FR-30.10: the day it is due — the client's to choose, like a
 			// task's (FR-7.11); the reminder scheduler only reads it.
@@ -636,10 +648,11 @@ var tableSpecs = map[string]tableSpec{
 
 	// FR-29.1: an idea. Its votes and its discussion hang off it and go with
 	// it (ON DELETE CASCADE), leaf-first. `author_id` is listed so the
-	// server's own stamp can be persisted; stampActor discards a client value.
+	// server's own stamp can be persisted; the stamp step discards a client value.
 	TableIdeas: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("title")},
+		serverOwned: stampedOnInsert(columnAuthorID),
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("title")},
 		columns: toSet(
 			"trip_id", "author_id", "title", "note", "link", "tag",
 			"rain_proof", "state", "created_at",
@@ -659,18 +672,20 @@ var tableSpecs = map[string]tableSpec{
 	// FR-29.3: one person's vote on one idea — see schema.sql for why a row
 	// per person. `user_id` is stamped, and only its voter may change it.
 	TableIdeaVotes: {
-		partition: partitionTrip,
-		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
-		columns:   toSet("trip_id", "idea_id", "user_id", "vote"),
+		serverOwned: stampedOnInsert(columnUserID),
+		partition:   partitionTrip,
+		label:       activityLabel{name: via("idea_id", TableIdeas, "title")},
+		columns:     toSet("trip_id", "idea_id", "user_id", "vote"),
 		export: exportQuery{query: `SELECT x.* FROM idea_votes x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// FR-29.4: one entry of an idea's discussion; its words are its author's.
 	TableIdeaComments: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("body"), subject: via("idea_id", TableIdeas, "title")},
-		columns:   toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
+		serverOwned: stampedOnInsert(columnAuthorID),
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("body"), subject: via("idea_id", TableIdeas, "title")},
+		columns:     toSet("trip_id", "idea_id", "author_id", "body", "created_at", "edited_at"),
 		export: exportQuery{query: `SELECT x.* FROM idea_comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
@@ -687,11 +702,12 @@ var tableSpecs = map[string]tableSpec{
 	},
 
 	// FR-29.15: an entry of the day plan's own. `author_id` is listed so the
-	// server's stamp can be persisted; stampActor discards a client value. A
+	// server's stamp can be persisted; the stamp step discards a client value. A
 	// connection's legs (FR-29.18) are left out of the log like a track's line.
 	TableDayEntries: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("title")},
+		serverOwned: stampedOnInsert(columnAuthorID),
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("title")},
 		columns: toSet(
 			"trip_id", "author_id", columnKind, "on_date", "at_time", "title", "note", columnLink, columnLegs,
 			// FR-29.18: the excursion a connection belongs to; noteExcursion checks it.
@@ -740,11 +756,12 @@ var tableSpecs = map[string]tableSpec{
 	// FR-33.2: an ingredient of a meal; validIngredientMeal keeps it on a
 	// meal of its own trip.
 	TableMealIngredients: {
-		partition: partitionTrip,
-		label:     activityLabel{name: own("name"), subject: via("meal_id", TableMeals, "title")},
+		serverOwned: boughtFlagOwned,
+		partition:   partitionTrip,
+		label:       activityLabel{name: own("name"), subject: via("meal_id", TableMeals, "title")},
 		columns: toSet(
 			"trip_id", "meal_id", "name", "amount", "list", columnPosition, "bought",
-			// FR-30.4, stamped by stampActor.
+			// FR-30.4, server-owned (stamp.go).
 			"bought_at", "bought_by_user_id",
 			// FR-30.13: the line's place on M6 (ADR-083).
 			"shopping_position",

@@ -82,8 +82,7 @@ func TestCapMark_LeavesEverythingElseAlone_FR28_9(t *testing.T) {
 	}
 }
 
-// A delete carries no fields at all — the same shape that once panicked in
-// stampActor.
+// A delete carries no fields at all.
 func TestCapMark_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
 	m := &syncpkg.Mutation{Table: store.TableItems, Op: syncpkg.OpDelete}
 	if err := capMark(m); err != nil {

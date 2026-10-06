@@ -6,7 +6,7 @@ owner's request; the owner settled fourteen questions and the three UI points th
 
 **As built — where the build differs from what follows.** The screen is **M27** (M26 went to the notes' threads while
 this was being written; read *M26/M26b* below as M27 and its excursion page). `excursions` carries **no `author_id`
-and no `created_at`**: nothing reads them, and a stamped column is a `stampActor` case with nothing behind it. The
+and no `created_at`**: nothing reads them, and a stamped column is a `serverOwned` entry with nothing behind it. The
 reminder is **a kind of its own, `excursion_due`**, sent the day before and on the day by ADR-076's run, with its own
 M17 switch — one notification per excursion rather than a line inside another kind's. *Vor Ort besorgen* writes no
 shopping entry: it turns the line into a *vor Ort* line, which M6 shows as a **projection** under the excursion's name

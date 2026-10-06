@@ -1,11 +1,10 @@
-package api
+package store
 
 import (
 	"testing"
 	"time"
 
-	"jitpack/internal/store"
-	syncpkg "jitpack/internal/sync"
+	"jitpack/internal/sync"
 )
 
 // FR-7.7 at the stamping layer: who ticked a task off is written from the
@@ -14,7 +13,7 @@ import (
 // because a task is ticked off away from a network; an unreadable one is
 // replaced by the server's clock. Both are cleared when the task is reopened,
 // so a record never outlives what it describes.
-func TestStampActor_TaskResolution_FR7_7(t *testing.T) {
+func TestStamp_TaskResolution_FR7_7(t *testing.T) {
 	const acting = "user-andy"
 	const tapped = "2026-09-20T14:32:00Z"
 	fixed := func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) }
@@ -60,9 +59,9 @@ func TestStampActor_TaskResolution_FR7_7(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m := &syncpkg.Mutation{Table: store.TableComments, Op: syncpkg.OpUpsert, Fields: tc.fields}
+			m := &sync.Mutation{Table: TableComments, Op: sync.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting, fixed)
+			stampFor(m, acting, fixed)
 
 			assertPresence(t, m, "resolved_by_user_id", tc.wantBy)
 			assertPresence(t, m, "resolved_at", tc.wantAt)
@@ -73,14 +72,14 @@ func TestStampActor_TaskResolution_FR7_7(t *testing.T) {
 // The phase is the user's statement about when a task is due, not an identity
 // claim — so it passes through untouched, the way bought_from does beside the
 // purchase record it sits next to (FR-25.11j).
-func TestStampActor_TaskPhase_IsTheClientsToChoose_FR7_7(t *testing.T) {
-	m := &syncpkg.Mutation{
-		Table:  store.TableComments,
-		Op:     syncpkg.OpUpsert,
+func TestStamp_TaskPhase_IsTheClientsToChoose_FR7_7(t *testing.T) {
+	m := &sync.Mutation{
+		Table:  TableComments,
+		Op:     sync.OpUpsert,
 		Fields: map[string]any{"phase": "during"},
 	}
 
-	stampActor(m, "user-andy", time.Now)
+	stampFor(m, "user-andy", time.Now)
 
 	if got := m.Fields["phase"]; got != "during" {
 		t.Errorf("phase = %v, want the client's value to survive", got)
@@ -92,16 +91,16 @@ func TestStampActor_TaskPhase_IsTheClientsToChoose_FR7_7(t *testing.T) {
 // the case exists so that a later rewrite of the stamping rules cannot take
 // the field away in passing: an id silently dropped here would be a tag that
 // never syncs, and the device that set it would be the last to find out.
-func TestStampActor_TaskTag_IsTheClientsToChoose_FR7_8(t *testing.T) {
-	m := &syncpkg.Mutation{
-		Table: store.TableComments,
-		Op:    syncpkg.OpUpsert,
+func TestStamp_TaskTag_IsTheClientsToChoose_FR7_8(t *testing.T) {
+	m := &sync.Mutation{
+		Table: TableComments,
+		Op:    sync.OpUpsert,
 		// Beside the resolution, so the case also holds that stamping the
 		// record leaves the neighbouring fields alone.
 		Fields: map[string]any{"task_tag_id": "tt-apotheke", "task_state": "resolved"},
 	}
 
-	stampActor(m, "user-andy", func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) })
+	stampFor(m, "user-andy", func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) })
 
 	if got := m.Fields["task_tag_id"]; got != "tt-apotheke" {
 		t.Errorf("task_tag_id = %v, want the client's value to survive", got)
@@ -111,14 +110,14 @@ func TestStampActor_TaskTag_IsTheClientsToChoose_FR7_8(t *testing.T) {
 // Clearing the tag is a value, not an absence: the person took the task out
 // of its group. A stamping rule that treated NULL as „nothing was sent" would
 // leave the old tag standing on every other device.
-func TestStampActor_TaskTagCleared_SurvivesAsNull_FR7_8(t *testing.T) {
-	m := &syncpkg.Mutation{
-		Table:  store.TableComments,
-		Op:     syncpkg.OpUpsert,
+func TestStamp_TaskTagCleared_SurvivesAsNull_FR7_8(t *testing.T) {
+	m := &sync.Mutation{
+		Table:  TableComments,
+		Op:     sync.OpUpsert,
 		Fields: map[string]any{"task_tag_id": nil},
 	}
 
-	stampActor(m, "user-andy", time.Now)
+	stampFor(m, "user-andy", time.Now)
 
 	value, sent := m.Fields["task_tag_id"]
 	if !sent || value != nil {
@@ -129,11 +128,11 @@ func TestStampActor_TaskTagCleared_SurvivesAsNull_FR7_8(t *testing.T) {
 // A task created and ticked off in one insert is still authored by the pusher
 // and resolved by them: the author is decided once at birth, the resolution
 // follows the state, and neither reads a client-sent id.
-func TestStampActor_TaskInsertedResolved_StampsBoth_FR7_7(t *testing.T) {
+func TestStamp_TaskInsertedResolved_StampsBoth_FR7_7(t *testing.T) {
 	const acting = "user-andy"
-	m := &syncpkg.Mutation{
-		Table: store.TableComments,
-		Op:    syncpkg.OpInsert,
+	m := &sync.Mutation{
+		Table: TableComments,
+		Op:    sync.OpInsert,
 		Fields: map[string]any{
 			"body":                "Salbe holen",
 			"is_task":             1,
@@ -143,7 +142,7 @@ func TestStampActor_TaskInsertedResolved_StampsBoth_FR7_7(t *testing.T) {
 		},
 	}
 
-	stampActor(m, acting, func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) })
+	stampFor(m, acting, func() time.Time { return time.Date(2026, 9, 21, 8, 0, 0, 0, time.UTC) })
 
 	if got := m.Fields["author_id"]; got != acting {
 		t.Errorf("author_id = %v, want %q", got, acting)

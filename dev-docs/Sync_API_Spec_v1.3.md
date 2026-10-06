@@ -400,7 +400,7 @@ copy until it discards it (lazy, same semantics as trip deletes).
 * Mutations are applied **in order, atomically per mutation** (not per batch): a rejected mutation does not roll back
   earlier ones.
 * **Server-stamped fields.** Before merging, the server overwrites the actor columns from the authenticated pusher, so a
-  client value is never trusted (`stampActor`). Comment `author_id` is stamped on **insert** and **stripped from every
+  client value is never trusted (`serverOwned`). Comment `author_id` is stamped on **insert** and **stripped from every
   other op**: authorship is decided once, when the comment comes into being, and re-stamping a
   later op would be the opposite forgery — flagging a foreign comment as an FR-7.2 task is an `upsert`, and would
   transfer its authorship. An `upsert` that would *create* a comment therefore carries no author, meets the `NOT NULL`
@@ -604,6 +604,8 @@ for each mutation m:
               incoming packed      on a packing_now row → applied regardless of HLC;
               incoming packing_now on a packed      row → merged (dropped) regardless of HLC;
               any other pair of states → rule 3
+              the state record (packing_now_by/_at, packed_by_user_id, packed_at)
+              follows the group's verdict and is never logged on its own
       rule 3 (field LWW): apply f iff m.hlc > clock(f-group)
     applied fields: clock(f) := m.hlc; dropped fields keep their clock
     dropped fields whose value differs from the row's
@@ -629,9 +631,13 @@ a person made both and only the clock can say which was the last word. Letting e
 HLC would be silent data loss: the later decision overwritten and, the group having applied, no conflict written.
 
 Field groups: `packed_count`+`state` merge as one unit (they are causally coupled per FR-5.4) and share one clock, the
-newer of the two; all other columns are independent fields. **Decided: no further grouping** — `mode` is not grouped
-with `state`; a procurement-mode change concurrent with a pack-state change is resolved as two independent LWW fields,
-not a coupled unit.
+newer of the two; all other columns are independent fields. The four columns of the **state record** — the claim
+`packing_now_by`/`packing_now_at` and the packing `packed_by_user_id`/`packed_at` — are not a decision of their own: the
+server derives them from the `state` the same mutation carries (§5), so they are applied or dropped with the group and
+stay out of its clock. A record dropped with its state is not logged, because the state's entry already carries the
+loss; one that won on its own clock would leave a `packed` row with a claim holder and no packer. **Decided: no
+further grouping** — `mode` is not grouped with `state`; a procurement-mode change concurrent with a pack-state change
+is resolved as two independent LWW fields, not a coupled unit.
 
 **A conflict is an overwrite, not a lost race.** Losing the write and having a value overwritten
 are two different things, and only the second one is worth a log row: a field the push carried along unchanged —
@@ -667,9 +673,10 @@ builds it from the log entry itself (`entity_table`, `entity_id`, `field`,
 `losing_value`) **plus every field the same `mutation_id` lost that merges
 with it as one unit**, folds the row's current HLC into its own generator so a
 device with a fast clock cannot leave the revert stale, stamps
-`hlc.Next()`, and runs it through `Merge` -> persist -> `change_log`.
+`hlc.Next()`, and runs it through the push's own steps: the server-owned stamp (§5), the partition's scope, `Merge` ->
+persist -> `change_log`.
 
-Four consequences follow, and all four are deliberate:
+Five consequences follow, and all five are deliberate:
 
 * **It wins by being newer, not by being special.** Every device pulls it
   through the normal feed; an offline device that pushes afterwards
@@ -690,6 +697,10 @@ Four consequences follow, and all four are deliberate:
   log lists them apart for that reason. `sync.GroupedWith` is the one place
   the coupling is defined, shared with the merge itself so the two cannot
   drift.
+* **It is the reverter's write.** The stamp step names whoever tapped it, as it names a pusher: a restored `packed`
+  records them as the packer, a restored `packing_now` as the claim holder. The partition's scope judges it as it
+  judges a push — a member who may read a vote's conflict may not flip the vote back (FR-29.3), and is answered
+  `403 forbidden`.
 * **The entry is spent, not erased.** `conflict_log.reverted` is set in
   the same transaction as the write, by a single guarded statement
   (`... WHERE id = ? AND reverted = 0`), so two devices cannot both
@@ -826,7 +837,7 @@ rows below are therefore **not implemented as endpoints**:
 | `GET /push/vapid-key` · `POST /push/subscriptions` · `DELETE /push/subscriptions` | NFR-4.6 — implemented for Web Push: the server generates its VAPID keypair on first use and persists it next to the data (`server_keys`); `vapid-key` hands the public key to `pushManager.subscribe`, POST registers the browser's `{endpoint, keys:{p256dh, auth}}` (endpoint = identity, re-registering rebinds), DELETE (owner-scoped, `{endpoint}` body) is the M17 opt-out. Sends are RFC 8291 `aes128gcm`, detached from the request; a push service answering 404/410 drops the subscription. Message body: `{notification_id, kind, payload}` — same payload as `GET /notifications`. Operator contact via `JITPACK_PUSH_CONTACT` (VAPID `sub`). UnifiedPush/FCM/APNs remain unimplemented — there is no native mobile build yet; the WebSocket stays the universal in-app fallback |
 | ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **not an endpoint**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
 | `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a): `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id, resolved_at, reverted}]}`, newest first; conflict rows never flow through pull. `mutation_id` and `actor_user_id` are what §6.1's revert needs — the first groups the entries one revert restores together, the second names the person to tell. `reverted` says the losing value has already been restored, so the client offers the control once. An entry whose row has been deleted since is left out, in both partitions — see §6 |
-| `POST /trips/{id}/conflicts/{conflictId}/revert` | NFR-4.2a's manual revert, trip partition — implemented: restores the entry's `losing_value` as an ordinary upsert with a fresh server HLC (§6.1, ADR-023) and marks the entry `reverted`. Membership only, like the list beside it. Answers `{ok, pull_hint:{next_cursor}}`; the restored value arrives through the normal pull (P-1), and `trip.changed` is broadcast. Refusals carry their own codes: `404 conflict_not_found` (unknown, or the other partition's), `409 already_reverted`, `409 row_deleted`, `409 revert_refused` (§6 rule 2 outranks it) |
+| `POST /trips/{id}/conflicts/{conflictId}/revert` | NFR-4.2a's manual revert, trip partition — implemented: restores the entry's `losing_value` as an ordinary upsert with a fresh server HLC (§6.1, ADR-023) and marks the entry `reverted`. Membership gates the endpoint, like the list beside it, and the write passes the trip partition's scope like a push (§6.1). Answers `{ok, pull_hint:{next_cursor}}`; the restored value arrives through the normal pull (P-1), and `trip.changed` is broadcast. Refusals carry their own codes: `404 conflict_not_found` (unknown, or the other partition's), `409 already_reverted`, `409 row_deleted`, `409 revert_refused` (§6 rule 2 outranks it), `403 forbidden` (a row-level rule of the scope refuses the caller, e.g. another member's vote) |
 | `POST /trips/{id}/items/{itemId}/takeover` | FR-5.7's takeover, and the one part of G-3's lock the server owns — implemented: moves a `packing_now` claim from its holder to the caller in one transaction, so the row is never unclaimed in between. Membership only. The write is an ordinary upsert with a fresh server HLC (like the revert beside it), so the other devices converge through the normal pull; `trip.changed` and `item.locked` are broadcast. Answers `{ok, previous_holder, pull_hint:{next_cursor}}` — the holder's id is what the confirmation named beforehand and the snackbar names after. It also records the takeover in `lock_events` and sends the previous holder an FR-6.2 notification of kind `lock_taken`, neither of which a client could do for itself (invariant 3). Refusals carry their own codes: `404 not_found` (no such row on this trip — an item of another trip answers the same, so nothing foreign is confirmed), `409 claim_not_held` (nobody is packing it), `409 claim_is_own` (releasing is the action for that). A refusal writes nothing and notifies nobody |
 | `GET /trips/{id}/lock-events` | The trip's takeover record: `{lock_events:[{id, trip_item_id, item_name, from_user_id, to_user_id, created_at}]}`, newest first. Membership only, like the conflict log — and deliberately *not* part of it (ADR-028): that log holds merge losers, and one list carrying two unrelated kinds of event stops being readable. `item_name` is stored on the event rather than joined, so the record stays readable after the row it names is deleted |
 | `GET /trips/{id}/activity` | The trip's activity log (FR-32.1, ADR-084): `{entries:[{id, entity_table, entity_id, op, label, subject?, changes, actor_user_id, created_at}], before}`, newest first. `op` is `insert`/`update`/`delete`; `changes` maps each field the write changed to `[before, after]` (an insert's before is null; a delete names every field the row held, after null); `label`/`subject` are the row's name and its parent's, stored at the time. `?limit=` (default 100, at most 500) and `?before=<id>` page back; `before` in the answer is the next cursor, `0` once the page reached the log's start. Membership only. Holds the trip's own master-partition rows too — its name and dates, its roster. Never part of a pull |

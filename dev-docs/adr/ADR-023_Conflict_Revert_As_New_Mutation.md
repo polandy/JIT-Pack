@@ -228,3 +228,30 @@ Secondarily: **reverting fields of one row that are not coupled, in one
 go**. The coupled group already travels as a unit; an entry-by-entry
 revert of, say, a name and a container is N round-trips, and a batch
 shape would have to be weighed against the atomicity this design buys.
+
+## Amendment, 2026-10-06: the revert runs the push's stamp and scope
+
+Driver 2 said "the merge rules stay one set of rules", and the revert kept that promise for the merge alone. It built
+its write beside the push pipeline rather than through it, and so skipped two of the push's steps: the stamping of the
+server-owned columns (invariant 3), and the trip partition's scope. Two defects followed. A restored `packed` or
+`packing_now` arrived without the packer or claim holder the state carries — a claim nobody held. And a member could
+restore the losing value of another member's vote, which the push path refuses (FR-29.3).
+
+What changed: the stamp moved into the store as a step of the write pipeline, declared per table
+(`tableSpec.serverOwned`, `internal/store/stamp.go`), and `applyRevert` runs it and `p.scope` exactly where
+`applyMutation` does, then the partition's extra change_log entries. The authorizer parameter is gone: the master
+partition's scope is the same `authorizeMaster` it passed, and the trip partition's scope is no longer skipped on the
+argument that membership is its only gate — it is not. A scope refusal answers `403 forbidden` in both partitions.
+
+The stamped actor is the **reverter**, not the person whose push lost: the revert is a new write in the present (the
+decision above), and a write names whoever made it. The Revisit Trigger's "who took this back" is answered for the
+state's own record and still open for the conflict entry.
+
+A second defect surfaced on the way, on the push path itself: §6 rule 2 dropped a `packing_now` onto a `packed` row,
+while the claim and the erased packing record the same mutation carried won on their own clocks. The four record
+columns now follow the state group's verdict (`sync.stateRecord`, Sync-API §6), without joining its clock and without
+an entry of their own — so the revert's `409 revert_refused` on that pair stays a refusal rather than a half-applied
+merge.
+
+What did not change: the memo, the tombstone check, and a delete's retire and cascade stay the push's alone; a
+revert is a server-built upsert of an existing row and has no use for them.
