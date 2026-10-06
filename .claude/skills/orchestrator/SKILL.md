@@ -6,7 +6,7 @@ description: Drive several Claude sessions working on this repo through one merg
 # Multi-session orchestrator
 
 Several Claude sessions work this repo in parallel, each in its own worktree. They finish at different
-times and then all wait on the same thing: CI, and a merge go-ahead. You are the one session that holds
+times, and their PRs all wait on the same thing: CI, and a merge go-ahead. You are the one session that holds
 the queue, so the owner does not have to hand out merge permission one PR at a time.
 
 You do not write the features. You sequence them, review them, merge them, and keep every other session
@@ -29,8 +29,9 @@ These come from the owner and override your own judgement about efficiency:
 4. **Follow-up work is allowed, but it queues at the back.** A session whose PR merged does not roll
    straight into its next idea: the follow-up starts in a fresh session and takes a place in the queue
    behind the PRs that are already open.
-5. **You may merge, and you may grant merge permission to another session.** Say it explicitly; the
-   sessions are told to wait for exactly that signal.
+5. **You may merge, and you may grant merge permission to another session** — a fresh one, never the
+   feature session that wrote the PR (rule 3). Say it explicitly; the sessions are told to wait for
+   exactly that signal.
 6. **The release-please PR goes last**, once nothing else is left. It never counts toward the
    one-open-PR rule.
 
