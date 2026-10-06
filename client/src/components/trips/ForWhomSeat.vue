@@ -3,7 +3,7 @@
  * FR-25.28 — the for-whom seat: the door to the strip, laid over the row's
  * lead slot. It draws nothing of its own — the caller puts in what the slot
  * already holds, the item's mark or a lone per-person row's face — because a
- * glyph that said *shared* on nine rows in ten cost every name a column
+ * glyph saying *shared* on nine rows in ten would cost every name a column
  * (UX-03). The row's press-and-hold menu names the same door (*Für wen …*).
  *
  * It is a `role="button"` span rather than the native element because one of

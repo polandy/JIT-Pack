@@ -119,8 +119,8 @@ defineEmits<{
     <span class="cluster-title">
       <span class="cluster-name">{{ name }}</span>
       <!-- How many people carry one, after the name in the vocabulary of a
-           row's other facts — a filled circle in the lead column read as an
-           unread badge and cost every name its column (UX-03). -->
+           row's other facts — a filled circle in the lead column reads as an
+           unread badge and costs every name its column (UX-03). -->
       <FactChip
         class="people jp-num"
         :aria-label="t('packing.clusterPeople', { n: faces.length })"
