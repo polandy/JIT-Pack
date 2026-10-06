@@ -25,6 +25,7 @@ import { t } from '@/i18n'
 import { LIVE_LOCATION } from '@/composables/useLiveLocation'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
+import { defaultNowMs } from '@/lib/clock'
 import { initialsOf } from '@/lib/initials'
 import { freshPeople, minutesAgo } from '@/lib/liveLocation'
 import { useTileState } from '@/lib/mapTiles'
@@ -78,7 +79,9 @@ const othersOffered = computed(
 const sharing = computed(() => !!props.tripId && !!live?.isSharing(props.tripId))
 
 /** The minute the „vor n min" are counted against, moved on while the map is open. */
-const minute = ref(Date.now())
+// The real clock only where the viewer is mounted without an orchestrator.
+const clock = orchestrator?.now ?? defaultNowMs
+const minute = ref(clock())
 let ticker: ReturnType<typeof setInterval> | null = null
 const MINUTE_MS = 60_000
 
@@ -87,8 +90,8 @@ watch(
   (open, was) => {
     if (open) {
       live?.hold()
-      minute.value = Date.now()
-      ticker ??= setInterval(() => (minute.value = Date.now()), MINUTE_MS)
+      minute.value = clock()
+      ticker ??= setInterval(() => (minute.value = clock()), MINUTE_MS)
     } else if (was) {
       live?.release()
       if (ticker) clearInterval(ticker)

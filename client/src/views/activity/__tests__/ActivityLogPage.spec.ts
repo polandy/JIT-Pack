@@ -22,6 +22,9 @@ vi.mock('@/mode', async (importOriginal) => ({
   hasCollaborativeSession: () => collaborative,
 }))
 
+/** The orchestrator's clock; the entries are written at it. */
+const NOW = new Date('2026-07-08T12:00:00').getTime()
+
 let nextId = 50
 function packed(label: string, over: Partial<ActivityEntry> = {}): ActivityEntry {
   return {
@@ -32,7 +35,7 @@ function packed(label: string, over: Partial<ActivityEntry> = {}): ActivityEntry
     label,
     changes: { state: ['open', 'packed'] },
     actor_user_id: 'u-andy',
-    created_at: new Date().toISOString(),
+    created_at: new Date(NOW).toISOString(),
     ...over,
   }
 }
@@ -41,6 +44,7 @@ const page = (entries: ActivityEntry[], before = 0): ActivityListResponse => ({ 
 
 const orchestrator = {
   ...identityStub(),
+  now: () => NOW,
   fetchTripActivity: vi.fn<(tripId: string, before?: number) => Promise<ActivityListResponse>>(),
   fetchInventoryActivity: vi.fn<(before?: number) => Promise<ActivityListResponse>>(),
   fetchUsers: vi.fn(() =>

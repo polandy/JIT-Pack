@@ -68,6 +68,7 @@ import { createPackingShoppingSource } from '@/composables/packingShoppingSource
 import { createExcursionShoppingSource } from '@/composables/excursionShoppingSource'
 import { pendingExcursionCount } from '@/domain/excursions'
 import { localIsoDate } from '@/domain/trips'
+import { defaultNowMs } from '@/lib/clock'
 import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
 import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
@@ -171,6 +172,10 @@ const orchestrator = mode.value
     })
   : null
 
+// The device's clock for the shell, one with the orchestrator's so a test that
+// sets it reaches every screen; real time only before a mode is chosen.
+const clock = orchestrator?.now ?? defaultNowMs
+
 /**
  * NFR-4.2a: a push that came back `merged` dropped fields of this device's
  * changes. One toast per *push*, never per conflict — a reconnect drains a
@@ -250,7 +255,7 @@ const liveLocation = orchestrator
       host: orchestrator,
       geo: browserGeo(),
       storage: localStorage,
-      now: () => Date.now(),
+      now: clock,
     })
   : null
 if (liveLocation) {
@@ -365,7 +370,7 @@ provide(TRIP_VIEW_COUNTS, {
     return pendingExcursionCount(
       trips.getExcursions(tripId),
       trips.getExcursionItems(tripId),
-      localIsoDate(Date.now()),
+      localIsoDate(clock()),
     )
   },
   // FR-7.13: what is new for me in the trip's notes, never their total.
@@ -558,7 +563,7 @@ async function onSyncTap() {
   // presentation, so a storage section that arrived a tick later would grow
   // the content past the box Ionic had already sized — the last line renders
   // under the tab bar. Visible on a rendered pixel, invisible in the markup.
-  detailNow.value = Date.now()
+  detailNow.value = clock()
   // The names in the roster come from the directory; a device that has not
   // opened a screen needing it yet has none.
   if (orchestrator && mode.value === 'server') void identity.load(orchestrator)

@@ -12,7 +12,7 @@ import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 import { openTripView } from './helpers/trips'
 import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
-import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
+import { browserDay, expectFiguresPaired, setClock, writesLanded } from './helpers/page'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -28,6 +28,9 @@ import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
  */
 
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy'] }
+
+/** E2E-M1-06's departure day, a summer one: Zurich is UTC+2 on it. */
+const DEPARTURE_DAY = '2026-07-06'
 
 /** A small phone, where M1's hero is too narrow for two figures side by side (FR-7.4). */
 const PHONE = { width: 360, height: 780 }
@@ -272,11 +275,11 @@ test.describe('M1 — the three promises @local @m1', () => {
   })
 
   // E2E-M1-06 (FR-5.1): the Late-Packer section, on the departure day and on
-  // no other. The date is computed by the case rather than waited for —
-  // "today" is an input here, not a race.
+  // no other. Half past midnight in Zurich is still yesterday in UTC — the
+  // hour the section once read the wrong day in — so the clock is set there.
   test('E2E-M1-06: the last things to pack appear on the departure day only', async ({ page }) => {
-    const today = new Date().toISOString().slice(0, 10)
-    await createTripViaWizard(page, { name: 'Abfahrt heute', startDate: today })
+    await setClock(page, `${DEPARTURE_DAY}T00:30:00+02:00`)
+    await createTripViaWizard(page, { name: 'Abfahrt heute', startDate: DEPARTURE_DAY })
     await tripAction(page, 'start')
     await quickAdd(page, ['Zahnbürste', 'Zelt'])
 

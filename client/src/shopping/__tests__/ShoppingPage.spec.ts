@@ -31,7 +31,7 @@ import { changesOf } from '@/sync/optimistic'
 import type { ShoppingMode } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { STUB_TODAY, tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -571,12 +571,15 @@ describe('M6 — the ＋ bottom right (FR-30.6)', () => {
   })
 })
 
+/** A purchase on the stubbed day, so its heading is *Today* whatever day the suite runs. */
+const BOUGHT_TODAY = new Date(`${STUB_TODAY}T09:30:00`).toISOString()
+
 describe('M6 — who bought it, and when (FR-30.4)', () => {
   it('names the buyer and the time on a bought entry, from the trip’s people', async () => {
     seedEntry('e1', {
       name: 'Brot',
       bought: 1,
-      bought_at: new Date().toISOString(),
+      bought_at: BOUGHT_TODAY,
       bought_by_user_id: 'u-sia',
     })
     const page = mountPage()
@@ -595,7 +598,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
     const bought = line({
       name: 'Sonnencreme',
       boughtNote: t('shopping.wentToPacking'),
-      boughtAt: new Date().toISOString(),
+      boughtAt: BOUGHT_TODAY,
       boughtBy: 'u-andy',
     })
     const page = mountPage([source({}, { buy_before: [bought] })])
@@ -610,7 +613,7 @@ describe('M6 — who bought it, and when (FR-30.4)', () => {
   })
 
   it('states only the time where nobody can be named (Local Mode, G-8)', async () => {
-    seedEntry('e1', { name: 'Brot', bought: 1, bought_at: new Date().toISOString() })
+    seedEntry('e1', { name: 'Brot', bought: 1, bought_at: BOUGHT_TODAY })
     const page = mountPage()
     await flushPromises()
 

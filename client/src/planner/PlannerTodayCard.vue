@@ -50,7 +50,7 @@ const visible = computed(() => tripDays(dates.value).includes(today.value))
 
 /** The device's wall clock as `HH:MM`, for which of today's lines have passed. */
 function clockNow(): string {
-  const now = new Date()
+  const now = new Date(orchestrator.now())
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 }
 const now = ref(clockNow())

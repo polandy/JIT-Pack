@@ -35,6 +35,8 @@ vi.mock('@/notifications/push', () => ({
 
 const orchestratorFake = {
   ...identityStub(),
+  // The NFR-4.11 reminder reads this, never the real clock.
+  now: () => new Date('2026-07-08T12:00:00').getTime(),
   fetchNotificationPrefs: vi.fn(() =>
     Promise.resolve({ delegation: true, mention: true, task: true, lock_taken: true }),
   ),

@@ -96,7 +96,7 @@ const name = ref('')
  * permanent — and it is the fact M2 sorts and groups by. The picker offers
  * the same years those two do, from the one rule they all read.
  */
-const thisYear = new Date().getFullYear()
+const thisYear = new Date(orchestrator.now()).getFullYear()
 const yearChoices = computed(() => {
   const current = trip.value?.year
   const offered = tripYearChoices(thisYear)

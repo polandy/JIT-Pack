@@ -5,21 +5,20 @@
  * clock is set, never the real one.
  */
 import { mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setLocale } from '@/i18n'
 import PackingClosedCard from '../PackingClosedCard.vue'
 
-beforeEach(() => {
-  vi.useFakeTimers()
-  vi.setSystemTime(new Date(2026, 9, 4, 18, 0))
-  setLocale('en')
-})
-afterEach(() => vi.useRealTimers())
+const NOW = new Date(2026, 9, 4, 18, 0).getTime()
+
+beforeEach(() => setLocale('en'))
 
 describe('PackingClosedCard — the stamp', () => {
   it('says when the packing was closed, in the region’s clock', () => {
-    const wrapper = mount(PackingClosedCard, { props: { at: '2026-10-04T14:32:00', skipped: 0 } })
+    const wrapper = mount(PackingClosedCard, {
+      props: { at: '2026-10-04T14:32:00', skipped: 0, now: NOW },
+    })
     expect(wrapper.get('[data-testid="m4-packing-closed-stamp"]').text()).toContain('today 14:32')
   })
 })
