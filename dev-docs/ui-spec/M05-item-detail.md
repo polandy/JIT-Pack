@@ -51,8 +51,8 @@
   membership** directly: `Gemeinsam` = one shared row for all; picking travelers turns the item into a **per-person
   item** (FR-1.4/25.1) with one independently-packable row each — so *adding Leonardo puts a "Sonnenbrille" row on his
   list*, removing a traveler drops their row. Consequences: M4 **shared** rows show no for-whom avatar (only
-  per-person child rows carry their owner avatar) — their leading column holds an **empty seat**, the door to the
-  for-whom strip, which names nobody; person-grouping (M4) and per-person analytics (M12) derive from
+  per-person child rows carry their owner avatar) — their lead slot, the mark, is the door to the for-whom strip
+  and names nobody (FR-25.28); person-grouping (M4) and per-person analytics (M12) derive from
   **per-person rows** rather than a shared-row label; the shopping *Used by* idea (FR-25.6) is revisited under this
   model. FR-25.21 is where the multi-select, the per-traveler amounts and the write path live. The control is not
   M5's alone and not a sheet — see *The for-whom strip* under M4 (FR-25.28).

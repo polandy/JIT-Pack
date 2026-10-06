@@ -10,6 +10,7 @@ import {
   layersOutline,
   locationOutline,
   lockOpenOutline,
+  peopleOutline,
   refreshOutline,
   removeCircleOutline,
   timeOutline,
@@ -31,6 +32,8 @@ export const ROW_MENU_BUTTONS: Record<RowMenuAction, RowMenuButton> = {
   release: { labelKey: 'packing.releaseAction', icon: lockOpenOutline },
   unskip: { labelKey: 'packing.unskipAction', icon: refreshOutline },
   quantity: { labelKey: 'quantity.edit', icon: layersOutline },
+  // FR-25.28: the people an item is for.
+  forWhom: { labelKey: 'packing.forWhomAction', icon: peopleOutline },
   packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
   skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
   // FR-5.9: the glyphs the row's own mode badge shows, so the entry names the

@@ -366,8 +366,9 @@ test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
       'aria-pressed',
       'false',
     )
-    // The seat counts who it is for; the faces are the child rows.
-    await expect(list.getByTestId(`for-whom-seat-${ITEM}`)).toHaveText('2')
+    // The head counts who it is for in a chip after its name (UX-03); the
+    // faces are the child rows.
+    await expect(list.getByTestId(`m4-cluster-people-${ITEM}`)).toHaveText('2')
     // No sheet was involved in any of it.
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
     await expect(page.locator('ion-alert')).toHaveCount(0)

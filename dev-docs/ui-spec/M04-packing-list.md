@@ -187,13 +187,17 @@
     * **The lead column is one glyph wide (FR-21.19).** The mark on an item row, the traveler's face on a child row
       under a cluster — never both. A *lone* per-person instance renders as an item row with the person folded into
       its label (`Wanderstöcke · Andy`) and draws no face beside the mark slot, which would start its name 32 px right
-      of every sibling. A test of the rule must be given a row with a traveler.
+      of every sibling; on a list with the *who* column its face takes the mark's place instead (FR-25.28). A test of
+      the rule must be given a row with a traveler. **The *who* column is not a second column (UX-03):** a seat beside
+      the mark on every row would start the names at x 101 of 412 px and leave *Kleidung*'s name columns 175–198 px
+      wide; in the one slot they start at x 69 (E2E-M4-153).
     * **The edge avatar is a control (FR-25.25).** Tapping it opens the assignment picker — the
       trip's other members and *niemand* — instead of only naming the responsible person. A row nobody is responsible
       for renders an **empty seat** in the same place, which is the row's only affordance for being handed over. It is
       absent where nothing is assignable (G-8), under a G-3 lock, in the closing pass, and once the avatar names the
       packing record rather than the assignment: that one is not a choice (FR-25.19).
-  * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Packen*, *Nicht einpacken*, **_Vor Ort kaufen_** — on a
+  * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Für wen …* (FR-25.28, on a list with the *who* column —
+    also after *Doch einpacken* on a skipped row), *Packen*, *Nicht einpacken*, **_Vor Ort kaufen_** — on a
     `buy_local` row **_Doch mitnehmen_** in its place, and neither on a row already begun (FR-5.9) —,
     **Spätpacker ein/aus** (FR-25.25, last of the row's own actions), FR-9.3's unused mark where the trip can be judged,
     and **_Von der Liste entfernen_ last of all** (FR-5.8, destructive role). A row somebody else
@@ -208,22 +212,25 @@
       Where the row is the **only use of its inventory item** (ADR-065), the snackbar reads
       *„„Zelt" entfernt – auch aus dem Inventar"* and the alert's body ends with *„Der Artikel kommt sonst nirgends vor
       und wird auch aus dem Inventar gelöscht."*; the item goes once the undo has lapsed.
-  * **Cluster head menu (FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
-    press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
-    zuweisen an …**, each acting on every instance the head counts, and **every entry of a row's
-    own menu** except the takeover, in the row's order and words: *Menge ändern*, *Jetzt packen*, *Nicht einpacken* /
-    *Doch einpacken*, *Freigeben*, *Unbenutzt*, *Von der Liste entfernen*. Each reaches the instances whose own row
-    would offer it. *Menge ändern* opens the row's amount popover, centred, naming the item; each tap writes the same
-    amount to every instance. Skip and removal carry one snackbar and one undo for all of them. It states the scope
-    in its sub-header (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances somebody else
-    holds are skipped and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*) — or, for skip and removal,
-    in the snackbar's name (*„Zahnbürste (3 von 4)"*); a head whose every instance is held offers no menu at all, and
-    none of its entries is a takeover.
-  * **The for-whom strip (FR-25.28):** the list carries a leading ***who* column**, one avatar wide,
-    before the mark — wherever the trip has two travelers or more and outside FR-9.3's closing pass (G-8). On an item
-    row and on a cluster head it holds the **for-whom seat**: an empty seat with the people glyph on a shared row, the
-    traveler on a lone per-person row, a **count** on a cluster head. A child row's avatar sits in the same column and
-    leaves the mark slot empty beside it, so every name keeps one x (FR-21.19/FR-28.4). Tapping a seat unfolds the strip
+  * **Cluster head menu (FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same press-and-hold, while
+    the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle zuweisen an …**, each
+    acting on every instance the head counts, and **every entry of a row's own menu** except the takeover, in the row's
+    order and words: *Menge ändern*, *Für wen …*, *Jetzt packen*, *Nicht einpacken* / *Doch einpacken*, *Freigeben*,
+    *Unbenutzt*, *Von der Liste entfernen*. Each reaches the instances whose own row would offer it; *Für wen …* opens
+    the one strip, under the head. *Menge ändern* opens the row's amount popover, centred, naming the item; each tap
+    writes the same amount to every instance. Skip and removal carry one snackbar and one undo for all of them. It
+    states the scope in its sub-header (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances
+    somebody else holds are skipped and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*) — or, for skip
+    and removal, in the snackbar's name (*„Zahnbürste (3 von 4)"*); a head whose every instance is held offers no menu
+    at all, and none of its entries is a takeover.
+  * **The for-whom strip (FR-25.28):** the list carries a ***who* column** wherever the trip has two travelers or
+    more and outside FR-9.3's closing pass (G-8) — and it is **the lead slot itself**, not a column beside it (UX-03).
+    On an item row and on a cluster head the slot is the **for-whom seat**: it draws nothing of its own, only what the
+    slot holds anyway — the mark on a shared row (an empty slot on a row without one), the traveler's face *in the
+    mark's place* on a lone per-person row, the mark on a cluster head. The head says how many travelers it is for in
+    a grey **fact chip after its name** (*Regenjacke* `3`), the vocabulary of M8's `1×`. A child row's avatar sits in
+    the same slot, so every name keeps one x (FR-21.19/FR-28.4). Because a seat no longer looks like one, the row's
+    and the head's press-and-hold menus name the same door as **_Für wen …_**. Tapping a seat unfolds the strip
     **as a line of the card under that row** — *Gemeinsam* ⎮ *Alle*, one avatar toggle per traveler in roster order, and
     a summary line (*„3 Personen · 3 Stück"*); tapping it again or another seat folds it, so **at most one** is open.
     Every tap commits (G-5). Unlit travelers keep their face at half weight; a lit one wears the action ring. **Laid out

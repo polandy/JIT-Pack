@@ -17,6 +17,7 @@
 import { IonIcon } from '@ionic/vue'
 import { chevronDownOutline } from 'ionicons/icons'
 
+import FactChip from '@/components/global/FactChip.vue'
 import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import RowGlyphs from '@/components/trips/RowGlyphs.vue'
@@ -91,17 +92,23 @@ defineEmits<{
     <!-- The same lead column a row has (FR-21.19), so the head starts its
          name on the item rows' x rather than on its children's. -->
     <div class="head-lead">
-      <!-- FR-25.28: the same *who* column an item row has; the count stands
-           for the faces, which are the child rows under it. -->
+      <!-- FR-25.28: the same door an item row's slot is, over the same mark. -->
       <ForWhomSeat
         v-if="seat"
         :item-name="name"
-        :member-count="faces.length"
         :open="seat.open"
         :test-key="name"
         @toggle="$emit('forWhom')"
-      />
+      >
+        <ItemMark
+          :mark="master?.icon ?? null"
+          surface="packing"
+          :photo-item="master"
+          :size="MARK_SIZE"
+        />
+      </ForWhomSeat>
       <ItemMark
+        v-else
         :mark="master?.icon ?? null"
         surface="packing"
         :photo-item="master"
@@ -111,6 +118,15 @@ defineEmits<{
     </div>
     <span class="cluster-title">
       <span class="cluster-name">{{ name }}</span>
+      <!-- How many people carry one, after the name in the vocabulary of a
+           row's other facts — a filled circle in the lead column read as an
+           unread badge and cost every name its column (UX-03). -->
+      <FactChip
+        class="people jp-num"
+        :aria-label="t('packing.clusterPeople', { n: faces.length })"
+        :data-testid="`${screen === 'm27' ? 'm27-cluster-people' : 'm4-cluster-people'}-${name}`"
+        >{{ faces.length }}</FactChip
+      >
       <!-- The caret trails the name rather than leading the line: leading it
            would push the name off the item rows' x, which is the one thing
            `head-lead` exists to hold (FR-21.20). -->
@@ -176,6 +192,11 @@ defineEmits<{
 
 .cluster-name {
   text-align: start;
+}
+
+.people {
+  padding: 1px 7px;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .cluster-count {

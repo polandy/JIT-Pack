@@ -301,6 +301,49 @@ describe('PackingRow — where the two kinds differ', () => {
     expect(lone.get('h3').text()).toContain('Andy')
   })
 
+  /**
+   * UX-03: the seat draws no glyph of its own. A shared row's door is its
+   * mark — the dashed people glyph said *nothing special* on nine rows in
+   * ten and cost every name a column — and a lone per-person row's is its
+   * face, in the mark's place rather than beside it.
+   */
+  it('on a list with the who column a shared row’s seat holds its mark and nothing else (FR-25.28, UX-03)', () => {
+    const row = mountRow({
+      seat: { open: false },
+      master: { id: 'm1', name: 'Zelt', weight_grams: null, value_cents: null, icon: '⛺' },
+    })
+    const lead = row.get('.row-lead')
+    expect(lead.findAll(':scope > *')).toHaveLength(1)
+    const seat = lead.get('[data-testid="for-whom-seat-Zelt"]')
+    expect(seat.get('[data-testid="item-mark"]').text()).toBe('⛺')
+    expect(seat.find('ion-icon').exists()).toBe(false)
+    expect(seat.find('[data-testid="user-avatar"]').exists()).toBe(false)
+  })
+
+  it('a lone per-person row’s seat holds the face in the mark’s place (FR-21.19, UX-03)', () => {
+    const row = mountRow({
+      seat: { open: false },
+      traveler: { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null },
+      label: 'Zelt · Andy',
+    })
+    const seat = row.get('[data-testid="for-whom-seat-Zelt"]')
+    expect(seat.find('[data-testid="user-avatar"]').exists()).toBe(true)
+    expect(row.find('[data-testid="item-mark-slot"]').exists()).toBe(false)
+  })
+
+  it('a tap on the seat folds the strip and does not open the item (FR-25.28)', async () => {
+    const row = mountRow({ seat: { open: false } })
+    await row.get('[data-testid="for-whom-seat-Zelt"]').trigger('click')
+    expect(row.emitted('forWhom')).toHaveLength(1)
+    expect(row.emitted('open')).toBeUndefined()
+  })
+
+  it('without the who column the slot is the bare mark, with no door (FR-25.28, G-8)', () => {
+    const row = mountRow({ seat: null })
+    expect(row.find('[data-testid="for-whom-seat-Zelt"]').exists()).toBe(false)
+    expect(row.find('.row-mark').exists()).toBe(true)
+  })
+
   it('the two kinds are addressed by two prefixes over one key', () => {
     expect(mountRow().attributes('data-testid')).toBe('m4-row-Zelt')
     expect(mountRow({ variant: 'child', testKey: 'Zelt-Bea' }).attributes('data-testid')).toBe(

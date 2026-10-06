@@ -26,6 +26,7 @@ import { t, type MessageKey } from '@/i18n'
 import { ROW_MENU_BUTTONS } from '@/lib/rowMenuButtons'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, type TripItem } from '@/types/domain'
 
+import type { ForWhom } from './useForWhom'
 import type { PackingCore } from './usePackingCore'
 import type { RowActions } from './useRowActions'
 import type { RowQuantity } from './useRowQuantity'
@@ -50,7 +51,12 @@ const CLUSTER_MENU_BUTTONS: Record<
 export type PackingMenus = ReturnType<typeof usePackingMenus>
 
 /** Builds {@link PackingMenus} over the page's core and the acts it reaches. */
-export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: RowQuantity) {
+export function usePackingMenus(
+  core: PackingCore,
+  acts: RowActions,
+  quantity: RowQuantity,
+  forWhom: ForWhom,
+) {
   const { tripId, orchestrator, locked, rowUndo, armRowsUndo } = core
 
   const hold = useLongPress<TripItem>(openRowMenu)
@@ -85,6 +91,9 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
         // opened from may have scrolled. Ionic centres a popover with no
         // reference, which is where the menu itself just was.
         quantity.open(item)
+        return
+      case 'forWhom':
+        forWhom.toggleItem(item)
         return
       case 'packingNow':
         acts.onPackingNow(item)
@@ -125,6 +134,7 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
       canTakeOver: acts.canTakeOver,
       mine: orchestrator.holdsClaim(tripId, item),
       judgeable: core.judgeable.value,
+      forWhom: forWhom.seatColumn.value,
     })
     if (entries.length === 0) return
 
@@ -187,6 +197,7 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
       closingPass: core.closingPass.value,
       canAssign: core.assignableMembers.value.length > 0,
       judgeable: core.judgeable.value,
+      forWhom: forWhom.seatColumn.value,
     }
   }
 
@@ -295,6 +306,9 @@ export function usePackingMenus(core: PackingCore, acts: RowActions, quantity: R
         report()
         return
       }
+      case 'forWhom':
+        forWhom.toggle(cluster)
+        return
       case 'quantity':
         quantity.openForRows(plan.targetIds, fanOutName(cluster.name, plan))
         return

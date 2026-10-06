@@ -28,6 +28,8 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.clusterLatePackerOff': 'Spätpacker für alle aus',
   'packing.clusterAssignAll': 'Alle zuweisen an …',
   'packing.clusterScope': '{n} Zeile | {n} Zeilen',
+  'packing.forWhomAction': 'Für wen …',
+  'packing.clusterPeople': '{n} Person | {n} Personen',
   'packing.clusterPartialName': '{name} ({n} von {total})',
   'packing.fanOutApplied': '{n} Zeile geändert | {n} Zeilen geändert',
   'packing.fanOutPartial': '{n} von {total} geändert · {who} packt gerade',

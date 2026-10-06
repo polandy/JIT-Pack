@@ -55,6 +55,9 @@ export interface RowEdgeAvatar {
   name: string | null
 }
 
+/** The mark's box, in px; with its 10px gap it is the lead slot's 32px. */
+const MARK_SIZE = 22
+
 const props = withDefaults(
   defineProps<{
     item: TripItem
@@ -81,12 +84,9 @@ const props = withDefaults(
     prepCount?: number
     edgeAvatar?: RowEdgeAvatar | null
     /**
-     * FR-25.28: the list carries the *who* column — two travelers or more,
-     * and not FR-9.3's closing pass. It moves a child row's avatar into that
-     * column; an item row gets its seat from {@link seat}.
+     * FR-25.28: the item row's for-whom seat, on a list with the *who* column;
+     * absent on a child row, whose head owns it.
      */
-    seatColumn?: boolean
-    /** FR-25.28: the item row's for-whom seat; absent on a child row, whose head owns it. */
     seat?: { open: boolean } | null
     /**
      * FR-25.25: the edge avatar is this row's assignment control rather than
@@ -115,7 +115,6 @@ const props = withDefaults(
     prepCount: 0,
     edgeAvatar: null,
     assignable: false,
-    seatColumn: false,
     seat: null,
     borrowedBy: () => [],
     screen: 'm4',
@@ -155,42 +154,37 @@ const emit = defineEmits<{
     @pointerup="emit('pressEnd')"
     @pointercancel="emit('pressEnd')"
   >
-    <!-- The lead column: what the row *is*, and exactly one thing wide. A
-         child row keeps the column even with nobody in it, because it has no
-         mark to hold it open; an item row's mark slot holds its own width
-         (FR-28.4), so the names line up across both kinds. -->
+    <!-- The lead column: what the row *is*, and exactly one thing wide — the
+         mark on an item row, the face on a child row or a lone per-person row
+         (FR-21.19). Each holds the same 32px, so every name keeps one x. -->
     <div slot="start" class="row-lead">
-      <!-- FR-25.28: the *who* column. An item row's seat is the door to the
-           strip; a child row's avatar sits in the same column, under its
-           head's seat, and leaves the mark slot empty so every name keeps
-           one x (FR-21.19). -->
+      <!-- FR-25.28: on a list with the *who* column the slot is also the door
+           to the strip. It draws nothing of its own (UX-03). -->
       <ForWhomSeat
         v-if="seat && props.variant === 'item'"
         :item-name="item.name"
-        :member-count="traveler ? 1 : 0"
-        :traveler="traveler"
         :open="seat.open"
         :test-key="testKey"
         @toggle="emit('forWhom')"
-      />
-      <span v-if="seatColumn && props.variant === 'child'" class="seat-slot">
-        <UserAvatar :name="traveler?.name" :seed="traveler?.id" />
-      </span>
-      <span v-if="seatColumn && props.variant === 'child'" class="mark-slot" />
-      <UserAvatar
-        v-if="!seatColumn && props.variant === 'child'"
-        class="row-avatar"
-        :name="traveler?.name"
-        :seed="traveler?.id"
-      />
+      >
+        <UserAvatar v-if="traveler" :name="traveler.name" :seed="traveler.id" />
+        <ItemMark
+          v-else
+          :mark="master?.icon ?? null"
+          surface="packing"
+          :photo-item="master"
+          :size="MARK_SIZE"
+        />
+      </ForWhomSeat>
       <ItemMark
-        v-if="props.variant === 'item'"
+        v-else-if="props.variant === 'item'"
         :mark="master?.icon ?? null"
         surface="packing"
         :photo-item="master"
-        :size="22"
+        :size="MARK_SIZE"
         class="row-mark"
       />
+      <UserAvatar v-else class="row-avatar" :name="traveler?.name" :seed="traveler?.id" />
     </div>
 
     <IonLabel>
@@ -413,30 +407,12 @@ const emit = defineEmits<{
 
 /* The traveler avatar *is* the child row's column (24px + 8px = the mark
    slot's 22px + 10px), so child rows and item rows start their names at the
-   same x. It is never drawn beside the mark: a lone per-person instance
-   renders as an item row, and stacking the two put its name 32 px right of
-   every sibling in the same group (FR-21.19). The person is not lost — that
-   row's label is `<item> · <traveler>`, which is what `packingView` builds
-   precisely because no cluster head is there to say it. */
+   same x. It is never drawn beside the mark: a lone per-person row shows its
+   face *instead of* the mark, inside the seat, and stacking the two put its
+   name 32 px right of every sibling in the same group (FR-21.19). */
 .row-avatar {
   flex: none;
   margin-inline-end: 8px;
-}
-
-/* FR-25.28: the child row's avatar in the *who* column — the seat's own box
-   (28px + 4px), so it stands under its head's seat — and the mark slot held
-   open beside it (22px + 10px), so the name starts where an item row's does. */
-.seat-slot {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  margin-inline-end: 4px;
-}
-
-.mark-slot {
-  flex: none;
-  width: 32px;
 }
 
 /*
