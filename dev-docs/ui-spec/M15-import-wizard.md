@@ -32,8 +32,8 @@
   either on. The commit lands on **M9, the inventory, when no trip was created**, and otherwise on **M2's Archived
   segment** — FR-16.2 only ever produces archived trips, and M2 opens on Active, so a default landing would report a
   successful migration with "No active trips".
-* **Navigation:** From M9's empty state and from **M2's own title row** — a button beside M18's, not an overflow menu —
-  with the origin stamped so `‹` returns to whichever of the two opened it (G-9, ADR-011). ~~and M17~~: Settings offers
-  no import entry. **A second visit inside one session does not work** (open defect, E2E-M15-03): the commit's
+* **Navigation:** From M9's empty state and from **M2's ⋮** — the word *Tabelle importieren* beside M18's (G-12, UX-05)
+  — with the origin stamped so `‹` returns to whichever of the two opened it (G-9, ADR-011). ~~and M17~~: Settings
+  offers no import entry. **A second visit inside one session does not work** (open defect, E2E-M15-03): the commit's
   `router.replace` onto a tab root leaves that tab's page unhidden in the root outlet, so a later push renders M15
   *underneath* it; M18's restore replaces the same way.

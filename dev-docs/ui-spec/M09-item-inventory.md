@@ -6,31 +6,34 @@
   row, **always present rather than behind the G-12 magnifier** (the one exception to that pattern, see G-12), and the
   **tag controls of FR-24.8** below it. The **group headings stick directly under that bar**, at a height the bar
   reports rather than a constant, because the bar grows a row when a tag outside the three is chosen. The page head's
-  meta line carries the collection's size and, while anything narrows it, what is left of it. In the app-bar cluster
-  sit the **eye icon → "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a
-  badge — the same `HeaderAction` badge the M4 filter uses — and the **sort** (*Nach Tag gruppiert* / *Alle
-  alphabetisch*), which is a glyph rather than a chip because a fourth chip wraps the sticky bar to three rows at
-  390 px, and which order is active is legible from the list itself. The list is grouped by each item's **primary
+  meta line carries the collection's size and, while anything narrows it, what is left of it. The app bar carries
+  **no glyph** before the ⋮ (G-12, ADR-050 amendment 1, UX-05). The **sort** (*Nach Tag gruppiert* / *Alle
+  alphabetisch*) and the **shown properties** (FR-24.4) head the *Ansicht & Filter* sheet: the sort as a two-way
+  segment, the properties as toggle chips under *In den Zeilen zeigen*, each in force at once. Neither is a chip in
+  the tool bar, because a fourth chip wraps the sticky bar to three rows at 390 px; which order is active is legible
+  from the list itself. The list is grouped by each item's **primary
   tag** so a row appears exactly
   once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
   **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot +
   name; tags, weight, price and — where FR-1.9 applies — **who the item is usually for** appear only
-  when enabled in the property sheet (device-local, `localStorage`, never synced). The assignee line sits under the
+  when enabled in that sheet's chips (device-local, `localStorage`, never synced). The assignee line sits under the
   name in the meta weight, a person glyph and the account's display name; a row that names nobody shows nothing, and
   the toggle itself is absent where there are fewer than two accounts (G-8), while a preference already stored is
   kept. **The leading slot follows G-15's inventory ladder — photo → item mark → the primary tag's mark (muted,
   FR-24.13) → primary-tag initial** (Addendum FR-28.4): the tag initial is the last resort, so a marked item is
   recognised here
   the same way it is on the packing list.
-* **The tag controls (FR-24.8, ADR-061).** Three chips for the tags holding
-  the most items, each with its count; **„Alle N Tags"** opening the filter sheet (every tag with its count, searchable,
-  several at once under *irgendeiner* / *alle*, plus the **„Ohne Tag"** bucket); and a removable chip for any chosen
-  tag that is not one of the three. There is no swipe axis, and ~~E2E-M9-08~~ went with it; E2E-M9-13 holds the
-  geometry: the heading stacked below the tool bar rather than sliding under it.
+* **The tag controls (FR-24.8, ADR-061).** Three chips for the tags holding the most items, each with its count; **„Alle
+  N Tags"** opening the *Ansicht & Filter* sheet (under the sort and properties: every tag with its count, searchable,
+  several at once under *irgendeiner* / *alle*, plus the **„Ohne Tag"** bucket) — with no tag at all the chip reads
+  **„Ansicht"** and the sheet is its head alone, so the sort and the properties never depend on a tag existing; and a
+  removable chip for any chosen tag that is not one of the three. There is no swipe axis, and ~~E2E-M9-08~~ went with
+  it; E2E-M9-13 holds the geometry: the heading stacked below the tool bar rather than sliding under it.
 * **The filter reaches wider than the grouping:** an item matches a chosen tag when that tag is anywhere in its set,
   while the grouping stays on the primary one. Choosing *Sommer* therefore surfaces the swimsuit filed under
   *Kleidung* — the reach a single category could not give (FR-24.2).
-* **The selection mode (FR-24.9):** the app bar's third glyph arms it. The rows stop navigating, carry a checkbox and
+* **The selection mode (FR-24.9):** a **hold** on a row arms it (below); the app bar carries no selection glyph
+  (UX-05). The rows stop navigating, carry a checkbox and
   lose their chevron; the app bar says how many are picked and offers *„Alle N"* over the **filtered** list (G-20); a
   bar above the tab bar carries *Tag geben*, *Tag nehmen* and *Stilllegen*. Giving and taking open the same sheet — the
   whole vocabulary for giving, only the tags the selection carries for taking — and giving offers *„Als primären Tag
@@ -49,7 +52,7 @@
   names what it skipped. A batch that writes **nothing** — every item already named that person, or every edge already
   there or circular — is a plain toast instead, with no *Rückgängig* to offer, and the selection stays armed so the
   choice can be made again. **M9 selects the way M6 and M25 do** (ADR-075, amended): a **hold** on a row (500 ms, or a
-  right-click) starts the mode with that row picked, besides the app bar's glyph; a tap opens the item outside the mode
+  right-click) starts the mode with that row picked; a tap opens the item outside the mode
   and picks the row inside it — the whole row is the surface, since M9 has no grip to share it with. The row navigates
   in code rather than through a router link, so the release that ends a hold never opens M10. The bars, the box and the
   headings are the shared components (`BulkBar` with *Stilllegen* as its `danger` button, `SelectBox`, `ListGroup`); the
@@ -68,8 +71,8 @@
   sync pulls on its own in Server Mode and there is nothing to fetch in Local Mode. `scripts/refresher-gate.mjs` holds
   the rule for the four that remain (M1, M2, M4, the conflict log): the handler of every `<IonRefresher>` must `await`
   something.
-* **The tag manager (FR-24.10, ADR-063):** a **word in the app bar's ⋮**, not a fourth glyph — the bar
-  spends its three on the eye, the sort and the selection, and this is the rarest of the four. It is absent while the
+* **The tag manager (FR-24.10, ADR-063):** a **word in the app bar's ⋮** — M9's bar carries no glyph at
+  all (G-12, UX-05). It is absent while the
   inventory has no tag. The sheet lists every tag with its **assignment count**, searchable under FR-24.7's fold, and
   each row carries: a **drag grip** on the grouping axis, the **name as the rename control**, the count, **merge** and
   **delete**. A rename refused because another tag holds the name keeps the alert open **with the typed text** and

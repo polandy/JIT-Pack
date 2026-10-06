@@ -24,12 +24,12 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   is up" cannot be satisfied by a list that painted nothing; the positive signal is `m9-empty` itself and its import
   button landing on M15.
 * **E2E-M9-05** `all` (FR-24.4) — **implemented** (partially: the reload half is unit-tested in
-  `inventoryProperties.spec.ts`, since a device-local reload assertion belongs where the storage seam is): the eye icon
-  opens the „Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows
-  a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local,
-  never synced). *(**Exactly those**: enabling the weight must leave the tags off the row, which is the whole reason
-  FR-24.4 is three switches; the **badge** is asserted from both sides, since „the badge reads 1" is equally satisfied
-  by a badge that always reads 1.)*
+  `inventoryProperties.spec.ts`, since a device-local reload assertion belongs where the storage seam is): the
+  property chips in the head of the *Ansicht & Filter* sheet (UX-05) toggle what the rows show; enabling Gewicht adds
+  exactly that to the rows, the chip reads pressed while it is on, and the preference survives a reload **on this device
+  only** (device-local, never synced). *(**Exactly those**: enabling the weight must leave the tags off the row, which
+  is the whole reason FR-24.4 is three switches; the chip's **pressed state** is asserted from both sides, since „the
+  chip is pressed" is equally satisfied by a chip that always is.)*
 * **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag control filters on **any** of an item's tags while the
   grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on
   rendered rows, since the two rules differ only in what is painted.

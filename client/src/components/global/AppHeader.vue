@@ -75,11 +75,22 @@ const selection = computed(() => selectionFor(route.path))
  */
 const MAX_BAR_ACTIONS = 3
 
+/**
+ * A tab root's budget: search and nothing else (ADR-050 amendment 1). The
+ * roots are the family's first row on every visit, and what else they carried
+ * — imports done once a year, an eye and a ✓✓ with no literal reading — read
+ * as noise there. Held here rather than left to the pages, so the next root
+ * action becomes a word without anyone remembering the rule.
+ */
+const MAX_ROOT_BAR_ACTIONS = 1
+
+const barBudget = computed(() => (back.value ? MAX_BAR_ACTIONS : MAX_ROOT_BAR_ACTIONS))
+
 // G-12: the current page's icon cluster, described by the page rather
 // than teleported into this toolbar — see useHeaderActions.
 const glyphActions = computed(() => actionsFor(route.path).filter((a) => !a.overflow))
 
-const pageActions = computed(() => glyphActions.value.slice(0, MAX_BAR_ACTIONS))
+const pageActions = computed(() => glyphActions.value.slice(0, barBudget.value))
 
 // FR-30.3: a view's count belongs to the module behind it, not to the frame.
 const counts = inject(TRIP_VIEW_COUNTS, {})
@@ -127,7 +138,7 @@ const tripViewActions = computed<HeaderAction[]>(() => {
  */
 const overflowActions = computed(() => [
   ...tripViewActions.value,
-  ...glyphActions.value.slice(MAX_BAR_ACTIONS),
+  ...glyphActions.value.slice(barBudget.value),
   ...actionsFor(route.path).filter((a) => a.overflow),
 ])
 

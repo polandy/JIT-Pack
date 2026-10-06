@@ -40,17 +40,17 @@
   header → M16. The trip's properties and its lifecycle steps are **M2's alone** — M4's ⋮ holds packing's entries only
   (G-12). Starting says what it changes in a toast (FR-9.1: later additions count as forgotten). **On a trip whose
   packing is still open, *Start* opens M4 with its close sheet in the start variant** (FR-7.16, `?starting=1`) instead
-  of starting here: the moment the trip begins is the moment *before the trip* ends. The running trip's step
-  reads *„Reise abschliessen"* and **opens M4 in its closing pass** (FR-9.3, `?closing=1`) instead of archiving here:
-  the pass is what archives, with *Fertig*, and archiving straight from M2 would skip it. (E2E-M2-34) In Single-User
-  Mode (Addendum FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with.
-  The tap that ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or
+  of starting here: the moment the trip begins is the moment *before the trip* ends. The running trip's step reads
+  *„Reise abschliessen"* and **opens M4 in its closing pass** (FR-9.3, `?closing=1`) instead of archiving here: the pass
+  is what archives, with *Fertig*, and archiving straight from M2 would skip it. (E2E-M2-34) In Single-User Mode
+  (Addendum FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with. The
+  tap that ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or
   right-click, and states the same list as its own action row besides. There is no swipe: a hold opens a row's actions
-  on every list (M4 FR-5.5, M7 FR-18.2), one gesture across the app.
-  *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**, not
-  overflow entries (see M15's *Navigation*). **The list opens on the segment a caller names**
-  (`?status=active|planned|archived`) — M18 uses it to land a restore where its own result is; an absent or unknown
-  value never resets the segment the user last chose.
+  on every list (M4 FR-5.5, M7 FR-18.2), one gesture across the app. *Datei importieren* → M18 and the legacy
+  spreadsheet importer *Tabelle importieren* → M15 are **words behind the app bar's ⋮** (G-12, ADR-050 amendment 1): a
+  tab root carries the magnifier and the ⋮ alone, and an import done a few times a year does not earn a glyph to be
+  guessed at (UX-05). **The list opens on the segment a caller names** (`?status=active|planned|archived`) — M18 uses it
+  to land a restore where its own result is; an absent or unknown value never resets the segment the user last chose.
 * **The opening segment is derived, not fixed (FR-2.8, *built*):** on entering the screen, a segment showing nothing is
   left for the first one that does, in the order *Active → Planned → Archived*; a segment that still holds trips is
   never taken away from the user, `?status=` still wins over the walk, and all three empty leaves the list on *Active*

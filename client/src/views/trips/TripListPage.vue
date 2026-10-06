@@ -179,13 +179,17 @@ setHeaderTitle(() => t('trips.title'))
 
 // The two import entries are screen-level actions, so they belong in the one
 // place a screen states those (G-12); the name is the frame's (ADR-050).
+// G-12: a tab root carries search and the ⋮, nothing else (ADR-050
+// amendment 1). Both imports are done a few times a year at most, so they
+// are words — M18's own title and M15's — rather than glyphs to be guessed.
 setHeaderActions(() => [
   action(),
   {
-    // M18: portable trip import (FR-18.4)
+    // M18: portable import (FR-18.4)
     id: 'm2-portable-import',
     icon: documentTextOutline,
-    label: t('trips.importPortable'),
+    label: t('nav.title.importFile'),
+    overflow: true,
     onClick: () => router.push(PATH.importFile),
   },
   {
@@ -193,6 +197,7 @@ setHeaderActions(() => [
     id: 'm2-spreadsheet-import',
     icon: cloudUploadOutline,
     label: t('items.importSpreadsheet'),
+    overflow: true,
     onClick: () => router.push(PATH.importSpreadsheet),
   },
 ])

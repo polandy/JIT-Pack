@@ -1,5 +1,5 @@
 import { test, expect, visiblePage } from './fixtures'
-import { backToInventory, createItem, groupHeadings } from './helpers/m9'
+import { backToInventory, createItem, groupHeadings, openViewSheet } from './helpers/m9'
 import { PATH } from './routes'
 
 /**
@@ -53,7 +53,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-row')).toContainText('Badehose')
   })
 
-  test('E2E-M9-05: the list is lean until the properties sheet says otherwise', async ({
+  test('E2E-M9-05: the list is lean until the view sheet’s chips say otherwise', async ({
     page,
   }) => {
     await createItem(page, 'Wanderschuhe', { tags: ['Schuhe'], weight: '900' })
@@ -62,16 +62,17 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     const row = visiblePage(page).getByTestId('m9-row').first()
     // Lean by default: the weight exists on the item but not on the row.
     await expect(row).not.toContainText('900 g')
-    // ...and the eye carries no badge while nothing is shown. This is the
-    // positive signal the count below is asserted against: "the badge reads
-    // 1" is equally satisfied by a badge that always reads 1.
-    const eye = page.getByTestId('m9-properties')
-    await expect(eye.locator('ion-badge')).toHaveCount(0)
 
-    await eye.click()
-    await expect(page.getByTestId('m9-properties-sheet')).toBeVisible()
-    await page.getByTestId('m9-property-weight').click()
-    await page.keyboard.press('Escape')
+    // The properties are chips in the head of „Ansicht & Filter" (UX-05),
+    // and the chip says it is off before the tap — the positive signal the
+    // pressed state below is asserted against.
+    const sheet = await openViewSheet(page)
+    const weight = sheet.getByTestId('m9-property-weight')
+    await expect(weight).toHaveAttribute('aria-pressed', 'false')
+    await weight.click()
+    await expect(weight).toHaveAttribute('aria-pressed', 'true')
+    await sheet.getByTestId('m9-filter-apply').click()
+    await expect(sheet).not.toHaveAttribute('data-presented', 'true')
 
     // The painted row changed — not merely the stored preference.
     const shown = visiblePage(page).getByTestId('m9-row').first()
@@ -79,7 +80,6 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // *Exactly* those: enabling one property must not paint the other two,
     // which is the whole reason FR-24.4 is three switches and not one.
     await expect(shown).not.toContainText('Schuhe')
-    await expect(eye.locator('ion-badge')).toHaveText('1')
   })
 
   /**
