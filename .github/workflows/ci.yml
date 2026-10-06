@@ -61,11 +61,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          # Only workflow_dispatch needs the history: it diffs against the
+          # merge-base with main. The other two events name their base
+          # commit, and a tree diff needs the two commits, not the ones
+          # between them, so they fetch exactly one more below.
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && 0 || 1 }}
       - id: check
         # pull_request/push carry a base SHA in the event payload;
         # workflow_dispatch carries neither, so it diffs against the
-        # merge-base with main instead (the fetch above already has the
+        # merge-base with main instead (the full fetch above has the
         # history `git merge-base` needs).
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -74,8 +78,8 @@ jobs:
           HEAD: ${{ github.sha }}
         run: |
           case "$EVENT_NAME" in
-            pull_request) base="$PR_BASE_SHA" ;;
-            push) base="$PUSH_BEFORE_SHA" ;;
+            pull_request) base="$PR_BASE_SHA"; git fetch -q --depth=1 origin "$base" ;;
+            push) base="$PUSH_BEFORE_SHA"; git fetch -q --depth=1 origin "$base" ;;
             *) base="$(git merge-base origin/main HEAD)" ;;
           esac
           scope="$(git diff --name-only "$base" "$HEAD" | node scripts/diff-scope.mjs)"
@@ -125,7 +129,13 @@ jobs:
         with:
           version: v2.13
 
-  client:
+  # The client's static checks and its production build. The unit suite is
+  # `client-test` below, and the required check `client` is the sum of the
+  # two: on one runner the suite's ~2 minutes came after the ~85 s of
+  # everything here, which made this the longest job of the merge gate (201 s
+  # against go's 152 s). Split, the gate's length is `go`'s. `visual` waits
+  # on this job alone, so a baseline run no longer queues behind the suite.
+  client-build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -192,7 +202,46 @@ jobs:
       # behaviour under it is gone. No job can see that — every one of
       # them is watching the test pass.
       - run: node ../scripts/no-sleep-gate.mjs
-      - run: npx vitest run
+
+  # The unit suite, split by count across two runners so each half finishes
+  # inside `go`'s own test step. Two and not more: every shard pays its own
+  # checkout and install (~15 s), and the suite is ~117 s on one runner, so
+  # a third shard would take ~20 s off the wall-clock for another runner
+  # held — the matrix's cost is the runners it holds, not only its length
+  # (ADR-091). `make ci` runs the suite whole; a shard count is a CI
+  # decision and lives here alone (`strategy.job-total`, never a literal).
+  client-test:
+    name: client-test (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Both halves report, so a failure in one is not hidden by the other
+      # being cancelled.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/client-setup
+      - run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        working-directory: client
+
+  # `client` is the name branch protection requires (dev-docs/ci.md), kept
+  # over the two jobs above so the rule needs no edit per shard count and
+  # `dependabot-merge` needs one name. `!cancelled()` runs it whatever the
+  # two did; the step turns their results into this job's, so a red,
+  # cancelled or skipped shard is a red `client`, never a green one.
+  client:
+    needs: [client-build, client-test]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "client-build client-test: $RESULTS"
+          case "$RESULTS" in
+            *failure*|*cancelled*|*skipped*) exit 1 ;;
+          esac
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned
   # Playwright image rather than on the runner, which is the whole point:
@@ -201,9 +250,10 @@ jobs:
   # than a font-hinting difference. That is also why this job looks unlike
   # the `e2e` job above — the inconsistency is deliberate and ADR-013 owns it.
   #
-  # Not a required check: it `needs` the client build, and a skipped
-  # required check blocks a PR with a less useful message than the build
-  # failure itself. (The `needs` stays here, unlike on `e2e`, because this
+  # Not a required check: it `needs` the client build (`client-build`, not
+  # the `client` sum — the unit suite decides nothing a baseline renders),
+  # and a skipped required check blocks a PR with a less useful message than
+  # the build failure itself. (The `needs` stays here, unlike on `e2e`, because this
   # job is off the critical path either way — it finishes well inside the
   # e2e window.)
   #
@@ -212,7 +262,7 @@ jobs:
   # module-only diff runs every baseline (ADR-079): one job that finishes
   # inside the module's own e2e leg, so narrowing it would save no time.
   visual:
-    needs: [changes, client]
+    needs: [changes, client-build]
     if: needs.changes.outputs.app_untouched != 'true'
     runs-on: ubuntu-latest
     steps:
@@ -220,6 +270,7 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
+          playwright-image: 'true'
       # The same script `make visual` runs, called directly: `make` itself
       # would fail here on its parse-time toolchain guard, which wants
       # golangci-lint — a tool the baselines do not use.
@@ -280,6 +331,7 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
+          playwright-image: 'true'
       # A module-only diff selects by tag — `module-boundary-gate.mjs` holds
       # that every case working the module's surface carries it, and `@smoke`
       # rides along for the run-time coupling the boundary cannot see.
@@ -327,6 +379,7 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
+          playwright-image: 'true'
       # A module-only diff runs the module's backend-backed cases alone
       # (ADR-079); a module with none passes on an empty selection.
       - env:
@@ -359,6 +412,7 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
+          playwright-image: 'true'
       # Narrowed on a module-only diff exactly as `e2e-single` is.
       - env:
           MODULE: ${{ needs.changes.outputs.module }}
@@ -388,6 +442,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          # gofmt reads source, never a module: restoring the module and
+          # build cache here was ~10 s for nothing.
+          cache: false
       - uses: ./.github/actions/client-setup
       # `gofmt -l` exits 0 even when files need formatting, so the emptiness
       # of its output is the assertion — same shape as the Makefile target.

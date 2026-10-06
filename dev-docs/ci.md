@@ -40,9 +40,14 @@ measured worse than nothing and one disproved').
 
 ## Workflows and branch protection
 
-`.github/`: `ci.yml` (go, go-lint, client, format, visual, e2e ×N, e2e-single, e2e-server, docker-build,
-dependabot-merge), `docker.yml` (image to ghcr.io on `v*` tags, ADR-043), `release.yml` (release-please). A
-`concurrency` group supersedes a superseded **pull-request** run; a push to main is never cancelled.
+`.github/`: `ci.yml` (changes, go, go-lint, client-build, client-test ×2, client, format, visual, e2e ×N, e2e-single,
+e2e-server, docker-build, dependabot-merge), `docker.yml` (image to ghcr.io on `v*` tags, ADR-043), `release.yml`
+(release-please). A `concurrency` group supersedes a superseded **pull-request** run; a push to main is never cancelled.
+
+**`client` is a sum, not a job**: `client-build` runs the lints, the gates and the production build, `client-test` runs
+vitest in two shards, and `client` only turns their results into the one name branch protection requires — so the
+shard count is one line in the matrix. The e2e and visual jobs pull the Playwright image in the background while
+`client-setup` installs and builds (the `playwright-image` input), so the pull is off the leg's critical path.
 
 **`main` is protected**: required checks `go`, `go-lint`, `client`, `format` (ADR-040), `docker-build`; no force-push
 or deletion, linear history, admins not exempt, no review approvals required. `e2e` and `visual` are deliberately

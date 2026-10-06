@@ -20,10 +20,29 @@ inputs:
       bundle; the format job only needs the dependencies.
     required: false
     default: 'false'
+  playwright-image:
+    description: >
+      Pull the pinned Playwright image (scripts/playwright-image.sh) in the
+      background while the dependencies install and the bundle builds, and
+      wait for it as the last step. The e2e and visual jobs run inside that
+      image, and `docker run` pulling it only once the bundle was ready put
+      ~30 s of download after ~35 s of install on every leg; overlapped, the
+      pull is finished before anything asks for it.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
   steps:
+    # Backgrounded with its output redirected: the runner waits for a step's
+    # stdout to close, so a pull left attached would serialise again. The
+    # pid is what the last step waits on.
+    - if: ${{ inputs.playwright-image == 'true' }}
+      run: |
+        . scripts/playwright-image.sh
+        docker pull -q "$PLAYWRIGHT_IMAGE" >"$RUNNER_TEMP/playwright-pull.log" 2>&1 &
+        echo $! >"$RUNNER_TEMP/playwright-pull.pid"
+      shell: bash
     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
       with:
         node-version: 24
@@ -36,3 +55,16 @@ runs:
       run: npm run build # type-check and the production bundle
       shell: bash
       working-directory: client
+    # Best effort on purpose: a pull that did not land is only reported,
+    # because `docker run` pulls the image itself and names the real error
+    # when it cannot. Failing here would turn a transient registry hiccup
+    # into a red leg that a retry inside docker would have absorbed.
+    - if: ${{ inputs.playwright-image == 'true' }}
+      run: |
+        tail --pid="$(cat "$RUNNER_TEMP/playwright-pull.pid")" -f /dev/null
+        . scripts/playwright-image.sh
+        if ! docker image inspect "$PLAYWRIGHT_IMAGE" >/dev/null 2>&1; then
+          echo "::warning::the background pull of the Playwright image did not finish; docker run will pull it again"
+          cat "$RUNNER_TEMP/playwright-pull.log"
+        fi
+      shell: bash
