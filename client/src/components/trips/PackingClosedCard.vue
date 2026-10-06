@@ -23,12 +23,14 @@ const props = defineProps<{
   at: string
   /** How many rows the list currently carries as *nicht mitgenommen*. */
   skipped: number
+  /** The orchestrator's clock, which says whether the stamp is *heute*. */
+  now: number
 }>()
 
 const emit = defineEmits<{ reopen: [] }>()
 
 /** „heute 18:40" — the same stamp a packed row wears (FR-25.17). */
-const when = () => stampText(relativeStamp(props.at, new Date(), intlLocale()))
+const when = () => stampText(relativeStamp(props.at, new Date(props.now), intlLocale()))
 </script>
 
 <template>

@@ -161,7 +161,8 @@ them.
   browser's clock at that instant and lets it run, so the write path's timers
   still see time pass. The visual suite sets it for every baseline
   (`BASELINE_NOW`); a picture holding today's date is a picture that goes stale
-  by itself. Unit specs inject the clock (`lib/clock.ts`, `orchestrator.today`).
+  by itself. Unit specs inject the clock (`lib/clock.ts`, `orchestrator.now`/`today`),
+  which every screen reads (`clockSeam.spec.ts`).
 - **Navigation waits for the outbox, and you get that for free.** `page.goto`
   and `page.reload` are wrapped by the `page` fixture: they settle the device's
   writes before leaving the screen. A write is on the device once the outbox

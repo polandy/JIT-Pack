@@ -9,7 +9,7 @@
  * the two states have to be told apart with the store held still, which a
  * held pull can do for one screen (E2E-M2-18) but not cheaply for nine.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -35,6 +35,14 @@ vi.mock('vue-router', () => ({
 
 const master = masterDataStub()
 
+/** The orchestrator's day — never the day the suite happens to run on. */
+const FAKE_TODAY = '2026-07-08'
+
+/** Noon of a local day, in the orchestrator's milliseconds. */
+function noonOf(day: string): number {
+  return new Date(`${day}T12:00:00`).getTime()
+}
+
 const orchestratorFake = {
   ...identityStub(),
   ...master,
@@ -44,7 +52,10 @@ const orchestratorFake = {
   resolvePrepTodo: vi.fn(),
   reopenPrepTodo: vi.fn(),
   tripDataLoaded: vi.fn(() => true),
-  today: vi.fn(() => '2026-07-08'),
+  // One instant for both: a screen reading the real clock instead would see
+  // a different day from the one these two agree on.
+  now: vi.fn(() => noonOf(FAKE_TODAY)),
+  today: vi.fn(() => FAKE_TODAY),
   addTripTodo: vi.fn(() => 'new-task'),
   resolveTripTodo: vi.fn(),
   reopenTripTodo: vi.fn(),
@@ -61,6 +72,8 @@ function mountPage(cards?: Component[]) {
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  orchestratorFake.now.mockReturnValue(noonOf(FAKE_TODAY))
+  orchestratorFake.today.mockReturnValue(FAKE_TODAY)
   master.masterLoaded.value = true
 })
 
@@ -497,12 +510,10 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
   })
 
   describe('the day counter and the phase of task the block leads with', () => {
-    afterEach(() => vi.useRealTimers())
-
-    /** A clock that only Date follows: timers and microtasks stay real. */
+    /** The orchestrator's clock at noon of `day`; the real one is never asked. */
     function today(day: string) {
-      vi.useFakeTimers({ toFake: ['Date'] })
-      vi.setSystemTime(new Date(`${day}T12:00:00`))
+      orchestratorFake.now.mockReturnValue(noonOf(day))
+      orchestratorFake.today.mockReturnValue(day)
     }
 
     it('says which day of how many while the trip runs, on the hero and on the cards', async () => {
@@ -604,6 +615,23 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     expect(page.find('[data-testid="due-dashboard-tasks-Samedan-Karte kaufen"]').exists()).toBe(
       false,
     )
+  })
+
+  // The late packers' morning is the orchestrator's day, the local one every
+  // rule reads: the UTC day it once read was yesterday until 02:00 CEST.
+  it('lists the late packers on the morning the orchestrator says it is (FR-5.1)', async () => {
+    seedActiveTrip({ start_date: FAKE_TODAY })
+    useTripStore().applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'i1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Zahnbürste', quantity: 1, state: 'open', late_packer: 1 },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="dashboard-late-Zahnbürste"]').exists()).toBe(true)
   })
 
   it('draws no preview of open packing rows in the worked hero, and keeps it while packing is open', async () => {

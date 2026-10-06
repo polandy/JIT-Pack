@@ -366,7 +366,7 @@ const yamlTemplateId = ref('')
  * and a single template, and they do not stamp this key: exporting one trip
  * must not silence the warning about everything the file does not contain.
  */
-const exportReminder = ref(reminderState(lastExportAt(), Date.now()))
+const exportReminder = ref(reminderState(lastExportAt(), orchestrator.now()))
 
 /*
  * Computed rather than written into the template: the sentence differs by
@@ -438,7 +438,7 @@ const updateUnreachableText = computed(() =>
  * which is exactly why entering has to be the trigger rather than mounting.
  */
 function refreshReminder() {
-  exportReminder.value = reminderState(lastExportAt(), Date.now())
+  exportReminder.value = reminderState(lastExportAt(), orchestrator.now())
   backupCovered.value = backupCoversDevice(lastExportAt(), lastLocalWriteAt())
 }
 onIonViewWillEnter(refreshReminder)

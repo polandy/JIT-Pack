@@ -50,7 +50,7 @@ const { trip: source, loaded: sourceLoaded } = useTripScreen(props.tripId, orche
 const name = ref('')
 // FR-2.1b: a clone is a trip of its own year, and the year is the only
 // temporal fact it needs. Defaults to this one, like M3.
-const thisYear = new Date().getFullYear()
+const thisYear = new Date(orchestrator.now()).getFullYear()
 const yearChoices = tripYearChoices(thisYear)
 const year = ref(thisYear)
 

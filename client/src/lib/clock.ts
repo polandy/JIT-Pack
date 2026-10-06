@@ -8,8 +8,8 @@
  * could only assert that a timestamp was truthy: the value itself was
  * whatever the run happened to take.
  *
- * Screens that merely *display* the current time are deliberately not in
- * scope; they read no row and nothing asserts them.
+ * A screen asks the orchestrator too — `now()` for an instant, `today()` for
+ * the local day — never `new Date()` or `Date.now()` (`clockSeam.spec.ts`).
  */
 
 /** Milliseconds since the epoch — the shape `Date.now` already has. */
