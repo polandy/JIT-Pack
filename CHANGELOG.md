@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.26.0](https://github.com/polandy/JIT-Pack/compare/v0.25.0...v0.26.0) (2026-10-06)
+
+
+### Features
+
+* **m27:** changing a connection starts from its own stops and times, editable by hand (FR-29.18) ([#694](https://github.com/polandy/JIT-Pack/issues/694)) ([5620230](https://github.com/polandy/JIT-Pack/commit/5620230f9d85c00b63bdddf8c69a0c1431f15e48))
+* **m29:** a day-plan entry names whom it is for, and the plan narrows to some travellers (FR-29.15) ([#692](https://github.com/polandy/JIT-Pack/issues/692)) ([f1098e5](https://github.com/polandy/JIT-Pack/commit/f1098e541a3c85170ee2b00ae864e0501c1f2886))
+* **m6:** what was bought stands under the day it was bought (FR-30.15) ([#695](https://github.com/polandy/JIT-Pack/issues/695)) ([a2c1bbf](https://github.com/polandy/JIT-Pack/commit/a2c1bbf591675715cd2c32968f294d9601983cd5))
+
+
+### Bug Fixes
+
+* **drag:** the edge scroll keeps its pace on a slow device and stops at once at its end (G-21, FR-33.15) ([#696](https://github.com/polandy/JIT-Pack/issues/696)) ([8eb2ec8](https://github.com/polandy/JIT-Pack/commit/8eb2ec8743c9f3d8c01def8c05a7c764b4e74d33))
+* **m27:** a save pressed as the taken connection opens is not lost; the sheet says when it stands (E2E-M27-18, FR-29.18) ([#697](https://github.com/polandy/JIT-Pack/issues/697)) ([8472caa](https://github.com/polandy/JIT-Pack/commit/8472caa19c09e54295e9d8f0ed7ebfe93b4b6ef8))
+
 ## [0.25.0](https://github.com/polandy/JIT-Pack/compare/v0.24.0...v0.25.0) (2026-10-05)
 
 
