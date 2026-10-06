@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { beforeIsOver, hasDeparted, isPackingClosed, standingOf } from '../tripPhase'
+import { beforeIsOver, hasDeparted, isPackingClosed, pastPacking, standingOf } from '../tripPhase'
 
 describe('isPackingClosed', () => {
   it('is the stamp, not a reading of the rows', () => {
@@ -63,5 +63,28 @@ describe('beforeIsOver', () => {
     expect(
       standingOf({ status: 'planning', start_date: '2026-10-12', packing_closed_at: null }),
     ).toEqual({ planned: true, packingClosed: false, startDate: '2026-10-12' })
+  })
+})
+
+describe('pastPacking — the hero works the day (FR-7.10)', () => {
+  const TODAY = '2026-10-06'
+
+  it('is true from the first day on, with the packing still open', () => {
+    expect(pastPacking({ start_date: '2026-10-04', packing_closed_at: null }, TODAY)).toBe(true)
+    expect(pastPacking({ start_date: TODAY, packing_closed_at: null }, TODAY)).toBe(true)
+  })
+
+  it('is false before the first day while the packing is open', () => {
+    expect(pastPacking({ start_date: '2026-10-07', packing_closed_at: null }, TODAY)).toBe(false)
+  })
+
+  it('is true before the first day once the packing is declared finished', () => {
+    expect(
+      pastPacking({ start_date: '2026-10-12', packing_closed_at: '2026-10-05T18:00:00Z' }, TODAY),
+    ).toBe(true)
+  })
+
+  it('leaves an undated trip to its packing stamp', () => {
+    expect(pastPacking({ start_date: null, packing_closed_at: null }, TODAY)).toBe(false)
   })
 })

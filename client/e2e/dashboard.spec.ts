@@ -12,7 +12,7 @@ import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 import { openTripView } from './helpers/trips'
 import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
-import { expectFiguresPaired, writesLanded } from './helpers/page'
+import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -507,6 +507,10 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
       'true',
     )
     await expect(planned.getByTestId('dash-shop-row')).toHaveText([/Adapter/])
+    // UX-02: the lookahead lists, it takes no entry — the running card beside
+    // it is the positive signal that the field exists at all.
+    await expect(running.getByTestId('dash-shop-add')).toBeVisible()
+    await expect(planned.getByTestId('dash-shop-add')).toHaveCount(0)
     // Nothing to buy on the quiet one, so it has no card — asserted beside its
     // row in the planned list, which is rendered.
     await expect(visible(page).getByTestId('dashboard-planned-Ruhig 2027')).toBeVisible()
@@ -563,5 +567,77 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
     await expect(local.getByTestId('m6-row')).toHaveText([/Milch/])
     await local.getByTestId('m6-bought-bar').click()
     await expect(local.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
+  })
+})
+
+/**
+ * FR-7.10 with ADR-074 amendment 1 (UX-02): the hero moves on by the date as
+ * well as by the stamp. On the road it works the day — *Heute* first, the
+ * tasks last — and an unfinished packing is one line at its foot; a trip that
+ * has not left yet keeps the packing hero. The dates are counted from the
+ * browser's own day (`browserDay`), so neither case reads a fixed calendar.
+ */
+test.describe('M1 — the hero on the road @local @m1', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M1-28: on its third day a half-packed trip opens on the day, the packing one line below @shopping @planner', async ({
+    page,
+  }) => {
+    const name = 'Unterwegs'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, -2),
+      endDate: await browserDay(page, 5),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zelt', 'Kocher'])
+    await packRow(page, 'Zelt')
+
+    await page.goto(PATH.dashboard)
+    const hero = visible(page).getByTestId(`dashboard-trip-${name}`)
+    await expect(hero.getByTestId('hero-phase')).toContainText('On site')
+    await expect(hero.getByTestId('hero-progress')).toHaveCount(0)
+
+    // The day leads, the tasks close: read off the blocks' places in the hero.
+    const today = hero.getByTestId(`dashboard-today-${name}`)
+    const shopping = hero.getByTestId(`dashboard-shopping-${name}`)
+    const tasks = hero.getByTestId(`dashboard-tasks-${name}`)
+    await expect(tasks.getByTestId(`dashboard-tasks-${name}-add-input`)).toBeVisible()
+    const [dayBox, shopBox, taskBox] = await Promise.all(
+      [today, shopping, tasks].map((block) => block.boundingBox()),
+    )
+    expect(dayBox!.y).toBeLessThan(shopBox!.y)
+    expect(shopBox!.y).toBeLessThan(taskBox!.y)
+    // The tasks are the hero's now; the overview card above leaves this trip out.
+    await expect(visible(page).getByTestId(`trip-todos-${name}`)).toHaveCount(0)
+
+    const figure = hero.getByTestId('dashboard-packing-figure')
+    await expect(figure).toContainText('1/2 packed')
+    await expect(figure).toContainText('1 open')
+    await hero.getByTestId('dashboard-open-packing').click()
+    await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
+  })
+
+  test('E2E-M1-29: a trip that leaves next week still opens on its packing', async ({ page }) => {
+    const name = 'Nächste Woche'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, 7),
+      endDate: await browserDay(page, 14),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zelt'])
+    await writesLanded(page)
+
+    await page.goto(PATH.dashboard)
+    const hero = visible(page).getByTestId(`dashboard-trip-${name}`)
+    await expect(hero.getByTestId('hero-progress')).toBeVisible()
+    await expect(hero.getByTestId('hero-phase')).toContainText('Packing')
+    await expect(hero.getByTestId('dashboard-packing-figure')).toHaveCount(0)
+    await expect(hero.getByTestId(`dashboard-tasks-${name}-add-input`)).toHaveCount(0)
   })
 })

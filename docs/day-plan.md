@@ -19,7 +19,8 @@ after the trip, on the packing list. The pills under the trip's name still take 
 things still to come today, as the day plan lists them — something with a time leaves once its time has passed, a
 connection once it has arrived; meals are left to the **Heute essen** card beside it. Tick a task or an idea right
 there; *+ n weitere · Tagesplan* opens the whole day.
-Once the packing is finished the card sits inside the trip's big card, beside the tasks and the shopping list.
+From the trip's first day — or earlier, once the packing is finished — the card sits inside the trip's big card, first,
+above the meals, the shopping list and the tasks.
 
 ## Reading a day
 

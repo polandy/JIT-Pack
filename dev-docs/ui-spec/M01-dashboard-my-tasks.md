@@ -50,6 +50,11 @@
   space: the trip's tasks become the card's one figure at the lone ring size (FR-7.4), and the shopping card under it
   opens on *Vor Ort* (FR-30.8). The open-rows preview needs no rule — it lists open rows, of which a finished list has
   none, and a row added afterwards belongs there. (E2E-M1-25)
+* **On the road the hero works the day (FR-7.10, ADR-074 amendment 1).** From the trip's first day the hero takes the
+  layout below whether or not the packing has been declared finished (`pastPacking`): the day leads, and a family that
+  never taps *Packen abschliessen* would otherwise see a packing ring first for the whole stay. With the packing still
+  unfinished, its figure stands in the foot control — *„10/26 gepackt"* over *„13 offen · Packliste"*, onto M4 — instead
+  of *Packliste öffnen*. Before the first day nothing changes. (E2E-M1-28, E2E-M1-29)
 * **The *Heute* card (FR-29.7).** On a trip's days, the planner module's card (`PlannerTodayCard.vue`, through
   `TRIP_CARDS`, first of the two) stands under the trip as a `.jp-card` (`dashboard-today-<trip>`): its head
   *„Heute · Fr., 2.10."* with the count of what is still to come, a link onto M29 (`dashboard-today-<trip>-head`); then
@@ -57,23 +62,25 @@
   has passed, a connection once its last leg arrived, arrival and departure are left out — ticked and opened as on
   M29, the plan's own entries opening M29; then *„+ n weitere · Tagesplan ›"* or *„Tagesplan öffnen ›"*
   (`dashboard-today-<trip>-more`), and *„Für heute ist nichts mehr geplant."* in place of the lines once nothing is
-  left. Once the packing is finished it is a block of the hero after the task block, drawn by `DashboardBlock`
+  left. Once the trip is past its packing it is the hero's first block, drawn by `DashboardBlock`
   without a field — a line of the plan wants a time the field cannot take. Before and after the trip's days, and on a
   trip without both dates, there is no card. Meals are left out: *Heute essen* says them. (E2E-M29-11)
 * ***Heute essen* (FR-33.7).** On a trip's days with meals, the meals module's card (`MealsTodayCard.vue`, through
   `TRIP_CARDS`, after *Heute*) under the trip (`dashboard-meals-<trip>`): its head and *Essensplan ›* onto M31
   (`dashboard-meals-<trip>-head`), then today's meals in their order (`dashboard-meal-<id>`) — the slot, the dish,
   *„Lena kocht · 2 Zutaten offen"* (*alles da*; *auswärts · …*) and the bought share as a ring; a tap opens the meal's
-  sheet over M1. Once the packing is finished it is a block of the hero. (E2E-M31-07)
+  sheet over M1. Once the trip is past its packing it is the hero's second block. (E2E-M31-07)
 * **The hero after the packing (FR-7.10, ADR-074, from `UI_Concept_DashboardAfterPacking.html` at `6b148419`).**
-  Rendered from top to bottom on a trip whose packing is finished:
-  * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the packing is finished, *Packen* until
-    then, on every trip card), in `--jp-done` once finished and `--ct-subtext0` before. The word is the packing stamp,
-    not `listInFocus` (FR-7.10).
+  Rendered from top to bottom on a trip past its packing — finished, or on or after its first day:
+  * **Date line:** the dates, then a dot and the phase word (*Vor Ort* once the trip is past its packing, *Packen* until
+    then, on every trip card), in `--jp-done` once past and `--ct-subtext0` before. The word is `pastPacking`, not
+    `listInFocus` (FR-7.10).
   * **Name row:** the trip's name, and opposite it the day counter in the action ink with its second line in
     `--ct-subtext0` — *in 3 Tagen*, *Abreise heute*, *Tag 2 von 7* / *noch 5 Tage*, *Letzter Tag*, nothing afterwards;
     without an end date *Tag 2*, without a start date none. The meta line follows.
-  * **Two blocks** in the sunken surface (G-14) side by side, stacked below the width where both do not fit at 300 px.
+  * **The blocks**, in this order: *Heute*, *Heute essen* (on the trip's days), *Einkauf*, *Aufgaben* — the day
+    first. The two lists in the sunken surface (G-14) side by side, stacked below the width where both do not fit at
+    300 px.
     Each: a head — the name in the label role, the open count in the numeric face at 24 px (*„12 offen“*; a done tick
     when none) and an arrow — then the field (48 px input, 48 px ＋), then the rows, then the *„+ n weitere · … ›“* line.
   * **Rows** are 52 px high at body size 16: the title, and beneath it what kind of task it is (its tag, or the row it
@@ -96,9 +103,10 @@
     Aufgaben hinzugefügt*. The block never unfolds by itself.
   * **Empty (G-7):** the block stays; done tick in the head, the field, and a quiet sentence in the place of the rows —
     *Für unterwegs ist nichts notiert.*, *Vor Ort ist nichts zu kaufen.* / *Vor der Reise ist nichts zu kaufen.*
-  * **Foot:** a 48 px bordered control, *Packliste öffnen ›*, leads to M4. Links: the card's head into the trip, a
-    block's *„weitere“* line into M25 / M6 (its head folds it), and none inside another. The Playwright cases are in the
-    ledger (`dev-docs/e2e-ledger/`).
+  * **Foot:** a 48 px bordered control, *Packliste öffnen ›*, leads to M4; while the packing is unfinished it carries
+    the figure instead (*„10/26 gepackt"* over *„13 offen · Packliste"*, `dashboard-packing-figure`). Links: the card's
+    head into the trip, a block's *„weitere“* line into M25 / M6 (its head folds it), and none inside another. The
+    Playwright cases are in the ledger (`dev-docs/e2e-ledger/`).
 * **Its blocks are the app's card (FR-21.28).** Every section on M1 — delegation, last-minute, prep, the trip cards
   under the hero, the planned lookahead — is `.jp-card` (G-14) under a section head (G-13). Ionic's card would sit 10 px
   further in than the hero above it, at a quarter of its radius and under a shadow from a system nothing else here uses.
@@ -153,7 +161,7 @@
   no sentence is ellipsized. Each list card below the hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben: alle
   erledigt"*. Both are present only when the trip has at least one trip todo, and neither is folded into the ring, the
   track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three modes; nothing here is
-  server-only (G-8). (E2E-M1-10, E2E-M1-11) The hero of a trip whose packing is finished carries its own task block,
+  server-only (G-8). (E2E-M1-10, E2E-M1-11) The hero of a trip past its packing carries its own task block,
   which is worked in place, and this card leaves that trip out (FR-7.10, ADR-074).
 * **The *Neue Notizen* card (FR-7.9 decision 1/2, FR-7.13 — *built*).** M1's one deliberate exception to *„M1 takes no
   actions"*: a card under a section head lists up to three **threads** with something new for this reader — an entry by
@@ -177,7 +185,8 @@
 * **The shopping card (FR-30.7 — the one card M1 lets you work).** Under each trip's card, as a sibling (the trip card
   is a link): title *„Einkaufen"* (*„Einkaufen · Elba 2027"* under a planned trip), two chips *Vor der Reise (n)* · *Vor
   Ort (n)* with the list that is *now* pressed — *Vor Ort* for a running trip, *Vor der Abreise* for a planned one —,
-  the field *„Was kaufen? z. B. Milch, Brot …"* with ＋, at most five lines (own entries first, packing lines after them
+  the field *„Was kaufen? z. B. Milch, Brot …"* with ＋ (not under a planned trip: M6 takes its entries), at most five
+  lines (own entries first, packing lines after them
   with a *Packliste* tag, the amount when above one), each with a check-off. A check-off shows *„„Brot" gekauft ·
   Rückgängig"* inside the card. Last line: *„Zur Einkaufsliste →"*, or *„Alle 7 anzeigen →"* past five. No remove, no
   reveal, no stamps — those are M6's. A running trip always has the card (with *„Vor Ort ist nichts zu kaufen"* when
