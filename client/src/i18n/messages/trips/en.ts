@@ -362,6 +362,7 @@ export const tripsEn = {
   'dashboard.dayRemaining': '{n} day left | {n} days left',
   'dashboard.openPackingList': 'Open the packing list',
   'dashboard.openCount': '{n} open',
+  'dashboard.packingList': 'Packing list',
   'dashboard.moreItems': '+{n} more',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).

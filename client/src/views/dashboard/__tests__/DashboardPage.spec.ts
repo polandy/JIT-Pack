@@ -19,7 +19,7 @@ import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 
-import { defineComponent, type Component } from 'vue'
+import { defineComponent, h, type Component } from 'vue'
 import { TRIP_CARDS, type TripCardProps } from '@/lib/tripCards'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
@@ -366,6 +366,97 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     expect(page.find('[data-testid="dashboard-open-packing"]').text()).toContain(
       t('dashboard.openPackingList'),
     )
+  })
+
+  describe('once the trip’s first day has come, stamp or not (UX-02)', () => {
+    // orchestratorFake's today is 2026-07-08.
+    const DEPARTED = { start_date: '2026-07-06', end_date: '2026-07-20' }
+
+    /** A module card that only leaves its name in the DOM, to read the blocks' order. */
+    const card = defineComponent({
+      props: { embedded: { type: Boolean, default: false } },
+      setup: (props) => () =>
+        h('section', { 'data-testid': props.embedded ? 'block-card' : 'loose-card' }),
+    })
+
+    it('works the day in place and says Vor Ort, with the packing still open', async () => {
+      seedActiveTrip(DEPARTED)
+
+      const page = mountPage()
+      await flushPromises()
+
+      expect(page.find('[data-testid="hero-progress"]').exists()).toBe(false)
+      expect(page.find('[data-testid="hero-phase"]').text()).toBe(t('dashboard.phaseOnSite'))
+      expect(page.find('[data-testid="dashboard-tasks-Samedan-add"]').exists()).toBe(true)
+    })
+
+    it('shrinks the packing to its figure at the foot', async () => {
+      seedActiveTrip(DEPARTED)
+
+      const page = mountPage()
+      await flushPromises()
+
+      const figure = page.get('[data-testid="dashboard-packing-figure"]')
+      expect(figure.text()).toContain(t('trips.itemSummary', { packed: 0, total: 0 }))
+      expect(figure.text()).toContain(t('dashboard.packingList'))
+      expect(page.get('[data-testid="dashboard-open-packing"]').text()).not.toContain(
+        t('dashboard.openPackingList'),
+      )
+    })
+
+    it('keeps the packing hero for a trip that starts tomorrow', async () => {
+      seedActiveTrip({ start_date: '2026-07-09', end_date: '2026-07-20' })
+
+      const page = mountPage()
+      await flushPromises()
+
+      expect(page.find('[data-testid="hero-progress"]').exists()).toBe(true)
+      expect(page.find('[data-testid="hero-phase"]').text()).toBe(t('dashboard.phasePacking'))
+      expect(page.find('[data-testid="dashboard-packing-figure"]').exists()).toBe(false)
+    })
+
+    it('leads with the day: the module blocks stand before the tasks', async () => {
+      seedActiveTrip(DEPARTED)
+
+      const page = mountPage([card])
+      await flushPromises()
+
+      const hero = page.get('[data-testid="dashboard-trip-Samedan"]').element
+      const block = hero.querySelector('[data-testid="block-card"]')!
+      const tasks = hero.querySelector('[data-testid="dashboard-tasks-Samedan"]')!
+      expect(block.compareDocumentPosition(tasks) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(page.find('[data-testid="loose-card"]').exists()).toBe(false)
+    })
+
+    it('tells a block the packing is still open — the stamp is not the date', async () => {
+      seedActiveTrip(DEPARTED)
+      const seen: boolean[] = []
+      const spy = defineComponent({
+        props: { packingClosed: { type: Boolean, required: true } },
+        setup(props) {
+          seen.push(props.packingClosed)
+          return () => null
+        },
+      })
+
+      mountPage([spy])
+      await flushPromises()
+
+      expect(seen).toEqual([false])
+    })
+
+    it('reports its tasks in the hero only, not in the Aufgaben card above it', async () => {
+      seedActiveTrip(DEPARTED)
+      seedTask('Post nachsenden')
+
+      const page = mountPage()
+      await flushPromises()
+
+      expect(page.find('[data-testid="trip-todos-Samedan"]').exists()).toBe(false)
+      expect(page.find('[data-testid="dashboard-tasks-Samedan"]').text()).toContain(
+        'Post nachsenden',
+      )
+    })
   })
 
   it('hands the shopping card the hero to sit in, and no card sits under it', async () => {

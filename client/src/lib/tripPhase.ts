@@ -32,6 +32,19 @@ export function hasDeparted(trip: { start_date: string | null }, today: string):
   return trip.start_date !== null && trip.start_date.slice(0, 10) <= today
 }
 
+/**
+ * pastPacking: the trip has moved on from packing, so the dashboard's hero
+ * works its day in place (FR-7.10) — the packing is declared finished, or the
+ * trip's first day has come. The date counts on its own: a family that never
+ * taps *Packen abschliessen* is still at the destination on day three.
+ */
+export function pastPacking(
+  trip: { start_date: string | null; packing_closed_at: string | null },
+  today: string,
+): boolean {
+  return isPackingClosed(trip) || hasDeparted(trip, today)
+}
+
 /** The three facts {@link beforeIsOver} reads, in the shape both sides hold them. */
 export interface TripStanding {
   /** Still `planning` — nobody has tapped *Reise starten*. */

@@ -82,8 +82,8 @@
 * **E2E-M1-12** `local` (FR-30.7/30.5) — **implemented** (`dashboard.spec.ts`): a running trip's
   shopping card opens on *At destination* with its *Buy there* packing row, tagged *Packing list*; a planned trip with a
   *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before the trip*; a planned trip with nothing to
-  buy has **no** card (asserted beside its rendered row); the card's last line leads onto M6, with the switcher's
-  *Shopping* pill current.
+  buy has **no** card (asserted beside its rendered row), and the planned card has **no field** where the running one
+  has (UX-02); the card's last line leads onto M6, with the switcher's *Shopping* pill current.
 * **E2E-M1-13** `local` (FR-30.7) — **implemented** (`dashboard.spec.ts`): the card is worked. An
   entry typed there lands on the shown list; checking it off shows the card's undo, and *Undo* brings it back; checking
   the packing row off packs it (FR-3.3) — the hero's share reads *1/1 packed* on the same screen — and M6 then shows the
@@ -98,3 +98,9 @@
   so the card drops the row — asserted on the card itself, since an emptied card must not stay behind with nothing in
   it. A reply brings the thread back, quoting the reply, and the words open **that thread's own view**, named by its
   title.
+* **E2E-M1-28** `local` (FR-7.10, ADR-074 amendment 1) — **implemented** (`dashboard.spec.ts`): a trip on its third
+  day with half its packing open opens on the day — *On site*, no ring; the blocks stand *Heute*, shopping, tasks from
+  top to bottom (read off their boxes); the *Aufgaben* card above leaves the trip out; the foot carries *„1/2 packed"*
+  with *„1 open"* and leads onto the packing list.
+* **E2E-M1-29** `local` (FR-7.10) — **implemented** (`dashboard.spec.ts`): a trip leaving in a week keeps the packing
+  hero — the ring, *Packing*, no foot figure and no task field.

@@ -21,7 +21,7 @@ import {
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed, pastPacking } from '@/lib/tripPhase'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -94,7 +94,18 @@ onMounted(() => {
  * midnight reads the new day on its next render rather than a cached one.
  */
 function phaseOf(trip: Trip) {
-  return { label: phaseWord(isPackingClosed(trip)), done: isPackingClosed(trip) }
+  const moved = movedOn(trip)
+  return { label: phaseWord(moved), done: moved }
+}
+/** FR-7.10: the trip is past its packing — stamped, or its first day has come. */
+function movedOn(trip: Trip): boolean {
+  return pastPacking(trip, orchestrator.today())
+}
+/** The foot's second line while the packing is unfinished: what is open, and where it is done. */
+function packingFootLine(trip: Trip): string {
+  const open = openItemCount(trip.id)
+  const parts = open > 0 ? [t('dashboard.openCount', { n: open })] : []
+  return [...parts, t('dashboard.packingList')].join(' · ')
 }
 function counterOf(trip: Trip) {
   return dayText(tripDay(trip, new Date(orchestrator.now())))
@@ -183,12 +194,12 @@ const followingTrips = computed(() => activeTrips.value.slice(1))
 
 /**
  * FR-7.6's *Aufgaben* card reports the open tasks of every active trip. The
- * hero of a trip whose packing is finished lists them itself and works them
+ * hero of a trip past its packing lists them itself and works them
  * (FR-7.10), and the same tasks twice on one screen would be two answers that
  * disagree the moment one is ticked.
  */
 const overviewTrips = computed(() =>
-  activeTrips.value.filter((trip) => trip !== heroTrip.value || !isPackingClosed(trip)),
+  activeTrips.value.filter((trip) => trip !== heroTrip.value || !movedOn(trip)),
 )
 
 /** Who is on the trip, for the hero's second line. */
@@ -577,13 +588,26 @@ async function handleRefresh(event: CustomEvent) {
         "
         :phase="phaseOf(heroTrip)"
         :counter="counterOf(heroTrip)"
-        :workable="isPackingClosed(heroTrip)"
+        :workable="movedOn(heroTrip)"
         :to="tripOpenPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
-        <!-- FR-7.10: once the packing is finished the hero works the two
-             things that are still owed, in place; only its head is a link. -->
-        <template v-if="isPackingClosed(heroTrip)" #blocks>
+        <!-- FR-7.10: once the trip is past its packing the hero works its day
+             and what is still owed, in place; only its head is a link. The
+             day leads — on the road it is what the screen is opened for. -->
+        <template v-if="movedOn(heroTrip)" #blocks>
+          <component
+            :is="card"
+            v-for="(card, index) in tripCards"
+            :key="`hero-${index}`"
+            :trip-id="heroTrip.id"
+            :trip-name="heroTrip.name"
+            :start-date="heroTrip.start_date"
+            :end-date="heroTrip.end_date"
+            :planned="false"
+            :packing-closed="isPackingClosed(heroTrip)"
+            embedded
+          />
           <DashboardTasksBlock
             :trip-id="heroTrip.id"
             :phase-in-front="
@@ -594,39 +618,40 @@ async function handleRefresh(event: CustomEvent) {
             "
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
-          <component
-            :is="card"
-            v-for="(card, index) in tripCards"
-            :key="`hero-${index}`"
-            :trip-id="heroTrip.id"
-            :trip-name="heroTrip.name"
-            :start-date="heroTrip.start_date"
-            :end-date="heroTrip.end_date"
-            :planned="false"
-            :packing-closed="true"
-            embedded
-          />
         </template>
-        <template v-if="isPackingClosed(heroTrip)" #foot>
+        <template v-if="movedOn(heroTrip)" #foot>
           <RouterLink
             :to="tripPath(heroTrip.id)"
             class="pack-link"
             data-testid="dashboard-open-packing"
           >
-            <span>{{ t('dashboard.openPackingList') }}</span>
+            <span v-if="isPackingClosed(heroTrip)">{{ t('dashboard.openPackingList') }}</span>
+            <!-- Unfinished, the packing shrinks to its figure: it is still owed,
+                 but it is no longer the day's question. -->
+            <span v-else class="pack-figure" data-testid="dashboard-packing-figure">
+              <span class="pack-figure-count">
+                {{
+                  t('trips.itemSummary', {
+                    packed: tripKpis(heroTrip).packedItems,
+                    total: tripKpis(heroTrip).totalItems,
+                  })
+                }}
+              </span>
+              <span class="pack-figure-sub">{{ packingFootLine(heroTrip) }}</span>
+            </span>
             <span aria-hidden="true">›</span>
           </RouterLink>
         </template>
         <!-- FR-7.4: the trip's todos as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
-        <template v-if="!isPackingClosed(heroTrip) && taskLine(heroTrip)" #beside="{ ringSize }">
+        <template v-if="!movedOn(heroTrip) && taskLine(heroTrip)" #beside="{ ringSize }">
           <TripTodoFigure
             :trip-id="heroTrip.id"
             :ring-size="ringSize"
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
         </template>
-        <template v-if="!isPackingClosed(heroTrip)">
+        <template v-if="!movedOn(heroTrip)">
           <IonItem
             v-for="item in previewItems(heroTrip.id)"
             :key="item.id"
@@ -659,7 +684,7 @@ async function handleRefresh(event: CustomEvent) {
       </TripHero>
       <!-- FR-30.7: the modules' cards for this trip, as siblings of its card
            — the trip card is a link, and a card that can be worked is not. -->
-      <template v-if="heroTrip && !isPackingClosed(heroTrip)">
+      <template v-if="heroTrip && !movedOn(heroTrip)">
         <component
           :is="card"
           v-for="(card, index) in tripCards"
@@ -865,6 +890,18 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 /* FR-7.10: the way back to the packing list once the hero stopped showing it. */
+.pack-figure {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--jp-leading-tight);
+}
+
+.pack-figure-sub {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-regular);
+}
+
 .pack-link {
   display: flex;
   flex: 1;
