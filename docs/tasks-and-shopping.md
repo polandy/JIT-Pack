@@ -234,5 +234,5 @@ A **⋮** menu only holds what belongs to the screen it sits on:
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging, selecting, due dates and the finished packing all happen on your
-device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode says what is due when
-the app opens.
+device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode sends none — there, as
+everywhere, the overview's line under the greeting says what is due.
