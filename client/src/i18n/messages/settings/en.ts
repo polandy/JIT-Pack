@@ -112,6 +112,8 @@ export const settingsEn = {
     'Your display name comes from your identity provider. The picture is yours to choose.',
   'settings.profileUnavailable': 'Profile unavailable — server not reachable.',
   'settings.lightThemeHint': 'Tag instead of Nacht — dark is the default. This device only.',
+  'settings.splash': 'Start animation',
+  'settings.splashHint': 'The logo packs itself when the app starts. This device only.',
   'settings.notifications': 'Notifications',
   'settings.prefDelegation': 'Delegations',
   'settings.prefDelegationHint': 'An item was handed to you to pack',

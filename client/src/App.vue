@@ -23,6 +23,8 @@ import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
+import SplashScreen from '@/components/global/SplashScreen.vue'
+import { splashEnabled } from '@/lib/splash'
 import { PANEL_HOST_ID } from '@/lib/frameSlots'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { createAuthRefresher } from '@/auth/refresh'
@@ -125,6 +127,8 @@ import { IDEA_STATE_SHORTLISTED } from '@/types/domain'
 import { ACTIVITY_READERS } from '@/lib/activityReaders'
 
 const mode = ref(readMode())
+// FR-21.29: read once — the greeting belongs to this cold start only.
+const splashing = ref(splashEnabled())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
 // can have it to read.
 if (mode.value === 'server') loadMigrationPending()
@@ -700,6 +704,9 @@ async function saveBackup() {
       <!-- §3.33: the one meal sheet, opened from M31, the day plan, an excursion and M1. -->
       <MealSheet v-if="orchestrator" />
     </template>
+
+    <!-- FR-21.29 / G-22: the greeting, over whichever branch boots underneath. -->
+    <SplashScreen v-if="splashing" @done="splashing = false" />
   </IonApp>
 </template>
 

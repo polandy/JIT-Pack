@@ -88,7 +88,8 @@ token would prove nothing there is anything to prove.
   per-trip CSV export (NFR-4.5) — **this is the section a *server* account sees; Local Mode's data section is a
   different one**, per-trip and per-template YAML written client-side because there is no server to ask, plus the
   NFR-4.11 storage details (E2E-M17-03 covers both); conflict log viewer (G-2 target); app info/version. Appearance
-  section with a dark (default, Nacht) / light (Tag) toggle (G-11, Addendum 3.21, ADR-048) — shown in every mode,
+  section with a dark (default, Nacht) / light (Tag) toggle (G-11, Addendum 3.21, ADR-048) and a *Start animation*
+  toggle, on by default, taking effect on the next cold start (FR-21.29, G-22) — both shown in every mode,
   device-local. An Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).
 * **Single-User Mode variant (Addendum 3.17):** The Profile section makes the *display name* editable too (the picture
   already is, see above), so it carries two editable controls: a display-name text field (1–50 printable characters, no

@@ -18,8 +18,9 @@
  * opt-in for this device. Only with an OIDC session — Single-User and
  * Local Mode have no second party (FR-17.3/FR-19.3, G-8).
  *
- * Appearance (FR-21.3): opt-in light theme (Tag, ADR-048), a
- * device-local display preference — shown in every mode, never synced.
+ * Appearance (FR-21.3, FR-21.29): opt-in light theme (Tag, ADR-048) and
+ * the start animation, device-local display preferences — shown in every
+ * mode, never synced.
  *
  * Connection (FR-19.9): Server Mode only (G-8). The two ways off a device
  * that cannot talk to its instance — end the session, or forget the
@@ -73,6 +74,7 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
+import { setSplashEnabled, splashEnabled } from '@/lib/splash'
 import {
   type Locale,
   type MessageKey,
@@ -177,6 +179,14 @@ const lightTheme = ref(currentTheme() === 'day')
 function toggleLightTheme(enabled: boolean) {
   setTheme(enabled ? 'day' : 'night')
   lightTheme.value = enabled
+}
+
+// FR-21.29: read at the next cold start, so the toggle only records the choice.
+const splash = ref(splashEnabled())
+
+function toggleSplash(enabled: boolean) {
+  setSplashEnabled(enabled)
+  splash.value = enabled
 }
 
 // --- Language (NFR-4.12, device-local like the theme) ---
@@ -633,7 +643,7 @@ async function exportTripCSV() {
       </template>
       <IonNote v-else>{{ t('settings.profileUnavailable') }}</IonNote>
 
-      <!-- Appearance (FR-21.3) — every mode, this device only -->
+      <!-- Appearance (FR-21.3, FR-21.29) — every mode, this device only -->
       <SectionHead :title="t('settings.appearance')" data-testid="settings-section-appearance" />
       <IonList>
         <IonItem>
@@ -647,6 +657,19 @@ async function exportTripCSV() {
             :checked="lightTheme"
             :aria-label="t('settings.lightTheme')"
             @ionChange="(e: CustomEvent) => toggleLightTheme(e.detail.checked)"
+          />
+        </IonItem>
+        <IonItem>
+          <IonLabel>
+            <h3>{{ t('settings.splash') }}</h3>
+            <p>{{ t('settings.splashHint') }}</p>
+          </IonLabel>
+          <IonToggle
+            slot="end"
+            data-testid="settings-splash"
+            :checked="splash"
+            :aria-label="t('settings.splash')"
+            @ionChange="(e: CustomEvent) => toggleSplash(e.detail.checked)"
           />
         </IonItem>
         <IonItem>
