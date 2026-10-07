@@ -21,7 +21,7 @@ import {
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
-import { isPackingClosed, pastPacking } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -65,10 +65,10 @@ import {
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import { useTripHero } from '@/composables/useTripHero'
 import TripPhase from '@/components/trips/TripPhase.vue'
 import DashboardTasksBlock from './DashboardTasksBlock.vue'
 import { taskPhaseInFront, tripDay } from '@/domain/tripDay'
-import { dayText, phaseWord } from '@/lib/tripDayText'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
@@ -88,27 +88,14 @@ onMounted(() => {
   void load()
 })
 
-/**
- * FR-7.10: the phase word and the day counter, for the hero and for the cards
- * under it. `today` is read where it is asked, so a dashboard left open across
- * midnight reads the new day on its next render rather than a cached one.
- */
-function phaseOf(trip: Trip) {
-  const moved = movedOn(trip)
-  return { label: phaseWord(moved), done: moved }
-}
-/** FR-7.10: the trip is past its packing — stamped, or its first day has come. */
-function movedOn(trip: Trip): boolean {
-  return pastPacking(trip, orchestrator.today())
-}
+// FR-7.10/FR-21.15: the hero's element list, and the phase and counter the
+// cards under it carry too — worded once for M1 and M2.
+const { heroOf, movedOn, phaseOf, counterOf } = useTripHero()
 /** The foot's second line while the packing is unfinished: what is open, and where it is done. */
 function packingFootLine(trip: Trip): string {
   const open = openItemCount(trip.id)
   const parts = open > 0 ? [t('dashboard.openCount', { n: open })] : []
   return [...parts, t('dashboard.packingList')].join(' · ')
-}
-function counterOf(trip: Trip) {
-  return dayText(tripDay(trip, new Date(orchestrator.now())))
 }
 
 const activeTrips = computed(() =>
@@ -201,12 +188,6 @@ const followingTrips = computed(() => activeTrips.value.slice(1))
 const overviewTrips = computed(() =>
   activeTrips.value.filter((trip) => trip !== heroTrip.value || !movedOn(trip)),
 )
-
-/** Who is on the trip, for the hero's second line. */
-function travelerLine(trip: Trip): string | null {
-  const names = tripStore.getTravelers(trip.id).map((traveler) => traveler.name)
-  return names.length > 0 ? names.join(', ') : null
-}
 
 const greeting = computed(() => t(greetingKey(new Date(orchestrator.now()).getHours())))
 
@@ -571,23 +552,7 @@ async function handleRefresh(event: CustomEvent) {
       -->
       <TripHero
         v-if="heroTrip"
-        :name="heroTrip.name"
-        :when="formatTripPeriod(heroTrip)"
-        :meta="travelerLine(heroTrip)"
-        :percent="progressFraction(heroTrip) * 100"
-        :progress="
-          t('trips.itemSummary', {
-            packed: tripKpis(heroTrip).packedItems,
-            total: tripKpis(heroTrip).totalItems,
-          })
-        "
-        :detail="
-          openItemCount(heroTrip.id) > 0
-            ? t('dashboard.openCount', { n: openItemCount(heroTrip.id) })
-            : null
-        "
-        :phase="phaseOf(heroTrip)"
-        :counter="counterOf(heroTrip)"
+        v-bind="heroOf(heroTrip)"
         :workable="movedOn(heroTrip)"
         :to="tripOpenPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
