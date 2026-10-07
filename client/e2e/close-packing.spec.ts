@@ -24,6 +24,7 @@ import {
   startTrip,
   tripWithRows,
 } from './helpers/m4'
+import { openListComposer } from './helpers/composer'
 
 /**
  * FR-5.10 — finishing the packing, and FR-30.8's consequence for M6.
@@ -51,7 +52,7 @@ async function expectComposingFor(
   list: 'before' | 'local',
 ): Promise<void> {
   const m6 = visiblePage(page).getByTestId('m6-page')
-  await expect(m6.getByTestId('m6-composer')).toBeVisible()
+  await openListComposer(page, 'm6')
   if (list === 'before') {
     await expect(m6.getByTestId('m6-list-before')).toHaveAttribute('aria-pressed', 'true')
   } else {
@@ -285,7 +286,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     // FR-7.14: the closed *before* is one folded line at the end, and the
     // composer writes for the road only.
     const before = await openTasks(page, 'before')
-    await expect(visiblePage(page).getByTestId('m25-composer')).toBeVisible()
+    await openListComposer(page, 'm25')
     await expect(visiblePage(page).getByTestId('m25-phase-before')).toHaveCount(0)
     await before.getByTestId('m25-before-fold').click()
     await expect(before.getByTestId('m25-before-locked')).toBeVisible()

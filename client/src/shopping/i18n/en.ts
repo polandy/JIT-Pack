@@ -32,6 +32,7 @@ export const shoppingEn = {
     'Type what you mean to buy above. Anything on the packing list that is bought rather than packed shows up here by itself.',
   'shopping.ownEntries': 'Added here',
   'shopping.addPlaceholder': 'What to buy? e.g. milk, bread …',
+  'shopping.fab': 'Add something to buy',
   'shopping.addLabel': 'Add to list',
   'shopping.tags': 'Tags',
   'shopping.tagFiledUnder': 'Filed under: {tag}',

@@ -7,7 +7,9 @@ and the same gestures file, move and tick off what is on it.
 
 **Aufgaben** reads top to bottom in the order you need it:
 
-- **The field on top** writes a new task. Under it, chips file the task as you type: **Vor der Reise** or
+- **The orange ＋** at the bottom right opens the field on top, wherever you are on the list, with the cursor in it;
+  **✕** or Escape closes it again. On a trip with no tasks yet the field is already open. The field writes a new task
+  and stays open for the next one. Under it, chips file the task as you type: **Vor der Reise** or
   **Unterwegs**, one of your task tags, and — once you have typed something — a day:
   **Heute**, **Morgen**, **Vor Abreise** (the day before the trip starts, for a task before the trip) or **Datum…**
   for the calendar. The phase and the tag stay chosen for the next task, so an errand's tasks are typed one after
@@ -15,7 +17,7 @@ and the same gestures file, move and tick off what is on it.
   you finished packing — the phase chips are gone and every new task is for the road; nor can a task be moved back
   into **Vor der Reise**. What already stands there stays, and you can still tick it or move it to the road.
   **＋ Tag** opens the same sheet the shopping list uses: the words you typed, the day, and a search field for your
-  tags — pick one, or type a new name and tap **„…" neu anlegen** — then **Hinzufügen**. The orange **＋** at the bottom right takes you back to the field from anywhere on the list.
+  tags — pick one, or type a new name and tap **„…" neu anlegen** — then **Hinzufügen**.
 - **Fällig** comes next, when anything is pressing: every task that is overdue, due today or in the next two days,
   from both phases and every tag, earliest first. Each row names its tag underneath, since it is not under its heading
   while it is up here.
@@ -34,7 +36,8 @@ removed on that row.
 
 **Einkaufen** reads the way the task list does:
 
-- **The field on top** adds something to buy, with chips under it: **Vor der Reise** or **Vor Ort** (only until
+- **The field on top**, opened with the orange **＋** at the bottom right (and already open while the list is empty),
+  adds something to buy, with chips under it: **Vor der Reise** or **Vor Ort** (only until
   the trip is under way, by the task list's rule — after that, everything new is for **Vor Ort**), your shopping tags
   (**＋ Tag** opens the entry sheet), and — once you have typed something — a day, with the same chips as a task.
 - **Fällig** comes next, when anything is pressing: everything overdue, due today or in the next two days, from both

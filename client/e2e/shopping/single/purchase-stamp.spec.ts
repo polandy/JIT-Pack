@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, openTripView, visiblePage } from '../../fixtures'
+import { openListComposer } from '../../helpers/composer'
 import { addBuyRowOnM4 } from '../../helpers/m4'
 import { bootPage, uniq } from '../../serverMode'
 
@@ -35,6 +36,7 @@ test.describe('M6 — who bought it, and when (FR-30.4) @single @m6 @shopping', 
     await addBuyRowOnM4(page, coffee, 'Buy before')
 
     await openTripView(page, 'shopping')
+    await openListComposer(page, 'm6')
     await m6(page).getByTestId('m6-add-input').locator('input').fill('Milch')
     await m6(page).getByTestId('m6-add-submit').click()
     for (const name of ['Milch', coffee]) {

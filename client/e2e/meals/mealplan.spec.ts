@@ -804,3 +804,31 @@ test.describe('M31 meal plan @local @meals', () => {
     await expect(mealPlan(page)).toBeVisible()
   })
 })
+
+test.describe('M31 meal plan — the ＋ opens the meal sheet (FR-21.24) @local @meals', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M31-15 (FR-21.24): M31 keeps its sheet rather than M6's composer — a
+   * meal carries a slot, a day and its ingredients. The ＋ says what it opens,
+   * and opens it: a new meal's sheet.
+   */
+  test('E2E-M31-15: the ＋ is named for a new meal and opens the meal sheet', async ({ page }) => {
+    const day = await days(page, [30, 31])
+    await createTripViaWizard(page, {
+      name: 'Engadin Tage',
+      startDate: day(30),
+      endDate: day(31),
+      travelers: ['Andy'],
+    })
+    const plan = await openMeals(page)
+    const fab = plan.getByRole('button', { name: 'New meal', exact: true })
+    await expect(fab).toBeVisible()
+
+    await fab.click()
+    await expect(mealSheet(page).getByTestId('meal-sheet-title')).toHaveText(/^New: /)
+    await expect(mealSheet(page).getByTestId('meal-title')).toBeVisible()
+  })
+})

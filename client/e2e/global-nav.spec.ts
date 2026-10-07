@@ -19,6 +19,7 @@ import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { backToInventory, createItem, openViewSheet } from './helpers/m9'
 import { addTripNote, openThread } from './helpers/m4'
+import { openListComposer } from './helpers/composer'
 
 /**
  * Global navigation and the app bar (UI-Test-Spec §3: G-1, G-9, G-12).
@@ -1231,6 +1232,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(row).toBeVisible()
     const before = (await row.boundingBox())!.y
 
+    await openListComposer(page, 'm6')
     await page.getByTestId('m6-select').click()
 
     // The bar is the selection's: its count, „Alle", the way out — and the

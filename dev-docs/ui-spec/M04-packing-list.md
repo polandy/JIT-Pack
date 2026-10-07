@@ -47,8 +47,8 @@
     *Auswertung* head the ⋮ (ADR-051 amendment 1), ahead of packing's own entries (G-12).
   * **One door to the quick-add** (FR-21.24): the ＋ FAB, and nothing else. A collapsed composer pill above the list
     would say the same thing as the FAB hovering over it — the FAB is what stays, because it is reachable from anywhere
-    in a list and the pill only from the top of one. M8's editor makes the same choice; M6, which has no FAB, is where
-    the pill is the way in. *Rejected:* dropping the FAB instead, which would put the app's one-tap add behind a scroll
+    in a list and the pill only from the top of one. M8's editor makes the same choice, and M6 and M25 make it for
+    their own composer. *Rejected:* dropping the FAB instead, which would put the app's one-tap add behind a scroll
     to the top on the longest list it has.
   * **Faceted filter panel** (FR-25.11): a bottom sheet holding *Gruppieren nach*, three reveal switches (*Erledigte*,
     *Anderen zugewiesen* and *Spätpacker*, FR-25.27), and the facets Person / Kategorie / Beschaffung / Gepäck /

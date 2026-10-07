@@ -3,6 +3,7 @@ import { fillIonic } from '../helpers/ionic'
 import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
 import { chooseDay, dayFromToday, openDayPlan, timelineLines, wayByHand } from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
+import { openListComposer } from '../helpers/composer'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -81,7 +82,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
 
     // The task: M25's composer holding the words and the day before.
     await detail.getByTestId('idea-make-task').click()
-    const composer = visiblePage(page).getByTestId('m25-composer')
+    const composer = await openListComposer(page, 'm25')
     const body = `Book ${IDEA}`
     await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
     await composer.getByTestId('trip-todo-add').click()
@@ -94,6 +95,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
 
     // The shopping entry: M6's field on the destination list.
     await detail.getByTestId('idea-make-shopping').click()
+    await openListComposer(page, 'm6')
     const m6 = visiblePage(page)
     await expect(m6.getByTestId('m6-add-input').locator('input')).toHaveValue(IDEA)
     await expect(m6.getByTestId('m6-list-local')).toHaveAttribute('aria-pressed', 'true')
@@ -119,7 +121,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     const detail = await shortlistedIdea(page)
     await detail.getByTestId('idea-make-task').click()
     const body = `Book ${IDEA}`
-    const composer = visiblePage(page).getByTestId('m25-composer')
+    const composer = await openListComposer(page, 'm25')
     await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
     await composer.getByTestId('trip-todo-add').click()
     await expect(visiblePage(page).getByTestId(`trip-todo-idea-${body}`)).toBeVisible()
@@ -169,7 +171,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       await sheet.getByTestId('idea-make-task').click()
 
       const tasks = visiblePage(page)
-      await expect(tasks.getByTestId('m25-composer')).toBeVisible()
+      await openListComposer(page, 'm25')
       await expect(page.getByTestId('m28-idea-modal')).toBeHidden()
       await expect(tasks.getByTestId('trip-todo-input').locator('input')).toHaveValue(
         `Book ${IDEA}`,

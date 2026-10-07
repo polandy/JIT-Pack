@@ -24,7 +24,10 @@
   writing button). What remains per screen is what a line *is* — a task or a thing to buy — never how it looks. The
   shopping module reaches these as kernel (ADR-066).
 * **Elements, top to bottom:**
-  * **The composer** (`m6-composer`, a `jp-card`, M25's shape): the **text field** with its ＋ (placeholder *„Was
+  * **The composer** (`m6-composer`, a `jp-card`, M25's shape), **behind the FAB** (FR-21.24): closed at rest, so the
+    list starts at the top; the FAB opens it, ✕ (`m6-composer-close`) or Escape closes it and empties the field and
+    the day (list and tag stay chosen). It stays open after an entry and does not close on blur; on an empty list it
+    stands open above the empty state. The **text field** with its ＋ (placeholder *„Was
     kaufen? z. B. Milch, Brot …"*), then chips that file the entry as it is typed. **The list** (`m6-composer-list`):
     *Vor der Reise* / *Vor Ort*, *Vor der Reise* chosen — offered only while FR-30.8's rule still names *before*
     (the trip not yet under way); otherwise the row goes and everything written is for *Vor Ort*. **The
@@ -152,9 +155,10 @@
   off an entry → bought, under its list's fold. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing
   list, BUY_LOCAL → packed). *Entfernen* in an entry's sheet → removed. A packing row leaves only by being bought or by
   changing mode on M4/M5.
-* **The ＋ bottom right (FR-30.6):** M4's FAB, same place and glyph. It scrolls the list to the top
-  and puts the cursor in the field — the field stays where it is, so the screen keeps one way to add, and the ＋ is the
-  way back to it from a long list. The list scrolls clear of the FAB's footprint (FR-25.11h's 96 px).
+* **The ＋ bottom right (FR-30.6):** M4's FAB, same place and glyph, *„Einkauf hinzufügen"* to a screen reader — the
+  one door to the composer (FR-21.24). It scrolls the list to the top, opens the composer and puts the cursor in the
+  field, and is gone while the composer is open: it would have nothing left to do, and at 360 px with the keyboard up
+  it would cover the one row still visible. The list scrolls clear of the FAB's footprint (FR-25.11h's 96 px).
 * **Adding an inventory item to buy (FR-30.2):** on **M4**, with the composer, then its mode — in M5, or *Vor Ort
   kaufen* from the row menu (FR-5.9). M6 writes no packing rows. The composer, its create sheet (FR-24.11) and its
   duplicate exclusion (FR-25.13d) are M4's and M8's.

@@ -17,6 +17,7 @@ import { addBuyRowOnM4, setMemberInM5, startTrip } from '../helpers/m4'
 import { setDateField } from '../helpers/ionic'
 import { dropBeside } from '../helpers/drag'
 import { setClock } from '../helpers/page'
+import { openListComposer } from '../helpers/composer'
 
 /**
  * M6 — the shopping list (UI-Test-Spec §6, FR-30).
@@ -78,6 +79,7 @@ function restLine(page: Page, key: ListKey) {
  * while the trip is planned and its packing open (FR-30.8).
  */
 async function addEntry(page: Page, name: string, key?: ListKey) {
+  await openListComposer(page, 'm6')
   if (key) {
     const chip = m6(page).getByTestId(`m6-list-${key}`)
     await chip.click()
@@ -208,6 +210,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
 
     // A tag made in the sheet stays a chip when nothing carries it: add an
     // entry under „Laden", remove it, and unselect the chip — it must remain.
+    await openListComposer(page, 'm6')
     await m6(page).getByTestId('m6-tag-new').click()
     await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
     await page.getByTestId('m6-entry-name').locator('input').fill('Probe')
@@ -702,7 +705,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await openTripView(page, 'shopping')
     // Running: at the destination is the list M1's card reads (FR-30.8), and
     // the only one the composer still files on — no list chips to press.
-    await expect(m6(page).getByTestId('m6-composer')).toBeVisible()
+    await openListComposer(page, 'm6')
     await expect(m6(page).getByTestId('m6-composer-list')).toHaveCount(0)
     await addEntry(page, 'Brot')
     await addEntry(page, 'Pasta')
@@ -1064,6 +1067,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6 @shoppi
   }) => {
     await createTripViaWizard(page, TRIP)
     await openTripView(page, 'shopping')
+    await openListComposer(page, 'm6')
 
     // Planned and open: the chips offer both lists, before departure first.
     await expect(m6(page).getByTestId('m6-list-before')).toHaveAttribute('aria-pressed', 'true')
@@ -1131,16 +1135,16 @@ test.describe('M6 shopping — the two lists and their counts @local @m6 @shoppi
 })
 
 /**
- * FR-30.6: M4's ＋ bottom right, on M6 too. The field it leads to stays at
- * the top, so the ＋ is the way back to it from a long, scrolled list — and
- * the list scrolls clear of it (E2E-M6-15, FR-25.11h's rule for M6's half).
+ * FR-30.6: M4's ＋ bottom right, on M6 too, and M4's door (FR-21.24): the
+ * composer is behind it, opened at the top of a long, scrolled list — and the
+ * list scrolls clear of it (E2E-M6-15, FR-25.11h's rule for M6's half).
  */
-test.describe('M6 shopping — the ＋ bottom right @local @m6 @shopping', () => {
+test.describe('M6 shopping — the ＋ bottom right, the one door to the composer @local @m6 @shopping', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M6-15: the ＋ leads to the field, and the last row scrolls clear of it', async ({
+  test('E2E-M6-15: the ＋ opens the composer at the top, and the last row scrolls clear of it', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 700 })
@@ -1148,6 +1152,7 @@ test.describe('M6 shopping — the ＋ bottom right @local @m6 @shopping', () =>
     await openTripView(page, 'shopping')
     const names = Array.from({ length: 14 }, (_, i) => `Artikel ${String(i + 1).padStart(2, '0')}`)
     for (const name of names) await addEntry(page, name)
+    await m6(page).getByTestId('m6-composer-close').click()
 
     const last = m6(page).getByTestId('m6-row').last()
     await last.scrollIntoViewIfNeeded()
@@ -1160,14 +1165,52 @@ test.describe('M6 shopping — the ＋ bottom right @local @m6 @shopping', () =>
     const [row, button] = [(await last.boundingBox())!, (await fab.boundingBox())!]
     expect(row.y + row.height <= button.y || row.y >= button.y + button.height).toBe(true)
 
-    // The field is off-screen now; the ＋ brings it back and puts the cursor in it.
-    const field = m6(page).getByTestId('m6-add-input').locator('input')
-    await expect(field).not.toBeInViewport()
+    // Scrolled down the list, the ＋ opens the composer at its top, the cursor in the field.
     await fab.click()
+    const field = m6(page).getByTestId('m6-add-input').locator('input')
     await expect(field).toBeInViewport()
     await expect(field).toBeFocused()
     await field.fill('Zucker')
     await m6(page).getByTestId('m6-add-submit').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Zucker' })).toBeVisible()
+  })
+
+  test('E2E-M6-43: the composer is closed at rest, opened by the ＋ and closed by ✕ or Escape; an empty list finds it open (FR-21.24)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    const composer = m6(page).getByTestId('m6-composer')
+    const fab = m6(page).getByTestId('m6-fab')
+
+    // Nothing on the list (G-7): the field is the only thing to do, so it stands open and no ＋ hovers.
+    await expect(m6(page).getByTestId('m6-empty')).toBeVisible()
+    await expect(composer).toBeVisible()
+    await expect(fab).toHaveCount(0)
+    await addEntry(page, 'Brot')
+    // Entries come in runs: the first one does not close it.
+    await expect(composer).toBeVisible()
+
+    // ✕ closes it and empties the field; the ＋ comes back, saying what it opens.
+    await m6(page).getByTestId('m6-add-input').locator('input').fill('Mil')
+    await m6(page).getByTestId('m6-composer-close').click()
+    await expect(composer).toHaveCount(0)
+    await expect(fab).toBeVisible()
+    await expect(m6(page).getByRole('button', { name: 'Add something to buy' })).toBeVisible()
+
+    // With something on the list it is closed on arrival too.
+    await page.reload()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Brot' })).toBeVisible()
+    await expect(composer).toHaveCount(0)
+
+    await fab.click()
+    await expect(composer).toBeVisible()
+    await expect(fab).toHaveCount(0)
+    const field = m6(page).getByTestId('m6-add-input').locator('input')
+    await expect(field).toBeFocused()
+    await expect(field).toHaveValue('')
+    await field.press('Escape')
+    await expect(composer).toHaveCount(0)
+    await expect(fab).toBeVisible()
   })
 })

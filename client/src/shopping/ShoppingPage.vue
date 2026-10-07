@@ -451,7 +451,8 @@ async function bulkRemove() {
 const draft = ref('')
 
 const content = ref<InstanceType<typeof IonContent> | null>(null)
-const composer = ref<{ focus: () => Promise<void> } | null>(null)
+const composer = ref<InstanceType<typeof ListComposer> | null>(null)
+const composerOpen = computed(() => composer.value?.expanded ?? false)
 
 /**
  * The grip (FR-30.13): any line is put anywhere in its own section, and an
@@ -522,14 +523,19 @@ function onLift(line: ShoppingLine, event: PointerEvent) {
 }
 
 /**
- * FR-30.6: the ＋ takes the reader to the field, wherever the list was
- * scrolled to — M4's gesture for adding, on a screen whose field is always
- * there. No animation: the next thing is typing, and a scroll still in
- * flight would be what the keyboard opens over.
+ * FR-30.6: the ＋ opens the composer at the top of the list, wherever the list
+ * was scrolled to — M4's door (FR-21.24). No animation: the next thing is
+ * typing, and a scroll still in flight would be what the keyboard opens over.
  */
-async function goToField() {
+async function openComposer() {
   await (content.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
-  await composer.value?.focus()
+  await composer.value?.open()
+}
+
+/** Closed by the reader: the day and the idea go with the words; list and tag stay chosen. */
+function onComposerClose() {
+  draftDue.value = null
+  draftIdea.value = null
 }
 
 /**
@@ -597,7 +603,7 @@ useIdeaSeed(
     chosenList.value = ITEM_MODE_BUY_LOCAL
     draftIdea.value = idea.id
     await nextTick()
-    await composer.value?.focus()
+    await composer.value?.open()
   },
 )
 
@@ -745,7 +751,7 @@ setHeaderTitle(
         <IonLabel>{{ t('shopping.mine') }}</IonLabel>
       </IonChip>
 
-      <!-- M25's composer. G-20: in place while a
+      <!-- M25's composer, behind the FAB (FR-21.24). G-20: in place while a
            selection is on, at rest — typing a new entry mid-batch is a
            different act, and a chip here only files the next entry. -->
       <div class="composer-slot" :class="{ resting: selecting }" :inert="selecting || undefined">
@@ -755,11 +761,14 @@ setHeaderTitle(
           :placeholder="t('shopping.addPlaceholder')"
           :label="t('shopping.addPlaceholder')"
           :add-label="t('shopping.addLabel')"
+          :close-label="t('common.close')"
+          :list-empty="rowsLoaded && nothingAtAll"
           testid="m6-composer"
           input-testid="m6-add-input"
           submit-testid="m6-add-submit"
           form-testid="m6-add"
           @submit="addEntry"
+          @close="onComposerClose"
         >
           <!-- The list the next entry goes on, while *before* still takes one. -->
           <ChipRow
@@ -1002,11 +1011,17 @@ setHeaderTitle(
           />
         </template>
       </EntrySheet>
-      <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
-           top of the list, so the screen still has one way to add. Hidden
-           while selecting (FR-30.9, M9's own rule). -->
-      <IonFab v-if="!selecting" :id="FAB_ANCHOR.m6" slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton data-testid="m6-fab" :aria-label="t('common.add')" @click="goToField">
+      <!-- FR-30.6: M4's ＋, bottom right — the one door to the composer
+           (FR-21.24), gone while it is open. Hidden while selecting (FR-30.9,
+           M9's own rule). -->
+      <IonFab
+        v-if="!selecting && !composerOpen"
+        :id="FAB_ANCHOR.m6"
+        slot="fixed"
+        vertical="bottom"
+        horizontal="end"
+      >
+        <IonFabButton data-testid="m6-fab" :aria-label="t('shopping.fab')" @click="openComposer">
           <IonIcon :icon="addOutline" aria-hidden="true" />
         </IonFabButton>
       </IonFab>

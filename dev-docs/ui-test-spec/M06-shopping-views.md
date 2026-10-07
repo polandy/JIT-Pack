@@ -225,9 +225,13 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's filters are **independent**:
   setting one must not change the other.
 * **E2E-M6-15** `local` (FR-25.11h, FR-30.6) — **implemented** (`shopping/shopping.spec.ts`): with fourteen entries on a
-  390 × 700 viewport and the list scrolled to its end, the last row's box does **not** intersect the ＋ (checked red with
-  the list's bottom padding removed); the field is then out of view, and one tap on the ＋ brings it into view
-  **focused**, ready for the next entry. M4's half is E2E-M4-20's.
+  390 × 700 viewport, the composer closed and the list scrolled to its end, the last row's box does **not** intersect
+  the ＋ (checked red with the list's bottom padding removed); one tap on the ＋ opens the composer at the top, its
+  field in view and **focused**, ready for the next entry. M4's half is E2E-M4-20's.
+* **E2E-M6-43** `local` (FR-21.24, FR-30.6, G-7) — **implemented** (`shopping/shopping.spec.ts`): a new trip's empty
+  list finds the composer open above the empty state and **no** ＋; it stays open after the first entry; ✕ closes it
+  and the ＋ comes back, named *„Add something to buy"*. After a reload, with an entry on the list, the composer is
+  closed; the ＋ opens it with the field focused and empty and steps aside; Escape closes it again.
 * **E2E-M6-09** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
   eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
   multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die
@@ -242,5 +246,5 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   and reopening, and can be cleared. Both buyer and description are optional — a row with neither renders without either
   mark.
 * **E2E-M6-11** `all` (FR-25.13, FR-30.2): M6 has **no permanent "add" row** and no native `prompt()`. It carries no
-  shared composer; it has one text field of its own, always shown, which adds to the list its chip chooses
-  (E2E-M6-26/27); the ＋ FAB is FR-30.6's (E2E-M6-15).
+  shared composer; it has one text field of its own, behind the ＋ (FR-21.24, E2E-M6-43), which adds to the list its
+  chip chooses (E2E-M6-26/27); the ＋ FAB is FR-30.6's (E2E-M6-15).

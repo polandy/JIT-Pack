@@ -7,8 +7,8 @@
  * On M4 and M8 the FAB is the *only* way in (`showTrigger: false`,
  * FR-21.24): the collapsed pill sat above the list saying the same thing as
  * the FAB hovering over it, and a screen that offers one action twice has
- * to be read twice before it can be used once. M6, which has no FAB, is
- * where the pill is still the way in.
+ * to be read twice before it can be used once. M6 and M25 give their own
+ * composer (`ListComposer`) the same door.
  * Opening does not focus the input (FR-25.13c): the
  * empty composer leads with a tappable row of recently used items, and an
  * auto-raised soft keyboard would cover it. Typing is one tap on the field

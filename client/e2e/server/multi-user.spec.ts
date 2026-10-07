@@ -22,6 +22,7 @@ import {
   openTasks,
 } from '../helpers/m4'
 import { fillIonic } from '../helpers/ionic'
+import { openListComposer } from '../helpers/composer'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
@@ -55,7 +56,7 @@ import { PATH } from '../routes'
 async function openShopping(page: Page): Promise<Locator> {
   await openTripView(page, 'shopping')
   const m6 = visiblePage(page).getByTestId('m6-page')
-  await expect(m6.getByTestId('m6-add-input')).toBeVisible()
+  await openListComposer(page, 'm6')
   return m6
 }
 

@@ -82,6 +82,10 @@ went.
 * **E2E-M25-20** `local` (FR-7.17) — **implemented** (`trip-tasks.spec.ts`): three trip tasks typed one after another
   read in that order under *Ohne Tag*, not by their words; the last is dragged above the first with the insert line
   on the first row before the drop, and after a reload the group still reads in the new order.
+* **E2E-M25-21** `local` (FR-21.24, FR-7.14, G-7) — **implemented** (`trip-tasks.spec.ts`): a trip with no task finds
+  the composer open and **no** ＋; it stays open after the first task; ✕ closes it and the ＋ comes back, named *„Add a
+  task"*. After a reload, with a task on the trip, the composer is closed; the ＋ opens it with the field focused and
+  empty and steps aside; Escape closes it again.
 * **E2E-M25-18** `server` (FR-7.14) — **implemented** (`e2e/server/multi-user.spec.ts`): on a trip
   shared with a second account, a task with nothing to say under its words shows its empty seat and **no** facts
   line, and its row is exactly as tall as a shopping entry's with its own seat. Fails on a build that seats the person

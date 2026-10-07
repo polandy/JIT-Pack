@@ -11,6 +11,7 @@ import {
   startTrip,
   tripWithRows,
 } from './helpers/m4'
+import { openListComposer } from './helpers/composer'
 
 /**
  * Every act on the packing list can be taken back (UI-Test-Spec §3, M4;
@@ -197,11 +198,10 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     await writesLanded(page)
     await page.reload()
     const reloaded = await openTasks(page, 'before')
+    const reloadedComposer = await openListComposer(page, 'm25')
     // The input rendering is the positive signal that the list is there —
     // without it, „the task is gone" is also what an empty screen says.
-    await expect(
-      visiblePage(page).getByTestId('m25-composer').getByTestId('trip-todo-input'),
-    ).toBeVisible()
+    await expect(reloadedComposer.getByTestId('trip-todo-input')).toBeVisible()
     await expect(reloaded.getByTestId('trip-todo-Pass erneuern')).toHaveCount(0)
   })
 

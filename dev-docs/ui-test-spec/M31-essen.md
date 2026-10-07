@@ -63,3 +63,5 @@
   toast says where it went and asks nothing; undone, then dragged three days later, the toast ends *🌿 Brot, Rucola are
   already bought – will they last until <weekday>?* without Olivenöl, stays 8 s where the one-day toast stays 3 s, and
   its *Undo* puts it back. Moved four days by the sheet's day chip, the save's toast asks the same and stays 8 s too.
+* **E2E-M31-15** `local` (FR-21.24) — **implemented** (`meals/mealplan.spec.ts`): the ＋ is named *„New meal"* and
+  opens the meal sheet on a new meal (*„New: …"*, the dish field shown). M31 keeps its sheet rather than M6's composer.

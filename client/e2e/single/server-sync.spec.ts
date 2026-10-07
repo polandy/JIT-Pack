@@ -23,6 +23,7 @@ import { FOR_WHOM_M5, assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 import { PATH } from '../routes'
 import { openTripView } from '../helpers/trips'
+import { openListComposer } from '../helpers/composer'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them.
@@ -1885,6 +1886,7 @@ test.describe('A trip sub-screen opened cold @single', () => {
     // deep-linked screen is the one that owns it.
     await pageA.goto(`${tripPath}/shopping`)
     const m6A = visiblePage(pageA).getByTestId('m6-page')
+    await openListComposer(pageA, 'm6')
     await m6A.getByTestId('m6-add-input').locator('input').fill(item)
     await m6A.getByTestId('m6-add-submit').click()
     await expect(m6A.getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
