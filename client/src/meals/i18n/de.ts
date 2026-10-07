@@ -40,12 +40,13 @@ export const mealsDe: Record<keyof typeof mealsEn, string> = {
   // wherever it is a label — one word per slot across M31, M29 and M1.
   'meals.slot.breakfast': 'Frühstück',
   'meals.slot.lunch': 'Mittagessen',
+  // The sheet's title wraps at its slash too, as its short word does.
   'meals.slot.snack': 'Znüni/\u200bZvieri',
   'meals.slot.dinner': 'Abendessen',
   'meals.slotShort.breakfast': 'Morgen',
   'meals.slotShort.lunch': 'Mittag',
   // A zero-width space after the slash: where the label may break in a column narrower
-  // than it (M31's rows, M29's time column, the drag chip, the sheet's title) — browsers break no word at a slash (G-13).
+  // than it (M31's rows, M29's time column, the drag chip) — browsers break no word at a slash (G-13).
   'meals.slotShort.snack': 'Znüni/\u200bZvieri',
   'meals.slotShort.dinner': 'Abend',
   'meals.cooks': '{name} kocht',

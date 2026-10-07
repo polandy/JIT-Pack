@@ -79,7 +79,7 @@
   the catalogue's zero-width space). Fails on the 54 px column (*MORGE/N*) and on a field that cannot wrap
   (*Znüni/Zvi*).
 * **E2E-M31-18** `local` (§3.33, FR-29.15, UX-10) — **implemented** (`meals/mealplan.spec.ts`): in German, four meals
-  today, one per slot: M29's time column reads *Morgen · Mittag · Znüni/Zvieri · Abend* and every line's label
-  *Mahlzeit*; the dinner's sheet is titled *Abendessen* over the same four short chips; M1's *Heute essen* reads the
-  same four words; neither M29's timeline nor M1's block holds *zw.* in any case. Fails on *früh · mittags · zw. ·
-  abends* in the column and on *Abendessen* as M29's label.
+  today, one per slot: M29's time column reads *Morgen · Mittag · Znüni/Zvieri · Abend*, no word broken inside at 360 or
+  412 px, and every line's label *Mahlzeit*; the dinner's sheet is titled *Abendessen* over the same four short chips;
+  M1's *Heute essen* reads the same four words; neither M29's timeline nor M1's block holds *zw.* in any case. Fails on
+  *früh · mittags · zw. · abends* in the column and on *Abendessen* as M29's label.

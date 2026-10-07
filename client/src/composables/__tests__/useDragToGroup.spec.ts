@@ -845,7 +845,7 @@ describe('useDragToGroup — a choice carried above the finger', () => {
     choices: () => ({
       keep: 'keeps dinner',
       options: [
-        { key: 'breakfast', label: 'Früh' },
+        { key: 'breakfast', label: 'Morgen' },
         { key: 'lunch', label: 'Mittag' },
         { key: 'snack', label: 'Znüni/Zvieri' },
         { key: 'dinner', label: 'Abend', current: true },
@@ -869,7 +869,7 @@ describe('useDragToGroup — a choice carried above the finger', () => {
     expect(ghost().style.left).toBe('0px')
     expect(fields().map((f) => f.textContent)).toEqual([
       'keeps dinner',
-      'Früh',
+      'Morgen',
       'Mittag',
       'Znüni/Zvieri',
       'Abend',

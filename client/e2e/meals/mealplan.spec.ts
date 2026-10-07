@@ -1023,6 +1023,12 @@ test.describe('M31 slot names — whole where a slot is a label (G-13, UX-08) @l
     await expect(lines).toHaveCount(4)
     await expect(lines.locator('[data-testid^="m29-time-"]')).toHaveText(short)
     await expect(lines.locator('[data-testid^="m29-kind-"]')).toHaveText(Array(4).fill('Mahlzeit'))
+    // In the 56 px column Znüni/Zvieri may break only at its slash, never inside a word.
+    for (const phone of CUE_PHONES) {
+      await page.setViewportSize(phone)
+      const times = lines.locator('[data-testid^="m29-time-"]')
+      expect(await brokenWords(times), `time column at ${phone.width} px`).toEqual([])
+    }
     await expect(visiblePage(page).getByTestId('m29-timeline')).not.toContainText(cipher)
 
     await lines.filter({ hasText: 'Capuns' }).locator('button.open').click()
