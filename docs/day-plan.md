@@ -17,7 +17,7 @@ after the trip, on the packing list. The pills under the trip's name still take 
 
 **Today on the overview.** On each day of the trip, the overview shows a **Heute** card under the trip: the next three
 things still to come today, as the day plan lists them — something with a time leaves once its time has passed, a
-connection once it has arrived; meals are left to the **Heute essen** card beside it. Tick a task or an idea right
+connection once it has arrived; meals are left to the **Heute essen** card beside it. Tick a task right
 there; *+ n weitere · Tagesplan* opens the whole day.
 From the trip's first day — or earlier, once the packing is finished — the card sits inside the trip's big card, first,
 above the meals, the shopping list and the tasks.
@@ -27,7 +27,10 @@ above the meals, the shopping list and the tasks.
 The row of days at the top lists every day of the trip. During the trip today is chosen; before it, the first day.
 Dots under a day show that something stands on it. Tap a day to see it.
 
-Under the row, the chosen day lists what is on it — first everything with a time, in time order, then the rest:
+Under the row, the chosen day lists what is on it — first everything with a time, in time order, then the rest. The
+column on the left says the time; a meal without one says its meal (*abends*), an excursion without one *ganztags*,
+and anything else without a time leaves it empty. On the right, a ring shows how far a meal's shopping or an
+excursion's packing has got, and a task has its checkbox; the other lines have nothing there.
 
 - **Anreise / Abreise** on the first and last day.
 - **Ausflug** — an excursion with a date, on each of its days (*Start* and *Rückkehr* when it spans several), with how
@@ -36,8 +39,9 @@ Under the row, the chosen day lists what is on it — first everything with a ti
   idea — the idea itself does not appear a second time. The way there and back you added on the
   excursion show as *Hinfahrt* and *Rückfahrt* with the excursion's name, and the excursion stands between them —
   right after the way there, or right before the way back if it has only that.
-- **Idee** — an idea you planned on this day. Tick it once you did it: it moves to **Gemacht** on the board.
-- **Aufgabe** — a task due this day, with whoever does it. Its tick is the same as on the task list.
+- **Idee** — an idea you planned on this day. Tap it to open it; once you set it to **Gemacht** there, its line is
+  struck through.
+- **Aufgabe** — a task due this day, with whoever does it. Its checkbox is the same as on the task list.
 - **Eintrag** — an entry of the day plan's own. Tap it to change or delete it. An entry for only some of you says
   so under it — *für Sia*; an excursion only some go on says who the same way.
 - **Verbindung** — an entry with a train, bus or ferry journey: its title, and under it from where to where, when it

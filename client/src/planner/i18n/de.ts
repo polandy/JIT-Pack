@@ -12,7 +12,7 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'dayPlan.todayOpen': 'Tagesplan öffnen',
   'dayPlan.noDates': 'Der Tagesplan braucht Start- und Enddatum der Reise.',
   'dayPlan.emptyDay': 'Noch nichts geplant.',
-  'dayPlan.noTime': '–',
+  'dayPlan.allDay': 'ganztags',
   'dayPlan.tomorrow': 'Morgen · {day}',
   'dayPlan.outside': 'Außerhalb der Reise',
   'dayPlan.arrival': 'Anreise',

@@ -147,6 +147,7 @@ export const excursionsDe: Record<keyof typeof excursionsEn, string> = {
   'excursions.fromGroup': 'aus Gruppe {name}',
   'excursions.participantsAll': 'Alle',
   'excursions.packed': '{done}/{total} gepackt',
+  'excursions.packedOf': '{done} von {total} gepackt',
   'excursions.takenAlong': '🍽 {titles}',
   'excursions.toBuy': '{n} vor Ort besorgen',
   'excursions.nothingYet': 'Noch nichts auf der Liste',

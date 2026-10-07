@@ -47,7 +47,7 @@ export interface DayLine {
   /** The words under the title, where there are any. */
   detail: string | null
   span: DaySpan
-  /** Ticked or not; null for a line without a tick. */
+  /** Done or not — struck through, and a task's checkbox (FR-29.15); null for a line never done. */
   done: boolean | null
   /** An excursion's packed share, 0…1. */
   progress: number | null
@@ -422,16 +422,6 @@ function fixed(kind: typeof DAY_LINE.arrival | typeof DAY_LINE.departure, day: s
     who: null,
     forIds: null,
   }
-}
-
-/**
- * The state a tick on an idea's line moves it to: a ticked idea is done, and
- * unticking puts it back on the shortlist it was planned from (FR-29.15).
- */
-export function stateAfterTick(
-  done: boolean,
-): typeof IDEA_STATE_DONE | typeof IDEA_STATE_SHORTLISTED {
-  return done ? IDEA_STATE_SHORTLISTED : IDEA_STATE_DONE
 }
 
 /** How many lines stand on each day — the strip's dots. */

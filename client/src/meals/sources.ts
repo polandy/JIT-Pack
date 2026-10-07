@@ -208,6 +208,9 @@ export function createMealDayPlanSource(deps: MealSourceDeps): DayPlanSource {
           detail: mealFacts(meal, own),
           assignee: cooked ? meal.cook_user_id : null,
           progress: cooked && share.total > 0 ? share.bought / share.total : null,
+          ...(cooked && share.total > 0
+            ? { progressName: t('meals.boughtOf', { bought: share.bought, total: share.total }) }
+            : {}),
           done: null,
           path: tripSubPath(tripId, 'meals'),
           open: () => deps.sheet.openMeal(tripId, meal.id),

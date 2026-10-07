@@ -49,7 +49,6 @@ import {
   nextDay,
   openingDay,
   openingFilter,
-  stateAfterTick,
   tripDays,
   unplannedIdeas,
   type DayInput,
@@ -189,8 +188,7 @@ function open(line: DayLine) {
 }
 
 function tick(line: DayLine) {
-  if (line.idea) actions.setState(line.idea, stateAfterTick(line.done === true))
-  else line.source?.toggle?.()
+  line.source?.toggle?.()
 }
 
 // --- the pool and the ＋ ---

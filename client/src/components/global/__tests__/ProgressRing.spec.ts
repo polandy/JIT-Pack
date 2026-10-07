@@ -52,6 +52,13 @@ describe('ProgressRing — a share, read at a glance (G-14)', () => {
     expect(wrapper.get('.share').attributes('aria-hidden')).toBe('true')
   })
 
+  it('takes a name in the caller’s words where a share has a count behind it (FR-29.15)', () => {
+    const wrapper = mount(ProgressRing, { props: { percent: 50, label: '2 von 4 Zutaten' } })
+
+    expect(wrapper.get('.ring').attributes('aria-label')).toBe('2 von 4 Zutaten')
+    expect(wrapper.get('.share').text()).toBe('50')
+  })
+
   it('takes its diameter from the caller, defaulting to the hero size', () => {
     expect(
       mount(ProgressRing, { props: { percent: 0 } })

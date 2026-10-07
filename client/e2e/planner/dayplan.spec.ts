@@ -1,7 +1,17 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic } from '../helpers/ionic'
-import { createExcursion, openExcursions } from '../helpers/m27'
-import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas, showSegment } from '../helpers/m28'
+import { openListComposer } from '../helpers/composer'
+import { openTasks } from '../helpers/m4'
+import { addToExcursion, createExcursion, openExcursions } from '../helpers/m27'
+import {
+  addIdea,
+  ideaCard,
+  ideaDetail,
+  ideasBoard,
+  openIdea,
+  openIdeas,
+  showSegment,
+} from '../helpers/m28'
 import {
   addDayEntry,
   chooseDay,
@@ -11,6 +21,8 @@ import {
   timeline,
   timelineLines,
 } from '../helpers/m29'
+import { addMeal, mealSheet, openMeals } from '../helpers/m31'
+import { setClock, switchToGerman } from '../helpers/page'
 
 /**
  * M29 — a trip's day plan (UI-Test-Spec §29, FR-29.14, FR-29.15). The
@@ -26,6 +38,9 @@ const FIRST = dayFromToday(30)
 const SECOND = dayFromToday(31)
 const THIRD = dayFromToday(32)
 const LAST = dayFromToday(33)
+/** E2E-M29-22's day under the trip's own clock: the plan opens on it (FR-29.7). */
+const TODAY = '2026-07-14'
+const TOMORROW = '2026-07-15'
 
 test.describe('M29 day plan @local @planner', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -112,7 +127,7 @@ test.describe('M29 day plan @local @planner', () => {
    * planned from it; a day given on M28 lands on the plan too, and the card
    * says it. Ticking the idea on the plan sets *Done*, which M28 counts.
    */
-  test('E2E-M29-03: an idea is planned from the pool and from M28, and its tick sets Done', async ({
+  test('E2E-M29-03: an idea is planned from the pool and from M28, and struck through once Done', async ({
     page,
   }) => {
     await createTripViaWizard(page, {
@@ -174,13 +189,23 @@ test.describe('M29 day plan @local @planner', () => {
     await chooseDay(page, THIRD)
     await expect(timelineLines(page).filter({ hasText: 'Segantini-Museum' })).toContainText('14:30')
 
-    // The tick sets Done: struck through here, counted on M28.
+    // Done is set where the idea is opened (UX-09): counted on M28, struck through here.
     const museum = timelineLines(page).filter({ hasText: 'Segantini-Museum' })
-    await museum.locator('[data-testid^="m29-tick-"]').click()
-    await expect(museum).toHaveAttribute('data-done', 'true')
+    await expect(museum).not.toHaveAttribute('data-done', 'true')
+    await museum.getByRole('button').click()
+    const opened = ideaDetail(page)
+    await opened.getByTestId('idea-state-done').click()
+    await expect(opened.getByTestId('idea-state-done')).toHaveAttribute('aria-pressed', 'true')
+    await opened.getByTestId('idea-detail-close').click()
+    await expect(ideaDetail(page)).toHaveCount(0)
+    await expect(ideasBoard(page).getByTestId('m28-count-done')).toHaveText('1')
     await writesLanded(page)
-    const board = await openIdeas(page)
-    await expect(board.getByTestId('m28-count-done')).toHaveText('1')
+    await openDayPlan(page)
+    await chooseDay(page, THIRD)
+    await expect(timelineLines(page).filter({ hasText: 'Segantini-Museum' })).toHaveAttribute(
+      'data-done',
+      'true',
+    )
   })
 
   /**
@@ -379,5 +404,97 @@ test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @loca
     await chooseDay(page, LAST)
     await expect(plan.getByRole('button', { name: title, exact: true })).toHaveCount(0)
     await expect(plan.getByTestId('m29-fab')).toBeVisible()
+  })
+
+  /**
+   * E2E-M29-22 (FR-29.15, UX-09): one trailing column, one meaning per
+   * shape, and one time column. On a day holding every kind, a share is a
+   * ring named by its count and opening its line; a task is M25's checkbox
+   * and ticks; an idea, an entry and an eaten-out meal end in nothing. The
+   * time column says a time, an untimed meal's slot, *ganztags* for an
+   * excursion and nothing for a task, an untimed entry or the arrival —
+   * never a dash.
+   */
+  test('E2E-M29-22: each line ends in the shape of its meaning, and the time column says a time, a slot, ganztags or nothing', async ({
+    page,
+  }) => {
+    await setClock(page, `${TODAY}T09:00:00+02:00`)
+    await createTripViaWizard(page, {
+      name: 'Engadin Tage',
+      startDate: TODAY,
+      endDate: TOMORROW,
+      travelers: ['Andy'],
+    })
+    await openTasks(page, 'before')
+    const composer = await openListComposer(page, 'm25')
+    await fillIonic(composer.getByTestId('trip-todo-input'), 'Briefkasten leeren')
+    await composer.getByTestId('due-chip-today').click()
+    await composer.getByTestId('trip-todo-input').locator('input').press('Enter')
+    await expect(visiblePage(page).getByTestId('trip-todo-due-Briefkasten leeren')).toBeVisible()
+    await openMeals(page)
+    await addMeal(page, {
+      day: TODAY,
+      slot: 'lunch',
+      title: 'Picknick',
+      ingredients: ['Brot', 'Käse'],
+    })
+    await addMeal(page, { day: TODAY, slot: 'dinner', title: 'Pizza', out: 'Pizzeria Mulin' })
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour', days: { start: TODAY, end: TODAY } })
+    await addToExcursion(page, 'Stirnlampe', 'shared', 'local')
+    await openIdeas(page)
+    await addIdea(page, { title: 'Segantini-Museum' })
+    const detail = await openIdea(page, 'Segantini-Museum')
+    await detail.getByTestId('idea-state-shortlisted').click()
+    await detail.getByTestId(`idea-plan-day-${TODAY}`).click()
+    const time = detail.getByTestId('idea-plan-time').locator('input')
+    await time.fill('1000')
+    await time.blur()
+    await detail.getByTestId('idea-detail-close').click()
+    await expect(ideaDetail(page)).toHaveCount(0)
+    await openDayPlan(page)
+    await addDayEntry(page, { title: 'Wäsche abholen' })
+    await switchToGerman(page)
+
+    const line = (title: string) => timelineLines(page).filter({ hasText: title })
+    const timeOf = (title: string) => line(title).locator('[data-testid^="m29-time-"]')
+    await expect(line('Picknick')).toBeVisible()
+    // The six written, and the arrival the trip's first day carries.
+    await expect(timelineLines(page)).toHaveCount(7)
+
+    // The time column: a time, a slot word, ganztags, and nothing — no dash anywhere.
+    await expect(timeOf('Segantini-Museum')).toHaveText('10:00')
+    await expect(timeOf('Picknick')).toHaveText('mittags')
+    await expect(timeOf('Pizza')).toHaveText('abends')
+    await expect(timeOf('Hüttentour')).toHaveText('ganztags')
+    await expect(timeOf('Briefkasten leeren')).toHaveText('')
+    await expect(timeOf('Wäsche abholen')).toHaveText('')
+    const arrival = timelineLines(page).and(page.locator('[data-kind="arrival"]'))
+    await expect(arrival.locator('[data-testid^="m29-time-"]')).toHaveText('')
+
+    // A share is a ring, named by its count.
+    await expect(line('Picknick').getByTestId('progress-ring')).toHaveAttribute(
+      'aria-label',
+      '0 von 2 Zutaten',
+    )
+    await expect(line('Hüttentour').getByTestId('progress-ring')).toHaveAttribute(
+      'aria-label',
+      '0 von 1 gepackt',
+    )
+    // A task is M25's checkbox, the only control besides the line itself.
+    const task = line('Briefkasten leeren')
+    await expect(task.getByRole('checkbox')).toHaveAccessibleName('„Briefkasten leeren“ abhaken')
+    // An idea, an entry, an eaten-out meal: the line's own button and nothing after it.
+    for (const title of ['Segantini-Museum', 'Wäsche abholen', 'Pizza']) {
+      await expect(line(title).getByRole('button')).toHaveCount(1)
+      await expect(line(title).getByRole('checkbox')).toHaveCount(0)
+      await expect(line(title).getByTestId('progress-ring')).toHaveCount(0)
+    }
+
+    // The checkbox ticks the task; the ring is read, and a tap on it opens its line.
+    await task.getByRole('checkbox').click()
+    await expect(task).toHaveAttribute('data-done', 'true')
+    await line('Picknick').getByTestId('progress-ring').click()
+    await expect(mealSheet(page).getByTestId('meal-title')).toBeVisible()
   })
 })

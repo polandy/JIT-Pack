@@ -289,6 +289,7 @@ describe('the meals on the day plan (FR-33.5)', () => {
       label: 'Abendessen',
       assignee: 'u-lena',
       progress: 0.5,
+      progressName: '1 von 2 Zutaten',
       detail: '1 von 2 Zutaten eingekauft',
     })
     expect(lines.find((l) => l.key === 'meal:out')).toMatchObject({

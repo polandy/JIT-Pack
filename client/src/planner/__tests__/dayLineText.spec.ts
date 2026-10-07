@@ -6,7 +6,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
 import type { DayPlanLine } from '@/lib/dayPlanSources'
-import { carriedDetail, connectionDetail, dayLineWords, stripDay } from '../dayLineText'
+import {
+  carriedDetail,
+  connectionDetail,
+  dayLineTime,
+  dayLineWords,
+  stripDay,
+} from '../dayLineText'
 import { DAY_LINE, type DayLine } from '../domain/dayPlan'
 
 function line(over: Partial<DayLine>): DayLine {
@@ -89,6 +95,48 @@ describe('dayLineWords', () => {
       dayLineWords(line({ kind: DAY_LINE.task, source: { ...source, assignee: null } }), nameOf)
         .detail,
     ).toBeNull()
+  })
+})
+
+describe('dayLineTime — the time column, one grammar (FR-29.15)', () => {
+  afterEach(() => setLocale(DEFAULT_LOCALE))
+
+  it('says a line’s own time, over any word its source has', () => {
+    const source = { timeWord: 'abends' } as DayPlanLine
+    expect(dayLineTime(line({ time: '19:30', kind: DAY_LINE.meal, source }))).toEqual({
+      text: '19:30',
+      word: false,
+    })
+  })
+
+  it('says an untimed meal’s slot word', () => {
+    const source = { timeWord: 'mittags' } as DayPlanLine
+    expect(dayLineTime(line({ kind: DAY_LINE.meal, source }))).toEqual({
+      text: 'mittags',
+      word: true,
+    })
+  })
+
+  it('says an untimed excursion fills the day', () => {
+    setLocale('de')
+    expect(dayLineTime(line({ kind: DAY_LINE.excursion }))).toEqual({
+      text: 'ganztags',
+      word: true,
+    })
+    setLocale('en')
+    expect(dayLineTime(line({ kind: DAY_LINE.excursion })).text).toBe('all day')
+  })
+
+  it('says nothing — not a dash — for every other line without a time', () => {
+    for (const kind of [
+      DAY_LINE.task,
+      DAY_LINE.idea,
+      DAY_LINE.entry,
+      DAY_LINE.arrival,
+      DAY_LINE.departure,
+    ]) {
+      expect(dayLineTime(line({ kind }))).toEqual({ text: '', word: false })
+    }
   })
 })
 

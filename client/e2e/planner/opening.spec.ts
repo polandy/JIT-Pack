@@ -169,8 +169,8 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
 
   /**
    * E2E-M29-11: during the trip, M1 shows what is still to come today — at
-   * most three lines, the way M29 draws them, an idea ticked there as on
-   * M29, the rest counted on the way onto the plan. A trip whose days have
+   * most three lines, the way M29 draws them — an idea's ending in nothing,
+   * as on M29 — the rest counted on the way onto the plan. A trip whose days have
    * not come has no card.
    */
   test('E2E-M29-11: the Heute card lists today’s next three lines and leads onto the day plan', async ({
@@ -229,10 +229,11 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     // The idea and two of the entries: the entries say whom they are for.
     await expect(card.locator('[data-testid^="m29-who-"]')).toHaveText(['for Sia', 'for Sia'])
 
-    // The idea's tick, from M1, is M29's: the idea is done.
+    // M29's row: the idea's line ends in nothing — Done is set where it is opened (UX-09).
     const idea = lines.filter({ hasText: 'Bernina Express' })
-    await idea.locator('[data-testid^="m29-tick-"]').click()
-    await expect(idea).toHaveAttribute('data-done', 'true')
+    await expect(idea).toBeVisible()
+    await expect(idea.getByRole('button')).toHaveCount(1)
+    await expect(idea.getByRole('checkbox')).toHaveCount(0)
 
     // The way onto the plan, on today.
     await card.getByTestId('dashboard-today-Engadin jetzt-more').click()
@@ -240,10 +241,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
       'aria-selected',
       'true',
     )
-    await expect(dayPlan(page).getByTestId(`m29-tick-idea:${await ideaId(page)}`)).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await expect(dayPlan(page).getByTestId(`m29-line-idea:${await ideaId(page)}`)).toBeVisible()
 
     // Started with its packing finished, the trip is the hero and the card a
     // block of it (FR-7.10) — the same lines, and no field to type into.
