@@ -9,9 +9,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  SPLASH_GREETED_KEY,
   SPLASH_OFF,
   SPLASH_ON,
   SPLASH_STORAGE_KEY,
+  claimGreeting,
   flightTransform,
   setSplashEnabled,
   splashEnabled,
@@ -37,6 +39,25 @@ describe('FR-21.29 splash preference', () => {
   it('reads any value but the off value as on', () => {
     localStorage.setItem(SPLASH_STORAGE_KEY, 'garbage')
     expect(splashEnabled()).toBe(true)
+  })
+})
+
+describe('FR-21.29 once per app start', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+
+  it('greets the first load of a start and not the reloads the app makes of itself', () => {
+    expect(claimGreeting()).toBe(true)
+    expect(sessionStorage.getItem(SPLASH_GREETED_KEY)).not.toBeNull()
+    expect(claimGreeting()).toBe(false)
+  })
+
+  it('switched off, greets no load and claims nothing', () => {
+    setSplashEnabled(false)
+    expect(claimGreeting()).toBe(false)
+    expect(sessionStorage.getItem(SPLASH_GREETED_KEY)).toBeNull()
   })
 })
 

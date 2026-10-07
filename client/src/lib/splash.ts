@@ -30,6 +30,14 @@ export const SPLASH_REDUCED_AT_MS = 500
 /** The reduced fade's own length. */
 export const SPLASH_REDUCED_LEAVE_MS = 250
 
+/**
+ * Session marker: this app start has greeted. `sessionStorage` lives exactly
+ * as long as a start — it survives the reloads the app makes of itself (the
+ * M19 choice, the OIDC round trip, an update, a reset connection) and is
+ * fresh when the app is opened again.
+ */
+export const SPLASH_GREETED_KEY = 'jitpack_splash_greeted'
+
 /** Marks the logo the splash lands on — the app bar's mark, or M19's. */
 export const SPLASH_TARGET_ATTR = 'data-splash-target'
 
@@ -41,6 +49,21 @@ export function splashEnabled(): boolean {
     // Storage unavailable → the default, which is on.
     return true
   }
+}
+
+/**
+ * Whether this page load greets, claiming the greeting for the rest of the
+ * app start if so: on, and not greeted yet since the app was opened.
+ */
+export function claimGreeting(): boolean {
+  if (!splashEnabled()) return false
+  try {
+    if (sessionStorage.getItem(SPLASH_GREETED_KEY) !== null) return false
+    sessionStorage.setItem(SPLASH_GREETED_KEY, '1')
+  } catch {
+    // No session storage → no way to tell a reload from a start; greet.
+  }
+  return true
 }
 
 /** Persists the M17 choice; takes effect on the next cold start. */

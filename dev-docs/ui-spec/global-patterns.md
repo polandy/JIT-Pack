@@ -659,7 +659,8 @@ These patterns apply to every screen and are specified once.
   * The chip's frame, the dimmed row and M6's insert line are drawn once, in `composables/dragToGroup.css`; a place's
     name comes from its own `data-drop-label` (a heading's title by default, `ListGroup.vue`).
 * **G-22 (The Start Animation — FR-21.29):** One overlay over the whole app, `SplashScreen.vue`, mounted by `App.vue`
-  on a cold start while M17's *Start animation* is on (`lib/splash.ts`). On `--ct-base`, the mark centred at 152 px
+  once per app start while M17's *Start animation* is on (`lib/splash.ts`, `claimGreeting`: a `sessionStorage` marker,
+  so the reloads the app makes of itself do not greet again). On `--ct-base`, the mark centred at 152 px
   with the wordmark under it in the app bar's lockup at the display size:
   * **Intro, 0–1.3 s:** the bag's outline and its pocket are drawn (stroke, 0.52 s), the moss cube and then the larch
     cube drop in from above with a small overshoot, the letters of *JIT·Pack* rise one after another, the dot in the

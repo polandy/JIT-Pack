@@ -105,8 +105,25 @@ test.describe('G-22 start animation', () => {
     await toggle.click()
     await expect(toggle).toHaveJSProperty('checked', false)
 
-    await page.goto(PATH.dashboard)
+    // The next start is a new tab: a reload of this one is still the same start (E2E-G22-07).
+    const next = await page.context().newPage()
+    await next.goto(PATH.dashboard)
     // The greeting mounts with the app; once the app bar is there, so would it be.
+    await expect(next.getByTestId('header-logo').locator(`[${SPLASH_TARGET_ATTR}]`)).toBeVisible()
+    await expect(next.getByTestId('splash')).toHaveCount(0)
+  })
+
+  test('E2E-G22-07 a reload the app makes of itself does not greet again', async ({
+    page,
+    seedMode,
+  }) => {
+    await seedMode({ mode: 'local', splash: true })
+    await page.goto(PATH.dashboard)
+    await page.getByTestId('splash').click()
+    await expect(page.getByTestId('splash')).toHaveCount(0)
+
+    // As the M19 choice, the login round trip and an update do: same tab, same start.
+    await page.reload()
     await expect(page.getByTestId('header-logo').locator(`[${SPLASH_TARGET_ATTR}]`)).toBeVisible()
     await expect(page.getByTestId('splash')).toHaveCount(0)
   })

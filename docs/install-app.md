@@ -72,9 +72,9 @@ applies.
 
 ## The start animation
 
-When the app starts, the logo packs itself — the backpack is drawn, the two packing cubes drop in — and then moves to its place in the top corner. It plays while the app loads underneath, so it does not make starting slower; a tap skips it. With **Reduce motion** switched on in your phone's settings it is a short fade instead.
+When the app starts, the logo packs itself — the backpack is drawn, the two packing cubes drop in — and then moves to its place: the logo in the top corner, or on the very first start the welcome screen's. It plays while the app loads underneath, so it does not make starting slower; a tap skips it. With **Reduce motion** switched on in your phone's settings it is a short fade instead.
 
-It plays only when the app really starts, not when you switch back to it. To switch it off on a device, go to **Settings → Appearance → Start animation**.
+It plays only when the app really starts — not when you switch back to it, and not when the app reloads itself, for example after you sign in or apply an update. To switch it off on a device, go to **Settings → Appearance → Start animation**.
 
 ## Updates
 
