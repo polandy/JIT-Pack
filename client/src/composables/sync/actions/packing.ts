@@ -495,7 +495,8 @@ export function createPackingActions(ctx: SyncContext) {
    */
   function removeItem(tripId: string, item: TripItem, companions: readonly TripItem[]) {
     const removal = mutations.deleteTripItem(item.id)
-    write({
+    write(
+      {
         mutation: removal,
         optimistic: [
           ...cascadeChanges(TABLE.tripItems, item.id, { tripStore, masterStore }),
@@ -525,7 +526,8 @@ export function createPackingActions(ctx: SyncContext) {
    */
   function skipRows(tripId: string, rows: readonly TripItem[]) {
     if (rows.length === 0) return
-    write(...rows.map((target) => {
+    write(
+      ...rows.map((target) => {
         const skip = mutations.skipItem(target.id)
         return skip
       }),

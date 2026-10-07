@@ -74,16 +74,7 @@ export interface TripLifecycleDeps {
 
 /** createTripLifecycleActions binds the trip's own life to one sync context. */
 export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycleDeps) {
-  const {
-    mutations,
-    write,
-    tripStore,
-    masterStore,
-    features,
-    today,
-    nowIso,
-    tripDataLoaded,
-  } = ctx
+  const { mutations, write, tripStore, masterStore, features, today, nowIso, tripDataLoaded } = ctx
   const {
     comments: commentActions,
     packing: packingActions,

@@ -46,7 +46,9 @@ function fakeHost(): ModuleHost {
         const mutation = mutationOf(w)
         written.push(mutation)
         const optimistic =
-          'mutation' in w ? w.optimistic : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
+          'mutation' in w
+            ? w.optimistic
+            : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
         useShoppingStore().applyChanges(changesOf(optimistic))
       }
     },

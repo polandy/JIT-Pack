@@ -32,7 +32,10 @@ describe('currentRow', () => {
     const masterStore = useMasterStore()
     masterStore.applyChange(change(TABLE.tags, 'tag-1', { name: 'Berg', sort_order: 3 }))
 
-    expect(masterStore.currentRow(TABLE.tags, 'tag-1')).toMatchObject({ name: 'Berg', sort_order: 3 })
+    expect(masterStore.currentRow(TABLE.tags, 'tag-1')).toMatchObject({
+      name: 'Berg',
+      sort_order: 3,
+    })
     expect(masterStore.currentRow(TABLE.tags, 'tag-2')).toBeUndefined()
   })
 
@@ -40,8 +43,16 @@ describe('currentRow', () => {
   // a todo read back as a plain comment would lose its task columns.
   it.each([
     ['a plain comment', { ...COMMENT, trip_item_id: 'ti1', is_task: 0 }, 'body'],
-    ['an item todo', { ...COMMENT, trip_item_id: 'ti1', is_task: 1, task_state: 'open' }, 'task_state'],
-    ['a trip todo', { ...COMMENT, trip_item_id: null, is_task: 1, task_state: 'open' }, 'task_state'],
+    [
+      'an item todo',
+      { ...COMMENT, trip_item_id: 'ti1', is_task: 1, task_state: 'open' },
+      'task_state',
+    ],
+    [
+      'a trip todo',
+      { ...COMMENT, trip_item_id: null, is_task: 1, task_state: 'open' },
+      'task_state',
+    ],
   ])('reads %s back through the list that holds it', (_kind, row, column) => {
     const tripStore = useTripStore()
     tripStore.applyChange(change(TABLE.comments, 'c1', row))
