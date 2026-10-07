@@ -14,7 +14,10 @@ import {
   createTripFollowingGroup,
   includeGroup,
   addInComposer,
+  importPortableTrip,
   openQuickAdd,
+  PER_PERSON_TRIP,
+  rowTexts,
   visiblePage as visible,
   writesLanded,
 } from './fixtures'
@@ -167,11 +170,14 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(group).toContainText('2 items on this trip came from it')
     await expect(group.getByTestId('m21-reused')).toBeVisible()
 
-    // The hand-added row is loose, pre-checked, and says why it is loose.
+    // The hand-added row is loose and pre-checked; why it is loose is said
+    // once for the section, not on every line (UX-13).
     const loose = visible(page).getByTestId('m21-loose')
     await expect(loose).toHaveCount(1)
     await expect(loose).toContainText('Reisefön')
-    await expect(loose).toContainText('added without a group')
+    await expect(visible(page).getByTestId('m21-loose-caption')).toContainText(
+      'Added without a group',
+    )
     await expect(loose.locator('ion-checkbox')).toHaveJSProperty('checked', true)
     await expect(visible(page).getByTestId('m21-loose-head')).toContainText('1 of 1')
 
@@ -426,6 +432,30 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
       0,
     )
+  })
+
+  /**
+   * E2E-M21-06 (UX-13, FR-27.5): one line per thing. The per-person fan-out
+   * left a Regenjacke per traveller; a template keeps one position per item,
+   * so M21 shows one line saying for whom — and saves it as *per person*.
+   */
+  test('E2E-M21-06: no two loose lines read alike — a per-person thing is one line naming them all', async ({
+    page,
+  }) => {
+    const trip = await importPortableTrip(page, PER_PERSON_TRIP)
+    await archiveTrip(page)
+    await openM21(page, trip)
+
+    const lines = visible(page).getByTestId('m21-loose')
+    await expect(lines).toHaveCount(5)
+    const texts = await rowTexts(lines)
+    expect(new Set(texts).size).toBe(texts.length)
+    await expect(lines.filter({ hasText: 'Regenjacke' })).toContainText(
+      'per person · Andy, Leonardo, Sia',
+    )
+    await expect(lines.filter({ hasText: 'Sonnenhut' })).toContainText('per person · Leonardo, Sia')
+    await expect(lines.filter({ hasText: 'Wanderstöcke' })).toContainText('for Andy')
+    await expect(visible(page).getByTestId('m21-loose-head')).toContainText('5 of 5')
   })
 })
 

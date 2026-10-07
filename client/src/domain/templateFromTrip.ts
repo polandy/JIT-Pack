@@ -9,7 +9,15 @@
  * (`source_template_id` provenance) rather than a question put to the user.
  */
 
-import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from './membership'
+import type {
+  MasterItem,
+  Template,
+  TemplateAssignment,
+  TemplateItem,
+  Traveler,
+  TripItem,
+} from '@/types/domain'
 
 /** Everything recognition reads — plain arrays, the stores shape them. */
 export interface RecognitionInput {
@@ -45,9 +53,16 @@ export interface RecognisedGroup {
 /** Why a row has no group to fold into — the screen turns it into words. */
 export type LooseReason = 'ad-hoc' | 'from-template'
 
-/** A row that becomes an own position of the new Vorlage, unless unchecked. */
+/**
+ * A line that becomes an own position of the new Vorlage, unless unchecked.
+ * One line per *thing*, not per trip row: the per-person fan-out made one row
+ * per traveller, and a template keeps one position per item (UX-13).
+ */
 export interface LooseRow {
+  /** The line's first row — its id is what the checkbox answers for. */
   tripItem: TripItem
+  /** Every row of the trip this line stands for, `tripItem` first. */
+  tripItems: TripItem[]
   reason: LooseReason
   /**
    * The Ferien-Vorlage the row came from, when that is why it is loose.
@@ -80,7 +95,7 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
   const itemNames = new Map(input.masterItems.map((i) => [i.id, i.name]))
 
   const rowsByGroup = new Map<string, TripItem[]>()
-  const loose: LooseRow[] = []
+  const looseRows: TripItem[] = []
   for (const row of input.tripItems) {
     const source = row.source_template_id ? byId.get(row.source_template_id) : undefined
     if (source?.kind === 'group') {
@@ -89,12 +104,18 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
       else rowsByGroup.set(source.id, [row])
       continue
     }
-    loose.push({
-      tripItem: row,
+    looseRows.push(row)
+  }
+  const loose: LooseRow[] = foldRows(looseRows).map((rows) => {
+    const first = rows[0]!
+    const source = first.source_template_id ? byId.get(first.source_template_id) : undefined
+    return {
+      tripItem: first,
+      tripItems: rows,
       reason: source ? 'from-template' : 'ad-hoc',
       sourceTemplate: source ?? null,
-    })
-  }
+    }
+  })
 
   const groups: RecognisedGroup[] = []
   for (const [groupId, tripItems] of rowsByGroup) {
@@ -118,6 +139,53 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
   // arrive in whatever order the sync produced, and this list is read.
   groups.sort((a, b) => a.group.name.localeCompare(b.group.name))
   return { groups, loose }
+}
+
+/**
+ * foldRows gathers the rows that are one thing — the same master item, or for
+ * an ad-hoc row the same tolerant name — in first-seen order. Two rows under
+ * one name that point at different master items stay apart: they are two
+ * things that happen to be called alike.
+ */
+export function foldRows(rows: TripItem[]): TripItem[][] {
+  const lines = new Map<string, TripItem[]>()
+  for (const row of rows) {
+    const key = row.source_item_id ?? `name:${row.name.trim().toLowerCase()}`
+    const line = lines.get(key)
+    if (line) line.push(row)
+    else lines.set(key, [row])
+  }
+  return [...lines.values()]
+}
+
+/**
+ * travelerIdsOf is who a folded line was packed for, in first-seen order —
+ * empty for a line for the whole trip.
+ */
+export function travelerIdsOf(rows: TripItem[]): string[] {
+  return [...new Set(rows.map((r) => r.assigned_traveler_id).filter((id) => id !== null))]
+}
+
+/**
+ * travelerNamesOf names who a folded line was packed for, by name — the
+ * roster's own order is the order its rows arrived in, which differs per
+ * device. A traveller this device does not have is left out.
+ */
+export function travelerNamesOf(rows: TripItem[], travelers: Traveler[]): string[] {
+  const ids = travelerIdsOf(rows)
+  return travelers
+    .filter((tr) => ids.includes(tr.id))
+    .map((tr) => tr.name)
+    .sort((a, b) => a.localeCompare(b))
+}
+
+/**
+ * assignmentOf is what a folded line becomes in the template: *pro Person*
+ * once the trip carried it for two travellers or more, since that is what the
+ * per-person fan-out leaves behind; one shared position otherwise (UX-13).
+ */
+export function assignmentOf(rows: TripItem[]): TemplateAssignment {
+  return travelerIdsOf(rows).length >= MIN_TRAVELERS_FOR_PER_PERSON ? 'per_person' : 'trip_global'
 }
 
 /**
@@ -200,6 +268,7 @@ export interface WritePlanInput {
 export interface PositionDraft {
   name: string
   itemId: string | null
+  assignment: TemplateAssignment
 }
 
 /** A recognised group gaining the deviations the user let flow back. */
@@ -246,7 +315,7 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   for (const group of input.composition.groups) {
     if (group.added.length === 0) continue
     const choice = input.choices[group.group.id] ?? DEFAULT_DEVIATION_CHOICE
-    const positions = group.added.map((row) => fold(row))
+    const positions = distinct(foldRows(group.added).map(fold))
     if (choice === 'update') {
       groupUpdates.push({
         groupId: group.group.id,
@@ -259,15 +328,18 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   }
 
   const checked = new Set(input.checkedLooseIds)
-  const loosePositions = input.composition.loose
-    .filter((l) => checked.has(l.tripItem.id))
-    .map((l) => fold(l.tripItem))
+  const loosePositions = distinct(
+    input.composition.loose.filter((l) => checked.has(l.tripItem.id)).map((l) => fold(l.tripItems)),
+  )
 
   // The toggle is inert without rows to bundle: a group named after a trip
   // that contributed nothing is clutter with a name, not a building block.
   const bundling = input.bundleName !== null && loosePositions.length > 0
   const newGroup = bundling ? { name: input.bundleName!, positions: loosePositions } : null
   if (!bundling) ownPositions.push(...loosePositions)
+  // The same thing can reach the Vorlage twice — a loose row and an own
+  // deviation.
+  const own = distinct(ownPositions)
 
   return {
     newMasterItems: fold.created,
@@ -275,7 +347,7 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
     newGroup,
     template: {
       name: input.templateName,
-      positions: ownPositions,
+      positions: own,
       includeGroupIds: input.composition.groups.map((g) => g.group.id),
     },
   }
@@ -299,19 +371,36 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
  * while a wrong link silently hands the position somebody else's weight,
  * tags and photo, and FR-27.4 then propagates it.
  */
-function masterFold(masterItems: MasterItem[]): ((row: TripItem) => PositionDraft) & {
+function masterFold(masterItems: MasterItem[]): ((rows: TripItem[]) => PositionDraft) & {
   created: string[]
 } {
   const created: string[] = []
-  const fold = (row: TripItem): PositionDraft => {
-    if (row.source_item_id) return { name: row.name, itemId: row.source_item_id }
+  const fold = (rows: TripItem[]): PositionDraft => {
+    const row = rows[0]!
+    const assignment = assignmentOf(rows)
+    if (row.source_item_id) return { name: row.name, itemId: row.source_item_id, assignment }
     const existing = masterItems.find((item) => namesMatch(item.name, row.name))
-    if (existing) return { name: existing.name, itemId: existing.id }
+    if (existing) return { name: existing.name, itemId: existing.id, assignment }
     // Deduped by the same rule, so "Gimbal" and "gimbal " leave one item.
     const invented = created.find((name) => namesMatch(name, row.name))
-    if (invented) return { name: invented, itemId: null }
+    if (invented) return { name: invented, itemId: null, assignment }
     created.push(row.name)
-    return { name: row.name, itemId: null }
+    return { name: row.name, itemId: null, assignment }
   }
   return Object.assign(fold, { created })
+}
+
+/**
+ * distinct keeps the first draft of each item, since a template holds one
+ * position per item (`UNIQUE (template_id, item_id)`). Lines fold by
+ * `source_item_id` or by name, so a linked row and an ad-hoc row of the same
+ * item are two lines that the master-item match resolves to one item.
+ */
+function distinct(positions: PositionDraft[]): PositionDraft[] {
+  return positions.filter((p, i) => positions.findIndex((q) => samePosition(p, q)) === i)
+}
+
+/** samePosition: one master item, or one name still waiting for its item. */
+function samePosition(a: PositionDraft, b: PositionDraft): boolean {
+  return a.itemId !== null ? a.itemId === b.itemId : b.itemId === null && a.name === b.name
 }

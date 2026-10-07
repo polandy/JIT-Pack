@@ -241,3 +241,69 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
     expect(barCount()).toBe(t('selection.count', { n: 1 }))
   })
 })
+
+describe('M11 luggage — whose row it is (UX-13, FR-10.2)', () => {
+  function seedPeople(names: string[]) {
+    const trips = seedTrip()
+    for (const name of names)
+      trips.applyChange({
+        seq: 0,
+        table: TABLE.travelers,
+        id: `tr-${name}`,
+        deleted: false,
+        row: { trip_id: 't1', name },
+      })
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.containers,
+      id: 'c1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Rucksack' },
+    })
+    for (const [id, name, who] of [
+      ['j-sia', 'Regenjacke', 'tr-Sia'],
+      ['kaffee', 'Kaffee', null],
+      ['j-andy', 'Regenjacke', 'tr-Andy'],
+    ] as const)
+      trips.applyChange({
+        seq: 0,
+        table: TABLE.tripItems,
+        id,
+        deleted: false,
+        row: { trip_id: 't1', name, quantity: 1, assigned_traveler_id: who },
+      })
+    tripScreen.loadedTrips.add('t1')
+  }
+  const rows = (page: ReturnType<typeof mountPage>) =>
+    page.findAll('[data-testid="m11-unassigned-row"]').map((r) => {
+      const who = r.find('[data-testid="m11-row-traveler"]')
+      return [r.find('h3').text(), ...(who.exists() ? [who.text()] : [])].join(' | ')
+    })
+
+  it('names the traveller under a per-person row, siblings side by side', async () => {
+    seedPeople(['Sia', 'Andy'])
+    const page = mountPage()
+    await flushPromises()
+
+    expect(rows(page)).toEqual(['Kaffee', 'Regenjacke | Andy', 'Regenjacke | Sia'])
+  })
+
+  it('names the traveller in the picker’s subject, so the right jacket moves', async () => {
+    seedPeople(['Andy', 'Sia'])
+    const page = mountPage()
+    await flushPromises()
+
+    await page.findAll('[data-testid="m11-unassigned-row"]')[2]!.trigger('click')
+    await flushPromises()
+
+    expect(page.get('[data-testid="m11-picker-subject"]').text()).toBe('Regenjacke · Sia')
+  })
+
+  it('names nobody on a one-traveller trip', async () => {
+    seedPeople(['Andy'])
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m11-row-traveler"]').exists()).toBe(false)
+  })
+})

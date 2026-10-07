@@ -65,6 +65,16 @@ function row(id: string, name: string, sourceTemplateId: string | null): TripIte
   }
 }
 
+/** A trip row that belongs to one traveller — the per-person fan-out's unit. */
+function personRow(
+  id: string,
+  name: string,
+  travelerId: string,
+  itemId: string | null = null,
+): TripItem {
+  return { ...row(id, name, null), assigned_traveler_id: travelerId, source_item_id: itemId }
+}
+
 describe('recogniseTripComposition (FR-27.5)', () => {
   const makro = template('grp-makro', 'Makro Fotografie')
   const wildlife = template('grp-wild', 'Wildlife')
@@ -216,6 +226,53 @@ describe('recogniseTripComposition (FR-27.5)', () => {
     expect(result.groups).toHaveLength(1)
   })
 
+  it('UX-13: OneThingPerTraveller_IsOneLooseLine_CarryingEveryRowItStandsFor', () => {
+    const result = recogniseTripComposition({
+      tripItems: [
+        personRow('j-andy', 'Regenjacke', 't-andy', 'itm-jacke'),
+        row('r-zelt', 'Zelt', null),
+        personRow('j-sia', 'Regenjacke', 't-sia', 'itm-jacke'),
+        personRow('j-leo', 'Regenjacke', 't-leo', 'itm-jacke'),
+      ],
+      templates: [],
+      positions: [],
+      masterItems: items,
+    })
+
+    expect(result.loose.map((l) => l.tripItem.id)).toEqual(['j-andy', 'r-zelt'])
+    expect(result.loose[0]!.tripItems.map((r) => r.id)).toEqual(['j-andy', 'j-sia', 'j-leo'])
+    expect(result.loose[1]!.tripItems.map((r) => r.id)).toEqual(['r-zelt'])
+  })
+
+  it('UX-13: AdHocRowsOfOneName_FoldByTheTolerantName', () => {
+    const result = recogniseTripComposition({
+      tripItems: [
+        personRow('h-sia', 'Sonnenhut', 't-sia'),
+        personRow('h-leo', 'sonnenhut ', 't-leo'),
+      ],
+      templates: [],
+      positions: [],
+      masterItems: items,
+    })
+
+    expect(result.loose).toHaveLength(1)
+    expect(result.loose[0]!.tripItems.map((r) => r.id)).toEqual(['h-sia', 'h-leo'])
+  })
+
+  it('UX-13: RowsNamingDifferentMasterItems_StayApart_EvenUnderOneName', () => {
+    const result = recogniseTripComposition({
+      tripItems: [
+        personRow('a', 'Jacke', 't-andy', 'itm-regen'),
+        personRow('b', 'Jacke', 't-sia', 'itm-daune'),
+      ],
+      templates: [],
+      positions: [],
+      masterItems: items,
+    })
+
+    expect(result.loose).toHaveLength(2)
+  })
+
   it('PositionWhoseMasterItemHasNotSynced_IsNotReportedAsAbsent', () => {
     // "not loaded ≠ empty" (ADR-016): an unnamed position cannot be compared,
     // and claiming the trip left it behind would be a guess.
@@ -360,7 +417,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
       checkedLooseIds: ['r1'],
     })
 
-    expect(writes.template.positions).toEqual([{ name: 'Stativ', itemId: 'itm-1' }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Stativ', itemId: 'itm-1', assignment: 'trip_global' },
+    ])
     expect(writes.newMasterItems).toEqual([])
   })
 
@@ -377,7 +436,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     })
 
     expect(writes.newMasterItems).toEqual(['Stativa'])
-    expect(writes.template.positions).toEqual([{ name: 'Stativa', itemId: null }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Stativa', itemId: null, assignment: 'trip_global' },
+    ])
   })
 
   it('UnknownAdHocName_CreatesTheMasterItemFirst', () => {
@@ -387,19 +448,109 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     })
 
     expect(writes.newMasterItems).toEqual(['Gimbal'])
-    expect(writes.template.positions).toEqual([{ name: 'Gimbal', itemId: null }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Gimbal', itemId: null, assignment: 'trip_global' },
+    ])
   })
 
-  it('TwoRowsOfOneName_LeaveOnlyOneNewMasterItemBehind', () => {
+  it('TwoRowsOfOneName_LeaveOneNewMasterItemAndOnePosition', () => {
     const writes = plan({
       composition: compose({
         tripItems: [row('r1', 'Gimbal', null), row('r2', 'gimbal ', null)],
       }),
-      checkedLooseIds: ['r1', 'r2'],
+      checkedLooseIds: ['r1'],
     })
 
     expect(writes.newMasterItems).toEqual(['Gimbal'])
-    expect(writes.template.positions.map((p) => p.name)).toEqual(['Gimbal', 'Gimbal'])
+    // A template holds one position per item (UNIQUE (template_id, item_id)).
+    expect(writes.template.positions.map((p) => p.name)).toEqual(['Gimbal'])
+  })
+
+  it('UX-13: ALineOnSeveralTravellers_IsWrittenAsOnePerPersonPosition', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [
+          personRow('h-sia', 'Sonnenhut', 't-sia', 'itm-hut'),
+          personRow('h-leo', 'Sonnenhut', 't-leo', 'itm-hut'),
+        ],
+      }),
+      checkedLooseIds: ['h-sia'],
+    })
+
+    expect(writes.template.positions).toEqual([
+      { name: 'Sonnenhut', itemId: 'itm-hut', assignment: 'per_person' },
+    ])
+  })
+
+  it('UX-13: ALineOnOneTraveller_OrOnNobody_StaysOneTripGlobalPosition', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [personRow('w', 'Wanderstöcke', 't-andy', 'itm-st'), row('k', 'Kaffee', null)],
+      }),
+      checkedLooseIds: ['w', 'k'],
+    })
+
+    expect(writes.template.positions.map((p) => p.assignment)).toEqual([
+      'trip_global',
+      'trip_global',
+    ])
+  })
+
+  it('UX-13: OneTravellerTwice_IsNotPerPerson_BecauseOnlyOnePersonCarriedIt', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [
+          personRow('a', 'Socken', 't-andy', 'itm-so'),
+          personRow('b', 'Socken', 't-andy', 'itm-so'),
+        ],
+      }),
+      checkedLooseIds: ['a'],
+    })
+
+    expect(writes.template.positions).toEqual([
+      { name: 'Socken', itemId: 'itm-so', assignment: 'trip_global' },
+    ])
+  })
+
+  it('UX-13: AGroupDeviationOnEveryTraveller_FlowsBackAsOnePerPersonPosition', () => {
+    const jacket = (id: string, who: string) => ({
+      ...personRow(id, 'Regenjacke', who, 'itm-jacke'),
+      source_template_id: 'grp-makro',
+    })
+    const writes = plan({
+      composition: compose({ tripItems: [jacket('a', 't-andy'), jacket('b', 't-sia')] }),
+    })
+
+    expect(writes.groupUpdates[0]!.positions).toEqual([
+      { name: 'Regenjacke', itemId: 'itm-jacke', assignment: 'per_person' },
+    ])
+  })
+
+  it('UX-13: TheSameItemFromALooseLineAndAnOwnDeviation_IsStillOnePosition', () => {
+    const gimbal = (id: string, source: string | null) => ({
+      ...row(id, 'Gimbal', source),
+      source_item_id: 'itm-g',
+    })
+    const writes = plan({
+      composition: compose({ tripItems: [gimbal('d', 'grp-makro'), gimbal('l', null)] }),
+      choices: { 'grp-makro': 'own' },
+      checkedLooseIds: ['l'],
+    })
+
+    expect(writes.template.positions.map((p) => p.itemId)).toEqual(['itm-g'])
+  })
+
+  it('UX-13: ALinkedRowAndAnAdHocRowOfOneItem_AreOnePositionOfTheBundledGroup', () => {
+    // Two lines, since only one row carries the item's id — but both resolve
+    // to Stativ, and the new group keeps one position per item too.
+    const linked = { ...row('a', 'Stativ', null), source_item_id: 'itm-1' }
+    const writes = plan({
+      composition: compose({ tripItems: [linked, row('b', 'stativ', null)] }),
+      checkedLooseIds: ['a', 'b'],
+      bundleName: 'Fotokram',
+    })
+
+    expect(writes.newGroup!.positions.map((p) => p.itemId)).toEqual(['itm-1'])
   })
 
   it('GeneratedRowUsesItsOwnProvenance_RatherThanReMatchingItsNameByHand', () => {
@@ -408,7 +559,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
       composition: compose({ tripItems: [generated] }),
     })
 
-    expect(writes.groupUpdates[0]!.positions).toEqual([{ name: 'Ringlicht', itemId: 'itm-2' }])
+    expect(writes.groupUpdates[0]!.positions).toEqual([
+      { name: 'Ringlicht', itemId: 'itm-2', assignment: 'trip_global' },
+    ])
     expect(writes.newMasterItems).toEqual([])
   })
 })

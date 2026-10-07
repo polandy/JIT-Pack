@@ -12,10 +12,11 @@ import {
   IMBALANCE_THRESHOLD_PERCENT,
   pairWrites,
   releasePartnersOnDelete,
+  rowTravelerName,
   unassignedItems,
   unpairWrites,
 } from '../containers'
-import type { Container, TripItem } from '@/types/domain'
+import type { Container, Traveler, TripItem } from '@/types/domain'
 
 function item(overrides: Partial<TripItem>): TripItem {
   return {
@@ -70,6 +71,10 @@ describe('containerWeight', () => {
   })
 })
 
+function traveler(id: string, name: string): Traveler {
+  return { id, trip_id: 't1', name, linked_user_id: null }
+}
+
 describe('unassignedItems', () => {
   it('keeps the FR-10.2 bucket visible: no container, not skipped', () => {
     const items = [
@@ -78,7 +83,56 @@ describe('unassignedItems', () => {
       item({ id: 'c', container_id: null, state: 'skipped' }),
     ]
 
-    expect(unassignedItems(items).map((i) => i.id)).toEqual(['a'])
+    expect(unassignedItems(items, []).map((i) => i.id)).toEqual(['a'])
+  })
+
+  it("UX-13: same-named rows sit together, by name and then by the traveller's name", () => {
+    // The roster in arrival order, which differs per device — not the order shown.
+    const travelers = [traveler('t-sia', 'Sia'), traveler('t-andy', 'Andy')]
+    const items = [
+      item({ id: 'hut-sia', name: 'Sonnenhut', container_id: null, assigned_traveler_id: 't-sia' }),
+      item({
+        id: 'jacke-sia',
+        name: 'Regenjacke',
+        container_id: null,
+        assigned_traveler_id: 't-sia',
+      }),
+      item({ id: 'kaffee', name: 'Kaffee', container_id: null }),
+      item({
+        id: 'jacke-andy',
+        name: 'Regenjacke',
+        container_id: null,
+        assigned_traveler_id: 't-andy',
+      }),
+    ]
+
+    expect(unassignedItems(items, travelers).map((i) => i.id)).toEqual([
+      'kaffee',
+      'jacke-andy',
+      'jacke-sia',
+      'hut-sia',
+    ])
+  })
+})
+
+describe('rowTravelerName (UX-13, FR-10.2)', () => {
+  const travelers = [traveler('t-andy', 'Andy'), traveler('t-sia', 'Sia')]
+
+  it('names the traveller a per-person row belongs to', () => {
+    expect(rowTravelerName(item({ assigned_traveler_id: 't-sia' }), travelers)).toBe('Sia')
+  })
+
+  it('names nobody on a row for the whole trip', () => {
+    expect(rowTravelerName(item({ assigned_traveler_id: null }), travelers)).toBeNull()
+  })
+
+  it('names nobody when the trip has one traveller, so there is no one to tell apart', () => {
+    const alone = [traveler('t-andy', 'Andy')]
+    expect(rowTravelerName(item({ assigned_traveler_id: 't-andy' }), alone)).toBeNull()
+  })
+
+  it('names nobody for a traveller this device no longer has', () => {
+    expect(rowTravelerName(item({ assigned_traveler_id: 't-gone' }), travelers)).toBeNull()
   })
 })
 

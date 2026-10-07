@@ -215,6 +215,8 @@ export const packingEn = {
   'container.assignNone': 'Create a container first, then assign items to it.',
   'container.notFound': 'This container does not exist.',
   'container.bulkAssign': 'Into luggage …',
+  // UX-13: the picker's subject names whose row it moves.
+  'container.itemFor': '{item} · {traveler}',
   'container.assignCount': 'One position | {n} positions',
 
   // M14 — review assistant (FR-9.2, group-aware per FR-27.11).

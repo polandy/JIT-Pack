@@ -36,9 +36,16 @@ describes a path the app cannot walk — see FR-27.5's build note. The entry dep
   * **Absent positions are reported, never acted on.** Group positions the trip did not carry get one muted line ("…
     waren auf dieser Reise nicht dabei — Gruppe bleibt unverändert"). A skipped tripod is trip history; silently pruning
     the group over it would make every incomplete trip erode the master data.
-  * **Eigene Artikel · n von m** — the loose ad-hoc rows (no group provenance), each a checkbox row with its category
-    and "ohne Gruppe hinzugefügt", **all pre-checked**. Unchecking is how trip-specific one-offs stay out of the
-    template.
+  * **Eigene Artikel · n von m** — the loose rows (no group provenance), **all pre-checked**. Unchecking is how
+    trip-specific one-offs stay out of the template. **One checkbox line per thing, not per trip row (UX-13):** rows of
+    the same master item — or, ad hoc, the same tolerant name — fold into one line, since a template keeps one position
+    per item (`UNIQUE (template_id, item_id)`) and the per-person fan-out left one row per traveller. A tap toggles the
+    line; nothing opens, because there is one decision to make. Its second line says for whom, on a trip with two
+    travellers or more: *„pro Person · Andy, Leonardo, Sia"* (by name) where the trip carried it for several (what the
+    position becomes), *„für Andy"* for one, nothing for a row of the whole trip. A row planned by a Vorlage adds *„aus
+    „…" — als eigene Position übernommen"* (FR-27.1). *„Ohne Gruppe hinzugefügt"* is every ad-hoc line's reason, so it
+    is said **once under the section head**, not on every line. A group's deviation line names each folded thing once
+    too. (E2E-M21-06)
   * **"Als neue Gruppe speichern"** toggle — bundles the checked loose rows into a *fresh group* (name field appears
     below, prefilled) instead of dropping them in as own positions, for the case where they form a reusable unit. Off by
     default: the common case is a handful of unrelated extras, and a group per trip would breed clutter.

@@ -56,6 +56,7 @@ import {
   containerWeight,
   imbalancePercent,
   IMBALANCE_THRESHOLD_PERCENT,
+  rowTravelerName,
   unassignedItems,
 } from '@/domain/containers'
 import { t } from '@/i18n'
@@ -76,7 +77,7 @@ const { trip, loaded: rowsLoaded } = useTripScreen(props.tripId, orchestrator)
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const items = computed(() => tripStore.getItems(props.tripId))
-const unassigned = computed(() => unassignedItems(items.value))
+const unassigned = computed(() => unassignedItems(items.value, travelers.value))
 
 function weightOf(containerId: string): number {
   return containerWeight(items.value, containerId)
@@ -128,11 +129,13 @@ const pickingIds = ref<string[] | null>(null)
 const pickingItems = computed<TripItem[]>(() =>
   pickingIds.value === null ? [] : items.value.filter((i) => pickingIds.value!.includes(i.id)),
 )
-const pickingLine = computed(() =>
-  pickingItems.value.length === 1
-    ? pickingItems.value[0]!.name
-    : t('container.assignCount', { n: pickingItems.value.length }),
-)
+const pickingLine = computed(() => {
+  if (pickingItems.value.length !== 1)
+    return t('container.assignCount', { n: pickingItems.value.length })
+  const item = pickingItems.value[0]!
+  const who = rowTravelerName(item, travelers.value)
+  return who ? t('container.itemFor', { item: item.name, traveler: who }) : item.name
+})
 
 /**
  * Assign every picked position — the single-row write, once per row. No
@@ -289,8 +292,25 @@ setHeaderTitle(
               />
               <IonLabel>
                 <h3>{{ item.name }}</h3>
-                <p v-if="item.weight_grams">
-                  {{ formatWeight(item.weight_grams * item.quantity) }}
+                <!-- UX-13: the person, as on the cards above — one
+                     Regenjacke per traveller is otherwise three
+                     identical rows. -->
+                <p
+                  v-if="item.weight_grams || rowTravelerName(item, travelers)"
+                  class="row-meta"
+                  data-testid="m11-row-meta"
+                >
+                  <span v-if="item.weight_grams">
+                    {{ formatWeight(item.weight_grams * item.quantity) }}
+                  </span>
+                  <span
+                    v-if="rowTravelerName(item, travelers)"
+                    class="row-traveler"
+                    data-testid="m11-row-traveler"
+                  >
+                    <IonIcon :icon="personOutline" aria-hidden="true" />
+                    {{ rowTravelerName(item, travelers) }}
+                  </span>
                 </p>
               </IonLabel>
             </IonItem>
@@ -400,6 +420,18 @@ setHeaderTitle(
 
 .card-meta .load,
 .card-meta .carrier {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.row-traveler {
   display: inline-flex;
   align-items: center;
   gap: 5px;
