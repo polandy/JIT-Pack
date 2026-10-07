@@ -119,7 +119,9 @@ export function createWriteFunnel(deps: WriteFunnelDeps) {
     const painted = changesOf(queued.optimistic).find((c) => c.id === mutation.id)?.row
     const tripId = tripOf(mutation.fields, current, painted as SyncRow | null | undefined)
     if (tripId === undefined) {
-      if (!isQueued(write)) return null
+      // An insert carries its trip in its fields; one that does not is a
+      // caller's defect, and dropping it would lose a row the user created.
+      if (!isQueued(write) && mutation.op !== 'insert') return null
       throw new Error(`${mutation.table} ${mutation.id}: no trip to queue it for`)
     }
     return { partition: tripPartition(tripId), queued }

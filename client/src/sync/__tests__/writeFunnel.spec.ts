@@ -124,6 +124,15 @@ describe('the write funnel — a row that is gone', () => {
     expect(queued).toEqual([])
   })
 
+  it('drops an upsert of a master row the device no longer holds, rather than resurrect it', () => {
+    const { funnel, painted, queued } = harness()
+
+    funnel.queueWrites(mutation('upsert', TABLE.tags, 'gone', { name: 'Camping' }))
+
+    expect(painted).toEqual([])
+    expect(queued).toEqual([])
+  })
+
   it('still writes the rest of the call', () => {
     const { funnel, queued } = harness({ [`${TABLE.tripItems}/item-1`]: ITEM })
 
@@ -140,6 +149,14 @@ describe('the write funnel — a row that is gone', () => {
     const orphan = mutation('upsert', TABLE.tripItems, 'gone', { quantity: 1 })
 
     expect(() => funnel.queueWrites({ mutation: orphan })).toThrow(/no trip/)
+  })
+
+  it('refuses a trip-feed insert that names no trip, rather than lose the new row', () => {
+    const { funnel } = harness()
+
+    expect(() =>
+      funnel.queueWrites(mutation('insert', TABLE.tripItems, 'item-9', { name: 'Kocher' })),
+    ).toThrow(/no trip/)
   })
 })
 
