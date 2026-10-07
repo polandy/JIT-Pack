@@ -92,7 +92,7 @@ Per queue item, in its own turn:
    Wait quietly: `gh run watch <id> --exit-status --interval 30 >/dev/null` in a background task, then one
    `node scripts/ci-failures.mjs <id>` if it ended red — never a loop that prints the job table every few
    seconds into your context. A red leg's diagnosis, a local `make ci` or e2e run and any read over
-   ~10 KB are subagent work by the threshold in `CLAUDE.md` §Reading budget; you need the verdict, not
+   ~10 KB for a fact are subagent work by the threshold in `CLAUDE.md` §Reading budget; you need the verdict, not
    the log.
 4. Merge — squash, with a hand-written Conventional Commit subject, because release-please derives the
    changelog from it.

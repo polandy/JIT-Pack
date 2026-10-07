@@ -29,8 +29,9 @@ Work through the sections below in order, exactly as `/pr-review` does, and fix 
   `dev-docs/CODING_PRINCIPLES.md`; the two are binding and win over this skill where they disagree. Skim
   `.golangci.yml` for enabled linters. Read specs by the section the diff touches, and the ledgers through their
   index lines, as `/pr-review` §0 says.
-- **Delegate by the same threshold** (`/pr-review` §0): a read over ~10 KB, a spec lookup, every `make ci` or test
-  run and a red CI log go to a subagent that reports in a few lines; the findings and the verdict stay with you.
+- **Delegate by the same threshold** (`/pr-review` §0): a read over ~10 KB for a fact, a spec lookup, every
+  `make ci` or test run and a red CI log go to a subagent that reports in a few lines; the findings and the
+  verdict stay with you.
 
 ## 1–5, 7. Same checks as /pr-review
 
