@@ -69,6 +69,12 @@
   chip in the meal sheet is cut. The slots read *Morgen · Mittag · Znüni/Zvieri · Abend* and stand whole; a saved meal
   on the trip's eighth of fifteen days opens with its day chip **centred** and the row faded on both sides; another day
   chosen comes to the centre, the first day holds the row at its start with the fade at its end only; every day chip is
-  whole or under a fade. Eaten out, two shortlisted ideas with long names wrap and stand whole. Cut is read off the
-  rendered boxes (an item past an edge the row does not fade, or a word its own box clips), so the case fails on the
-  equal-share layout and on the old long slot words.
+  whole or under a fade. Eaten out, three shortlisted ideas with long names wrap and stand whole — the longest, wider
+  than the sheet at 360 px, breaks between its words inside its chip. Cut is read off the rendered boxes (an item past
+  an edge the row does not fade, or a word its own box clips), so the case fails on the equal-share layout and on the
+  old long slot words.
+* **E2E-M31-17** `local` (G-13, FR-33.1, UX-08) — **implemented** (`meals/mealplan.spec.ts`): in German, at 360 and 412
+  px, a breakfast and a snack today read *Morgen* and *Znüni/Zvieri* on M31's rows, on the held meal's chip fields and
+  in M1's block, and no word is split over two lines or runs past its label (*Znüni/Zvieri* may break only at its slash,
+  the catalogue's zero-width space). Fails on the 54 px column (*MORGE/N*) and on a field that cannot wrap
+  (*Znüni/Zvi*).

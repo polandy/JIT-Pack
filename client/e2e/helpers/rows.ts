@@ -77,3 +77,33 @@ export function cutLabels(row: Locator, items: string): Promise<string[]> {
     return cut
   }, items)
 }
+
+/**
+ * Every word in the matched labels that breaks across two lines or runs past
+ * its label's box. A word is what lies between spaces and zero-width spaces —
+ * the label's own break opportunities — so *Znüni/Zvieri* on two lines at its
+ * slash is whole, *MORGE/N* is not. Empty when every word stands whole.
+ */
+export function brokenWords(labels: Locator): Promise<string[]> {
+  return labels.evaluateAll((els) => {
+    const broken: string[] = []
+    for (const el of els) {
+      const box = el.getBoundingClientRect()
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = node.textContent ?? ''
+        for (const match of text.matchAll(/[^\s​]+/g)) {
+          const range = document.createRange()
+          range.setStart(node, match.index)
+          range.setEnd(node, match.index + match[0].length)
+          const rects = [...range.getClientRects()].filter((r) => r.width > 0)
+          const lines = new Set(rects.map((r) => Math.round(r.top)))
+          const right = Math.max(...rects.map((r) => r.right))
+          if (lines.size > 1) broken.push(`${match[0]} (split over ${lines.size} lines)`)
+          else if (right > box.right + 0.5) broken.push(`${match[0]} (past its box)`)
+        }
+      }
+    }
+    return broken
+  })
+}
