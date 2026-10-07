@@ -162,7 +162,6 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'ideas.drop': 'Verwerfen',
   'ideas.more': 'Mehr zur Idee',
   'ideas.planDay': 'Tag',
-  'ideas.planNone': 'kein Tag',
   'ideas.planTime': 'Uhrzeit (optional)',
   'ideas.notPlanned': 'noch nicht eingeplant',
   'ideas.state.idea': 'Ideen',

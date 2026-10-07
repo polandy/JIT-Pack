@@ -164,7 +164,6 @@ export const plannerEn = {
   'ideas.drop': 'Drop',
   'ideas.more': 'More on the idea',
   'ideas.planDay': 'Day',
-  'ideas.planNone': 'no day',
   'ideas.planTime': 'Time (optional)',
   'ideas.notPlanned': 'not planned yet',
   'ideas.state.idea': 'Ideas',
