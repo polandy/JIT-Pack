@@ -34,6 +34,7 @@ import { useRouter } from 'vue-router'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import {
+  assignmentOf,
   DEFAULT_DEVIATION_CHOICE,
   foldRows,
   recogniseTripComposition,
@@ -150,7 +151,9 @@ function looseLine(row: LooseRow): string {
     )
   if (travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON) {
     const names = travelerNamesOf(row.tripItems, travelers.value)
-    if (names.length >= MIN_TRAVELERS_FOR_PER_PERSON)
+    // The save's rule decides the word, so the line never promises one
+    // assignment while the write makes the other.
+    if (assignmentOf(row.tripItems) === 'per_person')
       parts.push(t('templateFromTrip.perPerson', { names: names.join(', ') }))
     else if (names.length === 1) parts.push(t('templateFromTrip.forTraveler', { name: names[0]! }))
   }

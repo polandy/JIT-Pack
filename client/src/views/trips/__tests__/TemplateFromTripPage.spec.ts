@@ -153,6 +153,17 @@ describe('M21 — a line per thing, saying for whom (UX-13, FR-27.5)', () => {
     ])
   })
 
+  it('says per person whenever the save will, even before a traveller has synced', async () => {
+    seedPeople(['Andy', 'Sia'])
+    seedRow('hut-andy', 'Sonnenhut', 'tr-Andy')
+    seedRow('hut-gone', 'Sonnenhut', 'tr-not-synced')
+
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(lines(page)).toContain('Sonnenhut | per person · Andy')
+  })
+
   it('names nobody when the trip has one traveller', async () => {
     seedPeople(['Andy'])
     seedRow('stoecke', 'Wanderstöcke', 'tr-Andy')
