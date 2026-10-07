@@ -34,9 +34,9 @@ trigger a notification, and only these:
 
 The first nine exist **only in multi-user mode** — in Single-User Mode there is no second person whose act could
 concern you. **Task due, purchase due and excursion are the exception**: a single-user instance reminds its one user
-too, and Settings there shows just those three switches and the push toggle. Local Mode has no server at all; instead, the app
-says once when you open it how many tasks and purchases are due (*„2 Aufgaben fällig"*, *„1 Aufgabe und 1 Einkauf
-fällig"*).
+too, and Settings there shows just those three switches and the push toggle. Local Mode has no server at all, so nothing
+reaches a closed app; the overview says under its greeting what is due by tomorrow, in every mode (*„2 Aufgaben
+(1 überfällig) · 3 Einkäufe fällig"*).
 
 Every notification arrives in-app (a toast while the app is open, and the notification list). **Web Push** additionally delivers it to a device while the app is closed — that is the part with operational requirements, and the rest of this page.
 

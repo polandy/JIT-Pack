@@ -15,11 +15,27 @@ import type { MessageKey } from '@/i18n'
  * a single slot would be wiped by the page that just left. Keying makes
  * the outcome independent of that ordering instead of racing it.
  */
+/**
+ * One run of a meta line that is more than a sentence — M1's due line, whose
+ * counts lead to their blocks (FR-7.11, FR-30.10). A run with `act` is
+ * tappable; a `late` one is set in the overdue tone, as a *Überfällig* badge
+ * is.
+ */
+export interface HeadMetaPart {
+  text: string
+  act?: () => void
+  late?: boolean
+  testid?: string
+}
+
+/** The line under a page's name: a sentence, or runs of one. */
+export type HeadMeta = string | readonly HeadMetaPart[]
+
 export interface PageHeadEntry {
   /** The screen's name, in the display face. */
   title: string
-  /** The line under it — the trip a sub-screen belongs to, a wizard's step. */
-  meta: string | null
+  /** The line under it — the trip a sub-screen belongs to, a wizard's step, what is due. */
+  meta: HeadMeta | null
   /**
    * Whether the head is yielding its space to the content under it.
    *
@@ -43,7 +59,7 @@ export function headFor(path: string): PageHeadEntry | null {
 export function setHeadFor(
   path: string,
   title: string | null,
-  meta: string | null,
+  meta: HeadMeta | null,
   collapsed = false,
 ): void {
   if (title) heads.set(path, { title, meta, collapsed })
@@ -67,7 +83,7 @@ export function clearHeadFor(path: string): void {
  */
 export function setHeaderTitle(
   title: () => string | null | undefined,
-  meta?: () => string | null | undefined,
+  meta?: () => HeadMeta | null | undefined,
   collapsed?: () => boolean,
 ): void {
   // The path is captured once, at setup, deliberately. `useRoute()`
@@ -81,8 +97,13 @@ export function setHeaderTitle(
   // falls back to `meta.titleKey`. That degrades to a generic title,
   // never a wrong one, and no route reaches a sibling directly today.
   const path = useRoute().path
-  watchEffect(() => setHeadFor(path, title() || null, meta?.() || null, collapsed?.() ?? false))
+  watchEffect(() => setHeadFor(path, title() || null, metaOrNull(meta?.()), collapsed?.() ?? false))
   onUnmounted(() => clearHeadFor(path))
+}
+
+/** An empty line — no text, no runs — is no line, so the head draws no element for it. */
+function metaOrNull(meta: HeadMeta | null | undefined): HeadMeta | null {
+  return meta && meta.length > 0 ? meta : null
 }
 
 /**

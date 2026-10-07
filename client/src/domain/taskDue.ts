@@ -13,11 +13,12 @@ import {
   DUE_TODAY,
   daysBetween,
   dueState,
-  isDueByTomorrow,
+  dueTally,
   isPressingDay,
   pressingGroupsFirst,
   sortByDue,
   type DueState,
+  type DueTally,
 } from '@/lib/dueDay'
 import type { TodoState } from '@/types/domain'
 
@@ -74,10 +75,10 @@ export function pressingFirst<G extends { tasks: readonly DueFacts[] }>(
 }
 
 /**
- * FR-7.11's in-app hint for Local Mode, which has no server to send a push:
- * how many open tasks are due by tomorrow, the overdue ones included — the
- * same two days a push would have named.
+ * FR-7.11: the open tasks due by tomorrow — the two days the server's push
+ * names — and the overdue ones among them, for M1's due line. A finished task
+ * counts neither way, whatever its date says.
  */
-export function dueByTomorrowCount(tasks: readonly DueFacts[], today: string): number {
-  return tasks.filter((task) => isDueByTomorrow(openDueDay(task), today)).length
+export function taskDueTally(tasks: readonly DueFacts[], today: string): DueTally {
+  return dueTally(tasks.map(openDueDay), today)
 }

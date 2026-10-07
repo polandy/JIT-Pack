@@ -11,20 +11,42 @@
  * everything else; a control beside a screen's name is a bar action, which
  * is where a screen-level action lives.
  */
-defineProps<{
+import { computed } from 'vue'
+
+import type { HeadMeta } from '@/composables/useHeaderTitle'
+
+const props = defineProps<{
   title: string
-  /** The line under the name — the trip a sub-screen belongs to, a step. */
-  meta?: string | null
+  /** The line under the name — the trip a sub-screen belongs to, a step, what is due. */
+  meta?: HeadMeta | null
   /** Yield the space to the content below — see the style block (M4). */
   collapsed?: boolean
 }>()
+
+/** The meta's runs when it is more than a sentence; null for a plain one. */
+const runs = computed(() => (typeof props.meta === 'string' ? null : (props.meta ?? null)))
 </script>
 
 <template>
   <div class="page-head" :class="{ collapsed }" data-testid="page-head">
     <div class="head-body">
       <h1 class="head-title jp-page-title" data-testid="header-title">{{ title }}</h1>
-      <p v-if="meta" class="head-meta jp-meta" data-testid="header-meta">{{ meta }}</p>
+      <p v-if="meta" class="head-meta jp-meta" data-testid="header-meta">
+        <template v-if="runs === null">{{ meta }}</template>
+        <template v-for="(run, i) in runs ?? []" :key="i">
+          <button
+            v-if="run.act"
+            type="button"
+            class="meta-act"
+            :class="{ late: run.late }"
+            :data-testid="run.testid"
+            @click="run.act()"
+          >
+            {{ run.text }}
+          </button>
+          <span v-else :class="{ late: run.late }">{{ run.text }}</span>
+        </template>
+      </p>
       <!-- What else this page's subject has (FR-21.21). Inside the body, so
            it yields with the name on a screen that collapses its head. -->
       <slot />
@@ -76,5 +98,21 @@ defineProps<{
 
 .head-meta {
   margin: 4px 0 0;
+}
+
+/* A count that leads to its block (FR-7.11): a link in the line, not a control beside it. */
+.meta-act {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jp-action);
+  font: inherit;
+  font-weight: var(--jp-weight-semibold);
+  cursor: pointer;
+}
+
+.late {
+  color: var(--ct-ember);
 }
 </style>

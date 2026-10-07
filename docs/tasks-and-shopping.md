@@ -176,8 +176,9 @@ overview puts those entries first as well.
 
 Only entries typed into the shopping list take a date; what comes from the packing list does not. On the morning
 before and on the day itself, the person who buys it is reminded — or everyone on the trip, if it is nobody's yet
-(see [Notifications & Push](notifications.md)),
-and in Local Mode the app counts it when you open it (*„1 Aufgabe und 2 Einkäufe fällig"*).
+(see [Notifications & Push](notifications.md)).
+The overview says what is due by tomorrow under its greeting, in every mode — *„2 Aufgaben (1 überfällig) ·
+3 Einkäufe fällig"* — and tapping a count takes you to that block.
 
 ## The overview during the trip
 
@@ -233,5 +234,5 @@ A **⋮** menu only holds what belongs to the screen it sits on:
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging, selecting, due dates and the finished packing all happen on your
-device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode says what is due when
-the app opens.
+device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode sends none — there, as
+everywhere, the overview's line under the greeting says what is due.

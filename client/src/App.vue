@@ -80,11 +80,11 @@ import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/use
 import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { newNoteCount } from '@/domain/tripNotes'
 import { tripTodoProgress } from '@/domain/tripTodos'
-import { DUE_PURCHASE_COUNT, TRIP_CARDS } from '@/lib/tripCards'
+import { DUE_PURCHASES, TRIP_CARDS } from '@/lib/tripCards'
 import { useTripStore } from '@/stores/tripStore'
 import {
   createShoppingActions,
-  duePurchaseCount,
+  duePurchases,
   ShoppingDashboardCard,
   shoppingCloseCrossing,
   shoppingCount,
@@ -401,8 +401,8 @@ provide(EXCURSION_CONNECTIONS, orchestrator ? ExcursionConnections : null)
 provide(EXCURSION_JOURNEY_LINE, orchestrator ? excursionJourneyLine() : null)
 // FR-33.7: today's meals, a block of their own beside today's plan.
 provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, MealsTodayCard, ShoppingDashboardCard] : [])
-// FR-30.10: Local Mode's opening hint counts the due purchases too.
-if (orchestrator) provide(DUE_PURCHASE_COUNT, duePurchaseCount())
+// FR-30.10: M1's due line names the due purchases beside the tasks.
+if (orchestrator) provide(DUE_PURCHASES, duePurchases(shoppingSources))
 // FR-7.12: closing the packing ends *before departure* on the shopping list too.
 provide(
   PACKING_CLOSE_CROSSINGS,

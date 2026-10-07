@@ -232,6 +232,9 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   list finds the composer open above the empty state and **no** ＋; it stays open after the first entry; ✕ closes it
   and the ＋ comes back, named *„Add something to buy"*. After a reload, with an entry on the list, the composer is
   closed; the ＋ opens it with the field focused and empty and steps aside; Escape closes it again.
+* **E2E-M6-44** `local` (FR-30.10, UX-15) — **implemented** (`shopping/shopping.spec.ts`): a trip on its third day
+  with one own entry due today; M1's head reads *„1 purchase due"*. The trip's *Einkaufen* block in the hero, folded,
+  is unfolded by the count's tap and brought into view, the entry wearing *Today*.
 * **E2E-M6-09** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
   eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
   multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die

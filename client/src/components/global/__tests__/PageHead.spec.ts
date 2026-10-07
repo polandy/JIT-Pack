@@ -8,7 +8,7 @@
  * gain a gap on every screen that has no second line — which is most of them.
  */
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import PageHead from '../PageHead.vue'
 
@@ -63,5 +63,32 @@ describe('PageHead — the screen names itself (G-9)', () => {
     // decision rather than a component that failed to mount.
     expect(wrapper.find('[data-testid="header-title"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-meta"]').exists()).toBe(false)
+  })
+  /**
+   * M1's due line (FR-7.11, FR-30.10): the line reads as one sentence, its
+   * counts are the places it leads to, and what is late is set apart.
+   */
+  it('reads a line of runs as one sentence, a count leading to its block', async () => {
+    const go = vi.fn()
+    const wrapper = mount(PageHead, {
+      props: {
+        title: 'Hallo',
+        meta: [
+          { text: '2 Aufgaben', act: go, testid: 'due-line-tasks' },
+          { text: ' (1 überfällig)', late: true },
+          { text: ' · ' },
+          { text: '3 Einkäufe' },
+          { text: ' fällig' },
+        ],
+      },
+    })
+
+    expect(wrapper.get('[data-testid="header-meta"]').text()).toBe(
+      '2 Aufgaben (1 überfällig) · 3 Einkäufe fällig',
+    )
+    await wrapper.get('[data-testid="due-line-tasks"]').trigger('click')
+    expect(go).toHaveBeenCalledOnce()
+    expect(wrapper.findAll('button')).toHaveLength(1)
+    expect(wrapper.get('.late').text()).toBe('(1 überfällig)')
   })
 })

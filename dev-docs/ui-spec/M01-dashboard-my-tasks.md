@@ -91,10 +91,17 @@
     its pill (M25's) leads the second line, and the pressing ones — overdue, today, the next two days — lead the block,
     earliest first, ahead of the phase rule. The block's field writes *during* (FR-7.12: it is shown only once the
     packing is finished, and a finished packing closes *before*).
-  * **Local Mode's reminder (FR-7.11):** with no server to send the morning's push, M1 says once per app start, as a
-    toast, *„N Aufgaben fällig"* — the open tasks due by tomorrow across the active trips, the overdue included — once
-    their rows are on the device, and nothing when there are none. The due purchases are counted beside them (FR-30.10):
-    *„1 Aufgabe und 2 Einkäufe fällig"*, or *„2 Einkäufe fällig"* alone.
+  * **The due line (FR-7.11, FR-30.10)** is the page head's meta line while anything is due by tomorrow across the
+    active trips — the open tasks and the purchases still to buy, the overdue included: *„2 Aufgaben (1 überfällig) ·
+    3 Einkäufe fällig"*; one kind alone carries its own word, *„2 Aufgaben fällig (1 überfällig)"*, *„1 Einkauf
+    überfällig"*. The counts are links in the action colour, the overdue part in the overdue pill's colour. A tap
+    brings that block forward on the first trip that has some due: unfolded for the visit (the remembered fold stays
+    as it was), scrolled to the top of the column and ringed once in the action colour; where M1 shows no such block
+    the tap opens M25 or M6. The purchases are every line M1's card would badge — the own entries and the sources'
+    lines alike, a meal's ingredient on its day (FR-33.3) — on both lists. Said in all three modes, once the rows are
+    on the device (ADR-033); when nothing is due the head keeps *„Was beim Packen ansteht"*. **No toast is raised on
+    arrival** — a toast is the answer to something just done (FR-25.2), and this is the trip's state, which the rows
+    below wear too (UX-15).
   * **Folding:** the head is a button (`aria-expanded`), the arrow turns, the rows collapse over about 0.3 s while
     fading and the blocks below follow; `prefers-reduced-motion` skips the motion. A folded block keeps head, count and
     field; its rows leave the tab order. Both start open, and the state is remembered per block on this device.
@@ -116,10 +123,11 @@
   size, not a full-width progress bar with a count written beside it — one progress design for the screen, and the same
   one M2's rows read.
 * **Elements:** The greeting is the screen's **page head** (G-9, FR-21.27) — its title, with *„Was beim Packen ansteht"*
-  as the meta line under it — and is therefore drawn by the frame, at the same place and size as every other screen's
-  name; the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag* 12–17, *Guten Abend* 18–21, and a neutral
-  *Hallo* through the night (UX-15: 00:14 is not morning, and night deliberately makes no time-of-day claim). The rule
-  is the pure `greetingKey` in `lib/greeting.ts`. Trip cards render their dates through the one `formatTripPeriod`
+  as the meta line under it, or the due line while something is due — and is therefore drawn by the frame, at the same
+  place and size as every other screen's name; the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag* 12–17,
+  *Guten Abend* 18–21, and a neutral *Hallo* through the night (UX-15: 00:14 is not morning, and night deliberately
+  makes no time-of-day claim). The rule is the pure `greetingKey` in `lib/greeting.ts`.
+  Trip cards render their dates through the one `formatTripPeriod`
   formatter (UX-5, see M2); grouped card list per active trip: open packing items (a count and three of them) and the
   trip's open tasks. The list is **not filtered to me** — M1 aggregates every open row of every active trip, and a
   personal filter would empty the screen in Local and Single-User Mode, where nobody is assigned anything (Addendum

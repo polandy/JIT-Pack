@@ -282,7 +282,6 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'shopping.wentToPacking': 'auf der Packliste',
   'shopping.wentPacked': 'eingepackt',
   'shopping.dueCount': '{n} Einkauf | {n} Einkäufe',
-  'shopping.dueHint': '{n} Einkauf fällig | {n} Einkäufe fällig',
   'shopping.boughtBy': 'gekauft von {who} · {when}',
   'shopping.boughtByUnknown': 'gekauft · {when}',
 }

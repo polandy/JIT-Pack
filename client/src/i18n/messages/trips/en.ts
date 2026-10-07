@@ -191,6 +191,10 @@ export const tripsEn = {
   // Deliberately neutral at night (UX-15): any time-of-day claim at 00:14 is wrong.
   'dashboard.greetingNight': 'Hello',
   'dashboard.subtitle': 'Your packing tasks',
+  // FR-7.11/FR-30.10: M1's due line — “2 tasks (1 overdue) · 3 purchases due”.
+  'dashboard.dueWord': 'due',
+  'dashboard.overdueWord': 'overdue',
+  'dashboard.overdueOf': '({n} overdue)',
   'dashboard.planTrip': 'Plan a trip',
   'dashboard.delegated': '{n} thing for you | {n} things for you',
   'dashboard.delegatedNewRow': '{name} — new',
@@ -268,9 +272,7 @@ export const tripsEn = {
   'tasks.dueField': 'Due',
   'tasks.dueSetToast': '“{body}” due {date}',
   'tasks.dueClearedToast': '“{body}” has no due date any more',
-  'tasks.dueHint': '{n} task due | {n} tasks due',
   'tasks.dueCount': '{n} task | {n} tasks',
-  'tasks.dueHintBoth': '{tasks} and {purchases} due',
   'tasks.beforeLocked': 'The packing is finished — this is what was done before the trip.',
 
   // FR-7.14 — M25 reworked: what is due on top, one composer with chips,

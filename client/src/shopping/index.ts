@@ -4,11 +4,11 @@
  * through (the router's lazy page import aside). The dev seed uses it too, to
  * write its entries through the module's own actions.
  */
-import { isDueByTomorrow } from '@/lib/dueDay'
+import { dueTally } from '@/lib/dueDay'
 import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/lib/ideaBridge'
 import { tripSubPath } from '@/router/paths'
 import type { ShoppingSource } from '@/lib/shoppingSources'
-import type { DuePurchaseCount } from '@/lib/tripCards'
+import type { DuePurchases } from '@/lib/tripCards'
 import { SHOPPING_MODES } from '@/types/domain'
 import { openCount } from './list'
 import { shoppingFeatureStore, useShoppingStore } from './store'
@@ -32,20 +32,22 @@ export function shoppingCount(sources: readonly ShoppingSource[]): (tripId: stri
 }
 
 /**
- * FR-30.10: the own entries still to buy, on either list, that are due by
- * tomorrow — overdue ones included — for Local Mode's opening hint. Only
- * the list's own entries carry a day.
+ * FR-30.10: the trip's lines still to buy, on either list, that are due by
+ * tomorrow — the overdue ones counted apart — for M1's due line. The own
+ * entries and every source's lines, so the line names what the card's badges
+ * show: a meal's ingredient bought today is due today too (FR-33.3).
  */
-export function duePurchaseCount(): DuePurchaseCount {
+export function duePurchases(sources: readonly ShoppingSource[]): DuePurchases {
   const shoppingStore = useShoppingStore()
   return (tripId, today) =>
-    SHOPPING_MODES.reduce(
-      (n, list) =>
-        n +
-        shoppingStore
-          .openEntries(tripId, list)
-          .filter((entry) => isDueByTomorrow(entry.due_date, today)).length,
-      0,
+    dueTally(
+      SHOPPING_MODES.flatMap((list) => [
+        ...shoppingStore.openEntries(tripId, list).map((entry) => entry.due_date),
+        ...sources.flatMap((source) =>
+          source.open(tripId, list).map((line) => line.dueDate ?? null),
+        ),
+      ]),
+      today,
     )
 }
 

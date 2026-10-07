@@ -12,6 +12,7 @@ import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 import { openTripView } from './helpers/trips'
 import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
+import { setDateField } from './helpers/ionic'
 import { browserDay, expectFiguresPaired, setClock, writesLanded } from './helpers/page'
 
 /**
@@ -642,5 +643,107 @@ test.describe('M1 — the hero on the road @local @m1', () => {
     await expect(hero.getByTestId('hero-phase')).toContainText('Packing')
     await expect(hero.getByTestId('dashboard-packing-figure')).toHaveCount(0)
     await expect(hero.getByTestId(`dashboard-tasks-${name}-add-input`)).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M1-30 (FR-7.11, UX-15): what is due by tomorrow is the head's second
+   * line, said for as long as it is true — not a toast that rose once, for
+   * three seconds, over the hero. The count leads to its block, unfolding it
+   * for the visit when it was folded.
+   */
+  test('E2E-M1-30: the head says what is due, its count leads to the block, and no toast rises on arrival', async ({
+    page,
+  }) => {
+    // On the road, so the hero holds the Aufgaben block (E2E-M1-28's trip).
+    const name = 'Fällig auf M1'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, -2),
+      endDate: await browserDay(page, 5),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zelt'])
+    await addTripTodo(page, 'Leave a key', 'during')
+    await addTripTodo(page, 'Renew the passport', 'during')
+
+    const road = await openTasks(page, 'during')
+    const sheet = page.getByTestId('task-sheet')
+    for (const [task, offset] of [
+      ['Leave a key', -1],
+      ['Renew the passport', 1],
+    ] as const) {
+      await road.getByTestId(`trip-todo-open-${task}`).click()
+      await expect(sheet).toBeVisible()
+      await setDateField(page, 'task-sheet-due', await browserDay(page, offset))
+      await sheet.getByTestId('task-sheet-close').click()
+      await expect(sheet).toHaveCount(0)
+    }
+    await writesLanded(page)
+
+    // A fresh app start on M1 — where the hint used to rise.
+    await page.goto(PATH.dashboard)
+    const meta = page.getByTestId('header-meta')
+    await expect(meta).toHaveText('2 tasks due (1 overdue)')
+    // The line is drawn once the rows are here, which is when the toast was
+    // raised: with the line standing, a toast would already be in the DOM.
+    await expect(page.locator('ion-toast')).toHaveCount(0)
+    await expect(meta.locator('.late')).toHaveText('(1 overdue)')
+
+    // Folded and out of sight, the block is still where the count leads.
+    const block = visible(page).getByTestId(`dashboard-tasks-${name}`)
+    await block.getByTestId(`dashboard-tasks-${name}-fold`).click()
+    await expect(block).toHaveAttribute('data-folded', 'true')
+    await page.getByTestId('due-line-tasks').click()
+    await expect(block).toHaveAttribute('data-folded', 'false')
+    await expect(block).toBeInViewport()
+    await expect(block.getByTestId(`due-dashboard-tasks-${name}-Leave a key`)).toHaveText('Overdue')
+
+    // Done, it leaves the count; the head says the rest.
+    await block.getByTestId(`dashboard-tasks-${name}-row-check`).first().click()
+    await expect(meta).toHaveText('1 task due')
+  })
+
+  /**
+   * E2E-M1-31 (FR-7.11, UX-15): a trip a week out keeps its packing hero,
+   * which holds no *Aufgaben* block (E2E-M1-29) — so the due line's count
+   * has nothing on M1 to bring forward and opens the trip's tasks instead.
+   */
+  test('E2E-M1-31: where M1 shows no block, the due line’s count opens the trip’s tasks', async ({
+    page,
+  }) => {
+    const name = 'Nächste Woche fällig'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, 7),
+      endDate: await browserDay(page, 14),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zelt'])
+    // Started, the trip takes tasks for the road only (FR-7.14).
+    await addTripTodo(page, 'Book the train', 'during')
+
+    const road = await openTasks(page, 'during')
+    const sheet = page.getByTestId('task-sheet')
+    await road.getByTestId('trip-todo-open-Book the train').click()
+    await expect(sheet).toBeVisible()
+    await setDateField(page, 'task-sheet-due', await browserDay(page, 1))
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.goto(PATH.dashboard)
+    await expect(page.getByTestId('header-meta')).toHaveText('1 task due')
+    // The hero is the packing one, read off its ring: beside it a task figure,
+    // but no block wearing the anchor the count could bring forward.
+    const hero = visible(page).getByTestId(`dashboard-trip-${name}`)
+    await expect(hero.getByTestId('hero-progress')).toBeVisible()
+    await expect(visible(page).getByTestId(`dashboard-tasks-${name}`)).toBeVisible()
+    await expect(visible(page).locator('[id^="due-tasks-"]')).toHaveCount(0)
+
+    await page.getByTestId('due-line-tasks').click()
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(visible(page).getByTestId('m25-due')).toContainText('Book the train')
   })
 })

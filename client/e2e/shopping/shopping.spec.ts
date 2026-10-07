@@ -9,6 +9,7 @@ import {
   chooseInSelect,
   createTripViaWizard,
   openTripView,
+  tripAction,
   visiblePage as visible,
 } from '../fixtures'
 import { PATH } from '../routes'
@@ -692,11 +693,11 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
    * line due within two days leaves its group for the *Due* block on top,
    * which names the group it left — while *Brot*, undated, stays where it
    * was. A reload proves the write, not the repaint. Then M1: the card
-   * under the trip leads with it and wears the same pill, and Local Mode's
-   * stand-in for the push says once, when the app opens, that it is due — the
-   * trip is started first, because M1 counts the active trips.
+   * under the trip leads with it and wears the same pill, and the head's due
+   * line names it — the trip is started first, because M1 counts the active
+   * trips.
    */
-  test('E2E-M6-35: a due day is set in the sheet, leads the list and the dashboard, and is said when the app opens (FR-30.10)', async ({
+  test('E2E-M6-35: a due day is set in the sheet, leads the list and the dashboard, and M1’s head says it (FR-30.10)', async ({
     page,
   }) => {
     const name = 'Samedan Fällig'
@@ -740,12 +741,55 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await expect(m6(page).getByTestId('m6-due').locator('h3')).toHaveText(['Pasta'])
     await expect(list(page, 'local').getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
 
-    // M1: the trip's card leads with it, and the app says it once on opening.
+    // M1: the trip's card leads with it, and the head's due line names it (UX-15).
     await page.goto(PATH.dashboard)
-    await expect(page.locator('ion-toast').filter({ hasText: '1 purchase due' })).toBeVisible()
+    await expect(page.getByTestId('header-meta')).toHaveText('1 purchase due')
     const card = visible(page).getByTestId(`dashboard-shopping-${name}`)
     await expect(card.getByTestId('dash-shop-row').locator('.name')).toHaveText(['Pasta', 'Brot'])
     await expect(card.getByTestId('dash-shop-due-Pasta')).toHaveText('Tomorrow')
+  })
+
+  /**
+   * E2E-M6-44 (FR-30.10, UX-15): M1's due line names the purchase, and its
+   * count leads to the trip's *Einkaufen* block — folded, it is unfolded for
+   * the visit and brought into view. On its third day the trip has moved past
+   * its packing, so the block stands in the hero (E2E-M1-28).
+   */
+  test('E2E-M6-44: the due line’s purchase count leads to M1’s shopping block, unfolding it (FR-30.10)', async ({
+    page,
+  }) => {
+    const name = 'Samedan Unterwegs'
+    await createTripViaWizard(page, {
+      ...TRIP,
+      name,
+      startDate: await browserDay(page, -2),
+      endDate: await browserDay(page, 5),
+    })
+    // On its third day the trip reopens on its day, not its packing list, so
+    // it is started the way E2E-M1-28 starts one.
+    await tripAction(page, 'start')
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Pasta')
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Pasta' })
+      .getByTestId('m6-row-label')
+      .click()
+    await expect(sheet(page)).toHaveAttribute('data-presented', 'true')
+    await setDateField(page, 'm6-entry-due', await browserDay(page, 0))
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+    await writesLanded(page)
+
+    await page.goto(PATH.dashboard)
+    await expect(page.getByTestId('header-meta')).toHaveText('1 purchase due')
+    const block = visible(page).getByTestId(`dashboard-shopping-${name}`)
+    await block.getByTestId(`dashboard-shopping-${name}-fold`).click()
+    await expect(block).toHaveAttribute('data-folded', 'true')
+    await page.getByTestId('due-line-shopping').click()
+    await expect(block).toHaveAttribute('data-folded', 'false')
+    await expect(block).toBeInViewport()
+    await expect(block.getByTestId('dash-shop-due-Pasta')).toHaveText('Today')
   })
 
   /**

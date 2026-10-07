@@ -10,6 +10,9 @@
  */
 import type { Component, InjectionKey } from 'vue'
 
+import type { TripSubScreen } from '@/router/paths'
+import type { DueTally } from './dueDay'
+
 /** What M1 tells a card about the trip it sits under. */
 export interface TripCardProps {
   tripId: string
@@ -33,13 +36,29 @@ export interface TripCardProps {
 export const TRIP_CARDS = Symbol('tripCards') as InjectionKey<readonly Component[]>
 
 /**
- * FR-30.10: how many of a trip's purchases are due by tomorrow, the overdue
- * ones included — what Local Mode's opening hint counts beside the tasks
- * (FR-7.11), since it has no server to send the morning's push. The count is
- * the shopping module's; M1 asks through this key, bound by the composition
- * root, and a build without the module simply counts nothing.
+ * FR-30.10: a trip's purchases due by tomorrow, and the overdue ones among
+ * them — every line the dashboard's card would badge, the own entries and
+ * the sources' alike — which M1's due line names beside the tasks (FR-7.11).
+ * The tally is the shopping module's; M1 asks through this key, bound by the
+ * composition root, and a build without the module simply counts nothing.
  */
-export type DuePurchaseCount = (tripId: string, today: string) => number
+export type DuePurchases = (tripId: string, today: string) => DueTally
 
 /** The injection key M1 reads the due purchases from. */
-export const DUE_PURCHASE_COUNT = Symbol('duePurchaseCount') as InjectionKey<DuePurchaseCount>
+export const DUE_PURCHASES = Symbol('duePurchases') as InjectionKey<DuePurchases>
+
+/**
+ * The dashboard blocks M1's due line leads to — named as the trip's screens
+ * they hand over to, which is where the line leads when M1 shows no block.
+ */
+export type DueBlock = Extract<TripSubScreen, 'tasks' | 'shopping'>
+export const DUE_BLOCK_TASKS = 'tasks' satisfies DueBlock
+export const DUE_BLOCK_SHOPPING = 'shopping' satisfies DueBlock
+
+/**
+ * The element id of a trip's dashboard block, which the due line scrolls to.
+ * Stated once here because the shopping card and M1 may not import each other.
+ */
+export function dueBlockAnchor(block: DueBlock, tripId: string): string {
+  return `due-${block}-${tripId}`
+}
