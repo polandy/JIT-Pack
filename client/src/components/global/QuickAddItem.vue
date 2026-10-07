@@ -151,8 +151,8 @@ const props = withDefaults(
     /**
      * FR-21.24: whether the collapsed form shows its own trigger. M4 and M8
      * turn it off because their FAB is the same door, and the two stood on
-     * the screen at once saying the same thing. M6 has no FAB and keeps the
-     * pill, because otherwise the composer has no way in at all.
+     * the screen at once saying the same thing. A caller without a FAB keeps
+     * the pill, because otherwise the composer has no way in at all.
      */
     showTrigger?: boolean
     /**
