@@ -216,8 +216,7 @@ export function createMealDayPlanSource(deps: MealSourceDeps): DayPlanSource {
           open: () => deps.sheet.openMeal(tripId, meal.id),
           time: isMealTime(meal.at_time) ? meal.at_time : null,
           placeAt: SLOT_PLACE[meal.slot],
-          timeWord: t(`meals.slotWord.${meal.slot}`),
-          label: t(`meals.slot.${meal.slot}`),
+          timeWord: t(`meals.slotShort.${meal.slot}`),
         }
       })
     },

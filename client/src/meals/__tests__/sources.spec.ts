@@ -285,13 +285,14 @@ describe('the meals on the day plan (FR-33.5)', () => {
       from: '2026-10-12',
       time: null,
       placeAt: '18:30',
-      timeWord: 'abends',
-      label: 'Abendessen',
+      timeWord: 'Abend',
       assignee: 'u-lena',
       progress: 0.5,
       progressName: '1 von 2 Zutaten',
       detail: '1 von 2 Zutaten eingekauft',
     })
+    // UX-10: the slot is said once, in M31's and M1's short noun; the label over the title is the kind's.
+    expect(lines.find((l) => l.key === 'meal:dinner')).not.toHaveProperty('label')
     expect(lines.find((l) => l.key === 'meal:out')).toMatchObject({
       progress: null,
       detail: 'auswärts · Ristorante',

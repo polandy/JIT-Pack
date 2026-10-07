@@ -30,7 +30,7 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
       ? t('journey.outTitle')
       : role === EXCURSION_ROLE_BACK
         ? t('journey.backTitle')
-        : (line.source?.label ?? t(`dayPlan.kind.${line.kind}`))
+        : t(`dayPlan.kind.${line.kind}`)
   const span =
     line.span === 'start'
       ? t('dayPlan.spanStart')

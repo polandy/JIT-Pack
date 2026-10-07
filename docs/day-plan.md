@@ -28,7 +28,7 @@ The row of days at the top lists every day of the trip. During the trip today is
 Dots under a day show that something stands on it. Tap a day to see it.
 
 Under the row, the chosen day lists what is on it — first everything with a time, in time order, then the rest. The
-column on the left says the time; a meal without one says its meal (*abends*), an excursion without one *ganztags*,
+column on the left says the time; a meal without one says its meal (*Abend*), an excursion without one *ganztags*,
 and anything else without a time leaves it empty. On the right, a ring shows how far a meal's shopping or an
 excursion's packing has got, and a task has its checkbox; the other lines have nothing there.
 
@@ -48,8 +48,9 @@ excursion's packing has got, and a task has its checkbox; the other lines have n
   arrives, which lines and how often you change. Tap **▸** to see each leg, and **In der App öffnen** to open the
   connection in the app it came from — that app knows about delays and platforms. **Karte ›** shows the journey on a
   map.
-- **Mahlzeit** — a meal from the [meal plan](meal-plan.md), named by its meal (*Abendessen*), with who cooks and how
-  much is bought. Without a time it stands where its meal belongs, the time column saying *abends*. Tap it to open it.
+- **Mahlzeit** — a meal from the [meal plan](meal-plan.md), with who cooks and how much is bought. Without a time it
+  stands where its meal belongs, the time column saying which meal in the meal plan's own word (*Morgen*, *Mittag*,
+  *Znüni/Zvieri*, *Abend*). Tap it to open it.
 
 Below the day, **Morgen** shows tomorrow.
 

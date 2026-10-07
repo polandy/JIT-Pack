@@ -22,8 +22,9 @@
 * **The timeline** of the chosen day (`m29-timeline`), one card: timed entries first by their time, untimed ones after,
   each line (`m29-line-<key>`, `data-kind`) with its time column (`m29-time-<key>`), a coloured left edge, a small
   label naming its kind, and **at most one trailing shape, one per meaning** (UX-09):
-  * **The time column** reads one grammar: the line's time; an untimed meal's slot word (*früh · mittags · zw. ·
-    abends*); *ganztags* for an untimed excursion; **nothing** for every other line without one — a task (which has a
+  * **The time column** reads one grammar: the line's time; an untimed meal's slot in its short word, as M31 and M1
+    say it (*Morgen · Mittag · Znüni/Zvieri · Abend*, §3.33; *Znüni/Zvieri* breaks at its slash); *ganztags* for an
+    untimed excursion; **nothing** for every other line without one — a task (which has a
     day, never a time), an untimed idea or entry, arrival and departure. It is 56 px, as wide as *ganztags*, so every
     title starts on one line; the words a shade lighter than a time.
   * **The trailing shape:** a **ring** for a share — a meal's bought ingredients, an excursion's packed rucksack —
@@ -49,10 +50,11 @@
     *„für Sia, Leonardo"* under the title and its note (`m29-who-<key>`), the names in roster order, a shade lighter
     than the title and darker than the note. A line for everybody says nothing.
   * **🍽 Mahlzeit** (§3.33, FR-33.5), from the meal plan through `lib/dayPlanSources.ts` (`data-kind="meal"`, the
-    alpenrose edge): its slot as the label (*Abendessen*), the dish, *„Lena kocht · 2 von 4 Zutaten eingekauft"*
+    alpenrose edge): *Mahlzeit* as the label, like every other kind — the slot is said once, in the time column —
+    the dish, *„Lena kocht · 2 von 4 Zutaten eingekauft"*
     (*„auswärts · Pizzeria Mulin"* eaten out) and the bought share as a ring, *„2 von 4 Zutaten"*, where it is cooked
-    with ingredients. Without a time it stands at its slot's place among the timed lines (*früh* 08:00, *mittags*
-    12:30, *zw.* 15:30, *abends* 18:30), the word in the time column. A tap opens the meal's sheet over the plan
+    with ingredients. Without a time it stands at its slot's place among the timed lines (*Morgen* 08:00, *Mittag*
+    12:30, *Znüni/Zvieri* 15:30, *Abend* 18:30), the word in the time column. A tap opens the meal's sheet over the plan
     (M31). An excursion's line names a picnic taken on it (*„… · 🍽 Picknick"*, FR-33.6) and counts it in its ring.
   An empty day says *„Noch nichts geplant."* (`m29-empty`).
 * **Für** (`who-m29`), under the strip where the trip has more than one traveller: *Alle* (`who-all-m29`) and a chip

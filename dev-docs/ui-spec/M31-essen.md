@@ -58,7 +58,8 @@
 * **„+" (the FAB, `m31-fab`, `FAB_ANCHOR.m31`, *„Neue Mahlzeit"*)** opens a new meal on the first empty one of
   breakfast, lunch and dinner from today on — **the meal sheet, not M6's composer** (FR-21.24): a meal carries a slot,
   a day and its ingredients. The „+" on a day head stays: it carries the day.
-* **The meal sheet** (`meal-sheet`), *„Neu: Abendessen"* or *„Abendessen"* (`meal-sheet-title`) over *„Mo., 12.10. ·
+* **The meal sheet** (`meal-sheet`), *„Neu: Abendessen"* or *„Abendessen"* (`meal-sheet-title`, the slot's
+  long word, §3.33) over *„Mo., 12.10. ·
   Tag 3 von 8"*, ✕ (`meal-sheet-close`):
   * **Gericht** (`meal-title`, *„z. B. Älplermagronen, Grillieren"*), focused on a new meal. Under it, on a new cooked
     meal, **Früher gekocht** (`meal-earlier`): up to four chips (`meal-earlier-<n>`) of FR-33.4's dishes in a row that

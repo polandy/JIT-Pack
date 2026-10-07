@@ -345,7 +345,8 @@ test.describe('M31 meal plan @local @meals', () => {
     await expect(timelineLines(page).nth(0)).toContainText('Wanderung')
     const meal = timelineLines(page).nth(1)
     await expect(meal).toHaveAttribute('data-kind', 'meal')
-    await expect(meal).toContainText('dinner')
+    await expect(meal.locator('[data-testid^="m29-time-"]')).toHaveText('Dinner')
+    await expect(meal.locator('[data-testid^="m29-kind-"]')).toHaveText('Meal')
     await expect(meal).toContainText('Raclette')
     await expect(meal).toContainText('0 of 1 ingredients bought')
     await expect(timelineLines(page).nth(2)).toContainText('Sauna')
@@ -990,5 +991,55 @@ test.describe('M31 slot names — whole where a slot is a label (G-13, UX-08) @l
       await page.goto(plan)
       await expect(mealRow(page, day(0), 'Nusstorte')).toBeVisible()
     }
+  })
+
+  /**
+   * E2E-M31-18 (§3.33, UX-10): one word per slot. M29's time column says the
+   * short noun M1 and M31 say, the line's label its kind, the sheet's title
+   * the long form — and no cipher anywhere.
+   */
+  test('E2E-M31-18: M29 and M1 say the same short slot words, the sheet its long form, and Zw. appears nowhere', async ({
+    page,
+  }) => {
+    const day = await days(page, [-1, 0, 2])
+    await createTripViaWizard(page, {
+      name: 'Engadin Wörter',
+      startDate: day(-1),
+      endDate: day(2),
+      travelers: ['Andy'],
+    })
+    await openMeals(page)
+    await addMeal(page, { day: day(0), slot: 'dinner', title: 'Capuns' })
+    await addMeal(page, { day: day(0), slot: 'breakfast', title: 'Zmorge' })
+    await addMeal(page, { day: day(0), slot: 'snack', title: 'Nusstorte' })
+    await addMeal(page, { day: day(0), slot: 'lunch', title: 'Gerstensuppe' })
+    await switchToGerman(page)
+    const short = ['Morgen', 'Mittag', 'Znüni/\u200bZvieri', 'Abend']
+    const cipher = /\bzw\./i
+
+    await openDayPlan(page)
+    await chooseDay(page, day(0))
+    const lines = timelineLines(page)
+    await expect(lines).toHaveCount(4)
+    await expect(lines.locator('[data-testid^="m29-time-"]')).toHaveText(short)
+    await expect(lines.locator('[data-testid^="m29-kind-"]')).toHaveText(Array(4).fill('Mahlzeit'))
+    // In the 56 px column Znüni/Zvieri may break only at its slash, never inside a word.
+    for (const phone of CUE_PHONES) {
+      await page.setViewportSize(phone)
+      const times = lines.locator('[data-testid^="m29-time-"]')
+      expect(await brokenWords(times), `time column at ${phone.width} px`).toEqual([])
+    }
+    await expect(visiblePage(page).getByTestId('m29-timeline')).not.toContainText(cipher)
+
+    await lines.filter({ hasText: 'Capuns' }).locator('button.open').click()
+    await expect(mealSheet(page).getByTestId('meal-sheet-title')).toHaveText('Abendessen')
+    await expect(mealSheet(page).locator('[data-testid^="meal-slot-"]')).toHaveText(short)
+    await mealSheet(page).getByTestId('meal-sheet-close').click()
+    await sheetGone(page)
+
+    await page.goto(PATH.dashboard)
+    const block = visiblePage(page).getByTestId('dashboard-meals-Engadin Wörter')
+    await expect(block.locator('[data-testid^="dashboard-meal-"] .jp-eyebrow')).toHaveText(short)
+    await expect(block).not.toContainText(cipher)
   })
 })
