@@ -60,3 +60,7 @@ no own positions), and an "enthält: …" line naming the included groups. **The
   which "nothing was created" is also true of a broken button). The rename alert refuses onto a taken name with a toast
   naming the holder, **stays open with the typed name**, and the row keeps the name it had; the same menu with a free
   name renames. Local Mode deliberately, because it is the run mode with no constraint behind the client.
+* **E2E-M7-13** `local` (FR-21.11, UX-16) — **implemented** (`template-list.spec.ts`): under *Alle* with one Vorlage and
+  one Gruppe, each section head's count ends on the right edge of the card below it and its name starts on the card's
+  left edge (to the pixel). Red before the fix: the count stood 6 px past the card (the head's own 2 px against the
+  cards' 8 px).

@@ -3,6 +3,7 @@ import {
   addPosition,
   backToTemplateList as backToList,
   createTemplate,
+  expectHeadMeetsCard,
   includeGroup,
   visiblePage as visible,
 } from './fixtures'
@@ -75,6 +76,19 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     // on the two locators existing.
     const heads = await list.locator('.section-head').allInnerTexts()
     expect(heads.map((h) => h.split('\n')[0])).toEqual(['Vacation templates', 'Groups'])
+  })
+
+  test("E2E-M7-13: each section head ends where its card ends — the count on the card's right edge", async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+    await backToList(page)
+
+    const list = visible(page)
+    await expectHeadMeetsCard(list.getByTestId('m7-section-template'))
+    await expectHeadMeetsCard(list.getByTestId('m7-section-group'))
   })
 
   test('E2E-M7-07: a group row carries the Gruppe chip and a Vorlage row does not', async ({

@@ -135,3 +135,6 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   (`template-editor.spec.ts`): an unknown name in M8's composer opens
   the *„Neuer Artikel"* sheet instead of creating the master item silently; nothing is a position before *„Anlegen"*,
   and after it the name is a position and an inventory item.
+* **E2E-M8-29** `local` (FR-21.11, UX-16) — **implemented** (`template-editor.spec.ts`): on a Vorlage with one included
+  Gruppe and one own position, the *Gruppen*, *Eigene Positionen* and *Aufgaben für die Reise* heads each end on their
+  card's right edge and start on its left edge.
