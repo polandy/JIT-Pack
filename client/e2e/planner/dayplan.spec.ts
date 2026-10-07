@@ -464,8 +464,8 @@ test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @loca
 
     // The time column: a time, a slot word, ganztags, and nothing — no dash anywhere.
     await expect(timeOf('Segantini-Museum')).toHaveText('10:00')
-    await expect(timeOf('Picknick')).toHaveText('mittags')
-    await expect(timeOf('Pizza')).toHaveText('abends')
+    await expect(timeOf('Picknick')).toHaveText('Mittag')
+    await expect(timeOf('Pizza')).toHaveText('Abend')
     await expect(timeOf('Hüttentour')).toHaveText('ganztags')
     await expect(timeOf('Briefkasten leeren')).toHaveText('')
     await expect(timeOf('Wäsche abholen')).toHaveText('')

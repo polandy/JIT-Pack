@@ -36,20 +36,18 @@ export const mealsDe: Record<keyof typeof mealsEn, string> = {
   'meals.movedFreshMore': '{names} + {more} weitere',
   'meals.arrival': '🚗 Anreise',
   'meals.departure': '🚗 Abreise',
+  // Two forms of a slot (§3.33): the long one titles the sheet, the short one is the slot
+  // wherever it is a label — one word per slot across M31, M29 and M1.
   'meals.slot.breakfast': 'Frühstück',
   'meals.slot.lunch': 'Mittagessen',
-  'meals.slot.snack': 'Zwischendurch',
+  'meals.slot.snack': 'Znüni/\u200bZvieri',
   'meals.slot.dinner': 'Abendessen',
   'meals.slotShort.breakfast': 'Morgen',
   'meals.slotShort.lunch': 'Mittag',
   // A zero-width space after the slash: where the label may break in a column narrower
-  // than it (M31's rows, the drag chip) — browsers break no word at a slash (G-13).
+  // than it (M31's rows, M29's time column, the drag chip, the sheet's title) — browsers break no word at a slash (G-13).
   'meals.slotShort.snack': 'Znüni/\u200bZvieri',
   'meals.slotShort.dinner': 'Abend',
-  'meals.slotWord.breakfast': 'früh',
-  'meals.slotWord.lunch': 'mittags',
-  'meals.slotWord.snack': 'zw.',
-  'meals.slotWord.dinner': 'abends',
   'meals.cooks': '{name} kocht',
   'meals.bought': '{bought} von {total} Zutaten eingekauft',
   'meals.boughtOf': '{bought} von {total} Zutaten',

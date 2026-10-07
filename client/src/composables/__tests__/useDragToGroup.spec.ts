@@ -847,7 +847,7 @@ describe('useDragToGroup — a choice carried above the finger', () => {
       options: [
         { key: 'breakfast', label: 'Früh' },
         { key: 'lunch', label: 'Mittag' },
-        { key: 'snack', label: 'Zw.' },
+        { key: 'snack', label: 'Znüni/Zvieri' },
         { key: 'dinner', label: 'Abend', current: true },
       ],
     }),
@@ -871,7 +871,7 @@ describe('useDragToGroup — a choice carried above the finger', () => {
       'keeps dinner',
       'Früh',
       'Mittag',
-      'Zw.',
+      'Znüni/Zvieri',
       'Abend',
     ])
     expect(fields()[4]!.hasAttribute('data-current')).toBe(true)

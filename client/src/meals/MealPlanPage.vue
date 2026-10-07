@@ -149,7 +149,7 @@ function gapOpen(run: readonly string[]): boolean {
 }
 
 /** The short name of a slot, as the rows and the chip's fields say it. */
-const slotWord = (slot: MealSlot) => t(`meals.slotShort.${slot}`)
+const slotShort = (slot: MealSlot) => t(`meals.slotShort.${slot}`)
 
 /**
  * FR-33.15: the drag. Only a day ahead takes a meal; the slot is chosen in
@@ -160,18 +160,18 @@ const slotWord = (slot: MealSlot) => t(`meals.slotShort.${slot}`)
 const drag = useDragToGroup<Meal>({
   carry: {
     title: (meal) => meal.title,
-    tag: (meal) => slotWord(meal.slot),
+    tag: (meal) => slotShort(meal.slot),
     target: (meal, place, label, choice) => {
       const slot = (choice as MealSlot | null) ?? meal.slot
       if (place.target === meal.on_date && slot === meal.slot) return null
-      return slot === meal.slot ? label : `${label} · ${slotWord(slot)}`
+      return slot === meal.slot ? label : `${label} · ${slotShort(slot)}`
     },
     stays: (meal) => t('meals.moveStays', { day: shortDueDay(meal.on_date) }),
     choices: (meal) => ({
-      keep: t('meals.moveKeepsSlot', { slot: slotWord(meal.slot) }),
+      keep: t('meals.moveKeepsSlot', { slot: slotShort(meal.slot) }),
       options: MEAL_SLOTS.map((slot) => ({
         key: slot,
-        label: slotWord(slot),
+        label: slotShort(slot),
         current: slot === meal.slot,
       })),
     }),
@@ -259,7 +259,7 @@ function move(meal: Meal, day: string, slot: MealSlot) {
   const nameOf = (id: string | null) => excursions.find((e) => e.id === id)?.name ?? null
   const leftFor = to.excursion_id !== meal.excursion_id ? nameOf(meal.excursion_id) : null
   const along = to.excursion_id !== meal.excursion_id ? nameOf(to.excursion_id) : null
-  const words = { title: meal.title, day: shortDueDay(day), slot: slotWord(slot) }
+  const words = { title: meal.title, day: shortDueDay(day), slot: slotShort(slot) }
   const moved = t(slot === meal.slot ? 'meals.moved' : 'meals.movedSlot', words)
   const fresh = freshNote(meal.on_date, day, ingredientsOf(meal), learned())
   const notes = [

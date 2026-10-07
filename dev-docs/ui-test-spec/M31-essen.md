@@ -21,8 +21,8 @@
   before the trip — with the dish and its ingredients taken, marked as coming from that trip. On a new meal they are
   offered by what is typed; taking one fills the dish and its ingredients, none bought.
 * **E2E-M31-05** `local` (FR-33.5) — **implemented** (`meals/mealplan.spec.ts`): a meal stands on the day plan as a
-  *meal* line — untimed at its slot's place after a timed line before it, with *dinner* in the time column and its
-  bought share — and a tap opens its sheet over the day plan.
+  *meal* line — untimed at its slot's place after a timed line before it, with *Dinner* in the time column, *Meal* as
+  its label and its bought share — and a tap opens its sheet over the day plan.
 * **E2E-M31-06** `local` (FR-33.6) — **implemented** (`meals/mealplan.spec.ts`): a lunch on an excursion's day offers
   *Take on the excursion*; switched on, the excursion's list on M27 carries the meal as one line, ticked there and
   counted in its share, and the day plan's excursion line names it. Moved to dinner, it leaves the excursion.
@@ -78,3 +78,8 @@
   in M1's block, and no word is split over two lines or runs past its label (*Znüni/Zvieri* may break only at its slash,
   the catalogue's zero-width space). Fails on the 54 px column (*MORGE/N*) and on a field that cannot wrap
   (*Znüni/Zvi*).
+* **E2E-M31-18** `local` (§3.33, FR-29.15, UX-10) — **implemented** (`meals/mealplan.spec.ts`): in German, four meals
+  today, one per slot: M29's time column reads *Morgen · Mittag · Znüni/Zvieri · Abend* and every line's label
+  *Mahlzeit*; the dinner's sheet is titled *Abendessen* over the same four short chips; M1's *Heute essen* reads the
+  same four words; neither M29's timeline nor M1's block holds *zw.* in any case. Fails on *früh · mittags · zw. ·
+  abends* in the column and on *Abendessen* as M29's label.

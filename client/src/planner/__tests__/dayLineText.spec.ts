@@ -102,7 +102,7 @@ describe('dayLineTime — the time column, one grammar (FR-29.15)', () => {
   afterEach(() => setLocale(DEFAULT_LOCALE))
 
   it('says a line’s own time, over any word its source has', () => {
-    const source = { timeWord: 'abends' } as DayPlanLine
+    const source = { timeWord: 'Abend' } as DayPlanLine
     expect(dayLineTime(line({ time: '19:30', kind: DAY_LINE.meal, source }))).toEqual({
       text: '19:30',
       word: false,
@@ -110,9 +110,9 @@ describe('dayLineTime — the time column, one grammar (FR-29.15)', () => {
   })
 
   it('says an untimed meal’s slot word', () => {
-    const source = { timeWord: 'mittags' } as DayPlanLine
+    const source = { timeWord: 'Mittag' } as DayPlanLine
     expect(dayLineTime(line({ kind: DAY_LINE.meal, source }))).toEqual({
-      text: 'mittags',
+      text: 'Mittag',
       word: true,
     })
   })

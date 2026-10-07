@@ -111,7 +111,7 @@
   opens the entry sheet titled *„New on …"*, and the ＋ is named with exactly that title; with the last day chosen it no
   longer is. M29 keeps its sheet rather than M6's composer.
 * **E2E-M29-22** `local` (FR-29.15, UX-09) — **implemented** (`planner/dayplan.spec.ts`, the browser's clock set): on a
-  day holding every kind, in German, the time column reads *10:00* (an idea), *mittags* and *abends* (untimed meals),
+  day holding every kind, in German, the time column reads *10:00* (an idea), *Mittag* and *Abend* (untimed meals),
   *ganztags* (an excursion) and nothing for a task due that day, an untimed entry and the arrival; the cooked meal's
   ring is named *„0 von 2 Zutaten"* and the excursion's *„0 von 1 gepackt"*; the task carries a checkbox named
   *„„Briefkasten leeren" abhaken"*; the idea, the entry and the eaten-out meal have their line's button and nothing

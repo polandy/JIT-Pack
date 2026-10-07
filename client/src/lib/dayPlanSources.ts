@@ -68,10 +68,8 @@ export interface DayPlanLine {
    * its slot's place (FR-33.1). Absent: after every timed line.
    */
   placeAt?: string
-  /** What the time column says for such a line — the slot's word. */
+  /** What the time column says for such a line — the slot's short noun. */
   timeWord?: string
-  /** The small label over the title, where the source names its kind itself — the meal's slot. */
-  label?: string
   /**
    * Whom it is for, as traveller ids — an excursion narrowed to some
    * (FR-31.3), shown as the day plan's own entries show theirs (FR-29.15).

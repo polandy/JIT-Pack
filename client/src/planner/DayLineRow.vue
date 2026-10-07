@@ -68,7 +68,7 @@ const mapOpen = ref(false)
         >{{ time.text }}</span
       >
       <span class="body">
-        <span class="kind">
+        <span class="kind" :data-testid="`m29-kind-${line.key}`">
           <IonIcon :icon="KIND_ICON[line.kind]" aria-hidden="true" />
           {{ words.kind }}
         </span>
