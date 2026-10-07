@@ -21,7 +21,7 @@ Every result is re-read, and paid for, on each later turn.
 - **Specs are directories, one file per section** — `dev-docs/prd-addendum/3.29-*.md`, `dev-docs/ui-spec/M28-*.md`, `dev-docs/ui-test-spec/M28-*.md`. Open the section a change touches, never the set.
 - **Ledgers are read through their index lines**: `grep -h "^- \[" dev-docs/implementation-log/*.md | grep -i <topic>`, then that section alone.
 - **Grep before you read**, and read a large file by offset. **Bundle independent commands into one call**; never repeat a `git status`-style check whose answer cannot have changed.
-- **Delegate the mechanical to a cheaper model** (a red CI log, a rename sweep, merging `main` and re-running `make ci`): a subagent at `model: "sonnet"` (`"haiku"` for a pure lookup) that reports back in a few lines. Design, review verdicts and spec text stay with the main session.
+- **Delegate by threshold**: a read over ~10 KB, a spec lookup, every `make ci`, test or e2e run, a red CI log and a rename sweep go to a subagent (`Explore` to find, `model: "sonnet"` to run) reporting in a few lines. Design, review verdicts and spec writing stay with you.
 
 ## Where things live
 
