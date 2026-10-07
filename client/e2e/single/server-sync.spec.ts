@@ -83,7 +83,7 @@ async function expectHistoryHint(page: Page, series: string, item: string, ...ex
   await visiblePage(page).getByTestId('wizard-next').click()
   await visiblePage(page).getByTestId('wizard-next').click()
 
-  await visiblePage(page).getByTestId('wizard-item-search').locator('input').fill(item)
+  await visiblePage(page).getByTestId('wizard-item-search').fill(item)
   await visiblePage(page).getByTestId('wizard-item-suggestions').getByText(item).click()
   await visiblePage(page).getByTestId('wizard-next').click()
   await expect(visiblePage(page).getByTestId('wizard-step-4')).toBeVisible()

@@ -18,8 +18,9 @@ export const tripsEn = {
   'wizard.namePlaceholder': 'e.g. Engadin 2026',
   'wizard.year': 'Year',
   'wizard.moreOptions': 'More options',
-  'wizard.moreSummaryEmpty': 'Dates · series · attributes',
+  'wizard.moreSummaryEmpty': 'Series · attributes',
   'wizard.dates': 'Trip dates (optional)',
+  'wizard.datesHint': 'With dates you get the day plan, meals and the countdown.',
   'wizard.series': 'Series',
   'wizard.seriesNone': 'No series',
   'wizard.seriesNew': 'New series…',
@@ -144,7 +145,11 @@ export const tripsEn = {
   'trips.exportClean': 'Clean list (unpacked)',
 
   // M3 step 2 â travelers, sharing and roles (FR-2.5, FR-4.5/4.7).
-  'wizard.step': 'Step {n} of 4',
+  'wizard.step': 'Step {n} · {name}',
+  'wizard.stepName1': 'Trip',
+  'wizard.stepName2': 'Travellers',
+  'wizard.stepName3': 'Contents',
+  'wizard.stepName4': 'Quantities',
   'wizard.sectionTravelers': 'Travelers',
   'wizard.travelerNamePlaceholder': 'Name',
   'wizard.travelerRemove': 'Remove traveler',

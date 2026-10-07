@@ -7,7 +7,8 @@ want to remember for a day — a table you booked, the hire car to pick up.
 ## Opening it
 
 The day plan is the **calendar** — the last icon in the row under the trip's name. It is there only once the trip has
-both a start and an end date; set them in the trip's properties if the icon is missing.
+both a start and an end date. A new trip asks for them on its first step, right under the name and year; for an
+existing trip, set them in the trip's properties if the icon is missing.
 
 **During the trip you land on it.** From the trip's first day to its last — or from *Reise starten* if you started it
 early — tapping the trip on the overview or in the trip list opens the day plan on today. On a day with nothing planned

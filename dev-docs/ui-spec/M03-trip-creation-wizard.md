@@ -2,14 +2,24 @@
 
 * **Enter is the step's button (G-16):** each step's plain text fields fire the step's own navigation action behind its
   validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter* (the dates
-  are a G-17 range field — its Enter opens the picker, and the folded row's summary states the range through
-  `formatDayRange`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its
-  Enter is reserved for the field's own result list), so step 3 is left by the button alone.
+  are a G-17 range field — its Enter opens the picker), a step-4 quantity fires *Reise anlegen*. The single-item
+  search on step 3 is G-16-exempt (its Enter is reserved for the field's own result list), so step 3 is left by the
+  button alone.
 * **Step 2 opens with the default travellers (FR-2.5a)** from M17, editable there like any other traveller.
   A default picked from the accounts opens as the account picker adds one: linked, a collaborator, with
   the role selector.
-* **Step 1 folds its optional fields (FR-2.1c):** name and year stand alone; dates, series and attributes
-  live behind one *Mehr Optionen ▾* row that states what is set behind it.
+* **Step 1 shows the dates and folds the rest (FR-2.1c):** name, year and the date range (optional, with the hint
+  *Mit Daten gibt es Tagesplan, Essen und Countdown.*) stand open; series and attributes live behind one *Mehr Optionen
+  ▾* row that states what is set behind it.
+* **The navigation is a fixed footer (G-16):** one band pinned above the tab bar on all four steps — a 46 px *‹ Zurück*
+  square (disabled on step 1) and the step's default action filling the rest: *Weiter*, on step 4 *Reise anlegen · n
+  Artikel*. The steps scroll under it; the band never moves with their content, so *Weiter* stays on screen however
+  long step 3's template list. The soft keyboard covers it as it covers the tab bar — the field's Enter is
+  the same action (G-16), so the footer is not chased above the keyboard.
+* **The head names the step:** its second line reads *Schritt n · Name* — *Reise · Reisende · Inhalt · Mengen* — rather
+  than a bare counter, so a step says what it is for before its content does.
+* **Step 3's single-item search is a search field:** M9's `SearchRow` (magnifier, filled field, ✕ only with a query),
+  not a bare input that reads as a sentence.
 * **Step 1 requires a name and a year (FR-2.1b).** The year is a picker that opens on the current one, so
   the required field is satisfied on arrival; the range field is marked optional and does not gate *Next*. The
   trip's length is the field's own pill, shown only when both dates are set.

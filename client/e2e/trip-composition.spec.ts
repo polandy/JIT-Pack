@@ -244,13 +244,13 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(visible(page).getByTestId('wizard-item-count')).toContainText('3 items')
 
     // A single item the composition does not carry raises the count.
-    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Droh')
+    await visible(page).getByTestId('wizard-item-search').fill('Droh')
     await visible(page).getByTestId('wizard-item-suggestions').getByText('Drohne').click()
     await expect(visible(page).getByTestId('wizard-item-chips')).toContainText('Drohne')
     await expect(visible(page).getByTestId('wizard-item-count')).toContainText('4 items')
 
     // One the picked Vorlage already brings is reported, and changes nothing.
-    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Kam')
+    await visible(page).getByTestId('wizard-item-search').fill('Kam')
     await visible(page).getByTestId('wizard-item-suggestions').getByText('Kamera').click()
     await expect(visible(page).getByTestId('wizard-item-duplicates')).toContainText('Kamera')
     await expect(visible(page).getByTestId('wizard-item-count')).toContainText('4 items')
@@ -261,7 +261,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
 
     // Add it back and finish: the row has to reach the trip, which is the
     // half a count on a preview cannot prove.
-    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Droh')
+    await visible(page).getByTestId('wizard-item-search').fill('Droh')
     await visible(page).getByTestId('wizard-item-suggestions').getByText('Drohne').click()
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()

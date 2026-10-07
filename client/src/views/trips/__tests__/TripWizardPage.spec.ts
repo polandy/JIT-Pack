@@ -15,7 +15,6 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripWizardPage from '../TripWizardPage.vue'
-import { formatDayRange } from '@/i18n'
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -487,15 +486,9 @@ describe('what the trip follows (FR-27.4)', () => {
 })
 
 describe('M3 step 3 — single items (FR-27.3)', () => {
-  /**
-   * Type into the picker. `ionInput` rather than setValue: `v-model` on an
-   * ion-input listens for that event, and setValue does not reach a custom
-   * element's value binding — the same seam the wizard's name field uses.
-   */
+  /** Type into the picker — M9's search row, a plain input. */
   async function search(wrapper: Awaited<ReturnType<typeof mountAtStepThree>>, query: string) {
-    await wrapper
-      .get('[data-testid="wizard-item-search"]')
-      .trigger('ionInput', { detail: { value: query } })
+    await wrapper.get('[data-testid="wizard-item-search"]').setValue(query)
   }
 
   it('offers inventory matches and adds the picked one as a chip', async () => {
@@ -685,9 +678,7 @@ describe('M3 step 3 — the picker does not outlive the inventory (FR-27.3)', ()
     seedComposition()
     item('drone', 'Drohne')
     const wrapper = await mountAtStepThree()
-    await wrapper
-      .get('[data-testid="wizard-item-search"]')
-      .trigger('ionInput', { detail: { value: 'Droh' } })
+    await wrapper.get('[data-testid="wizard-item-search"]').setValue('Droh')
     await wrapper.get('[data-testid="wizard-item-suggestion-drone"]').trigger('click')
     expect(wrapper.get('[data-testid="wizard-item-chips"]').text()).toContain('Drohne')
 
@@ -703,7 +694,7 @@ describe('M3 step 3 — the picker does not outlive the inventory (FR-27.3)', ()
 })
 
 describe('M3 step 1 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
-  /** Step one with the optional fold open, where the dates live (FR-2.1c). */
+  /** Step one as it opens: the dates stand beside the name, unfolded (FR-2.1c). */
   async function mountAtDates() {
     const wrapper = mount(TripWizardPage, {
       global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
@@ -711,10 +702,9 @@ describe('M3 step 1 — the trip’s dates are one range (FR-2.1d, G-17)', () =>
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Fototour' },
     })
-    await wrapper.get('[data-testid="wizard-more"]').trigger('click')
     return wrapper
   }
-  it('shows the picked range on the field and on the folded row', async () => {
+  it('shows the picked range on the open field, and the fold keeps only what it holds', async () => {
     const wrapper = await mountAtDates()
 
     await wrapper.findComponent(DateRangeField).vm.$emit('update', '2026-09-10', '2026-09-20')
@@ -722,9 +712,8 @@ describe('M3 step 1 — the trip’s dates are one range (FR-2.1d, G-17)', () =>
     const field = wrapper.findComponent(DateRangeField)
     expect(field.props('start')).toBe('2026-09-10')
     expect(field.props('end')).toBe('2026-09-20')
-    expect(wrapper.get('[data-testid="wizard-more-summary"]').text()).toContain(
-      formatDayRange('2026-09-10', '2026-09-20'),
-    )
+    // The range is on screen already; the folded row names what is behind it.
+    expect(wrapper.get('[data-testid="wizard-more-summary"]').text()).toBe('Series · attributes')
   })
 })
 
@@ -794,9 +783,7 @@ describe('M3 step 4 — the history the series already has (FR-14.2)', () => {
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     // FR-27.3: the single item is what gives step 4 a row to suggest on.
-    await wrapper.get('[data-testid="wizard-item-search"]').trigger('ionInput', {
-      detail: { value: 'Sonnen' },
-    })
+    await wrapper.get('[data-testid="wizard-item-search"]').setValue('Sonnen')
     await wrapper.get('[data-testid="wizard-item-suggestion-sun"]').trigger('click')
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     expect(wrapper.find('[data-testid="wizard-step-4"]').exists()).toBe(true)

@@ -15,8 +15,12 @@
  *
  * Each step is a component under `wizard/`, each step's draft a composable
  * there; `useWizardCore` holds them together.
+ *
+ * The navigation is a footer pinned above the tab bar (G-16): a step's button
+ * sits where the last one did, however long the step's content.
  */
-import { IonPage, IonContent, IonButton } from '@ionic/vue'
+import { IonPage, IonContent, IonFooter, IonButton, IonIcon } from '@ionic/vue'
+import { chevronBackOutline } from 'ionicons/icons'
 
 import { t } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
@@ -33,10 +37,23 @@ const { step, stepValid, next, back, creation, createTrip } = core
 const { peekTemplateId } = core.composition
 const { comingCount } = core.review
 
+/** The head's name for each step, in step order. */
+const STEP_NAME_KEYS = [
+  'wizard.stepName1',
+  'wizard.stepName2',
+  'wizard.stepName3',
+  'wizard.stepName4',
+] as const
+
 // ADR-050: the frame renders this page head, above the outlet.
 setHeaderTitle(
   () => t('trips.new'),
-  () => t('wizard.step', { n: step.value }),
+  () =>
+    t('wizard.step', {
+      n: step.value,
+      // `step` is clamped to 1–4 by `next`/`back`; the index cannot miss.
+      name: t(STEP_NAME_KEYS[step.value - 1] ?? STEP_NAME_KEYS[0]),
+    }),
 )
 </script>
 
@@ -48,24 +65,6 @@ setHeaderTitle(
       <WizardCompositionStep v-if="step === 3" :core="core" />
       <WizardReviewStep v-if="step === 4" :core="core" />
 
-      <!-- Wizard navigation -->
-      <div class="wizard-nav">
-        <IonButton v-if="step > 1" data-testid="wizard-back" fill="outline" @click="back">
-          {{ t('wizard.back') }}
-        </IonButton>
-        <IonButton v-if="step < 4" data-testid="wizard-next" :disabled="!stepValid" @click="next">
-          {{ t('wizard.next') }}
-        </IonButton>
-        <IonButton
-          v-if="step === 4"
-          data-testid="wizard-create"
-          color="primary"
-          :disabled="creation.submitted.value"
-          @click="createTrip"
-        >
-          {{ t('wizard.createTrip', { n: comingCount }) }}
-        </IonButton>
-      </div>
       <!-- FR-27.12: look inside a group without losing the draft -->
       <SheetModal :is-open="peekTemplateId !== null" @dismiss="peekTemplateId = null">
         <GroupPeekSheet
@@ -75,14 +74,61 @@ setHeaderTitle(
         />
       </SheetModal>
     </IonContent>
+    <IonFooter class="wizard-nav" data-testid="wizard-footer">
+      <IonButton
+        class="back"
+        data-testid="wizard-back"
+        fill="outline"
+        :disabled="step === 1"
+        :aria-label="t('wizard.back')"
+        @click="back"
+      >
+        <IonIcon slot="icon-only" :icon="chevronBackOutline" />
+      </IonButton>
+      <IonButton
+        v-if="step < 4"
+        class="forward"
+        data-testid="wizard-next"
+        :disabled="!stepValid"
+        @click="next"
+      >
+        {{ t('wizard.next') }}
+      </IonButton>
+      <IonButton
+        v-else
+        class="forward"
+        data-testid="wizard-create"
+        :disabled="creation.submitted.value"
+        @click="createTrip"
+      >
+        {{ t('wizard.createTrip', { n: comingCount }) }}
+      </IonButton>
+    </IonFooter>
   </IonPage>
 </template>
 
 <style scoped>
 .wizard-nav {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 24px;
+  gap: 10px;
+  padding: 10px 16px 12px;
+  background: var(--jp-surface-page);
+  border-top: 1px solid var(--jp-surface-border);
+}
+
+.wizard-nav ion-button {
+  margin: 0;
+  height: 46px;
+}
+
+/* The back square: a known place, not a second label competing with the step's action. */
+.wizard-nav .back {
+  flex: 0 0 46px;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.wizard-nav .forward {
+  flex: 1;
 }
 </style>
