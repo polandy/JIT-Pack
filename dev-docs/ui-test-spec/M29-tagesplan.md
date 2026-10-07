@@ -107,3 +107,6 @@
   choice outlives a reload; *Show all* is everybody again. Which lines concern whom — a task by its assignee's account,
   a way by its excursion — is `concerns`' in `domain/__tests__/dayPlan.spec.ts`, the first visit on my own traveller
   `openingFilter`'s, the remembered choice `planner/__tests__/dayPlanFilter.spec.ts`'s.
+* **E2E-M29-21** `local` (FR-21.24) — **implemented** (`planner/dayplan.spec.ts`): with the second day chosen, the ＋
+  opens the entry sheet titled *„New on …"*, and the ＋ is named with exactly that title; with the last day chosen it no
+  longer is. M29 keeps its sheet rather than M6's composer.

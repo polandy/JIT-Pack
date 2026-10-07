@@ -11,6 +11,7 @@ import {
   tripWithRows,
 } from './helpers/m4'
 import { createTripViaWizard, openTripView } from './helpers/trips'
+import { openListComposer } from './helpers/composer'
 import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { dropBeside } from './helpers/drag'
@@ -625,6 +626,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
 
     const before = await openTasks(page, 'before')
     const host = visible(page).getByTestId('m25-page')
+    const composer = await openListComposer(page, 'm25')
     // A real right-click, not a dispatched `contextmenu`: its own pointerdown
     // arrives first, and once armed a hold that nothing disarmed re-selected
     // the row half a second later and swallowed the next tap.
@@ -636,7 +638,6 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // The grip steps aside while choosing; the composer stays where it is, at
     // rest, so the list under it does not move (G-20).
     await expect(before.getByTestId('trip-todo-grip-Salbe holen')).toHaveCount(0)
-    const composer = visible(page).getByTestId('m25-composer')
     await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
     await expect(composer.locator('xpath=..')).toHaveAttribute('inert', '')
 
@@ -811,7 +812,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     const before = await openTasks(page, 'before')
     await expect(visible(page).getByTestId('m25-due')).toHaveCount(0)
 
-    const composer = visible(page).getByTestId('m25-composer')
+    const composer = await openListComposer(page, 'm25')
     await fillIonic(composer.getByTestId('trip-todo-input'), 'Fetch the salve')
     await composer.getByTestId('due-chip-today').click()
     await expect(composer.getByTestId('m25-composer-due-current')).toBeVisible()
@@ -963,7 +964,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await createTripViaWizard(page, { name: 'Unterwegs', startDate, travelers: ['Andy'] })
     const during = await openTasks(page, 'during')
 
-    const composer = visible(page).getByTestId('m25-composer')
+    const composer = await openListComposer(page, 'm25')
     // The positive signal first: the composer is on screen, so the phase
     // row's absence is read off a rendered page.
     await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
@@ -1004,7 +1005,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await startTrip(page)
 
     const during = await openTasks(page, 'during')
-    const composer = visible(page).getByTestId('m25-composer')
+    const composer = await openListComposer(page, 'm25')
     await expect(composer.getByTestId('trip-todo-input')).toBeVisible()
     await expect(composer.getByTestId('m25-composer-phase')).toHaveCount(0)
     await fillIonic(composer.getByTestId('trip-todo-input'), 'Maut zahlen')
@@ -1029,7 +1030,58 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await writesLanded(page)
     await page.reload()
     await openTripView(page, 'shopping')
-    await expect(visible(page).getByTestId('m6-composer')).toBeVisible()
+    await openListComposer(page, 'm6')
     await expect(visible(page).getByTestId('m6-composer-list')).toHaveCount(0)
+  })
+})
+
+test.describe('M25 — the ＋ is the one door to the composer (FR-21.24) @local @m25', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M25-21 (FR-21.24, FR-7.14): M4's door on M25. A trip with no task finds
+   * the composer open (G-7) and no ＋ over the list; it stays open through a
+   * run of tasks, ✕ closes it and brings the ＋ back, and once the trip has a
+   * task it is closed on arrival — the ＋ opens it with the cursor in the field,
+   * Escape closes it again.
+   */
+  test('E2E-M25-21: the composer is closed at rest, opened by the ＋ and closed by ✕ or Escape; a trip with no task finds it open', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    const before = await openTasks(page, 'before')
+    const composer = visible(page).getByTestId('m25-composer')
+    const fab = visible(page).getByTestId('m25-fab')
+    const field = composer.getByTestId('trip-todo-input')
+
+    await expect(composer).toBeVisible()
+    await expect(fab).toBeHidden()
+    await fillIonic(field, 'Water the plants')
+    await field.locator('input').press('Enter')
+    await expect(before.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    // Tasks come in runs: the first one does not close it.
+    await expect(composer).toBeVisible()
+
+    await fillIonic(field, 'Ask')
+    await visible(page).getByTestId('m25-composer-close').click()
+    await expect(composer).toHaveCount(0)
+    await expect(visible(page).getByRole('button', { name: 'Add a task' })).toBeVisible()
+
+    await writesLanded(page)
+    await page.reload()
+    const reopened = await openTasks(page, 'before')
+    await expect(reopened.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(composer).toHaveCount(0)
+
+    await fab.click()
+    await expect(composer).toBeVisible()
+    await expect(fab).toBeHidden()
+    await expect(field.locator('input')).toBeFocused()
+    await expect(field.locator('input')).toHaveValue('')
+    await field.locator('input').press('Escape')
+    await expect(composer).toHaveCount(0)
+    await expect(fab).toBeVisible()
   })
 })

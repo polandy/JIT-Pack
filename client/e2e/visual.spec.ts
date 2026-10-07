@@ -304,8 +304,8 @@ test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) 
 // beside the packing and shopping lists, and the one place where both kinds
 // of task and both phases are visible at once: a preparation with the chip
 // of its row under *Vor der Reise*, a chore of the trip under *Während der
-// Reise*, and the provenance line under each. With FR-7.14: the composer on
-// top, the *Fällig* block and the two-line rows.
+// Reise*, and the provenance line under each. With FR-7.14: the *Fällig*
+// block and the two-line rows; with FR-21.24 the composer closed behind the ＋.
 test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })

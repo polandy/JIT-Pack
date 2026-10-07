@@ -62,7 +62,9 @@
   trip; a chip plans the idea on that day and toasts *„„…" steht am Fr., 2.10."*. With none left the sheet says *„Alle
   Ideen auf der Shortlist haben einen Tag."* and the bar is gone.
 * **„+" (the FAB, `m29-fab`, `FAB_ANCHOR.m29`)** opens *„Neu am Mi., 15.7."* (`day-entry`), *„Ein Termin, eine
-  Erinnerung oder eine Fahrt."* under it, with **one form**:
+  Erinnerung oder eine Fahrt."* under it — the FAB's accessible name is that title, so it says which day it adds to.
+  **A sheet, not M6's composer** (FR-21.24): an entry carries a day, a time and for whom, which one line on top of the
+  list cannot hold. **One form**:
   * **Von der Shortlist einplanen** (`day-entry-pool`), where shortlisted ideas have no day: one chip per idea
     (`day-entry-plan-<id>`, 💡 and its title), scrolled sideways. A tap plans the idea on the chosen day, closes the
     sheet and toasts *„„…" steht am Di., 15.7."*. Without such ideas the row is not there.

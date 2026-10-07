@@ -5,6 +5,7 @@ import { addDayEntry, dayPlan, openDayPlan, timelineLines } from '../helpers/m29
 import { browserDay } from '../helpers/page'
 import { askToStart, openTripView } from '../helpers/trips'
 import { addTripTodo } from '../helpers/m4'
+import { openListComposer } from '../helpers/composer'
 import type { Page } from '@playwright/test'
 
 /**
@@ -147,6 +148,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
 
     // Something to buy: the shopping list, the task notwithstanding.
     await openTripView(page, 'shopping')
+    await openListComposer(page, 'm6')
     await shopping().getByTestId('m6-add-input').locator('input').fill('Sonnencreme')
     await shopping().getByTestId('m6-add-submit').click()
     await expect(shopping().getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()

@@ -10,14 +10,16 @@
   list. M4 shows a *window* of the same list. Nothing is filed twice, which is what gives the phase its meaning: moving
   a task to *Während der Reise* takes it off the packing list.
 * **Shaped by a UX review (FR-7.14, which records its seven decisions).** In one line each: what is due now leads in
-  its own block; one composer on top with chips, and the FAB; two-line rows with no ✕; one *erledigt* fold per phase;
+  its own block; one composer on top with chips, behind the FAB; two-line rows with no ✕; one *erledigt* fold per phase;
   a finished packing's *before* at the end, folded; the sheet ordered by how often each act is wanted; the selection's
   bar carries *Erledigt*, *Fällig* and *Löschen*.
 * **Elements, top to bottom:**
   * **The *Meine* chip**, off by default — the whole list is the screen's subject. It narrows to the tasks handed to
     the viewer. **Absent where nobody can be named** (Local Mode, Single-User Mode, a trip with no second member,
     G-8): with nobody to hand a task to, every task is everybody's.
-  * **The composer** (`TaskComposer`, `m25-composer`, a card) — M6's shape: the field and its ＋, then chips that
+  * **The composer** (`TaskComposer`, `m25-composer`, a card) — M6's shape and M6's door (FR-21.24): closed at rest,
+    opened by the FAB, closed by ✕ (`m25-composer-close`) or Escape, which empty the field and the day (phase and tag
+    stay chosen); open on a trip with no task yet. The field and its ＋, then chips that
     file the task as it is typed. **The phase**: *Vor der Reise* / *Unterwegs*, *Vor der Reise* chosen until the
     trip is **under way** — started, its first day come, or its packing finished (`beforeIsOver`, FR-30.8's rule; an
     undated trip nobody has started keeps both); then the row goes and the field says *„Aufgabe für unterwegs…"*.
@@ -55,8 +57,9 @@
   * **One *erledigt* fold per phase**, at the section's end (*„N erledigt"*, `trip-todos-resolved`) — not one under
     every tag group, where a *„1 erledigt"* between two headings would read like a heading. Its
     rows name their tag on the second line and can be unticked.
-  * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`), the one M4, M6 and M26 carry: it scrolls to the top and focuses the
-    composer's field. Hidden while selecting; the snackbar clears it.
+  * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`, *„Aufgabe hinzufügen"*), the one M4, M6 and M26 carry: it scrolls
+    to the top, opens the composer and focuses its field, and is gone while the composer is open — hidden, still the
+    snackbar's anchor (M6's rule). Removed while selecting; the snackbar clears it.
 * **A task's line (FR-7.14): two lines at most.** The first is the grip and the words; the second, where there is
   anything to say, is what is known about the task — the **due pill**, the **row it prepares** (the chip leading to
   it) and the **tag** where the row stands outside its group. **The person stands at the row's edge, before the tick**

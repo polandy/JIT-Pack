@@ -17,6 +17,7 @@ import { IonButton, IonInput, IonSearchbar } from '@ionic/vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
+import ListComposer from '@/components/global/ListComposer.vue'
 import ShoppingPage from '../ShoppingPage.vue'
 import { useShoppingStore } from '../store'
 import { useTripStore } from '@/stores/tripStore'
@@ -180,6 +181,12 @@ function mountPage(sources?: ShoppingSource[], orchestrator: Record<string, unkn
       stubs: { IonModal: { props: ['isOpen'], template: '<div><slot /></div>' } },
     },
   })
+}
+
+/** FR-21.24: the composer is behind the FAB on a list with something on it. */
+async function openComposer(page: ReturnType<typeof mountPage>) {
+  await page.findComponent(ListComposer).vm.open()
+  await flushPromises()
 }
 
 function seedEntry(id: string, row: Record<string, unknown>) {
@@ -504,7 +511,6 @@ describe('M6 — before departure is closed once the packing is finished (FR-7.1
     await flushPromises()
 
     expect(page.find('[data-testid="m6-composer-list"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(true)
     await page.findComponent(IonInput).setValue('Brot')
     await page.find('[data-testid="m6-add"]').trigger('submit')
     expect(written.at(-1)).toMatchObject({ op: 'insert', fields: { list: 'buy_local' } })
@@ -514,7 +520,7 @@ describe('M6 — before departure is closed once the packing is finished (FR-7.1
     seedTrip({ status: 'planning' })
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
-    await flushPromises()
+    await openComposer(page)
 
     expect(page.find('[data-testid="m6-before-fold"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-before"]').exists()).toBe(true)
@@ -552,22 +558,78 @@ describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
   })
 })
 
-describe('M6 — the ＋ bottom right (FR-30.6)', () => {
-  it('takes the reader to the field: scrolled to the top, focused', async () => {
+describe('M6 — the ＋ bottom right, the one door to the composer (FR-30.6, FR-21.24)', () => {
+  it('keeps the composer closed on a list with something on it, the FAB naming what it opens', async () => {
+    seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(false)
+    const fab = page.findComponent('[data-testid="m6-fab"]')
+    expect(fab.attributes('aria-label')).toBe(t('shopping.fab'))
+  })
+
+  it('opens the composer at the top of the list: scrolled first, then the field focused', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    const page = mountPage()
+    await flushPromises()
     const content = page.find('ion-content').element as HTMLElement & { scrollToTop?: unknown }
-    const input = page.find('ion-input').element as HTMLElement & { setFocus?: unknown }
     const calls: string[] = []
     content.scrollToTop = vi.fn(async () => void calls.push('scroll'))
-    input.setFocus = vi.fn(async () => void calls.push('focus'))
+    // The field exists only once the composer is open, so its focus is caught
+    // on the element's class rather than on an instance.
+    const field = customElements.get('ion-input')?.prototype ?? HTMLElement.prototype
+    const original = Object.getOwnPropertyDescriptor(field, 'setFocus')
+    Object.defineProperty(field, 'setFocus', {
+      value: vi.fn(async () => void calls.push('focus')),
+      configurable: true,
+    })
 
-    await page.find('[data-testid="m6-fab"]').trigger('click')
-    await flushPromises()
+    try {
+      await page.find('[data-testid="m6-fab"]').trigger('click')
+      await flushPromises()
+    } finally {
+      if (original) Object.defineProperty(field, 'setFocus', original)
+      else delete (field as { setFocus?: unknown }).setFocus
+    }
 
     // Scrolled first: a focus on a field still off-screen opens the keyboard
     // over the list instead of beside the field.
     expect(calls).toEqual(['scroll', 'focus'])
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+    // The FAB has nothing left to do while the composer is open — away, yet
+    // still the box the toasts are anchored on.
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
+    expect(page.get('ion-fab').attributes('id')).toBe(FAB_ANCHOR.m6)
     expect(written).toEqual([])
+  })
+
+  it('✕ closes the composer, drops the words and the day, keeps the tag, and brings the FAB back', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
+    const page = mountPage()
+    await openComposer(page)
+    await page.find('[data-testid="m6-tag-chip"]').trigger('click')
+    await page.findComponent(IonInput).setValue('Milch')
+    await page.find('[data-testid="due-chip-today"]').trigger('click')
+
+    await page.find('[data-testid="m6-composer-close"]').trigger('click')
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(false)
+    expect(page.get('ion-fab').classes()).not.toContain('fab-away')
+
+    await openComposer(page)
+    expect(page.findComponent(IonInput).props('modelValue')).toBe('')
+    expect(page.find('[data-testid="m6-composer-due"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
+    expect(written.filter((w) => w.op === 'insert')).toEqual([])
+  })
+
+  it('stands open on an empty list (G-7), with no FAB to open it', async () => {
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-empty"]').exists()).toBe(true)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
   })
 })
 
@@ -745,6 +807,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
   it('files an entry under the tag chosen in the composer, and keeps the tag for the next one', async () => {
     seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
     const page = mountPage()
+    await openComposer(page)
 
     await page.find('[data-testid="m6-tag-chip"]').trigger('click')
     await page.findComponent(IonInput).setValue('Milch')
@@ -762,6 +825,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
   it('adds an entry with no tag while no chip is selected, and a second tap unselects', async () => {
     seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
     const page = mountPage()
+    await openComposer(page)
     const chip = page.find('[data-testid="m6-tag-chip"]')
 
     await chip.trigger('click')
@@ -815,6 +879,7 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
   it('the sheet offers no create for a name that exists in another case, and chooses the existing one', async () => {
     seedEntry('e0', { name: 'Brot', tag: 'Supermarkt' })
     const page = mountPage()
+    await openComposer(page)
     await page.find('[data-testid="m6-tag-new"]').trigger('click')
     await typeSheetName(page, 'Milch')
 
@@ -898,10 +963,11 @@ describe('M6 — tags, and the list grouped by them (FR-30.9)', () => {
     ])
   })
 
-  it('a tag whose last entry was bought is no longer offered as a chip', () => {
+  it('a tag whose last entry was bought is no longer offered as a chip', async () => {
     seedEntry('e1', { name: 'Brot', tag: 'Supermarkt', bought: 1 })
     seedEntry('e2', { name: 'Mückenspray', tag: 'Apotheke' })
     const page = mountPage()
+    await openComposer(page)
     expect(page.findAll('[data-testid="m6-tag-chip"]').map((c) => c.text())).toEqual(['Apotheke'])
   })
 
@@ -1102,6 +1168,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
   it('keeps the field and its chips in place while selecting, at rest rather than gone', async () => {
     seedEntry('e1', { name: 'Brot' })
     const page = mountPage()
+    await openComposer(page)
     // M25's shape: the slot around the shared composer rests, as `composer-slot` there does.
     const composer = () => page.get('.composer-slot')
     expect(page.find('.composer-slot [data-testid="m6-composer"]').exists()).toBe(true)

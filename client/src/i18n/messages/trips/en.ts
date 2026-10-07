@@ -218,6 +218,7 @@ export const tripsEn = {
   'trip.ideaOrigin': 'Made from the idea “{title}”',
   'tasks.before': 'Before the trip',
   'tasks.during': 'During the trip',
+  'tasks.fab': 'Add a task',
   'tasks.mine': 'Mine',
   'tasks.addBefore': 'A task for before the trip…',
   'tasks.addDuring': 'A task for the trip itself…',

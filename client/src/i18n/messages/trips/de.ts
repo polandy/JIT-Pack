@@ -220,6 +220,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trip.ideaOrigin': 'Aus der Idee „{title}“',
   'tasks.before': 'Vor der Reise',
   'tasks.during': 'Während der Reise',
+  'tasks.fab': 'Aufgabe hinzufügen',
   'tasks.mine': 'Meine',
   'tasks.addBefore': 'Aufgabe für vor der Reise…',
   'tasks.addDuring': 'Aufgabe für unterwegs…',

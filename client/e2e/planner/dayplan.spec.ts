@@ -344,3 +344,40 @@ test.describe('M29 day plan @local @planner', () => {
     await expect(dayPlan(page).getByTestId('who-all-m29')).toHaveAttribute('aria-pressed', 'true')
   })
 })
+
+test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @local @planner', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M29-21 (FR-21.24): M29 keeps its sheet rather than M6's composer — an
+   * entry carries a day, a time and for whom. The ＋ says which day it adds
+   * to, in the very words the sheet it opens is titled with, and that changes
+   * with the day chosen on the strip.
+   */
+  test('E2E-M29-21: the ＋ names the day it adds to, and opens that day’s sheet', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Engadin Tage',
+      startDate: FIRST,
+      endDate: LAST,
+      travelers: ['Andy'],
+    })
+    const plan = await openDayPlan(page)
+    await chooseDay(page, SECOND)
+
+    await dayPlan(page).getByTestId('m29-fab').click()
+    const sheet = page.getByTestId('day-entry')
+    const title = await sheet.getByTestId('day-entry-title').innerText()
+    expect(title).toMatch(/^New on /)
+    await sheet.getByTestId('day-entry-close').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+    await expect(plan.getByRole('button', { name: title, exact: true })).toBeVisible()
+
+    await chooseDay(page, LAST)
+    await expect(plan.getByRole('button', { name: title, exact: true })).toHaveCount(0)
+    await expect(plan.getByTestId('m29-fab')).toBeVisible()
+  })
+})

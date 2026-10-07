@@ -415,9 +415,10 @@ async function bulkAssign() {
 /*
  * No screen-wide empty state, deliberately. A section with nothing in it says
  * so in its own line — an empty „Vor der Reise" under a full „Während der
- * Reise" is information — and the composer on top is the whole point of the
- * screen for a trip with no tasks yet.
+ * Reise" is information — and the composer, open at rest on a trip with no
+ * tasks yet (FR-21.24), is the whole point of the screen then.
  */
+const noTasks = computed(() => tasks.value.length === 0)
 
 onMounted(async () => {
   await ensure()
@@ -434,11 +435,12 @@ function pickAssignee(header: string, current: string | null) {
   return pickAssigneeFrom(header, current, assignees.value)
 }
 
-/** FR-7.14: the FAB — M6's, which takes the reader to the field. */
+/** FR-21.24: the FAB — M4's door, which opens the composer at the top of the list. */
 const composer = ref<InstanceType<typeof TaskComposer> | null>(null)
-async function goToComposer() {
+const composerOpen = computed(() => composer.value?.expanded ?? false)
+async function openComposer() {
   await (contentEl.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
-  await composer.value?.focus()
+  await composer.value?.open()
 }
 
 /*
@@ -563,6 +565,7 @@ function onSheetRemove() {
             :today="today"
             :trip-start="tripStart"
             :for-the-road="forTheRoad"
+            :list-empty="noTasks"
             @added="acts.added"
           />
         </div>
@@ -751,15 +754,18 @@ function onSheetRemove() {
         />
       </SheetModal>
 
-      <!-- FR-7.14: the add button every sibling list carries (M4, M6, M26). -->
+      <!-- FR-7.14: the add button every sibling list carries (M4, M6, M26);
+           away while the composer it opens is open (FR-21.24) — hidden, not
+           unmounted, as M6's: the snackbar is anchored on its box. -->
       <IonFab
         v-if="!selection.selecting.value"
+        :class="{ 'fab-away': composerOpen }"
         :id="FAB_ANCHOR.m25"
         slot="fixed"
         vertical="bottom"
         horizontal="end"
       >
-        <IonFabButton data-testid="m25-fab" :aria-label="t('common.add')" @click="goToComposer">
+        <IonFabButton data-testid="m25-fab" :aria-label="t('tasks.fab')" @click="openComposer">
           <IonIcon :icon="addOutline" aria-hidden="true" />
         </IonFabButton>
       </IonFab>
@@ -800,6 +806,12 @@ function onSheetRemove() {
 }
 
 /* G-20: at rest while a selection is on — in place, so nothing moves. */
+/* FR-21.24: no target for a tap or a screen reader while the composer is
+   open, yet still a box for the toasts to stand above. */
+.fab-away {
+  visibility: hidden;
+}
+
 .composer-slot.resting {
   opacity: 0.45;
 }

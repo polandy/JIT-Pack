@@ -118,6 +118,12 @@ function mountPage() {
   })
 }
 
+/** FR-21.24: the composer is behind the FAB on a trip with tasks. */
+async function openComposer(page: ReturnType<typeof mountPage>) {
+  await page.findComponent(TaskComposer).vm.open()
+  await flushPromises()
+}
+
 function seedTrip(members: string[] = ['u-andy', 'u-sia']) {
   const trips = useTripStore()
   trips.applyChange({
@@ -327,6 +333,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     seedTask('Salbe holen', { task_tag_id: 'tag-apo' })
     const page = mountPage()
     await flushPromises()
+    await openComposer(page)
 
     expect(page.get('[data-testid="m25-composer-tag-Apotheke"]').text()).toBe('Apotheke')
     expect(page.get('[data-testid="m25-group-tag-apo"]').text()).not.toContain('💊')
@@ -830,6 +837,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
 
     const page = mountPage()
     await flushPromises()
+    await openComposer(page)
     await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
 
     expect(barSelection()).not.toBeNull()
@@ -1285,5 +1293,64 @@ describe('M25 — the notes left for a view of their own (FR-7.13)', () => {
     expect(page.get('[data-testid="m25-before"]').text()).toContain('Salbe holen')
     expect(page.find('ion-segment').exists()).toBe(false)
     expect(page.text()).not.toContain('Code 4711')
+  })
+})
+
+describe('M25 — the ＋ is the one door to the composer (FR-7.14, FR-21.24)', () => {
+  it('keeps the composer closed on a trip with tasks, the FAB naming what it opens', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-composer"]').exists()).toBe(false)
+    expect(page.findComponent('[data-testid="m25-fab"]').attributes('aria-label')).toBe(
+      t('tasks.fab'),
+    )
+  })
+
+  it('opens the composer from the FAB, which then steps aside', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    const page = mountPage()
+    await flushPromises()
+    const content = page.find('ion-content').element as HTMLElement & { scrollToTop?: unknown }
+    content.scrollToTop = vi.fn(async () => undefined)
+
+    await page.find('[data-testid="m25-fab"]').trigger('click')
+    await flushPromises()
+
+    expect(content.scrollToTop).toHaveBeenCalled()
+    expect(page.find('[data-testid="m25-composer"]').exists()).toBe(true)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
+  })
+
+  it('✕ closes the composer, drops the words and the day, keeps the phase, and brings the FAB back', async () => {
+    seedTrip()
+    seedTask('Salbe holen', {})
+    const page = mountPage()
+    await flushPromises()
+    await openComposer(page)
+    await page.get('[data-testid="m25-phase-during"]').trigger('click')
+    await page.findComponent(TaskComposer).findComponent(IonInput).setValue('Tanken')
+    await page.get('[data-testid="due-chip-today"]').trigger('click')
+
+    await page.get('[data-testid="m25-composer-close"]').trigger('click')
+    expect(page.find('[data-testid="m25-composer"]').exists()).toBe(false)
+    expect(page.get('ion-fab').classes()).not.toContain('fab-away')
+
+    await openComposer(page)
+    expect(page.findComponent(TaskComposer).findComponent(IonInput).props('modelValue')).toBe('')
+    expect(page.find('[data-testid="m25-composer-due"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m25-phase-during"]').attributes('aria-pressed')).toBe('true')
+  })
+
+  it('stands open on a trip with no task yet (G-7), with no FAB to open it', async () => {
+    seedTrip()
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m25-composer"]').exists()).toBe(true)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
   })
 })

@@ -28,6 +28,7 @@ export const shoppingDe: Record<keyof typeof shoppingEn, string> = {
     'Trag oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst.',
   'shopping.ownEntries': 'Eingetragen',
   'shopping.addPlaceholder': 'Was kaufen? z. B. Milch, Brot …',
+  'shopping.fab': 'Einkauf hinzufügen',
   'shopping.addLabel': 'Auf die Liste',
   'shopping.tags': 'Tags',
   'shopping.tagFiledUnder': 'Eingetragen unter: {tag}',

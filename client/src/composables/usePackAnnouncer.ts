@@ -137,9 +137,9 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
       duration: TOAST_DURATION_MS,
       position: 'bottom',
       // Above the FAB rather than behind it — see the anchor's own note. The
-      // screen names its own: M25 has no FAB, and an anchor that is not on
-      // the page leaves Ionic positioning the snackbar off the viewport,
-      // where its *Rückgängig* cannot be reached (found by E2E-M25-02).
+      // screen names its own: the dashboard has no FAB, and an anchor that is
+      // not on the page leaves Ionic positioning the snackbar off the
+      // viewport, where its *Rückgängig* cannot be reached (E2E-M25-02).
       positionAnchor: anchor ?? undefined,
       cssClass: 'pack-toast',
       buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],

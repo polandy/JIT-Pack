@@ -16,6 +16,7 @@ import {
   tripAction,
 } from './trips'
 import { openTripView } from './trips'
+import { openListComposer } from './composer'
 import { visiblePage, writesLanded } from './page'
 import { chooseInSelect, fillIonic } from './ionic'
 
@@ -429,7 +430,7 @@ export async function addTripTodo(
   const cameFrom = page.url()
   const section = await openTasks(page, phase)
   // FR-7.14: one composer on top, whose chip names the phase it writes.
-  const composer = visiblePage(page).getByTestId('m25-composer')
+  const composer = await openListComposer(page, 'm25')
   const chip = composer.getByTestId(`m25-phase-${phase}`)
   if ((await chip.count()) > 0) {
     await chip.click()

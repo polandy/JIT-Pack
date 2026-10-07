@@ -54,6 +54,8 @@ const props = defineProps<{
    * trip's first day has come (FR-7.14).
    */
   forTheRoad: boolean
+  /** No task on the trip yet (G-7): the composer stands open (FR-21.24). */
+  listEmpty?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -63,7 +65,7 @@ const emit = defineEmits<{
 
 const orchestrator = useOrchestrator()
 
-const composer = ref<{ focus: () => Promise<void> } | null>(null)
+const composer = ref<InstanceType<typeof ListComposer> | null>(null)
 const draft = ref('')
 const chosenPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
 const phase = computed<TaskPhase>(() => (props.forTheRoad ? TASK_PHASE_DURING : chosenPhase.value))
@@ -135,21 +137,30 @@ function confirmEntry() {
   entry.value = null
 }
 
-/** The FAB's way in: the field, focused (M6's `goToField`). */
-async function focus() {
-  await composer.value?.focus()
+/** The FAB's way in: the composer, open, the field focused (FR-21.24). */
+async function open() {
+  await composer.value?.open()
 }
 
-/** FR-29.13: the field filled from an idea — its words, day and phase — and focused. */
+/** Whether the composer is open — the FAB hides while it is (FR-21.24). */
+const expanded = computed(() => composer.value?.expanded ?? false)
+
+/** Closed by the reader: the day and the idea go with the words; phase and tag stay chosen. */
+function onClose() {
+  day.value = null
+  ideaId.value = null
+}
+
+/** FR-29.13: the field filled from an idea — its words, day and phase — open and focused. */
 async function seed(fill: { body: string; day: string | null; phase: TaskPhase; ideaId: string }) {
   draft.value = fill.body
   day.value = fill.day
   chosenPhase.value = fill.phase
   ideaId.value = fill.ideaId
-  await focus()
+  await open()
 }
 
-defineExpose({ focus, seed })
+defineExpose({ open, expanded, seed })
 </script>
 
 <template>
@@ -159,10 +170,13 @@ defineExpose({ focus, seed })
     :placeholder="forTheRoad ? t('tasks.addDuring') : t('tasks.addPlaceholder')"
     :label="t('tasks.addPlaceholder')"
     :add-label="t('common.add')"
+    :close-label="t('common.close')"
+    :list-empty="listEmpty"
     testid="m25-composer"
     input-testid="trip-todo-input"
     submit-testid="trip-todo-add"
     @submit="add"
+    @close="onClose"
   >
     <ChipRow v-if="!forTheRoad" :label="t('tasks.phaseLabel')" data-testid="m25-composer-phase">
       <ChoiceChip

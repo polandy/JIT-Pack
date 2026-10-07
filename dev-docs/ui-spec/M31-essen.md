@@ -55,8 +55,9 @@
   (`m31-empty-plan`, tonight's dinner during the trip, the first day's before it) and, where there are earlier dishes
   (FR-33.4), *„Früher gekocht – ein Tipp plant es zum Abendessen"* over up to four chips (`m31-empty-dish-<n>`), each
   opening that dinner with the dish and its ingredients taken.
-* **„+" (the FAB, `m31-fab`, `FAB_ANCHOR.m31`)** opens a new meal on the first empty one of breakfast, lunch and
-  dinner from today on.
+* **„+" (the FAB, `m31-fab`, `FAB_ANCHOR.m31`, *„Neue Mahlzeit"*)** opens a new meal on the first empty one of
+  breakfast, lunch and dinner from today on — **the meal sheet, not M6's composer** (FR-21.24): a meal carries a slot,
+  a day and its ingredients. The „+" on a day head stays: it carries the day.
 * **The meal sheet** (`meal-sheet`), *„Neu: Abendessen"* or *„Abendessen"* (`meal-sheet-title`) over *„Mo., 12.10. ·
   Tag 3 von 8"*, ✕ (`meal-sheet-close`):
   * **Gericht** (`meal-title`, *„z. B. Älplermagronen, Grillieren"*), focused on a new meal. Under it, on a new cooked

@@ -7,8 +7,8 @@
  * On M4 and M8 the FAB is the *only* way in (`showTrigger: false`,
  * FR-21.24): the collapsed pill sat above the list saying the same thing as
  * the FAB hovering over it, and a screen that offers one action twice has
- * to be read twice before it can be used once. M6, which has no FAB, is
- * where the pill is still the way in.
+ * to be read twice before it can be used once. M6 and M25 give their own
+ * composer (`ListComposer`) the same door.
  * Opening does not focus the input (FR-25.13c): the
  * empty composer leads with a tappable row of recently used items, and an
  * auto-raised soft keyboard would cover it. Typing is one tap on the field
@@ -151,8 +151,8 @@ const props = withDefaults(
     /**
      * FR-21.24: whether the collapsed form shows its own trigger. M4 and M8
      * turn it off because their FAB is the same door, and the two stood on
-     * the screen at once saying the same thing. M6 has no FAB and keeps the
-     * pill, because otherwise the composer has no way in at all.
+     * the screen at once saying the same thing. A caller without a FAB keeps
+     * the pill, because otherwise the composer has no way in at all.
      */
     showTrigger?: boolean
     /**

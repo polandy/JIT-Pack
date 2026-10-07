@@ -397,7 +397,11 @@ async function onRemove() {
         vertical="bottom"
         horizontal="end"
       >
+        <!-- Keyed on the day: Ionic copies aria-label onto its inner button
+             once, at load, so a FAB that outlives a change of day would go on
+             naming the first one (FR-21.24). -->
         <IonFabButton
+          :key="chosen ?? ''"
           :aria-label="t('dayPlan.newTitle', { day: chosen ? shortDueDay(chosen) : '' })"
           data-testid="m29-fab"
           @click="editing = { entry: null }"
