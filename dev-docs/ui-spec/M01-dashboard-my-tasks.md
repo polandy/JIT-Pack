@@ -39,8 +39,9 @@
   whose flag is read at boot after a reload — stays in the column, where it costs nothing and reflows nothing that was
   already on screen. The same rule is why M5's desktop panel is fixed beside the list rather than squeezing it.
 * **Purpose:** Single entry point answering "what do I have to do right now?" across all active trips (FR-6.1).
-* **The first active trip is a hero card, the rest stay list cards (FR-21.13).** It carries when the trip is, who is on
-  it, a progress ring with the share in words beside it, a track, and — in the hero itself — the same preview of what is
+* **The first active trip is a hero card, the rest stay list cards (FR-21.13).** It carries when the trip is, the series
+  it came out of and who is on it (*„Engadin · Sia, Andy"*, the line M2's hero draws — one wording for both, FR-21.15),
+  a progress ring with the share in words beside it, a track, and — in the hero itself — the same preview of what is
   still open the card has. There is exactly **one** hero: a screen has one thing you are on, and a second hero is a
   second answer to which one that is. It is the only card in the app that paints brand on its own plane (G-11). The
   active trips are ordered **soonest departure first** — the hero is the head of that list.

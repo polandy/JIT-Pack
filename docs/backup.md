@@ -334,8 +334,8 @@ The **portable YAML** format — one template or one trip, environment-agnostic,
 read and hand-edited — is not served by the instance. There is no
 `/api/v1/templates/{id}/export` and no `/api/v1/trips/{id}/export.yaml`; you export a
 template or a trip **in the app**, from the list screen — hold a trip on the trip list (or
-right-click it on a computer) and choose **Export trip** — and a whole device from
-**Settings → Backup**.
+right-click it on a computer, or use the ⋮ on the running trip's card) and choose
+**Export trip** — and a whole device from **Settings → Backup**.
 
 On a phone, a template's menu also offers **Share template…**, which hands the same document
 to the share sheet — a message to someone running their own instance, without saving it

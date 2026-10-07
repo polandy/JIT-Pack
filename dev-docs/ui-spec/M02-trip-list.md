@@ -24,10 +24,12 @@
   the running one that departs **soonest**, which is deliberately not the head of M2's own newest-first order. Only on
   *Active*: the other two segments are lists by definition, and a card over either would claim a trip is being packed
   that is not. The trip is **lifted out** of the grouped list rather than drawn twice, so the series header below counts
-  what it lists. The hero states the series it came out of, in front of who the trip is for. Because a card has no row
-  menu of its own, the row's actions are **stated on it**: export, share (G-8), the one lifecycle step and delete, read
-  from the same list as the row menu (`tripRowActions`). It carries the FR-27.4 and FR-16.2 chips with it, and asks for
-  its own trip partition — no observer would ever ask for a card (ADR-033).
+  what it lists. It is M1's card element for element — the dates with the phase word, the name with the day counter, the
+  series and who it is for, the packing figure with what is still open — worded by one function for both screens. It
+  carries **no row of glyphs**: the row menu, on a hold or right-click, is its action surface, and on a fine pointer a
+  ⋮ beside the card (`m2-hero-more-<trip>`, 44 px, its top-right corner) opens the same menu (UX-06). It carries
+  the FR-27.4 and FR-16.2 chips with it, and asks for its own trip partition — no observer would ever ask for a card
+  (ADR-033).
 * **Default ordering (E2E-M2-15): grouped by series under tappable headers that lead to M16, every segment
   newest-first** (through `tripOrderKey`), **no series chip on the row**, and the opening segment is FR-2.8's derived
   one. A flat list ordered by usefulness (active, then upcoming soonest first, then archived newest first) was weighed
@@ -45,7 +47,7 @@
   is what archives, with *Fertig*, and archiving straight from M2 would skip it. (E2E-M2-34) In Single-User Mode
   (Addendum FR-17.3) and Local Mode, *Share* is omitted from this menu — there is no second account to share with. The
   tap that ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or
-  right-click, and states the same list as its own action row besides. There is no swipe: a hold opens a row's actions
+  right-click, and from its ⋮ where the pointer is a mouse. There is no swipe: a hold opens a row's actions
   on every list (M4 FR-5.5, M7 FR-18.2), one gesture across the app. *Datei importieren* → M18 and the legacy
   spreadsheet importer *Tabelle importieren* → M15 are **words behind the app bar's ⋮** (G-12, ADR-050 amendment 1): a
   tab root carries the magnifier and the ⋮ alone, and an import done a few times a year does not earn a glyph to be

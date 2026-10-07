@@ -128,10 +128,6 @@ withDefaults(
       </div>
     </div>
 
-    <div v-if="$slots.foot" class="actions">
-      <slot name="foot" />
-    </div>
-
     <!-- Whatever the screen puts under the numbers: M1 keeps its preview of
          what is still open there, which is the one thing the hero replaced
          that a person would have missed. -->
@@ -222,11 +218,9 @@ withDefaults(
 }
 
 /*
- * The actions read as a toolbar under the numbers rather than as four things
- * pushed to the card's two edges: they are one group, and `space-between`
- * over three of them put the archive glyph in the middle of nothing.
- * The rule above them is what separates the card's statement from its
- * controls, which the row got for free from the list's own dividers.
+ * The foot of a card worked in place (FR-7.10): only there is the card not
+ * a link, so only there can it hold a control of its own. The rule above it
+ * separates the card's statement from what it offers.
  */
 .actions {
   display: flex;
