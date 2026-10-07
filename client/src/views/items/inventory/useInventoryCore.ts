@@ -51,7 +51,6 @@ export function useInventoryCore() {
   const sort = ref<SortMode>('grouped')
 
   const props = inventoryProperties()
-  const propsOpen = ref(false)
 
   /** Tag ids, plus `UNTAGGED_KEY` for the leftover bucket (FR-24.8). */
   const selection = ref<string[]>([])
@@ -232,7 +231,6 @@ export function useInventoryCore() {
     search,
     sort,
     props,
-    propsOpen,
     selection,
     filterMode,
     filterOpen,

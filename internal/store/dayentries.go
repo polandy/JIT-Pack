@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	"jitpack/internal/sync"
 )
 
 // validDayEntryTraveler keeps a day-plan entry's traveller row inside its
@@ -14,7 +12,8 @@ import (
 // own, or the row would put another trip's person on this plan, or this
 // plan's person on another's. A write that names neither is judged by the
 // row it changes, which was judged when it was written.
-func validDayEntryTraveler(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+func validDayEntryTraveler(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, m := in.tripID, in.m
 	for _, ref := range []struct{ column, table string }{
 		{"day_entry_id", TableDayEntries},
 		{"traveler_id", TableTravelers},

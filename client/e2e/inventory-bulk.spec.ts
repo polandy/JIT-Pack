@@ -6,7 +6,7 @@ import {
   visiblePage,
   itemDetail,
 } from './fixtures'
-import { backToInventory, createItem, groupHeadings } from './helpers/m9'
+import { backToInventory, createItem, groupHeadings, holdRow } from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -51,7 +51,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // point of "Alle N": it means the filtered list, not the inventory.
     await list.getByTestId('m9-tag-chip-Diverses').click()
     await expect(list.getByTestId('m9-row')).toHaveCount(3)
-    await page.getByTestId('m9-select').click()
+    await list.getByTestId('m9-row').first().click({ button: 'right' })
     await page.getByTestId('m9-select-all').click()
     await expect(page.getByTestId('m9-select-count')).toContainText('3')
 
@@ -114,8 +114,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
       await expect(page.getByTestId('header-title')).toHaveText(name)
     }
 
-    await page.getByTestId('m9-select').click()
-    await list.getByTestId('m9-row-check-Ersatzakku').click()
+    await holdRow(list, 'Ersatzakku')
     await list.getByTestId('m9-row-check-Ladegeraet').click()
     await expect(page.getByTestId('m9-select-count')).toContainText('2')
 
@@ -148,8 +147,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // read on the other list: the camera's companions. Two items nothing has
     // linked yet, because an edge that is already there is skipped by design.
     const giveCompanion = async (companion: string) => {
-      await page.getByTestId('m9-select').click()
-      await list.getByTestId('m9-row-check-Kamera').click()
+      await holdRow(list, 'Kamera')
       await list.getByTestId('m9-bulk-more').click()
       await page.locator('ion-action-sheet').getByText('Companion item').click()
       await page.getByTestId('m9-bulk-dep-search').fill(companion)
@@ -281,8 +279,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.goto(PATH.items)
 
     const list = visiblePage(page)
-    await page.getByTestId('m9-select').click()
-    await list.getByTestId('m9-row-check-Stirnlampe').click()
+    await holdRow(list, 'Stirnlampe')
     await list.getByTestId('m9-row-check-Stirnlampe Petzl').click()
     await expect(page.getByTestId('m9-select-count')).toContainText('2')
 

@@ -116,7 +116,6 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trips.appliedChanged': '„{group}“: {item} geändert',
   // M2 Reiseliste (FR-2.x, FR-13.1).
   'trips.title': 'Reisen',
-  'trips.importPortable': 'Reise aus Datei importieren',
   'trips.filterActive': 'Aktiv',
   'trips.filterPlanned': 'Geplant',
   'trips.filterArchived': 'Archiviert',

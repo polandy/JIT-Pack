@@ -23,7 +23,8 @@ const columnIdeaID = "idea_id"
 // and keeps the result, which a foreign-key refusal would have thrown away;
 // one of another trip is a write no screen of this trip can make. FR-7.15's
 // noteExcursion, for the same reasons.
-func validIdeaResult(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+func validIdeaResult(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, m := in.tripID, in.m
 	id, _ := m.Fields[columnIdeaID].(string)
 	if id == "" {
 		return ReasonNone, nil
@@ -51,14 +52,14 @@ const columnVoter = "user_id"
 // carries its voter's name (votes are open), so only that voter may, change or remove it. The server stamps the
 // voter on the insert; this refuses every later op by somebody else, which
 // the stamp alone cannot, because the row id is all a forged upsert needs.
-func validIdeaVote(actorID string, row sync.Row) RejectReason {
-	if !row.Exists {
-		return ReasonNone
+func validIdeaVote(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
+	if !in.row.Exists {
+		return ReasonNone, nil
 	}
-	if voter, _ := row.Fields[columnVoter].(string); voter != actorID {
-		return ReasonNotAuthorized
+	if voter, _ := in.row.Fields[columnVoter].(string); voter != in.actorID {
+		return ReasonNotAuthorized, nil
 	}
-	return ReasonNone
+	return ReasonNone, nil
 }
 
 // ideaCommentWords are the fields an edit of a discussion entry changes —
@@ -68,14 +69,14 @@ var ideaCommentWords = []string{columnBody, columnEditedAt}
 // validIdeaComment is FR-29.4's part of the trip partition's write gate: a
 // word about an idea is its author's to change, as a trip note's is
 // (validNoteThread). A delete stays everybody's, like a note's.
-func validIdeaComment(actorID string, row sync.Row, m *sync.Mutation) RejectReason {
-	if !row.Exists || m.Op == sync.OpDelete || !touchesAny(m.Fields, ideaCommentWords) {
-		return ReasonNone
+func validIdeaComment(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
+	if !in.row.Exists || in.m.Op == sync.OpDelete || !touchesAny(in.m.Fields, ideaCommentWords) {
+		return ReasonNone, nil
 	}
-	if author, _ := row.Fields[columnAuthorID].(string); author != actorID {
-		return ReasonNotAuthorized
+	if author, _ := in.row.Fields[columnAuthorID].(string); author != in.actorID {
+		return ReasonNotAuthorized, nil
 	}
-	return ReasonNone
+	return ReasonNone, nil
 }
 
 // columnPosition is where a picture stands among its idea's (FR-29.5).
@@ -85,19 +86,19 @@ const columnPosition = "position"
 // upload creates a picture with its bytes (ADR-002), so a push may move one
 // or delete it and nothing more: an insert would be a picture without bytes,
 // and a changed hash or idea would point the row at bytes it does not have.
-func validIdeaImage(row sync.Row, m *sync.Mutation) RejectReason {
-	if m.Op == sync.OpDelete {
-		return ReasonNone
+func validIdeaImage(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
+	if in.m.Op == sync.OpDelete {
+		return ReasonNone, nil
 	}
-	if !row.Exists {
-		return ReasonNotAuthorized
+	if !in.row.Exists {
+		return ReasonNotAuthorized, nil
 	}
-	for field := range m.Fields {
+	for field := range in.m.Fields {
 		if field != columnPosition {
-			return ReasonNotAuthorized
+			return ReasonNotAuthorized, nil
 		}
 	}
-	return ReasonNone
+	return ReasonNone, nil
 }
 
 // The columns of an idea's track (FR-29.17) that the store names more than
@@ -128,19 +129,19 @@ var trackSettings = map[string]bool{
 // track with its file, so a push may change what a person
 // sets or delete the track: an insert would be a track without its file, and
 // a changed figure or line would no longer be what the file says.
-func validTrack(row sync.Row, m *sync.Mutation) RejectReason {
-	if m.Op == sync.OpDelete {
-		return ReasonNone
+func validTrack(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
+	if in.m.Op == sync.OpDelete {
+		return ReasonNone, nil
 	}
-	if !row.Exists {
-		return ReasonNotAuthorized
+	if !in.row.Exists {
+		return ReasonNotAuthorized, nil
 	}
-	for field := range m.Fields {
+	for field := range in.m.Fields {
 		if !trackSettings[field] {
-			return ReasonNotAuthorized
+			return ReasonNotAuthorized, nil
 		}
 	}
-	return ReasonNone
+	return ReasonNone, nil
 }
 
 // IdeaDiscussion is what FR-29.8's comment rule needs to know about an idea:

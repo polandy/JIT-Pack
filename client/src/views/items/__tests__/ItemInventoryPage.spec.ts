@@ -135,12 +135,20 @@ function headMeta(): string | null {
  * run it with; stubbing that globally would hide a real error in the next
  * spec that hits it.
  */
-function mountPage(attach = false) {
-  return mount(ItemInventoryPage, {
+function mountPage(attach = false, { openSheets = false } = {}) {
+  mounted = mount(ItemInventoryPage, {
     ...(attach ? { attachTo: document.body } : {}),
-    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
+    global: {
+      provide: { [ORCHESTRATOR]: orchestratorFake },
+      // jsdom renders no IonModal content; flattened, a sheet's body is there.
+      ...(openSheets ? { stubs: { SheetModal: { template: '<div><slot /></div>' } } } : {}),
+    },
   })
+  return mounted
 }
+
+/** The page {@link mountPage} built last — what the selection helpers hold. */
+let mounted: ReturnType<typeof mount>
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -184,7 +192,7 @@ describe('M9 inventory — an absence it has not read yet (ADR-033, G-7)', () =>
     // template `v-if` and this is a function, so one says nothing about the
     // other.
     const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
-    expect(build().map((action) => action.id)).toContain('m9-select')
+    expect(build().map((action) => action.id)).toContain('m9-cleanup')
 
     // Once the inventory is known to be empty the tools go, which is FR-24.6's
     // own intent — this half is what keeps the fix from simply always showing
@@ -193,7 +201,7 @@ describe('M9 inventory — an absence it has not read yet (ADR-033, G-7)', () =>
     await flushPromises()
 
     expect(page.find('[data-testid="m9-tools"]').exists()).toBe(false)
-    expect(build().map((action) => action.id)).not.toContain('m9-select')
+    expect(build().map((action) => action.id)).not.toContain('m9-cleanup')
   })
 
   it('leaves the no-match state alone — it can only be reached with an item here', async () => {
@@ -227,7 +235,7 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
-  it('sorts from the app bar into one alphabetical run, marking the order in force', async () => {
+  it('sorts from the filter sheet’s head into one alphabetical run, marking the order in force (UX-05)', async () => {
     seedTag('Hygiene', 't-hyg')
     seedTag('Camping', 't-camp', 1)
     seedItem('Zahnbürste', 'i1')
@@ -235,37 +243,17 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
     assignTag('i1', 't-hyg')
     assignTag('i2', 't-camp')
 
-    const page = mountPage()
+    const page = mountPage(false, { openSheets: true })
     await flushPromises()
     expect(page.findAll('[data-testid="m9-group-head"]')).toHaveLength(2)
+    const pressed = (mode: string) =>
+      page.get(`[data-testid="m9-sort-${mode}"]`).attributes('aria-pressed')
+    expect(pressed('grouped')).toBe('true')
 
-    /** Press the sort glyph and answer its sheet with `data`. Returns its button texts. */
-    async function chooseSort(data: string) {
-      const texts: string[] = []
-      const create = vi
-        .spyOn(actionSheetController, 'create')
-        .mockImplementation(async (opts: { buttons?: unknown[] } = {}) => {
-          texts.push(...((opts.buttons ?? []) as { text: string }[]).map((b) => b.text))
-          return {
-            present: async () => {},
-            onDidDismiss: async () => ({ data }),
-          } as never
-        })
-      const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
-      build()
-        .find((action) => action.id === 'm9-sort')!
-        .onClick()
-      await flushPromises()
-      create.mockRestore()
-      return texts
-    }
+    await page.get('[data-testid="m9-sort-alphabetical"]').trigger('click')
 
-    // The order in force is the marked one, and the other is offered unmarked.
-    expect(await chooseSort('alphabetical')).toEqual([
-      `✓ ${t('items.sortGrouped')}`,
-      t('items.sortAlphabetical'),
-      t('common.cancel'),
-    ])
+    expect(pressed('alphabetical')).toBe('true')
+    expect(pressed('grouped')).toBe('false')
     const heads = page.findAll('[data-testid="m9-group-head"]')
     expect(heads).toHaveLength(1)
     expect(heads[0]!.text()).toContain(t('items.sortAlphabetical'))
@@ -273,8 +261,36 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
       expect.stringContaining('Apfel'),
       expect.stringContaining('Zahnbürste'),
     ])
-    expect(await chooseSort('grouped')).toContain(`✓ ${t('items.sortAlphabetical')}`)
+    await page.get('[data-testid="m9-sort-grouped"]').trigger('click')
     expect(page.findAll('[data-testid="m9-group-head"]')).toHaveLength(2)
+  })
+
+  it('puts nothing on the app bar but ⋮ words — no eye, no sort, no ✓✓ (G-12, UX-05)', async () => {
+    seedTag('Camping', 't-camp')
+    seedItem('Zelt', 'i1')
+    assignTag('i1', 't-camp')
+
+    mountPage()
+    await flushPromises()
+
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    const actions = build()
+    expect(actions.map((action) => action.id)).toEqual(['m9-manage-tags', 'm9-cleanup'])
+    expect(actions.every((action) => action.overflow)).toBe(true)
+  })
+
+  it('offers the view as its own chip while no tag exists, and its sheet as that head alone', async () => {
+    seedItem('Zelt', 'i1')
+
+    const page = mountPage(false, { openSheets: true })
+    await flushPromises()
+
+    // The sort and the properties live in the sheet, so the door to it must
+    // not depend on a tag existing.
+    expect(page.get('[data-testid="m9-filter-open"]').text()).toBe(t('items.view'))
+    expect(page.find('[data-testid="m9-sort-grouped"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-property-weight"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-filter-search"]').exists()).toBe(false)
   })
 
   it('offers the clear control only once there is something to clear', async () => {
@@ -630,12 +646,6 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
   let writes: Writes
 
-  /** Press the app bar's own entry, which is where the mode is armed. */
-  function headerAction(id: string): HeaderAction {
-    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
-    return build().find((action) => action.id === id)!
-  }
-
   function seedThree() {
     seedTag('Diverses', 't-div', 0)
     seedTag('Sonnenschutz', 't-sonne', 1)
@@ -649,8 +659,17 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     assignTag('i2', 't-sonne', 1)
   }
 
+  /**
+   * Arm the mode with nothing picked: a hold on the first row starts it with
+   * that row (ADR-075), and a tap on it takes the row back out.
+   */
   async function enterSelection() {
-    headerAction('m9-select').onClick()
+    const first = mounted.findAll('[data-testid="m9-row"]')[0]!
+    await first.trigger('contextmenu')
+    // The release's own click, spent on the hold.
+    await first.trigger('click')
+    await first.trigger('pointerdown')
+    await first.trigger('click')
     await flushPromises()
   }
 
@@ -731,22 +750,22 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     })
   })
 
-  it('offers no selection at all while there is nothing to select', async () => {
+  it('offers no ⋮ entry over an inventory known to be empty', async () => {
     const page = mountPage()
     await flushPromises()
 
-    // The empty inventory renders G-7, and an action over a selection that
-    // cannot exist is the same offer the sheets refuse to make.
+    // The empty inventory renders G-7, and a tidy-up or a tag manager over
+    // nothing is the same offer the sheets refuse to make.
     expect(page.find('[data-testid="m9-empty"]').exists()).toBe(true)
     const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
-    expect(build().map((action) => action.id)).not.toContain('m9-select')
+    expect(build()).toEqual([])
 
     seedItem('Sonnencreme', 'i1')
     await flushPromises()
-    expect(build().map((action) => action.id)).toContain('m9-select')
+    expect(build().map((action) => action.id)).toContain('m9-cleanup')
   })
 
-  it('arms from the app bar, stops the rows navigating, and takes what is on screen', async () => {
+  it('arms on a hold, stops the rows navigating, and takes what is on screen', async () => {
     seedThree()
 
     const page = mountPage()
@@ -1808,10 +1827,8 @@ describe('M9 — what the search did not find, it offers to create (FR-24.11)', 
     await typeSearch(page, 'Zelt')
     expect(page.find('[data-testid="m9-offer"]').exists()).toBe(true)
 
-    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
-    build()
-      .find((action) => action.id === 'm9-select')!
-      .onClick()
+    const zelt = page.findAll('[data-testid="m9-row"]')[0]!
+    await zelt.trigger('contextmenu')
     await flushPromises()
 
     expect(barSelection()).not.toBeNull()

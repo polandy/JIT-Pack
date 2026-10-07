@@ -15,7 +15,7 @@ import (
 // list is short on purpose: an exported method nobody calls is not merely
 // unused code, it is a *rule an agent will read as live* (G-10): a helper
 // whose doc comment describes FR-4.5/4.7 while the real enforcement sits in
-// authorizeMaster, or a second constructor beside the one main.go calls.
+// a table's guard, or a second constructor beside the one main.go calls.
 var storeMethodsWithNoCallerOutside = map[string]string{
 	"DB": "the test fixtures' hatch, declared beside OpenForTest; a handler reaching past the repository is how a write escapes the change feed",
 }

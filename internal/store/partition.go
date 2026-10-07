@@ -106,32 +106,7 @@ func tripPartition(tripID, userID string) partition {
 			if !belongsToTrip(tripID, *m, row.Fields, row.Exists) {
 				return ReasonOutOfScope, nil
 			}
-			switch m.Table {
-			case TableTravelers:
-				return validTravelerLink(ctx, tx, tripID, row.Fields, m)
-			case TableComments:
-				if reason, err := validNoteThread(ctx, tx, tripID, userID, row, m); reason != ReasonNone || err != nil {
-					return reason, err
-				}
-				return validIdeaResult(ctx, tx, tripID, m)
-			case TableExcursions, TableShoppingEntries:
-				return validIdeaResult(ctx, tx, tripID, m)
-			case TableDayEntries, TableMeals:
-				return noteExcursion(ctx, tx, tripID, m)
-			case TableMealIngredients:
-				return validIngredientMeal(ctx, tx, tripID, m)
-			case TableDayEntryTravelers:
-				return validDayEntryTraveler(ctx, tx, tripID, m)
-			case TableIdeaVotes:
-				return validIdeaVote(userID, row), nil
-			case TableIdeaComments:
-				return validIdeaComment(userID, row, m), nil
-			case TableIdeaImages:
-				return validIdeaImage(row, m), nil
-			case TableIdeaTracks, TableExcursionTracks:
-				return validTrack(row, m), nil
-			}
-			return ReasonNone, nil
+			return guardFor(m.Table)(ctx, tx, guardInput{tripID: tripID, actorID: userID, m: m, row: row})
 		},
 	}
 }
@@ -143,7 +118,7 @@ func masterPartition(userID string) partition {
 		feed:    masterFeed,
 		actorID: userID,
 		scope: func(ctx context.Context, tx *sql.Tx, m *sync.Mutation, row sync.Row) (RejectReason, error) {
-			return authorizeMaster(ctx, tx, userID, m, row.Fields, row.Exists)
+			return guardFor(m.Table)(ctx, tx, guardInput{actorID: userID, m: m, row: row})
 		},
 		relogScopeRefusal: true,
 		retirable:         lifecycleTables,

@@ -60,7 +60,7 @@ test.describe('M9 — tags are marked, and created where they are given @local @
     const list = visiblePage(page)
     expect(await groupHeadings(list)).toEqual(['diverses'])
 
-    await page.getByTestId('m9-select').click()
+    await list.getByTestId('m9-row').first().click({ button: 'right' })
     await page.getByTestId('m9-select-all').click()
     await list.getByTestId('m9-bulk-give').click()
     await expect(page.getByTestId('m9-bulk-tag-sheet')).toHaveAttribute('data-presented', 'true')

@@ -232,18 +232,18 @@ These patterns apply to every screen and are specified once.
   a swipe rests on a whole pill (`scroll-snap-type: x proximity`), so a glyph is never cut at a hard edge. **The notes'
   badge counts what is new for me, never the total, in the action colour** (`count-new`) where every other badge is
   grey.
-* **The bar's cluster is capped at three glyphs (ADR-050).** A page describes its actions in registration order (G-12);
-  the bar renders the first three that are not marked for the ⋮ and puts everything after them into the menu, ahead of
-  the actions the page marked itself. Without a cap a screen gathers glyphs one at a time, because nothing says what
-  full looks like. The right-hand group — ⋮ where anything is behind it, sync glyph, avatar/settings — is present on
-  **every** screen, which is what keeps the conflict log reachable inside a trip. **One exception:** the gear hides on
-  M17 itself, where it would only reopen the screen it is on; the sync glyph stays. **And because it is on every screen,
-  M17 gives back the screen it was opened from:** a control offered everywhere cannot declare one true parent, so the
-  route records where it was entered from and `‹` returns there — the gear tapped inside a trip comes back to that trip,
-  not to the dashboard. The same holds for the two import flows (M15, M18), which are each entered from more than one
-  screen. An entry that carries no origin — a notification deep link, a pasted URL — falls back to the declared parent
-  (ADR-011, Navigation_Concept §7). There is exactly one header bar in the app, and exactly one page head; no screen
-  supplies its own.
+* **The bar's cluster is capped at three glyphs, one on a tab root (ADR-050 and its amendment 1).** A page describes its
+  actions in registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts
+  everything after them into the menu, ahead of the actions the page marked itself. Without a cap a screen gathers
+  glyphs one at a time, because nothing says what full looks like. The right-hand group — ⋮ where anything is behind it,
+  sync glyph, avatar/settings — is present on **every** screen, which is what keeps the conflict log reachable inside a
+  trip. **One exception:** the gear hides on M17 itself, where it would only reopen the screen it is on; the sync glyph
+  stays. **And because it is on every screen, M17 gives back the screen it was opened from:** a control offered
+  everywhere cannot declare one true parent, so the route records where it was entered from and `‹` returns there — the
+  gear tapped inside a trip comes back to that trip, not to the dashboard. The same holds for the two import flows (M15,
+  M18), which are each entered from more than one screen. An entry that carries no origin — a notification deep link, a
+  pasted URL — falls back to the declared parent (ADR-011, Navigation_Concept §7). There is exactly one header bar in
+  the app, and exactly one page head; no screen supplies its own.
 * **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is replaced by a persistent
   left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the top bar then spans the
   remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip" FAB, M4's G-12 action
@@ -354,10 +354,16 @@ These patterns apply to every screen and are specified once.
   M4's *Suchen*, *Filter* and *Zuklappen* stay on the bar because they are tapped while packing.
   **The cluster has a size (ADR-050):** the bar renders at most **three** glyphs from a page's list and puts the rest
   into the ⋮ in registration order, ahead of the entries the page marked itself. The page chooses which three, by
-  writing them first; what it cannot do is add a fourth without noticing. The trip's views are the switcher under the
-  page head (FR-21.21, ADR-051), except *Gepäck* and *Auswertung* (ADR-051 amendment 1): they are ⋮ entries, contributed
-  by the frame rather than by the page, and they **head** the sheet — where you can go first, what you do after. The
-  page's own entries keep their order among themselves.
+  writing them first; what it cannot do is add a fourth without noticing. **On a tab root the size is one (ADR-050
+  amendment 1, UX-05):** M1, M2, M7 and M9 show at most the magnifier and the ⋮ before the sync glyph. The roots are the
+  family's first row on every visit, and what else stood there — the two imports, done a few times a year, and M9's eye,
+  ↕ and ✓✓, none of which reads literally — is a word in the ⋮ (*Datei importieren*, *Tabelle importieren*) or moved
+  into the screen (M9's sort and shown properties head its *Ansicht & Filter* sheet; its selection starts on a row's
+  hold). `AppHeader` holds the root budget itself, so a root action added later becomes a word without its page
+  remembering the rule. E2E-G12-02 reads the bar at 412 and 360 px. The trip's views are the switcher under the page
+  head (FR-21.21, ADR-051), except *Gepäck* and *Auswertung* (ADR-051 amendment 1): they are ⋮ entries, contributed by
+  the frame rather than by the page, and they **head** the sheet — where you can go first, what you do after. The page's
+  own entries keep their order among themselves.
   **A ⋮ holds its own context and nothing else (ADR-051 amendment 2).** *Gepäck* and *Auswertung* are packing's, so the
   frame offers them only on packing's views (M4, M11, M12) — **M6 and M25 have no ⋮ at all**, and the packing pill is
   the way from there. What changes the whole trip rather than the packing — *„Reise-Eigenschaften"*, *„Reise starten"*
@@ -369,9 +375,10 @@ These patterns apply to every screen and are specified once.
   * **Placement — the app bar, beside the gear.** On any screen reached with the back chevron (M4, M6, …) the cluster
     occupies the app bar's right side. The gear stays on every screen except M17 itself, because G-9's "back returns to
     where the gear was tapped" only works if the gear can be tapped anywhere. The cost — M4's bar carrying the cluster
-    *and* the gear — is a known crowding finding (UX-13) and is decided there, not here. Root/tab screens show no
-    cluster. Rationale beyond tidiness: M4's sub-header **collapses on scroll** (Addendum §3.25), so a cluster living in
-    that sub-header would slide away mid-task — in the app bar the actions stay reachable while packing.
+    *and* the gear — is a known crowding finding (UX-13) and is decided there, not here. A tab root shows the magnifier
+    at most (see the size above). Rationale beyond tidiness: M4's sub-header **collapses on scroll** (Addendum §3.25),
+    so a cluster living in that sub-header would slide away mid-task — in the app bar the actions stay reachable while
+    packing.
   * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕
     *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed.
   * **One screen is exempt: M9 (FR-24.6).** The inventory's field is part of the screen, permanently, and the magnifier
@@ -410,9 +417,9 @@ These patterns apply to every screen and are specified once.
   * **Icons must be literal.** Concept testing rejected a generic cube standing in for both Shopping and Luggage: a cart
     means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels
     away.
-  * **Budget.** The cluster holds at most **three glyphs** (ADR-050, `MAX_BAR_ACTIONS` in `AppHeader.vue`); a screen
-    needing more has the surplus rendered behind the ⋮ as words rather than widening the cluster. M4 fills the three
-    with search, filter and fold-all.
+  * **Budget.** The cluster holds at most **three glyphs** (ADR-050, `MAX_BAR_ACTIONS` in `AppHeader.vue`), and **one**
+    on a tab root (amendment 1, `MAX_ROOT_BAR_ACTIONS`); a screen needing more has the surplus rendered behind the ⋮ as
+    words rather than widening the cluster. M4 fills the three with search, filter and fold-all.
 * **G-13 (Typography):** The app has two faces, and which one a piece of text takes is decided by its **role**, never by
   the screen it happens to be on (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from,
   G-13 says where type does. Without it the client declares **no `font-family` at all** and renders in whatever Ionic's

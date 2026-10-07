@@ -5,15 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	"jitpack/internal/sync"
 )
 
 // validIngredientMeal keeps a meal's ingredient on a meal of its own trip
 // (FR-33.2): naming another trip's meal would put a line on that trip's
 // shopping list from outside it. A write that leaves meal_id alone is judged
 // by the row it changes, which was judged when it was written.
-func validIngredientMeal(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+func validIngredientMeal(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, m := in.tripID, in.m
 	id, named := m.Fields["meal_id"].(string)
 	if !named {
 		return ReasonNone, nil

@@ -232,6 +232,28 @@ describe('AppHeader — the G-12 overflow', () => {
     expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(true)
   })
 
+  /*
+   * ADR-050 amendment 1: a tab root carries search and the ⋮, nothing else
+   * (UX-05). The second glyph is not dropped — it becomes a word, as the
+   * fourth does on a drill-down.
+   */
+  it('gives a tab root one glyph and the ⋮, whatever the page registered', () => {
+    route.path = PATH.trips
+    route.fullPath = PATH.trips
+    route.meta = {}
+    route.params = {}
+    setActionsFor(PATH.trips, [action('search'), action('m2-import'), action('m2-other')])
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="header-logo"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="search"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-import"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m2-other"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(true)
+    clearActionsFor(PATH.trips)
+  })
+
   it('offers no ⋮ when no action asked for one', () => {
     setActionsFor(M4_PATH, [action('m4-search'), action('m4-filter')])
 

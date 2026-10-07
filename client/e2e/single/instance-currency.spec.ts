@@ -1,6 +1,7 @@
 import { expect, test, visiblePage } from '../fixtures'
 import { bootPage, uniq } from '../serverMode'
 import { fillIonic } from '../helpers/ionic'
+import { openViewSheet } from '../helpers/m9'
 import { PATH } from '../routes'
 
 /**
@@ -36,17 +37,10 @@ test.describe('the instance currency, backend-backed @single @m9', () => {
     // M9 keeps the price column off by default (the lean list), so the
     // case turns it on rather than assuming a layout it did not set.
     await page.goto(PATH.items)
-    // Unscoped: a header action lives in the one app bar (ADR-011), which
-    // is outside the router outlet `visiblePage` narrows to.
-    await page.getByTestId('m9-properties').click()
-    await expect(page.getByTestId('m9-properties-sheet')).toBeVisible()
-    await page.getByTestId('m9-property-price').click()
-    // The backdrop, not Escape: an Ionic sheet modal ignores the key, and a
-    // case that pressed it would assert against a sheet still on screen.
-    await page.locator('ion-modal[data-testid="m9-properties-sheet"] ion-backdrop').click()
-    // Hidden, not gone: the test id sits on the `ion-modal` host, which
-    // Ionic keeps mounted and only empties — a count of 0 never arrives.
-    await expect(page.getByTestId('m9-properties-sheet')).toBeHidden()
+    const view = await openViewSheet(page)
+    await view.getByTestId('m9-property-price').click()
+    await view.getByTestId('m9-filter-apply').click()
+    await expect(view).not.toHaveAttribute('data-presented', 'true')
 
     // The rows share one test id, so the name is what picks this one out.
     const row = visiblePage(page).getByTestId('m9-row').filter({ hasText: name })

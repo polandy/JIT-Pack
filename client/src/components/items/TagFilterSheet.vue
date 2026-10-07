@@ -20,6 +20,11 @@
  * what the list behind the sheet already shows, so the button confirms rather
  * than commits. A sheet that only applies on dismissal makes every
  * combination a blind guess.
+ *
+ * **It is also where the list's shape is set (UX-05):** the `view` slot above
+ * the tags carries M9's sort and shown properties. With no tag at all the
+ * sheet is that head alone — called „Ansicht", since there is nothing to
+ * filter by.
  */
 import { IonIcon } from '@ionic/vue'
 import { checkmarkOutline, searchOutline } from 'ionicons/icons'
@@ -89,6 +94,9 @@ function toggleUntagged() {
   emit('update:selection', selected.value.has(UNTAGGED_KEY) ? [] : [UNTAGGED_KEY])
 }
 
+/** A sheet with no tag to offer is the view head alone (see above). */
+const hasTags = computed(() => props.tags.length > 0)
+
 /** The mode is a question about *several* tags; with one it decides nothing. */
 const modeUseful = computed(() => props.selection.filter((id) => id !== UNTAGGED_KEY).length > 1)
 </script>
@@ -97,14 +105,16 @@ const modeUseful = computed(() => props.selection.filter((id) => id !== UNTAGGED
   <SheetModal :is-open="isOpen" testid="m9-filter-sheet" @dismiss="emit('dismiss')">
     <section class="sheet-body">
       <SheetHead
-        :title="t('items.filterTitle')"
-        :meta="t('items.filterHint', { n: tags.length })"
+        :title="hasTags ? t('items.viewFilterTitle') : t('items.view')"
+        :meta="hasTags ? t('items.filterHint', { n: tags.length }) : null"
         title-testid="m9-filter-title"
         close-testid="m9-filter-close"
         @close="emit('dismiss')"
       />
 
-      <div class="search">
+      <slot name="view" />
+
+      <div v-if="hasTags" class="search">
         <IonIcon :icon="searchOutline" />
         <input
           v-model="query"
@@ -134,7 +144,7 @@ const modeUseful = computed(() => props.selection.filter((id) => id !== UNTAGGED
         </button>
       </div>
 
-      <ul class="tags">
+      <ul v-if="hasTags" class="tags">
         <li v-for="tag in matches" :key="tag.id">
           <button
             type="button"

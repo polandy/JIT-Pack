@@ -82,139 +82,104 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 	return nil
 }
 
-// authorizeMaster decides whether userID may apply m. current is the
-// existing row, if any; the server-owned columns are already stamped.
-// It answers ReasonNone when the mutation may proceed and otherwise the
-// reason it may not — the two structural rules (FR-27.1/27.6) refuse for a
-// different reason than the permission rules, and the user is owed the
-// difference.
-func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (RejectReason, error) {
-	switch m.Table {
-	case TableTags, TableItemTags, TableTaskTags:
-		// Shared master data like the items they classify (FR-24.1): any
-		// authenticated user creates a tag by typing it in M10, and there
-		// is no separate tag-management screen to gate. FR-7.8's task tags
-		// are the same kind of thing and are created the same way — in the
-		// picker, by typing a word that is not there yet.
+// The master partition's guards. Each answers ReasonNone when the mutation
+// may proceed and otherwise the reason it may not — the two structural rules
+// (FR-27.1/27.6) refuse for a different reason than the permission rules,
+// and the user is owed the difference. The shared master data FR-1.6/FR-24.1
+// leaves open to everyone is `unguarded` in tableSpecs, with the reason.
+
+// seriesOwner lets only a series' owner change it; anyone may create one.
+func seriesOwner(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
+	if !in.row.Exists {
 		return ReasonNone, nil
+	}
+	return authorized(in.row.Fields[columnOwnerID] == in.actorID), nil
+}
 
-	case TableItems, TableItemDependencies:
-		// Shared instance-wide (FR-24.1), and so are the relations between
-		// two of them (FR-20.1): invalid endpoints fail the FK and reject.
+// profileSeriesOwner: a destination profile's ownership follows the series
+// chain (FR-13.2) — current and target series alike, so a profile cannot
+// move to a foreign series.
+func profileSeriesOwner(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	return owned(ctx, tx, in.actorID,
+		`SELECT owner_id FROM trip_series WHERE id = ?`,
+		parentIDs(in.row.Fields, in.m, "series_id"))
+}
+
+// checklistSeriesOwner is profileSeriesOwner one level further down.
+func checklistSeriesOwner(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	return owned(ctx, tx, in.actorID,
+		`SELECT s.owner_id FROM destination_profiles p
+		 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`,
+		parentIDs(in.row.Fields, in.m, "profile_id"))
+}
+
+// tripMembership lets anyone create a trip, any member edit it, and only its
+// Owner or an Admin delete it.
+func tripMembership(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	if !in.row.Exists {
 		return ReasonNone, nil
+	}
+	role, err := memberRole(ctx, tx, in.m.ID, in.actorID)
+	if err != nil {
+		return ReasonNone, err
+	}
+	if role == "" {
+		return ReasonNotAuthorized, nil
+	}
+	if in.m.Op == sync.OpDelete {
+		return authorized(role == RoleOwner || role == RoleAdmin), nil
+	}
+	return ReasonNone, nil
+}
 
-	case TableTemplates:
-		// Shared instance-wide like master items (FR-1.6 MVP simplification):
-		// everyone edits every template. owner_id is creator metadata,
-		// stamped once (stampedOnCreate) — an editor is not an owner, and
-		// the FR-1.6 stub needs the creator back if the parked ownership
-		// model returns.
-		if !exists || m.Op == sync.OpDelete {
-			return ReasonNone, nil
-		}
-		return validKindSwitch(ctx, tx, current, m)
-
-	case TableTemplateItems, TableTemplateItemTasks, TableTemplateTasks:
-		// Positions, their preparation tasks (FR-27.7) and the template's
-		// trip tasks (FR-7.4) follow their template's governance (FR-1.6
-		// MVP): shared. An invalid parent id
-		// fails the FK and rejects.
-		return ReasonNone, nil
-
-	case TableTemplateIncludes:
-		// Shared like everything else, but structurally constrained: the
-		// two-level rule (FR-27.1) is what makes include cycles impossible,
-		// so a shape that would break it is refused here rather than
-		// discovered later by a resolver.
-		if m.Op == sync.OpDelete {
-			return ReasonNone, nil
-		}
-		return validInclude(ctx, tx, current, m)
-
-	case TableTripSeries:
-		if !exists {
-			return ReasonNone, nil
-		}
-		return authorized(current["owner_id"] == userID), nil
-
-	case TableDestinationProfiles:
-		// Ownership follows the series chain (FR-13.2) — current and
-		// target series alike, so profiles can't move to foreign series.
-		return owned(ctx, tx, userID,
-			`SELECT owner_id FROM trip_series WHERE id = ?`,
-			parentIDs(current, m, "series_id"))
-
-	case TableDestinationChecklistItems:
-		return owned(ctx, tx, userID,
-			`SELECT s.owner_id FROM destination_profiles p
-			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`,
-			parentIDs(current, m, "profile_id"))
-
-	case TableTrips:
-		if !exists {
-			return ReasonNone, nil
-		}
-		role, err := memberRole(ctx, tx, m.ID, userID)
+// tripEditor guards FR-27.4's bookkeeping about a trip: writable by anyone
+// who may edit the trip itself. No role split — registering a source and
+// logging an applied change are consequences of ordinary editing, not
+// administration, and the refresh runs on whichever device has the trip
+// open.
+func tripEditor(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	trips := parentIDs(in.row.Fields, in.m, columnTripID)
+	if len(trips) == 0 {
+		return ReasonNotAuthorized, nil
+	}
+	for tripID := range trips {
+		role, err := memberRole(ctx, tx, tripID, in.actorID)
 		if err != nil {
 			return ReasonNone, err
 		}
 		if role == "" {
 			return ReasonNotAuthorized, nil
 		}
-		if m.Op == sync.OpDelete {
-			return authorized(role == RoleOwner || role == RoleAdmin), nil
-		}
-		return ReasonNone, nil
-
-	case TableTripTemplateSources, TableTripAppliedChanges:
-		// FR-27.4 bookkeeping about a trip: writable by anyone who may edit
-		// the trip itself. No role split — registering a source and logging
-		// an applied change are consequences of ordinary editing, not
-		// administration, and the refresh runs on whichever device has the
-		// trip open.
-		trips := parentIDs(current, m, columnTripID)
-		if len(trips) == 0 {
-			return ReasonNotAuthorized, nil
-		}
-		for tripID := range trips {
-			role, err := memberRole(ctx, tx, tripID, userID)
-			if err != nil {
-				return ReasonNone, err
-			}
-			if role == "" {
-				return ReasonNotAuthorized, nil
-			}
-		}
-		return ReasonNone, nil
-
-	case TableTripMembers:
-		// Clients can never grant 'owner' — the creator's server-created
-		// row is the trip's only Owner (FR-4.5).
-		if role, ok := m.Fields["role"].(string); ok && role == RoleOwner {
-			return ReasonNotAuthorized, nil
-		}
-		// The creator's row is the only one with role 'owner' and is
-		// immutable — no demotion, no removal, not even by an Admin
-		// (FR-4.7).
-		if exists && current["role"] == RoleOwner {
-			return ReasonNotAuthorized, nil
-		}
-		trips := parentIDs(current, m, columnTripID)
-		if len(trips) == 0 {
-			return ReasonNotAuthorized, nil
-		}
-		for tripID := range trips {
-			role, err := memberRole(ctx, tx, tripID, userID)
-			if err != nil {
-				return ReasonNone, err
-			}
-			if role != RoleOwner && role != RoleAdmin {
-				return ReasonNotAuthorized, nil // FR-4.7: only Owner/Admin manage members
-			}
-		}
-		return ReasonNone, nil
 	}
-	return ReasonNotAuthorized, nil
+	return ReasonNone, nil
+}
+
+// memberAdministration guards a trip's roster (FR-4.5/4.7).
+func memberAdministration(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	// Clients can never grant 'owner' — the creator's server-created row is
+	// the trip's only Owner (FR-4.5).
+	if role, ok := in.m.Fields["role"].(string); ok && role == RoleOwner {
+		return ReasonNotAuthorized, nil
+	}
+	// The creator's row is the only one with role 'owner' and is immutable —
+	// no demotion, no removal, not even by an Admin (FR-4.7).
+	if in.row.Exists && in.row.Fields["role"] == RoleOwner {
+		return ReasonNotAuthorized, nil
+	}
+	trips := parentIDs(in.row.Fields, in.m, columnTripID)
+	if len(trips) == 0 {
+		return ReasonNotAuthorized, nil
+	}
+	for tripID := range trips {
+		role, err := memberRole(ctx, tx, tripID, in.actorID)
+		if err != nil {
+			return ReasonNone, err
+		}
+		if role != RoleOwner && role != RoleAdmin {
+			return ReasonNotAuthorized, nil // FR-4.7: only Owner/Admin manage members
+		}
+	}
+	return ReasonNone, nil
 }
 
 // memberRole returns userID's role on the trip, or "" for non-members.
@@ -232,16 +197,18 @@ func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string,
 	return role, nil
 }
 
-// parentIDs collects the parent references of a child row from both the
-// existing row and the mutation fields — authorization must hold for the
-// current parent *and* the target parent.
 // validInclude enforces the FR-27.1 two-level rule: only a Ferien-Vorlage
 // (kind 'template') may include, and only a Gruppe (kind 'group') may be
 // included. Both ends are checked against the row as it will read after the
 // mutation, so an include can never be re-pointed into an illegal shape.
 // A missing template denies — the FK would reject it anyway, and denying
-// keeps the answer a clean "rejected" instead of an error.
-func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (RejectReason, error) {
+// keeps the answer a clean "rejected" instead of an error. Removing an
+// include can break no shape.
+func validInclude(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	current, m := in.row.Fields, in.m
+	if m.Op == sync.OpDelete {
+		return ReasonNone, nil
+	}
 	field := func(name string) string {
 		if v, ok := m.Fields[name].(string); ok {
 			return v
@@ -282,7 +249,17 @@ func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sy
 // carrying no `kind`, or restating the one already stored, is an ordinary
 // edit: rejecting it would drop a legitimate offline rename, and a
 // rejected mutation is a change the client's outbox discards (NFR-4.2a).
-func validKindSwitch(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (RejectReason, error) {
+//
+// Templates are otherwise shared instance-wide like master items (FR-1.6 MVP
+// simplification): everyone edits every template. owner_id is creator
+// metadata, stamped once (stampedOnCreate) — an editor is not an owner, and
+// the FR-1.6 stub needs the creator back if the parked ownership model
+// returns.
+func validKindSwitch(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	current, m := in.row.Fields, in.m
+	if !in.row.Exists || m.Op == sync.OpDelete {
+		return ReasonNone, nil
+	}
 	kind, ok := m.Fields["kind"].(string)
 	if !ok || kind == current["kind"] {
 		return ReasonNone, nil
@@ -309,7 +286,7 @@ func authorized(ok bool) RejectReason {
 	return ReasonNotAuthorized
 }
 
-// owned is ownsAll in the reason vocabulary, so the switch above reads the
+// owned is ownsAll in the reason vocabulary, so the guards above read the
 // same whichever branch answers.
 func owned(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map[string]bool) (RejectReason, error) {
 	ok, err := ownsAll(ctx, tx, userID, ownerQuery, ids)
@@ -359,6 +336,9 @@ func stillReferenced(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	return false, nil
 }
 
+// parentIDs collects the parent references of a child row from both the
+// existing row and the mutation fields — authorization must hold for the
+// current parent *and* the target parent.
 func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
 	ids := map[string]bool{}
 	if id, ok := current[field].(string); ok {

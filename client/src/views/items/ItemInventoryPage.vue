@@ -7,8 +7,8 @@
  * nothing else — all tags, the weight and the price on every row read as
  * overload.
  *
- * **The tools do not leave (FR-24.6).** Search, the sort and the active tag
- * sit in a bar that stays while the list scrolls, and the group headings
+ * **The tools do not leave (FR-24.6).** Search and the tag chips — with the
+ * sheet that also sets the sort — sit in a bar that stays while the list scrolls, and the group headings
  * stick underneath it. Measured against the family instance the list is
  * 10 391 px against a 671 px viewport — fifteen screens, and tools that
  * scrolled away would leave no heading, no axis and no field after two.
@@ -20,8 +20,8 @@
  * spellings of an umlaut and reaches tags and marks, and it says *why* a row
  * matched so the results can be grouped by it.
  *
- * What the list shows beyond the name is a *device-local* preference
- * behind the eye icon (FR-24.4) — the weight-focused packer and the
+ * What the list shows beyond the name is a *device-local* preference in the
+ * head of that sheet (FR-24.4) — the weight-focused packer and the
  * price-focused shopper get the same mechanism instead of one compromise.
  *
  * Grouping is by **primary tag** (FR-24.2), so an item on three axes still
@@ -50,7 +50,7 @@ import { t } from '@/i18n'
 import { PATH } from '@/router/paths'
 import InventoryBulkSheets from './inventory/InventoryBulkSheets.vue'
 import InventoryGroupList from './inventory/InventoryGroupList.vue'
-import InventoryPropertiesSheet from './inventory/InventoryPropertiesSheet.vue'
+import InventoryViewHead from './inventory/InventoryViewHead.vue'
 import InventoryTools from './inventory/InventoryTools.vue'
 import { useGroupJump } from './inventory/useGroupJump'
 import { useInventoryCore } from './inventory/useInventoryCore'
@@ -65,7 +65,7 @@ const router = useRouter()
 const core = useInventoryCore()
 const {
   props,
-  propsOpen,
+  sort,
   selection,
   filterMode,
   filterOpen,
@@ -265,7 +265,8 @@ const retiredCount = computed(() => masterStore.retiredItemList.length)
         @created="onCreated"
       />
 
-      <!-- FR-24.8: everything the three chips do not offer. -->
+      <!-- FR-24.8: everything the three chips do not offer; its head is the
+           list's shape — sort and shown properties (FR-24.4, UX-05). -->
       <TagFilterSheet
         :is-open="filterOpen"
         :tags="masterStore.tagList"
@@ -277,7 +278,16 @@ const retiredCount = computed(() => masterStore.retiredItemList.length)
         @dismiss="filterOpen = false"
         @update:selection="selection = $event"
         @update:mode="filterMode = $event"
-      />
+      >
+        <template #view>
+          <InventoryViewHead
+            :sort="sort"
+            :can-assign="canAssign"
+            :properties="props"
+            @update:sort="sort = $event"
+          />
+        </template>
+      </TagFilterSheet>
 
       <!-- FR-24.10: where a tag itself is renamed, merged, reordered, deleted. -->
       <TagManagerSheet
@@ -308,14 +318,6 @@ const retiredCount = computed(() => masterStore.retiredItemList.length)
         :current="currentGroup"
         @dismiss="onJumpDismissed"
         @jump="requestJump"
-      />
-
-      <!-- FR-24.4 "Angezeigte Eigenschaften" — device-local, no save button. -->
-      <InventoryPropertiesSheet
-        :is-open="propsOpen"
-        :can-assign="canAssign"
-        :properties="props"
-        @dismiss="propsOpen = false"
       />
     </IonContent>
   </IonPage>

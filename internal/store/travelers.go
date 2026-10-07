@@ -8,8 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	"jitpack/internal/sync"
 )
 
 // validTravelerLink enforces that linked_user_id names a current member
@@ -20,7 +18,8 @@ import (
 //
 // A missing or empty value is always valid — it clears the link, and
 // unlinking needs no membership at all.
-func validTravelerLink(ctx context.Context, tx *sql.Tx, tripID string, current map[string]any, m *sync.Mutation) (RejectReason, error) {
+func validTravelerLink(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, current, m := in.tripID, in.row.Fields, in.m
 	var linkedUserID string
 	if v, present := m.Fields["linked_user_id"]; present {
 		// The mutation names the field explicitly — a nil/empty value here

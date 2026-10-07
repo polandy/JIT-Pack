@@ -37,7 +37,8 @@ var noteWords = []string{columnBody, columnTitle, columnEditedAt, columnExcursio
 // It may strip fields it owns (parent_id on every later op, title and
 // excursion_id on anything but a first note, an excursion that is gone),
 // which is why it takes the mutation by pointer.
-func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, row sync.Row, m *sync.Mutation) (RejectReason, error) {
+func validNoteThread(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, actorID, row, m := in.tripID, in.actorID, in.row, in.m
 	if m.Op == sync.OpDelete {
 		return ReasonNone, nil
 	}
@@ -60,7 +61,7 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, ro
 				return ReasonNotAuthorized, nil
 			}
 		}
-		return noteExcursion(ctx, tx, tripID, m)
+		return noteExcursion(ctx, tx, in)
 	}
 
 	parent, _ := m.Fields[columnParentID].(string)
@@ -68,7 +69,7 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, ro
 		if !isNoteRow(m.Fields) {
 			delete(m.Fields, columnExcursionID)
 		}
-		return noteExcursion(ctx, tx, tripID, m)
+		return noteExcursion(ctx, tx, in)
 	}
 	delete(m.Fields, columnTitle)
 	delete(m.Fields, columnExcursionID)
@@ -83,7 +84,8 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, tripID, actorID string, ro
 // while this one was offline — drops the link and keeps the note, which a
 // foreign-key refusal would have thrown away; one of another trip is a
 // write no screen of this trip can make, and is refused.
-func noteExcursion(ctx context.Context, tx *sql.Tx, tripID string, m *sync.Mutation) (RejectReason, error) {
+func noteExcursion(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, m := in.tripID, in.m
 	id, _ := m.Fields[columnExcursionID].(string)
 	if id == "" {
 		return ReasonNone, nil
