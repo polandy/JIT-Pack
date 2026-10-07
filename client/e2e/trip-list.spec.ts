@@ -450,6 +450,10 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
   })
 })
 
+/** E2E-M2-35's trip: on its third of fifteen days. */
+const ROAD_TRIP = 'Samedan'
+const ON_THE_ROAD = { start: '2026-10-05', end: '2026-10-19', today: '2026-10-07' }
+
 /**
  * M2's hero (FR-21.15, UI-Test-Spec §4, unit "M2 hero").
  *
@@ -458,16 +462,12 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
  * sliding menu. What makes the case worth running rather than unit-testing is
  * exactly that half — the actions have to still be there after the lift.
  */
-/** E2E-M2-35's trip: on its third of fifteen days. */
-const ROAD_TRIP = 'Samedan'
-const ON_THE_ROAD = { start: '2026-10-05', end: '2026-10-19', today: '2026-10-07' }
-
 test.describe('M2 hero @local @m2', () => {
   test.beforeEach(async ({ page }) => {
     await seed(page, { mode: 'local' })
   })
 
-  test('E2E-M2-17: the trip being packed is a card, keeps the row menu and states its actions', async ({
+  test('E2E-M2-17: the trip being packed is a card and keeps the row menu and its actions', async ({
     page,
   }) => {
     // Two running trips, so „the card" is a choice the screen makes rather

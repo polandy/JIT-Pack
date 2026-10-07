@@ -624,7 +624,6 @@ function actionsOf(trip: Trip): TripRowAction[] {
   return tripRowActions(trip, { collaborative, canDelete: canDelete(trip) })
 }
 
-/** One entry of the hero's action row (FR-21.15). */
 // --- Row menu: hold / right-click (M4, M7 shape) ---------------------------
 //
 // Not a swipe: no list hides its actions behind one, and M4 and M7 answer a
