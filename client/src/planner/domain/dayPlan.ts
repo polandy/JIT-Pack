@@ -424,7 +424,6 @@ function fixed(kind: typeof DAY_LINE.arrival | typeof DAY_LINE.departure, day: s
   }
 }
 
-/** How many lines stand on each day — the strip's dots. */
 /** How many lines each day holds — of those that concern the `chosen`, while some are (FR-29.15). */
 export function dayCounts(
   days: readonly string[],
