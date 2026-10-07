@@ -16,9 +16,10 @@ import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
+import type { ShoppingSource } from '@/lib/shoppingSources'
 import { TABLE } from '@/types/tables'
 import { createShoppingActions, ownEntriesSource, shoppingCloseCrossing } from '../actions'
-import { duePurchaseCount } from '..'
+import { duePurchases } from '..'
 import { shoppingFeatureStore, useShoppingStore } from '../store'
 
 let harness: Harness
@@ -135,7 +136,7 @@ describe('The due day (FR-30.10)', () => {
     expect(harness.pushedMutations()).toHaveLength(3)
   })
 
-  it('counts the open entries due by tomorrow on both lists for Local Mode’s hint', () => {
+  it('tallies the open entries due by tomorrow on both lists, the overdue apart, for M1’s due line', () => {
     const actions = createShoppingActions(serverOrch().moduleHost, useShoppingStore())
     actions.addEntry('t1', 'buy_before', 'Hut', null, '2026-07-01')
     actions.addEntry('t1', 'buy_local', 'Milch', null, '2026-07-09')
@@ -149,7 +150,28 @@ describe('The due day (FR-30.10)', () => {
       true,
     )
 
-    expect(duePurchaseCount()('t1', '2026-07-08')).toBe(2)
+    expect(duePurchases([])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
+  })
+
+  /**
+   * A meal's ingredient wears *Heute* on M1's card on its meal's day, so the
+   * line above the card counts it too — a count of the own entries alone read
+   * „1 Einkauf" over three rows saying *Heute*.
+   */
+  it('counts a source’s open lines by the day they carry, as the card badges them', () => {
+    useShoppingStore()
+    const lines = (list: string) =>
+      list === 'buy_local'
+        ? [
+            { key: 'k', name: 'Kartoffeln', dueDate: '2026-07-08' },
+            { key: 'b', name: 'Bratwurst', dueDate: null },
+          ]
+        : [{ key: 'h', name: 'Hut', dueDate: '2026-07-07' }]
+    const source = {
+      open: (_trip: string, list: string) => lines(list),
+    } as unknown as ShoppingSource
+
+    expect(duePurchases([source])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
   })
 
   it('a bought entry’s line carries no day — a purchase made is never overdue', () => {

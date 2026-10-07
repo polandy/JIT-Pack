@@ -194,6 +194,10 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   // Nachts absichtlich neutral (UX-15): jede Tageszeit-Behauptung um 00:14 ist falsch.
   'dashboard.greetingNight': 'Hallo',
   'dashboard.subtitle': 'Was beim Packen ansteht',
+  // FR-7.11/FR-30.10: M1's due line — „2 Aufgaben (1 überfällig) · 3 Einkäufe fällig“.
+  'dashboard.dueWord': 'fällig',
+  'dashboard.overdueWord': 'überfällig',
+  'dashboard.overdueOf': '({n} überfällig)',
   'dashboard.planTrip': 'Reise planen',
   'dashboard.delegated': '{n} Sache für dich | {n} Sachen für dich',
   'dashboard.delegatedNewRow': '{name} — neu',
@@ -271,9 +275,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'tasks.dueField': 'Fällig',
   'tasks.dueSetToast': '„{body}" fällig am {date}',
   'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
-  'tasks.dueHint': '{n} Aufgabe fällig | {n} Aufgaben fällig',
   'tasks.dueCount': '{n} Aufgabe | {n} Aufgaben',
-  'tasks.dueHintBoth': '{tasks} und {purchases} fällig',
   'tasks.beforeLocked':
     'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
 

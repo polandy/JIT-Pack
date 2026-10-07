@@ -33,7 +33,7 @@ import { t } from '@/i18n'
 import { sortByDue } from '@/lib/dueDay'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import { presentToast } from '@/lib/toast'
-import type { TripCardProps } from '@/lib/tripCards'
+import { DUE_BLOCK_SHOPPING, dueBlockAnchor, type TripCardProps } from '@/lib/tripCards'
 import { tripSubPath } from '@/router/paths'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
@@ -165,6 +165,7 @@ function switchTo(which: ShoppingMode) {
       "
       :empty="blockEmpty"
       :testid="`dashboard-shopping-${tripName}`"
+      :anchor="dueBlockAnchor(DUE_BLOCK_SHOPPING, tripId)"
       @add="addFromBlock"
     >
       <DashboardBlockRow

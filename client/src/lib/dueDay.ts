@@ -91,3 +91,33 @@ export function sortByDue<T>(
 export function pressingGroupsFirst<G>(groups: readonly G[], pressing: (group: G) => boolean): G[] {
   return [...groups.filter(pressing), ...groups.filter((group) => !pressing(group))]
 }
+
+/** How many things are due by tomorrow, and how many of those are already late. */
+export interface DueTally {
+  due: number
+  overdue: number
+}
+
+/** A tally with nothing in it — what a source that is absent contributes. */
+export const NO_DUE: DueTally = { due: 0, overdue: 0 }
+
+/**
+ * dueTally counts the days due by tomorrow — what a reminder names — and the
+ * overdue ones among them. The caller passes null for a thing without a day
+ * or already done.
+ */
+export function dueTally(days: readonly (string | null)[], today: string): DueTally {
+  const due = days.filter((day) => isDueByTomorrow(day, today))
+  return { due: due.length, overdue: due.filter((day) => daysBetween(today, day!) < 0).length }
+}
+
+/** addTallies sums tallies — a trip's, or every active trip's. */
+export function addTallies(tallies: readonly DueTally[]): DueTally {
+  return tallies.reduce(
+    (sum, tally) => ({
+      due: sum.due + tally.due,
+      overdue: sum.overdue + tally.overdue,
+    }),
+    NO_DUE,
+  )
+}

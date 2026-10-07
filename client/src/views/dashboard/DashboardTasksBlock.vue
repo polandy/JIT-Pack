@@ -21,6 +21,7 @@ import { useTripTasks } from '@/composables/useTripTasks'
 import { openDueDay } from '@/domain/taskDue'
 import { dashboardTasks, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
+import { DUE_BLOCK_TASKS, dueBlockAnchor } from '@/lib/tripCards'
 import { tripSubPath } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
@@ -109,6 +110,7 @@ function add(text: string) {
     "
     :empty="empty"
     :testid="testid"
+    :anchor="dueBlockAnchor(DUE_BLOCK_TASKS, tripId)"
     @add="add"
   >
     <DashboardBlockRow

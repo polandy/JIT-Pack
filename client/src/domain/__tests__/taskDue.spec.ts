@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  taskDueTally,
   byDue,
   daysBetween,
   DUE_LATER,
   DUE_OVERDUE,
   DUE_SOON,
   DUE_TODAY,
-  dueByTomorrowCount,
   dueStateOf,
   isDuePressing,
   pressingFirst,
@@ -106,8 +106,8 @@ describe('FR-7.11 pressingFirst', () => {
   })
 })
 
-describe('FR-7.11 dueByTomorrowCount (Local Mode hint)', () => {
-  it('counts open tasks due by tomorrow, overdue included', () => {
+describe('FR-7.11 taskDueTally (M1’s due line)', () => {
+  it('counts open tasks due by tomorrow, and the overdue apart', () => {
     const tasks = [
       task('overdue', '2026-07-01'),
       task('today', '2026-07-08'),
@@ -116,6 +116,6 @@ describe('FR-7.11 dueByTomorrowCount (Local Mode hint)', () => {
       task('undated', null),
       task('done', '2026-07-08', 'resolved'),
     ]
-    expect(dueByTomorrowCount(tasks, TODAY)).toBe(3)
+    expect(taskDueTally(tasks, TODAY)).toEqual({ due: 3, overdue: 1 })
   })
 })

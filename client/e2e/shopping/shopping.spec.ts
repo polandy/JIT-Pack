@@ -692,11 +692,11 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
    * line due within two days leaves its group for the *Due* block on top,
    * which names the group it left — while *Brot*, undated, stays where it
    * was. A reload proves the write, not the repaint. Then M1: the card
-   * under the trip leads with it and wears the same pill, and Local Mode's
-   * stand-in for the push says once, when the app opens, that it is due — the
-   * trip is started first, because M1 counts the active trips.
+   * under the trip leads with it and wears the same pill, and the head's due
+   * line names it — the trip is started first, because M1 counts the active
+   * trips.
    */
-  test('E2E-M6-35: a due day is set in the sheet, leads the list and the dashboard, and is said when the app opens (FR-30.10)', async ({
+  test('E2E-M6-35: a due day is set in the sheet, leads the list and the dashboard, and M1’s head says it (FR-30.10)', async ({
     page,
   }) => {
     const name = 'Samedan Fällig'
@@ -740,9 +740,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     await expect(m6(page).getByTestId('m6-due').locator('h3')).toHaveText(['Pasta'])
     await expect(list(page, 'local').getByTestId('m6-group-own').locator('h3')).toHaveText(['Brot'])
 
-    // M1: the trip's card leads with it, and the app says it once on opening.
+    // M1: the trip's card leads with it, and the head's due line names it (UX-15).
     await page.goto(PATH.dashboard)
-    await expect(page.locator('ion-toast').filter({ hasText: '1 purchase due' })).toBeVisible()
+    await expect(page.getByTestId('header-meta')).toHaveText('1 purchase due')
     const card = visible(page).getByTestId(`dashboard-shopping-${name}`)
     await expect(card.getByTestId('dash-shop-row').locator('.name')).toHaveText(['Pasta', 'Brot'])
     await expect(card.getByTestId('dash-shop-due-Pasta')).toHaveText('Tomorrow')

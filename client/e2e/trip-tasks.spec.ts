@@ -746,11 +746,10 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    * comes before *Renew*), and both survive a reload — a line that only
    * repainted proves the component, not the write.
    *
-   * Then Local Mode's stand-in for the push: the app says once, when it is
-   * opened, how many tasks are due. Opened means a fresh load of the
-   * dashboard, and the trip has to be running — M1 counts the active trips.
+   * Then M1's due line: the head says how many tasks are due by tomorrow.
+   * The trip has to be running — M1 counts the active trips.
    */
-  test('E2E-M25-13: a due day is set on the sheet, leads the list, and is said when the app opens', async ({
+  test('E2E-M25-13: a due day is set on the sheet, leads the list, and M1’s head says it', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Fällig')
@@ -791,9 +790,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
       visible(page).getByTestId('m25-due').getByTestId('trip-todo-due-Renew the passport'),
     ).toHaveText('Tomorrow')
 
-    // Local Mode's reminder: once, when the app opens on a running trip.
+    // M1's due line (UX-15): the head says it, for as long as it is true.
     await page.goto(PATH.dashboard)
-    await expect(page.locator('ion-toast').filter({ hasText: '1 task due' })).toBeVisible()
+    await expect(page.getByTestId('header-meta')).toHaveText('1 task due')
   })
 
   /**

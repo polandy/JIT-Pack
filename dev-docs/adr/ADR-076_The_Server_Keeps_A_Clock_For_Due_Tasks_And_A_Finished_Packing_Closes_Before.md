@@ -145,3 +145,23 @@ close moves tasks and purchases across in one undoable act, and every writer of 
 A second server instance on one database (the claim then needs a real lease), a request for a reminder *time* per
 task rather than a day, or a web platform API that can fire a notification at a set time with the app closed (then
 Local Mode could be reminded properly).
+
+## Amendment 1 (2026-10-08) — Local Mode reads what is due on M1, as a standing line
+
+Local Mode's stand-in for the push was a toast on opening: *„2 Aufgaben und 1 Einkauf fällig"*, once per app start,
+for three seconds, over the hero, with nothing to tap. The UX review (item UX-15) found it on the seed: a state of the
+trip said in the grammar the app keeps for answering an act (FR-25.2 undo), repeating what the rows' pills already
+say, and counting only the shopping list's own entries while the card badged a meal's ingredients *Heute* too — one
+purchase named over three rows that said otherwise. Two shapes were put to the owner on a live mockup:
+
+- **The page head's meta line says it** — chosen. *„2 Aufgaben (1 überfällig) · 3 Einkäufe fällig"*, each count a
+  link that brings its block forward. Seen on arrival at every width, and for as long as it is true. In all three
+  modes: it is a fact about the page, not a reminder, so the server's push stays as decided above. The purchases are
+  every open line carrying a day, a source's included. Cost: the head's second line now changes with the data, and
+  *„Was beim Packen ansteht"* is shown only when nothing is due.
+- *A count pill on the Aufgaben and Einkaufen block heads* — rejected. At 412 px the Aufgaben head stands some
+  1400 px down, so on arrival nothing would say anything; and the head is the fold's button, so the pill could not
+  lead anywhere.
+
+The decision's sentence on Local Mode reads accordingly: it has no reminder, and M1 says what is due instead.
+

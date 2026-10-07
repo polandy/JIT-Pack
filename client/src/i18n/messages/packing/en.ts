@@ -287,7 +287,6 @@ export const packingEn = {
   'shopping.wentToPacking': 'on the packing list',
   'shopping.wentPacked': 'packed',
   'shopping.dueCount': '{n} purchase | {n} purchases',
-  'shopping.dueHint': '{n} purchase due | {n} purchases due',
   'shopping.boughtBy': 'bought by {who} · {when}',
   'shopping.boughtByUnknown': 'bought · {when}',
 } as const

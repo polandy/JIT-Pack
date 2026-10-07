@@ -15,9 +15,10 @@
  */
 import { IonIcon } from '@ionic/vue'
 import { addOutline, checkmarkCircleOutline, chevronUpOutline } from 'ionicons/icons'
-import { ref, watch } from 'vue'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 
 import { t } from '@/i18n'
+import { onBlockCall } from '@/lib/blockCall'
 import { useBlockFold } from '@/lib/blockFold'
 
 const props = defineProps<{
@@ -39,6 +40,8 @@ const props = defineProps<{
   /** The sentence in the place of the rows when there are none; null when there are rows. */
   empty: string | null
   testid: string
+  /** The id M1's due line calls the block by (`dueBlockAnchor`); none for a block nothing leads to. */
+  anchor?: string
 }>()
 
 const emit = defineEmits<{ add: [text: string] }>()
@@ -56,6 +59,25 @@ function add() {
   draft.value = ''
 }
 
+/**
+ * Called by the due line (FR-7.11, FR-30.10): unfolded for this visit — the
+ * remembered fold is the person's and stays as it was — brought into view,
+ * and ringed once so the eye finds it among the hero's blocks.
+ */
+const root = useTemplateRef<HTMLElement>('root')
+const called = ref(false)
+onBlockCall(
+  () => props.anchor,
+  async () => {
+    open.value = true
+    called.value = false
+    await nextTick()
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    root.value?.scrollIntoView({ block: 'start', behavior: still ? 'auto' : 'smooth' })
+    called.value = true
+  },
+)
+
 /** The count pulses when it moves, after the first paint — the folded block's only evidence. */
 const pulse = ref(false)
 watch(
@@ -67,7 +89,15 @@ watch(
 </script>
 
 <template>
-  <section class="block" :data-testid="testid" :data-folded="!open">
+  <section
+    :id="anchor"
+    ref="root"
+    class="block"
+    :class="{ called }"
+    :data-testid="testid"
+    :data-folded="!open"
+    @animationend.self="called = false"
+  >
     <button
       type="button"
       class="head"
@@ -131,6 +161,23 @@ watch(
   padding: 2px 14px 0;
   border-radius: var(--jp-r-md);
   background: var(--jp-surface-sunken);
+  /* Brought into view by the due line, it stops clear of the column's top. */
+  scroll-margin-top: 16px;
+}
+
+/* The due line's call: a ring that fades, on the block it led to. A change
+   of colour, not of place, so reduced motion keeps it. */
+.block.called {
+  animation: block-called 1.4s ease-out;
+}
+
+@keyframes block-called {
+  from {
+    box-shadow: 0 0 0 2px var(--jp-action);
+  }
+  to {
+    box-shadow: 0 0 0 2px transparent;
+  }
 }
 
 .head {
