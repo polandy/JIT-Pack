@@ -35,7 +35,7 @@ import { unitsOf } from '@/domain/packState'
 import {
   applyToSink,
   codecFor,
-  TABLE_CODECS,
+  TABLE_SPECS,
   todoCodec,
   tripTodoCodec,
   type RowSinks,
@@ -617,7 +617,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     if (table === TABLE.comments) {
       sinks[TABLE.comments]?.remove(change.id)
       if (!row['is_task']) {
-        commentRows.upsert(TABLE_CODECS[TABLE.comments].parse(change.id, row))
+        commentRows.upsert(TABLE_SPECS[TABLE.comments].parse(change.id, row))
       } else if (row['trip_item_id'] == null) {
         // FR-7.4: a task with no row is the trip's own.
         tripTodoRows.upsert(tripTodoCodec.parse(change.id, row))

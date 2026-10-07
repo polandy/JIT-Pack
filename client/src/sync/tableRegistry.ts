@@ -1,5 +1,6 @@
 /**
- * The table registry — one codec per syncable table.
+ * The table registry — one spec per syncable table: its codec, its feed and
+ * its store.
  *
  * A row crosses this boundary twice: a pull hands the store a
  * `Record<string, unknown>` to turn into a domain object (`parse`), and an
@@ -9,9 +10,10 @@
  * and nothing compared them, which is how `trips.series_name` came to be
  * read by a parser that no writer, client or server, has ever filled.
  *
- * `TABLE_CODECS` is `satisfies Record<SyncTable, TableCodec>`, so a new
- * syncable table is a compile error until it has a parser, and
- * `__tests__/tableRegistry.spec.ts` holds the halves against each other.
+ * `TABLE_SPECS` is `satisfies Record<SyncTable, TableSpec>`, so a new
+ * syncable table is a compile error until it has a parser, a feed and a
+ * store, and `__tests__/tableRegistry.spec.ts` holds the halves against each
+ * other. Pull routing is derived from it (`routing.ts`).
  *
  * The encoders stay in `composables/sync/rows.ts` and are referenced from
  * here: eight action modules import them by name, and `rowBuilders.spec.ts`
@@ -79,6 +81,7 @@ import {
   toIdeaTag,
 } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/types/tables'
+import type { PartitionType } from './partition'
 import { durationDays } from '@/domain/instantiate'
 import { parseJsonColumn } from './columns'
 import {
@@ -127,6 +130,37 @@ export interface TableCodec<T = unknown> {
   parse: (id: string, row: SyncRow) => T
   encode?: (value: never) => SyncRow
 }
+
+/**
+ * The store that holds a table's rows on the device. A feature module's
+ * store reaches the orchestrator as a `FeatureStore` (`sync/featureModule.ts`)
+ * through the composition root; the table name is still the kernel's,
+ * because it is wire contract rather than module code (FR-30.3, ADR-066).
+ */
+export type StoreOwner = 'trip' | 'master' | 'feature'
+
+/**
+ * Everything the client knows about one table, in one entry: how its rows
+ * cross the wire, which feed carries them, and which store holds them. The
+ * Go side keeps the same facts in `tableSpecs` (`internal/store/tables.go`).
+ *
+ * Owner and partition are two facts, not one: the master feed carries the
+ * trips themselves and three per-trip tables (Sync-API P-3), and every
+ * feature table travels its trip's feed.
+ */
+export interface TableSpec<T = unknown> extends TableCodec<T> {
+  owner: StoreOwner
+  partition: PartitionType
+}
+
+/** Instance-wide master data, on the master feed. */
+const MASTER_DATA = { owner: 'master', partition: 'master' } as const
+/** A trip's own rows, on its trip feed. */
+const TRIP_FEED = { owner: 'trip', partition: 'trip' } as const
+/** The trip store's rows the master feed carries (Sync-API P-3). */
+const TRIP_ON_MASTER = { owner: 'trip', partition: 'master' } as const
+/** A feature module's rows, on their trip's feed. */
+const FEATURE_FEED = { owner: 'feature', partition: 'trip' } as const
 
 function rowToTag(id: string, row: Record<string, unknown>): Tag {
   return {
@@ -673,55 +707,71 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
 }
 
 /**
- * Every syncable table, paired. The `satisfies` is the point: adding a
- * `TABLE.*` constant without a codec fails the build rather than falling
+ * Every syncable table, specified. The `satisfies` is the point: adding a
+ * `TABLE.*` constant without a spec fails the build rather than falling
  * through a switch that silently drops the row.
  */
-export const TABLE_CODECS = {
-  [TABLE.tags]: { parse: rowToTag },
-  [TABLE.taskTags]: { parse: rowToTaskTag },
-  [TABLE.itemTags]: { parse: rowToItemTag },
-  [TABLE.items]: { parse: rowToItem, encode: masterItemRow },
-  [TABLE.itemDependencies]: { parse: rowToDependency, encode: dependencyRow },
-  [TABLE.templates]: { parse: rowToTemplate, encode: templateRow },
-  [TABLE.templateItems]: { parse: rowToTemplateItem, encode: templateItemRow },
-  [TABLE.templateIncludes]: { parse: rowToInclude },
-  [TABLE.templateItemTasks]: { parse: rowToTask },
-  [TABLE.templateTasks]: { parse: rowToTemplateTask },
-  [TABLE.tripSeries]: { parse: rowToSeries, encode: seriesRow },
-  [TABLE.destinationProfiles]: { parse: rowToProfile, encode: profileRow },
-  [TABLE.destinationChecklistItems]: { parse: rowToChecklistItem, encode: checklistItemRow },
-  [TABLE.trips]: { parse: rowToTrip, encode: tripRow },
-  [TABLE.tripMembers]: { parse: rowToMember, encode: memberRow },
-  [TABLE.tripTemplateSources]: { parse: rowToTemplateSource },
-  [TABLE.tripAppliedChanges]: { parse: rowToAppliedChange },
-  [TABLE.tripItems]: { parse: rowToTripItem, encode: itemRow },
-  [TABLE.travelers]: { parse: rowToTraveler, encode: travelerRow },
-  [TABLE.containers]: { parse: rowToContainer, encode: containerRow },
-  [TABLE.tripGeneratedPositions]: { parse: rowToGeneratedPosition },
-  [TABLE.shoppingEntries]: { parse: rowToShoppingEntry, encode: shoppingEntryRow },
-  [TABLE.ideas]: { parse: rowToIdea, encode: ideaRow },
-  [TABLE.ideaVotes]: { parse: rowToIdeaVote, encode: ideaVoteRow },
-  [TABLE.ideaComments]: { parse: rowToIdeaComment, encode: ideaCommentRow },
-  [TABLE.ideaImages]: { parse: rowToIdeaImage, encode: ideaImageRow },
-  [TABLE.dayEntries]: { parse: rowToDayEntry, encode: dayEntryRow },
-  [TABLE.dayEntryTravelers]: { parse: rowToDayEntryTraveler, encode: dayEntryTravelerRow },
-  [TABLE.meals]: { parse: rowToMeal, encode: mealRow },
-  [TABLE.mealIngredients]: { parse: rowToMealIngredient, encode: mealIngredientRow },
-  [TABLE.ideaTracks]: { parse: rowToIdeaTrack, encode: ideaTrackRow },
-  [TABLE.excursionTracks]: { parse: rowToExcursionTrack, encode: excursionTrackRow },
+export const TABLE_SPECS = {
+  [TABLE.tags]: { ...MASTER_DATA, parse: rowToTag },
+  [TABLE.taskTags]: { ...MASTER_DATA, parse: rowToTaskTag },
+  [TABLE.itemTags]: { ...MASTER_DATA, parse: rowToItemTag },
+  [TABLE.items]: { ...MASTER_DATA, parse: rowToItem, encode: masterItemRow },
+  [TABLE.itemDependencies]: { ...MASTER_DATA, parse: rowToDependency, encode: dependencyRow },
+  [TABLE.templates]: { ...MASTER_DATA, parse: rowToTemplate, encode: templateRow },
+  [TABLE.templateItems]: { ...MASTER_DATA, parse: rowToTemplateItem, encode: templateItemRow },
+  [TABLE.templateIncludes]: { ...MASTER_DATA, parse: rowToInclude },
+  [TABLE.templateItemTasks]: { ...MASTER_DATA, parse: rowToTask },
+  [TABLE.templateTasks]: { ...MASTER_DATA, parse: rowToTemplateTask },
+  [TABLE.tripSeries]: { ...MASTER_DATA, parse: rowToSeries, encode: seriesRow },
+  [TABLE.destinationProfiles]: { ...MASTER_DATA, parse: rowToProfile, encode: profileRow },
+  [TABLE.destinationChecklistItems]: {
+    ...MASTER_DATA,
+    parse: rowToChecklistItem,
+    encode: checklistItemRow,
+  },
+  [TABLE.trips]: { ...TRIP_ON_MASTER, parse: rowToTrip, encode: tripRow },
+  [TABLE.tripMembers]: { ...TRIP_ON_MASTER, parse: rowToMember, encode: memberRow },
+  [TABLE.tripTemplateSources]: { ...TRIP_ON_MASTER, parse: rowToTemplateSource },
+  [TABLE.tripAppliedChanges]: { ...TRIP_ON_MASTER, parse: rowToAppliedChange },
+  [TABLE.tripItems]: { ...TRIP_FEED, parse: rowToTripItem, encode: itemRow },
+  [TABLE.travelers]: { ...TRIP_FEED, parse: rowToTraveler, encode: travelerRow },
+  [TABLE.containers]: { ...TRIP_FEED, parse: rowToContainer, encode: containerRow },
+  [TABLE.tripGeneratedPositions]: { ...TRIP_FEED, parse: rowToGeneratedPosition },
+  [TABLE.shoppingEntries]: { ...FEATURE_FEED, parse: rowToShoppingEntry, encode: shoppingEntryRow },
+  [TABLE.ideas]: { ...FEATURE_FEED, parse: rowToIdea, encode: ideaRow },
+  [TABLE.ideaVotes]: { ...FEATURE_FEED, parse: rowToIdeaVote, encode: ideaVoteRow },
+  [TABLE.ideaComments]: { ...FEATURE_FEED, parse: rowToIdeaComment, encode: ideaCommentRow },
+  [TABLE.ideaImages]: { ...FEATURE_FEED, parse: rowToIdeaImage, encode: ideaImageRow },
+  [TABLE.dayEntries]: { ...FEATURE_FEED, parse: rowToDayEntry, encode: dayEntryRow },
+  [TABLE.dayEntryTravelers]: {
+    ...FEATURE_FEED,
+    parse: rowToDayEntryTraveler,
+    encode: dayEntryTravelerRow,
+  },
+  [TABLE.meals]: { ...FEATURE_FEED, parse: rowToMeal, encode: mealRow },
+  [TABLE.mealIngredients]: {
+    ...FEATURE_FEED,
+    parse: rowToMealIngredient,
+    encode: mealIngredientRow,
+  },
+  [TABLE.ideaTracks]: { ...FEATURE_FEED, parse: rowToIdeaTrack, encode: ideaTrackRow },
+  [TABLE.excursionTracks]: { ...TRIP_FEED, parse: rowToExcursionTrack, encode: excursionTrackRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.
-  [TABLE.comments]: { parse: rowToComment, encode: commentRow },
-  [TABLE.noteAcks]: { parse: rowToNoteAck, encode: noteAckRow },
-  [TABLE.excursions]: { parse: rowToExcursion, encode: excursionRow },
-  [TABLE.excursionTravelers]: { parse: rowToExcursionTraveler, encode: excursionTravelerRow },
-  [TABLE.excursionItems]: { parse: rowToExcursionItem, encode: excursionItemRow },
-} satisfies Record<SyncTable, TableCodec>
+  [TABLE.comments]: { ...TRIP_FEED, parse: rowToComment, encode: commentRow },
+  [TABLE.noteAcks]: { ...TRIP_FEED, parse: rowToNoteAck, encode: noteAckRow },
+  [TABLE.excursions]: { ...TRIP_FEED, parse: rowToExcursion, encode: excursionRow },
+  [TABLE.excursionTravelers]: {
+    ...TRIP_FEED,
+    parse: rowToExcursionTraveler,
+    encode: excursionTravelerRow,
+  },
+  [TABLE.excursionItems]: { ...TRIP_FEED, parse: rowToExcursionItem, encode: excursionItemRow },
+} satisfies Record<SyncTable, TableSpec>
 
 /**
- * The todo half of `comments` (FR-7.2). It is not in `TABLE_CODECS` because
+ * The todo half of `comments` (FR-7.2). It is not in `TABLE_SPECS` because
  * that map is keyed by table and this is the same table read as the other
  * type; `tripStore` picks between them on `is_task`.
  */
@@ -767,14 +817,14 @@ export type RowSinks = Partial<Record<SyncTable, RowSink>>
  * does not carry, and the caller drops the change.
  */
 export function codecFor(table: string): { table: SyncTable; codec: TableCodec } | null {
-  const codec = (TABLE_CODECS as Record<string, TableCodec | undefined>)[table]
+  const codec = (TABLE_SPECS as Record<string, TableCodec | undefined>)[table]
   return codec ? { table: table as SyncTable, codec } : null
 }
 
 /**
  * applyToSink hands a parsed row to its table's sink. The cast is the price
  * of one map holding sinks of different row types; it is sound because
- * `TABLE_CODECS[table].parse` and the sink were declared for the same table,
+ * `TABLE_SPECS[table].parse` and the sink were declared for the same table,
  * and it is confined to this function.
  */
 export function applyToSink(sinks: RowSinks, table: SyncTable, row: unknown): void {

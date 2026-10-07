@@ -14,7 +14,7 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
+import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type {
   DayEntry,
   DayEntryTraveler,
@@ -107,31 +107,27 @@ export const usePlannerStore = defineStore('planner', () => {
     for (const change of changes) {
       switch (change.table) {
         case TABLE.ideas:
-          apply(ideas.value, change, (id, row) => TABLE_CODECS[TABLE.ideas].parse(id, row))
+          apply(ideas.value, change, (id, row) => TABLE_SPECS[TABLE.ideas].parse(id, row))
           break
         case TABLE.ideaVotes:
-          apply(votes.value, change, (id, row) => TABLE_CODECS[TABLE.ideaVotes].parse(id, row))
+          apply(votes.value, change, (id, row) => TABLE_SPECS[TABLE.ideaVotes].parse(id, row))
           break
         case TABLE.ideaComments:
-          apply(comments.value, change, (id, row) =>
-            TABLE_CODECS[TABLE.ideaComments].parse(id, row),
-          )
+          apply(comments.value, change, (id, row) => TABLE_SPECS[TABLE.ideaComments].parse(id, row))
           break
         case TABLE.ideaImages:
-          apply(images.value, change, (id, row) => TABLE_CODECS[TABLE.ideaImages].parse(id, row))
+          apply(images.value, change, (id, row) => TABLE_SPECS[TABLE.ideaImages].parse(id, row))
           break
         case TABLE.dayEntries:
-          apply(dayEntries.value, change, (id, row) =>
-            TABLE_CODECS[TABLE.dayEntries].parse(id, row),
-          )
+          apply(dayEntries.value, change, (id, row) => TABLE_SPECS[TABLE.dayEntries].parse(id, row))
           break
         case TABLE.dayEntryTravelers:
           apply(entryTravelers.value, change, (id, row) =>
-            TABLE_CODECS[TABLE.dayEntryTravelers].parse(id, row),
+            TABLE_SPECS[TABLE.dayEntryTravelers].parse(id, row),
           )
           break
         case TABLE.ideaTracks:
-          apply(tracks.value, change, (id, row) => TABLE_CODECS[TABLE.ideaTracks].parse(id, row))
+          apply(tracks.value, change, (id, row) => TABLE_SPECS[TABLE.ideaTracks].parse(id, row))
           break
       }
     }

@@ -16,12 +16,13 @@ import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { storeFor } from '@/sync/routing'
+import { partitionOf, storeFor } from '@/sync/routing'
 import { changesOf as unfold } from '@/sync/optimistic'
+import type { PartitionType } from '@/sync/partition'
 
 /** One recorded `enqueueAndDrain` call, in the order the group made it. */
 export interface Recorded {
-  type: 'trip' | 'master'
+  type: PartitionType
   id: string | null
   muts: QueuedMutation[]
   /** Whether the write pushed itself (`enqueueAndDrain`) or left that to a
@@ -91,6 +92,20 @@ export function makeSeamContext(
       }
     }
   }
+  /**
+   * The partition a group names at the write site is restated by hand; the
+   * table's spec is the answer it has to agree with, because the server
+   * refuses a mutation pushed to the other feed. Every seam spec is this
+   * check's test.
+   */
+  function assertPartition(type: PartitionType, muts: QueuedMutation[]): void {
+    for (const { mutation } of muts) {
+      const want = partitionOf(mutation.table)
+      if (want !== type) {
+        throw new Error(`${mutation.table} travels the ${want} partition, written on ${type}`)
+      }
+    }
+  }
   const ctx: SeamContext = {
     tripStore,
     masterStore,
@@ -103,6 +118,7 @@ export function makeSeamContext(
       // the same module production routes with: routing by partition would
       // put the master partition's per-trip tables (P-3) into the wrong store
       // the moment a group painted rows of both.
+      assertPartition(type, muts)
       applyPainted(muts)
       queued.push({ type, id, muts, drained: true })
     },
@@ -110,6 +126,7 @@ export function makeSeamContext(
       // A cascade queues without pushing; the paint is the same one, so the
       // double applies it here too and records the call under `drained:
       // false` — a spec about ordering reads one log, not two.
+      assertPartition(type, muts)
       applyPainted(muts)
       queued.push({ type, id, muts, drained: false })
     },

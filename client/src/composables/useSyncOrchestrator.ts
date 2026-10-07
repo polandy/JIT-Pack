@@ -26,10 +26,11 @@ import { computed, reactive, ref } from 'vue'
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
+import type { PartitionType } from '@/sync/partition'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
 import { changesOf, optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { TABLE } from '@/types/tables'
-import { MASTER_STORE_TABLES, TRIP_STORE_TABLES } from '@/sync/routing'
+import { storeFor } from '@/sync/routing'
 import type { FeatureStore, ModuleHost } from '@/sync/featureModule'
 import { itemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
@@ -354,13 +355,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const featureChanges = features.map(() => [] as PullChange[])
 
     for (const c of changes) {
-      if (TRIP_STORE_TABLES.has(c.table)) {
+      const owner = storeFor(c.table)
+      if (owner === 'trip') {
         tripChanges.push(c)
-      } else if (MASTER_STORE_TABLES.has(c.table)) {
+      } else if (owner === 'master') {
         masterChanges.push(c)
-      } else {
-        const owner = features.findIndex((f) => f.tables.has(c.table))
-        if (owner >= 0) featureChanges[owner]!.push(c)
+      } else if (owner === 'feature') {
+        const feature = features.findIndex((f) => f.tables.has(c.table))
+        if (feature >= 0) featureChanges[feature]!.push(c)
       }
     }
 
@@ -547,7 +549,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * ADR-016's trap (a change that reaches no store shows nothing) and the
    * queue step carries the partition, and a second copy of them drifts.
    */
-  function enqueue(type: 'trip' | 'master', id: string | null, ...muts: QueuedMutation[]) {
+  function enqueue(type: PartitionType, id: string | null, ...muts: QueuedMutation[]) {
     for (const m of muts) {
       const painted = changesOf(m.optimistic)
       if (painted.length > 0) {
@@ -581,7 +583,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       .catch(() => {})
   }
 
-  function enqueueAndDrain(type: 'trip' | 'master', id: string | null, ...muts: QueuedMutation[]) {
+  function enqueueAndDrain(type: PartitionType, id: string | null, ...muts: QueuedMutation[]) {
     enqueue(type, id, ...muts)
     if (local) return
 

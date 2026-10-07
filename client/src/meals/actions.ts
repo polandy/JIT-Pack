@@ -14,7 +14,7 @@ import { dbBool } from '@/sync/columns'
 import { cascadeTombstones } from '@/sync/cascade'
 import type { ModuleHost, QueuedModuleMutation } from '@/sync/featureModule'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_CODECS } from '@/sync/tableRegistry'
+import { TABLE_SPECS } from '@/sync/tableRegistry'
 import type { Meal, MealIngredient, MealKind, MealSlot, ShoppingMode } from '@/types/domain'
 import { MEAL_KIND_OUT } from '@/types/domain'
 import { TABLE } from '@/types/tables'
@@ -48,9 +48,9 @@ export interface DraftIngredient {
 }
 
 export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof useMealStore>) {
-  const encodeMeal = (meal: Meal) => TABLE_CODECS[TABLE.meals].encode!(meal)
+  const encodeMeal = (meal: Meal) => TABLE_SPECS[TABLE.meals].encode!(meal)
   const encodeIngredient = (ingredient: MealIngredient) =>
-    TABLE_CODECS[TABLE.mealIngredients].encode!(ingredient)
+    TABLE_SPECS[TABLE.mealIngredients].encode!(ingredient)
 
   /**
    * FR-33.1/33.2: writes a meal and its ingredients — a new one when `meal`
