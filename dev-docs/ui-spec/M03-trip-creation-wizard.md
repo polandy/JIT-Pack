@@ -2,7 +2,7 @@
 
 * **Enter is the step's button (G-16):** each step's plain text fields fire the step's own navigation action behind its
   validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter* (the dates
-  are a G-17 range field — its Enter opens the picker), a step-4 quantity fires *Reise erstellen*. The single-item
+  are a G-17 range field — its Enter opens the picker), a step-4 quantity fires *Reise anlegen*. The single-item
   search on step 3 is G-16-exempt (its Enter is reserved for the field's own result list), so step 3 is left by the
   button alone.
 * **Step 2 opens with the default travellers (FR-2.5a)** from M17, editable there like any other traveller.
