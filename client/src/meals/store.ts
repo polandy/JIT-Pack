@@ -10,9 +10,9 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
+import { encodedRow, TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type { Meal, MealIngredient } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/types/tables'
 
 /** The tables this module holds. */
 const MEAL_TABLES: ReadonlySet<string> = new Set<string>([TABLE.meals, TABLE.mealIngredients])
@@ -46,6 +46,18 @@ export const useMealStore = defineStore('meals', () => {
 
   function ingredientsOf(mealId: string): MealIngredient[] {
     return [...ingredients.value.values()].filter((ingredient) => ingredient.meal_id === mealId)
+  }
+
+  /** Where each of the module's tables keeps its rows — what a write reads back. */
+  const rowMaps: Record<string, Map<string, unknown>> = {
+    [TABLE.meals]: meals.value,
+    [TABLE.mealIngredients]: ingredients.value,
+  }
+
+  /** One row in its wire shape, or undefined where this store does not hold it. */
+  function currentRow(table: string, id: string): SyncRow | undefined {
+    const row = rowMaps[table]?.get(id)
+    return row === undefined ? undefined : encodedRow(table as SyncTable, row)
   }
 
   function applyChanges(changes: PullChange[]): void {
@@ -95,6 +107,7 @@ export const useMealStore = defineStore('meals', () => {
     allIngredients,
     ingredientsOf,
     applyChanges,
+    currentRow,
     mealChildRows,
     tripChildRows,
     forgetTrip,
@@ -117,6 +130,7 @@ export function mealFeatureStore(
   return {
     tables: MEAL_TABLES,
     applyChanges: (changes) => mealStore.applyChanges(changes),
+    currentRow: (table, id) => mealStore.currentRow(table, id),
     tripChildRows: (tripId) => mealStore.tripChildRows(tripId),
     forgetTrip: (tripId) => mealStore.forgetTrip(tripId),
   }

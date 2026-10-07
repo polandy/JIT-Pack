@@ -8,8 +8,7 @@
  * closure over the rows it wrote, so „Rückgängig" takes back exactly that act
  * and nothing a second device did meanwhile.
  */
-import { excursionItemRow, excursionRow, excursionTrackRow, itemRow } from '../rows'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import type { TrackUpload } from '@/api/types'
@@ -93,7 +92,7 @@ export function createExcursionActions(
   ctx: SyncContext,
   deps: { groups: GroupWrites; tracks: ExcursionTrackFiles },
 ) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, today, nowIso, tripDataLoaded } = ctx
+  const { mutations, write, tripStore, masterStore, today, nowIso, tripDataLoaded } = ctx
 
   /** Whether the suitcase still takes things (FR-31.7) — *before* is not over. */
   function suitcaseOpen(tripId: string): boolean {
@@ -125,28 +124,25 @@ export function createExcursionActions(
     const created: string[] = []
     const raised: Array<{ item: TripItem; quantity: number }> = []
 
-    for (const write of plan.suitcase) {
-      if (write.kind === 'create') {
+    for (const planned of plan.suitcase) {
+      if (planned.kind === 'create') {
         const { mutation, id } = mutations.addGeneratedTripItem(
           tripId,
-          write.fields,
-          write.travelerId,
+          planned.fields,
+          planned.travelerId,
         )
-        enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
-        createdIds.set(write.ref, id)
+        write(mutation)
+        createdIds.set(planned.ref, id)
         created.push(id)
       } else {
-        const item = write.tripItem
+        const item = planned.tripItem
         const mutation = mutations.setQuantity(
           item.id,
-          write.quantity,
+          planned.quantity,
           item.packed_count,
           item.state,
         )
-        enqueueAndDrain('trip', tripId, {
-          mutation,
-          optimistic: optimisticUpdate(mutation, itemRow(item)),
-        })
+        write(mutation)
         raised.push({ item, quantity: item.quantity })
       }
     }
@@ -160,7 +156,7 @@ export function createExcursionActions(
     const undo = () => {
       for (const id of created) {
         const mutation = mutations.deleteTripItem(id)
-        enqueueAndDrain('trip', tripId, {
+        write({
           mutation,
           optimistic: [
             ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
@@ -177,10 +173,7 @@ export function createExcursionActions(
           current.packed_count,
           current.state,
         )
-        enqueueAndDrain('trip', tripId, {
-          mutation,
-          optimistic: optimisticUpdate(mutation, itemRow(current)),
-        })
+        write(mutation)
       }
     }
     return { tripItemIdOf, created: created.length, undo }
@@ -201,7 +194,7 @@ export function createExcursionActions(
         trip_item_id: suitcase.tripItemIdOf(planned),
         not_in_luggage: planned.not_in_luggage,
       })
-      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      write(mutation)
       lineIds.push(id)
     }
 
@@ -267,7 +260,7 @@ export function createExcursionActions(
       table === TABLE.excursionItems
         ? mutations.deleteExcursionItem(id)
         : mutations.removeExcursionTraveler(id)
-    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticDelete(mutation) })
+    write(mutation)
   }
 
   /**
@@ -287,14 +280,11 @@ export function createExcursionActions(
       sourceTemplateId: draft.templateId,
       ideaId: draft.ideaId ?? null,
     })
-    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    write(mutation)
 
     for (const travelerId of draft.travelerIds ?? []) {
       const row = mutations.addExcursionTraveler(tripId, id, travelerId)
-      enqueueAndDrain('trip', tripId, {
-        mutation: row.mutation,
-        optimistic: optimisticInsert(row.mutation),
-      })
+      write(row.mutation)
     }
 
     const drafts =
@@ -339,18 +329,14 @@ export function createExcursionActions(
     if (startsOn !== excursion.starts_on) changed.starts_on = startsOn
     if (endsOn !== excursion.ends_on) changed.ends_on = endsOn
     if (Object.keys(changed).length === 0) return
-    const mutation = mutations.updateExcursion(excursion.id, changed)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionRow(excursion)),
-    })
+    write(mutations.updateExcursion(excursion.id, changed))
   }
 
   /** FR-31.1: the excursion goes, with its participants, lines and tracks; the suitcase is untouched. */
   function deleteExcursion(tripId: string, excursionId: string): void {
     const trackIds = tripStore.getExcursionTracks(tripId, excursionId).map((track) => track.id)
     const mutation = mutations.deleteExcursion(excursionId)
-    enqueueAndDrain('trip', tripId, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.excursions, excursionId, { tripStore, masterStore }),
@@ -397,16 +383,11 @@ export function createExcursionActions(
   function updateTrack(track: ExcursionTrack, settings: TrackSettings): void {
     const patch = trackSettingsPatch(track, settings)
     if (Object.keys(patch).length === 0) return
-    const mutation = mutations.make('upsert', TABLE.excursionTracks, track.id, patch)
-    enqueueAndDrain('trip', track.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionTrackRow(track)),
-    })
+    write(mutations.make('upsert', TABLE.excursionTracks, track.id, patch))
   }
 
   function removeTrack(track: ExcursionTrack): void {
-    const mutation = mutations.make('delete', TABLE.excursionTracks, track.id)
-    enqueueAndDrain('trip', track.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    write(mutations.make('delete', TABLE.excursionTracks, track.id))
     void deps.tracks.forget([track.id])
   }
 
@@ -438,7 +419,7 @@ export function createExcursionActions(
     for (const travelerId of travelerIds ?? []) {
       if (rows.some((r) => r.traveler_id === travelerId)) continue
       const { mutation, id } = mutations.addExcursionTraveler(tripId, excursionId, travelerId)
-      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      write(mutation)
       addedRowIds.push(id)
     }
 
@@ -454,7 +435,7 @@ export function createExcursionActions(
       for (const travelerId of beforeIds) {
         if (!removedRows.some((r) => r.traveler_id === travelerId)) continue
         const { mutation } = mutations.addExcursionTraveler(tripId, excursionId, travelerId)
-        enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+        write(mutation)
       }
       for (const line of change.remove) restoreLine(tripId, line)
     }
@@ -462,8 +443,7 @@ export function createExcursionActions(
 
   /** Puts a removed line back under its own id — an undo's other half. */
   function restoreLine(tripId: string, line: ExcursionItem): void {
-    const mutation = mutations.restoreExcursionItem(line)
-    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    write(mutations.restoreExcursionItem(line))
   }
 
   /**
@@ -500,11 +480,7 @@ export function createExcursionActions(
 
   /** FR-31.6: how many of a line are in the rucksack. */
   function setLineCount(tripId: string, line: ExcursionItem, packedCount: number): void {
-    const mutation = mutations.setExcursionItemCount(line.id, packedCount, line.quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionItemRow(line)),
-    })
+    write(mutations.setExcursionItemCount(line.id, packedCount, line.quantity))
   }
 
   /** FR-31.6: a tap on the check — all of it in, or all of it out again. */
@@ -514,29 +490,17 @@ export function createExcursionActions(
 
   /** FR-31.6: a different amount; what is packed is clamped to it. */
   function setLineQuantity(tripId: string, line: ExcursionItem, quantity: number): void {
-    const mutation = mutations.setExcursionItemCount(line.id, line.packed_count, quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionItemRow(line)),
-    })
+    write(mutations.setExcursionItemCount(line.id, line.packed_count, quantity))
   }
 
   /** FR-31.6: decided against for this outing. */
   function skipLine(tripId: string, line: ExcursionItem): void {
-    const mutation = mutations.skipExcursionItem(line.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionItemRow(line)),
-    })
+    write(mutations.skipExcursionItem(line.id))
   }
 
   /** FR-31.6: taken back into the list at one. */
   function unskipLine(tripId: string, line: ExcursionItem): void {
-    const mutation = mutations.setExcursionItemCount(line.id, 0, 1)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionItemRow(line)),
-    })
+    write(mutations.setExcursionItemCount(line.id, 0, 1))
   }
 
   function removeLine(tripId: string, line: ExcursionItem): () => void {
@@ -549,11 +513,7 @@ export function createExcursionActions(
     line: ExcursionItem,
     fields: Parameters<typeof mutations.updateExcursionItem>[1],
   ): void {
-    const mutation = mutations.updateExcursionItem(line.id, fields)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, excursionItemRow(line)),
-    })
+    write(mutations.updateExcursionItem(line.id, fields))
   }
 
   /**
@@ -623,21 +583,10 @@ export function createExcursionActions(
       categoryName: line.category_name,
       quantity: line.quantity,
     })
-    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
-    // Each write repaints the whole row as the store now holds it — a paint
-    // built from the insert's fields alone would blank the rest (rows.ts).
-    const rowNow = () => itemRow(tripStore.getItems(tripId).find((i) => i.id === id)!)
-    const pack = mutations.packItem(id, line.quantity, 'packed')
-    enqueueAndDrain('trip', tripId, {
-      mutation: pack,
-      optimistic: optimisticUpdate(pack, rowNow()),
-    })
+    write(mutation)
+    write(mutations.packItem(id, line.quantity, 'packed'))
     if (line.assigned_traveler_id !== null) {
-      const assign = mutations.assignTraveler(id, line.assigned_traveler_id)
-      enqueueAndDrain('trip', tripId, {
-        mutation: assign,
-        optimistic: optimisticUpdate(assign, rowNow()),
-      })
+      write(mutations.assignTraveler(id, line.assigned_traveler_id))
     }
     updateLine(tripId, line, { trip_item_id: id, source_item_id: itemId })
 
@@ -646,7 +595,7 @@ export function createExcursionActions(
       if (current)
         updateLine(tripId, current, { trip_item_id: null, source_item_id: line.source_item_id })
       const deletion = mutations.deleteTripItem(id)
-      enqueueAndDrain('trip', tripId, {
+      write({
         mutation: deletion,
         optimistic: [
           ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),

@@ -7,8 +7,7 @@
  * It depends on the FR-27.4 group for one thing only: which renames that
  * card is already asking about, so the same question is not asked twice.
  */
-import { itemRow } from '../rows'
-import { optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticInsert } from '@/sync/optimistic'
 import {
   inventoryRenames,
   planNameAdoption,
@@ -34,7 +33,7 @@ export function createInventoryNameActions(
   ctx: SyncContext,
   deps: { groupRefresh: ReturnType<typeof createGroupRefreshActions> },
 ) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, tripDataLoaded } = ctx
+  const { mutations, write, tripStore, masterStore, tripDataLoaded } = ctx
 
   /**
    * inventoryRenamesOf lists what the trip could take over. Empty while the
@@ -62,35 +61,31 @@ export function createInventoryNameActions(
   function adoptInventoryNames(tripId: string, chosen: InventoryRename[]): NameAdoptionUndo {
     const ledgerBefore = tripStore.getGeneratedPositions(tripId)
     const adoption = planNameAdoption(chosen, ledgerBefore)
-    write(tripId, adoption)
+    applyAdoption(tripId, adoption)
     return { adoption, ledgerBefore }
   }
 
   /** restoreInventoryNames is the snackbar's undo. */
   function restoreInventoryNames(tripId: string, undo: NameAdoptionUndo): void {
-    write(tripId, planNameRestore(undo.adoption, undo.ledgerBefore))
+    applyAdoption(tripId, planNameRestore(undo.adoption, undo.ledgerBefore))
   }
 
-  function write(tripId: string, plan: NameAdoption): void {
+  function applyAdoption(tripId: string, plan: NameAdoption): void {
     // Each row is read back from the store rather than taken from the plan:
-    // the optimistic update merges into the row as it stands now, and the
+    // the funnel paints the update over the row as it stands now, and the
     // plan's copy is from before the adoption.
     const current = new Map(tripStore.getItems(tripId).map((i) => [i.id, i]))
     for (const { item, name } of plan.rows) {
       const row = current.get(item.id)
       if (!row) continue
-      const mutation = mutations.updateGeneratedTripItem(row.id, { name })
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, itemRow(row)),
-      })
+      write(mutations.updateGeneratedTripItem(row.id, { name }))
     }
     for (const entry of plan.ledger) {
+      // A whole-row upsert: `writeGeneratedPosition` restates the snapshot,
+      // so the paint is the row it just wrote, not a merge over what the
+      // store held before.
       const mutation = mutations.writeGeneratedPosition(entry)
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write({ mutation, optimistic: optimisticInsert(mutation) })
     }
   }
 

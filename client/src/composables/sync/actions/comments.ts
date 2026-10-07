@@ -8,8 +8,7 @@
  * comment shape, and its tick hangs off `comment.id` the way a todo's
  * resolution hangs off the same row.
  */
-import { commentRow, noteAckRow, todoRow, tripTodoRow } from '../rows'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
@@ -22,7 +21,7 @@ import { nextPosition } from '@/lib/handOrder'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore } = ctx
+  const { mutations, write, tripStore, masterStore } = ctx
 
   /** FR-7.12: never into a *before* the finished packing has closed. */
   function newTaskPhase(tripId: string, asked: TaskPhase): TaskPhase {
@@ -41,27 +40,20 @@ export function createCommentActions(ctx: SyncContext) {
     thread?: NoteThreadFields,
   ): string {
     const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body, thread)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   /** Promote a plain comment into an open ticket (FR-7.2). */
   function flagCommentAsTask(tripId: string, comment: ItemComment) {
     const closed = isPackingClosed(tripStore.getTrip(tripId))
-    const mut = mutations.flagCommentAsTask(comment.id, closed ? TASK_PHASE_DURING : undefined)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, commentRow(comment)),
-    })
+    write(mutations.flagCommentAsTask(comment.id, closed ? TASK_PHASE_DURING : undefined))
   }
 
   /** A first note goes with its thread (FR-7.13), as the server's cascade does. */
   function deleteComment(tripId: string, commentId: string) {
     const mutation = mutations.deleteComment(commentId)
-    enqueueAndDrain('trip', tripId, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.comments, commentId, { tripStore, masterStore }),
@@ -75,20 +67,12 @@ export function createCommentActions(ctx: SyncContext) {
    * note — `undefined` leaves a reply's (absent) title alone.
    */
   function editNote(tripId: string, note: ItemComment, body: string, title?: string | null) {
-    const mut = mutations.editNote(note.id, body, title)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, commentRow(note)),
-    })
+    write(mutations.editNote(note.id, body, title))
   }
 
   /** FR-7.15: the author says which excursion a thread is about, or none. */
   function setNoteExcursion(tripId: string, note: ItemComment, excursionId: string | null) {
-    const mut = mutations.setNoteExcursion(note.id, excursionId)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, commentRow(note)),
-    })
+    write(mutations.setNoteExcursion(note.id, excursionId))
   }
 
   /**
@@ -112,16 +96,13 @@ export function createCommentActions(ctx: SyncContext) {
   ) {
     if (!existing) {
       const { mutation } = mutations.tickNote(tripId, noteId, userId, seen.seenThrough)
-      enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      write(mutation)
       return
     }
     const mut = seen.ticked
       ? mutations.setNoteAcked(existing.id, false)
       : mutations.setNoteAcked(existing.id, true, seen.seenThrough)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, noteAckRow(existing)),
-    })
+    write(mut)
   }
 
   /**
@@ -143,26 +124,15 @@ export function createCommentActions(ctx: SyncContext) {
       body,
       newTaskPhase(tripId, phase),
     )
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
   }
 
   function resolvePrepTodo(tripId: string, todo: ItemTodo) {
-    const mut = mutations.resolveTodo(todo.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, todoRow(todo)),
-    })
+    write(mutations.resolveTodo(todo.id))
   }
 
   function reopenPrepTodo(tripId: string, todo: ItemTodo) {
-    const mut = mutations.reopenTodo(todo.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, todoRow(todo)),
-    })
+    write(mutations.reopenTodo(todo.id))
   }
 
   // --- Trip todos (FR-7.4): the same row with no anchor ---
@@ -187,36 +157,21 @@ export function createCommentActions(ctx: SyncContext) {
       newTaskPhase(tripId, phase),
       { ...filed, position },
     )
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function resolveTripTodo(todo: TripTodo) {
-    const mut = mutations.resolveTodo(todo.id)
-    enqueueAndDrain('trip', todo.trip_id, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
-    })
+    write(mutations.resolveTodo(todo.id))
   }
 
   function reopenTripTodo(todo: TripTodo) {
-    const mut = mutations.reopenTodo(todo.id)
-    enqueueAndDrain('trip', todo.trip_id, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
-    })
+    write(mutations.reopenTodo(todo.id))
   }
 
   /** FR-7.5: `null` hands it back to everybody. */
   function assignTripTodo(todo: TripTodo, userId: string | null) {
-    const mut = mutations.setTodoAssignee(todo.id, userId)
-    enqueueAndDrain('trip', todo.trip_id, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
-    })
+    write(mutations.setTodoAssignee(todo.id, userId))
   }
 
   /**
@@ -226,11 +181,7 @@ export function createCommentActions(ctx: SyncContext) {
    * different buckets of the store.
    */
   function assignPrepTodo(tripId: string, todo: ItemTodo, userId: string | null) {
-    const mut = mutations.setTodoAssignee(todo.id, userId)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, todoRow(todo)),
-    })
+    write(mutations.setTodoAssignee(todo.id, userId))
   }
 
   /**
@@ -239,12 +190,7 @@ export function createCommentActions(ctx: SyncContext) {
    * row to rebuild, because that is the only difference.
    */
   function setTaskPhase(tripId: string, todo: ItemTodo | TripTodo, phase: TaskPhase | null) {
-    const mut = mutations.setTaskPhase(todo.id, phase)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, { ...row, phase }),
-    })
+    write(mutations.setTaskPhase(todo.id, phase))
   }
 
   /**
@@ -252,50 +198,26 @@ export function createCommentActions(ctx: SyncContext) {
    * field, like the phase beside it — the task keeps everything else it was.
    */
   function setTaskTag(tripId: string, todo: ItemTodo | TripTodo, taskTagId: string | null) {
-    const mut = mutations.setTaskTag(todo.id, taskTagId)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, { ...row, task_tag_id: taskTagId }),
-    })
+    write(mutations.setTaskTag(todo.id, taskTagId))
   }
 
   /** FR-7.11: the day a task is due, set, moved or taken off — one field. */
   function setTaskDueDate(tripId: string, todo: ItemTodo | TripTodo, dueDate: string | null) {
-    const mut = mutations.setTaskDueDate(todo.id, dueDate)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, { ...row, due_date: dueDate }),
-    })
+    write(mutations.setTaskDueDate(todo.id, dueDate))
   }
 
   /** FR-7.17: a task's place inside its group, either kind — one field. */
   function placeTask(tripId: string, todo: ItemTodo | TripTodo, position: number) {
-    const mut = mutations.placeTask(todo.id, position)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, { ...row, position }),
-    })
+    write(mutations.placeTask(todo.id, position))
   }
 
   /** FR-7.14: a task's words, corrected — either kind, one field. */
   function setTaskBody(tripId: string, todo: ItemTodo | TripTodo, body: string) {
-    const mut = mutations.setTaskBody(todo.id, body)
-    const row = 'trip_item_id' in todo ? todoRow(todo) : tripTodoRow(todo)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, { ...row, body }),
-    })
+    write(mutations.setTaskBody(todo.id, body))
   }
 
   function deleteTripTodo(todo: TripTodo) {
-    const mutation = mutations.deleteTodo(todo.id)
-    enqueueAndDrain('trip', todo.trip_id, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.deleteTodo(todo.id))
   }
 
   return {

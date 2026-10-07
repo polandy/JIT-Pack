@@ -35,6 +35,8 @@ import { unitsOf } from '@/domain/packState'
 import {
   applyToSink,
   codecFor,
+  currentRowIn,
+  encodedRow,
   TABLE_SPECS,
   todoCodec,
   tripTodoCodec,
@@ -546,7 +548,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   /** Apply a pull change to the local store. */
   /** The sinks, one per table this store holds. */
   const sinks: RowSinks = {
-    [TABLE.trips]: { set: (t: Trip) => setTrip(t), remove: (id) => removeTrip(id) },
+    [TABLE.trips]: {
+      set: (t: Trip) => setTrip(t),
+      remove: (id) => removeTrip(id),
+      get: (id) => trips.value.get(id),
+    },
     [TABLE.tripItems]: bucketSink(itemRows),
     [TABLE.travelers]: bucketSink(travelerRows),
     [TABLE.containers]: bucketSink(containerRows),
@@ -559,6 +565,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     // in whichever list its last state put it in.
     [TABLE.comments]: {
       set: (c: ItemComment) => commentRows.upsert(c),
+      get: (id) => commentRows.find(id),
       remove: (id) => {
         commentRows.remove(id)
         todoRows.remove(id)
@@ -635,7 +642,23 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     }
   }
 
+  /**
+   * One row in its wire shape, or undefined where this store does not hold
+   * it. A `comments` row is encoded by whichever of FR-7.2/7.4's three lists
+   * holds it, since each reading drops the columns the others carry.
+   */
+  function currentRow(table: string, id: string): SyncRow | undefined {
+    if (table !== TABLE.comments) return currentRowIn(sinks, table, id)
+    const comment = commentRows.find(id)
+    if (comment) return encodedRow(TABLE.comments, comment)
+    const todo = todoRows.find(id)
+    if (todo) return (todoCodec.encode as (t: ItemTodo) => SyncRow)(todo)
+    const tripTodo = tripTodoRows.find(id)
+    return tripTodo && (tripTodoCodec.encode as (t: TripTodo) => SyncRow)(tripTodo)
+  }
+
   return {
+    currentRow,
     trips,
     tripList,
     getTrip,

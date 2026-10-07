@@ -28,6 +28,7 @@ import { IDEA_LOOKUP } from '@/lib/ideaBridge'
 import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
+import { mutationOf, paintOf, type Write } from '@/sync/writeFunnel'
 import type { ShoppingMode } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
@@ -94,10 +95,13 @@ function fakeHost(): ModuleHost {
       hlc: `hlc-${seq}`,
     }),
     nowIso: () => TAP,
-    writeTrip: (_tripId, ...muts) => {
-      for (const mut of muts) {
-        written.push(mut.mutation)
-        useShoppingStore().applyChanges(changesOf(mut.optimistic))
+    write: (...writes: Write[]) => {
+      for (const w of writes) {
+        const mutation = mutationOf(w)
+        written.push(mutation)
+        const optimistic =
+          'mutation' in w ? w.optimistic : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
+        useShoppingStore().applyChanges(changesOf(optimistic))
       }
     },
     // The shopping list has no pictures; a call here is a bug in the test.

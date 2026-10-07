@@ -16,8 +16,7 @@
  * two, and the wiring is where it should be readable.
  */
 import { TABLE } from '@/types/tables'
-import { itemRow, travelerRow, tripRow } from '../rows'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import {
@@ -77,7 +76,7 @@ export interface TripLifecycleDeps {
 export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycleDeps) {
   const {
     mutations,
-    enqueueAndDrain,
+    write,
     tripStore,
     masterStore,
     features,
@@ -139,10 +138,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
         add.generated,
         add.traveler_id,
       )
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write(mutation)
       // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
       // they hang off — pushed ahead of it, the server rejects the key.
       for (const body of add.generated.tasks) {
@@ -163,10 +159,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       .some((s) => s.template_id === templateId)
     if (!registered && followsGroups(trip, today())) {
       const { mutation } = mutations.registerTripSource(tripId, templateId)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write(mutation)
     }
 
     return {
@@ -184,11 +177,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   function updateTrip(tripId: string, fields: TripEdit): void {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
-    const mutation = mutations.updateTrip(tripId, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, tripRow(trip)),
-    })
+    write(mutations.updateTrip(tripId, fields))
   }
 
   /**
@@ -200,11 +189,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   function renameTraveler(tripId: string, travelerId: string, name: string): void {
     const traveler = tripStore.getTravelers(tripId).find((t) => t.id === travelerId)
     if (!traveler) return
-    const mutation = mutations.renameTraveler(travelerId, name)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, travelerRow(traveler)),
-    })
+    write(mutations.renameTraveler(travelerId, name))
   }
 
   /**
@@ -221,11 +206,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   function linkTraveler(tripId: string, travelerId: string, userId: string | null): void {
     const traveler = tripStore.getTravelers(tripId).find((t) => t.id === travelerId)
     if (!traveler || (traveler.linked_user_id ?? null) === userId) return
-    const mutation = mutations.linkTraveler(travelerId, userId)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, travelerRow(traveler)),
-    })
+    write(mutations.linkTraveler(travelerId, userId))
   }
 
   /**
@@ -262,10 +243,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     if (!tripDataLoaded(tripId)) return null
 
     const { mutation, id } = mutations.addTraveler(tripId, name, null)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
 
     const consequences = applyTravelerConsequences(tripId, trip)
     if (linkedUserId !== null) linkTraveler(tripId, id, linkedUserId)
@@ -317,11 +295,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
         // Deleted here rather than left to the refresh: FR-27.4 protects a row
         // packing has begun on, and that protection is exactly what the user
         // just overruled for this person.
-        const deletion = mutations.deleteTripItem(item.id)
-        enqueueAndDrain('trip', tripId, {
-          mutation: deletion,
-          optimistic: optimisticDelete(deletion),
-        })
+        write(mutations.deleteTripItem(item.id))
         takenPacked += 1
         continue
       }
@@ -335,7 +309,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     // lines there, and off the day plan's entries — the server's cascade,
     // mirrored for this device.
     const mutation = mutations.removeTravelerRow(travelerId)
-    enqueueAndDrain('trip', tripId, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.travelers, travelerId, { tripStore, masterStore, features }),
@@ -380,11 +354,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   function setTripStatus(tripId: string, status: TripStatus) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
-    const mutation = mutations.updateTripStatus(tripId, status)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, tripRow(trip)),
-    })
+    write(mutations.updateTripStatus(tripId, status))
   }
 
   /**
@@ -415,11 +385,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   function stampPackingClosed(tripId: string, at: string | null) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
-    const mutation = mutations.setPackingClosed(tripId, at)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, tripRow(trip)),
-    })
+    write(mutations.setPackingClosed(tripId, at))
   }
 
   /**
@@ -464,16 +430,10 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       tasks: tasksOf(tripId),
     })
     const writes = [
-      ...plan.skip.map((row) => ({ row, mutation: mutations.closeRowUnpacked(row.id) })),
-      ...plan.trim.map((row) => ({
-        row,
-        mutation: mutations.closeRowPartlyPacked(row.id, row.packed_count),
-      })),
-    ].map(({ row, mutation }) => ({
-      mutation,
-      optimistic: optimisticUpdate(mutation, itemRow(row)),
-    }))
-    if (writes.length > 0) enqueueAndDrain('trip', tripId, ...writes)
+      ...plan.skip.map((row) => mutations.closeRowUnpacked(row.id)),
+      ...plan.trim.map((row) => mutations.closeRowPartlyPacked(row.id, row.packed_count)),
+    ]
+    if (writes.length > 0) write(...writes)
 
     // The crossing, in the same partition and before the stamp for the same
     // reason the rows are: the stamp is what every screen reads afterwards,
@@ -515,7 +475,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     if (existing) return existing.id
     const sortOrder = masterStore.taskTagList.reduce((n, tag) => Math.max(n, tag.sort_order + 1), 0)
     const { mutation, id } = mutations.createTaskTag(name, sortOrder)
-    enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+    write(mutation)
     return id
   }
 
@@ -594,7 +554,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    */
   function deleteTrip(tripId: string) {
     const mutation = mutations.deleteTrip(tripId)
-    enqueueAndDrain('master', null, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.trips, tripId, { tripStore, masterStore, features }),

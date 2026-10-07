@@ -13,9 +13,9 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
+import { encodedRow, TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/types/tables'
 
 /** The tables this module holds. */
 const SHOPPING_TABLES: ReadonlySet<string> = new Set<string>([TABLE.shoppingEntries])
@@ -62,6 +62,17 @@ export const useShoppingStore = defineStore('shopping', () => {
       .sort((a, b) => a.tag.localeCompare(b.tag))
   }
 
+  /** Where each of the module's tables keeps its rows — what a write reads back. */
+  const rowMaps: Record<string, Map<string, unknown>> = {
+    [TABLE.shoppingEntries]: entries.value,
+  }
+
+  /** One row in its wire shape, or undefined where this store does not hold it. */
+  function currentRow(table: string, id: string): SyncRow | undefined {
+    const row = rowMaps[table]?.get(id)
+    return row === undefined ? undefined : encodedRow(table as SyncTable, row)
+  }
+
   function applyChanges(changes: PullChange[]): void {
     for (const change of changes) {
       if (change.table !== TABLE.shoppingEntries) continue
@@ -89,6 +100,7 @@ export const useShoppingStore = defineStore('shopping', () => {
     boughtEntries,
     tagCounts,
     applyChanges,
+    currentRow,
     tripChildRows,
     forgetTrip,
   }
@@ -101,6 +113,7 @@ export function shoppingFeatureStore(
   return {
     tables: SHOPPING_TABLES,
     applyChanges: (changes) => shoppingStore.applyChanges(changes),
+    currentRow: (table, id) => shoppingStore.currentRow(table, id),
     tripChildRows: (tripId) => shoppingStore.tripChildRows(tripId),
     forgetTrip: (tripId) => shoppingStore.forgetTrip(tripId),
   }

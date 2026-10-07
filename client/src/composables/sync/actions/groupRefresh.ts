@@ -16,8 +16,7 @@
  * is a named object because the next group along needed three of them.
  */
 import { computed, shallowRef } from 'vue'
-import { itemRow } from '../rows'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticInsert } from '@/sync/optimistic'
 import {
   declinePlan,
   isEmptyPlan,
@@ -38,7 +37,7 @@ export function createGroupRefreshActions(
   ctx: SyncContext,
   deps: { comments: ReturnType<typeof createCommentActions> },
 ) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, today, tripDataLoaded } = ctx
+  const { mutations, write, tripStore, masterStore, today, tripDataLoaded } = ctx
   const { comments: commentActions } = deps
 
   /**
@@ -155,10 +154,7 @@ export function createGroupRefreshActions(
         travelerId,
         add.trip_item_id,
       )
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write(mutation)
       // FR-27.7: the position's tasks arrive as ordinary prep todos, the
       // same shape generation writes — enqueued after the row they hang
       // off, or the server rejects the foreign key.
@@ -169,56 +165,36 @@ export function createGroupRefreshActions(
 
     for (const update of plan.update) {
       if (Object.keys(update.fields).length > 0) {
-        const mutation = mutations.updateGeneratedTripItem(update.item.id, update.fields)
-        enqueueAndDrain('trip', tripId, {
-          mutation,
-          optimistic: optimisticUpdate(mutation, itemRow(update.item)),
-        })
+        write(mutations.updateGeneratedTripItem(update.item.id, update.fields))
       }
       for (const body of update.addTasks) {
         commentActions.addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
       for (const todo of update.removeTodos) {
-        const todoDeletion = mutations.deleteTodo(todo.id)
-        enqueueAndDrain('trip', tripId, {
-          mutation: todoDeletion,
-          optimistic: optimisticDelete(todoDeletion),
-        })
+        write(mutations.deleteTodo(todo.id))
       }
     }
 
     for (const removal of plan.remove) {
-      const removalMutation = mutations.deleteTripItem(removal.item.id)
-      enqueueAndDrain('trip', tripId, {
-        mutation: removalMutation,
-        optimistic: optimisticDelete(removalMutation),
-      })
+      write(mutations.deleteTripItem(removal.item.id))
     }
 
     for (const entry of plan.ledgerUpsert) {
+      // A whole-row upsert: the refresh restates the snapshot, so the paint
+      // is the row it just wrote, not a merge over what the store held.
       const mutation = mutations.writeGeneratedPosition(entry)
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write({ mutation, optimistic: optimisticInsert(mutation) })
     }
 
     for (const entryId of plan.ledgerDelete) {
-      const ledgerDeletion = mutations.deleteGeneratedPosition(entryId)
-      enqueueAndDrain('trip', tripId, {
-        mutation: ledgerDeletion,
-        optimistic: optimisticDelete(ledgerDeletion),
-      })
+      write(mutations.deleteGeneratedPosition(entryId))
     }
 
     // The log travels the master partition so M2 can render the chip
     // without this trip's partition being loaded (P-3, migration 023).
     for (const entry of plan.log) {
       const { mutation } = mutations.logAppliedChange(entry)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write(mutation)
     }
   }
 

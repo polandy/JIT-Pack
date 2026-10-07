@@ -8,8 +8,6 @@ import {
   type DependencyBatchPlan,
   type DependencyLinkDirection,
 } from '@/domain/dependencies'
-import { dependencyRow } from '../rows'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import type { ItemDependencyEdit } from '@/sync/mutations'
 import type { DependencyMode, ItemDependency, MasterItem } from '@/types/domain'
 import type { SyncContext } from '../context'
@@ -27,7 +25,7 @@ export interface BulkDependencyResult {
 
 /** createDependencyActions binds the dependency group to one sync context. */
 export function createDependencyActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, masterStore } = ctx
+  const { mutations, write, masterStore } = ctx
 
   function addItemDependency(
     itemId: string,
@@ -35,27 +33,16 @@ export function createDependencyActions(ctx: SyncContext) {
     opts: Parameters<typeof mutations.addItemDependency>[2] = {},
   ): string {
     const { mutation, id } = mutations.addItemDependency(itemId, dependsOnItemId, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function updateItemDependency(dependency: ItemDependency, fields: ItemDependencyEdit) {
-    const mutation = mutations.updateItemDependency(dependency.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, dependencyRow(dependency)),
-    })
+    write(mutations.updateItemDependency(dependency.id, fields))
   }
 
   function deleteItemDependency(dependencyId: string) {
-    const mutation = mutations.deleteItemDependency(dependencyId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.deleteItemDependency(dependencyId))
   }
 
   /**

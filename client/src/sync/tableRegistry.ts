@@ -805,10 +805,15 @@ export const tripTodoCodec: TableCodec<TripTodo> = { parse: rowToTripTodo, encod
 export interface RowSink<T = never> {
   set(row: T): void
   remove(id: string): void
+  /** The row with this id as the store holds it — what a write paints over. */
+  get(id: string): T | undefined
 }
 
+/** A sink of some table's rows, as a map of sinks for every table holds it. */
+type AnyRowSink = Omit<RowSink, 'get'> & { get(id: string): unknown }
+
 /** The sinks a store offers, one per table it holds. */
-export type RowSinks = Partial<Record<SyncTable, RowSink>>
+export type RowSinks = Partial<Record<SyncTable, AnyRowSink>>
 
 /**
  * codecFor narrows a wire table name — `PullChange.table` is a plain string,
@@ -829,4 +834,25 @@ export function codecFor(table: string): { table: SyncTable; codec: TableCodec }
  */
 export function applyToSink(sinks: RowSinks, table: SyncTable, row: unknown): void {
   ;(sinks[table] as RowSink<unknown> | undefined)?.set(row)
+}
+
+/**
+ * encodedRow turns a stored row back into the row it travels as. A table
+ * without an encoder is one whose domain type *is* its row (C-2), so a copy
+ * is the encoding.
+ */
+export function encodedRow(table: SyncTable, value: unknown): SyncRow {
+  const encode = (TABLE_SPECS[table] as TableCodec).encode as ((v: unknown) => SyncRow) | undefined
+  return encode ? encode(value) : { ...(value as SyncRow) }
+}
+
+/**
+ * currentRowIn reads one row out of a store's sinks in its wire shape, or
+ * undefined where the store does not hold it — the base an optimistic update
+ * is laid over (`sync/writeFunnel.ts`).
+ */
+export function currentRowIn(sinks: RowSinks, table: string, id: string): SyncRow | undefined {
+  const known = codecFor(table)
+  const value = known ? sinks[known.table]?.get(id) : undefined
+  return value === undefined ? undefined : encodedRow(known!.table, value)
 }
