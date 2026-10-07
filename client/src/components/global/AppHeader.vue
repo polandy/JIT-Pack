@@ -296,8 +296,10 @@ function goBack() {
         </span>
       </IonTitle>
 
-      <IonButtons slot="end">
-        <!-- The current page's G-12 cluster (useHeaderActions). -->
+      <!-- The current page's G-12 cluster (useHeaderActions). A group of its
+           own because on desktop it is the page's and stands over the column,
+           while the group after it is the frame's and keeps the corner. -->
+      <IonButtons slot="end" class="page-cluster">
         <IonButton
           v-for="action in pageActions"
           :key="action.id"
@@ -321,6 +323,8 @@ function goBack() {
         >
           <IonIcon slot="icon-only" :icon="ellipsisVerticalOutline" />
         </IonButton>
+      </IonButtons>
+      <IonButtons slot="end">
         <SyncIndicator
           :state="syncState"
           :pending-count="syncPendingCount"
@@ -422,6 +426,24 @@ function goBack() {
 
   .app-version {
     display: inline;
+  }
+
+  /*
+   * G-12 (UX-14, ADR-050 amendment 2): the page's cluster ends where the
+   * content column ends. The bar spans the window and the column does not, so
+   * the offset is the body's own layout restated from the same tokens — the
+   * rail on the left, the open pane on the right (ADR-064), and the measure
+   * centred in what they leave. `max()` is the column filling that room
+   * outright, where only the pane is right of it. The toolbar's container is
+   * the containing block and is the window's width, so `100%` is the window.
+   */
+  .page-cluster {
+    position: absolute;
+    inset-block: 0;
+    right: calc(
+      var(--jp-frame-pane-w) +
+        max(0px, (100% - var(--jp-nav-rail-w) - var(--jp-frame-pane-w) - var(--jp-measure)) / 2)
+    );
   }
 }
 </style>

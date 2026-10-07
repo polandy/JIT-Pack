@@ -760,6 +760,19 @@ async function saveBackup() {
   display: none;
 }
 
+/* How much of the window's right side the open pane takes — nothing while the
+   host is empty. Published on the app rather than kept with the pane because
+   the bar, which is not the body's sibling, lines the page's cluster up with
+   the column the pane re-centres (G-12, UX-14). The same `:empty` the rule
+   above keys on, so the bar and the body cannot disagree about the pane. */
+ion-app {
+  --jp-frame-pane-w: 0px;
+}
+
+ion-app:has(.app-panel-layer:not(:empty)) {
+  --jp-frame-pane-w: var(--jp-panel-w);
+}
+
 .app-outlet {
   flex: 1;
   /* Ionic's router outlet is position:absolute. Without a positioned
