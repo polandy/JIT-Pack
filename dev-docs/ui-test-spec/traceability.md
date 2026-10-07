@@ -115,6 +115,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.2 | E2E+UNIT | M4-33, M4-34, M4-35 (the pack registers, one undo, none on un-pack); `usePackUndo` (the snapshot is taken before the pack, replaces rather than stacks, undoes once, no-ops when unarmed) |
 | FR-21.8 | E2E+UNIT+GATE | G14-01, G14-02, G14-03 (the card is a plane, casts a flavour-correct shadow, and bounds the group rather than its entries); surfaces.css (planes differ, `.jp-card` built from tokens, five radius steps, each cast written once); `scripts/design-tokens-gate.mjs` (no raw colour, radius or shadow anywhere in `client/src`) |
 | FR-21.17 | E2E+UNIT | M4-70 (the head yields with the line and holds at the bottom), M4-129 (a list too short to survive the yield keeps its head), M4-135 (a scroll nobody made moves neither the head nor the rows), M4-150 (a focus ends the gesture, so the scroll it brings leaves the head); `headScroll.spec.ts` (the direction, the jitter, the clamp, the short list, the scroll nobody made, which inputs arm the gesture and which end it) |
+| FR-21.29 | E2E+UNIT | G22-01…G22-06; `lib/__tests__/splash.spec.ts` (on unless `off`, the flight's transform), `SplashScreen.spec.ts` (phases, tap, key, reduced motion, the landing mark hidden only while in flight) |
 | FR-22.1 | E2E+UNIT | M10-04 (add/replace/remove, rendered and read back), M9-01; the M5 rung in the ItemMark component unit (M5-12 retired) |
 | FR-22.2/22.3 | E2E+UNIT | M10-04 asserts the aspect ratio survives the re-encode; the backoff itself is `imageResize.ts` |
 | FR-22.4 | UNIT+SERVER | the 150 KB cap is `imageResize.spec.ts` and the three server layers (invariant 6) — deliberately **not** M10-04, which would be asserting the encoder through a canvas |
@@ -158,6 +159,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | G-16 | E2E | M3-19 (Enter in a plain field is the step's button, step 3's search exempt), M3-25 (the multi-step flow's fixed footer: same y on every step, above the tab bar, measured at 412 px) |
 | G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
 | G-20 | E2E+UNIT | G20-01 (M6: the app bar carries the selection and the first row stays put, measured); `AppHeader.spec.ts` (what the bar shows and hides while selecting), each list page's spec (the selection it registers) |
+| G-22 | E2E+UNIT | G22-01 (flies onto the app bar's mark), G22-02 (a tap ends it), G22-03 (lands on M19's mark), G22-04 (a drill-down fades), G22-05 (off in M17), G22-06 (reduced motion); `SplashScreen.spec.ts` |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
 | FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
 | FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
