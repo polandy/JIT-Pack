@@ -111,6 +111,12 @@ describe('createMasterDataActions without an orchestrator', () => {
   })
 
   it('unassignTag queues a delete on the master partition', () => {
+    pullIn(ctx.masterStore, TABLE.itemTags, 'it-1', {
+      item_id: ITEM_ID,
+      tag_id: 'tag-1',
+      position: 0,
+    })
+
     createMasterDataActions(ctx).unassignTag('it-1')
 
     expect(queued[0]!.type).toBe('master')

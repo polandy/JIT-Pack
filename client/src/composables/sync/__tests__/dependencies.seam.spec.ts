@@ -63,6 +63,13 @@ describe('createDependencyActions without an orchestrator', () => {
   })
 
   it('deleteItemDependency queues a tombstone on the master partition', () => {
+    pullIn(ctx.masterStore, TABLE.itemDependencies, 'dep-1', {
+      item_id: 'item-a',
+      depends_on_item_id: 'item-b',
+      mode: 'suggested',
+      quantity: 2,
+    })
+
     createDependencyActions(ctx).deleteItemDependency('dep-1')
 
     expect(queued[0]!.type).toBe('master')

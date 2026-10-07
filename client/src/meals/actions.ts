@@ -12,9 +12,9 @@
 import { newId } from '@/lib/ids'
 import { dbBool } from '@/sync/columns'
 import { cascadeTombstones } from '@/sync/cascade'
-import type { ModuleHost, QueuedModuleMutation } from '@/sync/featureModule'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_SPECS } from '@/sync/tableRegistry'
+import type { ModuleHost } from '@/sync/featureModule'
+import type { Write } from '@/sync/writeFunnel'
+import { optimisticDelete } from '@/sync/optimistic'
 import type { Meal, MealIngredient, MealKind, MealSlot, ShoppingMode } from '@/types/domain'
 import { MEAL_KIND_OUT } from '@/types/domain'
 import { TABLE } from '@/types/tables'
@@ -48,10 +48,6 @@ export interface DraftIngredient {
 }
 
 export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof useMealStore>) {
-  const encodeMeal = (meal: Meal) => TABLE_SPECS[TABLE.meals].encode!(meal)
-  const encodeIngredient = (ingredient: MealIngredient) =>
-    TABLE_SPECS[TABLE.mealIngredients].encode!(ingredient)
-
   /**
    * FR-33.1/33.2: writes a meal and its ingredients — a new one when `meal`
    * is null. A blank dish takes the place's name; with neither there is no
@@ -76,16 +72,17 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
       cook_user_id: fields.kind === MEAL_KIND_OUT ? null : fields.cookUserId,
       excursion_id: fields.kind === MEAL_KIND_OUT ? null : fields.excursionId,
     }
-    const writes: QueuedModuleMutation[] = []
+    const writes: Write[] = []
     let mealId: string
     if (meal === null) {
       mealId = newId()
-      const mutation = host.mutation('insert', TABLE.meals, mealId, {
-        trip_id: tripId,
-        ...own,
-        excursion_packed_at: null,
-      })
-      writes.push({ mutation, optimistic: optimisticInsert(mutation) })
+      writes.push(
+        host.mutation('insert', TABLE.meals, mealId, {
+          trip_id: tripId,
+          ...own,
+          excursion_packed_at: null,
+        }),
+      )
     } else {
       mealId = meal.id
       const patch: Record<string, unknown> = {}
@@ -97,13 +94,12 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
         patch['excursion_packed_at'] = null
       }
       if (Object.keys(patch).length > 0) {
-        const mutation = host.mutation('upsert', TABLE.meals, meal.id, patch)
-        writes.push({ mutation, optimistic: optimisticUpdate(mutation, encodeMeal(meal)) })
+        writes.push(host.mutation('upsert', TABLE.meals, meal.id, patch))
       }
     }
     const kept = fields.kind === MEAL_KIND_OUT ? [] : drafts
     writes.push(...ingredientWrites(tripId, mealId, kept))
-    if (writes.length > 0) host.writeTrip(tripId, ...writes)
+    if (writes.length > 0) host.write(...writes)
     return mealId
   }
 
@@ -112,26 +108,27 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
     tripId: string,
     mealId: string,
     drafts: readonly DraftIngredient[],
-  ): QueuedModuleMutation[] {
+  ): Write[] {
     const saved = new Map(mealStore.ingredientsOf(mealId).map((ing) => [ing.id, ing]))
-    const writes: QueuedModuleMutation[] = []
+    const writes: Write[] = []
     drafts.forEach((draft, position) => {
       const current = draft.id ? saved.get(draft.id) : undefined
       if (!current) {
-        const mutation = host.mutation('insert', TABLE.mealIngredients, newId(), {
-          trip_id: tripId,
-          meal_id: mealId,
-          name: draft.name,
-          amount: draft.amount,
-          list: draft.list,
-          position,
-          bought: dbBool(draft.bought),
-          bought_at: draft.bought ? host.nowIso() : null,
-          bought_by_user_id: null,
-          shopping_position: null,
-          fresh: draft.fresh === null ? null : dbBool(draft.fresh),
-        })
-        writes.push({ mutation, optimistic: optimisticInsert(mutation) })
+        writes.push(
+          host.mutation('insert', TABLE.mealIngredients, newId(), {
+            trip_id: tripId,
+            meal_id: mealId,
+            name: draft.name,
+            amount: draft.amount,
+            list: draft.list,
+            position,
+            bought: dbBool(draft.bought),
+            bought_at: draft.bought ? host.nowIso() : null,
+            bought_by_user_id: null,
+            shopping_position: null,
+            fresh: draft.fresh === null ? null : dbBool(draft.fresh),
+          }),
+        )
         return
       }
       saved.delete(current.id)
@@ -144,12 +141,10 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
         patch['fresh'] = draft.fresh === null ? null : dbBool(draft.fresh)
       }
       if (Object.keys(patch).length === 0) return
-      const mutation = host.mutation('upsert', TABLE.mealIngredients, current.id, patch)
-      writes.push({ mutation, optimistic: optimisticUpdate(mutation, encodeIngredient(current)) })
+      writes.push(host.mutation('upsert', TABLE.mealIngredients, current.id, patch))
     })
     for (const gone of saved.values()) {
-      const mutation = host.mutation('delete', TABLE.mealIngredients, gone.id)
-      writes.push({ mutation, optimistic: optimisticDelete(mutation) })
+      writes.push(host.mutation('delete', TABLE.mealIngredients, gone.id))
     }
     return writes
   }
@@ -182,12 +177,10 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
   ): void {
     const first = ingredients[0]
     if (!first) return
-    host.writeTrip(
-      first.trip_id,
-      ...ingredients.map((ingredient) => {
-        const mutation = host.mutation('upsert', TABLE.mealIngredients, ingredient.id, patch())
-        return { mutation, optimistic: optimisticUpdate(mutation, encodeIngredient(ingredient)) }
-      }),
+    host.write(
+      ...ingredients.map((ingredient) =>
+        host.mutation('upsert', TABLE.mealIngredients, ingredient.id, patch()),
+      ),
     )
   }
 
@@ -196,10 +189,7 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
     const mutation = host.mutation('upsert', TABLE.meals, meal.id, {
       excursion_packed_at: packed ? host.nowIso() : null,
     })
-    host.writeTrip(meal.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeMeal(meal)),
-    })
+    host.write(mutation)
   }
 
   /**
@@ -244,16 +234,13 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
   function writeMeal(meal: Meal, patch: Record<string, unknown>): void {
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.meals, meal.id, patch)
-    host.writeTrip(meal.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeMeal(meal)),
-    })
+    host.write(mutation)
   }
 
   /** FR-33.9: deletes a meal with every ingredient it has, bought or not. */
   function removeMeal(meal: Meal): void {
     const mutation = host.mutation('delete', TABLE.meals, meal.id)
-    host.writeTrip(meal.trip_id, {
+    host.write({
       mutation,
       optimistic: [
         ...cascadeTombstones(mealStore.mealChildRows(meal.id)),

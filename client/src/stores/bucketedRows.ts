@@ -1,5 +1,5 @@
 /**
- * A `Map<parentId, Row[]>` with the three operations every one of them needs.
+ * A `Map<parentId, Row[]>` with the operations every one of them needs.
  *
  * Seven of these existed as hand-written `upsertX`/`removeX` pairs across the
  * two stores — six in `tripStore`, one in `masterStore` — each twenty lines
@@ -22,7 +22,7 @@ export interface BucketedRow {
   id: string
 }
 
-/** The three operations a bucketed map needs. */
+/** The operations a bucketed map needs. */
 export interface BucketedRows<T extends BucketedRow> {
   /** The rows of one bucket, empty when the bucket is unknown. */
   get(bucket: string): T[]
@@ -30,6 +30,8 @@ export interface BucketedRows<T extends BucketedRow> {
   upsert(row: T): void
   /** Remove the row with this id from wherever it is. */
   remove(id: string): void
+  /** The row with this id, from whichever bucket holds it. */
+  find(id: string): T | undefined
 }
 
 /**
@@ -63,12 +65,23 @@ export function bucketedRows<T extends BucketedRow>(
         }
       }
     },
+    find(id: string): T | undefined {
+      for (const list of rows.value.values()) {
+        const row = list.find((r) => r.id === id)
+        if (row) return row
+      }
+      return undefined
+    },
   }
 }
 
 /** The bucket as a `RowSink`: `upsert` under the sink's name. */
 export function bucketSink<T extends BucketedRow>(rows: BucketedRows<T>): RowSink<T> {
-  return { set: (row) => rows.upsert(row), remove: (id) => rows.remove(id) }
+  return {
+    set: (row) => rows.upsert(row),
+    remove: (id) => rows.remove(id),
+    get: (id) => rows.find(id),
+  }
 }
 
 /** A `Map` keyed by row id as a `RowSink`. */
@@ -76,5 +89,6 @@ export function keyedSink<T extends BucketedRow>(map: Ref<Map<string, T>>): RowS
   return {
     set: (row) => map.value.set(row.id, row),
     remove: (id) => map.value.delete(id),
+    get: (id) => map.value.get(id),
   }
 }

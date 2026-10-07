@@ -2,8 +2,8 @@
  * The client's mirror of `cascadeChildren` (`internal/store/master.go`).
  *
  * Each case here is one case of the server's switch. The mirror is what a
- * delete hands to `enqueueAndDrain`, and in Local Mode that list is the only
- * thing that ever removes a key from the device.
+ * delete hands to `write` as its paint, and in Local Mode that list is the
+ * only thing that ever removes a key from the device.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'

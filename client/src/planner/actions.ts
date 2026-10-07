@@ -19,11 +19,11 @@ import {
 } from '@/domain/track'
 import { newId } from '@/lib/ids'
 import { dbBool, jsonColumn } from '@/sync/columns'
-import type { ModuleHost, QueuedModuleMutation } from '@/sync/featureModule'
+import type { ModuleHost } from '@/sync/featureModule'
+import type { Write } from '@/sync/writeFunnel'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeTombstones } from '@/sync/cascade'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_SPECS } from '@/sync/tableRegistry'
+import { optimisticDelete } from '@/sync/optimistic'
 import type {
   ConnectionLeg,
   DayEntry,
@@ -86,13 +86,6 @@ export function createPlannerActions(
   host: ModuleHost,
   plannerStore: ReturnType<typeof usePlannerStore>,
 ) {
-  const encodeIdea = TABLE_SPECS[TABLE.ideas].encode
-  const encodeVote = TABLE_SPECS[TABLE.ideaVotes].encode
-  const encodeComment = TABLE_SPECS[TABLE.ideaComments].encode
-  const encodeImage = TABLE_SPECS[TABLE.ideaImages].encode
-  const encodeDayEntry = TABLE_SPECS[TABLE.dayEntries].encode
-  const encodeTrack = TABLE_SPECS[TABLE.ideaTracks].encode
-
   /** FR-29.1: a new idea, in *Ideen*. A blank title is not an idea. */
   function addIdea(tripId: string, fields: IdeaFields, me: string | null): string | null {
     const title = fields.title.trim()
@@ -109,7 +102,7 @@ export function createPlannerActions(
       state: IDEA_STATE_IDEA,
       created_at: host.nowIso(),
     })
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    host.write(mutation)
     return id
   }
 
@@ -192,11 +185,7 @@ export function createPlannerActions(
           }
         : own,
     )
-    host.writeTrip(
-      tripId,
-      { mutation, optimistic: optimisticInsert(mutation) },
-      ...travelerWrites(tripId, id, fields.travelerIds ?? null),
-    )
+    host.write(mutation, ...travelerWrites(tripId, id, fields.travelerIds ?? null))
     return id
   }
 
@@ -238,9 +227,9 @@ export function createPlannerActions(
         : travelerWrites(entry.trip_id, entry.id, fields.travelerIds)
     if (Object.keys(patch).length > 0) {
       const mutation = host.mutation('upsert', TABLE.dayEntries, entry.id, patch)
-      writes.unshift({ mutation, optimistic: optimisticUpdate(mutation, encodeDayEntry(entry)) })
+      writes.unshift(mutation)
     }
-    if (writes.length > 0) host.writeTrip(entry.trip_id, ...writes)
+    if (writes.length > 0) host.write(...writes)
   }
 
   /**
@@ -253,25 +242,25 @@ export function createPlannerActions(
     tripId: string,
     entryId: string,
     travelerIds: readonly string[] | null,
-  ): QueuedModuleMutation[] {
+  ): Write[] {
     const rows = plannerStore
       .getDayEntryTravelers(tripId)
       .filter((row) => row.day_entry_id === entryId)
     const wanted = new Set(travelerIds ?? [])
-    const writes: QueuedModuleMutation[] = []
+    const writes: Write[] = []
     for (const row of rows) {
       if (wanted.has(row.traveler_id)) continue
-      const mutation = host.mutation('delete', TABLE.dayEntryTravelers, row.id)
-      writes.push({ mutation, optimistic: optimisticDelete(mutation) })
+      writes.push(host.mutation('delete', TABLE.dayEntryTravelers, row.id))
     }
     for (const travelerId of wanted) {
       if (rows.some((row) => row.traveler_id === travelerId)) continue
-      const mutation = host.mutation('insert', TABLE.dayEntryTravelers, newId(), {
-        trip_id: tripId,
-        day_entry_id: entryId,
-        traveler_id: travelerId,
-      })
-      writes.push({ mutation, optimistic: optimisticInsert(mutation) })
+      writes.push(
+        host.mutation('insert', TABLE.dayEntryTravelers, newId(), {
+          trip_id: tripId,
+          day_entry_id: entryId,
+          traveler_id: travelerId,
+        }),
+      )
     }
     return writes
   }
@@ -279,7 +268,7 @@ export function createPlannerActions(
   /** FR-29.15: an entry's delete takes whom it was for, as one mutation (`sync/cascade.ts`). */
   function removeDayEntry(entry: DayEntry): void {
     const mutation = host.mutation('delete', TABLE.dayEntries, entry.id)
-    host.writeTrip(entry.trip_id, {
+    host.write({
       mutation,
       optimistic: [
         ...cascadeTombstones(plannerStore.dayEntryChildRows(entry.id)),
@@ -296,7 +285,7 @@ export function createPlannerActions(
   function removeIdea(idea: Idea): void {
     const mutation = host.mutation('delete', TABLE.ideas, idea.id)
     const children = plannerStore.ideaChildRows(idea.id)
-    host.writeTrip(idea.trip_id, {
+    host.write({
       mutation,
       optimistic: [...cascadeTombstones(children), optimisticDelete(mutation)],
     })
@@ -363,16 +352,15 @@ export function createPlannerActions(
 
   /** FR-29.5's „Als Titelbild": the picture to the front, the rest behind it in order. */
   function makeCover(idea: Idea, imageId: string): void {
-    const moves = coverMoves(picturesOf(idea), imageId).map(({ image, position }) => {
-      const mutation = host.mutation('upsert', TABLE.ideaImages, image.id, { position })
-      return { mutation, optimistic: optimisticUpdate(mutation, encodeImage(image)) }
-    })
-    if (moves.length > 0) host.writeTrip(idea.trip_id, ...moves)
+    const moves = coverMoves(picturesOf(idea), imageId).map(({ image, position }) =>
+      host.mutation('upsert', TABLE.ideaImages, image.id, { position }),
+    )
+    if (moves.length > 0) host.write(...moves)
   }
 
   function removePicture(image: IdeaImage): void {
     const mutation = host.mutation('delete', TABLE.ideaImages, image.id)
-    host.writeTrip(image.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    host.write(mutation)
     void host.pictures.forget([image.id])
   }
 
@@ -409,15 +397,12 @@ export function createPlannerActions(
     const patch = trackSettingsPatch(track, settings)
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.ideaTracks, track.id, patch)
-    host.writeTrip(track.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeTrack(track)),
-    })
+    host.write(mutation)
   }
 
   function removeTrack(track: IdeaTrack): void {
     const mutation = host.mutation('delete', TABLE.ideaTracks, track.id)
-    host.writeTrip(track.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    host.write(mutation)
     void host.tracks.forget([track.id])
   }
 
@@ -440,10 +425,7 @@ export function createPlannerActions(
   ): void {
     if (tally.myRow) {
       const mutation = host.mutation('upsert', TABLE.ideaVotes, tally.myRow.id, { vote: next })
-      host.writeTrip(tripId, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, encodeVote(tally.myRow)),
-      })
+      host.write(mutation)
       return
     }
     if (next === null) return
@@ -453,7 +435,7 @@ export function createPlannerActions(
       user_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
       vote: next,
     })
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    host.write(mutation)
   }
 
   /** FR-29.4: a word about an idea. A blank one is not written. */
@@ -473,7 +455,7 @@ export function createPlannerActions(
       body: words,
       created_at: host.nowIso(),
     })
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    host.write(mutation)
     return id
   }
 
@@ -488,24 +470,18 @@ export function createPlannerActions(
       body: words,
       edited_at: host.nowIso(),
     })
-    host.writeTrip(comment.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeComment(comment)),
-    })
+    host.write(mutation)
   }
 
   function removeComment(comment: IdeaComment): void {
     const mutation = host.mutation('delete', TABLE.ideaComments, comment.id)
-    host.writeTrip(comment.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    host.write(mutation)
   }
 
   function writeIdea(idea: Idea, patch: Record<string, unknown>): void {
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.ideas, idea.id, patch)
-    host.writeTrip(idea.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encodeIdea(idea)),
-    })
+    host.write(mutation)
   }
 
   return {

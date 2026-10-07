@@ -36,10 +36,9 @@ import {
 } from '@/domain/tags'
 import { planDefaultAssignee, type AssigneeChange } from '@/domain/defaultAssignee'
 import { findNameCollision } from '@/domain/nameCollision'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
-import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
 import type {
@@ -119,7 +118,7 @@ export interface BulkAssigneeResult {
 
 /** createMasterDataActions binds the master-data group to one sync context. */
 export function createMasterDataActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, masterStore, tripStore, knownTripItems, names, local } = ctx
+  const { mutations, write, masterStore, tripStore, knownTripItems, names, local } = ctx
 
   /**
    * Create a tag by typing its name (FR-24.1), optionally with its mark
@@ -127,10 +126,7 @@ export function createMasterDataActions(ctx: SyncContext) {
    */
   function createTag(name: string, icon: string | null = null): string {
     const { mutation, id } = mutations.createTag(name, masterStore.tagList.length, icon)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
@@ -138,19 +134,12 @@ export function createMasterDataActions(ctx: SyncContext) {
   function assignTag(itemId: string, tagId: string): string {
     const position = masterStore.getItemTags(itemId).length
     const { mutation, id } = mutations.assignTag(itemId, tagId, position)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function unassignTag(assignmentId: string): void {
-    const mutation = mutations.unassignTag(assignmentId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.unassignTag(assignmentId))
   }
 
   /**
@@ -160,10 +149,7 @@ export function createMasterDataActions(ctx: SyncContext) {
    */
   function assignTagAt(itemId: string, tagId: string, position: number): string {
     const { mutation, id } = mutations.assignTag(itemId, tagId, position)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
@@ -175,11 +161,7 @@ export function createMasterDataActions(ctx: SyncContext) {
   function moveTag(assignmentId: string, position: number): void {
     const assignment = masterStore.itemTagList.find((a) => a.id === assignmentId)
     if (!assignment || assignment.position === position) return
-    const mutation = mutations.moveTag(assignmentId, position)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, { ...assignment }),
-    })
+    write(mutations.moveTag(assignmentId, position))
   }
 
   /**
@@ -265,12 +247,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const collision = findNameCollision(name, masterStore.tagList, tagId)
     if (collision) return { ok: false, collision: collision.name }
 
-    const mutation = mutations.renameTag(tagId, name.trim())
-    const tag = masterStore.tagList.find((t) => t.id === tagId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, tag ? { ...tag } : {}),
-    })
+    write(mutations.renameTag(tagId, name.trim()))
     return { ok: true }
   }
 
@@ -283,11 +260,7 @@ export function createMasterDataActions(ctx: SyncContext) {
   function setTagMark(tagId: string, icon: string | null): void {
     const tag = masterStore.tagList.find((t) => t.id === tagId)
     if (!tag || (tag.icon ?? null) === icon) return
-    const mutation = mutations.setTagMark(tagId, icon)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, { ...tag }),
-    })
+    write(mutations.setTagMark(tagId, icon))
   }
 
   /**
@@ -302,11 +275,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const { kind, references } = tagDeletion(tagId, masterStore.itemTagList)
     if (kind === TAG_DELETE_REFUSED) return { ok: false, references }
 
-    const mutation = mutations.deleteTag(tagId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.deleteTag(tagId))
     return { ok: true }
   }
 
@@ -341,11 +310,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const plan = planTagMergeMany(sourceIds, targetId, masterStore.itemTagList)
 
     for (const { assignment, position } of plan.repoint) {
-      const mutation = mutations.retagAssignment(assignment.id, targetId, position)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, { ...assignment }),
-      })
+      write(mutations.retagAssignment(assignment.id, targetId, position))
     }
     for (const { assignment, position } of plan.promote) {
       moveTag(assignment.id, position)
@@ -372,11 +337,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     // into itself must not delete the tag it was asked to keep.
     for (const sourceId of sourceIds) {
       if (sourceId === targetId) continue
-      const mutation = mutations.deleteTag(sourceId)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticDelete(mutation),
-      })
+      write(mutations.deleteTag(sourceId))
     }
     return moved
   }
@@ -433,46 +394,29 @@ export function createMasterDataActions(ctx: SyncContext) {
         survivorId,
         plan.tags.positionOf(assignment.id),
       )
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, { ...assignment }),
-      })
+      write(mutation)
     }
     for (const assignment of plan.tags.drop) unassignTag(assignment.id)
 
     for (const { edge, item_id, depends_on_item_id } of plan.dependencies.repoint) {
-      const mutation = mutations.repointItemDependency(edge.id, item_id, depends_on_item_id)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, { ...edge }),
-      })
+      write(mutations.repointItemDependency(edge.id, item_id, depends_on_item_id))
     }
     for (const edge of plan.dependencies.drop) {
-      const mutation = mutations.deleteItemDependency(edge.id)
-      enqueueAndDrain('master', null, { mutation, optimistic: optimisticDelete(mutation) })
+      write(mutations.deleteItemDependency(edge.id))
     }
 
     for (const position of plan.positions.repoint) {
-      const mutation = mutations.repointTemplateItem(position.id, survivorId)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, { ...position }),
-      })
+      write(mutations.repointTemplateItem(position.id, survivorId))
     }
     for (const { keep, drop, quantity, tasks } of plan.positions.collapse) {
       if (quantity !== keep.quantity) {
-        const mutation = mutations.updateTemplateItem(keep.id, { quantity })
-        enqueueAndDrain('master', null, {
-          mutation,
-          optimistic: optimisticUpdate(mutation, { ...keep }),
-        })
+        write(mutations.updateTemplateItem(keep.id, { quantity }))
       }
       for (const task of tasks) {
         const { mutation } = mutations.addTemplateItemTask(keep.id, task)
-        enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+        write(mutation)
       }
-      const mutation = mutations.deleteTemplateItem(drop.id)
-      enqueueAndDrain('master', null, { mutation, optimistic: optimisticDelete(mutation) })
+      write(mutations.deleteTemplateItem(drop.id))
     }
 
     const survivor = masterStore.getItem(survivorId)
@@ -483,11 +427,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     let retired = 0
     for (const itemId of plan.aliases) {
       const row = masterStore.getItem(itemId)
-      const alias = mutations.updateMasterItem(itemId, { merged_into_id: survivorId })
-      enqueueAndDrain('master', null, {
-        mutation: alias,
-        optimistic: optimisticUpdate(alias, row ? masterItemRow(row) : {}),
-      })
+      write(mutations.updateMasterItem(itemId, { merged_into_id: survivorId }))
       if (!loserIds.includes(itemId)) continue
       if (row && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) retired += 1
       deleteMasterItem(itemId)
@@ -510,12 +450,7 @@ export function createMasterDataActions(ctx: SyncContext) {
    */
   function reorderTags(from: number, to: number): void {
     for (const { tagId, sortOrder } of planTagReorder(masterStore.tagList, from, to)) {
-      const mutation = mutations.reorderTag(tagId, sortOrder)
-      const tag = masterStore.tagList.find((t) => t.id === tagId)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, tag ? { ...tag } : {}),
-      })
+      write(mutations.reorderTag(tagId, sortOrder))
     }
   }
 
@@ -524,19 +459,12 @@ export function createMasterDataActions(ctx: SyncContext) {
     opts: Parameters<typeof mutations.createMasterItem>[1] = {},
   ): string {
     const { mutation, id } = mutations.createMasterItem(name, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function updateMasterItem(item: MasterItem, fields: MasterItemEdit) {
-    const mutation = mutations.updateMasterItem(item.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, masterItemRow(item)),
-    })
+    write(mutations.updateMasterItem(item.id, fields))
   }
 
   /**
@@ -604,14 +532,11 @@ export function createMasterDataActions(ctx: SyncContext) {
       const retire = mutations.updateMasterItem(itemId, {
         [RETIRED_FIELD]: ctx.nowIso(),
       })
-      enqueueAndDrain('master', null, {
-        mutation: retire,
-        optimistic: optimisticUpdate(retire, masterItemRow(item)),
-      })
+      write(retire)
       return
     }
     const mutation = mutations.deleteMasterItem(itemId)
-    enqueueAndDrain('master', null, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.items, itemId, { tripStore, masterStore }),
@@ -664,11 +589,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     // alias goes with the marker. Written whether or not the row carries one:
     // the two are the same decision, and asking first would read the store
     // for a field the patch is about to overwrite anyway.
-    const mutation = mutations.updateMasterItem(itemId, { ...fields, merged_into_id: null })
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, masterItemRow(item)),
-    })
+    write(mutations.updateMasterItem(itemId, { ...fields, merged_into_id: null }))
     return true
   }
 
@@ -679,11 +600,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const verdict = restoreVerdict(template, masterStore.activeTemplateList, name)
     if (verdict.kind !== RESTORE_READY) return false
     const fields = restoreFields(name === undefined ? null : verdict.name)
-    const mutation = mutations.updateTemplate(templateId, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateRow(template)),
-    })
+    write(mutations.updateTemplate(templateId, fields))
     return true
   }
 
@@ -702,20 +619,13 @@ export function createMasterDataActions(ctx: SyncContext) {
   ): string | null {
     if (names.templateNameCollision(name)) return null
     const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function updateTemplate(template: Template, fields: TemplateEdit): boolean {
     if (isTakenRename(fields, template.id, names.templateNameCollision)) return false
-    const mutation = mutations.updateTemplate(template.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateRow(template)),
-    })
+    write(mutations.updateTemplate(template.id, fields))
     return true
   }
 
@@ -725,24 +635,17 @@ export function createMasterDataActions(ctx: SyncContext) {
     opts: Parameters<typeof mutations.addTemplateItem>[2] = {},
   ): string {
     const { mutation, id } = mutations.addTemplateItem(templateId, itemId, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function updateTemplateItem(templateItem: TemplateItem, fields: TemplateItemEdit) {
-    const mutation = mutations.updateTemplateItem(templateItem.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateItemRow(templateItem)),
-    })
+    write(mutations.updateTemplateItem(templateItem.id, fields))
   }
 
   function deleteTemplateItem(templateItemId: string) {
     const mutation = mutations.deleteTemplateItem(templateItemId)
-    enqueueAndDrain('master', null, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.templateItems, templateItemId, { tripStore, masterStore }),
@@ -763,14 +666,11 @@ export function createMasterDataActions(ctx: SyncContext) {
       const retire = mutations.updateTemplate(templateId, {
         [RETIRED_FIELD]: ctx.nowIso(),
       })
-      enqueueAndDrain('master', null, {
-        mutation: retire,
-        optimistic: optimisticUpdate(retire, templateRow(template)),
-      })
+      write(retire)
       return
     }
     const mutation = mutations.deleteTemplate(templateId)
-    enqueueAndDrain('master', null, {
+    write({
       mutation,
       optimistic: [
         ...cascadeChanges(TABLE.templates, templateId, { tripStore, masterStore }),
@@ -782,46 +682,29 @@ export function createMasterDataActions(ctx: SyncContext) {
   /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
   function addTemplateInclude(templateId: string, includedTemplateId: string): string {
     const { mutation, id } = mutations.addTemplateInclude(templateId, includedTemplateId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function removeTemplateInclude(includeId: string) {
-    const mutation = mutations.removeTemplateInclude(includeId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.removeTemplateInclude(includeId))
   }
 
   /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
   function addTemplateItemTask(templateItemId: string, task: string): string {
     const { mutation, id } = mutations.addTemplateItemTask(templateItemId, task)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function deleteTemplateItemTask(taskId: string) {
-    const mutation = mutations.deleteTemplateItemTask(taskId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.deleteTemplateItemTask(taskId))
   }
 
   /** addTemplateTask attaches one FR-7.4 trip task to a template. */
   function addTemplateTask(templateId: string, task: string, phase: TaskPhase): string {
     const { mutation, id } = mutations.addTemplateTask(templateId, task, phase)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
@@ -832,29 +715,17 @@ export function createMasterDataActions(ctx: SyncContext) {
    */
   function createTaskTag(name: string, sortOrder: number, icon: string | null = null): string {
     const { mutation, id } = mutations.createTaskTag(name, sortOrder, icon)
-    enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+    write(mutation)
     return id
   }
 
   /** FR-7.7: move a Vorlage's task to the other phase. */
   function setTemplateTaskPhase(task: TemplateTask, phase: TaskPhase) {
-    const mutation = mutations.setTemplateTaskPhase(task.id, phase)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, {
-        template_id: task.template_id,
-        task: task.task,
-        phase,
-      }),
-    })
+    write(mutations.setTemplateTaskPhase(task.id, phase))
   }
 
   function deleteTemplateTask(taskId: string) {
-    const mutation = mutations.deleteTemplateTask(taskId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutations.deleteTemplateTask(taskId))
   }
 
   return {

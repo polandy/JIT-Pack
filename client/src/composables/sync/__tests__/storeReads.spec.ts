@@ -16,6 +16,7 @@ import { createNameGuards } from '../names'
 import type { MasterReads, QueuedMutation, SyncContext, TripReads } from '../context'
 import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
+import { mutationOf } from '@/sync/writeFunnel'
 import type { Container, Template, TripItem } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
@@ -100,8 +101,8 @@ function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[]; asked: str
       masterStore,
       features: [],
       mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => NOW_ISO),
-      enqueueAndDrain: (_type, _id, ...muts) => queued.push(...muts),
-      enqueue: (_type, _id, ...muts) => queued.push(...muts),
+      write: (...writes) => queued.push(...writes.map((w) => ({ mutation: mutationOf(w) }))),
+      queue: (...writes) => queued.push(...writes.map((w) => ({ mutation: mutationOf(w) }))),
       drainPartitions: () => {},
       names: createNameGuards(masterStore),
       local: null,

@@ -11,12 +11,15 @@
  * - **the trip cascade** — a deleted trip takes the module's rows with it, and
  *   the server announces none of them, because the trip partition's feed dies
  *   with the trip (`cascade.ts`);
- * - **the write path** — a module queues its mutations through the same outbox
- *   as everything else, with this device's clock.
+ * - **the write path** — a module queues its mutations through the same funnel
+ *   as everything else (`writeFunnel.ts`), with this device's clock; the
+ *   funnel reads the module's current rows back through `currentRow`.
  */
 import type { TrackUpload, Mutation, MutationOp, PullChange } from '@/api/types'
 import type { IdeaImage, IdeaTrack, TrackFields } from '@/types/domain'
 import type { CascadeRow } from './cascade'
+import type { SyncRow } from './tableRegistry'
+import type { Write } from './writeFunnel'
 
 /** One module's store, as the orchestrator reads and writes it. */
 export interface FeatureStore {
@@ -24,6 +27,8 @@ export interface FeatureStore {
   readonly tables: ReadonlySet<string>
   /** Applies pulled or optimistic changes to the module's rows. */
   applyChanges(changes: PullChange[]): void
+  /** One of the module's rows in its wire shape — what an update is painted over. */
+  currentRow(table: string, id: string): SyncRow | undefined
   /** The module's rows that go with a deleted trip, leaf-first. */
   tripChildRows(tripId: string): CascadeRow[]
   /**
@@ -39,12 +44,6 @@ export interface FeatureStore {
   forgetTrip(tripId: string): void
 }
 
-/** Queues mutations on one partition and applies their optimistic rows. */
-export interface QueuedModuleMutation {
-  mutation: Mutation
-  optimistic?: PullChange | PullChange[]
-}
-
 /**
  * The write path a module is given. Deliberately narrow: a module writes rows
  * of its own tables into a trip's partition and nothing else, so it is not
@@ -55,8 +54,12 @@ export interface ModuleHost {
   mutation(op: MutationOp, table: string, id: string, fields?: Record<string, unknown>): Mutation
   /** The device's clock as an ISO instant — the one the HLC reads, for a tap's time. */
   nowIso(): string
-  /** Queues the writes for the trip's partition, paints them, and drains. */
-  writeTrip(tripId: string, ...muts: QueuedModuleMutation[]): void
+  /**
+   * Paints the writes, queues them on their trip's feed and drains — the
+   * kernel's funnel (`writeFunnel.ts`). A mutation alone is painted from its
+   * op over the row the store holds now; a cascade passes its paint along.
+   */
+  write(...writes: Write[]): void
   /** The bytes of the planner's pictures, which no mutation carries (FR-29.5). */
   pictures: IdeaPictures
   /** The files of the planner's GPX tracks, which no mutation carries (FR-29.17). */
@@ -97,7 +100,7 @@ export interface LinkPreview {
  * FR-29.5: an idea picture's bytes, outside the sync envelope (ADR-002). The
  * row that names a picture is created with its bytes — by the server's
  * upload, or on this device in Local Mode — so it is not a mutation; moving
- * or deleting one afterwards is, and goes through `writeTrip`.
+ * or deleting one afterwards is, and goes through `write`.
  */
 export interface IdeaPictures {
   /**
@@ -121,7 +124,7 @@ export type IdeaTrackPlace = Pick<IdeaTrack, 'id' | 'trip_id' | 'idea_id' | 'pos
  * `P`; FR-31.15's excursions). Like a picture, the row that names a track is
  * created with its file — by the server's upload, or on this device in Local
  * Mode — so neither adding nor replacing one is a mutation; renaming,
- * retiming or deleting one is, and goes through `writeTrip`.
+ * retiming or deleting one is, and goes through `write`.
  */
 export interface TrackFiles<
   T extends TrackFields & { trip_id: string } = IdeaTrack,

@@ -6,7 +6,7 @@
  * 1. Builds APIClient, HLC, SyncOutbox, WebSocket and the mutation factory
  * 2. Routes pull changes to the right store (trip vs master)
  * 3. Routes WebSocket events to whichever piece owns them
- * 4. Owns the write funnel — optimistic paint, enqueue, drain — that every
+ * 4. Owns the write funnel — optimistic paint, queue, drain — that every
  *    action group is bound to through `SyncContext`
  * 5. Manages sync status for the G-2 indicator
  *
@@ -26,13 +26,12 @@ import { computed, reactive, ref } from 'vue'
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
-import type { PartitionType } from '@/sync/partition'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
-import { changesOf, optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticInsert } from '@/sync/optimistic'
+import { createWriteFunnel, type PartitionBatch, type Write } from '@/sync/writeFunnel'
 import { TABLE } from '@/types/tables'
 import { storeFor } from '@/sync/routing'
 import type { FeatureStore, ModuleHost } from '@/sync/featureModule'
-import { itemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
 import { createDependencyActions } from './sync/actions/dependencies'
@@ -60,7 +59,7 @@ import { createExcursionTracks, createIdeaTracks } from './sync/trackFiles'
 import { createLinkPreview } from './sync/linkPreview'
 import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
-import type { QueuedMutation, SyncContext } from './sync/context'
+import type { SyncContext } from './sync/context'
 import { useWebSocket, type LocationFrame } from './useWebSocket'
 import { applyLocation, type PeopleFixes } from '@/lib/liveLocation'
 import { createMutations } from '@/sync/mutations'
@@ -537,30 +536,36 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
-  // --- High-level actions (optimistic + enqueue) ---
+  // --- High-level actions (optimistic + queue) ---
 
   /**
-   * enqueue is the write funnel: it paints what the mutations will do and
-   * queues them for their partition, and it is the *whole* of a write apart
-   * from pushing it. A cascade that writes across both partitions calls it
-   * once per row and drains once at the end (`drainPartitions`); everything
-   * else writes one row and pushes it immediately (`enqueueAndDrain`).
-   * Neither is allowed to spell the pair out again — the paint step carries
+   * The write funnel (`sync/writeFunnel.ts`): it paints what the mutations
+   * will do and queues each on its table's feed, and it is the *whole* of a
+   * write apart from pushing it. A cascade that writes across both
+   * partitions queues every row and drains once at the end
+   * (`drainPartitions`); everything else writes and pushes at once (`write`).
+   * Neither is allowed to spell the steps out again — the paint carries
    * ADR-016's trap (a change that reaches no store shows nothing) and the
-   * queue step carries the partition, and a second copy of them drifts.
+   * queue carries the partition, and a second copy of them drifts.
    */
-  function enqueue(type: PartitionType, id: string | null, ...muts: QueuedMutation[]) {
-    for (const m of muts) {
-      const painted = changesOf(m.optimistic)
-      if (painted.length > 0) {
-        onPullChanges(painted)
-      }
-      if (!local) {
-        outbox.enqueue(type, id, m.mutation)
-      }
-    }
-    if (local) return
-    syncStatus.setPendingCount(outbox.totalPending())
+  const funnel = createWriteFunnel({
+    currentRow: (table, id) => {
+      const owner = storeFor(table)
+      if (owner === 'trip') return tripStore.currentRow(table, id)
+      if (owner === 'master') return masterStore.currentRow(table, id)
+      return features.find((f) => f.tables.has(table))?.currentRow(table, id)
+    },
+    paint: onPullChanges,
+    queue: ({ partition, muts }) => {
+      if (local) return
+      for (const m of muts) outbox.enqueue(partition.type, partition.id, m.mutation)
+    },
+  })
+
+  function queue(...writes: Write[]): PartitionBatch[] {
+    const batches = funnel.queueWrites(...writes)
+    if (!local) syncStatus.setPendingCount(outbox.totalPending())
+    return batches
   }
 
   /**
@@ -569,9 +574,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * a trip's rows are refused until the trips row and the creator's
    * membership exist in the master partition.
    *
-   * Fire-and-forget, like the drain in `enqueueAndDrain`: the write is
-   * already on the device and in the queue, and a failed push is the
-   * outbox's business, not the caller's.
+   * Fire-and-forget, like the drain in `write`: the write is already on the
+   * device and in the queue, and a failed push is the outbox's business, not
+   * the caller's.
    */
   function drainPartitions(tripIds: string[]): void {
     if (local) return
@@ -583,13 +588,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       .catch(() => {})
   }
 
-  function enqueueAndDrain(type: PartitionType, id: string | null, ...muts: QueuedMutation[]) {
-    enqueue(type, id, ...muts)
+  function write(...writes: Write[]): void {
+    const batches = queue(...writes)
     if (local) return
-
-    // Fire-and-forget drain
-    const drainFn = type === 'master' ? drainMaster() : drainTrip(id!)
-    drainFn.catch(() => {})
+    const trips = batches.flatMap((b) => (b.partition.id === null ? [] : [b.partition.id]))
+    if (batches.some((b) => b.partition.type === 'master')) {
+      drainPartitions(trips)
+      return
+    }
+    for (const id of trips) drainTrip(id).catch(() => {})
   }
 
   /** The spine the extracted action groups are bound to (R-4). */
@@ -599,13 +606,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     masterStore,
     features,
     mutations,
-    enqueueAndDrain,
+    write,
     names,
     local,
     today,
     nowIso,
     tripDataLoaded,
-    enqueue,
+    queue,
     drainPartitions,
     knownTripItems: () => knownTripItemsOf(tripStore),
   }
@@ -649,10 +656,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function packingNow(tripId: string, item: TripItem) {
     const mut = mutations.startPackingNow(item.id)
     locks.claim(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mut)
   }
 
   /**
@@ -737,10 +741,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function releaseClaim(tripId: string, item: TripItem) {
     const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
     locks.release(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mut)
   }
 
   /**
@@ -820,8 +821,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       },
       mutations,
-      emit(partition, tripId, mutation) {
-        enqueue(partition, tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      // The partition the rules name is the one the funnel derives from the
+      // table; an emitted row is whole, so it paints as given even where its
+      // op is an upsert (a generated position).
+      emit(_partition, _tripId, mutation) {
+        queue({ mutation, optimistic: optimisticInsert(mutation) })
       },
     }
   }
@@ -888,27 +892,18 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     role: 'admin' | 'editor' = 'editor',
   ): string {
     const { mutation, id } = mutations.addTripMember(tripId, userId, role)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     return id
   }
 
   function setTripMemberRole(member: TripMember, role: 'admin' | 'editor') {
     const mutation = mutations.setTripMemberRole(member.id, role)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, memberRow(member)),
-    })
+    write(mutation)
   }
 
   function removeTripMember(memberId: string) {
     const mutation = mutations.removeTripMember(memberId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
+    write(mutation)
   }
 
   // --- Lifecycle ---
@@ -974,7 +969,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const moduleHost: ModuleHost = {
     mutation: mutations.make,
     nowIso,
-    writeTrip: (tripId, ...muts) => enqueueAndDrain('trip', tripId, ...muts),
+    write,
     pictures: createIdeaPictures(fileDeps),
     tracks: createIdeaTracks(fileDeps),
     linkPreview: createLinkPreview({ client, localMode: !!local }),

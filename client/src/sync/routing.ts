@@ -8,9 +8,9 @@
  * partition (Sync-API Spec P-3) and are still per-trip state.
  *
  * It lives here rather than inside `useSyncOrchestrator` because the rule has
- * two callers: the orchestrator's own pull funnel, and the seam specs' hand-
- * written `enqueueAndDrain`, which routed by partition until a group started
- * painting rows of both (`tripLifecycle.deleteTrip`, C-3a).
+ * two callers: the orchestrator's own pull funnel, and the seam specs' write
+ * funnel, which routed by partition until a group started painting rows of
+ * both (`tripLifecycle.deleteTrip`, C-3a).
  */
 import { TABLE, type SyncTable } from '@/types/tables'
 import type { PartitionType } from './partition'

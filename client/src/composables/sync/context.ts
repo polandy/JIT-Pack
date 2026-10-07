@@ -7,9 +7,8 @@
  * The context grows as groups move out — a field is added when a group that
  * needs it arrives, never before.
  */
-import type { Mutation, PullChange } from '@/api/types'
 import type { createMutations } from '@/sync/mutations'
-import type { PartitionType } from '@/sync/partition'
+import type { Write } from '@/sync/writeFunnel'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
@@ -113,39 +112,21 @@ export interface MasterReads {
   childRows(table: string, id: string): CascadeRow[]
 }
 
-/**
- * One queued write: the mutation itself plus the rows it optimistically
- * paints.
- *
- * Usually one row, and a delete that cascades is why it may be several. The
- * server derives a trip's child tombstones from the schema and sends them
- * with the one delete it was given (`internal/store/master.go`,
- * `cascadeChildren`); a client that must mirror that cascade has the same
- * shape to express — one mutation, several changes — and expressing it as
- * several *mutations* would push deletes the server never asked for.
- */
-export interface QueuedMutation {
-  mutation: Mutation
-  optimistic?: PullChange | PullChange[]
-}
+export type { QueuedMutation, Write } from '@/sync/writeFunnel'
 
 /**
- * enqueueAndDrain applies the optimistic changes, queues the mutations for
- * the named partition and kicks a drain. Several mutations passed in one call
- * stay one batch in the queue.
+ * write paints the writes, queues each on the feed its table travels and
+ * pushes. The feed and the paint are the funnel's (`sync/writeFunnel.ts`): a
+ * caller hands over mutations, or a `QueuedMutation` where it paints rows of
+ * its own (a cascade). Several writes in one call stay one batch per feed.
  */
-export type EnqueueAndDrain = (
-  type: PartitionType,
-  id: string | null,
-  ...muts: QueuedMutation[]
-) => void
+export type WriteRows = (...writes: Write[]) => void
 
 /**
- * enqueue applies the optimistic changes and queues the mutations for the
- * named partition, without pushing. It is what a cascade writing across both
- * partitions uses — every row through the funnel, one push at the end.
+ * queue is `write` without the push. It is what a cascade writing across
+ * both partitions uses — every row through the funnel, one push at the end.
  */
-export type Enqueue = (type: PartitionType, id: string | null, ...muts: QueuedMutation[]) => void
+export type QueueRows = (...writes: Write[]) => void
 
 /**
  * drainPartitions pushes what a cascade queued: the master partition first,
@@ -160,8 +141,8 @@ export interface SyncContext {
   /** The feature modules' stores (FR-30.3): what a trip delete also takes. */
   features: readonly FeatureStore[]
   mutations: ReturnType<typeof createMutations>
-  enqueueAndDrain: EnqueueAndDrain
-  enqueue: Enqueue
+  write: WriteRows
+  queue: QueueRows
   drainPartitions: DrainPartitions
   names: NameGuards
   /**

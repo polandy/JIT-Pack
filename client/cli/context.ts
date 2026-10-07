@@ -15,8 +15,6 @@
  * everything the app fills with an outbox, a device store and a browser.
  */
 import { createPinia, setActivePinia } from 'pinia'
-import type { PullChange } from '@/api/types'
-import { changesOf } from '@/sync/optimistic'
 import type { PendingWrites } from './common'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -28,10 +26,12 @@ import { createMasterDataActions } from '@/composables/sync/actions/masterData'
 import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefresh'
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
 import { knownTripItemsOf } from '@/composables/sync/context'
-import type { Enqueue, SyncContext } from '@/composables/sync/context'
+import type { SyncContext } from '@/composables/sync/context'
 import { localIsoDate } from '@/domain/trips'
 import { isoFrom } from '@/lib/clock'
 import type { HLCGenerator } from '@/sync/hlc'
+import type { PullChange } from '@/api/types'
+import { createWriteFunnel, type Write } from '@/sync/writeFunnel'
 
 /**
  * A command's spine: the two stores it reads, the writes it collected, and
@@ -64,29 +64,37 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
   const pending: PendingWrites = { master: [], trips: new Map() }
   const loaded = new Set<string>()
 
-  /**
-   * The app applies optimistically, queues and drains; a command applies,
-   * collects and pushes at the end. Applying is not optional either way —
-   * the groups read their own writes back (the refresh resolves against the
-   * roster the traveller was just added to).
-   */
-  const enqueue: Enqueue = (type, id, ...muts) => {
-    for (const queued of muts) {
-      applyPulled(type, changesOf(queued.optimistic))
-      if (type === 'trip' && id) {
-        pending.trips.set(id, [...(pending.trips.get(id) ?? []), queued.mutation])
-      } else {
-        pending.master.push(queued.mutation)
-      }
-    }
-  }
-
   function applyPulled(partition: 'master' | 'trip', changes: PullChange[]): void {
     // The `trips` table travels the master partition and belongs to the trip
     // store, so master changes are offered to both; a trip's own rows are
-    // never master data.
+    // never master data. An unknown table is ignored by whichever store does
+    // not own it, so offering both unconditionally (the funnel's `paint`,
+    // which carries no partition) is safe.
     if (partition === 'master') master.applyChanges(changes)
     trips.applyChanges(changes)
+  }
+
+  // The app applies optimistically, queues and drains; a command applies,
+  // collects and pushes at the end. Applying is not optional either way —
+  // the groups read their own writes back (the refresh resolves against the
+  // roster the traveller was just added to).
+  const funnel = createWriteFunnel({
+    currentRow: (table, id) => master.currentRow(table, id) ?? trips.currentRow(table, id),
+    paint: (changes) => applyPulled('master', changes),
+    queue: ({ partition, muts }) => {
+      for (const { mutation } of muts) {
+        if (partition.type === 'trip' && partition.id) {
+          const tripId = partition.id
+          pending.trips.set(tripId, [...(pending.trips.get(tripId) ?? []), mutation])
+        } else {
+          pending.master.push(mutation)
+        }
+      }
+    },
+  })
+
+  function write(...writes: Write[]): void {
+    funnel.queueWrites(...writes)
   }
 
   const ctx: SyncContext = {
@@ -97,8 +105,8 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     mutations,
     // A command collects and pushes once, so both funnels are the collector
     // and there is nothing left for a cascade's push to do.
-    enqueueAndDrain: enqueue,
-    enqueue,
+    write,
+    queue: write,
     drainPartitions: () => {},
     names: createNameGuards(master),
     // Local Mode is a device, never a command line: what this run can see is

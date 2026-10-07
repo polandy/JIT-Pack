@@ -121,6 +121,12 @@ describe('createSeriesActions without an orchestrator', () => {
   })
 
   it('deleteChecklistItem queues a tombstone on the master partition', () => {
+    pullIn(ctx.masterStore, TABLE.destinationChecklistItems, 'cl-1', {
+      profile_id: 'prof-1',
+      label: 'Sonnencreme',
+      mode: 'pack',
+    })
+
     createSeriesActions(ctx).deleteChecklistItem('cl-1')
 
     expect(queued[0]!.type).toBe('master')

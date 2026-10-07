@@ -14,7 +14,7 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
+import { encodedRow, TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type {
   DayEntry,
   DayEntryTraveler,
@@ -24,7 +24,7 @@ import type {
   IdeaTrack,
   IdeaVote,
 } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/types/tables'
 
 /** The tables this module holds. */
 const PLANNER_TABLES: ReadonlySet<string> = new Set<string>([
@@ -101,6 +101,23 @@ export const usePlannerStore = defineStore('planner', () => {
   /** A trip's GPX tracks, as rows — `domain/track.ts` orders them (FR-29.17). */
   function getTracks(tripId: string): IdeaTrack[] {
     return [...tracks.value.values()].filter((track) => track.trip_id === tripId)
+  }
+
+  /** Where each of the module's tables keeps its rows — what a write reads back. */
+  const rowMaps: Record<string, Map<string, unknown>> = {
+    [TABLE.ideas]: ideas.value,
+    [TABLE.ideaVotes]: votes.value,
+    [TABLE.ideaComments]: comments.value,
+    [TABLE.ideaImages]: images.value,
+    [TABLE.dayEntries]: dayEntries.value,
+    [TABLE.dayEntryTravelers]: entryTravelers.value,
+    [TABLE.ideaTracks]: tracks.value,
+  }
+
+  /** One row in its wire shape, or undefined where this store does not hold it. */
+  function currentRow(table: string, id: string): SyncRow | undefined {
+    const row = rowMaps[table]?.get(id)
+    return row === undefined ? undefined : encodedRow(table as SyncTable, row)
   }
 
   function applyChanges(changes: PullChange[]): void {
@@ -204,6 +221,7 @@ export const usePlannerStore = defineStore('planner', () => {
     pictureComing,
     setPictureComing,
     applyChanges,
+    currentRow,
     ideaChildRows,
     dayEntryChildRows,
     travelerChildRows,
@@ -228,6 +246,7 @@ export function plannerFeatureStore(
   return {
     tables: PLANNER_TABLES,
     applyChanges: (changes) => plannerStore.applyChanges(changes),
+    currentRow: (table, id) => plannerStore.currentRow(table, id),
     tripChildRows: (tripId) => plannerStore.tripChildRows(tripId),
     travelerChildRows: (travelerId) => plannerStore.travelerChildRows(travelerId),
     forgetTrip: (tripId) => plannerStore.forgetTrip(tripId),
