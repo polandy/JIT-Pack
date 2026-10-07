@@ -32,11 +32,10 @@
     database.
   * *End-to-end* — the walking-skeleton scenario: two simulated clients, concurrent offline edits, convergence per
     NFR-4.2a.
-* **Coverage target:** ≥ 90 % for `internal/sync`, ≥ 75 % overall — the two numbers live once, in
-  `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job. (An `internal/domain` was planned and never
-  built; the pure rules are `client/src/domain`, see §3.) Coverage is a smoke detector, not a goal — an uncovered branch
-  in merge logic fails review regardless of the total.
-* **Always run with `-race`.** CI and local: `go test -race ./...`.
+* **Coverage:** the thresholds are CLAUDE.md invariant 7 and live once, in `scripts/coverage-gate.sh`, shared by
+  `make cover` and the CI `go` job. Coverage is a smoke detector, not a goal.
+* **Always run with `-race`.** `make test` and `make ci` do, over `GO_PKGS` — never `go test ./...` (CLAUDE.md
+  §Commands).
 * **Standard library testing only** (`testing`, `httptest`); a tiny diff helper (`go-cmp`) is allowed. No mocking
   frameworks — use hand-written fakes behind small interfaces.
 * Tests are deterministic: fake clock injected (`Clock` interface), seeded randomness, no sleeps — synchronization via
@@ -48,6 +47,7 @@
 cmd/jitpackd/                main: wiring only (flags/env, DI, serve) — no logic
 internal/sync/               HLC, merge algorithm, change-log semantics — zero I/O deps
 internal/wiregen/            the wire contract turned into the client's TypeScript — zero I/O deps
+internal/linkpreview/        what a web page says about itself (FR-29.16, FR-29.18) — imports nothing internal
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
 internal/api/                HTTP handlers, WebSocket hub, auth middleware, push; wire.go is the contract
@@ -57,10 +57,9 @@ client/src/sync/             the client's half of the wire: HLC, the optimistic 
 client/src/local/            Local Mode's own storage: the row store, backup, export reminder
 ```
 
-* **Dependency rule**, as `go list -deps` reports it: `api → store, sync`; `store → sync`; `webui → nothing internal`
-  (it takes the API prefixes as parameters rather than importing the handler); **`sync` and `wiregen` import nothing
-  internal, ever.** This makes the riskiest packages trivially unit-testable. The portable format is the client's alone
-  (ADR-025), so no Go leaf carries it.
+* **Dependency rule:** CLAUDE.md invariant 1. The leaves import nothing internal so the riskiest packages stay
+  trivially unit-testable; `webui` takes the API prefixes as parameters rather than importing the handler. The portable
+  format is the client's alone (ADR-025), so no Go leaf carries it.
 * `client/src/sync/` is **not** a pure leaf the way Go's `internal/sync` is — the name is shared, the rule is not. It
   holds what the client needs to speak the sync protocol: that includes an IndexedDB adapter for the outbox queue and
   the builder for the optimistic twin of a write — pure functions over `PullChange`, which
@@ -196,6 +195,10 @@ a compile-time question.
   when implementing them.
 * Spec traceability: domain rules carry their FR/NFR ID in the godoc of the implementing function and in the test name —
   greppable in both directions.
+* **Output hygiene** — what a session writes is generated once and re-read on every later turn: change an existing
+  file with a targeted edit, never by rewriting it whole; an analysis run more than once (a transcript tally, a ledger
+  count) is a script under `scripts/` called by name, not a heredoc retyped each session; a mechanical session (a
+  rename sweep, a merge and clean-up, a ledger update) runs at a lower reasoning effort.
 * Definition of Done per feature: tests green with `-race`, lint clean, coverage thresholds met, godoc on exported
   symbols, no TODO without an issue reference.
 
