@@ -33,6 +33,10 @@ import { initTheme } from './theme/theme'
  * the row it left behind look the same wherever the gesture is offered. */
 import './composables/dragToGroup.css'
 
+/* `useEdgeFades`' own visual contract (G-13) — a row that scrolls sideways
+ * fades and snaps the same wherever it stands. */
+import './composables/edgeFades.css'
+
 /* Language (NFR-4.12): English default, German fully supported. Resolved
  * before mount for the same reason as the theme — the first paint should
  * already be in the user's language, not switch under them. */

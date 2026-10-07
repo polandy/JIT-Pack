@@ -67,6 +67,13 @@ definition. The gate carries one rule and no escape hatch: a collision is resolv
   the case reads as a rendered box of at most 1×1 px. That is the half a scoped-style mistake breaks, and it breaks it
   by printing the word *Saved* in the header beside the item's name. The in-flight wording is deliberately not read
   here — racing a local write is a timing bet, and the unit case already owns it.
+* **E2E-M5-33** `local` (FR-25.28, G-13, UX-08) — **implemented** (`e2e/membership.spec.ts`): in German, three
+  travelers, at 360 and 412 px, M5's for-whom line and quick-add's read *Gemeinsam* whole and cut no name — each toggle
+  is as wide as its word. Before, equal shares gave *Gemeinsam* 67 px of its 68 on the reference device and an ellipsis,
+  which the case reads as a word its box clips.
+* **E2E-M5-34** `local` (FR-25.28, G-13, UX-08) — **implemented** (`e2e/membership.spec.ts`): five travelers on a 360 px
+  phone — the line scrolls rather than cut a name; at rest it fades at its end only, scrolled to its end at its start
+  only, and every name stands whole or under the fade.
 * **E2E-M5-17** `all` (FR-9.1) — **implemented** (`e2e/item-detail.spec.ts`): the two trip-feedback flags are controls
   behind *Details ▾* and appear **only once the trip runs** — the same case starts the trip and marks the row *unused*,
   so the absence half has a positive signal beside it rather than passing on a typo. Read back from the glance chip,

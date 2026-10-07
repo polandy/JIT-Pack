@@ -229,7 +229,8 @@ These patterns apply to every screen and are specified once.
   it, and where they do not fit — a narrower phone, a longer word, a seventh pill while standing on one of the ⋮'s views
   — **the row scrolls sideways, with the pill you stand on scrolled to its centre** (amendments 4 and 5; E2E-G12-07
   measures both shapes), as near as the row's ends allow. **A 24 px fade marks each side that holds more pills**, and
-  a swipe rests on a whole pill (`scroll-snap-type: x proximity`), so a glyph is never cut at a hard edge. **The notes'
+  a swipe rests on a whole pill (`scroll-snap-type: x proximity`), so a glyph is never cut at a hard edge — G-13's
+  sideways-row rule, which every scrolling row of chips shares. **The notes'
   badge counts what is new for me, never the total, in the action colour** (`count-new`) where every other badge is
   grey.
 * **The bar's cluster is capped at three glyphs, one on a tab root (ADR-050 and its amendment 1).** A page describes its
@@ -462,6 +463,15 @@ These patterns apply to every screen and are specified once.
     is the only uppercase role, and it is a label, not a control.
   * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network
     at all, so a face fetched at boot is a face that is sometimes absent.
+  * **A word on a chip, pill or toggle is never cut (UX-08).** No ellipsis and no hard edge on the reference device or
+    at 360 px: a row of chips **wraps** (`ChipRow`, the default), or, where a run is too long to wrap — a trip's days,
+    the trip switcher's pills, a long roster on the for-whom line — it is **a sideways row**, and every sideways row
+    follows one rule from one place (`useEdgeFades` and `edgeFades.css`): a 24 px fade on each side that holds more, a
+    swipe resting on a whole item (`scroll-snap-type: x proximity`), and the chosen item scrolled to the row's centre
+    when the row is laid out and whenever the choice changes (`ChipRow scroll`). A screen does not draw its own edge. A
+    word too long for its column takes the room it needs — the for-whom line gives each toggle its word's width
+    (FR-25.28) — and a chip wider than its whole row breaks its words inside the chip rather than run past the edge. A
+    shorter word is a copy decision, made where the vocabulary lives (M31's slot names), never a truncation.
 
 * **The pack-out (M4, Addendum FR-25.2).** Packing is the app's most repeated act, and on M4 its result is that the row
   *leaves*. Three beats say so: the done colour washes over the row, it collapses to nothing, and a snackbar names it

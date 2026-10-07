@@ -13,9 +13,10 @@
  */
 import { IonIcon } from '@ionic/vue'
 import { addOutline, peopleOutline, removeOutline } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { useEdgeFades } from '@/composables/useEdgeFades'
 import { MIN_MEMBER_QUANTITY } from '@/domain/membership'
 import { t } from '@/i18n'
 import type { Traveler } from '@/types/domain'
@@ -51,7 +52,7 @@ const emit = defineEmits<{
  * trip, where *Gemeinsam*, *Alle* and three faces share a phone's width with
  * room to spare. Up to that size a toggle is a full 40 px face with its name
  * spelled out under it; a longer roster steps down to the compact 32 px face,
- * which fits five on 360 px, and past that the line scrolls.
+ * and once the names no longer fit the line scrolls (G-13).
  */
 const ROOMY_ROSTER_MAX = 3
 const AVATAR_ROOMY = 40
@@ -67,15 +68,22 @@ const nobody = computed(() => props.travelers.every((tr) => !props.amounts.has(t
 const everybody = computed(
   () => props.travelers.length > 0 && props.travelers.every((tr) => props.amounts.has(tr.id)),
 )
+
+const line = ref<HTMLElement | null>(null)
+const { moreStart, moreEnd, readEdges } = useEdgeFades(line, {
+  recentreOn: () => props.travelers.length,
+})
 </script>
 
 <template>
   <div
-    class="toggles"
-    :class="{ roomy }"
+    ref="line"
+    class="toggles jp-edge-fades"
+    :class="{ roomy, 'more-start': moreStart, 'more-end': moreEnd }"
     role="group"
     :aria-label="t('forWhom.title')"
     :data-roomy="roomy"
+    @scroll.passive="readEdges"
   >
     <button
       type="button"
@@ -161,29 +169,31 @@ const everybody = computed(
 
 <style scoped>
 /*
- * One line, never two: a roster too long for the width scrolls sideways
- * rather than wrapping or shrinking a toggle under the touch-target floor
- * (FR-25.28, FR-25.13h's live check).
+ * One line, never two: a roster too long for the width scrolls sideways,
+ * faded on the side that has more (G-13), rather than wrapping, cutting a
+ * name or shrinking a toggle under the touch-target floor (FR-25.28,
+ * FR-25.13h's live check).
  */
 .toggles {
   display: flex;
   align-items: flex-start;
-  gap: 2px;
-  overflow-x: auto;
+  gap: 6px;
   /* The lit ring is drawn outside the disc; without room it is clipped by
      the scroll container at the line's two ends. */
   padding: 4px;
 }
 
 .who {
-  /* 40px is the floor: five travelers, *Gemeinsam* and *Alle* fit a 360px
-     phone at it, and a sixth scrolls. Measured, not reasoned (FR-25.28). */
-  flex: 1 0 40px;
+  /* As wide as its word, never narrower than the 40 px touch target: equal
+     shares would give *Gemeinsam* 67 px of the 68 it needs on the reference
+     device. What is left over is shared out, so three faces still spread
+     over the line (FR-25.28). */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 0;
+  min-width: 40px;
   padding: 0;
   border: none;
   background: none;
@@ -255,9 +265,6 @@ const everybody = computed(
 }
 
 .name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

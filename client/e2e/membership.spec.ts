@@ -16,6 +16,8 @@ import {
   visiblePage,
 } from './fixtures'
 import { FOR_WHOM_M5, lightTraveler, openCluster, openForWhom, setMemberInM5 } from './helpers/m4'
+import { switchToGerman } from './helpers/page'
+import { CUE_PHONES, cutLabels, rowCue } from './helpers/rows'
 import { createMasterItem } from './helpers/templates'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -1175,5 +1177,78 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
       .click()
     await expect(head.getByTitle('Buy there')).toHaveCount(1)
     await expectEachChild(true)
+  })
+})
+
+/**
+ * UX-08, G-13 — the for-whom line in German, where *Gemeinsam* is the longest
+ * word: each toggle as wide as its word, so no name is cut on the reference
+ * device or at 360 px; a roster whose names do not fit scrolls, faded on the
+ * side that has more.
+ */
+test.describe('FR-25.28 the for-whom line — every name whole (G-13, UX-08) @local @m5', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /** The toggle line inside a strip, by the strip's test id. */
+  const toggleLine = (page: Page, strip: string) =>
+    page.getByTestId(strip).getByRole('group', { name: 'Für wen?' })
+
+  test('E2E-M5-33: Gemeinsam and every traveler stand whole at 360 and 412 px, in M5 and in quick-add', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
+    await switchToGerman(page)
+
+    for (const phone of CUE_PHONES) {
+      await page.setViewportSize(phone)
+      const at = `at ${phone.width} px`
+
+      await openItem(page, ITEM)
+      await expect(page.getByTestId(`for-whom-shared-${FOR_WHOM_M5}`)).toHaveText('Gemeinsam')
+      const m5Line = toggleLine(page, `for-whom-strip-${FOR_WHOM_M5}`)
+      expect(await cutLabels(m5Line, 'button'), `M5 ${at}`).toEqual([])
+      await closeItem(page)
+
+      await openQuickAdd(page)
+      await expect(page.getByTestId('for-whom-shared-quick-add')).toHaveText('Gemeinsam')
+      const quickLine = toggleLine(page, 'quick-add-for-whom')
+      expect(await cutLabels(quickLine, 'button'), `quick-add ${at}`).toEqual([])
+      await page.getByTestId('quick-add-close').click()
+      await expect(page.getByTestId('quick-add-input')).toBeHidden()
+    }
+  })
+
+  test('E2E-M5-34: five travelers on a 360 px phone scroll the line, faded at its end, every name whole', async ({
+    page,
+  }) => {
+    const FIVE = ['Andy', 'Leonardo', 'Mia', 'Valentina', 'Maximilian']
+    await createTripViaWizard(page, { name: 'Familienfest', travelers: FIVE })
+    await openQuickAdd(page)
+    await addInComposer(page, ITEM)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
+    await switchToGerman(page)
+    await page.setViewportSize(CUE_PHONES[0])
+
+    await openItem(page, ITEM)
+    const line = toggleLine(page, `for-whom-strip-${FOR_WHOM_M5}`)
+    for (const name of ['Gemeinsam', 'Alle', ...FIVE]) {
+      await expect(line.getByText(name, { exact: true })).toHaveCount(1)
+    }
+    await expect
+      .poll(() => rowCue(line, 'button'), { message: 'the line rests at its start' })
+      .toEqual({ rest: 'start', faded: 'end' })
+    expect(await cutLabels(line, 'button')).toEqual([])
+
+    // Scrolled to its end, the fade moves to the side that now has more.
+    await line.evaluate((el) => (el.scrollLeft = el.scrollWidth))
+    await expect
+      .poll(() => rowCue(line, 'button:last-child'), { message: 'the line rests at its end' })
+      .toEqual({ rest: 'end', faded: 'start' })
+    expect(await cutLabels(line, 'button')).toEqual([])
   })
 })

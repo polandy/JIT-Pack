@@ -11,8 +11,9 @@
  */
 import { IonButton, IonIcon, IonInput, IonLabel, IonSegment, IonSegmentButton } from '@ionic/vue'
 import { addOutline, bulbOutline, closeOutline, trashOutline } from 'ionicons/icons'
-import { computed, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 
+import ChipRow from '@/components/global/ChipRow.vue'
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TimeField from '@/components/global/TimeField.vue'
@@ -56,8 +57,6 @@ import { useMealStore } from './store'
 
 const props = defineProps<{
   request: MealSheetRequest
-  /** Whether the sheet stands laid out on screen — before it, nothing can be scrolled into view. */
-  presented: boolean
 }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -68,24 +67,6 @@ const context = inject(MEAL_CONTEXT, null)
 const tripId = props.request.tripId
 const { assignees, nameOf, load: loadIdentity } = useTripIdentity(tripId, orchestrator)
 onMounted(() => void loadIdentity())
-
-/**
- * The day chips scrolled to the chosen one, which on a long trip stands
- * off-screen — once the sheet is laid out, whenever that was.
- */
-const dayChips = ref<HTMLElement | null>(null)
-watch(
-  () => props.presented,
-  (presented) => {
-    if (!presented) return
-    void nextTick(() =>
-      dayChips.value
-        ?.querySelector('[aria-pressed="true"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'center' }),
-    )
-  },
-  { immediate: true },
-)
 
 const meal = props.request.mealId ? (mealStore.getMeal(props.request.mealId) ?? null) : null
 const trip = computed(() => context?.trips().find((candidate) => candidate.id === tripId) ?? null)
@@ -380,7 +361,7 @@ function takePlace(title: string) {
       <span class="jp-eyebrow">{{
         draft.title.trim() ? t('meals.earlierMatching') : t('meals.earlier')
       }}</span>
-      <div class="chips">
+      <ChipRow :label="t('meals.earlier')" scroll>
         <button
           v-for="(dish, n) in offered"
           :key="dish.title"
@@ -394,7 +375,7 @@ function takePlace(title: string) {
             t('meals.earlierSource', { n: dish.ingredients.length, trip: dish.tripName })
           }}</small>
         </button>
-      </div>
+      </ChipRow>
     </div>
 
     <IonSegment
@@ -412,7 +393,7 @@ function takePlace(title: string) {
     </IonSegment>
 
     <span class="jp-eyebrow label">{{ t('meals.slotLabel') }}</span>
-    <div class="chips">
+    <ChipRow :label="t('meals.slotLabel')">
       <ChoiceChip
         v-for="slot in MEAL_SLOTS"
         :key="slot"
@@ -420,9 +401,9 @@ function takePlace(title: string) {
         :data-testid="`meal-slot-${slot}`"
         @click="draft.slot = slot"
       >
-        {{ t(`meals.slot.${slot}`) }}
+        {{ t(`meals.slotShort.${slot}`) }}
       </ChoiceChip>
-    </div>
+    </ChipRow>
 
     <span class="jp-eyebrow label"
       >{{ t('meals.dayLabel') }}
@@ -430,7 +411,7 @@ function takePlace(title: string) {
         >· {{ t('meals.dayPlanned') }}</span
       ></span
     >
-    <div ref="dayChips" class="chips">
+    <ChipRow :label="t('meals.dayLabel')" scroll :current="draft.day">
       <ChoiceChip
         v-for="day in days"
         :key="day"
@@ -443,7 +424,7 @@ function takePlace(title: string) {
       >
         {{ shortDueDay(day) }}
       </ChoiceChip>
-    </div>
+    </ChipRow>
 
     <div class="pair">
       <TimeField
@@ -465,7 +446,7 @@ function takePlace(title: string) {
 
     <template v-if="offersCook">
       <span class="jp-eyebrow label">{{ t('meals.cook') }}</span>
-      <div class="chips">
+      <ChipRow :label="t('meals.cook')">
         <ChoiceChip
           v-for="person in assignees"
           :key="person.user_id"
@@ -483,7 +464,7 @@ function takePlace(title: string) {
         >
           {{ t('meals.nobody') }}
         </ChoiceChip>
-      </div>
+      </ChipRow>
     </template>
 
     <button
@@ -637,7 +618,7 @@ function takePlace(title: string) {
       />
       <template v-if="(context?.shortlist(tripId) ?? []).length > 0">
         <span class="jp-eyebrow label">{{ t('meals.shortlist') }}</span>
-        <div class="chips">
+        <ChipRow :label="t('meals.shortlist')">
           <ChoiceChip
             v-for="idea in context?.shortlist(tripId) ?? []"
             :key="idea.id"
@@ -648,7 +629,7 @@ function takePlace(title: string) {
             <IonIcon :icon="bulbOutline" aria-hidden="true" />
             {{ idea.title }}
           </ChoiceChip>
-        </div>
+        </ChipRow>
       </template>
     </template>
 
@@ -702,31 +683,19 @@ function takePlace(title: string) {
   color: var(--ct-subtext0);
 }
 
-.chips {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: none;
-}
-
-.chips > * {
-  flex: none;
-}
-
 .planned-hint {
   text-transform: none;
 }
 
-.chips .planned {
+.planned {
   position: relative;
 }
 
-.chips .moved-from {
+.moved-from {
   border-style: dashed;
 }
 
-.chips .planned::after {
+.planned::after {
   position: absolute;
   top: 3px;
   right: 6px;
@@ -737,7 +706,7 @@ function takePlace(title: string) {
   content: '';
 }
 
-.chips ion-icon {
+.chip-row ion-icon {
   font-size: var(--jp-icon-xs);
 }
 

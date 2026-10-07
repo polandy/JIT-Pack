@@ -214,7 +214,7 @@ describe('one name summed into one line (FR-33.13/33.14)', () => {
       total: '1.5 kg',
       fresh: false,
       dueDate: '2026-10-12',
-      detail: expect.stringMatching(/^Mo\.? Abend 200 g · Di\.? Früh 300 g · Fr\.? Abend 1 kg$/),
+      detail: expect.stringMatching(/^Mo\.? Abend 200 g · Di\.? Morgen 300 g · Fr\.? Abend 1 kg$/),
     })
     expect(butter[0]!.parts!.map((p) => p.amount)).toEqual(['200 g', '300 g', '1 kg'])
     expect(butter[0]!.parts![2]!.label).toMatch(/^Fr\.? Abend · Älplermagronen$/)

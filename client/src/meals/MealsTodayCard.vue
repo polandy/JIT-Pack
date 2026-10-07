@@ -178,8 +178,10 @@ function percent(meal: Meal): number | null {
 }
 
 .slot {
-  flex: 0 0 52px;
+  /* M31's label column: the widest one-word slot name, *Morgen*, whole (G-13). */
+  flex: 0 0 60px;
   color: var(--ct-subtext0);
+  overflow-wrap: normal;
 }
 
 .body {

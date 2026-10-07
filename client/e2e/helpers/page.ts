@@ -249,3 +249,14 @@ export async function chooseBarEntry(page: Page, id: string): Promise<void> {
   await page.getByTestId('header-overflow').click()
   await page.locator('ion-action-sheet').getByTestId(id).click()
 }
+
+/**
+ * Switch the app to German once a case's world is built: the setup helpers
+ * read English words, and a case about German copy needs the words the family
+ * reads. The choice is the device's, so it survives the reload (see `seed`).
+ */
+export async function switchToGerman(page: Page): Promise<void> {
+  await writesLanded(page)
+  await page.evaluate(() => localStorage.setItem('jitpack_locale', 'de'))
+  await page.reload()
+}
