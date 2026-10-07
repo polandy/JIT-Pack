@@ -20,8 +20,17 @@
   first day otherwise. Days before today are dimmed. A tile chooses its day. Under the strip the chosen day in words,
   *„Mi., 15.7. · Tag 4 von 8"* (`m29-day-heading`).
 * **The timeline** of the chosen day (`m29-timeline`), one card: timed entries first by their time, untimed ones after,
-  each line (`m29-line-<key>`, `data-kind`) with its time (*–* where it has none), a coloured left edge and a small
-  label naming its kind:
+  each line (`m29-line-<key>`, `data-kind`) with its time column (`m29-time-<key>`), a coloured left edge, a small
+  label naming its kind, and **at most one trailing shape, one per meaning** (UX-09):
+  * **The time column** reads one grammar: the line's time; an untimed meal's slot word (*früh · mittags · zw. ·
+    abends*); *ganztags* for an untimed excursion; **nothing** for every other line without one — a task (which has a
+    day, never a time), an untimed idea or entry, arrival and departure. It is 56 px, as wide as *ganztags*, so every
+    title starts on one line; the words a shade lighter than a time.
+  * **The trailing shape:** a **ring** for a share — a meal's bought ingredients, an excursion's packed rucksack —
+    named by its count (*„2 von 4 Zutaten"*, *„3 von 8 gepackt"*), not its percentage, and part of the line's tap:
+    it is read, never operated. **M25's checkbox** for a task (`m29-tick-<key>`, the 24 px box with a 44 px target).
+    The connection's chevron (below). **Nothing** on any other line — an idea, an entry, an eaten-out meal, arrival
+    and departure — so nothing round invites a tap that does something else.
   * **🚗 Anreise / Abreise** on the first and last day, from the trip's dates.
   * **🪧 Ausflug** on each of its days (*Start* on the first, *Rückkehr* on the last of several), with its rucksack's
     packed share as a ring where it has lines; a tap opens it on M27.
@@ -30,9 +39,10 @@
     chip nor an *Außerhalb der Reise* place.
   * An entry that is an excursion's way (written on M27) reads *„🚆 Hinfahrt · Titel"* / *„🚆 Rückfahrt · Titel"* by
     its slot (*„🚆 Verbindung · Titel"* without one) over its connection's line; the plan only shows it.
-  * **💡 Idee**, with its note, and a tick (`m29-tick-<key>`) that sets *Gemacht* and back, striking the line through;
-    a tap opens it over M28.
-  * **☑ Aufgabe** due that day, with its assignee, and M25's tick, which writes what M25's does; a tap opens M25.
+  * **💡 Idee**, with its note, struck through once *Gemacht*; a tap opens it over M28, where its state is set. It has
+    no tick of its own here.
+  * **☑ Aufgabe** due that day, with its assignee, and M25's checkbox, which writes what M25's does, striking the line
+    through; a tap opens M25.
   * **✎ Eintrag**, an entry of the plan's own: its title and note; a tap opens its sheet. An entry that carries a
     connection (FR-29.18) has it as a second line under the title — see *Connections* below.
   * **Whom a line is for** (FR-29.15): an entry that names travellers, and an excursion narrowed to some (FR-31.3), say
@@ -40,10 +50,10 @@
     than the title and darker than the note. A line for everybody says nothing.
   * **🍽 Mahlzeit** (§3.33, FR-33.5), from the meal plan through `lib/dayPlanSources.ts` (`data-kind="meal"`, the
     alpenrose edge): its slot as the label (*Abendessen*), the dish, *„Lena kocht · 2 von 4 Zutaten eingekauft"*
-    (*„auswärts · Pizzeria Mulin"* eaten out) and the bought share as a ring. Without a time it stands at its slot's
-    place among the timed lines (*früh* 08:00, *mittags* 12:30, *zw.* 15:30, *abends* 18:30), the word in the time
-    column. A tap opens the meal's sheet over the plan (M31). An excursion's line names a picnic taken on it
-    (*„… · 🍽 Picknick"*, FR-33.6) and counts it in its ring.
+    (*„auswärts · Pizzeria Mulin"* eaten out) and the bought share as a ring, *„2 von 4 Zutaten"*, where it is cooked
+    with ingredients. Without a time it stands at its slot's place among the timed lines (*früh* 08:00, *mittags*
+    12:30, *zw.* 15:30, *abends* 18:30), the word in the time column. A tap opens the meal's sheet over the plan
+    (M31). An excursion's line names a picnic taken on it (*„… · 🍽 Picknick"*, FR-33.6) and counts it in its ring.
   An empty day says *„Noch nichts geplant."* (`m29-empty`).
 * **Für** (`who-m29`), under the strip where the trip has more than one traveller: *Alle* (`who-all-m29`) and a chip
   per traveller (`who-m29-<Name>`), the *Für wen* chips and rule — one or several chosen, everybody or nobody being

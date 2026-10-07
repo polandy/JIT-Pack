@@ -69,6 +69,9 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         to: span.to,
         detail: [packed, along].filter((part) => !!part).join(' · ') || null,
         progress: units.total > 0 ? units.done / units.total : null,
+        ...(units.total > 0
+          ? { progressName: t('excursions.packedOf', { done: units.done, total: units.total }) }
+          : {}),
         done: null,
         path: tripExcursionsPath(tripId, excursion.id),
       })

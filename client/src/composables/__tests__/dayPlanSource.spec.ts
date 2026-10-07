@@ -95,6 +95,7 @@ describe('the day plan source (FR-29.15)', () => {
         from: '2026-07-14',
         to: '2026-07-16',
         progress: 1 / 3,
+        progressName: '1 of 3 packed',
         path: '/trips/t/excursions/ex-1',
       },
     ])

@@ -53,6 +53,7 @@ export const mealsEn = {
   'meals.slotWord.dinner': 'dinner',
   'meals.cooks': '{name} cooks',
   'meals.bought': '{bought} of {total} ingredients bought',
+  'meals.boughtOf': '{bought} of {total} ingredients',
   'meals.allBought': 'all bought',
   'meals.noIngredients': 'no ingredients',
   'meals.takenAlong': '🎒 taken on {name}',

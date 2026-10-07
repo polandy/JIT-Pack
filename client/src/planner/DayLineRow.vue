@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
  * One line of the day plan's timeline (FR-29.15): its time, its kind with a
- * coloured edge, its title and second line, and — by kind — an excursion's
- * packed ring or a tick, or for an entry carrying a connection its legs
- * opened in place and its map (FR-29.18). Today's card and tomorrow's render
- * the same row.
+ * coloured edge, its title and second line, and — by kind — one trailing
+ * shape: a meal's or an excursion's ring, part of the line's tap; a task's
+ * checkbox, M25's; for an entry carrying a connection its legs opened in
+ * place and its map (FR-29.18); nothing else. Today's card and tomorrow's
+ * render the same row.
  */
-import { IonIcon } from '@ionic/vue'
+import { IonCheckbox, IonIcon } from '@ionic/vue'
 import {
   bulbOutline,
   carOutline,
@@ -24,7 +25,7 @@ import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import ConnectionLegs from './ConnectionLegs.vue'
 import ConnectionMapView from './ConnectionMapView.vue'
-import { dayLineWords } from './dayLineText'
+import { dayLineTime, dayLineWords } from './dayLineText'
 import { hasMap } from './domain/connections'
 import { DAY_LINE, type DayLine, type DayLineKind } from './domain/dayPlan'
 
@@ -43,6 +44,7 @@ const KIND_ICON: Record<DayLineKind, string> = {
 }
 
 const words = computed(() => dayLineWords(props.line, props.nameOf))
+const time = computed(() => dayLineTime(props.line))
 const legs = computed(() =>
   props.line.kind === DAY_LINE.connection ? (props.line.entry?.legs ?? null) : null,
 )
@@ -59,10 +61,12 @@ const mapOpen = ref(false)
     :data-testid="`m29-line-${line.key}`"
   >
     <button type="button" class="open" @click="emit('open')">
-      <!-- FR-33.5: an untimed meal says its slot where another line says nothing. -->
-      <span class="time jp-num" :class="{ word: !line.time && !!line.source?.timeWord }">{{
-        line.time ?? line.source?.timeWord ?? t('dayPlan.noTime')
-      }}</span>
+      <span
+        class="time jp-num"
+        :class="{ word: time.word }"
+        :data-testid="`m29-time-${line.key}`"
+        >{{ time.text }}</span
+      >
       <span class="body">
         <span class="kind">
           <IonIcon :icon="KIND_ICON[line.kind]" aria-hidden="true" />
@@ -74,6 +78,13 @@ const mapOpen = ref(false)
           words.who
         }}</span>
       </span>
+      <!-- Inside the line's button: a ring is read, never operated, so a tap on it opens the line. -->
+      <ProgressRing
+        v-if="!legs && line.progress !== null"
+        :percent="line.progress * 100"
+        :size="28"
+        :label="line.source?.progressName"
+      />
     </button>
     <button
       v-if="drawable"
@@ -96,18 +107,15 @@ const mapOpen = ref(false)
     >
       <IonIcon :icon="chevronForward" aria-hidden="true" />
     </button>
-    <ProgressRing v-else-if="line.progress !== null" :percent="line.progress * 100" :size="28" />
-    <button
-      v-else-if="line.done !== null"
-      type="button"
+    <!-- Only a task ticks here; an idea is made Gemacht where it is opened (M28). -->
+    <IonCheckbox
+      v-else-if="line.kind === DAY_LINE.task"
       class="tick"
-      :aria-pressed="line.done ? 'true' : 'false'"
+      :checked="line.done === true"
       :aria-label="t('dayPlan.tick', { title: words.title })"
       :data-testid="`m29-tick-${line.key}`"
-      @click="emit('tick')"
-    >
-      <span aria-hidden="true">{{ line.done ? '✓' : '' }}</span>
-    </button>
+      @ionChange="emit('tick')"
+    />
     <ConnectionLegs
       v-if="legs && legsOpen"
       class="legs"
@@ -189,8 +197,9 @@ const mapOpen = ref(false)
   cursor: pointer;
 }
 
+/* As wide as its widest word, „ganztags", so every title starts on one line. */
 .time {
-  flex: 0 0 44px;
+  flex: 0 0 56px;
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
 }
@@ -200,6 +209,7 @@ const mapOpen = ref(false)
 
 .body {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
 }
@@ -237,18 +247,11 @@ const mapOpen = ref(false)
   font-size: var(--jp-text-sm);
 }
 
+/* M25's checkbox, its padding the tap target around the box. */
 .tick {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--ct-surface2);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ct-base);
-  font: inherit;
-  cursor: pointer;
+  flex: none;
+  margin-inline-end: -10px;
+  padding: 10px;
 }
 
 .expand {
@@ -276,10 +279,5 @@ const mapOpen = ref(false)
 .legs {
   flex: 1 0 100%;
   padding: 0 4px 10px 14px;
-}
-
-.tick[aria-pressed='true'] {
-  border-color: var(--jp-done);
-  background: var(--jp-done);
 }
 </style>

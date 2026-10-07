@@ -16,8 +16,10 @@ withDefaults(
     percent: number
     /** The ring's outer diameter in pixels. */
     size?: number
+    /** Its name for a reader where the share has a count behind it — „2 von 4 Zutaten"; the share otherwise. */
+    label?: string
   }>(),
-  { size: 58 },
+  { size: 58, label: undefined },
 )
 </script>
 
@@ -26,7 +28,7 @@ withDefaults(
     class="ring"
     role="img"
     :style="{ '--ring-size': `${size}px`, '--ring-share': Math.max(0, Math.min(100, percent)) }"
-    :aria-label="`${Math.round(percent)}%`"
+    :aria-label="label ?? `${Math.round(percent)}%`"
     data-testid="progress-ring"
   >
     <b class="share jp-figure" aria-hidden="true">{{ Math.round(percent) }}</b>

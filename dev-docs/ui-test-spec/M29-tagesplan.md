@@ -10,8 +10,8 @@
 * **E2E-M29-03** `local` (FR-29.14/29.15) — **implemented** (`planner/dayplan.spec.ts`): a shortlisted idea's card says
   *not planned yet*; a day chosen in its detail, and a time typed as *1430* and kept as *14:30*, change the card and put
   the idea on that day of the plan at that time. The pool bar names the one still without a day; its sheet plans it on
-  another day with a chip and says every idea has a day, and the bar is gone. Ticking the idea on the plan strikes it
-  through and M28 counts it *Done*.
+  another day with a chip and says every idea has a day, and the bar is gone. The idea's line opens it, *Done* set
+  there is counted on M28, and its line on the plan is struck through (UX-09: no tick of its own on M29).
 * **E2E-M29-04** `local` (FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): an excursion with two days stands on
   both — *Excursion · Start* on the first, *Excursion · Return* on the last — and a tap opens its list on M27. The line
   comes from the packing side through `lib/dayPlanSources.ts`, so the case also proves `App.vue`'s binding (it went red
@@ -54,9 +54,9 @@
   `openingDayHoldsNothing` in `planner/domain/__tests__/dayPlan.spec.ts`.
 * **E2E-M29-11** `local` (FR-29.7, FR-29.15) — **implemented** (`planner/opening.spec.ts`): during a trip, M1's *Heute*
   card lists three of today's four lines and says *„+ 1 more · day plan"*, each entry for Sia saying *for Sia* as on M29
-  (FR-29.15); a trip ahead has no card; an idea ticked on the card is done, and the link opens M29 on today with the
-  idea ticked there. Which lines are still to come at a time of day is `linesAhead` in
-  `planner/domain/__tests__/dayPlan.spec.ts`.
+  (FR-29.15); a trip ahead has no card; the idea's line on the card ends in nothing but its own button (UX-09), and
+  the link opens M29 on today with the idea's line there. Which lines are still to come at a time of day is
+  `linesAhead` in `planner/domain/__tests__/dayPlan.spec.ts`.
 * **E2E-M29-13** `local` (FR-29.13/29.15/29.18) — **implemented** (`planner/bridge.spec.ts`): a shortlisted idea
   planned on a day and made into an excursion stands on that day as one *Excursion* line naming *💡 Gola Gorropu* —
   the plan holds one line, not two. A connection written by hand on the excursion's own screen (M27) stands
@@ -110,3 +110,10 @@
 * **E2E-M29-21** `local` (FR-21.24) — **implemented** (`planner/dayplan.spec.ts`): with the second day chosen, the ＋
   opens the entry sheet titled *„New on …"*, and the ＋ is named with exactly that title; with the last day chosen it no
   longer is. M29 keeps its sheet rather than M6's composer.
+* **E2E-M29-22** `local` (FR-29.15, UX-09) — **implemented** (`planner/dayplan.spec.ts`, the browser's clock set): on a
+  day holding every kind, in German, the time column reads *10:00* (an idea), *mittags* and *abends* (untimed meals),
+  *ganztags* (an excursion) and nothing for a task due that day, an untimed entry and the arrival; the cooked meal's
+  ring is named *„0 von 2 Zutaten"* and the excursion's *„0 von 1 gepackt"*; the task carries a checkbox named
+  *„„Briefkasten leeren" abhaken"*; the idea, the entry and the eaten-out meal have their line's button and nothing
+  else. The checkbox strikes the task through, and a tap on the meal's ring opens the meal's sheet. The words per kind
+  are `dayLineTime`'s in `planner/__tests__/dayLineText.spec.ts`, the ring's names the sources' specs'.

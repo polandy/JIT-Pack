@@ -20,9 +20,8 @@ import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { TripCardProps } from '@/lib/tripCards'
 import { tripIdeasPath, tripSubPath } from '@/router/paths'
-import { createPlannerActions } from './actions'
 import DayLineRow from './DayLineRow.vue'
-import { dayLines, linesAhead, stateAfterTick, tripDays, type DayLine } from './domain/dayPlan'
+import { dayLines, linesAhead, tripDays, type DayLine } from './domain/dayPlan'
 import { usePlannerStore } from './store'
 
 const props = defineProps<TripCardProps>()
@@ -36,7 +35,6 @@ const MINUTE_MS = 60_000
 
 const orchestrator = useOrchestrator()
 const plannerStore = usePlannerStore()
-const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const sources = inject(DAY_PLAN_SOURCES, [])
 const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
 const router = useRouter()
@@ -96,8 +94,7 @@ function open(line: DayLine) {
 }
 
 function tick(line: DayLine) {
-  if (line.idea) actions.setState(line.idea, stateAfterTick(line.done === true))
-  else line.source?.toggle?.()
+  line.source?.toggle?.()
 }
 </script>
 

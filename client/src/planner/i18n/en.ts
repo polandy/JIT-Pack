@@ -16,7 +16,7 @@ export const plannerEn = {
   'dayPlan.todayOpen': 'Open the day plan',
   'dayPlan.noDates': 'The day plan needs the trip’s start and end date.',
   'dayPlan.emptyDay': 'Nothing planned yet.',
-  'dayPlan.noTime': '–',
+  'dayPlan.allDay': 'all day',
   'dayPlan.tomorrow': 'Tomorrow · {day}',
   'dayPlan.outside': 'Outside the trip',
   'dayPlan.arrival': 'Arrival',

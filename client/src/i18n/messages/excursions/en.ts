@@ -145,6 +145,7 @@ export const excursionsEn = {
   'excursions.fromGroup': 'from group {name}',
   'excursions.participantsAll': 'Everybody',
   'excursions.packed': '{done}/{total} packed',
+  'excursions.packedOf': '{done} of {total} packed',
   'excursions.takenAlong': '🍽 {titles}',
   'excursions.toBuy': '{n} to buy on the spot',
   'excursions.nothingYet': 'Nothing on the list yet',

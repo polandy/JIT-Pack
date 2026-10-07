@@ -21,7 +21,6 @@ import {
   linesAhead,
   nextDay,
   openingDay,
-  stateAfterTick,
   tripDays,
   unplannedIdeas,
   type DayInput,
@@ -403,13 +402,6 @@ describe('dayHoldsNothing — where a trip under way opens (FR-29.7)', () => {
     expect(openingDayHoldsNothing('2026-07-10', plan)).toBe(false)
     expect(openingDayHoldsNothing('2026-07-10', input())).toBe(true)
     expect(openingDayHoldsNothing('2026-07-13', plan)).toBe(true)
-  })
-})
-
-describe('stateAfterTick', () => {
-  it('ticks an idea done and unticks it back onto the shortlist', () => {
-    expect(stateAfterTick(false)).toBe('done')
-    expect(stateAfterTick(true)).toBe('shortlisted')
   })
 })
 

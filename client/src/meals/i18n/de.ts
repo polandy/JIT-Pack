@@ -52,6 +52,7 @@ export const mealsDe: Record<keyof typeof mealsEn, string> = {
   'meals.slotWord.dinner': 'abends',
   'meals.cooks': '{name} kocht',
   'meals.bought': '{bought} von {total} Zutaten eingekauft',
+  'meals.boughtOf': '{bought} von {total} Zutaten',
   'meals.allBought': 'alles eingekauft',
   'meals.noIngredients': 'keine Zutaten',
   'meals.takenAlong': '🎒 mit auf {name}',

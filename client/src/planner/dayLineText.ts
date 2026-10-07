@@ -62,6 +62,24 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
   }
 }
 
+/** What a line's time column says, and whether it is a word rather than a clock time. */
+export interface DayLineTime {
+  text: string
+  word: boolean
+}
+
+/**
+ * The time column (FR-29.15): the line's own time; else a word where one
+ * fits — an untimed meal's slot (FR-33.5), an excursion filling the day —
+ * and otherwise nothing, since a dash says no more than a blank.
+ */
+export function dayLineTime(line: DayLine): DayLineTime {
+  if (line.time) return { text: line.time, word: false }
+  if (line.source?.timeWord) return { text: line.source.timeWord, word: true }
+  if (line.kind === DAY_LINE.excursion) return { text: t('dayPlan.allDay'), word: true }
+  return { text: '', word: false }
+}
+
 /** FR-33.5: a meal's second line — who cooks it, where a person is named, before what the source says. */
 function mealDetail(line: DayLine, nameOf: NameOf): string | null {
   const cook = nameOf(line.source?.assignee ?? null)

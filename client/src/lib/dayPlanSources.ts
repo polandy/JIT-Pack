@@ -44,6 +44,8 @@ export interface DayPlanLine {
   assignee?: string | null
   /** For an excursion: its rucksack's packed share, 0…1; null where there is nothing to pack. */
   progress: number | null
+  /** The ring's name for a reader, by count — *„2 von 4 Zutaten"*, *„3 von 8 gepackt"* — where it has a progress. */
+  progressName?: string
   /** For a task: whether it is done; null for a line without a tick. */
   done: boolean | null
   /** Ticks or unticks it, as M25 does; absent for a line without a tick. */
@@ -66,7 +68,7 @@ export interface DayPlanLine {
    * its slot's place (FR-33.1). Absent: after every timed line.
    */
   placeAt?: string
-  /** What the time column says for such a line instead of a dash — the slot's word. */
+  /** What the time column says for such a line — the slot's word. */
   timeWord?: string
   /** The small label over the title, where the source names its kind itself — the meal's slot. */
   label?: string
