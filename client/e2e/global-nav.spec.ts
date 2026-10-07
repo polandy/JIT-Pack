@@ -10,7 +10,6 @@ import {
   openTripFromList,
   openTripView,
   openQuickAdd,
-  setDateRange,
   tripAction,
   expectTripActionOffered,
   visiblePage,
@@ -421,23 +420,31 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(row.getByTestId('trip-when')).toHaveText(String(new Date().getFullYear()))
   })
 
-  // E2E-M3-16 (FR-2.1c): step 1 shows what it requires and folds the rest
-  // away, but never hides *state*: a set value appears on the folded row.
-  test('E2E-M3-16: the optional trip fields are folded, and say so when set', async ({ page }) => {
+  // E2E-M3-16 (FR-2.1c): step 1 shows what it requires and the dates, folds
+  // the rest away, but never hides *state*: a set value appears on the
+  // folded row.
+  test('E2E-M3-16: the dates are open, the other optional fields folded, and say so when set', async ({
+    page,
+  }) => {
     await page.setViewportSize(DESKTOP)
     await page.goto(PATH.newTrip)
 
-    // Folded: the optional inputs are absent, not merely invisible.
-    await expect(page.getByTestId('wizard-dates')).toHaveCount(0)
-    await expect(page.getByTestId('wizard-more-summary')).toBeVisible()
+    // The dates are not behind the fold; series and attributes are — absent,
+    // not merely invisible.
+    await expect(page.getByTestId('wizard-dates')).toBeVisible()
+    await expect(page.getByTestId('wizard-series')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-more-summary')).toHaveText('Series · attributes')
 
     await page.getByTestId('wizard-more').click()
-    await setDateRange(page, 'wizard-dates', { end: '2026-09-20' })
+    await page.getByTestId('wizard-series').click()
+    await page.locator('ion-popover ion-item', { hasText: 'New series' }).click()
+    await expect(page.locator('ion-popover')).toHaveCount(0)
+    await page.getByTestId('wizard-series-name').locator('input').fill('Samedan')
     await page.getByTestId('wizard-more').click()
 
     // Folded again — with what was set now stated on the row itself.
-    await expect(page.getByTestId('wizard-dates')).toHaveCount(0)
-    await expect(page.getByTestId('wizard-more-summary')).toContainText('20 Sept 2026')
+    await expect(page.getByTestId('wizard-series')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-more-summary')).toHaveText('Samedan')
   })
 
   // E2E-G2-02 (G-2/FR-19.6): the glyph names the state, so a symbol alone

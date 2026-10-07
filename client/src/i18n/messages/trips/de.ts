@@ -19,8 +19,9 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'wizard.namePlaceholder': 'z. B. Engadin 2026',
   'wizard.year': 'Jahr',
   'wizard.moreOptions': 'Mehr Optionen',
-  'wizard.moreSummaryEmpty': 'Daten · Serie · Merkmale',
+  'wizard.moreSummaryEmpty': 'Serie · Merkmale',
   'wizard.dates': 'Reisedaten (optional)',
+  'wizard.datesHint': 'Mit Daten gibt es Tagesplan, Essen und Countdown.',
   'wizard.series': 'Serie',
   'wizard.seriesNone': 'Keine Serie',
   'wizard.seriesNew': 'Neue Serie…',
@@ -146,7 +147,11 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trips.exportClean': 'Leere Liste (nichts gepackt)',
 
   // M3 Schritt 2 — Reisende, Teilen und Rollen (FR-2.5, FR-4.5/4.7).
-  'wizard.step': 'Schritt {n} von 4',
+  'wizard.step': 'Schritt {n} · {name}',
+  'wizard.stepName1': 'Reise',
+  'wizard.stepName2': 'Reisende',
+  'wizard.stepName3': 'Inhalt',
+  'wizard.stepName4': 'Mengen',
   'wizard.sectionTravelers': 'Reisende',
   'wizard.travelerNamePlaceholder': 'Name',
   'wizard.travelerRemove': 'Reisende:n entfernen',

@@ -47,8 +47,12 @@
   other traveller.
 * **E2E-M3-15** `all` (FR-2.1b): a trip can be created with no dates at all — the year is preselected, so a name is the
   whole gate.
-* **E2E-M3-16** `all` (FR-2.1c): step 1's optional fields are folded behind *Mehr Optionen ▾*, and the fold states what
-  is set behind it.
+* **E2E-M3-16** `all` (FR-2.1c): step 1 shows the date range open and folds series and attributes behind *Mehr Optionen
+  ▾*; the fold states what is set behind it.
+* **E2E-M3-25** `local` (FR-2.1c, G-16): a trip is created with dates set on step 1 without opening the fold, and the
+  wizard's footer is measured at 412 px on every step — pinned to the same y above the tab bar, the forward button
+  wider than half the screen, step 1's back square disabled, the head reading *Schritt n · Name*; on step 3 with every
+  template listed, *Weiter* is in the viewport without a scroll.
 * **E2E-M3-20** `all` (FR-2.1d): with a range already set, the end side chosen and a day before the start tapped,
   that day becomes the start and the end is open again — both halves asserted on the sheet's head and its hint — and
   the next tap closes the range the field then shows. The picker is **re-opened** rather than opened: one that

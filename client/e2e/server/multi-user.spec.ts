@@ -1334,7 +1334,7 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.getByTestId('wizard-next').click()
 
     await expect(alice.getByTestId('wizard-step-3')).toBeVisible()
-    await alice.getByTestId('wizard-item-search').locator('input').fill(item)
+    await alice.getByTestId('wizard-item-search').fill(item)
     await alice
       .getByTestId(/^wizard-item-suggestion-/)
       .first()

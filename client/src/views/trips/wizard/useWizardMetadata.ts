@@ -4,7 +4,6 @@
  */
 import { computed, ref } from 'vue'
 
-import { formatDay, formatDayRange } from '@/i18n'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { tripYearChoices } from '@/domain/tripYears'
 import { durationDays } from '@/domain/instantiate'
@@ -99,11 +98,6 @@ export function useWizardMetadata(preselect: unknown) {
    */
   const optionalSummary = computed(() => {
     const parts: string[] = []
-    if (startDate.value && endDate.value) {
-      parts.push(formatDayRange(startDate.value, endDate.value))
-    } else if (startDate.value || endDate.value) {
-      parts.push(formatDay(startDate.value || endDate.value))
-    }
     const series = masterStore.seriesList.find((s) => s.id === seriesChoice.value)
     if (series) parts.push(series.name)
     else if (seriesChoice.value === NEW_SERIES && newSeriesName.value.trim()) {

@@ -55,8 +55,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
 
-  // FR-2.1c: the dates are optional and therefore folded away.
-  await page.getByTestId('wizard-more').click()
+  // FR-2.1c: the dates are optional but open — no fold to get past.
   await setDateRange(page, 'wizard-dates', { start: '2026-09-13', end: '2026-09-20' })
 
   // ADR-035 (UX-6): the field renders the locale display through
@@ -114,7 +113,6 @@ test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', a
   await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
-  await page.getByTestId('wizard-more').click()
   await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
@@ -146,7 +144,6 @@ test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({
   await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
-  await page.getByTestId('wizard-more').click()
   await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
@@ -172,7 +169,6 @@ test('E2E-M1-05, E2E-M3-10: M3: the dashboard CTA leads through the wizard to a 
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
-  await page.getByTestId('wizard-more').click()
   await setDateRange(page, 'wizard-dates', { end: TRIP.endDate })
   await page.getByTestId('wizard-next').click()
 
@@ -242,7 +238,7 @@ test('E2E-M3-19: Enter in a plain field is the Weiter click, gated like it @loca
 
   // Step 3's single-item search owns its Enter (G-16 exemption), so the
   // key must not advance — proven live by the click that then does.
-  await page.getByTestId('wizard-item-search').locator('input').press('Enter')
+  await page.getByTestId('wizard-item-search').press('Enter')
   await expect(page.getByTestId('wizard-step-3')).toBeVisible()
   await page.getByTestId('wizard-next').click()
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
@@ -260,7 +256,6 @@ test('E2E-M3-20: an end tapped before the start becomes the start, never an inve
   await seedMode({ mode: 'local' })
   await page.goto(PATH.newTrip)
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
-  await page.getByTestId('wizard-more').click()
 
   await setDateRange(page, 'wizard-dates', { start: '2026-09-10', end: '2026-09-20' })
 
@@ -307,4 +302,79 @@ test('E2E-M3-22: pressing create twice makes one trip @local @m3', async ({ page
   // The list is where a second trip would be visible, and it says one.
   await page.goto(PATH.trips)
   await expect(visiblePage(page).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
+})
+
+/**
+ * E2E-M3-25 (FR-2.1c, G-16): the dates are filled on step 1 as it opens — the
+ * fold is never touched — and the wizard's navigation is one footer pinned
+ * above the tab bar at the Pixel 9 Pro's width. Before, each step put its
+ * buttons where its content ended (y 412, 328, 254 on steps 1, 2, 4), so the
+ * same y on every step, with the fold both closed and open, is the claim.
+ */
+test('E2E-M3-25: dates from step 1, and a footer that stays put on every step @local @m3 @g16 @planner', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 412, height: 915 })
+  await page.goto(PATH.newTrip)
+
+  const footer = page.getByTestId('wizard-footer')
+  const back = page.getByTestId('wizard-back')
+  const tabBar = page.locator('nav.tab-bar')
+  const box = async (target: Locator) => {
+    const b = await target.boundingBox()
+    if (!b) throw new Error('not rendered')
+    return b
+  }
+
+  // Step 1: the range is open, with the line saying what it is for.
+  await expect(page.getByTestId('header-meta')).toHaveText('Step 1 · Trip')
+  await expect(page.getByTestId('wizard-dates-hint')).toBeVisible()
+  await expect(page.getByTestId('wizard-more-summary')).toHaveText('Series · attributes')
+  await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await setDateRange(page, 'wizard-dates', { start: '2026-09-13', end: '2026-09-20' })
+  await expect(page.getByTestId('wizard-dates-value')).toHaveText('13–20 Sept 2026')
+  // The series stayed folded: the range never went through the fold.
+  await expect(page.getByTestId('wizard-series')).toHaveCount(0)
+
+  // The footer sits on the tab bar, and the back square is there but inert.
+  const pinned = await box(footer)
+  expect(pinned.y + pinned.height).toBeCloseTo((await box(tabBar)).y, 0)
+  await expect(back).toBeVisible()
+  await expect(back).toHaveAttribute('aria-disabled', 'true')
+  const next = await box(page.getByTestId('wizard-next'))
+  expect(next.width).toBeGreaterThan(412 / 2)
+  expect(next.y).toBeGreaterThanOrEqual(pinned.y)
+
+  // Opening the fold grows the step; the footer does not move with it.
+  await page.getByTestId('wizard-more').click()
+  await expect(page.getByTestId('wizard-series')).toBeVisible()
+  expect((await box(footer)).y).toBe(pinned.y)
+  await page.getByTestId('wizard-more').click()
+
+  const steps = [
+    [2, 'Step 2 · Travellers'],
+    [3, 'Step 3 · Contents'],
+  ] as const
+  for (const [n, head] of steps) {
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId(`wizard-step-${n}`)).toBeVisible()
+    await expect(page.getByTestId('header-meta')).toHaveText(head)
+    expect((await box(footer)).y).toBe(pinned.y)
+    await expect(back).not.toHaveAttribute('aria-disabled', 'true')
+    await expect(page.getByTestId('wizard-next')).toBeInViewport({ ratio: 1 })
+  }
+
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('header-meta')).toHaveText('Step 4 · Quantities')
+  expect((await box(footer)).y).toBe(pinned.y)
+  const create = page.getByTestId('wizard-create')
+  await expect(create).toBeInViewport({ ratio: 1 })
+  expect((await box(create)).y).toBeGreaterThanOrEqual(pinned.y)
+  await create.click()
+
+  await expectTripOpen(page, TRIP.name)
+  // The day plan's pill exists only on a trip with both dates (FR-29.7).
+  await expect(page.getByTestId('trip-view-dayplan')).toBeVisible()
 })

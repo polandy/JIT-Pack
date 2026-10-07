@@ -40,7 +40,7 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
   await expect(page.locator('ion-header')).toHaveCount(1)
   await expect(page.getByTestId('header-title')).toHaveText('New trip')
   // The step is the head's second line (ADR-050), not part of its name.
-  await expect(page.getByTestId('header-meta')).toHaveText('Step 1 of 4')
+  await expect(page.getByTestId('header-meta')).toHaveText('Step 1 · Trip')
   await expect(page.getByTestId('header-logo')).toHaveCount(0)
 })
 

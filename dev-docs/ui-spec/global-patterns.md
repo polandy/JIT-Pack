@@ -568,6 +568,9 @@ These patterns apply to every screen and are specified once.
   than the click could — a disabled default action means Enter does nothing, silently. This generalises FR-25.13a's
   ruling beyond the composers: the **visible button remains the primary commit** (a phone has no reachable Enter), and
   Enter is an accelerator, never the only path.
+  * **In a multi-step flow the default action has a fixed place** (M3): a footer band above the tab bar carries the
+    step's default action and its back square on every step, so the button sits at the same spot whatever the step's
+    length. A single screen or sheet keeps its button where its content puts it.
   * **A field that owns its Enter is exempt by rule.** Commit-on-blur/Enter name fields (M8's template name, M22's trip
     name), the filter-or-create tag input (FR-24.1), the quick-add composers (FR-25.13 family), and any search field
     whose result list Enter may later pick from (M3's single-item search, FR-27.13's picker search): there Enter belongs

@@ -4,9 +4,10 @@
  * them (FR-27.3), and the composition report under them (FR-27.2/27.7,
  * FR-20.2, FR-1.4).
  */
-import { IonList, IonItem, IonLabel, IonInput, IonCheckbox, IonIcon, IonChip } from '@ionic/vue'
+import { IonList, IonItem, IonLabel, IonCheckbox, IonIcon, IonChip } from '@ionic/vue'
 import { addOutline, chevronForwardOutline, closeCircleOutline } from 'ionicons/icons'
 
+import SearchRow from '@/components/global/SearchRow.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t } from '@/i18n'
@@ -160,15 +161,15 @@ function mergeLine(merge: MergedOverlap): string {
          building a group for it would be filing rather than packing. -->
     <SectionHead :title="t('wizard.sectionSingleItems')" />
     <div class="single-items">
-      <!-- `:value` + `@ionInput`, like the name field above: v-model on an
-           ion-input binds through a custom element, which nothing outside a
-           real browser drives. -->
-      <IonInput
-        data-testid="wizard-item-search"
+      <!-- M9's search row: a field that looks like one. Its Enter is not
+           wired — the field owns its Enter (G-16). -->
+      <SearchRow
+        v-model="itemQuery"
+        persistent
+        class="item-search"
+        testid="wizard-item-search"
         :placeholder="t('wizard.singleItemsSearch')"
-        :value="itemQuery"
-        :clear-input="true"
-        @ionInput="(e: CustomEvent) => (itemQuery = e.detail.value ?? '')"
+        @close="itemQuery = ''"
       />
       <IonList v-if="itemSuggestions.length > 0" data-testid="wizard-item-suggestions">
         <IonItem
@@ -282,6 +283,11 @@ function mergeLine(merge: MergedOverlap): string {
    picked has to be visible without scrolling back into the search results. */
 .single-items {
   margin-bottom: 16px;
+}
+
+/* The row's own inset is for a full-width bar; here it sits in the page's padding. */
+.item-search {
+  padding-inline: 0;
 }
 
 .picked-chips {

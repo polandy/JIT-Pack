@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * M3 step 1 — the trip's metadata (FR-2.1/2.1a/15.1): the two required fields,
- * and everything optional folded behind one row (FR-2.1c).
+ * the dates open beside them, and everything else optional folded behind one
+ * row (FR-2.1c).
  */
 import {
   IonList,
@@ -74,6 +75,22 @@ const {
           </IonSelectOption>
         </IonSelect>
       </IonItem>
+      <!-- FR-2.1c: optional, but not rare — open, and saying why it is worth
+           the tap, without becoming a gate (FR-2.1b). -->
+      <IonItem>
+        <div class="dates">
+          <DateRangeField
+            testid="wizard-dates"
+            :label="t('wizard.dates')"
+            :start-label="t('tripEdit.startDate')"
+            :end-label="t('tripEdit.endDate')"
+            :start="startDate"
+            :end="endDate"
+            @update="onDates"
+          />
+          <p class="dates-hint" data-testid="wizard-dates-hint">{{ t('wizard.datesHint') }}</p>
+        </div>
+      </IonItem>
     </IonList>
 
     <!-- FR-2.1c: everything optional behind one row, which states what
@@ -94,17 +111,6 @@ const {
 
     <template v-if="moreOpen">
       <IonList>
-        <IonItem>
-          <DateRangeField
-            testid="wizard-dates"
-            :label="t('wizard.dates')"
-            :start-label="t('tripEdit.startDate')"
-            :end-label="t('tripEdit.endDate')"
-            :start="startDate"
-            :end="endDate"
-            @update="onDates"
-          />
-        </IonItem>
         <IonItem>
           <IonSelect
             :label="t('wizard.series')"
@@ -237,6 +243,16 @@ const {
   white-space: nowrap;
   text-align: end;
   font-weight: var(--jp-weight-medium);
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.dates {
+  width: 100%;
+}
+
+.dates-hint {
+  margin: 0 0 10px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
 }
