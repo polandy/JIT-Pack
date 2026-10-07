@@ -275,11 +275,6 @@ function onVote(value: IdeaVoteValue) {
 /** The trip's days, for planning an idea on one (FR-29.14). */
 const days = computed(() => tripDays(trip.value))
 
-function onPlan(day: string | null, time: string | null) {
-  const idea = openIdea.value
-  if (idea) actions.planIdea(idea, day, time)
-}
-
 function onComment(body: string) {
   const idea = openIdea.value
   if (idea) actions.addComment(props.tripId, idea.id, body, myUserId.value)
@@ -511,7 +506,6 @@ const EMPTY_KEYS = {
           @add-picture="onAddPicture"
           @cover-picture="onCoverPicture"
           @remove-picture="onRemovePicture"
-          @plan="onPlan"
           @add-track="tracks.add"
           @update-track="tracks.update"
           @download-track="tracks.download"
@@ -542,7 +536,6 @@ const EMPTY_KEYS = {
             @add-picture="onAddPicture"
             @cover-picture="onCoverPicture"
             @remove-picture="onRemovePicture"
-            @plan="onPlan"
             @add-track="tracks.add"
             @update-track="tracks.update"
             @download-track="tracks.download"

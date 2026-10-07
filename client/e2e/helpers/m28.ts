@@ -71,6 +71,56 @@ export async function openIdea(page: Page, title: string): Promise<Locator> {
   return detail
 }
 
+/** The four states an idea stands in (FR-29.2). */
+export type IdeaState = 'idea' | 'shortlisted' | 'done' | 'dropped'
+
+/**
+ * Move the open idea with a button of its first block — the step ahead
+ * (`idea-act-shortlist`), *Gemacht* (`idea-act-done`) or the way back of a
+ * closed one (`idea-act-reopen`); ends with the detail in its new state.
+ */
+export async function moveIdea(
+  detail: Locator,
+  button: 'idea-act-shortlist' | 'idea-act-done' | 'idea-act-reopen',
+  to: IdeaState,
+): Promise<void> {
+  await detail.getByTestId(button).click()
+  await expect(detail).toHaveAttribute('data-state', to)
+}
+
+/** Choose one of the open idea's ⋮ entries (`idea-menu-*`); ends with the menu gone. */
+export async function ideaMenu(page: Page, detail: Locator, entry: string): Promise<void> {
+  await detail.getByTestId('idea-detail-more').click()
+  const menu = page.getByTestId('idea-menu')
+  await menu.getByTestId(entry).click()
+  await expect(menu).toBeHidden()
+}
+
+/**
+ * FR-29.14: plan the open, shortlisted idea through *Einplanen…* — M29's
+ * sheet with the idea chosen, its day and an optional time. Ends on M29 with
+ * the sheet shut and the idea's line on the chosen day.
+ */
+export async function planIdea(
+  page: Page,
+  detail: Locator,
+  day: string,
+  time?: string,
+): Promise<void> {
+  const ideaId = (await detail.getAttribute('data-idea')) ?? ''
+  await detail.getByTestId('idea-act-plan').click()
+  const sheet = page.getByTestId('m29-idea-plan-body')
+  await sheet.getByTestId(`m29-idea-plan-day-${day}`).click()
+  await expect(sheet.getByTestId(`m29-idea-plan-day-${day}`)).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  if (time) await sheet.getByTestId('m29-idea-plan-time').locator('input').fill(time)
+  await sheet.getByTestId('m29-idea-plan-save').click()
+  await expect(sheet).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId(`m29-line-idea:${ideaId}`)).toBeVisible()
+}
+
 /** Switch the board to one of its four segments. */
 export async function showSegment(
   page: Page,

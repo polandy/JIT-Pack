@@ -1,7 +1,23 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic } from '../helpers/ionic'
-import { addIdea, ideaCard, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
-import { chooseDay, dayFromToday, openDayPlan, timelineLines, wayByHand } from '../helpers/m29'
+import {
+  addIdea,
+  ideaCard,
+  ideaDetail,
+  ideaMenu,
+  moveIdea,
+  openIdea,
+  openIdeas,
+  planIdea,
+} from '../helpers/m28'
+import {
+  chooseDay,
+  dayFromToday,
+  dayPlan,
+  openDayPlan,
+  timelineLines,
+  wayByHand,
+} from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
 import { openListComposer } from '../helpers/composer'
 import type { Locator, Page } from '@playwright/test'
@@ -34,10 +50,12 @@ async function shortlistedIdea(page: Page): Promise<Locator> {
   const detail = await openIdea(page, IDEA)
   // Undecided, it offers nothing yet.
   await expect(detail.getByTestId('idea-make-task')).toHaveCount(0)
-  await detail.getByTestId('idea-state-shortlisted').click()
-  await detail.getByTestId(`idea-plan-day-${THIRD}`).click()
-  await expect(detail.getByTestId(`idea-plan-day-${THIRD}`)).toHaveAttribute('aria-pressed', 'true')
-  return detail
+  await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
+  await planIdea(page, detail, THIRD)
+  await page.getByTestId('header-back').click()
+  const again = ideaDetail(page)
+  await expect(again.getByTestId('idea-act-plan')).toHaveAttribute('data-planned', THIRD)
+  return again
 }
 
 /** `‹ back` from the screen that made a result: the idea's sheet again. */
@@ -112,6 +130,58 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
   })
 
   /**
+   * E2E-M28-25: the idea's sheet plans it — no state segment and no row of
+   * day chips are left on it. *Einplanen…* opens M29's sheet with the idea
+   * chosen; saving lands on the day it was planned on, its line there with
+   * the time, and `‹ back` returns to the idea, whose button now names the
+   * day. The same sheet takes the day away again.
+   */
+  test('E2E-M28-25: an idea is planned from its sheet, lands on its day in M29, and ‹ back returns to it', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Sardinien',
+      startDate: FIRST,
+      endDate: LAST,
+      travelers: ['Andy'],
+    })
+    await openIdeas(page)
+    await addIdea(page, { title: IDEA })
+    const detail = await openIdea(page, IDEA)
+    const ideaId = await detail.getAttribute('data-idea')
+    await expect(detail.getByTestId('idea-act-shortlist')).toBeVisible()
+    await expect(
+      detail.locator('[data-testid^="idea-state-"], [data-testid^="idea-plan-"]'),
+    ).toHaveCount(0)
+    await expect(detail.getByTestId('idea-act-plan')).toHaveCount(0)
+
+    await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
+    await planIdea(page, detail, THIRD, '15:00')
+    await expect(page).toHaveURL(/\/dayplan/)
+    const plan = dayPlan(page)
+    await expect(plan.getByTestId(`m29-day-${THIRD}`)).toHaveAttribute('aria-selected', 'true')
+    await expect(plan.getByTestId(`m29-time-idea:${ideaId}`)).toHaveText('15:00')
+
+    await page.getByTestId('header-back').click()
+    const again = ideaDetail(page)
+    const button = again.getByTestId('idea-act-plan')
+    await expect(button).toHaveAttribute('data-planned', THIRD)
+    await expect(button).toContainText('15:00')
+
+    await button.click()
+    const sheet = page.getByTestId('m29-idea-plan-body')
+    await expect(sheet.getByTestId(`m29-idea-plan-day-${THIRD}`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(sheet.getByTestId('m29-idea-plan-time').locator('input')).toHaveValue('15:00')
+    await sheet.getByTestId('m29-idea-plan-none').click()
+    await expect(sheet).toHaveCount(0)
+    await page.getByTestId('header-back').click()
+    await expect(ideaDetail(page).getByTestId('idea-act-plan')).toHaveAttribute('data-planned', '')
+  })
+
+  /**
    * E2E-M28-23: deleting the idea leaves what came of it — the task stays,
    * its 💡 line goes.
    */
@@ -128,7 +198,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     await writesLanded(page)
 
     const again = await backToIdea(page)
-    await again.getByTestId('idea-detail-remove').click()
+    await ideaMenu(page, again, 'idea-menu-remove')
     await page
       .getByTestId('idea-remove-confirm')
       .getByRole('button', { name: /delete idea/i })
@@ -167,7 +237,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       // The sheet is a modal outside the page, so it is found on the page.
       await ideaCard(page, IDEA).click()
       const sheet = page.getByTestId('m28-idea-modal').getByTestId('idea-detail')
-      await sheet.getByTestId('idea-state-shortlisted').click()
+      await moveIdea(sheet, 'idea-act-shortlist', 'shortlisted')
       await sheet.getByTestId('idea-make-task').click()
 
       const tasks = visiblePage(page)

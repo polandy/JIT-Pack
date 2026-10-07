@@ -136,18 +136,23 @@ the path finding off (see [Route planning](configuration.md#route-planning)); po
 
 Tap an idea to open it. On a phone it opens from the bottom; on a wide screen beside the board.
 
-- **Ideen · Shortlist · Gemacht · Verworfen** moves the idea by hand. **Votes never move an idea** — you decide. A
-  message at the bottom offers **Rückgängig**.
+- **The two buttons under the title** move the idea on: **Auf die Shortlist**, and once it is there **Einplanen…**
+  (see below); beside it **Gemacht**. **Votes never move an idea** — you decide. A message at the bottom offers
+  **Rückgängig**.
+- A done or dropped idea says so in that place, with one way back: **Wieder öffnen** puts a done idea back on the
+  Shortlist, **Wieder aufnehmen** a dropped one back among the ideas.
 - **👍 and 👎** — your vote. Everybody sees who voted how; tap your vote again to take it back. The board sorts by
   votes; the **⋮** at the top switches to the newest first.
 - **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
-- **Bearbeiten** changes the title, link, note, kind or rain mark. **Idee löschen** asks first, then removes the idea
-  with its votes, comments, pictures and tracks for everybody — dropping it keeps them.
+- **⋮** at the top, beside ✕: **Bearbeiten** changes the title, link, note, kind or rain mark; **Von der Shortlist
+  nehmen** and **Verwerfen** move it back or away; **Idee löschen** asks first, then removes the idea with its votes,
+  comments, pictures and tracks for everybody — dropping it keeps them.
 
 The link opens the website in a new tab.
 
-On the **Shortlist**, while the trip has both dates, an idea also gets a **Tag** — the day you mean to do it — and,
-if you like, a time. It then stands on that day of the [Day plan](day-plan.md).
+On the **Shortlist**, while the trip has both dates, **Einplanen…** gives the idea a day — the one you mean to do it
+on — and, if you like, a time. It opens the [Day plan](day-plan.md) with the idea chosen; after **Einplanen** you
+are on that day, and **‹** takes you back to the idea, whose button now shows the day.
 
 ## Making something of an idea
 

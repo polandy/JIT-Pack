@@ -2,13 +2,24 @@ import { describe, expect, it } from 'vitest'
 
 import type { Idea, IdeaComment, IdeaVote } from '@/types/domain'
 import {
+  IDEA_STATE_DONE,
+  IDEA_STATE_DROPPED,
+  IDEA_STATE_IDEA,
+  IDEA_STATE_SHORTLISTED,
+} from '@/types/domain'
+import {
   IDEA_ORDER_NEWEST,
   IDEA_ORDER_SCORE,
+  IDEA_STEP_PLAN,
+  IDEA_STEP_SHORTLIST,
   ideaBoard,
+  ideaLeadStep,
+  menuMoves,
   ideaDiscussion,
   linkSite,
   nextVote,
   parseLink,
+  reopenedState,
   undecidedCount,
   voteTally,
 } from '../ideas'
@@ -240,5 +251,28 @@ describe('ideaDiscussion (FR-29.4)', () => {
       comment('early', 'i1', '2026-06-01T09:00:00.000Z'),
     ]
     expect(ideaDiscussion('i1', comments).map((c) => c.id)).toEqual(['early', 'late', 'pending'])
+  })
+})
+
+describe('FR-29.2: what the detail offers for each state', () => {
+  it('FR-29.2: an idea offers the shortlist, a shortlisted one its day, a closed one nothing ahead', () => {
+    expect(ideaLeadStep(IDEA_STATE_IDEA)).toBe(IDEA_STEP_SHORTLIST)
+    expect(ideaLeadStep(IDEA_STATE_SHORTLISTED)).toBe(IDEA_STEP_PLAN)
+    expect(ideaLeadStep(IDEA_STATE_DONE)).toBeNull()
+    expect(ideaLeadStep(IDEA_STATE_DROPPED)).toBeNull()
+  })
+
+  it('FR-29.2: a done idea reopens onto the shortlist, a dropped one among the ideas, an open one not at all', () => {
+    expect(reopenedState(IDEA_STATE_DONE)).toBe(IDEA_STATE_SHORTLISTED)
+    expect(reopenedState(IDEA_STATE_DROPPED)).toBe(IDEA_STATE_IDEA)
+    expect(reopenedState(IDEA_STATE_IDEA)).toBeNull()
+    expect(reopenedState(IDEA_STATE_SHORTLISTED)).toBeNull()
+  })
+
+  it('FR-29.2: the ⋮ moves an open idea back or away, and a closed one nowhere', () => {
+    expect(menuMoves(IDEA_STATE_IDEA)).toEqual([IDEA_STATE_DROPPED])
+    expect(menuMoves(IDEA_STATE_SHORTLISTED)).toEqual([IDEA_STATE_IDEA, IDEA_STATE_DROPPED])
+    expect(menuMoves(IDEA_STATE_DONE)).toEqual([])
+    expect(menuMoves(IDEA_STATE_DROPPED)).toEqual([])
   })
 })

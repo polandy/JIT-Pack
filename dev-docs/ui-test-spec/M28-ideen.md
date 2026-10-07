@@ -4,18 +4,20 @@
   says what belongs on it. A link that is not a web link shows its message and keeps *Add* off. An idea written with a
   bare address, a tag and the rain mark shows all three on its card — the address as its site — counts in *Ideas* and on
   the switcher's pill, and its detail's link is `https://…` in a new tab with `noopener noreferrer`.
-* **E2E-M28-02** `local` (FR-29.2/29.6) — **implemented** (`planner/ideas.spec.ts`): the detail stands on `?idea=`; a
-  state set in it moves the idea between the segments, both counts follow, the snackbar's undo moves it back; the
-  browser's back closes the detail and leaves the board.
+* **E2E-M28-02** `local` (FR-29.2/29.6, UX-12) — **implemented** (`planner/ideas.spec.ts`): the detail stands on
+  `?idea=` and carries no state segment; *Auf die Shortlist* moves the idea, both counts follow, the snackbar's undo
+  moves it back; the ⋮ takes it off the Shortlist and drops it, the status line's *Wieder aufnehmen* brings a dropped
+  idea back among the ideas, *Gemacht* is counted and *Wieder öffnen* reopens it onto the Shortlist; the browser's back
+  closes the detail and leaves the board.
 * **E2E-M28-03** `local` (FR-29.4/29.1) — **implemented** (`planner/ideas.spec.ts`): a word written in the detail is
-  counted on the card, edited in place through its menu and marked *edited*, and taken back through its menu; *Edit*
-  opens the sheet filled with the idea and the card shows the new title.
+  counted on the card, edited in place through its menu and marked *edited*, and taken back through its menu; the head's
+  ⋮ *Edit* opens the sheet filled with the idea and the card shows the new title.
 * **E2E-M28-04** `local` (FR-29.10/29.12) — **implemented** (`planner/ideas.spec.ts`): the chips offer only the
   segment's tags, in the set's order; a tag narrows the board to its ideas, ☂ to the rain-proof ones, *All* shows the
   segment whole.
-* **E2E-M28-05** `local` (FR-29.2/29.3 G-8) — **implemented** (`planner/ideas.spec.ts`): deleting asks first — declined,
-  the idea stays; confirmed, it is gone and the empty state is back. Alone on the device the detail offers no votes and
-  names no author, and the card carries no tallies.
+* **E2E-M28-05** `local` (FR-29.2/29.3 G-8) — **implemented** (`planner/ideas.spec.ts`): deleting through the head's ⋮
+  asks first — declined, the idea stays; confirmed, it is gone and the empty state is back. Alone on the device the
+  detail offers no votes and names no author, and the card carries no tallies.
 * **E2E-M28-06** `server` (FR-29.3, FR-29.6) — **implemented** (`planner/server/votes.spec.ts`): Bob sees Alice named as
   the idea's author and votes for it; Alice sees his vote on the card and his name behind it in the detail, her own
   button unpressed, and her ⋮ offers *Newest first*; Bob's second tap withdraws it and Alice's count is back to nothing.
@@ -109,11 +111,11 @@
   requests and the history `lib/__tests__/routing.spec.ts` and `routeEditor.spec.ts`; the switch
   `TestLoadConfig_Routing_FR29_20` and `TestInstanceConfig_HandsOnTheRoutingURL_FR29_20`.
 * **E2E-M28-22** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`): an undecided idea offers nothing; on
-  the Shortlist, planned on the trip's third day, it offers *Ausflug*, *Aufgabe* and *Einkauf*. *Ausflug* opens M27's
-  sheet with the title and a day; the excursion's list names the idea, `‹` returns to it, the result chip stands and
-  *Ausflug* is no longer offered. *Aufgabe* opens M25's composer with *„Book …"*; the task is written due and naming the
-  idea, and *Aufgabe* is still offered after it. *Einkauf* opens M6's composer with the title on *Vor Ort*; the entry
-  written names the idea, and its 💡 line opens the idea with three results.
+  the Shortlist, planned on the trip's third day through *Einplanen…*, it offers *Ausflug*, *Aufgabe* and *Einkauf*.
+  *Ausflug* opens M27's sheet with the title and a day; the excursion's list names the idea, `‹` returns to it, the
+  result chip stands and *Ausflug* is no longer offered. *Aufgabe* opens M25's composer with *„Book …"*; the task is
+  written due and naming the idea, and *Aufgabe* is still offered after it. *Einkauf* opens M6's composer with the title
+  on *Vor Ort*; the entry written names the idea, and its 💡 line opens the idea with three results.
 * **E2E-M28-23** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`): a task made from an idea outlives the
   idea's deletion, without its 💡 line. The pure rules are `planner/domain/__tests__/bridge.spec.ts` (what is offered),
   `domain/__tests__/ideaResults.spec.ts` (the due day, the phase), `composables/__tests__/ideaResultSource.spec.ts`; the
@@ -122,3 +124,8 @@
 * **E2E-M28-24** `local` (FR-29.13) — **implemented** (`planner/bridge.spec.ts`, at 412 px): on a phone the idea is a
   sheet; *Aufgabe* closes it and M25 stays on screen with its composer pre-filled — the closing does not lead back to
   the board.
+* **E2E-M28-25** `local` (FR-29.14, FR-29.2, UX-12) — **implemented** (`planner/bridge.spec.ts`): an idea's detail has
+  neither a state segment nor day chips, and offers *Einplanen…* only once shortlisted; it opens M29's sheet with the
+  idea chosen, and saving a day and *15:00* lands on M29 at that day with the idea's line at *15:00*; `‹` returns to the
+  idea, whose button names the day and the time; the sheet opened again shows both and *Kein Tag* takes the day away.
+  The pure rules are `planner/domain/__tests__/ideas.spec.ts` (the step ahead, the way back, the ⋮'s moves).

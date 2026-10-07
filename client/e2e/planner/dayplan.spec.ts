@@ -8,8 +8,10 @@ import {
   ideaCard,
   ideaDetail,
   ideasBoard,
+  moveIdea,
   openIdea,
   openIdeas,
+  planIdea,
   showSegment,
 } from '../helpers/m28'
 import {
@@ -140,11 +142,7 @@ test.describe('M29 day plan @local @planner', () => {
     for (const title of ['Bernina Express', 'Segantini-Museum']) {
       await addIdea(page, { title })
       const detail = await openIdea(page, title)
-      await detail.getByTestId('idea-state-shortlisted').click()
-      await expect(detail.getByTestId('idea-state-shortlisted')).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
+      await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
       await detail.getByTestId('idea-detail-close').click()
       await expect(ideaDetail(page)).toHaveCount(0)
     }
@@ -153,19 +151,14 @@ test.describe('M29 day plan @local @planner', () => {
       ideaCard(page, 'Bernina Express').locator('[data-testid^="idea-card-plan-"]'),
     ).toHaveText(/not planned yet/)
 
-    // From M28: a day on the detail, shown on the card.
+    // From M28: Einplanen… on the detail opens M29's sheet with the idea
+    // chosen; the time is typed on the 24-hour clock. The card says it after.
     const detail = await openIdea(page, 'Segantini-Museum')
-    await detail.getByTestId(`idea-plan-day-${THIRD}`).click()
-    await expect(detail.getByTestId(`idea-plan-day-${THIRD}`)).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    // The time is typed on the 24-hour clock and kept once the field is left.
-    const time = detail.getByTestId('idea-plan-time').locator('input')
-    await time.fill('1430')
-    await expect(time).toHaveValue('14:30')
-    await time.blur()
-    await detail.getByTestId('idea-detail-close').click()
+    await planIdea(page, detail, THIRD, '1430')
+    await expect(timelineLines(page).filter({ hasText: 'Segantini-Museum' })).toContainText('14:30')
+    await page.getByTestId('header-back').click()
+    await ideaDetail(page).getByTestId('idea-detail-close').click()
+    await expect(ideaDetail(page)).toHaveCount(0)
     const planned = ideaCard(page, 'Segantini-Museum').locator('[data-testid^="idea-card-plan-"]')
     await expect(planned).not.toHaveText(/not planned yet/)
     await expect(planned).toContainText('14:30')
@@ -194,8 +187,7 @@ test.describe('M29 day plan @local @planner', () => {
     await expect(museum).not.toHaveAttribute('data-done', 'true')
     await museum.getByRole('button').click()
     const opened = ideaDetail(page)
-    await opened.getByTestId('idea-state-done').click()
-    await expect(opened.getByTestId('idea-state-done')).toHaveAttribute('aria-pressed', 'true')
+    await moveIdea(opened, 'idea-act-done', 'done')
     await opened.getByTestId('idea-detail-close').click()
     await expect(ideaDetail(page)).toHaveCount(0)
     await expect(ideasBoard(page).getByTestId('m28-count-done')).toHaveText('1')
@@ -445,14 +437,9 @@ test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @loca
     await openIdeas(page)
     await addIdea(page, { title: 'Segantini-Museum' })
     const detail = await openIdea(page, 'Segantini-Museum')
-    await detail.getByTestId('idea-state-shortlisted').click()
-    await detail.getByTestId(`idea-plan-day-${TODAY}`).click()
-    const time = detail.getByTestId('idea-plan-time').locator('input')
-    await time.fill('1000')
-    await time.blur()
-    await detail.getByTestId('idea-detail-close').click()
-    await expect(ideaDetail(page)).toHaveCount(0)
-    await openDayPlan(page)
+    await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
+    // Einplanen… ends on M29, on the idea's day.
+    await planIdea(page, detail, TODAY, '1000')
     await addDayEntry(page, { title: 'Wäsche abholen' })
     await switchToGerman(page)
 

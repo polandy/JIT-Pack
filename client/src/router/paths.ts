@@ -166,12 +166,15 @@ export const ORIGIN_QUERY_PARAM = 'from'
 /** Query key naming the idea a screen's creator opens pre-filled from (FR-29.13). */
 export const FROM_IDEA_QUERY_PARAM = 'fromIdea'
 
-/** The screens an idea's results are made on (FR-29.13). */
-export type IdeaBridgeScreen = Extract<TripSubScreen, 'excursions' | 'tasks' | 'shopping'>
+/** The screens an idea's results are made on (FR-29.13), and the day plan it is planned on (FR-29.14). */
+export type IdeaBridgeScreen = Extract<
+  TripSubScreen,
+  'excursions' | 'tasks' | 'shopping' | 'dayplan'
+>
 
 /**
  * FR-29.13: the screen that makes one kind of result, its creator open and
- * pre-filled from an idea — entered from the idea's sheet, so `‹ back`
+ * pre-filled from an idea — or M29, its sheet open on the idea (FR-29.14) — entered from the idea's sheet, so `‹ back`
  * returns there (`meta.acceptsLinkedFrom`). The origin is encoded once more,
  * as `enteredFrom` does, because it carries a query of its own.
  */

@@ -13,7 +13,9 @@ import {
   addPicture,
   ideaCard,
   ideaDetail,
+  ideaMenu,
   mosaicPicture,
+  moveIdea,
   openIdea,
   openIdeas,
   pictureViewer,
@@ -84,12 +86,16 @@ test.describe('M28 ideas @local @planner', () => {
   })
 
   /**
-   * E2E-M28-02: an idea is moved by hand, and the board follows — it leaves
+   * E2E-M28-02: an idea is moved by hand, and the board follows. The step
+   * ahead and *Gemacht* are buttons of the detail's first block — no state
+   * segment is left — and the seldom moves sit behind the head's ⋮: it leaves
    * *Ideas* for *Shortlist*, both counts say so, and the snackbar's undo
-   * brings it back. The detail stands on the route (`?idea=`), so the
-   * browser's back closes it and leaves the board where it was.
+   * brings it back; ⋮ takes it off the shortlist and drops it, and a dropped
+   * idea is taken up again, a done one reopened onto the shortlist. The
+   * detail stands on the route (`?idea=`), so the browser's back closes it
+   * and leaves the board where it was.
    */
-  test('E2E-M28-02: an idea moves between the four segments by hand, undoably, on the route', async ({
+  test('E2E-M28-02: an idea moves on with its first block and back through ⋮, undoably, on the route', async ({
     page,
   }) => {
     const board = await openIdeas(page)
@@ -97,21 +103,34 @@ test.describe('M28 ideas @local @planner', () => {
 
     const detail = await openIdea(page, 'Muottas Muragl')
     await expect(page).toHaveURL(/\/ideas\?idea=/)
-    await expect(detail.getByTestId('idea-state-idea')).toHaveAttribute('aria-pressed', 'true')
-    await detail.getByTestId('idea-state-shortlisted').click()
-    await expect(detail.getByTestId('idea-state-shortlisted')).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await expect(detail).toHaveAttribute('data-state', 'idea')
+    await expect(detail.getByTestId('idea-acts')).toBeVisible()
+    await expect(detail.locator('[data-testid^="idea-state-"]')).toHaveCount(0)
+
+    await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
     await expect(board.getByTestId('m28-count-idea')).toHaveText('0')
     await expect(board.getByTestId('m28-count-shortlisted')).toHaveText('1')
 
     await undoFromSnackbar(page, /Muottas Muragl/)
-    await expect(detail.getByTestId('idea-state-idea')).toHaveAttribute('aria-pressed', 'true')
+    await expect(detail).toHaveAttribute('data-state', 'idea')
     await expect(board.getByTestId('m28-count-shortlisted')).toHaveText('0')
 
-    await detail.getByTestId('idea-state-done').click()
+    await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
+    await ideaMenu(page, detail, 'idea-menu-unshortlist')
+    await expect(detail).toHaveAttribute('data-state', 'idea')
+    await expect(board.getByTestId('m28-count-shortlisted')).toHaveText('0')
+
+    await ideaMenu(page, detail, 'idea-menu-drop')
+    await expect(detail).toHaveAttribute('data-state', 'dropped')
+    await expect(detail.getByTestId('idea-status')).toHaveAttribute('data-state', 'dropped')
+    await expect(detail.getByTestId('idea-acts')).toHaveCount(0)
+    await expect(board.getByTestId('m28-count-dropped')).toHaveText('1')
+    await moveIdea(detail, 'idea-act-reopen', 'idea')
+
+    await moveIdea(detail, 'idea-act-done', 'done')
     await expect(board.getByTestId('m28-count-done')).toHaveText('1')
+    await moveIdea(detail, 'idea-act-reopen', 'shortlisted')
+    await moveIdea(detail, 'idea-act-done', 'done')
 
     await page.goBack()
     await expect(ideaDetail(page)).toHaveCount(0)
@@ -163,7 +182,7 @@ test.describe('M28 ideas @local @planner', () => {
       ideaCard(page, 'Capuns probieren').locator('[data-testid^="idea-card-comments-"]'),
     ).toHaveCount(0)
 
-    await detail.getByTestId('idea-detail-edit').click()
+    await ideaMenu(page, detail, 'idea-menu-edit')
     const sheet = page.getByTestId('idea-edit')
     await expect(sheet.getByTestId('idea-edit-name').locator('input')).toHaveValue(
       'Capuns probieren',
@@ -224,7 +243,7 @@ test.describe('M28 ideas @local @planner', () => {
       ideaCard(page, 'Tandemflug').locator('[data-testid^="idea-card-up-"]'),
     ).toHaveCount(0)
 
-    await detail.getByTestId('idea-detail-remove').click()
+    await ideaMenu(page, detail, 'idea-menu-remove')
     const confirm = page.getByTestId('idea-remove-confirm')
     await expect(confirm).toContainText('Tandemflug')
     await confirm.getByRole('button', { name: /cancel/i }).click()
@@ -232,7 +251,7 @@ test.describe('M28 ideas @local @planner', () => {
     await expect(ideaCard(page, 'Tandemflug')).toBeVisible()
 
     detail = ideaDetail(page)
-    await detail.getByTestId('idea-detail-remove').click()
+    await ideaMenu(page, detail, 'idea-menu-remove')
     await page
       .getByTestId('idea-remove-confirm')
       .getByRole('button', { name: /delete idea/i })

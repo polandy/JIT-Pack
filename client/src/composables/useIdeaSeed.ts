@@ -1,7 +1,8 @@
 /**
- * FR-29.13: a screen entered from an idea opens its creator pre-filled.
+ * FR-29.13: a screen entered from an idea opens its creator pre-filled —
+ * or, on M29, its sheet for planning the idea (FR-29.14).
  *
- * The idea's sheet links to M27, M25 or M6 with `?fromIdea=` (`ideaBridgePath`).
+ * The idea's sheet links to M27, M25, M6 or M29 with `?fromIdea=` (`ideaBridgePath`).
  * The screen hands its creator the idea once both have arrived — the trip's
  * partition, which a cold start may still be loading, and the idea in it —
  * and then takes the parameter off the address with a replace, so a reload or

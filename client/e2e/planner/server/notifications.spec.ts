@@ -1,6 +1,6 @@
 import { test, expect, createTripViaWizard, writesLanded } from '../../fixtures'
 import { fillIonic } from '../../helpers/ionic'
-import { addIdea, ideaDetail, openIdea, openIdeas } from '../../helpers/m28'
+import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../../helpers/m28'
 import { uniq, watchSubscribed } from '../../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'
@@ -71,11 +71,7 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
     ).toHaveCount(0)
 
     const alicesView = await openIdea(alice, title)
-    await alicesView.getByTestId('idea-state-shortlisted').click()
-    await expect(alicesView.getByTestId('idea-state-shortlisted')).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await moveIdea(alicesView, 'idea-act-shortlist', 'shortlisted')
     await writesLanded(alice)
 
     await expect(

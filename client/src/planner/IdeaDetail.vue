@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * One idea, opened (FR-29.2–29.5, FR-29.17): who wrote it and when, its
- * pictures as a mosaic, its GPX tracks on a map, the link as a card, the note, the four states set by hand, the votes with the voters'
+ * pictures as a mosaic, its GPX tracks on a map, the link as a card, the note, the votes with the voters'
  * names, and the discussion with its field at the foot. The same body is the
  * phone's sheet and the desktop's side panel (ADR-064), so what it does is
  * handed to the screen as events rather than written here.
@@ -9,8 +9,11 @@
  * Votes and the author's name appear only where somebody else reads them
  * (FR-29.3's G-8); the discussion stays, as a place to note things down.
  *
- * On the shortlist, and while the trip has its dates, the idea is given a
- * day and an optional time here (FR-29.14) — the day plan's way in from M28.
+ * The state is set by hand (FR-29.2) from the first block under the head:
+ * the step ahead — onto the shortlist, then onto a day (FR-29.14, through
+ * M29's sheet while the trip has its dates) — and *Gemacht*; a done or
+ * dropped idea says so there, with its one way back. The seldom moves, the
+ * edit and the delete sit behind the head's ⋮.
  *
  * *Daraus gemacht* (FR-29.13) names what came of the idea — read through the
  * kernel's sources, since the results are the packing side's and the
@@ -26,15 +29,21 @@ import {
   actionSheetController,
 } from '@ionic/vue'
 import {
+  calendarOutline,
   cameraOutline,
   cartOutline,
   checkboxOutline,
+  checkmarkOutline,
   createOutline,
+  ellipsisVertical,
   gitBranchOutline,
+  arrowUndoOutline,
   linkOutline,
   mapOutline,
   openOutline,
+  removeCircleOutline,
   send,
+  starOutline,
   thumbsDownOutline,
   thumbsUpOutline,
   trailSignOutline,
@@ -43,10 +52,8 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, ref, watch } from 'vue'
 
-import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import TimeField from '@/components/global/TimeField.vue'
 import TrackCard from '@/components/global/TrackCard.vue'
 import { MAX_TRACKS, orderTracks } from '@/domain/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -71,11 +78,27 @@ import type {
   IdeaVoteValue,
   TrackFields,
 } from '@/types/domain'
-import { IDEA_STATE_SHORTLISTED, IDEA_STATES, IDEA_VOTE_DOWN, IDEA_VOTE_UP } from '@/types/domain'
+import {
+  IDEA_STATE_DONE,
+  IDEA_STATE_DROPPED,
+  IDEA_STATE_IDEA,
+  IDEA_STATE_SHORTLISTED,
+  IDEA_VOTE_DOWN,
+  IDEA_VOTE_UP,
+} from '@/types/domain'
 import { ideaBridgePath } from '@/router/paths'
 import { offeredResults } from './domain/bridge'
 import { isPlanTime } from './domain/dayPlan'
-import { ideaDiscussion, linkSite, voteTally } from './domain/ideas'
+import {
+  IDEA_STEP_PLAN,
+  IDEA_STEP_SHORTLIST,
+  ideaDiscussion,
+  ideaLeadStep,
+  linkSite,
+  menuMoves,
+  reopenedState,
+  voteTally,
+} from './domain/ideas'
 import { MAX_IDEA_IMAGES, canAddPicture, ideaPictures } from './domain/pictures'
 import IdeaMosaic from './IdeaMosaic.vue'
 import IdeaPictureViewer from './IdeaPictureViewer.vue'
@@ -107,7 +130,6 @@ const emit = defineEmits<{
   addPicture: [file: File]
   coverPicture: [image: IdeaImage]
   removePicture: [image: IdeaImage]
-  plan: [day: string | null, time: string | null]
   addTrack: [file: File]
   updateTrack: [
     track: IdeaTrack,
@@ -136,19 +158,77 @@ const pictures = computed(() =>
   idea.value ? ideaPictures(idea.value.id, plannerStore.getImages(idea.value.trip_id)) : [],
 )
 
-/** FR-29.14: a day is given on the shortlist, and only while the trip has its days. */
-const plannable = computed(
-  () => idea.value?.state === IDEA_STATE_SHORTLISTED && props.days.length > 0,
-)
+// --- the first block and the ⋮ (FR-29.2) ---
 
-function chooseDay(day: string | null) {
-  if (!idea.value || day === idea.value.planned_on) return
-  emit('plan', day, idea.value.planned_at)
+const lead = computed(() => (idea.value ? ideaLeadStep(idea.value.state) : null))
+
+/** FR-29.14: a day is given on the shortlist, and only while the trip has its days. */
+const plannable = computed(() => lead.value === IDEA_STEP_PLAN && props.days.length > 0)
+
+/** „Fr., 2.10. · 09:00" once it has a day — the planner's button names it. */
+const plannedText = computed(() => {
+  const day = idea.value?.planned_on
+  if (!day) return null
+  const at = idea.value?.planned_at
+  return isPlanTime(at) ? `${shortDueDay(day)} · ${at}` : shortDueDay(day)
+})
+
+/** FR-29.14: M29's sheet, the idea chosen — `‹ back` there returns here. */
+function plan() {
+  if (idea.value) emit('go', ideaBridgePath(idea.value.trip_id, 'dayplan', idea.value.id))
 }
 
-function onTime(value: string) {
-  if (!idea.value?.planned_on) return
-  emit('plan', idea.value.planned_on, isPlanTime(value) ? value : null)
+const reopensTo = computed(() => (idea.value ? reopenedState(idea.value.state) : null))
+
+const MENU_MOVE: Partial<Record<IdeaState, { text: string; icon: string; testid: string }>> = {
+  [IDEA_STATE_IDEA]: {
+    text: t('ideas.unshortlist'),
+    icon: arrowUndoOutline,
+    testid: 'idea-menu-unshortlist',
+  },
+  [IDEA_STATE_DROPPED]: {
+    text: t('ideas.drop'),
+    icon: removeCircleOutline,
+    testid: 'idea-menu-drop',
+  },
+}
+
+async function openMenu() {
+  if (!idea.value) return
+  const moves = menuMoves(idea.value.state).flatMap((state) => {
+    const move = MENU_MOVE[state]
+    return move
+      ? [
+          {
+            text: move.text,
+            icon: move.icon,
+            htmlAttributes: { 'data-testid': move.testid },
+            handler: () => emit('state', state),
+          },
+        ]
+      : []
+  })
+  const sheet = await actionSheetController.create({
+    htmlAttributes: { 'data-testid': 'idea-menu' },
+    buttons: [
+      {
+        text: t('common.edit'),
+        icon: createOutline,
+        htmlAttributes: { 'data-testid': 'idea-menu-edit' },
+        handler: () => emit('edit'),
+      },
+      ...moves,
+      {
+        text: t('ideas.remove'),
+        icon: trashOutline,
+        role: 'destructive',
+        htmlAttributes: { 'data-testid': 'idea-menu-remove' },
+        handler: () => emit('remove'),
+      },
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await sheet.present()
 }
 
 const pictureInput = ref<HTMLInputElement | null>(null)
@@ -306,13 +386,31 @@ async function openCommentMenu(comment: IdeaComment) {
 </script>
 
 <template>
-  <section v-if="idea" class="idea-detail" data-testid="idea-detail">
+  <section
+    v-if="idea"
+    class="idea-detail"
+    :class="{ dropped: idea.state === IDEA_STATE_DROPPED }"
+    :data-state="idea.state"
+    :data-idea="idea.id"
+    data-testid="idea-detail"
+  >
     <SheetHead
       :title="idea.title"
       title-testid="idea-detail-title"
       close-testid="idea-detail-close"
       @close="emit('close')"
     >
+      <template #trail>
+        <button
+          type="button"
+          class="more"
+          :aria-label="t('ideas.more')"
+          data-testid="idea-detail-more"
+          @click="openMenu"
+        >
+          <IonIcon :icon="ellipsisVertical" aria-hidden="true" />
+        </button>
+      </template>
       <template #meta>
         <span data-testid="idea-detail-meta">{{ meta }}</span>
         <span v-if="idea.tag" class="chip" data-testid="idea-detail-tag">
@@ -324,6 +422,70 @@ async function openCommentMenu(comment: IdeaComment) {
         </span>
       </template>
     </SheetHead>
+
+    <div
+      v-if="lead"
+      class="acts"
+      role="group"
+      :aria-label="t('ideas.stateLabel')"
+      data-testid="idea-acts"
+    >
+      <button
+        v-if="lead === IDEA_STEP_SHORTLIST"
+        type="button"
+        class="act primary"
+        data-testid="idea-act-shortlist"
+        @click="emit('state', IDEA_STATE_SHORTLISTED)"
+      >
+        <IonIcon :icon="starOutline" aria-hidden="true" />
+        {{ t('ideas.toShortlist') }}
+      </button>
+      <button
+        v-else-if="plannable"
+        type="button"
+        class="act"
+        :class="plannedText ? 'planned' : 'primary'"
+        :data-planned="idea.planned_on ?? ''"
+        data-testid="idea-act-plan"
+        @click="plan"
+      >
+        <IonIcon :icon="calendarOutline" aria-hidden="true" />
+        <span class="jp-num">{{ plannedText ?? t('ideas.plan') }}</span>
+      </button>
+      <button
+        type="button"
+        class="act"
+        data-testid="idea-act-done"
+        @click="emit('state', IDEA_STATE_DONE)"
+      >
+        <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
+        {{ t('ideas.state.done') }}
+      </button>
+    </div>
+    <div
+      v-else-if="reopensTo"
+      class="status"
+      :class="{ done: idea.state === IDEA_STATE_DONE }"
+      :data-state="idea.state"
+      data-testid="idea-status"
+    >
+      <span class="status-word">
+        <IonIcon
+          v-if="idea.state === IDEA_STATE_DONE"
+          :icon="checkmarkOutline"
+          aria-hidden="true"
+        />
+        {{ t(`ideas.state.${idea.state}`) }}
+      </span>
+      <button
+        type="button"
+        class="act"
+        data-testid="idea-act-reopen"
+        @click="emit('state', reopensTo)"
+      >
+        {{ idea.state === IDEA_STATE_DROPPED ? t('ideas.retake') : t('ideas.reopen') }}
+      </button>
+    </div>
 
     <IdeaMosaic
       v-if="pictures.length > 0"
@@ -433,51 +595,6 @@ async function openCommentMenu(comment: IdeaComment) {
     </a>
 
     <p v-if="idea.note" class="note" data-testid="idea-detail-note">{{ idea.note }}</p>
-
-    <div class="states" role="group" :aria-label="t('ideas.stateLabel')">
-      <button
-        v-for="state in IDEA_STATES"
-        :key="state"
-        type="button"
-        class="state"
-        :aria-pressed="idea.state === state ? 'true' : 'false'"
-        :data-testid="`idea-state-${state}`"
-        @click="idea.state !== state && emit('state', state)"
-      >
-        {{ t(`ideas.state.${state}`) }}
-      </button>
-    </div>
-
-    <section v-if="plannable" class="plan" data-testid="idea-plan">
-      <SectionHead :title="t('ideas.planDay')" />
-      <div class="days">
-        <ChoiceChip
-          v-for="day in days"
-          :key="day"
-          :pressed="idea.planned_on === day"
-          :data-testid="`idea-plan-day-${day}`"
-          @click="chooseDay(day)"
-        >
-          {{ shortDueDay(day) }}
-        </ChoiceChip>
-        <ChoiceChip
-          :pressed="idea.planned_on === null"
-          data-testid="idea-plan-none"
-          @click="chooseDay(null)"
-        >
-          {{ t('ideas.planNone') }}
-        </ChoiceChip>
-      </div>
-      <TimeField
-        v-if="idea.planned_on"
-        class="plan-time"
-        :label="t('ideas.planTime')"
-        label-placement="stacked"
-        :model-value="idea.planned_at ?? ''"
-        data-testid="idea-plan-time"
-        @settle="onTime"
-      />
-    </section>
 
     <div v-if="othersShown && tally" class="votes">
       <button
@@ -627,23 +744,6 @@ async function openCommentMenu(comment: IdeaComment) {
         </IonButton>
       </div>
     </section>
-
-    <div class="foot">
-      <IonButton fill="clear" size="small" data-testid="idea-detail-edit" @click="emit('edit')">
-        <IonIcon slot="start" :icon="createOutline" aria-hidden="true" />
-        {{ t('common.edit') }}
-      </IonButton>
-      <IonButton
-        fill="clear"
-        size="small"
-        color="danger"
-        data-testid="idea-detail-remove"
-        @click="emit('remove')"
-      >
-        <IonIcon slot="start" :icon="trashOutline" aria-hidden="true" />
-        {{ t('ideas.remove') }}
-      </IonButton>
-    </div>
   </section>
 </template>
 
@@ -653,6 +753,11 @@ async function openCommentMenu(comment: IdeaComment) {
   flex-direction: column;
   gap: 12px;
   padding: 4px 16px 18px;
+}
+
+.idea-detail.dropped :deep(.jp-sheet-title) {
+  color: var(--ct-subtext1);
+  text-decoration: line-through;
 }
 
 .chip {
@@ -793,48 +898,90 @@ async function openCommentMenu(comment: IdeaComment) {
   overflow-wrap: anywhere;
 }
 
-/* The four states as one segmented control — the sheet's own, where a
-   segment bar would take the whole width twice. */
-.states {
+/* The head's ⋮ — a bare glyph beside the way out, which keeps the rim. */
+.more {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-  padding: 2px;
+  place-items: center;
+  width: var(--jp-control-round);
+  height: var(--jp-control-round);
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
+/* The step ahead and Gemacht: buttons, not a segment — a segment switches a
+   view everywhere else in the app. */
+.acts {
+  display: flex;
+  gap: 8px;
+}
+
+.act {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--jp-surface-border);
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font: inherit;
+  font-weight: var(--jp-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.act.primary,
+.act.planned {
+  flex: 1.35;
+}
+
+.act.primary {
+  border-color: var(--jp-action);
+  background: var(--jp-action);
+  color: var(--ct-base);
+}
+
+.act.planned {
+  border-color: var(--jp-action);
+  background: transparent;
+  color: var(--jp-action);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
   border: 1px solid var(--jp-surface-border);
   border-radius: var(--jp-r-md);
   background: var(--jp-surface-sunken);
 }
 
-.state {
-  padding: 7px 4px;
-  border: 0;
-  border-radius: var(--jp-r-sm);
-  background: transparent;
+.status-word {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
   color: var(--ct-subtext1);
-  font: inherit;
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.state[aria-pressed='true'] {
-  background: var(--jp-action);
-  color: var(--ct-base);
   font-weight: var(--jp-weight-semibold);
 }
 
-.plan .days {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.status.done .status-word {
+  color: var(--jp-done);
 }
 
-.plan-time {
-  --background: var(--jp-surface-sunken);
-  --padding-start: 12px;
-  --padding-end: 12px;
-  max-width: 180px;
-  margin-top: 8px;
-  border-radius: var(--jp-r-md);
+.status .act {
+  flex: none;
+  min-height: 36px;
 }
 
 .votes {
@@ -938,11 +1085,6 @@ async function openCommentMenu(comment: IdeaComment) {
   --padding-end: 14px;
   flex: 1;
   border-radius: var(--jp-r-pill);
-}
-
-.foot {
-  display: flex;
-  justify-content: space-between;
 }
 
 ion-icon {

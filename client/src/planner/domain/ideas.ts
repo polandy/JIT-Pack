@@ -9,7 +9,10 @@
  */
 import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVote, IdeaVoteValue } from '@/types/domain'
 import {
+  IDEA_STATE_DONE,
+  IDEA_STATE_DROPPED,
   IDEA_STATE_IDEA,
+  IDEA_STATE_SHORTLISTED,
   IDEA_STATES,
   IDEA_TAGS,
   IDEA_VOTE_DOWN,
@@ -193,6 +196,38 @@ export function ideaBoard(
 /** The switcher's number: the ideas nobody has decided on yet (FR-21.21's count). */
 export function undecidedCount(ideas: readonly Idea[]): number {
   return ideas.filter((idea) => idea.state === IDEA_STATE_IDEA).length
+}
+
+// --- the detail's moves (FR-29.2) ---
+
+/** The step the detail puts first: onto the shortlist, or onto a day. */
+export type IdeaLeadStep = 'shortlist' | 'plan'
+export const IDEA_STEP_SHORTLIST = 'shortlist' as const satisfies IdeaLeadStep
+export const IDEA_STEP_PLAN = 'plan' as const satisfies IdeaLeadStep
+
+/** What an open idea goes on to; a done or dropped one has no step ahead. */
+export function ideaLeadStep(state: IdeaState): IdeaLeadStep | null {
+  if (state === IDEA_STATE_IDEA) return IDEA_STEP_SHORTLIST
+  if (state === IDEA_STATE_SHORTLISTED) return IDEA_STEP_PLAN
+  return null
+}
+
+/**
+ * Where a closed idea goes when it is opened again: a done one was almost
+ * always on the shortlist and keeps its day there; a dropped one is weighed
+ * again among the ideas. Null for an idea that is still open.
+ */
+export function reopenedState(state: IdeaState): IdeaState | null {
+  if (state === IDEA_STATE_DONE) return IDEA_STATE_SHORTLISTED
+  if (state === IDEA_STATE_DROPPED) return IDEA_STATE_IDEA
+  return null
+}
+
+/** The seldom moves the detail's ⋮ holds: back off the shortlist, and away. */
+export function menuMoves(state: IdeaState): IdeaState[] {
+  if (state === IDEA_STATE_SHORTLISTED) return [IDEA_STATE_IDEA, IDEA_STATE_DROPPED]
+  if (state === IDEA_STATE_IDEA) return [IDEA_STATE_DROPPED]
+  return []
 }
 
 /** One idea's discussion, oldest first — read as a conversation, like a note's replies. */
