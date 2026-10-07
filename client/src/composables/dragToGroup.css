@@ -101,10 +101,17 @@
   gap: 4px;
 }
 
+/* A field keeps its column, so a name wider than it (*Znüni/Zvieri* at
+   360 px) takes a second line at its slash rather than being cut (G-13). */
 [data-carry-choice] {
   display: grid;
   place-items: center;
   min-height: 34px;
+  padding: 2px;
+  white-space: normal;
+  overflow-wrap: normal;
+  text-align: center;
+  line-height: 1.15;
   border-radius: var(--jp-r-sm);
   background: var(--jp-surface-sunken);
   color: var(--ct-subtext0);

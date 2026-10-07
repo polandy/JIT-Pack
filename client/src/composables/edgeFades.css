@@ -1,0 +1,44 @@
+/**
+ * `useEdgeFades`' visual contract (G-13, ADR-051 amendment 5): a row that
+ * scrolls sideways fades out on the side that has more and comes to rest on a
+ * whole item. Global on purpose: the trip switcher, `ChipRow`'s scrolling
+ * mode and the for-whom line are one rule, and three screens drawing three
+ * different edges would read as three features.
+ */
+.jp-edge-fades {
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* A swipe comes to rest on a whole item rather than on half a word;
+     proximity, so a short nudge is not dragged back. */
+  scroll-snap-type: x proximity;
+  /* Half a glyph pill: enough to read as a fade, short of hiding the item
+     that stands next to the edge. */
+  --jp-edge-fade: 24px;
+}
+
+.jp-edge-fades::-webkit-scrollbar {
+  display: none;
+}
+
+.jp-edge-fades > * {
+  scroll-snap-align: center;
+}
+
+/* The mask reads alpha alone, so the opaque stop is whatever colour the row has. */
+.jp-edge-fades.more-start {
+  mask-image: linear-gradient(to right, transparent, currentColor var(--jp-edge-fade));
+}
+
+.jp-edge-fades.more-end {
+  mask-image: linear-gradient(to left, transparent, currentColor var(--jp-edge-fade));
+}
+
+.jp-edge-fades.more-start.more-end {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    currentColor var(--jp-edge-fade),
+    currentColor calc(100% - var(--jp-edge-fade)),
+    transparent
+  );
+}

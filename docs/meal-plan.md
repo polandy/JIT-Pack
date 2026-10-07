@@ -32,7 +32,7 @@ meal. The sheet asks for:
   (*„Rösti mit Spiegelei · 4 Zutaten · Tessin"*). Tap one and its ingredients are filled in; change them as you like.
 - **Selbst kochen** or **Auswärts**. A meal eaten out has no ingredients, just **Wo** — your shortlisted
   [ideas](ideas.md) are offered there, so the restaurant you picked is one tap away.
-- **Mahlzeit** (*Frühstück*, *Mittagessen*, *Zwischendurch* for a snack or an afternoon cake, *Abendessen*) and
+- **Mahlzeit** (*Morgen*, *Mittag*, *Znüni/Zvieri* for a snack or an afternoon cake, *Abend*) and
   **Tag**, to move it — a day that already has a meal wears a dot; **Uhrzeit** if it has a time (without one it stands where its meal belongs —
   breakfast in the morning, dinner in the evening); a **Notiz**.
 - **Wer kocht** — with a server, once more than one person is on the trip.
@@ -59,7 +59,7 @@ drag:
   near the top or bottom of the screen and the list scrolls to the days beyond.
 - A small chip floats above your finger with the meal's name and where it would land — *„→ Do., 15.10."* — so the day
   under your finger stays visible. Over its own day it says *„bleibt am …"*.
-- **Another meal of the day:** the chip shows *bleibt Abend · Früh · Mittag · Zw. · Abend* above your finger. Slide
+- **Another meal of the day:** the chip shows *bleibt Abend · Morgen · Mittag · Znüni/Zvieri · Abend* above your finger. Slide
   right and the one above your finger lights up — dinner becomes lunch, on the same day too. Dragged straight down
   it stays what it was.
 - Let go and the meal is there. Who cooks and its ingredients stay, and the ingredients are due on the new day on the

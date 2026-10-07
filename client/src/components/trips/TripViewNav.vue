@@ -34,8 +34,9 @@
  * its siblings is a screen that will forget.
  */
 import { IonIcon, useIonRouter } from '@ionic/vue'
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useEdgeFades } from '@/composables/useEdgeFades'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
@@ -137,66 +138,24 @@ watch(() => props.current, hideBubble)
 onBeforeUnmount(hideBubble)
 
 const row = ref<HTMLElement | null>(null)
-/** Whether pills lie beyond the row's start / end edge — each side's fade (ADR-051 amendment 5). */
-const moreStart = ref(false)
-const moreEnd = ref(false)
-
-/** Under a pixel of scroll left is none: a fractional width leaves a sliver nobody can scroll to. */
-const EDGE_SLACK_PX = 1
-
-function readEdges() {
-  const nav = row.value
-  if (!nav) return
-  moreStart.value = nav.scrollLeft > EDGE_SLACK_PX
-  moreEnd.value = nav.scrollLeft < nav.scrollWidth - nav.clientWidth - EDGE_SLACK_PX
-}
-
-/**
- * Scrolls the current pill to the row's centre, as near as the row's ends
- * allow: centred, it shows what lies on either side of where you are, and
- * neither neighbour sits cut under a fade. The row's own scroll offset only —
- * `scrollIntoView` would move the page under it too.
- */
-function centreCurrent() {
-  const nav = row.value
-  const pill = nav?.querySelector<HTMLElement>('[aria-current="page"]')
-  if (!nav || !pill) return
-  const bounds = nav.getBoundingClientRect()
-  const box = pill.getBoundingClientRect()
-  // Whole pixels: WebKit keeps `scrollLeft` as an integer and drops the fraction.
-  nav.scrollLeft += Math.round(box.left + box.width / 2 - (bounds.left + bounds.width / 2))
-  readEdges()
-}
+// Amendment 5's fades and centring are G-13's one rule for a sideways row.
+// The pills change under a mounted row too — the day plan and the meals join
+// once the trip has loaded with both dates, a count lengthens the word.
+const { moreStart, moreEnd, readEdges } = useEdgeFades(row, {
+  current: '[aria-current="page"]',
+  recentreOn: () => [props.current, views.value.map((view) => `${view.id}:${view.label}`).join()],
+})
 
 function onScroll() {
   hideBubble()
   readEdges()
 }
-
-// Measured only once the row has a size: a page still hidden in the outlet's
-// transition reports every box as empty, and a centring then moves nothing.
-let resizes: ResizeObserver | null = null
-onMounted(() => {
-  centreCurrent()
-  if (row.value && typeof ResizeObserver !== 'undefined') {
-    resizes = new ResizeObserver(() => centreCurrent())
-    resizes.observe(row.value)
-  }
-})
-onBeforeUnmount(() => resizes?.disconnect())
-// The pills change under a mounted row too — the day plan and the meals join
-// once the trip has loaded with both dates, a count lengthens the word — and
-// the row's own box does not change with them, so its observer never fires.
-watch(
-  () => [props.current, views.value.map((view) => `${view.id}:${view.label}`).join()],
-  () => void nextTick(centreCurrent),
-)
 </script>
 
 <template>
   <nav
     ref="row"
-    class="trip-views"
+    class="trip-views jp-edge-fades"
     :aria-label="t('packing.tripViews')"
     data-testid="trip-views"
     :class="{ 'more-start': moreStart, 'more-end': moreEnd }"
@@ -255,41 +214,10 @@ watch(
   /* A pixel past the last pill: WebKit rounds the scroll width down, and a
      pill ending on a fraction could otherwise never scroll wholly into view. */
   padding: 6px 1px 0 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  /* A swipe comes to rest on a whole pill rather than on half a glyph;
-     proximity, so a short nudge is not dragged back. */
-  scroll-snap-type: x proximity;
-  /* Half a glyph pill: enough to read as a fade, short of hiding the pill
-     that stands next to the edge. */
-  --trip-views-fade: 24px;
-}
-
-/* The cue that the row scrolls, on the side that has more only (ADR-051
-   amendment 5): a glyph fading out says "more this way", one cut at a hard
-   edge reads as a layout bug. The mask reads alpha alone, so the opaque stop
-   is whatever colour the row has. */
-.trip-views.more-start {
-  mask-image: linear-gradient(to right, transparent, currentColor var(--trip-views-fade));
-}
-
-.trip-views.more-end {
-  mask-image: linear-gradient(to left, transparent, currentColor var(--trip-views-fade));
-}
-
-.trip-views.more-start.more-end {
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    currentColor var(--trip-views-fade),
-    currentColor calc(100% - var(--trip-views-fade)),
-    transparent
-  );
 }
 
 .view {
   position: relative;
-  scroll-snap-align: center;
   display: inline-flex;
   align-items: center;
   gap: 5px;

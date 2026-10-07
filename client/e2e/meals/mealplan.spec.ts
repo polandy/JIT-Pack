@@ -18,7 +18,9 @@ import {
   openMeals,
   openNewMeal,
 } from '../helpers/m31'
-import { browserDay } from '../helpers/page'
+import { addIdea, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
+import { browserDay, switchToGerman } from '../helpers/page'
+import { CUE_PHONES, cutLabels, rowCue } from '../helpers/rows'
 import { fillIonic } from '../helpers/ionic'
 import { openTripView } from '../helpers/trips'
 
@@ -830,5 +832,91 @@ test.describe('M31 meal plan — the ＋ opens the meal sheet (FR-21.24) @local 
     await fab.click()
     await expect(mealSheet(page).getByTestId('meal-sheet-title')).toHaveText(/^New: /)
     await expect(mealSheet(page).getByTestId('meal-title')).toBeVisible()
+  })
+})
+
+/**
+ * UX-08, G-13: in German on the reference device and at 360 px, no chip in
+ * the meal sheet is cut. The slots read in their short names and wrap; the
+ * trip's days scroll, faded on the side that has more and centred on the
+ * chosen day — when the sheet opens on a saved meal and whenever another day
+ * is chosen; the shortlist's long idea names wrap whole.
+ */
+test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M31-16: slot, day and shortlist chips stand whole at 360 and 412 px, the chosen day centred', async ({
+    page,
+  }) => {
+    const offsets = Array.from({ length: 15 }, (_, n) => 30 + n)
+    const day = await days(page, offsets)
+    await createTripViaWizard(page, {
+      name: 'Engadin Lang',
+      startDate: day(30),
+      endDate: day(44),
+      travelers: ['Andy'],
+    })
+    const LONG_IDEAS = ['Bernina Express nach Tirano', 'Muottas Muragl – Alp Languard']
+    await openIdeas(page)
+    for (const title of LONG_IDEAS) {
+      await addIdea(page, { title })
+      const detail = await openIdea(page, title)
+      await detail.getByTestId('idea-state-shortlisted').click()
+      await expect(detail.getByTestId('idea-state-shortlisted')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      await detail.getByTestId('idea-detail-close').click()
+      await expect(ideaDetail(page)).toHaveCount(0)
+    }
+    await openMeals(page)
+    await addMeal(page, { day: day(37), slot: 'snack', title: 'Nusstorte' })
+    await switchToGerman(page)
+    await expect(mealRow(page, day(37), 'Nusstorte')).toBeVisible()
+
+    for (const phone of CUE_PHONES) {
+      await page.setViewportSize(phone)
+      const at = `at ${phone.width} px`
+      // A saved meal on the trip's eighth day: the row opens centred on it.
+      await mealRow(page, day(37), 'Nusstorte').click()
+      const sheet = mealSheet(page)
+      const slots = sheet.getByRole('group', { name: 'Mahlzeit' })
+      const dayRow = sheet.getByRole('group', { name: 'Tag' })
+      await expect(slots.getByRole('button')).toHaveText([
+        'Morgen',
+        'Mittag',
+        // The zero-width space is the label's one break opportunity (G-13).
+        'Znüni/\u200bZvieri',
+        'Abend',
+      ])
+      expect(await cutLabels(slots, 'button'), `slots ${at}`).toEqual([])
+      await expect
+        .poll(() => rowCue(dayRow, '[aria-pressed="true"]'), { message: `day row ${at}` })
+        .toEqual({ rest: 'centred', faded: 'both' })
+      expect(await cutLabels(dayRow, 'button'), `days ${at}`).toEqual([])
+
+      // Another day chosen comes to the centre; the first day holds the row at its start.
+      await sheet.getByTestId(`meal-day-${day(41)}`).click()
+      await expect
+        .poll(() => rowCue(dayRow, '[aria-pressed="true"]'), { message: `day 12 ${at}` })
+        .toEqual({ rest: 'centred', faded: 'both' })
+      await sheet.getByTestId(`meal-day-${day(32)}`).click()
+      await sheet.getByTestId(`meal-day-${day(30)}`).click()
+      await expect
+        .poll(() => rowCue(dayRow, '[aria-pressed="true"]'), { message: `day 1 ${at}` })
+        .toEqual({ rest: 'start', faded: 'end' })
+
+      await sheet.getByTestId('meal-kind-out').click()
+      const shortlist = sheet.getByRole('group', { name: 'Von der Ideen-Shortlist' })
+      for (const title of LONG_IDEAS) {
+        await expect(shortlist.getByRole('button', { name: title, exact: true })).toHaveCount(1)
+      }
+      expect(await cutLabels(shortlist, 'button'), `shortlist ${at}`).toEqual([])
+
+      await sheet.getByTestId('meal-sheet-close').click()
+      await sheetGone(page)
+    }
   })
 })

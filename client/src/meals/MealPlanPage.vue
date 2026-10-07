@@ -625,7 +625,9 @@ function planOn(day: string) {
 
 .slot {
   display: grid;
-  grid-template-columns: auto 54px 1fr auto;
+  /* The label column holds the widest one-word slot name, *Morgen* (57 px as
+     an eyebrow); *Znüni/Zvieri* breaks at its slash, never inside a word (G-13). */
+  grid-template-columns: auto 60px 1fr auto;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -641,6 +643,7 @@ function planOn(day: string) {
 
 .slot .label {
   color: var(--ct-subtext0);
+  overflow-wrap: normal;
 }
 
 .slot .body {

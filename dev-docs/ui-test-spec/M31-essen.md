@@ -65,3 +65,10 @@
   its *Undo* puts it back. Moved four days by the sheet's day chip, the save's toast asks the same and stays 8 s too.
 * **E2E-M31-15** `local` (FR-21.24) — **implemented** (`meals/mealplan.spec.ts`): the ＋ is named *„New meal"* and
   opens the meal sheet on a new meal (*„New: …"*, the dish field shown). M31 keeps its sheet rather than M6's composer.
+* **E2E-M31-16** `local` (G-13, UX-08) — **implemented** (`meals/mealplan.spec.ts`): in German, at 360 and 412 px, no
+  chip in the meal sheet is cut. The slots read *Morgen · Mittag · Znüni/Zvieri · Abend* and stand whole; a saved meal
+  on the trip's eighth of fifteen days opens with its day chip **centred** and the row faded on both sides; another day
+  chosen comes to the centre, the first day holds the row at its start with the fade at its end only; every day chip is
+  whole or under a fade. Eaten out, two shortlisted ideas with long names wrap and stand whole. Cut is read off the
+  rendered boxes (an item past an edge the row does not fade, or a word its own box clips), so the case fails on the
+  equal-share layout and on the old long slot words.

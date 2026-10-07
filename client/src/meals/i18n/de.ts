@@ -40,9 +40,11 @@ export const mealsDe: Record<keyof typeof mealsEn, string> = {
   'meals.slot.lunch': 'Mittagessen',
   'meals.slot.snack': 'Zwischendurch',
   'meals.slot.dinner': 'Abendessen',
-  'meals.slotShort.breakfast': 'Früh',
+  'meals.slotShort.breakfast': 'Morgen',
   'meals.slotShort.lunch': 'Mittag',
-  'meals.slotShort.snack': 'Zw.',
+  // A zero-width space after the slash: where the label may break in a column narrower
+  // than it (M31's rows, the drag chip) — browsers break no word at a slash (G-13).
+  'meals.slotShort.snack': 'Znüni/\u200bZvieri',
   'meals.slotShort.dinner': 'Abend',
   'meals.slotWord.breakfast': 'früh',
   'meals.slotWord.lunch': 'mittags',

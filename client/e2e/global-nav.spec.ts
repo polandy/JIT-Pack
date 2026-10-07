@@ -20,6 +20,7 @@ import { PATH } from './routes'
 import { backToInventory, createItem, openViewSheet } from './helpers/m9'
 import { addTripNote, openThread } from './helpers/m4'
 import { openListComposer } from './helpers/composer'
+import { CUE_PHONES, rowCue } from './helpers/rows'
 
 /**
  * Global navigation and the app bar (UI-Test-Spec §3: G-1, G-9, G-12).
@@ -93,49 +94,6 @@ async function dismissMenu(page: Page) {
  * CSS pixels. Narrower phones scroll the row rather than wrap it.
  */
 const PIXEL_9_PRO = { width: 410, height: 914 }
-
-/**
- * The widths the switcher's scroll cue is measured at (ADR-051 amendment 5):
- * the narrowest phone still in use and the Pixel 9 Pro's rendered width.
- */
-const CUE_PHONES = [
-  { width: 360, height: 800 },
-  { width: 412, height: 915 },
-] as const
-
-/** Where the trip switcher's row rests, and on which sides it fades — both read off the rendered row. */
-interface RowCue {
-  /**
-   * `centred` on the current pill, `start`/`end` where the row is held at an
-   * end because centring would pass it, otherwise how far off it rests.
-   */
-  rest: string
-  /** The sides the computed `mask-image` fades out. */
-  faded: 'none' | 'start' | 'end' | 'both'
-}
-
-function rowCue(page: Page): Promise<RowCue> {
-  return page.getByTestId('trip-views').evaluate((nav): RowCue => {
-    const box = nav.getBoundingClientRect()
-    const pill = nav.querySelector('[aria-current="page"]')!.getBoundingClientRect()
-    const offCentre = pill.left + pill.width / 2 - (box.left + box.width / 2)
-    const max = nav.scrollWidth - nav.clientWidth
-    const rest =
-      Math.abs(offCentre) <= 1
-        ? 'centred'
-        : offCentre < 0 && nav.scrollLeft === 0
-          ? 'start'
-          : offCentre > 0 && nav.scrollLeft >= max - 1
-            ? 'end'
-            : `${Math.round(offCentre)} px off centre at ${nav.scrollLeft} of ${max}`
-    // A gradient's transparent stop computes to rgba(0, 0, 0, 0): one per faded side.
-    const mask = getComputedStyle(nav).maskImage
-    const clear = mask.split('rgba(0, 0, 0, 0)').length - 1
-    const faded =
-      clear === 0 ? 'none' : clear === 2 ? 'both' : mask.includes('to left') ? 'end' : 'start'
-    return { rest, faded }
-  })
-}
 
 const ANCHOR_RUN = ['trips', 'templates', 'items', 'trips', 'dashboard', 'trips'] as const
 
@@ -1062,7 +1020,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       ] as const) {
         await openTripView(page, view)
         await expect
-          .poll(() => rowCue(page), { message: `${view} at ${phone.width} px` })
+          .poll(() => rowCue(page.getByTestId('trip-views'), '[aria-current="page"]'), {
+            message: `${view} at ${phone.width} px`,
+          })
           .toEqual(cue)
       }
     }

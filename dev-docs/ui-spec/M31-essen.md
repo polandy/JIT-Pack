@@ -18,12 +18,12 @@
     *🚗 Anreise* / *🚗 Abreise* on the first and last day, else the first excursion of the day (*„🪧 Gletscher"*), and
     a ＋ at its end (`m31-add-<YYYY-MM-DD>`) for another meal that day — on its dinner while that is free, then lunch,
     then breakfast; then one card holding **its meals only**, in the order they are eaten.
-  * **A meal** (`m31-meal-<id>`, `data-slot`): the slot's short name in the label role (*Früh*, *Mittag*, *Zw.*,
-    *Abend*), the dish in the heading weight with *„· 12:30"* where it has a time, and under it who cooks (avatar and
-    *„Lena kocht"*, FR-33.8) and *„3 von 4 Zutaten eingekauft"* (*alles eingekauft*, *keine Zutaten*), *„· 🎒 mit auf
-    Gletscher"* where it goes on an excursion; eaten out *„🍴 auswärts · Pizzeria Mulin"*, the dish led by 🍴. At its
-    end the ring of its bought share (`m31-ring-<id>`), in the done tone when full, absent without ingredients. A tap
-    opens its sheet.
+  * **A meal** (`m31-meal-<id>`, `data-slot`): the slot's short name in the label role (*Morgen*, *Mittag*,
+    *Znüni/Zvieri*, *Abend*) in a column as wide as *Morgen*, *Znüni/Zvieri* breaking at its slash (G-13), the dish in
+    the heading weight with *„· 12:30"* where it has a time, and under it who cooks (avatar and *„Lena kocht"*, FR-33.8)
+    and *„3 von 4 Zutaten eingekauft"* (*alles eingekauft*, *keine Zutaten*), *„· 🎒 mit auf Gletscher"* where it goes on
+    an excursion; eaten out *„🍴 auswärts · Pizzeria Mulin"*, the dish led by 🍴. At its end the ring of its bought share
+    (`m31-ring-<id>`), in the done tone when full, absent without ingredients. A tap opens its sheet.
   * A meal is moved to another day by its grip (FR-33.15, G-21)** — `DragGrip` at the row's leading edge
     (`m31-grip-<id>`, *„Raclette verschieben"*) on every meal from today on; one already eaten holds the grip's place
     with the dashed ring. Lifted, **every run of free days opens into its rows** (`m31-plan-<day>`), each a place to
@@ -31,21 +31,21 @@
     open around the meal, shifted so its row stays under the finger, and glides shut on the drop; held at the top or
     bottom edge, it scrolls to the days beyond (G-21). The chip above the finger says *„Raclette ABEND"* over *„→ Do.,
     15.10."*, or *„bleibt am Mo., 12.10."* over its own day and over nothing; the round ＋ steps aside meanwhile. **The
-    slot is chosen in the chip** (G-21): it spans the row, and under its head *„bleibt Abend · Früh · Mittag · Zw. ·
-    Abend"* stand over the list's columns — sliding right lights the slot over the finger, *„→ Do., 15.10. · Mittag"*;
-    on its own day too, so a dinner becomes a lunch in place. The day under the finger takes M6's frame and tint and
-    says *hier ablegen* in place of its ＋; its own day takes nothing and frames nothing. Letting go moves its day, and
-    its slot where another was chosen — cook, note and ingredients stay, a time goes with a changed slot, and two meals
-    of one slot on a day are fine, so there is never a question — and the meal slides from the chip into its new place.
-    The toast *„„Raclette" ist jetzt am Do., 15.10."* carries **Rückgängig**, *„„Raclette" ist jetzt am Do., 15.10. ·
-    Mittag"* with a new slot, *„· ohne Uhrzeit, sie war 19:00"* where a time went, and *„· 🎒 nicht mehr im Rucksack für
-    Bernina Express"* (*„· 🎒 jetzt im Rucksack für …"*) where its excursion changed with it. The mockup is the "Mahlzeit
-    verschieben" artifact (2026-10-05). (E2E-M31-11, E2E-M31-13)
-    Moved more than a day later with fresh ingredients already bought (FR-33.13), it ends *„· 🌿 Brot ist schon gekauft –
-    reicht es bis Sa.?"*, *„· 🌿 Brot, Rucola sind schon gekauft …"* for two, *„· 🌿 Brot, Rucola + 2 weitere sind schon
-    gekauft …"* for more — the new day as its weekday, last of the notes, and the sheet's **Speichern** toast carries it
-    too; a toast carrying it stays 8 s, never a dialog to acknowledge; durable or unbought ones are never named. The
-    mockup is the "Frische Zutaten verschoben" artifact (2026-10-05). (E2E-M31-14)
+    slot is chosen in the chip** (G-21): it spans the row, and under its head *„bleibt Abend · Morgen · Mittag ·
+    Znüni/Zvieri · Abend"* stand over the list's columns (a field narrower than its name breaks it at its slash) —
+    sliding right lights the slot over the finger, *„→ Do., 15.10. · Mittag"*; on its own day too, so a dinner becomes a
+    lunch in place. The day under the finger takes M6's frame and tint and says *hier ablegen* in place of its ＋; its
+    own day takes nothing and frames nothing. Letting go moves its day, and its slot where another was chosen — cook,
+    note and ingredients stay, a time goes with a changed slot, and two meals of one slot on a day are fine, so there is
+    never a question — and the meal slides from the chip into its new place. The toast *„„Raclette" ist jetzt am Do.,
+    15.10."* carries **Rückgängig**, *„„Raclette" ist jetzt am Do., 15.10. · Mittag"* with a new slot, *„· ohne Uhrzeit,
+    sie war 19:00"* where a time went, and *„· 🎒 nicht mehr im Rucksack für Bernina Express"* (*„· 🎒 jetzt im Rucksack
+    für …"*) where its excursion changed with it. The mockup is the "Mahlzeit verschieben" artifact (2026-10-05).
+    (E2E-M31-11, E2E-M31-13) Moved more than a day later with fresh ingredients already bought (FR-33.13), it ends *„· 🌿
+    Brot ist schon gekauft – reicht es bis Sa.?"*, *„· 🌿 Brot, Rucola sind schon gekauft …"* for two, *„· 🌿 Brot, Rucola
+    + 2 weitere sind schon gekauft …"* for more — the new day as its weekday, last of the notes, and the sheet's
+    **Speichern** toast carries it too; a toast carrying it stays 8 s, never a dialog to acknowledge; durable or
+    unbought ones are never named. The mockup is the "Frische Zutaten verschoben" artifact (2026-10-05). (E2E-M31-14)
   * **A run of free days** between, before or after the planned ones is **one dashed line** (`m31-gap-<first day>`,
     `data-days`): *„Di., 13.10. · nichts geplant · ＋"*, *„Di. – Do., 15.10. · nichts geplant · ＋"* for several. A tap
     opens it in place into a slim dashed row per day (`m31-plan-<YYYY-MM-DD>`, *„Mi., 14.10. · ＋ planen"*), which
@@ -61,19 +61,21 @@
 * **The meal sheet** (`meal-sheet`), *„Neu: Abendessen"* or *„Abendessen"* (`meal-sheet-title`) over *„Mo., 12.10. ·
   Tag 3 von 8"*, ✕ (`meal-sheet-close`):
   * **Gericht** (`meal-title`, *„z. B. Älplermagronen, Grillieren"*), focused on a new meal. Under it, on a new cooked
-    meal, **Früher gekocht** (`meal-earlier`): up to four chips (`meal-earlier-<n>`) of FR-33.4's dishes, each the dish
-    over *„4 Zutaten · Tessin, Mai 2026"*, filtered by what is typed (*Von früheren Reisen*). A chip fills the dish and
-    the ingredients, marked *aus „Tessin, Mai 2026"* in the done tone beside *Zutaten* (`meal-earlier-from`), and the
-    row goes.
+    meal, **Früher gekocht** (`meal-earlier`): up to four chips (`meal-earlier-<n>`) of FR-33.4's dishes in a row that
+    scrolls (G-13's sideways row), each the dish over *„4 Zutaten · Tessin, Mai 2026"*, filtered by what is typed (*Von
+    früheren Reisen*). A chip fills the dish and the ingredients, marked *aus „Tessin, Mai 2026"* in the done tone
+    beside *Zutaten* (`meal-earlier-from`), and the row goes.
   * ***🍳 Selbst kochen | 🍴 Auswärts*** (`meal-kind`), a segmented control.
-  * **Mahlzeit** (`meal-slot-<slot>`) and **Tag** (`meal-day-<YYYY-MM-DD>`, scrolled sideways to the chosen one) as
-    chips; a day that already has another meal wears a dot (`data-planned`), *„· ● schon etwas geplant"* beside the
-    label, so a free day is found from the sheet too. Another day chosen for a saved meal moves it without the drag
-    (FR-33.15): the head's line reads *„Mo., 12.10. → Do., 15.10. · Tag 6 von 8"* and the day it leaves keeps a dashed
-    chip (`data-moved-from`).
+  * **Mahlzeit** (`meal-slot-<slot>`) as chips in the slots' short names (*Morgen*, *Mittag*, *Znüni/Zvieri*, *Abend*),
+    one row that wraps rather than cuts a word; **Tag** (`meal-day-<YYYY-MM-DD>`) as chips in one row that scrolls by
+    G-13's sideways-row rule — faded on the side that has more, **the chosen day centred** when the sheet opens and
+    whenever another is chosen (E2E-M31-16). A day that already has another meal wears a dot (`data-planned`), *„· ●
+    schon etwas geplant"* beside the label, so a free day is found from the sheet too. Another day chosen for a saved
+    meal moves it without the drag (FR-33.15): the head's line reads *„Mo., 12.10. → Do., 15.10. · Tag 6 von 8"* and the
+    day it leaves keeps a dashed chip (`data-moved-from`).
   * **Uhrzeit** (`meal-time`, 24 h, the slot's time as its placeholder) beside **Notiz** (`meal-note`, *optional*).
   * **Wer kocht** (`meal-cook-<userId>`, *niemand* last, `meal-cook-none`), cooked meals in Server Mode with more
-    than one member.
+    than one member; the chips wrap.
   * **🎒 Mit auf den Ausflug „…"** (`meal-excursion`, `role="switch"`), a cooked meal not at dinner on a day an
     excursion covers (the first one, by its first day): *„Steht als eine Zeile im Rucksack. Die Zutaten bleiben auf der
     Einkaufsliste."* under it.
@@ -93,7 +95,8 @@
     one typed in front of the name, else the one used last. A tap adds it and empties the field. Under the list:
     *„Steht in Einkaufen unter Essensplan, fällig am Mo., 12.10."*.
   * **Wo** (`meal-place`, *„Restaurant, Hütte …"*), a meal eaten out, and under it **Von der Ideen-Shortlist**: a 💡
-    chip per shortlisted idea (`meal-place-idea-<id>`) that fills *Wo* and an empty dish.
+    chip per shortlisted idea (`meal-place-idea-<id>`) that fills *Wo* and an empty dish. The chips wrap, so a long
+    idea name stands whole; one wider than the sheet breaks onto a second line inside its chip.
   * **Hinzufügen** / **Speichern** (`meal-save`), full width, on once the meal has a dish or a place; it toasts
     *„„Raclette" steht am Mo., 12.10. · 3 Zutaten auf der Einkaufsliste"*. Ticking an ingredient writes at once, as on
     M6; everything else is written by the button.

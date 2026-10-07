@@ -234,8 +234,9 @@
     **as a line of the card under that row** — *Gemeinsam* ⎮ *Alle*, one avatar toggle per traveler in roster order, and
     a summary line (*„3 Personen · 3 Stück"*); tapping it again or another seat folds it, so **at most one** is open.
     Every tap commits (G-5). Unlit travelers keep their face at half weight; a lit one wears the action ring. **Laid out
-    for three travelers**: up to three the faces are 40 px with the name spelled out; from the
-    fourth they are 32 px in a 40 px column, five fit a 360 px phone, and a longer roster scrolls the line sideways. The
+    for three travelers**: up to three the faces are 40 px with the name spelled out; from the fourth they are 32 px.
+    Each toggle is as wide as its word, 40 px at least, so *Gemeinsam* and every name stand whole; a roster whose names
+    do not fit scrolls the line sideways by G-13's rule (E2E-M5-33). The
     strip is an **opaque, sunken** band raised above the rows below it, which slide out from underneath as it opens
     rather than across it; the seat is its own tap target, so tapping it does not ripple the row. **No steppers here** —
     a lit traveler is a child row at once, and its count is where the amount is changed (FR-25.24). A question the plan
