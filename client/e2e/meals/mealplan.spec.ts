@@ -898,9 +898,11 @@ test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals',
       expect(await cutLabels(dayRow, 'button'), `days ${at}`).toEqual([])
 
       // Another day chosen comes to the centre; the first day holds the row at its start.
-      await sheet.getByTestId(`meal-day-${day(41)}`).click()
+      // The neighbour stands whole beside the centred chip, so the click scrolls nothing
+      // itself: only the row's own re-centring can bring it to the middle.
+      await sheet.getByTestId(`meal-day-${day(38)}`).click()
       await expect
-        .poll(() => rowCue(dayRow, '[aria-pressed="true"]'), { message: `day 12 ${at}` })
+        .poll(() => rowCue(dayRow, '[aria-pressed="true"]'), { message: `day 9 ${at}` })
         .toEqual({ rest: 'centred', faded: 'both' })
       await sheet.getByTestId(`meal-day-${day(32)}`).click()
       await sheet.getByTestId(`meal-day-${day(30)}`).click()
