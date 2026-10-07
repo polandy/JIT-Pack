@@ -195,7 +195,11 @@ These patterns apply to every screen and are specified once.
   — the **page head**. The bar shows, left to right: the app logo on a tab root (a compact mark on mobile, the full
   wordmark from the desktop breakpoint up, a link/tap-target to M1) or **`‹ back` alone on every other screen**, and on
   the right the page's G-12 cluster, the ⋮, the sync glyph (G-2) and the avatar/settings control (G-1). The way out of a
-  drill-down is the back-target contract rather than the logo (ADR-011). **The bar is part of the page, not a slab over
+  drill-down is the back-target contract rather than the logo (ADR-011). **The bar's two ends are the frame's, its
+  cluster is the page's (ADR-050 amendment 2, UX-14):** from the desktop breakpoint up the cluster and its ⋮ end at the
+  content column's right edge — following the column when a detail pane re-centres it — while back or the logo keep
+  the left corner and the sync glyph and the gear the right one. Below the breakpoint the column is the window and the
+  cluster stands beside the sync glyph. **The bar is part of the page, not a slab over
   it (ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and the G-11 wash at its
   top-left — runs under the bar, the head and the content alike.
 * **The body is up to three columns, and the third is the detail pane (ADR-064).** Left to right: the desktop rail (≥
@@ -373,9 +377,12 @@ These patterns apply to every screen and are specified once.
   **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
   router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
   then renders and responds to every tap while being absent from the accessibility tree.
-  * **Placement — the app bar, beside the gear.** On any screen reached with the back chevron (M4, M6, …) the cluster
-    occupies the app bar's right side. The gear stays on every screen except M17 itself, because G-9's "back returns to
-    where the gear was tapped" only works if the gear can be tapped anywhere. The cost — M4's bar carrying the cluster
+  * **Placement — the app bar, over the column's right edge.** On any screen reached with the back chevron (M4, M6, …)
+    the cluster occupies the app bar's right side: beside the sync glyph and the gear on a phone, and from 900 px up
+    ending where the content column ends, so on a 1920 px window it is not 530 px from the list it acts on (G-9, ADR-050
+    amendment 2). E2E-M4-71 measures it at 1280 and 1920 px, with and without M5's pane. The gear stays on every
+    screen except M17 itself, because G-9's "back returns to where the gear was tapped" only works if the gear can be
+    tapped anywhere. The cost — M4's bar carrying the cluster
     *and* the gear — is a known crowding finding (UX-13) and is decided there, not here. A tab root shows the magnifier
     at most (see the size above). Rationale beyond tidiness: M4's sub-header **collapses on scroll** (Addendum §3.25),
     so a cluster living in that sub-header would slide away mid-task — in the app bar the actions stay reachable while

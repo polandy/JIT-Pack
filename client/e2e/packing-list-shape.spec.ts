@@ -359,7 +359,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * was written against. So the column has to be narrower than the room it
    * is given *and* the same on each screen.
    */
-  test('E2E-M4-71: one content measure, and the screens the reader steps to keep it', async ({
+  test('E2E-M4-71: one content measure, the screens the reader steps to keep it, and the bar cluster ends where it does', async ({
     page,
   }) => {
     const VIEWPORT = 1280
@@ -416,6 +416,36 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
     await oneLivePage()
     await expect.poll(columnWidth).toBe(column)
+
+    // The page's cluster ends where the column ends (G-12, UX-14); the sync
+    // glyph and the gear stay in the window's corner, because they are the
+    // frame's. The ⋮ is the cluster's last glyph on M4. Measured with the
+    // detail pane shut and open, because the pane re-centres the column
+    // (ADR-064) and a cluster pinned to one computed offset would pass the
+    // first and stand over the pane in the second — which is what today's
+    // bar does at 1280, 410 px past the column.
+    const rightEdge = (locator: Locator) =>
+      locator.evaluate((el) => Math.round(el.getBoundingClientRect().right))
+    const columnRight = () => rightEdge(page.locator('.app-content'))
+    const clusterRight = () => rightEdge(page.getByTestId('header-overflow'))
+    const CORNER = 8
+    for (const width of [VIEWPORT, 1920]) {
+      await page.setViewportSize({ width, height: 900 })
+      const shut = await columnRight()
+      await expect.poll(clusterRight).toBe(shut)
+      expect(await rightEdge(page.getByTestId('header-settings'))).toBeGreaterThan(width - CORNER)
+
+      await visible(page).getByTestId('m4-row-Zelt').click()
+      await expect(page.getByTestId('m5-sheet')).toBeVisible()
+      const open = await columnRight()
+      // The pane moved the column — without it the equality below is the
+      // first one again.
+      expect(open).toBeLessThan(shut)
+      await expect.poll(clusterRight).toBe(open)
+      expect(await rightEdge(page.getByTestId('header-settings'))).toBeGreaterThan(width - CORNER)
+      await page.getByTestId('m5-close').click()
+      await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    }
   })
   /*
    * E2E-M4-72 (FR-21.19): the lead column is one thing wide, on every kind

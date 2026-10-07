@@ -155,3 +155,25 @@ The budget is held by `AppHeader` (`MAX_ROOT_BAR_ACTIONS`, read off the left slo
 by the pages, so a root action registered tomorrow becomes a word without anyone remembering the rule. The *Neutral*
 consequence above — the roots' import controls becoming bar actions — is superseded: they are ⋮ entries. E2E-G12-02
 reads the bar of every root at both widths and finds each moved action as its ⋮ word.
+
+## Amendment 2 (2026-10-07) — on desktop the cluster stands over the column
+
+The bar spans the window; since FR-21.26 the content is one `--jp-measure` column centred in what the rail and a
+detail pane leave (ADR-064). The cluster stayed beside the gear, so the UX review (item UX-14) measured it on the seed:
+its right edge stood 20 px past the column's at 900 px, 210 at 1280 and 530 at 1920 — with M5 open 310, 410 and 730,
+and up to 1280 px it stood over the pane rather than the list its glyphs act on. Two ways were put to the owner on the
+live build:
+
+- **The cluster ends at the column's right edge, in the bar** — chosen. Back or the logo keep the left corner and the
+  sync glyph and the gear the right one: they are the frame's and mean the same on every screen. The page's glyphs and
+  its ⋮ are the page's, and stand where the page is. With a pane open they follow the re-centred column. Below the
+  900 px breakpoint nothing changes. Cost: on a screen whose cluster is only a ⋮ (M9) that ⋮ stands alone mid-bar.
+- *The cluster in the page head, on the title's line* — rejected. M4's head yields on scroll (FR-21.17), so search and
+  filter would leave with it mid-task — the reason G-12 put the cluster in the bar — or need a sticky rule of their
+  own; and the cluster would have one place on a phone and another on desktop.
+
+The bar is not the body's sibling, so it cannot be laid out by the body; `AppHeader` restates the body's geometry from
+the same tokens (`--jp-nav-rail-w`, `--jp-measure`, and the pane's width, which `App.vue` publishes as
+`--jp-frame-pane-w` keyed on the same `:empty` that hides the pane host). A change to the body's columns that is not
+made through those tokens moves the column without the cluster; E2E-M4-71 measures the two together at 1280 and
+1920 px, with and without the pane.

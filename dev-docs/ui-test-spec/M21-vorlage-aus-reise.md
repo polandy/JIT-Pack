@@ -94,7 +94,9 @@ needs a trip that follows the group (E2E-M21-03c).
 * **E2E-M4-71** `all` (FR-21.26) — **implemented**
   (`e2e/packing-list-shape.spec.ts`): on a 1280 px window the content column is narrower than the room it is given, a
   row sits inside it, and the width does not change when the reader steps to a sibling view of the trip (Luggage) or off
-  the trip entirely (Settings) and back.
+  the trip entirely (Settings) and back. Then, at 1280 and 1920 px, the bar's cluster (its ⋮, the last glyph) ends at
+  the column's right edge to the pixel — with M5's pane shut and open, the open case first proving the pane moved the
+  column — while the gear stays within 8 px of the window's corner (G-9, ADR-050 amendment 2, UX-14).
 * **E2E-M4-72** `all` (FR-21.19) — **implemented** (`e2e/packing-list-shape.spec.ts`): a lone per-person
   instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same x as
   a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that lines up by
