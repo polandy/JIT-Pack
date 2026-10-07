@@ -19,7 +19,9 @@ async function settled(page: Page, screen: ComposerScreen): Promise<void> {
   const live = visiblePage(page)
   if (screen === 'm6') {
     const { composer, fab } = COMPOSER.m6
-    await expect(live.getByTestId(composer).or(live.getByTestId(fab))).toBeVisible()
+    // The FAB stays mounted while the composer is open (hidden, an anchor for
+    // the toasts), so both match then; the composer comes first.
+    await expect(live.getByTestId(composer).or(live.getByTestId(fab)).first()).toBeVisible()
     await expect(live.getByTestId('m6-list-loading')).toHaveCount(0)
     return
   }

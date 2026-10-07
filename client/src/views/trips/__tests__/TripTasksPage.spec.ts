@@ -1322,7 +1322,7 @@ describe('M25 — the ＋ is the one door to the composer (FR-7.14, FR-21.24)', 
 
     expect(content.scrollToTop).toHaveBeenCalled()
     expect(page.find('[data-testid="m25-composer"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m25-fab"]').exists()).toBe(false)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
   })
 
   it('✕ closes the composer, drops the words and the day, keeps the phase, and brings the FAB back', async () => {
@@ -1337,7 +1337,7 @@ describe('M25 — the ＋ is the one door to the composer (FR-7.14, FR-21.24)', 
 
     await page.get('[data-testid="m25-composer-close"]').trigger('click')
     expect(page.find('[data-testid="m25-composer"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m25-fab"]').exists()).toBe(true)
+    expect(page.get('ion-fab').classes()).not.toContain('fab-away')
 
     await openComposer(page)
     expect(page.findComponent(TaskComposer).findComponent(IonInput).props('modelValue')).toBe('')
@@ -1351,6 +1351,6 @@ describe('M25 — the ＋ is the one door to the composer (FR-7.14, FR-21.24)', 
     await flushPromises()
 
     expect(page.find('[data-testid="m25-composer"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m25-fab"]').exists()).toBe(false)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
   })
 })

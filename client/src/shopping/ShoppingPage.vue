@@ -1012,11 +1012,13 @@ setHeaderTitle(
         </template>
       </EntrySheet>
       <!-- FR-30.6: M4's ＋, bottom right — the one door to the composer
-           (FR-21.24), gone while it is open. Hidden while selecting (FR-30.9,
-           M9's own rule). -->
+           (FR-21.24), away while it is open: hidden rather than unmounted,
+           because the toasts are anchored on its box and would otherwise drop
+           onto the tab bar. Gone while selecting (FR-30.9, M9's own rule). -->
       <IonFab
-        v-if="!selecting && !composerOpen"
+        v-if="!selecting"
         :id="FAB_ANCHOR.m6"
+        :class="{ 'fab-away': composerOpen }"
         slot="fixed"
         vertical="bottom"
         horizontal="end"
@@ -1034,6 +1036,12 @@ setHeaderTitle(
    footprint, so the last row is never under the ＋. M4's measure. */
 .shop-content {
   --padding-bottom: 96px;
+}
+
+/* FR-21.24: no target for a tap or a screen reader while the composer is
+   open, yet still a box for the toasts to stand above. */
+.fab-away {
+  visibility: hidden;
 }
 
 /* G-20: at rest while a selection is on — in place, so nothing moves. */

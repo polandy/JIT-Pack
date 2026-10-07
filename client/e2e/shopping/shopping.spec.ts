@@ -1186,7 +1186,7 @@ test.describe('M6 shopping — the ＋ bottom right, the one door to the compose
     // Nothing on the list (G-7): the field is the only thing to do, so it stands open and no ＋ hovers.
     await expect(m6(page).getByTestId('m6-empty')).toBeVisible()
     await expect(composer).toBeVisible()
-    await expect(fab).toHaveCount(0)
+    await expect(fab).toBeHidden()
     await addEntry(page, 'Brot')
     // Entries come in runs: the first one does not close it.
     await expect(composer).toBeVisible()
@@ -1205,7 +1205,7 @@ test.describe('M6 shopping — the ＋ bottom right, the one door to the compose
 
     await fab.click()
     await expect(composer).toBeVisible()
-    await expect(fab).toHaveCount(0)
+    await expect(fab).toBeHidden()
     const field = m6(page).getByTestId('m6-add-input').locator('input')
     await expect(field).toBeFocused()
     await expect(field).toHaveValue('')

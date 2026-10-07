@@ -1057,7 +1057,7 @@ test.describe('M25 — the ＋ is the one door to the composer (FR-21.24) @local
     const field = composer.getByTestId('trip-todo-input')
 
     await expect(composer).toBeVisible()
-    await expect(fab).toHaveCount(0)
+    await expect(fab).toBeHidden()
     await fillIonic(field, 'Water the plants')
     await field.locator('input').press('Enter')
     await expect(before.getByTestId('trip-todo-Water the plants')).toBeVisible()
@@ -1077,7 +1077,7 @@ test.describe('M25 — the ＋ is the one door to the composer (FR-21.24) @local
 
     await fab.click()
     await expect(composer).toBeVisible()
-    await expect(fab).toHaveCount(0)
+    await expect(fab).toBeHidden()
     await expect(field.locator('input')).toBeFocused()
     await expect(field.locator('input')).toHaveValue('')
     await field.locator('input').press('Escape')

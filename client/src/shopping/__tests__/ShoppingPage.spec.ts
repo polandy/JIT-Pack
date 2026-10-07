@@ -597,25 +597,29 @@ describe('M6 — the ＋ bottom right, the one door to the composer (FR-30.6, FR
     // over the list instead of beside the field.
     expect(calls).toEqual(['scroll', 'focus'])
     expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
-    // The FAB has nothing left to do while the composer is open.
-    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(false)
+    // The FAB has nothing left to do while the composer is open — away, yet
+    // still the box the toasts are anchored on.
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
+    expect(page.get('ion-fab').attributes('id')).toBe(FAB_ANCHOR.m6)
     expect(written).toEqual([])
   })
 
-  it('✕ closes the composer, drops the words and the day, and brings the FAB back', async () => {
-    seedEntry('e1', { name: 'Brot' })
+  it('✕ closes the composer, drops the words and the day, keeps the tag, and brings the FAB back', async () => {
+    seedEntry('e1', { name: 'Brot', tag: 'Supermarkt' })
     const page = mountPage()
     await openComposer(page)
+    await page.find('[data-testid="m6-tag-chip"]').trigger('click')
     await page.findComponent(IonInput).setValue('Milch')
     await page.find('[data-testid="due-chip-today"]').trigger('click')
 
     await page.find('[data-testid="m6-composer-close"]').trigger('click')
     expect(page.find('[data-testid="m6-composer"]').exists()).toBe(false)
-    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(true)
+    expect(page.get('ion-fab').classes()).not.toContain('fab-away')
 
     await openComposer(page)
     expect(page.findComponent(IonInput).props('modelValue')).toBe('')
     expect(page.find('[data-testid="m6-composer-due"]').exists()).toBe(false)
+    expect(page.get('[data-testid="m6-tag-chip"]').attributes('aria-pressed')).toBe('true')
     expect(written.filter((w) => w.op === 'insert')).toEqual([])
   })
 
@@ -625,7 +629,7 @@ describe('M6 — the ＋ bottom right, the one door to the composer (FR-30.6, FR
 
     expect(page.find('[data-testid="m6-composer"]').exists()).toBe(true)
     expect(page.find('[data-testid="m6-empty"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m6-fab"]').exists()).toBe(false)
+    expect(page.get('ion-fab').classes()).toContain('fab-away')
   })
 })
 

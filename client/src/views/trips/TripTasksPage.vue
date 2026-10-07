@@ -755,9 +755,11 @@ function onSheetRemove() {
       </SheetModal>
 
       <!-- FR-7.14: the add button every sibling list carries (M4, M6, M26);
-           gone while the composer it opens is open (FR-21.24). -->
+           away while the composer it opens is open (FR-21.24) — hidden, not
+           unmounted, as M6's: the snackbar is anchored on its box. -->
       <IonFab
-        v-if="!selection.selecting.value && !composerOpen"
+        v-if="!selection.selecting.value"
+        :class="{ 'fab-away': composerOpen }"
         :id="FAB_ANCHOR.m25"
         slot="fixed"
         vertical="bottom"
@@ -804,6 +806,12 @@ function onSheetRemove() {
 }
 
 /* G-20: at rest while a selection is on — in place, so nothing moves. */
+/* FR-21.24: no target for a tap or a screen reader while the composer is
+   open, yet still a box for the toasts to stand above. */
+.fab-away {
+  visibility: hidden;
+}
+
 .composer-slot.resting {
   opacity: 0.45;
 }

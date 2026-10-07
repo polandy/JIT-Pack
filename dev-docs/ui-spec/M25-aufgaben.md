@@ -58,8 +58,8 @@
     every tag group, where a *„1 erledigt"* between two headings would read like a heading. Its
     rows name their tag on the second line and can be unticked.
   * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`, *„Aufgabe hinzufügen"*), the one M4, M6 and M26 carry: it scrolls
-    to the top, opens the composer and focuses its field, and is gone while the composer is open. Hidden while
-    selecting; the snackbar clears it.
+    to the top, opens the composer and focuses its field, and is gone while the composer is open — hidden, still the
+    snackbar's anchor (M6's rule). Removed while selecting; the snackbar clears it.
 * **A task's line (FR-7.14): two lines at most.** The first is the grip and the words; the second, where there is
   anything to say, is what is known about the task — the **due pill**, the **row it prepares** (the chip leading to
   it) and the **tag** where the row stands outside its group. **The person stands at the row's edge, before the tick**

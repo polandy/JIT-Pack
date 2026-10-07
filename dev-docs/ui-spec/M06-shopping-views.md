@@ -158,7 +158,9 @@
 * **The ＋ bottom right (FR-30.6):** M4's FAB, same place and glyph, *„Einkauf hinzufügen"* to a screen reader — the
   one door to the composer (FR-21.24). It scrolls the list to the top, opens the composer and puts the cursor in the
   field, and is gone while the composer is open: it would have nothing left to do, and at 360 px with the keyboard up
-  it would cover the one row still visible. The list scrolls clear of the FAB's footprint (FR-25.11h's 96 px).
+  it would cover the one row still visible. Gone means hidden, not removed: its box stays the toasts' anchor, so an
+  undo toast stands where it always does rather than on the tab bar. The list scrolls clear of the FAB's footprint
+  (FR-25.11h's 96 px).
 * **Adding an inventory item to buy (FR-30.2):** on **M4**, with the composer, then its mode — in M5, or *Vor Ort
   kaufen* from the row menu (FR-5.9). M6 writes no packing rows. The composer, its create sheet (FR-24.11) and its
   duplicate exclusion (FR-25.13d) are M4's and M8's.
