@@ -100,7 +100,8 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
 
 /**
  * cascadeChanges is `cascadeOf` as the optimistic changes a caller hands to
- * `enqueueAndDrain` — the children's tombstones, without the parent's own.
+ * `write` as a `QueuedMutation`'s paint — the children's tombstones, without
+ * the parent's own.
  */
 export function cascadeChanges(table: SyncTable, id: string, stores: CascadeStores): PullChange[] {
   return cascadeTombstones(cascadeOf(table, id, stores))

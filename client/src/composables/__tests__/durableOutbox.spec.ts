@@ -11,6 +11,7 @@ import type { Mutation, PullResponse, PushResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
 import { installHarness } from '@/__tests__/harness'
+import { useTripStore } from '@/stores/tripStore'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -212,6 +213,16 @@ describe('durable outbox on boot', () => {
     })
     jsonOnce({ results: [], pull_hint: { next_cursor: 0 } } satisfies PushResponse)
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
+
+    // The funnel paints the write over the row the store holds now, so the
+    // row has to be there first — the way a pull would have put it.
+    useTripStore().applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: { trip_id: 'trip-1', quantity: 1, packed_count: 0, state: 'open' },
+    })
 
     orch.packComplete('trip-1', {
       id: 'i1',

@@ -314,9 +314,9 @@ function createTag(env: PortableImportEnv, name: string): string {
 }
 
 /**
- * Record one item↔tag assignment on the import path, which enqueues
- * directly rather than through enqueueAndDrain: an import lands many
- * mutations and drains once at the end.
+ * Record one item↔tag assignment on the import path, which emits directly
+ * rather than through the write funnel: an import lands many mutations and
+ * drains once at the end.
  */
 function assignTag(env: PortableImportEnv, itemId: string, tagId: string, position: number): void {
   const { mutation } = env.mutations.assignTag(itemId, tagId, position)

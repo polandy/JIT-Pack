@@ -19,6 +19,7 @@ import type { Mutation } from '@/api/types'
 import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/lib/shoppingSources'
 import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
+import { mutationOf, paintOf, type Write } from '@/sync/writeFunnel'
 import type { ShoppingMode } from '@/types/domain'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { presentToast } from '@/lib/toast'
@@ -40,10 +41,15 @@ function fakeHost(): ModuleHost {
       hlc: `h${seq}`,
     }),
     nowIso: () => '2026-09-19T14:32:00.000Z',
-    writeTrip: (_trip, ...muts) => {
-      for (const mut of muts) {
-        written.push(mut.mutation)
-        useShoppingStore().applyChanges(changesOf(mut.optimistic))
+    write: (...writes: Write[]) => {
+      for (const w of writes) {
+        const mutation = mutationOf(w)
+        written.push(mutation)
+        const optimistic =
+          'mutation' in w
+            ? w.optimistic
+            : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
+        useShoppingStore().applyChanges(changesOf(optimistic))
       }
     },
     // The shopping list has no pictures; a call here is a bug in the test.

@@ -14,7 +14,6 @@
  * The trip *after* it exists — its fields, its status, its roster — is
  * `tripLifecycle`. This group hands over as soon as the rows are queued.
  */
-import { optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { planClone, type CloneOptions } from '@/domain/clone'
@@ -75,7 +74,7 @@ export interface CloneDraft {
 
 /** createTripCreationActions binds the three cascades to one sync context. */
 export function createTripCreationActions(ctx: SyncContext) {
-  const { mutations, enqueue, drainPartitions, tripStore, masterStore, tripDataLoaded } = ctx
+  const { mutations, queue, drainPartitions, tripStore, masterStore, tripDataLoaded } = ctx
 
   /**
    * createTripFromWizard commits an M3 draft: the trips row goes to the
@@ -91,7 +90,7 @@ export function createTripCreationActions(ctx: SyncContext) {
     let seriesId = draft.seriesId ?? null
     if (draft.newSeriesName) {
       const { mutation, id } = mutations.createSeries(draft.newSeriesName, draft.attributes)
-      enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
       seriesId = id
     }
 
@@ -102,13 +101,13 @@ export function createTripCreationActions(ctx: SyncContext) {
       draft.endDate,
       { attributes: draft.attributes, seriesId },
     )
-    enqueue('master', null, { mutation: tripMut, optimistic: optimisticInsert(tripMut) })
+    queue(tripMut)
 
     // Member grants follow the trips insert in the same master queue —
     // the server authorizes them against the freshly created trip.
     for (const member of draft.members ?? []) {
       const { mutation } = mutations.addTripMember(tripId, member.userId, member.role)
-      enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
     }
 
     // Inserted unlinked: planRosterAssignment notifies a linked account for
@@ -117,10 +116,7 @@ export function createTripCreationActions(ctx: SyncContext) {
     // per-person row. The links follow the items (FR-2.5).
     const travelerInserts = draft.travelers.map((tr) => {
       const inserted = mutations.addTraveler(tripId, tr.name, null)
-      enqueue('trip', tripId, {
-        mutation: inserted.mutation,
-        optimistic: optimisticInsert(inserted.mutation),
-      })
+      queue(inserted.mutation)
       return inserted
     })
     const travelerIds = travelerInserts.map((t) => t.id)
@@ -129,7 +125,7 @@ export function createTripCreationActions(ctx: SyncContext) {
       const assignedTravelerId =
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null)
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
 
       // FR-27.7: a position's preparation tasks become ordinary FR-7.3 todos
       // on the row they were generated for — no new flag, so "an item with an
@@ -147,7 +143,7 @@ export function createTripCreationActions(ctx: SyncContext) {
           taskBody,
           TASK_PHASE_BEFORE,
         )
-        enqueue('trip', tripId, { mutation: todoMut, optimistic: optimisticInsert(todoMut) })
+        queue(todoMut)
       }
     }
 
@@ -155,10 +151,7 @@ export function createTripCreationActions(ctx: SyncContext) {
       const linkedUserId = draft.travelers[index]?.linkedUserId
       if (!linkedUserId) return
       const mutation = mutations.linkTraveler(inserted.id, linkedUserId)
-      enqueue('trip', tripId, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, inserted.mutation.fields ?? {}),
-      })
+      queue(mutation)
     })
 
     // FR-7.4: the templates' trip tasks, on the trip itself rather than on a
@@ -172,7 +165,7 @@ export function createTripCreationActions(ctx: SyncContext) {
         // FR-7.7: the template said when it is due, and the trip keeps that.
         task.phase,
       )
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
     }
 
     // FR-27.4: what the trip follows from here on. Registered after the
@@ -180,12 +173,12 @@ export function createTripCreationActions(ctx: SyncContext) {
     // against a trip it has already created.
     for (const templateId of draft.sourceTemplateIds ?? []) {
       const { mutation } = mutations.registerTripSource(tripId, templateId)
-      enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
     }
 
     for (const chk of draft.checklistItems ?? []) {
       const { mutation } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
     }
 
     drainPartitions([tripId])
@@ -230,11 +223,11 @@ export function createTripCreationActions(ctx: SyncContext) {
       draft.endDate,
       { seriesId: source.series_id, attributes: source.attributes },
     )
-    enqueue('master', null, { mutation: tripMut, optimistic: optimisticInsert(tripMut) })
+    queue(tripMut)
 
     const travelerIds = plan.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, null)
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
       return id
     })
 
@@ -246,7 +239,7 @@ export function createTripCreationActions(ctx: SyncContext) {
             : (travelerIds[c.carrier_traveler_index] ?? null),
         maxWeightGrams: c.max_weight_grams,
       })
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
       return id
     })
     plan.containers.forEach((c, i) => {
@@ -254,19 +247,7 @@ export function createTripCreationActions(ctx: SyncContext) {
       const mutation = mutations.updateContainer(containerIds[i]!, {
         paired_container_id: containerIds[c.paired_container_index] ?? null,
       })
-      const base = plan.containers[i]!
-      enqueue('trip', tripId, {
-        mutation,
-        optimistic: optimisticUpdate(mutation, {
-          trip_id: tripId,
-          name: base.name,
-          carrier_traveler_id:
-            base.carrier_traveler_index === null
-              ? null
-              : (travelerIds[base.carrier_traveler_index] ?? null),
-          max_weight_grams: base.max_weight_grams,
-        }),
-      })
+      queue(mutation)
     })
 
     for (const item of plan.items) {
@@ -276,7 +257,7 @@ export function createTripCreationActions(ctx: SyncContext) {
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null),
         item.container_index === null ? null : (containerIds[item.container_index] ?? null),
       )
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
     }
 
     drainPartitions([tripId])
@@ -286,7 +267,7 @@ export function createTripCreationActions(ctx: SyncContext) {
   /** Record one item↔tag assignment on the import path. */
   function queueTagAssignment(itemId: string, tagId: string, position: number): void {
     const { mutation } = mutations.assignTag(itemId, tagId, position)
-    enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+    queue(mutation)
   }
 
   /**
@@ -310,14 +291,14 @@ export function createTripCreationActions(ctx: SyncContext) {
     for (const name of plan.newCategories) {
       if (tagIDs.has(name.toLowerCase())) continue
       const { mutation, id } = mutations.createTag(name)
-      enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
       tagIDs.set(name.toLowerCase(), id)
     }
 
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
       const { mutation, id } = mutations.createMasterItem(item.name)
-      enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      queue(mutation)
       // Only now: the imported category becomes the item's primary tag
       // (FR-24.2), and a tag assignment names its item by foreign key. Sent
       // first, every one of them is refused by a server that has not seen the
@@ -335,7 +316,7 @@ export function createTripCreationActions(ctx: SyncContext) {
         trip.endDate,
         trip.seriesId,
       )
-      enqueue('master', null, { mutation: tripMut, optimistic: optimisticInsert(tripMut) })
+      queue(tripMut)
       tripIds.push(tripId)
 
       for (const entry of trip.items) {
@@ -347,7 +328,7 @@ export function createTripCreationActions(ctx: SyncContext) {
           categoryName: item.categoryName,
           quantity: entry.quantity,
         })
-        enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+        queue(mutation)
 
         if (item.hasOpenTask) {
           // Author placeholder — the server stamps author_id on insert.
@@ -360,10 +341,7 @@ export function createTripCreationActions(ctx: SyncContext) {
             t('import.wizard.noiseTodo', { name: item.name }),
             TASK_PHASE_BEFORE,
           )
-          enqueue('trip', tripId, {
-            mutation: todo.mutation,
-            optimistic: optimisticInsert(todo.mutation),
-          })
+          queue(todo.mutation)
         }
       }
     }

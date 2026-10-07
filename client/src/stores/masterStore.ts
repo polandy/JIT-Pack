@@ -24,7 +24,13 @@ import type {
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import { applyToSink, codecFor, type RowSinks, type SyncRow } from '@/sync/tableRegistry'
+import {
+  applyToSink,
+  codecFor,
+  currentRowIn,
+  type RowSinks,
+  type SyncRow,
+} from '@/sync/tableRegistry'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem, withCategories } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
@@ -432,7 +438,13 @@ export const useMasterStore = defineStore('master', () => {
     }
   }
 
+  /** One row in its wire shape, or undefined where this store does not hold it. */
+  function currentRow(table: string, id: string): SyncRow | undefined {
+    return currentRowIn(sinks, table, id)
+  }
+
   return {
+    currentRow,
     tags,
     taskTags,
     itemTags,

@@ -10,10 +10,9 @@
  * the outbox (FR-5.7, ADR-028). They belong to the lock group, whose state
  * this group never touches.
  */
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
-import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import {
   itemInUse,
@@ -78,70 +77,42 @@ interface ForAllAddResult extends SpreadResult {
 
 /** createPackingActions binds the packing group to one sync context. */
 export function createPackingActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, knownTripItems } = ctx
+  const { mutations, write, tripStore, masterStore, knownTripItems } = ctx
 
   /** Pack: increment packed count on a trip item. */
   function packIncrement(tripId: string, item: TripItem) {
-    const mut = mutations.incrementPacked(item.id, item.packed_count, item.quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.incrementPacked(item.id, item.packed_count, item.quantity))
   }
 
   function packDecrement(tripId: string, item: TripItem) {
-    const mut = mutations.decrementPacked(item.id, item.packed_count, item.quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.decrementPacked(item.id, item.packed_count, item.quantity))
   }
 
   function packComplete(tripId: string, item: TripItem) {
-    const mut = mutations.completePacked(item.id, item.quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.completePacked(item.id, item.quantity))
   }
 
   function packZero(tripId: string, item: TripItem) {
-    const mut = mutations.zeroPacked(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.zeroPacked(item.id))
   }
 
   /**
    * Put a row back the way FR-25.2's undo found it.
    *
-   * Takes the id rather than the row, and re-reads the current one: by the
-   * time undo fires, the row on screen is the *packed* one, and building an
-   * optimistic patch from the caller's stale snapshot would also revert
-   * anything that landed in between — a packer avatar, a sync from another
-   * device. Only `packed_count` and `state` are restored, which is exactly
-   * what the pack changed.
+   * Takes the id rather than the row: by the time undo fires, the row on
+   * screen is the *packed* one, and building an optimistic patch from the
+   * caller's stale snapshot would also revert anything that landed in
+   * between — a packer avatar, a sync from another device. The funnel
+   * paints the upsert over the row as the store holds it now, and drops the
+   * write whole where the row is gone — deleted here or on another device,
+   * never to be resurrected by an undo.
    */
   function restorePack(tripId: string, itemId: string, packedCount: number, state: string) {
-    const current = tripStore.getItems(tripId).find((row) => row.id === itemId)
-    // Gone between the pack and the undo — deleted here or on another
-    // device. Doing nothing is the correct outcome rather than a swallowed
-    // one: re-upserting would resurrect a row somebody removed on purpose.
-    if (!current) return
-    const mut = mutations.packItem(itemId, packedCount, state)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(current)),
-    })
+    write(mutations.packItem(itemId, packedCount, state))
   }
 
   function packToggle(tripId: string, item: TripItem) {
-    const mut = mutations.togglePacked(item.id, item.packed_count)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.togglePacked(item.id, item.packed_count))
   }
 
   /**
@@ -152,11 +123,7 @@ export function createPackingActions(ctx: SyncContext) {
    * the cluster head above it sums what its children say.
    */
   function setQuantity(tripId: string, item: TripItem, quantity: number) {
-    const mut = mutations.setQuantity(item.id, quantity, item.packed_count, item.state)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.setQuantity(item.id, quantity, item.packed_count, item.state))
   }
 
   /**
@@ -168,60 +135,36 @@ export function createPackingActions(ctx: SyncContext) {
    * undo has to put back exactly those rows and no others.
    */
   function skipItem(tripId: string, item: TripItem): TripItem[] {
-    const skipOne = (target: TripItem) => {
-      const mut = mutations.skipItem(target.id)
-      return {
-        mutation: mut,
-        optimistic: optimisticUpdate(mut, itemRow(target)),
-      }
-    }
     // FR-20.2: skipping a main item co-skips its (transitive) companions —
     // they stay skipped alongside it instead of vanishing.
     const affected = [
       item,
       ...coSkipTargets(item, tripStore.getItems(tripId), masterStore.dependencyList),
     ]
-    enqueueAndDrain('trip', tripId, ...affected.map(skipOne))
+    write(...affected.map((target) => mutations.skipItem(target.id)))
     return affected
   }
 
   /**
    * Undo a skip: put each row back where {@link skipItem} found it.
    *
-   * Re-read against the current row for the same reason {@link restorePack}
-   * is — by the time the undo fires, a sync or another device may have
-   * touched the row, and only the three fields the skip wrote may be
-   * reverted. A row that has since been deleted is left deleted.
+   * For the same reason as {@link restorePack}: by the time the undo fires,
+   * a sync or another device may have touched the row, so the funnel paints
+   * the three fields over the row as it stands now, and drops a row that
+   * has since been deleted rather than reviving it.
    */
   function restoreSkip(
     tripId: string,
     records: { itemId: string; quantity: number; packedCount: number; state: string }[],
   ) {
-    const current = tripStore.getItems(tripId)
-    const muts = []
-    for (const record of records) {
-      const row = current.find((candidate) => candidate.id === record.itemId)
-      if (!row) continue
-      const mut = mutations.restoreSkipped(
-        record.itemId,
-        record.quantity,
-        record.packedCount,
-        record.state,
-      )
-      muts.push({
-        mutation: mut,
-        optimistic: optimisticUpdate(mut, itemRow(row)),
-      })
-    }
-    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
+    const muts = records.map((record) =>
+      mutations.restoreSkipped(record.itemId, record.quantity, record.packedCount, record.state),
+    )
+    if (muts.length > 0) write(...muts)
   }
 
   function unskipItem(tripId: string, item: TripItem) {
-    const mut = mutations.unskipItem(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.unskipItem(item.id))
   }
 
   /**
@@ -230,62 +173,34 @@ export function createPackingActions(ctx: SyncContext) {
    * explains can never land apart — see `createMutations.buyItem`.
    */
   function buyItem(tripId: string, item: TripItem, from: ShoppingMode) {
-    const mut = mutations.buyItem(item.id, from, item.quantity)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.buyItem(item.id, from, item.quantity))
   }
 
   /** FR-30.13: the row's place on the shopping list (see `mutations.placeOnShopping`). */
   function placeOnShopping(tripId: string, item: TripItem, position: number) {
-    const mut = mutations.placeOnShopping(item.id, position)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.placeOnShopping(item.id, position))
   }
 
   function unbuyItem(tripId: string, item: TripItem, from: ShoppingMode) {
-    const mut = mutations.unbuyItem(item.id, from)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.unbuyItem(item.id, from))
   }
 
   function setMode(tripId: string, item: TripItem, mode: ItemMode) {
-    const mut = mutations.setItemMode(item.id, mode)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.setItemMode(item.id, mode))
   }
 
   /** FR-7.16: the close carries a row to the destination and marks it (see `mutations.carryRowToLocal`). */
   function carryToLocal(tripId: string, item: TripItem, at: string) {
-    const mut = mutations.carryRowToLocal(item.id, at)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.carryRowToLocal(item.id, at))
   }
 
   /** FR-7.16: the close's undo — the row back before departure, unmarked. */
   function returnCarried(tripId: string, item: TripItem) {
-    const mut = mutations.returnCarriedRow(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.returnCarriedRow(item.id))
   }
 
   function assignTraveler(tripId: string, item: TripItem, travelerId: string | null) {
-    const mut = mutations.assignTraveler(item.id, travelerId)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.assignTraveler(item.id, travelerId))
   }
 
   /**
@@ -341,7 +256,7 @@ export function createPackingActions(ctx: SyncContext) {
       const row = byId.get(u.id)
       if (!row) continue
       const mut = mutations.setMembershipFields(u.id, u.fields)
-      muts.push({ mutation: mut, optimistic: optimisticUpdate(mut, itemRow(row)) })
+      muts.push(mut)
     }
     for (const ins of plan.insert) {
       const { mutation } = mutations.addGeneratedTripItem(
@@ -350,7 +265,7 @@ export function createPackingActions(ctx: SyncContext) {
         ins.traveler_id,
         ins.id,
       )
-      muts.push({ mutation, optimistic: optimisticInsert(mutation) })
+      muts.push(mutation)
     }
     for (const id of plan.delete) {
       const mut = mutations.deleteTripItem(id)
@@ -363,23 +278,15 @@ export function createPackingActions(ctx: SyncContext) {
       })
     }
 
-    enqueueAndDrain('trip', tripId, ...muts)
+    write(...muts)
   }
 
   function assignContainer(tripId: string, item: TripItem, containerId: string | null) {
-    const mut = mutations.assignContainer(item.id, containerId)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.assignContainer(item.id, containerId))
   }
 
   function setLatePacker(tripId: string, item: TripItem, latePacker: boolean) {
-    const mut = mutations.setLatePacker(item.id, latePacker)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.setLatePacker(item.id, latePacker))
   }
 
   /**
@@ -394,11 +301,7 @@ export function createPackingActions(ctx: SyncContext) {
    * client owes nothing beyond the ordinary mutation.
    */
   function setPacker(tripId: string, item: TripItem, userId: string | null) {
-    const mut = mutations.setPacker(item.id, userId)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.setPacker(item.id, userId))
   }
 
   /**
@@ -422,11 +325,7 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   function setReviewFlag(tripId: string, item: TripItem, flag: ReviewFlag, value: boolean) {
-    const mut = mutations.setReviewFlag(item.id, flag, value)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, itemRow(item)),
-    })
+    write(mutations.setReviewFlag(item.id, flag, value))
   }
 
   /** Returns the new row's id, which is what an undo of the add takes out. */
@@ -448,10 +347,7 @@ export function createPackingActions(ctx: SyncContext) {
       ...opts,
       flagMissing: isActive,
     })
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     // The companions travel out with the id rather than being announced from
     // here: a snackbar is a screen's, and `skipItem` above already returns
     // what it affected for the same reason (FR-5.5's own report).
@@ -501,10 +397,7 @@ export function createPackingActions(ctx: SyncContext) {
       flagMissing: (packed && isActive) || decided === 'forgotten',
       decided,
     })
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
+    write(mutation)
     const companions = packed && opts.sourceItemId ? addRequiredCompanions(tripId) : []
     return { id, companions }
   }
@@ -520,7 +413,7 @@ export function createPackingActions(ctx: SyncContext) {
   function removeAddedItem(tripId: string, itemId: string) {
     if (!tripStore.getItems(tripId).some((row) => row.id === itemId)) return
     const mut = mutations.deleteTripItem(itemId)
-    enqueueAndDrain('trip', tripId, {
+    write({
       mutation: mut,
       optimistic: [
         ...cascadeChanges(TABLE.tripItems, itemId, { tripStore, masterStore }),
@@ -602,9 +495,7 @@ export function createPackingActions(ctx: SyncContext) {
    */
   function removeItem(tripId: string, item: TripItem, companions: readonly TripItem[]) {
     const removal = mutations.deleteTripItem(item.id)
-    enqueueAndDrain(
-      'trip',
-      tripId,
+    write(
       {
         mutation: removal,
         optimistic: [
@@ -614,7 +505,7 @@ export function createPackingActions(ctx: SyncContext) {
       },
       ...companions.map((target) => {
         const skip = mutations.skipItem(target.id)
-        return { mutation: skip, optimistic: optimisticUpdate(skip, itemRow(target)) }
+        return skip
       }),
     )
   }
@@ -635,20 +526,17 @@ export function createPackingActions(ctx: SyncContext) {
    */
   function skipRows(tripId: string, rows: readonly TripItem[]) {
     if (rows.length === 0) return
-    enqueueAndDrain(
-      'trip',
-      tripId,
+    write(
       ...rows.map((target) => {
         const skip = mutations.skipItem(target.id)
-        return { mutation: skip, optimistic: optimisticUpdate(skip, itemRow(target)) }
+        return skip
       }),
     )
   }
 
   function restoreRemovedItem(tripId: string, row: TripItem) {
     if (tripStore.getItems(tripId).some((current) => current.id === row.id)) return
-    const mutation = mutations.restoreTripItem(row)
-    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    write(mutations.restoreTripItem(row))
   }
 
   /**
@@ -796,7 +684,7 @@ export function createPackingActions(ctx: SyncContext) {
       const row = byId.get(u.id)
       if (!row) continue
       const mut = mutations.setMembershipFields(u.id, u.fields)
-      muts.push({ mutation: mut, optimistic: optimisticUpdate(mut, itemRow(row)) })
+      muts.push(mut)
     }
     for (const id of restore.inserted) {
       if (!byId.has(id)) continue
@@ -809,7 +697,7 @@ export function createPackingActions(ctx: SyncContext) {
         ],
       })
     }
-    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
+    if (muts.length > 0) write(...muts)
   }
 
   /** The values a plan is about to overwrite — the undo, read before the write. */
@@ -865,10 +753,7 @@ export function createPackingActions(ctx: SyncContext) {
         companionAsGenerated(companion),
         null,
       )
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: optimisticInsert(mutation),
-      })
+      write(mutation)
       added.push(companion.name)
     }
     return added

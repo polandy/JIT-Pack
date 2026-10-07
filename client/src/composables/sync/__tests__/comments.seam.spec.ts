@@ -101,6 +101,13 @@ describe('createCommentActions without an orchestrator', () => {
   })
 
   it('deleteComment queues a tombstone on the trip partition', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'cm-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Ladekabel fehlt',
+    })
+
     createCommentActions(ctx).deleteComment(TRIP_ID, 'cm-1')
 
     expect(queued[0]!.type).toBe('trip')

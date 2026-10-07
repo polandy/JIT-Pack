@@ -339,6 +339,7 @@ describe('deleting — FR-31.1, FR-31.5', () => {
       {
         tables: new Set([TABLE.dayEntryTravelers]),
         applyChanges: () => {},
+        currentRow: () => undefined,
         tripChildRows: () => [],
         travelerChildRows: (id) =>
           id === 'tr-sia' ? [{ table: TABLE.dayEntryTravelers, id: 'det-sia' }] : [],

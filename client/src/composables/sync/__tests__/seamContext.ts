@@ -1,7 +1,7 @@
 /**
  * One hand-written `SyncContext` for the seam specs — no `fetch`, no
- * WebSocket, no outbox, no orchestrator, and a recording `enqueueAndDrain`
- * instead of a queue.
+ * WebSocket, no outbox, no orchestrator, and the production write funnel
+ * over a recording queue.
  *
  * It is shared rather than repeated per spec so that growing `SyncContext`
  * costs one edit, and the compiler still names it: a new field is a TS2739
@@ -16,23 +16,24 @@ import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { partitionOf, storeFor } from '@/sync/routing'
+import { storeFor } from '@/sync/routing'
 import { changesOf as unfold } from '@/sync/optimistic'
 import type { PartitionType } from '@/sync/partition'
+import { createWriteFunnel } from '@/sync/writeFunnel'
 
-/** One recorded `enqueueAndDrain` call, in the order the group made it. */
+/** One queued batch — one feed's share of a `write` or `queue` call — in the order the group made it. */
 export interface Recorded {
   type: PartitionType
   id: string | null
   muts: QueuedMutation[]
-  /** Whether the write pushed itself (`enqueueAndDrain`) or left that to a
-   * cascade's own `drainPartitions`. */
+  /** Whether the write pushed itself (`write`) or left that to a cascade's
+   * own `drainPartitions`. */
   drained: boolean
 }
 
 /**
- * makeSeamContext builds the context and the log its `enqueueAndDrain`
- * writes to. Pinia must already be active.
+ * makeSeamContext builds the context and the log its write funnel
+ * records to. Pinia must already be active.
  *
  * `local` decides the mode the group is asked in: null is Server Mode, any
  * store is Local Mode. It is only ever compared against null by the groups,
@@ -82,53 +83,48 @@ export function makeSeamContext(
   const masterStore = useMasterStore()
   const tripStore = useTripStore()
 
-  /** The paint half of a write, shared by both funnels. */
-  function applyPainted(muts: QueuedMutation[]): void {
-    for (const mut of muts) {
-      for (const change of changesOf(mut)) {
+  /**
+   * The production funnel, bound to the real stores and a recording queue —
+   * so the partition and the paint a spec sees are the ones a device would
+   * produce, not a second derivation of them here. Routed by table through
+   * the same module production routes with: routing by partition would put
+   * the master partition's per-trip tables (P-3) into the wrong store the
+   * moment a group painted rows of both.
+   */
+  let drained = false
+  const funnel = createWriteFunnel({
+    currentRow: (table, id) => {
+      const owner = storeFor(table)
+      if (owner === 'trip') return tripStore.currentRow(table, id)
+      if (owner === 'master') return masterStore.currentRow(table, id)
+      return undefined
+    },
+    paint: (changes) => {
+      for (const change of changes) {
         const target = storeFor(change.table)
         if (target === 'trip') applyTo(tripStore, change)
         else if (target === 'master') applyTo(masterStore, change)
       }
-    }
-  }
-  /**
-   * The partition a group names at the write site is restated by hand; the
-   * table's spec is the answer it has to agree with, because the server
-   * refuses a mutation pushed to the other feed. Every seam spec is this
-   * check's test.
-   */
-  function assertPartition(type: PartitionType, muts: QueuedMutation[]): void {
-    for (const { mutation } of muts) {
-      const want = partitionOf(mutation.table)
-      if (want !== type) {
-        throw new Error(`${mutation.table} travels the ${want} partition, written on ${type}`)
-      }
-    }
-  }
+    },
+    queue: ({ partition, muts }) => {
+      queued.push({ type: partition.type, id: partition.id, muts, drained })
+    },
+  })
   const ctx: SeamContext = {
     tripStore,
     masterStore,
     features: [],
     mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
-    enqueueAndDrain: (type, id, ...muts) => {
-      // The real one applies the optimistic changes before it queues, and a
-      // group that writes twice reads its own first write back — the FR-20.4
-      // companion resolution is exactly that shape. Routed by table through
-      // the same module production routes with: routing by partition would
-      // put the master partition's per-trip tables (P-3) into the wrong store
-      // the moment a group painted rows of both.
-      assertPartition(type, muts)
-      applyPainted(muts)
-      queued.push({ type, id, muts, drained: true })
+    write: (...writes) => {
+      drained = true
+      funnel.queueWrites(...writes)
     },
-    enqueue: (type, id, ...muts) => {
+    queue: (...writes) => {
       // A cascade queues without pushing; the paint is the same one, so the
-      // double applies it here too and records the call under `drained:
-      // false` — a spec about ordering reads one log, not two.
-      assertPartition(type, muts)
-      applyPainted(muts)
-      queued.push({ type, id, muts, drained: false })
+      // log records the call under `drained: false` — a spec about ordering
+      // reads one log, not two.
+      drained = false
+      funnel.queueWrites(...writes)
     },
     drainPartitions: (tripIds) => {
       drains.push([...tripIds])

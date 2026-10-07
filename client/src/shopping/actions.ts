@@ -12,8 +12,6 @@ import type { PackingCloseCrossing } from '@/lib/packingClose'
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
-import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_SPECS } from '@/sync/tableRegistry'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
 import { TABLE } from '@/types/tables'
@@ -41,8 +39,6 @@ export interface EntryPlaces {
 }
 
 export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
-  const encode = TABLE_SPECS[TABLE.shoppingEntries].encode
-
   /**
    * Adds an entry to one of the trip's two lists and answers its id. A blank
    * name is not an entry — the field's own content decides, not the button —
@@ -72,7 +68,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       // FR-29.13: made from an idea, it names the idea.
       ...(ideaId ? { idea_id: ideaId } : {}),
     })
-    host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
+    host.write(mutation)
     return id
   }
 
@@ -115,10 +111,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
     }
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, patch)
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encode(entry)),
-    })
+    host.write(mutation)
   }
 
   /**
@@ -131,10 +124,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       bought_at: bought ? host.nowIso() : null,
       bought_by_user_id: null,
     })
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encode(entry)),
-    })
+    host.write(mutation)
   }
 
   /**
@@ -146,10 +136,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
     const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
       assignee_user_id: userId,
     })
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encode(entry)),
-    })
+    host.write(mutation)
   }
 
   /**
@@ -175,15 +162,12 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
   function placeEntry(entry: ShoppingEntry, position: number): void {
     if (position === entry.position) return
     const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, { position })
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encode(entry)),
-    })
+    host.write(mutation)
   }
 
   function removeEntry(entry: ShoppingEntry): void {
     const mutation = host.mutation('delete', TABLE.shoppingEntries, entry.id)
-    host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticDelete(mutation) })
+    host.write(mutation)
   }
 
   /**
@@ -205,7 +189,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       carried_over_at: entry.carried_over_at ?? null,
       position: entry.position ?? null,
     })
-    host.writeTrip(entry.trip_id, { mutation, optimistic: optimisticInsert(mutation) })
+    host.write(mutation)
   }
 
   /** FR-30.9: removes every entry in the batch at once; the undo puts each back as it was. */
@@ -268,10 +252,7 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
       list,
       carried_over_at: at,
     })
-    host.writeTrip(entry.trip_id, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, encode(entry)),
-    })
+    host.write(mutation)
   }
 
   return {
