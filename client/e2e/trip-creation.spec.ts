@@ -307,9 +307,9 @@ test('E2E-M3-22: pressing create twice makes one trip @local @m3', async ({ page
 /**
  * E2E-M3-25 (FR-2.1c, G-16): the dates are filled on step 1 as it opens — the
  * fold is never touched — and the wizard's navigation is one footer pinned
- * above the tab bar at the Pixel 9 Pro's width. Before, each step put its
- * buttons where its content ended (y 412, 328, 254 on steps 1, 2, 4), so the
- * same y on every step, with the fold both closed and open, is the claim.
+ * above the tab bar at the Pixel 9 Pro's width. Steps of different lengths put
+ * content-anchored buttons at different heights, so the same y on every step,
+ * with the fold both closed and open, is the claim.
  */
 test('E2E-M3-25: dates from step 1, and a footer that stays put on every step @local @m3 @g16 @planner', async ({
   page,

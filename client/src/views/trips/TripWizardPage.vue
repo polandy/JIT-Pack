@@ -17,8 +17,7 @@
  * there; `useWizardCore` holds them together.
  *
  * The navigation is a footer pinned above the tab bar (G-16): a step's button
- * sits where the last one did, however long the step — step 3's template list
- * used to push *Weiter* a screen and a half down.
+ * sits where the last one did, however long the step's content.
  */
 import { IonPage, IonContent, IonFooter, IonButton, IonIcon } from '@ionic/vue'
 import { chevronBackOutline } from 'ionicons/icons'

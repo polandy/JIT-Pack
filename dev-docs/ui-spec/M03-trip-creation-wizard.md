@@ -13,8 +13,8 @@
   ▾* row that states what is set behind it.
 * **The navigation is a fixed footer (G-16):** one band pinned above the tab bar on all four steps — a 46 px *‹ Zurück*
   square (disabled on step 1) and the step's default action filling the rest: *Weiter*, on step 4 *Reise anlegen · n
-  Artikel*. The steps scroll under it; the band never moves with their content, so step 3's long template list no
-  longer pushes *Weiter* below the screen. The soft keyboard covers it as it covers the tab bar — the field's Enter is
+  Artikel*. The steps scroll under it; the band never moves with their content, so *Weiter* stays on screen however
+  long step 3's template list. The soft keyboard covers it as it covers the tab bar — the field's Enter is
   the same action (G-16), so the footer is not chased above the keyboard.
 * **The head names the step:** its second line reads *Schritt n · Name* — *Reise · Reisende · Inhalt · Mengen* — rather
   than a bare counter, so a step says what it is for before its content does.

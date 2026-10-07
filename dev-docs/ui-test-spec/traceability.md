@@ -16,6 +16,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-1.8 | DOC/N-A | retired — no units, everything counts in pieces |
 | FR-1.9 | E2E+UNIT+GO | M10-29 (server: set in M10, lands on the linked traveler in M3), M10-30 (Local Mode offers no control); `domain/__tests__/instantiate.spec.ts` (the rule and its failure paths), `TestMasterPush_ItemDefaultAssignee_…` (round trip, unknown account refused) |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts, the traveller faces included) |
+| FR-2.1c | E2E+UNIT | M3-16 (the dates open, series and attributes folded, the fold stating what is set), M3-25 (a trip dated from step 1 without the fold); `TripWizardPage.spec.ts` (the folded row names only what it holds) |
 | FR-2.1d | E2E+UNIT | M3-20; `lib/__tests__/dateRange.spec.ts` (`tapDay`), `DateRangeField.spec.ts`, `TripEditPage.spec.ts`, `ClonePage.spec.ts`, `TripWizardPage.spec.ts` |
 | FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
@@ -154,6 +155,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11l | E2E+UNIT | M4-85 (panel wiring, override); `packingView.spec.ts` (bucketing, whole-set counts) |
 | G-12 | E2E+UNIT | G12-02 also: a tab root holds search + ⋮ alone at 412/360, every moved action a ⋮ word (UX-05; `AppHeader.spec.ts` the root budget); G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs); G12-08 (a held switcher glyph names itself and goes nowhere); G12-09 (the day plan's pill only with both dates, wholly in view where you stand, its back the packing list); G12-07 and M4-57 (a ⋮ holds its own context — none on M6/M25, no trip-wide entries on M4) |
 | G-13 | E2E | the word never cut (UX-08): M31-16 (the meal sheet's wrapping rows and its day row — faded, the chosen day centred on open and on choice), M31-17 (UX-08: *Morgen* and *Znüni/Zvieri* whole on M31's rows, the drag chip and M1), M5-33/M5-34 (the for-whom line, whole and scrolling under the fades), G12-07 (the trip switcher, the same sideways-row rule) |
+| G-16 | E2E | M3-19 (Enter in a plain field is the step's button, step 3's search exempt), M3-25 (the multi-step flow's fixed footer: same y on every step, above the tab bar, measured at 412 px) |
 | G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
 | G-20 | E2E+UNIT | G20-01 (M6: the app bar carries the selection and the first row stays put, measured); `AppHeader.spec.ts` (what the bar shows and hides while selecting), each list page's spec (the selection it registers) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
