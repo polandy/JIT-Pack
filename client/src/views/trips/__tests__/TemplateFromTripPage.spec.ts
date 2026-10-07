@@ -138,7 +138,7 @@ describe('M21 — a line per thing, saying for whom (UX-13, FR-27.5)', () => {
 
   it('folds one row per traveller into one line naming them all', async () => {
     seedPeople(['Andy', 'Sia', 'Leonardo'])
-    // Rows arrive in sync order; the line names the travellers in trip order.
+    // Rows arrive in sync order; the line names the travellers by name.
     for (const who of ['Sia', 'Leonardo', 'Andy']) seedRow(`jacke-${who}`, 'Regenjacke', `tr-${who}`)
     seedRow('stoecke', 'Wanderstöcke', 'tr-Andy')
 
@@ -147,7 +147,7 @@ describe('M21 — a line per thing, saying for whom (UX-13, FR-27.5)', () => {
 
     expect(lines(page)).toEqual([
       'Reisefön',
-      'Regenjacke | per person · Andy, Sia, Leonardo',
+      'Regenjacke | per person · Andy, Leonardo, Sia',
       'Wanderstöcke | for Andy',
     ])
   })

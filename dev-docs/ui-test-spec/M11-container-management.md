@@ -31,7 +31,7 @@ Every id is read clause by clause against the built screen; the notes per case s
   shape, imported as a portable trip (three travellers, a Regenjacke each, a Sonnenhut for two, a row of Andy's, rows
   for the whole trip). **No two bucket rows read alike**: the rows' visible texts are all distinct — before UX-13 the
   three Regenjacke rows were three equal strings, so the assertion fails on the old screen. The siblings read
-  *Regenjacke Andy / Sia / Leonardo* in the trip's traveller order, a whole-trip row names nobody, and the picker opened
+  *Regenjacke Andy / Leonardo / Sia*, by the traveller's name, a whole-trip row names nobody, and the picker opened
   from Sia's row says *„Regenjacke · Sia"*. The one-traveller rule is unit-owned (`rowTravelerName`).
 * **E2E-M11-07** `all` (UX-8) — **implemented** (`e2e/containers.spec.ts`): with zero containers and nothing
   unassigned, the unassigned section is **absent** — "everything is assigned to a container" must not stand under "no

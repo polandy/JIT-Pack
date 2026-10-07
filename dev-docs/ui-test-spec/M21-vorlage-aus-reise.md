@@ -53,7 +53,7 @@ needs a trip that follows the group (E2E-M21-03c).
   sentence because nothing holds that name yet. Mutation-proved twice, once per clause of `canCreate`.
 * **E2E-M21-06** `local` (FR-27.5, UX-13) — **implemented** (`e2e/template-from-trip.spec.ts`): the same imported
   per-person trip as E2E-M11-09, archived. **No two loose lines read alike**: eight trip rows make five lines, all
-  distinct; *Regenjacke* reads *per person · Andy, Sia, Leonardo*, *Sonnenhut* *per person · Sia, Leonardo*,
+  distinct; *Regenjacke* reads *per person · Andy, Leonardo, Sia*, *Sonnenhut* *per person · Leonardo, Sia*,
   *Wanderstöcke* *for Andy*, and the head counts *5 of 5*. That the folded line is written as one `per_person` position
   — the duplicate insert the old screen made against `UNIQUE (template_id, item_id)` — is unit-owned
   (`domain/__tests__/templateFromTrip.spec.ts`, `composables/__tests__/templateFromTrip.spec.ts`). E2E-M21-01 reads

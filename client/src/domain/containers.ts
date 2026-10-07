@@ -16,15 +16,17 @@ export function containerWeight(items: TripItem[], containerId: string): number 
 }
 
 /**
- * unassignedItems is the dedicated FR-10.2 bucket, by name and then in the
- * trip's traveller order — so one person's Regenjacke sits beside the others'
- * and the bucket reads the same on every device and every render (UX-13).
+ * unassignedItems is the dedicated FR-10.2 bucket, by name and then by the
+ * traveller's name — so one person's Regenjacke sits beside the others' and
+ * the bucket reads the same on every device and every render (UX-13). The
+ * roster's own order is the order rows arrived in, which differs per device.
  */
 export function unassignedItems(items: TripItem[], travelers: Traveler[]): TripItem[] {
-  const seat = (item: TripItem) => travelers.findIndex((tr) => tr.id === item.assigned_traveler_id)
+  const who = (item: TripItem) =>
+    travelers.find((tr) => tr.id === item.assigned_traveler_id)?.name ?? ''
   return items
     .filter((i) => i.container_id === null && i.state !== 'skipped')
-    .sort((a, b) => a.name.localeCompare(b.name) || seat(a) - seat(b))
+    .sort((a, b) => a.name.localeCompare(b.name) || who(a).localeCompare(who(b)))
 }
 
 /**

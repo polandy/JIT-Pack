@@ -22,10 +22,11 @@
 * **A bucket row says whose it is (UX-13).** Under the name, the row's second line carries the planned weight (where
   known) and — on a trip with two travellers or more — the traveller a per-person row belongs to, with the same person
   glyph and name the container cards use for their carrier. A row for the whole trip names nobody. The per-person
-  fan-out makes one Regenjacke per traveller, and without the name those rows read identically: nobody can say which
-  one goes into the Koffer. The bucket is ordered **by name, then in the trip's traveller order**, so siblings sit
-  together and two devices show the same list; the picker's subject line names the traveller too (*„Regenjacke ·
-  Sia"*). With one traveller there is no one to tell apart, and no name appears. (E2E-M11-09)
+  fan-out makes one Regenjacke per traveller, and without the name those rows read identically: nobody can say which one
+  goes into the Koffer. The bucket is ordered **by name, then by the traveller's name**, so siblings sit together and
+  two devices show the same list (the roster's own order is arrival order, which differs per device); the picker's
+  subject line names the traveller too (*„Regenjacke · Sia"*). With one traveller there is no one to tell apart, and no
+  name appears. (E2E-M11-09)
 * **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its
   current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks
   packing (FR-25.5).

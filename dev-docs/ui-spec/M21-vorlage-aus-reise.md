@@ -41,10 +41,10 @@ describes a path the app cannot walk — see FR-27.5's build note. The entry dep
     the same master item — or, ad hoc, the same tolerant name — fold into one line, since a template keeps one position
     per item (`UNIQUE (template_id, item_id)`) and the per-person fan-out left one row per traveller. A tap toggles the
     line; nothing opens, because there is one decision to make. Its second line says for whom, on a trip with two
-    travellers or more: *„pro Person · Andy, Sia, Leonardo"* where the trip carried it for several (what the position
-    becomes), *„für Andy"* for one, nothing for a row of the whole trip. A row planned by a Vorlage adds *„aus „…" —
-    als eigene Position übernommen"* (FR-27.1). *„Ohne Gruppe hinzugefügt"* is every ad-hoc line's reason, so it is
-    said **once under the section head**, not on every line. A group's deviation line names each folded thing once
+    travellers or more: *„pro Person · Andy, Leonardo, Sia"* (by name) where the trip carried it for several (what the
+    position becomes), *„für Andy"* for one, nothing for a row of the whole trip. A row planned by a Vorlage adds *„aus
+    „…" — als eigene Position übernommen"* (FR-27.1). *„Ohne Gruppe hinzugefügt"* is every ad-hoc line's reason, so it
+    is said **once under the section head**, not on every line. A group's deviation line names each folded thing once
     too. (E2E-M21-06)
   * **"Als neue Gruppe speichern"** toggle — bundles the checked loose rows into a *fresh group* (name field appears
     below, prefilled) instead of dropping them in as own positions, for the case where they form a reusable unit. Off by

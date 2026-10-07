@@ -15,6 +15,7 @@ import type {
   Template,
   TemplateAssignment,
   TemplateItem,
+  Traveler,
   TripItem,
 } from '@/types/domain'
 
@@ -163,6 +164,19 @@ export function foldRows(rows: TripItem[]): TripItem[][] {
  */
 export function travelerIdsOf(rows: TripItem[]): string[] {
   return [...new Set(rows.map((r) => r.assigned_traveler_id).filter((id) => id !== null))]
+}
+
+/**
+ * travelerNamesOf names who a folded line was packed for, by name — the
+ * roster's own order is the order its rows arrived in, which differs per
+ * device. A traveller this device does not have is left out.
+ */
+export function travelerNamesOf(rows: TripItem[], travelers: Traveler[]): string[] {
+  const ids = travelerIdsOf(rows)
+  return travelers
+    .filter((tr) => ids.includes(tr.id))
+    .map((tr) => tr.name)
+    .sort((a, b) => a.localeCompare(b))
 }
 
 /**

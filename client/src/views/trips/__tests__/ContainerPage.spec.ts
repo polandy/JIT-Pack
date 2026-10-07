@@ -281,7 +281,7 @@ describe('M11 luggage — whose row it is (UX-13, FR-10.2)', () => {
     })
 
   it('names the traveller under a per-person row, siblings side by side', async () => {
-    seedPeople(['Andy', 'Sia'])
+    seedPeople(['Sia', 'Andy'])
     const page = mountPage()
     await flushPromises()
 

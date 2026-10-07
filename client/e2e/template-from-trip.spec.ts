@@ -451,9 +451,9 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     const texts = await rowTexts(lines)
     expect(new Set(texts).size).toBe(texts.length)
     await expect(lines.filter({ hasText: 'Regenjacke' })).toContainText(
-      'per person · Andy, Sia, Leonardo',
+      'per person · Andy, Leonardo, Sia',
     )
-    await expect(lines.filter({ hasText: 'Sonnenhut' })).toContainText('per person · Sia, Leonardo')
+    await expect(lines.filter({ hasText: 'Sonnenhut' })).toContainText('per person · Leonardo, Sia')
     await expect(lines.filter({ hasText: 'Wanderstöcke' })).toContainText('for Andy')
     await expect(visible(page).getByTestId('m21-loose-head')).toContainText('5 of 5')
   })

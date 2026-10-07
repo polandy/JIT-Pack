@@ -38,7 +38,7 @@ import {
   foldRows,
   recogniseTripComposition,
   suggestTemplateName,
-  travelerIdsOf,
+  travelerNamesOf,
   type DeviationChoice,
   type LooseRow,
 } from '@/domain/templateFromTrip'
@@ -147,10 +147,7 @@ function looseLine(row: LooseRow): string {
   if (row.reason === 'from-template')
     parts.push(t('templateFromTrip.looseFromTemplate', { template: row.sourceTemplate?.name ?? '' }))
   if (travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON) {
-    // In the trip's traveller order, as M11 and M4 list them — the rows'
-    // own order is whatever the sync produced.
-    const ids = travelerIdsOf(row.tripItems)
-    const names = travelers.value.filter((tr) => ids.includes(tr.id)).map((tr) => tr.name)
+    const names = travelerNamesOf(row.tripItems, travelers.value)
     if (names.length >= MIN_TRAVELERS_FOR_PER_PERSON)
       parts.push(t('templateFromTrip.perPerson', { names: names.join(', ') }))
     else if (names.length === 1) parts.push(t('templateFromTrip.forTraveler', { name: names[0]! }))
