@@ -270,7 +270,7 @@ export const routes: RouteRecordRaw[] = [
   {
     // M29 (FR-29.15): the trip's day plan — the planner module's second screen.
     path: tripSubPath(TRIP_ID_PARAM, 'dayplan'),
-    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'dayplan' },
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'dayplan', acceptsLinkedFrom: true },
     name: 'trip-dayplan',
     component: () => import('@/planner/DayPlanPage.vue'),
     props: true,

@@ -94,10 +94,14 @@
   left out — *Speichern*, and *Eintrag löschen* (`day-entry-remove`) — a destructive confirmation
   (`day-entry-remove-confirm`) *„„…" löschen?"* / *„Der Eintrag verschwindet für alle, die an der Reise teilnehmen."*.
   An entry without a connection offers *Zugverbindung hinzufügen* there as on a new one.
-* **A day on an idea (FR-29.14):** M28's detail carries, for an idea on the shortlist and while the trip has both dates,
-  *Tag* as a chip per day (`idea-plan-day-<YYYY-MM-DD>`) plus *kein Tag* (`idea-plan-none`), and, once it has a day,
-  *Uhrzeit (optional)* (`idea-plan-time`); taking the day away takes the time with it. The Shortlist's card shows
-  *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
+* **A day on an idea (FR-29.14):** M28's *Einplanen…* opens M29 (`?fromIdea=`, `‹ back` to the idea) with **the
+  idea's sheet** (`m29-idea-plan`): *Einplanen am Do., 8.10.* (`m29-idea-plan-title`), the idea under *Von der
+  Shortlist einplanen* (`m29-idea-plan-idea`), *Tag* as one sideways-scrolling row of day chips
+  (`m29-idea-plan-day-<YYYY-MM-DD>`, the idea's own day pressed, else the plan's chosen one), *Uhrzeit (optional)*
+  (`m29-idea-plan-time`), *Einplanen* (`m29-idea-plan-save`) and, once it has a day, *Kein Tag*
+  (`m29-idea-plan-none`); taking the day away takes the time with it. Saving shows the idea's day with its line
+  centred and toasts *„„…" steht am Do., 8.10."*; *Kein Tag* toasts *„„…" hat keinen Tag mehr"*. The Shortlist's card
+  shows *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
 * **Connections (FR-29.18, ADR-086)** — what an entry carries:
   * **The card** (`day-entry-connection`) stands in the form where *Zugverbindung hinzufügen* stood: *„08:06 → 08:34"*
     with *„28 min · direkt"* at its end, under it *„🚆 Luzern → Hergiswil"* and its lines as chips in what they travel

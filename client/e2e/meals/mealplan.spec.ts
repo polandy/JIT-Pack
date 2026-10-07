@@ -18,7 +18,7 @@ import {
   openMeals,
   openNewMeal,
 } from '../helpers/m31'
-import { addIdea, ideaDetail, openIdea, openIdeas } from '../helpers/m28'
+import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../helpers/m28'
 import { browserDay, switchToGerman } from '../helpers/page'
 import { brokenWords, CUE_PHONES, cutLabels, rowCue } from '../helpers/rows'
 import { fillIonic } from '../helpers/ionic'
@@ -869,11 +869,7 @@ test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals',
     for (const title of LONG_IDEAS) {
       await addIdea(page, { title })
       const detail = await openIdea(page, title)
-      await detail.getByTestId('idea-state-shortlisted').click()
-      await expect(detail.getByTestId('idea-state-shortlisted')).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
+      await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
       await detail.getByTestId('idea-detail-close').click()
       await expect(ideaDetail(page)).toHaveCount(0)
     }

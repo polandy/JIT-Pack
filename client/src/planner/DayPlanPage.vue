@@ -13,7 +13,7 @@
  */
 import { IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, calendarOutline, chevronForward } from 'ionicons/icons'
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
@@ -21,6 +21,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useIdeaSeed } from '@/composables/useIdeaSeed'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { useTripScreen } from '@/composables/useTripScreen'
@@ -35,6 +36,7 @@ import type { DayEntry, Idea } from '@/types/domain'
 import { createPlannerActions, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
 import DayLineRow from './DayLineRow.vue'
+import IdeaPlanSheet from './IdeaPlanSheet.vue'
 import { stripDay } from './dayLineText'
 import WhoChips from '@/components/global/WhoChips.vue'
 import { readDayPlanFilter, writeDayPlanFilter } from './dayPlanFilter'
@@ -44,6 +46,7 @@ import {
   dayLines,
   entriesOutsideTrip,
   forOf,
+  IDEA_LINE_PREFIX,
   ideasOutsideTrip,
   ideasWithExcursion,
   nextDay,
@@ -207,6 +210,52 @@ function plan(idea: Idea, day: string) {
 function planOnChosen(idea: Idea) {
   editing.value = null
   if (chosen.value) plan(idea, chosen.value)
+}
+
+// --- one idea, sent from M28 (FR-29.14) ---
+
+/** The idea M28's *Einplanen…* opened the sheet on; null while it is shut. */
+const planning = ref<Idea | null>(null)
+
+useIdeaSeed(
+  props.tripId,
+  () => loaded.value,
+  (seed) => {
+    planning.value = plannerStore.getIdea(seed.id) ?? null
+  },
+)
+
+/** The idea as it stands now — it may have changed while the sheet was open. */
+function takePlanning(): Idea | undefined {
+  const id = planning.value?.id
+  planning.value = null
+  return id ? plannerStore.getIdea(id) : undefined
+}
+
+/** The plan goes to the idea's day, and to its line, so the person sees where it now stands. */
+async function onPlanIdea(day: string, time: string | null) {
+  const idea = takePlanning()
+  if (!idea) return
+  actions.planIdea(idea, day, time)
+  if (days.value.includes(day)) chosen.value = day
+  await nextTick()
+  document
+    .querySelector(`[data-testid="m29-line-${IDEA_LINE_PREFIX}${idea.id}"]`)
+    ?.scrollIntoView({ block: 'center' })
+  void presentToast({
+    message: t('dayPlan.planned', { title: idea.title, day: shortDueDay(day) }),
+    positionAnchor: FAB_ANCHOR.m29,
+  })
+}
+
+function onUnplanIdea() {
+  const idea = takePlanning()
+  if (!idea) return
+  actions.planIdea(idea, null, null)
+  void presentToast({
+    message: t('dayPlan.unplanned', { title: idea.title }),
+    positionAnchor: FAB_ANCHOR.m29,
+  })
 }
 
 const pageLinks = usePageLinks(props.tripId, orchestrator)
@@ -421,6 +470,15 @@ async function onRemove() {
         @save="onSave"
         @remove="onRemove"
         @plan="planOnChosen"
+      />
+
+      <IdeaPlanSheet
+        :idea="planning"
+        :days="days"
+        :fallback-day="chosen"
+        @close="planning = null"
+        @save="onPlanIdea"
+        @unplan="onUnplanIdea"
       />
 
       <SheetModal :is-open="poolOpen" testid="m29-pool-sheet" @dismiss="poolOpen = false">

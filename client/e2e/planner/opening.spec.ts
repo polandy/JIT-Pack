@@ -1,6 +1,6 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { PATH } from '../routes'
-import { addIdea, ideaDetail, ideasBoard, openIdea, openIdeas } from '../helpers/m28'
+import { addIdea, ideasBoard, moveIdea, openIdea, openIdeas, planIdea } from '../helpers/m28'
 import { addDayEntry, dayPlan, openDayPlan, timelineLines } from '../helpers/m29'
 import { browserDay } from '../helpers/page'
 import { askToStart, openTripView } from '../helpers/trips'
@@ -193,15 +193,9 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
     await openIdeas(page)
     await addIdea(page, { title: 'Bernina Express' })
     const detail = await openIdea(page, 'Bernina Express')
-    await detail.getByTestId('idea-state-shortlisted').click()
-    await detail.getByTestId(`idea-plan-day-${day[0]}`).click()
-    await expect(detail.getByTestId(`idea-plan-day-${day[0]}`)).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    await detail.getByTestId('idea-detail-close').click()
-    await expect(ideaDetail(page)).toHaveCount(0)
-    await openDayPlan(page)
+    await moveIdea(detail, 'idea-act-shortlist', 'shortlisted')
+    // Einplanen… ends on M29, on the idea's day — today.
+    await planIdea(page, detail, day[0] ?? '')
     for (const title of ['Velo mieten', 'Postkarten', 'Tisch reservieren']) {
       await addDayEntry(page, { title })
     }

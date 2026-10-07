@@ -81,6 +81,9 @@ export interface TripDates {
   end_date: string | null
 }
 
+/** An idea's line is keyed by the idea — M29 finds the one it just planned by it. */
+export const IDEA_LINE_PREFIX = 'idea:'
+
 /** The longest trip whose days are listed — a typo'd year must not draw ten thousand tiles. */
 export const MAX_PLAN_DAYS = 120
 
@@ -309,7 +312,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
   for (const idea of input.ideas) {
     if (!onThePlan(idea) || idea.planned_on !== day || withExcursion.has(idea.id)) continue
     lines.push({
-      key: `idea:${idea.id}`,
+      key: `${IDEA_LINE_PREFIX}${idea.id}`,
       kind: DAY_LINE.idea,
       time: isPlanTime(idea.planned_at) ? idea.planned_at : null,
       title: idea.title,

@@ -65,8 +65,10 @@ to one of the travellers.
 
 Only ideas on the **Shortlist** go on the plan. Give one a day in either of two places:
 
-- On the board: open the idea and tap a day under **Tag**; a time is optional. The idea's card on the Shortlist then
-  shows its day — or *noch nicht eingeplant*.
+- On the board: open the idea and tap **Einplanen…**. The day plan opens with the idea chosen; pick a day, add a time
+  if you like, and tap **Einplanen** — you land on that day, and **‹** leads back to the idea. Tap the button again
+  (it now shows the day) to move it, or **Kein Tag** to take the day away. The idea's card on the Shortlist shows its
+  day — or *noch nicht eingeplant*.
 - On the day plan: the bar at the bottom counts the shortlisted ideas without a day. Tap it and tap a day beside an
   idea.
 
