@@ -117,7 +117,8 @@ export function createPostTripActions(
     const write = (templateId: string, positions: PositionDraft[]) => {
       for (const p of positions) {
         const itemId = itemIdOf(p)
-        if (itemId) masterDataActions.addTemplateItem(templateId, itemId, { assignment: p.assignment })
+        if (itemId)
+          masterDataActions.addTemplateItem(templateId, itemId, { assignment: p.assignment })
       }
     }
 

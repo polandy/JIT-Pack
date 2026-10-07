@@ -413,4 +413,3 @@ test.describe('M11 containers @local @m11', () => {
     await expect(page.getByTestId('m11-picker-subject')).toHaveText('Regenjacke · Sia')
   })
 })
-

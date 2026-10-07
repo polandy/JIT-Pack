@@ -339,9 +339,7 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   if (!bundling) ownPositions.push(...loosePositions)
   // The same thing can reach the Vorlage twice — a loose row and an own
   // deviation — and a template keeps one position per item.
-  const own = ownPositions.filter(
-    (p, i) => ownPositions.findIndex((q) => samePosition(p, q)) === i,
-  )
+  const own = ownPositions.filter((p, i) => ownPositions.findIndex((q) => samePosition(p, q)) === i)
 
   return {
     newMasterItems: fold.created,

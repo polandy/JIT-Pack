@@ -130,7 +130,8 @@ const pickingItems = computed<TripItem[]>(() =>
   pickingIds.value === null ? [] : items.value.filter((i) => pickingIds.value!.includes(i.id)),
 )
 const pickingLine = computed(() => {
-  if (pickingItems.value.length !== 1) return t('container.assignCount', { n: pickingItems.value.length })
+  if (pickingItems.value.length !== 1)
+    return t('container.assignCount', { n: pickingItems.value.length })
   const item = pickingItems.value[0]!
   const who = rowTravelerName(item, travelers.value)
   return who ? t('container.itemFor', { item: item.name, traveler: who }) : item.name

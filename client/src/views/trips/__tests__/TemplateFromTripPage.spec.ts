@@ -139,7 +139,8 @@ describe('M21 — a line per thing, saying for whom (UX-13, FR-27.5)', () => {
   it('folds one row per traveller into one line naming them all', async () => {
     seedPeople(['Andy', 'Sia', 'Leonardo'])
     // Rows arrive in sync order; the line names the travellers by name.
-    for (const who of ['Sia', 'Leonardo', 'Andy']) seedRow(`jacke-${who}`, 'Regenjacke', `tr-${who}`)
+    for (const who of ['Sia', 'Leonardo', 'Andy'])
+      seedRow(`jacke-${who}`, 'Regenjacke', `tr-${who}`)
     seedRow('stoecke', 'Wanderstöcke', 'tr-Andy')
 
     const page = mountPage()

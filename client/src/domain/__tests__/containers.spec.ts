@@ -86,14 +86,24 @@ describe('unassignedItems', () => {
     expect(unassignedItems(items, []).map((i) => i.id)).toEqual(['a'])
   })
 
-  it('UX-13: same-named rows sit together, by name and then by the traveller\'s name', () => {
+  it("UX-13: same-named rows sit together, by name and then by the traveller's name", () => {
     // The roster in arrival order, which differs per device — not the order shown.
     const travelers = [traveler('t-sia', 'Sia'), traveler('t-andy', 'Andy')]
     const items = [
       item({ id: 'hut-sia', name: 'Sonnenhut', container_id: null, assigned_traveler_id: 't-sia' }),
-      item({ id: 'jacke-sia', name: 'Regenjacke', container_id: null, assigned_traveler_id: 't-sia' }),
+      item({
+        id: 'jacke-sia',
+        name: 'Regenjacke',
+        container_id: null,
+        assigned_traveler_id: 't-sia',
+      }),
       item({ id: 'kaffee', name: 'Kaffee', container_id: null }),
-      item({ id: 'jacke-andy', name: 'Regenjacke', container_id: null, assigned_traveler_id: 't-andy' }),
+      item({
+        id: 'jacke-andy',
+        name: 'Regenjacke',
+        container_id: null,
+        assigned_traveler_id: 't-andy',
+      }),
     ]
 
     expect(unassignedItems(items, travelers).map((i) => i.id)).toEqual([

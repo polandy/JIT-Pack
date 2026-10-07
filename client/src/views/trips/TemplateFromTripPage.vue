@@ -145,7 +145,9 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 function looseLine(row: LooseRow): string {
   const parts: string[] = []
   if (row.reason === 'from-template')
-    parts.push(t('templateFromTrip.looseFromTemplate', { template: row.sourceTemplate?.name ?? '' }))
+    parts.push(
+      t('templateFromTrip.looseFromTemplate', { template: row.sourceTemplate?.name ?? '' }),
+    )
   if (travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON) {
     const names = travelerNamesOf(row.tripItems, travelers.value)
     if (names.length >= MIN_TRAVELERS_FOR_PER_PERSON)

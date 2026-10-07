@@ -66,7 +66,12 @@ function row(id: string, name: string, sourceTemplateId: string | null): TripIte
 }
 
 /** A trip row that belongs to one traveller — the per-person fan-out's unit. */
-function personRow(id: string, name: string, travelerId: string, itemId: string | null = null): TripItem {
+function personRow(
+  id: string,
+  name: string,
+  travelerId: string,
+  itemId: string | null = null,
+): TripItem {
   return { ...row(id, name, null), assigned_traveler_id: travelerId, source_item_id: itemId }
 }
 
@@ -241,7 +246,10 @@ describe('recogniseTripComposition (FR-27.5)', () => {
 
   it('UX-13: AdHocRowsOfOneName_FoldByTheTolerantName', () => {
     const result = recogniseTripComposition({
-      tripItems: [personRow('h-sia', 'Sonnenhut', 't-sia'), personRow('h-leo', 'sonnenhut ', 't-leo')],
+      tripItems: [
+        personRow('h-sia', 'Sonnenhut', 't-sia'),
+        personRow('h-leo', 'sonnenhut ', 't-leo'),
+      ],
       templates: [],
       positions: [],
       masterItems: items,
@@ -409,7 +417,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
       checkedLooseIds: ['r1'],
     })
 
-    expect(writes.template.positions).toEqual([{ name: 'Stativ', itemId: 'itm-1', assignment: 'trip_global' }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Stativ', itemId: 'itm-1', assignment: 'trip_global' },
+    ])
     expect(writes.newMasterItems).toEqual([])
   })
 
@@ -426,7 +436,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     })
 
     expect(writes.newMasterItems).toEqual(['Stativa'])
-    expect(writes.template.positions).toEqual([{ name: 'Stativa', itemId: null, assignment: 'trip_global' }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Stativa', itemId: null, assignment: 'trip_global' },
+    ])
   })
 
   it('UnknownAdHocName_CreatesTheMasterItemFirst', () => {
@@ -436,7 +448,9 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     })
 
     expect(writes.newMasterItems).toEqual(['Gimbal'])
-    expect(writes.template.positions).toEqual([{ name: 'Gimbal', itemId: null, assignment: 'trip_global' }])
+    expect(writes.template.positions).toEqual([
+      { name: 'Gimbal', itemId: null, assignment: 'trip_global' },
+    ])
   })
 
   it('TwoRowsOfOneName_LeaveOneNewMasterItemAndOnePosition', () => {
@@ -476,13 +490,19 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
       checkedLooseIds: ['w', 'k'],
     })
 
-    expect(writes.template.positions.map((p) => p.assignment)).toEqual(['trip_global', 'trip_global'])
+    expect(writes.template.positions.map((p) => p.assignment)).toEqual([
+      'trip_global',
+      'trip_global',
+    ])
   })
 
   it('UX-13: OneTravellerTwice_IsNotPerPerson_BecauseOnlyOnePersonCarriedIt', () => {
     const writes = plan({
       composition: compose({
-        tripItems: [personRow('a', 'Socken', 't-andy', 'itm-so'), personRow('b', 'Socken', 't-andy', 'itm-so')],
+        tripItems: [
+          personRow('a', 'Socken', 't-andy', 'itm-so'),
+          personRow('b', 'Socken', 't-andy', 'itm-so'),
+        ],
       }),
       checkedLooseIds: ['a'],
     })
