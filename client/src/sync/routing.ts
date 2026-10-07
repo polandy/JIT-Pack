@@ -1,12 +1,11 @@
 /**
- * Which store owns a pulled row.
+ * Which store owns a pulled row, and which feed carries a table's writes —
+ * both read off `TABLE_SPECS`, so a new table is routed by the entry that
+ * gives it a codec, and these sets cannot fall out of step with it.
  *
  * Routing is by owning **store**, never by partition: `trip_members`,
  * `trip_template_sources` and `trip_applied_changes` all travel the *master*
- * partition (Sync-API Spec P-3) and are still per-trip state. A table in
- * neither set is dropped silently — a failure with no symptom — which is why
- * `everyTableIsRouted` in the spec beside this file asserts the two sets
- * together cover `TABLE` exactly.
+ * partition (Sync-API Spec P-3) and are still per-trip state.
  *
  * It lives here rather than inside `useSyncOrchestrator` because the rule has
  * two callers: the orchestrator's own pull funnel, and the seam specs' hand-
@@ -14,69 +13,45 @@
  * painting rows of both (`tripLifecycle.deleteTrip`, C-3a).
  */
 import { TABLE, type SyncTable } from '@/types/tables'
+import type { PartitionType } from './partition'
+import { TABLE_SPECS, type StoreOwner } from './tableRegistry'
 
-/** The tables `useTripStore` holds. */
-export const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
-  TABLE.trips,
-  TABLE.tripItems,
-  TABLE.travelers,
-  TABLE.containers,
-  TABLE.comments,
-  TABLE.noteAcks,
-  TABLE.excursions,
-  TABLE.excursionTravelers,
-  TABLE.excursionItems,
-  TABLE.excursionTracks,
-  TABLE.tripMembers,
-  TABLE.tripTemplateSources,
-  TABLE.tripGeneratedPositions,
-  TABLE.tripAppliedChanges,
-])
+/** Every syncable table. */
+export const ALL_SYNC_TABLES: readonly SyncTable[] = Object.values(TABLE)
 
-/** The tables `useMasterStore` holds. */
-export const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
-  TABLE.tags,
-  TABLE.taskTags,
-  TABLE.itemTags,
-  TABLE.items,
-  TABLE.templates,
-  TABLE.templateItems,
-  TABLE.templateIncludes,
-  TABLE.templateItemTasks,
-  TABLE.templateTasks,
-  TABLE.tripSeries,
-  TABLE.destinationProfiles,
-  TABLE.destinationChecklistItems,
-  TABLE.itemDependencies,
-])
-
-/**
- * The tables a feature module's own store holds (FR-30.3, ADR-066). Named
- * here, in the kernel, because a table name is wire contract rather than
- * module code — the *store* holding the rows is the module's, and reaches the
- * orchestrator as a `FeatureStore` (`sync/featureModule.ts`) through the
- * composition root, never by an import from this side.
- */
-export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([
-  TABLE.shoppingEntries,
-  TABLE.ideas,
-  TABLE.ideaVotes,
-  TABLE.ideaComments,
-  TABLE.ideaImages,
-  TABLE.dayEntries,
-  TABLE.dayEntryTravelers,
-  TABLE.ideaTracks,
-  TABLE.meals,
-  TABLE.mealIngredients,
-])
-
-/** Which store a table belongs to, or null for a table that travels no feed. */
-export function storeFor(table: string): 'trip' | 'master' | 'feature' | null {
-  if (TRIP_STORE_TABLES.has(table)) return 'trip'
-  if (MASTER_STORE_TABLES.has(table)) return 'master'
-  if (FEATURE_STORE_TABLES.has(table)) return 'feature'
-  return null
+function tablesOwnedBy(owner: StoreOwner): ReadonlySet<string> {
+  return new Set<string>(ALL_SYNC_TABLES.filter((t) => TABLE_SPECS[t].owner === owner))
 }
 
-/** Every syncable table, for the spec that asserts both sets cover them. */
-export const ALL_SYNC_TABLES: readonly SyncTable[] = Object.values(TABLE)
+/** The tables `useTripStore` holds. */
+export const TRIP_STORE_TABLES = tablesOwnedBy('trip')
+
+/** The tables `useMasterStore` holds. */
+export const MASTER_STORE_TABLES = tablesOwnedBy('master')
+
+/**
+ * The tables a feature module's own store holds (FR-30.3, ADR-066). The
+ * *store* holding the rows is the module's, and reaches the orchestrator as
+ * a `FeatureStore` (`sync/featureModule.ts`) through the composition root,
+ * never by an import from this side.
+ */
+export const FEATURE_STORE_TABLES = tablesOwnedBy('feature')
+
+function isSyncTable(table: string): table is SyncTable {
+  return Object.hasOwn(TABLE_SPECS, table)
+}
+
+/** Which store a table belongs to, or null for a table that travels no feed. */
+export function storeFor(table: string): StoreOwner | null {
+  return isSyncTable(table) ? TABLE_SPECS[table].owner : null
+}
+
+/**
+ * The feed a table's writes are pushed on, or null for a table that travels
+ * none. The server refuses a mutation on any other partition's endpoint
+ * (Sync-API P-3), so this is the answer every hand-named partition at a write
+ * site has to agree with.
+ */
+export function partitionOf(table: string): PartitionType | null {
+  return isSyncTable(table) ? TABLE_SPECS[table].partition : null
+}

@@ -29,7 +29,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { TABLE_CODECS } from '../tableRegistry'
+import { TABLE_SPECS } from '../tableRegistry'
 import { TABLE, type SyncTable } from '@/types/tables'
 
 const registrySource = readFileSync(
@@ -78,7 +78,7 @@ function encodedColumns(fn: string): Set<string> {
 }
 
 /**
- * The pairs, named by the functions rather than read off `TABLE_CODECS` —
+ * The pairs, named by the functions rather than read off `TABLE_SPECS` —
  * a source-level check needs the source-level names, and the registry is
  * asserted below to hold exactly these tables.
  */
@@ -145,11 +145,11 @@ describe('every codec pair agrees about its columns', () => {
 
 describe('the registry covers the wire', () => {
   it('names every table in TABLE, and only those', () => {
-    expect(Object.keys(TABLE_CODECS).sort()).toEqual(Object.values(TABLE).sort())
+    expect(Object.keys(TABLE_SPECS).sort()).toEqual(Object.values(TABLE).sort())
   })
 
   it('pairs every table a builder exists for', () => {
-    const encoded = Object.entries(TABLE_CODECS)
+    const encoded = Object.entries(TABLE_SPECS)
       .filter(([, codec]) => 'encode' in codec)
       .map(([table]) => table)
       .sort()

@@ -13,7 +13,7 @@ import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { TABLE_CODECS } from '@/sync/tableRegistry'
+import { TABLE_SPECS } from '@/sync/tableRegistry'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
 import { TABLE } from '@/types/tables'
@@ -41,7 +41,7 @@ export interface EntryPlaces {
 }
 
 export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
-  const encode = TABLE_CODECS[TABLE.shoppingEntries].encode
+  const encode = TABLE_SPECS[TABLE.shoppingEntries].encode
 
   /**
    * Adds an entry to one of the trip's two lists and answers its id. A blank

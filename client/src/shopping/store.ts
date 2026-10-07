@@ -13,7 +13,7 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
+import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
@@ -68,7 +68,7 @@ export const useShoppingStore = defineStore('shopping', () => {
       if (change.deleted) {
         entries.value.delete(change.id)
       } else if (change.row) {
-        const entry = TABLE_CODECS[TABLE.shoppingEntries].parse(change.id, change.row as SyncRow)
+        const entry = TABLE_SPECS[TABLE.shoppingEntries].parse(change.id, change.row as SyncRow)
         entries.value.set(change.id, entry)
       }
     }

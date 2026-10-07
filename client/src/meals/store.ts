@@ -10,7 +10,7 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import type { CascadeRow } from '@/sync/cascade'
 import type { FeatureStore } from '@/sync/featureModule'
-import { TABLE_CODECS, type SyncRow } from '@/sync/tableRegistry'
+import { TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import type { Meal, MealIngredient } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 
@@ -52,11 +52,11 @@ export const useMealStore = defineStore('meals', () => {
     for (const change of changes) {
       switch (change.table) {
         case TABLE.meals:
-          apply(meals.value, change, (id, row) => TABLE_CODECS[TABLE.meals].parse(id, row))
+          apply(meals.value, change, (id, row) => TABLE_SPECS[TABLE.meals].parse(id, row))
           break
         case TABLE.mealIngredients:
           apply(ingredients.value, change, (id, row) =>
-            TABLE_CODECS[TABLE.mealIngredients].parse(id, row),
+            TABLE_SPECS[TABLE.mealIngredients].parse(id, row),
           )
           break
       }

@@ -9,8 +9,10 @@ import {
   FEATURE_STORE_TABLES,
   MASTER_STORE_TABLES,
   TRIP_STORE_TABLES,
+  partitionOf,
   storeFor,
 } from '../routing'
+import { TABLE, type SyncTable } from '@/types/tables'
 
 describe('pull routing', () => {
   it('routes every syncable table to exactly one store', () => {
@@ -45,5 +47,47 @@ describe('pull routing', () => {
 
   it('routes nothing for a table that travels no feed', () => {
     expect(storeFor('notifications')).toBeNull()
+  })
+})
+
+describe('write partitions (Sync-API P-3)', () => {
+  // The master half of `tableSpecs` in internal/store/tables.go, by hand
+  // until wiregen emits it: the server refuses a mutation pushed to any
+  // other partition's endpoint.
+  const MASTER_FEED: readonly SyncTable[] = [
+    TABLE.tags,
+    TABLE.taskTags,
+    TABLE.itemTags,
+    TABLE.items,
+    TABLE.itemDependencies,
+    TABLE.templates,
+    TABLE.templateItems,
+    TABLE.templateIncludes,
+    TABLE.templateItemTasks,
+    TABLE.templateTasks,
+    TABLE.tripSeries,
+    TABLE.destinationProfiles,
+    TABLE.destinationChecklistItems,
+    TABLE.trips,
+    TABLE.tripMembers,
+    TABLE.tripTemplateSources,
+    TABLE.tripAppliedChanges,
+  ]
+
+  it('pushes the master data, the trips and their P-3 companions on the master feed', () => {
+    const onMaster = ALL_SYNC_TABLES.filter((t) => partitionOf(t) === 'master')
+    expect(onMaster.sort()).toEqual([...MASTER_FEED].sort())
+  })
+
+  it('pushes every other table on its trip feed, the feature modules’ included', () => {
+    const elsewhere = ALL_SYNC_TABLES.filter(
+      (t) => !MASTER_FEED.includes(t) && partitionOf(t) !== 'trip',
+    )
+    expect(elsewhere).toEqual([])
+    expect(partitionOf(TABLE.meals)).toBe('trip')
+  })
+
+  it('names no partition for a table that travels no feed', () => {
+    expect(partitionOf('notifications')).toBeNull()
   })
 })
