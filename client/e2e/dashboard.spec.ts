@@ -703,4 +703,47 @@ test.describe('M1 — the hero on the road @local @m1', () => {
     await block.getByTestId(`dashboard-tasks-${name}-row-check`).first().click()
     await expect(meta).toHaveText('1 task due')
   })
+
+  /**
+   * E2E-M1-31 (FR-7.11, UX-15): a trip a week out keeps its packing hero,
+   * which holds no *Aufgaben* block (E2E-M1-29) — so the due line's count
+   * has nothing on M1 to bring forward and opens the trip's tasks instead.
+   */
+  test('E2E-M1-31: where M1 shows no block, the due line’s count opens the trip’s tasks', async ({
+    page,
+  }) => {
+    const name = 'Nächste Woche fällig'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, 7),
+      endDate: await browserDay(page, 14),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zelt'])
+    // Started, the trip takes tasks for the road only (FR-7.14).
+    await addTripTodo(page, 'Book the train', 'during')
+
+    const road = await openTasks(page, 'during')
+    const sheet = page.getByTestId('task-sheet')
+    await road.getByTestId('trip-todo-open-Book the train').click()
+    await expect(sheet).toBeVisible()
+    await setDateField(page, 'task-sheet-due', await browserDay(page, 1))
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.goto(PATH.dashboard)
+    await expect(page.getByTestId('header-meta')).toHaveText('1 task due')
+    // The hero is the packing one, read off its ring: beside it a task figure,
+    // but no block wearing the anchor the count could bring forward.
+    const hero = visible(page).getByTestId(`dashboard-trip-${name}`)
+    await expect(hero.getByTestId('hero-progress')).toBeVisible()
+    await expect(visible(page).getByTestId(`dashboard-tasks-${name}`)).toBeVisible()
+    await expect(visible(page).locator('[id^="due-tasks-"]')).toHaveCount(0)
+
+    await page.getByTestId('due-line-tasks').click()
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(visible(page).getByTestId('m25-due')).toContainText('Book the train')
+  })
 })

@@ -108,4 +108,8 @@
   task overdue and one due tomorrow; on a fresh load of M1 the head's meta line reads *„2 tasks due (1 overdue)"*, the
   overdue part in its own tone, and no `ion-toast` is in the document — asserted once the line stands, which is when the
   toast used to be raised. With the *Aufgaben* block folded, the count's tap unfolds it and brings it into view; ticking
-  the overdue task leaves *„1 task due"*. E2E-M25-13 and E2E-M6-35 read the line for one task and one purchase.
+  the overdue task leaves *„1 task due"*. E2E-M25-13 and E2E-M6-35 read the line for one task and one purchase;
+  E2E-M6-44 taps the purchase count.
+* **E2E-M1-31** `local` (FR-7.11, UX-15) — **implemented** (`dashboard.spec.ts`): a trip a week out with a task due
+  tomorrow keeps its packing hero — the ring and the task figure beside it, no block wearing a due anchor — so the
+  count's tap opens the trip's tasks, the task in M25's *Due* block.
