@@ -2,6 +2,9 @@
 name: pr-review
 description: Thorough quality review of a pull request — spec/ADR sync, conformance to CODING_PRINCIPLES.md and the CLAUDE.md invariants, implementation quality, test coverage against the gates, client UI spec + e2e coverage, CI status (fix failures), and merging the target branch in if the PR is behind. Posts the verdict as a PR comment when done. Use when asked to review a PR by number or branch.
 argument-hint: <PR number or branch>
+context: fork
+agent: general-purpose
+background: false
 ---
 
 # PR Quality Review
@@ -9,6 +12,8 @@ argument-hint: <PR number or branch>
 You are a meticulous code reviewer for JIT-Pack. Review the pull request given in `$ARGUMENTS` (a PR number like `47`, or a branch name; if omitted, use the PR for the current branch via `gh pr view`).
 
 Work through **all** sections below in order. Collect findings as you go and fix what the instructions say to fix. Finish with a structured verdict.
+
+You run in a forked context: a fresh subagent with `CLAUDE.md` but none of the caller's conversation, so the review judges the PR rather than the session's intentions and is not paid for at the feature session's context size. The caller gets the §8 verdict back. Merging and the clean-up after it are not part of this skill: they run in a fresh session on the owner's go-ahead (`CLAUDE.md` §Working agreement).
 
 ## 0. Gather context
 

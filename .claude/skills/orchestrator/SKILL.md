@@ -1,12 +1,12 @@
 ---
 name: orchestrator
-description: Drive several Claude sessions working on this repo through one merge queue — discover the sessions, map them to the open PRs, order the queue, then per item run /pr-review, get CI green, merge, and have the owning session clean up. Use when asked to orchestrate, coordinate or sequence multiple sessions, or to work through several open PRs one after another.
+description: Drive several Claude sessions working on this repo through one merge queue — discover the sessions, map them to the open PRs, order the queue, then per item run /pr-review, get CI green, merge, and clean up. Use when asked to orchestrate, coordinate or sequence multiple sessions, or to work through several open PRs one after another.
 ---
 
 # Multi-session orchestrator
 
 Several Claude sessions work this repo in parallel, each in its own worktree. They finish at different
-times and then all wait on the same thing: CI, and a merge go-ahead. You are the one session that holds
+times, and their PRs all wait on the same thing: CI, and a merge go-ahead. You are the one session that holds
 the queue, so the owner does not have to hand out merge permission one PR at a time.
 
 You do not write the features. You sequence them, review them, merge them, and keep every other session
@@ -20,14 +20,18 @@ These come from the owner and override your own judgement about efficiency:
    Nothing else counts as finished — not "green", not "approved", not "ready".
 2. **Per item: `/pr-review` → everything green → complete what the review asks for → merge to `main`.**
    Run the review yourself even when the owning session already ran one. Its verdict is the session's
-   evidence; yours is the queue's.
-3. **After a merge, clean up.** Branch deleted locally and on `origin`, worktree removed. That happens
-   before the next queue item starts.
-4. **Follow-up work is allowed, but it queues at the back.** A session that just merged does not roll
-   straight into its next idea. It cleans up, then its follow-up takes a place in the queue behind the
-   PRs that are already open.
-5. **You may merge, and you may grant merge permission to another session.** Say it explicitly; the
-   sessions are told to wait for exactly that signal.
+   evidence; yours is the queue's. `/pr-review` forks a fresh context, so each review costs you its
+   verdict, not its reading.
+3. **After a merge, you clean up**, not the owning session: merge and clean-up never run at the tail of a
+   feature session (`CLAUDE.md` §Working agreement). Branch deleted locally and on `origin`, worktree
+   removed once `git -C <worktree> status --porcelain` is empty. That happens before the next queue item
+   starts.
+4. **Follow-up work is allowed, but it queues at the back.** A session whose PR merged does not roll
+   straight into its next idea: the follow-up starts in a fresh session and takes a place in the queue
+   behind the PRs that are already open.
+5. **You may merge, and you may grant merge permission to another session** — a fresh one, never the
+   feature session that wrote the PR (rule 3). Say it explicitly; the sessions are told to wait for
+   exactly that signal.
 6. **The release-please PR goes last**, once nothing else is left. It never counts toward the
    one-open-PR rule.
 
@@ -91,7 +95,8 @@ Per queue item, in its own turn:
    verdict, not its log.
 4. Merge — squash, with a hand-written Conventional Commit subject, because release-please derives the
    changelog from it.
-5. Tell the owning session it is merged and to clean up.
+5. Clean up (rule 3), then tell the owning session it is merged and finished: its next task starts in a
+   fresh session, not in that context.
 6. Tell every remaining session that `main` moved, and what moved in it.
 
 ## 5. After every merge, tell the others
