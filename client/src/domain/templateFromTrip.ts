@@ -315,7 +315,7 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   for (const group of input.composition.groups) {
     if (group.added.length === 0) continue
     const choice = input.choices[group.group.id] ?? DEFAULT_DEVIATION_CHOICE
-    const positions = foldRows(group.added).map(fold)
+    const positions = distinct(foldRows(group.added).map(fold))
     if (choice === 'update') {
       groupUpdates.push({
         groupId: group.group.id,
@@ -328,9 +328,9 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   }
 
   const checked = new Set(input.checkedLooseIds)
-  const loosePositions = input.composition.loose
-    .filter((l) => checked.has(l.tripItem.id))
-    .map((l) => fold(l.tripItems))
+  const loosePositions = distinct(
+    input.composition.loose.filter((l) => checked.has(l.tripItem.id)).map((l) => fold(l.tripItems)),
+  )
 
   // The toggle is inert without rows to bundle: a group named after a trip
   // that contributed nothing is clutter with a name, not a building block.
@@ -338,8 +338,8 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
   const newGroup = bundling ? { name: input.bundleName!, positions: loosePositions } : null
   if (!bundling) ownPositions.push(...loosePositions)
   // The same thing can reach the Vorlage twice — a loose row and an own
-  // deviation — and a template keeps one position per item.
-  const own = ownPositions.filter((p, i) => ownPositions.findIndex((q) => samePosition(p, q)) === i)
+  // deviation.
+  const own = distinct(ownPositions)
 
   return {
     newMasterItems: fold.created,
@@ -388,6 +388,16 @@ function masterFold(masterItems: MasterItem[]): ((rows: TripItem[]) => PositionD
     return { name: row.name, itemId: null, assignment }
   }
   return Object.assign(fold, { created })
+}
+
+/**
+ * distinct keeps the first draft of each item, since a template holds one
+ * position per item (`UNIQUE (template_id, item_id)`). Lines fold by
+ * `source_item_id` or by name, so a linked row and an ad-hoc row of the same
+ * item are two lines that the master-item match resolves to one item.
+ */
+function distinct(positions: PositionDraft[]): PositionDraft[] {
+  return positions.filter((p, i) => positions.findIndex((q) => samePosition(p, q)) === i)
 }
 
 /** samePosition: one master item, or one name still waiting for its item. */

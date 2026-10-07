@@ -540,6 +540,19 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     expect(writes.template.positions.map((p) => p.itemId)).toEqual(['itm-g'])
   })
 
+  it('UX-13: ALinkedRowAndAnAdHocRowOfOneItem_AreOnePositionOfTheBundledGroup', () => {
+    // Two lines, since only one row carries the item's id — but both resolve
+    // to Stativ, and the new group keeps one position per item too.
+    const linked = { ...row('a', 'Stativ', null), source_item_id: 'itm-1' }
+    const writes = plan({
+      composition: compose({ tripItems: [linked, row('b', 'stativ', null)] }),
+      checkedLooseIds: ['a', 'b'],
+      bundleName: 'Fotokram',
+    })
+
+    expect(writes.newGroup!.positions.map((p) => p.itemId)).toEqual(['itm-1'])
+  })
+
   it('GeneratedRowUsesItsOwnProvenance_RatherThanReMatchingItsNameByHand', () => {
     const generated = { ...row('r1', 'Ringlicht', 'grp-makro'), source_item_id: 'itm-2' }
     const writes = plan({
