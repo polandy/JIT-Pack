@@ -16,6 +16,7 @@ import {
   writesLanded,
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
+import { setClock } from './helpers/page'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -457,6 +458,10 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
  * sliding menu. What makes the case worth running rather than unit-testing is
  * exactly that half — the actions have to still be there after the lift.
  */
+/** E2E-M2-35's trip: on its third of fifteen days. */
+const ROAD_TRIP = 'Samedan'
+const ON_THE_ROAD = { start: '2026-10-05', end: '2026-10-19', today: '2026-10-07' }
+
 test.describe('M2 hero @local @m2', () => {
   test.beforeEach(async ({ page }) => {
     await seed(page, { mode: 'local' })
@@ -493,14 +498,82 @@ test.describe('M2 hero @local @m2', () => {
     await menu.getByRole('button', { name: 'Cancel' }).click()
     await expect(menu).toHaveCount(0)
 
-    // FR-18.3's export, from the card's own action row as well.
+    // FR-18.3's export, from the card's menu — the lift kept the row's actions.
+    await hero.dispatchEvent('contextmenu')
     const written = page.waitForEvent('download')
-    await visiblePage(page).getByTestId('m2-hero-export-Elba').click()
+    await page.locator('ion-action-sheet').getByText('Export trip', { exact: true }).click()
     await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()
     expect((await written).suggestedFilename()).toBe('Elba.yaml')
 
     // And the card is still the door into the trip, which is what a row was.
     await hero.click()
     await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
+  })
+
+  /*
+   * E2E-M2-35 (FR-21.15, UX-06): the card is M1's card — the same phase word
+   * and day counter, read off M1 itself rather than off a constant both
+   * could drift from — and it carries no row of glyphs: its actions are the
+   * menu's words, reached on a desktop through the ⋮ beside the card.
+   */
+  test('E2E-M2-35: the card states M1’s phase and day and no glyph row; its ⋮ opens the menu’s words', async ({
+    page,
+  }) => {
+    await setClock(page, `${ON_THE_ROAD.today}T09:00:00+02:00`)
+    await createTripViaWizard(page, {
+      name: ROAD_TRIP,
+      startDate: ON_THE_ROAD.start,
+      endDate: ON_THE_ROAD.end,
+    })
+    await tripAction(page, 'start')
+
+    await page.goto(PATH.dashboard)
+    const m1Head = visiblePage(page).getByTestId(`dashboard-trip-${ROAD_TRIP}`)
+    await expect(m1Head.getByTestId('hero-counter')).toContainText('Day 3 of 15')
+    const m1Phase = (await m1Head.getByTestId('hero-phase').textContent()) ?? ''
+    const m1Counter = (await m1Head.getByTestId('hero-counter').textContent()) ?? ''
+
+    await page.goto(`${PATH.trips}?status=active`)
+    const hero = visiblePage(page).getByTestId(`trip-hero-${ROAD_TRIP}`)
+    await expect(hero.getByTestId('hero-phase')).toHaveText(m1Phase)
+    await expect(hero.getByTestId('hero-counter')).toHaveText(m1Counter)
+    // The card is on screen (above), so nothing in it being a button is a
+    // fact about the card, not about a page that has not drawn yet.
+    await expect(hero.locator('button, ion-button')).toHaveCount(0)
+
+    await visiblePage(page).getByTestId(`m2-hero-more-${ROAD_TRIP}`).click()
+    const menu = page.locator('ion-action-sheet')
+    for (const words of ['Trip properties', 'Export trip', 'Finish trip', 'Delete trip']) {
+      await expect(menu.getByText(words, { exact: true })).toBeVisible()
+    }
+    // The ⋮ is beside the link, not in it: the menu opened, the trip did not.
+    await expect(page).toHaveURL(/\/tabs\/trips/)
+  })
+
+  /*
+   * E2E-M2-35b (UX-06): a touch screen has the hold, so no ⋮. Chromium only:
+   * touch is switched on through CDP, the one way to turn the media query
+   * over inside a running page.
+   */
+  test('E2E-M2-35b: on a touch screen the card has no ⋮ — the hold is its menu', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(browserName !== 'chromium', 'touch emulation goes through CDP')
+    await createTripViaWizard(page, { name: ROAD_TRIP })
+    await tripAction(page, 'start')
+    await page.goto(`${PATH.trips}?status=active`)
+    const more = visiblePage(page).getByTestId(`m2-hero-more-${ROAD_TRIP}`)
+    // The positive half first: with a mouse the ⋮ is there.
+    await expect(more).toBeVisible()
+
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+
+    await expect(more).toBeHidden()
+    await visiblePage(page).getByTestId(`trip-hero-${ROAD_TRIP}`).dispatchEvent('contextmenu')
+    await expect(
+      page.locator('ion-action-sheet').getByText('Delete trip', { exact: true }),
+    ).toBeVisible()
   })
 })

@@ -98,6 +98,9 @@ vi.mock('@ionic/vue', async () => {
 
 const master = masterDataStub()
 
+/** The day the hero is read on — the third of a 5–19 October trip. */
+const HERO_TODAY = '2026-10-07'
+
 const orchestratorFake = {
   ...identityStub(),
   activateTrip: vi.fn(),
@@ -114,6 +117,10 @@ const orchestratorFake = {
   // the cases above see a settled list; the FR-2.8 block drives it.
   ...master,
   ensureTripData: vi.fn(() => Promise.resolve()),
+  // The hero's phase and day counter read the day (FR-7.10); a fixed one,
+  // never the real clock.
+  today: vi.fn(() => HERO_TODAY),
+  now: vi.fn(() => new Date(`${HERO_TODAY}T12:00:00`).getTime()),
 }
 
 function seedTrip(status: string, extra: Record<string, unknown> = {}, id = 't1') {
@@ -756,8 +763,7 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     // Losing them is what deferred this card in the first place (FR-21.13).
     const meta = page.find('[data-testid="hero-meta"]')
     expect(meta.exists()).toBe(true)
-    expect(meta.text()).toContain('Andy')
-    expect(meta.text()).toContain(t('trips.seriesFallback'))
+    expect(meta.text()).toBe(`${t('trips.seriesFallback')} · Andy`)
   })
 
   it('asks for the rows of a trip no observer will ever ask for', async () => {
@@ -772,25 +778,35 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
   })
 
-  it('finishes from the card through the closing pass — the actions came with the trip out of the swipe', async () => {
+  /** Picks a button out of the sheet the card opened, by its words. */
+  function sheetButton(text: string) {
+    const button = sheets[0]!.buttons.find((b) => b.text === text)
+    expect(button).toBeDefined()
+    return button!
+  }
+
+  it('finishes from the card’s menu through the closing pass, not by archiving', async () => {
     segment = 'active'
     seedTrip('active')
 
     const page = mountPage()
-    await page.find('[data-testid="m2-hero-archive-Samedan"]').trigger('click')
+    await page.find('[data-testid="trip-hero-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    sheetButton(t('trips.actionArchive')).handler!()
 
     expect(pushed).toContain(tripClosingPath('t1'))
     expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
   })
 
-  // The trip's properties are M2's alone, since M4's ⋮ holds packing only,
-  // so both of M2's doors carry them.
-  it('opens the trip’s properties from the card', async () => {
+  // The trip's properties are M2's alone, since M4's ⋮ holds packing only.
+  it('opens the trip’s properties from the card’s menu', async () => {
     segment = 'active'
     seedTrip('active')
 
     const page = mountPage()
-    await page.find('[data-testid="m2-hero-edit-Samedan"]').trigger('click')
+    await page.find('[data-testid="trip-hero-Samedan"]').trigger('contextmenu')
+    await flushPromises()
+    sheetButton(t('tripEdit.title')).handler!()
 
     expect(pushed).toContain(tripSubPath('t1', 'edit'))
   })
@@ -842,17 +858,62 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     }
   })
 
-  it('offers export and delete on the card, and no step the lifecycle refuses', async () => {
+  it('states no action row — its actions are the menu’s words, not four glyphs (UX-06)', async () => {
     segment = 'active'
     seedTrip('active')
 
     const page = mountPage()
 
-    expect(page.find('[data-testid="m2-hero-export-Samedan"]').exists()).toBe(true)
-    expect(page.find('[data-testid="m2-hero-delete-Samedan"]').exists()).toBe(true)
-    // Start belongs to a planning trip and clone to an archived one; a hero
-    // is always a running trip, and offering either would be the drift
-    // `nextLifecycleStep` exists to prevent.
-    expect(page.find('[data-testid="m2-hero-start-Samedan"]').exists()).toBe(false)
+    // A bare delete glyph among three look-alikes was one slip from a
+    // confirm nobody wanted; the hold sheet says each action in words.
+    for (const action of ['edit', 'export', 'archive', 'delete', 'share']) {
+      expect(page.find(`[data-testid="m2-hero-${action}-Samedan"]`).exists()).toBe(false)
+    }
+    expect(page.find('[data-testid="trip-hero-Samedan"] .actions').exists()).toBe(false)
+  })
+
+  it('opens the same menu from its ⋮, the door a mouse can see (UX-06)', async () => {
+    segment = 'active'
+    seedTrip('active')
+    const page = mountPage()
+
+    await page.find('[data-testid="m2-hero-more-Samedan"]').trigger('click')
+    await flushPromises()
+
+    expect(sheets).toHaveLength(1)
+    expect(sheets[0]!.header).toBe('Samedan')
+    expect(sheets[0]!.buttons.map((b) => b.text)).toContain(t('trips.actionDelete'))
+    // The ⋮ sits beside the card's link, not in it: a click on it must not
+    // also open the trip.
+    expect(pushed).toEqual([])
+  })
+
+  it('carries M1’s head: the phase word and the day counter (FR-21.15, UX-06)', async () => {
+    segment = 'active'
+    seedTrip('active', { start_date: '2026-10-05', end_date: '2026-10-19' })
+
+    const page = mountPage()
+
+    expect(page.find('[data-testid="hero-phase"]').text()).toBe(t('dashboard.phaseOnSite'))
+    const counter = page.find('[data-testid="hero-counter"]').text()
+    expect(counter).toContain(t('dashboard.dayOf', { day: 3, total: 15 }))
+    expect(counter).toContain(t('dashboard.dayRemaining', { n: 12 }))
+  })
+
+  it('says how much is still open under the share, as M1’s figure does', async () => {
+    segment = 'active'
+    const trips = seedTrip('active')
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.tripItems,
+      id: 'i1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Zelt', quantity: 1, packed_count: 0 },
+    })
+    orchestratorFake.loadedTrips.add('t1')
+
+    const page = mountPage()
+
+    expect(page.find('[data-testid="hero-detail"]').text()).toBe(t('dashboard.openCount', { n: 1 }))
   })
 })

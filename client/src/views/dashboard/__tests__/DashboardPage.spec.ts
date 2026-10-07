@@ -819,3 +819,37 @@ describe('M1 — today’s and tomorrow’s excursions (FR-31.10)', () => {
     expect(ahead.find('[data-testid="dashboard-excursions"]').exists()).toBe(false)
   })
 })
+
+describe('M1 — the hero is one card with M2’s (FR-21.15, UX-06)', () => {
+  it('names the series the trip came out of, in front of who it is for', async () => {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active', series_id: 's1' },
+    })
+    for (const [id, name] of [
+      ['tr1', 'Sia'],
+      ['tr2', 'Andy'],
+    ]) {
+      trips.applyChange({
+        seq: 0,
+        table: TABLE.travelers,
+        id: id!,
+        deleted: false,
+        row: { trip_id: 't1', name },
+      })
+    }
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The same line M2's hero draws: one function words both, so neither
+    // screen can drop a fact the other keeps.
+    expect(page.find('[data-testid="hero-meta"]').text()).toBe(
+      `${t('trips.seriesFallback')} · Sia, Andy`,
+    )
+  })
+})

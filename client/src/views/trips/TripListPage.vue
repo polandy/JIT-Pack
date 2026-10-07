@@ -33,6 +33,7 @@ import {
   createOutline,
   documentTextOutline,
   downloadOutline,
+  ellipsisVerticalOutline,
   peopleOutline,
   trashOutline,
 } from 'ionicons/icons'
@@ -41,6 +42,7 @@ import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
 import TripChangeChips from '@/components/trips/TripChangeChips.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import { useTripHero } from '@/composables/useTripHero'
 import { hasCollaborativeSession } from '@/mode'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
@@ -283,22 +285,8 @@ const listedTrips = computed(() =>
   filteredTrips.value.filter((trip) => trip.id !== heroTrip.value?.id),
 )
 
-/** The series the hero came out of, which its own line has to keep saying. */
-const heroSeriesName = computed(() => {
-  const id = heroTrip.value?.series_id
-  return id ? (masterStore.getSeries(id)?.name ?? t('trips.seriesFallback')) : null
-})
-
-/**
- * Who the hero trip is for, and where it sits — the two facts the row it
- * replaced carried as faces and as its position in a series group.
- */
-const heroMeta = computed(() => {
-  const trip = heroTrip.value
-  if (!trip) return null
-  const travelers = travelersOf(trip).map((traveler) => traveler.name)
-  return [heroSeriesName.value, ...travelers].filter(Boolean).join(' · ') || null
-})
+// FR-21.15: the hero states what M1's does, from the same list.
+const { heroOf } = useTripHero()
 
 /**
  * FR-2.8 — the segments, their counts and the opening decision.
@@ -637,30 +625,6 @@ function actionsOf(trip: Trip): TripRowAction[] {
 }
 
 /** One entry of the hero's action row (FR-21.15). */
-interface HeroAction {
-  id: TripRowAction
-  icon: string
-  label: string
-  run: () => void
-}
-
-/**
- * The hero's actions, from the same list as the row's menu rather than from
- * „it is active, so it can be archived": a hero over a trip whose lifecycle
- * says otherwise would offer a step the row does not. Clone and start never
- * appear because the hero is only ever a running trip.
- */
-const heroActions = computed<HeroAction[]>(() => {
-  const trip = heroTrip.value
-  if (!trip) return []
-  return actionsOf(trip).map((id) => ({
-    id,
-    icon: TRIP_ACTION_VIEW[id].icon,
-    label: t(TRIP_ACTION_VIEW[id].labelKey),
-    run: () => TRIP_ACTION_VIEW[id].run(trip),
-  }))
-})
-
 // --- Row menu: hold / right-click (M4, M7 shape) ---------------------------
 //
 // Not a swipe: no list hides its actions behind one, and M4 and M7 answer a
@@ -777,53 +741,44 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- FR-21.15: the trip you are on, as a card rather than as one row
-           among five. A hold or right-click opens the rows' menu on it too;
-           its foot states the same actions besides. -->
-      <TripHero
-        v-if="heroTrip"
-        class="hero-card"
-        :name="heroTrip.name"
-        :when="tripWhen(heroTrip)"
-        :meta="heroMeta"
-        :percent="tripDataKnown(heroTrip) ? progressPercent(heroTrip) : 0"
-        :progress="tripDataKnown(heroTrip) ? itemSummary(heroTrip) : t('trips.itemsUnknown')"
-        :to="tripOpenPath(heroTrip.id)"
-        :testid="`trip-hero-${heroTrip.name}`"
-        @click.capture="onHeroClick"
-        @contextmenu.prevent="openRowMenu(heroTrip!)"
-        @pointerdown="(e: PointerEvent) => hold.down(heroTrip!, e.clientX, e.clientY)"
-        @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-        @pointerup="hold.cancel()"
-        @pointercancel="hold.cancel()"
-      >
-        <TripChangeChips
-          :trip-id="heroTrip.id"
-          :name="heroTrip.name"
-          :imported="heroTrip.imported"
-          :proposed="proposedCount(heroTrip)"
-          :applied="appliedChanges(heroTrip)"
-          :expanded="expandedApplied === heroTrip.id"
-          @toggle="toggleApplied(heroTrip.id)"
-        />
-
-        <template #foot>
-          <!-- The same actions the row keeps behind its hold, stated. The
-               trip a person packs daily is
-               the last one whose export and share should be the hidden
-               ones (FR-21.15). -->
-          <IonButton
-            v-for="entry in heroActions"
-            :key="entry.id"
-            fill="clear"
-            size="small"
-            :data-testid="`m2-hero-${entry.id}-${heroTrip.name}`"
-            :aria-label="entry.label"
-            @click.stop.prevent="entry.run()"
-          >
-            <IonIcon slot="icon-only" :icon="entry.icon" />
-          </IonButton>
-        </template>
-      </TripHero>
+           among five — the card M1 draws. Its actions are the rows' menu, on
+           a hold or right-click like any row; the ⋮ beside it is that menu's
+           door for a mouse, which has no hold to discover (UX-06). The ⋮ is a
+           sibling of the card, not inside it: the card is a link. -->
+      <div v-if="heroTrip" class="hero-wrap">
+        <TripHero
+          class="hero-card"
+          v-bind="heroOf(heroTrip)"
+          :to="tripOpenPath(heroTrip.id)"
+          :testid="`trip-hero-${heroTrip.name}`"
+          @click.capture="onHeroClick"
+          @contextmenu.prevent="openRowMenu(heroTrip!)"
+          @pointerdown="(e: PointerEvent) => hold.down(heroTrip!, e.clientX, e.clientY)"
+          @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+          @pointerup="hold.cancel()"
+          @pointercancel="hold.cancel()"
+        >
+          <TripChangeChips
+            :trip-id="heroTrip.id"
+            :name="heroTrip.name"
+            :imported="heroTrip.imported"
+            :proposed="proposedCount(heroTrip)"
+            :applied="appliedChanges(heroTrip)"
+            :expanded="expandedApplied === heroTrip.id"
+            @toggle="toggleApplied(heroTrip.id)"
+          />
+        </TripHero>
+        <button
+          type="button"
+          class="hero-more"
+          :data-testid="`m2-hero-more-${heroTrip.name}`"
+          :aria-label="t('common.moreActions')"
+          :title="t('common.moreActions')"
+          @click="openRowMenu(heroTrip!)"
+        >
+          <IonIcon :icon="ellipsisVerticalOutline" aria-hidden="true" />
+        </button>
+      </div>
 
       <!--
         Not here yet is not empty (ADR-033) — the guard the counts have
@@ -1032,11 +987,59 @@ ion-segment-button {
 
 /* Aligned with the list's own gutter rather than with the page's: the hero
    is the head of that list, not a band above it. */
+.hero-wrap {
+  position: relative;
+}
+
 .hero-card {
   display: block;
   margin: 0 8px 12px;
   /* A hold is the row menu here, not the browser's link preview. */
   -webkit-touch-callout: none;
+}
+
+/*
+ * UX-06: the menu's door for a pointer that cannot hold. A touch screen has
+ * the hold every list answers, and a glyph there would be a second surface
+ * for the same five words — so the ⋮ exists only where a mouse does.
+ */
+.hero-more {
+  display: none;
+  position: absolute;
+  /* Above the counter, which stands at the name's foot: the corner is the
+     card's padding, and the eyebrow line beside it is held clear below. */
+  top: 2px;
+  right: 10px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
+}
+
+.hero-more:hover {
+  color: var(--ct-text);
+}
+
+.hero-more:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-more {
+    display: grid;
+  }
+
+  /* The eyebrow is the one line that runs under the ⋮'s corner. */
+  .hero-wrap :deep(.when) {
+    padding-right: 40px;
+  }
 }
 
 /* Rows inside a card still need a seam between them: the card gives the

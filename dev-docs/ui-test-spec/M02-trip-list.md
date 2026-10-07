@@ -42,12 +42,19 @@
   importieren* (G-12, ADR-050 amendment 1); E2E-G12-02 asserts both words and that neither is a glyph.
 * **E2E-M2-17** `all` (FR-21.15): M2's *Active* segment draws the running trip that departs **soonest**
   as a hero card, does not also list it as a row, leaves the later departure a row, opens the rows' menu on a
-  right-click (its *Archive* entry shown, then cancelled), and still exports from the card.
+  right-click (its *Archive* entry shown, then cancelled), and still exports from the card's menu.
   Two running trips, because with one the choice cannot be told from the only trip there was — and the two are ordered
   so that M2's own newest-first list would name the *other* one, which is what makes the shared rule falsifiable
   (mutation-proved: replacing `heroTripOf` with the head of the screen's list turns the case red naming Kreta). The
   export and the menu are the clauses that carry the lift: a card without the row's actions is the cost FR-21.13
   deferred the card over.
+* **E2E-M2-35** `local` (FR-21.15, UX-06): on its third of fifteen days the hero states the phase word and the day
+  counter **as M1 renders them** — read off M1's hero in the same run, not off a constant both could drift from — and
+  carries no button at all (the card is on screen first, so the absence is about the card); its ⋮ opens the rows' menu
+  with *Trip properties*, *Export trip*, *Finish trip* and *Delete trip* as words, without opening the trip.
+* **E2E-M2-35b** `local` (UX-06), Chromium only: the ⋮ is there with a mouse, and gone once CDP switches touch on —
+  the hold (a `contextmenu`) still opens the menu. Touch emulation is the one way to turn `(hover: hover) and
+  (pointer: fine)` over inside a running page, and WebKit has no CDP.
 * **E2E-M2-19** `local` (FR-4.5/FR-9.1/FR-18.3): **a right-click on a trip row opens its row menu** — the M4/M7
   shape — headed by the trip's name and listing exactly *Export trip*, *Start trip*,
   *Delete trip*, *Cancel* for a planned trip on a device with no second account. Choosing *Start trip* closes the sheet
