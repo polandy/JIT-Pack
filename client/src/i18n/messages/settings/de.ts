@@ -117,6 +117,8 @@ export const settingsDe: Record<keyof typeof settingsEn, string> = {
   'settings.profileUnavailable': 'Profil nicht verfügbar — Server nicht erreichbar.',
   'settings.lightThemeHint':
     'Tag statt Nacht — dunkel ist die Voreinstellung. Nur auf diesem Gerät.',
+  'settings.splash': 'Startanimation',
+  'settings.splashHint': 'Beim Starten packt sich das Logo. Nur auf diesem Gerät.',
   'settings.notifications': 'Benachrichtigungen',
   'settings.prefDelegation': 'Übergaben',
   'settings.prefDelegationHint': 'Ein Packelement wurde dir zum Packen übergeben',

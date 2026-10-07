@@ -56,6 +56,13 @@ export interface SeedOptions {
    * the suite would fail. A case that wants the German UI asks for it.
    */
   locale?: 'en' | 'de'
+  /**
+   * Keep the start animation (FR-21.29) on for this tab. Every context
+   * switches it off by default (`quietStart` below), so only a case about
+   * the greeting asks for it. Written once per tab, not per navigation: a
+   * case that switches it off in M17 must find it off after the reload.
+   */
+  splash?: boolean
 }
 
 /** Seed the app's localStorage before it boots. Call before `page.goto`. */
@@ -73,7 +80,27 @@ export async function seed(page: Page, opts: SeedOptions): Promise<void> {
     if (!localStorage.getItem('jitpack_locale')) {
       localStorage.setItem('jitpack_locale', o.locale ?? 'en')
     }
+    if (o.splash && !sessionStorage.getItem('jitpack_e2e_splash_seeded')) {
+      localStorage.setItem('jitpack_splash', 'on')
+      sessionStorage.setItem('jitpack_e2e_splash_seeded', '1')
+    }
   }, opts)
+}
+
+/**
+ * The start animation (FR-21.29) off, unless the device already chose —
+ * through M17's own switch, so the suite needs no test-only door into the
+ * app. A greeting over every case's first screen would hold each first tap
+ * back by its length. Only when absent: `seed`'s `splash` writes `on`, and
+ * the order of a context's and a page's init scripts is not defined.
+ */
+function quietStart(): void {
+  try {
+    if (localStorage.getItem('jitpack_splash') === null)
+      localStorage.setItem('jitpack_splash', 'off')
+  } catch {
+    // about:blank has no storage, and no app to greet in.
+  }
 }
 
 interface Fixtures {
@@ -97,6 +124,27 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+  /**
+   * Every context the suite opens starts quiet — the default `context` as
+   * well as each `browser.newContext()` a multi-user case opens for its
+   * second person.
+   */
+  browser: [
+    async ({ browser }, use) => {
+      const newContext = browser.newContext.bind(browser)
+      browser.newContext = async (options) => {
+        const context = await newContext(options)
+        await context.addInitScript(quietStart)
+        return context
+      }
+      await use(browser)
+    },
+    { scope: 'worker' },
+  ],
+  context: async ({ context }, use) => {
+    await context.addInitScript(quietStart)
+    await use(context)
+  },
   /**
    * Every navigation waits for the device's writes to land first.
    *

@@ -658,3 +658,20 @@ These patterns apply to every screen and are specified once.
     `idle`, `lifting`, `dragging` or `settling`, and returns to `idle` only once the write has landed.
   * The chip's frame, the dimmed row and M6's insert line are drawn once, in `composables/dragToGroup.css`; a place's
     name comes from its own `data-drop-label` (a heading's title by default, `ListGroup.vue`).
+* **G-22 (The Start Animation — FR-21.29):** One overlay over the whole app, `SplashScreen.vue`, mounted by `App.vue`
+  once per app start while M17's *Start animation* is on (`lib/splash.ts`, `claimGreeting`: a `sessionStorage` marker,
+  so the reloads the app makes of itself do not greet again). On `--ct-base`, the mark centred at 152 px
+  with the wordmark under it in the app bar's lockup at the display size:
+  * **Intro, 0–1.3 s:** the bag's outline and its pocket are drawn (stroke, 0.52 s), the moss cube and then the larch
+    cube drop in from above with a small overshoot, the letters of *JIT·Pack* rise one after another, the dot in the
+    brand ink. The app bar's (or M19's) mark — the one carrying `data-splash-target` — is hidden meanwhile.
+  * **Flight, 1.3–1.78 s:** the mark moves and shrinks onto that landing mark, measured at that moment; the overlay's
+    ground clears to transparent and the wordmark fades, so the app is seen arriving round the mark. When the mark
+    lands the overlay is removed and the landing mark shown. Without a visible landing mark (a drill-down) the
+    overlay fades instead.
+  * **A tap anywhere or any key ends it at once.** It never takes the first tap meant for the app after the flight
+    has begun: from then on it lets taps through.
+  * **Reduced motion:** no intro and no flight; the packed mark stands for 0.5 s, then the overlay fades in 0.25 s.
+  * `data-testid="splash"` carries `data-phase` — `intro`, `flight` or `fade`. The phases are timers, so a case drives
+    them with Playwright's clock; the e2e suite starts every context with the animation off, through the preference
+    itself.

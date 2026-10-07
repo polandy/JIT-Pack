@@ -41,7 +41,7 @@ const serverUrlValid = computed(() => isValidServerUrl(serverUrl.value))
   <IonPage>
     <IonContent class="ion-padding">
       <div class="mode-selection" data-testid="mode-selection">
-        <BrandMark :size="56" class="welcome-mark" />
+        <BrandMark :size="56" class="welcome-mark" data-splash-target />
         <h1 class="jp-sheet-title">{{ t('firstRun.welcome') }}</h1>
         <p class="intro">{{ t('firstRun.intro') }}</p>
 
