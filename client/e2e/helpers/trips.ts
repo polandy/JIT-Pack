@@ -574,3 +574,60 @@ export async function tripRowMenuActions(page: Page, trip: string): Promise<stri
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
   return labels.map((l) => l.trim()).filter((l) => l !== 'Cancel')
 }
+
+/**
+ * The dev seed's per-person shape (UX-13): three travellers, one Regenjacke
+ * each, a Sonnenhut for two of them, a row of Andy's alone and rows for the
+ * whole trip — the rows that read identically wherever a screen drops the
+ * person. Imported, because the seed is a portable document too and spec §2.4
+ * builds a world through the UI, never by injection.
+ */
+export const PER_PERSON_TRIP = {
+  name: 'Samedan Sommer',
+  travelers: ['Andy', 'Sia', 'Leonardo'],
+  document: [
+    'kind: trip',
+    'schema_version: 1',
+    'name: Samedan Sommer',
+    'end_date: "2026-12-31"',
+    'travelers:',
+    '  - name: Andy',
+    '  - name: Sia',
+    '  - name: Leonardo',
+    'containers:',
+    '  - { name: Koffer, carrier: Andy }',
+    'items:',
+    ...['Andy', 'Sia', 'Leonardo'].map(
+      (who) => `  - { name: Regenjacke, traveler: ${who}, category: Kleidung, mode: pack }`,
+    ),
+    ...['Sia', 'Leonardo'].map(
+      (who) => `  - { name: Sonnenhut, traveler: ${who}, category: Kleidung, mode: buy_before }`,
+    ),
+    '  - { name: Wanderstöcke, traveler: Andy, category: Aktivität, mode: pack }',
+    '  - { name: Kaffee, category: Küche, mode: pack }',
+    '  - { name: Sonnencreme, category: Bad, mode: pack }',
+  ].join('\n'),
+}
+
+/** Import a portable trip document through the import screen; returns the trip's path. */
+export async function importPortableTrip(
+  page: Page,
+  trip: { name: string; document: string },
+): Promise<string> {
+  await page.goto(PATH.importFile)
+  await page.getByTestId('portable-paste').locator('textarea').fill(trip.document)
+  await page.getByTestId('portable-preview').click()
+  await page.getByTestId('portable-commit').click()
+  await expectTripOpen(page, trip.name)
+  return new URL(page.url()).pathname
+}
+
+/**
+ * The visible text of every row a locator matches, whitespace folded — what a
+ * reader can tell rows apart by. Two equal entries are two rows nobody can.
+ */
+export async function rowTexts(rows: Locator): Promise<string[]> {
+  return rows.evaluateAll((els) =>
+    els.map((el) => (el as HTMLElement).innerText.replace(/\s+/g, ' ').trim()),
+  )
+}

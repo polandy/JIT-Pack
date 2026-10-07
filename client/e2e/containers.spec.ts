@@ -7,8 +7,11 @@ import {
   closeContainerSheet as closeSheet,
   createContainer,
   createTripViaWizard,
+  importPortableTrip,
   openLuggage,
   openQuickAdd,
+  PER_PERSON_TRIP,
+  rowTexts,
   visiblePage,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
@@ -381,4 +384,33 @@ test.describe('M11 containers @local @m11', () => {
     await page.getByTestId('m11-select-exit').click()
     await expect(page.getByTestId('m11-selbar')).toHaveCount(0)
   })
+
+  /**
+   * E2E-M11-09 (UX-13, FR-10.2): the bucket names whose row it is. The seed
+   * fans a Regenjacke out per traveller; without the person the three rows
+   * read identically and nobody can say which one goes into the Koffer.
+   * Siblings sit together, and the picker's subject names the traveller too.
+   */
+  test('E2E-M11-09: no two unassigned rows read alike — the person is on the second line', async ({
+    page,
+  }) => {
+    await importPortableTrip(page, PER_PERSON_TRIP)
+    await openLuggage(page)
+
+    const rows = visiblePage(page).getByTestId('m11-unassigned-row')
+    await expect(rows).toHaveCount(8)
+    const texts = await rowTexts(rows)
+    expect(new Set(texts).size).toBe(texts.length)
+    expect(texts.filter((t) => t.startsWith('Regenjacke'))).toEqual([
+      'Regenjacke Andy',
+      'Regenjacke Sia',
+      'Regenjacke Leonardo',
+    ])
+    // A row for the whole trip names nobody.
+    expect(texts).toContain('Kaffee')
+
+    await rows.filter({ hasText: 'Regenjacke' }).filter({ hasText: 'Sia' }).click()
+    await expect(page.getByTestId('m11-picker-subject')).toHaveText('Regenjacke · Sia')
+  })
 })
+

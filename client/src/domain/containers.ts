@@ -5,7 +5,8 @@
  * planning, before anything is packed.
  */
 
-import type { Container, TripItem } from '@/types/domain'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from './membership'
+import type { Container, Traveler, TripItem } from '@/types/domain'
 
 /** containerWeight sums the planned weight assigned to one container. */
 export function containerWeight(items: TripItem[], containerId: string): number {
@@ -14,9 +15,27 @@ export function containerWeight(items: TripItem[], containerId: string): number 
     .reduce((sum, i) => sum + (i.weight_grams ?? 0) * i.quantity, 0)
 }
 
-/** unassignedItems is the dedicated FR-10.2 bucket. */
-export function unassignedItems(items: TripItem[]): TripItem[] {
-  return items.filter((i) => i.container_id === null && i.state !== 'skipped')
+/**
+ * unassignedItems is the dedicated FR-10.2 bucket, by name and then in the
+ * trip's traveller order — so one person's Regenjacke sits beside the others'
+ * and the bucket reads the same on every device and every render (UX-13).
+ */
+export function unassignedItems(items: TripItem[], travelers: Traveler[]): TripItem[] {
+  const seat = (item: TripItem) => travelers.findIndex((tr) => tr.id === item.assigned_traveler_id)
+  return items
+    .filter((i) => i.container_id === null && i.state !== 'skipped')
+    .sort((a, b) => a.name.localeCompare(b.name) || seat(a) - seat(b))
+}
+
+/**
+ * rowTravelerName is who a bucket row belongs to, for its second line (UX-13):
+ * one Regenjacke per traveller reads as three identical rows without it. Null
+ * on a row for the whole trip, and on every row of a one-traveller trip, where
+ * there is nobody to tell apart (MIN_TRAVELERS_FOR_PER_PERSON).
+ */
+export function rowTravelerName(item: TripItem, travelers: Traveler[]): string | null {
+  if (travelers.length < MIN_TRAVELERS_FOR_PER_PERSON) return null
+  return travelers.find((tr) => tr.id === item.assigned_traveler_id)?.name ?? null
 }
 
 export type BudgetLevel = 'ok' | 'warn' | 'over'

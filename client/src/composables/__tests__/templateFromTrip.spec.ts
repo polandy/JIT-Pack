@@ -56,7 +56,7 @@ async function localOrchestrator() {
  * An archived trip carrying two rows from one group and one loose row. The
  * group holds only the camera, so the second group row is a deviation.
  */
-function seedWorld(opts: { deviation?: boolean; loose?: boolean } = {}) {
+function seedWorld(opts: { deviation?: boolean; loose?: boolean; perPerson?: boolean } = {}) {
   const rows: PullChange[] = [
     change(TABLE.trips, TRIP_ID, {
       name: 'Samedan Sommer 2026',
@@ -90,6 +90,18 @@ function seedWorld(opts: { deviation?: boolean; loose?: boolean } = {}) {
         quantity: 1,
       }),
     )
+  }
+  if (opts.perPerson) {
+    // The per-person fan-out's footprint: one Regenjacke per traveller.
+    for (const who of ['tr-andy', 'tr-sia', 'tr-leo'])
+      rows.push(
+        change(TABLE.tripItems, `row-jacke-${who}`, {
+          trip_id: TRIP_ID,
+          name: 'Regenjacke',
+          quantity: 1,
+          assigned_traveler_id: who,
+        }),
+      )
   }
   useTripStore().applyChanges(rows)
   useMasterStore().applyChanges([
@@ -169,6 +181,23 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     expect(positions).toHaveLength(1)
     // The position points at a real master item rather than a dangling id.
     expect(master.getItem(positions[0]!.item_id)?.name).toBe('Reisefön')
+  })
+
+  it('UX-13: writes one per-person position for a thing the trip carried per traveller', async () => {
+    const orch = await localOrchestrator()
+    const master = useMasterStore()
+    seedWorld({ perPerson: true })
+
+    const templateId = orch.createTemplateFromTrip(TRIP_ID, {
+      ...ANSWERS,
+      checkedLooseIds: ['row-jacke-tr-andy'],
+    })!
+
+    // One position per item is what UNIQUE (template_id, item_id) allows.
+    const positions = master.getTemplateItems(templateId)
+    expect(positions).toHaveLength(1)
+    expect(positions[0]!.assignment).toBe('per_person')
+    expect(master.getItem(positions[0]!.item_id)?.name).toBe('Regenjacke')
   })
 
   it('bundles the checked loose rows into a fresh group the Vorlage includes', async () => {

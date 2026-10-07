@@ -211,6 +211,8 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'container.assignNone': 'Zuerst ein Gepäckstück anlegen, dann Positionen zuordnen.',
   'container.notFound': 'Dieses Gepäckstück gibt es nicht.',
   'container.bulkAssign': 'In Gepäckstück …',
+  // UX-13: the picker's subject names whose row it moves.
+  'container.itemFor': '{item} · {traveler}',
   'container.assignCount': 'Eine Position | {n} Positionen',
 
   // M14 — Rückblick (FR-9.2, gruppen-orientiert per FR-27.11).

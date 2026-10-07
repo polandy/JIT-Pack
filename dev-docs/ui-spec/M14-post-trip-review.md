@@ -24,10 +24,11 @@
   proposal dismissed permanently.
 * **Actions:** Single-tap apply writes directly to the target group (shared instance-wide, FR-1.6 MVP simplification —
   no fork prompt) and logs an FR-27.4 applied change on every planning trip using it. **The harvested item becomes a
-  trip-global position (E2E-FLOW-04):** one row for the trip, the way M21's fold writes a trip's row back, not one per
-  traveler — the mutation's `per_person` default decides how many rows generation makes, so it would bring a shared item
-  back once per head and, on a trip with no travelers, not at all. It is the position's *quantity* that the review pass
-  moves; who it is for is not something a finished trip has an opinion about. **Decided: "Never ask again" scopes to the
+  trip-global position (E2E-FLOW-04):** one row for the trip, the way M21's fold writes back a row the trip carried for
+  one traveller or for everybody, not one per traveler — the mutation's `per_person` default decides how many rows
+  generation makes, so it would bring a shared item back once per head and, on a trip with no travelers, not at all.
+  It is the position's *quantity* that the review pass moves; who it is for is not something a finished trip has an
+  opinion about. **Decided: "Never ask again" scopes to the
   specific item–group pair**, not the item globally — the same item can still surface a proposal for a different group.
 * **States:** No flags recorded → assistant skipped with a brief "nothing to review" toast; assistant is resumable if
   interrupted.

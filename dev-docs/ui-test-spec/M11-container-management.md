@@ -27,6 +27,12 @@ Every id is read clause by clause against the built screen; the notes per case s
   positions, and choosing the container leaves **exactly the unpicked row** in the bucket, the mode ended and the ＋
   FAB back. The app bar's checkbox glyph then arms the mode with nothing picked. The single-tap path is
   E2E-M11-06's, unchanged.
+* **E2E-M11-09** `local` (FR-10.2, UX-13) — **implemented** (`e2e/containers.spec.ts`): the dev seed's per-person
+  shape, imported as a portable trip (three travellers, a Regenjacke each, a Sonnenhut for two, a row of Andy's, rows
+  for the whole trip). **No two bucket rows read alike**: the rows' visible texts are all distinct — before UX-13 the
+  three Regenjacke rows were three equal strings, so the assertion fails on the old screen. The siblings read
+  *Regenjacke Andy / Sia / Leonardo* in the trip's traveller order, a whole-trip row names nobody, and the picker opened
+  from Sia's row says *„Regenjacke · Sia"*. The one-traveller rule is unit-owned (`rowTravelerName`).
 * **E2E-M11-07** `all` (UX-8) — **implemented** (`e2e/containers.spec.ts`): with zero containers and nothing
   unassigned, the unassigned section is **absent** — "everything is assigned to a container" must not stand under "no
   containers yet". Creating the first container brings the section back with its (0) count and hint, which is the

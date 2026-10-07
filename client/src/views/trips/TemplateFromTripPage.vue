@@ -35,11 +35,14 @@ import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import {
   DEFAULT_DEVIATION_CHOICE,
+  foldRows,
   recogniseTripComposition,
   suggestTemplateName,
+  travelerIdsOf,
   type DeviationChoice,
-  type LooseReason,
+  type LooseRow,
 } from '@/domain/templateFromTrip'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { tripsReachedBy } from '@/domain/templates'
 import { foldName } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
@@ -131,12 +134,31 @@ function blastText(groupId: string): string | null {
     : t('templateFromTrip.blast', { n: reached.length })
 }
 
-/** The loose row's own explanation — a planned row says so (FR-27.1). */
-function looseReason(reason: LooseReason, templateName: string | undefined): string {
-  return reason === 'from-template'
-    ? t('templateFromTrip.looseFromTemplate', { template: templateName ?? '' })
-    : t('templateFromTrip.looseAdHoc')
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
+
+/**
+ * The loose line's second line (UX-13): who it was packed for — *pro Person*
+ * with the names once it is several, which is what it becomes — and, for a
+ * planned row, the Vorlage it came from (FR-27.1). "Without a group" is every
+ * ad-hoc line's reason, so the section says it once instead.
+ */
+function looseLine(row: LooseRow): string {
+  const parts: string[] = []
+  if (row.reason === 'from-template')
+    parts.push(t('templateFromTrip.looseFromTemplate', { template: row.sourceTemplate?.name ?? '' }))
+  if (travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON) {
+    // In the trip's traveller order, as M11 and M4 list them — the rows'
+    // own order is whatever the sync produced.
+    const ids = travelerIdsOf(row.tripItems)
+    const names = travelers.value.filter((tr) => ids.includes(tr.id)).map((tr) => tr.name)
+    if (names.length >= MIN_TRAVELERS_FOR_PER_PERSON)
+      parts.push(t('templateFromTrip.perPerson', { names: names.join(', ') }))
+    else if (names.length === 1) parts.push(t('templateFromTrip.forTraveler', { name: names[0]! }))
+  }
+  return parts.join(' · ')
 }
+
+const anyAdHoc = computed(() => composition.value.loose.some((l) => l.reason === 'ad-hoc'))
 
 /**
  * FR-1.6: M21 writes a Vorlage and possibly a group, and both names land in
@@ -255,7 +277,11 @@ setHeaderTitle(() => t('templateFromTrip.title'))
           <div v-if="group.added.length > 0" class="deviation" data-testid="m21-deviation">
             <p>
               {{ t('templateFromTrip.added') }}
-              <strong>{{ group.added.map((row) => row.name).join(', ') }}</strong>
+              <strong>{{
+                foldRows(group.added)
+                  .map((rows) => rows[0]!.name)
+                  .join(', ')
+              }}</strong>
             </p>
             <IonSegment
               :value="choiceOf(group.group.id)"
@@ -293,6 +319,9 @@ setHeaderTitle(() => t('templateFromTrip.title'))
         "
         data-testid="m21-loose-head"
       />
+      <p v-if="anyAdHoc" class="loose-caption" data-testid="m21-loose-caption">
+        {{ t('templateFromTrip.looseCaption') }}
+      </p>
       <IonList v-if="composition.loose.length > 0">
         <IonItem v-for="row in composition.loose" :key="row.tripItem.id" data-testid="m21-loose">
           <IonCheckbox
@@ -302,8 +331,8 @@ setHeaderTitle(() => t('templateFromTrip.title'))
             @ionChange="() => toggleLoose(row.tripItem.id)"
           >
             <span class="name">{{ row.tripItem.name }}</span>
-            <span class="desc">
-              {{ looseReason(row.reason, row.sourceTemplate?.name) }}
+            <span v-if="looseLine(row)" class="desc" data-testid="m21-loose-line">
+              {{ looseLine(row) }}
             </span>
           </IonCheckbox>
         </IonItem>
@@ -449,6 +478,13 @@ setHeaderTitle(() => t('templateFromTrip.title'))
 .hint-loose {
   margin: revert;
   color: var(--ct-subtext1);
+}
+
+/* Said once for every ad-hoc line (UX-13), in the head's own inset. */
+.loose-caption {
+  margin: 0 2px 10px;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
 }
 
 /* Its own rule, not a continuation of the blast note above it: one says what

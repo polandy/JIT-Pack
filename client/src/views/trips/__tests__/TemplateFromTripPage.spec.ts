@@ -106,3 +106,67 @@ describe('M21 — creating (FR-27.5)', () => {
     expect(replace).not.toHaveBeenCalled()
   })
 })
+
+describe('M21 — a line per thing, saying for whom (UX-13, FR-27.5)', () => {
+  function seedPeople(names: string[]) {
+    useTripStore().applyChanges(
+      names.map((name) => ({
+        seq: 0,
+        table: TABLE.travelers,
+        id: `tr-${name}`,
+        deleted: false,
+        row: { trip_id: 'trip-1', name },
+      })),
+    )
+  }
+  function seedRow(id: string, name: string, travelerId: string | null) {
+    useTripStore().applyChanges([
+      {
+        seq: 0,
+        table: TABLE.tripItems,
+        id,
+        deleted: false,
+        row: { trip_id: 'trip-1', name, quantity: 1, assigned_traveler_id: travelerId },
+      },
+    ])
+  }
+  const lines = (page: ReturnType<typeof mountPage>) =>
+    page.findAll('[data-testid="m21-loose"]').map((l) => {
+      const line = l.find('[data-testid="m21-loose-line"]')
+      return [l.find('.name').text(), ...(line.exists() ? [line.text()] : [])].join(' | ')
+    })
+
+  it('folds one row per traveller into one line naming them all', async () => {
+    seedPeople(['Andy', 'Sia', 'Leonardo'])
+    // Rows arrive in sync order; the line names the travellers in trip order.
+    for (const who of ['Sia', 'Leonardo', 'Andy']) seedRow(`jacke-${who}`, 'Regenjacke', `tr-${who}`)
+    seedRow('stoecke', 'Wanderstöcke', 'tr-Andy')
+
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(lines(page)).toEqual([
+      'Reisefön',
+      'Regenjacke | per person · Andy, Sia, Leonardo',
+      'Wanderstöcke | for Andy',
+    ])
+  })
+
+  it('names nobody when the trip has one traveller', async () => {
+    seedPeople(['Andy'])
+    seedRow('stoecke', 'Wanderstöcke', 'tr-Andy')
+
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(lines(page)).toEqual(['Reisefön', 'Wanderstöcke'])
+  })
+
+  it('says "without a group" once for the section, not on every line', async () => {
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(page.find('[data-testid="m21-loose-caption"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m21-loose-line"]').exists()).toBe(false)
+  })
+})

@@ -113,14 +113,11 @@ export function createPostTripActions(
       invented.set(name, masterDataActions.createMasterItem(name))
     const itemIdOf = (p: PositionDraft) => p.itemId ?? invented.get(p.name)
 
-    // A trip row is one thing somebody packed, not a per-head rule — the
-    // per-person default belongs to positions written in M8, where the
-    // question was actually asked.
+    // Each draft already says whether the trip carried it per person (UX-13).
     const write = (templateId: string, positions: PositionDraft[]) => {
       for (const p of positions) {
         const itemId = itemIdOf(p)
-        if (itemId)
-          masterDataActions.addTemplateItem(templateId, itemId, { assignment: 'trip_global' })
+        if (itemId) masterDataActions.addTemplateItem(templateId, itemId, { assignment: p.assignment })
       }
     }
 

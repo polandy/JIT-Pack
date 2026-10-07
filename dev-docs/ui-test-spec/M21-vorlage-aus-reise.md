@@ -51,6 +51,13 @@ needs a trip that follows the group (E2E-M21-03c).
   state a fact about the name. The bundle field is then held to **two** rules — the same taken rule, and the one that
   exists nowhere else in the app: the two names this one screen writes must differ from each other, refused with its own
   sentence because nothing holds that name yet. Mutation-proved twice, once per clause of `canCreate`.
+* **E2E-M21-06** `local` (FR-27.5, UX-13) — **implemented** (`e2e/template-from-trip.spec.ts`): the same imported
+  per-person trip as E2E-M11-09, archived. **No two loose lines read alike**: eight trip rows make five lines, all
+  distinct; *Regenjacke* reads *per person · Andy, Sia, Leonardo*, *Sonnenhut* *per person · Sia, Leonardo*,
+  *Wanderstöcke* *for Andy*, and the head counts *5 of 5*. That the folded line is written as one `per_person` position
+  — the duplicate insert the old screen made against `UNIQUE (template_id, item_id)` — is unit-owned
+  (`domain/__tests__/templateFromTrip.spec.ts`, `composables/__tests__/templateFromTrip.spec.ts`). E2E-M21-01 reads
+  *added without a group* once, under the section head.
 * **E2E-M4-44** `all` (UI-Spec M4 / G-9, ADR-050): the packing list heads itself **„Packliste" over the trip's name**,
   like every view of the trip, and the width decides nothing; the app bar names no page. The case asserts the head at
   390 px and again at 1280 px, that M4's header line does *not* repeat the name, and that the title **resolves** to the
