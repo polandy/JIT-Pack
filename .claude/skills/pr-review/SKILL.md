@@ -22,7 +22,7 @@ You run in a forked context: a fresh subagent with `CLAUDE.md` but none of the c
 - Read the PR description and any linked ADR or FR/NFR id first — the review checks the implementation *against its stated intent*.
 - **Load the project standard**: `CLAUDE.md` is already in your context — do not read it again. Read `dev-docs/CODING_PRINCIPLES.md`; it and `CLAUDE.md` (§Invariants, §Working agreement) are binding and authoritative. Section 3 below distills the highest-signal checks, but the *files* win where they disagree with this skill. Also skim `.golangci.yml` for the enabled linters.
 - **Read specs by the section the diff touches, never whole.** `dev-docs/prd-addendum/`, `ui-spec/` and `ui-test-spec/` are one file per section or screen; open the ones the PR's FR ids and screens name. The ledgers (`implementation-log/`, `e2e-ledger/`) are read through their index lines: `grep -h "^- \[" dev-docs/implementation-log/*.md | grep -i <topic>`.
-- **Delegate the mechanical, keep the judgement.** Reading a red CI log, merging `main` in and re-running `make ci`, or sweeping a rename are subagent work at `model: "sonnet"` — ask for a short report back. The findings, the §4.0 table and the verdict stay with you.
+- **Delegate by the threshold in `CLAUDE.md` §Reading budget, keep the judgement.** A read over ~10 KB for a fact rather than its text (the diff and `CODING_PRINCIPLES.md` stay yours), a spec section opened for one fact, every `make ci`, `go test -cover`, Vitest or Playwright run (the §5 mutation proof's revert, run and restore included), a red CI log, merging `main` in and a rename sweep are subagent work — `Explore` to find, `model: "sonnet"` to run. Ask for a few lines back: pass or fail, each failure as its name and `file:line`, the numbers you asked for. The findings, the §4.0 table and the verdict stay with you.
 
 ## 1. Documentation ↔ implementation sync
 
@@ -86,7 +86,7 @@ Three rules follow from the same two misses:
 - **Failure paths**, not just the happy path, wherever the code enforces a correctness or authorization rule.
 - **No non-deterministic timing**: flag any test that leans on sleeps, fixed waits for async work, or polling for an effect that only *probably* lands — both in Go and in Vitest/Playwright. The fix is a deterministic seam in the production code (injected clock, completion signal, settled state), never a longer wait.
 - **Review the cut, not just the coverage** (CODING_PRINCIPLES §3, testability-by-design): for each new behaviour in the diff, ask *where does its driving test live?* Decision logic that is only reachable through an HTTP handler, a goroutine, or a wired-up store is a finding even when an integration test covers it — the fix is moving the rule into a pure function (or behind a small consumer-side interface with a hand-written fake), not writing a bigger integration test. Watch for the usual smells: branching business rules inline in a handler, `time.Now()`/`Date.now()` called ambiently where a seam belongs, a new external effect without an interface at the consumer, client-side rules placed in a component instead of `client/src/domain`.
-- Run `make ci`. It mirrors the CI jobs, so a red target here is a red pipeline. `make cover` enforces the gates (≥75 % overall, ≥90 % `internal/sync`); compare touched packages against `main` and flag regressions even when the gate still passes — for backend packages the diff touches, run `go test -cover` per package on the PR branch and on `main` and report the delta.
+- Run `make ci` through a subagent (§0). It mirrors the CI jobs, so a red target here is a red pipeline. `make cover` enforces the gates (≥75 % overall, ≥90 % `internal/sync`); compare touched packages against `main` and flag regressions even when the gate still passes — for backend packages the diff touches, run `go test -cover` per package on the PR branch and on `main` and report the delta.
 
 ## 5. Client / UI changes
 
@@ -105,7 +105,7 @@ If the PR touches `client/src`:
 ## 6. CI status — fix failures
 
 - Check `gh pr checks <PR>`. **All checks must be green.**
-- If anything is red: read the failure with `node scripts/ci-failures.mjs --pr <PR>` — the failing assertions and their source lines, without the image pulls and attachment banners `gh run view --log-failed` buries them in (fall back to that only when the digest is not enough) — fix it on the PR branch, run `make ci`, commit with a Conventional Commit (allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` — `build:` only where Dependabot generates it), push, wait for the re-run. Repeat until green.
+- If anything is red: have a subagent (§0) read the failure with `node scripts/ci-failures.mjs --pr <PR>` — the failing assertions and their source lines, without the image pulls and attachment banners `gh run view --log-failed` buries them in (fall back to that only when the digest is not enough) — fix it on the PR branch, run `make ci`, commit with a Conventional Commit (allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` — `build:` only where Dependabot generates it), push, wait for the re-run. Repeat until green.
 - Note: the `autoformat` job pushes formatting commits back onto the branch. If it did, pull before you push, or your push is rejected.
 
 ## 7. Branch freshness — update if behind

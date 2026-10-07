@@ -91,8 +91,9 @@ Per queue item, in its own turn:
 3. Wait for green. Do not merge on a red check you have decided is a flake without saying so and why.
    Wait quietly: `gh run watch <id> --exit-status --interval 30 >/dev/null` in a background task, then one
    `node scripts/ci-failures.mjs <id>` if it ended red — never a loop that prints the job table every few
-   seconds into your context. A red leg's diagnosis is subagent work at `model: "sonnet"`; you need its
-   verdict, not its log.
+   seconds into your context. A red leg's diagnosis, a local `make ci` or e2e run and any read over
+   ~10 KB for a fact are subagent work by the threshold in `CLAUDE.md` §Reading budget; you need the verdict, not
+   the log.
 4. Merge — squash, with a hand-written Conventional Commit subject, because release-please derives the
    changelog from it.
 5. Clean up (rule 3), then tell the owning session it is merged and finished: its next task starts in a
