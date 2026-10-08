@@ -64,7 +64,8 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
 ## The layers — where a new file goes
 
 `domain → lib → sync → kernel → stores → app → composables → components → views`, each importing only leftwards
-(ADR-096; the table with each layer's role is `CODING_PRINCIPLES.md` §3). Decide by what the file imports:
+(ADR-096; the table with each layer's role, and the rule directories' exceptions, is `CODING_PRINCIPLES.md` §3).
+Decide by what the file imports:
 
 - a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
 - a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
