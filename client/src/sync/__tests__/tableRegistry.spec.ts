@@ -114,9 +114,21 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.tripItems, parse: 'rowToTripItem', encode: 'itemRow' },
   { table: TABLE.travelers, parse: 'rowToTraveler', encode: 'travelerRow' },
   { table: TABLE.containers, parse: 'rowToContainer', encode: 'containerRow' },
-  // FR-7.2: `is_task` is the column the *store* routes on, before either
-  // parser runs, so both builders write it and neither reads it.
+  // FR-7.2: `comments` is read three ways — a note, an item todo, a trip
+  // todo — and `is_task` is the column the *store* routes on, before any
+  // parser runs, so every builder writes it and none reads it. The two
+  // todo codecs are not in `TABLE_SPECS` (it is keyed by table), so they are
+  // named here by hand.
   { table: TABLE.comments, parse: 'rowToComment', encode: 'commentRow', encodeOnly: ['is_task'] },
+  { table: TABLE.comments, parse: 'rowToTodo', encode: 'todoRow', encodeOnly: ['is_task'] },
+  // FR-7.4: a trip todo has no anchor by definition — the builder writes
+  // the null `trip_item_id` and the parser has nothing to read from it.
+  {
+    table: TABLE.comments,
+    parse: 'rowToTripTodo',
+    encode: 'tripTodoRow',
+    encodeOnly: ['trip_item_id', 'is_task'],
+  },
   { table: TABLE.noteAcks, parse: 'rowToNoteAck', encode: 'noteAckRow' },
   { table: TABLE.excursions, parse: 'rowToExcursion', encode: 'excursionRow' },
   {
@@ -128,7 +140,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
 ]
 
 describe('every codec pair agrees about its columns', () => {
-  it.each(PAIRS)('$table', ({ parse, encode, encodeOnly = [] }) => {
+  it.each(PAIRS)('$table: $parse', ({ parse, encode, encodeOnly = [] }) => {
     const parsed = parsedColumns(parse)
     const encoded = encodedColumns(encode)
 
@@ -150,7 +162,7 @@ describe('every codec pair agrees about its columns', () => {
  * generated from `schema.sql` (ARCH-11), so this holds the pair to the table.
  */
 describe('every column a codec pair names is one the schema declares', () => {
-  it.each(PAIRS)('$table', ({ table, parse, encode }) => {
+  it.each(PAIRS)('$table: $parse', ({ table, parse, encode }) => {
     const declared = new Set<string>(TABLE_COLUMNS[table])
     const named = new Set([...parsedColumns(parse), ...encodedColumns(encode)])
 
@@ -171,6 +183,6 @@ describe('the registry covers the wire', () => {
       .filter(([, codec]) => 'encode' in codec)
       .map(([table]) => table)
       .sort()
-    expect(encoded).toEqual(PAIRS.map((p) => p.table).sort())
+    expect(encoded).toEqual([...new Set(PAIRS.map((p) => p.table))].sort())
   })
 })
