@@ -40,7 +40,8 @@
   grouping is the way through a long history.
 * **Actions:** Tap → M4; FAB "New trip" → M3; **hold or right-click a trip row → its row menu**, an action sheet headed
   by the trip's name: *„Reise-Eigenschaften"* first (FR-2.7, → M22), *Export* (Addendum FR-18.3), *Share* (FR-4.5),
-  *Clone* on an archived trip only (FR-12.1), the one lifecycle step the trip's status offers — *Start* on a planned
+  *Copy trip* (*„Reise kopieren"*) on an archived trip only (FR-12.1), the one lifecycle step the trip's status
+  offers — *Start* on a planned
   trip, *Archive* on a running one (FR-9.1/9.2) — and *Delete*, destructive, confirmed, Owner-only (FR-4.5); tap series
   header → M16. The trip's properties and its lifecycle steps are **M2's alone** — M4's ⋮ holds packing's entries only
   (G-12). Starting says what it changes in a toast (FR-9.1: later additions count as forgotten). **On a trip whose

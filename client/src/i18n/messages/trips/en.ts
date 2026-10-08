@@ -36,7 +36,7 @@ export const tripsEn = {
   'wizard.unset': '—',
 
   // M20 clone (FR-13.x). Reuses the wizard's field labels above.
-  'clone.title': 'Clone',
+  'clone.title': 'Copy trip',
   'clone.carryOver': 'Carry over',
   'clone.travelerAssignments': 'Participant assignments',
   'clone.packerDelegations': 'Packer delegations',
@@ -45,7 +45,7 @@ export const tripsEn = {
   'clone.previewTravelers': '{n} traveller | {n} travellers',
   'clone.previewContainers': '{n} container | {n} containers',
   'clone.previewLoading': 'Loading items …',
-  'clone.create': 'Create clone',
+  'clone.create': 'Create copy',
   'clone.notFound': 'Trip not found on this device.',
 
   // M12 — Analytics (FR-8.2/14.3).
@@ -141,7 +141,7 @@ export const tripsEn = {
   'trips.new': 'New trip',
   'trips.actionExport': 'Export trip',
   'trips.actionShare': 'Share',
-  'trips.actionClone': 'Clone trip',
+  'trips.actionClone': 'Copy trip',
   'trips.actionStart': 'Start trip',
   'trips.actionArchive': 'Finish trip',
   'trips.actionDelete': 'Delete trip',
@@ -396,7 +396,7 @@ export const tripsEn = {
   'series.detach': 'Detach from series',
   'series.noTrips': 'No trips in this series yet.',
   'series.attach': 'Attach existing trip',
-  'series.clone': 'Clone "{name}"',
+  'series.clone': 'Copy "{name}"',
   'series.newTrip': 'New trip in series',
   'series.trends': 'Series trends',
   'series.notFound': 'Series not found on this device.',

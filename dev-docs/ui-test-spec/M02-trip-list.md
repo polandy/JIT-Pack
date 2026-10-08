@@ -15,12 +15,12 @@
   avatars are built** by decision, and this case's fourth part is asserted with them: the trip's *travellers* — the
   roster, not the presence facepile — as two faces and a „+N", plus a trip with nobody on it showing no pile at all,
   against a row that is demonstrably rendered.
-* **E2E-M2-04** `local` (FR-12.1) — **covered**: M2's row actions open on a **hold or a right-click** as an action
-  sheet (E2E-M2-19), and *Clone* is offered on an archived trip only (unit-owned in `trips.spec.ts`, `tripRowActions`).
-  That the clone opens with
-  the source's rows is E2E-M2-11 (`single`, ADR-033, the case that found ClonePage summing a partition the device did
-  not hold); that ClonePage opens on a year of its own with empty dates is unit-owned in `ClonePage.spec.ts` — a *fresh*
-  date is the absence of the source's, which is the shape a rendered case asserts worst.
+* **E2E-M2-04** `local` (FR-12.1) — **covered**: M2's row actions open on a **hold or a right-click** as an action sheet
+  (E2E-M2-19), and *Copy trip* is offered on an archived trip only (unit-owned in `trips.spec.ts`, `tripRowActions`).
+  That the copy screen heads *Copy trip*, offers *Create copy* (UX-21: the family copies a trip, nobody clones one) and
+  opens with the source's rows is E2E-M2-11 (`single`, ADR-033, the case that found ClonePage summing a partition the
+  device did not hold); that ClonePage opens on a year of its own with empty dates is unit-owned in `ClonePage.spec.ts`
+  — a *fresh* date is the absence of the source's, which is the shape a rendered case asserts worst.
 * **E2E-M2-05** `server` (FR-4.5) — **implemented** (`e2e/server/multi-user.spec.ts`): Bob, an Editor on
   Alice's shared trip, is offered every other row action and not *Delete*; Alice, the owner, is. Her cancel leaves the
   trip where it was — without that half the confirm proves nothing about confirming — and her confirm takes it off her
