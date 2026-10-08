@@ -98,7 +98,8 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   behind would pass the first clause alone.
 * **E2E-M9-25** `all` (FR-24.13) — **implemented** (`e2e/inventory-cleanup.spec.ts`): a tag's mark is set
   from the tag manager's mark control through the item mark's picker, and read where it files something — on the group
-  heading, and **lent, muted, to a row without its own** (the `borrowed` slot). The mark is read off the tile that was
+  heading, and **lent, muted, to a row without its own** (the `borrowed` slot) where no heading names the tag — read
+  under a search, since grouped by tag the row stops borrowing (E2E-M9-34). The mark is read off the tile that was
   tapped rather than hard-coded, so the case does not pin the mark index's ordering.
 * **E2E-M9-26** `all` (FR-24.9 widened, FR-20.1) — **implemented** (`e2e/inventory-bulk.spec.ts`): a
   dependency declared for two rows at once from the ⋯ sheet, in the **suggested** mode the sheet was switched to, and
@@ -156,6 +157,11 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   hangs there, the chip above the finger reads *Navigation* and *→ position 1* (G-21), and after the drop `data-drag`
   returns to `idle`; the order is read on M9's own headings once the sheet
   is closed — *Navigation* first — not in the sheet that was dragged.
+* **E2E-M9-34** `local` (G-15, FR-24.13, UX-19) — **implemented** (`e2e/inventory-cleanup.spec.ts`): under its own
+  tag's heading a row stops borrowing. *Technik* is given 🔌; Kamera 📷, Powerbank 🔋 and the unmarked Stativ are
+  filed under it. Grouped, the group's marks are exactly 📷 and 🔋, Stativ's slot is present and empty and no letter
+  tile is drawn; the heading carrying 🔌 is the positive signal that the tag's mark reached the list. Sorted
+  alphabetically, Stativ borrows 🔌 again, muted.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name

@@ -13,6 +13,7 @@ import ListGroup from '@/components/global/ListGroup.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { type MatchReason } from '@/domain/itemSearch'
+import { UNTAGGED_KEY } from '@/domain/tags'
 import { t } from '@/i18n'
 import { formatValue, formatWeight } from '@/lib/format'
 import { itemPath } from '@/router/paths'
@@ -63,6 +64,15 @@ function groupMark(key: string): string | null {
  */
 function primaryTagMark(item: MasterItem): string | null {
   return masterStore.getItemTags(item.id)[0]?.icon ?? null
+}
+
+/**
+ * Whether the group's heading names its rows' primary tag — grouped by tag,
+ * outside the untagged bucket. Its rows then stop borrowing that tag's mark
+ * or initial (G-15): the heading already shows it, once.
+ */
+function headedByTag(key: string): boolean {
+  return !searching.value && core.sort.value === 'grouped' && key !== UNTAGGED_KEY
 }
 
 /**
@@ -156,13 +166,13 @@ function extrasFor(item: MasterItem): string[] {
           :data-testid="`m9-row-check-${item.name}`"
         />
         <!-- FR-28.4 + FR-24.13: photo → mark → the primary tag's mark →
-             the tag initial. The inventory is
-             where an item is identified, so this ladder never ends in
-             nothing and the column stays aligned. -->
+             the tag initial; under that tag's own heading the last two
+             give way to an empty slot that holds the column (G-15). -->
         <ItemMark
           slot="start"
           :mark="item.icon ?? null"
           :tag-mark="primaryTagMark(item)"
+          :headed="headedByTag(key as string)"
           surface="inventory"
           :photo-item="item"
           :initial="avatarGlyph(item)"

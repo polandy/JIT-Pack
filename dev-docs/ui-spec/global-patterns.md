@@ -561,6 +561,12 @@ These patterns apply to every screen and are specified once.
     (FR-24.13) → primary-tag initial; M4 and M5 fall back photo → mark → *nothing*. The inventory identifies an item and
     already owns the initial tile (ADR-014); the packing row is scanned, and a coloured letter repeating the name beside
     it is noise — rendered, it lost to *no mark at all*.
+  * **Under its own tag's heading the borrowed rungs stop** (UX-19). In M9 grouped by tag a row's group *is* its
+    primary tag, so the tag's mark and its initial would only repeat the heading down the column — rendered, ten muted
+    🔧 under „🔧 Technik" were louder than the two marks the items owned. There the ladder ends photo → mark →
+    *nothing*, the slot holding its width; a dot or a blank tile in the slot lost the rendered round as a second
+    repeated column. Where no heading names the tag — search results, the alphabetical run, the untagged bucket — the
+    full ladder stays.
   * **A photo wins wherever one exists.** It is the more specific answer (FR-22.1). The accepted cost is a mixed column:
     on a realistic list three rows in fifteen are photographed, and they pull the eye harder than the twelve beside
     them.

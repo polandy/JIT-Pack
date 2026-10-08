@@ -1,6 +1,6 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
-import { backToInventory, createItem, groupHeadings } from './helpers/m9'
+import { backToInventory, createItem, groupHeadings, openViewSheet } from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -89,7 +89,8 @@ test.describe('M9 — tags are marked, and created where they are given @local @
 
   /**
    * E2E-M9-25 (FR-24.13): the mark is set where the tag is fixed, and read on
-   * the list — on the heading, and lent, muted, to a row without its own.
+   * the list — on the heading, and lent, muted, to a row without its own
+   * wherever no heading names the tag (a search; G-15, E2E-M9-34).
    */
   test('E2E-M9-25: a tag’s mark is set in the manager and shows on its heading and its rows', async ({
     page,
@@ -112,10 +113,62 @@ test.describe('M9 — tags are marked, and created where they are given @local @
 
     const list = visiblePage(page)
     await expect(list.getByTestId('m9-group-head')).toContainText(mark)
-    // The row has no mark of its own, so it borrows the tag's — muted.
+    // Under a search the heading is the match reason, so the row — no mark
+    // of its own — borrows the tag's, muted.
+    await list.getByTestId('items-search-input').fill('camping')
+    await expect(list.getByTestId('m9-row-via')).toContainText('Camping')
     const row = list.getByTestId('m9-row').filter({ hasText: 'Zelt' })
     await expect(row.getByTestId('item-mark')).toHaveText(mark)
     await expect(row.getByTestId('item-mark-slot')).toHaveClass(/borrowed/)
+  })
+
+  /**
+   * E2E-M9-34 (G-15, FR-24.13, UX-19): under its own tag's heading a row
+   * stops borrowing — the heading shows the mark once, and the column holds
+   * only the marks the items own. In the alphabetical run no heading names
+   * the tag, and the borrowed mark is back.
+   */
+  test('E2E-M9-34: the Technik group renders only Kamera’s and Powerbank’s own marks', async ({
+    page,
+  }) => {
+    await createItem(page, 'Kamera', { tags: ['Technik'], mark: '📷' })
+    await backToInventory(page)
+    await createItem(page, 'Powerbank', { tags: ['Technik'], mark: '🔋' })
+    await backToInventory(page)
+    await createItem(page, 'Stativ', { tags: ['Technik'] })
+    await backToInventory(page)
+
+    await openFromOverflow(page, 'Manage tags')
+    await expect(page.getByTestId('m9-tags-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m9-tag-mark-Technik').click()
+    await page.getByTestId('mark-search').fill('kabel')
+    await page.getByTestId('mark-tile').filter({ hasText: '🔌' }).click()
+    await expect(page.getByTestId('m9-tag-mark-Technik')).toContainText('🔌')
+    await writesLanded(page)
+    await page.getByTestId('m9-tags-close').click()
+
+    const list = visiblePage(page)
+    // The positive signal that the tag's mark reached the list at all.
+    await expect(list.getByTestId('m9-group-head')).toContainText('🔌')
+    const technik = list
+      .locator('ion-item-group')
+      .filter({ has: page.getByTestId('m9-group-head').filter({ hasText: 'Technik' }) })
+    await expect(technik.getByTestId('m9-row')).toHaveCount(3)
+    await expect(technik.getByTestId('m9-row').getByTestId('item-mark')).toHaveText(['📷', '🔋'])
+    // Stativ keeps its slot, empty — no borrowed mark, no letter tile.
+    const stativ = technik.getByTestId('m9-row').filter({ hasText: 'Stativ' })
+    await expect(stativ.getByTestId('item-mark-slot')).toBeVisible()
+    await expect(stativ.getByTestId('item-mark-slot')).toHaveText('')
+    await expect(technik.getByTestId('item-mark-initial')).toHaveCount(0)
+
+    const sheet = await openViewSheet(page)
+    await sheet.getByTestId('m9-sort-alphabetical').click()
+    await page.getByTestId('m9-filter-close').click()
+    await expect(page.getByTestId('m9-filter-sheet')).not.toHaveAttribute('data-presented', 'true')
+    await expect(list.getByTestId('m9-group-head')).toHaveCount(1)
+    const lent = list.getByTestId('m9-row').filter({ hasText: 'Stativ' })
+    await expect(lent.getByTestId('item-mark')).toHaveText('🔌')
+    await expect(lent.getByTestId('item-mark-slot')).toHaveClass(/borrowed/)
   })
 })
 

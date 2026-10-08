@@ -12,6 +12,9 @@
  *     already exists there (ADR-014), and a column that never falls back to
  *     nothing stays aligned. The tag's mark (FR-24.13) is *borrowed* and
  *     painted muted, so an item's own mark stays recognisable beside it.
+ *     Under its own tag's heading (`headed`) both borrowed rungs stop at an
+ *     empty slot: the heading already shows that mark, and a column repeating
+ *     it was louder than the marks the items own (G-15).
  *   - `packing`   — photo → mark → an empty slot that holds its width. No
  *     letter: beside the name it repeats, the rendered round showed it as
  *     noise on a row already carrying a checkbox, quantity, badges and
@@ -48,26 +51,30 @@ const props = withDefaults(
      * packing and plain surfaces have no letter to replace either.
      */
     tagMark?: string | null
+    /**
+     * The row sits under a heading that names its primary tag (M9 grouped by
+     * tag) — the `inventory` ladder then ends at an empty slot instead of the
+     * tag's mark or initial. Ignored elsewhere.
+     */
+    headed?: boolean
     /** The `inventory` ladder's last rung; ignored by the other two. */
     initial?: string
     /** The glyph box, in px — a size, never inherited from the text beside it (G-13). */
     size?: number
   }>(),
-  { mark: null, tagMark: null, photoItem: null, initial: '', size: 22 },
+  { mark: null, tagMark: null, headed: false, photoItem: null, initial: '', size: 22 },
 )
 
 const showPhoto = computed(() => Boolean(props.photoItem?.image_hash))
+/** The inventory's tag rungs — its mark, then its initial — unless a heading already names the tag. */
+const lendsFromTag = computed(() => props.surface === 'inventory' && !props.headed)
 /** The tag's mark stands in only on the inventory, and only for an item without its own. */
-const borrowed = computed(
-  () => props.surface === 'inventory' && !props.mark && Boolean(props.tagMark),
-)
+const borrowed = computed(() => lendsFromTag.value && !props.mark && Boolean(props.tagMark))
 const shownMark = computed(() => (borrowed.value ? props.tagMark : props.mark))
 const showMark = computed(() => !showPhoto.value && Boolean(shownMark.value))
-const showInitial = computed(
-  () => props.surface === 'inventory' && !showPhoto.value && !showMark.value,
-)
-/** `packing` keeps the column aligned even with nothing to show; `plain` does not. */
-const showSlot = computed(() => showMark.value || props.surface === 'packing')
+const showInitial = computed(() => lendsFromTag.value && !showPhoto.value && !showMark.value)
+/** `packing` and `inventory` keep the column aligned even with nothing to show; `plain` does not. */
+const showSlot = computed(() => showMark.value || props.surface !== 'plain')
 </script>
 
 <template>

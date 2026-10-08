@@ -83,6 +83,9 @@ A tag can carry one emoji, like an item can. Open **Inventory → ⋮ → Manage
 square in front of a tag's name; the same emoji picker as for items opens. The icon appears on
 the tag's chip and heading in the inventory, and in front of every item filed under the tag
 that has no photo and no icon of its own — shown paler, so you can tell it from the item's own.
+In the list grouped by tag the heading already shows the icon, so the items under it leave the
+space empty; in search results and in the alphabetical list the paler icon stands in front of
+them.
 
 ## What you can delete
 
