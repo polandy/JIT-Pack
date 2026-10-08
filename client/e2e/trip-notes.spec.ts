@@ -268,4 +268,37 @@ test.describe('M26 — a trip’s notes as threads (FR-7.13) @local @m26', () =>
     const thread = await openThread(page, 'Schwimmwesten beim Verleih')
     await expect(thread.getByTestId('note-excursion-link')).toHaveCount(0)
   })
+
+  /**
+   * E2E-M26-07: the thread view's head is the thread's own title, or *Note*
+   * where it has none — never the untitled note's first line, which the card
+   * under the head already shows in full. The seed's quick note, a number
+   * and a time on one line, stands on the page once; the trip stays the
+   * head's second line.
+   */
+  test('E2E-M26-07: the thread view heads with its title or *Note*, and an untitled note’s words stand once', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await openNotes(page)
+    await addTripNote(page, 'Pizzakurier: 044 555 01 00, ab 18 Uhr')
+    await addTripNote(page, 'Code 4711, links neben der Haustür', 'Schlüsselbox')
+
+    const pizza = await openThread(page, 'Pizzakurier: 044 555 01 00, ab 18 Uhr')
+    await expect(page.getByTestId('header-title')).toHaveText('Note')
+    await expect(page.getByTestId('header-meta')).toHaveText('Samedan')
+    await expect(pizza.getByTestId(/^note-entry-words-/)).toHaveText(
+      'Pizzakurier: 044 555 01 00, ab 18 Uhr',
+    )
+    await expect(page.getByTestId('page-head')).not.toContainText('044 555 01 00')
+    await expect(visible(page).getByText('044 555 01 00', { exact: false })).toHaveCount(1)
+
+    await page.getByTestId('header-back').click()
+    const box = await openThread(page, 'Schlüsselbox')
+    await expect(page.getByTestId('header-title')).toHaveText('Schlüsselbox')
+    await expect(page.getByTestId('header-meta')).toHaveText('Samedan')
+    await expect(box.getByTestId(/^note-entry-words-/)).toHaveText(
+      'Code 4711, links neben der Haustür',
+    )
+  })
 })

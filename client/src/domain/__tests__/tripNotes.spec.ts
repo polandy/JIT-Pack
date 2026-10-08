@@ -16,6 +16,7 @@ import {
   noteExcursion,
   noteThreads,
   threadName,
+  threadTitle,
   threadsAboutExcursion,
   type DashboardNoteTrip,
 } from '../tripNotes'
@@ -130,6 +131,12 @@ describe('noteThreads — the shape (FR-7.13)', () => {
       'Pizza Bella 079 555 12 34',
     )
     expect(threadName(note({ title: 'Schlüsselbox' }))).toBe('Schlüsselbox')
+  })
+
+  it('has a title only where its author gave it one — a blank one is none', () => {
+    expect(threadTitle(note({ title: '  Schlüsselbox ' }))).toBe('Schlüsselbox')
+    expect(threadTitle(note({ title: '   ' }))).toBeNull()
+    expect(threadTitle(note({ body: 'Pizzakurier: 044 555 01 00' }))).toBeNull()
   })
 
   it('stamps an entry with its edit when it has one', () => {

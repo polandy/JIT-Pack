@@ -23,7 +23,8 @@
   Mitreisenden sehen die Notiz."*, where the trip has excursions a chip row *„Zu einem Ausflug"* — one `ChoiceChip`
   per excursion with the signpost glyph, at most one pressed, a second tap taking it off (FR-7.15) —
   *Abbrechen* and *Teilen*. It writes a first note with `created_at` from the device; the list stays where it is.
-* **The thread view** (`/trips/:id/notes/:threadId`, `meta.parent` the list, no pills) is named by the thread, with the
+* **The thread view** (`/trips/:id/notes/:threadId`, `meta.parent` the list, no pills) is headed by the thread's
+  title, or ***„Notiz"*** where it has none — never the first line, which the card under it shows in full — with the
   trip as meta. **The first note is a card on top** — avatar, *„Ben · heute 14:32 · bearbeitet"*, a ⋯, the words in
   full, and in Server Mode ***„Gesehen von Anna, Chris"*** (FR-7.9 decision 3, here rather than on the list); under
   the card's words, for a thread about an excursion, a pill with the signpost, its name and a chevron
