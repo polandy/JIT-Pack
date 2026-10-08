@@ -17,8 +17,8 @@
  * the head, which is where a case looking for the section wants it.
  *
  * The head has no side margin of its own: nearly every head sits in a padded
- * page, sheet or card, and an inset of its own on top of that put the count
- * a few pixels off the card's edge below it. The one placement without a
+ * page, sheet or card, and an inset of its own on top of that would set the
+ * count off the edge of the card below it. The one placement without a
  * padded container — a head standing on a page of inset cards (M7, M8) —
  * is told so through `cardList`, so the component still owns the answer.
  */
