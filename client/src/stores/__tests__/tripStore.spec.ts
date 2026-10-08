@@ -24,13 +24,13 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
 }
 
 /** One pulled row, the way the feed delivers it. */
+function row(table: string, id: string, fields: Record<string, unknown>): PullChange {
+  return { seq: 1, table, id, deleted: false, row: fields }
+}
+
 /** A trip's tombstone, as a pull hands it over. */
 function tripTombstone(id: string): PullChange {
   return { seq: 2, table: TABLE.trips, id, deleted: true, row: null }
-}
-
-function row(table: string, id: string, fields: Record<string, unknown>): PullChange {
-  return { seq: 1, table, id, deleted: false, row: fields }
 }
 
 describe('tripStore', () => {
