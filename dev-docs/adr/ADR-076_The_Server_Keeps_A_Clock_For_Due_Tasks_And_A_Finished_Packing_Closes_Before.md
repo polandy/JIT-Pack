@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** FR-7.11, FR-7.12, FR-7.7, FR-5.10, FR-17.3, FR-6.2, NFR-4.6, FR-30.3, ADR-066, ADR-071, ADR-037,
 `internal/api/taskdue.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
-`client/src/domain/closePacking.ts`, `client/src/lib/packingClose.ts`, migration `005_task_due_date.sql`
+`client/src/domain/closePacking.ts`, `client/src/kernel/packingClose.ts`, migration `005_task_due_date.sql`
 
 **Context.** The owner asked on 2026-09-25 for two things that FR-7.7 had deliberately left out. A task may name the
 **day** it is due, and whoever it is for is **reminded the day before and on the day**, at a time the operator sets
@@ -72,7 +72,7 @@ Each device computes what is due and raises a local notification.
 
 *Before* is closed exactly while the packing stamp is set. The close moves the open *before* tasks (FR-7.7) and, now,
 the open *before departure* purchases in the same act under the same undo: its own `buy_before` rows directly, the
-shopping list's own entries through a kernel contract (`lib/packingClose.ts`) the composition root binds, since the
+shopping list's own entries through a kernel contract (`kernel/packingClose.ts`) the composition root binds, since the
 packing side may not import the module (FR-30.3). Every writer of a new task asks `phaseForNewTask`, which answers
 *during* while the stamp is set.
 
@@ -83,7 +83,7 @@ packing side may not import the module (FR-30.3). Every writer of a new task ask
 **Cons**
 - The lock is only as strong as the clients that read it. A device that has not pulled the stamp yet can still write
   into *before*; the result stays readable (the section is history, not hidden) and can be moved out by its sheet.
-- A new cross-module contract, the second after `lib/shoppingSources.ts`, in the opposite direction.
+- A new cross-module contract, the second after `kernel/shoppingSources.ts`, in the opposite direction.
 
 ### Option L2 — a stored `before_locked` flag, refused by the server
 

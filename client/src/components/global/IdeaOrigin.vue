@@ -15,7 +15,7 @@ import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { t } from '@/i18n'
-import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { tripIdeasPath } from '@/router/paths'
 
 const props = defineProps<{

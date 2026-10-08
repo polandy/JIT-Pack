@@ -61,6 +61,16 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
 (that hides the button and ships the code); `scripts/dev-code-gate.mjs` fails the build if a dev module reaches
 `dist`.
 
+## The layers — where a new file goes
+
+`domain → lib → sync → kernel → stores → app → composables → components → views`, each importing only leftwards
+(ADR-096; the table with each layer's role is `CODING_PRINCIPLES.md` §3). Decide by what the file imports:
+
+- a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
+- a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
+- a contract between the kernel and a module, or the adapter that fills one → `kernel/`;
+- anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it.
+
 ## The kernel and its feature modules
 
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers,
@@ -68,14 +78,15 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
   I/O, exhaustively unit-tested. This is where a Go `internal/domain` ended up, deliberately (invariant 4).
 - `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases
   in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts
-  (`lib/shoppingSources.ts`, `sync/featureModule.ts`, `lib/tripCards.ts`, `lib/activityReaders.ts`,
-  `lib/dayPlanSources.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions.
+  (`kernel/shoppingSources.ts`, `sync/featureModule.ts`, `kernel/tripCards.ts`, `kernel/activityReaders.ts`,
+  `kernel/dayPlanSources.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions.
 - `client/src/planner` — the second feature module (§3.29, ADR-078): ideas, votes, their discussion, pictures and GPX
   tracks and the day plan's entries in tables of its own, M28 and M29, its pure rules in `planner/domain/` (held by
   `domain-purity-gate.mjs` too), its e2e cases in `client/e2e/planner/`.
 - `client/src/meals` — the third (§3.33, ADR-092): meals and their ingredients, M31 and the one meal sheet the shell
-  mounts, its rules in `meals/domain/`. It reads the trip through `lib/mealContext.ts` and reaches M6, M29, M27 and
-  M1 through `lib/shoppingSources.ts`, `lib/dayPlanSources.ts`, `lib/excursionExtraLines.ts` and `lib/tripCards.ts`.
+  mounts, its rules in `meals/domain/`. It reads the trip through `kernel/mealContext.ts` and reaches M6, M29, M27
+  and M1 through `kernel/shoppingSources.ts`, `kernel/dayPlanSources.ts`, `kernel/excursionExtraLines.ts` and
+  `kernel/tripCards.ts`.
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.

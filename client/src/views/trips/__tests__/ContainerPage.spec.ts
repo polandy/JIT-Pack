@@ -15,15 +15,15 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import { barAll, barCount, barSelection } from '@/__tests__/headerSelection'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/composables/useHeaderSelection', async (actual) => ({
-  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/shared/useHeaderSelection')>()),
   setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
 }))
 

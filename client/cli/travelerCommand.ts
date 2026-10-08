@@ -56,9 +56,7 @@ export interface TravelerOptions extends Connection {
 }
 
 export type ParsedTravelerArgs =
-  | ({ ok: true } & TravelerOptions)
-  | { ok: false; error: string }
-  | { ok: false; help: true }
+  ({ ok: true } & TravelerOptions) | { ok: false; error: string } | { ok: false; help: true }
 
 export const TRAVELER_USAGE = `Usage: jitpack traveler add|list --trip TRIP [flags] [NAME...]
 
@@ -113,7 +111,8 @@ export function parseTravelerArgs(
     } else names.push(arg)
   }
 
-  if (action === null) return { ok: false, error: `no action given (expected ${ACTIONS.join(' or ')})` }
+  if (action === null)
+    return { ok: false, error: `no action given (expected ${ACTIONS.join(' or ')})` }
   if (!trip) return { ok: false, error: 'no trip given — a traveler belongs to one' }
   if (action === 'add' && names.length === 0) return { ok: false, error: 'no name given' }
   if (year && !/^\d{4}$/.test(year)) return { ok: false, error: `not a year: ${year}` }
@@ -182,7 +181,10 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
   let linkedUserId: string | null = null
   if (opts.user) {
     try {
-      const resolved = resolveUser((await client.get<UserListResponse>(API.users, {})).users, opts.user)
+      const resolved = resolveUser(
+        (await client.get<UserListResponse>(API.users, {})).users,
+        opts.user,
+      )
       if ('error' in resolved) {
         io.write(resolved.error)
         return EXIT.failed

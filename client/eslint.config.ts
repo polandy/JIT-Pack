@@ -66,10 +66,10 @@ export default defineConfigWithVueTs(
     files: [
       'src/sync/mutations.ts',
       'src/composables/useSyncOrchestrator.ts',
-      'src/composables/sync/**/*.ts',
+      'src/app/**/*.ts',
       'cli/**/*.ts',
     ],
-    ignores: ['src/composables/sync/__tests__/**'],
+    ignores: ['src/app/__tests__/**'],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -104,7 +104,7 @@ export default defineConfigWithVueTs(
         {
           selector: "CallExpression[callee.name='inject'][arguments.0.type='Literal']",
           message:
-            'Inject through an InjectionKey, not a string — see composables/useOrchestrator.ts.',
+            'Inject through an InjectionKey, not a string — see composables/shared/useOrchestrator.ts.',
         },
       ],
     },

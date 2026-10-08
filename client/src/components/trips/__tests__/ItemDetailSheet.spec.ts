@@ -17,10 +17,10 @@ import { nextTick, ref } from 'vue'
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import { setCurrency } from '@/lib/currency'
+import { setCurrency } from '@/i18n/currency'
 import { formatValue } from '@/lib/format'
 import type { ItemMode, MasterItem, Trip, TripItem, TripStatus } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 

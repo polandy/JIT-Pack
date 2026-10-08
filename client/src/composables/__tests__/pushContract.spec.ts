@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { SyncOutbox } from '../useSyncOutbox'
+import { SyncOutbox } from '@/sync/outbox'
 import type { Mutation, PushResponse, PullResponse } from '@/api/types'
 import type { APIClient } from '@/api/client'
 import type { HLCGenerator } from '@/sync/hlc'

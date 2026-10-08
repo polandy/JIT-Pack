@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** ADR-085 (tracks read on the device, tiles on by default), ADR-082 (the server's one outbound request),
-FR-29.20, FR-29.17, NFR-4.3, invariants 4 and 5, `client/src/domain/route.ts`, `client/src/lib/routing.ts`,
+FR-29.20, FR-29.17, NFR-4.3, invariants 4 and 5, `client/src/domain/route.ts`, `client/src/composables/routing.ts`,
 `client/src/components/global/TrackEditor.vue`
 
 **Decision Drivers (in priority order):**
@@ -21,8 +21,9 @@ FR-29.20, FR-29.17, NFR-4.3, invariants 4 and 5, `client/src/domain/route.ts`, `
 
 #### Option A — the public BRouter, asked by the device *(recommended, accepted)*
 
-`lib/routing.ts` asks `https://brouter.de/brouter` for one stretch at a time: two points, a profile (`hiking-mountain`
-for a hike, `trekking` for a bike tour), GeoJSON back with a height on every point. BRouter is open source, routes on
+`composables/routing.ts` asks `https://brouter.de/brouter` for one stretch at a time: two points, a profile
+(`hiking-mountain` for a hike, `trekking` for a bike tour), GeoJSON back with a height on every point. BRouter is
+open source, routes on
 OpenStreetMap with SRTM heights and answers cross-origin. `JITPACK_ROUTING=false` turns it off and
 `JITPACK_ROUTING_URL` points it at another BRouter; the instance's config carries the address, empty when off. Local
 Mode asks the public one.

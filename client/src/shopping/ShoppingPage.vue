@@ -3,7 +3,7 @@
  * M6 — the shopping list (FR-3.2, FR-30).
  *
  * Two lists, *Vor der Reise* and *Vor Ort*, each read from every source
- * the composition root provides (`lib/shoppingSources.ts`) plus the list's
+ * the composition root provides (`kernel/shoppingSources.ts`) plus the list's
  * own entries. What a line *is* — a packing row bought rather than packed, or
  * „Milch" typed here — is its source's business; this screen renders lines,
  * checks them off and puts them back, and never learns which. That is the
@@ -43,21 +43,21 @@ import ListComposer from '@/components/global/ListComposer.vue'
 import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
-import { useTripScreen } from '@/composables/useTripScreen'
-import { useIdeaSeed } from '@/composables/useIdeaSeed'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { collapseRow } from '@/lib/rowCollapse'
-import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
-import { presentToast } from '@/lib/toast'
-import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
+import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
+import { presentToast } from '@/composables/shared/toast'
+import { SHOPPING_SOURCES, type ShoppingLine } from '@/kernel/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import {
   ITEM_MODE_BUY_BEFORE,
@@ -369,7 +369,7 @@ async function applyBulkTag(tag: string | null) {
   })
 }
 
-/** FR-30.12: the person picker M4 and M25 ask with (`lib/pickAssignee`), over the trip's own people. */
+/** FR-30.12: the person picker M4 and M25 ask with (`composables/shared/pickAssignee`), over the trip's own people. */
 function pickAssignee(header: string, current: string | null) {
   return pickAssigneeFrom(header, current, assignees.value)
 }

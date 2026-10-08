@@ -15,7 +15,7 @@ import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import TimeField from '@/components/global/TimeField.vue'
-import { LIVE_LOCATION } from '@/composables/useLiveLocation'
+import { LIVE_LOCATION } from '@/composables/shared/useLiveLocation'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { ConnectionLeg } from '@/types/domain'

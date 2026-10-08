@@ -71,7 +71,7 @@ test.describe('Aktivität (M30) @server @m30', () => {
    * E2E-M30-03 (FR-32.2): a feature module's row is read by the module — Bob's
    * vote on Alice's idea is a *voted* line under *Ideas*, not a bare *added*
    * row of an unknown table. Proves the composition root binds the planner's
-   * reader (`lib/activityReaders.ts`).
+   * reader (`kernel/activityReaders.ts`).
    */
   test("E2E-M30-03: a member's vote reads as voted, under Ideas @planner", async ({ browser }) => {
     const id = uniq()

@@ -13,7 +13,7 @@ import { computed } from 'vue'
 import { noteSegments } from '@/domain/noteText'
 import { t } from '@/i18n'
 import { copyText } from '@/lib/clipboard'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 
 const props = defineProps<{
   body: string

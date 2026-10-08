@@ -3,8 +3,8 @@
 **Status:** Accepted
 **Related:** G-21 (UI-Spec), ADR-060 (nothing moves under a finger), ADR-075 (the grip lifts, a hold selects),
 FR-7.8/FR-7.17 (M25), FR-30.9/FR-30.13 (M6), FR-24.10 (M9's tag manager), FR-33.15 (M31),
-`client/src/composables/useDragToGroup.ts`, `client/src/composables/dragToGroup.css`, the "Mahlzeit verschieben"
-mockup (owner's choice of 2026-10-05)
+`client/src/composables/shared/useDragToGroup.ts`, `client/src/composables/shared/dragToGroup.css`, the "Mahlzeit
+verschieben" mockup (owner's choice of 2026-10-05)
 
 **Decision Drivers (in priority order):**
 1. **The place a row is aimed at stays in sight.** Moving a meal to another day on a phone, the owner found the

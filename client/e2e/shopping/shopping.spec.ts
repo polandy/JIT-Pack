@@ -617,7 +617,7 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
     target = (await apotheke.boundingBox())!
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
     await page.mouse.down()
-    // The shared frame (`composables/dragToGroup.css`, shared with
+    // The shared frame (`composables/shared/dragToGroup.css`, shared with
     // `TripTasksPage.vue`'s drag) reaches this page's ghost from outside
     // this component's own scoped style.
     await expect(page.locator('[data-drag-ghost]')).toHaveCSS('border-style', 'solid')

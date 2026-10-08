@@ -14,7 +14,7 @@ import {
 } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { tripOrderKey } from '@/domain/trips'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { WizardComposition } from './useWizardComposition'

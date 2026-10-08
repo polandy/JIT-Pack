@@ -26,42 +26,42 @@ import { computed, reactive, ref } from 'vue'
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
-import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
+import { SyncOutbox, type ConflictReport, type RejectionReport } from '@/sync/outbox'
 import { optimisticInsert } from '@/sync/optimistic'
 import { createWriteFunnel, type PartitionBatch, type Write } from '@/sync/writeFunnel'
 import { TABLE } from '@/api/tables'
 import { storeFor } from '@/sync/routing'
 import { applyChangesToSinks, currentRowIn, holdsTable, removeCascading } from '@/sync/sinks'
 import type { FeatureStore, ModuleHost } from '@/sync/featureModule'
-import { createContainerActions } from './sync/actions/containers'
-import { createCommentActions } from './sync/actions/comments'
-import { createDependencyActions } from './sync/actions/dependencies'
-import { createSeriesActions } from './sync/actions/series'
-import { createMasterDataActions } from './sync/actions/masterData'
-import { createPackingActions } from './sync/actions/packing'
-import { createGroupRefreshActions } from './sync/actions/groupRefresh'
-import { createInventoryNameActions } from './sync/actions/inventoryNames'
-import { createTripLifecycleActions } from './sync/actions/tripLifecycle'
-import { createPostTripActions } from './sync/actions/postTrip'
-import { createExcursionActions } from './sync/actions/excursions'
-import { createTripCreationActions } from './sync/actions/tripCreation'
+import { createContainerActions } from '@/app/actions/containers'
+import { createCommentActions } from '@/app/actions/comments'
+import { createDependencyActions } from '@/app/actions/dependencies'
+import { createSeriesActions } from '@/app/actions/series'
+import { createMasterDataActions } from '@/app/actions/masterData'
+import { createPackingActions } from '@/app/actions/packing'
+import { createGroupRefreshActions } from '@/app/actions/groupRefresh'
+import { createInventoryNameActions } from '@/app/actions/inventoryNames'
+import { createTripLifecycleActions } from '@/app/actions/tripLifecycle'
+import { createPostTripActions } from '@/app/actions/postTrip'
+import { createExcursionActions } from '@/app/actions/excursions'
+import { createTripCreationActions } from '@/app/actions/tripCreation'
 // The screens read this module rather than the group, so the type keeps its
 // public home even though FR-24.3's rules moved.
-export type { DeletionOutlook } from './sync/actions/masterData'
-export type { CloneDraft, TripWizardDraft } from './sync/actions/tripCreation'
-import { createNameGuards } from './sync/names'
-import { createLockState } from './sync/locks'
-import { createNotificationActions } from './sync/notifications'
-import { createConflictActions } from './sync/conflicts'
-import { createActivityActions } from './sync/activity'
-import { createIdentityActions } from './sync/identity'
-import { createIdeaPictures } from './sync/ideaImages'
-import { createExcursionTracks, createIdeaTracks } from './sync/trackFiles'
-import { createLinkPreview } from './sync/linkPreview'
-import { createImageActions } from './sync/images'
-import { knownTripItemsOf } from './sync/context'
-import type { SyncContext } from './sync/context'
-import { useWebSocket, type LocationFrame } from './useWebSocket'
+export type { DeletionOutlook } from '@/app/actions/masterData'
+export type { CloneDraft, TripWizardDraft } from '@/app/actions/tripCreation'
+import { createNameGuards } from '@/app/names'
+import { createLockState } from '@/app/locks'
+import { createNotificationActions } from '@/app/notifications'
+import { createConflictActions } from '@/app/conflicts'
+import { createActivityActions } from '@/app/activity'
+import { createIdentityActions } from '@/app/identity'
+import { createIdeaPictures } from '@/app/ideaImages'
+import { createExcursionTracks, createIdeaTracks } from '@/app/trackFiles'
+import { createLinkPreview } from '@/app/linkPreview'
+import { createImageActions } from '@/app/images'
+import { knownTripItemsOf } from '@/app/context'
+import type { SyncContext } from '@/app/context'
+import { createWebSocket, type LocationFrame } from '@/sync/webSocket'
 import { applyLocation, type PeopleFixes } from '@/lib/liveLocation'
 import { createMutations } from '@/sync/mutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -182,7 +182,7 @@ export interface SyncOrchestratorConfig {
 
 /**
  * The write facade every view holds. Named because it is what the injection
- * key carries (`composables/useOrchestrator.ts`); a consumer asks for the
+ * key carries (`composables/shared/useOrchestrator.ts`); a consumer asks for the
  * type by name rather than restating how it is derived.
  */
 export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
@@ -279,7 +279,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Trips this device has asked the hub about — the set every new socket is told. */
   const subscribedTrips = new Set<string>()
 
-  const ws = useWebSocket({
+  const ws = createWebSocket({
     baseUrl: config.baseUrl,
     getToken: config.getToken,
     onEvent: onWSEvent,

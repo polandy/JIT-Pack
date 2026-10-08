@@ -13,7 +13,7 @@
  */
 import { computed } from 'vue'
 
-import type { HeadMeta } from '@/composables/useHeaderTitle'
+import type { HeadMeta } from '@/composables/shared/useHeaderTitle'
 
 const props = defineProps<{
   title: string

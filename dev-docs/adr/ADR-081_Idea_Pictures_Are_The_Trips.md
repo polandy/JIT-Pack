@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** ADR-002 (bytes outside the envelope), ADR-078 (the planner), FR-29.5, FR-22.6, invariants 3 and 6,
-`internal/store/ideaimage.go`, `internal/api/ideaimage.go`, `client/src/composables/sync/ideaImages.ts`,
+`internal/store/ideaimage.go`, `internal/api/ideaimage.go`, `client/src/app/ideaImages.ts`,
 `client/src/planner/domain/pictures.ts`
 
 **Decision Drivers (in priority order):**

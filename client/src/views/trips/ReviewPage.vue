@@ -20,7 +20,7 @@ import { checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import {
   buildReviewProposals,
@@ -35,9 +35,9 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { useTripScreen } from '@/composables/useTripScreen'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()

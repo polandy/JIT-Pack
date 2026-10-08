@@ -69,7 +69,7 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 

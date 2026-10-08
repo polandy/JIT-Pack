@@ -2,7 +2,7 @@
  * The `id` each screen's floating action button carries.
  *
  * It exists so a bottom toast can be positioned *above* the FAB rather than
- * under it — `lib/toast.ts` explains the measurement. The id was therefore
+ * under it — `composables/shared/toast.ts` explains the measurement. The id was therefore
  * written twice per screen, once on the `IonFab` and once at every call site
  * that anchors to it, and at four screens across three directories that is
  * the shape CODING_PRINCIPLES §4a names: a literal compared across files.

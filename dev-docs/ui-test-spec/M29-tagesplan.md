@@ -15,9 +15,9 @@
   of its own on M29).
 * **E2E-M29-04** `local` (FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): an excursion with two days stands on
   both — *Excursion · Start* on the first, *Excursion · Return* on the last — and a tap opens its list on M27. The line
-  comes from the packing side through `lib/dayPlanSources.ts`, so the case also proves `App.vue`'s binding (it went red
-  with the binding removed). A task due on a day is the same source's (`dayPlanSource.spec.ts`: the line, its tick by
-  the live row).
+  comes from the packing side through `kernel/dayPlanSources.ts`, so the case also proves `App.vue`'s binding (it
+  went red with the binding removed). A task due on a day is the same source's (`dayPlanSource.spec.ts`: the line,
+  its tick by the live row).
 * **E2E-M29-05** `local` (FR-29.18) — **implemented** (`planner/connections.spec.ts`): an SBB link pasted into the
   link step is read without a button — *✓ 5 legs read.*, the five legs in the read-only card with the walk's 🚶 —
   and *Take* stays off until it is read. Taken, the entry is named *To Bern, Cäcilienstrasse* and says it moves to the

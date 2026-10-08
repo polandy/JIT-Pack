@@ -8,7 +8,7 @@ import { computed, ref } from 'vue'
 
 import type { BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import type { MergeCandidate } from '@/components/items/MergeItemsSheet.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import {
   DEPENDENCY_LINK_COMPANION,
   DEPENDENCY_LINK_MAIN,
@@ -17,9 +17,9 @@ import {
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { tagCounts, tagsOfItems } from '@/domain/tags'
 import { t } from '@/i18n'
-import { confirmDestructive } from '@/lib/confirm'
+import { confirmDestructive } from '@/composables/shared/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import type { DependencyMode } from '@/types/domain'
 

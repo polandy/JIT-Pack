@@ -55,16 +55,16 @@ import TaskPhaseSection from '@/components/trips/TaskPhaseSection.vue'
 import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
 import { useTaskActs } from '@/composables/useTaskActs'
-import { useTripIdentity } from '@/composables/useTripIdentity'
-import { useTripScreen } from '@/composables/useTripScreen'
-import { useIdeaSeed } from '@/composables/useIdeaSeed'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
 import { taskDueForIdea, taskPhaseForDue } from '@/domain/ideaResults'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { taskBoard } from '@/domain/taskBoard'
@@ -80,11 +80,11 @@ import {
   type TaskGroup,
   type TripTask,
 } from '@/domain/tripTodos'
-import { useDragToGroup, type DropPlace } from '@/composables/useDragToGroup'
+import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
+import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { beforeIsOver, isPackingClosed, standingOf } from '@/lib/tripPhase'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
@@ -430,7 +430,7 @@ setHeaderTitle(
   () => trip.value?.name,
 )
 
-/** FR-7.5's picker — the sheet M4 asks a row's question with (`lib/pickAssignee`). */
+/** FR-7.5's picker — the sheet M4 asks a row's question with (`composables/shared/pickAssignee`). */
 function pickAssignee(header: string, current: string | null) {
   return pickAssigneeFrom(header, current, assignees.value)
 }

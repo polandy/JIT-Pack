@@ -47,9 +47,9 @@ import { computed, inject, onMounted, ref } from 'vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import type { ActivityEntry } from '@/api/types'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useIdentity } from '@/composables/useTripIdentity'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
 import {
   SAID_BY_KIND,
   groupActivity,
@@ -59,7 +59,7 @@ import {
   type ActivityKind,
 } from '@/domain/activity'
 import { t, formatDate, formatDay, type MessageKey } from '@/i18n'
-import { ACTIVITY_READERS } from '@/lib/activityReaders'
+import { ACTIVITY_READERS } from '@/kernel/activityReaders'
 import { FIELD_LABELS } from '@/lib/fieldLabels'
 import { hasCollaborativeSession } from '@/mode'
 import { useTripStore } from '@/stores/tripStore'

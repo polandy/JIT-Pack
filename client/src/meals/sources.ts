@@ -6,11 +6,11 @@
  * the rows on every render, never a copy.
  */
 import { formatDate, formatNumber, t } from '@/i18n'
-import type { DayPlanLine, DayPlanSource } from '@/lib/dayPlanSources'
-import { DAY_PLAN_MEAL } from '@/lib/dayPlanSources'
-import type { ExcursionExtraSource } from '@/lib/excursionExtraLines'
-import type { MealContext } from '@/lib/mealContext'
-import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
+import type { DayPlanLine, DayPlanSource } from '@/kernel/dayPlanSources'
+import { DAY_PLAN_MEAL } from '@/kernel/dayPlanSources'
+import type { ExcursionExtraSource } from '@/kernel/excursionExtraLines'
+import type { MealContext } from '@/kernel/mealContext'
+import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { localDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
 import type { Meal, MealIngredient, ShoppingMode } from '@/types/domain'

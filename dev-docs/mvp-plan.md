@@ -46,7 +46,7 @@ page, Web Push with self-generated VAPID (zero config needed), WebSocket hub, sy
   registered only inside `registerPush()` — a user who never enables push has no service worker at all. Consequence: no
   home-screen install, no offline reload, and **no push on iOS at all** (iOS grants the Push API only to installed
   PWAs).
-- **B2 — Server Mode offline = data at risk.** The sync outbox (`client/src/composables/useSyncOutbox.ts`) queues
+- **B2 — Server Mode offline = data at risk.** The sync outbox (`client/src/sync/outbox.ts`) queues
   mutations **in memory only**. A reload or app kill while offline loses the queue; with no app-shell cache the reload
   itself has nothing to boot from.
 - ~~**B3 — Server Mode has zero e2e coverage.**~~ **Closed** by the two backend-backed projects: `single` for the
@@ -140,7 +140,7 @@ build their world through the UI run near the budget on WebKit — smallest seed
 
 ### Track C — Server Mode offline resilience: durable outbox *(blocker B2 · effort L · soft dependency on B)*
 
-Files: `client/src/composables/useSyncOutbox.ts`, a small IndexedDB persistence seam (pattern:
+Files: `client/src/sync/outbox.ts`, a small IndexedDB persistence seam (pattern:
 `client/src/local/persistence.ts`), G-2 detail sheet, `dev-docs/Sync_API_Spec_v1.3.md` if envelope semantics move.
 
 1. Persist the outbox queue to IndexedDB per mutation, remove entries on server ack; replay on boot before the first

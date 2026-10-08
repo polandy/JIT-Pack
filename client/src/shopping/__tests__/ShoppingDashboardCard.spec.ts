@@ -16,16 +16,16 @@ import ShoppingDashboardCard from '../ShoppingDashboardCard.vue'
 import { useShoppingStore } from '../store'
 import { t } from '@/i18n'
 import type { Mutation } from '@/api/types'
-import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/lib/shoppingSources'
+import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/kernel/shoppingSources'
 import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
 import { mutationOf, paintOf, type Write } from '@/sync/writeFunnel'
 import type { ShoppingMode } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { presentToast } from '@/lib/toast'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { presentToast } from '@/composables/shared/toast'
 import { currentRowIn } from '@/sync/sinks'
 
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn(() => Promise.resolve()) }))
+vi.mock('@/composables/shared/toast', () => ({ presentToast: vi.fn(() => Promise.resolve()) }))
 
 let written: Mutation[] = []
 const loadedTrips = reactive(new Set<string>(['t1']))

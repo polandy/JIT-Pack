@@ -94,8 +94,8 @@
   and the FR-18.7/18.8 command line's own pull (`sync/partition.ts`), which nothing here reaches. The rule, including
   the progress guard (*stop when `next_cursor` does not advance*, or a server claiming more without moving the cursor
   makes `jitpack import` spin for ever), is named once (`client/src/sync/pullProtocol.ts`) and both callers ask it. Its
-  twin, §3's observe step, is asserted on the drain in `useSyncOutbox.spec.ts`. No new e2e id: both are rules below the
-  screen, and a second paged-partition case would re-drive the loop E2E-SYNC-01 already drives.
+  twin, §3's observe step, is asserted on the drain in `sync/__tests__/outbox.spec.ts`. No new e2e id: both are
+  rules below the screen, and a second paged-partition case would re-drive the loop E2E-SYNC-01 already drives.
 * **E2E-M18-10** `local` (FR-18.4, ADR-030) — **implemented** (`e2e/backup-restore.spec.ts`): the same backup, restored
   **twice** onto one device, carrying all three document kinds — a group, a Ferien-Vorlage and a trip. The first run
   lands them and the restore list shows no *Schon vorhanden* mark; the second run marks **every** row before the button

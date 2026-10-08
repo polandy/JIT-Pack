@@ -23,11 +23,11 @@ import ListRow from '@/components/global/ListRow.vue'
 import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import type { RowSelection } from '@/composables/useRowSelection'
+import type { RowSelection } from '@/composables/shared/useRowSelection'
 import { t } from '@/i18n'
-import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import type { NameOf } from '@/lib/rowFacts'
-import type { ShoppingLine } from '@/lib/shoppingSources'
+import type { ShoppingLine } from '@/kernel/shoppingSources'
 
 const props = withDefaults(
   defineProps<{

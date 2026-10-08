@@ -9,12 +9,12 @@
 import { computed, ref } from 'vue'
 
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
-import { useTripIdentity } from '@/composables/useTripIdentity'
-import type { TripScreen } from '@/composables/useTripScreen'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
+import type { TripScreen } from '@/composables/shared/useTripScreen'
 import { canJudgeUnused, isActive } from '@/domain/trips'
-import { pickAssignee as pickAssigneeFrom } from '@/lib/pickAssignee'
+import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -117,7 +117,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /**
    * The person picker for this screen's callers — the row's avatar, the
    * cluster head's „für alle" (FR-25.25/25.26) and a task. The sheet itself is
-   * `lib/pickAssignee`, shared with M25 since a task is handed over the same
+   * `composables/shared/pickAssignee`, shared with M25 since a task is handed over the same
    * way (FR-7.7); what stays here is only this screen's default audience.
    */
   async function pickAssignee(

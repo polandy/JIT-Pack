@@ -12,7 +12,7 @@
  */
 import { DUE_SOON_DAYS, daysBetween, pressingGroupsFirst, sortByDue } from '@/lib/dueDay'
 import { byHand, dropInto, renumber, type Placement } from '@/lib/handOrder'
-import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
+import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { beforeIsOver, type TripStanding } from '@/lib/tripPhase'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/types/domain'

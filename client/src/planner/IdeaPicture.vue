@@ -11,7 +11,7 @@ import { IonIcon } from '@ionic/vue'
 import { imageOutline } from 'ionicons/icons'
 import { onUnmounted, ref, watch } from 'vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import type { IdeaImage } from '@/types/domain'
 
 const props = withDefaults(

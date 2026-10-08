@@ -14,7 +14,7 @@ import { computed, nextTick, ref } from 'vue'
 
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { durationDays } from '@/domain/instantiate'
 import { formatDay, formatDayRange, intlLocale, t } from '@/i18n'
 import {

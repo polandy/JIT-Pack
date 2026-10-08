@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
+import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import {
   boughtByDay,

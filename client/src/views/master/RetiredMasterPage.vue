@@ -47,21 +47,21 @@ import SelectBox from '@/components/global/SelectBox.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import type { MasterItem, Template } from '@/types/domain'
-import { confirmDestructive, promptText } from '@/lib/confirm'
+import { confirmDestructive, promptText } from '@/composables/shared/confirm'
 import {
   DELETION_SUBJECT_ITEM,
   DELETION_SUBJECT_TEMPLATE,
   deletionOutlookKey,
 } from '@/lib/deletionLabels'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
 
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()

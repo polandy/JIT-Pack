@@ -6,9 +6,9 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { hasCollaborativeSession } from '@/mode'
-import { useIdentity } from '@/composables/useTripIdentity'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 /**
  * The select's value for *nobody*: not `null`, which `IonSelect` reads as "no

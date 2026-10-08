@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
-import type { DayPlanLine } from '@/lib/dayPlanSources'
+import type { DayPlanLine } from '@/kernel/dayPlanSources'
 import {
   carriedDetail,
   connectionDetail,

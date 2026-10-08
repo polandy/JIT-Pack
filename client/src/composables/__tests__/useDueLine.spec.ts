@@ -8,11 +8,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 
-import type { HeadMetaPart } from '@/composables/useHeaderTitle'
+import type { HeadMetaPart } from '@/composables/shared/useHeaderTitle'
 import type { TripTask } from '@/domain/tripTodos'
 import { setLocale } from '@/i18n'
 import type { DueTally } from '@/lib/dueDay'
-import { DUE_BLOCK_SHOPPING, DUE_BLOCK_TASKS } from '@/lib/tripCards'
+import { DUE_BLOCK_SHOPPING, DUE_BLOCK_TASKS } from '@/kernel/tripCards'
 import { useDueLine } from '../useDueLine'
 
 const TODAY = '2026-07-08'

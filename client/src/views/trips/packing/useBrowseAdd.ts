@@ -6,13 +6,13 @@
 import { computed } from 'vue'
 
 import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
-import { SPREAD } from '@/composables/sync/actions/packing'
+import { SPREAD } from '@/app/actions/packing'
 import { browseRowStates } from '@/domain/browseRows'
 import { rowsCarryingContent } from '@/domain/membership'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import type { AddedItemDecision } from '@/sync/mutations'
 import { STATE_PACKED, type TripItem } from '@/types/domain'
 

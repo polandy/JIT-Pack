@@ -1,9 +1,9 @@
 # ADR-092: The meal plan — a feature module of its own, its ingredients shopping lines by projection
 
 **Status:** Accepted
-**Related:** ADR-066 (the shopping list as a module, `lib/shoppingSources.ts`), ADR-077 (excursions), ADR-078 (the
+**Related:** ADR-066 (the shopping list as a module, `kernel/shoppingSources.ts`), ADR-077 (excursions), ADR-078 (the
 planner module), ADR-079 (module-only CI), ADR-083 (hand order), §3.33, FR-33.1–33.11, FR-30.2, FR-31.8, FR-29.15,
-invariants 2–5, `client/src/meals/`, `client/src/lib/mealContext.ts`, `client/src/lib/excursionExtraLines.ts`
+invariants 2–5, `client/src/meals/`, `client/src/kernel/mealContext.ts`, `client/src/kernel/excursionExtraLines.ts`
 
 **Decision Drivers (in priority order):**
 1. **One truth for a thing to buy.** An ingredient bought on the shopping list is bought in its meal, and a meal
@@ -21,11 +21,12 @@ invariants 2–5, `client/src/meals/`, `client/src/lib/mealContext.ts`, `client/
 ### Option A — a module of its own, ingredients projected *(accepted)*
 
 `client/src/meals/` holds two trip-partition tables, `meals` and `meal_ingredients`. The ingredients reach M6 through
-`lib/shoppingSources.ts` under one heading (FR-33.3), the meals reach M29 through `lib/dayPlanSources.ts` (FR-33.5), a
-picnic reaches an excursion's list through a new contract, `lib/excursionExtraLines.ts` (FR-33.6), and M1 through
-`lib/tripCards.ts` (FR-33.7). What the module reads of the trip — the trips on the device, a trip's excursions, its
-shortlisted ideas — comes in through `lib/mealContext.ts`, answered by `App.vue`. One meal sheet, mounted once by the
-shell, opens over whichever screen asked. The ingredient carries `shopping_entries`' purchase record, stamped alike.
+`kernel/shoppingSources.ts` under one heading (FR-33.3), the meals reach M29 through `kernel/dayPlanSources.ts`
+(FR-33.5), a picnic reaches an excursion's list through a new contract, `kernel/excursionExtraLines.ts` (FR-33.6), and
+M1 through `kernel/tripCards.ts` (FR-33.7). What the module reads of the trip — the trips on the device, a trip's
+excursions, its shortlisted ideas — comes in through `kernel/mealContext.ts`, answered by `App.vue`. One meal sheet,
+mounted once by the shell, opens over whichever screen asked. The ingredient carries `shopping_entries`' purchase
+record, stamped alike.
 
 **Pros**
 - Buying is one write wherever it is made; nothing can drift apart, nothing needs cleaning up after a delete.

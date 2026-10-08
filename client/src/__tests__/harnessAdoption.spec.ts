@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
  * the right thing by not going through the harness.
  *
  * A bespoke stub is still allowed — a constructible `WebSocket` that records
- * its instances is exactly what `useWebSocket.spec.ts` needs. What it may not
+ * its instances is exactly what `webSocket.spec.ts` needs. What it may not
  * do is *replace* the setup: `installHarness()` first, then override, which
  * is what CLAUDE.md's Testing section already prescribes.
  */

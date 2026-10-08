@@ -19,16 +19,16 @@ import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
-import { LONG_PRESS_MS } from '@/composables/useLongPress'
+import { LONG_PRESS_MS } from '@/composables/shared/useLongPress'
 import type { AppliedChange } from '@/types/domain'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { tripClosingPath, tripStartingPath, tripSubPath } from '@/router/paths'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 // M2 opens on the *active* segment, so each test names the one it needs the
 // way M18 does — through `?status=`. Mutable rather than fixed: the frozen
 // case has to render an active trip's row and find no chip on it, and a test

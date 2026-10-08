@@ -19,10 +19,10 @@ import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 /** Step 2's sharing block exists only for an OIDC session (G-8), so it is a switch. */
 let collaborative = false
 vi.mock('@/mode', async (importOriginal) => ({

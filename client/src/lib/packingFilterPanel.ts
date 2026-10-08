@@ -17,12 +17,7 @@
 import { briefcaseOutline, cartOutline, contrastOutline, flagOutline } from 'ionicons/icons'
 import { personOutline, pricetagOutline } from 'ionicons/icons'
 
-import type {
-  FilterFacet,
-  FilterOption,
-  FilterSwitch,
-  GroupingOption,
-} from '@/components/global/FilterSheet.vue'
+import type { FilterFacet, FilterOption, FilterSwitch, GroupingOption } from '@/lib/filterSheet'
 import { FACET_KEYS, NO_VALUE } from '@/domain/packingView'
 import type { FlagFacetValue, PackStatusFacetValue, PackingView } from '@/domain/packingView'
 import { t, type MessageKey } from '@/i18n'

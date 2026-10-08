@@ -1,7 +1,7 @@
 /**
  * How the activity log reads the shopping list's own entries (FR-32.2) —
  * pure, no I/O, no Vue. The log knows no module's columns; it asks this
- * reader, which the composition root binds (`lib/activityReaders.ts`).
+ * reader, which the composition root binds (`kernel/activityReaders.ts`).
  *
  * A packing row bought from the list is the packing side's write and is read
  * there; this is only the list's own entries.
@@ -13,7 +13,7 @@ import {
   valueAfter,
   type ActivityReader,
   type ActivityReaders,
-} from '@/lib/activityReaders'
+} from '@/domain/activityReader'
 import type { ShoppingEntry } from '@/types/domain'
 import { TABLE } from '@/api/tables'
 

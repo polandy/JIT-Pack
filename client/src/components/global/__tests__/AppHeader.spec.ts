@@ -12,8 +12,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
-import { setActionsFor, clearActionsFor } from '@/composables/useHeaderActions'
-import { setSelectionFor } from '@/composables/useHeaderSelection'
+import { setActionsFor, clearActionsFor } from '@/composables/shared/useHeaderActions'
+import { setSelectionFor } from '@/composables/shared/useHeaderSelection'
 import { enteredFrom } from '@/router/backTarget'
 import { PATH } from '@/router/paths'
 

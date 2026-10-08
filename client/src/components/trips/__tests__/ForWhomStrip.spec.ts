@@ -14,7 +14,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ForWhomStrip from '../ForWhomStrip.vue'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import type { MembershipTarget } from '@/domain/membership'
 import type { TripItem } from '@/types/domain'

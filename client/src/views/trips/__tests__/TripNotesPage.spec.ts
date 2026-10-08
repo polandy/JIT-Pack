@@ -16,13 +16,13 @@ import { RouterLinkStub } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripNotesPage from '../TripNotesPage.vue'
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const router = { push: vi.fn() }
 vi.mock('vue-router', () => ({ useRouter: () => router }))
