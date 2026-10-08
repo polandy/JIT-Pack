@@ -1,6 +1,6 @@
 /**
- * The table registry — one spec per syncable table: its codec, its feed and
- * its store.
+ * The table registry — one spec per syncable table: its codec, its feed, its
+ * store and the rows whose delete takes it along.
  *
  * A row crosses this boundary twice: a pull hands the store a
  * `Record<string, unknown>` to turn into a domain object (`parse`), and an
@@ -13,7 +13,8 @@
  * `TABLE_SPECS` is `satisfies Record<SyncTable, TableSpec>`, so a new
  * syncable table is a compile error until it has a parser, a feed and a
  * store, and `__tests__/tableRegistry.spec.ts` holds the halves against each
- * other. Pull routing is derived from it (`routing.ts`).
+ * other. Pull routing is derived from it (`routing.ts`), and so is the
+ * client's whole delete cascade (`cascade.ts`).
  *
  * The encoders stay in `composables/sync/rows.ts` and are referenced from
  * here: eight action modules import them by name, and `rowBuilders.spec.ts`
@@ -151,16 +152,43 @@ export type StoreOwner = 'trip' | 'master' | 'feature'
 export interface TableSpec<T = unknown> extends TableCodec<T> {
   owner: StoreOwner
   partition: PartitionType
+  /**
+   * The rows whose delete takes this table's rows along — each a column of
+   * this table declared `REFERENCES parent(id) ON DELETE CASCADE` in
+   * `schema.sql`, which `__tests__/cascade.spec.ts` holds this list to. The
+   * client's whole delete cascade is derived from it (`cascade.ts`); Go
+   * spells the same edges out per parent in `tableSpecs.cascades`.
+   */
+  cascadeParents?: readonly CascadeParent[]
 }
+
+/** One `ON DELETE CASCADE` reference: this table's `column` names a `table` row. */
+export interface CascadeParent {
+  column: string
+  table: SyncTable
+}
+
+/** `column` names a row of `table`, and the row goes with it. */
+function goesWith(column: string, table: SyncTable): CascadeParent {
+  return { column, table }
+}
+
+/** Every per-trip row goes with its trip. */
+const OF_TRIP = goesWith('trip_id', TABLE.trips)
 
 /** Instance-wide master data, on the master feed. */
 const MASTER_DATA = { owner: 'master', partition: 'master' } as const
 /** A trip's own rows, on its trip feed. */
-const TRIP_FEED = { owner: 'trip', partition: 'trip' } as const
+const TRIP_FEED = { owner: 'trip', partition: 'trip', cascadeParents: [OF_TRIP] } as const
 /** The trip store's rows the master feed carries (Sync-API P-3). */
-const TRIP_ON_MASTER = { owner: 'trip', partition: 'master' } as const
+const TRIP_ON_MASTER = { owner: 'trip', partition: 'master', cascadeParents: [OF_TRIP] } as const
 /** A feature module's rows, on their trip's feed. */
-const FEATURE_FEED = { owner: 'feature', partition: 'trip' } as const
+const FEATURE_FEED = { owner: 'feature', partition: 'trip', cascadeParents: [OF_TRIP] } as const
+
+/** A trip's row that also goes with another row of the trip. */
+function alsoWith(...parents: CascadeParent[]): readonly CascadeParent[] {
+  return [OF_TRIP, ...parents]
+}
 
 function rowToTag(id: string, row: Record<string, unknown>): Tag {
   return {
@@ -714,24 +742,65 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
 export const TABLE_SPECS = {
   [TABLE.tags]: { ...MASTER_DATA, parse: rowToTag },
   [TABLE.taskTags]: { ...MASTER_DATA, parse: rowToTaskTag },
-  [TABLE.itemTags]: { ...MASTER_DATA, parse: rowToItemTag },
+  [TABLE.itemTags]: {
+    ...MASTER_DATA,
+    parse: rowToItemTag,
+    cascadeParents: [goesWith('item_id', TABLE.items), goesWith('tag_id', TABLE.tags)],
+  },
   [TABLE.items]: { ...MASTER_DATA, parse: rowToItem, encode: masterItemRow },
-  [TABLE.itemDependencies]: { ...MASTER_DATA, parse: rowToDependency, encode: dependencyRow },
+  [TABLE.itemDependencies]: {
+    ...MASTER_DATA,
+    parse: rowToDependency,
+    encode: dependencyRow,
+    cascadeParents: [goesWith('item_id', TABLE.items), goesWith('depends_on_item_id', TABLE.items)],
+  },
   [TABLE.templates]: { ...MASTER_DATA, parse: rowToTemplate, encode: templateRow },
-  [TABLE.templateItems]: { ...MASTER_DATA, parse: rowToTemplateItem, encode: templateItemRow },
-  [TABLE.templateIncludes]: { ...MASTER_DATA, parse: rowToInclude },
-  [TABLE.templateItemTasks]: { ...MASTER_DATA, parse: rowToTask },
-  [TABLE.templateTasks]: { ...MASTER_DATA, parse: rowToTemplateTask },
+  [TABLE.templateItems]: {
+    ...MASTER_DATA,
+    parse: rowToTemplateItem,
+    encode: templateItemRow,
+    cascadeParents: [goesWith('template_id', TABLE.templates)],
+  },
+  [TABLE.templateIncludes]: {
+    ...MASTER_DATA,
+    parse: rowToInclude,
+    // FR-27.1: an include goes with either side of the relation.
+    cascadeParents: [
+      goesWith('template_id', TABLE.templates),
+      goesWith('included_template_id', TABLE.templates),
+    ],
+  },
+  [TABLE.templateItemTasks]: {
+    ...MASTER_DATA,
+    parse: rowToTask,
+    cascadeParents: [goesWith('template_item_id', TABLE.templateItems)],
+  },
+  [TABLE.templateTasks]: {
+    ...MASTER_DATA,
+    parse: rowToTemplateTask,
+    cascadeParents: [goesWith('template_id', TABLE.templates)],
+  },
   [TABLE.tripSeries]: { ...MASTER_DATA, parse: rowToSeries, encode: seriesRow },
-  [TABLE.destinationProfiles]: { ...MASTER_DATA, parse: rowToProfile, encode: profileRow },
+  [TABLE.destinationProfiles]: {
+    ...MASTER_DATA,
+    parse: rowToProfile,
+    encode: profileRow,
+    cascadeParents: [goesWith('series_id', TABLE.tripSeries)],
+  },
   [TABLE.destinationChecklistItems]: {
     ...MASTER_DATA,
     parse: rowToChecklistItem,
     encode: checklistItemRow,
+    cascadeParents: [goesWith('profile_id', TABLE.destinationProfiles)],
   },
-  [TABLE.trips]: { ...TRIP_ON_MASTER, parse: rowToTrip, encode: tripRow },
+  [TABLE.trips]: { owner: 'trip', partition: 'master', parse: rowToTrip, encode: tripRow },
   [TABLE.tripMembers]: { ...TRIP_ON_MASTER, parse: rowToMember, encode: memberRow },
-  [TABLE.tripTemplateSources]: { ...TRIP_ON_MASTER, parse: rowToTemplateSource },
+  [TABLE.tripTemplateSources]: {
+    ...TRIP_ON_MASTER,
+    parse: rowToTemplateSource,
+    // FR-27.4: a deleted group ends its registrations in the trips that used it.
+    cascadeParents: alsoWith(goesWith('template_id', TABLE.templates)),
+  },
   [TABLE.tripAppliedChanges]: { ...TRIP_ON_MASTER, parse: rowToAppliedChange },
   [TABLE.tripItems]: { ...TRIP_FEED, parse: rowToTripItem, encode: itemRow },
   [TABLE.travelers]: { ...TRIP_FEED, parse: rowToTraveler, encode: travelerRow },
@@ -739,35 +808,97 @@ export const TABLE_SPECS = {
   [TABLE.tripGeneratedPositions]: { ...TRIP_FEED, parse: rowToGeneratedPosition },
   [TABLE.shoppingEntries]: { ...FEATURE_FEED, parse: rowToShoppingEntry, encode: shoppingEntryRow },
   [TABLE.ideas]: { ...FEATURE_FEED, parse: rowToIdea, encode: ideaRow },
-  [TABLE.ideaVotes]: { ...FEATURE_FEED, parse: rowToIdeaVote, encode: ideaVoteRow },
-  [TABLE.ideaComments]: { ...FEATURE_FEED, parse: rowToIdeaComment, encode: ideaCommentRow },
-  [TABLE.ideaImages]: { ...FEATURE_FEED, parse: rowToIdeaImage, encode: ideaImageRow },
+  [TABLE.ideaVotes]: {
+    ...FEATURE_FEED,
+    parse: rowToIdeaVote,
+    encode: ideaVoteRow,
+    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
+  },
+  [TABLE.ideaComments]: {
+    ...FEATURE_FEED,
+    parse: rowToIdeaComment,
+    encode: ideaCommentRow,
+    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
+  },
+  [TABLE.ideaImages]: {
+    ...FEATURE_FEED,
+    parse: rowToIdeaImage,
+    encode: ideaImageRow,
+    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
+  },
   [TABLE.dayEntries]: { ...FEATURE_FEED, parse: rowToDayEntry, encode: dayEntryRow },
   [TABLE.dayEntryTravelers]: {
     ...FEATURE_FEED,
     parse: rowToDayEntryTraveler,
     encode: dayEntryTravelerRow,
+    // FR-29.15: a traveller taken off the trip is off the day plan's entries.
+    cascadeParents: alsoWith(
+      goesWith('day_entry_id', TABLE.dayEntries),
+      goesWith('traveler_id', TABLE.travelers),
+    ),
   },
   [TABLE.meals]: { ...FEATURE_FEED, parse: rowToMeal, encode: mealRow },
   [TABLE.mealIngredients]: {
     ...FEATURE_FEED,
     parse: rowToMealIngredient,
     encode: mealIngredientRow,
+    cascadeParents: alsoWith(goesWith('meal_id', TABLE.meals)),
   },
-  [TABLE.ideaTracks]: { ...FEATURE_FEED, parse: rowToIdeaTrack, encode: ideaTrackRow },
-  [TABLE.excursionTracks]: { ...TRIP_FEED, parse: rowToExcursionTrack, encode: excursionTrackRow },
+  [TABLE.ideaTracks]: {
+    ...FEATURE_FEED,
+    parse: rowToIdeaTrack,
+    encode: ideaTrackRow,
+    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
+  },
+  [TABLE.excursionTracks]: {
+    ...TRIP_FEED,
+    parse: rowToExcursionTrack,
+    encode: excursionTrackRow,
+    cascadeParents: alsoWith(goesWith('excursion_id', TABLE.excursions)),
+  },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.
-  [TABLE.comments]: { ...TRIP_FEED, parse: rowToComment, encode: commentRow },
-  [TABLE.noteAcks]: { ...TRIP_FEED, parse: rowToNoteAck, encode: noteAckRow },
+  [TABLE.comments]: {
+    ...TRIP_FEED,
+    parse: rowToComment,
+    encode: commentRow,
+    // A row's notes and FR-7.3 todos go with it — a trip-level one carries a
+    // null trip_item_id — and a first note takes its replies (FR-7.13).
+    cascadeParents: alsoWith(
+      goesWith('trip_item_id', TABLE.tripItems),
+      goesWith('parent_id', TABLE.comments),
+    ),
+  },
+  [TABLE.noteAcks]: {
+    ...TRIP_FEED,
+    parse: rowToNoteAck,
+    encode: noteAckRow,
+    // FR-7.9: a tick goes with its note.
+    cascadeParents: alsoWith(goesWith('comment_id', TABLE.comments)),
+  },
   [TABLE.excursions]: { ...TRIP_FEED, parse: rowToExcursion, encode: excursionRow },
   [TABLE.excursionTravelers]: {
     ...TRIP_FEED,
     parse: rowToExcursionTraveler,
     encode: excursionTravelerRow,
+    // FR-31.1/31.5: a participant goes with the excursion and with the traveller.
+    cascadeParents: alsoWith(
+      goesWith('excursion_id', TABLE.excursions),
+      goesWith('traveler_id', TABLE.travelers),
+    ),
   },
-  [TABLE.excursionItems]: { ...TRIP_FEED, parse: rowToExcursionItem, encode: excursionItemRow },
+  [TABLE.excursionItems]: {
+    ...TRIP_FEED,
+    parse: rowToExcursionItem,
+    encode: excursionItemRow,
+    // A line goes with its excursion and with the traveller it is for; the
+    // packing row it came from is SET NULL, not a parent.
+    cascadeParents: alsoWith(
+      goesWith('excursion_id', TABLE.excursions),
+      goesWith('assigned_traveler_id', TABLE.travelers),
+    ),
+  },
 } satisfies Record<SyncTable, TableSpec>
 
 /**
@@ -796,26 +927,6 @@ function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
 export const tripTodoCodec: TableCodec<TripTodo> = { parse: rowToTripTodo, encode: tripTodoRow }
 
 /**
- * Where a store puts one table's rows. Two shapes cover every table: a
- * `Map` keyed by row id, and a `bucketedRows` map keyed by a parent id.
- *
- * The parameter is `never` so that a `RowSink<Tag>` may sit in a map of
- * sinks for every table; `applyToSink` is the one place that casts back.
- */
-export interface RowSink<T = never> {
-  set(row: T): void
-  remove(id: string): void
-  /** The row with this id as the store holds it — what a write paints over. */
-  get(id: string): T | undefined
-}
-
-/** A sink of some table's rows, as a map of sinks for every table holds it. */
-type AnyRowSink = Omit<RowSink, 'get'> & { get(id: string): unknown }
-
-/** The sinks a store offers, one per table it holds. */
-export type RowSinks = Partial<Record<SyncTable, AnyRowSink>>
-
-/**
  * codecFor narrows a wire table name — `PullChange.table` is a plain string,
  * because the generated wire types describe what the server may send rather
  * than what this client knows. A name with no codec is a table this build
@@ -827,16 +938,6 @@ export function codecFor(table: string): { table: SyncTable; codec: TableCodec }
 }
 
 /**
- * applyToSink hands a parsed row to its table's sink. The cast is the price
- * of one map holding sinks of different row types; it is sound because
- * `TABLE_SPECS[table].parse` and the sink were declared for the same table,
- * and it is confined to this function.
- */
-export function applyToSink(sinks: RowSinks, table: SyncTable, row: unknown): void {
-  ;(sinks[table] as RowSink<unknown> | undefined)?.set(row)
-}
-
-/**
  * encodedRow turns a stored row back into the row it travels as. A table
  * without an encoder is one whose domain type *is* its row (C-2), so a copy
  * is the encoding.
@@ -844,15 +945,4 @@ export function applyToSink(sinks: RowSinks, table: SyncTable, row: unknown): vo
 export function encodedRow(table: SyncTable, value: unknown): SyncRow {
   const encode = (TABLE_SPECS[table] as TableCodec).encode as ((v: unknown) => SyncRow) | undefined
   return encode ? encode(value) : { ...(value as SyncRow) }
-}
-
-/**
- * currentRowIn reads one row out of a store's sinks in its wire shape, or
- * undefined where the store does not hold it — the base an optimistic update
- * is laid over (`sync/writeFunnel.ts`).
- */
-export function currentRowIn(sinks: RowSinks, table: string, id: string): SyncRow | undefined {
-  const known = codecFor(table)
-  const value = known ? sinks[known.table]?.get(id) : undefined
-  return value === undefined ? undefined : encodedRow(known!.table, value)
 }

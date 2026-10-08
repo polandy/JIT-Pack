@@ -22,7 +22,7 @@ import { dbBool, jsonColumn } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import type { Write } from '@/sync/writeFunnel'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import { cascadeTombstones } from '@/sync/cascade'
+import { cascadeChanges, cascadeOf, cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete } from '@/sync/optimistic'
 import type {
   ConnectionLeg,
@@ -271,7 +271,7 @@ export function createPlannerActions(
     host.write({
       mutation,
       optimistic: [
-        ...cascadeTombstones(plannerStore.dayEntryChildRows(entry.id)),
+        ...cascadeChanges(TABLE.dayEntries, entry.id, plannerStore),
         optimisticDelete(mutation),
       ],
     })
@@ -284,7 +284,7 @@ export function createPlannerActions(
    */
   function removeIdea(idea: Idea): void {
     const mutation = host.mutation('delete', TABLE.ideas, idea.id)
-    const children = plannerStore.ideaChildRows(idea.id)
+    const children = cascadeOf(TABLE.ideas, idea.id, plannerStore)
     host.write({
       mutation,
       optimistic: [...cascadeTombstones(children), optimisticDelete(mutation)],

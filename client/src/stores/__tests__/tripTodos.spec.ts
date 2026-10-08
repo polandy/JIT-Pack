@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
 import { TABLE } from '@/types/tables'
+import { cascadeOf } from '@/sync/cascade'
 
 /**
  * FR-7.4: a task comment with no `trip_item_id` is the trip's own todo. The
@@ -113,8 +114,11 @@ describe('trip todos in the trip store (FR-7.4)', () => {
     })
     tripStore.applyChange(tripTodo('tt1', 'Pflanzen giessen'))
 
-    expect(tripStore.childRows('t1')).toContainEqual({ table: TABLE.comments, id: 'tt1' })
-    tripStore.removeTrip('t1')
+    expect(cascadeOf(TABLE.trips, 't1', tripStore)).toContainEqual({
+      table: TABLE.comments,
+      id: 'tt1',
+    })
+    tripStore.applyChange({ seq: 2, table: TABLE.trips, id: 't1', deleted: true, row: null })
     expect(tripStore.getTripTodos('t1')).toEqual([])
   })
 
@@ -122,7 +126,10 @@ describe('trip todos in the trip store (FR-7.4)', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([packedRow, tripTodo('tt1', 'Pflanzen giessen')])
 
-    expect(tripStore.itemChildRows('i1')).not.toContainEqual({ table: TABLE.comments, id: 'tt1' })
+    expect(cascadeOf(TABLE.tripItems, 'i1', tripStore)).not.toContainEqual({
+      table: TABLE.comments,
+      id: 'tt1',
+    })
     tripStore.applyChange({ seq: 2, table: TABLE.tripItems, id: 'i1', deleted: true, row: null })
     expect(tripStore.getTripTodos('t1')).toHaveLength(1)
   })

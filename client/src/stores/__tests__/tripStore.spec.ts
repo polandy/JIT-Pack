@@ -4,6 +4,7 @@ import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
 import type { Trip } from '@/types/domain'
 import { TABLE } from '@/types/tables'
+import { cascadeOf } from '@/sync/cascade'
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -25,6 +26,11 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
 /** One pulled row, the way the feed delivers it. */
 function row(table: string, id: string, fields: Record<string, unknown>): PullChange {
   return { seq: 1, table, id, deleted: false, row: fields }
+}
+
+/** A trip's tombstone, as a pull hands it over. */
+function tripTombstone(id: string): PullChange {
+  return { seq: 2, table: TABLE.trips, id, deleted: true, row: null }
 }
 
 describe('tripStore', () => {
@@ -64,7 +70,7 @@ describe('tripStore', () => {
     })
     expect(tripStore.getItems('t1')).toHaveLength(1)
 
-    tripStore.removeTrip('t1')
+    tripStore.applyChanges([tripTombstone('t1')])
     expect(tripStore.getTrip('t1')).toBeUndefined()
     expect(tripStore.getItems('t1')).toEqual([])
   })
@@ -119,7 +125,7 @@ describe('tripStore', () => {
       const tripStore = useTripStore()
       seedChildren(tripStore)
 
-      expect(tripStore.childRows('t1')).toEqual(
+      expect(cascadeOf(TABLE.trips, 't1', tripStore)).toEqual(
         expect.arrayContaining([
           { table: TABLE.comments, id: 'com1' },
           { table: TABLE.comments, id: 'todo1' },
@@ -132,27 +138,26 @@ describe('tripStore', () => {
           { table: TABLE.tripAppliedChanges, id: 'app1' },
         ]),
       )
-      expect(tripStore.childRows('t1')).toHaveLength(9)
-      expect(tripStore.childRows('unknown-trip')).toEqual([])
+      expect(cascadeOf(TABLE.trips, 't1', tripStore)).toHaveLength(9)
+      expect(cascadeOf(TABLE.trips, 'unknown-trip', tripStore)).toEqual([])
     })
 
     it('names a child before the parent it hangs off', () => {
       const tripStore = useTripStore()
       seedChildren(tripStore)
       const at = (table: string, id: string) =>
-        tripStore.childRows('t1').findIndex((c) => c.table === table && c.id === id)
+        cascadeOf(TABLE.trips, 't1', tripStore).findIndex((c) => c.table === table && c.id === id)
 
-      // The comment and the generated position hang off the trip item; the
-      // server emits its own cascade leaf-first for the same reason.
+      // The todo hangs off the trip item as well as off the trip; the server
+      // emits its own cascade leaf-first for the same reason.
       expect(at(TABLE.comments, 'todo1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
-      expect(at(TABLE.tripGeneratedPositions, 'gen1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
     })
 
     it('empties every bucket the trip owned', () => {
       const tripStore = useTripStore()
       seedChildren(tripStore)
 
-      tripStore.removeTrip('t1')
+      tripStore.applyChanges([tripTombstone('t1')])
 
       expect(tripStore.getTrip('t1')).toBeUndefined()
       expect(tripStore.getItems('t1')).toEqual([])
@@ -164,7 +169,7 @@ describe('tripStore', () => {
       expect(tripStore.getTemplateSources('t1')).toEqual([])
       expect(tripStore.getGeneratedPositions('t1')).toEqual([])
       expect(tripStore.getAppliedChanges('t1')).toEqual([])
-      expect(tripStore.childRows('t1')).toEqual([])
+      expect(cascadeOf(TABLE.trips, 't1', tripStore)).toEqual([])
     })
 
     it("leaves another trip's rows alone", () => {
@@ -176,7 +181,7 @@ describe('tripStore', () => {
         row(TABLE.tripTemplateSources, 'src2', { trip_id: 't2', template_id: 'tpl1' }),
       ])
 
-      tripStore.removeTrip('t1')
+      tripStore.applyChanges([tripTombstone('t1')])
 
       expect(tripStore.getTravelers('t2')).toHaveLength(1)
       expect(tripStore.getTemplateSources('t2')).toHaveLength(1)

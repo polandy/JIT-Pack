@@ -27,6 +27,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { cascadeOf } from '../cascade'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { usePlannerStore } from '@/planner/store'
 import { TABLE, type SyncTable } from '@/types/tables'
 import type { PullChange } from '@/api/types'
 
@@ -89,7 +90,7 @@ describe('an applied tombstone removes exactly what the optimistic cascade names
       row(TABLE.itemTags, 'a1', { item_id: 'i1', tag_id: 'g1', position: 0 }),
       row(TABLE.itemDependencies, 'd1', { item_id: 'i1', depends_on_item_id: 'i2', quantity: 1 }),
     ])
-    const owed = cascadeOf(TABLE.items, 'i1', stores)
+    const owed = cascadeOf(TABLE.items, 'i1', stores.tripStore, stores.masterStore)
     expect(owed.map((c) => `${c.table}/${c.id}`).sort()).toEqual([
       'item_dependencies/d1',
       'item_tags/a1',
@@ -119,7 +120,7 @@ describe('an applied tombstone removes exactly what the optimistic cascade names
       row(TABLE.templateItemTasks, 'task2', { template_item_id: 'pos2', task: 'Putzen' }),
       row(TABLE.templateIncludes, 'inc1', { template_id: 'tpl1', included_template_id: 'grp1' }),
     ])
-    const owed = cascadeOf(TABLE.templates, 'tpl1', stores).filter(
+    const owed = cascadeOf(TABLE.templates, 'tpl1', stores.tripStore, stores.masterStore).filter(
       (c) => c.table !== TABLE.tripTemplateSources,
     )
 
@@ -151,13 +152,39 @@ describe('an applied tombstone removes exactly what the optimistic cascade names
       }),
       row(TABLE.comments, 'c2', { trip_id: TRIP, trip_item_id: 'ti2', author_id: 'u1', body: 'z' }),
     ])
-    const owed = cascadeOf(TABLE.tripItems, 'ti1', stores)
+    const owed = cascadeOf(TABLE.tripItems, 'ti1', stores.tripStore, stores.masterStore)
     expect(owed.map((c) => c.id).sort()).toEqual(['c1', 't1'])
 
     stores.tripStore.applyChange(tombstone(TABLE.tripItems, 'ti1'))
 
     expect(stillThere(TABLE.comments, TRIP).sort()).toEqual(['c2'])
     expect(stillThere(TABLE.tripItems, TRIP)).toEqual(['ti2'])
+  })
+
+  // A module store is its sinks, so its applied path is the kernel's — the
+  // planner's tombstone takes the same children its optimistic delete paints.
+  it("a deleted idea takes its votes and words off a module's store (FR-29.2)", () => {
+    const planner = usePlannerStore()
+    planner.applyChanges([
+      row(TABLE.ideas, 'idea1', { trip_id: TRIP, title: 'Gipfel', author_id: 'u1' }),
+      row(TABLE.ideas, 'idea2', { trip_id: TRIP, title: 'See', author_id: 'u1' }),
+      row(TABLE.ideaVotes, 'v1', { trip_id: TRIP, idea_id: 'idea1', user_id: 'u1' }),
+      row(TABLE.ideaVotes, 'v2', { trip_id: TRIP, idea_id: 'idea2', user_id: 'u1' }),
+      row(TABLE.ideaComments, 'w1', {
+        trip_id: TRIP,
+        idea_id: 'idea1',
+        author_id: 'u1',
+        body: 'Ja',
+      }),
+    ])
+    const owed = cascadeOf(TABLE.ideas, 'idea1', planner)
+    expect(owed.map((c) => c.id).sort()).toEqual(['v1', 'w1'])
+
+    planner.applyChanges([tombstone(TABLE.ideas, 'idea1')])
+
+    expect(planner.getIdeas(TRIP).map((i) => i.id)).toEqual(['idea2'])
+    expect(planner.getVotes(TRIP).map((v) => v.id)).toEqual(['v2'])
+    expect(planner.getComments(TRIP)).toEqual([])
   })
 })
 

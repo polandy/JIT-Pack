@@ -180,7 +180,8 @@ what runs.
   optimistic change list is what the device persists, and it deletes exactly the keys it names — so a delete naming only
   the parent leaves every child row on the device, where the next start reads them back. It is the delete twin of §4's
   snapshot rule, and it hides the same way: the stores drop their own buckets, so the screen is right while the disk is
-  not. `client/src/sync/cascade.ts` mirrors `cascadeChildren` case for case.
+  not. `client/src/sync/cascade.ts` derives the same list from each table's `cascadeParents` in `TABLE_SPECS`, which
+  `cascade.spec.ts` holds to the schema's `ON DELETE CASCADE` references.
 * The server compacts consecutive changes to the same entity within one response (only the latest snapshot is sent).
 
 ### `GET /master/sync?cursor={seq}&limit={n}`

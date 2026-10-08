@@ -56,7 +56,7 @@ export function createCommentActions(ctx: SyncContext) {
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.comments, commentId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.comments, commentId, tripStore, masterStore),
         optimisticDelete(mutation),
       ],
     })

@@ -303,7 +303,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.travelers, travelerId, { tripStore, masterStore, features }),
+        ...cascadeChanges(TABLE.travelers, travelerId, tripStore, masterStore, ...features),
         optimisticDelete(mutation),
       ],
     })
@@ -548,7 +548,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.trips, tripId, { tripStore, masterStore, features }),
+        ...cascadeChanges(TABLE.trips, tripId, tripStore, masterStore, ...features),
         optimisticDelete(mutation),
       ],
     })

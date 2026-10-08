@@ -24,9 +24,10 @@
  * same reason the server orders its own.
  */
 import type { SyncTable } from '@/types/tables'
-import { TABLE } from '@/types/tables'
 import { localTombstone } from './optimistic'
 import type { PullChange } from '@/api/types'
+import type { RowSinks, SinkHolder } from './sinks'
+import { TABLE_SPECS, type CascadeParent } from './tableRegistry'
 
 /** One row a delete takes with it. */
 export interface CascadeRow {
@@ -34,68 +35,84 @@ export interface CascadeRow {
   id: string
 }
 
-/**
- * The two stores a cascade is read out of — as the four lookups it makes,
- * not as the stores. The pinia stores satisfy this structurally, and so does
- * the `SyncContext` a group hands straight through.
- */
-export interface CascadeStores {
-  tripStore: {
-    childRows(tripId: string): CascadeRow[]
-    itemChildRows(tripItemId: string): CascadeRow[]
-    commentChildRows(commentId: string): CascadeRow[]
-    excursionChildRows(excursionId: string): CascadeRow[]
-    travelerChildRows(travelerId: string): CascadeRow[]
-    templateSourceRows(templateId: string): CascadeRow[]
-  }
-  masterStore: {
-    childRows(table: string, id: string): CascadeRow[]
-  }
-  /**
-   * The feature modules' stores (FR-30.3, ADR-066). A deleted trip takes
-   * their rows too, and nothing but this list says which those are.
-   */
-  features?: ReadonlyArray<{
-    tripChildRows(tripId: string): CascadeRow[]
-    travelerChildRows?(travelerId: string): CascadeRow[]
-  }>
+/** A child table's reference to a parent, seen from the parent. */
+interface ChildRef {
+  table: SyncTable
+  column: string
 }
+
+/** Each parent table's children, inverted once from `TABLE_SPECS.cascadeParents`. */
+const CHILDREN: ReadonlyMap<SyncTable, readonly ChildRef[]> = (() => {
+  const children = new Map<SyncTable, ChildRef[]>()
+  for (const [table, spec] of Object.entries(TABLE_SPECS) as [
+    SyncTable,
+    { cascadeParents?: readonly CascadeParent[] },
+  ][]) {
+    for (const parent of spec.cascadeParents ?? []) {
+      const list = children.get(parent.table) ?? []
+      list.push({ table, column: parent.column })
+      children.set(parent.table, list)
+    }
+  }
+  return children
+})()
+
+const keyOf = (row: CascadeRow) => `${row.table}\u0000${row.id}`
 
 /**
  * cascadeOf names every row a delete of `table`/`id` takes with it, leaf-first
- * and excluding the parent. It mirrors `cascadeChildren`'s switch case for
- * case; a parent not named here cascades nothing.
+ * and excluding the parent, out of whatever the given stores hold. Nothing
+ * here names a table: the edges are `TABLE_SPECS`' `cascadeParents`, followed
+ * as far as they reach — a trip item takes its notes, a note its replies and
+ * the ticks of both, as SQLite's own cascade does.
+ *
+ * Children are found a level at a time, each child table scanned once per
+ * level for every parent the level found, so a deleted trip's thousand rows
+ * cost a few passes rather than a scan per row. The order is then a
+ * post-order walk of what was found: a row stands after everything that hangs
+ * off it, whichever of its parents it was reached through.
  */
-export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): CascadeRow[] {
-  const { tripStore, masterStore, features = [] } = stores
-  switch (table) {
-    case TABLE.trips:
-      return [...features.flatMap((f) => f.tripChildRows(id)), ...tripStore.childRows(id)]
-    case TABLE.tripItems:
-      // A row's comments and FR-7.3 todos hang off it; trip-level comments
-      // carry a null trip_item_id and are untouched.
-      return tripStore.itemChildRows(id)
-    case TABLE.comments:
-      // FR-7.13: a first note takes its thread — the replies and the ticks.
-      return tripStore.commentChildRows(id)
-    case TABLE.excursions:
-      // FR-31.1: an excursion takes its participants and its lines.
-      return tripStore.excursionChildRows(id)
-    case TABLE.travelers:
-      // FR-31.5/29.15: a traveller taken off the trip is off its excursions
-      // and the day plan's entries too.
-      return [
-        ...features.flatMap((f) => f.travelerChildRows?.(id) ?? []),
-        ...tripStore.travelerChildRows(id),
-      ]
-    case TABLE.templates:
-      // The master half, plus the trip-partition table a group's delete ends:
-      // FR-27.4's source registry lives in the trip store but travels the
-      // master partition (spec P-3).
-      return [...masterStore.childRows(table, id), ...tripStore.templateSourceRows(id)]
-    default:
-      return masterStore.childRows(table, id)
+export function cascadeOf(table: SyncTable, id: string, ...stores: SinkHolder[]): CascadeRow[] {
+  const sinks: RowSinks = Object.assign({}, ...stores.map((s) => s.sinks))
+  const root: CascadeRow = { table, id }
+  const below = new Map<string, CascadeRow[]>()
+  const found = new Set<string>([keyOf(root)])
+
+  let level = new Map<SyncTable, Set<string>>([[table, new Set([id])]])
+  while (level.size > 0) {
+    const next = new Map<SyncTable, Set<string>>()
+    for (const [parentTable, parentIds] of level) {
+      for (const child of CHILDREN.get(parentTable) ?? []) {
+        for (const row of sinks[child.table]?.rows() ?? []) {
+          const fields = row as Record<string, unknown> & { id: string }
+          const parentId = fields[child.column]
+          if (typeof parentId !== 'string' || !parentIds.has(parentId)) continue
+          const childRow: CascadeRow = { table: child.table, id: fields.id }
+          const parentKey = keyOf({ table: parentTable, id: parentId })
+          const siblings = below.get(parentKey)
+          if (siblings) siblings.push(childRow)
+          else below.set(parentKey, [childRow])
+          if (found.has(keyOf(childRow))) continue
+          found.add(keyOf(childRow))
+          next.set(child.table, (next.get(child.table) ?? new Set()).add(childRow.id))
+        }
+      }
+    }
+    level = next
   }
+
+  const ordered: CascadeRow[] = []
+  const placed = new Set<string>([keyOf(root)])
+  const place = (row: CascadeRow): void => {
+    for (const child of below.get(keyOf(row)) ?? []) {
+      if (placed.has(keyOf(child))) continue
+      placed.add(keyOf(child))
+      place(child)
+      ordered.push(child)
+    }
+  }
+  place(root)
+  return ordered
 }
 
 /**
@@ -103,16 +120,19 @@ export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): 
  * `write` as a `QueuedMutation`'s paint — the children's tombstones, without
  * the parent's own.
  */
-export function cascadeChanges(table: SyncTable, id: string, stores: CascadeStores): PullChange[] {
-  return cascadeTombstones(cascadeOf(table, id, stores))
+export function cascadeChanges(
+  table: SyncTable,
+  id: string,
+  ...stores: SinkHolder[]
+): PullChange[] {
+  return cascadeTombstones(cascadeOf(table, id, ...stores))
 }
 
 /**
- * cascadeTombstones paints rows a delete takes with it as removals. A feature
- * module names its own children (the planner's idea takes its votes and its
- * words, FR-29.2), since the switch above never imports a module — and paints
- * them through here, so this file stays the one place a child's tombstone is
- * built.
+ * cascadeTombstones paints rows a delete takes with it as removals — for a
+ * caller that wants the rows themselves too (the planner forgets a deleted
+ * idea's picture bytes by them, FR-29.5), so this file stays the one place a
+ * child's tombstone is built.
  */
 export function cascadeTombstones(rows: readonly CascadeRow[]): PullChange[] {
   return rows.map((child) => localTombstone(child.table, child.id))

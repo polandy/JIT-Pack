@@ -11,7 +11,7 @@
  * this group never touches.
  */
 import { optimisticDelete } from '@/sync/optimistic'
-import { cascadeChanges } from '@/sync/cascade'
+import { cascadeChanges, cascadeOf } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import {
@@ -271,7 +271,7 @@ export function createPackingActions(ctx: SyncContext) {
       muts.push({
         mutation: mut,
         optimistic: [
-          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          ...cascadeChanges(TABLE.tripItems, id, tripStore, masterStore),
           optimisticDelete(mut),
         ],
       })
@@ -415,7 +415,7 @@ export function createPackingActions(ctx: SyncContext) {
     write({
       mutation: mut,
       optimistic: [
-        ...cascadeChanges(TABLE.tripItems, itemId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.tripItems, itemId, tripStore, masterStore),
         optimisticDelete(mut),
       ],
     })
@@ -431,8 +431,15 @@ export function createPackingActions(ctx: SyncContext) {
       item,
       tripStore.getItems(tripId),
       masterStore.dependencyList,
-      tripStore.itemChildRows(item.id).length,
+      notesGoingWith(item),
     )
+  }
+
+  /** The notes and FR-7.3 todos a row's removal takes along — its replies included, its ticks not. */
+  function notesGoingWith(item: TripItem): number {
+    return cascadeOf(TABLE.tripItems, item.id, tripStore).filter(
+      (row) => row.table === TABLE.comments,
+    ).length
   }
 
   /**
@@ -445,7 +452,7 @@ export function createPackingActions(ctx: SyncContext) {
       items,
       tripStore.getItems(tripId),
       masterStore.dependencyList,
-      (item) => tripStore.itemChildRows(item.id).length,
+      notesGoingWith,
     )
   }
 
@@ -498,7 +505,7 @@ export function createPackingActions(ctx: SyncContext) {
       {
         mutation: removal,
         optimistic: [
-          ...cascadeChanges(TABLE.tripItems, item.id, { tripStore, masterStore }),
+          ...cascadeChanges(TABLE.tripItems, item.id, tripStore, masterStore),
           optimisticDelete(removal),
         ],
       },
@@ -691,7 +698,7 @@ export function createPackingActions(ctx: SyncContext) {
       muts.push({
         mutation: mut,
         optimistic: [
-          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          ...cascadeChanges(TABLE.tripItems, id, tripStore, masterStore),
           optimisticDelete(mut),
         ],
       })

@@ -159,7 +159,7 @@ export function createExcursionActions(
         write({
           mutation,
           optimistic: [
-            ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+            ...cascadeChanges(TABLE.tripItems, id, tripStore, masterStore),
             optimisticDelete(mutation),
           ],
         })
@@ -337,7 +337,7 @@ export function createExcursionActions(
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.excursions, excursionId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.excursions, excursionId, tripStore, masterStore),
         optimisticDelete(mutation),
       ],
     })
@@ -594,7 +594,7 @@ export function createExcursionActions(
       write({
         mutation: deletion,
         optimistic: [
-          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          ...cascadeChanges(TABLE.tripItems, id, tripStore, masterStore),
           optimisticDelete(deletion),
         ],
       })

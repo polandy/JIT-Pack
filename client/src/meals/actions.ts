@@ -11,7 +11,7 @@
  */
 import { newId } from '@/lib/ids'
 import { dbBool } from '@/sync/columns'
-import { cascadeTombstones } from '@/sync/cascade'
+import { cascadeChanges } from '@/sync/cascade'
 import type { ModuleHost } from '@/sync/featureModule'
 import type { Write } from '@/sync/writeFunnel'
 import { optimisticDelete } from '@/sync/optimistic'
@@ -242,10 +242,7 @@ export function createMealActions(host: ModuleHost, mealStore: ReturnType<typeof
     const mutation = host.mutation('delete', TABLE.meals, meal.id)
     host.write({
       mutation,
-      optimistic: [
-        ...cascadeTombstones(mealStore.mealChildRows(meal.id)),
-        optimisticDelete(mutation),
-      ],
+      optimistic: [...cascadeChanges(TABLE.meals, meal.id, mealStore), optimisticDelete(mutation)],
     })
   }
 

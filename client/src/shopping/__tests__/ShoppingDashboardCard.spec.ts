@@ -23,6 +23,7 @@ import { mutationOf, paintOf, type Write } from '@/sync/writeFunnel'
 import type { ShoppingMode } from '@/types/domain'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { presentToast } from '@/lib/toast'
+import { currentRowIn } from '@/sync/sinks'
 
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn(() => Promise.resolve()) }))
 
@@ -48,7 +49,7 @@ function fakeHost(): ModuleHost {
         const optimistic =
           'mutation' in w
             ? w.optimistic
-            : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
+            : paintOf(mutation, currentRowIn(useShoppingStore().sinks, mutation.table, mutation.id))
         useShoppingStore().applyChanges(changesOf(optimistic))
       }
     },

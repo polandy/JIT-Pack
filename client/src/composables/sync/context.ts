@@ -12,7 +12,7 @@ import type { Write } from '@/sync/writeFunnel'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
-import type { CascadeRow } from '@/sync/cascade'
+import type { RowSinks } from '@/sync/sinks'
 import type { FeatureStore } from '@/sync/featureModule'
 import type {
   Container,
@@ -69,13 +69,8 @@ export interface TripReads {
   getTripTodos(tripId: string): TripTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
-  /** The six `cascade.ts` asks for, since a group hands it this store. */
-  childRows(tripId: string): CascadeRow[]
-  itemChildRows(tripItemId: string): CascadeRow[]
-  commentChildRows(commentId: string): CascadeRow[]
-  excursionChildRows(excursionId: string): CascadeRow[]
-  travelerChildRows(travelerId: string): CascadeRow[]
-  templateSourceRows(templateId: string): CascadeRow[]
+  /** What `cascade.ts` reads a delete's children out of, since a group hands it this store. */
+  readonly sinks: RowSinks
   /** FR-31: a trip's excursions, their participant rows, their lines and their tracks. */
   getExcursions(tripId: string): Excursion[]
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
@@ -108,8 +103,8 @@ export interface MasterReads {
   getTemplate(id: string): Template | undefined
   getTemplateItems(templateId: string): TemplateItem[]
   getDestinationProfile(seriesId: string): DestinationProfile | undefined
-  /** `cascade.ts`'s, for the same reason as `TripReads.childRows`. */
-  childRows(table: string, id: string): CascadeRow[]
+  /** `cascade.ts`'s, for the same reason as `TripReads.sinks`. */
+  readonly sinks: RowSinks
 }
 
 export type { QueuedMutation, Write } from '@/sync/writeFunnel'

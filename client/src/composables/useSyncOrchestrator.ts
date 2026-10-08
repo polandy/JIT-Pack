@@ -31,6 +31,7 @@ import { optimisticInsert } from '@/sync/optimistic'
 import { createWriteFunnel, type PartitionBatch, type Write } from '@/sync/writeFunnel'
 import { TABLE } from '@/types/tables'
 import { storeFor } from '@/sync/routing'
+import { applyChangesToSinks, currentRowIn, holdsTable, removeCascading } from '@/sync/sinks'
 import type { FeatureStore, ModuleHost } from '@/sync/featureModule'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
@@ -360,7 +361,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       } else if (owner === 'master') {
         masterChanges.push(c)
       } else if (owner === 'feature') {
-        const feature = features.findIndex((f) => f.tables.has(c.table))
+        const feature = features.findIndex((f) => holdsTable(f, c.table))
         if (feature >= 0) featureChanges[feature]!.push(c)
       }
     }
@@ -368,13 +369,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (tripChanges.length > 0) tripStore.applyChanges(tripChanges)
     if (masterChanges.length > 0) masterStore.applyChanges(masterChanges)
     features.forEach((feature, i) => {
-      if (featureChanges[i]!.length > 0) feature.applyChanges(featureChanges[i]!)
+      if (featureChanges[i]!.length > 0) applyChangesToSinks(feature.sinks, featureChanges[i]!)
     })
     // A trip's tombstone is the only news of its delete another device gets:
     // the trip partition's feed dies with the trip, so no module row of it is
-    // ever announced (FR-30.3, the same gap `tripStore.removeTrip` closes).
+    // ever announced (FR-30.3, the same gap the trip store's own cascade closes).
     for (const c of changes) {
-      if (c.table === TABLE.trips && c.deleted) features.forEach((f) => f.forgetTrip(c.id))
+      if (c.table === TABLE.trips && c.deleted) {
+        features.forEach((f) => removeCascading(f.sinks, TABLE.trips, c.id))
+      }
     }
 
     // FR-19.2: in Local Mode every applied change is durable — this is
@@ -553,7 +556,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const owner = storeFor(table)
       if (owner === 'trip') return tripStore.currentRow(table, id)
       if (owner === 'master') return masterStore.currentRow(table, id)
-      return features.find((f) => f.tables.has(table))?.currentRow(table, id)
+      const feature = features.find((f) => holdsTable(f, table))
+      return feature && currentRowIn(feature.sinks, table, id)
     },
     paint: onPullChanges,
     queue: ({ partition, muts }) => {

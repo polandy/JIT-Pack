@@ -576,10 +576,12 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     expect(queued[0]!.muts).toHaveLength(1)
     const changes = changesOf(queued[0]!.muts[0]!)
     expect(changes.every((c) => c.deleted)).toBe(true)
-    expect(changes.map((c) => `${c.table}/${c.id}`)).toEqual([
-      `${TABLE.comments}/com-1`,
-      `${TABLE.travelers}/${TRAVELER_ID}`,
-      `${TABLE.trips}/${TRIP_ID}`,
-    ])
+    // The children in any order among themselves — neither hangs off the
+    // other — and the trip's own tombstone last.
+    expect(changes.slice(0, -1).map((c) => `${c.table}/${c.id}`)).toEqual(
+      expect.arrayContaining([`${TABLE.comments}/com-1`, `${TABLE.travelers}/${TRAVELER_ID}`]),
+    )
+    expect(changes).toHaveLength(3)
+    expect(changes.at(-1)).toMatchObject({ table: TABLE.trips, id: TRIP_ID })
   })
 })

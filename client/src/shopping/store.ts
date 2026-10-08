@@ -11,28 +11,24 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import type { PullChange } from '@/api/types'
-import type { CascadeRow } from '@/sync/cascade'
+import { bucketedRows, bucketSink } from '@/sync/bucketedRows'
 import type { FeatureStore } from '@/sync/featureModule'
-import { encodedRow, TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
+import { applyChangesToSinks, type RowSinks } from '@/sync/sinks'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
-import { TABLE, type SyncTable } from '@/types/tables'
-
-/** The tables this module holds. */
-const SHOPPING_TABLES: ReadonlySet<string> = new Set<string>([TABLE.shoppingEntries])
+import { TABLE } from '@/types/tables'
 
 export const useShoppingStore = defineStore('shopping', () => {
-  // Flat and keyed by id: a list is read for one trip at a time and is short,
-  // and a per-trip bucket would have to be rebuilt on every tombstone.
-  const entries = ref<Map<string, ShoppingEntry>>(new Map())
+  // Bucketed by trip like the packing rows: a list is read for one trip at a time.
+  const entries = bucketedRows(ref(new Map<string, ShoppingEntry[]>()), (r) => r.trip_id)
 
   /**
    * A trip's entries, by name — an order that survives a reload and reads
    * the same on every device, which arrival order does not.
    */
   function getEntries(tripId: string): ShoppingEntry[] {
-    return [...entries.value.values()]
-      .filter((entry) => entry.trip_id === tripId)
-      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    return [...entries.get(tripId)].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+    )
   }
 
   /** What is still to buy on one list. */
@@ -62,36 +58,13 @@ export const useShoppingStore = defineStore('shopping', () => {
       .sort((a, b) => a.tag.localeCompare(b.tag))
   }
 
-  /** Where each of the module's tables keeps its rows — what a write reads back. */
-  const rowMaps: Record<string, Map<string, unknown>> = {
-    [TABLE.shoppingEntries]: entries.value,
-  }
-
-  /** One row in its wire shape, or undefined where this store does not hold it. */
-  function currentRow(table: string, id: string): SyncRow | undefined {
-    const row = rowMaps[table]?.get(id)
-    return row === undefined ? undefined : encodedRow(table as SyncTable, row)
+  /** The sinks, one per table this module holds — the whole of what the kernel reads. */
+  const sinks: RowSinks = {
+    [TABLE.shoppingEntries]: bucketSink(entries),
   }
 
   function applyChanges(changes: PullChange[]): void {
-    for (const change of changes) {
-      if (change.table !== TABLE.shoppingEntries) continue
-      if (change.deleted) {
-        entries.value.delete(change.id)
-      } else if (change.row) {
-        const entry = TABLE_SPECS[TABLE.shoppingEntries].parse(change.id, change.row as SyncRow)
-        entries.value.set(change.id, entry)
-      }
-    }
-  }
-
-  /** The entries a deleted trip takes with it. */
-  function tripChildRows(tripId: string): CascadeRow[] {
-    return getEntries(tripId).map((entry) => ({ table: TABLE.shoppingEntries, id: entry.id }))
-  }
-
-  function forgetTrip(tripId: string): void {
-    for (const entry of getEntries(tripId)) entries.value.delete(entry.id)
+    applyChangesToSinks(sinks, changes)
   }
 
   return {
@@ -99,10 +72,8 @@ export const useShoppingStore = defineStore('shopping', () => {
     openEntries,
     boughtEntries,
     tagCounts,
+    sinks,
     applyChanges,
-    currentRow,
-    tripChildRows,
-    forgetTrip,
   }
 })
 
@@ -110,11 +81,5 @@ export const useShoppingStore = defineStore('shopping', () => {
 export function shoppingFeatureStore(
   shoppingStore: ReturnType<typeof useShoppingStore> = useShoppingStore(),
 ): FeatureStore {
-  return {
-    tables: SHOPPING_TABLES,
-    applyChanges: (changes) => shoppingStore.applyChanges(changes),
-    currentRow: (table, id) => shoppingStore.currentRow(table, id),
-    tripChildRows: (tripId) => shoppingStore.tripChildRows(tripId),
-    forgetTrip: (tripId) => shoppingStore.forgetTrip(tripId),
-  }
+  return { sinks: shoppingStore.sinks }
 }

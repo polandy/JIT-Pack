@@ -39,6 +39,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { presentToast } from '@/lib/toast'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
+import { currentRowIn } from '@/sync/sinks'
 
 // FR-29.13: the route the screen reads `?fromIdea=` off, and what it replaces it with.
 const nav = vi.hoisted(() => ({
@@ -103,7 +104,7 @@ function fakeHost(): ModuleHost {
         const optimistic =
           'mutation' in w
             ? w.optimistic
-            : paintOf(mutation, useShoppingStore().currentRow(mutation.table, mutation.id))
+            : paintOf(mutation, currentRowIn(useShoppingStore().sinks, mutation.table, mutation.id))
         useShoppingStore().applyChanges(changesOf(optimistic))
       }
     },

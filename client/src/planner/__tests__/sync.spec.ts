@@ -21,6 +21,7 @@ import { TABLE } from '@/types/tables'
 import { createPlannerActions, type IdeaFields } from '../actions'
 import { voteTally } from '../domain/ideas'
 import { plannerFeatureStore, usePlannerStore } from '../store'
+import { cascadeOf } from '@/sync/cascade'
 
 let harness: Harness
 
@@ -479,7 +480,7 @@ describe('the day plan (FR-29.14, FR-29.15)', () => {
     )
     const sia = plannerStore.getDayEntryTravelers('t1').find((row) => row.traveler_id === 'tr-sia')!
 
-    expect(plannerFeatureStore(plannerStore).travelerChildRows?.('tr-sia')).toEqual([
+    expect(cascadeOf(TABLE.travelers, 'tr-sia', plannerFeatureStore(plannerStore))).toEqual([
       { table: TABLE.dayEntryTravelers, id: sia.id },
     ])
   })
