@@ -290,7 +290,7 @@ export const inventoryDe: Record<keyof typeof inventoryEn, string> = {
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Packelement hinzufügen…',
   'quickAdd.placeholder': 'Suchen oder neu anlegen…',
-  'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
+  'quickAdd.missingHint': 'Was du jetzt ergänzt, merkt sich der Rückblick für die Vorlage.',
   // FR-5.10: auf einer abgeschlossenen Liste ist ein Nachtrag das, was
   // schon im Koffer liegt — nicht der einzige offene Job.
   'quickAdd.packedHint': 'Neue Packelemente werden als eingepackt vermerkt',
