@@ -52,8 +52,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen, auch mehrere',
   'analytics.openList': 'In der Packliste zeigen ({n})',
   'analytics.empty': 'Noch nichts mit Gewicht — nichts auszuwerten.',
-  'analytics.unweighted':
-    '＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet) | ＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet)',
+  'analytics.unweighted': '＋ {n} Artikel ohne Gewichtsangabe | ＋ {n} Artikel ohne Gewichtsangabe',
   'analytics.kpiWeight': 'Gewicht gepackt / geplant',
   'analytics.kpiValue': 'Warenwert gesamt',
   'analytics.trendTitle': 'Serie {name} · Trend',

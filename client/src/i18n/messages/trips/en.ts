@@ -52,8 +52,7 @@ export const tripsEn = {
   'analytics.hint': 'Weight: packed / planned · tap bars to pick one or more',
   'analytics.openList': 'Show in packing list ({n})',
   'analytics.empty': 'No weighted items yet — nothing to chart.',
-  'analytics.unweighted':
-    '＋ {n} item without a weight — honestly left out | ＋ {n} items without a weight — honestly left out',
+  'analytics.unweighted': '＋ {n} item without a weight | ＋ {n} items without a weight',
   'analytics.kpiWeight': 'Weight packed / planned',
   'analytics.kpiValue': 'Total value',
   'analytics.trendTitle': 'Series {name} · trend',
