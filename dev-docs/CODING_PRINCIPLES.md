@@ -83,7 +83,9 @@ client/src/views/            screens
 
 * **Dependency rule:** CLAUDE.md invariant 1. The leaves import nothing internal so the riskiest packages stay
   trivially unit-testable; `webui` takes the API prefixes as parameters rather than importing the handler. The portable
-  format is the client's alone (ADR-025), so no Go leaf carries it.
+  format is the client's alone (ADR-025), so no Go leaf carries it. `cmd/jitpackd/dependencies_test.go` holds it on
+  `go list -deps`, with the two rules of the layout above: `database/sql` only in `store`, the four leaves on the
+  standard library alone. A new internal package needs a row there.
 * `client/src/sync/` is **not** a pure leaf the way Go's `internal/sync` is — the name is shared, the rule is not. It
   holds what the client needs to speak the sync protocol: that includes an IndexedDB adapter for the outbox queue, the
   socket and the builder for the optimistic twin of a write — none of it reactive, which is why it lives here rather
@@ -114,6 +116,10 @@ client/src/views/            screens
   parent's, so anything a child can trigger is wired in the parent's *setup*, never after an `await` in its `onMounted`
   (`onSessionEnded` in `client/src/auth/refresh.ts` is the shape). This is the production-side twin of §2's ban on
   timing-dependent tests.
+* **A source file stays within 800 lines** — Go, and `.ts`/`.vue` under `client/src`; specs and generated files
+  aside. Past that it holds several decisions, and every change reads all of them. `scripts/file-size-gate.mjs` is a
+  ratchet: the files over the limit are named in `scripts/file-size-budget.txt` at their length, may only shrink (the
+  budget is lowered with them), and the list takes no new entries — growth goes into a new file.
 * **No global state.** Everything enters through constructors (`New…`); `main` is the only place that wires.
 * Config exclusively via environment variables (PRD Section 2, declarative), parsed once at startup into a typed
   `Config` struct with validation.

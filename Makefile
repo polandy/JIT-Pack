@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 # Two divergences: the `test` target says why it differs, and `client-cli` has no
 # CI step at all (stricter here than there — it guards ADR-025).
-.PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci ci-remote pins log-index file-size case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-purity client-layers client-modules client-build client-test client-fmt \
         e2e e2e-module e2e-single e2e-server visual visual-update docker-build all
 
@@ -36,7 +36,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-CI_TARGETS := pins log-index spec-width case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
+CI_TARGETS := pins log-index spec-width file-size case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # One line per target, and a failing target's output in full (see the
 # script's header for why). `make ci V=1` streams everything instead.
@@ -63,6 +63,12 @@ log-index:
 # perfectly (T-12). Nothing else can see a line that is merely unusable.
 spec-width:
 	@$(RUN) node scripts/spec-width-gate.mjs
+
+# And beside that: a source file grows forty well-placed lines at a time and is
+# only ever too long in hindsight. The files already over the limit are held to
+# their length in scripts/file-size-budget.txt, which only ever shrinks.
+file-size:
+	@$(RUN) node scripts/file-size-gate.mjs
 
 # And beside that: a case id that means two things turns a green test into
 # coverage of a promise nothing asserts, and every automatic signal moves the

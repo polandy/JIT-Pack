@@ -35,6 +35,63 @@ func TestServerOwned_ColumnsAreSyncableAndStamped_Invariant3(t *testing.T) {
 	}
 }
 
+// chosenPeople are the syncable columns naming an account that a client
+// decides, each with the reason: they say whom a row is *for*, a choice the
+// writer makes, never who wrote it.
+var chosenPeople = map[string]map[string]string{
+	TableComments:        {"assignee_user_id": "a task's assignee is whoever the writer hands it to (FR-7.5)"},
+	TableItems:           {DefaultAssigneeColumn: "the packer an item suggests for its trip rows (FR-1.9)"},
+	TableMeals:           {"cook_user_id": "who cooks is planned by whoever plans the meal (FR-33.1)"},
+	TableShoppingEntries: {"assignee_user_id": "who is to buy an entry is handed to them (FR-30.12)"},
+	TableTravelers:       {"linked_user_id": "which account a traveller is; the guard holds it to the trip's members"},
+	TableTripItems:       {"packer_user_id": "who is to pack a row is assigned; who did is stamped (FR-25.19)"},
+	TableTripMembers:     {"user_id": "the account being added; the guard decides who may add one"},
+}
+
+// G-2 for invariant 3. Stripping and stamping are declared per table, and the
+// zero serverOwned owns nothing — so a new table with an author column, or an
+// old one gaining it, lets a client sign its rows with any account and no
+// test of the feature notices. Every column the schema points at `users` is
+// either server-owned or named in chosenPeople with the reason it is not.
+func TestEveryUserColumnIsServerOwnedOrAChoice_Invariant3(t *testing.T) {
+	s := openTestStore(t)
+	seen := 0
+	for table, spec := range tableSpecs {
+		rows, err := s.db.Query(`SELECT "from" FROM pragma_foreign_key_list(?) WHERE "table" = ?`, table, tableUsers)
+		if err != nil {
+			t.Fatalf("foreign_key_list(%s): %v", table, err)
+		}
+		for rows.Next() {
+			var column string
+			if err := rows.Scan(&column); err != nil {
+				t.Fatalf("scan foreign_key_list(%s): %v", table, err)
+			}
+			seen++
+			owned := spec.serverOwned.columns[column]
+			_, chosen := chosenPeople[table][column]
+			switch {
+			case owned && chosen:
+				t.Errorf("%s.%s is server-owned and named as a client's choice", table, column)
+			case !owned && !chosen && spec.columns[column]:
+				t.Errorf("%s.%s names an account and a client may set it — declare it server-owned, or name it in chosenPeople with why", table, column)
+			}
+		}
+		if err := rows.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if seen == 0 {
+		t.Fatal("no column references users — the check would be vacuous")
+	}
+	for table, columns := range chosenPeople {
+		for column := range columns {
+			if !tableSpecs[table].columns[column] {
+				t.Errorf("chosenPeople names %s.%s, which is not a syncable column", table, column)
+			}
+		}
+	}
+}
+
 // stampDrivers are the client-decided fields a stamp rule reads to decide its
 // record. Each sweep case adds one of them, so every branch of every rule
 // meets a forged value.
