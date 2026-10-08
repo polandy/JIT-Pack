@@ -17,7 +17,10 @@
   loading and the ring stays unfilled and unlabelled. **M2 fetches the partition of a row when that row is on screen**,
   so the cost is the viewport rather than the archive — measured on a 33-trip device: 8 requests on opening the list
   against 33 for loading them all, and the list fills in as you scroll, which is the accepted price written into
-  ADR-033), an item summary and the FR-27.4 chips. **No presence facepile:** G-10 states that presence is meaningless
+  ADR-033), an item summary and the FR-27.4 chip. **A planned trip draws no ring** (UX-20): nothing of it is packed
+  to draw, M1's planned rows carry none either, and its item summary joins the dates line („2027 · 0/12 gepackt"), so
+  the row is three lines — name, dates, chip — at 88 px on a 412 px screen, where the ring, the summary line and two
+  pills took six lines and 149 px. **No presence facepile:** G-10 states that presence is meaningless
   outside a specific trip, and the wire agrees — presence is broadcast per *subscribed* trip, so a list would have to
   subscribe every row it shows in order to draw circles on it.
 * **The running trip is a hero card at the head of *Active* (FR-21.15).** The same card M1 draws, naming the same trip —
@@ -77,17 +80,22 @@
   pull-to-refresh (`drainAll`) is the retry. The rule is general (G-7).
 * **States:** Archived trips render muted with final stats; imported legacy trips (FR-16.2) carry an **„Importiert"**
   chip, read from `trips.imported` (written by M15's migration, carried into `Trip.imported`). On an instance carrying a
-  decade of migrated history it is what separates the two kinds of past. **A trip carries up to two FR-27.4 chips.** The
-  first is a *pointer*: „⟳ N Änderungen vorgeschlagen“ — a group the trip follows has changed and the trip has not
-  answered yet. It is a label, not a control: the two answers live at the trip (M4), and tapping the row is already the
-  way there. It can only appear for a trip whose partition this device holds — in Server Mode a trip's rows arrive when
+  decade of migrated history it is what separates the two kinds of past. **A trip carries one FR-27.4 chip** for what
+  its groups changed (UX-20): „⟳ 12 Änderungen · 1 offen" when it took changes over and has some waiting — counted
+  together, the open part in the brand colour because it waits for an answer — „⟳ 11 Änderungen übernommen" when nothing
+  waits, „⟳ 1 Änderung offen" when nothing was taken over yet, and no chip when neither. Both halves count the lines the
+  sheet names — one row whose quantity and preparation both change is two — so the sum adds like with like and the
+  chip agrees with the sheet's own headings. One line at every width: two
+  stacked pills, one of them wrapping and carrying a chevron, read as a block of buttons under the name. **The chip is
+  always a button and opens a sheet** (`m2-changes-sheet`): the trip's name, the open changes first in M4's
+  present-tense wording with the sentence that the decision is at the trip and *Zur Reise*, which opens the trip once
+  the sheet has gone; then the record — one line per change naming its source group, followed by the note that past
+  trips are never changed. The chip stops the tap, so reading the changes does not also open the trip; a tap anywhere
+  else on the row does. The sheet answers nothing: the two answers live at the trip (M4), where the list they change is.
+  The open half can only appear for a trip whose partition this device holds — in Server Mode a trip's rows arrive when
   it is opened — so its absence means "nothing to say from here", never "nothing to decide", which is why M4 asks again
-  on open. The second is the record: „⟳ N Änderungen aus Gruppen übernommen“ above one line per change naming its source
-  group, followed by the note that past trips are never changed. **Up to ten changes the log is simply written out**
-  under the row; above that it folds away behind the chip, which then carries a chevron and toggles it. The reason for
-  the threshold rather than always folding: a handful of lines is worth reading where it happened, but M2 is the app's
-  main entry and there is deliberately no *seen* state, so an unbounded log would push every other trip down the list
-  until the busy one departs. A folding chip stops the tap, so opening the log does not also open the trip; a
-  non-folding one is a label and takes no interaction at all. **No status rule on either chip:** a running trip is asked
-  too, and a past one produces nothing to show.
+  on open. **No log stands in the row:** M2 is the app's main entry and there is deliberately no *seen* state, so a log
+  written out under a row would stay there until the trip departs; the sheet holds it at any length. **No status rule on
+  the chip:** a running trip is asked too — the hero carries the same chip and sheet — and a past one produces nothing
+  to show.
 * **Navigation:** Tab 2.

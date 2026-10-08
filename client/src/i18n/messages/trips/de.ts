@@ -89,7 +89,6 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
     '{names} — pro Person geplant, aber niemand ist eingetragen. In Schritt 2 jemanden hinzufügen.',
 
   // FR-27.4 — was eine Reise aus ihren Gruppen vorgeschlagen bekommt.
-  'trips.proposedChip': '⟳ {n} Änderung vorgeschlagen | ⟳ {n} Änderungen vorgeschlagen',
   'trips.proposedTitle': 'Aus den Gruppen',
   'trips.proposedLead':
     'Eine Gruppe dieser Reise hat sich geändert. | Die Gruppen dieser Reise haben sich geändert.',
@@ -106,9 +105,17 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trips.proposedTasks': '„{group}“: {item} — Vorbereitung ändert sich',
   'trips.proposedChanged': '„{group}“: {item} ändert sich',
 
+  // FR-27.4 — der eine Chip auf M2 und das Blatt, das er öffnet.
+  'trips.changesTotal': '⟳ {n} Änderung | ⟳ {n} Änderungen',
+  'trips.changesOpen': '{n} offen',
+  'trips.changesOnlyApplied': '⟳ {n} Änderung übernommen | ⟳ {n} Änderungen übernommen',
+  'trips.changesOnlyOpen': '⟳ {n} Änderung offen | ⟳ {n} Änderungen offen',
+  'trips.changesSheetMeta': 'Änderungen aus den Gruppen, denen die Reise folgt',
+  'trips.changesOpenHeading': 'Offen · {n}',
+  'trips.changesOpenHint': 'Entschieden wird an der Reise, wo die Liste ist.',
+  'trips.changesGoToTrip': 'Zur Reise',
+  'trips.changesAppliedHeading': 'Übernommen · {n}',
   // FR-27.4 — und was sie übernommen hat.
-  'trips.appliedChip':
-    '⟳ {n} Änderung aus Gruppen übernommen | ⟳ {n} Änderungen aus Gruppen übernommen',
   'trips.appliedFrozen': 'Vergangene Reisen werden nie geändert.',
   'trips.appliedAdded': '„{group}“: {item} dazugekommen',
   'trips.appliedRemoved': '„{group}“: {item} entfernt',

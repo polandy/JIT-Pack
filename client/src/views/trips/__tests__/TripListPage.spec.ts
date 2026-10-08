@@ -1,31 +1,31 @@
 // @vitest-environment jsdom
 /**
- * M2's two FR-27.4 chips: what a trip *took over* from its groups (past
- * tense, expandable) and what is still *waiting* on it (a pointer, since the
- * decision belongs at the trip). A running trip carries both — only a past
- * trip is frozen.
+ * M2's FR-27.4 chip: one chip for what a trip *took over* from its groups and
+ * what is still *waiting* on it, and the sheet it opens (UX-20). A running
+ * trip carries it too — only a past trip is frozen.
  *
  * A component test rather than e2e for the chip's *rules*: which trips may
- * carry it, whether its log is written out or folded away (inline up to ten
- * changes, foldable above), and that each entry is worded
- * from its structured detail. The reachable flow — edit a group, see the chip
- * appear — is E2E-M8-09.
+ * carry it, how its two counts are worded, what the sheet lists and in which
+ * order, and that each entry is worded from its structured detail. The
+ * reachable flow — edit a group, see the chip appear — is E2E-M8-09; the row's
+ * height at 412 px is E2E-M2-36.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
-import { t } from '@/i18n'
+import { DEFAULT_LOCALE, setLocale, t } from '@/i18n'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
 import type { AppliedChange } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { tripClosingPath, tripStartingPath, tripSubPath } from '@/router/paths'
+import { tripClosingPath, tripOpenPath, tripStartingPath, tripSubPath } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -154,7 +154,7 @@ function logEntry(extra: Partial<AppliedChange> = {}) {
   }
 }
 
-/** n distinct log rows, so the fold threshold can be approached from both sides. */
+/** n distinct log rows, for a record longer than any row could carry. */
 function manyEntries(n: number) {
   return Array.from({ length: n }, (_, i) =>
     logEntry({ id: `log-${i}`, item_name: `Artikel ${i}` } as never),
@@ -167,6 +167,8 @@ function mountPage() {
   })
 }
 
+enableAutoUnmount(afterEach)
+
 beforeEach(() => {
   segment = 'planned'
   pushed.length = 0
@@ -177,18 +179,115 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
+  setLocale(DEFAULT_LOCALE)
 })
 
-describe('TripListPage — the FR-27.4 applied-changes chip', () => {
+/*
+ * The sheet's chrome is Ionic's modal, which jsdom cannot present; the stub
+ * keeps what the page relies on — the body while open, and `dismiss` once it
+ * is closed, which is when „Zur Reise" navigates.
+ */
+const SheetModalStub = defineComponent({
+  props: { isOpen: Boolean, testid: { type: String, default: undefined } },
+  emits: ['dismiss'],
+  watch: {
+    isOpen(open: boolean) {
+      if (!open) this.$emit('dismiss')
+    },
+  },
+  template: '<div v-if="isOpen" :data-testid="testid"><slot /></div>',
+})
+
+function mountWithSheet() {
+  return mount(TripListPage, {
+    global: {
+      provide: { [ORCHESTRATOR]: orchestratorFake },
+      stubs: { SheetModal: SheetModalStub },
+    },
+  })
+}
+
+function proposal(log: Record<string, unknown>[], add = log.length) {
+  return {
+    add: Array.from({ length: add }, () => ({})),
+    update: [],
+    remove: [],
+    ledgerUpsert: [],
+    ledgerDelete: [],
+    log,
+  }
+}
+
+const STIRNLAMPE = {
+  kind: 'added',
+  item_name: 'Stirnlampe',
+  source_template_name: 'Makro Fotografie',
+  detail: null,
+}
+
+describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
   it('counts what a planned trip took over from its groups', async () => {
+    setLocale('de')
     const trips = seedTrip('planning')
     trips.applyChanges([logEntry(), logEntry({ id: 'log-2', item_name: 'Fernauslöser' })])
 
     const wrapper = mountPage()
 
-    const chip = wrapper.find('[data-testid="m2-applied-chip-Samedan"]')
-    expect(chip.exists()).toBe(true)
-    expect(chip.text()).toContain('2')
+    const chip = wrapper.find('button[data-testid="m2-changes-chip-Samedan"]')
+    expect(chip.text()).toBe('⟳ 2 Änderungen übernommen')
+  })
+
+  it('names both counts on one chip when a trip took changes over and has one waiting', async () => {
+    setLocale('de')
+    const trips = seedTrip('planning')
+    trips.applyChanges(manyEntries(11))
+    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+
+    const wrapper = mountPage()
+
+    const chips = wrapper.findAll('[data-testid^="m2-changes-chip-"]')
+    expect(chips).toHaveLength(1)
+    expect(chips[0]!.text().replace(/\s+/g, ' ')).toBe('⟳ 12 Änderungen · 1 offen')
+    // Nothing of the log stands in the row any more, however long it is.
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').text()).not.toContain('Artikel')
+  })
+
+  it('says what is waiting when nothing was taken over yet', async () => {
+    setLocale('de')
+    seedTrip('planning')
+    orchestratorFake.refreshProposals.value = {
+      t1: proposal([STIRNLAMPE, { ...STIRNLAMPE, item_name: 'Kabel' }, STIRNLAMPE]),
+    }
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="m2-changes-chip-Samedan"]').text()).toBe(
+      '⟳ 3 Änderungen offen',
+    )
+  })
+
+  it('counts what is open in the lines its sheet names, as the record is counted', async () => {
+    // One row whose quantity and preparation both change is one update but
+    // two lines on M4's card and in the sheet; the chip counts the lines, the
+    // unit the taken-over half is counted in, so its sum adds like with like.
+    setLocale('de')
+    const trips = seedTrip('planning')
+    trips.applyChanges([logEntry()])
+    const quantity = {
+      ...STIRNLAMPE,
+      kind: 'changed',
+      detail: { field: 'quantity', from: 1, to: 2 },
+    }
+    const tasks = { ...STIRNLAMPE, kind: 'changed', detail: { field: 'tasks', from: 0, to: 1 } }
+    orchestratorFake.refreshProposals.value = {
+      t1: { ...proposal([quantity, tasks], 0), update: [{}] },
+    }
+    const wrapper = mountWithSheet()
+
+    const chip = wrapper.find('[data-testid="m2-changes-chip-Samedan"]')
+    expect(chip.text().replace(/\s+/g, ' ')).toBe('⟳ 3 Änderungen · 2 offen')
+    await chip.trigger('click')
+    expect(wrapper.find('[data-testid="m2-changes-open"]').text()).toContain('Offen · 2')
   })
 
   it('appears on a running trip too — departure no longer freezes it', async () => {
@@ -204,54 +303,65 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
     // question „what changed under me" is asked most.
     expect(wrapper.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-changes-chip-Samedan"]').exists()).toBe(true)
   })
 
-  it('writes a short log out where it happened, with no control to press', async () => {
+  it('stays away when the plan only moves the ledger — that is nothing to answer', async () => {
+    seedTrip('planning')
+    orchestratorFake.refreshProposals.value = {
+      t1: { ...proposal([], 0), ledgerUpsert: [{ id: 'l1' }] },
+    }
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-changes-chip-Samedan"]').exists()).toBe(false)
+  })
+
+  it('says nothing about a trip with no record and no proposal on this device', async () => {
+    seedTrip('planning')
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-changes-chip-Samedan"]').exists()).toBe(false)
+  })
+})
+
+describe('TripListPage — the FR-27.4 changes sheet (UX-20)', () => {
+  it('opens on the chip without opening the trip, the open change first', async () => {
+    setLocale('de')
     const trips = seedTrip('planning')
     trips.applyChanges([logEntry()])
+    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+    const wrapper = mountWithSheet()
+    expect(wrapper.find('[data-testid="m2-changes-sheet"]').exists()).toBe(false)
 
-    const wrapper = mountPage()
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
 
-    const log = wrapper.find('[data-testid="m2-applied-log-Samedan"]')
-    expect(log.exists()).toBe(true)
-    expect(log.text()).toContain('Makro Fotografie')
-    expect(log.text()).toContain('Stativ')
-    // The chip is the heading of what is already on screen, not a button
-    // that reveals it: a control that toggles nothing is a lie about state.
-    expect(wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
+    const sheet = wrapper.find('[data-testid="m2-changes-sheet"]')
+    expect(sheet.text()).toContain('Samedan')
+    expect(wrapper.find('[data-testid="m2-changes-open"]').text()).toContain(
+      '„Makro Fotografie“: Stirnlampe kommt dazu',
+    )
+    const applied = wrapper.find('[data-testid="m2-changes-applied"]')
+    expect(applied.text()).toContain('Stativ')
+    expect(applied.text()).toContain(t('trips.appliedFrozen'))
+    expect(sheet.text().indexOf('Stirnlampe')).toBeLessThan(sheet.text().indexOf('Stativ'))
+    expect(pushed).toHaveLength(0)
   })
 
-  it('still writes it out at exactly ten changes — the limit is inclusive', async () => {
-    const trips = seedTrip('planning')
-    trips.applyChanges(manyEntries(10))
-
-    const wrapper = mountPage()
-
-    expect(wrapper.find('[data-testid="m2-applied-log-Samedan"]').exists()).toBe(true)
-    expect(wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
-  })
-
-  it('folds an eleventh change away, so one busy trip cannot bury the list', async () => {
+  it('lists every change however many, since the row no longer carries them', async () => {
     const trips = seedTrip('planning')
     trips.applyChanges(manyEntries(11))
+    const wrapper = mountWithSheet()
 
-    const wrapper = mountPage()
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
 
-    // Folded: the chip is a real button and the log is not on screen yet.
-    const chip = wrapper.find('button[data-testid="m2-applied-chip-Samedan"]')
-    expect(chip.exists()).toBe(true)
-    expect(chip.attributes('aria-expanded')).toBe('false')
-    expect(wrapper.find('[data-testid="m2-applied-log-Samedan"]').exists()).toBe(false)
-
-    await chip.trigger('click')
-
-    const log = wrapper.find('[data-testid="m2-applied-log-Samedan"]')
-    expect(log.exists()).toBe(true)
-    expect(log.findAll('p')).toHaveLength(12) // eleven changes plus the frozen note
-    expect(
-      wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').attributes('aria-expanded'),
-    ).toBe('true')
+    const applied = wrapper.find('[data-testid="m2-changes-applied"]')
+    expect(applied.findAll('p')).toHaveLength(12) // eleven changes plus the frozen note
+    // Nothing waits, so there is nothing to go and answer.
+    expect(wrapper.find('[data-testid="m2-changes-open"]').exists()).toBe(false)
   })
 
   it('words a quantity change from its structured detail, not from a stored sentence', async () => {
@@ -262,56 +372,63 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
         detail: JSON.stringify({ field: 'quantity', from: 2, to: 4 }),
       } as never),
     ])
-    const wrapper = mountPage()
+    const wrapper = mountWithSheet()
 
-    const text = wrapper.find('[data-testid="m2-applied-log-Samedan"]').text()
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
+
+    const text = wrapper.find('[data-testid="m2-changes-applied"]').text()
     expect(text).toContain('2')
     expect(text).toContain('4')
   })
+
+  it('opens from the hero’s chip too — the running trip carries the same sheet', async () => {
+    segment = 'active'
+    const trips = seedTrip('active')
+    trips.applyChanges([logEntry()])
+    const wrapper = mountWithSheet()
+
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="m2-changes-applied"]').text()).toContain('Stativ')
+    expect(pushed).toHaveLength(0)
+  })
+
+  it('leads to the trip from the open change, once the sheet is gone', async () => {
+    seedTrip('planning')
+    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+    const wrapper = mountWithSheet()
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
+
+    await wrapper.find('[data-testid="m2-changes-go"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="m2-changes-sheet"]').exists()).toBe(false)
+    expect(pushed).toEqual([tripOpenPath('t1')])
+  })
 })
 
-describe('TripListPage — the FR-27.4 proposal chip', () => {
-  it('says how many changes are waiting, and offers nothing to press', async () => {
+describe('TripListPage — a planned row is name, dates, chip (UX-20)', () => {
+  it('draws no ring for a planned trip and puts its count on the dates line', async () => {
     seedTrip('planning')
-    orchestratorFake.refreshProposals.value = {
-      t1: { add: [{}, {}], update: [{}], remove: [], ledgerUpsert: [], ledgerDelete: [], log: [] },
-    }
+    orchestratorFake.loadedTrips = new Set(['t1'])
 
     const wrapper = mountPage()
 
-    const chip = wrapper.find('[data-testid="m2-proposed-chip-Samedan"]')
-    expect(chip.exists()).toBe(true)
-    expect(chip.text()).toContain('3')
-    // The decision is at the trip: a second place to
-    // answer from would be a second place to get the answer wrong.
-    expect(chip.element.tagName).not.toBe('BUTTON')
+    const row = wrapper.find('[data-testid="trip-row-Samedan"]')
+    expect(row.find('.progress-ring').exists()).toBe(false)
+    const when = row.find('[data-testid="trip-when"]')
+    const summary = row.find('[data-testid="trip-item-summary"]')
+    expect(summary.element.parentElement).toBe(when.element.parentElement)
   })
 
-  it('stays away when the plan only moves the ledger — that is nothing to answer', async () => {
-    seedTrip('planning')
-    orchestratorFake.refreshProposals.value = {
-      t1: {
-        add: [],
-        update: [],
-        remove: [],
-        ledgerUpsert: [{ id: 'l1' }],
-        ledgerDelete: [],
-        log: [],
-      },
-    }
+  it('keeps the ring on a trip that is not planned', async () => {
+    segment = 'archived'
+    seedTrip('archived')
 
     const wrapper = mountPage()
 
-    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="m2-proposed-chip-Samedan"]').exists()).toBe(false)
-  })
-
-  it('says nothing about a trip this device holds no proposal for', async () => {
-    seedTrip('planning')
-
-    const wrapper = mountPage()
-
-    expect(wrapper.find('[data-testid="m2-proposed-chip-Samedan"]').exists()).toBe(false)
+    const row = wrapper.find('[data-testid="trip-row-Samedan"]')
+    expect(row.find('.progress-ring').exists()).toBe(true)
   })
 })
 

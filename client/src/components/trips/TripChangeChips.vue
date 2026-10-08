@@ -1,55 +1,37 @@
 <script setup lang="ts">
 /**
  * What has happened to a trip since it was generated: where it came from,
- * what its groups are proposing, and what a refresh already took over
- * (FR-16.2, FR-27.4).
+ * and what its groups changed — taken over or still waiting (FR-16.2,
+ * FR-27.4).
  *
  * One component rather than one block per representation: M2 draws the same
  * trip as a row or — for the trip you are on — as a hero (FR-21.15), and a
  * chip written into both templates is a chip that is eventually only in one.
  *
- * It decides nothing about the changes themselves; the fold is the only rule
- * it owns, and the page owns which trip is unfolded.
+ * It decides nothing about the changes themselves; the page owns the sheet
+ * the chip opens.
  */
-import { IonIcon } from '@ionic/vue'
-import { chevronDown, chevronUp } from 'ionicons/icons'
 import { computed } from 'vue'
-import { describeAppliedChange } from '@/lib/refreshWording'
+import { changesChip } from '@/lib/refreshWording'
 import { t } from '@/i18n'
-import type { AppliedChange } from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
-    /** The trip's id, for the log's `aria-controls` target. */
-    tripId: string
     /** The trip's name, which every one of these testids is addressed by. */
     name: string
     /** FR-16.2: this trip came out of a spreadsheet, not out of the app. */
     imported?: boolean
     /** FR-27.4: how many group changes are waiting on the trip. */
     proposed?: number
-    /** FR-27.4: what a refresh already took over. */
-    applied?: readonly AppliedChange[]
-    /** Whether this trip's foldable log is the open one. */
-    expanded?: boolean
+    /** FR-27.4: how many changes a refresh already took over. */
+    applied?: number
   }>(),
-  { imported: false, proposed: 0, applied: () => [], expanded: false },
+  { imported: false, proposed: 0, applied: 0 },
 )
 
-const emit = defineEmits<{ toggle: [] }>()
+const emit = defineEmits<{ open: [] }>()
 
-/**
- * FR-27.4: above this many changes the log folds away behind the chip.
- * A handful of lines is worth reading where it
- * happened, but M2 is the app's main entry and there is deliberately no
- * "seen" state, so an unbounded log would push every other trip down the
- * list until the busy one departs.
- */
-const INLINE_LOG_LIMIT = 10
-
-/** Whether this trip's log is long enough to hide behind the chip. */
-const folds = computed(() => props.applied.length > INLINE_LOG_LIMIT)
-const open = computed(() => !folds.value || props.expanded)
+const chip = computed(() => changesChip(props.applied, props.proposed))
 </script>
 
 <template>
@@ -58,49 +40,26 @@ const open = computed(() => !folds.value || props.expanded)
   <span v-if="imported" class="chip imported-chip" :data-testid="`m2-imported-chip-${name}`">
     {{ t('trips.importedChip') }}
   </span>
-  <!-- FR-27.4: a group changed and this trip has not answered yet. It says
-       so and stops there — the two answers are at the trip, where the list
-       they change is. -->
-  <span v-if="proposed" class="chip proposed-chip" :data-testid="`m2-proposed-chip-${name}`">
-    {{ t('trips.proposedChip', { n: proposed }) }}
-  </span>
-  <!-- FR-27.4: a trip follows its source groups until it is past. It says
-       what it took over, because a list that changed under you with no trace
-       reads as data loss. A short log is simply written out; a long one folds
-       away, so one busy trip cannot push the rest of the list off the
-       screen. -->
-  <div v-if="applied.length" class="applied">
-    <button
-      v-if="folds"
-      class="chip applied-chip"
-      :data-testid="`m2-applied-chip-${name}`"
-      :aria-expanded="expanded"
-      :aria-controls="`m2-applied-log-${tripId}`"
-      @click.stop.prevent="emit('toggle')"
-    >
-      {{ t('trips.appliedChip', { n: applied.length }) }}
-      <IonIcon :icon="expanded ? chevronUp : chevronDown" />
-    </button>
-    <!-- A short log needs no control: the chip is then the heading of what is
-         already on screen, not a button that reveals it. -->
-    <span v-else class="chip applied-chip static" :data-testid="`m2-applied-chip-${name}`">
-      {{ t('trips.appliedChip', { n: applied.length }) }}
-    </span>
-    <div
-      v-if="open"
-      :id="`m2-applied-log-${tripId}`"
-      class="applied-log"
-      :data-testid="`m2-applied-log-${name}`"
-    >
-      <p v-for="entry in applied" :key="entry.id">{{ describeAppliedChange(entry) }}</p>
-      <p class="frozen-note">{{ t('trips.appliedFrozen') }}</p>
-    </div>
-  </div>
+  <!-- FR-27.4: one chip for what the trip took over and what still waits,
+       one line however many there are (UX-20). It sits inside a row or card
+       that is itself a link, so it stops the tap: reading what changed must
+       not also open the trip. -->
+  <button
+    v-if="chip"
+    type="button"
+    class="chip changes-chip"
+    :data-testid="`m2-changes-chip-${name}`"
+    @click.stop.prevent="emit('open')"
+  >
+    <span v-if="chip.total">{{ chip.total }}</span>
+    <span v-if="chip.total && chip.open" class="sep" aria-hidden="true"> · </span>
+    <span v-if="chip.open" class="open">{{ chip.open }}</span>
+  </button>
 </template>
 
 <style scoped>
 /*
- * The three chips share a shape and differ only in what they paint with it:
+ * The chips share a shape and differ only in what they paint with it:
  * `.chip` is a rule of its own, so none draws a background with no padding
  * around the word inside it.
  *
@@ -123,43 +82,30 @@ const open = computed(() => !folds.value || props.expanded)
   color: var(--ct-subtext1);
 }
 
-.proposed-chip {
-  background: color-mix(in srgb, var(--jp-brand) 18%, transparent);
-  color: var(--jp-brand);
-}
-
-/* FR-27.4: when the log folds, the chip is an action inside a row that is
-   itself a link, so it stops the tap — expanding the log must not also open
-   the trip. When it does not fold, it is a label for the lines already below
-   it and takes no interaction at all. */
-.applied-chip {
-  align-items: center;
+/* One line, always: the row is three lines with it (UX-20). The words are
+   short enough for the narrowest row; a wrap would make it a block again.
+   Inline rather than flex, so the spaces around the separator stay text. */
+.changes-chip {
   background: var(--jp-surface-sunken);
   border: none;
   color: var(--jp-action);
-  gap: 4px;
+  cursor: pointer;
+  display: inline-block;
+  white-space: nowrap;
 }
 
-.applied-chip ion-icon {
-  font-size: var(--jp-icon-xs);
+.changes-chip:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
 }
 
-/* Nothing to press, so nothing that looks pressable. */
-.applied-chip.static {
-  cursor: default;
-}
-
-.applied-log {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  margin-top: 6px;
-}
-
-.applied-log p {
-  margin: 0;
-}
-
-.applied-log .frozen-note {
+.changes-chip .sep {
   color: var(--ct-overlay1);
+}
+
+/* What still waits for an answer takes the brand; the record keeps the action colour. */
+.changes-chip .open {
+  color: var(--jp-brand);
+  font-weight: var(--jp-weight-semibold);
 }
 </style>

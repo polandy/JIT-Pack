@@ -128,8 +128,9 @@
     answers: *Übernehmen* and *Nicht übernehmen*. Deliberately a card and not a modal: a modal over the packing list has
     to be dismissed before the list it talks about can be looked at, and dismissing is not one of the two answers.
     Deliberately the full list and not a count: „3 Änderungen“ with nothing to read can only be answered by guessing. It
-    folds above ten lines, same threshold and same reason as M2's log. The cost of *no* is stated where *no* is pressed
-    — the refused positions stop following the group in this trip — because it is the one thing about the card a user
+    folds above ten lines, so a long proposal cannot push the list it changes off the screen. The cost of *no* is stated
+    where *no* is pressed — the refused positions stop following the group in this trip — because it is the one thing
+    about the card a user
     cannot work out from the list above it. Both answers are final and neither offers an undo, so both report through a
     plain toast rather than a snackbar.
   * **Names the inventory moved on from are taken over on request, from the ⋮ (FR-27.16).** While

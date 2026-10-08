@@ -523,12 +523,15 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     // M2 keeps the record of what the trip took over, with the date it
     // happened rather than the date of the restore.
-    await expect(visible(restored).getByTestId('m2-applied-chip-Fototour 2026')).toContainText('1')
-    await expect(visible(restored).getByTestId('m2-applied-log-Fototour 2026')).toContainText(
-      'Stativ',
-    )
-    // Nothing is being proposed: the refused Blitz is not offered again.
-    await expect(visible(restored).getByTestId('m2-proposed-chip-Fototour 2026')).toHaveCount(0)
+    // Nothing is being proposed: the refused Blitz is not offered again, so
+    // the chip names only what was taken over.
+    const chip = visible(restored).getByTestId('m2-changes-chip-Fototour 2026')
+    await expect(chip).toHaveText('⟳ 1 change taken over')
+    await chip.click()
+    const sheet = restored.getByTestId('m2-changes-sheet')
+    await expect(sheet.getByTestId('m2-changes-applied')).toContainText('Stativ')
+    await sheet.getByTestId('m2-changes-close').click()
+    await expect(sheet).toBeHidden()
 
     await visible(restored).getByTestId('trip-row-Fototour 2026').click()
     await expectTripOpen(restored, 'Fototour 2026')
