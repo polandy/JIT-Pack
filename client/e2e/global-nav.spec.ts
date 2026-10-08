@@ -963,7 +963,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     // Both dates, so the day plan and the meals stand in the row too: eight
     // pills, the row's longest shape, and one with a middle to centre in.
-    await createTripViaWizard(page, { ...TRIP, startDate: '2026-12-20' })
+    const tripUrl = await createTripViaWizard(page, { ...TRIP, startDate: '2026-12-20' })
 
     // Named, not merely present — a glyph is read by its name — and the view
     // you stand on says its word on screen, because a row of glyphs that
@@ -1111,6 +1111,15 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm26-fab')).toBeVisible()
     await page.getByTestId('header-back').click()
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+
+    // G-8 holds for a typed address too (UX-21): Local Mode keeps no log, so
+    // both activity URLs answer with the screen whose ⋮ would have held them.
+    await page.goto(`${tripUrl}/activity`)
+    await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+    await expect(page).toHaveURL((url) => url.pathname === tripUrl)
+    await page.goto(PATH.inventoryActivity)
+    await expect(page).toHaveURL((url) => url.pathname === PATH.items)
+    await expect(onVisibleScreen(page, 'm9-fab')).toBeVisible()
   })
 
   /*

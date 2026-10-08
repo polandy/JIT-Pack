@@ -184,7 +184,9 @@ These patterns apply to every screen and are specified once.
 * **G-8 (Single-User Mode):** Single-User Mode (Addendum FR-17.1) shows no banner — it is visually indistinguishable
   from normal operation except for the absence of sharing, delegation, and notification UI, hidden per screen as noted
   in M2, M3, M5, and M17 below. **Local Mode (Addendum FR-19.3)** hides the same collaboration UI the same way and
-  likewise shows no banner; its only visible marker is the G-2 *local* glyph.
+  likewise shows no banner; its only visible marker is the G-2 *local* glyph. A screen only a server can fill is not
+  entered by a typed URL either: its route answers in Local Mode with its back target (`router/serverOnly.ts`, M30 —
+  UX-21), so no screen explains itself with a server the device does not have.
 * **An anchor switch is a root navigation, not a push (ADR-012).** The four anchors — in the bottom bar below the
   breakpoint and in the rail above it — are siblings with no back edge between them, so a switch *replaces* the outlet's
   page instead of stacking one on top. As plain pushes an interrupted switch would leave two pages live and the older
