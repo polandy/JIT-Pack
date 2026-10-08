@@ -91,6 +91,65 @@ describe('ItemMark', () => {
     expect(slot.classes()).not.toContain('borrowed')
   })
 
+  it('stops at an empty slot under its own tag’s heading — the heading already shows the mark it would borrow (G-15, FR-24.13)', () => {
+    const w = mount(ItemMark, {
+      props: {
+        mark: null,
+        tagMark: '🔧',
+        surface: 'inventory',
+        headed: true,
+        photoItem: item(),
+        initial: 'T',
+        size: 34,
+      },
+      global,
+    })
+    const slot = w.get('[data-testid="item-mark-slot"]')
+    expect(slot.find('[data-testid="item-mark"]').exists()).toBe(false)
+    expect(w.find('[data-testid="item-mark-initial"]').exists()).toBe(false)
+    // The column still holds: an empty slot of the row's size, not a collapsed one.
+    expect(slot.attributes('style')).toContain('width: 34px')
+    expect(slot.attributes('style')).toContain('height: 34px')
+  })
+
+  it('drops the tag’s initial under its own heading too, for a tag that has no mark (G-15)', () => {
+    const w = mount(ItemMark, {
+      props: { mark: null, surface: 'inventory', headed: true, photoItem: item(), initial: 'F' },
+      global,
+    })
+    expect(w.find('[data-testid="item-mark-initial"]').exists()).toBe(false)
+    expect(w.get('[data-testid="item-mark-slot"]').text()).toBe('')
+  })
+
+  it('keeps the item’s own mark and photo under its tag’s heading — only the borrowed rungs stop (G-15)', () => {
+    const own = mount(ItemMark, {
+      props: {
+        mark: '📷',
+        tagMark: '🔧',
+        surface: 'inventory',
+        headed: true,
+        photoItem: item(),
+        initial: 'T',
+      },
+      global,
+    })
+    expect(own.get('[data-testid="item-mark"]').text()).toBe('📷')
+    expect(own.get('[data-testid="item-mark-slot"]').classes()).not.toContain('borrowed')
+
+    const photo = mount(ItemMark, {
+      props: {
+        mark: null,
+        tagMark: '🔧',
+        surface: 'inventory',
+        headed: true,
+        photoItem: item({ image_hash: 'h' }),
+      },
+      global,
+    })
+    expect(photo.find('[data-testid="item-mark-slot"]').exists()).toBe(false)
+    expect(photo.findComponent({ name: 'ItemThumbnail' }).exists()).toBe(true)
+  })
+
   it('borrows the tag’s mark only on the inventory — packing keeps its empty slot (FR-24.13)', () => {
     const w = mount(ItemMark, { props: { mark: null, tagMark: '🧼', surface: 'packing' }, global })
     expect(w.get('[data-testid="item-mark-slot"]').text()).toBe('')
