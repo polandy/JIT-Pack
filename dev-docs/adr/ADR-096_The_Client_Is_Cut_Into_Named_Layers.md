@@ -1,8 +1,8 @@
 # ADR-096: The client is cut into named layers — a directory per layer vs. a role per file
 
 **Status:** Accepted
-**Related:** ARCH-16, ARCH-17 (the gate that will hold it), ADR-066 (feature modules), ADR-008 / ADR-025
-(`domain/` runs client-side), `dev-docs/CODING_PRINCIPLES.md` §3, `client/CLAUDE.md`
+**Related:** ARCH-16, ARCH-17a (`scripts/layer-gate.mjs`, the gate that holds it), ADR-066 (feature modules),
+ADR-008 / ADR-025 (`domain/` runs client-side), `dev-docs/CODING_PRINCIPLES.md` §3, `client/CLAUDE.md`
 
 **Decision Drivers (in priority order):**
 1. A contributor can tell from a file's directory what it may import, and so where a new rule goes.
@@ -103,3 +103,27 @@ rule hands back domain values and `sync/` encodes them (`trackSettingsChanges` �
 now allows `types/`, `api/` and `domain/`, plus one named file: the portable import builds through the mutation
 factory and names its type, which needs the builders' option shapes moved below `sync/` first (ARCH-16c). The cost is
 five more entries on the boundary gate's list of `domain/` files a module may read, until ARCH-19 gives them a folder.
+
+## Amendment, 2026-10-08: the last exception closes and the order gets its gate (ARCH-16c, ARCH-17a)
+
+The portable import no longer names the mutation factory's type: it declares `ImportMutations`, the fifteen builders it
+consumes, and `sync/mutations` satisfies it structurally. The option shapes both sides read (`MasterItemOptions`,
+`TemplateItemOptions`, `TripOptions`, `ContainerOptions`, `PortableTripItemFields`) moved into `types/domain.ts`, so
+the port is no copy of them. `domain-purity-gate.mjs` lost its list of allowed files.
+
+`scripts/layer-gate.mjs` holds the whole order: every file under `client/src` belongs to the layer of its longest path
+prefix and imports only its own layer or earlier ones; a file in no layer fails. Placing every directory took three
+decisions the original order left open:
+
+- **`auth/` sits below `sync/`.** The HTTP client calls the token refresh, and `auth/` reads only the wire's words and
+  the clock, so the transport can depend on it without a cycle.
+- **The HTTP client moved from `api/client.ts` to `sync/apiClient.ts`.** `api/` is vocabulary — generated wire types,
+  routes, tables and status codes — and the one file that performed requests imported `auth/` from there.
+- **`mode.ts`, `config.ts` and the navigation helpers in `router/` join `notifications/` and `pwa/`** as the app's
+  edges with the platform, above `local/` and below `kernel/`; `router/index.ts`, `App.vue`, `main.ts` and `dev/` are
+  the composition root, which imports every layer and is imported by none (an import of `dev/` is
+  `dev-code-gate.mjs`'s to judge).
+
+The cost is one more layer name for a contributor to learn (`edges`) and an `auth/` that reads above the vocabulary
+only through `lib/clock`. The revisit trigger stands: an edge the table refuses is answered by moving the file, not
+by an exception.

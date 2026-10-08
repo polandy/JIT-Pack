@@ -13,7 +13,7 @@
  * command deliberately does not ask for one.
  */
 
-import { APIClient } from '@/api/client'
+import { APIClient } from '@/sync/apiClient'
 import { API } from '@/api/routes'
 import type { UserListResponse } from '@/api/types'
 import { MASTER_PARTITION, pullPartitionAll, tripPartition } from '@/sync/partition'

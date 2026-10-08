@@ -18,7 +18,7 @@
  * the memo is the guarantee the client relies on.
  */
 
-import { APIRequestError, type APIClient } from '@/api/client'
+import { APIRequestError, type APIClient } from '@/sync/apiClient'
 import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { Mutation, PullChange, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'

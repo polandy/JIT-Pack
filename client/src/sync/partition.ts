@@ -11,7 +11,7 @@
  */
 
 import { API } from '@/api/routes'
-import type { APIClient } from '@/api/client'
+import type { APIClient } from '@/sync/apiClient'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { hasFurtherPage, observePulledClocks } from '@/sync/pullProtocol'

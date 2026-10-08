@@ -23,7 +23,7 @@ import { markLocalWrite } from '@/local/exportReminder'
 import { clearMigrationPending, deviceId } from '@/mode'
 import { computed, reactive, ref } from 'vue'
 
-import { APIClient, type TokenProvider } from '@/api/client'
+import { APIClient, type TokenProvider } from '@/sync/apiClient'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from '@/sync/outbox'

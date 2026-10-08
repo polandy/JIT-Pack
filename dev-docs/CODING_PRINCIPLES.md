@@ -54,20 +54,24 @@ internal/api/                HTTP handlers, WebSocket hub, auth middleware, push
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
 ```
 
-The client's layers, each importing only from those before it (ADR-096). A feature module (`shopping/`, `planner/`,
-`meals/`) sits beside `views/` and reaches the kernel through `kernel/` and `composables/shared/` alone. The rule
-directories (`domain/`, a module's `domain/`) read only `types/`, `api/` and `domain/`: a port a module's rules read
-keeps its shape in `domain/` and only its `InjectionKey` in `kernel/`. One edge still runs against the order — the
-portable import names the mutation factory's type (ARCH-16c); `scripts/domain-purity-gate.mjs` lists it.
+The client's layers, each importing only from itself and those before it, with no exception (ADR-096;
+`scripts/layer-gate.mjs`, which also refuses a file in no layer). A feature module (`shopping/`, `planner/`, `meals/`)
+sits beside `views/` and reaches the kernel through `kernel/` and `composables/shared/` alone. The rule directories
+(`domain/`, a module's `domain/`) read only `types/`, `api/` and `domain/` (`scripts/domain-purity-gate.mjs`): a port a
+module's rules read keeps its shape in `domain/` and only its `InjectionKey` in `kernel/`, and a port a rule is handed
+(`ImportMutations`) is declared by the rule, its option shapes in `types/`. The composition root — `App.vue`,
+`main.ts`, `router/index.ts` and the dev seed in `dev/` — may import every layer and is imported by none.
 
 ```
-client/src/types, api, i18n, theme, router/paths   the vocabulary: wire types, words, tokens, URLs
+client/src/types, api, i18n, theme, assets, router/paths   the vocabulary: wire types, words, tokens, URLs
 client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
 client/src/lib/              pure helpers above domain: wording, facts, formatting — no vue, Ionic, router or .vue
-client/src/sync/             the client's half of the wire: HLC, the change builder, the write funnel, row codecs,
-                             the durable outbox and the WebSocket — no vue
+client/src/auth/             the OIDC tokens and their refresh — the wire's words and the clock only
+client/src/sync/             the client's half of the wire: the HTTP client, HLC, the change builder, the write funnel,
+                             row codecs, the durable outbox and the WebSocket — no vue
 client/src/local/            Local Mode's own storage: the row store, backup, export reminder
-client/src/auth, notifications, pwa   the platform's edges: OIDC tokens, Web Push, the service worker
+client/src/notifications, pwa, router, mode.ts, config.ts   the app's edges: Web Push, the service worker, the
+                             navigation guards, the mode it runs in and the server it talks to
 client/src/kernel/           the ports the kernel and a module meet through, and the adapters that fill them
 client/src/stores/           pinia stores: the rows a device holds
 client/src/app/              the use cases: action groups the orchestrator and the CLI share — no components, no Ionic

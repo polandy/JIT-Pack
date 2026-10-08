@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { APIClient, APIRequestError } from '../client'
+import { APIClient, APIRequestError } from '../apiClient'
 import { AUTH_EXPIRED_EVENT } from '@/auth/refresh'
 import { saveTokens, loadTokens } from '@/auth/tokens'
 import { installHarness } from '@/__tests__/harness'

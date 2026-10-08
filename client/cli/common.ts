@@ -4,7 +4,7 @@
  * push cap. A command owns its own rules and nothing else.
  */
 
-import type { APIClient } from '@/api/client'
+import type { APIClient } from '@/sync/apiClient'
 import { MUTATION_OUTCOME, type Mutation } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { MASTER_PARTITION, MAX_PUSH_BATCH, pushPartition, tripPartition } from '@/sync/partition'

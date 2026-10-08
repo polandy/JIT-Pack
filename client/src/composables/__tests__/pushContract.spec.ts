@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { SyncOutbox } from '@/sync/outbox'
 import type { Mutation, PushResponse, PullResponse } from '@/api/types'
-import type { APIClient } from '@/api/client'
+import type { APIClient } from '@/sync/apiClient'
 import type { HLCGenerator } from '@/sync/hlc'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 

@@ -184,6 +184,9 @@ jobs:
       # composable — even type-only — costs every module reaching it the
       # property the package exists for, and nothing red says so.
       - run: node ../scripts/domain-purity-gate.mjs
+      # Between those two edges, the whole order (ADR-096): a file imports
+      # only its own layer and the ones before it, and every file has one.
+      - run: node ../scripts/layer-gate.mjs
       # The same idea one level up (FR-30.3, ADR-066): a feature module and
       # the packing code meet only through kernel contracts App.vue binds.
       - run: node ../scripts/module-boundary-gate.mjs

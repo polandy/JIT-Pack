@@ -2,7 +2,7 @@
 import { endSession } from '@/auth/refresh'
 import { defaultNowMs, type NowMs } from '@/lib/clock'
 
-import { ERROR_CODE, type APIErrorBody } from './types'
+import { ERROR_CODE, type APIErrorBody } from '@/api/types'
 
 export class APIRequestError extends Error {
   constructor(

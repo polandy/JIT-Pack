@@ -10,14 +10,15 @@ import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
 import {
   type Container,
+  type ContainerOptions,
   type DestinationChecklistItem,
   type DestinationProfile,
   type ItemMode,
   type Trip,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
+  type TripOptions,
   type TripSeries,
-  type TripStatus,
 } from '@/types/domain'
 import type { MutationContext } from './context'
 
@@ -62,7 +63,7 @@ export function createTripsMutations({ make }: MutationContext) {
   function addContainer(
     tripId: string,
     name: string,
-    opts: { carrierTravelerId?: string | null; maxWeightGrams?: number | null } = {},
+    opts: ContainerOptions = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.containers, id, {
@@ -90,12 +91,7 @@ export function createTripsMutations({ make }: MutationContext) {
     year: number,
     startDate: string | null,
     endDate: string | null,
-    opts: {
-      seriesId?: string | null
-      attributes?: Record<string, unknown> | null
-      /** FR-2.2: a restore gives back the status it saved (ADR-024). */
-      status?: TripStatus
-    } = {},
+    opts: TripOptions = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.trips, id, {
