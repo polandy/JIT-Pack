@@ -546,6 +546,7 @@ const mergeLines = computed(() =>
           <SectionHead
             :title="t('templates.sectionGroups')"
             :count="includes.length"
+            card-list
             data-testid="m8-groups-head"
           />
 
@@ -778,6 +779,7 @@ const mergeLines = computed(() =>
         <SectionHead
           :title="isGroup ? t('templates.positions') : t('templates.ownPositions')"
           :count="positions.length"
+          card-list
           data-testid="m8-positions-head"
         />
 
@@ -829,6 +831,7 @@ const mergeLines = computed(() =>
         <SectionHead
           :title="t('templates.tripTasks')"
           :count="tripTasks.length"
+          card-list
           data-testid="m8-trip-tasks-head"
         />
         <div class="section-card jp-card trip-tasks" data-testid="m8-trip-tasks">
@@ -1012,7 +1015,7 @@ const mergeLines = computed(() =>
 }
 
 .section-card {
-  margin: 0 8px 8px;
+  margin: 0 var(--jp-card-list-inset) 8px;
 }
 
 /* --- FR-7.4 trip tasks: the position sheet's task list, on the page --- */
@@ -1104,7 +1107,7 @@ const mergeLines = computed(() =>
 }
 
 .empty-hint {
-  margin: 0 8px 8px;
+  margin: 0 var(--jp-card-list-inset) 8px;
   padding: 14px 16px;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
@@ -1119,7 +1122,7 @@ const mergeLines = computed(() =>
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  margin: 0 8px 8px;
+  margin: 0 var(--jp-card-list-inset) 8px;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--jp-action) 40%, transparent);
 }
@@ -1181,7 +1184,7 @@ const mergeLines = computed(() =>
 
 /* --- group picker --- */
 .picker-zone {
-  margin: 0 8px 8px;
+  margin: 0 var(--jp-card-list-inset) 8px;
 }
 
 .picker-trigger {
@@ -1341,7 +1344,7 @@ const mergeLines = computed(() =>
   border: none;
   font: inherit;
   cursor: pointer;
-  margin: 8px 8px 96px;
+  margin: 8px var(--jp-card-list-inset) 96px;
   padding: 14px 16px;
 }
 

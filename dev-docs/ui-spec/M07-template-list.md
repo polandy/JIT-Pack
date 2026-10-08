@@ -7,7 +7,8 @@
   section head below spells it out in full. *Alle* renders the two scopes as sections, vacation templates first — they
   are what a trip starts from, groups are the building blocks — and group rows carry a *Gruppe* chip. A section is
   **absent rather than empty** when its scope has no rows, and a single-scope tab drops the head entirely: the segment
-  has already said which scope you are in. Per row: name, item count; a composed template counts its **resolved** set
+  has already said which scope you are in. The head stands on the page between the cards, in their inset: its count
+  ends on the card's right edge (FR-21.11). Per row: name, item count; a composed template counts its **resolved** set
   (own positions + included groups, deduped), so "2 Gruppen · 16 Artikel" rather than "0 Artikel", with an *enthält: …*
   line naming the included groups.
 * **States:** No templates at all → the G-7 empty state naming both scopes, and **no segment** — a filter over an empty

@@ -68,6 +68,15 @@
    */
   --jp-measure: 600px;
 
+  /* --- Card-list inset ------------------------------------------------
+   * How far a page of stacked cards (M7, M8) sets them in from the
+   * column's edge, and with them the section head that stands between
+   * them on the same unpadded page. One value, because a head and the card
+   * it names that are inset differently put the count past the card's edge
+   * (UX-16) — and a padded page needs none of it: its padding is the inset.
+   */
+  --jp-card-list-inset: 8px;
+
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
    * the header holds a *pair* of them — the save indicator beside the ✕ —

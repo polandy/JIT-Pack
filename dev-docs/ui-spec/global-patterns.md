@@ -455,6 +455,9 @@ These patterns apply to every screen and are specified once.
     app-bar step, sentence case, with the section's own **count beside it** — right-aligned, in the UI face, one step
     smaller, recessive and tabular. Head and count share a baseline, and both come from one component, because the
     pairing is what rots when every screen writes its own margin.
+    * **The head is inset by what holds it.** No side margin of its own, so in a padded page, sheet or card it meets
+      the padding's edge; on a page of inset cards (M7, M8) it takes `--jp-card-list-inset` with them (`cardList`). The
+      count ends on the card's right edge, the name starts on its left.
     * **The count is a value, not part of the label.** Joining the two inside the translated string (*Open · 3*, *Own
       items · 1 of 2*) would set the figure in the display face and leave it nothing to align with. The catalogue keeps
       the sentence where the figures need a word between them; the head renders it as the count.

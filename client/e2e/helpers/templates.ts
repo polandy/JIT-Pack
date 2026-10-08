@@ -3,7 +3,7 @@
  * a position gets into one (M7/M8/M10).
  */
 import { expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 import { visiblePage, writesLanded } from './page'
 import { addInComposer, openQuickAdd } from './trips'
@@ -114,4 +114,25 @@ export async function openGroupFromList(page: Page, group: string) {
   await expect(visiblePage(page).locator('.section-head')).toHaveCount(0)
   await visiblePage(page).locator('ion-item').filter({ hasText: group }).first().click()
   await expect(page.getByTestId('header-title')).toHaveText(group)
+}
+
+/**
+ * The head stands on M7's and M8's unpadded page between inset cards, so its
+ * count must end where the card it names ends, and its name start where the
+ * card starts (UX-16, FR-21.11). The card is the head's next sibling; read in
+ * one evaluate so both boxes come from the same layout.
+ */
+export async function expectHeadMeetsCard(head: Locator) {
+  await expect(head.locator('.head-count')).toBeVisible()
+  const edges = await head.evaluate((h) => {
+    const card = h.nextElementSibling!.getBoundingClientRect()
+    return {
+      count: h.querySelector('.head-count')!.getBoundingClientRect().right,
+      name: h.querySelector('.head-name')!.getBoundingClientRect().left,
+      cardRight: card.right,
+      cardLeft: card.left,
+    }
+  })
+  expect(edges.count).toBeCloseTo(edges.cardRight, 0)
+  expect(edges.name).toBeCloseTo(edges.cardLeft, 0)
 }

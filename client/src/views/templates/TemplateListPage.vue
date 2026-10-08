@@ -428,6 +428,7 @@ async function shareTemplate(tpl: Template) {
         <template v-for="section in sections" :key="section.key">
           <SectionHead
             v-if="section.label"
+            card-list
             :title="section.label"
             :count="section.rows.length"
             :data-testid="`m7-section-${section.key}`"
@@ -584,7 +585,7 @@ ion-segment {
 }
 
 .section-card {
-  margin: 0 8px 8px;
+  margin: 0 var(--jp-card-list-inset) 8px;
 }
 
 .contains {

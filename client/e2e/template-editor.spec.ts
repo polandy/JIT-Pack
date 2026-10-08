@@ -14,6 +14,7 @@ import {
   addPosition,
   backToTemplateList as backToList,
   createTemplate,
+  expectHeadMeetsCard,
   includeGroup,
   visiblePage,
 } from './fixtures'
@@ -1262,5 +1263,20 @@ test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
     await fillIonic(visiblePage(page).getByTestId('m8-name'), 'Fotoreise 2027')
     await visiblePage(page).getByTestId('m8-name').locator('input').blur()
     await expect(page.getByTestId('header-title')).toHaveText('Fotoreise 2027')
+  })
+  test('E2E-M8-29: every section head ends where its card ends — Gruppen, Eigene Positionen, Aufgaben', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+    await includeGroup(page, 'Makro')
+    await addPosition(page, 'Kamera')
+
+    // The trip tasks' card stands even when empty, so all three heads have
+    // the card below them that they are measured against.
+    for (const id of ['m8-groups-head', 'm8-positions-head', 'm8-trip-tasks-head']) {
+      await expectHeadMeetsCard(visiblePage(page).getByTestId(id))
+    }
   })
 })
