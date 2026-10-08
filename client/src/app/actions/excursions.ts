@@ -4,9 +4,10 @@
  * tick, count, skip, buy on the spot, delete, and save the list as a Gruppe.
  *
  * Every rule is in `domain/excursionLines.ts`, `excursionSuitcase.ts` and
- * `excursionSchedule.ts`; this group only turns the plans into mutations. An act the screen offers to undo returns its own undo, a
- * closure over the rows it wrote, so „Rückgängig" takes back exactly that act
- * and nothing a second device did meanwhile.
+ * `excursionSchedule.ts`; this group only turns the plans into mutations. An
+ * act the screen offers to undo returns its own undo, a closure over the rows
+ * it wrote, so „Rückgängig" takes back exactly that act and nothing a second
+ * device did meanwhile.
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
