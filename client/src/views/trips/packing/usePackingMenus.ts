@@ -38,7 +38,7 @@ import type { RowQuantity } from './useRowQuantity'
  * how many rows they reach — and keeps its own for the three it had first,
  * whose „für alle" wording says what a row's could not.
  */
-const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, RowMenuButton> = {
+export const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, RowMenuButton> = {
   ...ROW_MENU_BUTTONS,
   latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline, band: 'flag' },
   latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline, band: 'flag' },
