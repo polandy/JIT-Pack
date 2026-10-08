@@ -23,7 +23,7 @@ import type {
   TaskPhase,
 } from '@/types/domain'
 import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
-import { MS_PER_DAY } from './shared/calendar'
+import { dayNumber } from './shared/calendar'
 
 export interface GenerationTraveler {
   name: string
@@ -313,16 +313,16 @@ export interface DraftTripTask {
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
 export function durationDays(startDate: string | null, endDate: string | null): number | null {
-  if (!startDate || !endDate) return null
-  const ms = Date.parse(endDate) - Date.parse(startDate)
-  if (Number.isNaN(ms)) return null
+  const start = startDate ? dayNumber(startDate) : null
+  const end = endDate ? dayNumber(endDate) : null
+  if (start === null || end === null) return null
   // An end before its start has no length. The pickers make that pair
   // unreachable in the app (FR-2.1d), but a row can still arrive inverted
   // from a device that predates the bound or from an import — and a negative
   // number here would reach generation as a quantity input rather than being
   // read as the absence it is.
-  if (ms < 0) return null
-  return Math.round(ms / MS_PER_DAY) + 1
+  if (end < start) return null
+  return end - start + 1
 }
 
 /**
