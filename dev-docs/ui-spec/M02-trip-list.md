@@ -83,7 +83,9 @@
   decade of migrated history it is what separates the two kinds of past. **A trip carries one FR-27.4 chip** for what
   its groups changed (UX-20): „⟳ 12 Änderungen · 1 offen" when it took changes over and has some waiting — counted
   together, the open part in the brand colour because it waits for an answer — „⟳ 11 Änderungen übernommen" when nothing
-  waits, „⟳ 1 Änderung offen" when nothing was taken over yet, and no chip when neither. One line at every width: two
+  waits, „⟳ 1 Änderung offen" when nothing was taken over yet, and no chip when neither. Both halves count the lines the
+  sheet names — one row whose quantity and preparation both change is two — so the sum adds like with like and the
+  chip agrees with the sheet's own headings. One line at every width: two
   stacked pills, one of them wrapping and carrying a chevron, read as a block of buttons under the name. **The chip is
   always a button and opens a sheet** (`m2-changes-sheet`): the trip's name, the open changes first in M4's
   present-tense wording with the sentence that the decision is at the trip and *Zur Reise*, which opens the trip once

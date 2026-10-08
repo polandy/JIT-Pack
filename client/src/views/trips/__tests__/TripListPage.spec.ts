@@ -154,7 +154,7 @@ function logEntry(extra: Partial<AppliedChange> = {}) {
   }
 }
 
-/** n distinct log rows, so the fold threshold can be approached from both sides. */
+/** n distinct log rows, for a record longer than any row could carry. */
 function manyEntries(n: number) {
   return Array.from({ length: n }, (_, i) =>
     logEntry({ id: `log-${i}`, item_name: `Artikel ${i}` } as never),
@@ -256,7 +256,7 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
     setLocale('de')
     seedTrip('planning')
     orchestratorFake.refreshProposals.value = {
-      t1: { ...proposal([]), add: [{}, {}], update: [{}] },
+      t1: proposal([STIRNLAMPE, { ...STIRNLAMPE, item_name: 'Kabel' }, STIRNLAMPE]),
     }
 
     const wrapper = mountPage()
@@ -264,6 +264,30 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
     expect(wrapper.find('[data-testid="m2-changes-chip-Samedan"]').text()).toBe(
       '⟳ 3 Änderungen offen',
     )
+  })
+
+  it('counts what is open in the lines its sheet names, as the record is counted', async () => {
+    // One row whose quantity and preparation both change is one update but
+    // two lines on M4's card and in the sheet; the chip counts the lines, the
+    // unit the taken-over half is counted in, so its sum adds like with like.
+    setLocale('de')
+    const trips = seedTrip('planning')
+    trips.applyChanges([logEntry()])
+    const quantity = {
+      ...STIRNLAMPE,
+      kind: 'changed',
+      detail: { field: 'quantity', from: 1, to: 2 },
+    }
+    const tasks = { ...STIRNLAMPE, kind: 'changed', detail: { field: 'tasks', from: 0, to: 1 } }
+    orchestratorFake.refreshProposals.value = {
+      t1: { ...proposal([quantity, tasks], 0), update: [{}] },
+    }
+    const wrapper = mountWithSheet()
+
+    const chip = wrapper.find('[data-testid="m2-changes-chip-Samedan"]')
+    expect(chip.text().replace(/\s+/g, ' ')).toBe('⟳ 3 Änderungen · 2 offen')
+    await chip.trigger('click')
+    expect(wrapper.find('[data-testid="m2-changes-open"]').text()).toContain('Offen · 2')
   })
 
   it('appears on a running trip too — departure no longer freezes it', async () => {
@@ -355,6 +379,18 @@ describe('TripListPage — the FR-27.4 changes sheet (UX-20)', () => {
     const text = wrapper.find('[data-testid="m2-changes-applied"]').text()
     expect(text).toContain('2')
     expect(text).toContain('4')
+  })
+
+  it('opens from the hero’s chip too — the running trip carries the same sheet', async () => {
+    segment = 'active'
+    const trips = seedTrip('active')
+    trips.applyChanges([logEntry()])
+    const wrapper = mountWithSheet()
+
+    await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="m2-changes-applied"]').text()).toContain('Stativ')
+    expect(pushed).toHaveLength(0)
   })
 
   it('leads to the trip from the open change, once the sheet is gone', async () => {

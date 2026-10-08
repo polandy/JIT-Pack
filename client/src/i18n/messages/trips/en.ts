@@ -104,7 +104,6 @@ export const tripsEn = {
   'trips.proposedTasks': '“{group}”: {item} — preparation changes',
   'trips.proposedChanged': '“{group}”: {item} changes',
 
-  // FR-27.4 — and what it took over.
   // FR-27.4 — M2's one chip and the sheet it opens.
   'trips.changesTotal': '⟳ {n} change | ⟳ {n} changes',
   'trips.changesOpen': '{n} open',
@@ -115,6 +114,7 @@ export const tripsEn = {
   'trips.changesOpenHint': 'You decide at the trip, where the list is.',
   'trips.changesGoToTrip': 'Open trip',
   'trips.changesAppliedHeading': 'Taken over · {n}',
+  // FR-27.4 — and what it took over.
   'trips.appliedFrozen': 'Past trips are never changed.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',

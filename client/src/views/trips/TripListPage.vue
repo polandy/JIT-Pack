@@ -56,7 +56,6 @@ import {
   TRIP_FILTER_QUERY,
   type TripFilter,
 } from './tripFilter'
-import { proposedChangeCount } from '@/domain/refresh'
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -496,9 +495,10 @@ function appliedChanges(trip: Trip): AppliedChange[] {
 }
 
 /**
- * FR-27.4: how many changes are *waiting* on this trip. The chip is a
- * pointer, not a control — the decision belongs at the trip, and tapping the
- * row is already the way there.
+ * FR-27.4: how many changes are *waiting* on this trip, counted in the lines
+ * the sheet and M4's card name — the unit the taken-over record is counted
+ * in, so the chip's sum adds like with like. A plan that only moves the
+ * ledger names no line and draws no chip.
  *
  * It can only speak for a trip whose partition this device holds: a proposal
  * is a diff against the trip's rows, and in Server Mode those arrive when the
@@ -507,8 +507,7 @@ function appliedChanges(trip: Trip): AppliedChange[] {
  * trusting this list.
  */
 function proposedCount(trip: Trip): number {
-  const plan = orchestrator.refreshProposals.value[trip.id]
-  return plan ? proposedChangeCount(plan) : 0
+  return proposedChanges(trip).length
 }
 
 /** What the sheet names as open: the waiting plan's own log, worded as M4 words it. */

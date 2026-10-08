@@ -118,8 +118,8 @@ export function isEmptyPlan(plan: RefreshPlan): boolean {
  *
  * Deliberately not the ledger halves. Adopting a hand-added row into the
  * ledger, or dropping an entry whose row and position are both long gone, is
- * bookkeeping that changes nothing the user can see — counting it would put a
- * number on M2's chip that no screen can explain.
+ * bookkeeping that changes nothing the user can see — counting it would ask
+ * about a change no screen can explain.
  */
 export function proposedChangeCount(plan: RefreshPlan): number {
   return plan.add.length + plan.update.length + plan.remove.length
