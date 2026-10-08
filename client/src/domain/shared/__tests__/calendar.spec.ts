@@ -28,9 +28,12 @@ describe('dayNumber', () => {
     expect(dayNumber('2026-07-08T23:30:00Z')).toBe(dayNumber('2026-07-08'))
   })
 
-  it.each(['', 'not-a-date', '08.07.2026', '2026-7-8'])('reads no day from %j', (text) => {
-    expect(dayNumber(text)).toBeNull()
-  })
+  it.each(['', 'not-a-date', '08.07.2026', '2026-7-8', '2026-13-01', '2026-02-30'])(
+    'reads no day from %j',
+    (text) => {
+      expect(dayNumber(text)).toBeNull()
+    },
+  )
 })
 
 describe('daysBetween', () => {

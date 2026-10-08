@@ -19,12 +19,17 @@ function utcDay(day: string): number {
 
 /**
  * The day a `YYYY-MM-DD` text names, as a count of days — null when the text
- * names none. A timestamp counts as its date. Two days' numbers subtract to
- * the days between them.
+ * names none, malformed or off the calendar. A timestamp counts as its date.
+ * Two days' numbers subtract to the days between them.
  */
 export function dayNumber(text: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}/.test(text)) return null
-  return utcDay(text.slice(0, 10)) / MS_PER_DAY
+  const day = text.slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null
+  const ms = utcDay(day)
+  // Date.UTC rolls a 13th month or a 30 February into the next one; a day
+  // that does not read back as itself is not on the calendar.
+  if (new Date(ms).toISOString().slice(0, 10) !== day) return null
+  return ms / MS_PER_DAY
 }
 
 /** `day` moved by `n` calendar days; a negative `n` steps back. */
