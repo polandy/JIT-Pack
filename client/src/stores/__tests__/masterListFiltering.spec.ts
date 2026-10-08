@@ -58,7 +58,7 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/components/global/QuickAddItem.vue':
     'the resolved lines of a group preview (its offers use the active list)',
   'src/components/templates/GroupPeekSheet.vue': 'FR-27.12 renders what a group resolves to',
-  'src/components/trips/ExcursionSheet.vue':
+  'src/views/trips/excursion/ExcursionSheet.vue':
     "FR-31.2's group search resolves each group's items, as FR-27.13 does — a retired Vorlage inside one still contributes (the groups offered are the active list)",
   'src/components/trips/ItemDetailSheet.vue': 'FR-20 companion resolution on an existing row',
   'src/views/items/ItemEditorPage.vue':
