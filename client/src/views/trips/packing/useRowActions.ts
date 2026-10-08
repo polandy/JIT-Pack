@@ -1,11 +1,11 @@
 /**
  * Every act on a packing row — the count, the claim, the skip, the removal,
  * the flags — each behind the snackbar's undo (FR-25.31). The row menu, the
- * cluster head's fan-out and the row's own controls all end up here.
+ * cluster head's fan-out and the row's own controls all end up here; the
+ * count and the skip are `useRowSteps`, which an excursion's list shares.
  */
 import type { ComputedRef } from 'vue'
 
-import { stateFor } from '@/domain/packState'
 import { removalNeedsConfirm } from '@/domain/rowRemoval'
 import { t } from '@/i18n'
 import { confirmAction, confirmDestructive } from '@/composables/shared/confirm'
@@ -17,6 +17,7 @@ import { ITEM_MODE_BUY_LOCAL, type ITEM_MODE_PACK, type TripItem } from '@/types
 
 import type { PackingCore } from './usePackingCore'
 import type { RowFacts } from './useRowFacts'
+import { useRowSteps } from './useRowSteps'
 
 /** How the acts reach M5: a removed row's open detail is closed with it. */
 export interface DetailNav {
@@ -36,13 +37,11 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     locked,
     rowUndo,
     actUndoably,
-    restorePacked,
     liveRow,
-    announceAct,
-    announcePacked,
     announceSkipped,
     announceRemoved,
   } = core
+  const steps = useRowSteps(core.port)
 
   /**
    * FR-25.25: the row's own avatar, tapped.
@@ -140,27 +139,6 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
         positionAnchor: FAB_ANCHOR.m4,
       })
     }
-  }
-
-  /**
-   * FR-5.5: say that a thing is deliberately not coming, rather than leaving
-   * it open and indistinguishable from forgotten.
-   *
-   * The snackbar is not decoration here: FR-20.2 may take companions along,
-   * and a cascade the user never sees is a list that changed behind their
-   * back. It names them and offers the one undo that puts the whole cascade
-   * back.
-   */
-  function onSkipItem(item: TripItem) {
-    // Armed from what the skip reports rather than from the row in hand: the
-    // companions are only known once the cascade has run, and `skipItem`
-    // returns them as they were *before* it wrote (pinned by its own test).
-    const affected = orchestrator.skipItem(tripId, item)
-    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(records))
-    void announceSkipped(
-      item.name,
-      affected.slice(1).map((row) => row.name),
-    )
   }
 
   /**
@@ -336,12 +314,6 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     onFlagUnused(item, !item.flag_unused)
   }
 
-  function onUnskipItem(item: TripItem) {
-    rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(records))
-    orchestrator.unskipItem(item)
-    void announceAct(t('packing.unskippedToast', { name: item.name }))
-  }
-
   function onLatePacker(item: TripItem, latePacker: boolean) {
     const previous = item.late_packer
     actUndoably(
@@ -367,70 +339,19 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     )
   }
 
-  /**
-   * A step of the counter is announced like a pack, and the step that
-   * completes the row *is* one — it leaves the list the same way (FR-25.2).
-   */
-  function onIncrement(item: TripItem) {
-    packStep(item, Math.min(item.packed_count + 1, item.quantity), () =>
-      orchestrator.packIncrement(item),
-    )
-  }
-
-  function onDecrement(item: TripItem) {
-    packStep(item, Math.max(item.packed_count - 1, 0), () => orchestrator.packDecrement(item))
-  }
-
-  function packStep(item: TripItem, packed: number, act: () => void) {
-    const name = item.name
-    rowUndo.actWithUndo([item], act, restorePacked)
-    void (packed >= item.quantity
-      ? announcePacked(name)
-      : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
-  }
-
-  function onComplete(item: TripItem) {
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packComplete(item), restorePacked)
-    void announcePacked(name)
-  }
-
-  function onZero(item: TripItem) {
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packZero(item), restorePacked)
-    void announceAct(t('packing.unpackedToast', { name }))
-  }
-
-  function onToggle(item: TripItem) {
-    // Un-packing a revealed done row is announced too (FR-25.31): its result
-    // is on screen, but a mistap on a list of done rows
-    // is as expensive to find again as one on the open list.
-    const reads = stateFor(item.packed_count, item.quantity)
-    const unpacks = reads === 'packed' || reads === 'skipped'
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packToggle(item), restorePacked)
-    void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
-  }
-
   return {
+    ...steps,
     onAssignRow,
     onPackingNow,
     onReleaseClaim,
     canTakeOver,
     onTakeOver,
-    onSkipItem,
     skipRows,
     onRemoveItem,
     removeRows,
     onFlagUnused,
     onPassToggle,
-    onUnskipItem,
     onLatePacker,
     onSetMode,
-    onIncrement,
-    onDecrement,
-    onComplete,
-    onZero,
-    onToggle,
   }
 }

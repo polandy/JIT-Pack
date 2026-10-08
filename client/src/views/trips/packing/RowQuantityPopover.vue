@@ -12,6 +12,8 @@ import { t } from '@/i18n'
 import type { TripItem } from '@/types/domain'
 
 defineProps<{
+  /** The popover's `data-testid`: each list names its own (`m4-…`, `m27-…`). */
+  testid: string
   open: boolean
   /** The tap Ionic anchors to; none centres the popover. */
   event: MouseEvent | undefined
@@ -26,12 +28,7 @@ defineEmits<{ update: [quantity: number]; closed: [] }>()
 </script>
 
 <template>
-  <IonPopover
-    :is-open="open"
-    :event="event"
-    data-testid="m4-quantity-popover"
-    @did-dismiss="$emit('closed')"
-  >
+  <IonPopover :is-open="open" :event="event" :data-testid="testid" @did-dismiss="$emit('closed')">
     <div class="qty-pop">
       <p class="qty-pop-head">
         <span class="jp-eyebrow">{{ t('quantity.title') }}</span>

@@ -14,14 +14,14 @@ import { quantityChoices } from '@/domain/quantityChoices'
 import { t } from '@/i18n'
 import type { TripItem } from '@/types/domain'
 
-import type { PackingCore } from './usePackingCore'
+import type { RowPort } from './rowPort'
 
 /** The popover's state and its two openers. */
 export type RowQuantity = ReturnType<typeof useRowQuantity>
 
-/** Builds {@link RowQuantity} over the page's core. */
-export function useRowQuantity(core: PackingCore) {
-  const { orchestrator, rowUndo } = core
+/** Builds {@link RowQuantity} over a list's port — M4's, or an excursion's (FR-31.6). */
+export function useRowQuantity(port: RowPort) {
+  const { rowUndo } = port
 
   /**
    * The rows the editor writes: one when a row opened it, every instance the
@@ -43,7 +43,10 @@ export function useRowQuantity(core: PackingCore) {
    */
   const event = ref<MouseEvent | undefined>(undefined)
 
-  const rows = computed(() => core.rowsOf(rowIds.value))
+  /** The rows behind the editor, in the order its opener named them. */
+  const rows = computed(() =>
+    rowIds.value.flatMap((id) => port.rows.value.filter((row) => row.id === id)),
+  )
 
   /**
    * The row whose amount the editor shows. For a cluster that is the first
@@ -57,11 +60,8 @@ export function useRowQuantity(core: PackingCore) {
 
   const choices = computed(() =>
     quantityChoices({
-      durationDays: durationDays(
-        core.trip.value?.start_date ?? null,
-        core.trip.value?.end_date ?? null,
-      ),
-      travelerCount: core.travelers.value.length,
+      durationDays: durationDays(port.span.value.start, port.span.value.end),
+      travelerCount: port.travelers.value.length,
       perPerson: Boolean(item.value?.assigned_traveler_id),
     }),
   )
@@ -74,7 +74,7 @@ export function useRowQuantity(core: PackingCore) {
    * question and this is not an answer to it.
    */
   function open(row: TripItem, opener?: MouseEvent): void {
-    if (core.closingPass.value || core.locked(row)) return
+    if (port.inert(row)) return
     event.value = opener
     clusterLabel.value = null
     rowIds.value = [row.id]
@@ -100,7 +100,7 @@ export function useRowQuantity(core: PackingCore) {
     // Snapshotted at the first write rather than at opening, so both openers —
     // a row and a cluster head (FR-25.26) — share one capture of every row.
     before ??= rows.value.map((row) => ({ ...row }))
-    for (const row of rows.value) orchestrator.setQuantity(row, quantity)
+    for (const row of rows.value) port.setQuantity(row, quantity)
   }
 
   function closed(): void {
@@ -110,12 +110,12 @@ export function useRowQuantity(core: PackingCore) {
     before = null
     const first = was?.[0]
     if (!was || !first) return
-    const now = core.liveRow(first.id)
+    const now = port.liveRow(first.id)
     if (!now || now.quantity === first.quantity) return
     // Three fields, as the write has them: an amount cut below the packed count
     // clamps the count, and the undo has to give both back (FR-25.24).
-    rowUndo.armUndo(was, (records) => orchestrator.restoreSkip(records))
-    void core.announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
+    rowUndo.armUndo(was, port.restoreSkip)
+    void port.announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
   }
 
   return { isOpen, event, clusterLabel, item, packed, choices, open, openForRows, set, closed }

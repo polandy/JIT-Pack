@@ -20,7 +20,6 @@ import {
   IonIcon,
   IonList,
   IonPage,
-  IonPopover,
   actionSheetController,
 } from '@ionic/vue'
 import {
@@ -39,7 +38,7 @@ import {
   layersOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -48,8 +47,7 @@ import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import ExcursionExtraList from './excursion/ExcursionExtraList.vue'
 import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/kernel/excursionExtraLines'
-import QuantityEditor from '@/components/global/QuantityEditor.vue'
-import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddItem.vue'
+import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -60,6 +58,14 @@ import ExcursionFacts from './excursion/ExcursionFacts.vue'
 import ExcursionItemSheet from './excursion/ExcursionItemSheet.vue'
 import ExcursionNotes from './excursion/ExcursionNotes.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
+import { useExcursionAdd } from './excursion/useExcursionAdd'
+import { useExcursionRowPort } from './excursion/useExcursionRowPort'
+import RowQuantityPopover from './packing/RowQuantityPopover.vue'
+import { actUndoably } from './packing/rowPort'
+import { useBrowseVerbs } from './packing/useBrowseVerbs'
+import { usePackingListShape } from './packing/usePackingListShape'
+import { useRowQuantity } from './packing/useRowQuantity'
+import { useRowSteps } from './packing/useRowSteps'
 import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -69,21 +75,17 @@ import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useLongPress } from '@/composables/shared/useLongPress'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
+import { useDesktopLayout } from '@/composables/useDesktopLayout'
 import { usePackingFilter } from '@/composables/usePackingFilter'
-import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { useTrackOwner } from '@/composables/shared/useTrackOwner'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
-import { browseRowStates } from '@/domain/browseRows'
 import {
-  draftLinesFor,
   excursionLineAsRow,
   isLeftBehind,
   isOpenPurchase,
-  lineForOf,
   namesItsParticipants,
   participantsOf,
   sumUnits,
-  type LineFor,
 } from '@/domain/excursionLines'
 import { spanOf } from '@/domain/excursionSchedule'
 import {
@@ -93,11 +95,9 @@ import {
   suitcaseOf,
   type ExcursionMenuAction,
 } from '@/domain/excursionSuitcase'
-import { durationDays } from '@/domain/instantiate'
 import { MAX_TRACKS, decodeLine, movingMinutes } from '@/domain/shared/track'
 import { buildPackingView } from '@/domain/packingView'
-import { packedPercent, stateFor } from '@/domain/packState'
-import { quantityChoices } from '@/domain/quantityChoices'
+import { packedPercent } from '@/domain/packState'
 import type { RowMenuAction } from '@/domain/rowMenu'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { noteThreads, threadsAboutExcursion } from '@/domain/tripNotes'
@@ -108,17 +108,9 @@ import { excursionDays } from '@/lib/excursionText'
 import { formatDistance, tracksSummary } from '@/lib/trackFormat'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
-import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { useTileState } from '@/composables/shared/mapTiles'
 import { useRouteFold } from '@/composables/routeFold'
-import {
-  activeChips as chipsFor,
-  emptyReason as emptyReasonFor,
-  filterFacets as facetsFor,
-  filterSwitches as switchesFor,
-  groupingAxis,
-  SWITCH_KEYS,
-} from '@/lib/packingFilterPanel'
+import { SWITCH_KEYS } from '@/lib/packingFilterPanel'
 import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { sheetBandAttrs } from '@/lib/sheetBands'
@@ -133,16 +125,13 @@ import {
 } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy, TripItem } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
+import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
 
 /** M4's header ring (`packing/PackingHeadline.vue`), so the two figures are one size. */
 const RING_SIZE_HEADER = 42
-
-/** M4's breakpoint for the detail as a side panel (G-9). */
-const DESKTOP_QUERY = '(min-width: 900px)'
 
 /** M4's groupings minus the one an excursion has nothing for — no containers. */
 const GROUPING_CONTAINER = 'container'
@@ -166,13 +155,25 @@ const participants = computed(() =>
   participantsOf(props.excursionId, participantRows.value, travelers.value),
 )
 const lines = computed(() => tripStore.getExcursionItems(props.tripId, props.excursionId))
-/** The lines by id, to get from M4's row back to the line it reads. */
-const lineById = computed(() => new Map(lines.value.map((l) => [l.id, l])))
-function lineOf(item: TripItem): ExcursionItem {
-  return lineById.value.get(item.id)!
-}
-/** The lines as M4's rows — what its view model, browse sheet and undo read. */
-const rows = computed(() => lines.value.map(excursionLineAsRow))
+
+/**
+ * M4's snackbar and its one undo (FR-25.2, FR-25.31), anchored above this
+ * screen's ＋: a pack registers, the row leaves, and a mistap is taken back
+ * from the snackbar — as on the packing list.
+ */
+const announcer = usePackAnnouncer(FAB_ANCHOR.m27Excursion)
+const { rowUndo, packAnnouncements, announceRemoved, announceAct } = announcer
+
+/** The lines as M4's rows, and M4's row slices over them (`rowPort.ts`). */
+const { port, lineById, lineOf } = useExcursionRowPort({
+  orchestrator,
+  excursion,
+  lines,
+  participants,
+  announcer,
+})
+const steps = useRowSteps(port)
+const quantity = useRowQuantity(port)
 
 // --- M4's view state: filter, reveal, grouping, search (FR-25.11, FR-25.18) ---
 
@@ -181,24 +182,45 @@ const rows = computed(() => lines.value.map(excursionLineAsRow))
  * the grouping durably — a Person filter on the hike means nothing on the
  * suitcase, so the two lists keep theirs apart.
  */
-const { facets, showDone, groupBy, reset, toggleValue, clearFacet } = usePackingFilter(
-  `excursion-${props.excursionId}`,
-)
-/** A grouping the excursion cannot draw reads as M4's default. */
-const shownGroupBy = computed<GroupBy>(() =>
-  groupBy.value === GROUPING_CONTAINER ? 'category' : groupBy.value,
-)
+const filter = usePackingFilter(`excursion-${props.excursionId}`)
+const { facets, showDone, groupBy, reset, toggleValue, clearFacet } = filter
 const {
   term: search,
   isOpen: searchOpen,
   toggle: toggleSearch,
   action: searchAction,
 } = useContextSearch('m27-search')
-const searching = computed(() => search.value.trim() !== '')
 const filterOpen = ref(false)
-const collapsedGroups = ref<string[]>([])
-/** FR-25.24: per-person clusters the user opened; shut is the default. */
-const expandedClusters = ref<string[]>([])
+
+/**
+ * M4's folds, filter panel and reset (`usePackingListShape`). Erledigte is the
+ * one reveal an excursion has — FR-25.20/25.27 are the suitcase's — and it has
+ * no containers to group by.
+ */
+const {
+  collapsedGroups,
+  expandedClusters,
+  groupBy: shownGroupBy,
+  allFolded,
+  toggleFoldAll,
+  toggleGroup,
+  toggleCluster,
+  filterFacets,
+  grouping,
+  filterSwitches,
+  onToggleSwitch,
+  activeChips,
+  emptyReason,
+  searching,
+  resetNarrowing,
+} = usePackingListShape({
+  filter,
+  search: { term: search, isOpen: searchOpen },
+  view: () => view.value,
+  reveals: [SWITCH_KEYS.done],
+  withoutGrouping: GROUPING_CONTAINER,
+  menuActive: () => menuActive,
+})
 
 /**
  * M4's own view model over the lines read as M4's rows (FR-31.6): the same
@@ -209,7 +231,7 @@ const expandedClusters = ref<string[]>([])
  */
 const view = computed(() =>
   buildPackingView({
-    items: rows.value,
+    items: port.rows.value,
     travelers: travelers.value,
     containers: [],
     participants: [],
@@ -284,63 +306,6 @@ function selectPerson(value: string) {
   toggleValue('person', value)
 }
 
-// --- the folds (view state, as on M4) ---
-
-const allFolded = computed(
-  () => view.value.groups.length > 0 && view.value.groups.every((g) => g.collapsed),
-)
-
-/** Fold-all turns the list into a table of contents, and back (FR-25.16). */
-function toggleFoldAll() {
-  collapsedGroups.value = allFolded.value ? [] : view.value.groups.map((g) => g.key)
-}
-
-function toggleGroup(key: string) {
-  collapsedGroups.value = collapsedGroups.value.includes(key)
-    ? collapsedGroups.value.filter((k) => k !== key)
-    : [...collapsedGroups.value, key]
-}
-
-function toggleCluster(key: string) {
-  if (menuActive) return
-  expandedClusters.value = expandedClusters.value.includes(key)
-    ? expandedClusters.value.filter((k) => k !== key)
-    : [...expandedClusters.value, key]
-}
-
-// --- the filter sheet, as M4's (FR-25.11) ---
-
-const filterFacets = computed(() => facetsFor(view.value))
-const grouping = computed(() => {
-  const axis = groupingAxis(shownGroupBy.value)
-  return { ...axis, options: axis.options.filter((o) => o.value !== GROUPING_CONTAINER) }
-})
-/** Erledigte is the one reveal an excursion has — FR-25.20/25.27 are the suitcase's. */
-const filterSwitches = computed(() =>
-  switchesFor({
-    showDone: showDone.value,
-    showOthers: true,
-    showLate: true,
-    packedCount: view.value.doneCount,
-    hiddenOtherCount: 0,
-    lateCount: 0,
-  }).filter((s) => s.key === SWITCH_KEYS.done),
-)
-function onToggleSwitch(key: string) {
-  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
-}
-const activeChips = computed(() => chipsFor(view.value, facets.value))
-const emptyReason = computed(() =>
-  emptyReasonFor(view.value, search.value, Math.max(view.value.openRowCount, 0)),
-)
-
-/** FR-25.11e: a reset clears all of the narrowing, or the same empty screen comes back. */
-function resetNarrowing() {
-  search.value = ''
-  searchOpen.value = false
-  reset()
-}
-
 // --- the header line yields to the list (FR-21.17), as M4's ---
 
 const content = ref<{ $el: HTMLIonContentElement } | null>(null)
@@ -348,85 +313,10 @@ const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(conten
 
 // --- the line's acts, each behind M4's snackbar and its one undo (FR-25.31) ---
 
-/**
- * M4's snackbar and its one undo (FR-25.2, FR-25.31), anchored above this
- * screen's ＋: a pack registers, the row leaves, and a mistap is taken back
- * from the snackbar — as on the packing list.
- */
-const {
-  rowUndo,
-  packAnnouncements,
-  announcePacked,
-  announceSkipped,
-  announceRemoved,
-  announceAct,
-} = usePackAnnouncer(FAB_ANCHOR.m27Excursion)
-
-function restoreCounts(records: RowUndoRecord[]) {
-  for (const record of records) {
-    const line = lineById.value.get(record.itemId)
-    if (line) orchestrator.setLineCount({ ...line, quantity: record.quantity }, record.packedCount)
-  }
-}
-
-/**
- * One act behind the snackbar's undo. `restore` gets the line as it is when
- * the undo fires, so it writes back only what the act changed (M4's
- * `actUndoably`); a line removed meanwhile stays removed.
- */
-function actUndoably(
-  line: ExcursionItem,
-  message: string,
-  act: () => void,
-  restore: (live: ExcursionItem) => void,
-) {
-  const id = line.id
-  rowUndo.armAction(line.name, () => {
-    const live = lineById.value.get(id)
-    if (live) restore(live)
-  })
-  act()
-  void announceAct(message)
-}
-
-/** M4's stepper and tick, on the line's own count — each announced like M4's. */
-function count(line: ExcursionItem, packed: number) {
-  const target = Math.min(Math.max(packed, 0), line.quantity)
-  const name = line.name
-  rowUndo.actWithUndo(
-    [excursionLineAsRow(line)],
-    () => orchestrator.setLineCount(line, target),
-    restoreCounts,
-  )
-  void (target >= line.quantity
-    ? announcePacked(name)
-    : target === 0
-      ? announceAct(t('packing.unpackedToast', { name }))
-      : announceAct(t('packing.countToast', { name, packed: target, quantity: line.quantity })))
-}
-
-function tick(line: ExcursionItem) {
-  const reads = stateFor(line.packed_count, line.quantity)
-  count(line, reads === 'packed' ? 0 : line.quantity)
-}
-
 /** Collapse a leaving row to nothing — M4's `collapseRow`, honouring reduced motion. */
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 function onRowLeave(el: Element, done: () => void) {
   collapseRow(el as HTMLElement, done, reducedMotion.matches)
-}
-
-/** FR-5.5 on a line: decided against for this outing, M4's snackbar with its undo. */
-function skip(line: ExcursionItem) {
-  rowUndo.armUndo([excursionLineAsRow(line)], restoreCounts)
-  orchestrator.skipLine(line)
-  void announceSkipped(line.name, [])
-}
-
-function unskip(line: ExcursionItem) {
-  rowUndo.armUndo([excursionLineAsRow(line)], restoreCounts)
-  orchestrator.unskipLine(line)
-  void announceAct(t('packing.unskippedToast', { name: line.name }))
 }
 
 /** FR-5.8 on a line: off the list, M4's snackbar with its undo. */
@@ -440,12 +330,13 @@ function removeLine(line: ExcursionItem) {
 function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
   const before = { mode: line.mode, bought_at: line.bought_at }
   actUndoably(
-    line,
+    port,
+    excursionLineAsRow(line),
     t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
       name: line.name,
     }),
     () => orchestrator.setLineMode(line, mode),
-    (live) => orchestrator.updateLine(live, before),
+    (live) => orchestrator.updateLine(lineOf(live), before),
   )
 }
 
@@ -458,10 +349,11 @@ function buyOnSite(line: ExcursionItem) {
 function markBought(line: ExcursionItem, bought: boolean) {
   const before = line.bought_at
   actUndoably(
-    line,
+    port,
+    excursionLineAsRow(line),
     t(bought ? 'excursions.boughtToast' : 'excursions.unboughtToast', { name: line.name }),
     () => orchestrator.markBought(line, bought),
-    (live) => orchestrator.updateLine(live, { bought_at: before }),
+    (live) => orchestrator.updateLine(lineOf(live), { bought_at: before }),
   )
 }
 
@@ -481,61 +373,6 @@ function adopt(line: ExcursionItem) {
   void announceAct(t('excursions.adoptedToast', { item: line.name }))
 }
 
-// --- FR-25.24: the amount, in M4's popover over the list ---
-
-const quantityLineId = ref<string | null>(null)
-/** The tap that opened it, which Ionic anchors to; none from the menu, which centres it. */
-const quantityEvent = ref<MouseEvent | undefined>(undefined)
-const quantityLine = computed(() =>
-  quantityLineId.value === null ? null : (lineById.value.get(quantityLineId.value) ?? null),
-)
-const quantityChoiceList = computed(() => {
-  const ex = excursion.value
-  return quantityChoices({
-    durationDays: durationDays(ex?.starts_on ?? null, ex?.ends_on ?? null),
-    travelerCount: participants.value.length,
-    perPerson: Boolean(quantityLine.value?.assigned_traveler_id),
-  })
-})
-
-function openQuantity(line: ExcursionItem, event?: MouseEvent) {
-  quantityEvent.value = event
-  quantityLineId.value = line.id
-}
-
-/**
- * The line as the editor found it (M4's rule): one editing session is one act,
- * announced on close with one undo back to where the popover opened.
- */
-let quantityBefore: RowUndoRecord | null = null
-
-function onSetQuantity(quantity: number) {
-  const line = quantityLine.value
-  if (!line) return
-  quantityBefore ??= {
-    itemId: line.id,
-    name: line.name,
-    quantity: line.quantity,
-    packedCount: line.packed_count,
-    state: line.state,
-  }
-  orchestrator.setLineQuantity(line, quantity)
-}
-
-function onQuantityClosed() {
-  quantityLineId.value = null
-  const before = quantityBefore
-  quantityBefore = null
-  if (!before) return
-  const now = lineById.value.get(before.itemId)
-  if (!now || now.quantity === before.quantity) return
-  rowUndo.armUndo(
-    [{ ...excursionLineAsRow(now), quantity: before.quantity, packed_count: before.packedCount }],
-    restoreCounts,
-  )
-  void announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
-}
-
 // --- the detail: M5's sheet, or the side panel on a desktop (G-9) ---
 
 /** Read off the route, as M5's `?item=`: a tap, a deep link and a reload open the same. */
@@ -544,11 +381,8 @@ const openLineId = computed(() => {
   return typeof value === 'string' && value !== '' ? value : null
 })
 
-const isDesktop = ref(window.matchMedia(DESKTOP_QUERY).matches)
-const breakpoint = window.matchMedia(DESKTOP_QUERY)
-const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
-breakpoint.addEventListener('change', onBreakpoint)
-onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+/** G-9: the detail as a bottom sheet, or as a side panel beside the list. */
+const isDesktop = useDesktopLayout()
 
 /**
  * M4's press-and-hold for a line's menu (`useLongPress`; `contextmenu` on a
@@ -597,13 +431,13 @@ function buttonOf(action: ExcursionMenuAction): RowMenuButton {
 function runMenu(action: ExcursionMenuAction, line: ExcursionItem) {
   switch (action) {
     case 'quantity':
-      openQuantity(line)
+      quantity.open(excursionLineAsRow(line))
       return
     case 'skip':
-      skip(line)
+      steps.onSkipItem(excursionLineAsRow(line))
       return
     case 'unskip':
-      unskip(line)
+      steps.onUnskipItem(excursionLineAsRow(line))
       return
     case 'buyLocal':
       setMode(line, ITEM_MODE_BUY_LOCAL)
@@ -661,155 +495,15 @@ async function openLine(line: ExcursionItem) {
 
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
-const carriedItemIds = computed(() => [
-  ...new Set(lines.value.map((l) => l.source_item_id).filter((id): id is string => id !== null)),
-])
-/** FR-25.13f: what the browse sheet's verbs may do on a thing the list already carries. */
-const browseStates = computed(() => browseRowStates(rows.value, () => null, participants.value))
-
-/** The browse sheet's per-item undo, as M4 keeps it (FR-25.13f). */
-const browseUndo = new Map<string, () => void>()
-
-function linesOfItem(itemId: string): ExcursionItem[] {
-  return lines.value.filter((l) => l.source_item_id === itemId)
-}
-
-function recordOf(line: ExcursionItem): RowUndoRecord {
-  return {
-    itemId: line.id,
-    name: line.name,
-    quantity: line.quantity,
-    packedCount: line.packed_count,
-    state: line.state,
-  }
-}
-
-function addFrom(item: BrowseAddition, target: LineFor) {
-  const written = orchestrator.addLines(
-    props.tripId,
-    props.excursionId,
-    draftLinesFor(
-      {
-        source_item_id: item.sourceItemId,
-        name: item.name,
-        category_name: item.categoryName,
-        quantity: 1,
-        mode: ITEM_MODE_PACK,
-        weight_grams: item.weightGrams,
-        value_cents: item.valueCents,
-        source_template_id: null,
-      },
-      target,
-      participants.value,
-    ),
-  )
-  if (item.sourceItemId) browseUndo.set(item.sourceItemId, written.undo)
-}
-
-function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }) {
-  addFrom(item, lineForOf(item.travelerIds, participants.value.length))
-}
-
-/** FR-31.14: *Nur für diesen Ausflug* — a line no inventory item names, kept out of the suitcase. */
-function onQuickAddLocal(item: { name: string; travelerIds: string[] }) {
-  orchestrator.addLines(
-    props.tripId,
-    props.excursionId,
-    draftLinesFor(
-      {
-        source_item_id: null,
-        name: item.name,
-        category_name: null,
-        quantity: 1,
-        mode: ITEM_MODE_PACK,
-        weight_grams: null,
-        value_cents: null,
-        source_template_id: null,
-      },
-      lineForOf(item.travelerIds, participants.value.length),
-      participants.value,
-    ),
-  )
-}
-
-function onQuickAddForAll(item: BrowseAddition) {
-  addFrom(item, { kind: 'all' })
-}
-
-/**
- * FR-25.13h: the browse sheet's people for one thing — always the whole set,
- * so a second tap changes the lines this run wrote rather than adding more.
- */
-function onBrowseAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
-  const first = item.sourceItemId ? linesOfItem(item.sourceItemId)[0] : undefined
-  if (!first) {
-    addFrom(item, lineForOf(travelerIds, participants.value.length))
-    return
-  }
-  const undo = orchestrator.setForWhom(
-    props.tripId,
-    first,
-    lineForOf(travelerIds, participants.value.length),
-  )
-  if (item.sourceItemId && !browseUndo.has(item.sourceItemId))
-    browseUndo.set(item.sourceItemId, undo)
-}
-
-/** FR-25.13g: a carried thing becomes one for everybody going. */
-function onBrowseSpread(itemId: string) {
-  const first = linesOfItem(itemId)[0]
-  if (!first) return
-  browseUndo.set(itemId, orchestrator.setForWhom(props.tripId, first, { kind: 'all' }))
-}
-
-/** FR-25.13f: everything of this thing into the rucksack, in one tap. */
-function onBrowsePack(itemId: string) {
-  const open = linesOfItem(itemId).filter(
-    (l) => l.state !== STATE_SKIPPED && l.packed_count < l.quantity,
-  )
-  const records = open.map(recordOf)
-  for (const line of open) orchestrator.setLineCount(line, line.quantity)
-  browseUndo.set(itemId, () => restoreCounts(records))
-}
-
-/** FR-25.13f: leave everything of this thing at home (FR-5.5). */
-function onBrowseSkip(itemId: string) {
-  const open = linesOfItem(itemId).filter((l) => l.state !== STATE_SKIPPED)
-  const records = open.map(recordOf)
-  for (const line of open) orchestrator.skipLine(line)
-  browseUndo.set(itemId, () => restoreCounts(records))
-}
-
-/** FR-25.13i: everything of this thing back on the list — M4's reset, not an undo. */
-function onBrowseReopen(itemId: string) {
-  for (const line of linesOfItem(itemId)) {
-    if (line.state === STATE_SKIPPED) orchestrator.unskipLine(line)
-    else orchestrator.setLineCount(line, 0)
-  }
-}
-
-function onBrowseUndo(itemId: string) {
-  const undo = browseUndo.get(itemId)
-  if (!undo) return
-  browseUndo.delete(itemId)
-  undo()
-}
-
-async function onQuickAddGroup(templateId: string) {
-  const written = orchestrator.addGroupLines(props.tripId, props.excursionId, templateId)
-  const group = masterStore.getTemplate(templateId)
-  if (!written || !group) return
-  await presentToast({
-    message: groupAdditionMessage({
-      groupName: group.name,
-      added: written.lines,
-      alreadyPresent: [],
-      unassignable: [],
-    }),
-    positionAnchor: FAB_ANCHOR.m27Excursion,
-    buttons: [{ text: t('packing.undo'), handler: written.undo }],
-  })
-}
+/** M4's browse verbs over the lines — nobody holds a line, so none is locked (FR-25.13f). */
+const browse = useBrowseVerbs(port, () => null)
+const adds = useExcursionAdd({
+  tripId: props.tripId,
+  excursionId: props.excursionId,
+  lines,
+  participants,
+  verbs: browse,
+})
 
 // --- the excursion's own acts, in the bar's ⋮ ---
 
@@ -1167,19 +861,19 @@ setHeaderTitle(
           :offer-groups="true"
           :traveler-count="participants.length"
           :travelers="participants"
-          :exclude-item-ids="carriedItemIds"
-          :browse-row-states="browseStates"
+          :exclude-item-ids="browse.excludeIds.value"
+          :browse-row-states="browse.browseStates.value"
           :offer-local-only="true"
-          @add="onQuickAdd"
-          @add-local="onQuickAddLocal"
-          @add-for-all="onQuickAddForAll"
-          @assign-for-travelers="onBrowseAssignForTravelers"
-          @spread-carried="onBrowseSpread"
-          @add-group="onQuickAddGroup"
-          @pack-carried="onBrowsePack"
-          @skip-carried="onBrowseSkip"
-          @undo-browse="onBrowseUndo"
-          @reopen-carried="onBrowseReopen"
+          @add="adds.onQuickAdd"
+          @add-local="adds.onQuickAddLocal"
+          @add-for-all="adds.onQuickAddForAll"
+          @assign-for-travelers="adds.onAssignForTravelers"
+          @spread-carried="adds.onSpread"
+          @add-group="adds.onAddGroup"
+          @pack-carried="browse.onPack"
+          @skip-carried="browse.onSkip"
+          @undo-browse="browse.onUndo"
+          @reopen-carried="browse.onReopen"
         />
 
         <ExcursionExtraList :lines="extras" />
@@ -1250,12 +944,12 @@ setHeaderTitle(
                       "
                       @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                       @press-end="hold.cancel()"
-                      @edit-quantity="(e: MouseEvent) => openQuantity(lineOf(child.item), e)"
-                      @increment="count(lineOf(child.item), child.item.packed_count + 1)"
-                      @decrement="count(lineOf(child.item), child.item.packed_count - 1)"
-                      @complete="count(lineOf(child.item), child.item.quantity)"
-                      @zero="count(lineOf(child.item), 0)"
-                      @toggle="tick(lineOf(child.item))"
+                      @edit-quantity="(e: MouseEvent) => quantity.open(child.item, e)"
+                      @increment="steps.onIncrement(child.item)"
+                      @decrement="steps.onDecrement(child.item)"
+                      @complete="steps.onComplete(child.item)"
+                      @zero="steps.onZero(child.item)"
+                      @toggle="steps.onToggle(child.item)"
                     >
                       <template #facts>
                         <ExcursionFacts
@@ -1297,12 +991,12 @@ setHeaderTitle(
                   "
                   @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                   @press-end="hold.cancel()"
-                  @edit-quantity="(e: MouseEvent) => openQuantity(lineOf(entry.item), e)"
-                  @increment="count(lineOf(entry.item), entry.item.packed_count + 1)"
-                  @decrement="count(lineOf(entry.item), entry.item.packed_count - 1)"
-                  @complete="count(lineOf(entry.item), entry.item.quantity)"
-                  @zero="count(lineOf(entry.item), 0)"
-                  @toggle="tick(lineOf(entry.item))"
+                  @edit-quantity="(e: MouseEvent) => quantity.open(entry.item, e)"
+                  @increment="steps.onIncrement(entry.item)"
+                  @decrement="steps.onDecrement(entry.item)"
+                  @complete="steps.onComplete(entry.item)"
+                  @zero="steps.onZero(entry.item)"
+                  @toggle="steps.onToggle(entry.item)"
                 >
                   <template #facts>
                     <ExcursionFacts
@@ -1401,26 +1095,17 @@ setHeaderTitle(
       />
 
       <!-- FR-25.24: the amount, over the list — M4's popover. -->
-      <IonPopover
-        :is-open="quantityLineId !== null"
-        :event="quantityEvent"
-        data-testid="m27-quantity-popover"
-        @did-dismiss="onQuantityClosed"
-      >
-        <div class="qty-pop">
-          <p class="qty-pop-head">
-            <span class="jp-eyebrow">{{ t('quantity.title') }}</span>
-            <span class="qty-pop-name">{{ quantityLine?.name }}</span>
-          </p>
-          <QuantityEditor
-            v-if="quantityLine"
-            :quantity="quantityLine.quantity"
-            :packed="quantityLine.packed_count"
-            :choices="quantityChoiceList"
-            @update="onSetQuantity"
-          />
-        </div>
-      </IonPopover>
+      <RowQuantityPopover
+        testid="m27-quantity-popover"
+        :open="quantity.isOpen.value"
+        :event="quantity.event.value"
+        :label="quantity.clusterLabel.value"
+        :item="quantity.item.value"
+        :packed="quantity.packed.value"
+        :choices="quantity.choices.value"
+        @update="quantity.set"
+        @closed="quantity.closed"
+      />
 
       <!-- M5's sheet for a line on a phone, M5's side panel on a desktop (G-9). -->
       <SheetModal
@@ -1589,24 +1274,6 @@ ion-content.excursion-content::part(scroll) {
 
 .list-head + .grouped-by {
   margin-inline-start: auto;
-}
-
-/* M4's amount popover. */
-.qty-pop {
-  padding: 16px 14px 12px;
-}
-
-.qty-pop-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0 0 14px;
-  text-align: center;
-}
-
-.qty-pop-name {
-  font-size: var(--jp-text-md);
-  font-weight: var(--jp-weight-semibold);
 }
 
 /* M5's side panel (G-9), as M4 lays it out in the frame's second pane. */

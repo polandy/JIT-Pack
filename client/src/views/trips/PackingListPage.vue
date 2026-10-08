@@ -69,15 +69,7 @@ import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
-import {
-  activeChips as chipsFor,
-  emptyReason as emptyReasonFor,
-  filterFacets as facetsFor,
-  filterSwitches as switchesFor,
-  SWITCH_KEYS,
-  groupingAxis,
-  onlyOthersHidden as isOnlyOthersHidden,
-} from '@/lib/packingFilterPanel'
+import { SWITCH_KEYS, onlyOthersHidden as isOnlyOthersHidden } from '@/lib/packingFilterPanel'
 import { readMode } from '@/mode'
 import { presentToast } from '@/composables/shared/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
@@ -86,6 +78,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { usePackingFilter } from '@/composables/usePackingFilter'
+import { useDesktopLayout } from '@/composables/useDesktopLayout'
 import { buildPackingView } from '@/domain/packingView'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -110,6 +103,7 @@ import { usePackingMenus } from './packing/usePackingMenus'
 import { usePackingTasks } from './packing/usePackingTasks'
 import { useRowActions } from './packing/useRowActions'
 import { useRowFacts } from './packing/useRowFacts'
+import { usePackingListShape } from './packing/usePackingListShape'
 import { useRowQuantity } from './packing/useRowQuantity'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -153,8 +147,8 @@ onMounted(async () => {
 // composable because they outlive this component (FR-25.18): the filter
 // for the session, the grouping durably. The search term deliberately
 // does not — see there.
-const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } =
-  usePackingFilter(props.tripId)
+const filter = usePackingFilter(props.tripId)
+const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } = filter
 
 const {
   term: search,
@@ -162,9 +156,31 @@ const {
   toggle: toggleSearch,
   action: searchAction,
 } = useContextSearch('m4-search')
-const collapsedGroups = ref<string[]>([])
-/** FR-25.24: per-person clusters the user opened; shut is the default. */
-const expandedClusters = ref<string[]>([])
+
+// The folds, the filter panel and the reset — the list's shape, which an
+// excursion's list shares (`usePackingListShape`).
+const {
+  collapsedGroups,
+  expandedClusters,
+  allFolded,
+  toggleFoldAll,
+  toggleGroup,
+  toggleCluster,
+  filterFacets,
+  grouping,
+  filterSwitches,
+  onToggleSwitch,
+  activeChips,
+  emptyReason,
+  searching,
+  resetNarrowing,
+} = usePackingListShape({
+  filter,
+  search: { term: search, isOpen: searchOpen },
+  view: () => view.value,
+  reveals: [SWITCH_KEYS.done, SWITCH_KEYS.others, SWITCH_KEYS.late],
+  menuActive: () => menus.menuActive(),
+})
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 /**
@@ -237,7 +253,7 @@ function closeItem() {
 const forWhom = useForWhom(core, view)
 const facts = useRowFacts(core)
 const acts = useRowActions(core, facts, { openItemId, closeItem })
-const quantity = useRowQuantity(core)
+const quantity = useRowQuantity(core.port)
 const menus = usePackingMenus(core, acts, quantity, forWhom)
 const browse = useBrowseAdd(core, facts)
 const tasks = usePackingTasks(core)
@@ -258,16 +274,8 @@ function openItem(itemId: string) {
   router.replace(tripItemPath(props.tripId, itemId))
 }
 
-/**
- * G-9: below the breakpoint the detail is a bottom sheet; at or above it
- * a persistent side panel beside the list, so selecting another row swaps
- * the panel's content instead of covering the list.
- */
-const isDesktop = ref(window.matchMedia('(min-width: 900px)').matches)
-const breakpoint = window.matchMedia('(min-width: 900px)')
-const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
-breakpoint.addEventListener('change', onBreakpoint)
-onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+/** G-9: the detail as a bottom sheet, or as a side panel beside the list. */
+const isDesktop = useDesktopLayout()
 
 // --- Who is working here (FR-4.9) ---------------------------------------
 // The roster on M1 lists people by the trip they have *open*, which is not the
@@ -388,36 +396,6 @@ const closingProposals = computed(() =>
 
 // --- App-bar cluster (G-12) --------------------------------------------
 
-const allFolded = computed(
-  () => view.value.groups.length > 0 && view.value.groups.every((g) => g.collapsed),
-)
-
-/** Fold-all turns the list into a table of contents, and back (FR-25.16). */
-function toggleFoldAll() {
-  collapsedGroups.value = allFolded.value ? [] : view.value.groups.map((g) => g.key)
-}
-
-function toggleGroup(key: string) {
-  collapsedGroups.value = collapsedGroups.value.includes(key)
-    ? collapsedGroups.value.filter((k) => k !== key)
-    : [...collapsedGroups.value, key]
-}
-
-/**
- * FR-25.24: the opened set, not the shut one, because a cluster is shut by
- * default. Keyed like a group's fold so a re-render — or packing one
- * instance — does not close what the user just opened.
- */
-function toggleCluster(key: string) {
-  // The release of a hold lands on the overlay rather than on the head, but
-  // a dismissed sheet can still deliver the click — the same swallow the
-  // rows do, or opening the head's menu would also fold it.
-  if (menus.menuActive()) return
-  expandedClusters.value = expandedClusters.value.includes(key)
-    ? expandedClusters.value.filter((k) => k !== key)
-    : [...expandedClusters.value, key]
-}
-
 /**
  * G-12: the cluster acts on *this list*, so it lives in the one app bar
  * where it stays reachable while the header line below scrolls away.
@@ -494,62 +472,7 @@ setHeaderActions(() => {
 
 // --- Empty states (FR-25.11e) ------------------------------------------
 
-const visibleOpenRows = computed(
-  () =>
-    view.value.groups
-      .flatMap((group) => group.entries)
-      .flatMap((entry) => (entry.kind === 'item' ? [entry] : entry.children))
-      .filter((row) => !row.done).length,
-)
-
-// Rows on both sides (FR-25.22): the sentence counts *Sachen* behind the
-// filter, and counting the trip's open **units** on the left-hand side would
-// have a single open row of quantity three report two hidden things on a
-// list hiding nothing.
-const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
-
-const searching = computed(() => search.value.trim() !== '')
-
 const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
-
-const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hiddenOpenCount.value))
-
-/**
- * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
- * the same empty screen, so this clears all of it — search, facets and all
- * three reveal switches.
- */
-function resetNarrowing() {
-  search.value = ''
-  searchOpen.value = false
-  reset()
-  showOthers.value = true
-}
-
-// --- The filter panel (FR-25.11) ---------------------------------------
-
-const filterFacets = computed(() => facetsFor(view.value))
-
-const grouping = computed(() => groupingAxis(groupBy.value))
-
-const filterSwitches = computed(() =>
-  switchesFor({
-    showDone: showDone.value,
-    showOthers: showOthers.value,
-    showLate: showLate.value,
-    packedCount: view.value.doneCount,
-    hiddenOtherCount: view.value.hiddenOtherCount,
-    lateCount: view.value.lateCount,
-  }),
-)
-
-function onToggleSwitch(key: string) {
-  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
-  else if (key === SWITCH_KEYS.late) showLate.value = !showLate.value
-  else showOthers.value = !showOthers.value
-}
-
-const activeChips = computed(() => chipsFor(view.value, facets.value))
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
@@ -879,6 +802,7 @@ setHeaderTitle(
       </IonFab>
 
       <RowQuantityPopover
+        testid="m4-quantity-popover"
         :open="quantity.isOpen.value"
         :event="quantity.event.value"
         :label="quantity.clusterLabel.value"
