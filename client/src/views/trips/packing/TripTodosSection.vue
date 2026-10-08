@@ -9,7 +9,7 @@ import { IonIcon } from '@ionic/vue'
 import { checkmarkDoneOutline, chevronDownOutline, chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import TripTodoList from '@/components/trips/TripTodoList.vue'
+import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
 import { tripTodosUnfolded, type TripTask, type TripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { tripSubPath } from '@/router/paths'

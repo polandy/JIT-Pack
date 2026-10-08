@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** FR-7.6, FR-7.3, FR-7.4, FR-7.5, FR-27.7, FR-25.31, FR-5.8, UI-Spec M1/M4,
 `client/src/domain/tripTodos.ts` (`tripTasks`), `client/src/composables/useTripTasks.ts`,
-`client/src/components/trips/TaskItemChip.vue`, E2E-M4-136, E2E-M4-137, E2E-M1-02, E2E-M1-07
+`client/src/views/trips/tasks/TaskItemChip.vue`, E2E-M4-136, E2E-M4-137, E2E-M1-02, E2E-M1-07
 
 **Context.** The owner asked on 2026-09-20 for tasks that are declared *on a packing item* and have to be done before
 travelling to be **reflected as tasks**: listed where the tasks are, shown on the dashboard, visibly belonging to a

@@ -137,3 +137,13 @@ the same rule (ADR-071), their physical home a later step.
 
 A feature that shares no rows with packing yet is placed in the kernel; a kernel area whose couplings to packing all
 turn out to be one contract; or a file in `domain/shared/` that needs a rule from the rest of `domain/`.
+
+## Amendment, 2026-10-09: the tasks get their folder (ARCH-26b)
+
+The tasks' later step is taken as the excursions' was: M25's parts — the composer, the phase section, the list, the
+sheet, the tag chooser, the item chip, M1's figure and overview — move from `components/trips/` into
+`views/trips/tasks/` beside `TripTasksPage.vue`. M4 and M1 import them from there, as they import an excursion's sheet.
+What stays put stays by the same rule: M4's own slices of the list (`packing/TripTodosSection.vue`,
+`usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
+`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTodos.ts` is
+renamed with ARCH-27's glossary, not before it.

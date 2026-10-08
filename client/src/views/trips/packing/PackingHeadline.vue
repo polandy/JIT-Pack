@@ -13,7 +13,7 @@ import { computed, useSlots } from 'vue'
 
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
-import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
+import TripTodoFigure from '@/views/trips/tasks/TripTodoFigure.vue'
 import type { PresenceUser } from '@/composables/useSyncOrchestrator'
 import { packedPercent } from '@/domain/packState'
 import type { TripTask, TripTodoStatus } from '@/domain/tripTodos'
