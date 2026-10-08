@@ -902,7 +902,9 @@ export const TABLE_SPECS = {
 /**
  * The todo half of `comments` (FR-7.2). It is not in `TABLE_SPECS` because
  * that map is keyed by table and this is the same table read as the other
- * type; `tripStore` picks between them on `is_task`.
+ * type; `tripStore` picks between them on `is_task`. Being outside the map,
+ * it is named by hand in `tableRegistry.spec.ts`'s pairs, as is
+ * `tripTodoCodec`.
  */
 export const todoCodec: TableCodec<ItemTodo> = { parse: rowToTodo, encode: todoRow }
 
