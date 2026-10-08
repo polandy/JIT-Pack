@@ -11,7 +11,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { LONG_PRESS_MS, LONG_PRESS_SLOP_PX } from '@/composables/useLongPress'
+import { LONG_PRESS_MS, LONG_PRESS_SLOP_PX } from '@/composables/shared/useLongPress'
 import QuantityStepper from '../QuantityStepper.vue'
 
 describe('QuantityStepper — one control, two sizes (G-6, FR-21.25)', () => {

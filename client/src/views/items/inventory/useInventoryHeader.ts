@@ -6,9 +6,9 @@
 import { pricetagsOutline, sparklesOutline, timeOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { t } from '@/i18n'
 import { readMode } from '@/mode'
 import { PATH } from '@/router/paths'

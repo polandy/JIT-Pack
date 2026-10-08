@@ -10,7 +10,7 @@ import { defineComponent, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { t } from '@/i18n'
-import { ORCHESTRATOR } from '../useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useRowUndo } from '../useRowUndo'
 import { useTaskActs } from '../useTaskActs'
 

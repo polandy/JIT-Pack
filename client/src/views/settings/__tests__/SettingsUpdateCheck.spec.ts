@@ -11,16 +11,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import { installHarness } from '@/__tests__/harness'
 import SettingsPage from '../SettingsPage.vue'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { API } from '@/api/routes'
 import type { InstanceUpdateResponse } from '@/api/types'
 import { setLocale } from '@/i18n'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),

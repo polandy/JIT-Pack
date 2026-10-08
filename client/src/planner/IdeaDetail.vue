@@ -58,7 +58,7 @@ import TrackCard from '@/components/global/TrackCard.vue'
 import { MAX_TRACKS, orderTracks } from '@/domain/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
-import { useTileState } from '@/lib/mapTiles'
+import { useTileState } from '@/composables/shared/mapTiles'
 import {
   IDEA_RESULT_EXCURSION,
   IDEA_RESULT_SCREEN,
@@ -66,7 +66,7 @@ import {
   IDEA_RESULT_SOURCES,
   IDEA_RESULT_TASK,
   type IdeaResultKind,
-} from '@/lib/ideaBridge'
+} from '@/kernel/ideaBridge'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'

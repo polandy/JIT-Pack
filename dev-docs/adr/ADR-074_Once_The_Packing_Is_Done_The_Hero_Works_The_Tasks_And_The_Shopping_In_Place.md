@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-7.10, FR-5.10, FR-7.4, FR-7.7, FR-30.7, FR-30.8, ADR-066, ADR-071, ADR-060, UI-Spec M1,
-`client/src/components/trips/TripHero.vue`, `client/src/lib/tripCards.ts`,
+`client/src/components/trips/TripHero.vue`, `client/src/kernel/tripCards.ts`,
 `UI_Concept_DashboardAfterPacking.html` at `6b148419`
 
 **Context.** FR-5.10 let a finished packing recede into one line on the dashboard. The owner found the line too large
@@ -31,7 +31,8 @@ sit in the way: M1 *reports, takes no actions* (FR-7.4, 2026-09-18), with one na
 
 The hero's head is the link into the trip. Below it, two blocks — *Aufgaben* (four rows) and *Einkauf* (seven) — each
 with an add field, check boxes on the right, its own fold and a link into M25 / M6, then a *Packliste öffnen* control.
-Shopping reaches the hero through `lib/tripCards.ts` as before, which grows a slot contract; M1 imports neither module.
+Shopping reaches the hero through `kernel/tripCards.ts` as before, which grows a slot contract; M1 imports neither
+module.
 
 **Pros**
 - Both open lists are one glance and one tap from done or added; the packing line is out of the way and one tap back.

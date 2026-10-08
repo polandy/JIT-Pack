@@ -20,7 +20,7 @@ import {
 } from '@ionic/vue'
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
-import { DUE_PURCHASES, TRIP_CARDS, dueBlockAnchor } from '@/lib/tripCards'
+import { DUE_PURCHASES, TRIP_CARDS, dueBlockAnchor } from '@/kernel/tripCards'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { useRouter } from 'vue-router'
 
@@ -44,14 +44,14 @@ import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { dueExcursions } from '@/domain/excursions'
-import { useIdentity } from '@/composables/useTripIdentity'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { nameFrom } from '@/lib/rowFacts'
 import {
@@ -63,7 +63,7 @@ import {
   tripPath,
   tripSubPath,
 } from '@/router/paths'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
 import { useTripHero } from '@/composables/useTripHero'
@@ -74,7 +74,7 @@ import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { useDueLine } from '@/composables/useDueLine'
-import { callBlock } from '@/lib/blockCall'
+import { callBlock } from '@/composables/blockCall'
 
 const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()

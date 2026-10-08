@@ -6,7 +6,7 @@
  * `Record<string, unknown>` to turn into a domain object (`parse`), and an
  * optimistic write hands the outbox a domain object to turn back into a row
  * (`encode`). The two halves lived apart — twenty-one `rowTo*` functions
- * inside the two stores, fourteen builders in `composables/sync/rows.ts` —
+ * inside the two stores, fourteen builders in `sync/rows.ts` —
  * and nothing compared them, which is how `trips.series_name` came to be
  * read by a parser that no writer, client or server, has ever filled.
  *
@@ -16,7 +16,7 @@
  * other. Pull routing is derived from it (`routing.ts`), and so is the
  * client's whole delete cascade (`cascade.ts`).
  *
- * The encoders stay in `composables/sync/rows.ts` and are referenced from
+ * The encoders stay in `sync/rows.ts` and are referenced from
  * here: eight action modules import them by name, and `rowBuilders.spec.ts`
  * already holds their completeness against the domain type. The parsers had
  * no consumer outside their own store, so they moved.
@@ -115,7 +115,7 @@ import {
   travelerRow,
   tripRow,
   itemRow,
-} from '@/composables/sync/rows'
+} from '@/sync/rows'
 
 /** A row as it travels: SQLite's shape, not the domain's. */
 export type SyncRow = Record<string, unknown>

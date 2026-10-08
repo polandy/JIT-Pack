@@ -7,7 +7,7 @@
  * it, a bar for the shortlisted ideas that have no day yet, and the ＋ for an
  * entry of the plan's own. What stands on a day is `domain/dayPlan.ts`'s rule;
  * the excursions and tasks come from the packing side through the kernel's
- * `lib/dayPlanSources.ts`, with their writes bound in, so this module never
+ * `kernel/dayPlanSources.ts`, with their writes bound in, so this module never
  * imports them (FR-29.9). A connection (FR-29.18) is an entry of its own kind,
  * read from a pasted link through the server's page read where there is one.
  */
@@ -20,17 +20,17 @@ import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useIdeaSeed } from '@/composables/useIdeaSeed'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
-import { useTripScreen } from '@/composables/useTripScreen'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { t } from '@/i18n'
-import { confirmDestructive } from '@/lib/confirm'
-import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
+import { confirmDestructive } from '@/composables/shared/confirm'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { tripIdeasPath } from '@/router/paths'
 import type { DayEntry, Idea } from '@/types/domain'
 import { createPlannerActions, type DayEntryFields } from './actions'

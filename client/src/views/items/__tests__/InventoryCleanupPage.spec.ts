@@ -12,21 +12,23 @@ import { setActivePinia, createPinia, type Pinia } from 'pinia'
 import InventoryCleanupPage from '../InventoryCleanupPage.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import { cleanupSettings } from '@/composables/useCleanupSettings'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { HYGIENE_RULE_UNTAGGED } from '@/domain/inventoryHygiene'
 import { t } from '@/i18n'
-import { promptTagMerge } from '@/lib/tagMergePrompt'
-import { presentToast } from '@/lib/toast'
+import { promptTagMerge } from '@/composables/tagMergePrompt'
+import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('@/lib/tagMergePrompt', () => ({ promptTagMerge: vi.fn().mockResolvedValue(1) }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/toast', () => ({
+  presentToast: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/composables/tagMergePrompt', () => ({ promptTagMerge: vi.fn().mockResolvedValue(1) }))
 
 const master = masterDataStub()
 const loaded = new Set<string>()

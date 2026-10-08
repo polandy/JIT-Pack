@@ -20,16 +20,16 @@ import { setActivePinia, createPinia } from 'pinia'
 import TripTasksPage from '../TripTasksPage.vue'
 import TaskComposer from '@/components/trips/TaskComposer.vue'
 import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { STUB_TODAY, tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { STUB_TODAY, tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import type { RowUndo } from '@/composables/useRowUndo'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
-import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 
@@ -47,12 +47,12 @@ vi.mock('vue-router', async () => {
     useRouter: () => ({ replace: (to: unknown) => nav.replaced.push(to), push: vi.fn() }),
   }
 })
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 // A page left mounted by an earlier case would answer the route as well.
 enableAutoUnmount(afterEach)
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/composables/useHeaderSelection', async (actual) => ({
-  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/shared/useHeaderSelection')>()),
   setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
 }))
 
@@ -62,7 +62,7 @@ vi.mock('@/composables/useHeaderSelection', async (actual) => ({
  * was dismissed — and dismissing a real one asserts Ionic rather than us.
  */
 let picked: string | null | undefined
-vi.mock('@/lib/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
+vi.mock('@/composables/shared/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
 
 const tripScreen = tripScreenStub()
 

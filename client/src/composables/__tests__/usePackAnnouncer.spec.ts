@@ -54,7 +54,7 @@ vi.mock('@ionic/vue', () => ({ toastController: { create: (o: never) => create(o
 
 const { usePackAnnouncer } = await import('../usePackAnnouncer')
 const { FAB_ANCHOR } = await import('@/lib/fabAnchors')
-const { TOAST_DURATION_MS } = await import('@/lib/toast')
+const { TOAST_DURATION_MS } = await import('@/composables/shared/toast')
 
 /** Let every awaited `toastController.create` resolve. */
 function settleCreates(): void {

@@ -7,7 +7,7 @@
  */
 import { computed } from 'vue'
 
-import type { MapLine, MapMark } from './trackColors'
+import type { MapLine, MapMark } from '@/lib/trackColors'
 
 const props = withDefaults(
   defineProps<{

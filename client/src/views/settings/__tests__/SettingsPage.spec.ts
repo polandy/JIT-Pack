@@ -15,14 +15,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import SettingsPage from '../SettingsPage.vue'
 import { LOCALE_STORAGE_KEY, setLocale } from '@/i18n'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),

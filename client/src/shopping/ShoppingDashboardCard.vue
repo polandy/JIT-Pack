@@ -16,7 +16,7 @@
  * start screen, for a trip months away, is one too many, and M6 takes the
  * entry.
  *
- * It lives in the shopping module and reaches M1 through `lib/tripCards.ts`
+ * It lives in the shopping module and reaches M1 through `kernel/tripCards.ts`
  * (FR-30.3): M1 renders it without importing it.
  */
 import { IonCheckbox, IonIcon } from '@ionic/vue'
@@ -28,12 +28,12 @@ import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { t } from '@/i18n'
 import { sortByDue } from '@/lib/dueDay'
-import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
-import { presentToast } from '@/lib/toast'
-import { DUE_BLOCK_SHOPPING, dueBlockAnchor, type TripCardProps } from '@/lib/tripCards'
+import { SHOPPING_SOURCES, type ShoppingLine } from '@/kernel/shoppingSources'
+import { presentToast } from '@/composables/shared/toast'
+import { DUE_BLOCK_SHOPPING, dueBlockAnchor, type TripCardProps } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
@@ -43,7 +43,7 @@ import { useShoppingStore } from './store'
 
 const props = defineProps<TripCardProps>()
 
-/** The block's remembered fold (`lib/blockFold.ts`). */
+/** The block's remembered fold (`composables/blockFold.ts`). */
 const SHOPPING_FOLD_KEY = 'shopping'
 
 /** How many lines the card shows before it hands over to M6 — seven as a block of the hero (FR-7.10). */

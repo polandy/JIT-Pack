@@ -1,9 +1,9 @@
 /**
  * FR-29.18: M27's line naming an excursion's way there and back, bound by
- * `App.vue` through `lib/excursionConnections.ts` so the packing side reads
+ * `App.vue` through `kernel/excursionConnections.ts` so the packing side reads
  * the planner's rows without importing it.
  */
-import type { ExcursionJourneyLine } from '@/lib/excursionConnections'
+import type { ExcursionJourneyLine } from '@/kernel/excursionConnections'
 import { excursionJourney } from './domain/journey'
 import { journeyLine } from './journeyText'
 import { usePlannerStore } from './store'

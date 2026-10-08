@@ -4,7 +4,7 @@
 **Related:** FR-7.8, FR-7.7, FR-24.1, FR-24.2, FR-24.13, FR-25.31, ADR-060, ADR-063, ADR-067, ADR-071, UI-Spec M25,
 `internal/store/schema.sql` (`task_tags`, `comments.task_tag_id`),
 `internal/store/migrations/002_task_tags.sql`, `client/src/domain/tripTodos.ts` (`taskGroups`),
-`client/src/composables/useDragToGroup.ts`, E2E-M25-07/08/09
+`client/src/composables/shared/useDragToGroup.ts`, E2E-M25-07/08/09
 
 **Context.** M25 lists a trip's tasks. Past a handful, listing is not ordering, and the owner asked on 2026-09-21 for
 *„einem task soll man genau ein Tag vergeben können. damit werden sie dann standardmässig in der task ansicht

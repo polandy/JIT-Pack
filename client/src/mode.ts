@@ -11,7 +11,7 @@
 import { ref, type Ref } from 'vue'
 
 import { clearTokens, loadTokens } from '@/auth/tokens'
-import { generateDeviceId } from '@/composables/sync/rows'
+import { generateDeviceId } from '@/sync/rows'
 
 /** The two modes a client can be in. */
 export type ClientMode = 'local' | 'server'

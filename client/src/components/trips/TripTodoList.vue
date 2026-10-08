@@ -41,11 +41,11 @@ import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import type { RowSelection } from '@/composables/useRowSelection'
+import type { RowSelection } from '@/composables/shared/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
-import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { tripItemPath } from '@/router/paths'
 
 const props = defineProps<{

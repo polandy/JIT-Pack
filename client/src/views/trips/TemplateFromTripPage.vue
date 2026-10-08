@@ -32,7 +32,7 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { t } from '@/i18n'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import {
   assignmentOf,
   DEFAULT_DEVIATION_CHOICE,
@@ -48,10 +48,10 @@ import { tripsReachedBy } from '@/domain/templates'
 import { foldName } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { useTripScreen } from '@/composables/useTripScreen'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { templatePath } from '@/router/paths'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import InlineHint from '@/components/global/InlineHint.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 

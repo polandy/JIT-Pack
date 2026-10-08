@@ -48,35 +48,19 @@ import {
   stretchFrom,
   type LatLon,
   type Pass,
-  type RoutePoint,
 } from '@/domain/route'
-import { defaultSource, movingMinutes, type MapSource, type TrackPoint } from '@/domain/track'
+import { defaultSource, movingMinutes, type MapSource } from '@/domain/track'
 import { t } from '@/i18n'
-import { confirmDestructive } from '@/lib/confirm'
-import { createRouteEditor, legMode, type RouteEditor } from '@/lib/routeEditor'
-import { fetchPath, fetchStraight, useRoutingUrl } from '@/lib/routing'
-import { presentToast } from '@/lib/toast'
+import { confirmDestructive } from '@/composables/shared/confirm'
+import { createRouteEditor, legMode, type RouteEditor } from '@/composables/routeEditor'
+import { fetchPath, fetchStraight, useRoutingUrl } from '@/composables/routing'
+import { presentToast } from '@/composables/shared/toast'
 import { formatDistance, formatDuration, formatMetres } from '@/lib/trackFormat'
+import type { EditedTrack, SavedRoute } from '@/lib/trackEdit'
 import './trackMap.css'
 import { directionArrows, loadLeaflet, tileLayer } from './mapLayers'
 import RouteProfile from './RouteProfile.vue'
-import { TRACK_HUES, trackHueClass, type MapLine } from './trackColors'
-
-/** The track an edit starts from: its file's points and the settings its time is counted with. */
-export interface EditedTrack {
-  name: string
-  kind: TrackKind
-  withKid: boolean
-  points: TrackPoint[]
-}
-
-/** What saving hands up: how, under which name, and the route's points. */
-export interface SavedRoute {
-  how: 'new' | 'replace'
-  name: string
-  kind: TrackKind
-  points: RoutePoint[]
-}
+import { TRACK_HUES, trackHueClass, type MapLine } from '@/lib/trackColors'
 
 const props = defineProps<{
   open: boolean

@@ -22,18 +22,18 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { defaultSource, inSwitzerland, type MapSource } from '@/domain/track'
 import { t } from '@/i18n'
-import { LIVE_LOCATION } from '@/composables/useLiveLocation'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { LIVE_LOCATION } from '@/composables/shared/useLiveLocation'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { defaultNowMs } from '@/lib/clock'
 import { initialsOf } from '@/lib/initials'
 import { freshPeople, minutesAgo } from '@/lib/liveLocation'
-import { useTileState } from '@/lib/mapTiles'
+import { useTileState } from '@/composables/shared/mapTiles'
 import type { TrackFields } from '@/types/domain'
 import TrackFigures from './TrackFigures.vue'
 import TrackMap from './TrackMap.vue'
 import TrackTabs from './TrackTabs.vue'
-import type { MapLine, MapMark } from './trackColors'
+import type { MapLine, MapMark } from '@/lib/trackColors'
 
 const props = defineProps<{
   open: boolean

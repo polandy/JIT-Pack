@@ -29,7 +29,7 @@ import type { TrackFields } from '@/types/domain'
 import TrackMap from './TrackMap.vue'
 import TrackMore from './TrackMore.vue'
 import TrackViewer from './TrackViewer.vue'
-import { trackHueClass, type MapLine } from './trackColors'
+import { trackHueClass, type MapLine } from '@/lib/trackColors'
 
 const props = defineProps<{
   /** In their order. */

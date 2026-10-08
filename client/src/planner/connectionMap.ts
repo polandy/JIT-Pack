@@ -4,7 +4,7 @@
  * off. The rule of which legs can be drawn is `domain/connections.ts`'s;
  * this file only hands them to the kernel's map in its terms.
  */
-import { LEG_HUE_CLASS, type MapLine } from '@/components/global/trackColors'
+import { LEG_HUE_CLASS, type MapLine } from '@/lib/trackColors'
 import type { ConnectionLeg, LatLon, LegMode } from '@/types/domain'
 import { legPath } from './domain/connections'
 

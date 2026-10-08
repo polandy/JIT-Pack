@@ -170,7 +170,7 @@ reason is the feature itself.
 A task **names a packing row**. It hangs off `trip_items` by foreign key, it follows that row's cascade when it is
 deleted, it renders the row's mark and name in a chip that leads to the row's sheet, and the packing list *reads the
 task list* to decide what its window shows. The shopping list's boundary was possible because a shopping line does not
-know what a packing row is — it meets packing through a kernel contract (`lib/shoppingSources.ts`) that the
+know what a packing row is — it meets packing through a kernel contract (`kernel/shoppingSources.ts`) that the
 composition root binds. A task could not be given that treatment without inventing a contract to express „the row this
 prepares", which is the coupling, not an accident of where the code sits.
 

@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 
 import { cleanupSettings } from './useCleanupSettings'
-import { useOrchestrator } from './useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { hygieneReport, unseenTrips } from '@/domain/inventoryHygiene'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'

@@ -11,7 +11,7 @@
  */
 import { computed, type ComputedRef, type Ref } from 'vue'
 
-import type { HeadMetaPart } from '@/composables/useHeaderTitle'
+import type { HeadMetaPart } from '@/composables/shared/useHeaderTitle'
 import { taskDueTally } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
@@ -22,7 +22,7 @@ import {
   DUE_BLOCK_TASKS,
   type DueBlock,
   type DuePurchases,
-} from '@/lib/tripCards'
+} from '@/kernel/tripCards'
 
 /** One kind of thing the line counts, and what is due of it on each trip. */
 interface Kind {

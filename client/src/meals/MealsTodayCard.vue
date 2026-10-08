@@ -4,7 +4,7 @@
  * their order — the slot, the dish, who cooks and what is still to buy — and
  * the way onto M31. A tap opens the meal's sheet over the dashboard.
  *
- * It reaches M1 through `lib/tripCards.ts`, like the planner's *Heute* card,
+ * It reaches M1 through `kernel/tripCards.ts`, like the planner's *Heute* card,
  * which leaves the meals to this one; once the packing is finished it is a
  * block of the hero (FR-7.10). Absent before and after the trip, and on a day
  * without meals.
@@ -13,10 +13,10 @@ import { computed } from 'vue'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import ProgressRing from '@/components/global/ProgressRing.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
-import type { TripCardProps } from '@/lib/tripCards'
+import type { TripCardProps } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
 import type { Meal } from '@/types/domain'
 import { MEAL_KIND_OUT } from '@/types/domain'
@@ -26,7 +26,7 @@ import { useMealStore } from './store'
 
 const props = defineProps<TripCardProps>()
 
-/** The block's remembered fold (`lib/blockFold.ts`). */
+/** The block's remembered fold (`composables/blockFold.ts`). */
 const MEALS_FOLD_KEY = 'meals'
 
 const orchestrator = useOrchestrator()

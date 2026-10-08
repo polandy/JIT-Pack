@@ -5,7 +5,7 @@
  */
 import { foldSearch, spellOutUmlauts } from '@/domain/search'
 import { daysBetween } from '@/lib/dueDay'
-import type { MealTrip } from '@/lib/mealContext'
+import type { MealTrip } from '@/kernel/mealContext'
 import type { Meal, MealIngredient } from '@/types/domain'
 import { parseIngredient } from './mealPlan'
 import { namedTotal, unitOf, type Unit, type UnitFamily } from './units'

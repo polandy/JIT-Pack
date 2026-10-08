@@ -9,7 +9,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import DateRangeField from '../DateRangeField.vue'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { formatDayRange, setLocale } from '@/i18n'
 
 const SheetModalStub = {

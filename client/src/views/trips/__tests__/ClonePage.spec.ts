@@ -19,10 +19,10 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))

@@ -13,15 +13,15 @@ import { computed, ref } from 'vue'
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
 import DashboardBlockRow from '@/components/global/DashboardBlockRow.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import { useTaskActs } from '@/composables/useTaskActs'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { openDueDay } from '@/domain/taskDue'
 import { dashboardTasks, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
-import { DUE_BLOCK_TASKS, dueBlockAnchor } from '@/lib/tripCards'
+import { DUE_BLOCK_TASKS, dueBlockAnchor } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
@@ -34,7 +34,7 @@ const props = defineProps<{
   testid: string
 }>()
 
-/** The block's remembered fold (`lib/blockFold.ts`). */
+/** The block's remembered fold (`composables/blockFold.ts`). */
 const TASKS_FOLD_KEY = 'tasks'
 
 /** How many tasks the block lists before it hands over to M25. */

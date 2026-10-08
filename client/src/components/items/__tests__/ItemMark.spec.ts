@@ -12,7 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ItemMark from '../ItemMark.vue'
 import type { MasterItem } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 function item(over: Partial<MasterItem> = {}): MasterItem {
   return {

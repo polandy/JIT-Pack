@@ -20,13 +20,13 @@ import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 
 import { defineComponent, h, type Component } from 'vue'
-import { TRIP_CARDS, type TripCardProps } from '@/lib/tripCards'
+import { TRIP_CARDS, type TripCardProps } from '@/kernel/tripCards'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 const routerPush = vi.fn()
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush, replace: vi.fn() }),

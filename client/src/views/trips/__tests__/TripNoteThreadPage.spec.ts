@@ -15,22 +15,22 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripNoteThreadPage from '../TripNoteThreadPage.vue'
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const router = { replace: vi.fn(), push: vi.fn() }
 vi.mock('vue-router', () => ({ useRouter: () => router }))
 
 const copied = vi.fn(async (_text: string) => true)
 vi.mock('@/lib/clipboard', () => ({ copyText: (text: string) => copied(text) }))
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn(async () => ({})) }))
+vi.mock('@/composables/shared/toast', () => ({ presentToast: vi.fn(async () => ({})) }))
 
 /** Every action sheet the view opened, newest last. */
 const sheets: { buttons: { text: string; handler?: () => void }[] }[] = []

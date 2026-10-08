@@ -15,11 +15,11 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import SettingsPage from '../SettingsPage.vue'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -39,7 +39,7 @@ vi.mock('@/auth/tokens', () => ({ loadTokens: () => session.value }))
 
 /** The answer the confirmation gives, decided per case. */
 const confirmed = vi.hoisted(() => ({ value: true }))
-vi.mock('@/lib/confirm', () => ({
+vi.mock('@/composables/shared/confirm', () => ({
   confirmAction: () => Promise.resolve(confirmed.value),
   confirmDestructive: () => Promise.resolve(confirmed.value),
 }))

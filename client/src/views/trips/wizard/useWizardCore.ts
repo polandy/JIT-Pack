@@ -10,7 +10,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { tripPath } from '@/router/paths'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useSubmitOnce } from '@/composables/useSubmitOnce'
 import { useWizardComposition } from './useWizardComposition'
 import { NEW_SERIES, useWizardMetadata } from './useWizardMetadata'

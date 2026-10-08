@@ -46,11 +46,11 @@ import SelectBox from '@/components/global/SelectBox.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
-import { useTripScreen } from '@/composables/useTripScreen'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderSelection } from '@/composables/useHeaderSelection'
-import { SELECTION_ICON, useRowSelection } from '@/composables/useRowSelection'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
 import {
   budgetLevel,
   containerWeight,
@@ -63,7 +63,7 @@ import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container, TripItem } from '@/types/domain'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()

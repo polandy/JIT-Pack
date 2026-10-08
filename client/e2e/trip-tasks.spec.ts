@@ -503,7 +503,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.mouse.move(g.x + 12, g.y + 12, { steps: 3 })
     await expect(host).toHaveAttribute('data-drag', 'dragging')
     // The chip travelling above the pointer carries `useDragToGroup`'s own
-    // shared frame (`composables/dragToGroup.css`) — this screen never drew
+    // shared frame (`composables/shared/dragToGroup.css`) — this screen never drew
     // one of its own before it, so a lost import would silently drop it back
     // to no frame at all rather than change a colour.
     const chip = page.locator('[data-drag-ghost]')

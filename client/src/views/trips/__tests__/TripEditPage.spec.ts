@@ -15,8 +15,8 @@ import TripEditPage from '../TripEditPage.vue'
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 const TRIP_ID = 'trip-1'
 

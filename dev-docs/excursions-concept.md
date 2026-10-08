@@ -120,7 +120,7 @@ with it.
 When `packing_closed_at` is set (or the trip has started — the same *before is over* test as FR-7.12 uses), step 2/3
 **do not write the trip list**. An excursion row that has no packed trip row behind it carries
 `not_in_luggage = 1` and shows *nicht im Gepäck* with one action: *Vor Ort besorgen* → a shopping entry in the
-*Vor Ort* list (FR-30, through the kernel contract `lib/shoppingSources.ts` — the excursion code does not import the
+*Vor Ort* list (FR-30, through the kernel contract `kernel/shoppingSources.ts` — the excursion code does not import the
 shopping module). The marker is **stored**, not derived, because *was it in the luggage when we left* is a fact about
 the moment of creation that a later edit to the trip list must not rewrite.
 
@@ -170,7 +170,7 @@ excursion is a packing, not a subscription.
 * **M26 lists** dated excursions by `starts_on`, undated ones after them under *ohne Datum*, past ones folded at the
   end. A row: date range, name, `packed/total`, participants' initials when not all.
 * **M1** shows an excursion **on its start day and the day before** as a card in the hero's list (through
-  `lib/tripCards.ts`), because the daypack is packed the evening before as often as the morning of.
+  `kernel/tripCards.ts`), because the daypack is packed the evening before as often as the morning of.
 * **The morning reminder** (ADR-076's server clock, six o'clock) names an excursion starting today with open rows.
   It is the same run and the same one notification per person, one line more — not a second job.
 * **No return check** (decision #7). An excursion is over when its `ends_on` has passed; its list then reads as

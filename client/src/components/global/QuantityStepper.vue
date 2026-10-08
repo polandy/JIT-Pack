@@ -11,7 +11,7 @@ import { removeOutline, addOutline } from 'ionicons/icons'
 import { computed, onUnmounted } from 'vue'
 
 import { t } from '@/i18n'
-import { useLongPress } from '@/composables/useLongPress'
+import { useLongPress } from '@/composables/shared/useLongPress'
 
 const props = withDefaults(
   defineProps<{

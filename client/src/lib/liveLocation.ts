@@ -2,7 +2,7 @@
  * Live location's rules (FR-29.19, ADR-087) — pure: when this device sends its
  * position, how the positions others send are kept, and when one is too old
  * to draw. The socket and the device's geolocation are the composable's
- * (`composables/useLiveLocation.ts`); what they decide is here.
+ * (`composables/shared/useLiveLocation.ts`); what they decide is here.
  */
 import type { LiveLocation } from '@/api/types'
 

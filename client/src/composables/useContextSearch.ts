@@ -1,7 +1,7 @@
 import { searchOutline } from 'ionicons/icons'
 import { ref } from 'vue'
 
-import type { HeaderAction } from '@/composables/useHeaderActions'
+import type { HeaderAction } from '@/composables/shared/useHeaderActions'
 import { t } from '@/i18n'
 
 /**

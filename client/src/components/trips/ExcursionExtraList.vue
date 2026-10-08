@@ -10,7 +10,7 @@ import { computed } from 'vue'
 
 import ListRow from '@/components/global/ListRow.vue'
 import { t } from '@/i18n'
-import type { ExcursionExtraLine } from '@/lib/excursionExtraLines'
+import type { ExcursionExtraLine } from '@/kernel/excursionExtraLines'
 
 const props = defineProps<{ lines: readonly ExcursionExtraLine[] }>()
 

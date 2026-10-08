@@ -44,13 +44,15 @@ const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
  *
  * `types/` is the shapes, `api/types` the generated wire contract, `sync/` the
  * transport-shaped leaves the rules write through (the HLC, the mutation
- * factory, the column codecs), `lib/` the dependency-free helpers. Everything
- * else in the app either calls these rules or is a piece of the browser they
- * are written to be independent of — including `i18n/`, which reaches Vue one
- * import further down and would make a rule module un-constructible without an
- * app instance.
+ * factory, the column codecs), `lib/` the dependency-free helpers, `kernel/`
+ * the contracts a module and the packing code meet through (an `InjectionKey`
+ * is a type-only reach into Vue, not a runtime one). Everything else in the
+ * app either calls these rules or is a piece of the browser they are written
+ * to be independent of — including `i18n/`, which reaches Vue one import
+ * further down and would make a rule module un-constructible without an app
+ * instance.
  */
-const ALLOWED_DIRS = ['api', 'domain', 'lib', 'sync', 'types']
+const ALLOWED_DIRS = ['api', 'domain', 'kernel', 'lib', 'sync', 'types']
 
 /**
  * Packages that make a module un-constructible outside a browser app. `yaml`

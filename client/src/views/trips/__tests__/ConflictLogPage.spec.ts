@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
@@ -19,9 +19,9 @@ import { setLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 function entry(over: Partial<ConflictEntry> = {}): ConflictEntry {
   return {

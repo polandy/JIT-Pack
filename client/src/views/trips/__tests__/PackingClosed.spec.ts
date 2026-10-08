@@ -21,17 +21,17 @@ import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
-import type { HeaderAction } from '@/composables/useHeaderActions'
+import type { HeaderAction } from '@/composables/shared/useHeaderActions'
 import type { RowUndo } from '@/composables/useRowUndo'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { PACKING_CLOSE_CROSSINGS, type PackingCloseCrossing } from '@/lib/packingClose'
-import { setHeaderActions } from '@/composables/useHeaderActions'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { PACKING_CLOSE_CROSSINGS, type PackingCloseCrossing } from '@/kernel/packingClose'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),

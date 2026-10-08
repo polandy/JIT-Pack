@@ -13,7 +13,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import CreateItemSheet from '../CreateItemSheet.vue'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'

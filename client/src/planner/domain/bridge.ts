@@ -6,7 +6,7 @@ import {
   IDEA_RESULT_KINDS,
   type IdeaResult,
   type IdeaResultKind,
-} from '@/lib/ideaBridge'
+} from '@/kernel/ideaBridge'
 import { IDEA_STATE_SHORTLISTED, type IdeaState } from '@/types/domain'
 
 /**

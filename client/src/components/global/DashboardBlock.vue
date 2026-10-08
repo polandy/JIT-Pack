@@ -18,15 +18,15 @@ import { addOutline, checkmarkCircleOutline, chevronUpOutline } from 'ionicons/i
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 
 import { t } from '@/i18n'
-import { onBlockCall } from '@/lib/blockCall'
-import { useBlockFold } from '@/lib/blockFold'
+import { onBlockCall } from '@/composables/blockCall'
+import { useBlockFold } from '@/composables/blockFold'
 
 const props = defineProps<{
   /** The block's name, in the label role. */
   title: string
   /** The open count. */
   count: number
-  /** The remembered fold's key (`lib/blockFold.ts`). */
+  /** The remembered fold's key (`composables/blockFold.ts`). */
   foldKey: string
   /**
    * The field's placeholder, which is also its label; a block without one has

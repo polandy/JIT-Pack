@@ -27,7 +27,7 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{

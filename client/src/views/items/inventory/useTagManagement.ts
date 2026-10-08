@@ -4,12 +4,12 @@
  */
 import { computed, ref } from 'vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { tagDeletion, TAG_DELETE_REFUSED } from '@/domain/tags'
 import { t } from '@/i18n'
-import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
-import { promptTagMerge, promptTagMergeMany } from '@/lib/tagMergePrompt'
-import { presentToast } from '@/lib/toast'
+import { confirmAction, confirmDestructive, promptText } from '@/composables/shared/confirm'
+import { promptTagMerge, promptTagMergeMany } from '@/composables/tagMergePrompt'
+import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import type { Tag } from '@/types/domain'
 

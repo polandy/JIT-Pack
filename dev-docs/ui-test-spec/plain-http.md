@@ -8,7 +8,7 @@
   travelers, items) got ids, not only the first insert.
 * **E2E-NFR-SEC-04** `local` (FR-27.1): a group is created in M7 and takes a position in M8.
 * **E2E-NFR-SEC-05** `local` (FR-22.1, FR-29.5): with `crypto.subtle` removed too, an item photo lands in M10 — the
-  Local Mode image hash does not need SHA-256 (`composables/sync/__tests__/hashBlob.spec.ts`).
+  Local Mode image hash does not need SHA-256 (`app/__tests__/hashBlob.spec.ts`).
 
 *Why these are their own unit:* the suite serves from `localhost`, which **is** a secure context, so no ordinary case
 can reach the broken state — the defect was invisible to a green suite on principle rather than by accident.

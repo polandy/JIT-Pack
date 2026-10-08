@@ -6,7 +6,7 @@
  * an excursion.
  */
 import { daysBetween } from '@/lib/dueDay'
-import type { MealExcursion, MealTrip } from '@/lib/mealContext'
+import type { MealExcursion, MealTrip } from '@/kernel/mealContext'
 import type { Meal, MealIngredient, MealKind, MealSlot } from '@/types/domain'
 import { UNIT_PATTERN } from './units'
 import {

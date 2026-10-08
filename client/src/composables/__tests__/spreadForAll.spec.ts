@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
-import { SPREAD } from '../sync/actions/packing'
+import { SPREAD } from '@/app/actions/packing'
 import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'

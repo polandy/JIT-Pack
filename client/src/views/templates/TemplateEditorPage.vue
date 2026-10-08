@@ -41,7 +41,7 @@ import SectionHead from '@/components/global/SectionHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import {
   PICKER_SEARCH_MIN_GROUPS,
   groupFoldOffer,
@@ -55,7 +55,7 @@ import {
 import type { GroupMatch, GroupSearchCandidate } from '@/domain/templates'
 import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { positionChips as chipsFor } from '@/lib/positionChips'
 import { useMasterStore } from '@/stores/masterStore'
@@ -63,7 +63,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { TaskPhase, TemplateItem, TemplateKind, TemplateTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import { taskPhaseOf } from '@/domain/tripTodos'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const props = defineProps<{ templateId: string }>()
 

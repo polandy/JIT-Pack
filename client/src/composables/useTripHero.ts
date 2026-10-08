@@ -9,7 +9,7 @@
  * and the figure — M1's preview and day blocks, M2's change chips — stays the
  * screen's.
  */
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { isOpenRow } from '@/domain/dashboardSections'
 import { tripDay } from '@/domain/tripDay'
 import { t } from '@/i18n'

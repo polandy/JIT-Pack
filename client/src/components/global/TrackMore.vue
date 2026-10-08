@@ -18,8 +18,8 @@ import { ref } from 'vue'
 
 import type { TrackSettings } from '@/domain/track'
 import { t } from '@/i18n'
-import { promptText } from '@/lib/confirm'
-import { useTileState } from '@/lib/mapTiles'
+import { promptText } from '@/composables/shared/confirm'
+import { useTileState } from '@/composables/shared/mapTiles'
 import type { TrackFields } from '@/types/domain'
 
 const props = defineProps<{ track: TrackFields }>()

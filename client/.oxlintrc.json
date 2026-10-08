@@ -49,9 +49,9 @@
       // and so is a GPX track's with its file (FR-29.17).
       "files": [
         "src/sync/cascade.ts",
-        "src/composables/sync/images.ts",
-        "src/composables/sync/ideaImages.ts",
-        "src/composables/sync/trackFiles.ts"
+        "src/app/images.ts",
+        "src/app/ideaImages.ts",
+        "src/app/trackFiles.ts"
       ],
       "rules": { "no-restricted-imports": "off" }
     },

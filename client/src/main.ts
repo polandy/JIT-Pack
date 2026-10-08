@@ -31,7 +31,7 @@ import { initTheme } from './theme/theme'
 
 /* `useDragToGroup`'s own visual contract (ADR-060) — the dragged clone and
  * the row it left behind look the same wherever the gesture is offered. */
-import './composables/dragToGroup.css'
+import './composables/shared/dragToGroup.css'
 
 /* `useEdgeFades`' own visual contract (G-13) — a row that scrolls sideways
  * fades and snaps the same wherever it stands. */
@@ -41,10 +41,10 @@ import './composables/edgeFades.css'
  * before mount for the same reason as the theme — the first paint should
  * already be in the user's language, not switch under them. */
 import { initLocale } from './i18n'
-import { initCurrency } from './lib/currency'
-import { initMapTiles } from './lib/mapTiles'
-import { initTimetable } from './lib/timetable'
-import { initRouting } from './lib/routing'
+import { initCurrency } from './i18n/currency'
+import { initMapTiles } from './composables/shared/mapTiles'
+import { initTimetable } from './composables/shared/timetable'
+import { initRouting } from './composables/routing'
 import { markPresentedActionSheets } from './lib/presented'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at

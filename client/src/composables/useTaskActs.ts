@@ -14,7 +14,7 @@
  */
 import type { Ref } from 'vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import type { RowUndo } from '@/composables/useRowUndo'
 import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'

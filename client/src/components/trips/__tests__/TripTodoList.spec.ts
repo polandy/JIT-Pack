@@ -18,7 +18,7 @@ import { RouterLinkStub, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import type { TripTask } from '@/domain/tripTodos'
 
 import ListRows from '@/components/global/ListRows.vue'

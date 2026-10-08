@@ -27,7 +27,7 @@ import { computed } from 'vue'
 
 import TrackLines from '@/components/global/TrackLines.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { trackHueClass } from '@/components/global/trackColors'
+import { trackHueClass } from '@/lib/trackColors'
 import { decodeLine } from '@/domain/track'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'

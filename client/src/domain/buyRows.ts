@@ -4,7 +4,7 @@
  *
  * This is the packing side of the shopping contract (FR-30.2, ADR-066): the
  * packing list decides what of its own is a thing to buy, and
- * `composables/packingShoppingSource.ts` hands the result to the shopping
+ * `kernel/packingShoppingSource.ts` hands the result to the shopping
  * module as `ShoppingLine`s. It groups by category (FR-3.2) and, within a
  * category, yields **one row per thing to buy**. A per-person item (FR-25.1) is N
  * `trip_items` rows with N quantities, and buying is a *single act*: it is

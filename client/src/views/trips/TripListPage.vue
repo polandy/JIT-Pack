@@ -62,7 +62,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { isPackingClosed } from '@/lib/tripPhase'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
-import { useIdentity } from '@/composables/useTripIdentity'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import {
@@ -72,14 +72,14 @@ import {
   tripRowActions,
   type TripRowAction,
 } from '@/domain/trips'
-import { useLongPress } from '@/composables/useLongPress'
+import { useLongPress } from '@/composables/shared/useLongPress'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatTripPeriod } from '@/lib/format'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
-import { setHeaderActions } from '@/composables/useHeaderActions'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import {
   PATH,
   seriesPath,
@@ -89,8 +89,8 @@ import {
   tripStartingPath,
   tripSubPath,
 } from '@/router/paths'
-import { confirmDestructive } from '@/lib/confirm'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { confirmDestructive } from '@/composables/shared/confirm'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const tripStore = useTripStore()
 const masterStore = useMasterStore()

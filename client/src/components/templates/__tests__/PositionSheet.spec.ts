@@ -12,7 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import PositionSheet from '../PositionSheet.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK, type ItemMode } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
