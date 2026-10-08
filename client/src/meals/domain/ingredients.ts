@@ -4,8 +4,8 @@
  * rule. The names live in the meals themselves: there is no catalogue.
  */
 import { foldSearch, spellOutUmlauts } from '@/domain/search'
-import { daysBetween } from '@/lib/dueDay'
-import type { MealTrip } from '@/kernel/mealContext'
+import { daysBetween } from '@/domain/dueDay'
+import type { MealTrip } from '@/domain/mealContext'
 import type { Meal, MealIngredient } from '@/types/domain'
 import { parseIngredient } from './mealPlan'
 import { namedTotal, unitOf, type Unit, type UnitFamily } from './units'

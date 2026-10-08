@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { MealTrip } from '@/kernel/mealContext'
+import type { MealTrip } from '@/domain/mealContext'
 import type { Meal, MealIngredient } from '@/types/domain'
 import {
   builtInFresh,

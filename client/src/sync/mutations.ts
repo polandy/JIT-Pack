@@ -53,7 +53,7 @@ export type {
   ChecklistItemEdit,
 } from './mutations/trips'
 export type { MasterItemEdit, ItemDependencyEdit } from './mutations/masterData'
-export type { TemplateEdit, TemplateItemEdit, GeneratedTripItemEdit } from './mutations/templates'
+export type { TemplateEdit, TemplateItemEdit } from './mutations/templates'
 
 export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
   function make<T extends SyncTable>(

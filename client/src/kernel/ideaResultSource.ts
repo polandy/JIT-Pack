@@ -1,6 +1,6 @@
 /**
  * The packing side's results of an idea (FR-29.13) — its half of the contract
- * in `kernel/ideaBridge.ts`: the excursion and the trip tasks whose `idea_id`
+ * in `domain/ideaBridge.ts`: the excursion and the trip tasks whose `idea_id`
  * names the idea. A projection, never a copy; the shopping module answers for
  * its entries itself.
  */
@@ -9,7 +9,7 @@ import {
   IDEA_RESULT_TASK,
   type IdeaResult,
   type IdeaResultSource,
-} from '@/kernel/ideaBridge'
+} from '@/domain/ideaBridge'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
 import type { Excursion, TripTodo } from '@/types/domain'
 

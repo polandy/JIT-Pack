@@ -16,7 +16,8 @@
 import { inject, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { IDEA_LOOKUP, type IdeaSeed } from '@/kernel/ideaBridge'
+import type { IdeaSeed } from '@/domain/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 
 export function useIdeaSeed(

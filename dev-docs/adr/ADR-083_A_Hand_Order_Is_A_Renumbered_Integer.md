@@ -2,8 +2,8 @@
 
 **Status:** Accepted
 **Related:** FR-30.13, FR-7.17, FR-24.10 (the tag axis, the precedent), FR-30.2/ADR-066 (the shopping module and its
-sources), NFR-4.2a (field-level LWW), `client/src/lib/handOrder.ts`, `shopping_entries.position`, `comments.position`,
-`trip_items.shopping_position`, `excursion_items.shopping_position`
+sources), NFR-4.2a (field-level LWW), `client/src/domain/handOrder.ts`, `shopping_entries.position`,
+`comments.position`, `trip_items.shopping_position`, `excursion_items.shopping_position`
 
 **Decision Drivers (in priority order):**
 1. **A move must never lose a line or a task**, whatever two devices did offline at once. An odd order after a clash is
@@ -25,7 +25,7 @@ Each row that can stand in a list carries its place: `shopping_entries.position`
 `shopping_position` on `trip_items` and `excursion_items` (a place on M6, apart from anything the row means on its own
 list). NULL is „never placed" and reads **before** every placed row, in the order the group already had. A move takes
 the group as the screen shows it, puts the row at the gap, numbers the whole group `0…n-1` and writes only the rows
-whose number changed — `planTagReorder`'s rule, now one kernel function (`lib/handOrder.ts`) for both lists. A line
+whose number changed — `planTagReorder`'s rule, now one kernel function (`domain/handOrder.ts`) for both lists. A line
 typed by hand takes one past the highest place of its trip, so it lands at the end of whatever group it is filed in.
 The shopping module writes a sourced line's place through the line (`ShoppingLine.place`), which the source binds, as
 it already binds the purchase.
@@ -89,7 +89,7 @@ The module keeps the place of every line by its key, sourced lines included, and
 ## Decision
 
 A hand order is a nullable integer on the row itself, compared only inside one group, renumbered `0…n-1` by a move
-that writes what changed (`lib/handOrder.ts`). Never-placed rows read first, in the group's old order.
+that writes what changed (`domain/handOrder.ts`). Never-placed rows read first, in the group's old order.
 
 ## Consequences
 

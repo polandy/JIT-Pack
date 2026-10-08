@@ -42,17 +42,24 @@ const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
  * written: `client/src` has fifteen directories today, and the next one added
  * would be importable by default under the opposite rule.
  *
- * `types/` is the shapes, `api/types` the generated wire contract, `sync/` the
- * transport-shaped leaves the rules write through (the HLC, the mutation
- * factory, the column codecs), `lib/` the dependency-free helpers, `kernel/`
- * the contracts a module and the packing code meet through (an `InjectionKey`
- * is a type-only reach into Vue, not a runtime one). Everything else in the
- * app either calls these rules or is a piece of the browser they are written
- * to be independent of — including `i18n/`, which reaches Vue one import
- * further down and would make a rule module un-constructible without an app
- * instance.
+ * `domain/` is the bottom of the layer order (ADR-096), so it reads only the
+ * vocabulary below it: `types/` the shapes and `api/` the generated wire
+ * contract. A port a module's rules read — what the day plan, the idea bridge
+ * or the meal plan is handed — keeps its shape in `domain/` and only its
+ * `InjectionKey` in `kernel/`. Everything else in the app either calls these
+ * rules or is a piece of the browser they are written to be independent of —
+ * including `i18n/`, which reaches Vue one import further down and would make
+ * a rule module un-constructible without an app instance.
  */
-const ALLOWED_DIRS = ['api', 'domain', 'kernel', 'lib', 'sync', 'types']
+const ALLOWED_DIRS = ['api', 'domain', 'types']
+
+/**
+ * Single files above `domain/` a rule module may still name, each a known
+ * edge against the order with the item that closes it. The portable import
+ * writes through the mutation factory's builders and names their type
+ * (ARCH-16c).
+ */
+const ALLOWED_PATHS = ['sync/mutations']
 
 /**
  * Packages that make a module un-constructible outside a browser app. `yaml`
@@ -61,12 +68,19 @@ const ALLOWED_DIRS = ['api', 'domain', 'kernel', 'lib', 'sync', 'types']
  */
 const FORBIDDEN_PACKAGES = [/^vue$/, /^vue-router$/, /^pinia$/, /^@ionic\//]
 
+/**
+ * The rule modules, without their specs: a spec may hand a rule the real
+ * collaborator it is wired to in production — the portable import's spec
+ * builds its mutations with the factory and an HLC — and the direction is
+ * about what ships, as in `module-boundary-gate.mjs`.
+ */
 function walk(dir) {
   const out = []
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry)
-    if (statSync(full).isDirectory()) out.push(...walk(full))
-    else if (entry.endsWith('.ts')) out.push(full)
+    if (statSync(full).isDirectory()) {
+      if (entry !== '__tests__') out.push(...walk(full))
+    } else if (entry.endsWith('.ts')) out.push(full)
   }
   return out
 }
@@ -74,13 +88,12 @@ function walk(dir) {
 /**
  * Every module specifier the file names, whether the import is type-only or
  * not, plus dynamic `import(...)` — the two forms that would otherwise be the
- * loophole.
+ * loophole. `from '…'` is matched wherever it stands, so a multi-line import
+ * (`} from '…'` on its own line) is seen.
  */
 function specifiers(source) {
   return [
-    ...[...source.matchAll(/(?:^|\n)\s*(?:import|export)[^\n]*?from\s*['"]([^'"]+)['"]/g)].map(
-      (m) => m[1],
-    ),
+    ...[...source.matchAll(/(?:^|[\s}])from\s*['"]([^'"]+)['"]/g)].map((m) => m[1]),
     ...[...source.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]),
   ]
 }
@@ -111,7 +124,11 @@ for (const file of DOMAINS.flatMap((dir) => walk(resolve(SRC, dir)))) {
       continue
     }
     const layer = inside.split('/')[0]
-    if (!ALLOWED_DIRS.includes(layer) && !inside.startsWith(`${home}/`)) {
+    if (
+      !ALLOWED_DIRS.includes(layer) &&
+      !ALLOWED_PATHS.includes(inside) &&
+      !inside.startsWith(`${home}/`)
+    ) {
       problems.push(
         `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,
       )
@@ -134,7 +151,7 @@ if (problems.length > 0) {
   console.error(
     '\nInvariant 4: the pure client-side rules live in client/src/domain and are testable ' +
       'without a component tree. A type-only import counts — it is the shape this gate was ' +
-      'written for. Move the thing being named down into domain/, sync/, lib/ or types/.',
+      'written for. Move the thing being named down into domain/ or types/.',
   )
   process.exit(1)
 }

@@ -92,3 +92,14 @@ folder.
 
 A layer whose files keep needing an exception to the edge table, or a fourth feature module that needs a kernel
 contract `kernel/` cannot express without importing a module.
+
+## Amendment, 2026-10-08: `domain/` is the bottom, without exceptions but one (ARCH-16b)
+
+The order put `domain/` first, yet the purity gate still let the rule directories read `lib/`, `sync/` and `kernel/` —
+the edges the old layout had hidden. They are closed: the day rules and the hand order are rules, so `dueDay.ts` and
+`handOrder.ts` moved into `domain/`; a port a module's rules read keeps its shape in `domain/` (`dayPlanLine.ts`,
+`ideaBridge.ts`, `mealContext.ts`) and only its `InjectionKey` in `kernel/`, the split `activityReader` already had; a
+rule hands back domain values and `sync/` encodes them (`trackSettingsChanges` → `trackSettingsColumns`). The gate
+now allows `types/`, `api/` and `domain/`, plus one named file: the portable import builds through the mutation
+factory and names its type, which needs the builders' option shapes moved below `sync/` first (ARCH-16c). The cost is
+five more entries on the boundary gate's list of `domain/` files a module may read, until ARCH-19 gives them a folder.

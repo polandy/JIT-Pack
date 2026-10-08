@@ -11,7 +11,7 @@
 import type { Component, InjectionKey } from 'vue'
 
 import type { TripSubScreen } from '@/router/paths'
-import type { DueTally } from '@/lib/dueDay'
+import type { DueTally } from '@/domain/dueDay'
 
 /** What M1 tells a card about the trip it sits under. */
 export interface TripCardProps {

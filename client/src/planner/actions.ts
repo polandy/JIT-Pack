@@ -14,7 +14,7 @@ import {
   MAX_TRACKS,
   nextTrackPosition,
   orderTracks,
-  trackSettingsPatch,
+  trackSettingsChanges,
   type TrackSettings,
 } from '@/domain/track'
 import { newId } from '@/lib/ids'
@@ -24,6 +24,7 @@ import type { Write } from '@/sync/writeFunnel'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeChanges, cascadeOf, cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete } from '@/sync/optimistic'
+import { trackSettingsColumns } from '@/sync/rows'
 import type {
   ConnectionLeg,
   DayEntry,
@@ -394,7 +395,7 @@ export function createPlannerActions(
 
   /** FR-29.17: writes only the settings that changed. */
   function updateTrack(track: IdeaTrack, settings: TrackSettings): void {
-    const patch = trackSettingsPatch(track, settings)
+    const patch = trackSettingsColumns(trackSettingsChanges(track, settings))
     if (Object.keys(patch).length === 0) return
     const mutation = host.mutation('upsert', TABLE.ideaTracks, track.id, patch)
     host.write(mutation)

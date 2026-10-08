@@ -88,6 +88,15 @@ const KERNEL_PATHS = [
   // What an activity entry's reader is (FR-32.2): a kind, an area and the
   // before/after of a field — each module brings its own reader of its rows.
   'domain/activityReader',
+  // The shapes of the ports a module is handed (FR-29.13, FR-29.15, §3.33):
+  // they sit below the module's own rules, the keys stay in `kernel/`.
+  'domain/dayPlanLine',
+  'domain/ideaBridge',
+  'domain/mealContext',
+  // A day's due state (FR-30.10) and a hand order's renumbering (ADR-083):
+  // the shopping list and the meal plan count and order as the tasks do.
+  'domain/dueDay',
+  'domain/handOrder',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

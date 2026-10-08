@@ -5,8 +5,8 @@
  * earlier dishes are offered, where the ＋ opens and whether a meal may go on
  * an excursion.
  */
-import { daysBetween } from '@/lib/dueDay'
-import type { MealExcursion, MealTrip } from '@/kernel/mealContext'
+import { daysBetween } from '@/domain/dueDay'
+import type { MealExcursion, MealTrip } from '@/domain/mealContext'
 import type { Meal, MealIngredient, MealKind, MealSlot } from '@/types/domain'
 import { UNIT_PATTERN } from './units'
 import {

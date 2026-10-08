@@ -19,7 +19,7 @@ import {
   sortByDue,
   type DueState,
   type DueTally,
-} from '@/lib/dueDay'
+} from '@/domain/dueDay'
 import type { TodoState } from '@/types/domain'
 
 export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY, daysBetween }

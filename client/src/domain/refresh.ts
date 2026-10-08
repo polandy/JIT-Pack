@@ -36,7 +36,6 @@ import type {
   TripTemplateSource,
 } from '@/types/domain'
 import { followsGroups } from './trips'
-import type { GeneratedTripItemEdit } from '@/sync/mutations'
 
 /** A row the refresh will create, with the traveler it belongs to resolved. */
 export interface PlannedAdd {
@@ -48,11 +47,21 @@ export interface PlannedAdd {
   ledger: GeneratedPosition
 }
 
+/** The FR-27.4 refresh's propagated fields — the only ones a group may
+ * overwrite on a trip row it generated. Everything the user decided on the
+ * trip (state, counts, container, assignment) is deliberately absent. */
+export type GeneratedTripItemEdit = Partial<
+  Pick<
+    TripItem,
+    'name' | 'quantity' | 'mode' | 'late_packer' | 'weight_grams' | 'value_cents' | 'category_name'
+  >
+>
+
 /** A row the refresh will update in place, and the todos that follow it. */
 export interface PlannedUpdate {
   item: TripItem
   /** Only the fields that actually differ — an empty object never occurs.
-   * The type is the mutation's, so the plan cannot name a field the FR-27.4
+   * The mutation takes the same type, so the plan cannot name a field the FR-27.4
    * refresh is not allowed to overwrite. */
   fields: GeneratedTripItemEdit
   /** FR-27.7 tasks the group gained, to be written as FR-7.3 todos. */

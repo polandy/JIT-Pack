@@ -16,11 +16,12 @@ import {
   MAX_TRACKS,
   nextTrackPosition,
   orderTracks,
-  trackSettingsPatch,
+  trackSettingsChanges,
   type TrackSettings,
 } from '@/domain/track'
 import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
+import { trackSettingsColumns } from '@/sync/rows'
 import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
@@ -379,7 +380,7 @@ export function createExcursionActions(
 
   /** Writes only the settings that changed. */
   function updateTrack(track: ExcursionTrack, settings: TrackSettings): void {
-    const patch = trackSettingsPatch(track, settings)
+    const patch = trackSettingsColumns(trackSettingsChanges(track, settings))
     if (Object.keys(patch).length === 0) return
     write(mutations.make('upsert', TABLE.excursionTracks, track.id, patch))
   }

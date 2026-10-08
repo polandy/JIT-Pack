@@ -11,7 +11,6 @@
  * scanner that runs under Node as well as in a browser.
  */
 import type { TrackUpload, TrackKind } from '@/api/types'
-import { dbBool } from '@/sync/columns'
 import type { TrackFields } from '@/types/domain'
 
 /** How many tracks one idea or excursion carries — the server holds the same number. */
@@ -457,22 +456,19 @@ export function nextTrackPosition(tracks: readonly Pick<TrackFields, 'position'>
 export type TrackSettings = Partial<Pick<TrackFields, 'name' | 'kind' | 'with_kid' | 'pause_min'>>
 
 /**
- * The settings that changed, as the row's columns — empty when none did.
- * A blank name is not a change: a track always has one.
+ * The settings that changed — empty when none did. A blank name is not a
+ * change: a track always has one. `sync/rows.ts` renders them as columns.
  */
-export function trackSettingsPatch(
-  track: TrackFields,
-  settings: TrackSettings,
-): Record<string, unknown> {
-  const patch: Record<string, unknown> = {}
+export function trackSettingsChanges(track: TrackFields, settings: TrackSettings): TrackSettings {
+  const changes: TrackSettings = {}
   const name = settings.name?.trim()
-  if (name && name !== track.name) patch['name'] = name
-  if (settings.kind !== undefined && settings.kind !== track.kind) patch['kind'] = settings.kind
+  if (name && name !== track.name) changes.name = name
+  if (settings.kind !== undefined && settings.kind !== track.kind) changes.kind = settings.kind
   if (settings.with_kid !== undefined && settings.with_kid !== track.with_kid) {
-    patch['with_kid'] = dbBool(settings.with_kid)
+    changes.with_kid = settings.with_kid
   }
   if (settings.pause_min !== undefined && settings.pause_min !== track.pause_min) {
-    patch['pause_min'] = settings.pause_min
+    changes.pause_min = settings.pause_min
   }
-  return patch
+  return changes
 }
