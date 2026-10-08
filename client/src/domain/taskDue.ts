@@ -1,7 +1,7 @@
 /**
  * FR-7.11 — when a task is due, and what that does to where it is shown.
  *
- * The day arithmetic is the kernel's (`lib/dueDay.ts`, shared with FR-30.10's
+ * The day arithmetic is `domain/dueDay.ts`'s (shared with FR-30.10's
  * shopping entries); what is a task's own is which task has a day worth
  * reading — an open one. A resolved task is never overdue.
  */

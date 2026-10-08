@@ -25,7 +25,7 @@ Each row that can stand in a list carries its place: `shopping_entries.position`
 `shopping_position` on `trip_items` and `excursion_items` (a place on M6, apart from anything the row means on its own
 list). NULL is „never placed" and reads **before** every placed row, in the order the group already had. A move takes
 the group as the screen shows it, puts the row at the gap, numbers the whole group `0…n-1` and writes only the rows
-whose number changed — `planTagReorder`'s rule, now one kernel function (`domain/handOrder.ts`) for both lists. A line
+whose number changed — `planTagReorder`'s rule, now one domain function (`domain/handOrder.ts`) for both lists. A line
 typed by hand takes one past the highest place of its trip, so it lands at the end of whatever group it is filed in.
 The shopping module writes a sourced line's place through the line (`ShoppingLine.place`), which the source binds, as
 it already binds the purchase.

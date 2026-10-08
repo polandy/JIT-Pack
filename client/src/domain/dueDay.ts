@@ -1,7 +1,7 @@
 /**
  * A due *day* read against today — the arithmetic FR-7.11 gave a task and
- * FR-30.10 gives a shopping entry. Kernel rather than `domain/` because both
- * features read it and a feature module reaches only the kernel (FR-30.3);
+ * FR-30.10 gives a shopping entry. Both features read it, so the shopping
+ * module may name this file (`scripts/module-boundary-gate.mjs`);
  * what makes a task or an entry *done* stays with each (`domain/taskDue.ts`,
  * `shopping/list.ts`), and only an open thing's day comes in here.
  *
