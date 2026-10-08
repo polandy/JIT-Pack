@@ -10,7 +10,7 @@
 
 import type { TaskPhase } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
-import { MS_PER_DAY } from './shared/calendar'
+import { dayNumber, MS_PER_DAY } from './shared/calendar'
 
 /** What the counter says; the view chooses the words. */
 export type TripDay =
@@ -23,13 +23,6 @@ export type TripDay =
   | { kind: 'during'; day: number; total: number | null; remaining: number | null }
   | { kind: 'last' }
   | { kind: 'after' }
-
-/** A `YYYY-MM-DD` date as a day number, immune to DST since it goes through UTC. */
-function dayNumber(iso: string): number | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  if (!match) return null
-  return Math.floor(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / MS_PER_DAY)
-}
 
 /** tripDay reads the calendar; `today` is the reader's local day. */
 export function tripDay(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { addDays, daysBetween, daysOf } from '../calendar'
+import { addDays, dayNumber, daysBetween, daysOf } from '../calendar'
 
 describe('addDays', () => {
   it.each([
@@ -13,6 +13,23 @@ describe('addDays', () => {
     { from: '2026-03-28', n: 2, want: '2026-03-30' },
   ])('moves $from by $n to $want', ({ from, n, want }) => {
     expect(addDays(from, n)).toBe(want)
+  })
+})
+
+describe('dayNumber', () => {
+  it('counts whole days, so neighbours are one apart across the clock change', () => {
+    expect(dayNumber('2026-03-30')! - dayNumber('2026-03-29')!).toBe(1)
+    expect(dayNumber('2026-10-26')! - dayNumber('2026-07-08')!).toBe(
+      daysBetween('2026-07-08', '2026-10-26'),
+    )
+  })
+
+  it('reads the day of a timestamp, not its hour', () => {
+    expect(dayNumber('2026-07-08T23:30:00Z')).toBe(dayNumber('2026-07-08'))
+  })
+
+  it.each(['', 'not-a-date', '08.07.2026', '2026-7-8'])('reads no day from %j', (text) => {
+    expect(dayNumber(text)).toBeNull()
   })
 })
 

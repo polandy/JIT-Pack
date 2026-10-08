@@ -17,6 +17,16 @@ function utcDay(day: string): number {
   return Date.UTC(year, month - 1, date)
 }
 
+/**
+ * The day a `YYYY-MM-DD` text names, as a count of days — null when the text
+ * names none. A timestamp counts as its date. Two days' numbers subtract to
+ * the days between them.
+ */
+export function dayNumber(text: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}/.test(text)) return null
+  return utcDay(text.slice(0, 10)) / MS_PER_DAY
+}
+
 /** `day` moved by `n` calendar days; a negative `n` steps back. */
 export function addDays(day: string, n: number): string {
   return new Date(utcDay(day) + n * MS_PER_DAY).toISOString().slice(0, 10)
