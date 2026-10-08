@@ -653,7 +653,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   })
 
   /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
-  function packingNow(tripId: string, item: TripItem) {
+  function packingNow(item: TripItem) {
     const mut = mutations.startPackingNow(item.id)
     locks.claim(item.id)
     write(mut)
@@ -738,7 +738,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * says the same thing the stepper says — a release that always wrote
    * `open` would throw away work already in the bag.
    */
-  function releaseClaim(tripId: string, item: TripItem) {
+  function releaseClaim(item: TripItem) {
     const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
     locks.release(item.id)
     write(mut)

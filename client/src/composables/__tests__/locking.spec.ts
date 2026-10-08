@@ -88,7 +88,7 @@ describe('lock state (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
 
     const claimed = tripStore.getItems('t1')[0]!
     expect(claimed.state).toBe('packing_now')
@@ -141,7 +141,7 @@ describe('who holds the lock (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
 
     expect(orch.lockHolder('t1', tripStore.getItems('t1')[0]!)).toBeNull()
   })
@@ -166,7 +166,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
     const claimed = tripStore.getItems('t1')[0]!
     expect(orch.holdsClaim('t1', claimed)).toBe(true)
 
@@ -192,7 +192,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
     // What a drain after the takeover writes: the server has stamped the
     // taker (invariant 3), and this device may have been offline for the
     // event entirely.
@@ -216,7 +216,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
     // The hub broadcasts a claim to every subscriber including the claimer,
     // and my own second device is still me — this must not read as a
     // takeover.
@@ -238,7 +238,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
     wsInstances[0]!.onmessage!({
       data: JSON.stringify({
         type: 'item.locked',
@@ -258,7 +258,7 @@ describe('my own claim (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
+    orch.packingNow(item)
 
     const claimed = tripStore.getItems('t1')[0]!
     // Both halves: the row is not locked *for me* — that is what makes it
@@ -272,8 +272,8 @@ describe('my own claim (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
-    orch.releaseClaim('t1', tripStore.getItems('t1')[0]!)
+    orch.packingNow(item)
+    orch.releaseClaim(tripStore.getItems('t1')[0]!)
 
     expect(orch.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(false)
   })
@@ -285,8 +285,8 @@ describe('releasing a claim (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 3, packed_count: 1 })
 
-    orch.packingNow('t1', item)
-    orch.releaseClaim('t1', tripStore.getItems('t1')[0]!)
+    orch.packingNow(item)
+    orch.releaseClaim(tripStore.getItems('t1')[0]!)
 
     const after = tripStore.getItems('t1')[0]!
     // Partial, not open: one of the three is already in the bag, and a
@@ -302,8 +302,8 @@ describe('releasing a claim (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 2, packed_count: 0 })
 
-    orch.packingNow('t1', item)
-    orch.releaseClaim('t1', tripStore.getItems('t1')[0]!)
+    orch.packingNow(item)
+    orch.releaseClaim(tripStore.getItems('t1')[0]!)
 
     expect(tripStore.getItems('t1')[0]!.state).toBe('open')
   })
@@ -313,8 +313,8 @@ describe('releasing a claim (G-3)', () => {
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow('t1', item)
-    orch.releaseClaim('t1', tripStore.getItems('t1')[0]!)
+    orch.packingNow(item)
+    orch.releaseClaim(tripStore.getItems('t1')[0]!)
 
     // Asserted on the row the other devices would read, not on the local
     // `myLocks` bookkeeping — that one never locked it for me anyway.

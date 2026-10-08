@@ -264,9 +264,9 @@ export function usePackingMenus(
       }
       case 'release':
         armRowsUndo(rows, (live) => {
-          if (!locked(live)) orchestrator.packingNow(tripId, live)
+          if (!locked(live)) orchestrator.packingNow(live)
         })
-        for (const row of rows) orchestrator.releaseClaim(tripId, row)
+        for (const row of rows) orchestrator.releaseClaim(row)
         report()
         return
       case 'unskip':
@@ -276,9 +276,9 @@ export function usePackingMenus(
         return
       case 'packingNow':
         armRowsUndo(rows, (live) => {
-          if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(tripId, live)
+          if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(live)
         })
-        for (const row of rows) orchestrator.packingNow(tripId, row)
+        for (const row of rows) orchestrator.packingNow(row)
         report()
         return
       case 'buyLocal':

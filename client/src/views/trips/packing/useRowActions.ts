@@ -78,9 +78,9 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     actUndoably(
       item,
       t('packing.claimedToast', { name: item.name }),
-      () => orchestrator.packingNow(tripId, item),
+      () => orchestrator.packingNow(item),
       (live) => {
-        if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(tripId, live)
+        if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(live)
       },
     )
   }
@@ -90,9 +90,9 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     actUndoably(
       item,
       t('packing.releasedToast', { name: item.name }),
-      () => orchestrator.releaseClaim(tripId, item),
+      () => orchestrator.releaseClaim(item),
       (live) => {
-        if (!locked(live)) orchestrator.packingNow(tripId, live)
+        if (!locked(live)) orchestrator.packingNow(live)
       },
     )
   }
