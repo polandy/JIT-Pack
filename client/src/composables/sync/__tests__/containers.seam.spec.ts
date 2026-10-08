@@ -63,7 +63,7 @@ describe('createContainerActions without an orchestrator', () => {
     })
     const container = ctx.tripStore.getContainers(TRIP_ID)[0]!
 
-    createContainerActions(ctx).updateContainer(TRIP_ID, container, { name: 'Rear' })
+    createContainerActions(ctx).updateContainer(container, { name: 'Rear' })
 
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'Rear',

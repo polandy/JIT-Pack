@@ -152,7 +152,7 @@ describe('ContainerSheet', () => {
     await input.trigger('ionBlur')
 
     expect(orchestratorFake.updateContainer).toHaveBeenCalledTimes(1)
-    expect(orchestratorFake.updateContainer.mock.calls[0]![2]).toEqual({ name: 'Left pannier' })
+    expect(orchestratorFake.updateContainer.mock.calls[0]![1]).toEqual({ name: 'Left pannier' })
 
     // The store still says 'Left' (the fake persists nothing): blurring
     // with the unchanged name must not produce a second write.
@@ -173,7 +173,7 @@ describe('ContainerSheet', () => {
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-carrier-andy"]').trigger('click')
 
-    expect(orchestratorFake.updateContainer.mock.calls[0]![2]).toEqual({
+    expect(orchestratorFake.updateContainer.mock.calls[0]![1]).toEqual({
       carrier_traveler_id: null,
     })
   })

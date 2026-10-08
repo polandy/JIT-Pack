@@ -264,7 +264,7 @@ describe('M5 assignment actions on the trip partition', () => {
     })
     mockDrain()
 
-    orch.assignTraveler('t1', trips.getItems('t1')[0]!, 'trav-9')
+    orch.assignTraveler(trips.getItems('t1')[0]!, 'trav-9')
 
     expect(trips.getItems('t1')[0]!.assigned_traveler_id).toBe('trav-9')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -291,8 +291,8 @@ describe('M5 assignment actions on the trip partition', () => {
     mockDrain()
     mockDrain()
 
-    orch.assignContainer('t1', trips.getItems('t1')[0]!, 'cont-1')
-    orch.setLatePacker('t1', trips.getItems('t1')[0]!, true)
+    orch.assignContainer(trips.getItems('t1')[0]!, 'cont-1')
+    orch.setLatePacker(trips.getItems('t1')[0]!, true)
 
     const item = trips.getItems('t1')[0]!
     expect(item.container_id).toBe('cont-1')
@@ -364,7 +364,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     const before = { ...trips.getItems('t1')[0]! }
     mockDrain()
 
-    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'unused', true)
+    orch.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
 
     const after = trips.getItems('t1')[0]!
     expect(after).toEqual({ ...before, flag_unused: true, updated_hlc: after.updated_hlc })
@@ -375,7 +375,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     const trips = seedRow()
     mockDrain()
 
-    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'unused', true)
+    orch.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
 
     const item = trips.getItems('t1')[0]!
     expect(item.flag_unused).toBe(true)
@@ -406,7 +406,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     const before = trips.getItems('t1')[0]!
 
-    orch.setPacker('t1', before, 'u-bob')
+    orch.setPacker(before, 'u-bob')
 
     // Responsibility and record are two things (FR-25.19): assigning must
     // not touch who packed it, and the optimistic row is a *replacement*,
@@ -426,10 +426,10 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     mockDrain()
 
-    orch.setPacker('t1', trips.getItems('t1')[0]!, 'u-bob')
+    orch.setPacker(trips.getItems('t1')[0]!, 'u-bob')
     expect(trips.getItems('t1')[0]!.packer_user_id).toBe('u-bob')
 
-    orch.setPacker('t1', trips.getItems('t1')[0]!, null)
+    orch.setPacker(trips.getItems('t1')[0]!, null)
     // Null, not '': a placeholder in a foreign key is what invariant 3
     // exists to keep out, and the column is nullable for exactly this.
     expect(trips.getItems('t1')[0]!.packer_user_id).toBeNull()
@@ -441,10 +441,10 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     mockDrain()
 
-    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', true)
+    orch.setReviewFlag(trips.getItems('t1')[0]!, 'missing', true)
     expect(trips.getItems('t1')[0]!.flag_missing).toBe(true)
 
-    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', false)
+    orch.setReviewFlag(trips.getItems('t1')[0]!, 'missing', false)
     expect(trips.getItems('t1')[0]!.flag_missing).toBe(false)
   })
 })

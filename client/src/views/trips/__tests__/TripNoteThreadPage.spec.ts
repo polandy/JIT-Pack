@@ -311,7 +311,6 @@ describe('M26 thread view — writing (FR-7.13)', () => {
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
     expect(acts.editNote).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'n1' }),
       'Code 4712',
       'Schlüsselbox',
@@ -355,7 +354,7 @@ describe('M26 thread view — removing (FR-7.13)', () => {
     await flushPromises()
     await choose('Delete reply')
 
-    expect(acts.deleteComment).toHaveBeenCalledWith('t1', 'r1')
+    expect(acts.deleteComment).toHaveBeenCalledWith('r1')
   })
 
   it('deletes the first note with its replies, and leaves for the list once it is gone', async () => {
@@ -368,7 +367,7 @@ describe('M26 thread view — removing (FR-7.13)', () => {
     await page.get('[data-testid="note-entry-open-n1"]').trigger('click')
     await flushPromises()
     await choose('Delete note, with 2 replies')
-    expect(acts.deleteComment).toHaveBeenCalledWith('t1', 'n1')
+    expect(acts.deleteComment).toHaveBeenCalledWith('n1')
 
     // The orchestrator is a stub: the delete lands as the store would see it.
     useTripStore().applyChange({
@@ -428,7 +427,6 @@ describe('M26 thread view — the excursion a thread is about (FR-7.15)', () => 
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
     expect(acts.setNoteExcursion).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'n1' }),
       'ex-boat',
     )
@@ -448,11 +446,7 @@ describe('M26 thread view — the excursion a thread is about (FR-7.15)', () => 
     await editor.get('[data-testid="note-excursion-chip-ex-hut"]').trigger('click')
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
-    expect(acts.setNoteExcursion).toHaveBeenCalledWith(
-      't1',
-      expect.objectContaining({ id: 'n1' }),
-      null,
-    )
+    expect(acts.setNoteExcursion).toHaveBeenCalledWith(expect.objectContaining({ id: 'n1' }), null)
   })
 
   it('offers no excursion to a reply', async () => {

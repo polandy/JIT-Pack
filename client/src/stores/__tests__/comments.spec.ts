@@ -282,7 +282,7 @@ describe('orchestrator comment actions', () => {
     orch.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
     expect(tripStore.getTripComments('t1')).toHaveLength(3)
 
-    orch.deleteComment('t1', root)
+    orch.deleteComment(root)
 
     expect(tripStore.getTripComments('t1').map((c) => c.id)).toEqual([other])
     expect(tripStore.getNoteAcks('t1')).toEqual([])

@@ -247,10 +247,8 @@ export function usePackingMenus(
         // Per row: the instances may have disagreed before the fan-out, and the
         // undo gives each its own value back (FR-25.31).
         const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
-        armRowsUndo(rows, (live) =>
-          orchestrator.setPacker(tripId, live, previous.get(live.id) ?? null),
-        )
-        orchestrator.setPackerForRows(tripId, rows, picked)
+        armRowsUndo(rows, (live) => orchestrator.setPacker(live, previous.get(live.id) ?? null))
+        orchestrator.setPackerForRows(rows, picked)
         report()
         return
       }
@@ -258,39 +256,37 @@ export function usePackingMenus(
       case 'latePackerOff': {
         const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
         armRowsUndo(rows, (live) =>
-          orchestrator.setLatePacker(tripId, live, previous.get(live.id) ?? false),
+          orchestrator.setLatePacker(live, previous.get(live.id) ?? false),
         )
-        orchestrator.setLatePackerForRows(tripId, rows, action === 'latePackerOn')
+        orchestrator.setLatePackerForRows(rows, action === 'latePackerOn')
         report()
         return
       }
       case 'release':
         armRowsUndo(rows, (live) => {
-          if (!locked(live)) orchestrator.packingNow(tripId, live)
+          if (!locked(live)) orchestrator.packingNow(live)
         })
-        for (const row of rows) orchestrator.releaseClaim(tripId, row)
+        for (const row of rows) orchestrator.releaseClaim(row)
         report()
         return
       case 'unskip':
-        rowUndo.armUndo(rows, (records) => orchestrator.restoreSkip(tripId, records))
-        for (const row of rows) orchestrator.unskipItem(tripId, row)
+        rowUndo.armUndo(rows, (records) => orchestrator.restoreSkip(records))
+        for (const row of rows) orchestrator.unskipItem(row)
         report()
         return
       case 'packingNow':
         armRowsUndo(rows, (live) => {
-          if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(tripId, live)
+          if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(live)
         })
-        for (const row of rows) orchestrator.packingNow(tripId, row)
+        for (const row of rows) orchestrator.packingNow(row)
         report()
         return
       case 'buyLocal':
       case 'packInstead': {
         const mode = action === 'buyLocal' ? ITEM_MODE_BUY_LOCAL : ITEM_MODE_PACK
         const previous = new Map(rows.map((row) => [row.id, row.mode]))
-        armRowsUndo(rows, (live) =>
-          orchestrator.setMode(tripId, live, previous.get(live.id) ?? live.mode),
-        )
-        for (const row of rows) orchestrator.setMode(tripId, row, mode)
+        armRowsUndo(rows, (live) => orchestrator.setMode(live, previous.get(live.id) ?? live.mode))
+        for (const row of rows) orchestrator.setMode(row, mode)
         report()
         return
       }
@@ -298,10 +294,10 @@ export function usePackingMenus(
       case 'unflagUnused': {
         const previous = new Map(rows.map((row) => [row.id, row.flag_unused]))
         armRowsUndo(rows, (live) =>
-          orchestrator.setReviewFlag(tripId, live, 'unused', previous.get(live.id) ?? false),
+          orchestrator.setReviewFlag(live, 'unused', previous.get(live.id) ?? false),
         )
         for (const row of rows) {
-          orchestrator.setReviewFlag(tripId, row, 'unused', action === 'flagUnused')
+          orchestrator.setReviewFlag(row, 'unused', action === 'flagUnused')
         }
         report()
         return

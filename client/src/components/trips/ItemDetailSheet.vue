@@ -185,8 +185,8 @@ function addTodo() {
 
 function toggleTodo(todo: ItemTodo) {
   if (isLocked.value) return
-  if (todo.task_state === 'open') orchestrator.resolvePrepTodo(props.tripId, todo)
-  else orchestrator.reopenPrepTodo(props.tripId, todo)
+  if (todo.task_state === 'open') orchestrator.resolvePrepTodo(todo)
+  else orchestrator.reopenPrepTodo(todo)
 }
 
 // --- Notes (FR-7.1/7.2) ---
@@ -270,7 +270,7 @@ function addCompanion(companion: SuggestedCompanion) {
 
 // --- Edits (each commits on the spot, G-5) ---
 function onModeChange(mode: ItemMode) {
-  if (item.value && !isLocked.value) orchestrator.setMode(props.tripId, item.value, mode)
+  if (item.value && !isLocked.value) orchestrator.setMode(item.value, mode)
 }
 /**
  * FR-25.28: the strip acts on every instance, and this sheet is open on one of
@@ -283,7 +283,7 @@ function onRowsRemoved(rowIds: string[]) {
 }
 
 function onContainerChange(id: string | null) {
-  if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
+  if (item.value && !isLocked.value) orchestrator.assignContainer(item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
 /**
@@ -292,17 +292,15 @@ function onContainerChange(id: string | null) {
  * placeholder invariant 3 exists to keep out.
  */
 function onAssigneeChange(value: string | null) {
-  if (item.value && !isLocked.value)
-    orchestrator.setPacker(props.tripId, item.value, value ? value : null)
+  if (item.value && !isLocked.value) orchestrator.setPacker(item.value, value ? value : null)
 }
 
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value && !isLocked.value)
-    orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
+  if (item.value && !isLocked.value) orchestrator.setReviewFlag(item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setLatePacker(props.tripId, item.value, value)
+  if (item.value && !isLocked.value) orchestrator.setLatePacker(item.value, value)
 }
 /**
  * FR-25.24: M5's posture on the amount is the opposite of M4's. There is
@@ -324,23 +322,23 @@ const quantityChoiceList = computed(() =>
 )
 
 function onSetQuantity(quantity: number) {
-  if (item.value && !isLocked.value) orchestrator.setQuantity(props.tripId, item.value, quantity)
+  if (item.value && !isLocked.value) orchestrator.setQuantity(item.value, quantity)
 }
 
 function onIncrement() {
-  if (item.value && !isLocked.value) orchestrator.packIncrement(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packIncrement(item.value)
 }
 function onDecrement() {
-  if (item.value && !isLocked.value) orchestrator.packDecrement(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packDecrement(item.value)
 }
 function onComplete() {
-  if (item.value && !isLocked.value) orchestrator.packComplete(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packComplete(item.value)
 }
 function onZero() {
-  if (item.value && !isLocked.value) orchestrator.packZero(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packZero(item.value)
 }
 function onToggle() {
-  if (item.value && !isLocked.value) orchestrator.packToggle(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packToggle(item.value)
 }
 
 /**
@@ -355,7 +353,7 @@ const isSkipped = computed(() => item.value?.state === 'skipped')
 function onSkipToggle() {
   const row = item.value
   if (!row || isLocked.value) return
-  if (row.state === 'skipped') orchestrator.unskipItem(props.tripId, row)
+  if (row.state === 'skipped') orchestrator.unskipItem(row)
   else orchestrator.skipItem(props.tripId, row)
 }
 

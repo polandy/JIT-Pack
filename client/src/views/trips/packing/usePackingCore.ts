@@ -167,7 +167,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /** Put back what a pack changed, and only that (FR-25.2). */
   function restorePacked(records: RowUndoRecord[]) {
     for (const record of records) {
-      orchestrator.restorePack(tripId, record.itemId, record.packedCount, record.state)
+      orchestrator.restorePack(record.itemId, record.packedCount, record.state)
     }
   }
 

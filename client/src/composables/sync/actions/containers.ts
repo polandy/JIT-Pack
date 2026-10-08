@@ -27,7 +27,7 @@ export function createContainerActions(ctx: SyncContext) {
     return id
   }
 
-  function updateContainer(tripId: string, container: Container, fields: ContainerEdit) {
+  function updateContainer(container: Container, fields: ContainerEdit) {
     write(mutations.updateContainer(container.id, fields))
   }
 

@@ -222,7 +222,7 @@ describe('setParticipants — FR-31.5', () => {
       templateId: GROUP_ID,
     })!
     const siasBag = lines().find((l) => l.assigned_traveler_id === 'tr-sia')!
-    actions.setLineCount(TRIP_ID, siasBag, 1)
+    actions.setLineCount(siasBag, 1)
     pullIn(ctx.tripStore, TABLE.excursionItems, 'l-book', {
       trip_id: TRIP_ID,
       excursion_id: excursionId,
@@ -267,7 +267,7 @@ describe('the line’s own acts — FR-31.6, FR-31.8', () => {
     const lamp = lines().find((l) => l.name === 'Stirnlampe')!
     const suitcaseBefore = ctx.tripStore.getItems(TRIP_ID).find((t) => t.id === lamp.trip_item_id)!
 
-    actions.toggleLine(TRIP_ID, lamp)
+    actions.toggleLine(lamp)
     expect(lines().find((l) => l.id === lamp.id)).toMatchObject({
       packed_count: 1,
       state: 'packed',
@@ -277,13 +277,10 @@ describe('the line’s own acts — FR-31.6, FR-31.8', () => {
     )
 
     const food = lines().find((l) => l.name === 'Proviant')!
-    actions.markBought(TRIP_ID, food, true)
+    actions.markBought(food, true)
     expect(lines().find((l) => l.id === food.id)!.bought_at).not.toBeNull()
 
-    actions.skipLine(
-      TRIP_ID,
-      lines().find((l) => l.id === lamp.id)!,
-    )
+    actions.skipLine(lines().find((l) => l.id === lamp.id)!)
     expect(lines().find((l) => l.id === lamp.id)).toMatchObject({ quantity: 0, state: 'skipped' })
   })
 })

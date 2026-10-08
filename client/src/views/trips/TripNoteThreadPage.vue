@@ -142,11 +142,11 @@ async function sendReply() {
 }
 
 function onSave(entry: ItemComment, body: string, title: string | null | undefined) {
-  orchestrator.editNote(props.tripId, entry, body, title)
+  orchestrator.editNote(entry, body, title)
 }
 
 function onLink(excursionId: string | null) {
-  if (thread.value) orchestrator.setNoteExcursion(props.tripId, thread.value.root, excursionId)
+  if (thread.value) orchestrator.setNoteExcursion(thread.value.root, excursionId)
 }
 
 function openExcursion() {
@@ -188,7 +188,7 @@ async function runMenu(action: NoteMenuAction, entry: ItemComment) {
   } else if (action === 'edit') {
     entryRefs.get(entry.id)?.startEdit()
   } else {
-    orchestrator.deleteComment(props.tripId, entry.id)
+    orchestrator.deleteComment(entry.id)
   }
 }
 

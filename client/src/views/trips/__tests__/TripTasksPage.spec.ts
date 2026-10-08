@@ -481,14 +481,12 @@ describe('M25 — the sheet in the order acts are wanted (FR-7.14)', () => {
     await flushPromises()
 
     expect(acts.setTaskBody).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Pas holen' }),
       'Pass holen',
     )
     acts.setTaskBody.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     expect(acts.setTaskBody).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Pas holen' }),
       'Pas holen',
     )
@@ -524,7 +522,6 @@ describe('M25 — the crossing by hand (FR-7.7)', () => {
     await flushPromises()
 
     expect(acts.setTaskPhase).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       'during',
     )
@@ -534,7 +531,6 @@ describe('M25 — the crossing by hand (FR-7.7)', () => {
     acts.setTaskPhase.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     expect(acts.setTaskPhase).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       'before',
     )
@@ -721,7 +717,6 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
 
     expect(acts.setTaskTag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       'apo',
     )
@@ -731,7 +726,6 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     acts.setTaskTag.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     expect(acts.setTaskTag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       null,
     )
@@ -772,7 +766,6 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await flushPromises()
 
     expect(acts.setTaskTag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       null,
     )
@@ -796,7 +789,6 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
 
     expect(acts.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
     expect(acts.setTaskTag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       'tag-new',
     )
@@ -887,14 +879,14 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
 
     // Salbe already carried it: two writes, across both phases and both kinds.
     expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
-    const tagged = acts.setTaskTag.mock.calls.map((call) => (call[1] as { id: string }).id)
+    const tagged = acts.setTaskTag.mock.calls.map((call) => (call[0] as { id: string }).id)
     expect(tagged.sort()).toEqual(['Akku laden', 'Pflanzen giessen'])
     expect(barSelection()).toBeNull()
 
     acts.setTaskTag.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
-    for (const call of acts.setTaskTag.mock.calls) expect(call[2]).toBeNull()
+    for (const call of acts.setTaskTag.mock.calls) expect(call[1]).toBeNull()
   })
 
   it('sends the selection to a phase, and says so when nothing had to move', async () => {
@@ -910,7 +902,6 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
 
     expect(acts.setTaskPhase).toHaveBeenCalledTimes(1)
     expect(acts.setTaskPhase).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Salbe holen' }),
       'during',
     )
@@ -922,7 +913,6 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-before"]').trigger('click')
     await flushPromises()
     expect(acts.setTaskPhase).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Zug abklären' }),
       'before',
     )
@@ -970,7 +960,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await flushPromises()
 
     expect(acts.setTaskDueDate).toHaveBeenCalledTimes(2)
-    for (const call of acts.setTaskDueDate.mock.calls) expect(call[2]).toBe('2026-07-09')
+    for (const call of acts.setTaskDueDate.mock.calls) expect(call[1]).toBe('2026-07-09')
   })
 
   it('hands the whole selection to one person, skipping who already has it, with one undo (FR-7.14)', async () => {
@@ -1108,7 +1098,6 @@ describe('M25 — the day a task is due (FR-7.11)', () => {
     await flushPromises()
 
     expect(acts.setTaskDueDate).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Pass holen' }),
       '2026-07-09',
     )
@@ -1117,7 +1106,6 @@ describe('M25 — the day a task is due (FR-7.11)', () => {
     acts.setTaskDueDate.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     expect(acts.setTaskDueDate).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'Pass holen' }),
       null,
     )

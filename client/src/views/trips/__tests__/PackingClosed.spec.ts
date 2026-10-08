@@ -704,7 +704,6 @@ describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
     await flushPromises()
 
     expect(orchestratorFake.setTaskDueDate).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'task-1' }),
       '2026-07-09',
     )

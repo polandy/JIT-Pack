@@ -66,7 +66,7 @@ const pairOptions = computed(() => containers.value.filter((c) => c.id !== props
 // --- Edits (each commits on the spot, G-5) ---
 
 function update(fields: ContainerEdit) {
-  if (container.value) orchestrator.updateContainer(props.tripId, container.value, fields)
+  if (container.value) orchestrator.updateContainer(container.value, fields)
 }
 
 function onName(raw: string | null | undefined) {

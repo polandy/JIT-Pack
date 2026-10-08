@@ -100,17 +100,17 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function togglePrep(todo: ItemTodo) {
     const live = () => liveItemTodo(todo.trip_item_id, todo.id)
     if (todo.task_state === 'open') {
-      orchestrator.resolvePrepTodo(tripId(), todo)
+      orchestrator.resolvePrepTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.reopenPrepTodo(tripId(), row)
+        if (row?.task_state === 'resolved') orchestrator.reopenPrepTodo(row)
       })
       void announceTaskDone(todo.body)
     } else {
-      orchestrator.reopenPrepTodo(tripId(), todo)
+      orchestrator.reopenPrepTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.resolvePrepTodo(tripId(), row)
+        if (row?.task_state === 'open') orchestrator.resolvePrepTodo(row)
       })
       void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
     }
@@ -149,7 +149,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   function writeAssignee(todo: ItemTodo | TripTodo, userId: string | null) {
-    if ('trip_item_id' in todo) orchestrator.assignPrepTodo(tripId(), todo, userId)
+    if ('trip_item_id' in todo) orchestrator.assignPrepTodo(todo, userId)
     else orchestrator.assignTripTodo(todo, userId)
   }
 
@@ -182,9 +182,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.phase
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskPhase(tripId(), live, previous)
+      if (live) orchestrator.setTaskPhase(live, previous)
     })
-    orchestrator.setTaskPhase(tripId(), todo, phase)
+    orchestrator.setTaskPhase(todo, phase)
     void announceAct(
       t(phase === TASK_PHASE_DURING ? 'tasks.movedToDuring' : 'tasks.movedToBefore', {
         body: todo.body,
@@ -202,9 +202,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.due_date
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskDueDate(tripId(), live, previous)
+      if (live) orchestrator.setTaskDueDate(live, previous)
     })
-    orchestrator.setTaskDueDate(tripId(), todo, dueDate)
+    orchestrator.setTaskDueDate(todo, dueDate)
     void announceAct(
       dueDate === null
         ? t('tasks.dueClearedToast', { body: todo.body })
@@ -237,11 +237,11 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
       if (!live) return
-      if (movedTag) orchestrator.setTaskTag(tripId(), live, before.tag)
-      if (movedPhase) orchestrator.setTaskPhase(tripId(), live, before.phase)
+      if (movedTag) orchestrator.setTaskTag(live, before.tag)
+      if (movedPhase) orchestrator.setTaskPhase(live, before.phase)
     })
-    if (movedTag) orchestrator.setTaskTag(tripId(), todo, taskTagId)
-    if (movedPhase) orchestrator.setTaskPhase(tripId(), todo, phase)
+    if (movedTag) orchestrator.setTaskTag(todo, taskTagId)
+    if (movedPhase) orchestrator.setTaskPhase(todo, phase)
     void announceAct(t('tasks.movedToast', { body: todo.body }))
   }
 
@@ -253,7 +253,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function place(placements: readonly Placement<TripTask>[]) {
     for (const { item, position } of placements) {
       const todo = liveTask(item)
-      if (todo) orchestrator.placeTask(tripId(), todo, position)
+      if (todo) orchestrator.placeTask(todo, position)
     }
   }
 
@@ -272,7 +272,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasksToRetag(tasks, taskTagId),
       (todo) => todo.task_tag_id,
-      (todo, value) => orchestrator.setTaskTag(tripId(), todo, value),
+      (todo, value) => orchestrator.setTaskTag(todo, value),
       taskTagId,
       (n) => t('tasks.bulkRetagged', { n }),
     )
@@ -282,7 +282,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasksToMove(tasks, phase),
       (todo) => todo.phase,
-      (todo, value) => orchestrator.setTaskPhase(tripId(), todo, value),
+      (todo, value) => orchestrator.setTaskPhase(todo, value),
       phase,
       (n) =>
         t(phase === TASK_PHASE_DURING ? 'tasks.bulkMovedToDuring' : 'tasks.bulkMovedToBefore', {
@@ -311,7 +311,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasks.filter((task) => task.due_date !== dueDate),
       (todo) => todo.due_date,
-      (todo, value) => orchestrator.setTaskDueDate(tripId(), todo, value),
+      (todo, value) => orchestrator.setTaskDueDate(todo, value),
       dueDate,
       (n) =>
         dueDate === null
@@ -372,9 +372,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.body
     rowUndo.armAction(body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskBody(tripId(), live, previous)
+      if (live) orchestrator.setTaskBody(live, previous)
     })
-    orchestrator.setTaskBody(tripId(), todo, body)
+    orchestrator.setTaskBody(todo, body)
     void announceAct(t('tasks.renamedToast', { body }))
   }
 
@@ -382,8 +382,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function writeState(todo: ItemTodo | TripTodo, state: TodoState) {
     if (todo.task_state === state) return
     if ('trip_item_id' in todo) {
-      if (state === 'resolved') orchestrator.resolvePrepTodo(tripId(), todo)
-      else orchestrator.reopenPrepTodo(tripId(), todo)
+      if (state === 'resolved') orchestrator.resolvePrepTodo(todo)
+      else orchestrator.reopenPrepTodo(todo)
     } else if (state === 'resolved') orchestrator.resolveTripTodo(todo)
     else orchestrator.reopenTripTodo(todo)
   }

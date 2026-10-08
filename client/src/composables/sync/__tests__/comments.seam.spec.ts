@@ -64,7 +64,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
     const acts = createCommentActions(ctx)
 
-    acts.setNoteExcursion(TRIP_ID, ctx.tripStore.getTripComments(TRIP_ID)[0]!, 'ex-hut')
+    acts.setNoteExcursion(ctx.tripStore.getTripComments(TRIP_ID)[0]!, 'ex-hut')
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'n-1' })
@@ -75,7 +75,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
     expect(ctx.tripStore.getTripComments(TRIP_ID)[0]!.excursion_id).toBe('ex-hut')
 
-    acts.setNoteExcursion(TRIP_ID, ctx.tripStore.getTripComments(TRIP_ID)[0]!, null)
+    acts.setNoteExcursion(ctx.tripStore.getTripComments(TRIP_ID)[0]!, null)
     expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ excursion_id: null })
     expect(ctx.tripStore.getTripComments(TRIP_ID)[0]!.excursion_id).toBeNull()
   })
@@ -108,7 +108,7 @@ describe('createCommentActions without an orchestrator', () => {
       body: 'Ladekabel fehlt',
     })
 
-    createCommentActions(ctx).deleteComment(TRIP_ID, 'cm-1')
+    createCommentActions(ctx).deleteComment('cm-1')
 
     expect(queued[0]!.type).toBe('trip')
     expect(queued[0]!.muts[0]!.mutation.op).toBe('delete')
@@ -137,7 +137,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
     const todo = ctx.tripStore.getItemTodos(TRIP_ID, 'ti-1')[0] as ItemTodo
 
-    createCommentActions(ctx).resolvePrepTodo(TRIP_ID, todo)
+    createCommentActions(ctx).resolvePrepTodo(todo)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ task_state: 'resolved' })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
@@ -186,7 +186,7 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
     })
     const todo = ctx.tripStore.getTripTodos(TRIP_ID)[0]!
-    createCommentActions(ctx).placeTask(TRIP_ID, todo, 2)
+    createCommentActions(ctx).placeTask(todo, 2)
     expect(queued.at(-1)!.muts[0]!.mutation.fields).toEqual({ position: 2 })
     expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.position).toBe(2)
   })
@@ -266,7 +266,7 @@ describe('createCommentActions without an orchestrator', () => {
       phase: 'before',
     })
 
-    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'tt-apo')
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'tt-apo')
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
@@ -286,7 +286,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
     expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
 
-    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
     expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
   })
 
@@ -303,7 +303,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
 
     const actions = createCommentActions(ctx)
-    actions.setTaskDueDate(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, '2026-07-09')
+    actions.setTaskDueDate(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, '2026-07-09')
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
@@ -317,7 +317,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
     expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBe('2026-07-09')
 
-    actions.setTaskDueDate(TRIP_ID, ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
+    actions.setTaskDueDate(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
     expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBeNull()
   })
 
@@ -378,7 +378,7 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
     })
 
-    createCommentActions(ctx).setTaskTag(TRIP_ID, ctx.tripStore.getTodos(TRIP_ID)[0]!, 'tt-apo')
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTodos(TRIP_ID)[0]!, 'tt-apo')
 
     // The anchor survives: a preparation that lost its trip_item_id would
     // leave the packing row it belongs to and become the trip's own chore.

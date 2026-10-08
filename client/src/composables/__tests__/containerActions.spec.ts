@@ -53,7 +53,7 @@ describe('orchestrator container actions', () => {
     const pairId = orch.addContainer('t1', 'Right Pannier', {})
     expect(tripStore.getContainers('t1')).toHaveLength(2)
 
-    orch.updateContainer('t1', tripStore.getContainers('t1')[0]!, { paired_container_id: pairId })
+    orch.updateContainer(tripStore.getContainers('t1')[0]!, { paired_container_id: pairId })
     const updated = tripStore.getContainers('t1').find((c) => c.id === id)
     expect(updated?.paired_container_id).toBe(pairId)
     expect(updated?.max_weight_grams).toBe(12000)

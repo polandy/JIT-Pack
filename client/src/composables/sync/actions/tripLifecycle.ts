@@ -293,7 +293,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       // Detach first, then delete the traveler: a row still pointing at a
       // traveler row that is gone is a dangling reference the refresh would
       // have to guess about.
-      packingActions.assignTraveler(tripId, item, null)
+      packingActions.assignTraveler(item, null)
     }
 
     // FR-31.5/29.15: off the trip is off its excursions, with their own
@@ -442,15 +442,15 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     // made first under the same name refuses this device's, and with it
     // every write naming it — the move to *during* must not go down too.
     for (const { task, tagged } of moved) {
-      commentActions.setTaskPhase(tripId, task, TASK_PHASE_DURING)
+      commentActions.setTaskPhase(task, TASK_PHASE_DURING)
       if (tagged && tagId) {
-        commentActions.setTaskTag(tripId, { ...task, phase: TASK_PHASE_DURING }, tagId)
+        commentActions.setTaskTag({ ...task, phase: TASK_PHASE_DURING }, tagId)
       }
     }
     // FR-7.12: the shopping rows cross with the tasks, for the same reason
     // and in the same place — before the stamp that says the phase is over.
     const at = nowIso()
-    for (const row of plan.buyRows) packingActions.carryToLocal(tripId, row, at)
+    for (const row of plan.buyRows) packingActions.carryToLocal(row, at)
 
     stampPackingClosed(tripId, at)
     return { rows: plan.rows, tasks: moved, buyRows: plan.buyRows }
@@ -512,21 +512,21 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     tasks: readonly TaskPhaseRecord[] = [],
     buyRows: readonly TripItem[] = [],
   ) {
-    packingActions.restoreSkip(tripId, records)
+    packingActions.restoreSkip(records)
     // FR-7.12: back to *before departure*, unmarked (FR-7.16) — only a row
     // still where the close put it; one somebody bought or moved in the
     // meantime keeps that.
     for (const row of buyRows) {
       const live = tripStore.getItems(tripId).find((item) => item.id === row.id)
-      if (live?.mode === ITEM_MODE_BUY_LOCAL) packingActions.returnCarried(tripId, live)
+      if (live?.mode === ITEM_MODE_BUY_LOCAL) packingActions.returnCarried(live)
     }
     // The phase each task actually had, not a hard-coded *before*: a task
     // written before FR-7.7 carries none at all, and inventing one would be
     // an undo that changed something. The carried tag goes where the close
     // gave it (FR-7.16).
     for (const { task, phase, tagged } of tasks) {
-      commentActions.setTaskPhase(tripId, task, phase)
-      if (tagged) commentActions.setTaskTag(tripId, { ...task, phase }, null)
+      commentActions.setTaskPhase(task, phase)
+      if (tagged) commentActions.setTaskTag({ ...task, phase }, null)
     }
     stampPackingClosed(tripId, null)
   }

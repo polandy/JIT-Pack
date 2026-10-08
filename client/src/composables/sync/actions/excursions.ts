@@ -199,7 +199,7 @@ export function createExcursionActions(
     }
 
     const undo = () => {
-      for (const id of lineIds) removeRow(tripId, TABLE.excursionItems, id)
+      for (const id of lineIds) removeRow(TABLE.excursionItems, id)
       suitcase.undo()
     }
     return {
@@ -229,7 +229,7 @@ export function createExcursionActions(
     )
     const suitcase = applySuitcase(tripId, plan)
     plan.lines.forEach((planned, i) => {
-      updateLine(tripId, set[i]!, {
+      updateLine(set[i]!, {
         source_item_id: itemId,
         trip_item_id: suitcase.tripItemIdOf(planned),
         not_in_luggage: planned.not_in_luggage,
@@ -239,7 +239,7 @@ export function createExcursionActions(
       for (const before of set) {
         const now = tripStore.getExcursionItems(tripId).find((l) => l.id === before.id)
         if (now) {
-          updateLine(tripId, now, {
+          updateLine(now, {
             source_item_id: null,
             trip_item_id: before.trip_item_id,
             not_in_luggage: before.not_in_luggage,
@@ -252,7 +252,6 @@ export function createExcursionActions(
   }
 
   function removeRow(
-    tripId: string,
     table: typeof TABLE.excursionItems | typeof TABLE.excursionTravelers,
     id: string,
   ) {
@@ -315,7 +314,6 @@ export function createExcursionActions(
 
   /** FR-31.1: rename or re-date; a reversed pair is written in order. */
   function updateExcursion(
-    tripId: string,
     excursion: Excursion,
     fields: { name?: string; startsOn?: string | null; endsOn?: string | null },
   ): void {
@@ -414,7 +412,7 @@ export function createExcursionActions(
     const wanted = new Set(travelerIds ?? [])
 
     const removedRows = rows.filter((r) => travelerIds === null || !wanted.has(r.traveler_id))
-    for (const r of removedRows) removeRow(tripId, TABLE.excursionTravelers, r.id)
+    for (const r of removedRows) removeRow(TABLE.excursionTravelers, r.id)
     const addedRowIds: string[] = []
     for (const travelerId of travelerIds ?? []) {
       if (rows.some((r) => r.traveler_id === travelerId)) continue
@@ -426,23 +424,23 @@ export function createExcursionActions(
     const after = participants(tripId, excursionId)
     const lines = tripStore.getExcursionItems(tripId, excursionId)
     const change = planParticipantChange(lines, before, after)
-    for (const line of change.remove) removeRow(tripId, TABLE.excursionItems, line.id)
+    for (const line of change.remove) removeRow(TABLE.excursionItems, line.id)
     const written = writeLines(tripId, excursionId, change.add)
 
     return () => {
       written.undo()
-      for (const id of addedRowIds) removeRow(tripId, TABLE.excursionTravelers, id)
+      for (const id of addedRowIds) removeRow(TABLE.excursionTravelers, id)
       for (const travelerId of beforeIds) {
         if (!removedRows.some((r) => r.traveler_id === travelerId)) continue
         const { mutation } = mutations.addExcursionTraveler(tripId, excursionId, travelerId)
         write(mutation)
       }
-      for (const line of change.remove) restoreLine(tripId, line)
+      for (const line of change.remove) restoreLine(line)
     }
   }
 
   /** Puts a removed line back under its own id — an undo's other half. */
-  function restoreLine(tripId: string, line: ExcursionItem): void {
+  function restoreLine(line: ExcursionItem): void {
     write(mutations.restoreExcursionItem(line))
   }
 
@@ -479,37 +477,36 @@ export function createExcursionActions(
   }
 
   /** FR-31.6: how many of a line are in the rucksack. */
-  function setLineCount(tripId: string, line: ExcursionItem, packedCount: number): void {
+  function setLineCount(line: ExcursionItem, packedCount: number): void {
     write(mutations.setExcursionItemCount(line.id, packedCount, line.quantity))
   }
 
   /** FR-31.6: a tap on the check — all of it in, or all of it out again. */
-  function toggleLine(tripId: string, line: ExcursionItem): void {
-    setLineCount(tripId, line, line.packed_count >= line.quantity ? 0 : line.quantity)
+  function toggleLine(line: ExcursionItem): void {
+    setLineCount(line, line.packed_count >= line.quantity ? 0 : line.quantity)
   }
 
   /** FR-31.6: a different amount; what is packed is clamped to it. */
-  function setLineQuantity(tripId: string, line: ExcursionItem, quantity: number): void {
+  function setLineQuantity(line: ExcursionItem, quantity: number): void {
     write(mutations.setExcursionItemCount(line.id, line.packed_count, quantity))
   }
 
   /** FR-31.6: decided against for this outing. */
-  function skipLine(tripId: string, line: ExcursionItem): void {
+  function skipLine(line: ExcursionItem): void {
     write(mutations.skipExcursionItem(line.id))
   }
 
   /** FR-31.6: taken back into the list at one. */
-  function unskipLine(tripId: string, line: ExcursionItem): void {
+  function unskipLine(line: ExcursionItem): void {
     write(mutations.setExcursionItemCount(line.id, 0, 1))
   }
 
-  function removeLine(tripId: string, line: ExcursionItem): () => void {
-    removeRow(tripId, TABLE.excursionItems, line.id)
-    return () => restoreLine(tripId, line)
+  function removeLine(line: ExcursionItem): () => void {
+    removeRow(TABLE.excursionItems, line.id)
+    return () => restoreLine(line)
   }
 
   function updateLine(
-    tripId: string,
     line: ExcursionItem,
     fields: Parameters<typeof mutations.updateExcursionItem>[1],
   ): void {
@@ -520,8 +517,8 @@ export function createExcursionActions(
    * FR-31.7: *Vor Ort besorgen* — a line not in the luggage becomes a
    * purchase on the spot, and so a line of M6's Vor-Ort list (FR-31.8).
    */
-  function buyOnTheSpot(tripId: string, line: ExcursionItem): void {
-    updateLine(tripId, line, { mode: ITEM_MODE_BUY_LOCAL, bought_at: null })
+  function buyOnTheSpot(line: ExcursionItem): void {
+    updateLine(line, { mode: ITEM_MODE_BUY_LOCAL, bought_at: null })
   }
 
   /**
@@ -532,17 +529,17 @@ export function createExcursionActions(
   function setForWhom(tripId: string, line: ExcursionItem, target: LineFor): () => void {
     const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
     const change = planForWhom(set, target, participants(tripId, line.excursion_id))
-    for (const gone of change.remove) removeRow(tripId, TABLE.excursionItems, gone.id)
+    for (const gone of change.remove) removeRow(TABLE.excursionItems, gone.id)
     for (const { line: kept, forAll } of change.reflag) {
-      updateLine(tripId, kept, { for_all_participants: forAll })
+      updateLine(kept, { for_all_participants: forAll })
     }
     const written = writeLines(tripId, line.excursion_id, change.add)
     return () => {
       written.undo()
-      for (const gone of change.remove) restoreLine(tripId, gone)
+      for (const gone of change.remove) restoreLine(gone)
       for (const { line: kept } of change.reflag) {
         const now = tripStore.getExcursionItems(tripId).find((l) => l.id === kept.id)
-        if (now) updateLine(tripId, now, { for_all_participants: kept.for_all_participants })
+        if (now) updateLine(now, { for_all_participants: kept.for_all_participants })
       }
     }
   }
@@ -551,19 +548,19 @@ export function createExcursionActions(
    * FR-31.8: how a line is had — packed, or bought on the spot. Back to packing
    * drops the purchase record, which only a vor-Ort line can carry.
    */
-  function setLineMode(tripId: string, line: ExcursionItem, mode: ExcursionItem['mode']): void {
+  function setLineMode(line: ExcursionItem, mode: ExcursionItem['mode']): void {
     if (mode === line.mode) return
-    updateLine(tripId, line, mode === ITEM_MODE_BUY_LOCAL ? { mode } : { mode, bought_at: null })
+    updateLine(line, mode === ITEM_MODE_BUY_LOCAL ? { mode } : { mode, bought_at: null })
   }
 
   /** FR-31.8: bought on the spot, or put back on the list. */
-  function markBought(tripId: string, line: ExcursionItem, bought: boolean): void {
-    updateLine(tripId, line, { bought_at: bought ? nowIso() : null })
+  function markBought(line: ExcursionItem, bought: boolean): void {
+    updateLine(line, { bought_at: bought ? nowIso() : null })
   }
 
   /** FR-30.13: the line's place on M6's Vor-Ort list — not on the excursion's own. */
-  function placeLineOnShopping(tripId: string, line: ExcursionItem, position: number): void {
-    updateLine(tripId, line, { shopping_position: position })
+  function placeLineOnShopping(line: ExcursionItem, position: number): void {
+    updateLine(line, { shopping_position: position })
   }
 
   /**
@@ -588,12 +585,11 @@ export function createExcursionActions(
     if (line.assigned_traveler_id !== null) {
       write(mutations.assignTraveler(id, line.assigned_traveler_id))
     }
-    updateLine(tripId, line, { trip_item_id: id, source_item_id: itemId })
+    updateLine(line, { trip_item_id: id, source_item_id: itemId })
 
     return () => {
       const current = tripStore.getExcursionItems(tripId).find((l) => l.id === line.id)
-      if (current)
-        updateLine(tripId, current, { trip_item_id: null, source_item_id: line.source_item_id })
+      if (current) updateLine(current, { trip_item_id: null, source_item_id: line.source_item_id })
       const deletion = mutations.deleteTripItem(id)
       write({
         mutation: deletion,

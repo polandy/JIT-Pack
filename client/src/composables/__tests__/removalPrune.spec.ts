@@ -76,7 +76,7 @@ type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 async function removeAndLapse(orch: Orchestrator, id: string): Promise<void> {
   const removed = row(id)
   const left = orch.itemLeftByRemoval(removed)
-  orch.removeItem(TRIP, removed, [])
+  orch.removeItem(removed, [])
   if (left !== null) await orch.pruneItemLeftByRemoval(TRIP, left)
 }
 
@@ -115,7 +115,7 @@ describe('Local Mode — the device holds every trip, so its answer is final', (
     const orch = localOrch()
     seed([{ id: 'ti-1', source_item_id: ITEM }])
     const removed = { ...row('ti-1') }
-    orch.removeItem(TRIP, removed, [])
+    orch.removeItem(removed, [])
     orch.restoreRemovedItem(TRIP, removed)
 
     await orch.pruneItemLeftByRemoval(TRIP, ITEM)
