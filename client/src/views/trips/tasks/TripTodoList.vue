@@ -31,7 +31,7 @@ import { computed, inject, ref } from 'vue'
 
 import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
-import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import TaskItemChip from '@/views/trips/tasks/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
 import IdeaOrigin from '@/components/global/IdeaOrigin.vue'

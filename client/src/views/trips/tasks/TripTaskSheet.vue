@@ -29,7 +29,7 @@ import { computed, ref, watch } from 'vue'
 
 import DueChips from '@/components/global/DueChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import TaskTagChooser from '@/components/trips/TaskTagChooser.vue'
+import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
 import { filedTagOf, type TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'

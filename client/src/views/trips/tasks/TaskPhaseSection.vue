@@ -18,7 +18,7 @@ import { computed } from 'vue'
 
 import ListGroup from '@/components/global/ListGroup.vue'
 import ListSection from '@/components/global/ListSection.vue'
-import TripTodoList from '@/components/trips/TripTodoList.vue'
+import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
 import type { RowSelection } from '@/composables/shared/useRowSelection'
 import type { PhaseShelf } from '@/domain/taskBoard'
 import { TASK_ORIGIN_PREP, type TaskGroup, type TripTask } from '@/domain/tripTodos'

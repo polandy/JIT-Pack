@@ -18,7 +18,7 @@
 import { computed } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
-import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import TaskItemChip from '@/views/trips/tasks/TaskItemChip.vue'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
