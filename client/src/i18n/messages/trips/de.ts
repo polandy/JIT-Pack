@@ -328,6 +328,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   // gelesen, pro Person abgehakt. Keine Geheimnis-Ablage (§6 des Konzepts) —
   // gespeichert im Klartext, wie ein Code auf einer Tafel im Flur.
   'notes.title': 'Notizen',
+  'notes.note': 'Notiz',
   'notes.viewCount': 'Notizen · {n} neu',
   'notes.empty': 'Für diese Reise gibt es noch keine Notizen.',
   'notes.newNote': 'Neue Notiz',

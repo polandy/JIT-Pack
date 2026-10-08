@@ -18,6 +18,8 @@ import TripNoteThreadPage from '../TripNoteThreadPage.vue'
 import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 
@@ -223,6 +225,35 @@ describe('M26 thread view — reading (FR-7.13)', () => {
     const page = await mounted()
 
     expect(page.get('[data-testid="note-entry-meta-n1"]').text()).toContain('edited')
+  })
+})
+
+describe('M26 thread view — its head (FR-7.13)', () => {
+  /** What the view registered as its head: the title, and the meta line under it. */
+  function head(): { title: unknown; meta: unknown } {
+    const [title, meta] = vi.mocked(setHeaderTitle).mock.calls.at(-1)!
+    return { title: title(), meta: meta?.() }
+  }
+
+  it('heads a thread with the title its author gave it, the trip under it', async () => {
+    seedTrip()
+    seedNote('n1', 'u-sia', 'Code 4711', { title: 'Schlüsselbox' })
+
+    await mounted()
+
+    expect(head()).toEqual({ title: 'Schlüsselbox', meta: 'Dänemark' })
+  })
+
+  it('heads an untitled thread *Notiz*, so its words stand once — in the card', async () => {
+    seedTrip()
+    seedNote('n1', 'u-sia', 'Pizzakurier: 044 555 01 00, ab 18 Uhr')
+
+    const page = await mounted()
+
+    expect(head()).toEqual({ title: t('notes.note'), meta: 'Dänemark' })
+    expect(page.get('[data-testid="note-entry-words-n1"]').text()).toBe(
+      'Pizzakurier: 044 555 01 00, ab 18 Uhr',
+    )
   })
 })
 

@@ -41,3 +41,8 @@
   note whose excursion was deleted before it arrived, is `TestApplyMutation_DeletingAnExcursionKeepsItsNotes_FR7_15`'s
   and `TestApplyMutation_NoteExcursion_IsAnExcursionOfThisTrip_FR7_15`'s; that only the author changes the link,
   `TestApplyMutation_NoteExcursion_OnlyTheAuthorChangesIt_FR7_15`'s.
+* **E2E-M26-07** `local` (FR-7.13) — **implemented**
+  (`trip-notes.spec.ts`): the thread view heads with its title, or *Note* where it has none. An untitled quick note —
+  a number and a time on one line, the seed's Pizzakurier — opens under the head *Note* with the trip as its second
+  line; its words are the card's, in full, and the number occurs once on the page, none of it in the head. A titled
+  thread opens under its title, its words in the card.
