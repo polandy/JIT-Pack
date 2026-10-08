@@ -21,7 +21,7 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 

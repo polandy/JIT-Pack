@@ -15,7 +15,7 @@
  * the refresh established: an edge between two groups is a fact about those
  * two, and the wiring is where it should be readable.
  */
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'

@@ -11,7 +11,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createSeriesActions } from '../actions/series'
 import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { DestinationChecklistItem, TripSeries } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'

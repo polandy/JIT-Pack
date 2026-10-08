@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ActivityEntry, ActivityOp } from '@/api/types'
 import type { ActivityReaders } from '@/lib/activityReaders'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import {
   activityArea,
   classifyActivity,

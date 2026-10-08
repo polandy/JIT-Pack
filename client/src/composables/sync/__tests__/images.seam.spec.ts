@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 import { API } from '@/api/routes'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { createImageActions, type ImageStore } from '../images'
 import { stubClient } from './restClientStub'
 import type { PullChange } from '@/api/types'

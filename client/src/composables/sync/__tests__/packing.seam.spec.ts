@@ -20,7 +20,7 @@ import {
   paintedRow,
   type SeamContext,
 } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { TripItem } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'

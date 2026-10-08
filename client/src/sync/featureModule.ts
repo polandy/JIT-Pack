@@ -19,6 +19,8 @@ import type { TrackUpload, Mutation, MutationOp } from '@/api/types'
 import type { IdeaImage, IdeaTrack, TrackFields } from '@/types/domain'
 import type { RowSinks } from './sinks'
 import type { Write } from './writeFunnel'
+import type { SyncTable } from '@/api/tables'
+import type { MutationFields } from './mutations/context'
 
 /**
  * One module's store, as the orchestrator reads and writes it: its sinks,
@@ -38,8 +40,13 @@ export interface FeatureStore {
  * handed the packing mutation factory or the stores.
  */
 export interface ModuleHost {
-  /** Builds a mutation stamped with this device's HLC. */
-  mutation(op: MutationOp, table: string, id: string, fields?: Record<string, unknown>): Mutation
+  /** Builds a mutation stamped with this device's HLC; `fields` are held to the push whitelist. */
+  mutation<T extends SyncTable>(
+    op: MutationOp,
+    table: T,
+    id: string,
+    fields?: MutationFields<T>,
+  ): Mutation
   /** The device's clock as an ISO instant — the one the HLC reads, for a tap's time. */
   nowIso(): string
   /**

@@ -3,7 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
 import type { Trip } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { cascadeOf } from '@/sync/cascade'
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {

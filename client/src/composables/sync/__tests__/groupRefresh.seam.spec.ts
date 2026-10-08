@@ -15,7 +15,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
 import { createCommentActions } from '../actions/comments'
 import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const TRIP_ID = 'trip-1'
 const GROUP_ID = 'grp-1'

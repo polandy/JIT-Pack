@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { PullChange } from '@/api/types'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 import TripTodoFigure from '../TripTodoFigure.vue'
 

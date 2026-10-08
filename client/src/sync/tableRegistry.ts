@@ -81,8 +81,7 @@ import {
   MEAL_SLOTS,
   toIdeaTag,
 } from '@/types/domain'
-import { TABLE, type SyncTable } from '@/types/tables'
-import type { PartitionType } from './partition'
+import { TABLE, type SyncTable } from '@/api/tables'
 import { durationDays } from '@/domain/instantiate'
 import { parseJsonColumn } from './columns'
 import {
@@ -142,16 +141,17 @@ export type StoreOwner = 'trip' | 'master' | 'feature'
 
 /**
  * Everything the client knows about one table, in one entry: how its rows
- * cross the wire, which feed carries them, and which store holds them. The
- * Go side keeps the same facts in `tableSpecs` (`internal/store/tables.go`).
+ * cross the wire, which store holds them, and which rows take them along.
+ * The Go side keeps the same facts in `tableSpecs`
+ * (`internal/store/tables.go`); the feed is one of them, and reaches this side
+ * generated (`TABLE_PARTITION` in `api/tables.ts`), so it is not restated here.
  *
- * Owner and partition are two facts, not one: the master feed carries the
- * trips themselves and three per-trip tables (Sync-API P-3), and every
- * feature table travels its trip's feed.
+ * Owner and feed are two facts, not one: the master feed carries the trips
+ * themselves and three per-trip tables (Sync-API P-3), and every feature
+ * table travels its trip's feed.
  */
 export interface TableSpec<T = unknown> extends TableCodec<T> {
   owner: StoreOwner
-  partition: PartitionType
   /**
    * The rows whose delete takes this table's rows along — each a column of
    * this table declared `REFERENCES parent(id) ON DELETE CASCADE` in
@@ -176,14 +176,12 @@ function goesWith(column: string, table: SyncTable): CascadeParent {
 /** Every per-trip row goes with its trip. */
 const OF_TRIP = goesWith('trip_id', TABLE.trips)
 
-/** Instance-wide master data, on the master feed. */
-const MASTER_DATA = { owner: 'master', partition: 'master' } as const
-/** A trip's own rows, on its trip feed. */
-const TRIP_FEED = { owner: 'trip', partition: 'trip', cascadeParents: [OF_TRIP] } as const
-/** The trip store's rows the master feed carries (Sync-API P-3). */
-const TRIP_ON_MASTER = { owner: 'trip', partition: 'master', cascadeParents: [OF_TRIP] } as const
-/** A feature module's rows, on their trip's feed. */
-const FEATURE_FEED = { owner: 'feature', partition: 'trip', cascadeParents: [OF_TRIP] } as const
+/** Instance-wide master data. */
+const MASTER_DATA = { owner: 'master' } as const
+/** A trip's own rows, on whichever feed carries them. */
+const TRIP_ROWS = { owner: 'trip', cascadeParents: [OF_TRIP] } as const
+/** A feature module's rows. */
+const FEATURE_ROWS = { owner: 'feature', cascadeParents: [OF_TRIP] } as const
 
 /** A trip's row that also goes with another row of the trip. */
 function alsoWith(...parents: CascadeParent[]): readonly CascadeParent[] {
@@ -793,42 +791,42 @@ export const TABLE_SPECS = {
     encode: checklistItemRow,
     cascadeParents: [goesWith('profile_id', TABLE.destinationProfiles)],
   },
-  [TABLE.trips]: { owner: 'trip', partition: 'master', parse: rowToTrip, encode: tripRow },
-  [TABLE.tripMembers]: { ...TRIP_ON_MASTER, parse: rowToMember, encode: memberRow },
+  [TABLE.trips]: { owner: 'trip', parse: rowToTrip, encode: tripRow },
+  [TABLE.tripMembers]: { ...TRIP_ROWS, parse: rowToMember, encode: memberRow },
   [TABLE.tripTemplateSources]: {
-    ...TRIP_ON_MASTER,
+    ...TRIP_ROWS,
     parse: rowToTemplateSource,
     // FR-27.4: a deleted group ends its registrations in the trips that used it.
     cascadeParents: alsoWith(goesWith('template_id', TABLE.templates)),
   },
-  [TABLE.tripAppliedChanges]: { ...TRIP_ON_MASTER, parse: rowToAppliedChange },
-  [TABLE.tripItems]: { ...TRIP_FEED, parse: rowToTripItem, encode: itemRow },
-  [TABLE.travelers]: { ...TRIP_FEED, parse: rowToTraveler, encode: travelerRow },
-  [TABLE.containers]: { ...TRIP_FEED, parse: rowToContainer, encode: containerRow },
-  [TABLE.tripGeneratedPositions]: { ...TRIP_FEED, parse: rowToGeneratedPosition },
-  [TABLE.shoppingEntries]: { ...FEATURE_FEED, parse: rowToShoppingEntry, encode: shoppingEntryRow },
-  [TABLE.ideas]: { ...FEATURE_FEED, parse: rowToIdea, encode: ideaRow },
+  [TABLE.tripAppliedChanges]: { ...TRIP_ROWS, parse: rowToAppliedChange },
+  [TABLE.tripItems]: { ...TRIP_ROWS, parse: rowToTripItem, encode: itemRow },
+  [TABLE.travelers]: { ...TRIP_ROWS, parse: rowToTraveler, encode: travelerRow },
+  [TABLE.containers]: { ...TRIP_ROWS, parse: rowToContainer, encode: containerRow },
+  [TABLE.tripGeneratedPositions]: { ...TRIP_ROWS, parse: rowToGeneratedPosition },
+  [TABLE.shoppingEntries]: { ...FEATURE_ROWS, parse: rowToShoppingEntry, encode: shoppingEntryRow },
+  [TABLE.ideas]: { ...FEATURE_ROWS, parse: rowToIdea, encode: ideaRow },
   [TABLE.ideaVotes]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToIdeaVote,
     encode: ideaVoteRow,
     cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
   },
   [TABLE.ideaComments]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToIdeaComment,
     encode: ideaCommentRow,
     cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
   },
   [TABLE.ideaImages]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToIdeaImage,
     encode: ideaImageRow,
     cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
   },
-  [TABLE.dayEntries]: { ...FEATURE_FEED, parse: rowToDayEntry, encode: dayEntryRow },
+  [TABLE.dayEntries]: { ...FEATURE_ROWS, parse: rowToDayEntry, encode: dayEntryRow },
   [TABLE.dayEntryTravelers]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToDayEntryTraveler,
     encode: dayEntryTravelerRow,
     // FR-29.15: a traveller taken off the trip is off the day plan's entries.
@@ -837,21 +835,21 @@ export const TABLE_SPECS = {
       goesWith('traveler_id', TABLE.travelers),
     ),
   },
-  [TABLE.meals]: { ...FEATURE_FEED, parse: rowToMeal, encode: mealRow },
+  [TABLE.meals]: { ...FEATURE_ROWS, parse: rowToMeal, encode: mealRow },
   [TABLE.mealIngredients]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToMealIngredient,
     encode: mealIngredientRow,
     cascadeParents: alsoWith(goesWith('meal_id', TABLE.meals)),
   },
   [TABLE.ideaTracks]: {
-    ...FEATURE_FEED,
+    ...FEATURE_ROWS,
     parse: rowToIdeaTrack,
     encode: ideaTrackRow,
     cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
   },
   [TABLE.excursionTracks]: {
-    ...TRIP_FEED,
+    ...TRIP_ROWS,
     parse: rowToExcursionTrack,
     encode: excursionTrackRow,
     cascadeParents: alsoWith(goesWith('excursion_id', TABLE.excursions)),
@@ -860,7 +858,7 @@ export const TABLE_SPECS = {
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.
   [TABLE.comments]: {
-    ...TRIP_FEED,
+    ...TRIP_ROWS,
     parse: rowToComment,
     encode: commentRow,
     // A row's notes and FR-7.3 todos go with it — a trip-level one carries a
@@ -871,15 +869,15 @@ export const TABLE_SPECS = {
     ),
   },
   [TABLE.noteAcks]: {
-    ...TRIP_FEED,
+    ...TRIP_ROWS,
     parse: rowToNoteAck,
     encode: noteAckRow,
     // FR-7.9: a tick goes with its note.
     cascadeParents: alsoWith(goesWith('comment_id', TABLE.comments)),
   },
-  [TABLE.excursions]: { ...TRIP_FEED, parse: rowToExcursion, encode: excursionRow },
+  [TABLE.excursions]: { ...TRIP_ROWS, parse: rowToExcursion, encode: excursionRow },
   [TABLE.excursionTravelers]: {
-    ...TRIP_FEED,
+    ...TRIP_ROWS,
     parse: rowToExcursionTraveler,
     encode: excursionTravelerRow,
     // FR-31.1/31.5: a participant goes with the excursion and with the traveller.
@@ -889,7 +887,7 @@ export const TABLE_SPECS = {
     ),
   },
   [TABLE.excursionItems]: {
-    ...TRIP_FEED,
+    ...TRIP_ROWS,
     parse: rowToExcursionItem,
     encode: excursionItemRow,
     // A line goes with its excursion and with the traveller it is for; the

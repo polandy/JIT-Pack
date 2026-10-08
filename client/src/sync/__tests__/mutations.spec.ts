@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMutations } from '@/sync/mutations'
 import type { HLCGenerator } from '@/sync/hlc'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 /**
  * The instant an injected clock reports. Deliberately not near "now", so an
@@ -629,5 +629,25 @@ describe('createMutations', () => {
     const stamped = createMutations(mockHLC()).startPackingNow('i1').fields!
       .packing_now_at as string
     expect(Date.parse(stamped)).toBeGreaterThanOrEqual(before)
+  })
+})
+
+/**
+ * ARCH-11: a mutation's fields are typed against the server's push whitelist
+ * (`PUSHABLE_COLUMNS`), so a column the server would refuse — and park the
+ * write over — is a compile error. The `@ts-expect-error` lines are the
+ * assertion: `vue-tsc` fails the build if either one stops being an error.
+ */
+describe('make holds fields to the push whitelist (ARCH-11)', () => {
+  it('builds a mutation from whitelisted columns and refuses others at compile time', () => {
+    const { make } = createMutations(mockHLC())
+
+    const ok = make('upsert', TABLE.tripItems, 'i1', { state: 'packed' })
+    // @ts-expect-error — field_hlcs is the server's merge bookkeeping, never pushed.
+    make('upsert', TABLE.tripItems, 'i1', { field_hlcs: '{}' })
+    // @ts-expect-error — not a table the sync protocol carries.
+    make('upsert', 'users', 'u1', {})
+
+    expect(ok.fields).toEqual({ state: 'packed' })
   })
 })

@@ -13,7 +13,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createCommentActions } from '../actions/comments'
 import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { ItemComment, ItemTodo, TripTodo } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'

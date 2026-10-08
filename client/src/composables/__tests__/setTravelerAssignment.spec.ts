@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
 

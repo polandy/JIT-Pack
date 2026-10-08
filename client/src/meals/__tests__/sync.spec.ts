@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { createMealActions, type DraftIngredient, type MealFields } from '../actions'
 import { mealFeatureStore, useMealStore } from '../store'
 

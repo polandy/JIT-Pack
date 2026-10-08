@@ -10,7 +10,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createDependencyActions } from '../actions/dependencies'
 import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { ItemDependency } from '@/types/domain'
 
 let queued: Recorded[]

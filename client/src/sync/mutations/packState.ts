@@ -3,7 +3,7 @@
  * FR-25.11, FR-30.4). Spread into `createMutations` (`../mutations.ts`).
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { stateFor } from '@/domain/packState'
 import { clampQuantity } from '@/domain/quantityChoices'
 import type { Mutation } from '@/api/types'

@@ -15,7 +15,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createPostTripActions } from '../actions/postTrip'
 import { createMasterDataActions } from '../actions/masterData'
 import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { ReviewProposal } from '@/domain/review'
 
 const TRIP_ID = 'trip-1'

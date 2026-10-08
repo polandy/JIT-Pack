@@ -16,7 +16,7 @@ import { IonButton, IonInput } from '@ionic/vue'
 import ClonePage from '../ClonePage.vue'
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'

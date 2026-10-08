@@ -12,7 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import TemplateListPage from '../TemplateListPage.vue'
 import { useMasterStore } from '@/stores/masterStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'

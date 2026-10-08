@@ -17,7 +17,7 @@ import type { Write } from '@/sync/writeFunnel'
 import { optimisticDelete } from '@/sync/optimistic'
 import type { Meal, MealIngredient, MealKind, MealSlot, ShoppingMode } from '@/types/domain'
 import { MEAL_KIND_OUT } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { isMealTime } from './domain/mealPlan'
 import type { useMealStore } from './store'
 

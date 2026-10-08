@@ -11,7 +11,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import RetiredMasterPage from '../RetiredMasterPage.vue'
 import { useMasterStore } from '@/stores/masterStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'

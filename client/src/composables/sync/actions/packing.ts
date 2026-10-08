@@ -12,7 +12,7 @@
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges, cascadeOf } from '@/sync/cascade'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import {
   itemInUse,

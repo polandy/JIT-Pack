@@ -37,7 +37,7 @@ import type {
   IdeaVoteValue,
 } from '@/types/domain'
 import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE, IDEA_STATE_IDEA } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { connectionDay, connectionTitle, timeOf } from './domain/connections'
 import type { VoteTally } from './domain/ideas'
 import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'

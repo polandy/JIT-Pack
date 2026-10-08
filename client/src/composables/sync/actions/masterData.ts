@@ -38,7 +38,7 @@ import { planDefaultAssignee, type AssigneeChange } from '@/domain/defaultAssign
 import { findNameCollision } from '@/domain/nameCollision'
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
 import type {

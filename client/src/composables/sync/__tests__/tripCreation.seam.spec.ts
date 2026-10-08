@@ -15,7 +15,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createTripCreationActions } from '../actions/tripCreation'
 import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { ImportPlan } from '@/domain/spreadsheet'
 

@@ -10,7 +10,7 @@
  * the switch over its tables nor its cascade (FR-30.3, ADR-066).
  */
 import type { PullChange } from '@/api/types'
-import type { SyncTable } from '@/types/tables'
+import type { SyncTable } from '@/api/tables'
 import { cascadeOf } from './cascade'
 import { codecFor, encodedRow, type SyncRow } from './tableRegistry'
 
