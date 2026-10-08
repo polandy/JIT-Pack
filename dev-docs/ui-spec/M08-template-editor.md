@@ -59,7 +59,8 @@
   so an absent mark renders nothing at all.
 * **Elements:** editable name (commits on blur/Enter; the ADR-011 header mirrors it); scope
   selector with the *"Eingebunden in: …"* line on an included group; the FR-27.4 blast-radius note (yellow, above the
-  sections it warns about); *Gruppen* section (Ferien-Vorlage only) — rows with resolved count, the FR-27.12 summary
+  sections it warns about); the section heads stand on the page in the cards' inset, each count on its card's right
+  edge (FR-21.11); *Gruppen* section (Ferien-Vorlage only) — rows with resolved count, the FR-27.12 summary
   line and its peek chevron, and ✕, a collapsed *"Gruppe einbinden…"* trigger opening the picker card (available groups
   as chips, *"Neue Gruppe anlegen…"* revealing an inline name field — the M7 create lesson: no row until the name
   exists, and no `prompt()`; above six searchable groups the card carries a **search field** (FR-27.13)

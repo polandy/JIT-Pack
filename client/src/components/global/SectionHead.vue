@@ -15,6 +15,12 @@
  *
  * A `data-testid` is not a prop: with one root element it falls through to
  * the head, which is where a case looking for the section wants it.
+ *
+ * The head has no side margin of its own: nearly every head sits in a padded
+ * page, sheet or card, and an inset of its own on top of that would set the
+ * count off the edge of the card below it. The one placement without a
+ * padded container — a head standing on a page of inset cards (M7, M8) —
+ * is told so through `cardList`, so the component still owns the answer.
  */
 withDefaults(
   defineProps<{
@@ -25,13 +31,19 @@ withDefaults(
      * word between the figures is language.
      */
     count?: string | number | null
+    /**
+     * The head stands directly on an unpadded page between cards set in
+     * `--jp-card-list-inset`, and takes the same inset so its name and count
+     * meet the card's edges.
+     */
+    cardList?: boolean
   }>(),
-  { count: null },
+  { count: null, cardList: false },
 )
 </script>
 
 <template>
-  <h2 class="section-head jp-section-head">
+  <h2 class="section-head jp-section-head" :class="{ 'on-card-list': cardList }">
     <span class="head-name">{{ title }}</span>
     <span v-if="count !== null && count !== ''" class="head-count jp-section-count">
       {{ count }}
@@ -47,7 +59,11 @@ withDefaults(
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin: 24px 2px 10px;
+  margin: 24px 0 10px;
+}
+
+.section-head.on-card-list {
+  margin-inline: var(--jp-card-list-inset);
 }
 
 .head-name {
