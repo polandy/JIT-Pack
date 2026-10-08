@@ -1,7 +1,7 @@
 /**
  * FR-7.11 — when a task is due, and what that does to where it is shown.
  *
- * The day arithmetic is `domain/dueDay.ts`'s (shared with FR-30.10's
+ * The day arithmetic is `domain/shared/dueDay.ts`'s (shared with FR-30.10's
  * shopping entries); what is a task's own is which task has a day worth
  * reading — an open one. A resolved task is never overdue.
  */
@@ -11,7 +11,6 @@ import {
   DUE_SOON,
   DUE_SOON_DAYS,
   DUE_TODAY,
-  daysBetween,
   dueState,
   dueTally,
   isPressingDay,
@@ -19,10 +18,10 @@ import {
   sortByDue,
   type DueState,
   type DueTally,
-} from '@/domain/dueDay'
+} from '@/domain/shared/dueDay'
 import type { TodoState } from '@/types/domain'
 
-export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY, daysBetween }
+export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY }
 export type { DueState }
 
 /** What the rules read off a task. */

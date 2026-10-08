@@ -3,9 +3,9 @@
  * adds them up (FR-33.12–33.14, ADR-093) — pure, so Local Mode keeps every
  * rule. The names live in the meals themselves: there is no catalogue.
  */
-import { foldSearch, spellOutUmlauts } from '@/domain/search'
-import { daysBetween } from '@/domain/dueDay'
-import type { MealTrip } from '@/domain/mealContext'
+import { foldSearch, spellOutUmlauts } from '@/domain/shared/search'
+import { daysBetween } from '@/domain/shared/calendar'
+import type { MealTrip } from '@/domain/shared/mealContext'
 import type { Meal, MealIngredient } from '@/types/domain'
 import { parseIngredient } from './mealPlan'
 import { namedTotal, unitOf, type Unit, type UnitFamily } from './units'

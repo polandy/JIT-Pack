@@ -34,7 +34,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { UNTAGGED_KEY, type TagFilterMode } from '@/domain/tags'
-import { searchMatches } from '@/domain/search'
+import { searchMatches } from '@/domain/shared/search'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
 

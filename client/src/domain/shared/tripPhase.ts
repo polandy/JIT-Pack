@@ -1,12 +1,12 @@
 /**
  * Where a trip stands, as the kernel's own question.
  *
- * It lives here rather than beside the other trip predicates in
- * `domain/trips.ts` because both sides of the feature-module boundary ask it
- * (FR-30.3, ADR-066): the packing list decides what its ⋮ offers, and the
- * shopping module decides which list it opens on. A module cannot import
- * `domain/`, and the alternative — each side reading the column its own way —
- * is how two screens come to disagree about the same trip.
+ * It lives in `domain/shared/` rather than beside the other trip predicates
+ * in `domain/trips.ts` because both sides of the feature-module boundary ask
+ * it (FR-30.3, ADR-066, ADR-097): the packing list decides what its ⋮ offers,
+ * and the shopping module decides which list it opens on. The alternative —
+ * each side reading the column its own way — is how two screens come to
+ * disagree about the same trip.
  */
 import { TRIP_STATUS_PLANNING } from '@/types/domain'
 

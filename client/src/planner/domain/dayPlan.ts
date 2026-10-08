@@ -4,12 +4,13 @@
  *
  * The plan stores two tables of its own (`day_entries` and whom each is for)
  * and reads the planned ideas, the packing side's dated lines (excursions,
- * tasks — see `domain/dayPlanLine.ts`), the trip's travellers and its dates
+ * tasks — see `domain/shared/dayPlanLine.ts`), the trip's travellers and its dates
  * for arrival and departure.
  * Which day is shown, what stands on it and in which order is derived here.
  */
-import type { DayPlanLine } from '@/domain/dayPlanLine'
-import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/domain/dayPlanLine'
+import { daysOf } from '@/domain/shared/calendar'
+import type { DayPlanLine } from '@/domain/shared/dayPlanLine'
+import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/domain/shared/dayPlanLine'
 import type { DayEntry, DayEntryTraveler, Idea, Traveler } from '@/types/domain'
 import {
   EXCURSION_ROLE_BACK,
@@ -106,24 +107,9 @@ export function hasPlanDates(trip: TripDates | null | undefined): boolean {
   )
 }
 
-/** The calendar day after `day`, both `YYYY-MM-DD` — by date parts, never UTC midnight. */
-export function nextDay(day: string): string {
-  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
-  const next = new Date(year, month - 1, date + 1)
-  const mm = String(next.getMonth() + 1).padStart(2, '0')
-  const dd = String(next.getDate()).padStart(2, '0')
-  return `${next.getFullYear()}-${mm}-${dd}`
-}
-
 /** Every day of the trip, first to last; empty without both dates. */
 export function tripDays(trip: TripDates | null | undefined): string[] {
-  if (!hasPlanDates(trip)) return []
-  const days: string[] = []
-  for (let day = trip!.start_date!; day <= trip!.end_date!; day = nextDay(day)) {
-    days.push(day)
-    if (days.length === MAX_PLAN_DAYS) break
-  }
-  return days
+  return hasPlanDates(trip) ? daysOf(trip!.start_date!, trip!.end_date!, MAX_PLAN_DAYS) : []
 }
 
 /** The day shown on arrival: today during the trip, the first day otherwise. */

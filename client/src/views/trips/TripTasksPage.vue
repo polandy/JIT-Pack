@@ -85,7 +85,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
-import { beforeIsOver, isPackingClosed, standingOf } from '@/lib/tripPhase'
+import { beforeIsOver, isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
@@ -148,7 +148,7 @@ const tripStart = computed(() => trip.value?.start_date ?? null)
  * FR-7.14: once the trip is under way — started, its first day come, or its
  * packing finished — *before the trip* takes nothing new: the composer writes
  * for the road, and no task is moved in. What already stands there stays, is
- * ticked and can go to the road. M6 asks the same rule (`lib/tripPhase`).
+ * ticked and can go to the road. M6 asks the same rule (`domain/shared/tripPhase`).
  */
 const forTheRoad = computed(() => !!trip.value && beforeIsOver(standingOf(trip.value), today.value))
 

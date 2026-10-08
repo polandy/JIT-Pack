@@ -11,7 +11,7 @@ import {
   valueAfter,
   type ActivityReader,
   type ActivityReaders,
-} from '@/domain/activityReader'
+} from '@/domain/shared/activityReader'
 import type { MealIngredient } from '@/types/domain'
 import { TABLE } from '@/api/tables'
 

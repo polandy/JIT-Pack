@@ -76,27 +76,11 @@ const KERNEL_PATHS = [
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',
-  // A GPX track's rules (FR-29.17): a file, its figures and its time — no
-  // idea and no excursion in sight, since both carry tracks (ADR-085).
-  'domain/track',
-  // Editing a track's route (FR-29.20): handles, legs and the GPX written
-  // from them — a route, nothing it hangs on (ADR-088).
-  'domain/route',
-  // The app's one search fold (FR-24.7): umlauts either way. A module that
-  // matches typed text matches it as the inventory does (FR-33.12).
-  'domain/search',
-  // What an activity entry's reader is (FR-32.2): a kind, an area and the
-  // before/after of a field — each module brings its own reader of its rows.
-  'domain/activityReader',
-  // The shapes of the ports a module is handed (FR-29.13, FR-29.15, §3.33):
-  // they sit below the module's own rules, the keys stay in `kernel/`.
-  'domain/dayPlanLine',
-  'domain/ideaBridge',
-  'domain/mealContext',
-  // A day's due state (FR-30.10) and a hand order's renumbering (ADR-083):
-  // the shopping list and the meal plan count and order as the tasks do.
-  'domain/dueDay',
-  'domain/handOrder',
+  // The kernel's rules both sides of the boundary read — the calendar, a
+  // due day, a track, a hand order, the shapes of the ports a module is
+  // handed. The purity gate keeps the folder from leading on into the rest
+  // of `domain/` (ADR-097).
+  'domain/shared/',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

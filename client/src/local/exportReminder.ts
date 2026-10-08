@@ -4,6 +4,7 @@
  * This tracks when the last export happened (device-local) and decides
  * when to nudge: never exported, or longer ago than the threshold.
  */
+import { MS_PER_DAY } from '@/domain/shared/calendar'
 
 const KEY = 'jitpack_last_export'
 
@@ -85,6 +86,6 @@ export function reminderState(
   // Never negative: a stamp can sit microseconds ahead of the `now` a screen
   // captured when it opened, and a backup that just happened must not read as
   // "-1 days ago". The same clamp covers a device whose clock moved back.
-  const daysSince = Math.max(0, Math.floor((now - lastAt) / 86_400_000))
+  const daysSince = Math.max(0, Math.floor((now - lastAt) / MS_PER_DAY))
   return { due: daysSince >= thresholdDays, lastAt, daysSince }
 }

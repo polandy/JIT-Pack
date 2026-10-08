@@ -55,7 +55,7 @@ import { computed, inject, ref, watch } from 'vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TrackCard from '@/components/global/TrackCard.vue'
-import { MAX_TRACKS, orderTracks } from '@/domain/track'
+import { MAX_TRACKS, orderTracks } from '@/domain/shared/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import { useTileState } from '@/composables/shared/mapTiles'
@@ -64,7 +64,7 @@ import {
   IDEA_RESULT_SHOPPING,
   IDEA_RESULT_TASK,
   type IdeaResultKind,
-} from '@/domain/ideaBridge'
+} from '@/domain/shared/ideaBridge'
 import { IDEA_RESULT_SCREEN, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'

@@ -13,7 +13,7 @@ import { IonIcon } from '@ionic/vue'
 import { documentOutline, expandOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
-import { decodeLine, defaultSource, type TrackSettings } from '@/domain/track'
+import { decodeLine, defaultSource, type TrackSettings } from '@/domain/shared/track'
 import { formatNumber, t } from '@/i18n'
 import type { TrackFields } from '@/types/domain'
 import TrackFigures from './TrackFigures.vue'

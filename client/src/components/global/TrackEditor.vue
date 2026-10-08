@@ -48,8 +48,8 @@ import {
   stretchFrom,
   type LatLon,
   type Pass,
-} from '@/domain/route'
-import { defaultSource, movingMinutes, type MapSource } from '@/domain/track'
+} from '@/domain/shared/route'
+import { defaultSource, movingMinutes, type MapSource } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
 import { createRouteEditor, legMode, type RouteEditor } from '@/composables/routeEditor'

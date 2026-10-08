@@ -4,8 +4,8 @@
  * through (the router's lazy page import aside). The dev seed uses it too, to
  * write its entries through the module's own actions.
  */
-import { dueTally } from '@/domain/dueDay'
-import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/domain/ideaBridge'
+import { dueTally } from '@/domain/shared/dueDay'
+import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/domain/shared/ideaBridge'
 import { tripSubPath } from '@/router/paths'
 import type { ShoppingSource } from '@/kernel/shoppingSources'
 import type { DuePurchases } from '@/kernel/tripCards'
@@ -53,7 +53,7 @@ export function duePurchases(sources: readonly ShoppingSource[]): DuePurchases {
 
 /**
  * FR-29.13: the list's own entries made from an idea, for the idea's *Daraus
- * gemacht* — the shopping module's half of `domain/ideaBridge.ts`.
+ * gemacht* — the shopping module's half of `domain/shared/ideaBridge.ts`.
  */
 export function shoppingIdeaResults(): IdeaResultSource {
   const shoppingStore = useShoppingStore()

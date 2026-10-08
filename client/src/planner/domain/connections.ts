@@ -15,7 +15,7 @@ import {
   type LatLon,
   type LegMode,
 } from '@/types/domain'
-import { nextDay } from './dayPlan'
+import { addDays, daysBetween } from '@/domain/shared/calendar'
 
 // --- what a leg travels by ---
 
@@ -222,7 +222,7 @@ export function handLeg(day: string, fields: HandFields): ConnectionLeg | null {
   const from = fields.from.trim()
   const to = fields.to.trim()
   if (!from || !to || !HH_MM.test(fields.dep) || !HH_MM.test(fields.arr)) return null
-  const arrDay = fields.arr < fields.dep ? nextDay(day) : day
+  const arrDay = fields.arr < fields.dep ? addDays(day, 1) : day
   return {
     from,
     to,
@@ -305,8 +305,6 @@ export function connectionSummary(legs: readonly ConnectionLeg[]): ConnectionSum
   }
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
 /** How long a connection takes: from its first departure to its last arrival, in minutes. */
 export function connectionMinutes(legs: readonly ConnectionLeg[]): number {
   return minutesOf(legs[legs.length - 1]!.arr) - minutesOf(legs[0]!.dep)
@@ -317,14 +315,6 @@ function minutesOf(stamp: string): number {
   const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
   const [hour = 0, minute = 0] = time.split(':').map(Number)
   return Math.round(Date.UTC(year, month - 1, date, hour, minute) / MS_PER_MINUTE)
-}
-
-function daysBetween(from: string, to: string): number {
-  const at = (day: string) => {
-    const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
-    return Date.UTC(year, month - 1, date)
-  }
-  return Math.round((at(to) - at(from)) / MS_PER_DAY)
 }
 
 // --- on a map ---

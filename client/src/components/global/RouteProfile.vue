@@ -7,8 +7,8 @@
  */
 import { computed, ref } from 'vue'
 
-import { haversine } from '@/domain/track'
-import type { DrawnPoint, LatLon } from '@/domain/route'
+import { haversine } from '@/domain/shared/track'
+import type { DrawnPoint, LatLon } from '@/domain/shared/route'
 import { t } from '@/i18n'
 import { formatDistance, formatMetres } from '@/lib/trackFormat'
 

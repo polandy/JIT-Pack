@@ -10,7 +10,7 @@ import { expandOutline, trainOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import TrackMap from '@/components/global/TrackMap.vue'
-import { defaultSource } from '@/domain/track'
+import { defaultSource } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import type { ConnectionLeg } from '@/types/domain'
 import ConnectionLegs from './ConnectionLegs.vue'

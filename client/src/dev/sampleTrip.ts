@@ -2,7 +2,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { localIsoDate } from '@/domain/trips'
-import { readTrack } from '@/domain/track'
+import { readTrack } from '@/domain/shared/track'
 import {
   PORTABLE_SCHEMA_VERSION,
   type PortableDocument,

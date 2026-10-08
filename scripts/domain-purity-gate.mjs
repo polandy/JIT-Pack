@@ -55,6 +55,16 @@ const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
 const ALLOWED_DIRS = ['api', 'domain', 'types']
 
 /**
+ * The kernel's rules a feature module may read (ADR-097): the calendar, the
+ * due day, a track, the ports' shapes. A module reaches them by folder
+ * (`module-boundary-gate.mjs`), so the folder must not lead on into the rest
+ * of `domain/` — one import of a packing rule from here would hand every
+ * module that rule without either gate seeing it. A file here reads only its
+ * own subtree and the vocabulary.
+ */
+const SHARED = 'domain/shared'
+
+/**
  * Packages that make a module un-constructible outside a browser app. `yaml`
  * is a plain parser and stays allowed, as does anything else that is not one
  * of these.
@@ -117,6 +127,13 @@ for (const file of DOMAINS.flatMap((dir) => walk(resolve(SRC, dir)))) {
       continue
     }
     const layer = inside.split('/')[0]
+    const fromShared = relative(SRC, file).startsWith(`${SHARED}/`)
+    if (fromShared && layer === 'domain' && !inside.startsWith(`${SHARED}/`)) {
+      problems.push(
+        `${where}: imports \`${spec}\` — \`${SHARED}/\` is module-visible and reads only itself`,
+      )
+      continue
+    }
     if (!ALLOWED_DIRS.includes(layer) && !inside.startsWith(`${home}/`)) {
       problems.push(
         `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,

@@ -16,7 +16,7 @@ import {
 } from 'ionicons/icons'
 import { ref } from 'vue'
 
-import type { TrackSettings } from '@/domain/track'
+import type { TrackSettings } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { promptText } from '@/composables/shared/confirm'
 import { useTileState } from '@/composables/shared/mapTiles'

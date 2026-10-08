@@ -68,15 +68,23 @@ importing only leftwards, with no exception (ADR-096; the table with each layer'
 `scripts/layer-gate.mjs` holds the order, refuses a file in no layer and the packages a layer avoids (`vue`, router,
 pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file imports:
 
-- a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
+- a rule with no I/O → `domain/`, into `domain/shared/` if a module reads it too (the calendar, a due day, a track) —
+  that subtree reads only itself and the vocabulary (ADR-097); a pure helper that words or formats → `lib/` (no `vue`,
+  Ionic or router there);
 - a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
-- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/` when a
-  module's rules read it (`domain/dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
+- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/shared/`
+  when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;
 - a rule handed a collaborator declares the port it consumes (`ImportMutations` in `domain/portableImport.ts`), its
   option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above.
 
 ## The kernel and its feature modules
+
+**Kernel area or feature module?** A kernel area shares rows with packing — it writes or reads `trip_items`, renders
+as M4's row or feeds M4's view model; a feature module owns tables only it writes and meets the kernel only through
+contracts in `kernel/` and the rules in `domain/shared/` (ADR-097, after ADR-071). Tasks and excursions are kernel
+areas; an excursion's parts live in `views/trips/excursion/` beside its pages, its rules in
+`domain/excursion{Lines,Suitcase,Schedule}.ts`.
 
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers,
   analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No

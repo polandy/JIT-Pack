@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createIdeaResultSource } from '../ideaResultSource'
-import { IDEA_RESULT_EXCURSION, IDEA_RESULT_TASK } from '@/domain/ideaBridge'
+import { IDEA_RESULT_EXCURSION, IDEA_RESULT_TASK } from '@/domain/shared/ideaBridge'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
 import type { Excursion, TripTodo } from '@/types/domain'
 

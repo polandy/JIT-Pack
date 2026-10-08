@@ -49,7 +49,6 @@ import {
   IDEA_LINE_PREFIX,
   ideasOutsideTrip,
   ideasWithExcursion,
-  nextDay,
   openingDay,
   openingFilter,
   tripDays,
@@ -58,6 +57,7 @@ import {
   type DayLine,
 } from './domain/dayPlan'
 import { connectionDay } from './domain/connections'
+import { addDays } from '@/domain/shared/calendar'
 import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
 
@@ -152,7 +152,7 @@ const chosenDay = computed(() => narrowed(chosen.value ? dayLines(chosen.value, 
 const chosenLines = computed(() => chosenDay.value.lines)
 const tomorrow = computed(() => {
   if (!chosen.value) return null
-  const day = nextDay(chosen.value)
+  const day = addDays(chosen.value, 1)
   return days.value.includes(day) ? day : null
 })
 const tomorrowDay = computed(() =>

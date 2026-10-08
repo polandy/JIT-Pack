@@ -1,6 +1,6 @@
 # The source files over scripts/file-size-gate.mjs's limit, each with its length in lines, longest first.
 # A ratchet: an entry is only ever lowered or deleted — the gate's header says why.
-1720 client/src/views/trips/TripExcursionPage.vue
+1716 client/src/views/trips/TripExcursionPage.vue
 1530 client/src/components/global/InventoryBrowseSheet.vue
 1493 client/src/components/global/TrackEditor.vue
 1425 client/src/views/templates/TemplateEditorPage.vue
@@ -20,7 +20,6 @@
 948 client/src/sync/tableRegistry.ts
 925 internal/store/tables.go
 908 client/src/domain/portable.ts
-906 client/src/domain/excursions.ts
 888 internal/store/store.go
 863 client/src/planner/ConnectionSearch.vue
 844 client/src/meals/MealPlanPage.vue

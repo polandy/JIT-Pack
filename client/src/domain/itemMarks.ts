@@ -15,7 +15,7 @@
  * `scripts/mark-font-gate.mjs` fails the build for exactly that).
  */
 
-import { foldSearch as fold, searchWords as words } from './search'
+import { foldSearch as fold, searchWords as words } from './shared/search'
 
 /** The coarse facets the picker's chip row offers, in the order it shows them. */
 export const MARK_FACETS = [

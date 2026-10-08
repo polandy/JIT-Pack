@@ -5,8 +5,8 @@
  * earlier dishes are offered, where the ＋ opens and whether a meal may go on
  * an excursion.
  */
-import { daysBetween } from '@/domain/dueDay'
-import type { MealExcursion, MealTrip } from '@/domain/mealContext'
+import { addDays, daysBetween, daysOf } from '@/domain/shared/calendar'
+import type { MealExcursion, MealTrip } from '@/domain/shared/mealContext'
 import type { Meal, MealIngredient, MealKind, MealSlot } from '@/types/domain'
 import { UNIT_PATTERN } from './units'
 import {
@@ -121,7 +121,7 @@ export function ingredientDue(
   ingredient: Pick<MealIngredient, 'list'>,
   tripStart: string | null,
 ): string {
-  if (ingredient.list === ITEM_MODE_BUY_BEFORE && tripStart) return dayBefore(tripStart)
+  if (ingredient.list === ITEM_MODE_BUY_BEFORE && tripStart) return addDays(tripStart, -1)
   return meal.on_date
 }
 
@@ -299,23 +299,12 @@ export function freshBoughtTooEarly(
   return inOrder(ingredients.filter((ingredient) => ingredient.bought && fresh(ingredient)))
 }
 
-/** The calendar day before an ISO day, through UTC so no zone moves it. */
-function dayBefore(iso: string): string {
-  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10)
-}
-
 /** The longest trip whose days are listed — a typo'd year must not draw ten thousand days. */
 export const MAX_MEAL_DAYS = 120
 
 /** Every day of a trip with both dates, in order; empty without them (FR-33.1). */
 export function planDays(start: string | null, end: string | null): string[] {
-  if (!start || !end || end < start) return []
-  const days: string[] = []
-  for (let day = start; day <= end && days.length < MAX_MEAL_DAYS; day = dayAfter(day)) {
-    days.push(day)
-  }
-  return days
+  return daysOf(start, end, MAX_MEAL_DAYS)
 }
 
 /**
@@ -338,12 +327,6 @@ export function shoppingFigures(
     if (daysBetween(today, ingredientDue(meal, ingredient, tripStart)) <= 0) dueToday++
   }
   return { open, today: dueToday }
-}
-
-/** The calendar day after an ISO day, through UTC so no zone moves it. */
-function dayAfter(iso: string): string {
-  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10)
 }
 
 /** One stretch of the agenda (M31): a day that holds meals, or a run of days that holds none. */

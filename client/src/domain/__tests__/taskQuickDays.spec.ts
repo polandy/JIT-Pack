@@ -4,25 +4,11 @@ import {
   QUICK_DAY_BEFORE_DEPARTURE,
   QUICK_DAY_TODAY,
   QUICK_DAY_TOMORROW,
-  addDays,
   quickDueDays,
 } from '../taskQuickDays'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
 const TODAY = '2026-07-08'
-
-describe('addDays', () => {
-  it.each([
-    { from: '2026-07-08', n: 1, want: '2026-07-09' },
-    { from: '2026-07-31', n: 1, want: '2026-08-01' },
-    { from: '2026-03-01', n: -1, want: '2026-02-28' },
-    { from: '2026-12-31', n: 1, want: '2027-01-01' },
-    // The DST switch in Europe: a day stays a day.
-    { from: '2026-03-28', n: 2, want: '2026-03-30' },
-  ])('moves $from by $n to $want', ({ from, n, want }) => {
-    expect(addDays(from, n)).toBe(want)
-  })
-})
 
 describe('quickDueDays (FR-7.14)', () => {
   const keys = (days: { key: string }[]) => days.map((d) => d.key)

@@ -16,8 +16,8 @@ import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
 import type { NoteThreadFields, TaskFiling } from '@/sync/mutations'
 import { phaseForNewTask } from '@/domain/closePacking'
-import { isPackingClosed } from '@/lib/tripPhase'
-import { nextPosition } from '@/domain/handOrder'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
+import { nextPosition } from '@/domain/shared/handOrder'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {

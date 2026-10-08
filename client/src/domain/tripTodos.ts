@@ -13,8 +13,9 @@
  */
 import type { ItemTodo, TaskPhase, TaskTag, TodoState, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
-import { byDue, daysBetween, isDuePressing, pressingFirst } from './taskDue'
-import { byHand, dropInto, renumber, type Placement } from '@/domain/handOrder'
+import { byDue, isDuePressing, pressingFirst } from './taskDue'
+import { daysBetween } from '@/domain/shared/calendar'
+import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 
 /** How far a trip's todos are, as the two figures M1 states. */
 export interface TripTodoProgress {

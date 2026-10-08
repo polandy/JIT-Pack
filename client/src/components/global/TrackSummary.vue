@@ -22,7 +22,7 @@ import {
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import { decodeLine, defaultSource, movingMinutes, type TrackSettings } from '@/domain/track'
+import { decodeLine, defaultSource, movingMinutes, type TrackSettings } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { formatDistance, formatDuration, formatMetres, tracksSummary } from '@/lib/trackFormat'
 import type { TrackFields } from '@/types/domain'

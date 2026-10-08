@@ -3,7 +3,7 @@
  */
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
 
-import { addDays } from './taskQuickDays'
+import { addDays } from './shared/calendar'
 
 /**
  * The due day a task made from an idea is offered: the day before the idea's

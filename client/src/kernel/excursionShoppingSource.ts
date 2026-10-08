@@ -9,7 +9,7 @@
  * an excursion is on the road, never before departure.
  */
 import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
-import { isOpenPurchase } from '@/domain/excursions'
+import { isOpenPurchase } from '@/domain/excursionLines'
 import type { Excursion, ExcursionItem, ShoppingMode, Traveler } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
 import { t } from '@/i18n'

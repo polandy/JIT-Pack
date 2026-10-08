@@ -14,7 +14,7 @@ import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import './trackMap.css'
 
 import { t } from '@/i18n'
-import type { MapSource } from '@/domain/track'
+import type { MapSource } from '@/domain/shared/track'
 import { useTileState } from '@/composables/shared/mapTiles'
 import { directionArrows, loadLeaflet, tileLayer } from './mapLayers'
 import TrackLines from './TrackLines.vue'

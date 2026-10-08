@@ -6,7 +6,7 @@
 import { computed } from 'vue'
 
 import type { PackingRowNotes, RowEdgeAvatar } from '@/components/trips/PackingRow.vue'
-import { borrowersByTripItem } from '@/domain/excursions'
+import { borrowersByTripItem } from '@/domain/excursionSuitcase'
 import { rowEdgeAvatar, type PackingCluster } from '@/domain/packingView'
 import { avatarAssignable } from '@/domain/rowMenu'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'

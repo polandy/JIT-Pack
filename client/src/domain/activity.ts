@@ -7,7 +7,7 @@
  * ticked off is a rule about the trip's rows, and those rules live here
  * (invariant 4), beside the ones that write them. A feature module's rows
  * are the exception: the module reads them itself and hands the reading in
- * (`domain/activityReader.ts`), so this file knows no module's columns.
+ * (`domain/shared/activityReader.ts`), so this file knows no module's columns.
  *
  * Some writes are bookkeeping nobody made on purpose — a claim taken while a
  * row is open (G-3), the generation's record of what it produced — and read
@@ -22,7 +22,7 @@ import {
   type ActivityArea,
   type ActivityKind,
   type ActivityReaders,
-} from './activityReader'
+} from './shared/activityReader'
 import { TABLE, type SyncTable } from '@/api/tables'
 import {
   STATE_PACKED,
@@ -37,7 +37,7 @@ import {
   type TripItem,
 } from '@/types/domain'
 
-export type { ActivityArea, ActivityKind } from './activityReader'
+export type { ActivityArea, ActivityKind } from './shared/activityReader'
 
 const STATE_PARTIAL = 'partial' as const satisfies ItemState
 const TASK_RESOLVED = 'resolved' as const satisfies TodoState
@@ -116,7 +116,7 @@ const BOOKKEEPING: ReadonlySet<SyncTable> = new Set([
 
 /**
  * Where a write to a kernel table happened. A feature module's tables are
- * not here: their reader says (`domain/activityReader.ts`).
+ * not here: their reader says (`domain/shared/activityReader.ts`).
  */
 export const KERNEL_ACTIVITY_AREAS: Partial<Record<SyncTable, ActivityArea>> = {
   [TABLE.tripItems]: 'packing',
