@@ -65,7 +65,8 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
 
 `domain → lib → auth → sync → local → edges → kernel → stores → app → composables → components → views`, each
 importing only leftwards, with no exception (ADR-096; the table with each layer's role is `CODING_PRINCIPLES.md` §3).
-`scripts/layer-gate.mjs` holds the order and refuses a file in no layer. Decide by what the file imports:
+`scripts/layer-gate.mjs` holds the order, refuses a file in no layer and the packages a layer avoids (`vue`, router,
+pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file imports:
 
 - a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
 - a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);

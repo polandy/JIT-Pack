@@ -15,6 +15,12 @@
  * order is in the wrong layer, and the fix is to move it — which is the
  * revisit trigger ADR-096 names, not a line here.
  *
+ * A layer may also name the packages it promises to avoid (`forbidden`). The
+ * edges alone cannot see them: `lib/` and `sync/` sit low enough that every
+ * edge they may take is Vue-free, yet `import type { Ref } from 'vue'` is no
+ * edge at all and makes the layer reactive by signature. `domain/`'s list is
+ * `domain-purity-gate.mjs`'s and is not repeated here.
+ *
  * Within one layer any import is allowed; the module boundary between
  * `views/` and the feature modules, and between `components/global/` and the
  * rest of `components/`, is the module gate's. Specs (`__tests__/`) are exempt
@@ -32,10 +38,19 @@ const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 const SRC = resolve(root, 'client/src')
 
 /**
+ * The packages that make a module reactive or tie it to the app shell. A type
+ * import counts, as in the purity gate. `ionicons/icons` is not among them:
+ * it is the icon set as plain SVG data, which a pure wording helper may name.
+ */
+const VUE = [/^vue$/, /^vue-router$/, /^pinia$/, /^@ionic\//]
+const IONIC = [/^@ionic\//]
+
+/**
  * The layers in order, each a list of path prefixes under `client/src`
  * (without extension). A file belongs to the layer of its longest matching
  * prefix; a file no prefix matches fails the gate, so a new directory is
- * placed on purpose rather than importable by default.
+ * placed on purpose rather than importable by default. `forbidden` lists the
+ * packages a layer promises to avoid (CODING_PRINCIPLES.md §3).
  */
 const LAYERS = [
   {
@@ -53,11 +68,13 @@ const LAYERS = [
     ],
   },
   { name: 'domain', paths: ['domain', ...MODULES.map((m) => `${m}/domain`)] },
-  { name: 'lib', paths: ['lib'] },
+  { name: 'lib', paths: ['lib'], forbidden: VUE },
   // The tokens and their refresh read only the wire's words and the clock;
   // the transport below `sync/` hands them every request.
   { name: 'auth', paths: ['auth'] },
-  { name: 'sync', paths: ['sync'] },
+  // The transport is Vue-free (ADR-096): a store hands it a plain holder,
+  // which its `Ref` satisfies, never the `Ref` itself.
+  { name: 'sync', paths: ['sync'], forbidden: VUE },
   { name: 'local', paths: ['local'] },
   {
     name: 'edges',
@@ -67,7 +84,9 @@ const LAYERS = [
   },
   { name: 'kernel', paths: ['kernel'] },
   { name: 'stores', paths: ['stores'] },
-  { name: 'app', paths: ['app'] },
+  // The use cases the CLI shares run without an app shell; reactivity is
+  // theirs to use, a controller or a component is not.
+  { name: 'app', paths: ['app'], forbidden: IONIC },
   { name: 'composables', paths: ['composables'] },
   { name: 'components', paths: ['components'] },
   { name: 'screens', paths: ['views', ...MODULES] },
@@ -145,6 +164,7 @@ const label = (place) => (place === 'root' ? 'the composition root' : `\`${LAYER
 const problems = []
 let files = 0
 let edges = 0
+let packages = 0
 
 for (const file of walk(SRC)) {
   files += 1
@@ -158,7 +178,15 @@ for (const file of walk(SRC)) {
   }
   for (const spec of specifiers(readFileSync(file, 'utf8'))) {
     const to = target(spec, file)
-    if (to === null) continue
+    if (to === null) {
+      packages += 1
+      const forbidden = own === 'root' ? [] : (LAYERS[own].forbidden ?? [])
+      if (forbidden.some((p) => p.test(spec)))
+        problems.push(
+          `client/src/${relative(SRC, file)}: imports \`${spec}\` — ${label(own)} promises to avoid it`,
+        )
+      continue
+    }
     edges += 1
     if (own === 'root' || matches(to, DEV)) continue
     const theirs = placeOf(to)
@@ -180,16 +208,18 @@ if (files === 0 || edges === 0) {
 }
 
 if (problems.length > 0) {
-  console.error('layer-gate: a file imports a layer above its own.\n')
+  console.error('layer-gate: a file imports a layer above its own, or a package its layer avoids.\n')
   for (const line of [...new Set(problems)].sort()) console.error(`  ${line}`)
   console.error(
     `\nADR-096: ${LAYERS.map((l) => l.name).join(' → ')}, each importing only from itself and ` +
-      'the layers before it. Move the thing being named down, or the importing file up — ' +
+      'the layers before it, and none of the packages its layer avoids. Move the thing being ' +
+      'named down, or the importing file up — ' +
       'dev-docs/CODING_PRINCIPLES.md §3 says what each layer holds.',
   )
   process.exit(1)
 }
 
 console.log(
-  `layer-gate: ok — ${files} files, ${edges} imports, ${LAYERS.length} layers, none reaching upward`,
+  `layer-gate: ok — ${files} files, ${edges} imports, ${packages} package imports, ` +
+    `${LAYERS.length} layers, none reaching upward or into a package its layer avoids`,
 )
