@@ -23,6 +23,7 @@ import type {
   TaskPhase,
 } from '@/types/domain'
 import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
+import { MS_PER_DAY } from './shared/calendar'
 
 export interface GenerationTraveler {
   name: string
@@ -321,7 +322,7 @@ export function durationDays(startDate: string | null, endDate: string | null): 
   // number here would reach generation as a quantity input rather than being
   // read as the absence it is.
   if (ms < 0) return null
-  return Math.round(ms / 86_400_000) + 1
+  return Math.round(ms / MS_PER_DAY) + 1
 }
 
 /**

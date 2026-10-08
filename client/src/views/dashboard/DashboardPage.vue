@@ -21,7 +21,7 @@ import {
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DUE_PURCHASES, TRIP_CARDS, dueBlockAnchor } from '@/kernel/tripCards'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'

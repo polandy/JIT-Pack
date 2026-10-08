@@ -121,7 +121,7 @@ import {
   type MealSourceDeps,
 } from '@/meals'
 import { EXCURSION_EXTRA_LINES } from '@/kernel/excursionExtraLines'
-import type { MealContext } from '@/domain/mealContext'
+import type { MealContext } from '@/domain/shared/mealContext'
 import { MEAL_CONTEXT } from '@/kernel/mealContext'
 import { spanOf } from '@/domain/excursions'
 import { IDEA_STATE_SHORTLISTED } from '@/types/domain'

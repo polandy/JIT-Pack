@@ -9,7 +9,7 @@
  * own: casting it, and taking it back.
  */
 import { ACTIVITY_OP } from '@/api/types'
-import { valueAfter, type ActivityReader, type ActivityReaders } from '@/domain/activityReader'
+import { valueAfter, type ActivityReader, type ActivityReaders } from '@/domain/shared/activityReader'
 import type { IdeaVote } from '@/types/domain'
 import { TABLE } from '@/api/tables'
 

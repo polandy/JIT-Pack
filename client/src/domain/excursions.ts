@@ -11,6 +11,7 @@
  * a Gruppe writes.
  */
 
+import { addDays } from './shared/calendar'
 import { generateTripItems, type GeneratedTripItemFields } from './instantiate'
 import { stateFor, unitsOf, type PackUnits } from './packState'
 import { rowMenuEntries, type RowMenuAction } from './rowMenu'
@@ -682,7 +683,7 @@ export function dueExcursions(
   }>,
   today: string,
 ): DueExcursionRow[] {
-  const tomorrow = dayAfter(today)
+  const tomorrow = addDays(today, 1)
   const rows: DueExcursionRow[] = []
   for (const trip of trips) {
     for (const excursion of trip.excursions) {
@@ -700,12 +701,6 @@ export function dueExcursions(
   return rows.sort(
     (a, b) => Number(b.today) - Number(a.today) || a.excursion.name.localeCompare(b.excursion.name),
   )
-}
-
-/** The calendar day after an ISO day, through UTC so no zone moves it. */
-export function dayAfter(iso: string): string {
-  const [y = 0, m = 1, d = 1] = iso.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
 }
 
 // --- Bought on the spot, kept (FR-31.13) ---

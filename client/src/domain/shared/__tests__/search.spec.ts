@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { searchEquals } from '@/domain/search'
+import { searchEquals } from '@/domain/shared/search'
 
 /**
  * FR-24.11 — `searchEquals` decides whether a query already *is* an item's

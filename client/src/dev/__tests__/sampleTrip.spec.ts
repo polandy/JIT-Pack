@@ -27,7 +27,7 @@ import { IDEA_STATES } from '@/types/domain'
 import { SEED_IDEAS, SEED_MEALS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
 import { mealFeatureStore, useMealStore } from '@/meals'
 import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
-import { decodeLine, defaultSource, readTrack } from '@/domain/track'
+import { decodeLine, defaultSource, readTrack } from '@/domain/shared/track'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()

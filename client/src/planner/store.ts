@@ -86,7 +86,7 @@ export const usePlannerStore = defineStore('planner', () => {
     return entryTravelers.get(tripId)
   }
 
-  /** A trip's GPX tracks, as rows — `domain/track.ts` orders them (FR-29.17). */
+  /** A trip's GPX tracks, as rows — `domain/shared/track.ts` orders them (FR-29.17). */
   function getTracks(tripId: string): IdeaTrack[] {
     return tracks.get(tripId)
   }

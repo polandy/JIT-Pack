@@ -68,10 +68,12 @@ importing only leftwards, with no exception (ADR-096; the table with each layer'
 `scripts/layer-gate.mjs` holds the order, refuses a file in no layer and the packages a layer avoids (`vue`, router,
 pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file imports:
 
-- a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
+- a rule with no I/O → `domain/`, into `domain/shared/` if a module reads it too (the calendar, a due day, a track) —
+  that subtree reads only itself and the vocabulary (ADR-097); a pure helper that words or formats → `lib/` (no `vue`,
+  Ionic or router there);
 - a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
-- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/` when a
-  module's rules read it (`domain/dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
+- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/shared/`
+  when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;
 - a rule handed a collaborator declares the port it consumes (`ImportMutations` in `domain/portableImport.ts`), its
   option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above.

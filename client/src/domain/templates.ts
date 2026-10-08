@@ -19,7 +19,7 @@ import type {
   Trip,
   TripItem,
 } from '@/types/domain'
-import { foldSearch } from './search'
+import { foldSearch } from './shared/search'
 import { followsGroups } from './trips'
 
 /** Everything resolution needs, as plain arrays — the store shapes them. */
@@ -350,7 +350,7 @@ export interface GroupSearchHit {
 }
 
 /**
- * The FR-27.13 matching rule: the app's shared fold (`domain/search.ts`) and a
+ * The FR-27.13 matching rule: the app's shared fold (`domain/shared/search.ts`) and a
  * plain substring, no fuzzy matching — a wrong-but-confident hit costs more
  * than a missed one when accepting it writes a composition.
  */

@@ -4,8 +4,8 @@
  * through (the router's lazy page import aside). The dev seed uses it too,
  * to write its ideas through the module's own actions.
  */
-import type { DayPlanSource } from '@/domain/dayPlanLine'
-import type { IdeaLookup } from '@/domain/ideaBridge'
+import type { DayPlanSource } from '@/domain/shared/dayPlanLine'
+import type { IdeaLookup } from '@/domain/shared/ideaBridge'
 import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
 import { usePlannerStore } from './store'

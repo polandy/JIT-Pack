@@ -2,7 +2,7 @@
 /**
  * One track's figures and its time (FR-29.17): distance, ascent, descent
  * and the highest point, then how long it takes — the kind and *Mit Kind*
- * chosen by hand, the moving time from `domain/track.ts`, the travellers'
+ * chosen by hand, the moving time from `domain/shared/track.ts`, the travellers'
  * own pauses on a stepper, and the sum. Under it, small, what the time
  * assumes. Each change is handed up at once; nothing is held here.
  */
@@ -11,7 +11,7 @@ import { accessibilityOutline, bicycleOutline, walkOutline } from 'ionicons/icon
 import { computed } from 'vue'
 
 import { TRACK_KIND, type TrackKind } from '@/api/types'
-import { PAUSE_MAX_MIN, movingMinutes, paceOf, stepPause } from '@/domain/track'
+import { PAUSE_MAX_MIN, movingMinutes, paceOf, stepPause } from '@/domain/shared/track'
 import { formatNumber, t } from '@/i18n'
 import { formatDistance, formatDuration, formatMetres } from '@/lib/trackFormat'
 import type { TrackFields } from '@/types/domain'

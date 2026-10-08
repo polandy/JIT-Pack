@@ -9,7 +9,7 @@
  * Two rules, and both of them are why this is a domain module rather than a
  * computed property in the page:
  *
- * - **The fold is the app's** (`domain/search.ts`), widened there so that both
+ * - **The fold is the app's** (`domain/shared/search.ts`), widened there so that both
  *   spellings of an umlaut reach the same row — „gurtel" and „guertel" are
  *   one person looking for one belt.
  * - **A hit says why it matched.** M9 renders the results grouped by reason
@@ -17,7 +17,7 @@
  *   under a query it does not visibly contain reads as a bug — the same
  *   finding the FR-27.13 group search paid for with its `via` field.
  */
-import { foldSearch, searchEquals, searchMatches } from './search'
+import { foldSearch, searchEquals, searchMatches } from './shared/search'
 import type { NamedRow } from './nameCollision'
 
 /** Why a row is in the result. Ordered: this is also the ranking. */

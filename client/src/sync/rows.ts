@@ -44,7 +44,7 @@ import type {
   IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
-import type { TrackSettings } from '@/domain/track'
+import type { TrackSettings } from '@/domain/shared/track'
 
 export function generateDeviceId(): string {
   const bytes = new Uint8Array(4)

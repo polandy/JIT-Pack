@@ -1,7 +1,7 @@
 /**
  * A due *day* read against today — the arithmetic FR-7.11 gave a task and
- * FR-30.10 gives a shopping entry. Both features read it, so the shopping
- * module may name this file (`scripts/module-boundary-gate.mjs`);
+ * FR-30.10 gives a shopping entry. Both features read it, so it sits where a
+ * module may read it (ADR-097), and counting days is `calendar.ts`'s;
  * what makes a task or an entry *done* stays with each (`domain/taskDue.ts`,
  * `shopping/list.ts`), and only an open thing's day comes in here.
  *
@@ -15,6 +15,8 @@
  * **today**, and **soon** (the next two days). A day
  * further out is *later* — it is shown, but it does not move anything up.
  */
+import { daysBetween } from './calendar'
+
 export const DUE_OVERDUE = 'overdue'
 export const DUE_TODAY = 'today'
 export const DUE_SOON = 'soon'
@@ -23,19 +25,6 @@ export type DueState = typeof DUE_OVERDUE | typeof DUE_TODAY | typeof DUE_SOON |
 
 /** How many days ahead still count as *soon*. */
 export const DUE_SOON_DAYS = 2
-
-/** The days from `today` to `day`, both `YYYY-MM-DD`; negative in the past. */
-export function daysBetween(today: string, day: string): number {
-  return Math.round((utcDay(day) - utcDay(today)) / MS_PER_DAY)
-}
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
-/** A calendar day as UTC midnight — a count of days that no DST can bend. */
-function utcDay(iso: string): number {
-  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
-  return Date.UTC(year, month - 1, day)
-}
 
 /**
  * dueState reads where an open thing's day stands against today, or null

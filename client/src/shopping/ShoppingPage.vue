@@ -66,7 +66,7 @@ import {
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
 } from '@/types/domain'
-import { isPackingClosed, standingOf } from '@/lib/tripPhase'
+import { isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
 import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } from './list'
 import ShoppingListSection, { type AgainState } from './ShoppingListSection.vue'

@@ -13,8 +13,8 @@
 import { computed, ref, type ComputedRef } from 'vue'
 
 import type { TrackKind } from '@/api/types'
-import { toLv95, type LatLon, type RoutePoint } from '@/domain/route'
-import { inSwitzerland } from '@/domain/track'
+import { toLv95, type LatLon, type RoutePoint } from '@/domain/shared/route'
+import { inSwitzerland } from '@/domain/shared/track'
 
 /** The public BRouter — the server's default too (`cmd/jitpackd`). */
 export const DEFAULT_ROUTER_URL = 'https://brouter.de/brouter'

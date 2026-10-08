@@ -15,7 +15,6 @@ import {
   isExcursionOnly,
   lineSetOf,
   planForWhom,
-  dayAfter,
   dueExcursions,
   excursionLineAsRow,
   draftLinesFor,
@@ -610,11 +609,6 @@ describe('dueExcursions — M1 (FR-31.10)', () => {
       ['Wandern', true, 'Sardinien'],
       ['Hütte', false, 'Sardinien'],
     ])
-  })
-
-  it('steps across a month end', () => {
-    expect(dayAfter('2026-07-31')).toBe('2026-08-01')
-    expect(dayAfter('2026-12-31')).toBe('2027-01-01')
   })
 })
 

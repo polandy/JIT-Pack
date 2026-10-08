@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { TrackKind } from '@/api/types'
-import { append, emptyDraft, moveHandle, type LatLon, type RoutePoint } from '@/domain/route'
+import { append, emptyDraft, moveHandle, type LatLon, type RoutePoint } from '@/domain/shared/route'
 import { createRouteEditor, legMode, type LegFetchers } from '../routeEditor'
 
 /** A request held open until the test answers or fails it. */

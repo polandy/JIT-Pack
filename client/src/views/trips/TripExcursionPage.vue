@@ -91,7 +91,7 @@ import {
   type LineFor,
 } from '@/domain/excursions'
 import { durationDays } from '@/domain/instantiate'
-import { MAX_TRACKS, decodeLine, movingMinutes } from '@/domain/track'
+import { MAX_TRACKS, decodeLine, movingMinutes } from '@/domain/shared/track'
 import { buildPackingView } from '@/domain/packingView'
 import { packedPercent, stateFor } from '@/domain/packState'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -120,7 +120,7 @@ import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { sheetBandAttrs } from '@/lib/sheetBands'
 import { presentToast } from '@/composables/shared/toast'
-import { beforeIsOver, standingOf } from '@/lib/tripPhase'
+import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 import { closeOverlayRoute } from '@/composables/shared/closeOverlay'
 import {
   LINE_QUERY_PARAM,

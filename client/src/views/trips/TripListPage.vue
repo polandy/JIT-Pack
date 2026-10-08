@@ -59,7 +59,7 @@ import {
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { useIdentity } from '@/composables/shared/useTripIdentity'

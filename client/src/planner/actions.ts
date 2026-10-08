@@ -16,7 +16,7 @@ import {
   orderTracks,
   trackSettingsChanges,
   type TrackSettings,
-} from '@/domain/track'
+} from '@/domain/shared/track'
 import { newId } from '@/lib/ids'
 import { dbBool, jsonColumn } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'

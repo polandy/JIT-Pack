@@ -10,6 +10,7 @@
 
 import type { TaskPhase } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
+import { MS_PER_DAY } from './shared/calendar'
 
 /** What the counter says; the view chooses the words. */
 export type TripDay =
@@ -22,8 +23,6 @@ export type TripDay =
   | { kind: 'during'; day: number; total: number | null; remaining: number | null }
   | { kind: 'last' }
   | { kind: 'after' }
-
-const MS_PER_DAY = 86_400_000
 
 /** A `YYYY-MM-DD` date as a day number, immune to DST since it goes through UTC. */
 function dayNumber(iso: string): number | null {

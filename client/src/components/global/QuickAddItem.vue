@@ -86,7 +86,7 @@ import {
   searchOffer,
   type ItemSearchHit,
 } from '@/domain/itemSearch'
-import { searchEquals } from '@/domain/search'
+import { searchEquals } from '@/domain/shared/search'
 import { itemPath } from '@/router/paths'
 import { chipSuggestions } from '@/domain/quickAddChips'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'

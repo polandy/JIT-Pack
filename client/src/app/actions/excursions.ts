@@ -18,7 +18,7 @@ import {
   orderTracks,
   trackSettingsChanges,
   type TrackSettings,
-} from '@/domain/track'
+} from '@/domain/shared/track'
 import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
 import { trackSettingsColumns } from '@/sync/rows'
@@ -42,7 +42,7 @@ import {
   planParticipantChange,
   type DraftLine,
 } from '@/domain/excursions'
-import { beforeIsOver, standingOf } from '@/lib/tripPhase'
+import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */
 export interface ExcursionCreation {

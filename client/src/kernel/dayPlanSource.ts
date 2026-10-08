@@ -1,12 +1,12 @@
 /**
  * The packing side's dated rows as a source of the day plan (FR-29.15).
  *
- * The packing side of the contract in `domain/dayPlanLine.ts`: each dated
+ * The packing side of the contract in `domain/shared/dayPlanLine.ts`: each dated
  * excursion on its days with its rucksack's progress, and each task with a
  * due day on that day, its tick being M25's write. A projection, never a copy.
  */
-import type { DayPlanLine, DayPlanSource } from '@/domain/dayPlanLine'
-import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/domain/dayPlanLine'
+import type { DayPlanLine, DayPlanSource } from '@/domain/shared/dayPlanLine'
+import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/domain/shared/dayPlanLine'
 import { withExtraUnits, type ExcursionExtraLine } from '@/kernel/excursionExtraLines'
 import { spanOf, sumUnits } from '@/domain/excursions'
 import type { TripTask } from '@/domain/tripTodos'

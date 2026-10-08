@@ -20,7 +20,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { defaultSource, inSwitzerland, type MapSource } from '@/domain/track'
+import { defaultSource, inSwitzerland, type MapSource } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { LIVE_LOCATION } from '@/composables/shared/useLiveLocation'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'

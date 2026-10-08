@@ -6,8 +6,8 @@
  */
 import type * as Leaflet from 'leaflet'
 
-import { arrowMarks } from '@/domain/route'
-import type { MapSource } from '@/domain/track'
+import { arrowMarks } from '@/domain/shared/route'
+import type { MapSource } from '@/domain/shared/track'
 
 /** Where each source's tiles come from, and what its licence asks to be said. */
 export const TILES: Record<MapSource, { url: string; attribution: string; maxZoom: number }> = {

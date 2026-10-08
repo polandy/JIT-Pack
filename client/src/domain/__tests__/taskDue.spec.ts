@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   taskDueTally,
   byDue,
-  daysBetween,
   DUE_LATER,
   DUE_OVERDUE,
   DUE_SOON,
@@ -19,19 +18,6 @@ const TODAY = '2026-07-08'
 function task(id: string, due: string | null, state: 'open' | 'resolved' = 'open') {
   return { id, due_date: due, task_state: state } satisfies DueFacts & { id: string }
 }
-
-describe('FR-7.11 daysBetween', () => {
-  it.each([
-    ['2026-07-08', 0],
-    ['2026-07-09', 1],
-    ['2026-07-01', -7],
-    ['2026-08-01', 24],
-    // Across the October clock change: still whole days.
-    ['2026-10-26', 110],
-  ])('%s is %d days from today', (day, want) => {
-    expect(daysBetween(TODAY, day)).toBe(want)
-  })
-})
 
 describe('FR-7.11 dueStateOf', () => {
   it.each([
