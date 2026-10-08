@@ -3,8 +3,13 @@
  * One header line (G-12): what the trip stands at, and who else is here.
  * Deliberately unfiltered — see FR-25.20. Neither the trip's *other views*
  * nor its name sit here: the name is the page's own head (ADR-050).
+ *
+ * The `search` slot stands in for the progress card while the search is
+ * open (G-12, FR-25.11k): the field opens in the sticky band, directly under
+ * the switcher, instead of below the blocks the list starts with. It holds
+ * its place when the head yields — what is being typed never scrolls away.
  */
-import { computed } from 'vue'
+import { computed, useSlots } from 'vue'
 
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
@@ -71,7 +76,13 @@ const statsDetail = computed(() =>
   props.kpis.totalWeight > 0 ? formatWeight(props.kpis.totalWeight) : null,
 )
 
-const paired = computed(() => props.todoState !== 'none')
+/**
+ * Read at render, never cached: the slot object is not reactive, and the
+ * parent's re-render is what adds or drops the field.
+ */
+const slots = useSlots()
+const searching = (): boolean => slots.search !== undefined
+const paired = (): boolean => props.todoState !== 'none' && !searching()
 </script>
 
 <template>
@@ -82,13 +93,19 @@ const paired = computed(() => props.todoState !== 'none')
        doubled. -->
   <div
     class="trip-line"
-    :class="{ collapsed: collapsed || !loaded, paired }"
+    :class="{ collapsed: !searching() && (collapsed || !loaded), paired: paired() }"
     data-testid="m4-header"
   >
+    <slot v-if="searching()" name="search" />
     <!-- Where the trip stands, and who else is here. Tabular throughout:
          the weight under the share changes on the same tap as the share
          itself, and proportional digits shift both as it does. -->
-    <div class="trip-stats jp-card" :class="{ paired }" data-testid="m4-progress-card">
+    <div
+      v-else
+      class="trip-stats jp-card"
+      :class="{ paired: paired() }"
+      data-testid="m4-progress-card"
+    >
       <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
            note below declines to give, in the form a reader trusts most.
            It waits for the partition; 0/0 is honest once measured. -->
@@ -99,14 +116,14 @@ const paired = computed(() => props.todoState !== 'none')
         :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"
         :detail="statsDetail"
         :ring-size="RING_SIZE_HEADER"
-        :paired="paired"
+        :paired="paired()"
         headline-testid="m4-progress"
         detail-testid="m4-stats-detail"
       />
       <!-- FR-7.4: the second check, beside the share and never inside
            it; a tap leads to the section that ticks it. -->
       <button
-        v-if="loaded && paired"
+        v-if="loaded && paired()"
         class="todo-figure-button"
         data-testid="m4-trip-todos-figure"
         :aria-label="todoLine ?? undefined"
@@ -164,6 +181,14 @@ const paired = computed(() => props.todoState !== 'none')
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;
+}
+
+/* The field takes the card's width; the line's padding is already the
+   page's gutter, so the row's own would indent it twice. */
+.trip-line > :slotted(.search-row) {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
 }
 
 /* A card the width of the cards below it (G-14), with one figure or two. */

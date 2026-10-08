@@ -389,6 +389,10 @@ These patterns apply to every screen and are specified once.
     packing.
   * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕
     *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed.
+    **Where it appears is the top of what the screen holds still**, never down in the list's flow: on M4 it stands in
+    the progress card's place in the sticky band, directly under the page head, and keeps that place while the head
+    yields to the list (FR-21.17) — a field opened 500 px below its glyph, which then scrolls away with the rows it
+    narrows, is a field the reader has to hunt for twice (UX-18). Its ✕ is the round close control (G-14).
   * **One screen is exempt: M9 (FR-24.6).** The inventory's field is part of the screen, permanently, and the magnifier
     is not in its cluster at all. The collapse is paid for by the row it reclaims, and that trade only holds where
     searching is occasional; on a 184-row database the lookup *is* the screen's purpose, and a tap before every one of
@@ -503,7 +507,8 @@ These patterns apply to every screen and are specified once.
     asks for `card` rather than for a palette token that happens to look right today.
   * **Every sheet leaves the same way (FR-21.12).** The round close control is one design, drawn once: a filled circle
     on the sunken plane with a rim, at the round-control size. No sheet draws its own — two designs for one control
-    leave nothing recording which was meant.
+    leave nothing recording which was meant. The search field's ✕ (G-12) is the same control (`RoundClose`): a bare
+    12 px glyph beside a field is a target a thumb misses.
   * **A row menu is a sheet.** Every hold/right-click menu is an `ion-action-sheet`, and it wears the bottom sheet's
     shape: the sheet radius on its top corners, the handle, the sheet plane and cast, and its header in the sheet
     title's type. Told once in the theme files rather than per call site, so a new menu cannot miss it; Material's flat,

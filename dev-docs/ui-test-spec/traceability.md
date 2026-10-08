@@ -153,7 +153,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11h | E2E | M4-20, M6-15 (last row clears the FAB) |
 | FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
-| FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
+| FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line); M4-155 (UX-18: M4's opened field in the progress card's place in the sticky band, held while the head yields, its ✕ the round control) |
 | FR-25.11l | E2E+UNIT | M4-85 (panel wiring, override); `packingView.spec.ts` (bucketing, whole-set counts) |
 | G-12 | E2E+UNIT | G12-02 also: a tab root holds search + ⋮ alone at 412/360, every moved action a ⋮ word (UX-05; `AppHeader.spec.ts` the root budget); G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs); G12-08 (a held switcher glyph names itself and goes nowhere); G12-09 (the day plan's pill only with both dates, wholly in view where you stand, its back the packing list); G12-07 and M4-57 (a ⋮ holds its own context — none on M6/M25, no trip-wide entries on M4) |
 | G-13 | E2E | the word never cut (UX-08): M31-16 (the meal sheet's wrapping rows and its day row — faded, the chosen day centred on open and on choice), M31-17 (UX-08: *Morgen* and *Znüni/Zvieri* whole on M31's rows, the drag chip and M1), M5-33/M5-34 (the for-whom line, whole and scrolling under the fades), G12-07 (the trip switcher, the same sideways-row rule) |

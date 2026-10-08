@@ -156,6 +156,23 @@ describe('every codec pair agrees about its columns', () => {
 })
 
 /**
+ * The tables with a parser and no builder in `rows.ts`. There is no pair to
+ * compare, but the parser can still read a column the schema never declared —
+ * null on every device, like a drifted pair.
+ */
+const PARSE_ONLY: Array<{ table: SyncTable; parse: string }> = [
+  { table: TABLE.tags, parse: 'rowToTag' },
+  { table: TABLE.taskTags, parse: 'rowToTaskTag' },
+  { table: TABLE.itemTags, parse: 'rowToItemTag' },
+  { table: TABLE.templateIncludes, parse: 'rowToInclude' },
+  { table: TABLE.templateItemTasks, parse: 'rowToTask' },
+  { table: TABLE.templateTasks, parse: 'rowToTemplateTask' },
+  { table: TABLE.tripTemplateSources, parse: 'rowToTemplateSource' },
+  { table: TABLE.tripGeneratedPositions, parse: 'rowToGeneratedPosition' },
+  { table: TABLE.tripAppliedChanges, parse: 'rowToAppliedChange' },
+]
+
+/**
  * Both halves agreeing is not yet both halves being right: a column read and
  * written by a pair the schema never declared — `trips.series_name` — passes
  * the comparison above and is null on every device. The column lists are
@@ -169,6 +186,17 @@ describe('every column a codec pair names is one the schema declares', () => {
     expect(
       [...named].filter((c) => !declared.has(c)),
       `${parse}/${encode} name columns schema.sql does not declare on ${table}`,
+    ).toEqual([])
+  })
+})
+
+describe('every column a parser without a builder reads is one the schema declares', () => {
+  it.each(PARSE_ONLY)('$table', ({ table, parse }) => {
+    const declared = new Set<string>(TABLE_COLUMNS[table])
+
+    expect(
+      [...parsedColumns(parse)].filter((c) => !declared.has(c)),
+      `${parse} reads columns schema.sql does not declare on ${table}`,
     ).toEqual([])
   })
 })
@@ -191,5 +219,13 @@ describe('the registry covers the wire', () => {
     for (const codec of [TABLE_SPECS[TABLE.comments], todoCodec, tripTodoCodec]) {
       expect(named).toContainEqual([codec.parse.name, codec.encode?.name])
     }
+  })
+
+  it('lists every table without a builder as parse-only', () => {
+    const parseOnly = Object.entries(TABLE_SPECS)
+      .filter(([, codec]) => !('encode' in codec))
+      .map(([table]) => table)
+      .sort()
+    expect(parseOnly).toEqual(PARSE_ONLY.map((p) => p.table).sort())
   })
 })
