@@ -23,7 +23,7 @@ import {
   type ActivityKind,
   type ActivityReaders,
 } from '@/lib/activityReaders'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/api/tables'
 import {
   STATE_PACKED,
   STATE_PACKING_NOW,

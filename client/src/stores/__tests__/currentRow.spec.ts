@@ -9,7 +9,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import type { PullChange } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 function change(table: string, id: string, row: Record<string, unknown>): PullChange {
   return { seq: 1, table, id, deleted: false, row }

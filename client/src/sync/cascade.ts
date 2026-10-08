@@ -23,7 +23,7 @@
  * Ordering is leaf-first — a child before the parent it hangs off — for the
  * same reason the server orders its own.
  */
-import type { SyncTable } from '@/types/tables'
+import type { SyncTable } from '@/api/tables'
 import { localTombstone } from './optimistic'
 import type { PullChange } from '@/api/types'
 import type { RowSinks, SinkHolder } from './sinks'

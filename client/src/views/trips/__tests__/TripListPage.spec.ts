@@ -17,7 +17,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
 import type { AppliedChange } from '@/types/domain'

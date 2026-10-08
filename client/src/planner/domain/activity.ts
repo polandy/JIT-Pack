@@ -11,7 +11,7 @@
 import { ACTIVITY_OP } from '@/api/types'
 import { valueAfter, type ActivityReader, type ActivityReaders } from '@/lib/activityReaders'
 import type { IdeaVote } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const VOTE = 'vote' satisfies keyof IdeaVote
 

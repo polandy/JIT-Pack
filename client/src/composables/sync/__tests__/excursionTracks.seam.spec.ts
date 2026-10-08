@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TrackUpload } from '@/api/types'
 import { MAX_TRACKS } from '@/domain/track'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { createExcursionActions, type ExcursionTrackFiles } from '../actions/excursions'
 import { createMasterDataActions } from '../actions/masterData'
 import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'

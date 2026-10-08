@@ -4,7 +4,7 @@
  * `createMutations` (`../mutations.ts`).
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { stateFor } from '@/domain/packState'
 import type { GeneratedTripItemFields } from '@/domain/instantiate'
 import { dbBool } from '@/sync/columns'

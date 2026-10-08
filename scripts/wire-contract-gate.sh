@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The client's wire types and path builders are generated from
-# internal/api/wire.go (NFR-4.14, ADR-026/027). This regenerates them and fails
-# when a checked-in file differs.
+# internal/api/wire.go (NFR-4.14, ADR-026/027), and its table contract from
+# internal/store/tables.go and schema.sql (ARCH-11). This regenerates them and
+# fails when a checked-in file differs.
 #
 # It exists because two sides written independently drift in ways invisible to
 # both test suites — a client reading a key no server sends, taking a hint for
@@ -12,22 +13,26 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# The shapes and the paths: two generated files, one declaration (ADR-027).
+# The shapes and the paths: two generated files, one declaration (ADR-027);
+# the tables: one more, from the store's registry and the schema.
 types_target="client/src/api/types.ts"
 routes_target="client/src/api/routes.ts"
+tables_target="client/src/api/tables.ts"
 
 # Generated beside the tree rather than over it: the check must compare wire.go
 # against the files on disk, not against whatever git happens to hold — running
 # it must never rewrite the files it is judging.
 fresh_types="$(mktemp)"
 fresh_routes="$(mktemp)"
-trap 'rm -f "$fresh_types" "$fresh_routes"' EXIT
+fresh_tables="$(mktemp)"
+trap 'rm -f "$fresh_types" "$fresh_routes" "$fresh_tables"' EXIT
 
-go run ./cmd/wiregen -o "$fresh_types" -routes-o "$fresh_routes" >/dev/null
+go run ./cmd/wiregen -o "$fresh_types" -routes-o "$fresh_routes" -tables-o "$fresh_tables" >/dev/null
 
 check() {
 	target="$1"
 	fresh="$2"
+	source="$3"
 
 	if [ ! -s "$fresh" ]; then
 		echo "wire-contract-gate: the generator produced nothing for $target — a gate that scanned nothing must not report ok." >&2
@@ -35,7 +40,7 @@ check() {
 	fi
 
 	if ! diff -u "$target" "$fresh" >/dev/null 2>&1; then
-		echo "wire-contract-gate: $target does not match internal/api/wire.go." >&2
+		echo "wire-contract-gate: $target does not match $source." >&2
 		echo >&2
 		diff -u --label "$target (checked in)" --label "$target (generated)" "$target" "$fresh" >&2 || true
 		echo >&2
@@ -44,8 +49,9 @@ check() {
 		exit 1
 	fi
 
-	echo "wire-contract-gate: ok ($target matches internal/api/wire.go)"
+	echo "wire-contract-gate: ok ($target matches $source)"
 }
 
-check "$types_target" "$fresh_types"
-check "$routes_target" "$fresh_routes"
+check "$types_target" "$fresh_types" internal/api/wire.go
+check "$routes_target" "$fresh_routes" internal/api/wire.go
+check "$tables_target" "$fresh_tables" "internal/store/tables.go and schema.sql"

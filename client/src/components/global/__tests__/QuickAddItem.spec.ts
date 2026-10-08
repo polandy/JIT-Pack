@@ -23,7 +23,7 @@ import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { MasterItem, Traveler } from '@/types/domain'
 
 const NAME = 'Sonnenhut'

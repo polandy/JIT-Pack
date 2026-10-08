@@ -15,7 +15,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import DashboardPage from '../DashboardPage.vue'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 

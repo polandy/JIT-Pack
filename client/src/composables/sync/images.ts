@@ -9,7 +9,7 @@
  */
 import { API } from '@/api/routes'
 import { localChange } from '@/sync/optimistic'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { PullChange } from '@/api/types'

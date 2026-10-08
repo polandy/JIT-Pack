@@ -14,7 +14,7 @@ import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 /** The key prefix that keeps an own entry's line apart from any source's. */
 const LINE_KEY_PREFIX = 'own:'

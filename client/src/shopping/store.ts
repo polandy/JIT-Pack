@@ -15,7 +15,7 @@ import { bucketedRows, bucketSink } from '@/sync/bucketedRows'
 import type { FeatureStore } from '@/sync/featureModule'
 import { applyChangesToSinks, type RowSinks } from '@/sync/sinks'
 import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 export const useShoppingStore = defineStore('shopping', () => {
   // Bucketed by trip like the packing rows: a list is read for one trip at a time.

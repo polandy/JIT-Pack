@@ -18,7 +18,7 @@ import { TABLE_SPECS } from '../tableRegistry'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { plannerFeatureStore, usePlannerStore } from '@/planner/store'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/api/tables'
 import type { PullChange } from '@/api/types'
 
 function row(table: string, id: string, fields: Record<string, unknown>): PullChange {

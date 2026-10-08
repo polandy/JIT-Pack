@@ -15,7 +15,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import CreateItemSheet from '../CreateItemSheet.vue'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 interface Writes {

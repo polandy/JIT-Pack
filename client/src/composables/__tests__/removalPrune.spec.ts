@@ -14,7 +14,7 @@ import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { Mutation, PushRequest } from '@/api/types'
 import type { TripItem } from '@/types/domain'
 

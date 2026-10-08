@@ -39,7 +39,7 @@ import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { inventoryProperties } from '@/composables/useInventoryProperties'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 import { MODE_KEY } from '@/mode'
 

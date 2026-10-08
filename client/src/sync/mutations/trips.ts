@@ -4,7 +4,7 @@
  * (`../mutations.ts`).
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'

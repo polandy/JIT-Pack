@@ -11,7 +11,7 @@
  * the *real* route so the eyeball sees the true screen.
  */
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { ITEM_MODE_PACK } from '@/types/domain'

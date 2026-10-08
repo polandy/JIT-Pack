@@ -13,7 +13,7 @@ import {
   type ActivityReaders,
 } from '@/lib/activityReaders'
 import type { MealIngredient } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const BOUGHT = 'bought' satisfies keyof MealIngredient
 

@@ -1,7 +1,8 @@
 /**
  * Which store owns a pulled row, and which feed carries a table's writes —
- * both read off `TABLE_SPECS`, so a new table is routed by the entry that
- * gives it a codec, and these sets cannot fall out of step with it.
+ * the store read off `TABLE_SPECS`, so a new table is routed by the entry that
+ * gives it a codec, and the feed off the server's own registry, generated
+ * into `TABLE_PARTITION` (`api/tables.ts`).
  *
  * Routing is by owning **store**, never by partition: `trip_members`,
  * `trip_template_sources` and `trip_applied_changes` all travel the *master*
@@ -12,7 +13,7 @@
  * funnel, which routed by partition until a group started painting rows of
  * both (`tripLifecycle.deleteTrip`, C-3a).
  */
-import { TABLE, type SyncTable } from '@/types/tables'
+import { TABLE, TABLE_PARTITION, type SyncTable } from '@/api/tables'
 import type { PartitionType } from './partition'
 import { TABLE_SPECS, type StoreOwner } from './tableRegistry'
 
@@ -53,5 +54,5 @@ export function storeFor(table: string): StoreOwner | null {
  * site has to agree with.
  */
 export function partitionOf(table: string): PartitionType | null {
-  return isSyncTable(table) ? TABLE_SPECS[table].partition : null
+  return isSyncTable(table) ? TABLE_PARTITION[table] : null
 }

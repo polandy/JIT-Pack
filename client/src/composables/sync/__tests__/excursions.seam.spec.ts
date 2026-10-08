@@ -16,7 +16,7 @@ import { createCommentActions } from '../actions/comments'
 import { createPackingActions } from '../actions/packing'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
 import { changesOf, makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { ref } from 'vue'
 import { keyedSink } from '@/sync/bucketedRows'
 

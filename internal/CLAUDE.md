@@ -57,8 +57,9 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
 
 - `cmd/jitpackd` — wiring only: env-parsed `Config` → one `api.Options`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge (NFR-4.2a). Pure, zero I/O, zero internal imports.
-- `internal/wiregen` — `wire.go` → the client's `types.ts` and `routes.ts` (ADR-026/027). Pure leaf: `go/ast` in, string
-  out. `cmd/wiregen` is the thin main.
+- `internal/wiregen` — `wire.go` → the client's `types.ts` and `routes.ts` (ADR-026/027); `store`'s `tableSpecs` and
+  `schema.sql` → `tables.ts` (names, feeds, columns, push whitelist, CHECK vocabularies). Pure leaf: source text in,
+  string out — it parses `store`, never imports it. `cmd/wiregen` is the thin main.
 - `internal/store` — the only package importing `database/sql`. SQLite repositories, change/conflict logs, the two sync
   partitions (master; trip), the schema and its migration chain (ADR-067).
 - `internal/linkpreview` — FR-29.16: reads a pasted link's page for its title, description, picture and links
