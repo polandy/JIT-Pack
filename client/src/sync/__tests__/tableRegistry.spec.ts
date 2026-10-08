@@ -29,7 +29,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { TABLE_SPECS } from '../tableRegistry'
+import { TABLE_SPECS, todoCodec, tripTodoCodec } from '../tableRegistry'
 import { TABLE, TABLE_COLUMNS, type SyncTable } from '@/api/tables'
 
 const registrySource = readFileSync(
@@ -184,5 +184,12 @@ describe('the registry covers the wire', () => {
       .map(([table]) => table)
       .sort()
     expect(encoded).toEqual([...new Set(PAIRS.map((p) => p.table))].sort())
+  })
+
+  it('names the todo codecs of comments by the functions they hold', () => {
+    const named = PAIRS.filter((p) => p.table === TABLE.comments).map((p) => [p.parse, p.encode])
+    for (const codec of [TABLE_SPECS[TABLE.comments], todoCodec, tripTodoCodec]) {
+      expect(named).toContainEqual([codec.parse.name, codec.encode?.name])
+    }
   })
 })
