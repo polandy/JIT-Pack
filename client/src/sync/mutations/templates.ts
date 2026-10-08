@@ -16,8 +16,8 @@ import {
   type Template,
   type TemplateItem,
   type TemplateKind,
-  type TripItem,
 } from '@/types/domain'
+import type { GeneratedTripItemEdit } from '@/domain/refresh'
 import type { MutationContext } from './context'
 
 /** M8's Vorlage header, plus FR-24.3's marker on the same terms. */
@@ -29,16 +29,6 @@ export type TemplateItemEdit = Partial<
   Pick<
     TemplateItem,
     'quantity' | 'assignment' | 'dedup' | 'conditions' | 'default_mode' | 'late_packer'
-  >
->
-
-/** The FR-27.4 refresh's propagated fields — the only ones a group may
- * overwrite on a trip row it generated. Everything the user decided on the
- * trip (state, counts, container, assignment) is deliberately absent. */
-export type GeneratedTripItemEdit = Partial<
-  Pick<
-    TripItem,
-    'name' | 'quantity' | 'mode' | 'late_packer' | 'weight_grams' | 'value_cents' | 'category_name'
   >
 >
 

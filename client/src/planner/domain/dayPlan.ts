@@ -4,12 +4,12 @@
  *
  * The plan stores two tables of its own (`day_entries` and whom each is for)
  * and reads the planned ideas, the packing side's dated lines (excursions,
- * tasks — see `kernel/dayPlanSources.ts`), the trip's travellers and its dates
+ * tasks — see `domain/dayPlanLine.ts`), the trip's travellers and its dates
  * for arrival and departure.
  * Which day is shown, what stands on it and in which order is derived here.
  */
-import type { DayPlanLine } from '@/kernel/dayPlanSources'
-import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/kernel/dayPlanSources'
+import type { DayPlanLine } from '@/domain/dayPlanLine'
+import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/domain/dayPlanLine'
 import type { DayEntry, DayEntryTraveler, Idea, Traveler } from '@/types/domain'
 import {
   EXCURSION_ROLE_BACK,

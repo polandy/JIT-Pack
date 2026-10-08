@@ -56,9 +56,9 @@ internal/webui/              serves the built client beside the API on one origi
 
 The client's layers, each importing only from those before it (ADR-096). A feature module (`shopping/`, `planner/`,
 `meals/`) sits beside `views/` and reaches the kernel through `kernel/` and `composables/shared/` alone. The rule
-directories are the one exception: `domain/` may also read `lib/` helpers and `sync/`'s codecs and mutation types, and
-a module's `domain/` the port shapes in `kernel/` (ARCH-16b) — `scripts/domain-purity-gate.mjs` lists what they may
-reach.
+directories (`domain/`, a module's `domain/`) read only `types/`, `api/` and `domain/`: a port a module's rules read
+keeps its shape in `domain/` and only its `InjectionKey` in `kernel/`. One edge still runs against the order — the
+portable import names the mutation factory's type (ARCH-16c); `scripts/domain-purity-gate.mjs` lists it.
 
 ```
 client/src/types, api, i18n, theme, router/paths   the vocabulary: wire types, words, tokens, URLs
@@ -85,8 +85,8 @@ client/src/views/            screens
   socket and the builder for the optimistic twin of a write — none of it reactive, which is why it lives here rather
   than under `composables/`, where nothing that declines Vue's reactivity belongs. It lives
   there rather than in `client/src/local/` because that directory means *Local Mode*, and the outbox exists only in the
-  mode that has a server. Purity is preserved where it is claimed: `client/src/domain/` reaches only `sync/`'s
-  Vue-free leaves (the column codecs, the mutation factory's types), never the outbox or the socket.
+  mode that has a server. `client/src/domain/` sits below it: a rule hands back domain values and `sync/` encodes
+  them as columns (`trackSettingsColumns` beside `trackSettingsChanges`).
 * The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs
   with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in
   that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough

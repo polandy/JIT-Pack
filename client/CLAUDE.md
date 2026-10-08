@@ -69,7 +69,8 @@ Decide by what the file imports:
 
 - a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
 - a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
-- a contract between the kernel and a module, or the adapter that fills one → `kernel/`;
+- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/` when a
+  module's rules read it (`domain/dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it.
 
 ## The kernel and its feature modules
@@ -100,6 +101,6 @@ Template instantiation, dependency resolution, quantity suggestions, analytics, 
 `GET /trips/{id}/export.csv` stay because neither has a client twin. Anything outside the browser that needs these
 rules runs *this* code (the FR-18.7 import command is a Node program over `domain/portableImport.ts`). **A rule must
 never be reachable only through a Vue composable**, and **the arrow never turns round**: a `client/src/domain` module
-imports `types/`, `api/`, `sync/`, `lib/` and its own siblings — an allowlist — and never Vue, `vue-router`, `pinia` or
-Ionic, type-only imports included. The mutation factory is Vue-free (`createMutations` in
-`client/src/sync/mutations.ts`). `scripts/domain-purity-gate.mjs` holds the direction.
+imports `types/`, `api/` and its own siblings — an allowlist — and never Vue, `vue-router`, `pinia` or Ionic, type-only
+imports included; the one named exception is the portable import's mutation type (ARCH-16c).
+`scripts/domain-purity-gate.mjs` holds the direction.

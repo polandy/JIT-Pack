@@ -17,7 +17,7 @@ import {
   readTrack,
   simplify,
   stepPause,
-  trackSettingsPatch,
+  trackSettingsChanges,
   type TrackPoint,
 } from '../track'
 
@@ -294,17 +294,22 @@ describe('what a person sets on a track (FR-29.17, FR-31.15)', () => {
     line: 'l',
   }
 
-  it('writes only what changed, the name trimmed and the flag as the column holds it', () => {
+  it('keeps only what changed, the name trimmed', () => {
     expect(
-      trackSettingsPatch(track, { name: ' Seeweg ', kind: 'hike', with_kid: true, pause_min: 15 }),
-    ).toEqual({ name: 'Seeweg', with_kid: 1 })
-    expect(trackSettingsPatch(track, { kind: 'bike', pause_min: 0 })).toEqual({
+      trackSettingsChanges(track, {
+        name: ' Seeweg ',
+        kind: 'hike',
+        with_kid: true,
+        pause_min: 15,
+      }),
+    ).toEqual({ name: 'Seeweg', with_kid: true })
+    expect(trackSettingsChanges(track, { kind: 'bike', pause_min: 0 })).toEqual({
       kind: 'bike',
       pause_min: 0,
     })
   })
 
   it('takes a blank name, or the same values, for no change', () => {
-    expect(trackSettingsPatch(track, { name: '  ', with_kid: false, pause_min: 15 })).toEqual({})
+    expect(trackSettingsChanges(track, { name: '  ', with_kid: false, pause_min: 15 })).toEqual({})
   })
 })

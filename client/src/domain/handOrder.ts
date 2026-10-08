@@ -1,7 +1,7 @@
 /**
  * A hand-set order inside one group — where a person put a shopping line
- * (FR-30.13) or a task (FR-7.17). Kernel rather than `domain/` because both
- * features read it and a feature module reaches only the kernel (FR-30.3).
+ * (FR-30.13) or a task (FR-7.17). Both features read it, so the shopping
+ * module may name this file (`scripts/module-boundary-gate.mjs`).
  *
  * A position is an integer compared only inside one group, and `null` is
  * „never placed". The rules (ADR-083):

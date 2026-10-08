@@ -5,7 +5,7 @@
  *
  * `lib/` rather than `domain/` for `taskFacts.ts`'s reason: it reads the
  * catalogue. The rule it words — which of the four states a day is in — is
- * `lib/dueDay.ts`'s, and this file only names it.
+ * `domain/dueDay.ts`'s, and this file only names it.
  */
 import {
   daysBetween,
@@ -14,7 +14,7 @@ import {
   DUE_OVERDUE,
   DUE_TODAY,
   type DueState,
-} from '@/lib/dueDay'
+} from '@/domain/dueDay'
 import { formatDate, intlLocale, t } from '@/i18n'
 
 /** What a line or a sheet shows for a task's date, or null for none. */

@@ -61,12 +61,11 @@ import { t } from '@/i18n'
 import { useTileState } from '@/composables/shared/mapTiles'
 import {
   IDEA_RESULT_EXCURSION,
-  IDEA_RESULT_SCREEN,
   IDEA_RESULT_SHOPPING,
-  IDEA_RESULT_SOURCES,
   IDEA_RESULT_TASK,
   type IdeaResultKind,
-} from '@/kernel/ideaBridge'
+} from '@/domain/ideaBridge'
+import { IDEA_RESULT_SCREEN, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'

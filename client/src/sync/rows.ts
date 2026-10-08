@@ -44,6 +44,7 @@ import type {
   IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
+import type { TrackSettings } from '@/domain/track'
 
 export function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
@@ -360,6 +361,15 @@ function trackFieldsRow(track: TrackFields): Record<string, unknown> {
     point_count: track.point_count,
     line: track.line,
   }
+}
+
+/**
+ * FR-29.17: a track's changed settings as the columns they write — a patch,
+ * not a row, so only the changed columns go out.
+ */
+export function trackSettingsColumns(changes: TrackSettings): Record<string, unknown> {
+  const { with_kid, ...rest } = changes
+  return with_kid === undefined ? rest : { ...rest, with_kid: dbBool(with_kid) }
 }
 
 /** FR-29.17: a GPX track on an idea — every column, as an optimistic row is rebuilt on. */

@@ -16,7 +16,7 @@ import { taskDueTally } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import type { MessageKey } from '@/i18n'
-import { addTallies, NO_DUE, type DueTally } from '@/lib/dueDay'
+import { addTallies, NO_DUE, type DueTally } from '@/domain/dueDay'
 import {
   DUE_BLOCK_SHOPPING,
   DUE_BLOCK_TASKS,

@@ -6,7 +6,7 @@
  * the packing mutations. A packing line's check-off never comes through here;
  * it is bound into the line by the packing side (`kernel/shoppingSources.ts`).
  */
-import { nextPosition } from '@/lib/handOrder'
+import { nextPosition } from '@/domain/handOrder'
 import { newId } from '@/lib/ids'
 import type { PackingCloseCrossing } from '@/kernel/packingClose'
 import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'

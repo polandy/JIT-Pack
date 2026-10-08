@@ -1,7 +1,7 @@
 /** FR-29.14/FR-29.15: the day plan's days, its pool and one day's timeline. */
 import { describe, expect, it } from 'vitest'
 
-import type { DayPlanLine } from '@/kernel/dayPlanSources'
+import type { DayPlanLine } from '@/domain/dayPlanLine'
 import type { DayEntry, DayEntryTraveler, Idea, IdeaState, Traveler } from '@/types/domain'
 import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '@/types/domain'
 import {
