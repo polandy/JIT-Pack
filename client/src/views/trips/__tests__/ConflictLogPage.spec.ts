@@ -12,7 +12,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import ConflictLogPage from '../ConflictLogPage.vue'
-import { APIRequestError } from '@/api/client'
+import { APIRequestError } from '@/sync/apiClient'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
 import { setLocale, t } from '@/i18n'

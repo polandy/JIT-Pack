@@ -7,7 +7,7 @@ import { TABLE } from '@/api/tables'
 import { rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import type { ItemDependency, MasterItem } from '@/types/domain'
+import type { ItemDependency, MasterItem, MasterItemOptions } from '@/types/domain'
 import type { MutationContext } from './context'
 
 /** M10's item editor, plus FR-24.3's marker — which `deleteMasterItem` and
@@ -34,14 +34,7 @@ export function createMasterDataMutations({ make }: MutationContext) {
 
   function createMasterItem(
     name: string,
-    opts: {
-      weightGrams?: number | null
-      valueCents?: number | null
-      /** FR-28.1: the optional mark, absent as often as not. */
-      icon?: string | null
-      /** FR-1.9: the account the item is normally assigned to. */
-      defaultAssigneeId?: string | null
-    } = {},
+    opts: MasterItemOptions = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.items, id, {

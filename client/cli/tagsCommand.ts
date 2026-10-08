@@ -9,7 +9,7 @@
  * every device like one done by hand.
  */
 
-import { APIClient } from '@/api/client'
+import { APIClient } from '@/sync/apiClient'
 import { MASTER_PARTITION, pullPartitionAll } from '@/sync/partition'
 import { HLCGenerator } from '@/sync/hlc'
 import {

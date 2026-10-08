@@ -13,9 +13,9 @@ import type { Mutation } from '@/api/types'
 import {
   ITEM_MODE_PACK,
   type ItemMode,
+  type PortableTripItemFields,
   REVIEW_FLAG_FIELD,
   type ReviewFlag,
-  type ShoppingMode,
   STATE_SKIPPED,
   type TripItem,
 } from '@/types/domain'
@@ -240,17 +240,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
   /** addPortableTripItem inserts one M18 trip-import row, state derived from progress. */
   function addPortableTripItem(
     tripId: string,
-    item: {
-      name: string
-      sourceItemId: string | null
-      categoryName: string | null
-      quantity: number
-      packedCount: number
-      mode: ItemMode
-      latePacker: boolean
-      /** FR-25.11j: the shopping list the row was bought from, if any. */
-      boughtFrom: ShoppingMode | null
-    },
+    item: PortableTripItemFields,
     assignedTravelerId: string | null,
     containerId: string | null,
   ): { mutation: Mutation; id: string } {

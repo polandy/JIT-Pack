@@ -8,7 +8,7 @@
  * `not_configured`, and this device stops asking for the session rather
  * than asking at every link.
  */
-import { APIRequestError } from '@/api/client'
+import { APIRequestError } from '@/sync/apiClient'
 import { API } from '@/api/routes'
 import {
   ERROR_CODE,

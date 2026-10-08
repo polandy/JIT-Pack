@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SyncOutbox, type SyncOutboxOptions } from '../outbox'
 import type { Mutation, PushResponse, MutationResult, PullResponse, PullChange } from '@/api/types'
-import { APIRequestError, type APIClient } from '@/api/client'
+import { APIRequestError, type APIClient } from '@/sync/apiClient'
 import type { HLCGenerator } from '@/sync/hlc'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 

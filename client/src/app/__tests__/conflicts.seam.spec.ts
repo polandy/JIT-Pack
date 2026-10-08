@@ -115,7 +115,7 @@ describe('revertConflict', () => {
   it('surfaces the server refusal rather than swallowing it', async () => {
     // §6 rule 2 outranks a revert, and the user has to be told which
     // refusal applied — a resolved promise would read as success. What a
-    // 409 becomes is `api/client.ts`'s promise; not dropping it is this
+    // 409 becomes is `sync/apiClient.ts`'s promise; not dropping it is this
     // group's.
     const { client, drainTrip, conflicts } = actions()
     client.fail(new Error('revert_refused'))

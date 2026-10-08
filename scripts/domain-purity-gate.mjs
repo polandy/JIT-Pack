@@ -12,12 +12,13 @@
  * needs the DOM the import dragged in.
  *
  * **A type-only import counts.** Naming mutation builders as
- * `ReturnType<typeof useMutations>` reaches up into `composables/` for a type.
+ * `ReturnType<typeof createMutations>` reaches up into `sync/` for a type.
  * It compiles to nothing and costs no runtime dependency, which is why it
  * survives a review pass and a purity claim in the same document; what it
  * does cost is the sentence "domain imports nothing above it", which stops
- * being true and therefore load-bearing. The mutation factory is Vue-free and
- * lives in `client/src/sync/mutations.ts`.
+ * being true and therefore load-bearing. A rule that is handed a collaborator
+ * declares the port it consumes instead — `ImportMutations` in
+ * `domain/portableImport.ts` — and the caller satisfies it structurally.
  *
  * Node built-ins only, so it needs no install; wired into `make client` and the
  * CI client job beside the other node gates.
@@ -52,14 +53,6 @@ const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
  * a rule module un-constructible without an app instance.
  */
 const ALLOWED_DIRS = ['api', 'domain', 'types']
-
-/**
- * Single files above `domain/` a rule module may still name, each a known
- * edge against the order with the item that closes it. The portable import
- * writes through the mutation factory's builders and names their type
- * (ARCH-16c).
- */
-const ALLOWED_PATHS = ['sync/mutations']
 
 /**
  * Packages that make a module un-constructible outside a browser app. `yaml`
@@ -124,11 +117,7 @@ for (const file of DOMAINS.flatMap((dir) => walk(resolve(SRC, dir)))) {
       continue
     }
     const layer = inside.split('/')[0]
-    if (
-      !ALLOWED_DIRS.includes(layer) &&
-      !ALLOWED_PATHS.includes(inside) &&
-      !inside.startsWith(`${home}/`)
-    ) {
+    if (!ALLOWED_DIRS.includes(layer) && !inside.startsWith(`${home}/`)) {
       problems.push(
         `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,
       )

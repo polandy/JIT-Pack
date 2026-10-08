@@ -11,10 +11,10 @@ import {
   type AppliedChange,
   type GeneratedPosition,
   ITEM_MODE_PACK,
-  type ItemMode,
   type TaskPhase,
   type Template,
   type TemplateItem,
+  type TemplateItemOptions,
   type TemplateKind,
 } from '@/types/domain'
 import type { GeneratedTripItemEdit } from '@/domain/refresh'
@@ -63,14 +63,7 @@ export function createTemplatesMutations({ make, nowIso }: MutationContext) {
   function addTemplateItem(
     templateId: string,
     itemId: string,
-    opts: {
-      quantity?: number
-      assignment?: string
-      dedup?: string
-      defaultMode?: ItemMode
-      latePacker?: boolean
-      conditions?: Record<string, unknown> | null
-    } = {},
+    opts: TemplateItemOptions = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.templateItems, id, {

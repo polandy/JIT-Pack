@@ -7,7 +7,7 @@ import {
   syncPath,
   tripPartition,
 } from '../partition'
-import type { APIClient } from '@/api/client'
+import type { APIClient } from '@/sync/apiClient'
 import type { PullResponse, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 

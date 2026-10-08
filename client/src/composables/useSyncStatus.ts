@@ -7,7 +7,7 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
-import type { RequestFailure } from '@/api/client'
+import type { RequestFailure } from '@/sync/apiClient'
 import { t, type MessageKey } from '@/i18n'
 import { defaultNowMs, type NowMs } from '@/lib/clock'
 

@@ -22,7 +22,7 @@
  * gap over through the ordinary read path — P-1 again.
  */
 
-import type { TokenProvider } from '@/api/client'
+import type { TokenProvider } from '@/sync/apiClient'
 import { API } from '@/api/routes'
 import type { WSEvent } from '@/api/types'
 

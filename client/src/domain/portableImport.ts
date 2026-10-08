@@ -16,23 +16,69 @@ import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
 import type { Mutation } from '@/api/types'
 import type {
+  AppliedChange,
+  ContainerOptions,
   GeneratedPosition,
   MasterItem,
+  MasterItemOptions,
+  PortableTripItemFields,
   Tag,
+  TaskPhase,
   Template,
+  TemplateItemOptions,
   TemplateKind,
   Trip,
+  TripOptions,
 } from '@/types/domain'
 import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
-import type { createMutations } from '@/sync/mutations'
+
+/** A creating write: the mutation, and the id of the row it creates. */
+interface CreatedRow {
+  mutation: Mutation
+  id: string
+}
 
 /**
- * The mutation builders an import uses. Deliberately the real factory rather
- * than a hand-written interface: a builder is where a row's shape is decided,
- * and an import that built its rows a second way would be the drift this
- * module exists to prevent.
+ * The mutation builders an import uses — the port this rule is handed, which
+ * the mutation factory in `sync/mutations` satisfies as it stands. It names
+ * only the builders, not how they render a row: a builder is where a row's
+ * shape is decided, and an import that built its rows a second way would be
+ * the drift this module exists to prevent. The option shapes live in
+ * `types/domain.ts`, read by both sides (ADR-096).
  */
-export type ImportMutations = ReturnType<typeof createMutations>
+export interface ImportMutations {
+  createMasterItem(name: string, opts?: MasterItemOptions): CreatedRow
+  createTag(name: string, sortOrder?: number, icon?: string | null): CreatedRow
+  assignTag(itemId: string, tagId: string, position: number): CreatedRow
+  createTemplate(
+    name: string,
+    ownerId: string,
+    kind?: TemplateKind,
+    icon?: string | null,
+  ): CreatedRow
+  addTemplateItem(templateId: string, itemId: string, opts?: TemplateItemOptions): CreatedRow
+  addTemplateInclude(templateId: string, includedTemplateId: string): CreatedRow
+  addTemplateItemTask(templateItemId: string, task: string): CreatedRow
+  addTemplateTask(templateId: string, task: string, phase: TaskPhase): CreatedRow
+  registerTripSource(tripId: string, templateId: string): CreatedRow
+  writeGeneratedPosition(entry: GeneratedPosition): Mutation
+  logAppliedChange(change: Omit<AppliedChange, 'id' | 'created_at'>, createdAt?: string): CreatedRow
+  createTrip(
+    name: string,
+    year: number,
+    startDate: string | null,
+    endDate: string | null,
+    opts?: TripOptions,
+  ): CreatedRow
+  addTraveler(tripId: string, name: string, linkedUserId?: string | null): CreatedRow
+  addContainer(tripId: string, name: string, opts?: ContainerOptions): CreatedRow
+  addPortableTripItem(
+    tripId: string,
+    item: PortableTripItemFields,
+    assignedTravelerId: string | null,
+    containerId: string | null,
+  ): CreatedRow
+}
 
 /**
  * The inventory an import matches against. It has to be a **live** view, not

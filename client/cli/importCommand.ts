@@ -10,7 +10,7 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-import { APIClient } from '@/api/client'
+import { APIClient } from '@/sync/apiClient'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { createMutations } from '@/sync/mutations'

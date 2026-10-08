@@ -32,7 +32,7 @@ import {
 import { computed } from 'vue'
 
 import { SYNC_GLYPHS } from './syncGlyphs'
-import type { RequestFailure } from '@/api/client'
+import type { RequestFailure } from '@/sync/apiClient'
 import { intlLocale, formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'

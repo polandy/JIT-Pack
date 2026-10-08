@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { APIRequestError } from '@/api/client'
+import { APIRequestError } from '@/sync/apiClient'
 import { API } from '@/api/routes'
 import { ERROR_CODE } from '@/api/types'
 import { createLinkPreview } from '../linkPreview'
