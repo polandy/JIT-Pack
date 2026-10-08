@@ -12,7 +12,14 @@ import {
 import type { Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-import { M4_TRIP, chooseInRowMenu, openRowMenu, quickAddRows, tripWithRows } from './helpers/m4'
+import {
+  M4_TRIP,
+  chooseInRowMenu,
+  openRowMenu,
+  packRow,
+  quickAddRows,
+  tripWithRows,
+} from './helpers/m4'
 import { createItem } from './helpers/m9'
 
 /**
@@ -43,21 +50,26 @@ test.describe('M4 packing list @local @m4', () => {
   // E2E-M4-01 (FR-8.1/7.3, G-12): the header line counts the whole trip,
   // whatever the list below it is showing. A short list that also shortened
   // the header would make a filtered trip look further along than it is.
-  test('E2E-M4-01: the header line stays unfiltered while the search narrows the list @smoke', async ({
+  // Narrowed by a facet: while the search is open the field stands in the
+  // card's place (FR-25.11k, E2E-M4-155), so a filter is what narrows the
+  // list under a visible count.
+  test('E2E-M4-01: the header line stays unfiltered while a filter narrows the list @smoke', async ({
     page,
   }) => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Zelt', 'Schlafsack', 'Kocher'])
+    await packRow(page, 'Zelt')
 
-    await expect(page.getByTestId('m4-progress')).toContainText('0/3')
+    await expect(page.getByTestId('m4-progress')).toContainText('1/3')
 
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Zelt')
+    await page.getByTestId('m4-filter').click()
+    await page.getByTestId('facet-status-packed').click()
+    await page.getByTestId('filter-close').click()
 
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
     // The point of the case: the count did not follow the list.
-    await expect(page.getByTestId('m4-progress')).toContainText('0/3')
+    await expect(page.getByTestId('m4-progress')).toContainText('1/3')
   })
 
   // E2E-M4-04 (FR-5.6, FR-25.13a): the visible confirm button is the commit,

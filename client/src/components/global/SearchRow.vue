@@ -13,9 +13,10 @@
  * the screen that renders the row.
  */
 import { IonIcon } from '@ionic/vue'
-import { closeOutline, searchOutline } from 'ionicons/icons'
+import { searchOutline } from 'ionicons/icons'
 import { onMounted, ref } from 'vue'
 
+import RoundClose from '@/components/global/RoundClose.vue'
 import { t } from '@/i18n'
 
 const props = withDefaults(
@@ -53,14 +54,14 @@ onMounted(() => {
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @keydown.enter="emit('submit')"
     />
-    <button
+    <!-- The round control (G-14): a bare glyph beside a field is a target a
+         thumb misses. -->
+    <RoundClose
       v-if="!persistent || modelValue !== ''"
-      :aria-label="persistent ? t('common.clear') : t('common.close')"
-      :data-testid="persistent ? 'search-clear' : undefined"
+      :label="persistent ? t('common.clear') : t('common.close')"
+      :data-testid="persistent ? 'search-clear' : 'search-close'"
       @click="emit('close')"
-    >
-      <IonIcon :icon="closeOutline" />
-    </button>
+    />
   </div>
 </template>
 
@@ -81,12 +82,5 @@ onMounted(() => {
   padding: 8px 10px;
   color: var(--ct-text);
   font-size: var(--jp-text-md);
-}
-
-.search-row button {
-  background: none;
-  border: none;
-  color: var(--ct-subtext0);
-  cursor: pointer;
 }
 </style>

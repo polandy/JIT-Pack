@@ -605,7 +605,18 @@ setHeaderTitle(
         :participants="participants"
         :is-desktop="isDesktop"
         @reveal-todos="revealTripTodos"
-      />
+      >
+        <!-- FR-25.11k: the field exists only while it is being used, and
+             opens in the sticky band under the switcher (G-12). -->
+        <template v-if="searchOpen || search" #search>
+          <SearchRow
+            v-model="search"
+            testid="m4-search-input"
+            :placeholder="t('packing.searchPlaceholder')"
+            @close="toggleSearch"
+          />
+        </template>
+      </PackingHeadline>
 
       <ClosingPassBanner
         v-if="closingPass"
@@ -645,15 +656,6 @@ setHeaderTitle(
         @remove="tasks.acts.remove"
         @open="tasks.open"
       />
-      <!-- FR-25.11k: the field exists only while it is being used. -->
-      <SearchRow
-        v-if="searchOpen || search"
-        v-model="search"
-        testid="m4-search-input"
-        :placeholder="t('packing.searchPlaceholder')"
-        @close="toggleSearch"
-      />
-
       <!-- FR-25.11a: an active filter is never invisible — every value is a
            removable chip. With none set the row states the grouping instead,
            which is the other thing arranging the list. -->

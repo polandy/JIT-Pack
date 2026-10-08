@@ -102,7 +102,7 @@ describe('the sheets stopped drawing their own way out', () => {
     // The same control, two appearances, and nothing recording which was
     // meant. A ninth copy is what this refuses.
     for (const file of vueFiles) {
-      if (file.endsWith('SheetHead.vue')) continue
+      if (file.endsWith('RoundClose.vue')) continue
       expect(readFileSync(file, 'utf8'), `${file} draws its own close control`).not.toMatch(
         /^\.x \{/m,
       )
