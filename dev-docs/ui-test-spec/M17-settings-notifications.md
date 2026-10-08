@@ -68,7 +68,8 @@
   one's.
 * **E2E-M17-14b** `local` (FR-19.8): the guard. On a device with a write newer than its last backup the switch is
   **disabled and says why**; the card's own backup enables it; one more write (a quick-add on any trip) disables it
-  again. Both directions are asserted, because a guard that only ever enables is a delay, not a rule. The card's absence
+  again. Both directions are asserted, because a guard that only ever enables is a delay, not a rule. Its URL field is
+  M19's, a value in a box (UX-21). The card's absence
   in Server Mode is unit-owned (G-8, the `SettingsApiTokens.spec.ts` shape), since `local` cannot render a Server Mode
   M17.
 * **E2E-M17-14c** `single` (FR-19.8): *Überspringen* is its own outcome. After the switch, the bar's skip asks once, and

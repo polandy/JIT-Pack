@@ -201,3 +201,17 @@ export async function chooseInSelect(page: Page, testid: string, label: string) 
   await popover.locator('ion-item', { hasText: label }).click()
   await expect(page.locator(PRESENTED_POPOVER)).toHaveCount(0)
 }
+
+/**
+ * An `ion-input` whose value stands in a painted box rather than as a caption
+ * under its label (UX-21): the wrapper around the native input carries a
+ * background, and one that differs from the surface the field sits on — the
+ * same colour would draw no box at all.
+ */
+export async function expectValueInABox(field: Locator, surface: Locator): Promise<void> {
+  await expect(field).toHaveClass(/hydrated/)
+  const background = (el: Element) => getComputedStyle(el).backgroundColor
+  const box = await field.locator('.native-wrapper').evaluate(background)
+  expect(box).not.toBe('rgba(0, 0, 0, 0)')
+  expect(box).not.toBe(await surface.evaluate(background))
+}

@@ -27,7 +27,8 @@ image.
 the one sentence that matters: the data stays on this device until step 3 has been done. **Step 1 — *„Sicherung
 herunterladen"*:** the whole-device backup, the same export the G-2 sheet offers (FR-19.6), one function behind both.
 The step shows when the last backup was taken, or that none was. **Step 2 — *„Server verbinden"*:** a URL field
-pre-filled with the page's own origin, validated for syntax exactly like M19's (an invalid URL disables the button and
+pre-filled with the page's own origin, M19's own field (`ServerUrlField`, UX-21), validated for syntax exactly like
+M19's (an invalid URL disables the button and
 says so inline; no reachability check, for M19's reason), and the confirm. **The confirm is disabled while the backup is
 older than the last change on this device**, and the disabled state says so in words (*„Zuerst sichern — seit der
 letzten Sicherung wurde etwas geändert."*), because a button that is grey for a reason it does not name is the FR-25.15

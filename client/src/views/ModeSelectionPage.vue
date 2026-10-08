@@ -16,13 +16,13 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
-  IonInput,
   IonIcon,
   IonNote,
 } from '@ionic/vue'
 import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import BrandMark from '@/components/global/BrandMark.vue'
+import ServerUrlField from '@/components/settings/ServerUrlField.vue'
 import { defaultServerBaseUrl } from '@/config'
 import { isValidServerUrl } from '@/mode'
 import { t } from '@/i18n'
@@ -73,14 +73,11 @@ const serverUrlValid = computed(() => isValidServerUrl(serverUrl.value))
           </IonCardHeader>
           <IonCardContent>
             <p>{{ t('firstRun.serverBody') }}</p>
-            <IonInput
+            <ServerUrlField
+              v-model="serverUrl"
               :label="t('firstRun.serverUrl')"
-              label-placement="stacked"
               placeholder="https://jitpack.example.com"
-              type="url"
               data-testid="mode-server-url"
-              :value="serverUrl"
-              @ionInput="(e: CustomEvent) => (serverUrl = e.detail.value ?? '')"
             />
             <IonNote v-if="serverUrl && !serverUrlValid" color="danger">
               {{ t('firstRun.serverUrlInvalid') }}

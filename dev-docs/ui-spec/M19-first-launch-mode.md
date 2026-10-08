@@ -7,8 +7,10 @@
   ~~with connectivity check on confirm~~ — **not built, see Actions**). The URL field arrives **pre-filled with
   the page's own origin**, which is the correct answer for every self-hosted instance: the SPA and the API share one
   origin because the API sets no CORS headers. An explicit build-time `VITE_API_URL` wins over it, and the Vite dev
-  server keeps its split-origin backend. Below the cards, one line noting that Local Mode data can later be moved to a
-  server via export (FR-19.5).
+  server keeps its split-origin backend. **The value stands in a filled box** (`ServerUrlField`: the label above, the
+  value on `--ct-surface0`, as M11's name field) — Ionic's stacked input draws none, and on the card the URL read as a
+  caption rather than something to type into (UX-21). M17's move card uses the same field. Below the cards, one line
+  noting that Local Mode data can later be moved to a server via export (FR-19.5).
 * **Actions:** Selecting Local Mode persists the choice, requests persistent storage (NFR-4.11 — on the boot that
   follows, since choosing re-inits the app by reloading) and lands on M1 with an empty state (G-7); all of that is
   E2E-M19-01. Selecting Server Mode stores the URL and lets the app discover the instance: an instance offering OIDC

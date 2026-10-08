@@ -32,7 +32,8 @@
   syntax one (`firstRun.serverUrlInvalid`), which is a different promise.
 * **E2E-M19-04** `local` (FR-19.1) — **implemented** (`smoke.spec.ts`): the field carries the page's origin and Connect
   is reachable without typing. Asserted on the inner `button`, since `toBeEnabled()` on an `ion-button` host is
-  false-green.
+  false-green. The value stands in a painted box of its own colour, not as a caption on the card (UX-21,
+  `expectValueInABox`; E2E-M17-14b asserts the same of M17's move card).
 * **E2E-M19-05** `local` (FR-19.1, Sync-API §2) — **implemented** (`login-screen.spec.ts`): a `server`-mode device on
   the login screen whose `/auth/config` comes back as a gateway failure is told the server did not answer, is *not* told
   the server requires no login, and keeps the sign-in. The 501 is the only answer that means no login is needed; a
