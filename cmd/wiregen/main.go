@@ -58,7 +58,7 @@ func run(target, routesTarget, tablesTarget string) error {
 	if err != nil {
 		return err
 	}
-	// Generated before either is written: a contract that cannot produce its
+	// Generated before any is written: a contract that cannot produce its
 	// paths must not leave a regenerated types.ts behind, because the gate
 	// would then report drift on a file the run itself had just rewritten.
 	if err := write(target, types); err != nil {

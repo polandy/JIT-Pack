@@ -10,7 +10,7 @@ This file is loaded in full by every session and every subagent, so it holds the
 - **Verify before finishing any change: `make ci`** — mirrors the CI jobs 1:1, one line per target, a failing target's output in full. **Not `go test ./...`** (`client/node_modules` ships Go source; `GO_PKGS` in the Makefile decides the scope).
 - **Slow jobs run on GitHub, not here** (owner's rule): `make ci-remote`; `make e2e-module M=planner` runs one module's cases.
 - **A red CI run: `node scripts/ci-failures.mjs [<run-id> | --pr <n>]`.**
-- **After changing `internal/api/wire.go`: `make wire`** — regenerates `client/src/api/types.ts` and `routes.ts`, never hand-edited (ADR-026/027).
+- **After changing `internal/api/wire.go`, `internal/store/tables.go` or `schema.sql`: `make wire`** — regenerates `client/src/api/types.ts`, `routes.ts` and `tables.ts`, never hand-edited (ADR-026/027).
 - Client only: `cd client && npm run dev`, `npx vitest run`, `npm run build`.
 - Timings, the skipped jobs, the e2e legs, the workflows and `main`'s protection: **`dev-docs/ci.md`**.
 
