@@ -323,6 +323,7 @@ export const tripsEn = {
   // per person. The note itself is not a secret store (§6 of the concept) —
   // it is stored in clear, like a key-box code written on a whiteboard.
   'notes.title': 'Notes',
+  'notes.note': 'Note',
   'notes.viewCount': 'Notes · {n} new',
   'notes.empty': 'No notes for this trip yet.',
   'notes.newNote': 'New note',

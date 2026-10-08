@@ -14,6 +14,9 @@
  * statement (FR-7.9), made here rather than with a checkbox on the list.
  * Tapping an entry opens its menu. A thread about an excursion (FR-7.15)
  * names it under the first note, as a way into its list.
+ *
+ * The head is the thread's own title, or *Notiz* — not the first line a
+ * list names an untitled thread by, which the card here shows in full.
  */
 import {
   IonButton,
@@ -40,7 +43,7 @@ import {
   noteExcursion,
   noteMenuEntries,
   noteThreads,
-  threadName,
+  threadTitle,
   type NoteMenuAction,
 } from '@/domain/tripNotes'
 import { t } from '@/i18n'
@@ -217,7 +220,7 @@ onMounted(async () => {
 })
 
 setHeaderTitle(
-  () => (thread.value ? threadName(thread.value.root) : t('notes.title')),
+  () => (thread.value && threadTitle(thread.value.root)) || t('notes.note'),
   () => trip.value?.name,
 )
 </script>

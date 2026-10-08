@@ -34,7 +34,16 @@ export function entryStamp(entry: ItemComment): string {
 
 /** What a thread is called: its title, or else the first line of its first note. */
 export function threadName(root: ItemComment): string {
-  return root.title?.trim() || (root.body.split('\n')[0] ?? '')
+  return threadTitle(root) ?? root.body.split('\n')[0] ?? ''
+}
+
+/**
+ * The title the author gave a thread, or null. The thread view heads with
+ * this rather than with `threadName`: there the first note's words stand in
+ * full right under the head, so a first line would say them twice.
+ */
+export function threadTitle(root: ItemComment): string | null {
+  return root.title?.trim() || null
 }
 
 /** One thread, as M25's notes view and M1 read it (FR-7.13). */

@@ -11,8 +11,9 @@ Open the trip and tap the **Notizen** icon (two speech bubbles) in the row under
 trip's name. Tap the round **+** button at the bottom right: a sheet opens with an
 optional **Titel** and the text. Tap **Teilen**.
 
-Without a title, the note's first line names it — *"Pizza Bella 079 555 12 34"* is a
-fine title on its own.
+Without a title, the note's first line names it on the list — *"Pizza Bella 079 555 12 34"*
+is a fine title on its own. Inside the thread, the screen is headed by the title, or by
+**Notiz** where there is none, so the note's words appear only once, in full.
 
 ## A note about an excursion
 
