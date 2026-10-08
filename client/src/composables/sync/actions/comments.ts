@@ -51,7 +51,7 @@ export function createCommentActions(ctx: SyncContext) {
   }
 
   /** A first note goes with its thread (FR-7.13), as the server's cascade does. */
-  function deleteComment(tripId: string, commentId: string) {
+  function deleteComment(commentId: string) {
     const mutation = mutations.deleteComment(commentId)
     write({
       mutation,
@@ -66,12 +66,12 @@ export function createCommentActions(ctx: SyncContext) {
    * FR-7.13: the author changes an entry's words. `title` only for a first
    * note — `undefined` leaves a reply's (absent) title alone.
    */
-  function editNote(tripId: string, note: ItemComment, body: string, title?: string | null) {
+  function editNote(note: ItemComment, body: string, title?: string | null) {
     write(mutations.editNote(note.id, body, title))
   }
 
   /** FR-7.15: the author says which excursion a thread is about, or none. */
-  function setNoteExcursion(tripId: string, note: ItemComment, excursionId: string | null) {
+  function setNoteExcursion(note: ItemComment, excursionId: string | null) {
     write(mutations.setNoteExcursion(note.id, excursionId))
   }
 
@@ -127,11 +127,11 @@ export function createCommentActions(ctx: SyncContext) {
     write(mutation)
   }
 
-  function resolvePrepTodo(tripId: string, todo: ItemTodo) {
+  function resolvePrepTodo(todo: ItemTodo) {
     write(mutations.resolveTodo(todo.id))
   }
 
-  function reopenPrepTodo(tripId: string, todo: ItemTodo) {
+  function reopenPrepTodo(todo: ItemTodo) {
     write(mutations.reopenTodo(todo.id))
   }
 
@@ -180,7 +180,7 @@ export function createCommentActions(ctx: SyncContext) {
    * optimistic update is rebuilt from, because the two kinds live in
    * different buckets of the store.
    */
-  function assignPrepTodo(tripId: string, todo: ItemTodo, userId: string | null) {
+  function assignPrepTodo(todo: ItemTodo, userId: string | null) {
     write(mutations.setTodoAssignee(todo.id, userId))
   }
 
@@ -189,7 +189,7 @@ export function createCommentActions(ctx: SyncContext) {
    * about it changes. Both kinds pass through here — the caller says which
    * row to rebuild, because that is the only difference.
    */
-  function setTaskPhase(tripId: string, todo: ItemTodo | TripTodo, phase: TaskPhase | null) {
+  function setTaskPhase(todo: ItemTodo | TripTodo, phase: TaskPhase | null) {
     write(mutations.setTaskPhase(todo.id, phase))
   }
 
@@ -197,22 +197,22 @@ export function createCommentActions(ctx: SyncContext) {
    * FR-7.8: the one tag a task carries, given, changed or taken off. One
    * field, like the phase beside it — the task keeps everything else it was.
    */
-  function setTaskTag(tripId: string, todo: ItemTodo | TripTodo, taskTagId: string | null) {
+  function setTaskTag(todo: ItemTodo | TripTodo, taskTagId: string | null) {
     write(mutations.setTaskTag(todo.id, taskTagId))
   }
 
   /** FR-7.11: the day a task is due, set, moved or taken off — one field. */
-  function setTaskDueDate(tripId: string, todo: ItemTodo | TripTodo, dueDate: string | null) {
+  function setTaskDueDate(todo: ItemTodo | TripTodo, dueDate: string | null) {
     write(mutations.setTaskDueDate(todo.id, dueDate))
   }
 
   /** FR-7.17: a task's place inside its group, either kind — one field. */
-  function placeTask(tripId: string, todo: ItemTodo | TripTodo, position: number) {
+  function placeTask(todo: ItemTodo | TripTodo, position: number) {
     write(mutations.placeTask(todo.id, position))
   }
 
   /** FR-7.14: a task's words, corrected — either kind, one field. */
-  function setTaskBody(tripId: string, todo: ItemTodo | TripTodo, body: string) {
+  function setTaskBody(todo: ItemTodo | TripTodo, body: string) {
     write(mutations.setTaskBody(todo.id, body))
   }
 

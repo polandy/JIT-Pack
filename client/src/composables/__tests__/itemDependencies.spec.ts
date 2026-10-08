@@ -100,7 +100,6 @@ describe('co-skip cascade (FR-20.2)', () => {
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
     const affected = orch.skipItem('t1', cameraItem)
     orch.restoreSkip(
-      't1',
       affected.map((row) => ({
         itemId: row.id,
         quantity: row.quantity,
@@ -120,7 +119,7 @@ describe('co-skip cascade (FR-20.2)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.restoreSkip('t1', [{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
+    orch.restoreSkip([{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
 
     expect(tripStore.getItems('t1')).toEqual([])
   })

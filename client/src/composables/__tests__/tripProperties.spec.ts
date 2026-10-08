@@ -272,7 +272,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(TRIP_ID, zoes)
+    orch.packComplete(zoes)
 
     orch.removeTraveler(TRIP_ID, 'trv-z')
 
@@ -293,7 +293,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     // Xenia's share is worked on; Zoe's is untouched. The protection belongs
     // to the row, not to the position, so Zoe still leaves.
     const xenias = pantsRows().find((r) => r.assigned_traveler_id === 'trv-x')!
-    orch.packIncrement(TRIP_ID, xenias)
+    orch.packIncrement(xenias)
 
     orch.removeTraveler(TRIP_ID, 'trv-z')
 
@@ -311,7 +311,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(TRIP_ID, zoes)
+    orch.packComplete(zoes)
 
     orch.removeTraveler(TRIP_ID, 'trv-z', { includePacked: true })
 
@@ -333,7 +333,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(TRIP_ID, zoes)
+    orch.packComplete(zoes)
 
     // The screen asks only when there is something to answer about.
     expect(orch.packedRowsOf(TRIP_ID, 'trv-z')).toBe(1)

@@ -630,9 +630,9 @@ function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
         .find((row) => row.id === id)
     const tagId = tag === null ? null : (tags.get(tag) ?? null)
     const tagged = live()
-    if (tagId !== null && tagged) orchestrator.setTaskTag(tripId, tagged, tagId)
+    if (tagId !== null && tagged) orchestrator.setTaskTag(tagged, tagId)
     const dated = live()
-    if (due !== null && dated) orchestrator.setTaskDueDate(tripId, dated, localDay(due))
+    if (due !== null && dated) orchestrator.setTaskDueDate(dated, localDay(due))
   }
   const done = useTripStore()
     .getTripTodos(tripId)
@@ -694,7 +694,7 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
   const item = useTripStore()
     .getItems(tripId)
     .find((row) => row.name === SEED_BOUGHT_ROW)
-  if (item) orchestrator.buyItem(tripId, item, ITEM_MODE_BUY_BEFORE)
+  if (item) orchestrator.buyItem(item, ITEM_MODE_BUY_BEFORE)
 }
 
 /**

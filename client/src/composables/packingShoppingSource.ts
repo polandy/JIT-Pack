@@ -28,10 +28,10 @@ export interface PackingShoppingReads {
 
 /** The two packing writes a check-off can mean (FR-3.3, FR-25.11j). */
 export interface PackingShoppingWrites {
-  buyItem(tripId: string, item: TripItem, from: ShoppingMode): void
-  unbuyItem(tripId: string, item: TripItem, from: ShoppingMode): void
+  buyItem(item: TripItem, from: ShoppingMode): void
+  unbuyItem(item: TripItem, from: ShoppingMode): void
   /** FR-30.13: the row's place on the shopping list. */
-  placeOnShopping(tripId: string, item: TripItem, position: number): void
+  placeOnShopping(item: TripItem, position: number): void
 }
 
 /** The key prefix that keeps a packing line apart from every other source's. */
@@ -75,15 +75,15 @@ export function createPackingShoppingSource(
         // Every instance, not the first: the line stands for all of them, and
         // one that names three people while settling one leaves two behind
         // where nobody is looking for them (FR-25.6).
-        buy: () => row.instances.forEach((item) => writes.buyItem(tripId, item, list)),
-        unbuy: () => row.instances.forEach((item) => writes.unbuyItem(tripId, item, list)),
+        buy: () => row.instances.forEach((item) => writes.buyItem(item, list)),
+        unbuy: () => row.instances.forEach((item) => writes.unbuyItem(item, list)),
         // FR-30.13: the first instance that was placed speaks for the line;
         // a move writes every instance, so they agree again after it.
         position: row.instances.find((item) => item.shopping_position != null)?.shopping_position,
         place: (position) =>
           row.instances.forEach((item) => {
             if (item.shopping_position !== position) {
-              writes.placeOnShopping(tripId, item, position)
+              writes.placeOnShopping(item, position)
             }
           }),
       })),

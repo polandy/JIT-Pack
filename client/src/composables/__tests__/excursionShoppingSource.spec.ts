@@ -75,15 +75,15 @@ describe('the excursion shopping source (FR-31.8)', () => {
     const [shown] = src.open('t', 'buy_local')
     expect(shown?.position).toBe(2)
     shown!.place(0)
-    expect(placeLineOnShopping).toHaveBeenLastCalledWith('t', proviant, 0)
+    expect(placeLineOnShopping).toHaveBeenLastCalledWith(proviant, 0)
   })
 
   it('buys by stamping the line and puts it back by clearing the stamp', () => {
     const proviant = line('Proviant')
     const { src, markBought } = source([proviant])
     src.open('t', 'buy_local')[0]!.buy()
-    expect(markBought).toHaveBeenLastCalledWith('t', proviant, true)
+    expect(markBought).toHaveBeenLastCalledWith(proviant, true)
     src.open('t', 'buy_local')[0]!.unbuy()
-    expect(markBought).toHaveBeenLastCalledWith('t', proviant, false)
+    expect(markBought).toHaveBeenLastCalledWith(proviant, false)
   })
 })

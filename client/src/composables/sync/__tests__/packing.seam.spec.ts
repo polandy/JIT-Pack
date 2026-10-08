@@ -56,7 +56,7 @@ describe('createPackingActions without an orchestrator', () => {
   it('packIncrement queues one write on the trip partition, painting the whole row', () => {
     const item = seedTripItem('ti-1')
 
-    createPackingActions(ctx).packIncrement(TRIP_ID, item)
+    createPackingActions(ctx).packIncrement(item)
 
     expect(queued).toHaveLength(1)
     expect(queued[0]!.type).toBe('trip')
@@ -75,8 +75,8 @@ describe('createPackingActions without an orchestrator', () => {
     const item = seedTripItem('ti-1')
     const actions = createPackingActions(ctx)
 
-    actions.packComplete(TRIP_ID, item)
-    actions.packZero(TRIP_ID, item)
+    actions.packComplete(item)
+    actions.packZero(item)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ packed_count: 3 })
     expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ packed_count: 0 })
@@ -85,7 +85,7 @@ describe('createPackingActions without an orchestrator', () => {
   it('restorePack re-reads the row rather than trusting the caller snapshot (FR-25.2)', () => {
     seedTripItem('ti-1', { packed_count: 3, state: 'packed', assigned_traveler_id: 'trav-1' })
 
-    createPackingActions(ctx).restorePack(TRIP_ID, 'ti-1', 1, 'open')
+    createPackingActions(ctx).restorePack('ti-1', 1, 'open')
 
     // The undo restores only what the pack wrote; the traveler that arrived
     // in between is still on the painted row.
@@ -94,7 +94,7 @@ describe('createPackingActions without an orchestrator', () => {
   })
 
   it('restorePack leaves a row that has since been deleted deleted', () => {
-    createPackingActions(ctx).restorePack(TRIP_ID, 'ti-gone', 1, 'open')
+    createPackingActions(ctx).restorePack('ti-gone', 1, 'open')
 
     // The positive signal: the queue is the record, and nothing reached it.
     expect(queued).toEqual([])
@@ -142,7 +142,7 @@ describe('createPackingActions without an orchestrator', () => {
   it('restoreSkip puts back the rows it still finds and skips the ones that are gone', () => {
     seedTripItem('ti-1', { state: 'skipped', quantity: 0 })
 
-    createPackingActions(ctx).restoreSkip(TRIP_ID, [
+    createPackingActions(ctx).restoreSkip([
       { itemId: 'ti-1', quantity: 3, packedCount: 1, state: 'open' },
       { itemId: 'ti-gone', quantity: 2, packedCount: 0, state: 'open' },
     ])
@@ -154,7 +154,7 @@ describe('createPackingActions without an orchestrator', () => {
   })
 
   it('restoreSkip queues nothing at all when every row is gone', () => {
-    createPackingActions(ctx).restoreSkip(TRIP_ID, [
+    createPackingActions(ctx).restoreSkip([
       { itemId: 'ti-gone', quantity: 2, packedCount: 0, state: 'open' },
     ])
 
@@ -167,8 +167,8 @@ describe('createPackingActions without an orchestrator', () => {
 
     // `buy_before`, not `buy_local`: M6 has two lists, and a case that only
     // ever passes one cannot tell the argument from a constant.
-    actions.buyItem(TRIP_ID, item, 'buy_before')
-    actions.unbuyItem(TRIP_ID, item, 'buy_before')
+    actions.buyItem(item, 'buy_before')
+    actions.unbuyItem(item, 'buy_before')
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ bought_from: 'buy_before' })
     expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ bought_from: null })
@@ -178,8 +178,8 @@ describe('createPackingActions without an orchestrator', () => {
     const item = seedTripItem('ti-1')
     const actions = createPackingActions(ctx)
 
-    actions.setPacker(TRIP_ID, item, 'user-2')
-    actions.setPacker(TRIP_ID, item, null)
+    actions.setPacker(item, 'user-2')
+    actions.setPacker(item, null)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ packer_user_id: 'user-2' })
     expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ packer_user_id: null })
@@ -188,7 +188,7 @@ describe('createPackingActions without an orchestrator', () => {
   it('setLatePackerForRows writes the flag on every row it is handed (FR-25.26)', () => {
     const rows = [seedTripItem('ti-1'), seedTripItem('ti-2'), seedTripItem('ti-3')]
 
-    createPackingActions(ctx).setLatePackerForRows(TRIP_ID, rows, true)
+    createPackingActions(ctx).setLatePackerForRows(rows, true)
 
     // One write per instance, not one write that a merge would have to
     // spread: field-level LWW (NFR-4.2a) merges the three exactly as it
@@ -205,8 +205,8 @@ describe('createPackingActions without an orchestrator', () => {
     const rows = [seedTripItem('ti-1'), seedTripItem('ti-2')]
     const actions = createPackingActions(ctx)
 
-    actions.setPackerForRows(TRIP_ID, rows, 'user-2')
-    actions.setPackerForRows(TRIP_ID, rows, null)
+    actions.setPackerForRows(rows, 'user-2')
+    actions.setPackerForRows(rows, null)
 
     expect(queued.map((write) => write.muts[0]!.mutation.fields)).toMatchObject([
       { packer_user_id: 'user-2' },
@@ -217,7 +217,7 @@ describe('createPackingActions without an orchestrator', () => {
   })
 
   it('writes nothing at all when the fan-out was handed no rows', () => {
-    createPackingActions(ctx).setLatePackerForRows(TRIP_ID, [], true)
+    createPackingActions(ctx).setLatePackerForRows([], true)
 
     expect(queued).toHaveLength(0)
   })
@@ -225,7 +225,7 @@ describe('createPackingActions without an orchestrator', () => {
   it('setReviewFlag writes one flag and preserves the packing record it judges (FR-9.1)', () => {
     const item = seedTripItem('ti-1', { packed_count: 3, state: 'packed' })
 
-    createPackingActions(ctx).setReviewFlag(TRIP_ID, item, 'unused', true)
+    createPackingActions(ctx).setReviewFlag(item, 'unused', true)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ flag_unused: 1 })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({ packed_count: 3, state: 'packed' })
@@ -409,7 +409,7 @@ describe('createPackingActions without an orchestrator', () => {
     const comp = seedTripItem('ti-comp', { source_item_id: 'item-pegs' })
     pullIn(TABLE.comments, 'cm-1', { trip_item_id: 'ti-main', author_id: 'u', body: 'Wo?' })
 
-    createPackingActions(ctx).removeItem(TRIP_ID, main, [comp])
+    createPackingActions(ctx).removeItem(main, [comp])
 
     expect(queued).toHaveLength(1)
     const [removal, skip] = queued[0]!.muts
@@ -442,7 +442,7 @@ describe('createPackingActions without an orchestrator', () => {
     const actions = createPackingActions(ctx)
 
     const plan = actions.planRowRemoval(TRIP_ID, theirs)
-    actions.removeItem(TRIP_ID, theirs, plan.companions)
+    actions.removeItem(theirs, plan.companions)
 
     // A sibling instance is not a companion, so nothing else is skipped…
     expect(plan).toMatchObject({ packed: 1, companions: [] })
@@ -465,7 +465,7 @@ describe('createPackingActions without an orchestrator', () => {
       container_id: 'box-1',
     })
     const actions = createPackingActions(ctx)
-    actions.removeItem(TRIP_ID, row, [])
+    actions.removeItem(row, [])
 
     actions.restoreRemovedItem(TRIP_ID, row)
 
@@ -508,7 +508,7 @@ describe('createPackingActions without an orchestrator', () => {
     seedTripItem('ti-main')
     const actions = createPackingActions(ctx)
 
-    actions.skipRows(TRIP_ID, [a, b])
+    actions.skipRows([a, b])
 
     // One unit, like the removal it is half of: the confirmed removal skips
     // the companions now and deletes its own row only when the undo lapses.
@@ -519,7 +519,7 @@ describe('createPackingActions without an orchestrator', () => {
   })
 
   it('skipRows writes nothing for no rows', () => {
-    createPackingActions(ctx).skipRows(TRIP_ID, [])
+    createPackingActions(ctx).skipRows([])
     expect(queued).toEqual([])
   })
 

@@ -189,7 +189,6 @@ describe('M5 FR-9.1 flags', () => {
     })
 
     expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       'unused',
       true,
@@ -216,7 +215,6 @@ describe('M5 FR-9.1 flags', () => {
     })
 
     expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       'missing',
       false,
@@ -245,7 +243,6 @@ describe('M5 FR-9.1 flags', () => {
       detail: { checked: true },
     })
     expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       'unused',
       true,
@@ -418,7 +415,6 @@ describe('M5 FR-25.19 assignment', () => {
     })
 
     expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       'u-bob',
     )
@@ -435,7 +431,6 @@ describe('M5 FR-25.19 assignment', () => {
     // Null, not the empty string: the column is nullable and a placeholder
     // id in a foreign key is the trap invariant 3 exists to prevent.
     expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       null,
     )
@@ -584,7 +579,6 @@ describe('M5 can change how many are coming along (FR-25.24)', () => {
     await wrapper.vm.$nextTick()
 
     expect(orchestratorFake.setQuantity).toHaveBeenCalledWith(
-      't1',
       expect.objectContaining({ id: 'ti1' }),
       4,
     )
