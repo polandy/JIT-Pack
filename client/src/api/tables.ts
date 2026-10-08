@@ -464,8 +464,9 @@ export const TABLE_COLUMNS = {
 export type ColumnOf<T extends SyncTable> = (typeof TABLE_COLUMNS)[T][number]
 
 /**
- * The columns a push may set — everything else is refused before any SQL is
- * built. Actor columns are not among them: the server stamps those.
+ * The columns a push may name — everything else is refused before any SQL is
+ * built. An actor column among them is stripped and stamped by the server
+ * (invariant 3), so naming it is accepted but decides nothing.
  */
 export const PUSHABLE_COLUMNS = {
   task_tags: ['name', 'sort_order', 'icon'],

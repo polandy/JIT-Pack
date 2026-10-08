@@ -393,8 +393,9 @@ func writeColumnLists(b *strings.Builder, registry []registeredTable, tables map
 	b.WriteString("/** A column of `T`. */\n")
 	b.WriteString("export type ColumnOf<T extends SyncTable> = (typeof TABLE_COLUMNS)[T][number]\n\n")
 
-	b.WriteString("/**\n * The columns a push may set — everything else is refused before any SQL is\n")
-	b.WriteString(" * built. Actor columns are not among them: the server stamps those.\n */\n")
+	b.WriteString("/**\n * The columns a push may name — everything else is refused before any SQL is\n")
+	b.WriteString(" * built. An actor column among them is stripped and stamped by the server\n")
+	b.WriteString(" * (invariant 3), so naming it is accepted but decides nothing.\n */\n")
 	b.WriteString("export const PUSHABLE_COLUMNS = {\n")
 	for _, t := range registry {
 		var pushable []string
