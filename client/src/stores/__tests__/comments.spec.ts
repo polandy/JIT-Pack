@@ -89,6 +89,40 @@ describe('tripStore comments (FR-7.1)', () => {
     expect(tripStore.getNoteAcks('t1')).toHaveLength(0)
   })
 
+  /**
+   * FR-7.9: an edit re-files the row among the three lists — and the ticks
+   * hang off the note, not off the list it sits in. The server keeps them
+   * through an edit, so a client dropping them here would lose them until
+   * the next full load.
+   */
+  it('editing a note keeps its ticks', () => {
+    const tripStore = useTripStore()
+    tripStore.applyChange(
+      commentChange('note-1', { trip_item_id: null, is_task: 0, author_id: 'u2' }),
+    )
+    tripStore.applyChange({
+      seq: 0,
+      table: 'note_acks',
+      id: 'ack-1',
+      deleted: false,
+      row: { trip_id: 't1', comment_id: 'note-1', user_id: 'u1', acked: 1 },
+    })
+
+    tripStore.applyChange(
+      commentChange('note-1', {
+        trip_item_id: null,
+        is_task: 0,
+        author_id: 'u2',
+        body: 'Ventil und Schlauch prüfen',
+      }),
+    )
+
+    expect(tripStore.getTripComments('t1').map((c) => c.body)).toEqual([
+      'Ventil und Schlauch prüfen',
+    ])
+    expect(tripStore.getNoteAcks('t1').map((a) => a.id)).toEqual(['ack-1'])
+  })
+
   /** A tick on a comment that is not the deleted one survives it. */
   it('leaves another note’s ticks alone', () => {
     const tripStore = useTripStore()

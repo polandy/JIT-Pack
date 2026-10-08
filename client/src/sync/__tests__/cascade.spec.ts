@@ -1,17 +1,24 @@
 /**
- * The client's mirror of `cascadeChildren` (`internal/store/master.go`).
+ * The client's mirror of the server's delete cascade.
  *
- * Each case here is one case of the server's switch. The mirror is what a
- * delete hands to `write` as its paint, and in Local Mode that list is the
- * only thing that ever removes a key from the device.
+ * The edges are declared once, as `TABLE_SPECS`' `cascadeParents`, and held
+ * here to `schema.sql`'s `ON DELETE CASCADE` references; everything else is
+ * derived. The mirror is what a delete hands to `write` as its paint, and in
+ * Local Mode that list is the only thing that ever removes a key from the
+ * device.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { cascadeChanges, cascadeOf } from '../cascade'
+import { TABLE_SPECS } from '../tableRegistry'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { plannerFeatureStore, usePlannerStore } from '@/planner/store'
+import { TABLE, type SyncTable } from '@/types/tables'
 import type { PullChange } from '@/api/types'
 
 function row(table: string, id: string, fields: Record<string, unknown>): PullChange {
@@ -28,8 +35,53 @@ beforeEach(() => {
   stores = { tripStore: useTripStore(), masterStore: useMasterStore() }
 })
 
-const names = (table: string, id: string) =>
-  cascadeOf(table as never, id, stores).map((c) => `${c.table}/${c.id}`)
+const names = (table: SyncTable, id: string) =>
+  cascadeOf(table, id, stores.tripStore, stores.masterStore).map((c) => `${c.table}/${c.id}`)
+
+/** `child.column → parent` for every `ON DELETE CASCADE` reference in `schema.sql`. */
+function schemaCascades(): string[] {
+  const schema = readFileSync(resolve(__dirname, '../../../../internal/store/schema.sql'), 'utf8')
+  const edges: string[] = []
+  let table = ''
+  for (const line of schema.split('\n')) {
+    const create = /^CREATE TABLE (?:IF NOT EXISTS )?(\w+)/.exec(line)
+    if (create) table = create[1]!
+    const ref = /^\s*(\w+)\s.*REFERENCES (\w+)\(id\)\s+ON DELETE CASCADE/.exec(line)
+    if (ref) edges.push(`${table}.${ref[1]} → ${ref[2]}`)
+  }
+  return edges
+}
+
+describe('the cascade edges', () => {
+  it('are exactly schema.sql’s ON DELETE CASCADE references between synced tables', () => {
+    const synced = new Set<string>(Object.keys(TABLE_SPECS))
+    const fromSchema = schemaCascades().filter((edge) => {
+      const [child, parent] = edge.split(' → ') as [string, string]
+      return synced.has(child.split('.')[0]!) && synced.has(parent)
+    })
+    const declared = Object.entries(TABLE_SPECS).flatMap(([table, spec]) =>
+      ('cascadeParents' in spec ? spec.cascadeParents : []).map(
+        (parent) => `${table}.${parent.column} → ${parent.table}`,
+      ),
+    )
+
+    // A positive signal that the parse read the schema at all.
+    expect(fromSchema).toContain('comments.trip_item_id → trip_items')
+    expect(declared.sort()).toEqual(fromSchema.sort())
+  })
+
+  it('name a column the parsed row keeps under the same name — what the walk reads', () => {
+    for (const [table, spec] of Object.entries(TABLE_SPECS)) {
+      for (const parent of 'cascadeParents' in spec ? spec.cascadeParents : []) {
+        const parsed = spec.parse('row-1', { [parent.column]: 'parent-1' }) as unknown as Record<
+          string,
+          unknown
+        >
+        expect(parsed[parent.column], `${table}.${parent.column}`).toBe('parent-1')
+      }
+    }
+  })
+})
 
 describe('cascadeOf', () => {
   it("takes an item's tag assignments and its dependencies in both directions", () => {
@@ -84,17 +136,17 @@ describe('cascadeOf', () => {
       row(TABLE.tripTemplateSources, 'src2', { trip_id: 't1', template_id: 'grp1' }),
     ])
 
-    expect(names(TABLE.templates, 'tpl1')).toEqual([
+    expect(names(TABLE.templates, 'tpl1').sort()).toEqual([
+      'template_includes/inc1',
       'template_item_tasks/task1',
       'template_items/pos1',
       'template_tasks/trip-task1', // FR-7.4
-      'template_includes/inc1',
       'trip_template_sources/src1',
     ])
     // The include vanishes from the *other* side too.
-    expect(names(TABLE.templates, 'grp1')).toEqual([
-      'template_tasks/trip-task2',
+    expect(names(TABLE.templates, 'grp1').sort()).toEqual([
       'template_includes/inc1',
+      'template_tasks/trip-task2',
       'trip_template_sources/src2',
     ])
   })
@@ -108,7 +160,7 @@ describe('cascadeOf', () => {
     expect(names(TABLE.templateItems, 'pos1')).toEqual(['template_item_tasks/task1'])
   })
 
-  it("takes a series' destination profile and its checklist", () => {
+  it("takes a series' destination profile and its checklist, the checklist first", () => {
     stores.masterStore.applyChanges([
       row(TABLE.tripSeries, 's1', { name: 'Segeln' }),
       row(TABLE.destinationProfiles, 'p1', { series_id: 's1', name: 'Kroatien' }),
@@ -138,6 +190,48 @@ describe('cascadeOf', () => {
     expect(names(TABLE.tripItems, 'ti1').sort()).toEqual(['comments/com1', 'comments/todo1'])
   })
 
+  // SQLite follows a cascade as far as it reaches; the mirror has to as well,
+  // or the replies and ticks of a removed row's notes stay on a Local device.
+  it("follows a trip item's notes on to their replies and every tick, leaf-first (FR-7.9, FR-7.13)", () => {
+    stores.tripStore.applyChanges([
+      row(TABLE.comments, 'note', { trip_id: 't1', trip_item_id: 'ti1', body: 'Kratzer' }),
+      row(TABLE.comments, 'reply', { trip_id: 't1', parent_id: 'note', body: 'Gesehen' }),
+      row(TABLE.noteAcks, 'ack-note', { trip_id: 't1', comment_id: 'note', user_id: 'u1' }),
+      row(TABLE.noteAcks, 'ack-reply', { trip_id: 't1', comment_id: 'reply', user_id: 'u2' }),
+    ])
+
+    const taken = names(TABLE.tripItems, 'ti1')
+
+    expect([...taken].sort()).toEqual([
+      'comments/note',
+      'comments/reply',
+      'note_acks/ack-note',
+      'note_acks/ack-reply',
+    ])
+    const at = (name: string) => taken.indexOf(name)
+    expect(at('note_acks/ack-reply')).toBeLessThan(at('comments/reply'))
+    expect(at('comments/reply')).toBeLessThan(at('comments/note'))
+    expect(at('note_acks/ack-note')).toBeLessThan(at('comments/note'))
+  })
+
+  it('names a row reached along two edges once, before both its parents', () => {
+    stores.tripStore.applyChanges([
+      row(TABLE.excursions, 'ex1', { trip_id: 't1', title: 'Gipfel' }),
+      row(TABLE.travelers, 'trav1', { trip_id: 't1', name: 'Ada' }),
+      row(TABLE.excursionTravelers, 'et1', {
+        trip_id: 't1',
+        excursion_id: 'ex1',
+        traveler_id: 'trav1',
+      }),
+    ])
+
+    const taken = names(TABLE.trips, 't1')
+
+    expect(taken.filter((name) => name === 'excursion_travelers/et1')).toHaveLength(1)
+    expect(taken.indexOf('excursion_travelers/et1')).toBeLessThan(taken.indexOf('excursions/ex1'))
+    expect(taken.indexOf('excursion_travelers/et1')).toBeLessThan(taken.indexOf('travelers/trav1'))
+  })
+
   it('cascades nothing for a row nothing hangs off', () => {
     expect(names(TABLE.itemTags, 'a1')).toEqual([])
     expect(names(TABLE.containers, 'c1')).toEqual([])
@@ -145,14 +239,27 @@ describe('cascadeOf', () => {
   })
 
   it("takes a traveller's place on a feature module's rows with them (FR-29.15)", () => {
-    const planner = {
-      tripChildRows: () => [],
-      travelerChildRows: (id: string) =>
-        id === 'trav1' ? [{ table: TABLE.dayEntryTravelers, id: 'det1' }] : [],
-    }
-    const shopping = { tripChildRows: () => [] }
+    const planner = usePlannerStore()
+    planner.applyChanges([
+      row(TABLE.dayEntryTravelers, 'det1', {
+        trip_id: 't1',
+        day_entry_id: 'de1',
+        traveler_id: 'trav1',
+      }),
+      row(TABLE.dayEntryTravelers, 'det2', {
+        trip_id: 't1',
+        day_entry_id: 'de1',
+        traveler_id: 'trav2',
+      }),
+    ])
 
-    const taken = cascadeOf(TABLE.travelers, 'trav1', { ...stores, features: [planner, shopping] })
+    const taken = cascadeOf(
+      TABLE.travelers,
+      'trav1',
+      stores.tripStore,
+      stores.masterStore,
+      plannerFeatureStore(planner),
+    )
 
     expect(taken).toEqual([{ table: TABLE.dayEntryTravelers, id: 'det1' }])
   })
@@ -163,7 +270,7 @@ describe('cascadeOf', () => {
       row(TABLE.itemTags, 'a1', { item_id: 'i1', tag_id: 'g1', position: 0 }),
     ])
 
-    expect(cascadeChanges(TABLE.tags, 'g1', stores)).toEqual([
+    expect(cascadeChanges(TABLE.tags, 'g1', stores.masterStore)).toEqual([
       { seq: 0, table: TABLE.itemTags, id: 'a1', deleted: true, row: null },
     ])
   })

@@ -539,7 +539,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.items, itemId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.items, itemId, tripStore, masterStore),
         optimisticDelete(mutation),
       ],
     })
@@ -648,7 +648,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.templateItems, templateItemId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.templateItems, templateItemId, tripStore, masterStore),
         optimisticDelete(mutation),
       ],
     })
@@ -673,7 +673,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     write({
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.templates, templateId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.templates, templateId, tripStore, masterStore),
         optimisticDelete(mutation),
       ],
     })

@@ -5,8 +5,8 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
-import { bucketedRows, bucketSink, keyedSink } from '@/stores/bucketedRows'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { bucketedRows, bucketSink, keyedSink } from '@/sync/bucketedRows'
+import { TABLE } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -33,16 +33,14 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, STATE_PACKED } from '@/types
 import type { PullChange } from '@/api/types'
 import { unitsOf } from '@/domain/packState'
 import {
-  applyToSink,
   codecFor,
-  currentRowIn,
   encodedRow,
   TABLE_SPECS,
   todoCodec,
   tripTodoCodec,
-  type RowSinks,
   type SyncRow,
 } from '@/sync/tableRegistry'
+import { applyToSink, currentRowIn, removeCascading, type RowSinks } from '@/sync/sinks'
 
 export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
@@ -250,19 +248,6 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return noteAcks.value.get(tripId) ?? []
   }
 
-  /**
-   * A deleted comment takes its own ticks with it (mirrors the server's
-   * cascade, note_acks.comment_id ON DELETE CASCADE). Scans every trip's
-   * bucket rather than one, the same trade-off `bucketedRows.remove` makes:
-   * a comment's trip_id is not known here once the row itself is gone.
-   */
-  function removeAcksForComment(commentId: string): void {
-    for (const [tripId, list] of noteAcks.value) {
-      const filtered = list.filter((a) => a.comment_id !== commentId)
-      if (filtered.length !== list.length) noteAcks.value.set(tripId, filtered)
-    }
-  }
-
   /** Items that are packed but still have open prep todos. */
   function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openTodos: ItemTodo[] }> {
     const items = getItems(tripId)
@@ -334,225 +319,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     trips.value.set(trip.id, trip)
   }
 
-  /**
-   * itemChildRows names what a delete of one trip item takes with it: its
-   * comments and its FR-7.3 todos, which are one table at two layers. A
-   * trip-level comment carries a null `trip_item_id` and is untouched — the
-   * same distinction the server's query makes.
-   */
-  function itemChildRows(tripItemId: string): Array<{ table: SyncTable; id: string }> {
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    for (const list of comments.value.values()) {
-      for (const c of list) {
-        if (c.trip_item_id === tripItemId) rows.push({ table: TABLE.comments, id: c.id })
-      }
-    }
-    for (const list of todos.value.values()) {
-      for (const t of list) {
-        if (t.trip_item_id === tripItemId) rows.push({ table: TABLE.comments, id: t.id })
-      }
-    }
-    return rows
-  }
-
-  /**
-   * commentChildRows names what a delete of one comment takes with it: a
-   * first note's replies (FR-7.13, comments.parent_id ON DELETE CASCADE), and
-   * the ticks of the note and of those replies (FR-7.9) — the same rows the
-   * server's cascade tombstones, leaf first.
-   */
-  function commentChildRows(commentId: string): Array<{ table: SyncTable; id: string }> {
-    const replies = new Set<string>()
-    for (const list of comments.value.values()) {
-      for (const c of list) if (c.parent_id === commentId) replies.add(c.id)
-    }
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    for (const list of noteAcks.value.values()) {
-      for (const a of list) {
-        if (a.comment_id === commentId || replies.has(a.comment_id)) {
-          rows.push({ table: TABLE.noteAcks, id: a.id })
-        }
-      }
-    }
-    for (const id of replies) rows.push({ table: TABLE.comments, id })
-    return rows
-  }
-
-  /**
-   * excursionChildRows names what a delete of one excursion takes with it:
-   * its participant rows, its lines and its tracks, the rows the server's
-   * cascade tombstones (FR-31.1, FR-31.15).
-   */
-  function excursionChildRows(excursionId: string): Array<{ table: SyncTable; id: string }> {
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    for (const list of excursionTravelers.value.values()) {
-      for (const r of list) {
-        if (r.excursion_id === excursionId) rows.push({ table: TABLE.excursionTravelers, id: r.id })
-      }
-    }
-    for (const list of excursionItems.value.values()) {
-      for (const l of list) {
-        if (l.excursion_id === excursionId) rows.push({ table: TABLE.excursionItems, id: l.id })
-      }
-    }
-    for (const list of excursionTracks.value.values()) {
-      for (const t of list) {
-        if (t.excursion_id === excursionId) rows.push({ table: TABLE.excursionTracks, id: t.id })
-      }
-    }
-    return rows
-  }
-
-  /**
-   * travelerChildRows names what a traveller taken off the trip takes with
-   * them from its excursions (FR-31.5): their participant rows and their own
-   * lines — the server's cascade on travelers(id).
-   */
-  function travelerChildRows(travelerId: string): Array<{ table: SyncTable; id: string }> {
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    for (const list of excursionTravelers.value.values()) {
-      for (const r of list) {
-        if (r.traveler_id === travelerId) rows.push({ table: TABLE.excursionTravelers, id: r.id })
-      }
-    }
-    for (const list of excursionItems.value.values()) {
-      for (const l of list) {
-        if (l.assigned_traveler_id === travelerId)
-          rows.push({ table: TABLE.excursionItems, id: l.id })
-      }
-    }
-    return rows
-  }
-
-  /**
-   * templateSourceRows names the FR-27.4 registrations that point at one
-   * template. The rows live here and travel the *master* partition (spec
-   * P-3), which is why a deleted group's cascade has to reach into this store.
-   */
-  function templateSourceRows(templateId: string): Array<{ table: SyncTable; id: string }> {
-    return [...templateSources.value.values()]
-      .filter((s) => s.template_id === templateId)
-      .map((s) => ({ table: TABLE.tripTemplateSources, id: s.id }))
-  }
-
-  /**
-   * childRows names every row a delete of this trip takes with it, leaf-first
-   * — a child before the parent it hangs off, the order the server emits its
-   * own cascade in (`internal/store/master.go`, `cascadeChildren`).
-   *
-   * The client has to derive this itself because the server can only announce
-   * three of these tables. `change_log.trip_id` cascades along with the trip,
-   * so the trip partition's whole feed is deleted with the row it describes
-   * and the master feed carries the news for `trip_members`,
-   * `trip_template_sources` and `trip_applied_changes` alone. Everything else
-   * would otherwise stay on the device forever — in Local Mode durably, since
-   * nothing tombstones a key nobody names.
-   */
-  function childRows(tripId: string): Array<{ table: SyncTable; id: string }> {
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    const push = (table: SyncTable, ids: Iterable<string>) => {
-      for (const id of ids) rows.push({ table, id })
-    }
-    // Comments and todos are one table seen at two layers (`is_task`).
-    push(
-      TABLE.comments,
-      getComments(tripId).map((c) => c.id),
-    )
-    push(
-      TABLE.comments,
-      getTodos(tripId).map((t) => t.id),
-    )
-    push(
-      TABLE.comments,
-      getTripTodos(tripId).map((t) => t.id),
-    )
-    // FR-31: lines, participants and tracks before the excursion they hang
-    // off, and all four before the trip items and travellers they point at.
-    push(
-      TABLE.excursionTracks,
-      getExcursionTracks(tripId).map((t) => t.id),
-    )
-    push(
-      TABLE.excursionItems,
-      getExcursionItems(tripId).map((l) => l.id),
-    )
-    push(
-      TABLE.excursionTravelers,
-      getExcursionTravelers(tripId).map((r) => r.id),
-    )
-    push(
-      TABLE.excursions,
-      getExcursions(tripId).map((e) => e.id),
-    )
-    push(
-      TABLE.tripGeneratedPositions,
-      getGeneratedPositions(tripId).map((g) => g.id),
-    )
-    push(
-      TABLE.tripItems,
-      getItems(tripId).map((i) => i.id),
-    )
-    push(
-      TABLE.travelers,
-      getTravelers(tripId).map((t) => t.id),
-    )
-    push(
-      TABLE.containers,
-      getContainers(tripId).map((c) => c.id),
-    )
-    push(
-      TABLE.tripMembers,
-      getMembers(tripId).map((m) => m.id),
-    )
-    push(
-      TABLE.tripTemplateSources,
-      getTemplateSources(tripId).map((s) => s.id),
-    )
-    push(
-      TABLE.tripAppliedChanges,
-      getAppliedChanges(tripId).map((c) => c.id),
-    )
-    return rows
-  }
-
-  /**
-   * removeTrip drops the trip and everything that hung off it. It is the
-   * in-memory half of the cascade `childRows` describes: a second device
-   * receives only the trip's own tombstone for the feed-less tables, so the
-   * mirror has to happen here rather than at the caller.
-   */
-  function removeTrip(id: string): void {
-    // Every child through its own sink — the same list the optimistic
-    // cascade sends to the outbox, so the store and the device agree about
-    // what a deleted trip takes with it (C-3a).
-    for (const child of childRows(id)) {
-      sinks[child.table]?.remove(child.id)
-    }
-    trips.value.delete(id)
-    // The eleven per-trip buckets are keyed by trip id; the loop above emptied
-    // them, this drops the empty keys with the trip.
-    tripItems.value.delete(id)
-    travelers.value.delete(id)
-    containers.value.delete(id)
-    todos.value.delete(id)
-    tripTodos.value.delete(id)
-    comments.value.delete(id)
-    noteAcks.value.delete(id)
-    excursions.value.delete(id)
-    excursionTravelers.value.delete(id)
-    excursionItems.value.delete(id)
-    excursionTracks.value.delete(id)
-    members.value.delete(id)
-  }
-
-  /** Apply a pull change to the local store. */
   /** The sinks, one per table this store holds. */
   const sinks: RowSinks = {
-    [TABLE.trips]: {
-      set: (t: Trip) => setTrip(t),
-      remove: (id) => removeTrip(id),
-      get: (id) => trips.value.get(id),
-    },
+    [TABLE.trips]: keyedSink(trips),
     [TABLE.tripItems]: bucketSink(itemRows),
     [TABLE.travelers]: bucketSink(travelerRows),
     [TABLE.containers]: bucketSink(containerRows),
@@ -561,18 +330,18 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.tripGeneratedPositions]: keyedSink(generatedPositions),
     [TABLE.tripAppliedChanges]: keyedSink(appliedChanges),
     // FR-7.2/7.4: one table feeds three lists, told apart by `is_task` and
-    // the anchor. A delete has to clear all of them, because the row's id is
-    // in whichever list its last state put it in.
+    // the anchor. A remove has to clear all of them, because the row's id is
+    // in whichever list its last state put it in — and it clears nothing
+    // else, since an edit re-files the row through it: a note's ticks go
+    // with its delete through the cascade, never with its edit.
     [TABLE.comments]: {
       set: (c: ItemComment) => commentRows.upsert(c),
       get: (id) => commentRows.find(id),
+      rows: () => [...commentRows.all(), ...todoRows.all(), ...tripTodoRows.all()],
       remove: (id) => {
         commentRows.remove(id)
         todoRows.remove(id)
         tripTodoRows.remove(id)
-        // FR-7.9: a deleted note takes its own ticks with it, mirroring
-        // note_acks.comment_id ON DELETE CASCADE.
-        removeAcksForComment(id)
       },
     },
     [TABLE.noteAcks]: bucketSink(noteAckRows),
@@ -582,38 +351,12 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.excursionTracks]: bucketSink(excursionTrackRows),
   }
 
-  /**
-   * removeRow drops a row and everything `itemChildRows`/`childRows` says
-   * hangs off it — the one implementation of the client's delete cascade for
-   * this partition. `applyChange` goes through it too: a shorter copy there
-   * would leave a deleted trip item's comments and FR-7.3 todos in the store
-   * until their own tombstones arrived a pull page later.
-   */
-  function removeRow(table: SyncTable, id: string): void {
-    if (table === TABLE.trips) {
-      removeTrip(id)
-      return
-    }
-    for (const child of childRowsOf(table, id)) {
-      sinks[child.table]?.remove(child.id)
-    }
-    sinks[table]?.remove(id)
-  }
-
-  /** The rows a delete of one row of this partition takes with it. */
-  function childRowsOf(table: SyncTable, id: string): Array<{ table: SyncTable; id: string }> {
-    if (table === TABLE.tripItems) return itemChildRows(id)
-    if (table === TABLE.excursions) return excursionChildRows(id)
-    if (table === TABLE.travelers) return travelerChildRows(id)
-    return []
-  }
-
   function applyChange(change: PullChange): void {
     const known = codecFor(change.table)
     if (!known || !sinks[known.table]) return
     const { table, codec } = known
     if (change.deleted) {
-      removeRow(table, change.id)
+      removeCascading(sinks, table, change.id)
       return
     }
     if (!change.row) return
@@ -684,13 +427,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     itemsWithOpenPrep,
     kpis,
     setTrip,
-    childRows,
-    itemChildRows,
-    commentChildRows,
-    excursionChildRows,
-    travelerChildRows,
-    templateSourceRows,
-    removeTrip,
+    sinks,
     applyChange,
     applyChanges,
   }

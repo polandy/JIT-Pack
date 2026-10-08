@@ -13,35 +13,23 @@
  *   with the trip (`cascade.ts`);
  * - **the write path** — a module queues its mutations through the same funnel
  *   as everything else (`writeFunnel.ts`), with this device's clock; the
- *   funnel reads the module's current rows back through `currentRow`.
+ *   funnel reads the module's current rows back out of its sinks.
  */
-import type { TrackUpload, Mutation, MutationOp, PullChange } from '@/api/types'
+import type { TrackUpload, Mutation, MutationOp } from '@/api/types'
 import type { IdeaImage, IdeaTrack, TrackFields } from '@/types/domain'
-import type { CascadeRow } from './cascade'
-import type { SyncRow } from './tableRegistry'
+import type { RowSinks } from './sinks'
 import type { Write } from './writeFunnel'
 
-/** One module's store, as the orchestrator reads and writes it. */
+/**
+ * One module's store, as the orchestrator reads and writes it: its sinks,
+ * one per table it holds (`sinks.ts`). Everything else the kernel needs is
+ * derived from them and from `TABLE_SPECS` — which tables the module holds,
+ * how a pulled change lands, the row a write is painted over, and what a
+ * deleted trip or traveller takes from the module (`cascade.ts`), including
+ * on another device, which hears of a deleted trip by its tombstone alone.
+ */
 export interface FeatureStore {
-  /** The tables this store holds — a subset of `FEATURE_STORE_TABLES`. */
-  readonly tables: ReadonlySet<string>
-  /** Applies pulled or optimistic changes to the module's rows. */
-  applyChanges(changes: PullChange[]): void
-  /** One of the module's rows in its wire shape — what an update is painted over. */
-  currentRow(table: string, id: string): SyncRow | undefined
-  /** The module's rows that go with a deleted trip, leaf-first. */
-  tripChildRows(tripId: string): CascadeRow[]
-  /**
-   * The module's rows that go with a traveller taken off the trip — the
-   * planner's names on day-plan entries (FR-29.15). Absent for a module that
-   * names no traveller.
-   */
-  travelerChildRows?(travelerId: string): CascadeRow[]
-  /**
-   * Drops everything the module holds for a trip. Called when a trip's own
-   * tombstone arrives — the only news of the delete another device gets.
-   */
-  forgetTrip(tripId: string): void
+  readonly sinks: RowSinks
 }
 
 /**

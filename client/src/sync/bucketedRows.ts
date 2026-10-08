@@ -1,21 +1,17 @@
 /**
- * A `Map<parentId, Row[]>` with the operations every one of them needs.
+ * A `Map<parentId, Row[]>` with the operations every one of them needs, and
+ * the two `RowSink` shapes (`sinks.ts`) every store's tables are held in —
+ * the kernel's stores and the feature modules' alike, which is why it lives
+ * in `sync/` (a module may import it, `scripts/module-boundary-gate.mjs`).
  *
- * Seven of these existed as hand-written `upsertX`/`removeX` pairs across the
- * two stores — six in `tripStore`, one in `masterStore` — each twenty lines
- * of the same find-or-push and filter-the-bucket. They were not quite
- * identical, which is the point: `removeComment` scanned every bucket while
- * the other six stopped at the first one that changed. Nothing depended on
- * the difference, and nothing said which was intended.
- *
- * This keeps the scanning version. A bucket key is a parent id — `trip_id`,
- * `template_id` — and none of them can change today, so the two behave the
- * same; if one ever becomes mutable, the version that stops early leaves the
- * row in its old bucket and the row is then in two places at once, which is
- * the failure that has no symptom.
+ * A bucket key is a parent id — `trip_id`, `template_id` — so a screen reads
+ * one trip's rows without scanning every trip's. `remove` still scans every
+ * bucket: no bucket key can change today, but if one ever becomes mutable, a
+ * remove that stopped at the first bucket would leave the row in its old one
+ * as well, which is the failure that has no symptom.
  */
 import type { Ref } from 'vue'
-import type { RowSink } from '@/sync/tableRegistry'
+import type { RowSink } from './sinks'
 
 /** A row that can live in a bucket: it has an id of its own. */
 export interface BucketedRow {
@@ -32,6 +28,8 @@ export interface BucketedRows<T extends BucketedRow> {
   remove(id: string): void
   /** The row with this id, from whichever bucket holds it. */
   find(id: string): T | undefined
+  /** Every row, bucket by bucket. */
+  all(): T[]
 }
 
 /**
@@ -60,9 +58,9 @@ export function bucketedRows<T extends BucketedRow>(
     remove(id: string): void {
       for (const [bucket, list] of rows.value) {
         const filtered = list.filter((r) => r.id !== id)
-        if (filtered.length !== list.length) {
-          rows.value.set(bucket, filtered)
-        }
+        // An emptied bucket goes too, so a deleted trip leaves no key behind.
+        if (filtered.length === 0) rows.value.delete(bucket)
+        else if (filtered.length !== list.length) rows.value.set(bucket, filtered)
       }
     },
     find(id: string): T | undefined {
@@ -71,6 +69,9 @@ export function bucketedRows<T extends BucketedRow>(
         if (row) return row
       }
       return undefined
+    },
+    all(): T[] {
+      return [...rows.value.values()].flat()
     },
   }
 }
@@ -81,6 +82,7 @@ export function bucketSink<T extends BucketedRow>(rows: BucketedRows<T>): RowSin
     set: (row) => rows.upsert(row),
     remove: (id) => rows.remove(id),
     get: (id) => rows.find(id),
+    rows: () => rows.all(),
   }
 }
 
@@ -90,5 +92,6 @@ export function keyedSink<T extends BucketedRow>(map: Ref<Map<string, T>>): RowS
     set: (row) => map.value.set(row.id, row),
     remove: (id) => map.value.delete(id),
     get: (id) => map.value.get(id),
+    rows: () => map.value.values(),
   }
 }

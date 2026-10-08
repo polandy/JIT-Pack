@@ -17,6 +17,8 @@ import { createPackingActions } from '../actions/packing'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
 import { changesOf, makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
+import { ref } from 'vue'
+import { keyedSink } from '@/sync/bucketedRows'
 
 /** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
 const noTrackFiles = {
@@ -334,13 +336,18 @@ describe('deleting — FR-31.1, FR-31.5', () => {
     seedTrip()
     ctx.features = [
       {
-        tables: new Set([TABLE.dayEntryTravelers]),
-        applyChanges: () => {},
-        currentRow: () => undefined,
-        tripChildRows: () => [],
-        travelerChildRows: (id) =>
-          id === 'tr-sia' ? [{ table: TABLE.dayEntryTravelers, id: 'det-sia' }] : [],
-        forgetTrip: () => {},
+        sinks: {
+          [TABLE.dayEntryTravelers]: keyedSink(
+            ref(
+              new Map([
+                [
+                  'det-sia',
+                  { id: 'det-sia', trip_id: TRIP_ID, day_entry_id: 'de-1', traveler_id: 'tr-sia' },
+                ],
+              ]),
+            ),
+          ),
+        },
       },
     ]
     const comments = createCommentActions(ctx)

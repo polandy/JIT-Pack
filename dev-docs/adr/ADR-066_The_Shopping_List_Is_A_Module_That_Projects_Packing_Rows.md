@@ -141,3 +141,27 @@ because that is the import the gate exists to refuse.
   then only the entry's schema, not the boundary.
 - A second module arrives (the planner). Its first real need that the three seams do not cover is the moment to
   decide whether they become a single module registration shape.
+
+## Amendment 1 (2026-10-08) — a module hands its sinks; the cascade is derived (ARCH-10b)
+
+The boundary is unchanged; what crosses it shrank. `FeatureStore` was five members — the module's table set,
+`applyChanges`, `currentRow`, `tripChildRows`/`travelerChildRows` and `forgetTrip` — and each module wrote all five
+by hand: a switch over its tables, a per-table apply, and its own list of what a deleted trip, traveller, idea or meal
+takes along. It is now one: `sinks`, a `RowSink` per table the module holds (`client/src/sync/sinks.ts`). The kernel
+derives the rest. Which tables a module holds is which sinks it offers; a pulled change lands through
+`applyChangesToSinks`; the row a write is painted over comes from `currentRowIn`; and what a delete takes along is
+`cascadeOf`, walked over the edges each table's `TABLE_SPECS` entry declares as `cascadeParents` — the same
+`ON DELETE CASCADE` references `schema.sql` holds, and `cascade.spec.ts` compares the two. The trip and master stores
+go through the same functions, so there is one cascade on the client, not one per store, and a module stores its
+rows in the kernel's `bucketedRows` by trip, as the packing rows are.
+
+**Options weighed.** (a) Keep a hand-written child-row function per parent, per store, as Go keeps a query per parent
+— fast lookups through each store's own indexes, but eight functions and a module-side copy that nothing compared
+with the schema, and the copies had drifted: a trip item's cascade named its notes but not their replies' ticks, and
+the trip store's comment sink dropped a note's ticks on every edit because it cascaded by hand inside `remove`.
+(b) **Declare the edges per table and derive the walk** *(chosen)*. (c) Generate the edges from Go's `tableSpecs` —
+the right end state once `wiregen` emits tables (ARCH-11), but a generator for one field now.
+
+**Cost accepted.** The walk finds children a level at a time by scanning each child table once per level, not
+through an index; on a family's data that is a few passes over a few thousand rows per delete. Siblings come out in
+`TABLE_SPECS` order rather than a hand-chosen one — only leaf-first is a contract, and the specs hold that alone.

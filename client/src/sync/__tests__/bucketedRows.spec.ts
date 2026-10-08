@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { ref } from 'vue'
-import { bucketedRows } from '@/stores/bucketedRows'
+import { bucketedRows } from '@/sync/bucketedRows'
 
 interface Row {
   id: string
@@ -91,7 +91,27 @@ describe('bucketedRows (C-3)', () => {
 
     rows.remove('a')
 
-    expect(map.value.get('trip-1')).toEqual([])
-    expect(map.value.get('trip-2')).toEqual([])
+    expect(map.value.has('trip-1')).toBe(false)
+    expect(map.value.has('trip-2')).toBe(false)
+  })
+
+  it('drops a bucket its last row leaves, and keeps one that still holds rows', () => {
+    const { map, rows } = fixture()
+    rows.upsert({ id: 'a', parent: 'trip-1' })
+    rows.upsert({ id: 'b', parent: 'trip-2' })
+    rows.upsert({ id: 'c', parent: 'trip-2' })
+
+    rows.remove('a')
+    rows.remove('b')
+
+    expect([...map.value.keys()]).toEqual(['trip-2'])
+  })
+
+  it('lists every row across the buckets', () => {
+    const { rows } = fixture()
+    rows.upsert({ id: 'a', parent: 'trip-1' })
+    rows.upsert({ id: 'b', parent: 'trip-2' })
+
+    expect(rows.all().map((r) => r.id)).toEqual(['a', 'b'])
   })
 })

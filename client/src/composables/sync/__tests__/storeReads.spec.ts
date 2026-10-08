@@ -48,12 +48,7 @@ function fakeTripReads(asked: string[] = []): TripReads {
     getTodos: () => [],
     getTemplateSources: () => [],
     getGeneratedPositions: () => [],
-    childRows: () => [],
-    itemChildRows: () => [],
-    commentChildRows: () => [],
-    excursionChildRows: () => [],
-    travelerChildRows: () => [],
-    templateSourceRows: () => [],
+    sinks: {},
     getExcursions: () => [],
     getExcursionTravelers: () => [],
     getExcursionItems: () => [],
@@ -81,7 +76,7 @@ function fakeMasterReads(templates: Template[] = []): MasterReads {
     getTemplate: () => undefined,
     getTemplateItems: () => [],
     getDestinationProfile: () => undefined,
-    childRows: () => [],
+    sinks: {},
   }
 }
 

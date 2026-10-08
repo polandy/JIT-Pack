@@ -4,8 +4,8 @@
  * Populated from pull responses on the master partition.
  */
 
-import { bucketedRows, bucketSink, keyedSink } from '@/stores/bucketedRows'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { bucketedRows, bucketSink, keyedSink } from '@/sync/bucketedRows'
+import { TABLE } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -24,13 +24,8 @@ import type {
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import {
-  applyToSink,
-  codecFor,
-  currentRowIn,
-  type RowSinks,
-  type SyncRow,
-} from '@/sync/tableRegistry'
+import type { SyncRow } from '@/sync/tableRegistry'
+import { applyChangesToSinks, currentRowIn, type RowSinks } from '@/sync/sinks'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem, withCategories } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
@@ -302,87 +297,6 @@ export const useMasterStore = defineStore('master', () => {
     return activeItemList.value.filter((i) => i.name.toLowerCase().includes(q))
   }
 
-  /**
-   * childRows names the master-owned rows a delete of this row takes with
-   * it, leaf-first — the client's half of the server's `cascadeChildren`
-   * (`internal/store/master.go`), which this switch mirrors case for case.
-   *
-   * It reads the maps directly rather than through the getters because the
-   * cascade wants row *ids*, and every public getter here resolves its rows
-   * to what a screen needs instead.
-   */
-  function childRows(table: string, id: string): Array<{ table: SyncTable; id: string }> {
-    const rows: Array<{ table: SyncTable; id: string }> = []
-    const tasksOfPosition = (positionId: string) => {
-      for (const [taskId, task] of templateItemTasks.value) {
-        if (task.template_item_id === positionId) {
-          rows.push({ table: TABLE.templateItemTasks, id: taskId })
-        }
-      }
-    }
-
-    switch (table) {
-      case TABLE.items:
-        for (const [assignmentId, a] of itemTags.value) {
-          if (a.item_id === id) rows.push({ table: TABLE.itemTags, id: assignmentId })
-        }
-        for (const [depId, d] of dependencies.value) {
-          if (d.item_id === id || d.depends_on_item_id === id) {
-            rows.push({ table: TABLE.itemDependencies, id: depId })
-          }
-        }
-        break
-
-      case TABLE.tags:
-        // FR-24.1: a deleted tag unassigns itself everywhere.
-        for (const [assignmentId, a] of itemTags.value) {
-          if (a.tag_id === id) rows.push({ table: TABLE.itemTags, id: assignmentId })
-        }
-        break
-
-      case TABLE.templates:
-        for (const position of templateItems.value.get(id) ?? []) {
-          tasksOfPosition(position.id)
-          rows.push({ table: TABLE.templateItems, id: position.id })
-        }
-        for (const [taskId, task] of templateTasks.value) {
-          if (task.template_id === id) rows.push({ table: TABLE.templateTasks, id: taskId })
-        }
-        // FR-27.1: the include vanishes from both sides of the relation.
-        for (const [includeId, inc] of templateIncludes.value) {
-          if (inc.template_id === id || inc.included_template_id === id) {
-            rows.push({ table: TABLE.templateIncludes, id: includeId })
-          }
-        }
-        break
-
-      case TABLE.templateItems:
-        tasksOfPosition(id)
-        break
-
-      case TABLE.tripSeries:
-        for (const [profileId, p] of profiles.value) {
-          if (p.series_id !== id) continue
-          for (const [checklistId, c] of checklistItems.value) {
-            if (c.profile_id === profileId) {
-              rows.push({ table: TABLE.destinationChecklistItems, id: checklistId })
-            }
-          }
-          rows.push({ table: TABLE.destinationProfiles, id: profileId })
-        }
-        break
-
-      case TABLE.destinationProfiles:
-        for (const [checklistId, c] of checklistItems.value) {
-          if (c.profile_id === id) {
-            rows.push({ table: TABLE.destinationChecklistItems, id: checklistId })
-          }
-        }
-        break
-    }
-    return rows
-  }
-
   // --- Mutations ---
 
   /**
@@ -406,36 +320,15 @@ export const useMasterStore = defineStore('master', () => {
   }
 
   /**
-   * removeRow drops a row and everything `childRows` says hangs off it.
-   *
-   * The cascade is written once, in `childRows`, and serves `applyChange` and
-   * the optimistic path alike. Two copies disagree: a deleted item leaves its
-   * dependency rows behind, a deleted template its positions' tasks — until
-   * the children's own tombstones arrive, which is the *next* pull page when
-   * the parent's lands on a page boundary.
+   * Applies pulled or optimistic changes; a tombstone takes what its delete
+   * cascades to with it (`sync/sinks.ts`).
    */
-  function removeRow(table: SyncTable, id: string): void {
-    for (const child of childRows(table, id)) {
-      sinks[child.table]?.remove(child.id)
-    }
-    sinks[table]?.remove(id)
+  function applyChanges(changes: PullChange[]): void {
+    applyChangesToSinks(sinks, changes)
   }
 
   function applyChange(change: PullChange): void {
-    const known = codecFor(change.table)
-    if (!known || !sinks[known.table]) return
-    const { table, codec } = known
-    if (change.deleted) {
-      removeRow(table, change.id)
-    } else if (change.row) {
-      applyToSink(sinks, table, codec.parse(change.id, change.row as SyncRow))
-    }
-  }
-
-  function applyChanges(changes: PullChange[]): void {
-    for (const c of changes) {
-      applyChange(c)
-    }
+    applyChangesToSinks(sinks, [change])
   }
 
   /** One row in its wire shape, or undefined where this store does not hold it. */
@@ -488,7 +381,7 @@ export const useMasterStore = defineStore('master', () => {
     getPrimaryTag,
     categoryOf,
     searchItems,
-    childRows,
+    sinks,
     applyChange,
     applyChanges,
   }
