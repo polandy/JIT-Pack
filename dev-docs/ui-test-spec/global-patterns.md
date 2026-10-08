@@ -1,4 +1,4 @@
-# 3. Global Pattern Test Cases (G-1 – G-15)
+# 3. Global Pattern Test Cases (G-1 – G-22)
 
 Global patterns are asserted once as dedicated cases and then relied upon (not re-asserted) inside screen cases.
 
@@ -108,3 +108,10 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G15-01 | G-15 The mark's slot and ladder | all | **Implemented** (`item-mark.spec.ts`). One item with a mark and one with neither, in the same list: M9 falls back to the **tag initial**, M4 to an **empty slot** and never to a letter, and the two slots measure the same width — which is the alignment promise, asserted on the painted boxes rather than on a class. *(The photo rung is the component unit's — see E2E-M5-15.)* |
 | E2E-G15-02 | G-15 The mark is presentational | all | **Implemented** (`item-mark.spec.ts`). A marked row's accessible name is the **item name alone** — the mark carries `aria-hidden` and contributes no text (FR-28.5). Asserted against the row's `ariaSnapshot()`, not the DOM, since the failure mode is a screen reader announcing "tent Zelt". |
 | E2E-G20-01 | G-20 A selection wears the app bar | local | `global-nav.spec.ts`. On M6, entering a selection turns the app bar into the selection's bar — *„Nothing selected"*, *„All 1"*, ✕ — with back gone from it, and the first row's top is **measured** equal before, during and after: an in-page bar would push every row down. The field stays in place and is `inert` while selecting. |
+| E2E-G22-01 | G-22 The start animation lands on the logo | local | `splash.spec.ts`. With the clock paused, a cold start shows the greeting in `intro` over the already-mounted app with the app bar's mark hidden; at 1.3 s it is in `flight`, after the flight it is gone and the app bar's mark visible. |
+| E2E-G22-02 | G-22 A tap ends it | local | `splash.spec.ts`. A tap on the greeting during the intro removes it at once and shows the app bar's mark. |
+| E2E-G22-03 | G-22 First launch lands on M19 | local | `splash.spec.ts`. With no mode chosen the greeting flies too, and M19's own mark is what is shown when it ends. |
+| E2E-G22-04 | G-22 A drill-down fades | local | `splash.spec.ts`. A cold start into M17, whose bar shows ‹ back, has no logo to land on: the phase after the intro is `fade`, then the greeting is gone. |
+| E2E-G22-05 | G-22 Switched off in M17 | local | `splash.spec.ts`. M17's *Start animation* toggle, on by default, switched off; the next start shows the app bar's mark with no greeting — the greeting mounts with the app, so the visible mark is the positive signal for its absence. |
+| E2E-G22-07 | G-22 Once per app start | local | `splash.spec.ts`. After the greeting, a reload of the same tab — as the M19 choice, the OIDC round trip and an update make — shows the app bar's mark and no greeting. |
+| E2E-G22-06 | G-22 Reduced motion | local | `splash.spec.ts`, `reducedMotion: 'reduce'`. The landing mark is never hidden, the phase after 0.5 s is `fade`, never `flight`, and the greeting is gone after 0.25 s more. |

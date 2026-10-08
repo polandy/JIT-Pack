@@ -290,7 +290,7 @@ function goBack() {
         @click="goHome"
       >
         <span class="logo-row">
-          <BrandMark :size="22" />
+          <BrandMark :size="22" data-splash-target />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
           <span class="app-version" data-testid="header-app-version">{{ appVersionLabel }}</span>
         </span>

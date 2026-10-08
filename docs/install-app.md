@@ -70,6 +70,12 @@ The refused change is not tried again — trying forever would hold up everythin
 behind it. If you still want it, make it again once the reason no longer
 applies.
 
+## The start animation
+
+When the app starts, the logo packs itself — the backpack is drawn, the two packing cubes drop in — and then moves to its place: the logo in the top corner, or on the very first start the welcome screen's. It plays while the app loads underneath, so it does not make starting slower; a tap skips it. With **Reduce motion** switched on in your phone's settings it is a short fade instead.
+
+It plays only when the app really starts — not when you switch back to it, and not when the app reloads itself, for example after you sign in or apply an update. To switch it off on a device, go to **Settings → Appearance → Start animation**.
+
 ## Updates
 
 The app updates itself: whenever it is opened with a connection, it fetches the current version in the background. A newly downloaded version never interrupts you — nothing reloads on its own.
