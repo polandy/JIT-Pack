@@ -182,7 +182,7 @@ describe('ticking a task from the day plan (FR-7.6)', () => {
     const withItem = { ...task('p', '2026-07-14'), item: { id: 'row-1', name: 'Zelt', icon: null } }
 
     toggleTask(w, { getTripTodos: () => [], getItemTodos: () => [prep] }, 't', withItem)
-    expect(w.resolvePrepTodo).toHaveBeenCalledWith('t', prep)
+    expect(w.resolvePrepTodo).toHaveBeenCalledWith(prep)
 
     toggleTask(w, { getTripTodos: () => [], getItemTodos: () => [] }, 't', withItem)
     expect(w.resolvePrepTodo).toHaveBeenCalledTimes(1)

@@ -21,7 +21,7 @@ export type RowQuantity = ReturnType<typeof useRowQuantity>
 
 /** Builds {@link RowQuantity} over the page's core. */
 export function useRowQuantity(core: PackingCore) {
-  const { tripId, orchestrator, rowUndo } = core
+  const { orchestrator, rowUndo } = core
 
   /**
    * The rows the editor writes: one when a row opened it, every instance the
@@ -100,7 +100,7 @@ export function useRowQuantity(core: PackingCore) {
     // Snapshotted at the first write rather than at opening, so both openers —
     // a row and a cluster head (FR-25.26) — share one capture of every row.
     before ??= rows.value.map((row) => ({ ...row }))
-    for (const row of rows.value) orchestrator.setQuantity(tripId, row, quantity)
+    for (const row of rows.value) orchestrator.setQuantity(row, quantity)
   }
 
   function closed(): void {
@@ -114,7 +114,7 @@ export function useRowQuantity(core: PackingCore) {
     if (!now || now.quantity === first.quantity) return
     // Three fields, as the write has them: an amount cut below the packed count
     // clamps the count, and the undo has to give both back (FR-25.24).
-    rowUndo.armUndo(was, (records) => orchestrator.restoreSkip(tripId, records))
+    rowUndo.armUndo(was, (records) => orchestrator.restoreSkip(records))
     void core.announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
   }
 

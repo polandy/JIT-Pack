@@ -141,7 +141,7 @@ describe('M11 luggage — several into one bag (FR-10.2, ADR-075)', () => {
   const rowNamed = (page: Page, name: string) =>
     page.findAll('[data-testid="m11-unassigned-row"]').find((r) => r.text().includes(name))!
   const assigned = () =>
-    orchestratorFake.assignContainer.mock.calls.map(([, item, container]) => [
+    orchestratorFake.assignContainer.mock.calls.map(([item, container]) => [
       (item as { id: string }).id,
       container,
     ])

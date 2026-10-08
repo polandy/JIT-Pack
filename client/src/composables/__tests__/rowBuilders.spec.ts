@@ -265,12 +265,12 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (i) => newOrch().setMode(TRIP_ID, i, 'buy_local'),
+        act: (i) => newOrch().setMode(i, 'buy_local'),
         changed: 'mode',
         becomes: 'buy_local',
       },
       {
-        act: (i) => newOrch().setLatePacker(TRIP_ID, i, false),
+        act: (i) => newOrch().setLatePacker(i, false),
         changed: 'late_packer',
         becomes: false,
       },
@@ -321,12 +321,12 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getContainers(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (c) => newOrch().updateContainer(TRIP_ID, c, { name: 'Roter Koffer' }),
+        act: (c) => newOrch().updateContainer(c, { name: 'Roter Koffer' }),
         changed: 'name',
         becomes: 'Roter Koffer',
       },
       {
-        act: (c) => newOrch().updateContainer(TRIP_ID, c, { max_weight_grams: 20000 }),
+        act: (c) => newOrch().updateContainer(c, { max_weight_grams: 20000 }),
         changed: 'max_weight_grams',
         becomes: 20000,
       },
@@ -531,7 +531,7 @@ const CASES: BuilderCase[] = [
     // column.
     acts: [
       {
-        act: (t) => newOrch().reopenPrepTodo(TRIP_ID, t),
+        act: (t) => newOrch().reopenPrepTodo(t),
         changed: 'task_state',
         becomes: 'open',
         // FR-7.7: unticking clears the record with the state it described.
@@ -539,7 +539,7 @@ const CASES: BuilderCase[] = [
         also: { resolved_at: null },
       },
       {
-        act: (t) => newOrch().resolvePrepTodo(TRIP_ID, t),
+        act: (t) => newOrch().resolvePrepTodo(t),
         changed: 'task_state',
         becomes: 'resolved',
         // FR-7.7: the tap's own moment, named by the client (FR-25.17's
@@ -675,13 +675,13 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getExcursions(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (e: Excursion) => newOrch().updateExcursion(TRIP_ID, e, { name: 'Hütte' }),
+        act: (e: Excursion) => newOrch().updateExcursion(e, { name: 'Hütte' }),
         changed: 'name',
         becomes: 'Hütte',
       },
       {
         // One end moved; the other is rewritten only when the pair reverses.
-        act: (e: Excursion) => newOrch().updateExcursion(TRIP_ID, e, { endsOn: '2026-07-18' }),
+        act: (e: Excursion) => newOrch().updateExcursion(e, { endsOn: '2026-07-18' }),
         changed: 'ends_on',
         becomes: '2026-07-18',
       },
@@ -721,13 +721,13 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getExcursionItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (l: ExcursionItem) => newOrch().setLineCount(TRIP_ID, l, 2),
+        act: (l: ExcursionItem) => newOrch().setLineCount(l, 2),
         changed: 'packed_count',
         becomes: 2,
         also: { state: 'packed' },
       },
       {
-        act: (l: ExcursionItem) => newOrch().buyOnTheSpot(TRIP_ID, l),
+        act: (l: ExcursionItem) => newOrch().buyOnTheSpot(l),
         changed: 'mode',
         becomes: 'buy_local',
       },

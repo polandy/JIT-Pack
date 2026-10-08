@@ -361,12 +361,7 @@ const {
 function restoreCounts(records: RowUndoRecord[]) {
   for (const record of records) {
     const line = lineById.value.get(record.itemId)
-    if (line)
-      orchestrator.setLineCount(
-        props.tripId,
-        { ...line, quantity: record.quantity },
-        record.packedCount,
-      )
+    if (line) orchestrator.setLineCount({ ...line, quantity: record.quantity }, record.packedCount)
   }
 }
 
@@ -396,7 +391,7 @@ function count(line: ExcursionItem, packed: number) {
   const name = line.name
   rowUndo.actWithUndo(
     [excursionLineAsRow(line)],
-    () => orchestrator.setLineCount(props.tripId, line, target),
+    () => orchestrator.setLineCount(line, target),
     restoreCounts,
   )
   void (target >= line.quantity
@@ -420,19 +415,19 @@ function onRowLeave(el: Element, done: () => void) {
 /** FR-5.5 on a line: decided against for this outing, M4's snackbar with its undo. */
 function skip(line: ExcursionItem) {
   rowUndo.armUndo([excursionLineAsRow(line)], restoreCounts)
-  orchestrator.skipLine(props.tripId, line)
+  orchestrator.skipLine(line)
   void announceSkipped(line.name, [])
 }
 
 function unskip(line: ExcursionItem) {
   rowUndo.armUndo([excursionLineAsRow(line)], restoreCounts)
-  orchestrator.unskipLine(props.tripId, line)
+  orchestrator.unskipLine(line)
   void announceAct(t('packing.unskippedToast', { name: line.name }))
 }
 
 /** FR-5.8 on a line: off the list, M4's snackbar with its undo. */
 function removeLine(line: ExcursionItem) {
-  const undo = orchestrator.removeLine(props.tripId, line)
+  const undo = orchestrator.removeLine(line)
   rowUndo.armAction(line.name, undo)
   void announceRemoved(line.name)
 }
@@ -445,8 +440,8 @@ function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof 
     t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
       name: line.name,
     }),
-    () => orchestrator.setLineMode(props.tripId, line, mode),
-    (live) => orchestrator.updateLine(props.tripId, live, before),
+    () => orchestrator.setLineMode(line, mode),
+    (live) => orchestrator.updateLine(live, before),
   )
 }
 
@@ -461,8 +456,8 @@ function markBought(line: ExcursionItem, bought: boolean) {
   actUndoably(
     line,
     t(bought ? 'excursions.boughtToast' : 'excursions.unboughtToast', { name: line.name }),
-    () => orchestrator.markBought(props.tripId, line, bought),
-    (live) => orchestrator.updateLine(props.tripId, live, { bought_at: before }),
+    () => orchestrator.markBought(line, bought),
+    (live) => orchestrator.updateLine(live, { bought_at: before }),
   )
 }
 
@@ -520,7 +515,7 @@ function onSetQuantity(quantity: number) {
     packedCount: line.packed_count,
     state: line.state,
   }
-  orchestrator.setLineQuantity(props.tripId, line, quantity)
+  orchestrator.setLineQuantity(line, quantity)
 }
 
 function onQuantityClosed() {
@@ -776,7 +771,7 @@ function onBrowsePack(itemId: string) {
     (l) => l.state !== STATE_SKIPPED && l.packed_count < l.quantity,
   )
   const records = open.map(recordOf)
-  for (const line of open) orchestrator.setLineCount(props.tripId, line, line.quantity)
+  for (const line of open) orchestrator.setLineCount(line, line.quantity)
   browseUndo.set(itemId, () => restoreCounts(records))
 }
 
@@ -784,15 +779,15 @@ function onBrowsePack(itemId: string) {
 function onBrowseSkip(itemId: string) {
   const open = linesOfItem(itemId).filter((l) => l.state !== STATE_SKIPPED)
   const records = open.map(recordOf)
-  for (const line of open) orchestrator.skipLine(props.tripId, line)
+  for (const line of open) orchestrator.skipLine(line)
   browseUndo.set(itemId, () => restoreCounts(records))
 }
 
 /** FR-25.13i: everything of this thing back on the list — M4's reset, not an undo. */
 function onBrowseReopen(itemId: string) {
   for (const line of linesOfItem(itemId)) {
-    if (line.state === STATE_SKIPPED) orchestrator.unskipLine(props.tripId, line)
-    else orchestrator.setLineCount(props.tripId, line, 0)
+    if (line.state === STATE_SKIPPED) orchestrator.unskipLine(line)
+    else orchestrator.setLineCount(line, 0)
   }
 }
 
@@ -827,7 +822,7 @@ async function saveEdit(result: ExcursionSheetResult) {
   editing.value = false
   const ex = excursion.value
   if (!ex) return
-  orchestrator.updateExcursion(props.tripId, ex, {
+  orchestrator.updateExcursion(ex, {
     name: result.name,
     startsOn: result.startsOn,
     endsOn: result.endsOn,

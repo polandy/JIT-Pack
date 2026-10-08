@@ -234,7 +234,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
       packedCount: row.packed_count,
       state: row.state,
     }))
-    for (const row of rows) orchestrator.packComplete(tripId, row)
+    for (const row of rows) orchestrator.packComplete(row)
     browseUndo.set(itemId, () => core.restorePacked(records))
   }
 
@@ -253,7 +253,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
       packedCount: row.packed_count,
       state: row.state,
     }))
-    browseUndo.set(itemId, () => orchestrator.restoreSkip(tripId, records))
+    browseUndo.set(itemId, () => orchestrator.restoreSkip(records))
   }
 
   /**
@@ -269,8 +269,8 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
    */
   function onReopen(itemId: string) {
     for (const row of rowsOfMasterItem(itemId)) {
-      if (row.state === 'skipped') orchestrator.unskipItem(tripId, row)
-      else orchestrator.packZero(tripId, row)
+      if (row.state === 'skipped') orchestrator.unskipItem(row)
+      else orchestrator.packZero(row)
     }
   }
 

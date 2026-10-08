@@ -107,8 +107,8 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
 export interface TaskTickWrites {
   resolveTripTodo(todo: TripTodo): void
   reopenTripTodo(todo: TripTodo): void
-  resolvePrepTodo(tripId: string, todo: ItemTodo): void
-  reopenPrepTodo(tripId: string, todo: ItemTodo): void
+  resolvePrepTodo(todo: ItemTodo): void
+  reopenPrepTodo(todo: ItemTodo): void
 }
 
 /** The live rows a tick is written against, so the optimistic baseline is current. */
@@ -131,8 +131,8 @@ export function toggleTask(
   if (task.item) {
     const prep = reads.getItemTodos(tripId, task.item.id).find((row) => row.id === task.id)
     if (!prep) return
-    if (prep.task_state === 'open') writes.resolvePrepTodo(tripId, prep)
-    else writes.reopenPrepTodo(tripId, prep)
+    if (prep.task_state === 'open') writes.resolvePrepTodo(prep)
+    else writes.reopenPrepTodo(prep)
     return
   }
   const todo = reads.getTripTodos(tripId).find((row) => row.id === task.id)

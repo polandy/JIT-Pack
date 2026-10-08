@@ -145,7 +145,7 @@ const pickingLine = computed(() => {
  */
 function assignTo(containerId: string) {
   for (const item of pickingItems.value) {
-    orchestrator.assignContainer(props.tripId, item, containerId)
+    orchestrator.assignContainer(item, containerId)
   }
   // A tap in the mode picks rather than opening this picker, so the picker
   // was opened by the bar whenever the mode is on — a batch of one included.

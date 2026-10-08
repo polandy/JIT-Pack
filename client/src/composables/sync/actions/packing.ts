@@ -80,19 +80,19 @@ export function createPackingActions(ctx: SyncContext) {
   const { mutations, write, tripStore, masterStore, knownTripItems } = ctx
 
   /** Pack: increment packed count on a trip item. */
-  function packIncrement(tripId: string, item: TripItem) {
+  function packIncrement(item: TripItem) {
     write(mutations.incrementPacked(item.id, item.packed_count, item.quantity))
   }
 
-  function packDecrement(tripId: string, item: TripItem) {
+  function packDecrement(item: TripItem) {
     write(mutations.decrementPacked(item.id, item.packed_count, item.quantity))
   }
 
-  function packComplete(tripId: string, item: TripItem) {
+  function packComplete(item: TripItem) {
     write(mutations.completePacked(item.id, item.quantity))
   }
 
-  function packZero(tripId: string, item: TripItem) {
+  function packZero(item: TripItem) {
     write(mutations.zeroPacked(item.id))
   }
 
@@ -107,11 +107,11 @@ export function createPackingActions(ctx: SyncContext) {
    * write whole where the row is gone — deleted here or on another device,
    * never to be resurrected by an undo.
    */
-  function restorePack(tripId: string, itemId: string, packedCount: number, state: string) {
+  function restorePack(itemId: string, packedCount: number, state: string) {
     write(mutations.packItem(itemId, packedCount, state))
   }
 
-  function packToggle(tripId: string, item: TripItem) {
+  function packToggle(item: TripItem) {
     write(mutations.togglePacked(item.id, item.packed_count))
   }
 
@@ -122,7 +122,7 @@ export function createPackingActions(ctx: SyncContext) {
    * doing: a per-person row carries one traveler's share (FR-25.1), and
    * the cluster head above it sums what its children say.
    */
-  function setQuantity(tripId: string, item: TripItem, quantity: number) {
+  function setQuantity(item: TripItem, quantity: number) {
     write(mutations.setQuantity(item.id, quantity, item.packed_count, item.state))
   }
 
@@ -154,7 +154,6 @@ export function createPackingActions(ctx: SyncContext) {
    * has since been deleted rather than reviving it.
    */
   function restoreSkip(
-    tripId: string,
     records: { itemId: string; quantity: number; packedCount: number; state: string }[],
   ) {
     const muts = records.map((record) =>
@@ -163,7 +162,7 @@ export function createPackingActions(ctx: SyncContext) {
     if (muts.length > 0) write(...muts)
   }
 
-  function unskipItem(tripId: string, item: TripItem) {
+  function unskipItem(item: TripItem) {
     write(mutations.unskipItem(item.id))
   }
 
@@ -172,34 +171,34 @@ export function createPackingActions(ctx: SyncContext) {
    * One mutation each way, so the record of the list and the change it
    * explains can never land apart — see `createMutations.buyItem`.
    */
-  function buyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+  function buyItem(item: TripItem, from: ShoppingMode) {
     write(mutations.buyItem(item.id, from, item.quantity))
   }
 
   /** FR-30.13: the row's place on the shopping list (see `mutations.placeOnShopping`). */
-  function placeOnShopping(tripId: string, item: TripItem, position: number) {
+  function placeOnShopping(item: TripItem, position: number) {
     write(mutations.placeOnShopping(item.id, position))
   }
 
-  function unbuyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+  function unbuyItem(item: TripItem, from: ShoppingMode) {
     write(mutations.unbuyItem(item.id, from))
   }
 
-  function setMode(tripId: string, item: TripItem, mode: ItemMode) {
+  function setMode(item: TripItem, mode: ItemMode) {
     write(mutations.setItemMode(item.id, mode))
   }
 
   /** FR-7.16: the close carries a row to the destination and marks it (see `mutations.carryRowToLocal`). */
-  function carryToLocal(tripId: string, item: TripItem, at: string) {
+  function carryToLocal(item: TripItem, at: string) {
     write(mutations.carryRowToLocal(item.id, at))
   }
 
   /** FR-7.16: the close's undo — the row back before departure, unmarked. */
-  function returnCarried(tripId: string, item: TripItem) {
+  function returnCarried(item: TripItem) {
     write(mutations.returnCarriedRow(item.id))
   }
 
-  function assignTraveler(tripId: string, item: TripItem, travelerId: string | null) {
+  function assignTraveler(item: TripItem, travelerId: string | null) {
     write(mutations.assignTraveler(item.id, travelerId))
   }
 
@@ -281,11 +280,11 @@ export function createPackingActions(ctx: SyncContext) {
     write(...muts)
   }
 
-  function assignContainer(tripId: string, item: TripItem, containerId: string | null) {
+  function assignContainer(item: TripItem, containerId: string | null) {
     write(mutations.assignContainer(item.id, containerId))
   }
 
-  function setLatePacker(tripId: string, item: TripItem, latePacker: boolean) {
+  function setLatePacker(item: TripItem, latePacker: boolean) {
     write(mutations.setLatePacker(item.id, latePacker))
   }
 
@@ -300,7 +299,7 @@ export function createPackingActions(ctx: SyncContext) {
    * push carrying `packer_user_id` and skips a self-assignment, so the
    * client owes nothing beyond the ordinary mutation.
    */
-  function setPacker(tripId: string, item: TripItem, userId: string | null) {
+  function setPacker(item: TripItem, userId: string | null) {
     write(mutations.setPacker(item.id, userId))
   }
 
@@ -315,16 +314,16 @@ export function createPackingActions(ctx: SyncContext) {
    * `domain/clusterActions.ts` — a row somebody else is holding is not among
    * them (G-3).
    */
-  function setLatePackerForRows(tripId: string, items: readonly TripItem[], latePacker: boolean) {
-    for (const item of items) setLatePacker(tripId, item, latePacker)
+  function setLatePackerForRows(items: readonly TripItem[], latePacker: boolean) {
+    for (const item of items) setLatePacker(item, latePacker)
   }
 
   /** FR-25.26's other half: one person made responsible for every instance. */
-  function setPackerForRows(tripId: string, items: readonly TripItem[], userId: string | null) {
-    for (const item of items) setPacker(tripId, item, userId)
+  function setPackerForRows(items: readonly TripItem[], userId: string | null) {
+    for (const item of items) setPacker(item, userId)
   }
 
-  function setReviewFlag(tripId: string, item: TripItem, flag: ReviewFlag, value: boolean) {
+  function setReviewFlag(item: TripItem, flag: ReviewFlag, value: boolean) {
     write(mutations.setReviewFlag(item.id, flag, value))
   }
 
@@ -493,7 +492,7 @@ export function createPackingActions(ctx: SyncContext) {
    * exactly those. Removal and co-skip go as one queued write, so no device
    * ever sees the companions orphaned without their skip.
    */
-  function removeItem(tripId: string, item: TripItem, companions: readonly TripItem[]) {
+  function removeItem(item: TripItem, companions: readonly TripItem[]) {
     const removal = mutations.deleteTripItem(item.id)
     write(
       {
@@ -524,7 +523,7 @@ export function createPackingActions(ctx: SyncContext) {
    * takes along. The main row is deleted later, when the undo lapses
    * (FR-25.31), so the companions are written on their own.
    */
-  function skipRows(tripId: string, rows: readonly TripItem[]) {
+  function skipRows(rows: readonly TripItem[]) {
     if (rows.length === 0) return
     write(
       ...rows.map((target) => {

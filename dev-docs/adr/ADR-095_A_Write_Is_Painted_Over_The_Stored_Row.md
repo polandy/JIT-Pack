@@ -90,6 +90,8 @@ a feature module (`ModuleHost.write`) and the seam double bind it to their store
 
 **Neutral**
 - The action groups keep their `tripId` parameters; the facade's signatures did not change.
+  Amendment (ARCH-12b): the parameters that only forwarded `tripId` without using it were dropped; a parameter
+  the body still reads — a store lookup, a row's `trip_id` on insert — stayed.
 
 ## Revisit Trigger
 

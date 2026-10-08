@@ -92,7 +92,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.packComplete('t1', tripStore.getItems('t1')[0]!)
+    orch.packComplete(tripStore.getItems('t1')[0]!)
 
     const row = tripStore.getItems('t1')[0]!
     expect(row.state).toBe('packed')
@@ -121,14 +121,14 @@ describe('useSyncOrchestrator', () => {
 
     mockPush()
     mockPull()
-    orch.buyItem('t1', tripStore.getItems('t1')[0]!, 'buy_before')
+    orch.buyItem(tripStore.getItems('t1')[0]!, 'buy_before')
 
     expect(tripStore.getItems('t1')[0]!.mode).toBe('pack')
     expect(tripStore.getItems('t1')[0]!.bought_from).toBe('buy_before')
 
     mockPush()
     mockPull()
-    orch.unbuyItem('t1', tripStore.getItems('t1')[0]!, 'buy_before')
+    orch.unbuyItem(tripStore.getItems('t1')[0]!, 'buy_before')
 
     expect(tripStore.getItems('t1')[0]!.mode).toBe('buy_before')
     expect(tripStore.getItems('t1')[0]!.bought_from).toBeNull()
@@ -159,7 +159,7 @@ describe('useSyncOrchestrator', () => {
     mockPull()
 
     const item = tripStore.getItems('t1')[0]!
-    orch.packToggle('t1', item)
+    orch.packToggle(item)
 
     expect(tripStore.getItems('t1')[0]!.packed_count).toBe(1)
     expect(tripStore.getItems('t1')[0]!.state).toBe('packed')
@@ -191,7 +191,7 @@ describe('useSyncOrchestrator', () => {
       },
     })
 
-    orch.packIncrement('t1', tripStore.getItems('t1')[0]!)
+    orch.packIncrement(tripStore.getItems('t1')[0]!)
 
     const item = tripStore.getItems('t1')[0]!
     expect(item.packed_count).toBe(1)
@@ -227,7 +227,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.setQuantity('t1', tripStore.getItems('t1')[0]!, 2)
+    orch.setQuantity(tripStore.getItems('t1')[0]!, 2)
 
     // Four packed of a target of two is the row the schema's CHECK refuses,
     // so the count comes down with the amount and the state follows it.
@@ -292,7 +292,7 @@ describe('useSyncOrchestrator', () => {
     mockPull()
 
     const item = tripStore.getItems('t1')[0]!
-    orch.unskipItem('t1', item)
+    orch.unskipItem(item)
 
     const updated = tripStore.getItems('t1')[0]!
     expect(updated.state).toBe('open')
@@ -525,7 +525,7 @@ describe('useSyncOrchestrator', () => {
       const item = tripStore.getItems('t1')[0]!
       mockPush()
       mockPull()
-      orch.assignContainer('t1', item, a!)
+      orch.assignContainer(item, a!)
 
       mockPush()
       mockPull()

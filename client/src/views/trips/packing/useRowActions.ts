@@ -64,8 +64,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       picked === null
         ? t('packing.unassignedToast', { name: item.name })
         : t('packing.assignedToast', { name: item.name, who: nameOf(picked) ?? '' }),
-      () => orchestrator.setPacker(tripId, item, picked),
-      (live) => orchestrator.setPacker(tripId, live, previous),
+      () => orchestrator.setPacker(item, picked),
+      (live) => orchestrator.setPacker(live, previous),
     )
   }
 
@@ -156,7 +156,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     // companions are only known once the cascade has run, and `skipItem`
     // returns them as they were *before* it wrote (pinned by its own test).
     const affected = orchestrator.skipItem(tripId, item)
-    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(tripId, records))
+    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(records))
     void announceSkipped(
       item.name,
       affected.slice(1).map((row) => row.name),
@@ -176,7 +176,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
         if (!affected.some((known) => known.id === hit.id)) affected.push(hit)
       }
     }
-    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(tripId, records))
+    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(records))
     const targets = new Set(rows.map((row) => row.id))
     void announceSkipped(
       name,
@@ -190,7 +190,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    * one thing the reader just did on purpose.
    */
   function removeRow(item: TripItem): void {
-    orchestrator.removeItem(tripId, item, [])
+    orchestrator.removeItem(item, [])
     if (nav.openItemId.value === item.id) nav.closeItem()
   }
 
@@ -289,15 +289,12 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       [...rows, ...companions],
       (records) => {
         unhide()
-        orchestrator.restoreSkip(
-          tripId,
-          records.filter((record) => !ids.has(record.itemId)),
-        )
+        orchestrator.restoreSkip(records.filter((record) => !ids.has(record.itemId)))
       },
       () => {
         for (const id of ids) {
           const live = liveRow(id)
-          if (live) orchestrator.removeItem(tripId, live, [])
+          if (live) orchestrator.removeItem(live, [])
         }
         unhide()
         afterDelete()
@@ -305,7 +302,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     )
     for (const id of ids) core.removingRows.value.add(id)
     if (nav.openItemId.value !== null && ids.has(nav.openItemId.value)) nav.closeItem()
-    orchestrator.skipRows(tripId, companions)
+    orchestrator.skipRows(companions)
   }
 
   /**
@@ -320,8 +317,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       value
         ? t('packing.flagUnusedToast', { item: item.name })
         : t('packing.unflagUnusedToast', { item: item.name }),
-      () => orchestrator.setReviewFlag(tripId, item, 'unused', value),
-      (live) => orchestrator.setReviewFlag(tripId, live, 'unused', previous),
+      () => orchestrator.setReviewFlag(item, 'unused', value),
+      (live) => orchestrator.setReviewFlag(live, 'unused', previous),
     )
   }
 
@@ -340,8 +337,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   }
 
   function onUnskipItem(item: TripItem) {
-    rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(tripId, records))
-    orchestrator.unskipItem(tripId, item)
+    rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(records))
+    orchestrator.unskipItem(item)
     void announceAct(t('packing.unskippedToast', { name: item.name }))
   }
 
@@ -352,8 +349,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       t(latePacker ? 'packing.latePackerOnToast' : 'packing.latePackerOffToast', {
         name: item.name,
       }),
-      () => orchestrator.setLatePacker(tripId, item, latePacker),
-      (live) => orchestrator.setLatePacker(tripId, live, previous),
+      () => orchestrator.setLatePacker(item, latePacker),
+      (live) => orchestrator.setLatePacker(live, previous),
     )
   }
 
@@ -365,8 +362,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
         name: item.name,
       }),
-      () => orchestrator.setMode(tripId, item, mode),
-      (live) => orchestrator.setMode(tripId, live, previous),
+      () => orchestrator.setMode(item, mode),
+      (live) => orchestrator.setMode(live, previous),
     )
   }
 
@@ -376,14 +373,12 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    */
   function onIncrement(item: TripItem) {
     packStep(item, Math.min(item.packed_count + 1, item.quantity), () =>
-      orchestrator.packIncrement(tripId, item),
+      orchestrator.packIncrement(item),
     )
   }
 
   function onDecrement(item: TripItem) {
-    packStep(item, Math.max(item.packed_count - 1, 0), () =>
-      orchestrator.packDecrement(tripId, item),
-    )
+    packStep(item, Math.max(item.packed_count - 1, 0), () => orchestrator.packDecrement(item))
   }
 
   function packStep(item: TripItem, packed: number, act: () => void) {
@@ -396,13 +391,13 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
 
   function onComplete(item: TripItem) {
     const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packComplete(tripId, item), restorePacked)
+    rowUndo.actWithUndo([item], () => orchestrator.packComplete(item), restorePacked)
     void announcePacked(name)
   }
 
   function onZero(item: TripItem) {
     const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packZero(tripId, item), restorePacked)
+    rowUndo.actWithUndo([item], () => orchestrator.packZero(item), restorePacked)
     void announceAct(t('packing.unpackedToast', { name }))
   }
 
@@ -413,7 +408,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     const reads = stateFor(item.packed_count, item.quantity)
     const unpacks = reads === 'packed' || reads === 'skipped'
     const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packToggle(tripId, item), restorePacked)
+    rowUndo.actWithUndo([item], () => orchestrator.packToggle(item), restorePacked)
     void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
   }
 

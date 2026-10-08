@@ -68,9 +68,9 @@ function sourceWith(lists: {
       getTravelers: () => [andy, mia],
     },
     {
-      buyItem: (_trip, row, from) => writes.push({ verb: 'buy', id: row.id, from }),
-      unbuyItem: (_trip, row, from) => writes.push({ verb: 'unbuy', id: row.id, from }),
-      placeOnShopping: (_trip, row, position) => places.push({ id: row.id, position }),
+      buyItem: (row, from) => writes.push({ verb: 'buy', id: row.id, from }),
+      unbuyItem: (row, from) => writes.push({ verb: 'unbuy', id: row.id, from }),
+      placeOnShopping: (row, position) => places.push({ id: row.id, position }),
     },
   )
   return { source, writes, places }
