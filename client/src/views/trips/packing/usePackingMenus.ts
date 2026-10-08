@@ -22,8 +22,9 @@ import {
 } from '@/domain/clusterActions'
 import type { PackingCluster } from '@/domain/packingView'
 import { rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
-import { t, type MessageKey } from '@/i18n'
-import { ROW_MENU_BUTTONS } from '@/lib/rowMenuButtons'
+import { t } from '@/i18n'
+import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
+import { sheetBandAttrs } from '@/lib/sheetBands'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, type TripItem } from '@/types/domain'
 
 import type { ForWhom } from './useForWhom'
@@ -37,14 +38,12 @@ import type { RowQuantity } from './useRowQuantity'
  * how many rows they reach — and keeps its own for the three it had first,
  * whose „für alle" wording says what a row's could not.
  */
-const CLUSTER_MENU_BUTTONS: Record<
-  ClusterMenuAction,
-  { labelKey: MessageKey; icon: string; role?: 'destructive' }
-> = {
+export const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, RowMenuButton> = {
   ...ROW_MENU_BUTTONS,
-  latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline },
-  latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline },
-  assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline },
+  latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline, band: 'flag' },
+  latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline, band: 'flag' },
+  // G-14: who packs it is a statement about the item, so it stands with the flags.
+  assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline, band: 'flag' },
 }
 
 /** The two holds, the menus they open, and whether one is up. */
@@ -146,7 +145,7 @@ export function usePackingMenus(
           ...entries.map((action) => ({
             text: t(ROW_MENU_BUTTONS[action].labelKey),
             icon: ROW_MENU_BUTTONS[action].icon,
-            role: ROW_MENU_BUTTONS[action].role,
+            ...sheetBandAttrs(ROW_MENU_BUTTONS[action].band),
             handler: () => runRowMenu(action, item),
           })),
           { text: t('common.cancel'), role: 'cancel' },
@@ -335,7 +334,7 @@ export function usePackingMenus(
           ...entries.map((action) => ({
             text: t(CLUSTER_MENU_BUTTONS[action].labelKey),
             icon: CLUSTER_MENU_BUTTONS[action].icon,
-            role: CLUSTER_MENU_BUTTONS[action].role,
+            ...sheetBandAttrs(CLUSTER_MENU_BUTTONS[action].band),
             handler: () => {
               void runClusterMenu(action, cluster)
             },

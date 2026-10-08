@@ -43,7 +43,9 @@
   snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names both halves of FR-24.3's two
   acts and has **no** undo, because the removed half cannot come back. The mode ends with the batch. **The bottom bar's
   fourth control is ⋯ *Mehr***, between *Tag nehmen* and *Stilllegen*. It opens an action sheet carrying *„Üblicherweise
-  zuweisen an …"* (FR-1.9; absent below two accounts, G-8), *„Hängt ab von …"* and *„Begleitartikel …"* (FR-20.1). Four
+  zuweisen an …"* (FR-1.9; absent below two accounts, G-8), *„Hängt ab von …"* and *„Begleitartikel …"* (FR-20.1), each
+  with its glyph like every other row menu, and from two picked rows *„Zusammenführen …"* (FR-24.15) last, after a
+  hairline and in Ember — G-14's destructive band, because a merge keeps one row of several and has no undo. Four
   is what the bar holds at 390 px before the labels clip, so the rarer acts live behind one door. The bar's count reads
   **„Nichts ausgewählt"** at zero and „N ausgewählt" from one — zero is its own sentence rather than a plural form,
   since the catalogue has two forms and `n === 1` takes the first. The assignee sheet lists the directory with

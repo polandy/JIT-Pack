@@ -118,6 +118,7 @@ import {
 } from '@/lib/packingFilterPanel'
 import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
+import { sheetBandAttrs } from '@/lib/sheetBands'
 import { presentToast } from '@/composables/shared/toast'
 import { beforeIsOver, standingOf } from '@/lib/tripPhase'
 import { closeOverlayRoute } from '@/composables/shared/closeOverlay'
@@ -639,7 +640,7 @@ async function openLine(line: ExcursionItem) {
         ...entries.map((action) => ({
           text: t(buttonOf(action).labelKey),
           icon: buttonOf(action).icon,
-          role: buttonOf(action).role,
+          ...sheetBandAttrs(buttonOf(action).band),
           handler: () => runMenu(action, line),
         })),
         { text: t('common.cancel'), role: 'cancel' },
