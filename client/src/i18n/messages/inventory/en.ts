@@ -280,7 +280,7 @@ export const inventoryEn = {
   // Quick-add (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Add item…',
   'quickAdd.placeholder': 'Search or create…',
-  'quickAdd.missingHint': 'New items are flagged as missing',
+  'quickAdd.missingHint': 'Whatever you add now, the review remembers for the template.',
   // FR-5.10: on a finished list an addition is what is already in the bag.
   'quickAdd.packedHint': 'New items are recorded as packed',
   // FR-5.11: once the packing is closed: did it travel in the bag, or stay home?

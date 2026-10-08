@@ -258,7 +258,9 @@
     one tap. ✓/Enter add an exact inventory match directly and never write a new name on their own; a name already on
     the list reads *„‚{Name}' ist schon drin"* and ✓ rests. The placeholder says so: *„Suchen oder neu anlegen…"*.
     Selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is active, new items
-    are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape or the close
+    are auto-flagged *Missing* (FR-9.1), and the hint says what that buys rather than naming the flag: *„Was du jetzt
+    ergänzt, merkt sich der Rückblick für die Vorlage."* (UX-21). The input stays expanded after adding for rapid
+    entry; Escape or the close
     button collapses it. No navigation away from M4 required. **FR-25.13c:** the FAB expands the composer **without
     focusing it**, because while the field is empty it leads with a tappable *„Zuletzt verwendet"* chip row (the
     device-local trail) — and the raised keyboard would cover it; a chip tap adds with the FR-25.7 defaults and stays in

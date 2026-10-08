@@ -25,7 +25,8 @@
   *Gepäck* they sum back into a single bucket by construction. Rows with no traveler count as *Gemeinsam* (FR-25.11f's
   term).
 * **States:** Items without weight metadata never enter a bar — a zero-width bar would read as "weighs nothing" — and
-  are counted honestly beside the chart ("＋ n Artikel ohne Gewichtsangabe"); their value still counts. No weighted rows
+  are counted beside the chart ("＋ n Artikel ohne Gewichtsangabe" and nothing after it, UX-21); their value still
+  counts. No weighted rows
   at all → an empty-state line in the bar card, **and no KPI tiles under it** (UX-11: „0 g / 0 g" and a unit-less „0.00"
   would restate the empty state as numbers). Each tile stands only when it has something to total: the weight tile with
   weighted rows, the value tile with a non-zero value — rendered through `formatValue` in the locale's number format,

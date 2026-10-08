@@ -2,6 +2,7 @@ import { test, expect, seed, createTripViaWizard, visiblePage, PRESENTED_POPOVER
 import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { expectValueInABox } from './helpers/ionic'
 
 /**
  * M17 — the settings a device keeps to itself (UI-Test-Spec §4, unit
@@ -137,6 +138,8 @@ test.describe('M17 device settings @local @m17', () => {
     await page.goto(PATH.settings)
     const card = visiblePage(page).getByTestId('settings-move-card')
     await expect(card).toBeVisible()
+    // UX-21: the URL is a field on the card, not a caption under its label.
+    await expectValueInABox(card.getByTestId('settings-move-url'), card)
 
     // Closed: the trip is newer than any backup, and the card says so.
     await expect(card.getByTestId('settings-move-guard')).toBeVisible()

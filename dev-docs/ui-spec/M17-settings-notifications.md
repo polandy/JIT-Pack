@@ -1,11 +1,12 @@
 # M17 — Settings & Notifications
 
 **App info/version.** The About block's version line names the running build: `git describe` (the release-please tag
-plus a commit count once ahead of it) and the short commit hash, e.g. `v0.8.0-4-g3b14038f`. The same string is shown,
-muted, beside the header wordmark (G-9) on a tab root in every mode — it names the build itself rather than anything
-server-side, so it needs no per-mode variant. **The same string means verbatim**: it already carries the tag's own `v`
-from both sources (`git describe --tags`, and the release workflow's `APP_VERSION=${{ github.ref_name }}`), so no
-surface prepends another — a prepended `v` would read `vv0.10.0-…` (E2E-G9-21). A Docker-built image gets it from the
+plus a commit count once ahead of it) and the short commit hash, e.g. `v0.8.0-4-g3b14038f`. **This is the one place
+the build names itself** — the app bar carries the mark and the wordmark only (G-9, UX-21: a git-describe string on
+every tab root meant nothing to the family, and a bug report starts here anyway). It names the build rather than
+anything server-side, so it needs no per-mode variant. **The string is verbatim**: it already carries the tag's own `v`
+from both sources (`git describe --tags`, and the release workflow's `APP_VERSION=${{ github.ref_name }}`), so nothing
+prepends another — a prepended `v` would read `vv0.10.0-…` (E2E-G9-21). A Docker-built image gets it from the
 build args the release workflow passes in, since that build stage has no `.git` to read.
 
 **The release line (FR-23.8, ADR-062).** One line under the version, in the About block, saying
@@ -27,7 +28,8 @@ image.
 the one sentence that matters: the data stays on this device until step 3 has been done. **Step 1 — *„Sicherung
 herunterladen"*:** the whole-device backup, the same export the G-2 sheet offers (FR-19.6), one function behind both.
 The step shows when the last backup was taken, or that none was. **Step 2 — *„Server verbinden"*:** a URL field
-pre-filled with the page's own origin, validated for syntax exactly like M19's (an invalid URL disables the button and
+pre-filled with the page's own origin, M19's own field (`ServerUrlField`, UX-21), validated for syntax exactly like
+M19's (an invalid URL disables the button and
 says so inline; no reachability check, for M19's reason), and the confirm. **The confirm is disabled while the backup is
 older than the last change on this device**, and the disabled state says so in words (*„Zuerst sichern — seit der
 letzten Sicherung wurde etwas geändert."*), because a button that is grey for a reason it does not name is the FR-25.15

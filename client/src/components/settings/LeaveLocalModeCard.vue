@@ -10,7 +10,7 @@
  * in words, because a grey button with an unnamed reason is the FR-25.15
  * shape. Purely presentational so the guard can be stated as a prop.
  */
-import { IonButton, IonIcon, IonInput, IonNote } from '@ionic/vue'
+import { IonButton, IonIcon, IonNote } from '@ionic/vue'
 import {
   cloudUploadOutline,
   downloadOutline,
@@ -21,6 +21,7 @@ import { computed, ref } from 'vue'
 
 import { intlLocale, t } from '@/i18n'
 import { isValidServerUrl } from '@/mode'
+import ServerUrlField from './ServerUrlField.vue'
 
 const props = defineProps<{
   /** Epoch-ms of the last whole-device backup, or null when never taken. */
@@ -72,14 +73,10 @@ const lastBackupText = computed(() =>
       </li>
       <li>
         <div class="step-head">{{ t('settings.move.step2') }}</div>
-        <IonInput
+        <ServerUrlField
+          v-model="serverUrl"
           :label="t('settings.move.serverUrl')"
-          label-placement="stacked"
-          type="url"
-          inputmode="url"
-          :value="serverUrl"
           data-testid="settings-move-url"
-          @ionInput="(e: CustomEvent) => (serverUrl = String(e.detail.value ?? ''))"
         />
         <IonNote v-if="serverUrl && !urlValid" color="danger" class="note">
           {{ t('firstRun.serverUrlInvalid') }}

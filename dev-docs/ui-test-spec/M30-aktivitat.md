@@ -10,7 +10,8 @@
 * **E2E-M30-02** `server` (FR-32.3) — **implemented** (`server/activity.spec.ts`): an inventory item Alice creates is an
   *added* line in the inventory's activity Bob opens from M9's ⋮, named after Alice.
 * Local Mode offers neither entry (G-8): M4's ⋮ is asserted without it inside E2E-G12-07, on a sheet that demonstrably
-  opened; M9's is `ItemInventoryPage.spec.ts`.
+  opened; M9's is `ItemInventoryPage.spec.ts`. The same case types both activity URLs and lands on M4 and M9 (UX-21);
+  the guard itself is `router/__tests__/serverOnly.spec.ts`.
 * **E2E-FLOW-01 Happy-path packing** `server`: Alice M1 → M4 → swipe *Packing Now* → check → Bob's device reflects it in
   real time (locks, actor attribution, presence). (FR-5.x, 4.4, G-3, G-10) *(Runs for the convergence, membership and
   attribution halves — Alice shares the trip with Bob and the row Bob sees names Alice as its packer,
