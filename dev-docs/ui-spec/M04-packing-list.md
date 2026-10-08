@@ -40,7 +40,8 @@
     forty-row list back at the top mid-pack, the screen's most expensive small failure. The line also stops travelling
     entirely under `prefers-reduced-motion`: it is the largest movement on the screen and it happens while the list is
     moving too.
-  * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
+  * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon; opened, its field
+    takes the progress card's place in the sticky line and holds it while the head yields — UX-18), filter (badge =
     active facet count), fold-all — the three glyphs the bar's budget allows, and the three tapped while packing. The
     trip's *other views* are the **G-9 switcher under the page head** (FR-21.21, ADR-051): *Einkaufen* stands in the
     switcher and carries its open count — things to buy, the same arithmetic M6's segments use — while *Gepäck* and

@@ -1,7 +1,8 @@
 # M4 — Packing List (core)
 
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the
-  latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics
+  latter only when todos exist), and stays **unfiltered** while a filter narrows the list below it (an open search
+  stands in the card's place instead, E2E-M4-155). Analytics
   is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
 * **E2E-M4-29** `all` (trip screen) — **implemented**, and one clause retired. Landing **directly** in M4 from M2 or M1
   is asserted by `expectTripOpen` at every caller in the suite; the archived trip's closing card, *Vorlage aus dieser
@@ -199,6 +200,10 @@
 * **E2E-M4-154** `local` (FR-25.28, UX-03) — **implemented** (`packing-list-shape.spec.ts`): *For whom …* in a shared
   row's press-and-hold menu opens its strip under it and lights its seat; the same entry in a cluster head's menu moves
   the one strip under the head.
+* **E2E-M4-155** `local` (G-12, FR-25.11k, UX-18) — **implemented** (`packing-list-shape.spec.ts`): at 390 px the
+  magnifier opens the field focused, in the progress card's place: the field's box lies within the sticky line's, the
+  line starts at the page head's foot, and the ✕ measures `--jp-control-round`. Scrolled down, the head yields, the
+  line does not, and the same three relations hold; the ✕ closes the field and the card returns.
 * **E2E-M4-127** `local` (FR-25.2) — **implemented** (`packing-list-sheet.spec.ts`): tapping the words
   of the *Erledigte* switch turns it on and it stays on — the regression it guards is a tick that comes and goes, the
   label forwarding the tap to a checkbox that has already toggled itself. Closing the sheet shows the packed row.

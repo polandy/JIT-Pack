@@ -105,6 +105,25 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
       .toBe(true)
   }
 
+  /** The band, the field in it, the page head's foot and the ✕, at one moment. */
+  const searchGeometry = (page: Page) =>
+    visible(page).evaluate((root) => {
+      const box = (el: Element | null) => {
+        if (el === null) throw new Error('missing element')
+        const b = el.getBoundingClientRect()
+        return { top: b.top, bottom: b.bottom, width: b.width, height: b.height }
+      }
+      return {
+        band: box(root.querySelector('[data-testid="m4-header"]')),
+        field: box(root.querySelector('.search-row')),
+        close: box(root.querySelector('[data-testid="search-close"]')),
+        headBottom: box(document.querySelector('[data-testid="page-head"]')).bottom,
+        roundControl: parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--jp-control-round'),
+        ),
+      }
+    })
+
   /*
    * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
    * comes back with it.
@@ -156,6 +175,58 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(head).toHaveClass(/collapsed/)
     await expect(line).toHaveClass(/collapsed/)
     await headHeight(page).toBeLessThan(YIELDED_PX)
+  })
+
+  /*
+   * E2E-M4-155 (G-12, FR-25.11k, UX-18): the magnifier's field opens inside
+   * the fixed band, in the progress card's place directly under the page
+   * head, and stays there when the head yields to the list. Its ✕ is the
+   * round close control (G-14).
+   *
+   * Before, the field was mounted in the list's flow under the tasks block:
+   * 500 px below the glyph that opened it, with a 12 px ✕, and it scrolled
+   * away with the rows it was narrowing. Every geometry is taken in one
+   * `evaluate`, so the band and the field are compared at one moment.
+   */
+  test('E2E-M4-155: the search opens in the fixed band and holds there while the head yields', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, SCROLL_ROWS)
+
+    const head = page.getByTestId('page-head')
+    const band = visible(page).getByTestId('m4-header')
+    const field = visible(page).getByTestId('m4-search-input')
+    await expect(visible(page).getByTestId('m4-progress-card')).toBeVisible()
+    await expect(field).toHaveCount(0)
+
+    await page.getByTestId('m4-search').click()
+    await expect(field).toBeFocused()
+    // The field stands in for the card rather than beside it.
+    await expect(visible(page).getByTestId('m4-progress-card')).toHaveCount(0)
+    const open = await searchGeometry(page)
+    expect(open.field.top).toBeGreaterThanOrEqual(open.band.top)
+    expect(open.field.bottom).toBeLessThanOrEqual(open.band.bottom)
+    expect(Math.abs(open.band.top - open.headBottom)).toBeLessThanOrEqual(1)
+    expect(open.close.width).toBeCloseTo(open.roundControl, 0)
+    expect(open.close.height).toBeCloseTo(open.roundControl, 0)
+
+    // Down the list: the head yields, the field does not.
+    await scrollPackList(page, 200)
+    await expect(head).toHaveClass(/collapsed/)
+    await expect(band).not.toHaveClass(/collapsed/)
+    const yielded = await searchGeometry(page)
+    expect(yielded.headBottom).toBeLessThan(open.headBottom)
+    expect(yielded.field.top).toBeGreaterThanOrEqual(yielded.band.top)
+    expect(yielded.field.bottom).toBeLessThanOrEqual(yielded.band.bottom)
+    expect(Math.abs(yielded.band.top - yielded.headBottom)).toBeLessThanOrEqual(1)
+
+    // The ✕ closes it, and the card is back in its place.
+    await visible(page).getByTestId('search-close').click()
+    await expect(field).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-progress-card')).toHaveCount(1)
   })
 
   /*
