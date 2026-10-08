@@ -9,7 +9,7 @@
  * pass and the review are read.
  *
  * The last visited view is a viewing preference like a dashboard block's fold
- * (`lib/blockFold.ts`): this device's storage, never synced. Storage that
+ * (`composables/blockFold.ts`): this device's storage, never synced. Storage that
  * throws or is absent remembers nothing, and the trip opens as on a first
  * visit.
  */

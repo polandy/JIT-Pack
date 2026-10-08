@@ -39,10 +39,10 @@ import FilePickButton from '@/components/global/FilePickButton.vue'
 import { formatDay, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 import { PATH } from '@/router/paths'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const ionRouter = useIonRouter()

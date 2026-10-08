@@ -1,7 +1,7 @@
 /**
  * Whom the day plan is narrowed to, remembered per trip (FR-29.15).
  *
- * A viewing preference and not data — `lib/blockFold.ts`'s precedent: this
+ * A viewing preference and not data — `composables/blockFold.ts`'s precedent: this
  * device's storage, never synced. Storage that throws or is absent reads as
  * nothing remembered, so the plan opens as `openingFilter` says for a first
  * visit.

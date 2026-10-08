@@ -18,7 +18,7 @@ import { useRoute } from 'vue-router'
 
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
 import { t } from '@/i18n'
-import { TAB_BAR_ANCHOR_ID } from '@/lib/toast'
+import { TAB_BAR_ANCHOR_ID } from '@/composables/shared/toast'
 import { PATH } from '@/router/paths'
 
 const route = useRoute()

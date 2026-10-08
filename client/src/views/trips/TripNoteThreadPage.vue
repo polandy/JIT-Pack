@@ -32,10 +32,10 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TripNoteEntry from '@/components/trips/TripNoteEntry.vue'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
-import { useTripScreen } from '@/composables/useTripScreen'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
+import { useTripScreen } from '@/composables/shared/useTripScreen'
 import {
   firstUnseenReply,
   myAckFor,
@@ -48,7 +48,7 @@ import {
 } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { copyText } from '@/lib/clipboard'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { tripExcursionsPath, tripNotesPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'

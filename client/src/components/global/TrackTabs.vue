@@ -9,7 +9,7 @@ import { bicycleOutline, walkOutline } from 'ionicons/icons'
 import { nextTick, ref, watch } from 'vue'
 
 import type { TrackFields } from '@/types/domain'
-import type { MapLine } from './trackColors'
+import type { MapLine } from '@/lib/trackColors'
 
 const props = defineProps<{ tracks: TrackFields[]; lines: MapLine[] }>()
 const emit = defineEmits<{ choose: [id: string] }>()

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** ADR-081 (idea pictures), FR-29.1, FR-29.16, FR-23.8 (the opt-in release check), invariant 5,
-`internal/linkpreview/`, `internal/api/linkpreview.go`, `client/src/composables/sync/linkPreview.ts`,
+`internal/linkpreview/`, `internal/api/linkpreview.go`, `client/src/app/linkPreview.ts`,
 `client/src/planner/IdeaEditSheet.vue`
 
 **Decision Drivers (in priority order):**

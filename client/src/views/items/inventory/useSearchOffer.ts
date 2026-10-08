@@ -5,12 +5,12 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { searchOffer, OFFER_CREATE } from '@/domain/itemSearch'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { itemPath } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 

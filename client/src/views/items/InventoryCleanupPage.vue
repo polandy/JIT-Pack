@@ -25,10 +25,10 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { cleanupSettings } from '@/composables/useCleanupSettings'
-import { setHeaderActions } from '@/composables/useHeaderActions'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useInventoryHygiene } from '@/composables/useInventoryHygiene'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import {
   HYGIENE_RULES,
   HYGIENE_RULE_SINGLE_TAG,
@@ -41,8 +41,8 @@ import {
 } from '@/domain/inventoryHygiene'
 import { tagDeletion } from '@/domain/tags'
 import { formatDate, t } from '@/i18n'
-import { promptTagMerge } from '@/lib/tagMergePrompt'
-import { presentToast } from '@/lib/toast'
+import { promptTagMerge } from '@/composables/tagMergePrompt'
+import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import type { MasterItem, Tag } from '@/types/domain'
 

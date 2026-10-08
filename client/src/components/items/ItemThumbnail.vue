@@ -8,7 +8,7 @@
  */
 import { onUnmounted, ref, watch } from 'vue'
 import type { MasterItem } from '@/types/domain'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const props = withDefaults(defineProps<{ item: MasterItem; size?: number }>(), { size: 40 })
 

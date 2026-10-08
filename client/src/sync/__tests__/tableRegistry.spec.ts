@@ -3,7 +3,7 @@
  *
  * A row is turned into a domain object by `parse` and back into a row by
  * `encode`, and until C-3b nothing compared the two: the parser lived in a
- * store, the builder in `composables/sync/rows.ts`. A column read by one and
+ * store, the builder in `sync/rows.ts`. A column read by one and
  * not written by the other is not a type error and not a red test — a
  * missing column parses as `null`, which is indistinguishable from a column
  * that is genuinely null.
@@ -37,7 +37,7 @@ const registrySource = readFileSync(
   'utf8',
 )
 const buildersSource = readFileSync(
-  fileURLToPath(new URL('../../composables/sync/rows.ts', import.meta.url)),
+  fileURLToPath(new URL('../../sync/rows.ts', import.meta.url)),
   'utf8',
 )
 

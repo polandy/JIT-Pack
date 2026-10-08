@@ -186,7 +186,7 @@ them.
   covers only the press's first event, so a click begun there comes up on
   whatever slid under it and is silently lost. Where a transition pushes a
   control a case then presses, the component says when it stands
-  (`useTransitionSettled` in `lib/transitionSettled.ts`, `data-settled`) and the
+  (`useTransitionSettled` in `composables/shared/transitionSettled.ts`, `data-settled`) and the
   case waits on that — `connectionTaken(sheet)` for the day entry's connection
   (E2E-M27-18 lost its save on a 3-frames-a-second WebKit runner).
 - **Seed through the app, not around it** (spec §2.4). `createTripViaWizard` and

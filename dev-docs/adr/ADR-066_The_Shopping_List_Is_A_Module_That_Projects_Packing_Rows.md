@@ -2,9 +2,9 @@
 
 **Status:** Accepted
 **Related:** FR-30.1–30.3, FR-3.1–3.3, FR-25.6, FR-25.11j, FR-29.9 (the planner's module boundary, same rule),
-ADR-033, `internal/store/schema.sql` (`shopping_entries`), `client/src/shopping/`, `client/src/lib/shoppingSources.ts`,
-`client/src/sync/featureModule.ts`, `client/src/composables/packingShoppingSource.ts`,
-`scripts/module-boundary-gate.mjs`
+ADR-033, `internal/store/schema.sql` (`shopping_entries`), `client/src/shopping/`,
+`client/src/kernel/shoppingSources.ts`, `client/src/sync/featureModule.ts`,
+`client/src/kernel/packingShoppingSource.ts`, `scripts/module-boundary-gate.mjs`
 
 **Context.** The owner asked on 2026-09-19 for a trip's shopping list — groceries for a holiday flat above all — that
 is kept **independently of the packing list**, while whatever the packing list marks *vor Ort kaufen* still lands on
@@ -32,7 +32,7 @@ list per trip**, and **both tabs stay**.
 
 `shopping_entries` (trip partition: name, list, bought) holds only what nobody packs. The packing list's buy rows are
 not stored a second time. The packing side turns them into `ShoppingLine`s — the contract in
-`lib/shoppingSources.ts` — with FR-3.3/FR-25.11j's writes bound into each line's `buy`/`unbuy`. The shopping module
+`kernel/shoppingSources.ts` — with FR-3.3/FR-25.11j's writes bound into each line's `buy`/`unbuy`. The shopping module
 renders lines from its own entries and from every provided source without knowing whose they are. The orchestrator
 reaches the module's store only as a `FeatureStore` (`sync/featureModule.ts`: pull routing, the trip cascade, the
 `ModuleHost` write path). `App.vue` is the composition root that binds all of it through its config and
@@ -102,7 +102,7 @@ writes FR-3.3 on the packing row.
 ## Decision
 
 A trip's shopping list is the module `client/src/shopping/` with its own table, `shopping_entries`. The packing
-list's buy-mode rows reach it as projected `ShoppingLine`s through `lib/shoppingSources.ts`, bound in `App.vue`.
+list's buy-mode rows reach it as projected `ShoppingLine`s through `kernel/shoppingSources.ts`, bound in `App.vue`.
 `scripts/module-boundary-gate.mjs` holds the boundary in both directions.
 
 **How the wiring is done, and why not otherwise.** The module's store, the packing source and the switcher's count are

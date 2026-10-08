@@ -6,8 +6,9 @@
   composer, the list's own entries under their tags, the packing list's buy rows under one heading, and one *gekauft*
   fold per list — **no tabs, no filter bar, no search field, no row sheet for a packing line, and no FR-25.13
   composer**. The screen lives in `client/src/shopping/` and renders lines without knowing whose they are
-  (`lib/shoppingSources.ts`); the packing side supplies its rows as lines with their FR-3.3 writes bound in. Not built:
-  FR-25.11g/k, FR-25.13a's two fields and FR-25.6's per-item note; owed: FR-25.12's row sheet (*Zugewiesen an* and
+  (`kernel/shoppingSources.ts`); the packing side supplies its rows as lines with their FR-3.3 writes bound in. Not
+  built: FR-25.11g/k, FR-25.13a's two fields and FR-25.6's per-item note; owed: FR-25.12's row sheet (*Zugewiesen an*
+  and
   *Beschreibung*), which would apply to both kinds of line.
 * **M25's look and feel.** One look and feel across the two lists, M25's: **no tabs**, because a tab hides one list
   behind the other and a thing due tomorrow on the tab not open is a thing nobody sees; **M25's composer** (a card, with

@@ -760,7 +760,7 @@ make this possible.
   the four things the read path serves: a device whose connection a server restart (the nightly backup does exactly
   that) or a network change cut must not stay deaf to every other device's change until it writes something itself or
   reloads — which reads as a *one-directional* sync, since only one of two devices lost its socket. What the client
-  does, all of it in `useWebSocket.ts`: **(1)** a socket that
+  does, all of it in `sync/webSocket.ts`: **(1)** a socket that
   closes without `disconnect()` having been called is dialled again after a backoff that doubles from 1 s to a 30 s cap
   and resets on a successful open — no jitter, on purpose, since an instance has a handful of devices and not a fleet;
   **(2)** the subscription set is declarative — every open sends the whole set and the latest cursor per trip, because a

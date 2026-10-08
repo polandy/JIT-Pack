@@ -5,7 +5,7 @@ import {
   IDEA_RESULT_SHOPPING,
   IDEA_RESULT_TASK,
   type IdeaResult,
-} from '@/lib/ideaBridge'
+} from '@/kernel/ideaBridge'
 import {
   IDEA_STATE_DONE,
   IDEA_STATE_DROPPED,

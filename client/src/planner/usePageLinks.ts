@@ -1,6 +1,6 @@
 import { computed, type ComputedRef } from 'vue'
 
-import type { useOrchestrator } from '@/composables/useOrchestrator'
+import type { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import type { PageLinks } from './domain/connections'
 
 /** The server's read of a short link's page, where this device has one (FR-29.16). */

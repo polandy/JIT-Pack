@@ -30,9 +30,9 @@ import { buildRosterView } from '@/domain/members'
 import { t } from '@/i18n'
 import { roleLabel } from '@/lib/roleLabels'
 import { useTripStore } from '@/stores/tripStore'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { useIdentity } from '@/composables/useTripIdentity'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 

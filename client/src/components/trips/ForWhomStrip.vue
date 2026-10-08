@@ -14,7 +14,7 @@ import { lockClosedOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import ForWhomToggles from '@/components/global/ForWhomToggles.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import {
   everyoneMembers,
   membersOfRows,

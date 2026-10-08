@@ -8,11 +8,11 @@
  */
 import { computed, onMounted, ref } from 'vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
-import { useRowSelection } from '@/composables/useRowSelection'
+import { useRowSelection } from '@/composables/shared/useRowSelection'
 import { inventoryProperties } from '@/composables/useInventoryProperties'
-import { useIdentity } from '@/composables/useTripIdentity'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
 import {
   UNTAGGED_KEY,
   filterByTags,

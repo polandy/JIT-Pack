@@ -24,20 +24,20 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 import type { Mutation } from '@/api/types'
-import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/lib/shoppingSources'
-import { IDEA_LOOKUP } from '@/lib/ideaBridge'
+import { SHOPPING_SOURCES, type ShoppingLine, type ShoppingSource } from '@/kernel/shoppingSources'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'
 import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
 import { mutationOf, paintOf, type Write } from '@/sync/writeFunnel'
 import type { ShoppingMode } from '@/types/domain'
 
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { STUB_TODAY, tripScreenStub } from '@/composables/__tests__/tripScreenStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { STUB_TODAY, tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { presentToast } from '@/lib/toast'
+import { presentToast } from '@/composables/shared/toast'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 import { currentRowIn } from '@/sync/sinks'
 
@@ -58,15 +58,17 @@ vi.mock('vue-router', async () => {
     }),
   }
 })
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 // A page left mounted by an earlier case would answer the route as well.
 enableAutoUnmount(afterEach)
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/composables/useHeaderSelection', async (actual) => ({
-  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/shared/useHeaderSelection')>()),
   setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
 }))
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/composables/shared/toast', () => ({
+  presentToast: vi.fn().mockResolvedValue(undefined),
+}))
 
 /**
  * What the person picker answers (FR-30.12) — mocked, as on M25, because a
@@ -74,7 +76,7 @@ vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefine
  * assert Ionic.
  */
 let picked: string | null | undefined
-vi.mock('@/lib/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
+vi.mock('@/composables/shared/pickAssignee', () => ({ pickAssignee: vi.fn(async () => picked) }))
 
 const tripScreen = tripScreenStub()
 

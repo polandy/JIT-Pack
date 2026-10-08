@@ -4,7 +4,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
-import { WS_RECONNECT_BASE_MS } from '../useWebSocket'
+import { WS_RECONNECT_BASE_MS } from '@/sync/webSocket'
 
 // Mock fetch globally
 let fetchMock: ReturnType<typeof vi.fn>

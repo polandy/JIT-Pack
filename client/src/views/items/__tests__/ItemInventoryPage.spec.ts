@@ -32,10 +32,10 @@ import MarkPicker from '@/components/items/MarkPicker.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { UNTAGGED_KEY } from '@/domain/tags'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { presentToast } from '@/lib/toast'
-import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
+import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { presentToast } from '@/composables/shared/toast'
+import { confirmAction, confirmDestructive, promptText } from '@/composables/shared/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { inventoryProperties } from '@/composables/useInventoryProperties'
@@ -44,22 +44,24 @@ import { t } from '@/i18n'
 import { MODE_KEY } from '@/mode'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
-import { makeSeamContext } from '@/composables/sync/__tests__/seamContext'
-import { createMasterDataActions } from '@/composables/sync/actions/masterData'
-import { createDependencyActions } from '@/composables/sync/actions/dependencies'
-import { identityStub } from '@/composables/__tests__/identityStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { makeSeamContext } from '@/app/__tests__/seamContext'
+import { createMasterDataActions } from '@/app/actions/masterData'
+import { createDependencyActions } from '@/app/actions/dependencies'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { PATH, itemPath } from '@/router/paths'
 import { barAll, barCount, barSelection } from '@/__tests__/headerSelection'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/composables/useHeaderSelection', async (actual) => ({
-  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/shared/useHeaderSelection')>()),
   setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
 }))
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('@/lib/confirm', () => ({
+vi.mock('@/composables/shared/toast', () => ({
+  presentToast: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/composables/shared/confirm', () => ({
   confirmDestructive: vi.fn().mockResolvedValue(true),
   confirmAction: vi.fn().mockResolvedValue(false),
   promptText: vi.fn().mockResolvedValue(undefined),

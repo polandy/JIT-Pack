@@ -1,9 +1,9 @@
 # ADR-093: Summing a meal plan's ingredients — a fresh mark over a fixed window or no summing
 
 **Status:** Accepted
-**Related:** ADR-092 (the meal plan, its ingredients shopping lines by projection), ADR-066 (`lib/shoppingSources.ts`),
-FR-33.12–33.14, FR-30.2, FR-24.7, `meal_ingredients.fresh` (migration 024), `client/src/meals/domain/ingredients.ts`,
-mockup `mockup-meal-ingredients.html` (owner's choices of 2026-10-04)
+**Related:** ADR-092 (the meal plan, its ingredients shopping lines by projection), ADR-066
+(`kernel/shoppingSources.ts`), FR-33.12–33.14, FR-30.2, FR-24.7, `meal_ingredients.fresh` (migration 024),
+`client/src/meals/domain/ingredients.ts`, mockup `mockup-meal-ingredients.html` (owner's choices of 2026-10-04)
 
 **Decision Drivers (in priority order):**
 1. **Nothing spoils on the way.** Fresh food is bought for its day; a line that tells the family to buy Friday's

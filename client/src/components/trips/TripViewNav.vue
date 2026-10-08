@@ -37,17 +37,17 @@ import { IonIcon, useIonRouter } from '@ionic/vue'
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEdgeFades } from '@/composables/useEdgeFades'
-import { useLongPress } from '@/composables/useLongPress'
+import { useLongPress } from '@/composables/shared/useLongPress'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import {
-  TRIP_VIEW_COUNTS,
   absentViews,
   tripViewEntry,
   tripViewPills,
   type TripViewEntry,
   type TripViewId,
 } from '@/lib/tripViews'
+import { TRIP_VIEW_COUNTS } from '@/kernel/tripViewCounts'
 
 const props = defineProps<{
   tripId: string

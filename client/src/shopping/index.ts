@@ -5,10 +5,10 @@
  * write its entries through the module's own actions.
  */
 import { dueTally } from '@/lib/dueDay'
-import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/lib/ideaBridge'
+import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/kernel/ideaBridge'
 import { tripSubPath } from '@/router/paths'
-import type { ShoppingSource } from '@/lib/shoppingSources'
-import type { DuePurchases } from '@/lib/tripCards'
+import type { ShoppingSource } from '@/kernel/shoppingSources'
+import type { DuePurchases } from '@/kernel/tripCards'
 import { SHOPPING_MODES } from '@/types/domain'
 import { openCount } from './list'
 import { shoppingFeatureStore, useShoppingStore } from './store'
@@ -53,7 +53,7 @@ export function duePurchases(sources: readonly ShoppingSource[]): DuePurchases {
 
 /**
  * FR-29.13: the list's own entries made from an idea, for the idea's *Daraus
- * gemacht* — the shopping module's half of `lib/ideaBridge.ts`.
+ * gemacht* — the shopping module's half of `kernel/ideaBridge.ts`.
  */
 export function shoppingIdeaResults(): IdeaResultSource {
   const shoppingStore = useShoppingStore()

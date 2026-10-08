@@ -41,8 +41,8 @@ import { useTripStore } from '@/stores/tripStore'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
-import { useIdentity } from '@/composables/useTripIdentity'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId?: string }>()

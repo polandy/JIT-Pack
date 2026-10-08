@@ -11,10 +11,10 @@
  */
 import { API } from '@/api/routes'
 import type { InstanceConfigResponse } from '@/api/types'
-import { setCurrency } from '@/lib/currency'
-import { setMapTiles } from '@/lib/mapTiles'
-import { setTimetable } from '@/lib/timetable'
-import { DEFAULT_ROUTER_URL, setRouting } from '@/lib/routing'
+import { setCurrency } from '@/i18n/currency'
+import { setMapTiles } from '@/composables/shared/mapTiles'
+import { setTimetable } from '@/composables/shared/timetable'
+import { DEFAULT_ROUTER_URL, setRouting } from '@/composables/routing'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import PageHead from '@/components/global/PageHead.vue'
@@ -40,8 +40,8 @@ import {
 } from '@/notifications/format'
 import { startNotificationMirror } from '@/notifications/mirror'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import type { ConflictReport, RejectionReport } from '@/composables/useSyncOutbox'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import type { ConflictReport, RejectionReport } from '@/sync/outbox'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -64,25 +64,25 @@ import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
 import { installTripOpening } from '@/router/tripOpening'
-import { confirmAction } from '@/lib/confirm'
-import { resolveHead } from '@/composables/useHeaderTitle'
-import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
-import { createExcursionShoppingSource } from '@/composables/excursionShoppingSource'
+import { confirmAction } from '@/composables/shared/confirm'
+import { resolveHead } from '@/composables/shared/useHeaderTitle'
+import { createPackingShoppingSource } from '@/kernel/packingShoppingSource'
+import { createExcursionShoppingSource } from '@/kernel/excursionShoppingSource'
 import { pendingExcursionCount } from '@/domain/excursions'
 import { localIsoDate } from '@/domain/trips'
 import { defaultNowMs } from '@/lib/clock'
-import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
-import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
-import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/lib/excursionConnections'
-import { createDayPlanSource, toggleTask } from '@/composables/dayPlanSource'
-import { createIdeaResultSource } from '@/composables/ideaResultSource'
-import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/lib/ideaBridge'
+import { SHOPPING_SOURCES } from '@/kernel/shoppingSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
+import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/kernel/excursionConnections'
+import { createDayPlanSource, toggleTask } from '@/kernel/dayPlanSource'
+import { createIdeaResultSource } from '@/kernel/ideaResultSource'
+import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
 import { useTripTasks } from '@/composables/useTripTasks'
-import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/useLiveLocation'
-import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/shared/useLiveLocation'
+import { TRIP_VIEW_COUNTS } from '@/kernel/tripViewCounts'
 import { newNoteCount } from '@/domain/tripNotes'
 import { tripTodoProgress } from '@/domain/tripTodos'
-import { DUE_PURCHASES, TRIP_CARDS } from '@/lib/tripCards'
+import { DUE_PURCHASES, TRIP_CARDS } from '@/kernel/tripCards'
 import { useTripStore } from '@/stores/tripStore'
 import {
   createShoppingActions,
@@ -95,7 +95,7 @@ import {
   shoppingIdeaResults,
   useShoppingStore,
 } from '@/shopping'
-import { PACKING_CLOSE_CROSSINGS } from '@/lib/packingClose'
+import { PACKING_CLOSE_CROSSINGS } from '@/kernel/packingClose'
 import {
   dayPlanEmpty,
   ideaLookup,
@@ -120,11 +120,11 @@ import {
   useMealStore,
   type MealSourceDeps,
 } from '@/meals'
-import { EXCURSION_EXTRA_LINES } from '@/lib/excursionExtraLines'
-import { MEAL_CONTEXT, type MealContext } from '@/lib/mealContext'
+import { EXCURSION_EXTRA_LINES } from '@/kernel/excursionExtraLines'
+import { MEAL_CONTEXT, type MealContext } from '@/kernel/mealContext'
 import { spanOf } from '@/domain/excursions'
 import { IDEA_STATE_SHORTLISTED } from '@/types/domain'
-import { ACTIVITY_READERS } from '@/lib/activityReaders'
+import { ACTIVITY_READERS } from '@/kernel/activityReaders'
 
 const mode = ref(readMode())
 // FR-21.29: once per app start — not again on the reloads the app makes of itself.

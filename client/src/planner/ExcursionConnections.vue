@@ -6,7 +6,7 @@
  * connection of the excursion beneath. Each way is a connection as the day
  * plan has it, added and changed through the day plan's sheet. Folded, the
  * head says the day in one line. M27 renders this through
- * `lib/excursionConnections.ts`, so the packing side never imports it.
+ * `kernel/excursionConnections.ts`, so the packing side never imports it.
  */
 import { IonIcon } from '@ionic/vue'
 import {
@@ -19,11 +19,11 @@ import {
 } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
 
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
-import { confirmDestructive } from '@/lib/confirm'
-import type { ExcursionConnectionsProps } from '@/lib/excursionConnections'
+import { confirmDestructive } from '@/composables/shared/confirm'
+import type { ExcursionConnectionsProps } from '@/kernel/excursionConnections'
 import { shortDueDay } from '@/lib/taskDueText'
 import {
   EXCURSION_ROLE_BACK,

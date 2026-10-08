@@ -2,9 +2,9 @@
 
 **Status:** Accepted
 **Related:** FR-7.8, FR-30.9, FR-24.9, FR-24.3, FR-10.2, ADR-060, ADR-066, UI-Spec M6, M25, M9, M11 and M23,
-`client/src/composables/useRowSelection.ts`,
+`client/src/composables/shared/useRowSelection.ts`,
 `client/src/components/global/{DragGrip,SelectBox,BulkBar,ListGroup}.vue`,
-`client/src/composables/useHeaderSelection.ts` (UI-Spec G-20)
+`client/src/composables/shared/useHeaderSelection.ts` (UI-Spec G-20)
 
 **Context.** M6 (the shopping list, FR-30.9) and M25 (a trip's tasks, FR-7.8) are the same shape: tag headings, rows
 under them, a grip at the leading edge that drags a row into another heading, a tick at the trailing edge. They were

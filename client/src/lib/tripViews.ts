@@ -1,4 +1,3 @@
-import type { InjectionKey } from 'vue'
 import {
   briefcaseOutline,
   bulbOutline,
@@ -49,9 +48,6 @@ export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
  * not import (FR-30.3, ADR-066). A view without an entry shows no count.
  */
 export type TripViewCounts = Partial<Record<TripViewId, (tripId: string) => number>>
-
-/** The injection key the switcher reads its counts from. */
-export const TRIP_VIEW_COUNTS = Symbol('tripViewCounts') as InjectionKey<TripViewCounts>
 
 /**
  * The views that earn a pill under the page's name (ADR-051 amendment 1).

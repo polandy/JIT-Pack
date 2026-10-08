@@ -214,7 +214,7 @@ runs the full ten-leg e2e matrix, including a diff that touches only `client/src
 
 **How the packing side names an idea without importing the planner.** M25, M27 and M6 show *Aus Idee „…"*. They
 read the title through a kernel lookup (`lib/ideaTitles.ts`: `(ideaId) => string | undefined`), which `App.vue`
-binds to the planner's store, in the same way `lib/shoppingSources.ts` binds the shopping module to packing rows.
+binds to the planner's store, in the same way `kernel/shoppingSources.ts` binds the shopping module to packing rows.
 Without the planner, the lookup returns nothing and the line is simply absent.
 
 ### The fast loop in CI

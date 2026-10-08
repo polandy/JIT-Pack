@@ -11,7 +11,7 @@
 import { actionSheetController } from '@ionic/vue'
 import { peopleOutline, timeOutline } from 'ionicons/icons'
 
-import { useLongPress } from '@/composables/useLongPress'
+import { useLongPress } from '@/composables/shared/useLongPress'
 import {
   clusterMenuEntries,
   clusterTargets,

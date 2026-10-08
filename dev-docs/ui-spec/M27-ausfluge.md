@@ -12,7 +12,7 @@
   with a chevron, and under the name, where it carries GPX tracks, the first one's kind glyph, distance and climb with
   *+n* for the others (`m27-tracks-<name>`, FR-31.15), and where it has a way there or back a train glyph with
   *„08:06 hin · 16:23 zurück"* (`m27-journey-line-<name>`, FR-29.18, the planner's words through
-  `lib/excursionConnections.ts`); then *Ohne Datum*, by name, the same row without the days line;
+  `kernel/excursionConnections.ts`); then *Ohne Datum*, by name, the same row without the days line;
   then a fold *„1 vergangener Ausflug"*, latest first, muted. A row opens that excursion's list. The empty trip says
   *„Noch keine Ausflüge. Eine Tageswanderung, eine Hüttenübernachtung – mit ＋ legst du einen mit eigener kleiner Liste
   an."* **Before the trip partition has arrived** the screen shows nothing rather than an empty list (ADR-033).
@@ -50,14 +50,14 @@
   chevron — each opening that thread's view. Only the names, in M26's order; none is drawn where no thread names the
   excursion. Deleting the excursion keeps its notes as trip notes.
 * **Der Tag** (FR-29.18, FR-31.15, ADR-089; `m27-connections`, the planner's card bound through
-  `lib/excursionConnections.ts`): **first, above the progress card**, one card that scrolls away with the page head —
+  `kernel/excursionConnections.ts`): **first, above the progress card**, one card that scrolls away with the page head —
   the day is what the excursion is, and the list is packed for it. Its head (`m27-day-toggle`, compass glyph, *Der
   Tag*, a caret) **folds and unfolds** it: folded, the head alone carries the day in one line, *„08:06 → 3.3 km →
   16:23 · 4 h 24 Luft"* — the ways' departures around the first track's distance, and what the route leaves — or,
   without a way, the first track's distance and climb with *+n* (`m27-day-folded`). **While the list has something
-  left to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or unfold
-  is kept per excursion in this browser (`lib/routeFold.ts`), for the phase it was made in. A card with nothing yet —
-  no way, no track — is always open and has no caret, since folded it would hide how to start.
+  left to pack it starts folded, once nothing is left it starts open** — packing first, the way after. A fold or
+  unfold is kept per excursion in this browser (`composables/routeFold.ts`), for the phase it was made in. A card
+  with nothing yet — no way, no track — is always open and has no caret, since folded it would hide how to start.
   * **Open, it is a timeline** of the day, each step a dot on a rail: the **way there** (`m27-journey-out`, a train in
     glacier), the **route** (`m27-day-route`, a walker in larch — FR-31.15's tracks as M27 hands them in, the
     `TrackSummary` without a head of its own), the **way back** (`m27-journey-back`). A filled way reads *„08:06 Spiez →
@@ -158,7 +158,7 @@
 * **Another module's lines (FR-33.6):** a picnic taken on the excursion from the meal plan stands above the list under
   *Essen* (`m27-extra`, a line `m27-extra-meal:<id>`) — its dish and its day and slot, ticked as packed here, a tap on
   its name opening the meal's sheet — and counts in the progress card's share and the list's `done/total`. It is no
-  M4 row: no amount, no person, nothing borrowed from the suitcase (`lib/excursionExtraLines.ts`).
+  M4 row: no amount, no person, nothing borrowed from the suitcase (`kernel/excursionExtraLines.ts`).
 * **Elsewhere:** M4 names the excursions that borrow an open row (FR-31.12); M6 files an excursion's *vor Ort* lines
   under its name (FR-31.8); M1 carries an *Ausflüge* block the day before and the day of (FR-31.10); M17 carries the
   *Ausflüge* reminder switch (FR-31.9). A notification `excursion_due` opens the excursion's own list.

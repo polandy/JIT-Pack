@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** Sync-API §5 (push protocol, the refusal vocabulary), §5.1 (the durable outbox), P-1 (one read path), P-3
 (partitioned sync), P-5 (idempotency), NFR-4.2a, ADR-026 (the wire contract), invariant 5 (three modes),
-`internal/store/store.go` / `master.go`, `client/src/composables/useSyncOutbox.ts`
+`internal/store/store.go` / `master.go`, `client/src/sync/outbox.ts`
 
 **Decision Drivers (in priority order):**
 1. **A device must stop showing what the server refused.** This is the defect being fixed, and it applies to *every*

@@ -5,7 +5,7 @@
  * M29 draws them, ticked and opened as there — and the way onto M29.
  *
  * It shows only on the trip's days, and on a trip with both dates, the day
- * plan's own condition. It reaches M1 through `lib/tripCards.ts`, like the
+ * plan's own condition. It reaches M1 through `kernel/tripCards.ts`, like the
  * shopping card (FR-30.3); once the packing is finished it is a block of the
  * hero (FR-7.10).
  */
@@ -13,12 +13,12 @@ import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DashboardBlock from '@/components/global/DashboardBlock.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
-import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
-import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/lib/dayPlanSources'
+import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
 import { shortDueDay } from '@/lib/taskDueText'
-import type { TripCardProps } from '@/lib/tripCards'
+import type { TripCardProps } from '@/kernel/tripCards'
 import { tripIdeasPath, tripSubPath } from '@/router/paths'
 import DayLineRow from './DayLineRow.vue'
 import { dayLines, linesAhead, tripDays, type DayLine } from './domain/dayPlan'
@@ -28,7 +28,7 @@ const props = defineProps<TripCardProps>()
 
 /** How many lines the card shows before it hands over to M29. */
 const MAX_LINES = 3
-/** The block's remembered fold (`lib/blockFold.ts`). */
+/** The block's remembered fold (`composables/blockFold.ts`). */
 const TODAY_FOLD_KEY = 'dayplan'
 /** How often the card looks at the clock, so a passed line leaves it. */
 const MINUTE_MS = 60_000

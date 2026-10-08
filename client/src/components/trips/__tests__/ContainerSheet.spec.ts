@@ -13,7 +13,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import ContainerSheet from '../ContainerSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container, Traveler, TripItem } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 function container(id: string, overrides: Partial<Container> = {}): Container {
   return {

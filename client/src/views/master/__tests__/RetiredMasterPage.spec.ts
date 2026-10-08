@@ -15,20 +15,22 @@ import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { presentToast } from '@/lib/toast'
-import { confirmDestructive, promptText } from '@/lib/confirm'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
+import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { presentToast } from '@/composables/shared/toast'
+import { confirmDestructive, promptText } from '@/composables/shared/confirm'
 import { barCount, barSelection } from '@/__tests__/headerSelection'
 
-vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
-vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
-vi.mock('@/composables/useHeaderSelection', async (actual) => ({
-  ...(await actual<typeof import('@/composables/useHeaderSelection')>()),
+vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual<typeof import('@/composables/shared/useHeaderSelection')>()),
   setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
 }))
-vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('@/lib/confirm', () => ({
+vi.mock('@/composables/shared/toast', () => ({
+  presentToast: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/composables/shared/confirm', () => ({
   confirmDestructive: vi.fn().mockResolvedValue(true),
   promptText: vi.fn().mockResolvedValue(undefined),
 }))

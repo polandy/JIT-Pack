@@ -4,12 +4,12 @@
  * Written through the `ModuleHost` the orchestrator hands out: the same
  * outbox, clock and optimistic paint as every other write, and no reach into
  * the packing mutations. A packing line's check-off never comes through here;
- * it is bound into the line by the packing side (`lib/shoppingSources.ts`).
+ * it is bound into the line by the packing side (`kernel/shoppingSources.ts`).
  */
 import { nextPosition } from '@/lib/handOrder'
 import { newId } from '@/lib/ids'
-import type { PackingCloseCrossing } from '@/lib/packingClose'
-import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
+import type { PackingCloseCrossing } from '@/kernel/packingClose'
+import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'

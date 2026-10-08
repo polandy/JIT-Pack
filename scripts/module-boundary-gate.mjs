@@ -8,17 +8,18 @@
  * Two directions are held, both by direct import:
  *
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
- *    `lib/`, `theme/`, `i18n/`, the shared components in `components/global/`,
- *    and the frame composables every screen is built on (the page head, the
- *    header's action cluster, the press-and-hold primitive, the orchestrator's
- *    injection key, the trip-screen load, the trip's identity). Never packing's
+ *    `lib/`, `kernel/`, `theme/`, `i18n/`, the shared components in
+ *    `components/global/`, and the composables in `composables/shared/` every
+ *    screen is built on (the page head, the header's action cluster, the
+ *    press-and-hold primitive, the orchestrator's injection key, the
+ *    trip-screen load, the trip's identity). Never packing's
  *    views, stores, domain rules or composables, and never another module.
  * 2. **Nothing reaches into a module** except the composition root: `App.vue`
  *    through the module's public face (its `index.ts`), the router through a
  *    lazily imported page, the dev seed through the public face, and the
  *    kernel's catalogue through the module's own (`<module>/i18n/`). Packing
  *    code learns about a module's data only through kernel contracts such as
- *    `lib/shoppingSources.ts`, which the root binds.
+ *    `kernel/shoppingSources.ts`, which the root binds.
  *
  * Specs (`__tests__/`) are exempt on both sides: an integration spec may
  * compose a module with the packing code it is wired to in production, which
@@ -61,47 +62,17 @@ const SRC = resolve(root, 'client/src')
 const E2E = resolve(root, 'client/e2e')
 
 /** Kernel directories a module may import from. */
-const KERNEL_DIRS = ['api', 'sync', 'types', 'lib', 'theme', 'i18n']
+const KERNEL_DIRS = ['api', 'sync', 'types', 'lib', 'kernel', 'theme', 'i18n']
 
-/** Kernel paths below a directory that is otherwise not kernel. */
+/**
+ * Kernel paths below a directory that is otherwise not kernel. A composable
+ * goes into `composables/shared/` only if it knows no packing shape — the page
+ * head, the app bar's maps, a gesture templated over its payload, the trip's
+ * load and its people (ADR-096).
+ */
 const KERNEL_PATHS = [
   'components/global/',
-  'composables/useHeaderTitle',
-  'composables/useOrchestrator',
-  'composables/useTripScreen',
-  // Who the trip's people are, for naming a record (FR-30.4) — a trip-level
-  // question every module asks, like the trip itself (the planner's votes).
-  'composables/useTripIdentity',
-  // The app bar's action cluster (G-12) — a reactive map keyed by route path,
-  // no packing shape in sight; M9's own selection mode is what a module's
-  // FR-30.9-style selection mode mirrors.
-  'composables/useHeaderActions',
-  // The app bar's selection mode (G-20) — the same keyed map as the cluster,
-  // holding a count and two callbacks; no row shape of anyone's.
-  'composables/useHeaderSelection',
-  // Press-and-hold: pure timer logic templated over the payload, imported by
-  // packing screens today but with no packing shape of its own (FR-30.9's
-  // shopping-list selection is its first use outside one).
-  'composables/useLongPress',
-  // Lift-carry-drop, templated over the payload and the place: it knows a
-  // `data-drop-target` string, never a tag or a task (FR-7.8's own gesture,
-  // reused for FR-30.9's single-row retag — no packing shape either).
-  'composables/useDragToGroup',
-  // Selecting rows in place (ADR-075): string keys and the hold, no row shape —
-  // M6 and M25 share it so a hold means one thing on both lists.
-  'composables/useRowSelection',
-  // What a screen carrying GPX tracks does with them (FR-29.17, FR-31.15):
-  // the owner's writes are passed in, so it knows a track and no holder —
-  // M28 and the packing side's M27 share it (ADR-089).
-  'composables/useTrackOwner',
-  // FR-29.13: a screen entered from an idea opens its creator pre-filled — the
-  // route's `?fromIdea=` and the kernel's idea lookup, no packing shape; M6
-  // seeds its composer through it as M25 and M27 do.
-  'composables/useIdeaSeed',
-  // The device's one position (FR-29.19, ADR-087), made by the composition
-  // root and injected — no packing shape; the kernel's track map reads it,
-  // and the planner's connection search and map (FR-29.18) do too.
-  'composables/useLiveLocation',
+  'composables/shared/',
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',
@@ -114,6 +85,9 @@ const KERNEL_PATHS = [
   // The app's one search fold (FR-24.7): umlauts either way. A module that
   // matches typed text matches it as the inventory does (FR-33.12).
   'domain/search',
+  // What an activity entry's reader is (FR-32.2): a kind, an area and the
+  // before/after of a field — each module brings its own reader of its rows.
+  'domain/activityReader',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */
@@ -354,7 +328,7 @@ if (problems.length > 0) {
   for (const line of [...new Set(problems)].sort()) console.error(`  ${line}`)
   console.error(
     '\nFR-30.3 / ADR-066: a module and the packing code meet only through kernel contracts ' +
-      '(e.g. lib/shoppingSources.ts) that App.vue binds. Move the shared shape into the kernel, ' +
+      '(e.g. kernel/shoppingSources.ts) that App.vue binds. Move the shared shape into the kernel, ' +
       'or pass it in from the composition root.',
   )
   process.exit(1)

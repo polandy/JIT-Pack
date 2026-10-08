@@ -3,7 +3,7 @@
  * presentation choices (units, precision), not packing rules.
  */
 
-import { currentCurrency } from '@/lib/currency'
+import { currentCurrency } from '@/i18n/currency'
 import { formatDay, formatDayRange, formatNumber, t } from '@/i18n'
 
 /** formatWeight renders grams as "850 g" below a kilo and "1.2 kg" from there. */

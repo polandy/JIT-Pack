@@ -52,20 +52,41 @@ internal/store/              SQLite repositories; the only package importing dat
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
 internal/api/                HTTP handlers, WebSocket hub, auth middleware, push; wire.go is the contract
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
+```
+
+The client's layers, each importing only from those before it (ADR-096). A feature module (`shopping/`, `planner/`,
+`meals/`) sits beside `views/` and reaches the kernel through `kernel/` and `composables/shared/` alone. The rule
+directories are the one exception: `domain/` may also read `lib/` helpers and `sync/`'s codecs and mutation types, and
+a module's `domain/` the port shapes in `kernel/` (ARCH-16b) — `scripts/domain-purity-gate.mjs` lists what they may
+reach.
+
+```
+client/src/types, api, i18n, theme, router/paths   the vocabulary: wire types, words, tokens, URLs
 client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
-client/src/sync/             the client's half of the wire: HLC, the optimistic change builder, the durable outbox's IndexedDB store
+client/src/lib/              pure helpers above domain: wording, facts, formatting — no vue, Ionic, router or .vue
+client/src/sync/             the client's half of the wire: HLC, the change builder, the write funnel, row codecs,
+                             the durable outbox and the WebSocket — no vue
 client/src/local/            Local Mode's own storage: the row store, backup, export reminder
+client/src/auth, notifications, pwa   the platform's edges: OIDC tokens, Web Push, the service worker
+client/src/kernel/           the ports the kernel and a module meet through, and the adapters that fill them
+client/src/stores/           pinia stores: the rows a device holds
+client/src/app/              the use cases: action groups the orchestrator and the CLI share — no components, no Ionic
+client/src/composables/      reactive glue: the orchestrator's Vue facade, Ionic controllers, screen-level state;
+                             `shared/` holds what a module may mount
+client/src/components/       components; `global/` holds what a module may mount
+client/src/views/            screens
 ```
 
 * **Dependency rule:** CLAUDE.md invariant 1. The leaves import nothing internal so the riskiest packages stay
   trivially unit-testable; `webui` takes the API prefixes as parameters rather than importing the handler. The portable
   format is the client's alone (ADR-025), so no Go leaf carries it.
 * `client/src/sync/` is **not** a pure leaf the way Go's `internal/sync` is — the name is shared, the rule is not. It
-  holds what the client needs to speak the sync protocol: that includes an IndexedDB adapter for the outbox queue and
-  the builder for the optimistic twin of a write — pure functions over `PullChange`, which
-  is why they live here rather than under `composables/`, where nothing that declines Vue's reactivity belongs. It lives
+  holds what the client needs to speak the sync protocol: that includes an IndexedDB adapter for the outbox queue, the
+  socket and the builder for the optimistic twin of a write — none of it reactive, which is why it lives here rather
+  than under `composables/`, where nothing that declines Vue's reactivity belongs. It lives
   there rather than in `client/src/local/` because that directory means *Local Mode*, and the outbox exists only in the
-  mode that has a server. Purity is preserved where it is claimed: `client/src/domain/` imports nothing from `sync/`.
+  mode that has a server. Purity is preserved where it is claimed: `client/src/domain/` reaches only `sync/`'s
+  Vue-free leaves (the column codecs, the mutation factory's types), never the outbox or the socket.
 * The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs
   with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in
   that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough

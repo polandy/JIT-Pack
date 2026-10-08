@@ -1,6 +1,6 @@
 import { nextTick } from 'vue'
 
-import type { HeaderSelection } from '@/composables/useHeaderSelection'
+import type { HeaderSelection } from '@/composables/shared/useHeaderSelection'
 import { selectionLabel } from '@/lib/selectionLabel'
 
 /**
@@ -11,7 +11,7 @@ import { selectionLabel } from '@/lib/selectionLabel'
  * Wire it with a factory that imports this module, since `vi.mock` is hoisted
  * above the spec's own imports:
  *
- *     vi.mock('@/composables/useHeaderSelection', async (actual) => ({
+ *     vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
  *       ...(await actual()),
  *       setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
  *     }))

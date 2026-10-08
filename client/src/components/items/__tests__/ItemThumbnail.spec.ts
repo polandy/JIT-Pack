@@ -18,7 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ItemThumbnail from '../ItemThumbnail.vue'
 import type { MasterItem } from '@/types/domain'
-import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 function item(over: Partial<MasterItem> = {}): MasterItem {
   return {

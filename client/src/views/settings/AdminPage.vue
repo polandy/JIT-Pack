@@ -27,9 +27,9 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/admin'
 import { serverBaseUrl } from '@/config'
 import { formatDate, t, type MessageKey } from '@/i18n'
-import { useIdentity } from '@/composables/useTripIdentity'
-import { confirmDestructive } from '@/lib/confirm'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
+import { confirmDestructive } from '@/composables/shared/confirm'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const orchestrator = useOrchestrator()
 const { myUserId, load: loadIdentity } = useIdentity(orchestrator)

@@ -11,7 +11,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import TrackLines from '../TrackLines.vue'
-import type { MapLine, MapMark } from '../trackColors'
+import type { MapLine, MapMark } from '@/lib/trackColors'
 
 const LINE: MapLine = {
   id: 'l1',

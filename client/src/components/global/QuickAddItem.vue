@@ -77,7 +77,7 @@ import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import {
   OFFER_CREATE,

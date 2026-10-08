@@ -33,7 +33,7 @@ import SheetHead from '@/components/global/SheetHead.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import {
   canAdoptIntoInventory,
   canJoinPackingList,

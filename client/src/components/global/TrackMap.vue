@@ -15,10 +15,10 @@ import './trackMap.css'
 
 import { t } from '@/i18n'
 import type { MapSource } from '@/domain/track'
-import { useTileState } from '@/lib/mapTiles'
+import { useTileState } from '@/composables/shared/mapTiles'
 import { directionArrows, loadLeaflet, tileLayer } from './mapLayers'
 import TrackLines from './TrackLines.vue'
-import type { MapLine, MapMark } from './trackColors'
+import type { MapLine, MapMark } from '@/lib/trackColors'
 
 const props = withDefaults(
   defineProps<{

@@ -3,7 +3,7 @@
 * **What it is:** what the travellers do on each day of the trip, read together from where it is written — planned
   ideas, excursions, tasks, arrival and departure — with entries of its own beside them (Addendum FR-29.15). Reasoning:
   `dev-docs/planner-concept.md` §4.4. The screen is the planner module's (`client/src/planner/DayPlanPage.vue`); the
-  excursions and tasks reach it from the packing side through `lib/dayPlanSources.ts`, bound by `App.vue`.
+  excursions and tasks reach it from the packing side through `kernel/dayPlanSources.ts`, bound by `App.vue`.
 * **Where it lives:** the last pill of the G-9 switcher, glyph `calendarOutline` (`/trips/:id/dayplan`, `meta.tripView:
   'dayplan'`, `trip-view-dayplan`), **drawn only while the trip has both dates** (`absentViews`). The page's name is
   *Tagesplan*, its meta line the trip's name. Back is M4. A trip without both dates that is opened on the route says
@@ -49,7 +49,7 @@
   * **Whom a line is for** (FR-29.15): an entry that names travellers, and an excursion narrowed to some (FR-31.3), say
     *„für Sia, Leonardo"* under the title and its note (`m29-who-<key>`), the names in roster order, a shade lighter
     than the title and darker than the note. A line for everybody says nothing.
-  * **🍽 Mahlzeit** (§3.33, FR-33.5), from the meal plan through `lib/dayPlanSources.ts` (`data-kind="meal"`, the
+  * **🍽 Mahlzeit** (§3.33, FR-33.5), from the meal plan through `kernel/dayPlanSources.ts` (`data-kind="meal"`, the
     alpenrose edge): *Mahlzeit* as the label, like every other kind — the slot is said once, in the time column —
     the dish, *„Lena kocht · 2 von 4 Zutaten eingekauft"*
     (*„auswärts · Pizzeria Mulin"* eaten out) and the bought share as a ring, *„2 von 4 Zutaten"*, where it is cooked

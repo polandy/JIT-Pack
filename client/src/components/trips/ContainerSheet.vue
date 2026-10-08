@@ -25,7 +25,7 @@ import { t } from '@/i18n'
 import type { ContainerEdit } from '@/sync/mutations'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
-import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{

@@ -3,7 +3,7 @@ import { toastController } from '@ionic/vue'
 
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { TOAST_DURATION_MS } from '@/lib/toast'
+import { TOAST_DURATION_MS } from '@/composables/shared/toast'
 
 import { useRowUndo, type RowUndo } from './useRowUndo'
 
