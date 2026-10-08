@@ -10,10 +10,11 @@
   as the *group's* (a third trip in no series must not be counted into it) and the grouping as containment rather than
   as a heading being present. The built screen's grouping by series is the rule by decision.
 * **E2E-M2-03** `local` (FR-2.1/8.1) — **covered in three of its four parts and blocked on the fourth.** The name is
-  asserted by every case that addresses `trip-row-<name>`, the dates by E2E-M2-12, the progress ring by E2E-M2-10 (its
-  percentage, off a trip the device never opened). **Participant avatars are built** by decision, and this case's fourth
-  part is asserted with them: the trip's *travellers* — the roster, not the presence facepile — as two faces and a
-  „+N", plus a trip with nobody on it showing no pile at all, against a row that is demonstrably rendered.
+  asserted by every case that addresses `trip-row-<name>`, the dates by E2E-M2-12, the item summary by E2E-M2-10 (off a
+  trip the device never opened; a planned trip draws no ring since UX-20, which E2E-M2-36 asserts). **Participant
+  avatars are built** by decision, and this case's fourth part is asserted with them: the trip's *travellers* — the
+  roster, not the presence facepile — as two faces and a „+N", plus a trip with nobody on it showing no pile at all,
+  against a row that is demonstrably rendered.
 * **E2E-M2-04** `local` (FR-12.1) — **covered**: M2's row actions open on a **hold or a right-click** as an action
   sheet (E2E-M2-19), and *Clone* is offered on an archived trip only (unit-owned in `trips.spec.ts`, `tripRowActions`).
   That the clone opens with
@@ -37,6 +38,12 @@
   and one made in the app does not. The imported trip is created **through M15**, the only writer of `trips.imported` —
   a fixture setting the column directly would assert the chip against a state the app cannot produce. Red-proved by
   dropping the render.
+* **E2E-M2-36** `local` (FR-27.4, UX-20) — **implemented** (`e2e/group-refresh.spec.ts`): at 412 px a planned trip
+  that took one change over from its group and has another waiting is **three lines** — name, the dates with the item
+  count, one chip — counted off the label's line boxes, with no ring. Before, it was six. The chip reads „⟳ 2 changes
+  · 1 open“; a tap opens the sheet without opening the trip (the row still on screen), the open change in its first
+  block and the taken-over one in its second, and *Zur Reise* opens the trip on the proposal card naming the waiting
+  change. In `group-refresh.spec.ts` because that is where a trip following a group is built through the app.
 * **E2E-M2-09** `local` (FR-18.4) — **covered by E2E-G9-12** (`e2e/global-nav.spec.ts`), which reaches M18 from the trip
   list and comes back to it. The entry is the word *Datei importieren* behind the app bar's ⋮, beside M15's *Tabelle
   importieren* (G-12, ADR-050 amendment 1); E2E-G12-02 asserts both words and that neither is a glyph.

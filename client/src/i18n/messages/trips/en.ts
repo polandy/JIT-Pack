@@ -88,7 +88,6 @@ export const tripsEn = {
     '{names} — planned per person, but nobody is on the trip. Add someone in step 2.',
 
   // FR-27.4 — what a trip is being offered by its groups.
-  'trips.proposedChip': '⟳ {n} change proposed | ⟳ {n} changes proposed',
   'trips.proposedTitle': 'From the groups',
   'trips.proposedLead':
     'A group this trip follows has changed. | The groups this trip follows have changed.',
@@ -106,7 +105,16 @@ export const tripsEn = {
   'trips.proposedChanged': '“{group}”: {item} changes',
 
   // FR-27.4 — and what it took over.
-  'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
+  // FR-27.4 — M2's one chip and the sheet it opens.
+  'trips.changesTotal': '⟳ {n} change | ⟳ {n} changes',
+  'trips.changesOpen': '{n} open',
+  'trips.changesOnlyApplied': '⟳ {n} change taken over | ⟳ {n} changes taken over',
+  'trips.changesOnlyOpen': '⟳ {n} change open | ⟳ {n} changes open',
+  'trips.changesSheetMeta': 'Changes from the groups this trip follows',
+  'trips.changesOpenHeading': 'Open · {n}',
+  'trips.changesOpenHint': 'You decide at the trip, where the list is.',
+  'trips.changesGoToTrip': 'Open trip',
+  'trips.changesAppliedHeading': 'Taken over · {n}',
   'trips.appliedFrozen': 'Past trips are never changed.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',

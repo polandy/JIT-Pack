@@ -69,3 +69,27 @@ function describe(entry: ChangeSummary, keys: WordingKeys): string {
   if (entry.detail?.field === 'tasks') return t(keys.tasks, params)
   return t(keys.changed, params)
 }
+
+/**
+ * M2's one chip for a trip's group changes (FR-27.4): the two parts it is
+ * drawn from, so the page can paint the part that waits for an answer apart
+ * from the record. `null` when the trip has nothing to name.
+ *
+ * Both counts can be non-zero at once — the record is history, the proposal
+ * a diff against today's groups — and the chip then counts them together and
+ * says how many of them are still open.
+ */
+export function changesChip(
+  applied: number,
+  proposed: number,
+): { total: string | null; open: string | null } | null {
+  if (applied > 0 && proposed > 0) {
+    return {
+      total: t('trips.changesTotal', { n: applied + proposed }),
+      open: t('trips.changesOpen', { n: proposed }),
+    }
+  }
+  if (applied > 0) return { total: t('trips.changesOnlyApplied', { n: applied }), open: null }
+  if (proposed > 0) return { total: null, open: t('trips.changesOnlyOpen', { n: proposed }) }
+  return null
+}
