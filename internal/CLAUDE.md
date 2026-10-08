@@ -28,7 +28,9 @@ mutation and stamps them back from the actor before the scope rule runs — on a
 conflict revert alike. Among them: comment `author_id` and the task's resolution record, `note_acks.user_id`
 (FR-7.9), an idea's, its discussion's and a day entry's `author_id` and `idea_votes.user_id` (§3.29), the packing
 claim and record and the purchase record, the master creator columns (`owner_id`, `created_by`).
-`TestServerOwned_NoForgedValueSurvives_Invariant3` sweeps every table. Outside the sync envelope: a shared position's
+`TestServerOwned_NoForgedValueSurvives_Invariant3` sweeps every table, and
+`TestEveryUserColumnIsServerOwnedOrAChoice_Invariant3` holds every syncable column referencing `users` to be
+server-owned or named in `chosenPeople` with the reason a client chooses it (an assignee, a cook, a member added). Outside the sync envelope: a shared position's
 `user_id` and `at` on the WebSocket (FR-29.19). `packer_user_id` is deliberately *not* stamped: since FR-25.19 it is
 the assignment. A client placeholder like `'current-user'` must never reach a foreign key. Clients can never grant `owner`, and the
 trip creator's membership row is immutable — `trip_members`' write guard.
