@@ -243,6 +243,10 @@ var (
 	// vocabulary is the one shape of it the generator reads:
 	// `CHECK (col IN (…))`, optionally `col IS NULL OR` in front.
 	vocabulary = regexp.MustCompile(`(?i)CHECK\s*\(\s*(\w+)\s+(?:IS\s+NULL\s+OR\s+(\w+)\s+)?IN\s*\(([^)]*)\)\s*\)`)
+	// vocabularyValue is what one value may be: a word, which the client
+	// spells as a code literal. A quote (`''`), a comma or a parenthesis
+	// would need an escape on both sides and is refused instead.
+	vocabularyValue = regexp.MustCompile(`^\w+$`)
 )
 
 // tableConstraints are the words a table-level clause opens with; any other
@@ -298,7 +302,11 @@ func readVocabulary(clause string) (string, []string, error) {
 		if len(raw) < 2 || raw[0] != '\'' || raw[len(raw)-1] != '\'' {
 			return "", nil, fmt.Errorf("%q in a text vocabulary is not a quoted value", raw)
 		}
-		values = append(values, raw[1:len(raw)-1])
+		value := raw[1 : len(raw)-1]
+		if !vocabularyValue.MatchString(value) {
+			return "", nil, fmt.Errorf("%q in a text vocabulary is not a plain word", raw)
+		}
+		values = append(values, value)
 	}
 	return m[1], values, nil
 }
