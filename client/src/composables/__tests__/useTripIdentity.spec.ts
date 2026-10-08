@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useIdentity, useTripIdentity, type IdentitySource } from '../useTripIdentity'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const DIRECTORY = [
   { user_id: 'user-a', display_name: 'Andy' },

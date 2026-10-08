@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest'
 
 import type { Mutation, PullChange } from '@/api/types'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { optimisticDelete } from '../optimistic'
 import { MASTER_PARTITION, tripPartition } from '../partition'
 import type { SyncRow } from '../tableRegistry'

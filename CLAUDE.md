@@ -81,7 +81,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **A UI change ships a *running* Playwright case** (owner's rule; details in `client/CLAUDE.md`). Render a UI change and let the maintainer eyeball it before the case is finalized — never judge it from the stylesheet.
 - **An ADR is owed only for a real tradeoff** — options weighed, one chosen at a cost.
 - **English throughout — including quoting the owner** (translated, never a pasted „…" quote). Exception: German that is **content** (UI copy, seed data, mark keywords, the `de` catalogue). Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
-- **No magic strings or numbers** (CODING_PRINCIPLES §4a): `store.Table*`/`RoleOwner` in Go, `TABLE` in `client/src/types/tables.ts`.
+- **No magic strings or numbers** (CODING_PRINCIPLES §4a): `store.Table*`/`RoleOwner` in Go, `TABLE` in `client/src/api/tables.ts` (generated).
 - Standard library first — a new dependency needs a one-line justification (NFR-4.3).
 - Conventional Commits: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` (`build:` only from Dependabot). Reference spec ids.
 

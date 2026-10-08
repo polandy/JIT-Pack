@@ -12,7 +12,7 @@ import {
   partitionOf,
   storeFor,
 } from '../routing'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/api/tables'
 
 describe('pull routing', () => {
   it('routes every syncable table to exactly one store', () => {

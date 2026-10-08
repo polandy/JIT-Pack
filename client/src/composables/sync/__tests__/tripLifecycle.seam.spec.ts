@@ -25,7 +25,7 @@ import {
   SEAM_NOW_ISO,
   type SeamContext,
 } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'

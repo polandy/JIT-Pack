@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { cascadeOf } from '@/sync/cascade'
 
 /**

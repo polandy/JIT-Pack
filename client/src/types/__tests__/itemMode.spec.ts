@@ -20,12 +20,17 @@ import {
  * to spelling it — the second is what keeps the first the only copy.
  */
 
-/** Every source file that could carry a mode; `domain.ts` is the declaration. */
+/**
+ * Every source file that could carry a mode. `domain.ts` names the values and
+ * `api/tables.ts` is the schema's CHECK list they are typed against — the two
+ * declarations, not spellings of them.
+ */
+const DECLARATIONS = new Set(['src/types/domain.ts', 'src/api/tables.ts'])
 const sources = globSync('src/**/*.{vue,ts}', { cwd: process.cwd() })
   .map((path) => path.replace(/\\/g, '/'))
   // A fixture spelling `mode: 'pack'` *is* the specification of the value,
   // the way a spec asserting a route resolves has to name the route.
-  .filter((path) => path !== 'src/types/domain.ts' && !path.includes('__tests__/'))
+  .filter((path) => !DECLARATIONS.has(path) && !path.includes('__tests__/'))
   .map((path) => ({
     path,
     source: readFileSync(resolve(process.cwd(), path), 'utf8')

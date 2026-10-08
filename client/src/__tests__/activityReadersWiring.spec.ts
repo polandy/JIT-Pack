@@ -11,7 +11,7 @@ import { mealActivityReaders } from '@/meals'
 import { plannerActivityReaders } from '@/planner'
 import { shoppingActivityReaders } from '@/shopping'
 import { FEATURE_STORE_TABLES } from '@/sync/routing'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const moduleReaders = [shoppingActivityReaders, plannerActivityReaders, mealActivityReaders]
 

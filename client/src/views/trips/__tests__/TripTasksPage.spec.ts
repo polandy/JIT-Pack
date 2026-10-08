@@ -27,7 +27,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import type { RowUndo } from '@/composables/useRowUndo'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 import { IDEA_LOOKUP } from '@/lib/ideaBridge'
 import { FROM_IDEA_QUERY_PARAM } from '@/router/paths'

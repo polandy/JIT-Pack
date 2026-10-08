@@ -11,7 +11,7 @@ import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { proposedChangeCount } from '@/domain/refresh'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
 

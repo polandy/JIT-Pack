@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PullChange } from '@/api/types'
 import { setLocale } from '@/i18n'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { MealActions } from '../actions'
 import { useMealSheet } from '../sheet'
 import {

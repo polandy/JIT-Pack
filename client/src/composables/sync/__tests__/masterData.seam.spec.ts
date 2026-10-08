@@ -20,7 +20,7 @@ import {
   SEAM_NOW_ISO,
   type SeamContext,
 } from './seamContext'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { DELETION_REMOVE, DELETION_RETIRE, RETIRED_FIELD } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN } from '@/domain/masterRestore'
 import type { IndexedDBPersistence } from '@/local/persistence'

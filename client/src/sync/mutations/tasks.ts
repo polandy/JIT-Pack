@@ -3,7 +3,7 @@
  * (`../mutations.ts`).
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
 import type { TaskPhase } from '@/types/domain'

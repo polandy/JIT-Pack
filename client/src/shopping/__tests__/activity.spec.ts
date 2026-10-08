@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ActivityEntry, ActivityOp } from '@/api/types'
 import { classifyActivity } from '@/domain/activity'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { shoppingActivityReaders } from '../activity'
 
 function entry(op: ActivityOp, changes: Record<string, [unknown, unknown]>): ActivityEntry {

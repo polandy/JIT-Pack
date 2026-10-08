@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMutations } from '@/sync/mutations'
 import type { HLCGenerator } from '@/sync/hlc'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 /**
  * The instant an injected clock reports. Deliberately not near "now", so an

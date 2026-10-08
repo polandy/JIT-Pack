@@ -1,8 +1,14 @@
-/** Client-side domain types — shaped from pull responses and DB schema. */
+/**
+ * Client-side domain types — shaped from pull responses and DB schema. A
+ * column's closed vocabulary is not restated here: it is generated from the
+ * schema's CHECK list (`COLUMN_ENUMS` in `api/tables.ts`, ARCH-11).
+ */
 
 import type { TrackKind } from '@/api/types'
+import { COLUMN_ENUMS, type ColumnEnum } from '@/api/tables'
 
-export type TripStatus = 'planning' | 'active' | 'archived'
+/** `repack` stays in the schema only so old rows remain readable; no client writes it. */
+export type TripStatus = Exclude<ColumnEnum<'trips', 'status'>, 'repack'>
 
 /**
  * The trip statuses as values (§4a). `archived` in particular is switched on
@@ -44,7 +50,7 @@ export interface Trip {
   imported: boolean
 }
 
-export type TripRole = 'owner' | 'admin' | 'editor'
+export type TripRole = ColumnEnum<'trip_members', 'role'>
 
 /** One synced roster row (FR-4.5) — master partition since migration 009. */
 export interface TripMember {
@@ -61,7 +67,7 @@ export interface TripParticipant {
   role: TripRole
 }
 
-export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped'
+export type ItemState = ColumnEnum<'trip_items', 'state'>
 
 /**
  * G-3's claim, as a value rather than a literal spelled in five files: the
@@ -85,7 +91,7 @@ export const STATE_PACKED = 'packed' as const satisfies ItemState
  * separately), so „quantity is 0" is not the same question.
  */
 export const STATE_SKIPPED = 'skipped' as const satisfies ItemState
-export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
+export type ItemMode = ColumnEnum<'trip_items', 'mode'>
 
 /**
  * The two procurement modes M6 gives a tab to (FR-3.2), and the values
@@ -385,7 +391,7 @@ export interface NoteAck {
 
 // --- Preparation Todos (FR-7.3) ---
 
-export type TodoState = 'open' | 'resolved'
+export type TodoState = ColumnEnum<'comments', 'task_state'>
 
 /**
  * FR-7.7: when a task is meant to be done — before the trip or during it.
@@ -493,7 +499,7 @@ export interface ShoppingEntry {
 // --- The meal plan (§3.33) ---
 
 /** FR-33.1: the four places of a day a meal stands at, in the day's order. */
-export const MEAL_SLOTS = ['breakfast', 'lunch', 'snack', 'dinner'] as const
+export const MEAL_SLOTS = COLUMN_ENUMS.meals.slot
 export type MealSlot = (typeof MEAL_SLOTS)[number]
 export const MEAL_SLOT_BREAKFAST = 'breakfast' as const satisfies MealSlot
 export const MEAL_SLOT_LUNCH = 'lunch' as const satisfies MealSlot
@@ -501,9 +507,9 @@ export const MEAL_SLOT_SNACK = 'snack' as const satisfies MealSlot
 export const MEAL_SLOT_DINNER = 'dinner' as const satisfies MealSlot
 
 /** FR-33.1: cooked by the travellers, with ingredients, or eaten out. */
-export const MEAL_KIND_COOK = 'cook' as const
-export const MEAL_KIND_OUT = 'out' as const
-export type MealKind = typeof MEAL_KIND_COOK | typeof MEAL_KIND_OUT
+export type MealKind = ColumnEnum<'meals', 'kind'>
+export const MEAL_KIND_COOK = 'cook' as const satisfies MealKind
+export const MEAL_KIND_OUT = 'out' as const satisfies MealKind
 
 /** FR-33.1: a meal of the trip's meal plan. */
 export interface Meal {
@@ -559,7 +565,7 @@ export interface MealIngredient {
  * FR-29.2: where an idea stands, set by hand — never by its votes. The order
  * is the board's segments'.
  */
-export const IDEA_STATES = ['idea', 'shortlisted', 'done', 'dropped'] as const
+export const IDEA_STATES = COLUMN_ENUMS.ideas.state
 export type IdeaState = (typeof IDEA_STATES)[number]
 export const IDEA_STATE_IDEA = 'idea' as const satisfies IdeaState
 export const IDEA_STATE_SHORTLISTED = 'shortlisted' as const satisfies IdeaState
@@ -570,7 +576,7 @@ export const IDEA_STATE_DROPPED = 'dropped' as const satisfies IdeaState
  * FR-29.10: the closed set of tags an idea may carry, as stable keys —
  * labelled by the catalogue, held by schema.sql's CHECK.
  */
-export const IDEA_TAGS = ['hiking', 'swimming', 'culture', 'food', 'outing'] as const
+export const IDEA_TAGS = COLUMN_ENUMS.ideas.tag
 export type IdeaTag = (typeof IDEA_TAGS)[number]
 
 /** toIdeaTag narrows a wire value; anything outside the set is no tag. */
@@ -579,7 +585,7 @@ export function toIdeaTag(value: unknown): IdeaTag | null {
 }
 
 /** FR-29.3: one person's vote — 👍 or 👎; a withdrawn vote is null. */
-export type IdeaVoteValue = 'up' | 'down'
+export type IdeaVoteValue = ColumnEnum<'idea_votes', 'vote'>
 export const IDEA_VOTE_UP = 'up' as const satisfies IdeaVoteValue
 export const IDEA_VOTE_DOWN = 'down' as const satisfies IdeaVoteValue
 
@@ -608,7 +614,7 @@ export interface Idea {
 }
 
 /** FR-29.15/29.18: a day entry is a free one or a journey by public transport. */
-export const DAY_ENTRY_KINDS = ['note', 'connection'] as const
+export const DAY_ENTRY_KINDS = COLUMN_ENUMS.day_entries.kind
 export type DayEntryKind = (typeof DAY_ENTRY_KINDS)[number]
 export const DAY_ENTRY_NOTE = 'note' as const satisfies DayEntryKind
 export const DAY_ENTRY_CONNECTION = 'connection' as const satisfies DayEntryKind
@@ -683,7 +689,7 @@ export interface DayEntry {
 }
 
 /** FR-29.18: a connection of an excursion is its way there or its way back. */
-export const EXCURSION_ROLES = ['out', 'back'] as const
+export const EXCURSION_ROLES = COLUMN_ENUMS.day_entries.excursion_role
 export type ExcursionRole = (typeof EXCURSION_ROLES)[number]
 export const EXCURSION_ROLE_OUT = 'out' as const satisfies ExcursionRole
 export const EXCURSION_ROLE_BACK = 'back' as const satisfies ExcursionRole
@@ -861,7 +867,7 @@ export interface MasterItem {
  * be unclassifiable. `group` carries positions only and is includable;
  * `template` is a Ferien-Vorlage, the thing a trip starts from.
  */
-export type TemplateKind = 'group' | 'template'
+export type TemplateKind = ColumnEnum<'templates', 'kind'>
 
 export interface Template {
   id: string
@@ -933,7 +939,7 @@ export interface DestinationChecklistItem {
 
 // --- Item dependencies / companion items (Addendum 3.20, FR-20.1) ---
 
-export type DependencyMode = 'required' | 'suggested'
+export type DependencyMode = ColumnEnum<'item_dependencies', 'mode'>
 
 export interface ItemDependency {
   id: string
@@ -946,8 +952,8 @@ export interface ItemDependency {
   quantity: number | null
 }
 
-export type TemplateAssignment = 'per_person' | 'trip_global'
-export type TemplateDedup = 'max' | 'sum'
+export type TemplateAssignment = ColumnEnum<'template_items', 'assignment'>
+export type TemplateDedup = ColumnEnum<'template_items', 'dedup'>
 
 export interface TemplateItem {
   id: string
@@ -1010,7 +1016,7 @@ export interface GeneratedPosition {
   tasks: string[]
 }
 
-export type AppliedChangeKind = 'added' | 'removed' | 'changed'
+export type AppliedChangeKind = ColumnEnum<'trip_applied_changes', 'kind'>
 
 /** Which field a `changed` entry is about — the view words it (i18n). */
 export type ChangedField =

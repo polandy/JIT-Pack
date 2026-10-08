@@ -18,7 +18,7 @@ import TripWizardPage from '../TripWizardPage.vue'
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 

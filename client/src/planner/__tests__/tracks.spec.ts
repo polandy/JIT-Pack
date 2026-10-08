@@ -16,7 +16,7 @@ import type { TrackUpload } from '@/api/types'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import type { ModuleHost, TrackFiles } from '@/sync/featureModule'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { createPlannerActions, type IdeaFields } from '../actions'
 import { plannerFeatureStore, usePlannerStore } from '../store'
 

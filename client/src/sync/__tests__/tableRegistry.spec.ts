@@ -30,7 +30,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { TABLE_SPECS } from '../tableRegistry'
-import { TABLE, type SyncTable } from '@/types/tables'
+import { TABLE, TABLE_COLUMNS, type SyncTable } from '@/api/tables'
 
 const registrySource = readFileSync(
   fileURLToPath(new URL('../tableRegistry.ts', import.meta.url)),
@@ -140,6 +140,24 @@ describe('every codec pair agrees about its columns', () => {
       [...encoded].filter((c) => !parsed.has(c)),
       `${encode} writes columns ${parse} never reads back`,
     ).toEqual(encodeOnly)
+  })
+})
+
+/**
+ * Both halves agreeing is not yet both halves being right: a column read and
+ * written by a pair the schema never declared — `trips.series_name` — passes
+ * the comparison above and is null on every device. The column lists are
+ * generated from `schema.sql` (ARCH-11), so this holds the pair to the table.
+ */
+describe('every column a codec pair names is one the schema declares', () => {
+  it.each(PAIRS)('$table', ({ table, parse, encode }) => {
+    const declared = new Set<string>(TABLE_COLUMNS[table])
+    const named = new Set([...parsedColumns(parse), ...encodedColumns(encode)])
+
+    expect(
+      [...named].filter((c) => !declared.has(c)),
+      `${parse}/${encode} name columns schema.sql does not declare on ${table}`,
+    ).toEqual([])
   })
 })
 

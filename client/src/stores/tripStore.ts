@@ -6,7 +6,7 @@
  */
 
 import { bucketedRows, bucketSink, keyedSink } from '@/sync/bucketedRows'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {

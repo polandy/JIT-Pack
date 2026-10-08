@@ -10,7 +10,7 @@
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'

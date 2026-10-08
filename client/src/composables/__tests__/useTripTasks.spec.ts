@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { installHarness } from '@/__tests__/harness'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
 
 import { useTripTasks } from '../useTripTasks'

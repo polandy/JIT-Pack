@@ -1,6 +1,7 @@
 /** What every area of {@link createMutations} is built over. */
 
 import type { Mutation, MutationOp } from '@/api/types'
+import type { PushableColumnOf, SyncTable } from '@/api/tables'
 import type { NowIso } from '@/lib/clock'
 
 /**
@@ -12,12 +13,19 @@ import type { NowIso } from '@/lib/clock'
  */
 export const CLIENT_ACTOR_PLACEHOLDER = 'current-user'
 
+/**
+ * What a mutation may carry for `T`: the columns the server's push whitelist
+ * accepts, generated from it (`PUSHABLE_COLUMNS`, ARCH-11). A key outside it
+ * is refused by the server and parks the write, so it is a compile error here.
+ */
+export type MutationFields<T extends SyncTable> = { [C in PushableColumnOf<T>]?: unknown }
+
 /** The raw builder: one mutation with a fresh id and the next HLC. */
-export type MakeMutation = (
+export type MakeMutation = <T extends SyncTable>(
   op: MutationOp,
-  table: string,
+  table: T,
   id: string,
-  fields?: Record<string, unknown>,
+  fields?: MutationFields<T>,
 ) => Mutation
 
 /** The shared state an area's factory closes over. */

@@ -10,7 +10,7 @@
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type { TrackUpload } from '@/api/types'
 import {
   MAX_TRACKS,

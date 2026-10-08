@@ -24,7 +24,7 @@ import type {
   IdeaTrack,
   IdeaVote,
 } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 export const usePlannerStore = defineStore('planner', () => {
   // Bucketed by trip like the packing rows: every screen reads one trip's.

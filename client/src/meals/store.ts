@@ -12,7 +12,7 @@ import { bucketedRows, bucketSink } from '@/sync/bucketedRows'
 import type { FeatureStore } from '@/sync/featureModule'
 import { applyChangesToSinks, type RowSinks } from '@/sync/sinks'
 import type { Meal, MealIngredient } from '@/types/domain'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 export const useMealStore = defineStore('meals', () => {
   // Bucketed by trip like the packing rows: a screen reads one trip's plan.

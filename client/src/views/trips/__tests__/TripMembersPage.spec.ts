@@ -16,7 +16,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import TripMembersPage from '../TripMembersPage.vue'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import { t } from '@/i18n'
 
 import { identityStub } from '@/composables/__tests__/identityStub'

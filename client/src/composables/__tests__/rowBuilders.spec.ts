@@ -35,7 +35,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 import type {
   Container,
   DestinationChecklistItem,

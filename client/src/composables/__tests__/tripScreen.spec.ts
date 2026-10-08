@@ -17,7 +17,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useTripScreen } from '../useTripScreen'
 import { tripScreenStub } from './tripScreenStub'
 import { useTripStore } from '@/stores/tripStore'
-import { TABLE } from '@/types/tables'
+import { TABLE } from '@/api/tables'
 
 const TRIP_ID = 'trip-1'
 

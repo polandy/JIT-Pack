@@ -166,3 +166,30 @@ Any of:
    expected to write against the surface, they need a description they can generate *their* client from, and that is
    OpenAPI's argument, not ours.
 3. **The client's formatter changes its defaults**, which is the maintenance cost this option accepted.
+
+## Amendment (2026-10-08): the per-table contract is generated too
+
+The decision covered the envelope — what a mutation, a pull change or a refusal looks like — and left what travels
+*inside* it hand-kept: the client's `TABLE`, the feed a table is pushed on, the columns a mutation may carry and the
+text vocabularies of the domain unions (`ItemState`, `TripRole`, `MealSlot`, …). Each was correct by discipline only;
+the encoder/parser pairs were held against each other, never against the schema, which is how `trips.series_name` came
+to be read by a parser that no writer filled.
+
+`cmd/wiregen` now also writes `client/src/api/tables.ts`, and the same gate holds it:
+
+- **From `internal/store/tables.go`** — the table names in `tableSpecs` order, each table's feed and its push whitelist.
+  The store package is *parsed*, its string constants resolved across files; `wiregen` stays a leaf (invariant 1).
+- **From `schema.sql`** — every column of each syncable table, and each text column's `CHECK … IN (…)` list, in schema
+  order. A 0/1 flag is a boolean, not a vocabulary.
+- **It refuses rather than guesses**: a whitelisted column the schema lacks, a registered table it does not create, a
+  column named by an unresolvable constant, or a text CHECK in a shape it does not read is a generator error, never a
+  file. It is not an SQL parser; the shapes it reads are this repository's own.
+
+On the client the generated facts replace their copies: `TABLE` and `SyncTable` come from the file, `TableSpec` no
+longer states a feed (`partitionOf` reads `TABLE_PARTITION`), the domain unions and their ordered arrays are aliases of
+`COLUMN_ENUMS`, a mutation's `fields` are typed against `PUSHABLE_COLUMNS`, and `tableRegistry.spec.ts` holds every
+column a codec pair names to `TABLE_COLUMNS`.
+
+The cost accepted: a schema change that adds a vocabulary or a column is now a `make wire` away from a green build, like
+a wire change already was; and the doc comments the hand-kept `TABLE` carried per entry are gone — the registry's own
+comments in `tables.go` are where a table is explained.
