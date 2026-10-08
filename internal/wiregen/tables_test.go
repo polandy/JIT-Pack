@@ -224,6 +224,42 @@ func TestGenerateTables_RefusesWhatItCannotStateTruthfully(t *testing.T) {
 				"CHECK (lower(state) IN ('open', 'packed'))", 1),
 			"state",
 		},
+		{
+			"a vocabulary value without its quotes",
+			storeRegistry,
+			strings.Replace(schemaSQL, "('open', 'packed')", "('open', packed)", 1),
+			"is not a quoted value",
+		},
+		{
+			"a vocabulary value with an escaped quote, which the TS literal would not escape",
+			storeRegistry,
+			strings.Replace(schemaSQL, "('open', 'packed')", "('open', 'it''s')", 1),
+			"it''s",
+		},
+		{
+			"an IS NULL guard on another column than the list's",
+			storeRegistry,
+			strings.Replace(schemaSQL, "tag IS NULL OR tag IN", "note IS NULL OR tag IN", 1),
+			"in a shape the generator cannot read",
+		},
+		{
+			"a CREATE TABLE that never closes",
+			storeRegistry,
+			schemaSQL[:strings.LastIndex(schemaSQL, ");")],
+			"trip_items has no closing parenthesis",
+		},
+		{
+			"a registry entry without a key",
+			strings.Replace(storeRegistry, "TableTrips: {", "{", 1),
+			schemaSQL,
+			"without a key",
+		},
+		{
+			"a registry entry without a partition",
+			strings.Replace(storeRegistry, "partition: partitionMaster,", "", 1),
+			schemaSQL,
+			"trips] names no partition",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

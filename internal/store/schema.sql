@@ -740,8 +740,10 @@ CREATE TABLE ideas (
     title       TEXT NOT NULL,
     note        TEXT,
     link        TEXT CHECK (link IS NULL OR link LIKE 'http://%' OR link LIKE 'https://%'),
+    -- The list's order is the tag picker's (COLUMN_ENUMS).
     tag         TEXT CHECK (tag IS NULL OR tag IN ('hiking','swimming','culture','food','outing')),
     rain_proof  INTEGER NOT NULL DEFAULT 0 CHECK (rain_proof IN (0,1)),
+    -- The list's order is the board's segments' (COLUMN_ENUMS).
     state       TEXT NOT NULL DEFAULT 'idea'
                 CHECK (state IN ('idea','shortlisted','done','dropped')),
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -947,6 +949,7 @@ CREATE TABLE meals (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     on_date     TEXT NOT NULL,
+    -- The list's order is the day's, and the meal plan's (COLUMN_ENUMS).
     slot        TEXT NOT NULL DEFAULT 'dinner'
                 CHECK (slot IN ('breakfast', 'lunch', 'snack', 'dinner')),
     title       TEXT NOT NULL,
