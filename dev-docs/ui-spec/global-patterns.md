@@ -195,15 +195,15 @@ These patterns apply to every screen and are specified once.
   action is taken over.
 * **G-9 (Header & Desktop Navigation):** The frame is two bands: the top bar, and — under it, inside the content column
   — the **page head**. The bar shows, left to right: the app logo on a tab root (a compact mark on mobile, the full
-  wordmark from the desktop breakpoint up, a link/tap-target to M1) or **`‹ back` alone on every other screen**, and on
-  the right the page's G-12 cluster, the ⋮, the sync glyph (G-2) and the avatar/settings control (G-1). The way out of a
-  drill-down is the back-target contract rather than the logo (ADR-011). **The bar's two ends are the frame's, its
-  cluster is the page's (ADR-050 amendment 2, UX-14):** from the desktop breakpoint up the cluster and its ⋮ end at the
-  content column's right edge — following the column when a detail pane re-centres it — while back or the logo keep
-  the left corner and the sync glyph and the gear the right one. Below the breakpoint the column is the window and the
-  cluster stands beside the sync glyph. **The bar is part of the page, not a slab over
-  it (ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and the G-11 wash at its
-  top-left — runs under the bar, the head and the content alike.
+  wordmark from the desktop breakpoint up, a link/tap-target to M1; no build string beside it — M17's About names the
+  build, UX-21) or **`‹ back` alone on every other screen**, and on the right the page's G-12 cluster, the ⋮, the sync
+  glyph (G-2) and the avatar/settings control (G-1). The way out of a drill-down is the back-target contract rather than
+  the logo (ADR-011). **The bar's two ends are the frame's, its cluster is the page's (ADR-050 amendment 2, UX-14):**
+  from the desktop breakpoint up the cluster and its ⋮ end at the content column's right edge — following the column
+  when a detail pane re-centres it — while back or the logo keep the left corner and the sync glyph and the gear the
+  right one. Below the breakpoint the column is the window and the cluster stands beside the sync glyph. **The bar is
+  part of the page, not a slab over it (ADR-049):** it is painted transparent and casts no shadow, so the page's own
+  ground — and the G-11 wash at its top-left — runs under the bar, the head and the content alike.
 * **The body is up to three columns, and the third is the detail pane (ADR-064).** Left to right: the desktop rail (≥
   900 px), the content column, and — when a screen has one open — a **detail pane** at `--jp-panel-w`. The pane belongs
   to the frame rather than to the screen: a screen teleports its pane into the frame's host, which takes no width while

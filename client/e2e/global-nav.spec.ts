@@ -1272,28 +1272,28 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G9-21 (G-9, M17): the build names itself once, and the same way in
-   * both places that name it.
+   * E2E-G9-21 (G-9, M17): the build names itself once — in M17's About
+   * block, and nowhere in the bar (UX-21: a git-describe string beside the
+   * wordmark was the first thing on every tab root, and meant nothing to the
+   * family).
    *
    * The version string already carries the tag's own `v` — from `git
    * describe --tags` and from the release workflow's
    * `APP_VERSION=${{ github.ref_name }}` alike — so a label that adds its own
-   * reads `vv0.10.0-…` on every build, the shipped image included. A unit
-   * asserting the component's template back to itself passes against any
-   * prefix; this asserts the two surfaces agree, which is what the UI-Spec
-   * actually promises.
+   * reads `vv0.10.0-…` on every build, the shipped image included.
    */
-  test('E2E-G9-21: the header and the About block name the same build', async ({ page }) => {
+  test('E2E-G9-21: the build is named in the About block, not in the bar', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto(PATH.trips)
-    const header = page.getByTestId('header-app-version')
-    await expect(header).not.toBeEmpty()
-    const shown = (await header.innerText()).trim()
+    // On a tab root at desktop width, where the wordmark stands: the logo
+    // says the wordmark and nothing after it — no build beside it.
+    await expect(page.getByTestId('header-logo')).toHaveText('JIT·Pack')
 
     await page.goto(PATH.settings)
-    // "Version <string> · <commit>" — the About line carries the same build
-    // string, so a prefix invented by one surface shows up as a mismatch
-    // here rather than as a screenshot nobody reads.
-    await expect(onVisibleScreen(page, 'settings-app-version')).toContainText(shown)
+    // "Version <string> · <commit>", the string verbatim.
+    const about = onVisibleScreen(page, 'settings-app-version')
+    await expect(about).toHaveText(/^Version \S+ · \S+$/)
+    await expect(about).not.toContainText('vv')
   })
 
   /*
