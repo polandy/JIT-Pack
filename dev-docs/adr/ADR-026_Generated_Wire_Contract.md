@@ -182,13 +182,14 @@ to be read by a parser that no writer filled.
 - **From `schema.sql`** — every column of each syncable table, and each text column's `CHECK … IN (…)` list, in schema
   order. A 0/1 flag is a boolean, not a vocabulary.
 - **It refuses rather than guesses**: a whitelisted column the schema lacks, a registered table it does not create, a
-  column named by an unresolvable constant, or a text CHECK in a shape it does not read is a generator error, never a
-  file. It is not an SQL parser; the shapes it reads are this repository's own.
+  column named by an unresolvable constant, a text CHECK in a shape it does not read, or a CHECK value that is not a
+  plain word (it would need an escape in the TS literal) is a generator error, never a file. It is not an SQL parser;
+  the shapes it reads are this repository's own.
 
 On the client the generated facts replace their copies: `TABLE` and `SyncTable` come from the file, `TableSpec` no
 longer states a feed (`partitionOf` reads `TABLE_PARTITION`), the domain unions and their ordered arrays are aliases of
 `COLUMN_ENUMS`, a mutation's `fields` are typed against `PUSHABLE_COLUMNS`, and `tableRegistry.spec.ts` holds every
-column a codec pair names to `TABLE_COLUMNS`.
+column a codec pair — or a parser with no builder — names to `TABLE_COLUMNS`.
 
 The cost accepted: a schema change that adds a vocabulary or a column is now a `make wire` away from a green build, like
 a wire change already was; and the doc comments the hand-kept `TABLE` carried per entry are gone — the registry's own
