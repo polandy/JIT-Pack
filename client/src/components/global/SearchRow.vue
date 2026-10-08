@@ -54,8 +54,8 @@ onMounted(() => {
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @keydown.enter="emit('submit')"
     />
-    <!-- The round control (G-14): a 12 px glyph beside a field was a target
-         nobody could hit with a thumb. -->
+    <!-- The round control (G-14): a bare glyph beside a field is a target a
+         thumb misses. -->
     <RoundClose
       v-if="!persistent || modelValue !== ''"
       :label="persistent ? t('common.clear') : t('common.close')"

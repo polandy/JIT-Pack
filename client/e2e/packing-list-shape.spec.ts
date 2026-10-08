@@ -183,9 +183,8 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * head, and stays there when the head yields to the list. Its ✕ is the
    * round close control (G-14).
    *
-   * Before, the field was mounted in the list's flow under the tasks block:
-   * 500 px below the glyph that opened it, with a 12 px ✕, and it scrolled
-   * away with the rows it was narrowing. Every geometry is taken in one
+   * A field in the list's flow opens far below the glyph that opened it and
+   * scrolls away with the rows it narrows. Every geometry is taken in one
    * `evaluate`, so the band and the field are compared at one moment.
    */
   test('E2E-M4-155: the search opens in the fixed band and holds there while the head yields', async ({

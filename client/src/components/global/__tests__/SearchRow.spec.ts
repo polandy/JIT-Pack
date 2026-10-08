@@ -35,7 +35,7 @@ describe('SearchRow — the way out is the round control (G-14)', () => {
   })
 
   it('draws the control at the round-control size, not as a bare glyph', () => {
-    // The ✕ was a 12 px icon with no box of its own — a target a thumb misses.
+    // A bare icon with no box of its own is a target a thumb misses.
     const src = readFileSync(resolve(process.cwd(), 'src/components/global/RoundClose.vue'), 'utf8')
     expect(src).toMatch(/width: var\(--jp-control-round\)/)
     expect(src).toMatch(/height: var\(--jp-control-round\)/)

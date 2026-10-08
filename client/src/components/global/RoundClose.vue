@@ -3,7 +3,8 @@
  * The round close control (G-14, FR-21.12): a filled circle on the sunken
  * plane with a hairline, at the round-control size the token table carries.
  * Drawn once, here — a sheet's way out and a search field's ✕ are the same
- * control, and two copies of it is how they came to disagree.
+ * control, and two copies of one control leave nothing recording which
+ * was meant.
  *
  * The label is the caller's, because what the ✕ does is: a sheet closes, a
  * persistent search field clears. Testid and click fall through to the
