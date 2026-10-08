@@ -17,7 +17,9 @@ definition. The gate carries one rule and no escape hatch: a collision is resolv
   Its ✕ leads back to the trip.
 * **E2E-M5-11** `all` (UI-Spec M5 rework): packing, preparation and notes are on the first level; every attribute
   control is **absent** until *Details* is opened. The packing block carries its eyebrow label („Einpacken" /
-  "Packing"), the same pattern as the prep and notes sections (UX-10).
+  "Packing"), the same pattern as the prep and notes sections (UX-10). The glance holds no *Pack* chip beside the
+  traveller, and gains *Buy there* once the mode is switched to it (UX-21); a two-traveller packed item drawing no
+  glance row at all is unit-owned (`ItemDetailSheet.spec.ts`).
 * **E2E-M5-12** `all` (G-9): at desktop width the same content is a side panel beside the list, not a sheet over it.
   *Beside* is asserted as boxes rather than as a resolved `top` (ADR-064): the pane's right edge is the window's, its
   top is the app bar and its bottom the window's, and the list's right edge is at or left of the pane's. One computed

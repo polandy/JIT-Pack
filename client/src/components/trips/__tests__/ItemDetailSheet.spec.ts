@@ -17,6 +17,7 @@ import { nextTick, ref } from 'vue'
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
+import { t } from '@/i18n'
 import { setCurrency } from '@/lib/currency'
 import { formatValue } from '@/lib/format'
 import type { ItemMode, MasterItem, Trip, TripItem, TripStatus } from '@/types/domain'
@@ -261,6 +262,58 @@ describe('M5 FR-9.1 flags', () => {
     seedTrip('active', { flag_unused: true })
 
     expect(mountSheet().get('[data-testid="m5-glance"]').text()).toContain('Unused')
+  })
+
+  /*
+   * UX-21: the glance names what is unusual. Packing is every item's default,
+   * so a pill reading "Pack" said nothing — and beside the sheet's buttons it
+   * read as a third one. Two travellers, so the for-whom strip carries the
+   * person and the glance has no traveller chip to fall back on.
+   */
+  describe('the glance names exceptions only (UX-21)', () => {
+    function twoTravellers() {
+      const travellers: [string, string][] = [
+        ['tr1', 'Andy'],
+        ['tr2', 'Sia'],
+      ]
+      for (const [id, name] of travellers) {
+        useTripStore().applyChange({
+          seq: 0,
+          table: 'travelers',
+          id,
+          deleted: false,
+          row: { trip_id: 't1', name },
+        })
+      }
+    }
+
+    it('draws no glance row for a packed item with nothing unusual about it', () => {
+      seedTrip('active')
+      twoTravellers()
+
+      const wrapper = mountSheet()
+      // The sheet rendered — its for-whom strip stands — and the row did not.
+      expect(wrapper.find('[data-testid="for-whom-strip-m5"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="m5-glance"]').exists()).toBe(false)
+    })
+
+    it('names a bought item by its mode, in the buy tone', () => {
+      seedTrip('active', {}, 'buy_local')
+      twoTravellers()
+
+      const chip = mountSheet().get('[data-testid="m5-glance"] .chip')
+      expect(chip.text()).toBe(t('mode.buyLocal'))
+      expect(chip.classes()).toContain('buy')
+    })
+
+    it('never names the pack mode, even beside another fact', () => {
+      seedTrip('active', { flag_missing: true })
+      twoTravellers()
+
+      const glance = mountSheet().get('[data-testid="m5-glance"]')
+      expect(glance.text()).toContain('Missing')
+      expect(glance.text()).not.toContain(t('mode.pack'))
+    })
   })
 })
 
