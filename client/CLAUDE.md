@@ -80,6 +80,12 @@ pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file
 
 ## The kernel and its feature modules
 
+**Kernel area or feature module?** A kernel area shares rows with packing — it writes or reads `trip_items`, renders
+as M4's row or feeds M4's view model; a feature module owns tables only it writes and meets the kernel only through
+contracts in `kernel/` and the rules in `domain/shared/` (ADR-097, after ADR-071). Tasks and excursions are kernel
+areas; an excursion's parts live in `views/trips/excursion/` beside its pages, its rules in
+`domain/excursion{Lines,Suitcase,Schedule}.ts`.
+
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers,
   analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No
   I/O, exhaustively unit-tested. This is where a Go `internal/domain` ended up, deliberately (invariant 4).

@@ -6,31 +6,36 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isExcursionOnly,
+  lineSetOf,
+  planForWhom,
+  excursionLineAsRow,
+  draftLinesFor,
+  draftLinesFromGroup,
+  isLeftBehind,
+  isOpenPurchase,
+  lineForOf,
+  participantsOf,
+  planGroupFromExcursion,
+  planParticipantChange,
+  type DraftLine,
+  type GroupDraftInput,
+} from '../excursionLines'
+import {
   arrangeExcursions,
+  dueExcursions,
+  isDueSoon,
+  pendingExcursionCount,
+  whenOf,
+} from '../excursionSchedule'
+import {
   borrowersByTripItem,
   canAdoptIntoInventory,
   canJoinPackingList,
   excursionMenuEntries,
   inventoryItemFor,
-  isExcursionOnly,
-  lineSetOf,
-  planForWhom,
-  dueExcursions,
-  excursionLineAsRow,
-  draftLinesFor,
-  draftLinesFromGroup,
-  isDueSoon,
-  isLeftBehind,
-  isOpenPurchase,
-  pendingExcursionCount,
-  participantsOf,
-  planGroupFromExcursion,
   planLinks,
-  planParticipantChange,
-  whenOf,
-  type DraftLine,
-  type GroupDraftInput,
-} from '../excursions'
+} from '../excursionSuitcase'
 import type {
   CategorisedMasterItem,
   ExcursionItem,
@@ -233,6 +238,16 @@ describe('draftLinesFromGroup — FR-31.2', () => {
       }),
     )[0]!
     expect(lamp.assigned_traveler_id).toBeNull()
+  })
+})
+
+describe('lineForOf — the composer strip read as the excursion reads it (FR-31.5)', () => {
+  it.each([
+    ['nobody chosen is one shared line', [], { kind: 'shared' }],
+    ['every participant is für alle', ['a', 'b'], { kind: 'all' }],
+    ['some are named', ['a'], { kind: 'named', travelerIds: ['a'] }],
+  ])('%s', (_name, ids, want) => {
+    expect(lineForOf(ids, 2)).toEqual(want)
   })
 })
 

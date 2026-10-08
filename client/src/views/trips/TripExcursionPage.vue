@@ -46,7 +46,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
-import ExcursionExtraList from '@/components/trips/ExcursionExtraList.vue'
+import ExcursionExtraList from './excursion/ExcursionExtraList.vue'
 import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/kernel/excursionExtraLines'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import QuickAddItem, { type BrowseAddition } from '@/components/global/QuickAddItem.vue'
@@ -56,10 +56,10 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import TrackEditor from '@/components/global/TrackEditor.vue'
 import TrackSummary from '@/components/global/TrackSummary.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
-import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
-import ExcursionItemSheet from '@/components/trips/ExcursionItemSheet.vue'
-import ExcursionNotes from '@/components/trips/ExcursionNotes.vue'
-import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
+import ExcursionFacts from './excursion/ExcursionFacts.vue'
+import ExcursionItemSheet from './excursion/ExcursionItemSheet.vue'
+import ExcursionNotes from './excursion/ExcursionNotes.vue'
+import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
 import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -75,21 +75,24 @@ import { useTrackOwner } from '@/composables/shared/useTrackOwner'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { browseRowStates } from '@/domain/browseRows'
 import {
-  canAdoptIntoInventory,
-  canJoinPackingList,
   draftLinesFor,
   excursionLineAsRow,
-  excursionMenuEntries,
   isLeftBehind,
   isOpenPurchase,
+  lineForOf,
   namesItsParticipants,
   participantsOf,
-  spanOf,
-  suitcaseOf,
   sumUnits,
-  type ExcursionMenuAction,
   type LineFor,
-} from '@/domain/excursions'
+} from '@/domain/excursionLines'
+import { spanOf } from '@/domain/excursionSchedule'
+import {
+  canAdoptIntoInventory,
+  canJoinPackingList,
+  excursionMenuEntries,
+  suitcaseOf,
+  type ExcursionMenuAction,
+} from '@/domain/excursionSuitcase'
 import { durationDays } from '@/domain/instantiate'
 import { MAX_TRACKS, decodeLine, movingMinutes } from '@/domain/shared/track'
 import { buildPackingView } from '@/domain/packingView'
@@ -664,17 +667,6 @@ const carriedItemIds = computed(() => [
 /** FR-25.13f: what the browse sheet's verbs may do on a thing the list already carries. */
 const browseStates = computed(() => browseRowStates(rows.value, () => null, participants.value))
 
-/**
- * The strip's chosen set as the excursion reads it: nobody is shared, every
- * participant is *für alle* — the set that grows with a joiner — and some are
- * named (FR-31.5).
- */
-function forWhomOf(travelerIds: readonly string[]): LineFor {
-  if (travelerIds.length === 0) return { kind: 'shared' }
-  if (travelerIds.length === participants.value.length) return { kind: 'all' }
-  return { kind: 'named', travelerIds }
-}
-
 /** The browse sheet's per-item undo, as M4 keeps it (FR-25.13f). */
 const browseUndo = new Map<string, () => void>()
 
@@ -715,7 +707,7 @@ function addFrom(item: BrowseAddition, target: LineFor) {
 }
 
 function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }) {
-  addFrom(item, forWhomOf(item.travelerIds))
+  addFrom(item, lineForOf(item.travelerIds, participants.value.length))
 }
 
 /** FR-31.14: *Nur für diesen Ausflug* — a line no inventory item names, kept out of the suitcase. */
@@ -734,7 +726,7 @@ function onQuickAddLocal(item: { name: string; travelerIds: string[] }) {
         value_cents: null,
         source_template_id: null,
       },
-      forWhomOf(item.travelerIds),
+      lineForOf(item.travelerIds, participants.value.length),
       participants.value,
     ),
   )
@@ -751,10 +743,14 @@ function onQuickAddForAll(item: BrowseAddition) {
 function onBrowseAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
   const first = item.sourceItemId ? linesOfItem(item.sourceItemId)[0] : undefined
   if (!first) {
-    addFrom(item, forWhomOf(travelerIds))
+    addFrom(item, lineForOf(travelerIds, participants.value.length))
     return
   }
-  const undo = orchestrator.setForWhom(props.tripId, first, forWhomOf(travelerIds))
+  const undo = orchestrator.setForWhom(
+    props.tripId,
+    first,
+    lineForOf(travelerIds, participants.value.length),
+  )
   if (item.sourceItemId && !browseUndo.has(item.sourceItemId))
     browseUndo.set(item.sourceItemId, undo)
 }

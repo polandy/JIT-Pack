@@ -317,7 +317,6 @@ function minutesOf(stamp: string): number {
   return Math.round(Date.UTC(year, month - 1, date, hour, minute) / MS_PER_MINUTE)
 }
 
-
 // --- on a map ---
 
 /** A leg's line on a map: its first stop, the stops passed, its last — none where it knows no place. */

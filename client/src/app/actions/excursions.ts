@@ -3,8 +3,8 @@
  * change who goes, add lines — borrowing from the suitcase while it is open —
  * tick, count, skip, buy on the spot, delete, and save the list as a Gruppe.
  *
- * Every rule is in `domain/excursions.ts`; this group only turns the plans
- * into mutations. An act the screen offers to undo returns its own undo, a
+ * Every rule is in `domain/excursionLines.ts`, `excursionSuitcase.ts` and
+ * `excursionSchedule.ts`; this group only turns the plans into mutations. An act the screen offers to undo returns its own undo, a
  * closure over the rows it wrote, so „Rückgängig" takes back exactly that act
  * and nothing a second device did meanwhile.
  */
@@ -26,22 +26,24 @@ import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types
 import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
-  canJoinPackingList,
-  draftOf,
   isExcursionOnly,
-  type LinkPlan,
-  type PlannedLine,
   lineSetOf,
   planForWhom,
   type LineFor,
   draftLinesFromGroup,
-  inventoryItemFor,
   participantsOf,
   planGroupFromExcursion,
-  planLinks,
   planParticipantChange,
   type DraftLine,
-} from '@/domain/excursions'
+} from '@/domain/excursionLines'
+import {
+  canJoinPackingList,
+  draftOf,
+  type LinkPlan,
+  type PlannedLine,
+  inventoryItemFor,
+  planLinks,
+} from '@/domain/excursionSuitcase'
 import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */

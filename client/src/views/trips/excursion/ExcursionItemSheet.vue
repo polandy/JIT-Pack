@@ -32,15 +32,10 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
-import ExcursionFacts from '@/components/trips/ExcursionFacts.vue'
+import ExcursionFacts from './ExcursionFacts.vue'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import {
-  canAdoptIntoInventory,
-  canJoinPackingList,
-  lineSetOf,
-  suitcaseOf,
-  type LineFor,
-} from '@/domain/excursions'
+import { lineSetOf, type LineFor } from '@/domain/excursionLines'
+import { canAdoptIntoInventory, canJoinPackingList, suitcaseOf } from '@/domain/excursionSuitcase'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { quantityChoices } from '@/domain/quantityChoices'
 import { t } from '@/i18n'

@@ -7,7 +7,11 @@
 import type { InjectionKey } from 'vue'
 
 import type { IdeaLookup, IdeaResultKind, IdeaResultSource } from '@/domain/shared/ideaBridge'
-import { IDEA_RESULT_EXCURSION, IDEA_RESULT_SHOPPING, IDEA_RESULT_TASK } from '@/domain/shared/ideaBridge'
+import {
+  IDEA_RESULT_EXCURSION,
+  IDEA_RESULT_SHOPPING,
+  IDEA_RESULT_TASK,
+} from '@/domain/shared/ideaBridge'
 import type { IdeaBridgeScreen } from '@/router/paths'
 
 /** The screen each kind of result is made on. */

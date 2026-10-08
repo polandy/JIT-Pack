@@ -127,3 +127,10 @@ decisions the original order left open:
 The cost is one more layer name for a contributor to learn (`edges`) and an `auth/` that reads above the vocabulary
 only through `lib/clock`. The revisit trigger stands: an edge the table refuses is answered by moving the file, not
 by an exception.
+
+## Amendment, 2026-10-08: the module-visible rules get their folder (ARCH-19)
+
+The list of `domain/` files a module may read became `domain/shared/`: the boundary gate admits the folder, and the
+purity gate holds it to reading only itself and the vocabulary. `lib/tripPhase.ts` and `lib/whoGoes.ts`, rules that sat
+in `lib/` only because a module could not reach `domain/`, moved in beside the new `calendar.ts`. The reasoning, and
+the kernel-vs-module criterion it answers to, are ADR-097's.
