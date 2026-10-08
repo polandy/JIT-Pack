@@ -149,7 +149,10 @@ test.describe('M12 analytics @local @m12', () => {
 
     await openAnalytics(page)
 
-    await expect(visiblePage(page).getByTestId('analytics-unweighted')).toContainText('1')
+    // UX-21: the count and nothing after it — the ＋ already says "beside".
+    await expect(visiblePage(page).getByTestId('analytics-unweighted')).toHaveText(
+      '＋ 1 item without a weight',
+    )
     // No weighted rows → no bars, and the empty state says why.
     await expect(visiblePage(page).getByTestId('analytics-empty')).toBeVisible()
     // UX-11: with the explainer up, no zero tiles restate the absence —

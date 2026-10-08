@@ -208,16 +208,6 @@ function goHome() {
   ionRouter.navigate(PATH.dashboard, 'back', 'replace')
 }
 
-// __APP_VERSION__ is vite.config.ts's `define` (git describe, or the
-// Docker build's APP_VERSION arg) — shown beside the wordmark so the
-// running build is visible without opening Settings (M17).
-//
-// Rendered verbatim: both sources already carry the tag's own `v`
-// (`git describe --tags` → `v0.10.0-1-g…`, and the release workflow passes
-// `APP_VERSION=${{ github.ref_name }}`, which is the tag name). Adding one
-// here made every build say `vv…`, the shipped image included.
-const appVersionLabel = computed(() => __APP_VERSION__)
-
 /**
  * The declared parent, not history.back(): a deep link opened from a
  * notification has a one-entry stack, and §7's contract is that back
@@ -293,7 +283,6 @@ function goBack() {
         <span class="logo-row">
           <BrandMark :size="22" data-splash-target />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
-          <span class="app-version" data-testid="header-app-version">{{ appVersionLabel }}</span>
         </span>
       </IonTitle>
 
@@ -410,22 +399,9 @@ function goBack() {
   color: var(--ion-color-primary);
 }
 
-/* Muted, small — an identifier for a bug report, not a label competing
-   with the wordmark. Desktop-only alongside it (G-9's own rule below). */
-.app-version {
-  font-family: var(--jp-font-ui);
-  font-size: var(--jp-text-3xs);
-  color: var(--ct-subtext0);
-  display: none;
-}
-
 /* G-9: mark only on mobile, mark + wordmark on desktop */
 @media (min-width: 900px) {
   .logo-wordmark {
-    display: inline;
-  }
-
-  .app-version {
     display: inline;
   }
 

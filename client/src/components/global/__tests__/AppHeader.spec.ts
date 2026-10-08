@@ -119,20 +119,16 @@ describe('AppHeader — the left slot (G-9)', () => {
     expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(false)
   })
 
-  it('names the running build beside the wordmark, from the vite define', () => {
+  it("names no build beside the wordmark — the build is M17's (G-9, UX-21)", () => {
     route.path = '/tabs/trips'
     route.meta = {}
 
     const wrapper = mountHeader()
 
-    // __APP_VERSION__ is vite.config.ts's `define`; vitest.config.ts merges
-    // the same config, so this is the value a real build would carry too —
-    // and it is rendered **verbatim**. Restating the component's own
-    // `v${…}` template would pass against any prefix at all and let
-    // `vv0.10.0-1-g500b5e54` through: both
-    // sources of the string already carry the tag's own `v`, `git describe`
-    // and the release workflow's `APP_VERSION=${{ github.ref_name }}` alike.
-    expect(wrapper.find('[data-testid="header-app-version"]').text()).toBe(__APP_VERSION__)
+    // The logo is the wordmark and nothing after it, and the build string is
+    // nowhere in the bar.
+    expect(wrapper.get('[data-testid="header-logo"]').text()).toBe('JIT·Pack')
+    expect(wrapper.text()).not.toContain(__APP_VERSION__)
   })
 })
 

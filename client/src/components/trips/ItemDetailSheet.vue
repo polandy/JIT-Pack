@@ -166,6 +166,25 @@ const containerName = computed(
   () => containers.value.find((c) => c.id === item.value?.container_id)?.name ?? null,
 )
 
+/*
+ * The glance names what is unusual about the item (UX-21). Packing is what
+ * every item does unless it is bought, so the pack mode has no chip — a pill
+ * reading „Packen" beside the sheet's buttons read as a third one — and a row
+ * with nothing unusual to say is not drawn at all.
+ */
+const glanceSays = computed(() => {
+  const row = item.value
+  if (!row) return false
+  return (
+    !offersForWhom.value ||
+    isShoppingMode(row.mode) ||
+    containerName.value !== null ||
+    row.late_packer ||
+    row.flag_missing ||
+    row.flag_unused
+  )
+})
+
 function nameOf(userId: string | null): string | null {
   return nameFrom(props.participants, userId)
 }
@@ -517,7 +536,7 @@ const packedStamp = computed(() => {
       @rows-removed="onRowsRemoved"
     />
 
-    <div class="glance" data-testid="m5-glance">
+    <div v-if="glanceSays" class="glance" data-testid="m5-glance">
       <!-- Below two travelers there is no membership to distribute (G-8), and
            the chip is all that is left to say. -->
       <FactChip v-if="!offersForWhom">
@@ -529,7 +548,7 @@ const packedStamp = computed(() => {
         />
         {{ travelerName ?? t('facet.shared') }}
       </FactChip>
-      <FactChip :tone="isShoppingMode(item.mode) ? 'buy' : null">
+      <FactChip v-if="isShoppingMode(item.mode)" tone="buy">
         <IonIcon :icon="modeIcon(item.mode)" />
         {{ modeLabel(item.mode) }}
       </FactChip>

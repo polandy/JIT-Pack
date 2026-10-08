@@ -1453,6 +1453,34 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     expect(heading.props('mark')).toBe('🧼')
   })
 
+  it('tells a row when its heading already names its tag — grouped by tag, but not in the bucket, the alphabetical run or a search (G-15, UX-19)', async () => {
+    seedTag('Bad', 't-bad')
+    seedItem('Seife', 'i1')
+    seedItem('Zahnseide', 'i2')
+    assignTag('i1', 't-bad')
+
+    const page = mountPage(false, { openSheets: true })
+    await flushPromises()
+    const headedOf = (name: string) =>
+      page
+        .findAllComponents(ItemMark)
+        .filter((m) => m.props('surface') === 'inventory')
+        .find((m) => m.element.closest('[data-testid="m9-row"]')?.textContent?.includes(name))!
+        .props('headed')
+
+    expect(headedOf('Seife')).toBe(true)
+    // „Ohne Tag" names no tag, so the untagged row keeps its ladder.
+    expect(headedOf('Zahnseide')).toBe(false)
+
+    await page.get('[data-testid="m9-sort-alphabetical"]').trigger('click')
+    await flushPromises()
+    expect(headedOf('Seife')).toBe(false)
+
+    await page.get('[data-testid="m9-sort-grouped"]').trigger('click')
+    await typeSearch(page, 'bad')
+    expect(headedOf('Seife')).toBe(false)
+  })
+
   it('hands a move straight to the orchestrator, by axis index', async () => {
     seedItem('Sonnencreme')
     seedTag('A', 't-a', 0)

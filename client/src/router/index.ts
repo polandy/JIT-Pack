@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router'
 
 import { installOverlayBackGuard } from './overlayBackGuard'
 import { installOriginStamp } from './originStamp'
+import { serverOnly } from './serverOnly'
 import { TRIP_OPEN_ROUTE } from './tripOpening'
 import {
   IDEA_QUERY_PARAM,
@@ -208,10 +209,11 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
-    // M30 (FR-32.2): reached from every trip view's ⋮.
+    // M30 (FR-32.2): reached from M4's ⋮, and only where a server keeps the log.
     path: tripSubPath(TRIP_ID_PARAM, 'activity'),
     meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'activity.title' },
     name: 'trip-activity',
+    beforeEnter: serverOnly,
     props: true,
     component: () => import('@/views/activity/ActivityLogPage.vue'),
   },
@@ -356,6 +358,7 @@ export const routes: RouteRecordRaw[] = [
     path: PATH.inventoryActivity,
     meta: { parent: PATH.items, titleKey: 'activity.titleInventory' },
     name: 'inventory-activity',
+    beforeEnter: serverOnly,
     component: () => import('@/views/activity/ActivityLogPage.vue'),
   },
   {

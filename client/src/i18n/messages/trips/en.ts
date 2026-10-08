@@ -36,7 +36,7 @@ export const tripsEn = {
   'wizard.unset': '—',
 
   // M20 clone (FR-13.x). Reuses the wizard's field labels above.
-  'clone.title': 'Clone',
+  'clone.title': 'Copy trip',
   'clone.carryOver': 'Carry over',
   'clone.travelerAssignments': 'Participant assignments',
   'clone.packerDelegations': 'Packer delegations',
@@ -45,15 +45,14 @@ export const tripsEn = {
   'clone.previewTravelers': '{n} traveller | {n} travellers',
   'clone.previewContainers': '{n} container | {n} containers',
   'clone.previewLoading': 'Loading items …',
-  'clone.create': 'Create clone',
+  'clone.create': 'Create copy',
   'clone.notFound': 'Trip not found on this device.',
 
   // M12 — Analytics (FR-8.2/14.3).
   'analytics.hint': 'Weight: packed / planned · tap bars to pick one or more',
   'analytics.openList': 'Show in packing list ({n})',
   'analytics.empty': 'No weighted items yet — nothing to chart.',
-  'analytics.unweighted':
-    '＋ {n} item without a weight — honestly left out | ＋ {n} items without a weight — honestly left out',
+  'analytics.unweighted': '＋ {n} item without a weight | ＋ {n} items without a weight',
   'analytics.kpiWeight': 'Weight packed / planned',
   'analytics.kpiValue': 'Total value',
   'analytics.trendTitle': 'Series {name} · trend',
@@ -88,7 +87,6 @@ export const tripsEn = {
     '{names} — planned per person, but nobody is on the trip. Add someone in step 2.',
 
   // FR-27.4 — what a trip is being offered by its groups.
-  'trips.proposedChip': '⟳ {n} change proposed | ⟳ {n} changes proposed',
   'trips.proposedTitle': 'From the groups',
   'trips.proposedLead':
     'A group this trip follows has changed. | The groups this trip follows have changed.',
@@ -105,8 +103,17 @@ export const tripsEn = {
   'trips.proposedTasks': '“{group}”: {item} — preparation changes',
   'trips.proposedChanged': '“{group}”: {item} changes',
 
+  // FR-27.4 — M2's one chip and the sheet it opens.
+  'trips.changesTotal': '⟳ {n} change | ⟳ {n} changes',
+  'trips.changesOpen': '{n} open',
+  'trips.changesOnlyApplied': '⟳ {n} change taken over | ⟳ {n} changes taken over',
+  'trips.changesOnlyOpen': '⟳ {n} change open | ⟳ {n} changes open',
+  'trips.changesSheetMeta': 'Changes from the groups this trip follows',
+  'trips.changesOpenHeading': 'Open · {n}',
+  'trips.changesOpenHint': 'You decide at the trip, where the list is.',
+  'trips.changesGoToTrip': 'Open trip',
+  'trips.changesAppliedHeading': 'Taken over · {n}',
   // FR-27.4 — and what it took over.
-  'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
   'trips.appliedFrozen': 'Past trips are never changed.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',
@@ -133,7 +140,7 @@ export const tripsEn = {
   'trips.new': 'New trip',
   'trips.actionExport': 'Export trip',
   'trips.actionShare': 'Share',
-  'trips.actionClone': 'Clone trip',
+  'trips.actionClone': 'Copy trip',
   'trips.actionStart': 'Start trip',
   'trips.actionArchive': 'Finish trip',
   'trips.actionDelete': 'Delete trip',
@@ -388,7 +395,7 @@ export const tripsEn = {
   'series.detach': 'Detach from series',
   'series.noTrips': 'No trips in this series yet.',
   'series.attach': 'Attach existing trip',
-  'series.clone': 'Clone "{name}"',
+  'series.clone': 'Copy "{name}"',
   'series.newTrip': 'New trip in series',
   'series.trends': 'Series trends',
   'series.notFound': 'Series not found on this device.',

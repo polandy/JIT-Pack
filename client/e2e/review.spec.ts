@@ -146,6 +146,10 @@ async function flagUnused(page: Page, item: string) {
 /** Quick-add on an *active* trip, which auto-flags Missing (FR-5.6). */
 async function quickAddMissing(page: Page, name: string) {
   await openQuickAdd(page)
+  // UX-21: the hint names the consequence — the review — not the flag.
+  await expect(page.getByTestId('quick-add-hint')).toHaveText(
+    'Whatever you add now, the review remembers for the template.',
+  )
   await addInComposer(page, name)
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')

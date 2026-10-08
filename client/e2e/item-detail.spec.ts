@@ -140,6 +140,12 @@ test.describe('M5 item detail @local @m5', () => {
     // the absence is read against.
     await expect(page.getByTestId('m5-glance')).toContainText(/Gemeinsam|Shared/)
     await expect(page.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)).toHaveCount(0)
+    // UX-21: the glance names what is unusual. Packing is what every item
+    // does, so beside the traveller there is no "Pack" pill — read on the row
+    // whose traveller chip just stood — and a bought item says so.
+    await expect(page.getByTestId('m5-glance')).not.toContainText('Pack')
+    await chooseInSelect(page, 'm5-mode', 'Buy there')
+    await expect(page.getByTestId('m5-glance')).toContainText('Buy there')
   })
 
   // E2E-M5-12 (G-9, ADR-046): above the breakpoint the same content is a

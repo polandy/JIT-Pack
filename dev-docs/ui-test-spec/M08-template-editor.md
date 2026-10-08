@@ -94,15 +94,14 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   carries the mark instead of the generic group glyph, and the unmarked group's card keeps the glyph.
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and
   **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
-* **E2E-M8-09** `all` (FR-27.4) — **implemented** (`e2e/group-refresh.spec.ts`): a group gains a
-  position after a trip was generated from it; M2 already carries the „⟳ N Änderungen vorgeschlagen“ chip on a freshly
-  booted app (the startup sweep, and the positive half of M8-19's absence assertion); opening the trip shows the
-  **proposal card** naming the change while the list has *not* moved (the row's absence at that point is what separates
-  "asked" from "asked afterwards"), *Übernehmen* puts the row on the list and clears the card, and M2 then carries the
-  „⟳ N Änderungen aus Gruppen übernommen“ chip with the source group and item in its log. Up to ten changes the log is
-  written out under the row (the case asserts that state); above ten it folds behind the chip, which the TripListPage
-  component test pins from both sides of the threshold. It lives outside `template-editor.spec.ts` because the surface
-  under test is M4 and M2.
+* **E2E-M8-09** `all` (FR-27.4) — **implemented** (`e2e/group-refresh.spec.ts`): a group gains a position after a trip
+  was generated from it; M2 already carries the chip „⟳ 1 Änderung offen“ on a freshly booted app (the startup sweep,
+  and the positive half of M8-19's absence assertion); opening the trip shows the **proposal card** naming the change
+  while the list has *not* moved (the row's absence at that point is what separates "asked" from "asked afterwards"),
+  *Übernehmen* puts the row on the list and clears the card, and M2 then carries the chip „⟳ 1 Änderung übernommen“,
+  whose sheet names the source group and item (UX-20; the sheet's order and its length without limit are pinned by the
+  TripListPage component test, both counts on one chip by E2E-M2-36). It lives outside `template-editor.spec.ts` because
+  the surface under test is M4 and M2.
 * **E2E-M8-19** `all` (FR-27.4) — **implemented** (`e2e/group-refresh.spec.ts`): *Nicht übernehmen*
   leaves the trip's list untouched and clears the card; leaving to M2 and coming back proves the refusal was
   **recorded** rather than held in memory — the trip re-derives on every open, so a refusal that wrote nothing would ask

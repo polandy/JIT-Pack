@@ -1404,6 +1404,8 @@ test.describe('Single-User backend sync @single', () => {
     const page = await fresh.newPage()
     await seed(page, { mode: 'server' })
     await page.goto(`${tripPath}/clone`)
+    // UX-21: the screen says what it does — a copy of the trip, not a "clone".
+    await expect(page.getByTestId('header-title')).toHaveText('Copy trip')
 
     // The preview waits for the partition and then names the real contents.
     // Before the guard this line settled on "0 items, 0 travellers."
@@ -1411,9 +1413,7 @@ test.describe('Single-User backend sync @single', () => {
     await expect(preview).toHaveText('2 items, 1 traveller.', { timeout: 30_000 })
 
     await visiblePage(page).getByTestId('clone-name').locator('input').fill(`Clone ${u}`)
-    await visiblePage(page)
-      .getByRole('button', { name: /create clone/i })
-      .click()
+    await visiblePage(page).getByRole('button', { name: 'Create copy' }).click()
 
     // The clone is a real trip with the source's rows, not an empty shell.
     await expectTripOpen(page, `Clone ${u}`)

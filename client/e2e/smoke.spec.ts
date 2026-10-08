@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { expectValueInABox } from './helpers/ionic'
 
 /**
  * Scaffold smoke tests — the backend-free floor of the suite
@@ -27,6 +28,11 @@ test('E2E-M19-04: the server URL is pre-filled with the page origin @smoke @m19'
   await page.goto('/')
 
   await expect(page.getByTestId('mode-server-url').locator('input')).toHaveValue(baseURL!)
+  // UX-21: and it reads as a field to type into, not as a caption on the card.
+  await expectValueInABox(
+    page.getByTestId('mode-server-url'),
+    page.getByTestId('mode-server-connect').locator('xpath=ancestor::ion-card'),
+  )
   // Reach through to the inner button: `toBeEnabled()` on the ion-button
   // host is false-green, since the custom element is never DOM-disabled.
   await expect(page.getByTestId('mode-server-connect').locator('button')).toBeEnabled()

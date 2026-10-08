@@ -128,8 +128,9 @@
     answers: *Übernehmen* and *Nicht übernehmen*. Deliberately a card and not a modal: a modal over the packing list has
     to be dismissed before the list it talks about can be looked at, and dismissing is not one of the two answers.
     Deliberately the full list and not a count: „3 Änderungen“ with nothing to read can only be answered by guessing. It
-    folds above ten lines, same threshold and same reason as M2's log. The cost of *no* is stated where *no* is pressed
-    — the refused positions stop following the group in this trip — because it is the one thing about the card a user
+    folds above ten lines, so a long proposal cannot push the list it changes off the screen. The cost of *no* is stated
+    where *no* is pressed — the refused positions stop following the group in this trip — because it is the one thing
+    about the card a user
     cannot work out from the list above it. Both answers are final and neither offers an undo, so both report through a
     plain toast rather than a snackbar.
   * **Names the inventory moved on from are taken over on request, from the ⋮ (FR-27.16).** While
@@ -257,7 +258,9 @@
     one tap. ✓/Enter add an exact inventory match directly and never write a new name on their own; a name already on
     the list reads *„‚{Name}' ist schon drin"* and ✓ rests. The placeholder says so: *„Suchen oder neu anlegen…"*.
     Selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is active, new items
-    are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape or the close
+    are auto-flagged *Missing* (FR-9.1), and the hint says what that buys rather than naming the flag: *„Was du jetzt
+    ergänzt, merkt sich der Rückblick für die Vorlage."* (UX-21). The input stays expanded after adding for rapid
+    entry; Escape or the close
     button collapses it. No navigation away from M4 required. **FR-25.13c:** the FAB expands the composer **without
     focusing it**, because while the field is empty it leads with a tappable *„Zuletzt verwendet"* chip row (the
     device-local trail) — and the raised keyboard would cover it; a chip tap adds with the FR-25.7 defaults and stays in

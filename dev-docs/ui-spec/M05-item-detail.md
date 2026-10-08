@@ -62,16 +62,18 @@
   field that is the item's, and it says so: *„Änderungen hier gelten für alle Zeilen dieses Packelements."*
 * **Elements — progressive disclosure:** *Level 1 (always):* header (name, quantity stepper, state); a compact
   **glance-chip row** summarising the advanced blocks (membership · mode · luggage · ⏰ late · packer) with a **"Details
-  ▾"** toggle; **Preparation Todos (FR-7.3)** (a tick at the end of each line, where M4 ticks the same task, + inline
-  "Add prep todo…"); **comment/task thread (FR-7.1/7.2) with a visible composer** and per-comment "flag as task"; packed
-  items with open todos show an amber state. **The for-whom strip (FR-25.28)** stands at level 1, under the packing
-  block: the toggle line (every name whole, M04's layout), and under it one line per lit traveler with a **quantity
-  stepper** — a list rather than a stepper hung under each avatar, because a stepper is wider than a toggle and would
-  reach into its neighbours' columns at five travelers on a phone. It closes with the summary *„3 Personen · 6 Stück"*,
-  which a standing question replaces. It acts on **every instance** of the item, not only on the row the sheet was
-  opened from. **No save button** — every control commits immediately (G-5, FR-25.15). Absent under two travelers (G-8),
-  where the membership glance chip is what is left to say *Gemeinsam*; read-only under a foreign claim on any instance
-  (G-3). *Level 2 (behind Details ▾):*
+  ▾"** toggle — **exceptions only** (UX-21): the mode has a chip when the item is bought (*Vorher kaufen*, *Vor Ort
+  kaufen*, buy tone), never for *Packen*, which every item does and which as a pill beside the sheet's buttons read as
+  a third one; a row with nothing unusual to say is not drawn; **Preparation Todos (FR-7.3)** (a tick at the end of each
+  line, where M4 ticks the same task, + inline "Add prep todo…"); **comment/task thread (FR-7.1/7.2) with a visible
+  composer** and per-comment "flag as task"; packed items with open todos show an amber state. **The for-whom strip
+  (FR-25.28)** stands at level 1, under the packing block: the toggle line (every name whole, M04's layout), and under
+  it one line per lit traveler with a **quantity stepper** — a list rather than a stepper hung under each avatar,
+  because a stepper is wider than a toggle and would reach into its neighbours' columns at five travelers on a phone. It
+  closes with the summary *„3 Personen · 6 Stück"*, which a standing question replaces. It acts on **every instance** of
+  the item, not only on the row the sheet was opened from. **No save button** — every control commits immediately (G-5,
+  FR-25.15). Absent under two travelers (G-8), where the membership glance chip is what is left to say *Gemeinsam*;
+  read-only under a foreign claim on any instance (G-3). *Level 2 (behind Details ▾):*
   *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1); **optional**
   container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips only);
   history sparkline (FR-14.1).

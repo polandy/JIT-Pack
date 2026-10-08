@@ -41,6 +41,8 @@ import { ref, computed, onMounted, onUnmounted, watch, type ComponentPublicInsta
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
 import TripChangeChips from '@/components/trips/TripChangeChips.vue'
+import TripChangesSheet from '@/components/trips/TripChangesSheet.vue'
+import type { ChangeSummary } from '@/lib/refreshWording'
 import TripHero from '@/components/trips/TripHero.vue'
 import { useTripHero } from '@/composables/useTripHero'
 import { hasCollaborativeSession } from '@/mode'
@@ -54,7 +56,6 @@ import {
   TRIP_FILTER_QUERY,
   type TripFilter,
 } from './tripFilter'
-import { proposedChangeCount } from '@/domain/refresh'
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -392,6 +393,11 @@ function tripDataKnown(trip: Trip): boolean {
   return orchestrator.tripDataLoaded(trip.id)
 }
 
+/** Still planning: nobody has tapped *Reise starten* (UX-20 drops its ring). */
+function isPlanned(trip: Trip): boolean {
+  return trip.status === TRIP_STATUS_PLANNING
+}
+
 function progressPercent(trip: Trip): number {
   const k = tripStore.kpis(trip.id)
   if (k.totalItems === 0) return 0
@@ -444,11 +450,38 @@ const router = useRouter()
 // Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
 const collaborative = hasCollaborativeSession()
 
-/** FR-27.4: the trip whose *foldable* applied-changes log is open, if any. */
-const expandedApplied = ref<string | null>(null)
+/**
+ * FR-27.4: the trip whose changes sheet is up. Kept apart from `changesOpen`
+ * so the sheet still names its trip while it slides away.
+ */
+const changesTripId = ref<string | null>(null)
+const changesOpen = ref(false)
+/** „Zur Reise" was pressed: the trip opens once the sheet is gone. */
+let openTripOnDismiss = false
 
-function toggleApplied(tripId: string) {
-  expandedApplied.value = expandedApplied.value === tripId ? null : tripId
+const changesTrip = computed(() =>
+  changesTripId.value ? (tripStore.getTrip(changesTripId.value) ?? null) : null,
+)
+
+function openChanges(trip: Trip) {
+  changesTripId.value = trip.id
+  changesOpen.value = true
+}
+
+function goToChangesTrip() {
+  openTripOnDismiss = true
+  changesOpen.value = false
+}
+
+/*
+ * Navigating while the sheet is still leaving would hand the next page a
+ * modal mid-animation; the dismiss is the moment the list is the list again.
+ */
+function onChangesDismiss() {
+  changesOpen.value = false
+  const trip = changesTrip.value
+  if (openTripOnDismiss && trip) openTrip(trip)
+  openTripOnDismiss = false
 }
 
 /**
@@ -462,9 +495,10 @@ function appliedChanges(trip: Trip): AppliedChange[] {
 }
 
 /**
- * FR-27.4: how many changes are *waiting* on this trip. The chip is a
- * pointer, not a control — the decision belongs at the trip, and tapping the
- * row is already the way there.
+ * FR-27.4: how many changes are *waiting* on this trip, counted in the lines
+ * the sheet and M4's card name — the unit the taken-over record is counted
+ * in, so the chip's sum adds like with like. A plan that only moves the
+ * ledger names no line and draws no chip.
  *
  * It can only speak for a trip whose partition this device holds: a proposal
  * is a diff against the trip's rows, and in Server Mode those arrive when the
@@ -473,8 +507,12 @@ function appliedChanges(trip: Trip): AppliedChange[] {
  * trusting this list.
  */
 function proposedCount(trip: Trip): number {
-  const plan = orchestrator.refreshProposals.value[trip.id]
-  return plan ? proposedChangeCount(plan) : 0
+  return proposedChanges(trip).length
+}
+
+/** What the sheet names as open: the waiting plan's own log, worded as M4 words it. */
+function proposedChanges(trip: Trip): ChangeSummary[] {
+  return orchestrator.refreshProposals.value[trip.id]?.log ?? []
 }
 
 onMounted(async () => {
@@ -758,13 +796,11 @@ async function handleRefresh(event: CustomEvent) {
           @pointercancel="hold.cancel()"
         >
           <TripChangeChips
-            :trip-id="heroTrip.id"
             :name="heroTrip.name"
             :imported="heroTrip.imported"
             :proposed="proposedCount(heroTrip)"
-            :applied="appliedChanges(heroTrip)"
-            :expanded="expandedApplied === heroTrip.id"
-            @toggle="toggleApplied(heroTrip.id)"
+            :applied="appliedChanges(heroTrip).length"
+            @open="openChanges(heroTrip!)"
           />
         </TripHero>
         <button
@@ -852,7 +888,10 @@ async function handleRefresh(event: CustomEvent) {
               @pointerup="hold.cancel()"
               @pointercancel="hold.cancel()"
             >
-              <div slot="start" class="progress-ring">
+              <!-- UX-20: a planned trip has nothing packed to draw — M1's
+                   planned rows carry no ring either. Its count joins the
+                   dates line, so the row is name, dates, chip. -->
+              <div v-if="!isPlanned(trip)" slot="start" class="progress-ring">
                 <svg viewBox="0 0 36 36" class="ring-svg">
                   <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
                   <circle
@@ -878,18 +917,25 @@ async function handleRefresh(event: CustomEvent) {
                 <h2>{{ trip.name }}</h2>
                 <!-- FR-2.1b: a trip may have both dates, one, or neither.
                      With neither, its year is what it is called by. -->
-                <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
-                <p data-testid="trip-item-summary">
-                  {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
+                <p v-if="isPlanned(trip)">
+                  <span data-testid="trip-when">{{ tripWhen(trip) }}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span data-testid="trip-item-summary">
+                    {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
+                  </span>
                 </p>
+                <template v-else>
+                  <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
+                  <p data-testid="trip-item-summary">
+                    {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
+                  </p>
+                </template>
                 <TripChangeChips
-                  :trip-id="trip.id"
                   :name="trip.name"
                   :imported="trip.imported"
                   :proposed="proposedCount(trip)"
-                  :applied="appliedChanges(trip)"
-                  :expanded="expandedApplied === trip.id"
-                  @toggle="toggleApplied(trip.id)"
+                  :applied="appliedChanges(trip).length"
+                  @open="openChanges(trip)"
                 />
               </IonLabel>
               <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
@@ -920,6 +966,15 @@ async function handleRefresh(event: CustomEvent) {
           </div>
         </template>
       </IonList>
+
+      <TripChangesSheet
+        :is-open="changesOpen"
+        :name="changesTrip?.name ?? ''"
+        :proposed="changesTrip ? proposedChanges(changesTrip) : []"
+        :applied="changesTrip ? appliedChanges(changesTrip) : []"
+        @dismiss="onChangesDismiss"
+        @go-to-trip="goToChangesTrip"
+      />
 
       <!-- FAB: New Trip -->
       <IonFab

@@ -36,7 +36,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'wizard.tagsPlaceholder': 'Velo, See (kommagetrennt)',
   'wizard.unset': '—',
 
-  'clone.title': 'Klon',
+  'clone.title': 'Reise kopieren',
   'clone.carryOver': 'Übernehmen',
   'clone.travelerAssignments': 'Zuteilung an Reisende',
   'clone.packerDelegations': 'Packt-für-Zuweisungen',
@@ -45,15 +45,14 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'clone.previewTravelers': '{n} Reisende | {n} Reisende',
   'clone.previewContainers': '{n} Gepäckstück | {n} Gepäckstücke',
   'clone.previewLoading': 'Positionen werden geladen …',
-  'clone.create': 'Klon erstellen',
+  'clone.create': 'Kopie anlegen',
   'clone.notFound': 'Diese Reise ist auf diesem Gerät nicht vorhanden.',
 
   // M12 — Auswertung (FR-8.2/14.3).
   'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen, auch mehrere',
   'analytics.openList': 'In der Packliste zeigen ({n})',
   'analytics.empty': 'Noch nichts mit Gewicht — nichts auszuwerten.',
-  'analytics.unweighted':
-    '＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet) | ＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet)',
+  'analytics.unweighted': '＋ {n} Artikel ohne Gewichtsangabe | ＋ {n} Artikel ohne Gewichtsangabe',
   'analytics.kpiWeight': 'Gewicht gepackt / geplant',
   'analytics.kpiValue': 'Warenwert gesamt',
   'analytics.trendTitle': 'Serie {name} · Trend',
@@ -89,7 +88,6 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
     '{names} — pro Person geplant, aber niemand ist eingetragen. In Schritt 2 jemanden hinzufügen.',
 
   // FR-27.4 — was eine Reise aus ihren Gruppen vorgeschlagen bekommt.
-  'trips.proposedChip': '⟳ {n} Änderung vorgeschlagen | ⟳ {n} Änderungen vorgeschlagen',
   'trips.proposedTitle': 'Aus den Gruppen',
   'trips.proposedLead':
     'Eine Gruppe dieser Reise hat sich geändert. | Die Gruppen dieser Reise haben sich geändert.',
@@ -106,9 +104,17 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trips.proposedTasks': '„{group}“: {item} — Vorbereitung ändert sich',
   'trips.proposedChanged': '„{group}“: {item} ändert sich',
 
+  // FR-27.4 — der eine Chip auf M2 und das Blatt, das er öffnet.
+  'trips.changesTotal': '⟳ {n} Änderung | ⟳ {n} Änderungen',
+  'trips.changesOpen': '{n} offen',
+  'trips.changesOnlyApplied': '⟳ {n} Änderung übernommen | ⟳ {n} Änderungen übernommen',
+  'trips.changesOnlyOpen': '⟳ {n} Änderung offen | ⟳ {n} Änderungen offen',
+  'trips.changesSheetMeta': 'Änderungen aus den Gruppen, denen die Reise folgt',
+  'trips.changesOpenHeading': 'Offen · {n}',
+  'trips.changesOpenHint': 'Entschieden wird an der Reise, wo die Liste ist.',
+  'trips.changesGoToTrip': 'Zur Reise',
+  'trips.changesAppliedHeading': 'Übernommen · {n}',
   // FR-27.4 — und was sie übernommen hat.
-  'trips.appliedChip':
-    '⟳ {n} Änderung aus Gruppen übernommen | ⟳ {n} Änderungen aus Gruppen übernommen',
   'trips.appliedFrozen': 'Vergangene Reisen werden nie geändert.',
   'trips.appliedAdded': '„{group}“: {item} dazugekommen',
   'trips.appliedRemoved': '„{group}“: {item} entfernt',
@@ -135,7 +141,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'trips.new': 'Neue Reise',
   'trips.actionExport': 'Reise exportieren',
   'trips.actionShare': 'Teilen',
-  'trips.actionClone': 'Reise klonen',
+  'trips.actionClone': 'Reise kopieren',
   'trips.actionStart': 'Reise starten',
   'trips.actionArchive': 'Reise abschliessen',
   'trips.actionDelete': 'Reise löschen',
@@ -393,7 +399,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'series.detach': 'Aus der Serie lösen',
   'series.noTrips': 'Noch keine Reisen in dieser Serie.',
   'series.attach': 'Bestehende Reise zuordnen',
-  'series.clone': '„{name}“ klonen',
+  'series.clone': '„{name}“ kopieren',
   'series.newTrip': 'Neue Reise in dieser Serie',
   'series.trends': 'Trends der Serie',
   'series.notFound': 'Diese Serie gibt es auf diesem Gerät nicht.',
