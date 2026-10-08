@@ -4,6 +4,7 @@
  * a merge into one of them (FR-24.15) and a retire (FR-24.3).
  */
 import { actionSheetController } from '@ionic/vue'
+import { attachOutline, gitMergeOutline, linkOutline, personOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import type { BulkTagMode } from '@/components/items/BulkTagSheet.vue'
@@ -19,6 +20,7 @@ import { tagCounts, tagsOfItems } from '@/domain/tags'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
+import { sheetBandAttrs } from '@/lib/sheetBands'
 import { presentToast } from '@/lib/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import type { DependencyMode } from '@/types/domain'
@@ -140,11 +142,23 @@ export function useBulkActions(core: InventoryCore) {
       header: t('items.bulkMoreTitle'),
       buttons: [
         // G-8: absent where there is nobody to assign to, not offered and refused.
-        ...(canAssign.value ? [{ text: t('items.bulkAssignee'), data: MORE_ASSIGNEE }] : []),
-        { text: t('items.bulkDependsOn'), data: DEPENDENCY_LINK_MAIN },
-        { text: t('items.bulkCompanion'), data: DEPENDENCY_LINK_COMPANION },
-        // FR-24.15: two rows are the fewest that can be the same thing.
-        ...(selected.value.size > 1 ? [{ text: t('items.bulkMerge'), data: MORE_MERGE }] : []),
+        ...(canAssign.value
+          ? [{ text: t('items.bulkAssignee'), icon: personOutline, data: MORE_ASSIGNEE }]
+          : []),
+        { text: t('items.bulkDependsOn'), icon: linkOutline, data: DEPENDENCY_LINK_MAIN },
+        { text: t('items.bulkCompanion'), icon: attachOutline, data: DEPENDENCY_LINK_COMPANION },
+        // FR-24.15: two rows are the fewest that can be the same thing. G-14's
+        // destructive band: every row but the survivor goes, with no undo.
+        ...(selected.value.size > 1
+          ? [
+              {
+                text: t('items.bulkMerge'),
+                icon: gitMergeOutline,
+                data: MORE_MERGE,
+                ...sheetBandAttrs('destructive'),
+              },
+            ]
+          : []),
         { text: t('common.cancel'), role: 'cancel' },
       ],
     })

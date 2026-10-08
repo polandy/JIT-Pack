@@ -530,7 +530,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     expect(orchestratorFake.activateTrip).not.toHaveBeenCalled()
   })
 
-  it('offers clone from the archive, and marks delete as the destructive entry', async () => {
+  it('offers clone from the archive, and marks delete as the destructive entry, last (G-14)', async () => {
     segment = 'archived'
     seedTrip('archived')
     const page = mountPage()
@@ -541,6 +541,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
 
     expect(pushed).toEqual(['/trips/t1/clone'])
     expect(button(t('trips.actionDelete')).role).toBe('destructive')
+    expect(labels(sheets[0]!).slice(-2)).toEqual([t('trips.actionDelete'), t('common.cancel')])
     expect(button(t('common.cancel')).role).toBe('cancel')
   })
 

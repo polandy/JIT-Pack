@@ -502,6 +502,20 @@ ion-action-sheet.md .action-sheet-title {
   color: var(--ct-text);
 }
 
+/* G-14: the entry that deletes reads as one, glyph and label — Material
+   paints Ionic's destructive role like any other entry. Its hover, press and
+   focus states read their own properties, so those are set too. */
+ion-action-sheet.md .action-sheet-destructive {
+  --button-color-hover: var(--ct-ember);
+  --button-color-activated: var(--ct-ember);
+  --button-color-focused: var(--ct-ember);
+  color: var(--ct-ember);
+}
+
+ion-action-sheet.md .action-sheet-destructive .action-sheet-icon {
+  color: var(--ct-ember);
+}
+
 ion-progress-bar {
   --progress-background: linear-gradient(90deg, var(--jp-done-far), var(--jp-done));
   --background: var(--ct-surface0);

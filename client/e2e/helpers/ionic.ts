@@ -215,3 +215,47 @@ export async function expectValueInABox(field: Locator, surface: Locator): Promi
   expect(box).not.toBe('rgba(0, 0, 0, 0)')
   expect(box).not.toBe(await surface.evaluate(background))
 }
+
+/** A row menu's entries by G-14 band, each band's labels in the order shown. */
+export interface SheetBands {
+  acts: string[]
+  flags?: string[]
+  destructive?: string[]
+}
+
+/**
+ * Hold an open `ion-action-sheet` to G-14's ordering rule as rendered: the
+ * entries in band order, a hairline above the first entry of each band after
+ * the first and above no other, and the destructive entry painted apart from
+ * the acts — glyph and label alike. The hairline and the paint are read from
+ * the computed style, because the role alone was on the button for months
+ * while Material drew it like every other entry.
+ */
+export async function expectSheetBands(sheet: Locator, bands: SheetBands): Promise<void> {
+  const groups = [bands.acts, bands.flags ?? [], bands.destructive ?? []].filter((g) => g.length)
+  const buttons = sheet.locator('.action-sheet-group').first().locator('.action-sheet-button')
+  await expect(buttons.locator('.action-sheet-button-inner')).toHaveText(groups.flat())
+
+  // A band's first entry carries the line, except the first band's.
+  const lined = groups.flatMap((group, g) => group.map((_, i) => g > 0 && i === 0))
+  const lines = await buttons.evaluateAll((els) =>
+    els.map((el) => getComputedStyle(el).backgroundImage.includes('gradient')),
+  )
+  expect(lines).toEqual(lined)
+
+  if (!bands.destructive?.length) return
+  const paint = await buttons.evaluateAll((els) =>
+    els.map((el) => ({
+      destructive: el.classList.contains('action-sheet-destructive'),
+      label: getComputedStyle(el).color,
+      glyph: getComputedStyle(el.querySelector('.action-sheet-icon') ?? el).color,
+    })),
+  )
+  const act = paint[0]!
+  for (const entry of paint.slice(-bands.destructive.length)) {
+    expect(entry.destructive).toBe(true)
+    expect(entry.label).not.toBe(act.label)
+    expect(entry.glyph).toBe(entry.label)
+  }
+  expect(paint.filter((p) => p.destructive)).toHaveLength(bands.destructive.length)
+}

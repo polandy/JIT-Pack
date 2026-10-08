@@ -62,14 +62,15 @@
 * **E2E-M2-35b** `local` (UX-06), Chromium only: the ⋮ is there with a mouse, and gone once CDP switches touch on —
   the hold (a `contextmenu`) still opens the menu. Touch emulation is the one way to turn `(hover: hover) and
   (pointer: fine)` over inside a running page, and WebKit has no CDP.
-* **E2E-M2-19** `local` (FR-4.5/FR-9.1/FR-18.3): **a right-click on a trip row opens its row menu** — the M4/M7
-  shape — headed by the trip's name and listing exactly *Export trip*, *Start trip*,
-  *Delete trip*, *Cancel* for a planned trip on a device with no second account. Choosing *Start trip* closes the sheet
-  and moves the trip off *Planned* (the row is gone, *Active* counts one) while M2 stays on screen — the choice did not
-  also navigate. A second row's menu, cancelled, leaves that row a door: a plain tap then renders M4 with that trip's
-  name in the page head. `contextmenu` rather than a held pointer, the suite's convention (`helpers/m4.ts`): the 500 ms
-  are `useLongPress`'s, and the hold's wiring to it is unit-owned in `TripListPage.spec.ts` with fake timers, as is the
-  guard that ignores a tap while the sheet is up.
+* **E2E-M2-19** `local` (FR-4.5/FR-9.1/FR-18.3): **a right-click on a trip row opens its row menu** — the M4/M7 shape —
+  headed by the trip's name and listing exactly *Trip properties*, *Export trip*, *Start trip*, *Delete trip* for a
+  planned trip on a device with no second account, in G-14's bands as rendered (`expectSheetBands`): a hairline above
+  *Delete trip* and above nothing else, and *Delete trip* painted apart from the acts, glyph and label. Choosing *Start
+  trip* closes the sheet and moves the trip off *Planned* (the row is gone, *Active* counts one) while M2 stays on
+  screen — the choice did not also navigate. A second row's menu, cancelled, leaves that row a door: a plain tap then
+  renders M4 with that trip's name in the page head. `contextmenu` rather than a held pointer, the suite's convention
+  (`helpers/m4.ts`): the 500 ms are `useLongPress`'s, and the hold's wiring to it is unit-owned in
+  `TripListPage.spec.ts` with fake timers, as is the guard that ignores a tap while the sheet is up.
 * **E2E-M2-16** `all` (G-7): M2's empty state states which segment is empty and offers **no CTA of its
   own** — the FAB is the way out, on screen either way (M7's reasoning). Its own number rather than a second definition
   of E2E-G7-01, whose case tests the Dashboard's half: the gate allows one definition per id. Asserted against the state

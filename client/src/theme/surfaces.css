@@ -289,3 +289,24 @@ ion-action-sheet.md .action-sheet-button {
 ion-action-sheet.md .action-sheet-icon {
   margin-inline-end: 20px;
 }
+
+/*
+ * G-14's bands: a hairline where the acts give way to the flags, and where
+ * either gives way to the entry that deletes. Drawn from the role and the
+ * flag class (lib/sheetBands.ts), so every sheet that marks its destructive
+ * entry gets the break without a call site asking for it.
+ */
+ion-action-sheet.md
+  .action-sheet-button:not(.jp-sheet-flag, .action-sheet-destructive)
+  + .jp-sheet-flag,
+ion-action-sheet.md
+  .action-sheet-button:not(.action-sheet-destructive)
+  + .action-sheet-destructive {
+  margin-top: 8px;
+  /* A background line rather than a pseudo-element: Ionic clips the button's
+     own box for its ripple. Inset to the entries' padding, like the handle. */
+  background-image: linear-gradient(var(--ct-surface0), var(--ct-surface0));
+  background-repeat: no-repeat;
+  background-size: calc(100% - 40px) 1px;
+  background-position: 20px 0;
+}

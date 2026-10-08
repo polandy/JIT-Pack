@@ -90,6 +90,7 @@ import {
   tripSubPath,
 } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
+import { sheetBandAttrs, type SheetBand } from '@/lib/sheetBands'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const tripStore = useTripStore()
@@ -600,8 +601,8 @@ interface TripActionView {
    * `scripts/testid-gate.mjs` can see each of them.
    */
   menuTestid: string
-  /** Ionic's sheet role; the destructive entry is drawn as one (M7's shape). */
-  role?: 'destructive'
+  /** The entry's G-14 band — an act unless named. */
+  band?: SheetBand
   run: (trip: Trip) => void
 }
 
@@ -653,7 +654,7 @@ const TRIP_ACTION_VIEW: Record<TripRowAction, TripActionView> = {
     icon: trashOutline,
     labelKey: 'trips.actionDelete',
     menuTestid: 'm2-menu-delete',
-    role: 'destructive',
+    band: 'destructive',
     run: (trip) => void deleteTrip(trip),
   },
 }
@@ -713,7 +714,7 @@ async function openRowMenu(trip: Trip) {
         ...actionsOf(trip).map((id) => ({
           text: t(TRIP_ACTION_VIEW[id].labelKey),
           icon: TRIP_ACTION_VIEW[id].icon,
-          role: TRIP_ACTION_VIEW[id].role,
+          ...sheetBandAttrs(TRIP_ACTION_VIEW[id].band),
           htmlAttributes: { 'data-testid': TRIP_ACTION_VIEW[id].menuTestid },
           handler: () => TRIP_ACTION_VIEW[id].run(trip),
         })),

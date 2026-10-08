@@ -6,6 +6,7 @@ import {
   visiblePage,
   itemDetail,
 } from './fixtures'
+import { expectSheetBands } from './helpers/ionic'
 import { backToInventory, createItem, groupHeadings, holdRow } from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
@@ -284,6 +285,12 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.getByTestId('m9-select-count')).toContainText('2')
 
     await list.getByTestId('m9-bulk-more').click()
+    // G-14: the merge deletes every row but one, with no undo — last, after a
+    // hairline, painted apart from the two links (Local Mode: no assignee).
+    await expectSheetBands(page.locator('ion-action-sheet'), {
+      acts: ['Depends on …', 'Companion item …'],
+      destructive: ['Merge …'],
+    })
     await page.locator('ion-action-sheet').getByText('Merge').click()
     await expect(page.getByTestId('m9-merge-sheet')).toHaveAttribute('data-presented', 'true')
     await page.getByTestId('m9-merge-keep-Stirnlampe').click()

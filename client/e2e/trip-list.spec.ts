@@ -16,6 +16,7 @@ import {
   writesLanded,
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
+import { expectSheetBands } from './helpers/ionic'
 import { setClock } from './helpers/page'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -248,13 +249,12 @@ test.describe('M2 row actions @local @m2', () => {
     await expect(sheet.locator('.action-sheet-title')).toHaveText('Kreta')
     // Local Mode: no Share (G-8); planning: Start rather than Archive or Clone;
     // the trip's properties lead, being M2's alone.
-    await expect(sheet.locator('.action-sheet-button-inner')).toHaveText([
-      'Trip properties',
-      'Export trip',
-      'Start trip',
-      'Delete trip',
-      'Cancel',
-    ])
+    // G-14: the lifecycle step is an act, so delete stands alone after the
+    // hairline, painted apart.
+    await expectSheetBands(sheet, {
+      acts: ['Trip properties', 'Export trip', 'Start trip'],
+      destructive: ['Delete trip'],
+    })
     await page.getByTestId(TRIP_ROW_ACTION.start).click()
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
     // FR-7.16: its packing is open, so the start asks on M4 first.

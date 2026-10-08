@@ -202,7 +202,8 @@
     also after *Doch einpacken* on a skipped row), *Packen*, *Nicht einpacken*, **_Vor Ort kaufen_** — on a
     `buy_local` row **_Doch mitnehmen_** in its place, and neither on a row already begun (FR-5.9) —,
     **Spätpacker ein/aus** (FR-25.25, last of the row's own actions), FR-9.3's unused mark where the trip can be judged,
-    and **_Von der Liste entfernen_ last of all** (FR-5.8, destructive role). A row somebody else
+    and **_Von der Liste entfernen_ last of all** (FR-5.8, destructive role). In G-14's bands: the acts, a hairline, the
+    two flags (*Spätpacker*, the unused mark), a hairline, the removal in Ember. A row somebody else
     holds has no menu but the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped row
     offers the way back and the removal, and no late-packer flag, because nothing is being packed on it.
     * **Removal (FR-5.8).** A row with nothing on it goes at once, with the pack snackbar's *Rückgängig*
@@ -219,12 +220,13 @@
     acting on every instance the head counts, and **every entry of a row's own menu** except the takeover, in the row's
     order and words: *Menge ändern*, *Für wen …*, *Jetzt packen*, *Nicht einpacken* / *Doch einpacken*, *Freigeben*,
     *Unbenutzt*, *Von der Liste entfernen*. Each reaches the instances whose own row would offer it; *Für wen …* opens
-    the one strip, under the head. *Menge ändern* opens the row's amount popover, centred, naming the item; each tap
-    writes the same amount to every instance. Skip and removal carry one snackbar and one undo for all of them. It
-    states the scope in its sub-header (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances
-    somebody else holds are skipped and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*) — or, for skip
-    and removal, in the snackbar's name (*„Zahnbürste (3 von 4)"*); a head whose every instance is held offers no menu
-    at all, and none of its entries is a takeover.
+    the one strip, under the head. The head's *Alle zuweisen an …* stands with the two flags in G-14's flags band — who
+    packs it is a statement about the item. *Menge ändern* opens the row's amount popover, centred, naming the item;
+    each tap writes the same amount to every instance. Skip and removal carry one snackbar and one undo for all of them.
+    It states the scope in its sub-header (*„4 Zeilen"*) because a shut head hides the rows it is about to write.
+    Instances somebody else holds are skipped and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*) — or,
+    for skip and removal, in the snackbar's name (*„Zahnbürste (3 von 4)"*); a head whose every instance is held offers
+    no menu at all, and none of its entries is a takeover.
   * **The for-whom strip (FR-25.28):** the list carries a ***who* column** wherever the trip has two travelers or
     more and outside FR-9.3's closing pass (G-8) — and it is **the lead slot itself**, not a column beside it (UX-03).
     On an item row and on a cluster head the slot is the **for-whom seat**: it draws nothing of its own, only what the

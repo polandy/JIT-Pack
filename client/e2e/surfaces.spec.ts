@@ -9,6 +9,7 @@ import {
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
+import { expectSheetBands } from './helpers/ionic'
 import { openRowMenu, tripWithRows } from './helpers/m4'
 import { visiblePage } from './helpers/page'
 
@@ -271,7 +272,8 @@ for (const viewport of [MOBILE, { width: 1180, height: 820 }]) {
   })
 }
 
-// E2E-G14-06 (G-14/FR-21.8): a row menu is a sheet, and looks like one. Every
+// E2E-G14-06 (G-14/FR-21.8, UX-22): a row menu is a sheet, and looks like one,
+// its entries in G-14's three bands. Every
 // row menu is an `ion-action-sheet`, and Material draws it as a flat, square
 // slab beside the app's own rounded sheets — two designs for one gesture.
 // Compared against M5's sheet as rendered, not against the stylesheet: the
@@ -286,6 +288,13 @@ test('E2E-G14-06: a row menu wears the same sheet as M5 @local @g14', async ({
   await tripWithRows(page, ['Zelt'], 'Samedan')
   await openRowMenu(page, 'Zelt')
   const menu = page.locator('ion-action-sheet')
+  // G-14's bands (UX-22): what the row does now, the flag about later, and
+  // the removal alone, each after a hairline.
+  await expectSheetBands(menu, {
+    acts: ['Change the amount', 'Pack', 'Do not pack this', 'Buy there'],
+    flags: ['Late packer on'],
+    destructive: ['Remove from the list'],
+  })
   const group = menu.locator('.action-sheet-group').first()
   const fromMenu = {
     corner: await computed(group, 'border-top-left-radius'),

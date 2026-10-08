@@ -130,16 +130,17 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   tag_id)` refuses the second after the outbox has taken it. What says the plan was made over the whole set is the
   row ending with exactly one tag, under the heading it already had; the manager is reopened afterwards so the
   survivor's count and the two absent rows are read from the screen that owns them.
-* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented** (`e2e/inventory-bulk.spec.ts`): two duplicates
-  merged into one. The loser is built to carry what the survivor lacks — a tag it does not have, a weight it has
-  none of, a companion edge pointing at it — because the inventory list after a merge that wrote nothing but the
-  delete looks exactly like one that worked; each is read back where it is *rendered* (the heading on M9, the tag
-  summary, the companion and the weight in M10). A trip packs the loser first, which is what makes FR-24.3 answer
-  its delete by **retiring** it, and the case ends on M23 asserting the row names the survivor — the sentence that
-  keeps its restore from being a silent offer to re-create the duplicate. That trip also carries a **remark written
-  on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names the loser,
-  so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own units
-  cannot make, because they never wire the page.
+* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented** (`e2e/inventory-bulk.spec.ts`): two duplicates merged into
+  one. The ⋯ sheet that offers it is held to G-14's bands first (`expectSheetBands`): *Depends on …*, *Companion item
+  …*, a hairline, *Merge …* last and painted apart. The loser is built to carry what the survivor lacks — a tag it does
+  not have, a weight it has none of, a companion edge pointing at it — because the inventory list after a merge that
+  wrote nothing but the delete looks exactly like one that worked; each is read back where it is *rendered* (the heading
+  on M9, the tag summary, the companion and the weight in M10). A trip packs the loser first, which is what makes
+  FR-24.3 answer its delete by **retiring** it, and the case ends on M23 asserting the row names the survivor — the
+  sentence that keeps its restore from being a silent offer to re-create the duplicate. That trip also carries a
+  **remark written on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names
+  the loser, so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own
+  units cannot make, because they never wire the page.
 * **E2E-M9-31** `local` (FR-24.9, ADR-075) — **implemented** (`e2e/inventory-bulk.spec.ts`): M9 selects
   the way M6 and M25 do. A **real right-click** on a row — the hold's desktop twin, whose own pointerdown must not
   re-arm the hold and eat the next tap — starts the mode with that row picked and leaves M9 on screen; the very next tap

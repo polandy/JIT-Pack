@@ -515,6 +515,18 @@ These patterns apply to every screen and are specified once.
     shape: the sheet radius on its top corners, the handle, the sheet plane and cast, and its header in the sheet
     title's type. Told once in the theme files rather than per call site, so a new menu cannot miss it; Material's flat,
     square slab beside the app's rounded sheets reads as two designs for one gesture.
+  * **A row menu lists its entries in three bands, always in this order** (UX-22): **acts** — what the row does or
+    becomes now (amount, packing, skipping, mode, properties, export, the lifecycle step) — then **flags**, statements
+    that stay on the row and speak about later (*Spätpacker*, *ungenutzt*, and the cluster head's *Alle zuweisen an
+    …*), then the **destructive** entry, alone and last: the one that ends in rows deleted (*Von der Liste entfernen*,
+    *Reise löschen*, M9's *Zusammenführen …*, which keeps one row of several and has no undo). A hairline marks where
+    one band gives way to the next, and the destructive entry wears Ember, glyph and label — Material paints Ionic's
+    destructive role like any other entry, so the role alone said nothing. An empty band leaves no hairline. The order
+    within the acts stays each screen's own. The flags band travels as a class and the destructive band *is* Ionic's
+    role (`lib/sheetBands.ts`); the hairline and the Ember are drawn from those in the theme files, so every sheet that
+    marks its destructive entry gets both without asking. M4's row and cluster menus, M27's line menu, M9's ⋯ and M2's
+    row menu are built this way; `sheetBands.spec.ts` holds M4's menu, the one with all three bands, to the order on
+    every row a hold can open it on.
   * **A dashed edge means *not yet* (FR-21.22).** It marks a place where something is missing and could be put: the
     empty picker slot, the quick-add invitation, the hand-over into the full inventory. A control that acts on content
     which exists is a solid, filled button — as the three reveal bars (FR-25.2, FR-25.11j) are, each stating in its own

@@ -19,12 +19,13 @@ import {
 
 import type { RowMenuAction } from '@/domain/rowMenu'
 import type { MessageKey } from '@/i18n'
+import type { SheetBand } from '@/lib/sheetBands'
 
-/** How one menu entry reads: its catalogue key, its glyph, and a destructive role. */
+/** How one menu entry reads: its catalogue key, its glyph, and its G-14 band (an act unless named). */
 export interface RowMenuButton {
   labelKey: MessageKey
   icon: string
-  role?: 'destructive'
+  band?: SheetBand
 }
 
 export const ROW_MENU_BUTTONS: Record<RowMenuAction, RowMenuButton> = {
@@ -40,11 +41,12 @@ export const ROW_MENU_BUTTONS: Record<RowMenuAction, RowMenuButton> = {
   // state it leaves the row in.
   buyLocal: { labelKey: 'mode.buyLocal', icon: locationOutline },
   packInstead: { labelKey: 'packing.packInsteadAction', icon: bagHandleOutline },
-  latePackerOn: { labelKey: 'packing.latePackerOn', icon: timeOutline },
-  latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline },
-  flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
-  unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline },
-  // FR-5.8: the one entry that deletes — iOS paints it red, the way
-  // `confirmDestructive` marks its button.
-  remove: { labelKey: 'packing.removeAction', icon: trashOutline, role: 'destructive' },
+  // G-14: the two statements that stay on the row and speak about later —
+  // set apart from what the row does now.
+  latePackerOn: { labelKey: 'packing.latePackerOn', icon: timeOutline, band: 'flag' },
+  latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline, band: 'flag' },
+  flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline, band: 'flag' },
+  unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline, band: 'flag' },
+  // FR-5.8: the one entry that deletes.
+  remove: { labelKey: 'packing.removeAction', icon: trashOutline, band: 'destructive' },
 }

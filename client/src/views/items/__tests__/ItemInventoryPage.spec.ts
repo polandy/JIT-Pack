@@ -1043,6 +1043,23 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     expect((await chooseMore(page, null)).map((b) => b.text)).toContain(t('items.bulkMerge'))
   })
 
+  it('offers the merge last and as the destructive entry — every row but one goes (FR-24.15, G-14)', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
+    await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
+
+    const buttons = await chooseMore(page, null)
+    const merge = buttons.find((b) => b.text === t('items.bulkMerge'))
+    expect(merge?.role).toBe('destructive')
+    expect(buttons.slice(-2).map((b) => b.text)).toEqual([t('items.bulkMerge'), t('common.cancel')])
+    // Only the merge: the two links write edges, nothing goes.
+    expect(buttons.filter((b) => b.role === 'destructive')).toHaveLength(1)
+  })
+
   it('merges the selection into the row the sheet names, after asking (FR-24.15)', async () => {
     seedThree()
     const mergeMasterItems = vi.fn().mockReturnValue({
