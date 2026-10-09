@@ -576,13 +576,7 @@ onIonViewWillEnter(() => dataSection.value?.refreshReminder())
   color: var(--ct-overlay1);
 }
 
-/*
- * The recessive line under a section heading. It was already used at the
- * default-travelers block and defined nowhere — the class lives scoped inside
- * ItemEditorPage, so on this screen it painted nothing and the hint read as
- * ordinary body copy. Found by looking at the rendered screen; no test could
- * have said it, and no stylesheet reading would have either.
- */
+/* The recessive line under a section heading (scoped: the Tokens section keeps its own). */
 .section-hint {
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
