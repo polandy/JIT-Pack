@@ -84,7 +84,8 @@ up after `pushSendTimeout`.
 
 **Negative / accepted costs**
 - One more package in invariant 1, held by `dependencies_test.go`.
-- A delivery a push service answers after ten seconds is lost; the shutdown budget abandoned it at five anyway.
+- A delivery a push service answers only after ten seconds is lost while the server runs, where it used to land.
+  At shutdown nothing changes: the five-second budget abandoned it before.
 
 **Neutral**
 - The wire, the routes and the stored rows do not change.

@@ -53,7 +53,10 @@ func (f *fakePushService) holdDeliveries(t *testing.T) (release func()) {
 }
 
 // delivered is the delivery the server made, read once WaitDetached has said
-// every delivery is done — so its absence is a fact, not a timeout.
+// every delivery is done — so its absence is a fact, not a timeout. It
+// relies on handlePush starting the delivery before the handler returns,
+// which is when the buffered push response reaches the client: a Flush
+// before notifier.Pushed would let WaitDetached run ahead of it.
 func (f *fakePushService) delivered(t *testing.T, apiSrv *api.Server) *http.Request {
 	t.Helper()
 	if err := apiSrv.WaitDetached(context.Background()); err != nil {

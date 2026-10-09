@@ -25,9 +25,9 @@ const (
 	defaultPushContact = "mailto:admin@localhost"
 	pushTTLSeconds     = 3600
 	// pushSendTimeout bounds one delivery: a push service that never
-	// answers costs its own subscription, never a goroutine for the life
-	// of the process. Below the 5 s shutdown budget would cut deliveries
-	// a slow service still answers; that budget abandons them anyway.
+	// answers costs that delivery, never a goroutine for the life of the
+	// process. Generous on purpose — a slow service still delivers; only
+	// one that has not answered in ten seconds is given up on (ADR-099).
 	pushSendTimeout = 10 * time.Second
 )
 
