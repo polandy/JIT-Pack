@@ -2,17 +2,19 @@
  * Where a store puts each table's rows, and the one way rows go in and out.
  *
  * Every store — the trip and master stores and each feature module's — offers
- * one `RowSink` per table it holds, and the rest is derived: a pulled or
- * optimistic change is parsed by its table's codec and handed to its sink
- * (`applyChangesToSinks`), a tombstone takes what `cascade.ts` derives from
- * `TABLE_SPECS` with it (`removeCascading`), and a write reads its base row
- * back out (`currentRowIn`). A module store is its sinks; it restates neither
- * the switch over its tables nor its cascade (FR-30.3, ADR-066).
+ * one `RowSink` per table it holds, each carrying its table's `RowSpec`
+ * (`specifiedSinks`), and the rest is derived: a pulled or optimistic change
+ * is parsed by its sink's codec and handed to it (`applyChangesToSinks`), a
+ * tombstone takes what `cascade.ts` derives from the sinks' cascade parents
+ * with it (`removeCascading`), and a write reads its base row back out
+ * (`currentRowIn`). A module store is its sinks; it restates neither the
+ * switch over its tables nor its cascade, and the kernel names none of its
+ * tables (FR-30.3, ADR-066 amendment 2).
  */
 import type { PullChange } from '@/api/types'
 import type { SyncTable } from '@/api/tables'
 import { cascadeOf } from './cascade'
-import { codecFor, encodedRow, type SyncRow } from './tableRegistry'
+import { encodedRow, type RowSpec, type RowSpecs, type SyncRow } from './tableRegistry'
 
 /**
  * Where a store puts one table's rows. Two shapes cover every table: a
@@ -38,8 +40,27 @@ export type AnyRowSink = Omit<RowSink, 'get' | 'rows'> & {
   rows(): Iterable<unknown>
 }
 
+/** A sink with the spec of the table it holds: how a row is read, written back and cascaded. */
+export type SpecifiedSink = AnyRowSink & { readonly spec: RowSpec }
+
 /** The sinks a store offers, one per table it holds. */
-export type RowSinks = Partial<Record<SyncTable, AnyRowSink>>
+export type RowSinks = Partial<Record<SyncTable, SpecifiedSink>>
+
+/**
+ * specifiedSinks pairs a store's sinks with their tables' specs. A store may
+ * hold only tables its specs name — the type says so — so a sink without a
+ * codec cannot be declared.
+ */
+export function specifiedSinks<S extends RowSpecs>(
+  specs: S,
+  sinks: { [K in keyof S]?: AnyRowSink },
+): RowSinks {
+  const specified: RowSinks = {}
+  for (const [table, sink] of Object.entries(sinks) as [SyncTable, AnyRowSink][]) {
+    specified[table] = { ...sink, spec: specs[table]! }
+  }
+  return specified
+}
 
 /** Anything that holds rows on the device: a store, as the cascade reads it. */
 export interface SinkHolder {
@@ -54,8 +75,8 @@ export function holdsTable(holder: SinkHolder, table: string): boolean {
 /**
  * applyToSink hands a parsed row to its table's sink. The cast is the price
  * of one map holding sinks of different row types; it is sound because
- * `TABLE_SPECS[table].parse` and the sink were declared for the same table,
- * and it is confined to this function.
+ * the sink's `spec.parse` and the sink were declared for the same table, and
+ * it is confined to this function.
  */
 export function applyToSink(sinks: RowSinks, table: SyncTable, row: unknown): void {
   ;(sinks[table] as RowSink<unknown> | undefined)?.set(row)
@@ -76,17 +97,16 @@ export function removeCascading(sinks: RowSinks, table: SyncTable, id: string): 
 /**
  * applyChangesToSinks applies pulled or optimistic changes to the sinks that
  * hold their tables, and skips the rest — a change for a table these sinks
- * do not hold belongs to another store, and one this build has no codec for
- * belongs to no store at all.
+ * do not hold belongs to another store, or to none this build carries.
  */
 export function applyChangesToSinks(sinks: RowSinks, changes: readonly PullChange[]): void {
   for (const change of changes) {
-    const known = codecFor(change.table)
-    if (!known || !sinks[known.table]) continue
-    if (change.deleted) removeCascading(sinks, known.table, change.id)
-    else if (change.row) {
-      applyToSink(sinks, known.table, known.codec.parse(change.id, change.row as SyncRow))
-    }
+    const table = change.table as SyncTable
+    const sink = Object.hasOwn(sinks, table) ? sinks[table] : undefined
+    if (!sink) continue
+    if (change.deleted) removeCascading(sinks, table, change.id)
+    else if (change.row)
+      applyToSink(sinks, table, sink.spec.parse(change.id, change.row as SyncRow))
   }
 }
 
@@ -96,7 +116,7 @@ export function applyChangesToSinks(sinks: RowSinks, changes: readonly PullChang
  * is laid over (`sync/writeFunnel.ts`).
  */
 export function currentRowIn(sinks: RowSinks, table: string, id: string): SyncRow | undefined {
-  const known = codecFor(table)
-  const value = known ? sinks[known.table]?.get(id) : undefined
-  return value === undefined ? undefined : encodedRow(known!.table, value)
+  const sink = Object.hasOwn(sinks, table) ? sinks[table as SyncTable] : undefined
+  const value = sink?.get(id)
+  return value === undefined ? undefined : encodedRow(sink!.spec, value)
 }

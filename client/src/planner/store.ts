@@ -14,16 +14,10 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import { bucketedRows, bucketSink } from '@/sync/bucketedRows'
 import type { FeatureStore } from '@/sync/featureModule'
-import { applyChangesToSinks, type RowSinks } from '@/sync/sinks'
-import type {
-  DayEntry,
-  DayEntryTraveler,
-  Idea,
-  IdeaComment,
-  IdeaImage,
-  IdeaTrack,
-  IdeaVote,
-} from '@/types/domain'
+import { applyChangesToSinks, specifiedSinks, type RowSinks } from '@/sync/sinks'
+import { PLANNER_ROWS } from './rows'
+import type { IdeaImage, IdeaTrack } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea, IdeaComment, IdeaVote } from './types'
 import { TABLE } from '@/api/tables'
 
 export const usePlannerStore = defineStore('planner', () => {
@@ -92,7 +86,7 @@ export const usePlannerStore = defineStore('planner', () => {
   }
 
   /** The sinks, one per table this module holds — the whole of what the kernel reads. */
-  const sinks: RowSinks = {
+  const sinks: RowSinks = specifiedSinks(PLANNER_ROWS, {
     [TABLE.ideas]: bucketSink(ideas),
     [TABLE.ideaVotes]: bucketSink(votes),
     [TABLE.ideaComments]: bucketSink(comments),
@@ -100,7 +94,7 @@ export const usePlannerStore = defineStore('planner', () => {
     [TABLE.dayEntries]: bucketSink(dayEntries),
     [TABLE.dayEntryTravelers]: bucketSink(entryTravelers),
     [TABLE.ideaTracks]: bucketSink(tracks),
-  }
+  })
 
   function applyChanges(changes: PullChange[]): void {
     applyChangesToSinks(sinks, changes)

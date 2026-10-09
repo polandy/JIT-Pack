@@ -1,7 +1,7 @@
 /** §3.33: the meal plan's rules — pure, so Local Mode keeps every one. */
 import { describe, expect, it } from 'vitest'
 
-import type { Meal, MealIngredient } from '@/types/domain'
+import type { Meal, MealIngredient } from '../../types'
 import {
   boughtShare,
   canMove,

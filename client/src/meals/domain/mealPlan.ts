@@ -7,16 +7,16 @@
  */
 import { addDays, daysBetween, daysOf } from '@/domain/shared/calendar'
 import type { MealExcursion, MealTrip } from '@/domain/shared/mealContext'
-import type { Meal, MealIngredient, MealKind, MealSlot } from '@/types/domain'
+import type { Meal, MealIngredient, MealKind, MealSlot } from '../types'
 import { UNIT_PATTERN } from './units'
+import { ITEM_MODE_BUY_BEFORE } from '@/types/domain'
 import {
-  ITEM_MODE_BUY_BEFORE,
   MEAL_KIND_COOK,
   MEAL_SLOT_BREAKFAST,
   MEAL_SLOT_DINNER,
   MEAL_SLOT_LUNCH,
   MEAL_SLOTS,
-} from '@/types/domain'
+} from '../types'
 
 /**
  * Where a meal without a time stands on its day (FR-33.1) — it orders the

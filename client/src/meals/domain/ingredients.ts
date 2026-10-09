@@ -6,7 +6,7 @@
 import { foldSearch, spellOutUmlauts } from '@/domain/shared/search'
 import { daysBetween } from '@/domain/shared/calendar'
 import type { MealTrip } from '@/domain/shared/mealContext'
-import type { Meal, MealIngredient } from '@/types/domain'
+import type { Meal, MealIngredient } from '../types'
 import { parseIngredient } from './mealPlan'
 import { namedTotal, unitOf, type Unit, type UnitFamily } from './units'
 

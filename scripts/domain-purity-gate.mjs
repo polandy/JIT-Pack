@@ -55,6 +55,13 @@ const DOMAINS = ['domain', 'planner/domain', 'meals/domain']
 const ALLOWED_DIRS = ['api', 'domain', 'types']
 
 /**
+ * A module's rules read the shapes of its own rows, which live beside them in
+ * `<m>/types.ts` — the module's `types/`, vocabulary like the kernel's
+ * (ADR-066 amendment 2).
+ */
+const ownTypes = (home) => `${home.split('/')[0]}/types`
+
+/**
  * The kernel's rules a feature module may read (ADR-097): the calendar, the
  * due day, a track, the ports' shapes. A module reaches them by folder
  * (`module-boundary-gate.mjs`), so the folder must not lead on into the rest
@@ -134,7 +141,8 @@ for (const file of DOMAINS.flatMap((dir) => walk(resolve(SRC, dir)))) {
       )
       continue
     }
-    if (!ALLOWED_DIRS.includes(layer) && !inside.startsWith(`${home}/`)) {
+    const allowed = ALLOWED_DIRS.includes(layer) || inside === ownTypes(home)
+    if (!allowed && !inside.startsWith(`${home}/`)) {
       problems.push(
         `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,
       )

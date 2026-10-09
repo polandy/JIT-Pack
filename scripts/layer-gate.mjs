@@ -56,7 +56,8 @@ const LAYERS = [
   {
     name: 'vocabulary',
     // Wire types, words, tokens, URLs. A module's own catalogue is words like
-    // the kernel's, read by `i18n/index.ts` (ADR-079).
+    // the kernel's, read by `i18n/index.ts` (ADR-079); its `types.ts` is the
+    // shapes of its rows, which its rules read (ADR-066 amendment 2).
     paths: [
       'types',
       'api',
@@ -64,7 +65,7 @@ const LAYERS = [
       'theme',
       'assets',
       'router/paths',
-      ...MODULES.map((m) => `${m}/i18n`),
+      ...MODULES.flatMap((m) => [`${m}/i18n`, `${m}/types`]),
     ],
   },
   { name: 'domain', paths: ['domain', ...MODULES.map((m) => `${m}/domain`)] },

@@ -6,7 +6,7 @@
  */
 
 import { bucketedRows, bucketSink, keyedSink } from '@/sync/bucketedRows'
-import { TABLE } from '@/api/tables'
+import { TABLE, type SyncTable } from '@/api/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -33,14 +33,19 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, STATE_PACKED } from '@/types
 import type { PullChange } from '@/api/types'
 import { unitsOf } from '@/domain/packState'
 import {
-  codecFor,
   encodedRow,
-  TABLE_SPECS,
+  KERNEL_TABLE_SPECS,
   todoCodec,
   tripTodoCodec,
   type SyncRow,
 } from '@/sync/tableRegistry'
-import { applyToSink, currentRowIn, removeCascading, type RowSinks } from '@/sync/sinks'
+import {
+  applyToSink,
+  currentRowIn,
+  removeCascading,
+  specifiedSinks,
+  type RowSinks,
+} from '@/sync/sinks'
 
 export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
@@ -320,7 +325,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /** The sinks, one per table this store holds. */
-  const sinks: RowSinks = {
+  const sinks: RowSinks = specifiedSinks(KERNEL_TABLE_SPECS, {
     [TABLE.trips]: keyedSink(trips),
     [TABLE.tripItems]: bucketSink(itemRows),
     [TABLE.travelers]: bucketSink(travelerRows),
@@ -349,12 +354,12 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.excursionTravelers]: bucketSink(excursionTravelerRows),
     [TABLE.excursionItems]: bucketSink(excursionItemRows),
     [TABLE.excursionTracks]: bucketSink(excursionTrackRows),
-  }
+  })
 
   function applyChange(change: PullChange): void {
-    const known = codecFor(change.table)
-    if (!known || !sinks[known.table]) return
-    const { table, codec } = known
+    const table = change.table as SyncTable
+    const sink = Object.hasOwn(sinks, table) ? sinks[table] : undefined
+    if (!sink) return
     if (change.deleted) {
       removeCascading(sinks, table, change.id)
       return
@@ -367,7 +372,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     if (table === TABLE.comments) {
       sinks[TABLE.comments]?.remove(change.id)
       if (!row['is_task']) {
-        commentRows.upsert(TABLE_SPECS[TABLE.comments].parse(change.id, row))
+        commentRows.upsert(KERNEL_TABLE_SPECS[TABLE.comments].parse(change.id, row))
       } else if (row['trip_item_id'] == null) {
         // FR-7.4: a task with no row is the trip's own.
         tripTodoRows.upsert(tripTodoCodec.parse(change.id, row))
@@ -376,7 +381,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       }
       return
     }
-    applyToSink(sinks, table, codec.parse(change.id, row))
+    applyToSink(sinks, table, sink.spec.parse(change.id, row))
   }
 
   function applyChanges(changes: PullChange[]): void {
@@ -393,7 +398,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   function currentRow(table: string, id: string): SyncRow | undefined {
     if (table !== TABLE.comments) return currentRowIn(sinks, table, id)
     const comment = commentRows.find(id)
-    if (comment) return encodedRow(TABLE.comments, comment)
+    if (comment) return encodedRow(KERNEL_TABLE_SPECS[TABLE.comments], comment)
     const todo = todoRows.find(id)
     if (todo) return (todoCodec.encode as (t: ItemTodo) => SyncRow)(todo)
     const tripTodo = tripTodoRows.find(id)

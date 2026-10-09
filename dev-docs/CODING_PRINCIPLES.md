@@ -57,13 +57,15 @@ internal/webui/              serves the built client beside the API on one origi
 
 The client's layers, each importing only from itself and those before it, with no exception (ADR-096;
 `scripts/layer-gate.mjs`, which also refuses a file in no layer and a package its layer avoids, as the table below
-says). A feature module (`shopping/`, `planner/`, `meals/`) sits beside `views/` and reaches the kernel's code
-through `kernel/`, `composables/shared/` and `domain/shared/` alone. The rule directories (`domain/`, a module's
-`domain/`) read only `types/`, `api/` and `domain/` (`scripts/domain-purity-gate.mjs`); `domain/shared/`, the rules a
-module reads too, reads only itself and the vocabulary (ADR-097). A port a module's rules read keeps its shape in
-`domain/shared/` and only its `InjectionKey` in `kernel/`, and a port a rule is handed (`ImportMutations`) is declared
-by the rule, its option shapes in `types/`. The composition root — `App.vue`, `main.ts`, `router/index.ts` and the
-dev seed in `dev/` — may import every layer and is imported by none.
+says). A feature module (`shopping/`, `planner/`, `meals/`) sits beside `views/` and reaches the kernel's code through
+`kernel/`, `composables/shared/` and `domain/shared/` alone. Its `i18n/` and `types.ts` are vocabulary, its `domain/`
+rules, and its `rows.ts` declares its tables' codecs, which its store hands the kernel on its sinks (ADR-066 amendment
+2). The rule directories (`domain/`, a module's `domain/`) read only `types/`, `api/`, `domain/` and their module's
+`types.ts` (`scripts/domain-purity-gate.mjs`); `domain/shared/`, the rules a module reads too, reads only itself and
+the vocabulary (ADR-097). A port a module's rules read keeps its shape in `domain/shared/` and only its `InjectionKey`
+in `kernel/`, and a port a rule is handed (`ImportMutations`) is declared by the rule, its option shapes in `types/`.
+The composition root — `App.vue`, `main.ts`, `router/index.ts` and the dev seed in `dev/` — may import every layer and
+is imported by none.
 
 ```
 client/src/types, api, i18n, theme, assets, router/paths   the vocabulary: wire types, words, tokens, URLs

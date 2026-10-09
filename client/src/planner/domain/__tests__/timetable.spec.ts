@@ -5,8 +5,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { DAY_ENTRY_CONNECTION, EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT } from '@/types/domain'
-import type { ConnectionLeg, DayEntry, ExcursionRole } from '@/types/domain'
+import { DAY_ENTRY_CONNECTION, EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT } from '../../types'
+import type { ConnectionLeg, DayEntry, ExcursionRole } from '../../types'
 import {
   changeSeed,
   nearStops,

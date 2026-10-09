@@ -25,14 +25,9 @@ import { confirmDestructive } from '@/composables/shared/confirm'
 import { MEAL_CONTEXT } from '@/kernel/mealContext'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast, TOAST_DURATION_MS } from '@/composables/shared/toast'
-import type { MealKind, MealSlot } from '@/types/domain'
-import {
-  ITEM_MODE_BUY_BEFORE,
-  ITEM_MODE_BUY_LOCAL,
-  MEAL_KIND_COOK,
-  MEAL_KIND_OUT,
-  MEAL_SLOTS,
-} from '@/types/domain'
+import type { MealKind, MealSlot } from './types'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+import { MEAL_KIND_COOK, MEAL_KIND_OUT, MEAL_SLOTS } from './types'
 import { createMealActions, type DraftIngredient } from './actions'
 import {
   SLOT_PLACE,

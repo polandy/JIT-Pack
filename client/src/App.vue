@@ -124,7 +124,7 @@ import { EXCURSION_EXTRA_LINES } from '@/kernel/excursionExtraLines'
 import type { MealContext } from '@/domain/shared/mealContext'
 import { MEAL_CONTEXT } from '@/kernel/mealContext'
 import { spanOf } from '@/domain/excursionSchedule'
-import { IDEA_STATE_SHORTLISTED } from '@/types/domain'
+import { IDEA_STATE_SHORTLISTED } from '@/planner'
 import { ACTIVITY_READERS } from '@/kernel/activityReaders'
 
 const mode = ref(readMode())

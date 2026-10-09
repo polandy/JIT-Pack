@@ -10,8 +10,6 @@
  * `satisfies Record<keyof T, unknown>`.
  */
 import type {
-  Meal,
-  MealIngredient,
   Container,
   DestinationChecklistItem,
   DestinationProfile,
@@ -22,8 +20,6 @@ import type {
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
-  DayEntryTraveler,
-  ShoppingEntry,
   TaskFacts,
   TripTodo,
   MasterItem,
@@ -34,14 +30,10 @@ import type {
   TripItem,
   TripMember,
   TripSeries,
-  DayEntry,
-  Idea,
-  IdeaComment,
   IdeaImage,
   IdeaTrack,
   ExcursionTrack,
   TrackFields,
-  IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
 import type { TrackSettings } from '@/domain/shared/track'
@@ -235,106 +227,6 @@ export function containerRow(container: Container): Record<string, unknown> {
   }
 }
 
-/** FR-30.1: a shopping entry as its row. */
-/** FR-29.1: an idea. */
-export function ideaRow(idea: Idea): Record<string, unknown> {
-  return {
-    trip_id: idea.trip_id,
-    author_id: idea.author_id,
-    title: idea.title,
-    note: idea.note,
-    link: idea.link,
-    tag: idea.tag,
-    rain_proof: dbBool(idea.rain_proof),
-    state: idea.state,
-    created_at: idea.created_at,
-    planned_on: idea.planned_on,
-    planned_at: idea.planned_at,
-  }
-}
-
-/** FR-29.15: an entry of the day plan's own. */
-export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
-  return {
-    trip_id: entry.trip_id,
-    author_id: entry.author_id,
-    kind: entry.kind,
-    on_date: entry.on_date,
-    at_time: entry.at_time,
-    title: entry.title,
-    note: entry.note,
-    link: entry.link,
-    legs: jsonColumn(entry.legs),
-    excursion_id: entry.excursion_id ?? null,
-    excursion_role: entry.excursion_role ?? null,
-  }
-}
-
-/** FR-29.15: one traveller a day-plan entry is for. */
-export function dayEntryTravelerRow(row: DayEntryTraveler): Record<string, unknown> {
-  return {
-    trip_id: row.trip_id,
-    day_entry_id: row.day_entry_id,
-    traveler_id: row.traveler_id,
-  }
-}
-
-/** FR-33.1: a meal of the meal plan. */
-export function mealRow(meal: Meal): Record<string, unknown> {
-  return {
-    trip_id: meal.trip_id,
-    on_date: meal.on_date,
-    slot: meal.slot,
-    title: meal.title,
-    kind: meal.kind,
-    at_time: meal.at_time,
-    note: meal.note,
-    place: meal.place,
-    cook_user_id: meal.cook_user_id,
-    excursion_id: meal.excursion_id,
-    excursion_packed_at: meal.excursion_packed_at,
-  }
-}
-
-/** FR-33.2: an ingredient of a meal. */
-export function mealIngredientRow(ingredient: MealIngredient): Record<string, unknown> {
-  return {
-    trip_id: ingredient.trip_id,
-    meal_id: ingredient.meal_id,
-    name: ingredient.name,
-    amount: ingredient.amount,
-    list: ingredient.list,
-    position: ingredient.position,
-    bought: dbBool(ingredient.bought),
-    bought_at: ingredient.bought_at,
-    bought_by_user_id: ingredient.bought_by_user_id,
-    shopping_position: ingredient.shopping_position,
-    fresh: ingredient.fresh === null ? null : dbBool(ingredient.fresh),
-  }
-}
-
-/** FR-29.3: one person's vote on one idea. */
-export function ideaVoteRow(vote: IdeaVote): Record<string, unknown> {
-  return {
-    trip_id: vote.trip_id,
-    idea_id: vote.idea_id,
-    user_id: vote.user_id,
-    vote: vote.vote,
-  }
-}
-
-/** FR-29.4: one entry of an idea's discussion. */
-export function ideaCommentRow(comment: IdeaComment): Record<string, unknown> {
-  return {
-    trip_id: comment.trip_id,
-    idea_id: comment.idea_id,
-    author_id: comment.author_id,
-    body: comment.body,
-    created_at: comment.created_at,
-    edited_at: comment.edited_at,
-  }
-}
-
 export function ideaImageRow(image: IdeaImage): Record<string, unknown> {
   return {
     trip_id: image.trip_id,
@@ -387,23 +279,6 @@ export function excursionTrackRow(track: ExcursionTrack): Record<string, unknown
     trip_id: track.trip_id,
     excursion_id: track.excursion_id,
     ...trackFieldsRow(track),
-  }
-}
-
-export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> {
-  return {
-    trip_id: entry.trip_id,
-    name: entry.name,
-    list: entry.list,
-    bought: dbBool(entry.bought),
-    tag: entry.tag,
-    bought_at: entry.bought_at,
-    bought_by_user_id: entry.bought_by_user_id,
-    due_date: entry.due_date,
-    assignee_user_id: entry.assignee_user_id,
-    carried_over_at: entry.carried_over_at ?? null,
-    position: entry.position ?? null,
-    idea_id: entry.idea_id ?? null,
   }
 }
 

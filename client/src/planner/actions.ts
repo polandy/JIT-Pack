@@ -25,19 +25,18 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { cascadeChanges, cascadeOf, cascadeTombstones } from '@/sync/cascade'
 import { optimisticDelete } from '@/sync/optimistic'
 import { trackSettingsColumns } from '@/sync/rows'
+import type { IdeaImage, IdeaTrack } from '@/types/domain'
 import type {
   ConnectionLeg,
   DayEntry,
   ExcursionRole,
   Idea,
   IdeaComment,
-  IdeaImage,
   IdeaState,
-  IdeaTrack,
   IdeaTag,
   IdeaVoteValue,
-} from '@/types/domain'
-import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE, IDEA_STATE_IDEA } from '@/types/domain'
+} from './types'
+import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE, IDEA_STATE_IDEA } from './types'
 import { TABLE } from '@/api/tables'
 import { connectionDay, connectionTitle, timeOf } from './domain/connections'
 import type { VoteTally } from './domain/ideas'

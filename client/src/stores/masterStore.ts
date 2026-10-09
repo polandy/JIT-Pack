@@ -24,8 +24,8 @@ import type {
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import type { SyncRow } from '@/sync/tableRegistry'
-import { applyChangesToSinks, currentRowIn, type RowSinks } from '@/sync/sinks'
+import { applyChangesToSinks, currentRowIn, specifiedSinks, type RowSinks } from '@/sync/sinks'
+import { KERNEL_TABLE_SPECS, type SyncRow } from '@/sync/tableRegistry'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem, withCategories } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
@@ -303,7 +303,7 @@ export const useMasterStore = defineStore('master', () => {
    * The sinks, one per table this store holds — the *only* place that says
    * where a table's rows live.
    */
-  const sinks: RowSinks = {
+  const sinks: RowSinks = specifiedSinks(KERNEL_TABLE_SPECS, {
     [TABLE.tags]: keyedSink(tags),
     [TABLE.taskTags]: keyedSink(taskTags),
     [TABLE.itemTags]: keyedSink(itemTags),
@@ -317,7 +317,7 @@ export const useMasterStore = defineStore('master', () => {
     [TABLE.destinationProfiles]: keyedSink(profiles),
     [TABLE.destinationChecklistItems]: keyedSink(checklistItems),
     [TABLE.itemDependencies]: keyedSink(dependencies),
-  }
+  })
 
   /**
    * Applies pulled or optimistic changes; a tombstone takes what its delete

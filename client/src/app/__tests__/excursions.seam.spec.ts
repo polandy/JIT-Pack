@@ -19,6 +19,8 @@ import { changesOf, makeSeamContext, pullIn, type Recorded, type SeamContext } f
 import { TABLE } from '@/api/tables'
 import { ref } from 'vue'
 import { keyedSink } from '@/sync/bucketedRows'
+import { specifiedSinks } from '@/sync/sinks'
+import { PLANNER_ROWS } from '@/planner/rows'
 
 /** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
 const noTrackFiles = {
@@ -336,7 +338,7 @@ describe('deleting — FR-31.1, FR-31.5', () => {
     seedTrip()
     ctx.features = [
       {
-        sinks: {
+        sinks: specifiedSinks(PLANNER_ROWS, {
           [TABLE.dayEntryTravelers]: keyedSink(
             ref(
               new Map([
@@ -347,7 +349,7 @@ describe('deleting — FR-31.1, FR-31.5', () => {
               ]),
             ),
           ),
-        },
+        }),
       },
     ]
     const comments = createCommentActions(ctx)

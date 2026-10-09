@@ -3,7 +3,7 @@
  * which slot, and the time the two leave on the spot. Pure, so the excursion's
  * card and M27's list read one rule.
  */
-import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type DayEntry } from '@/types/domain'
+import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type DayEntry } from '../types'
 import { dayOf, timeOf } from './connections'
 
 /** An excursion's connections, by the slot they fill. */

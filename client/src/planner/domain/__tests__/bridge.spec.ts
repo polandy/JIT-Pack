@@ -11,7 +11,7 @@ import {
   IDEA_STATE_DROPPED,
   IDEA_STATE_IDEA,
   IDEA_STATE_SHORTLISTED,
-} from '@/types/domain'
+} from '../../types'
 import { offeredResults } from '../bridge'
 
 function result(kind: IdeaResult['kind'], key = kind): IdeaResult {

@@ -3,7 +3,7 @@
  * arrangement: the rule is `domain/journey.ts`'s, this file only names it.
  */
 import { t } from '@/i18n'
-import type { DayEntry } from '@/types/domain'
+import type { DayEntry } from './types'
 import { connectionSummary } from './domain/connections'
 import { journeyTimes, type ExcursionJourney, type JourneyBudget } from './domain/journey'
 

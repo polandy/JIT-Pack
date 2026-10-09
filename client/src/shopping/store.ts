@@ -13,8 +13,10 @@ import { ref } from 'vue'
 import type { PullChange } from '@/api/types'
 import { bucketedRows, bucketSink } from '@/sync/bucketedRows'
 import type { FeatureStore } from '@/sync/featureModule'
-import { applyChangesToSinks, type RowSinks } from '@/sync/sinks'
-import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
+import { applyChangesToSinks, specifiedSinks, type RowSinks } from '@/sync/sinks'
+import { SHOPPING_ROWS } from './rows'
+import type { ShoppingMode } from '@/types/domain'
+import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
 export const useShoppingStore = defineStore('shopping', () => {
@@ -59,9 +61,9 @@ export const useShoppingStore = defineStore('shopping', () => {
   }
 
   /** The sinks, one per table this module holds — the whole of what the kernel reads. */
-  const sinks: RowSinks = {
+  const sinks: RowSinks = specifiedSinks(SHOPPING_ROWS, {
     [TABLE.shoppingEntries]: bucketSink(entries),
-  }
+  })
 
   function applyChanges(changes: PullChange[]): void {
     applyChangesToSinks(sinks, changes)

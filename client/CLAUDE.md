@@ -102,6 +102,10 @@ areas; an excursion's parts live in `views/trips/excursion/` beside its pages, i
   mounts, its rules in `meals/domain/`. It reads the trip through `kernel/mealContext.ts` and reaches M6, M29, M27
   and M1 through `kernel/shoppingSources.ts`, `kernel/dayPlanSources.ts`, `kernel/excursionExtraLines.ts` and
   `kernel/tripCards.ts`.
+- **A module's rows live in the module** — its entity types in `<m>/types.ts` (vocabulary, so its rules read them),
+  its codecs and `RowSpec`s in `<m>/rows.ts`, handed to the kernel on its store's sinks (`specifiedSinks`). The
+  kernel's `KERNEL_TABLE_SPECS` names none of a module's tables; `src/__tests__/moduleRows.spec.ts` holds every
+  `TABLE.*` specified exactly once across both (ADR-066 amendment 2).
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.

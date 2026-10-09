@@ -2,8 +2,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { DayPlanLine } from '@/domain/shared/dayPlanLine'
-import type { DayEntry, DayEntryTraveler, Idea, IdeaState, Traveler } from '@/types/domain'
-import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '@/types/domain'
+import type { Traveler } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea, IdeaState } from '../../types'
+import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '../../types'
 import {
   DAY_LINE,
   MAX_PLAN_DAYS,

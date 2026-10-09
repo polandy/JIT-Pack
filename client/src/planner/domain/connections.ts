@@ -14,7 +14,7 @@ import {
   type ConnectionLeg,
   type LatLon,
   type LegMode,
-} from '@/types/domain'
+} from '../types'
 import { addDays, daysBetween } from '@/domain/shared/calendar'
 
 // --- what a leg travels by ---
