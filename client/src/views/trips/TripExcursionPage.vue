@@ -18,7 +18,6 @@ import {
   IonFab,
   IonFabButton,
   IonIcon,
-  IonList,
   IonPage,
   actionSheetController,
 } from '@ionic/vue'
@@ -27,7 +26,6 @@ import {
   bagAddOutline,
   bagHandleOutline,
   cartOutline,
-  chevronDownOutline,
   contractOutline,
   createOutline,
   cubeOutline,
@@ -53,20 +51,21 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TrackEditor from '@/components/global/TrackEditor.vue'
 import TrackSummary from '@/components/global/TrackSummary.vue'
-import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ExcursionFacts from './excursion/ExcursionFacts.vue'
 import ExcursionItemSheet from './excursion/ExcursionItemSheet.vue'
 import ExcursionNotes from './excursion/ExcursionNotes.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
 import { useExcursionAdd } from './excursion/useExcursionAdd'
 import { useExcursionRowPort } from './excursion/useExcursionRowPort'
+import PackingGroupList from './packing/PackingGroupList.vue'
 import RowQuantityPopover from './packing/RowQuantityPopover.vue'
 import { actUndoably } from './packing/rowPort'
 import { useBrowseVerbs } from './packing/useBrowseVerbs'
 import { usePackingListShape } from './packing/usePackingListShape'
+import type { ListFacts } from './packing/useRowFacts'
 import { useRowQuantity } from './packing/useRowQuantity'
 import { useRowSteps } from './packing/useRowSteps'
-import PackingRow, { type PackingRowNotes } from '@/components/trips/PackingRow.vue'
+import type { PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
@@ -75,7 +74,7 @@ import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useLongPress } from '@/composables/shared/useLongPress'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { useDesktopLayout } from '@/composables/useDesktopLayout'
+import { useDesktopLayout } from '@/composables/shared/useDesktopLayout'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useTrackOwner } from '@/composables/shared/useTrackOwner'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
@@ -111,7 +110,6 @@ import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { useTileState } from '@/composables/shared/mapTiles'
 import { useRouteFold } from '@/composables/routeFold'
 import { SWITCH_KEYS } from '@/lib/packingFilterPanel'
-import { collapseRow } from '@/lib/rowCollapse'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { sheetBandAttrs } from '@/lib/sheetBands'
 import { presentToast } from '@/composables/shared/toast'
@@ -125,7 +123,7 @@ import {
 } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy } from '@/types/domain'
+import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
@@ -301,6 +299,22 @@ function masterOf(sourceItemId: string | null) {
   return sourceItemId ? (masterStore.getItem(sourceItemId) ?? null) : null
 }
 
+/**
+ * M4's row resolvers as a line answers them: nobody holds or is handed a
+ * line, it has no preparation and nothing borrows it — only the master's
+ * photo and mark carry over (FR-28.7).
+ */
+const lineFacts: ListFacts = {
+  locked: () => false,
+  rowNotes: () => NO_NOTES,
+  edgeAvatarFor: () => null,
+  assignableRow: () => false,
+  masterOf: (item) => masterOf(item.source_item_id),
+  clusterMaster: (cluster) => masterOf(cluster.sourceItemId),
+  openTodoCount: () => 0,
+  borrowedBy: () => [],
+}
+
 /** FR-25.29: a tap toggles that person in the person facet — M4's quick filter. */
 function selectPerson(value: string) {
   toggleValue('person', value)
@@ -312,12 +326,6 @@ const content = ref<{ $el: HTMLIonContentElement } | null>(null)
 const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(content)
 
 // --- the line's acts, each behind M4's snackbar and its one undo (FR-25.31) ---
-
-/** Collapse a leaving row to nothing — M4's `collapseRow`, honouring reduced motion. */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-function onRowLeave(el: Element, done: () => void) {
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
-}
 
 /** FR-5.8 on a line: off the list, M4's snackbar with its undo. */
 function removeLine(line: ExcursionItem) {
@@ -390,7 +398,7 @@ const isDesktop = useDesktopLayout()
  * for M4's reason — the release falls on the overlay, not the row.
  */
 let menuActive = false
-const hold = useLongPress<ExcursionItem>((line) => void openLine(line))
+const hold = useLongPress<TripItem>((row) => void openLine(lineOf(row)))
 
 /**
  * Pushed, unlike M5's `?item=`: under M4 sits a tab's root, and the overlay
@@ -399,9 +407,9 @@ const hold = useLongPress<ExcursionItem>((line) => void openLine(line))
  * query is the same page (Ionic keeps one per path), so the browser's back
  * only closes the sheet, and ✕ takes that same step back when it can.
  */
-function openSheet(line: ExcursionItem) {
+function openSheet(lineId: string) {
   if (menuActive) return
-  void router.push(tripExcursionLinePath(props.tripId, props.excursionId, line.id))
+  void router.push(tripExcursionLinePath(props.tripId, props.excursionId, lineId))
 }
 
 function closeSheet(): Promise<unknown> {
@@ -878,143 +886,43 @@ setHeaderTitle(
 
         <ExcursionExtraList :lines="extras" />
 
-        <IonList v-if="view.groups.length > 0" class="excursion-list">
-          <template v-for="group in view.groups" :key="group.key">
-            <button
-              class="group-head"
-              :class="{ shut: group.collapsed }"
-              :data-testid="`m27-group-${group.key || 'none'}`"
-              @click="toggleGroup(group.key)"
-            >
-              <IonIcon :icon="chevronDownOutline" class="caret" />
-              <span class="group-name">{{ group.name ?? t('common.none') }}</span>
-              <span class="group-count">
-                {{
-                  group.collapsed
-                    ? t('packing.openCount', { n: group.openCount })
-                    : `${group.doneCount}/${group.totalCount}`
-                }}
-              </span>
-            </button>
-
-            <!-- FR-25.2 as on M4: a packed row leaves rather than vanishes. -->
-            <TransitionGroup
-              v-if="!group.collapsed"
-              name="pack-out"
-              tag="div"
-              class="group-card jp-card"
-              @leave="onRowLeave"
-            >
-              <template
-                v-for="entry in group.entries"
-                :key="entry.kind === 'item' ? entry.item.id : entry.key"
-              >
-                <div v-if="entry.kind === 'cluster'" class="cluster">
-                  <ClusterHead
-                    screen="m27"
-                    :name="entry.name"
-                    :mode="entry.mode"
-                    :late="false"
-                    :done-count="entry.doneCount"
-                    :total-count="entry.totalCount"
-                    :open-count="entry.openCount"
-                    :collapsed="entry.collapsed"
-                    :faces="entry.faces"
-                    :master="masterOf(entry.sourceItemId)"
-                    @toggle="toggleCluster(entry.key)"
-                  />
-                  <div v-if="!entry.collapsed" class="cluster-children">
-                    <PackingRow
-                      v-for="child in entry.children"
-                      :key="child.item.id"
-                      screen="m27"
-                      variant="child"
-                      :item="child.item"
-                      :label="child.traveler?.name ?? child.label"
-                      :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
-                      :done="child.done"
-                      :locked="false"
-                      :closing-pass="false"
-                      :notes="NO_NOTES"
-                      :traveler="child.traveler"
-                      @open="openSheet(lineOf(child.item))"
-                      @menu="openLine(lineOf(child.item))"
-                      @press-start="
-                        (e: PointerEvent) => hold.down(lineOf(child.item), e.clientX, e.clientY)
-                      "
-                      @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                      @press-end="hold.cancel()"
-                      @edit-quantity="(e: MouseEvent) => quantity.open(child.item, e)"
-                      @increment="steps.onIncrement(child.item)"
-                      @decrement="steps.onDecrement(child.item)"
-                      @complete="steps.onComplete(child.item)"
-                      @zero="steps.onZero(child.item)"
-                      @toggle="steps.onToggle(child.item)"
-                    >
-                      <template #facts>
-                        <ExcursionFacts
-                          :line="lineOf(child.item)"
-                          :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
-                          :from-luggage="suitcaseOf(lineOf(child.item), tripItems) !== null"
-                          :left-behind="
-                            child.item.packed_count > 0 &&
-                            isLeftBehind(lineOf(child.item), participants)
-                          "
-                          :can-keep="canJoinPackingList(lineOf(child.item))"
-                          :can-adopt="canAdoptIntoInventory(lineOf(child.item))"
-                          @buy-on-site="buyOnSite(lineOf(child.item))"
-                          @take-out="removeLine(lineOf(child.item))"
-                          @keep="keep(lineOf(child.item))"
-                          @adopt="adopt(lineOf(child.item))"
-                        />
-                      </template>
-                    </PackingRow>
-                  </div>
-                </div>
-
-                <PackingRow
-                  v-else
-                  screen="m27"
-                  :item="entry.item"
-                  :label="entry.label"
-                  :test-key="entry.item.name"
-                  :done="entry.done"
-                  :locked="false"
-                  :closing-pass="false"
-                  :notes="NO_NOTES"
-                  :traveler="entry.traveler"
-                  :master="masterOf(entry.item.source_item_id)"
-                  @open="openSheet(lineOf(entry.item))"
-                  @menu="openLine(lineOf(entry.item))"
-                  @press-start="
-                    (e: PointerEvent) => hold.down(lineOf(entry.item), e.clientX, e.clientY)
-                  "
-                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                  @press-end="hold.cancel()"
-                  @edit-quantity="(e: MouseEvent) => quantity.open(entry.item, e)"
-                  @increment="steps.onIncrement(entry.item)"
-                  @decrement="steps.onDecrement(entry.item)"
-                  @complete="steps.onComplete(entry.item)"
-                  @zero="steps.onZero(entry.item)"
-                  @toggle="steps.onToggle(entry.item)"
-                >
-                  <template #facts>
-                    <ExcursionFacts
-                      :line="lineOf(entry.item)"
-                      :test-key="entry.item.name"
-                      :from-luggage="suitcaseOf(lineOf(entry.item), tripItems) !== null"
-                      :can-keep="canJoinPackingList(lineOf(entry.item))"
-                      :can-adopt="canAdoptIntoInventory(lineOf(entry.item))"
-                      @buy-on-site="buyOnSite(lineOf(entry.item))"
-                      @keep="keep(lineOf(entry.item))"
-                      @adopt="adopt(lineOf(entry.item))"
-                    />
-                  </template>
-                </PackingRow>
-              </template>
-            </TransitionGroup>
+        <PackingGroupList
+          v-if="view.groups.length > 0"
+          class="excursion-list"
+          screen="m27"
+          :trip-id="tripId"
+          :groups="view.groups"
+          :closing-pass="false"
+          :facts="lineFacts"
+          :row-hold="hold"
+          @toggle-group="toggleGroup"
+          @toggle-cluster="toggleCluster"
+          @open="openSheet"
+          @row-menu="(item: TripItem) => openLine(lineOf(item))"
+          @edit-quantity="quantity.open"
+          @increment="steps.onIncrement"
+          @decrement="steps.onDecrement"
+          @complete="steps.onComplete"
+          @zero="steps.onZero"
+          @toggle="steps.onToggle"
+        >
+          <template #facts="{ item, testKey, child }">
+            <ExcursionFacts
+              :line="lineOf(item)"
+              :test-key="testKey"
+              :from-luggage="suitcaseOf(lineOf(item), tripItems) !== null"
+              :left-behind="
+                child && item.packed_count > 0 && isLeftBehind(lineOf(item), participants)
+              "
+              :can-keep="canJoinPackingList(lineOf(item))"
+              :can-adopt="canAdoptIntoInventory(lineOf(item))"
+              @buy-on-site="buyOnSite(lineOf(item))"
+              @take-out="removeLine(lineOf(item))"
+              @keep="keep(lineOf(item))"
+              @adopt="adopt(lineOf(item))"
+            />
           </template>
-        </IonList>
+        </PackingGroupList>
 
         <!-- M4's empty states: narrowed, empty, or finished — never confused. -->
         <EmptyState
@@ -1285,98 +1193,18 @@ ion-content.excursion-content::part(scroll) {
   box-shadow: var(--jp-shadow-panel);
 }
 
-/* M4's group heads and cards (`packing/PackingGroupList.vue`), so the two lists read alike. */
+/* M4's list body (`packing/PackingGroupList.vue`) sits on the page's own ground. */
 .excursion-list {
   padding: 0;
   background: transparent;
 }
 
-.group-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  width: 100%;
-  padding: 20px 6px 8px;
-  background: none;
-  border: none;
-  color: var(--ct-text);
-  font-size: var(--jp-text-lg);
-  font-weight: var(--jp-weight-bold);
-  letter-spacing: var(--jp-tracking-display);
-  cursor: pointer;
-}
-
-/* The first group follows the chip row directly: its head needs no room
-   from a group above it, only from the row's own words. */
-.group-head:first-child {
-  padding-top: 4px;
-}
-
-.group-name {
-  flex: 1;
-  text-align: start;
-}
-
-.group-count {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  font-weight: var(--jp-weight-medium);
-}
-
-.group-card {
-  margin: 0 8px;
-}
-
-.group-card ion-item {
-  --padding-start: 12px;
-  --inner-padding-end: 10px;
-}
-
-.caret {
-  transition: transform 0.18s ease;
-}
-
-.group-head.shut .caret {
-  transform: rotate(-90deg);
-}
-
-.pack-out-leave-active {
-  transition:
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.3s ease,
-    background-color 0.3s ease;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.pack-out-leave-from {
-  background: color-mix(in srgb, var(--jp-done) 22%, transparent);
-}
-
-.pack-out-leave-to {
-  opacity: 0;
-}
-
-.pack-out-move {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .trip-line,
-  .pack-out-leave-active,
-  .pack-out-move {
+  .trip-line {
     transition: none;
   }
-
-  .pack-out-leave-from {
-    background: none;
-  }
 }
 
-.cluster-children {
-  border-inline-start: 2px solid var(--ct-surface1);
-  margin-inline-start: 12px;
-}
 .excursion-idea {
   margin: 0 16px 6px;
 }

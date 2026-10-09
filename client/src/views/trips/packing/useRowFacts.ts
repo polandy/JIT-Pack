@@ -15,11 +15,28 @@ import type { MasterItem, TripItem } from '@/types/domain'
 
 import type { PackingCore } from './usePackingCore'
 
-/** The row resolvers `PackingGroupList` renders through. */
-export type RowFacts = ReturnType<typeof useRowFacts>
+/**
+ * The row resolvers `PackingGroupList` renders through — the port M4 answers
+ * from its trip and M27 with a line's inert answers (FR-31.6).
+ */
+export interface ListFacts {
+  locked(item: TripItem): boolean
+  rowNotes(item: TripItem): PackingRowNotes
+  edgeAvatarFor(item: TripItem): RowEdgeAvatar | null
+  assignableRow(item: TripItem): boolean
+  masterOf(item: TripItem): MasterItem | null
+  clusterMaster(cluster: PackingCluster): MasterItem | null
+  openTodoCount(itemId: string): number
+  borrowedBy(itemId: string): readonly string[]
+}
+
+/** M4's {@link ListFacts}, with the lock's wording the browse sheet reads too. */
+export interface RowFacts extends ListFacts {
+  lockNote(item: TripItem): string | null
+}
 
 /** Builds {@link RowFacts} over the page's core. */
-export function useRowFacts(core: PackingCore) {
+export function useRowFacts(core: PackingCore): RowFacts {
   const { tripId, tripStore, masterStore, orchestrator, nameOf, locked } = core
 
   function openTodoCount(itemId: string): number {
