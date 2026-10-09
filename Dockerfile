@@ -35,7 +35,7 @@ RUN npm run build
 
 # Server build stage — pure-Go modernc.org/sqlite, no C toolchain needed
 # (ADR-001).
-FROM public.ecr.aws/docker/library/golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
+FROM public.ecr.aws/docker/library/golang:1.27-alpine@sha256:738d1cf061836894ff6bb8c33881080ac66de8cf0586615012a0c8f592649cfa AS build
 
 # The server names its own build too (FR-23.8): the release check compares
 # this tag against the newest release upstream, and a build that carries no
