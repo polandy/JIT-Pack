@@ -64,8 +64,8 @@ rules, and its `rows.ts` declares its tables' codecs, which its store hands the 
 `types.ts` (`scripts/domain-purity-gate.mjs`); `domain/shared/`, the rules a module reads too, reads only itself and
 the vocabulary (ADR-097). A port a module's rules read keeps its shape in `domain/shared/` and only its `InjectionKey`
 in `kernel/`, and a port a rule is handed (`ImportMutations`) is declared by the rule, its option shapes in `types/`.
-The composition root — `App.vue`, `main.ts`, `router/index.ts` and the dev seed in `dev/` — may import every layer and
-is imported by none.
+The composition root — `App.vue`, `featureModules.ts`, `main.ts`, `router/index.ts` and the dev seed in `dev/` — may
+import every layer and is imported by none.
 
 ```
 client/src/types, api, i18n, theme, assets, router/paths   the vocabulary: wire types, words, tokens, URLs

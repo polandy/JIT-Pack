@@ -66,66 +66,14 @@ import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
 import { installTripOpening } from '@/router/tripOpening'
 import { confirmAction } from '@/composables/shared/confirm'
 import { resolveHead } from '@/composables/shared/useHeaderTitle'
-import { createPackingShoppingSource } from '@/kernel/packingShoppingSource'
-import { createExcursionShoppingSource } from '@/kernel/excursionShoppingSource'
-import { pendingExcursionCount } from '@/domain/excursionSchedule'
-import { localIsoDate } from '@/domain/trips'
+import { composeModules, provideComposition } from '@/kernel/moduleContribution'
+import { kernelPorts } from '@/kernel/kernelPorts'
+import { FEATURE_MODULES } from '@/featureModules'
 import { defaultNowMs } from '@/lib/clock'
-import { SHOPPING_SOURCES } from '@/kernel/shoppingSources'
-import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
-import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/kernel/excursionConnections'
-import { createDayPlanSource, toggleTask } from '@/kernel/dayPlanSource'
-import { createIdeaResultSource } from '@/kernel/ideaResultSource'
-import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
+import { tripTodoProgress } from '@/domain/tripTodos'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/shared/useLiveLocation'
-import { TRIP_VIEW_COUNTS } from '@/kernel/tripViewCounts'
-import { newNoteCount } from '@/domain/tripNotes'
-import { tripTodoProgress } from '@/domain/tripTodos'
-import { DUE_PURCHASES, TRIP_CARDS } from '@/kernel/tripCards'
 import { useTripStore } from '@/stores/tripStore'
-import {
-  createShoppingActions,
-  duePurchases,
-  ShoppingDashboardCard,
-  shoppingCloseCrossing,
-  shoppingCount,
-  shoppingActivityReaders,
-  shoppingFeatureStore,
-  shoppingIdeaResults,
-  useShoppingStore,
-} from '@/shopping'
-import { PACKING_CLOSE_CROSSINGS } from '@/kernel/packingClose'
-import {
-  dayPlanEmpty,
-  ideaLookup,
-  ideasCount,
-  plannerActivityReaders,
-  plannerFeatureStore,
-  ExcursionConnections,
-  excursionJourneyLine,
-  PlannerTodayCard,
-  usePlannerStore,
-} from '@/planner'
-import {
-  MealSheet,
-  MealsTodayCard,
-  createMealActions,
-  createMealDayPlanSource,
-  createMealExcursionSource,
-  createMealShoppingSource,
-  mealActivityReaders,
-  mealFeatureStore,
-  useMealSheet,
-  useMealStore,
-  type MealSourceDeps,
-} from '@/meals'
-import { EXCURSION_EXTRA_LINES } from '@/kernel/excursionExtraLines'
-import type { MealContext } from '@/domain/shared/mealContext'
-import { MEAL_CONTEXT } from '@/kernel/mealContext'
-import { spanOf } from '@/domain/excursionSchedule'
-import { IDEA_STATE_SHORTLISTED } from '@/planner'
-import { ACTIVITY_READERS } from '@/kernel/activityReaders'
 
 const mode = ref(readMode())
 // FR-21.29: once per app start — not again on the reloads the app makes of itself.
@@ -173,7 +121,7 @@ const orchestrator = mode.value
       onRejections: showRejectionToast,
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
       // their rows without importing a module.
-      features: [shoppingFeatureStore(), plannerFeatureStore(), mealFeatureStore()],
+      features: FEATURE_MODULES.map((module) => module.featureStore()),
     })
   : null
 
@@ -269,167 +217,46 @@ if (liveLocation) {
 }
 
 /*
- * FR-30.2/30.3 (ADR-066): the composition root is the one place that knows
- * both the packing list and the shopping module. It binds the packing list's
- * buy-mode rows into the shopping list as a source, and hands the switcher
- * the module's count — so neither side imports the other.
+ * FR-30.3 (ADR-066 amendment 3): the composition root folds the kernel's
+ * ports and every module's contribution into one composition and provides
+ * it, so neither the packing side nor a module imports the other — and the
+ * root names no module.
  */
-/*
- * §3.33: what the meal plan reads of the trip — its trips, excursions and
- * shortlisted ideas — answered here, so the module imports neither side.
- */
-const mealContext: MealContext = {
-  trips: () =>
-    useTripStore().tripList.map((trip) => ({
-      id: trip.id,
-      name: trip.name,
-      start_date: trip.start_date,
-      end_date: trip.end_date,
-    })),
-  excursions: (tripId) =>
-    useTripStore()
-      .getExcursions(tripId)
-      .flatMap((excursion) => {
-        const span = spanOf(excursion)
-        return span
-          ? [{ id: excursion.id, name: excursion.name, from: span.from, to: span.to }]
-          : []
-      }),
-  shortlist: (tripId) =>
-    usePlannerStore()
-      .getIdeas(tripId)
-      .filter((idea) => idea.state === IDEA_STATE_SHORTLISTED)
-      .map((idea) => ({ id: idea.id, title: idea.title })),
-}
-provide(MEAL_CONTEXT, mealContext)
-const mealSources: MealSourceDeps | null = orchestrator
-  ? {
-      store: useMealStore(),
-      actions: createMealActions(orchestrator.moduleHost, useMealStore()),
-      sheet: useMealSheet(),
-      context: mealContext,
+const composition = orchestrator
+  ? composeModules(FEATURE_MODULES, {
+      module: orchestrator.moduleHost,
       today: orchestrator.today,
-    }
+      kernel: (sources) =>
+        kernelPorts(
+          {
+            trips: useTripStore(),
+            tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+            myUserId: () => useIdentityStore().myUserId,
+            now: clock,
+            packing: orchestrator.packing,
+            excursions: orchestrator.excursions,
+            comments: orchestrator.comments,
+          },
+          sources,
+        ),
+    })
   : null
-const mealExcursionSources = mealSources ? [createMealExcursionSource(mealSources)] : []
-// FR-33.6: a picnic on its excursion's list, counted in the rucksack's share.
-provide(EXCURSION_EXTRA_LINES, mealExcursionSources)
-
-const shoppingSources = orchestrator
-  ? [
-      createPackingShoppingSource(useTripStore(), orchestrator.packing),
-      // FR-31.8: an excursion's vor-Ort lines, bought at the kiosk on the way.
-      createExcursionShoppingSource(useTripStore(), orchestrator.excursions),
-      // FR-33.3: a meal's ingredients, under the meal plan's heading.
-      ...(mealSources ? [createMealShoppingSource(mealSources)] : []),
-    ]
-  : []
-provide(SHOPPING_SOURCES, shoppingSources)
-/*
- * FR-29.15: the day plan shows the packing side's excursions and dated tasks;
- * bound here, like the shopping sources, so the planner never imports them.
- */
-const dayPlanSources = orchestrator
-  ? [
-      createDayPlanSource(
-        {
-          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
-          getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
-          getExcursionTravelers: (tripId) => useTripStore().getExcursionTravelers(tripId),
-          tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
-          extraLines: (tripId, excursionId) =>
-            mealExcursionSources.flatMap((source) => source.lines(tripId, excursionId)),
-        },
-        {
-          toggleTask: (tripId, task) =>
-            toggleTask(orchestrator.comments, useTripStore(), tripId, task),
-        },
-      ),
-      // FR-33.5: the meals, each at its time or its slot's place.
-      ...(mealSources ? [createMealDayPlanSource(mealSources)] : []),
-    ]
-  : []
-provide(DAY_PLAN_SOURCES, dayPlanSources)
-provide(DAY_PLAN_TRAVELERS, (tripId: string) => useTripStore().getTravelers(tripId))
-/*
- * FR-29.13: the bridge from an idea — the planner names an idea to the
- * packing side and the shopping module, and both name what came of it back.
- */
-provide(IDEA_LOOKUP, ideaLookup())
-provide(
-  IDEA_RESULT_SOURCES,
-  orchestrator
-    ? [
-        createIdeaResultSource({
-          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
-          getTripTodos: (tripId) => useTripStore().getTripTodos(tripId),
-        }),
-        shoppingIdeaResults(),
-      ]
-    : [],
-)
-provide(TRIP_VIEW_COUNTS, {
-  // §3.29: the ideas nobody has decided on yet.
-  ideas: ideasCount(),
-  shopping: shoppingCount(shoppingSources),
-  // FR-31.10: excursions ahead that still have something to pack or buy.
-  excursions: (tripId) => {
-    const trips = useTripStore()
-    return pendingExcursionCount(
-      trips.getExcursions(tripId),
-      trips.getExcursionItems(tripId),
-      localIsoDate(clock()),
-    )
-  },
-  // FR-7.13: what is new for me in the trip's notes, never their total.
-  notes: (tripId) => {
-    const trips = useTripStore()
-    return newNoteCount(
-      trips.getTripComments(tripId),
-      trips.getNoteAcks(tripId),
-      useIdentityStore().myUserId,
-    )
-  },
-})
+if (composition) provideComposition(composition)
 // FR-29.7: a trip opens on the view its dates decide.
-if (orchestrator) {
+if (orchestrator && composition) {
   installTripOpening(useRouter(), {
     getTrip: (tripId) => useTripStore().getTrip(tripId),
     itemCount: (tripId) => useTripStore().getItems(tripId).length,
     tripDataLoaded: orchestrator.tripDataLoaded,
     today: orchestrator.today,
-    dayPlanEmpty: dayPlanEmpty(dayPlanSources),
-    shoppingOpen: shoppingCount(shoppingSources),
+    // Without a planner there is no plan to open on.
+    dayPlanEmpty: composition.dayPlanEmpty ?? (() => true),
+    shoppingOpen: composition.viewCounts.shopping ?? (() => 0),
     tasksOpen: (tripId) => tripTodoProgress(useTripTasks().tasksOf(tripId)).open,
   })
 }
-// FR-30.7 and FR-29.7: the dashboard's cards under each trip — today's plan
-// during the trip, and the shopping list, workable there.
-provide(EXCURSION_CONNECTIONS, orchestrator ? ExcursionConnections : null)
-provide(EXCURSION_JOURNEY_LINE, orchestrator ? excursionJourneyLine() : null)
-// FR-33.7: today's meals, a block of their own beside today's plan.
-provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, MealsTodayCard, ShoppingDashboardCard] : [])
-// FR-30.10: M1's due line names the due purchases beside the tasks.
-if (orchestrator) provide(DUE_PURCHASES, duePurchases(shoppingSources))
-// FR-7.12: closing the packing ends *before departure* on the shopping list too.
-provide(
-  PACKING_CLOSE_CROSSINGS,
-  orchestrator
-    ? [
-        shoppingCloseCrossing(
-          useShoppingStore(),
-          createShoppingActions(orchestrator.moduleHost, useShoppingStore()),
-        ),
-      ]
-    : [],
-)
-
-// FR-32.2: each module reads the activity log's entries about its own rows.
-provide(ACTIVITY_READERS, {
-  ...shoppingActivityReaders,
-  ...plannerActivityReaders,
-  ...mealActivityReaders,
-})
+/** Components the modules mount once, beside the outlet. */
+const shellComponents = composition?.shell ?? []
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
@@ -705,8 +532,7 @@ async function saveBackup() {
           @open-trip="openOnlineTrip"
         />
       </SheetModal>
-      <!-- §3.33: the one meal sheet, opened from M31, the day plan, an excursion and M1. -->
-      <MealSheet v-if="orchestrator" />
+      <component :is="component" v-for="(component, i) in shellComponents" :key="i" />
     </template>
 
     <!-- FR-21.29 / G-22: the greeting, over whichever branch boots underneath. -->

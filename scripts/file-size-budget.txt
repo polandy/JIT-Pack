@@ -23,6 +23,5 @@
 862 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue
 842 client/src/domain/packingView.ts
-819 client/src/App.vue
 818 client/src/views/trips/TripTasksPage.vue
 810 client/src/app/actions/packing.ts

@@ -194,3 +194,36 @@ cascade from a few dozen sinks rather than once at load. The picture and track r
 `ModuleHost.pictures`/`tracks`). The planner's spec names them. A module's `types.ts` is vocabulary in the layer order
 (ADR-096), so its rules read it (`layer-gate.mjs`, `domain-purity-gate.mjs`). The composition half — one `contribute()`
 per module, which `App.vue` folds over — is ARCH-15b.
+
+## Amendment 3 (2026-10-09) — one registration shape per module; `App.vue` folds (ARCH-15b)
+
+The second half of the revisit trigger's "single module registration shape". `App.vue` bound each module by name: its
+store into `features`, and its sources, counts, cards, readers, crossings and bridge halves into ten injection keys,
+each by hand. It also held logic: the kernel's adapters and a `mealContext` that read the planner store for M31's
+shortlist. Now each `<m>/index.ts` exports a `FeatureModule` (`kernel/moduleContribution.ts`): a `featureStore()` and
+`contribute(host)`, which returns the module's `ModuleContribution` — activity readers, trip cards, shell components,
+shopping, day-plan and excursion sources, idea results, a shortlist, view counts, close crossings, and the single
+answers (`ideaLookup`, `dayPlanEmpty`, `duePurchases`, the excursion connections and journey line). The kernel's
+adapters moved to `kernel/kernelPorts.ts`, a contribution like any other, folded first. `composeModules` folds them
+all. Lists append in order. A record key or a single answer given twice throws. `provideComposition` provides the
+result under the existing keys. `featureModules.ts` is the constant list. It is now the only file besides the router,
+the catalogue and the dev seed that names a module's face, and `App.vue` names none.
+
+Aggregates that cross modules are handed back **lazily**. The shopping count and `duePurchases` read every shopping
+source, meals' included. `dayPlanEmpty` reads every day-plan source. The kernel's day plan reads every excursion's
+extra lines. They read the folded lists through the host when called, and a read during `contribute` throws. So a
+module reads the folded list and never another module. M31's shortlist is the planner's `shortlist` contribution,
+which the kernel's `mealContext` reads through the host.
+
+**Options weighed.** (a) A registry the modules fill at start-up — rejected in the decision above, for the same reason.
+(b) `featureStore` inside the contribution — one member fewer, but the host is built from the orchestrator, and the
+orchestrator is built from the stores. The store would have to be created before its own contribution, or the actions
+built lazily behind the host. (c) **Two members, `featureStore()` and `contribute(host)`** *(chosen)* — the order the
+app is built in, said in the type. (d) Eager aggregates, with `App.vue` passing each module the others' lists —
+explicit, but the root again knows which module needs whose list, which is the knowledge this amendment removes.
+
+**Cost accepted.** A contract a module adds is three edits in the kernel: a field on `ModuleContribution`, its fold
+in `foldContributions` and its `provide` in `provideComposition`. The order of `FEATURE_MODULES` is M1's card order
+and the order of module lines after the kernel's. `features` follows it too, which nothing reads by order. The fold
+throws at start-up on a doubled answer instead of refusing it at build time.
+`src/__tests__/activityReadersWiring.spec.ts` folds the real list, so CI meets the throw first.

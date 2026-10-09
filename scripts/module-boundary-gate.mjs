@@ -14,8 +14,8 @@
  *    press-and-hold primitive, the orchestrator's injection key, the
  *    trip-screen load, the trip's identity). Never packing's
  *    views, stores, domain rules or composables, and never another module.
- * 2. **Nothing reaches into a module** except the composition root: `App.vue`
- *    through the module's public face (its `index.ts`), the router through a
+ * 2. **Nothing reaches into a module** except the composition root:
+ *    `featureModules.ts` through the module's public face (its `index.ts`), the router through a
  *    lazily imported page, the dev seed through the public face, and the
  *    kernel's catalogue through the module's own (`<module>/i18n/`). Packing
  *    code learns about a module's data only through kernel contracts such as
@@ -87,13 +87,14 @@ const KERNEL_PATHS = [
 const publicFace = (rest) => rest === '' || rest === 'index' || rest === 'index.ts'
 
 /**
- * The composition root, and what of a module it may name: `App.vue` the
- * module's public face, the router a page it loads lazily. The dev seed
+ * The composition root, and what of a module it may name: `featureModules.ts`
+ * the module's public face — the one list `App.vue` folds (ADR-066 amendment
+ * 3) — the router a page it loads lazily. The dev seed
  * (`dev/`, stripped from production by `dev-code-gate.mjs`) writes sample
  * data through a module's own actions, so it may name the public face too.
  */
 const ROOT_IMPORTS = {
-  'App.vue': publicFace,
+  'featureModules.ts': publicFace,
   'router/index.ts': (rest) => rest.endsWith('Page.vue'),
   'i18n/index.ts': (rest) => /^i18n\/(en|de)(\.ts)?$/.test(rest),
 }
@@ -168,7 +169,7 @@ for (const file of walk(SRC)) {
       const allowed = ROOT_IMPORTS[from] ?? (from.startsWith(DEV_DIR) ? publicFace : undefined)
       if (allowed && allowed(rest)) continue
       problems.push(
-        `client/src/${from}: imports \`${spec}\` — only the composition root (App.vue via ` +
+        `client/src/${from}: imports \`${spec}\` — only the composition root (featureModules.ts via ` +
           `the module's index, the router via a lazy page, i18n/index.ts via its catalogue) ` +
           `may reach into \`${into}/\``,
       )
@@ -321,8 +322,8 @@ if (problems.length > 0) {
   for (const line of [...new Set(problems)].sort()) console.error(`  ${line}`)
   console.error(
     '\nFR-30.3 / ADR-066: a module and the packing code meet only through kernel contracts ' +
-      '(e.g. kernel/shoppingSources.ts) that App.vue binds. Move the shared shape into the kernel, ' +
-      'or pass it in from the composition root.',
+      '(e.g. kernel/shoppingSources.ts), filled by the module\'s contribute() and folded by App.vue. ' +
+      'Move the shared shape into the kernel and add it to ModuleContribution.',
   )
   process.exit(1)
 }
