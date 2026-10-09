@@ -100,7 +100,7 @@ const LAYERS = [
  * ships is `dev-code-gate.mjs`'s question, so an import *into* `dev/` is not
  * judged here.
  */
-const ROOT = ['App', 'main', 'router/index', 'dev']
+const ROOT = ['App', 'featureModules', 'main', 'router/index', 'dev']
 const DEV = 'dev'
 
 const matches = (path, prefix) => path === prefix || path.startsWith(`${prefix}/`)

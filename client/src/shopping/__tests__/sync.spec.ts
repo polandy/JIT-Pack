@@ -150,7 +150,7 @@ describe('The due day (FR-30.10)', () => {
       true,
     )
 
-    expect(duePurchases([])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
+    expect(duePurchases(() => [])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
   })
 
   /**
@@ -171,7 +171,7 @@ describe('The due day (FR-30.10)', () => {
       open: (_trip: string, list: string) => lines(list),
     } as unknown as ShoppingSource
 
-    expect(duePurchases([source])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
+    expect(duePurchases(() => [source])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
   })
 
   it('a bought entry’s line carries no day — a purchase made is never overdue', () => {

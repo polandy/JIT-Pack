@@ -94,7 +94,7 @@ areas; an excursion's parts live in `views/trips/excursion/` beside its pages, i
 - `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases
   in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts
   (`kernel/shoppingSources.ts`, `sync/featureModule.ts`, `kernel/tripCards.ts`, `kernel/activityReaders.ts`,
-  `kernel/dayPlanSources.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions.
+  `kernel/dayPlanSources.ts`). `scripts/module-boundary-gate.mjs` holds both directions.
 - `client/src/planner` — the second feature module (§3.29, ADR-078): ideas, votes, their discussion, pictures and GPX
   tracks and the day plan's entries in tables of its own, M28 and M29, its pure rules in `planner/domain/` (held by
   `domain-purity-gate.mjs` too), its e2e cases in `client/e2e/planner/`.
@@ -106,6 +106,10 @@ areas; an excursion's parts live in `views/trips/excursion/` beside its pages, i
   its codecs and `RowSpec`s in `<m>/rows.ts`, handed to the kernel on its store's sinks (`specifiedSinks`). The
   kernel's `KERNEL_TABLE_SPECS` names none of a module's tables; `src/__tests__/moduleRows.spec.ts` holds every
   `TABLE.*` specified exactly once across both (ADR-066 amendment 2).
+- **A module registers in one shape** — `<m>/index.ts` exports a `FeatureModule`: its `featureStore` and a
+  `contribute(host)` naming its share of every kernel contract (`kernel/moduleContribution.ts`). `featureModules.ts`
+  lists the modules; `App.vue` folds them with the kernel's own adapters (`kernel/kernelPorts.ts`) and names no module.
+  A list every contributor adds to is read from the host lazily, never from another module (ADR-066 amendment 3).
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.

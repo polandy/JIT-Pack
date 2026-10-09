@@ -10,9 +10,9 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { MODULE_ROW_SPECS } from './rowSpecs'
 import { TABLE } from '@/api/tables'
-import { mealFeatureStore } from '@/meals'
-import { plannerFeatureStore } from '@/planner'
-import { shoppingFeatureStore } from '@/shopping'
+import { mealsModule } from '@/meals'
+import { plannerModule } from '@/planner'
+import { shoppingModule } from '@/shopping'
 import { FEATURE_STORE_TABLES } from '@/sync/routing'
 import { KERNEL_TABLE_SPECS } from '@/sync/tableRegistry'
 
@@ -33,9 +33,9 @@ describe('the composed table specs (ADR-066 amendment 2)', () => {
   })
 
   it.each([
-    ['shopping', shoppingFeatureStore],
-    ['planner', plannerFeatureStore],
-    ['meals', mealFeatureStore],
+    ['shopping', shoppingModule.featureStore],
+    ['planner', plannerModule.featureStore],
+    ['meals', mealsModule.featureStore],
   ] as const)('give %s’s store a sink for each table it specifies, with that spec', (name, of) => {
     const specs: Record<string, unknown> = MODULE_ROW_SPECS[name]
     const { sinks } = of()

@@ -21,11 +21,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
-import { plannerFeatureStore, usePlannerStore } from '@/planner'
+import { plannerModule, usePlannerStore } from '@/planner'
 import { IDEA_STATES } from '@/planner/types'
 
 import { SEED_IDEAS, SEED_MEALS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
-import { mealFeatureStore, useMealStore } from '@/meals'
+import { mealsModule, useMealStore } from '@/meals'
 import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
 import { decodeLine, defaultSource, readTrack } from '@/domain/shared/track'
 
@@ -71,7 +71,7 @@ describe('seedSampleTrip (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
-      features: [plannerFeatureStore()],
+      features: [plannerModule.featureStore()],
     })
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)
     const planner = usePlannerStore()
@@ -245,7 +245,7 @@ describe('seedSampleTrip (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
-      features: [mealFeatureStore()],
+      features: [mealsModule.featureStore()],
     })
     await orchestrator.connect()
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)

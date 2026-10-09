@@ -6,17 +6,41 @@
  */
 import type { DayPlanSource } from '@/domain/shared/dayPlanLine'
 import type { IdeaLookup } from '@/domain/shared/ideaBridge'
+import type { FeatureModule, IdeaShortlist } from '@/kernel/moduleContribution'
+import { plannerActivityReaders } from './domain/activity'
 import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
-import { usePlannerStore } from './store'
+import ExcursionConnections from './ExcursionConnections.vue'
+import { excursionJourneyLine } from './journeyLine'
+import PlannerTodayCard from './PlannerTodayCard.vue'
+import { plannerFeatureStore, usePlannerStore } from './store'
+import { IDEA_STATE_SHORTLISTED } from './types'
 
-export { plannerFeatureStore, usePlannerStore } from './store'
+export { usePlannerStore }
 export { createPlannerActions } from './actions'
-export { default as PlannerTodayCard } from './PlannerTodayCard.vue'
-export { default as ExcursionConnections } from './ExcursionConnections.vue'
-export { excursionJourneyLine } from './journeyLine'
-export { plannerActivityReaders } from './domain/activity'
 export { voteTally } from './domain/ideas'
+
+/** The module's registration (ADR-066 amendment 3), folded by the composition root. */
+export const plannerModule: FeatureModule = {
+  featureStore: plannerFeatureStore,
+  contribute(host) {
+    return {
+      activityReaders: plannerActivityReaders,
+      // FR-29.7: today's plan on the dashboard during the trip.
+      tripCards: [PlannerTodayCard],
+      // §3.29: the ideas nobody has decided on yet.
+      viewCounts: { ideas: ideasCount() },
+      dayPlanEmpty: dayPlanEmpty(host.dayPlanSources),
+      // FR-29.13: the idea the packing side and the shopping module name.
+      ideaLookup: ideaLookup(),
+      // M31: where to eat out, offered to the meal plan.
+      shortlist: ideaShortlist(),
+      // FR-29.18: an excursion's day — the way there, the way back — on M27.
+      excursionConnections: ExcursionConnections,
+      excursionJourneyLine: excursionJourneyLine(),
+    }
+  },
+}
 
 /** The switcher's number on *Ideen*: the ideas nobody has decided on yet. */
 export function ideasCount(): (tripId: string) => number {
@@ -29,7 +53,7 @@ export function ideasCount(): (tripId: string) => number {
  * kernel's opening rule asks before landing a trip under way on the plan.
  */
 export function dayPlanEmpty(
-  sources: readonly DayPlanSource[],
+  sources: () => readonly DayPlanSource[],
 ): (tripId: string, trip: TripDates, today: string) => boolean {
   const plannerStore = usePlannerStore()
   return (tripId, trip, today) =>
@@ -37,7 +61,7 @@ export function dayPlanEmpty(
       trip,
       ideas: plannerStore.getIdeas(tripId),
       entries: plannerStore.getDayEntries(tripId),
-      lines: sources.flatMap((source) => source.lines(tripId)),
+      lines: sources().flatMap((source) => source.lines(tripId)),
       // Whom a line is for decides nothing about whether the day holds it.
       travelers: [],
       entryTravelers: [],
@@ -56,6 +80,16 @@ export function ideaLookup(): IdeaLookup {
       return idea && { id: idea.id, title: idea.title, plannedOn: idea.planned_on ?? null }
     },
   }
+}
+
+/** A trip's shortlisted ideas, as the meal plan offers them for eating out (M31). */
+export function ideaShortlist(): IdeaShortlist {
+  const plannerStore = usePlannerStore()
+  return (tripId) =>
+    plannerStore
+      .getIdeas(tripId)
+      .filter((idea) => idea.state === IDEA_STATE_SHORTLISTED)
+      .map((idea) => ({ id: idea.id, title: idea.title }))
 }
 
 /** The module's rows and their vocabulary, for the composition root and the dev seed. */

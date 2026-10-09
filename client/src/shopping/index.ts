@@ -7,28 +7,49 @@
 import { dueTally } from '@/domain/shared/dueDay'
 import { IDEA_RESULT_SHOPPING, type IdeaResultSource } from '@/domain/shared/ideaBridge'
 import { tripSubPath } from '@/router/paths'
+import type { FeatureModule } from '@/kernel/moduleContribution'
 import type { ShoppingSource } from '@/kernel/shoppingSources'
 import type { DuePurchases } from '@/kernel/tripCards'
 import { SHOPPING_MODES } from '@/types/domain'
+import { createShoppingActions, shoppingCloseCrossing } from './actions'
+import { shoppingActivityReaders } from './activity'
 import { openCount } from './list'
+import ShoppingDashboardCard from './ShoppingDashboardCard.vue'
 import { shoppingFeatureStore, useShoppingStore } from './store'
 
-export { shoppingFeatureStore, useShoppingStore }
-export { createShoppingActions, shoppingCloseCrossing } from './actions'
-export { shoppingActivityReaders } from './activity'
+export { createShoppingActions, useShoppingStore }
 
-/** FR-30.7: the trip's shopping card on the dashboard, handed to M1 by `App.vue`. */
-export { default as ShoppingDashboardCard } from './ShoppingDashboardCard.vue'
+/** The module's registration (ADR-066 amendment 3), folded by the composition root. */
+export const shoppingModule: FeatureModule = {
+  featureStore: shoppingFeatureStore,
+  contribute(host) {
+    const shoppingStore = useShoppingStore()
+    return {
+      activityReaders: shoppingActivityReaders,
+      // FR-30.7: the trip's shopping card on the dashboard.
+      tripCards: [ShoppingDashboardCard],
+      ideaResults: [shoppingIdeaResults()],
+      viewCounts: { shopping: shoppingCount(host.shoppingSources) },
+      duePurchases: duePurchases(host.shoppingSources),
+      // FR-7.12: closing the packing ends *before departure* on the shopping list too.
+      closeCrossings: [
+        shoppingCloseCrossing(shoppingStore, createShoppingActions(host.module, shoppingStore)),
+      ],
+    }
+  },
+}
 
 /**
  * The trip switcher's shopping count: the list's own open entries plus every
  * source's open lines, on both lists (FR-21.21).
  */
-export function shoppingCount(sources: readonly ShoppingSource[]): (tripId: string) => number {
+export function shoppingCount(
+  sources: () => readonly ShoppingSource[],
+): (tripId: string) => number {
   const shoppingStore = useShoppingStore()
   return (tripId) =>
     SHOPPING_MODES.reduce((n, list) => n + shoppingStore.openEntries(tripId, list).length, 0) +
-    openCount(tripId, sources)
+    openCount(tripId, sources())
 }
 
 /**
@@ -37,13 +58,13 @@ export function shoppingCount(sources: readonly ShoppingSource[]): (tripId: stri
  * entries and every source's lines, so the line names what the card's badges
  * show: a meal's ingredient bought today is due today too (FR-33.3).
  */
-export function duePurchases(sources: readonly ShoppingSource[]): DuePurchases {
+export function duePurchases(sources: () => readonly ShoppingSource[]): DuePurchases {
   const shoppingStore = useShoppingStore()
   return (tripId, today) =>
     dueTally(
       SHOPPING_MODES.flatMap((list) => [
         ...shoppingStore.openEntries(tripId, list).map((entry) => entry.due_date),
-        ...sources.flatMap((source) =>
+        ...sources().flatMap((source) =>
           source.open(tripId, list).map((line) => line.dueDate ?? null),
         ),
       ]),
