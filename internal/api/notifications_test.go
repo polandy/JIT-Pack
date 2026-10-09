@@ -124,10 +124,10 @@ func TestNotifications_AssignmentAlongsidePackStillDelegates_FR25_19(t *testing.
 
 // FR-2.5 → ADR-058, end to end: assigning a row to a traveler linked to an
 // account notifies that account, the same way an explicit packer_user_id
-// delegation does — this is the glue (internal/api/notifications.go's
-// resolveTraveler closure, internal/store's TravelerLinkedUser) that
-// TestPlanRosterAssignment_* in notificationrules_test.go cannot reach,
-// since that file drives the pure decision with fakes, never the store.
+// delegation does — this is the glue (internal/notify's storeFacts,
+// internal/store's TravelerLinkedUser) that TestPlanRosterAssignment_* in
+// internal/notify/rules_test.go cannot reach, since that file drives the
+// pure decision with fakes, never the store.
 func TestNotifications_RosterAssignmentNotifiesLinkedAccount(t *testing.T) {
 	srv, st := newTestServerWithStore(t)
 	seedItem(t, srv, "item-1", "Zelt")
@@ -193,7 +193,7 @@ func TestNotifications_MentionInComment(t *testing.T) {
 }
 
 // FR-7.13 through the real push path: the thread is read back from the
-// store after the reply landed (emitNotifications' resolveThread), so the
+// store after the reply landed (internal/notify's storeFacts.thread), so the
 // first note's author is told and named the thread, and the replier is not.
 func TestNotifications_NoteReply_TellsTheThreadsAuthor_FR7_13(t *testing.T) {
 	srv := newTestServer(t)
