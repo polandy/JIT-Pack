@@ -838,7 +838,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // One namespace per action group, named after its file (ADR-098)
     packing: packingActions,
     claims: claimActions,
-    removal: removalPruneActions,
+    removalPrune: removalPruneActions,
     containers: containerActions,
     comments: commentActions,
     dependencies: dependencyActions,

@@ -185,7 +185,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     const removal = orchestrator.packing.planRowRemoval(tripId, item)
     const leftItem = orchestrator.packing.itemLeftByRemoval(item)
     const pruneLeftItem = () => {
-      if (leftItem !== null) void orchestrator.removal.pruneItemLeftByRemoval(tripId, leftItem)
+      if (leftItem !== null) void orchestrator.removalPrune.pruneItemLeftByRemoval(tripId, leftItem)
     }
     if (!removalNeedsConfirm(removal)) {
       // A copy, not the store's row: the undo re-inserts from it after the row
@@ -221,7 +221,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     const removal = orchestrator.packing.planRowsRemoval(tripId, rows)
     const leftItem = orchestrator.packing.itemLeftByRemovals(rows)
     const pruneLeftItem = () => {
-      if (leftItem !== null) void orchestrator.removal.pruneItemLeftByRemoval(tripId, leftItem)
+      if (leftItem !== null) void orchestrator.removalPrune.pruneItemLeftByRemoval(tripId, leftItem)
     }
     if (!removalNeedsConfirm(removal)) {
       const snapshots = rows.map((row) => ({ ...row }))

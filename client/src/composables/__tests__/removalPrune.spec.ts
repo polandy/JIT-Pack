@@ -77,7 +77,7 @@ async function removeAndLapse(orch: Orchestrator, id: string): Promise<void> {
   const removed = row(id)
   const left = orch.packing.itemLeftByRemoval(removed)
   orch.packing.removeItem(removed, [])
-  if (left !== null) await orch.removal.pruneItemLeftByRemoval(TRIP, left)
+  if (left !== null) await orch.removalPrune.pruneItemLeftByRemoval(TRIP, left)
 }
 
 describe('Local Mode — the device holds every trip, so its answer is final', () => {
@@ -118,7 +118,7 @@ describe('Local Mode — the device holds every trip, so its answer is final', (
     orch.packing.removeItem(removed, [])
     orch.packing.restoreRemovedItem(TRIP, removed)
 
-    await orch.removal.pruneItemLeftByRemoval(TRIP, ITEM)
+    await orch.removalPrune.pruneItemLeftByRemoval(TRIP, ITEM)
 
     expect(useMasterStore().getItem(ITEM)).toBeDefined()
   })
@@ -200,7 +200,7 @@ describe('Server Mode — the server decides over every trip', () => {
     ])
 
     await removeAndLapse(orch, 'ti-1')
-    await orch.removal.pruneItemLeftByRemoval(TRIP, ITEM)
+    await orch.removalPrune.pruneItemLeftByRemoval(TRIP, ITEM)
     // The positive signal for the absence below: the removal has reached the
     // server, so a prune that were coming would have been asked by now.
     await orch.drainTrip(TRIP)
