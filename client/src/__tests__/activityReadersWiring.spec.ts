@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { KERNEL_ACTIVITY_AREAS } from '@/domain/activity'
 import { FEATURE_MODULES } from '@/featureModules'
+import { kernelPorts, type KernelPortDeps } from '@/kernel/kernelPorts'
 import { composeModules, type Composition } from '@/kernel/moduleContribution'
+import { useTripStore } from '@/stores/tripStore'
 import type { ModuleHost } from '@/sync/featureModule'
 import { FEATURE_STORE_TABLES } from '@/sync/routing'
 import { TABLE } from '@/api/tables'
@@ -23,11 +25,20 @@ beforeEach(() => {
     // Contributing builds the modules' actions over the host; nothing here writes.
     module: {} as ModuleHost,
     today: () => '2026-07-08',
-    kernel: () => ({
-      contribution: {},
-      mealContext: { trips: () => [], excursions: () => [], shortlist: () => [] },
-      dayPlanTravelers: () => [],
-    }),
+    // The kernel's real contribution, so a module answering what the kernel answers throws here.
+    kernel: (sources) =>
+      kernelPorts(
+        {
+          trips: useTripStore(),
+          tasksOf: () => [],
+          myUserId: () => null,
+          now: () => Date.parse('2026-07-08T09:00:00'),
+          packing: {} as KernelPortDeps['packing'],
+          excursions: {} as KernelPortDeps['excursions'],
+          comments: {} as KernelPortDeps['comments'],
+        },
+        sources,
+      ),
   })
 })
 
@@ -48,7 +59,12 @@ describe('module contributions wiring (FR-32.2, ADR-066)', () => {
     expect(composition.excursionConnections).not.toBeNull()
     expect(composition.excursionJourneyLine).not.toBeNull()
     expect(composition.duePurchases).not.toBeNull()
-    expect(Object.keys(composition.viewCounts).sort()).toEqual(['ideas', 'shopping'])
+    expect(Object.keys(composition.viewCounts).sort()).toEqual([
+      'excursions',
+      'ideas',
+      'notes',
+      'shopping',
+    ])
   })
 
   it('hands M1 one card per module (FR-29.7, FR-33.7, FR-30.7)', () => {

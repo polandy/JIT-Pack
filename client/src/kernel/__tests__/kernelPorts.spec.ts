@@ -6,6 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
+import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { FoldedSources } from '../moduleContribution'
 import { kernelPorts, type KernelPortDeps, type KernelTripReads } from '../kernelPorts'
 
@@ -83,8 +84,19 @@ describe('kernelPorts — the meal context (§3.33)', () => {
 
 describe('kernelPorts — the contribution', () => {
   it('puts the packing list ahead of the excursions on the shopping list (FR-30.2, FR-31.8)', () => {
-    const { contribution } = kernelPorts(deps(trips()), noSources())
+    const getShoppingItems = vi.fn(trips().getShoppingItems)
+    const getExcursionItems = vi.fn(() => [])
+    const { contribution } = kernelPorts(
+      deps(trips({ getShoppingItems, getExcursionItems })),
+      noSources(),
+    )
     expect(contribution.shoppingSources).toHaveLength(2)
+    const [packing, excursions] = contribution.shoppingSources!
+    packing!.open(TRIP, ITEM_MODE_BUY_LOCAL)
+    expect(getShoppingItems).toHaveBeenCalledWith(TRIP)
+    expect(getExcursionItems).not.toHaveBeenCalled()
+    excursions!.open(TRIP, ITEM_MODE_BUY_LOCAL)
+    expect(getExcursionItems).toHaveBeenCalledWith(TRIP)
     expect(contribution.dayPlanSources).toHaveLength(1)
     expect(contribution.ideaResults).toHaveLength(1)
   })
