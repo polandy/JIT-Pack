@@ -85,7 +85,7 @@ function closeTokenSheet() {
 
 <template>
   <SectionHead :title="t('settings.apiTokens')" data-testid="settings-section-tokens" />
-  <p class="section-hint">{{ t('settings.apiTokensHint') }}</p>
+  <p class="jp-section-hint">{{ t('settings.apiTokensHint') }}</p>
   <IonList>
     <IonItem lines="none">
       <IonInput
@@ -133,11 +133,3 @@ function closeTokenSheet() {
     @close="closeTokenSheet"
   />
 </template>
-
-<style scoped>
-.section-hint {
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
-  margin: 0 0 8px;
-}
-</style>

@@ -370,7 +370,7 @@ onIonViewWillEnter(() => dataSection.value?.refreshReminder())
 
       <!-- Default travelers (FR-2.5a) — every mode, this device only -->
       <SectionHead :title="t('settings.defaultTravelers')" />
-      <p class="section-hint">{{ t('settings.defaultTravelersHint') }}</p>
+      <p class="jp-section-hint">{{ t('settings.defaultTravelersHint') }}</p>
       <IonList>
         <IonItem v-for="(traveler, index) in travelerNames" :key="`${traveler}-${index}`">
           <IonIcon slot="start" :icon="personOutline" />
@@ -574,13 +574,6 @@ onIonViewWillEnter(() => dataSection.value?.refreshReminder())
  */
 .update-unreachable {
   color: var(--ct-overlay1);
-}
-
-/* The recessive line under a section heading (scoped: the Tokens section keeps its own). */
-.section-hint {
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
-  margin: 0 0 8px;
 }
 
 .avatar-row {
