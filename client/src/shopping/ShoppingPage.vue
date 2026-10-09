@@ -193,9 +193,9 @@ function tagOfDue(line: ShoppingLine): string | null {
 }
 
 /**
- * M25's shelves (`usePhasedShelves`): a list with nothing open under its
- * heading, or the finished packing's *before* — the record of what was
- * bought (FR-7.12) — is one line at the end.
+ * The shelves M6 shares with M25 (`usePhasedShelves`): a list with nothing
+ * open under its heading, or the finished packing's *before* — the record
+ * of what was bought (FR-7.12) — is one line at the end.
  */
 const shelves = usePhasedShelves<ShoppingMode>({
   shelves: SHOPPING_MODES,
@@ -214,7 +214,8 @@ const shelves = usePhasedShelves<ShoppingMode>({
     restDueDone: 'shopping.listRestDueBought',
   },
 })
-const { isClosed, inOrder, restShelves, restOpen, restLabel, restExpandable, dropKey } = shelves
+const { isClosed, inOrder, restShelves, restOpen, toggleRest, restLabel, restExpandable, dropKey } =
+  shelves
 
 /**
  * FR-25.11j: a bought row leaves the open list rather than vanishing —
@@ -862,7 +863,7 @@ setHeaderTitle(
             :expandable="restExpandable(list)"
             :open="restOpen[list]"
             :testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before-fold' : 'm6-local-fold'"
-            @toggle="shelves.toggleRest(list)"
+            @toggle="toggleRest(list)"
           >
             <InlineHint v-if="isClosed(list)" class="hint-wide" data-testid="m6-before-locked">{{
               t('shopping.beforeLocked')

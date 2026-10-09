@@ -190,9 +190,9 @@ function groupsOf(phase: TaskPhase) {
 }
 
 /**
- * M6's shelves (`usePhasedShelves`): a phase with nothing open under its
- * heading, or the finished packing's *before* — history, read and never
- * worked (FR-7.12) — is one line at the end.
+ * The shelves M25 shares with M6 (`usePhasedShelves`): a phase with
+ * nothing open under its heading, or the finished packing's *before* —
+ * history, read and never worked (FR-7.12) — is one line at the end.
  */
 const shelves = usePhasedShelves<TaskPhase>({
   shelves: PHASES,
@@ -210,7 +210,8 @@ const shelves = usePhasedShelves<TaskPhase>({
     restDueDone: 'tasks.phaseRestDueDone',
   },
 })
-const { isClosed, inOrder, restShelves, restOpen, restLabel, restExpandable, dropKey } = shelves
+const { isClosed, inOrder, restShelves, restOpen, toggleRest, restLabel, restExpandable, dropKey } =
+  shelves
 
 /**
  * FR-7.8's drag. The gesture is `useDragToGroup`, which knows nothing about
@@ -591,7 +592,7 @@ function onSheetRemove() {
             :expandable="restExpandable(phase)"
             :open="restOpen[phase]"
             :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-fold' : 'm25-during-fold'"
-            @toggle="shelves.toggleRest(phase)"
+            @toggle="toggleRest(phase)"
           >
             <InlineHint v-if="isClosed(phase)" class="hint-wide" data-testid="m25-before-locked">{{
               t('tasks.beforeLocked')
