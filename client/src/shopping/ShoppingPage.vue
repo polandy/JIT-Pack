@@ -29,7 +29,7 @@ import {
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import ChipRow from '@/components/global/ChipRow.vue'
@@ -44,6 +44,7 @@ import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
+import { usePhasedShelves } from '@/composables/shared/usePhasedShelves'
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
@@ -172,11 +173,6 @@ const hasSourced = computed(() =>
   ),
 )
 
-/** How many of a list's open lines stand in the *Fällig* block. */
-function dueIn(list: ShoppingMode): number {
-  return board.value.due.filter((line) => board.value.listOf(line.key) === list).length
-}
-
 /** Nothing open and nothing bought, on either list: the screen's empty state (G-7). */
 const nothingAtAll = computed(
   () =>
@@ -196,51 +192,29 @@ function tagOfDue(line: ShoppingLine): string | null {
   return line.edit ? t('shopping.ownEntries') : t('shopping.packingList')
 }
 
-/** FR-7.12: the finished packing's *before* — the record of what was bought. */
-function isClosed(list: ShoppingMode): boolean {
-  return list === ITEM_MODE_BUY_BEFORE && beforeLocked.value
-}
-
 /**
- * M25 alike: a list with nothing open under its heading leaves reading order
- * for one line at the end rather than taking a heading's worth of room above
- * the one still being worked, as the closed *before* does — also while its last open lines stand in the
- * *Fällig* block, which is where they are read (the line counts them).
+ * M25's shelves (`usePhasedShelves`): a list with nothing open under its
+ * heading, or the finished packing's *before* — the record of what was
+ * bought (FR-7.12) — is one line at the end.
  */
-function inOrder(list: ShoppingMode): boolean {
-  return !isClosed(list) && board.value.lists[list].open > 0
-}
-
-const restLists = computed(() => SHOPPING_MODES.filter((list) => !inOrder(list)))
-const restOpen = reactive<Record<ShoppingMode, boolean>>({
-  [ITEM_MODE_BUY_BEFORE]: false,
-  [ITEM_MODE_BUY_LOCAL]: false,
+const shelves = usePhasedShelves<ShoppingMode>({
+  shelves: SHOPPING_MODES,
+  closed: (list) => list === ITEM_MODE_BUY_BEFORE && beforeLocked.value,
+  open: (list) => board.value.lists[list].open,
+  due: (list) => board.value.due.filter((line) => board.value.listOf(line.key) === list).length,
+  done: (list) => bought.value[list].length,
+  words: {
+    name: (list) =>
+      list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
+    history: 'shopping.beforeHistory',
+    historyEmpty: 'shopping.beforeHistoryEmpty',
+    rest: 'shopping.listRest',
+    restDone: 'shopping.listRestBought',
+    restDue: 'shopping.listRestDue',
+    restDueDone: 'shopping.listRestDueBought',
+  },
 })
-
-/** *„Vor der Reise · nichts offen · 2 gekauft"* (*„· 1 fällig"* while the block holds some) — or the closed *before*'s own words. */
-function restLabel(list: ShoppingMode): string {
-  const n = bought.value[list].length
-  if (isClosed(list)) {
-    return n > 0 ? t('shopping.beforeHistory', { n }) : t('shopping.beforeHistoryEmpty')
-  }
-  const name = t(
-    list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
-  )
-  const due = dueIn(list)
-  if (due > 0) {
-    return n > 0
-      ? t('shopping.listRestDueBought', { list: name, due, n })
-      : t('shopping.listRestDue', { list: name, due })
-  }
-  return n > 0
-    ? t('shopping.listRestBought', { list: name, n })
-    : t('shopping.listRest', { list: name })
-}
-
-/** The line opens where there is something below it: a purchase, or the lock's sentence. */
-function restExpandable(list: ShoppingMode): boolean {
-  return isClosed(list) || bought.value[list].length > 0
-}
+const { isClosed, inOrder, restShelves, restOpen, restLabel, restExpandable, dropKey } = shelves
 
 /**
  * FR-25.11j: a bought row leaves the open list rather than vanishing —
@@ -459,22 +433,16 @@ const composerOpen = computed(() => composer.value?.expanded ?? false)
  * own entry may also be dropped onto another own group of **its own list** —
  * a tag heading, or the untagged one — which retags it (FR-30.9), at the gap
  * it was let go in. The gesture is `useDragToGroup` (FR-7.8's own); a drop
- * target is the list and the section's key, since the same tag can head a
- * group on both. What a drop writes is `planDrop`'s.
+ * target is the list and the section's key (`usePhasedShelves`'s `dropKey`).
+ * What a drop writes is `planDrop`'s.
  *
  * The retag goes through `bulkSetTag`, not `line.edit` — a drop is exactly a
  * batch of one, and `bulkSetTag`'s undo diffs against the entry as the write
  * actually left it rather than the pre-write snapshot (see its own doc
  * comment).
  */
-const DROP_SEPARATOR = '|'
-
-function dropKeyOf(list: ShoppingMode) {
-  return (section: ShoppingSection) => `${list}${DROP_SEPARATOR}${section.key}`
-}
-
 function placeOf(place: DropPlace): { list: ShoppingMode; section: ShoppingSection } | null {
-  const [list, key] = place.target.split(DROP_SEPARATOR) as [ShoppingMode, string]
+  const { shelf: list, key } = shelves.readDropKey(place.target)
   const section = board.value.lists[list]?.sections.find((s) => s.key === key)
   return section ? { list, section } : null
 }
@@ -867,7 +835,7 @@ setHeaderTitle(
             :bought="bought[list]"
             :today="today"
             :name-of="nameOf"
-            :drop-key="dropKeyOf(list)"
+            :drop-key="dropKey(list)"
             :selection="selection"
             :leave="onRowLeave"
             :assignable="assignable"
@@ -884,7 +852,7 @@ setHeaderTitle(
         <!-- M25 alike: a list with nothing open — or a
              finished packing's *before*, FR-7.12 — is one line at the end. -->
         <section
-          v-for="list in restLists"
+          v-for="list in restShelves"
           :key="list"
           class="list-rest"
           :data-testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before' : 'm6-local'"
@@ -894,7 +862,7 @@ setHeaderTitle(
             :expandable="restExpandable(list)"
             :open="restOpen[list]"
             :testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before-fold' : 'm6-local-fold'"
-            @toggle="restOpen[list] = !restOpen[list]"
+            @toggle="shelves.toggleRest(list)"
           >
             <InlineHint v-if="isClosed(list)" class="hint-wide" data-testid="m6-before-locked">{{
               t('shopping.beforeLocked')
@@ -908,7 +876,7 @@ setHeaderTitle(
               :bought="bought[list]"
               :today="today"
               :name-of="nameOf"
-              :drop-key="dropKeyOf(list)"
+              :drop-key="dropKey(list)"
               :again="againState"
               @unbuy="(line) => line.unbuy()"
               @again="(line) => buyAgain(line, list)"

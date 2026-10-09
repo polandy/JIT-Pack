@@ -374,7 +374,7 @@ describe('M6 — a list with nothing open, folded to one line at the end', () =>
       .map((section) => section.attributes('data-testid'))
     expect(sections).toEqual(['m6-local', 'm6-before'])
     const line = page.get('[data-testid="m6-before-fold"]')
-    expect(line.text()).toBe(t('shopping.listRest', { list: t('shopping.beforeDeparture') }))
+    expect(line.text()).toBe(t('shopping.listRest', { shelf: t('shopping.beforeDeparture') }))
     expect(line.element.tagName).toBe('P')
   })
 
@@ -385,7 +385,7 @@ describe('M6 — a list with nothing open, folded to one line at the end', () =>
 
     const line = page.get('[data-testid="m6-before-fold"]')
     expect(line.text()).toBe(
-      t('shopping.listRestBought', { list: t('shopping.beforeDeparture'), n: 1 }),
+      t('shopping.listRestBought', { shelf: t('shopping.beforeDeparture'), n: 1 }),
     )
     await line.trigger('click')
     expect(page.find('[data-testid="m6-before"] [data-testid="m6-bought-bar"]').exists()).toBe(
@@ -404,7 +404,7 @@ describe('M6 — a list with nothing open, folded to one line at the end', () =>
       .map((section) => section.attributes('data-testid'))
     expect(sections).toEqual(['m6-local', 'm6-before'])
     expect(page.get('[data-testid="m6-before-fold"]').text()).toBe(
-      t('shopping.listRestDue', { list: t('shopping.beforeDeparture'), due: 1 }),
+      t('shopping.listRestDue', { shelf: t('shopping.beforeDeparture'), due: 1 }),
     )
     expect(page.get('[data-testid="m6-due"]').text()).toContain('Brot')
   })
@@ -1316,7 +1316,7 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
     expect(page.get('[data-testid="m6-group-tag-Apotheke"]').text()).not.toContain('Spray')
     // The list the block took its only line from folds, and counts it there.
     expect(page.get('[data-testid="m6-local-fold"]').text()).toBe(
-      t('shopping.listRestDue', { list: t('shopping.atDestination'), due: 1 }),
+      t('shopping.listRestDue', { shelf: t('shopping.atDestination'), due: 1 }),
     )
     expect(page.get('[data-testid="m6-row-due-Spray"]').attributes('data-due')).toBe('overdue')
     expect(page.get('[data-testid="m6-row-due-Spray"]').text()).toBe(t('tasks.dueOverdue'))

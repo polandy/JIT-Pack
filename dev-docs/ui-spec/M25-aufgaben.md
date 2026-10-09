@@ -43,10 +43,11 @@
     it** — a task up in the *Fällig* block is not counted twice. Sections are **not** a segment: the two phases of a
     trip are one thing read top to bottom (M6's lists read the same way, FR-30.11). **A phase with no open task
     under its heading** — also when its last open tasks stand in the *Fällig* block — leaves reading order for **one
-    line at the end of the screen** (`RestLine`, M6 alike): *„Vor der Reise · nichts offen"*, a
-    statement (*„· 2 fällig"* while the block holds some of its tasks); *„· 3 erledigt ›"* once something is done, a
-    fold that opens onto the finished tasks directly, with no second *erledigt* fold under it (`m25-before-fold` /
-    `m25-during-fold`). Such a phase takes no heading, hint or fold of room above the one still being worked.
+    line at the end of the screen** (`RestLine`; the rule is `usePhasedShelves`, shared with M6): *„Vor der Reise ·
+    nichts offen"*, a statement (*„· 2 fällig"* while the block holds some of its tasks); *„· 3 erledigt ›"* once
+    something is done, a fold that opens onto the finished tasks directly, with no second *erledigt* fold under it
+    (`m25-before-fold` / `m25-during-fold`). Such a phase takes no heading, hint or fold of room above the one still
+    being worked.
   * **Inside each section, the tag groups** (FR-7.8, ADR-072). One heading per task tag that holds something, in the
     tags' own order, then *Aus Packliste* and *Ohne Tag* for what carries none — the heading names where the task came
     from, and both are the same state in the data. **Closing the packing (FR-7.16) tags the trip's own untagged

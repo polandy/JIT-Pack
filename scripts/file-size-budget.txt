@@ -11,7 +11,7 @@
 1102 client/src/components/trips/ItemDetailSheet.vue
 1090 client/src/planner/IdeaDetail.vue
 1081 client/src/planner/DayEntrySheet.vue
-1070 client/src/shopping/ShoppingPage.vue
+1038 client/src/shopping/ShoppingPage.vue
 1026 client/src/views/trips/PackingListPage.vue
 1009 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
@@ -21,5 +21,4 @@
 863 client/src/planner/ConnectionSearch.vue
 862 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue
-818 client/src/views/trips/TripTasksPage.vue
 810 client/src/app/actions/packing.ts

@@ -42,8 +42,9 @@
   * **Two sections**, *Vor der Reise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count is
     **what stands under it** (*„N offen"*). **A list with nothing open under its heading** — also when its last open
     lines stand in the *Fällig* block, since a heading over nothing reads as a list left over — leaves reading order for
-    **one line at the end of the screen** (`RestLine`, M25 alike): *„Vor der Reise · nichts offen"*, a statement; *„· 1
-    fällig"* in place of *nichts offen* while the block holds some of its lines; *„· 2 gekauft ›"* once something was
+    **one line at the end of the screen** (`RestLine`; the rule is `usePhasedShelves`, shared with M25): *„Vor der
+    Reise · nichts offen"*, a statement; *„· 1 fällig"* in place of *nichts offen* while the block holds some of its
+    lines; *„· 2 gekauft ›"* once something was
     bought, a fold that opens onto the bought rows directly (`m6-before-fold` / `m6-local-fold`). Inside each: the
     packing list's rows in that mode first, **combined under one *„Packliste"* heading regardless of category** (a
     packing category is not this list's tag), then the list's own entries — **a section per tag, A–Z, then the untagged
