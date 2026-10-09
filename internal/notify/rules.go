@@ -1,10 +1,11 @@
-// Package api — notificationrules.go holds FR-6.2/FR-7.2 as a decision,
-// apart from the I/O that carries it out. Who a push notifies is a rule
-// over the mutations, their outcomes and the trip's members; creating the
-// rows, pinging the sockets and sending Web Push is not. Keeping the two
-// in one method made every rule reachable only through HTTP plus SQLite
-// plus a goroutine, which is the cut CODING_PRINCIPLES §3 rules out.
-package api
+package notify
+
+// FR-6.2/FR-7.2 as a decision, apart from the I/O that carries it out. Who a
+// push notifies is a rule over the mutations that landed and the trip's
+// members; creating the rows, pinging the sockets and sending Web Push is
+// not. Keeping the two in one method made every rule reachable only through
+// HTTP plus SQLite plus a goroutine, which is the cut CODING_PRINCIPLES §3
+// rules out.
 
 import (
 	"strings"
@@ -30,21 +31,27 @@ type itemFacts struct {
 	PackerUserID string
 }
 
-// itemResolver answers what the rules need about a trip item, reporting
-// false when it cannot be read. It is the rules' only I/O and enters as a
-// seam so the decisions below can be stated in a table; the caller owns
-// the store call and the logging behind it.
-type itemResolver func(itemID string) (itemFacts, bool)
-
-// travelerResolver answers a traveler's linked account (FR-2.5 →
-// ADR-058), reporting false when the traveler has none or cannot be read.
-type travelerResolver func(travelerID string) (linkedUserID string, ok bool)
-
-// wordsResolver answers what an assignment notification names — a task's
-// body (FR-7.5) or a shopping entry's name (FR-30.12), by the row's table —
-// reporting false when it cannot be read. An assignment made after the row
-// was written carries no words of its own.
-type wordsResolver func(table, id string) (words string, ok bool)
+// notificationFacts answers what the rules need to know beyond the mutation
+// itself, each answer reporting false when it cannot be read. It is the
+// rules' only I/O and enters as a seam so the decisions below can be stated
+// in a table; the implementation owns the store call and the logging behind
+// it (storeFacts).
+type notificationFacts interface {
+	// item answers a trip item.
+	item(itemID string) (itemFacts, bool)
+	// travelerAccount answers a traveler's linked account (FR-2.5 →
+	// ADR-058), reporting false when the traveler has none.
+	travelerAccount(travelerID string) (linkedUserID string, ok bool)
+	// words answers what an assignment notification names — a task's body
+	// (FR-7.5) or a shopping entry's name (FR-30.12), by the row's table.
+	// An assignment made after the row was written carries no words of its
+	// own.
+	words(table, id string) (string, bool)
+	// thread answers a note thread by its first note's id (FR-7.13).
+	thread(rootID string) (noteThreadFacts, bool)
+	// idea answers an idea by its id (FR-29.8).
+	idea(ideaID string) (ideaFacts, bool)
+}
 
 // noteThreadFacts is what FR-7.13's reply rule needs to know about a
 // thread: what to call it, and who has taken part in it.
@@ -59,10 +66,6 @@ type noteThreadFacts struct {
 	Participants []string
 }
 
-// threadResolver answers a thread by its first note's id, reporting false
-// when it cannot be read.
-type threadResolver func(rootID string) (noteThreadFacts, bool)
-
 // ideaFacts is what FR-29.8's rules need to know about an idea: what it is
 // called, and who takes part in its discussion.
 type ideaFacts struct {
@@ -73,26 +76,15 @@ type ideaFacts struct {
 	Participants []string
 }
 
-// ideaResolver answers an idea by its id, reporting false when it cannot be
-// read.
-type ideaResolver func(ideaID string) (ideaFacts, bool)
-
 // planNotifications turns one push's mutations into the notifications they
-// earn, in the order they should be delivered. It reads nothing and writes
-// nothing: every input is a parameter.
+// earn, in the order they should be delivered. It writes nothing and reads
+// only through facts.
 //
-// A mutation the push did not apply earns nothing, and neither does a trip
-// with fewer than two people on it — FR-17.3, which is also why Single-User
-// Mode never produces a notification without the handler having to know it.
+// landed are the mutations that changed the trip. A trip with fewer than two
+// people on it earns nothing — FR-17.3, which is also why Single-User Mode
+// never produces a notification without the handler having to know it.
 func planNotifications(
-	tripID, actor string,
-	pushed []pushedMutation,
-	members []store.MemberName,
-	resolve itemResolver,
-	resolveTraveler travelerResolver,
-	resolveWords wordsResolver,
-	resolveThread threadResolver,
-	resolveIdea ideaResolver,
+	tripID, actor string, landed []syncpkg.Mutation, members []store.MemberName, facts notificationFacts,
 ) []plannedNotification {
 	if len(members) < 2 {
 		return nil
@@ -100,17 +92,13 @@ func planNotifications(
 	actorName := displayNameOf(members, actor)
 
 	var plan []plannedNotification
-	for _, p := range pushed {
-		if !p.landed() {
-			continue
-		}
-		m := p.mut
+	for _, m := range landed {
 		switch m.Table {
 		case store.TableTripItems:
-			plan = append(plan, planDelegation(tripID, actor, actorName, m, resolve)...)
-			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, resolve, resolveTraveler, plan)...)
+			plan = append(plan, planDelegation(tripID, actor, actorName, m, facts)...)
+			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, facts, plan)...)
 		case store.TableComments:
-			assigned := planAssignment(tripID, actor, actorName, m, members, resolveWords)
+			assigned := planAssignment(tripID, actor, actorName, m, members, facts)
 			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
 				switch {
@@ -118,40 +106,56 @@ func planNotifications(
 					// FR-7.13: a reply is for the thread's participants,
 					// not the whole trip — the first note already reached
 					// everyone.
-					plan = append(plan, planNoteReply(tripID, actor, actorName, m, members, resolveThread)...)
+					plan = append(plan, planNoteReply(tripID, actor, actorName, m, members, facts)...)
 				case isTripNote(m):
 					// FR-7.9 decision 5: a note is written *for* every
 					// co-traveller, not addressed to whoever it names, so it
 					// takes the broadcast rather than planComment's mention scan.
 					plan = append(plan, planNote(tripID, actor, actorName, m, members)...)
 				default:
-					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
+					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, facts), assigned)...)
 				}
 			}
 		case store.TableShoppingEntries:
-			plan = append(plan, planAssignment(tripID, actor, actorName, m, members, resolveWords)...)
+			plan = append(plan, planAssignment(tripID, actor, actorName, m, members, facts)...)
 		case store.TableIdeas:
-			plan = append(plan, planIdea(tripID, actor, actorName, m, members, resolveIdea)...)
+			plan = append(plan, planIdea(tripID, actor, actorName, m, members, facts)...)
 		case store.TableIdeaComments:
 			if m.Op == syncpkg.OpInsert {
-				plan = append(plan, planIdeaComment(tripID, actor, actorName, m, members, resolveIdea)...)
+				plan = append(plan, planIdeaComment(tripID, actor, actorName, m, members, facts)...)
 			}
 		}
 	}
 	return plan
 }
 
+// columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
+// handed to — one column name on both tables.
+const columnAssignee = "assignee_user_id"
+
+// columnParentID is FR-7.13's reference from a reply to its thread's first
+// note — the field the reply rule reads off a mutation.
+const columnParentID = "parent_id"
+
+// The idea columns FR-29.8's rules read off a mutation: an insert's title, a
+// state move, and which idea a comment is about.
+const (
+	columnIdeaTitle = "title"
+	columnIdeaState = "state"
+	columnIdeaID    = "idea_id"
+)
+
 // planDelegation fires when a push hands packing responsibility to someone
 // else (FR-4.3 → FR-6.2). Since FR-25.19 packer_user_id *is* that
 // responsibility and nothing else — packing a row writes the separate
 // record column instead — so this reads a deliberate assignment rather
 // than having to tell the two apart.
-func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, resolve itemResolver) []plannedNotification {
+func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, facts notificationFacts) []plannedNotification {
 	target, _ := m.Fields["packer_user_id"].(string)
 	if target == "" || target == actor {
 		return nil
 	}
-	facts, ok := resolve(m.ID)
+	item, ok := facts.item(m.ID)
 	if !ok {
 		return nil
 	}
@@ -160,7 +164,7 @@ func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, resolve
 		Kind:   store.NotifyDelegation,
 		Payload: map[string]any{
 			payloadTripID: tripID, payloadItemID: m.ID,
-			payloadActorID: actor, payloadActorName: actorName, payloadItemName: facts.Name,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: item.Name,
 		},
 	}}
 }
@@ -175,14 +179,14 @@ func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, resolve
 // person for the same item, this stays silent.
 func planRosterAssignment(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolve itemResolver, resolveTraveler travelerResolver,
+	members []store.MemberName, facts notificationFacts,
 	already []plannedNotification,
 ) []plannedNotification {
 	travelerID, _ := m.Fields["assigned_traveler_id"].(string)
 	if travelerID == "" {
 		return nil
 	}
-	linkedUserID, ok := resolveTraveler(travelerID)
+	linkedUserID, ok := facts.travelerAccount(travelerID)
 	if !ok || linkedUserID == "" || linkedUserID == actor {
 		return nil
 	}
@@ -197,7 +201,7 @@ func planRosterAssignment(
 			return nil
 		}
 	}
-	facts, ok := resolve(m.ID)
+	item, ok := facts.item(m.ID)
 	if !ok {
 		return nil
 	}
@@ -206,7 +210,7 @@ func planRosterAssignment(
 		Kind:   store.NotifyDelegation,
 		Payload: map[string]any{
 			payloadTripID: tripID, payloadItemID: m.ID,
-			payloadActorID: actor, payloadActorName: actorName, payloadItemName: facts.Name,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: item.Name,
 		},
 	}}
 }
@@ -219,7 +223,7 @@ func planRosterAssignment(
 // into it (ADR-058's driver 1).
 func planAssignment(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolveWords wordsResolver,
+	members []store.MemberName, facts notificationFacts,
 ) []plannedNotification {
 	target, _ := m.Fields[columnAssignee].(string)
 	if target == "" || target == actor || displayNameOf(members, target) == "" {
@@ -232,7 +236,7 @@ func planAssignment(
 	words, _ := m.Fields[wordsColumn].(string)
 	if words == "" {
 		var ok bool
-		if words, ok = resolveWords(m.Table, m.ID); !ok {
+		if words, ok = facts.words(m.Table, m.ID); !ok {
 			return nil
 		}
 	}
@@ -277,7 +281,7 @@ func planComment(
 	tripID, actor, actorName string,
 	m syncpkg.Mutation,
 	members []store.MemberName,
-	resolve itemResolver,
+	facts notificationFacts,
 ) []plannedNotification {
 	body, _ := m.Fields["body"].(string)
 	payload := map[string]any{
@@ -289,7 +293,7 @@ func planComment(
 	notified := map[string]bool{}
 
 	if itemID, _ := m.Fields["trip_item_id"].(string); itemID != "" {
-		facts, ok := resolve(itemID)
+		item, ok := facts.item(itemID)
 		if !ok {
 			// An unreadable item costs the comment its mentions too: the
 			// payload they would carry is the one that failed to resolve,
@@ -297,10 +301,10 @@ func planComment(
 			return nil
 		}
 		payload[payloadItemID] = itemID
-		payload[payloadItemName] = facts.Name
-		if syncpkg.IsTruthy(m.Fields["is_task"]) && facts.PackerUserID != "" && facts.PackerUserID != actor {
-			plan = append(plan, plannedNotification{UserID: facts.PackerUserID, Kind: store.NotifyTask, Payload: payload})
-			notified[facts.PackerUserID] = true
+		payload[payloadItemName] = item.Name
+		if syncpkg.IsTruthy(m.Fields["is_task"]) && item.PackerUserID != "" && item.PackerUserID != actor {
+			plan = append(plan, plannedNotification{UserID: item.PackerUserID, Kind: store.NotifyTask, Payload: payload})
+			notified[item.PackerUserID] = true
 		}
 	}
 
@@ -358,10 +362,10 @@ func isNoteReply(m syncpkg.Mutation) bool {
 // participant (question 4): it would subscribe a reader to a discussion.
 func planNoteReply(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolveThread threadResolver,
+	members []store.MemberName, facts notificationFacts,
 ) []plannedNotification {
 	root, _ := m.Fields[columnParentID].(string)
-	thread, ok := resolveThread(root)
+	thread, ok := facts.thread(root)
 	if !ok {
 		return nil
 	}
@@ -403,7 +407,7 @@ func threadName(thread noteThreadFacts) string {
 // edit — another state, a new title, a picture — notifies nobody.
 func planIdea(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolveIdea ideaResolver,
+	members []store.MemberName, facts notificationFacts,
 ) []plannedNotification {
 	var kind, title string
 	switch {
@@ -413,7 +417,7 @@ func planIdea(
 		title, _ = m.Fields[columnIdeaTitle].(string)
 	case m.Op != syncpkg.OpDelete && m.Fields[columnIdeaState] == store.IdeaStateShortlisted:
 		kind = store.NotifyIdeaShortlisted
-		idea, ok := resolveIdea(m.ID)
+		idea, ok := facts.idea(m.ID)
 		if !ok {
 			return nil
 		}
@@ -440,10 +444,10 @@ func planIdea(
 // does not ring every phone on the trip. A vote does not make a participant.
 func planIdeaComment(
 	tripID, actor, actorName string, m syncpkg.Mutation,
-	members []store.MemberName, resolveIdea ideaResolver,
+	members []store.MemberName, facts notificationFacts,
 ) []plannedNotification {
 	ideaID, _ := m.Fields[columnIdeaID].(string)
-	idea, ok := resolveIdea(ideaID)
+	idea, ok := facts.idea(ideaID)
 	if !ok {
 		return nil
 	}

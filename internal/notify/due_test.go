@@ -1,4 +1,4 @@
-package api
+package notify
 
 import (
 	"context"
@@ -161,7 +161,7 @@ func TestPlanExcursionDue_FR31_9_ParticipantsElseEveryMember(t *testing.T) {
 	}
 }
 
-func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
+func TestRemindDue_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
 		t.Fatalf("store.OpenForTest: %v", err)
@@ -184,12 +184,12 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 		}
 	}
 	clock := time.Date(2026, 7, 8, 5, 59, 0, 0, time.UTC)
-	// Single-User: the mode that has one person and is still reminded.
-	s := NewSingleUser(st, "u-local", Options{Now: func() time.Time { return clock }})
+	// One member — the trip a Single-User instance has — and still reminded.
+	n := New(st, nopPinger{}, Options{Now: func() time.Time { return clock }})
 	ctx := context.Background()
 	count := func() int {
 		t.Helper()
-		if err := s.WaitDetached(ctx); err != nil {
+		if err := n.Wait(ctx); err != nil {
 			t.Fatal(err)
 		}
 		list, err := st.ListNotifications(ctx, "u-local", false, 50)
@@ -199,22 +199,22 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 		return len(list)
 	}
 
-	if s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 0 {
+	if n.remindDue(ctx, DefaultTaskReminderAt) || count() != 0 {
 		t.Fatal("reminded before the configured time")
 	}
 	clock = clock.Add(time.Minute)
 	// One for the task, one for the purchase, one for the excursion.
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 3 {
+	if !n.remindDue(ctx, DefaultTaskReminderAt) || count() != 3 {
 		t.Fatalf("at 06:00: want three reminders, have %d", count())
 	}
 	// The loop waking again, or the server restarting, the same day.
 	clock = clock.Add(3 * time.Hour)
-	if s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 3 {
+	if n.remindDue(ctx, DefaultTaskReminderAt) || count() != 3 {
 		t.Fatal("reminded twice in one day")
 	}
 	// The due day itself: the second and last reminder.
 	clock = clock.Add(24 * time.Hour)
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 6 {
+	if !n.remindDue(ctx, DefaultTaskReminderAt) || count() != 6 {
 		t.Fatalf("on the due day: want six reminders, have %d", count())
 	}
 	list, _ := st.ListNotifications(ctx, "u-local", false, 50)
@@ -237,22 +237,22 @@ func TestRemindDueTasks_FR7_11_OnceADayFromTheConfiguredTime(t *testing.T) {
 	}
 	// Overdue: no repeat reminder.
 	clock = clock.Add(24 * time.Hour)
-	if !s.remindDueTasks(ctx, DefaultTaskReminderAt) || count() != 6 {
+	if !n.remindDue(ctx, DefaultTaskReminderAt) || count() != 6 {
 		t.Fatal("an overdue task, purchase or excursion was reminded again")
 	}
 }
 
-func TestRunTaskReminders_StopsWithItsContext(t *testing.T) {
+func TestRunReminders_StopsWithItsContext(t *testing.T) {
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
 		t.Fatalf("store.OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
-	s := NewSingleUser(st, "u-local", Options{})
+	n := New(st, nopPinger{}, Options{})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
-		s.RunTaskReminders(ctx, DefaultTaskReminderAt)
+		n.RunReminders(ctx, DefaultTaskReminderAt)
 		close(done)
 	}()
 	cancel()

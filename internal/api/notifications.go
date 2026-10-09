@@ -1,14 +1,9 @@
-// Package api — notifications.go implements FR-6.2: detecting
-// notification triggers in applied push mutations (delegation, @mention,
-// task on a delegated item, FR-7.9's new trip note, FR-29.8's ideas), the REST endpoints to
-// fetch/acknowledge them, and the M17 per-kind preference endpoints.
-// Fan-out to connected devices rides the WebSocket as notification.created
-// (spec §7).
+// Package api — notifications.go serves FR-6.2's REST endpoints: fetching
+// and acknowledging notifications, and the M17 per-kind preferences. Who is
+// notified of what, and the delivery, are internal/notify's.
 package api
 
 import (
-	"context"
-	"log/slog"
 	"net/http"
 
 	"jitpack/internal/store"
@@ -17,9 +12,6 @@ import (
 const (
 	defaultNotificationLimit = 50
 	maxNotificationLimit     = 200
-	// previewLen truncates comment bodies in payloads — the payload is a
-	// teaser for the toast/OS notification, the deep link has the rest.
-	previewLen = 120
 )
 
 // handleListNotifications serves GET /api/v1/notifications
@@ -100,118 +92,4 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, OKResponse{OK: true})
-}
-
-// emitNotifications creates and fans out the notifications one push
-// earns. The decision of who gets what is planNotifications' (FR-6.2,
-// notificationrules.go); everything here is the I/O that carries it out.
-// Failures are logged, never surfaced — notifications are a side effect,
-// the push already succeeded.
-func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, pushed []pushedMutation) {
-	members, err := s.store.TripMemberNames(ctx, tripID)
-	if err != nil {
-		slog.Error("notification member lookup", "trip", tripID, "error", err)
-		return
-	}
-	resolve := func(itemID string) (itemFacts, bool) {
-		name, packer, err := s.store.TripItemInfo(ctx, itemID)
-		if err != nil {
-			slog.Error("notification item lookup", "item", itemID, "error", err)
-			return itemFacts{}, false
-		}
-		return itemFacts{Name: name, PackerUserID: packer}, true
-	}
-	resolveTraveler := func(travelerID string) (string, bool) {
-		linkedUserID, ok, err := s.store.TravelerLinkedUser(ctx, travelerID)
-		if err != nil {
-			slog.Error("notification traveler lookup", "traveler", travelerID, "error", err)
-			return "", false
-		}
-		return linkedUserID, ok
-	}
-	resolveWords := func(table, id string) (string, bool) {
-		lookup := s.store.CommentBody
-		if table == store.TableShoppingEntries {
-			lookup = s.store.ShoppingEntryName
-		}
-		words, err := lookup(ctx, id)
-		if err != nil {
-			slog.Error("notification assignment lookup", "table", table, "id", id, "error", err)
-			return "", false
-		}
-		return words, true
-	}
-	resolveThread := func(rootID string) (noteThreadFacts, bool) {
-		thread, err := s.store.NoteThread(ctx, rootID)
-		if err != nil {
-			slog.Error("notification thread lookup", "comment", rootID, "error", err)
-			return noteThreadFacts{}, false
-		}
-		return noteThreadFacts{Title: thread.Title, Body: thread.Body, Participants: thread.Participants}, true
-	}
-	resolveIdea := func(ideaID string) (ideaFacts, bool) {
-		idea, err := s.store.IdeaDiscussion(ctx, ideaID)
-		if err != nil {
-			slog.Error("notification idea lookup", "idea", ideaID, "error", err)
-			return ideaFacts{}, false
-		}
-		return ideaFacts{Title: idea.Title, Participants: idea.Participants}, true
-	}
-	plan := planNotifications(tripID, actor, pushed, members,
-		resolve, resolveTraveler, resolveWords, resolveThread, resolveIdea)
-	for _, n := range plan {
-		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
-	}
-}
-
-// Payload keys shared by every notification kind (FR-6.3 deep link).
-const (
-	payloadTripID    = "trip_id"
-	payloadItemID    = "item_id"
-	payloadItemName  = "item_name"
-	payloadActorID   = "actor_id"
-	payloadActorName = "actor_name"
-	payloadCommentID = "comment_id"
-	payloadPreview   = "preview"
-	// FR-7.13: a reply names its thread — the first note's id, so the tap
-	// opens it, and what it is called, so the sentence can say.
-	payloadThreadID = "thread_id"
-	payloadThread   = "thread"
-	// FR-29.8: an idea's notification opens the idea (M28's `?idea=`); its
-	// title rides in payloadItemName, the slot every client already fills.
-	payloadIdeaID = "idea_id"
-)
-
-// columnParentID is FR-7.13's reference from a reply to its thread's first
-// note — the field the reply rule reads off a mutation.
-const columnParentID = "parent_id"
-
-// The idea columns FR-29.8's rules read off a mutation: an insert's title, a
-// state move, and which idea a comment is about.
-const (
-	columnIdeaTitle = "title"
-	columnIdeaState = "state"
-	columnIdeaID    = "idea_id"
-)
-
-// createAndNotify persists the notification (unless the target's prefs
-// suppress it) and pings the target's connected devices.
-func (s *Server) createAndNotify(ctx context.Context, userID, kind string, payload map[string]any) {
-	id, err := s.store.CreateNotification(ctx, userID, kind, payload)
-	if err != nil {
-		slog.Error("create notification", "user", userID, "kind", kind, "error", err)
-		return
-	}
-	if id == "" {
-		return // preference-suppressed (M17)
-	}
-	s.hub.NotifyNotificationCreated(userID, id)
-	// Web Push rides along detached (NFR-4.6): the response and the WS
-	// ping must never wait on a third-party push service. Detached from
-	// the request, not from the process — see Server.WaitDetached.
-	s.detached.Add(1)
-	go func() {
-		defer s.detached.Done()
-		s.sendWebPush(userID, id, kind, payload)
-	}()
 }

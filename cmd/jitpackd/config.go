@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"jitpack/internal/api"
+	"jitpack/internal/notify"
 )
 
 // currencyCodeLen is ISO 4217's alphabetic code length.
@@ -89,7 +89,7 @@ type Config struct {
 
 	// TaskReminderAt is when FR-7.11's daily reminder runs, as a time of
 	// day in the server's own time zone (the TZ variable): "HH:MM",
-	// default 06:00 (api.DefaultTaskReminderAt).
+	// default 06:00 (notify.DefaultTaskReminderAt).
 	TaskReminderAt time.Duration // JITPACK_TASK_REMINDER_TIME
 }
 
@@ -208,7 +208,7 @@ func parseCurrency(raw string) (string, error) {
 func parseReminderTime(raw string) (time.Duration, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return api.DefaultTaskReminderAt, nil
+		return notify.DefaultTaskReminderAt, nil
 	}
 	t, err := time.Parse("15:04", raw)
 	if err != nil {

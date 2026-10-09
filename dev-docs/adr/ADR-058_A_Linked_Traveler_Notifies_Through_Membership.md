@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-2.5 (Traveler vs. User Separation), FR-6.2/FR-25.19 (delegation notifications), FR-4.5 (roles), the
-2026-09-01 „keep, do not build" decision this supersedes, `internal/api/notificationrules.go`,
+2026-09-01 „keep, do not build" decision this supersedes, `internal/notify/rules.go`,
 `internal/store/travelers.go`, `internal/store/partition.go`
 
 **Decision Drivers (in priority order):**
@@ -87,7 +87,7 @@ check (`internal/store/partition.go`) alongside the existing `belongsToTrip` gua
 checks the same rule before sending, so the common failure is a sentence, not a server round trip. Unlinking (a
 nil/empty `linked_user_id`) needs no membership check at all — clearing a link can never point anywhere invalid.
 
-`planRosterAssignment` (`internal/api/notificationrules.go`) then notifies the linked account when a `trip_items`
+`planRosterAssignment` (`internal/notify/rules.go`) then notifies the linked account when a `trip_items`
 row's `assigned_traveler_id` names that traveler, reusing `store.NotifyDelegation` rather than adding a fifth
 notification kind — "you were assigned this item" and "you're the linked account of its traveler" read as the same
 sentence to the recipient. It dedupes against an explicit `packer_user_id` delegation for the same person and item.

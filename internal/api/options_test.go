@@ -57,7 +57,7 @@ var applied = map[string]func(*Server) bool{
 	"NoMapTiles":  func(s *Server) bool { return !s.instance.MapTiles },
 	"NoTimetable": func(s *Server) bool { return !s.instance.Timetable },
 	"RoutingURL":  func(s *Server) bool { return s.instance.RoutingURL == "https://router.example/brouter" },
-	"PushContact": func(s *Server) bool { return s.pushContact == "mailto:ops@example.com" },
+	"PushContact": func(s *Server) bool { return s.notifier.Contact() == "mailto:ops@example.com" },
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.
 	"AdminEmails": func(s *Server) bool { return s.adminEmails["andy@example.com"] },

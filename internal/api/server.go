@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"jitpack/internal/notify"
 	"jitpack/internal/store"
 	syncpkg "jitpack/internal/sync"
 )
@@ -51,12 +51,9 @@ type Server struct {
 	// wsIdleWatch decides the context a single WebSocket read waits on.
 	// Never nil, see newServer; replaced only by a test.
 	wsIdleWatch idleWatchFunc
-	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
-	// store; contact is the RFC 8292 sub claim.
-	pushContact string
-	vapidMu     sync.Mutex
-	vapidPub    string
-	vapidPriv   string
+	// notifier is the notification sub-domain (FR-6.2, NFR-4.6): who a
+	// push or a takeover notifies, the daily reminder and Web Push.
+	notifier *notify.Notifier
 	// version is the release tag this binary was built as (Options.Version);
 	// empty in a build that names none.
 	version string
@@ -70,37 +67,20 @@ type Server struct {
 	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
 	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
-	// detached counts the background work a request started and then
-	// stopped waiting for — today only Web Push delivery. See
-	// WaitDetached for what it is counted for.
-	detached sync.WaitGroup
 }
 
-// WaitDetached blocks until the background work started by requests
-// already served has finished, or until ctx is done — in which case it
-// returns ctx.Err() and that work is abandoned mid-flight.
-//
-// It exists because a detached delivery is not a fire-and-forget in the
-// only moment that matters: process shutdown. A notification created a
-// millisecond before SIGTERM has already answered its push and pinged
-// the WebSocket, and its Web Push send is the one part still in the air
-// — exiting under it drops the notification for exactly the clients it
-// was invented for, the backgrounded and the closed ones (NFR-4.6).
-//
-// Call it only once the server has stopped accepting requests: it makes
-// no promise about work a request starts while it waits.
+// WaitDetached blocks until the Web Push deliveries the requests already
+// served started have finished, or until ctx is done — notify.Notifier.Wait,
+// which says why shutdown needs it. Call it only once the server has stopped
+// accepting requests.
 func (s *Server) WaitDetached(ctx context.Context) error {
-	done := make(chan struct{})
-	go func() {
-		s.detached.Wait()
-		close(done)
-	}()
-	select {
-	case <-done:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return s.notifier.Wait(ctx)
+}
+
+// RunTaskReminders runs FR-7.11's daily reminder at `at` past midnight
+// until ctx ends — notify.Notifier.RunReminders.
+func (s *Server) RunTaskReminders(ctx context.Context, at time.Duration) {
+	s.notifier.RunReminders(ctx, at)
 }
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
@@ -122,7 +102,6 @@ func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
 		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, Timetable: !opts.NoTimetable, RoutingURL: opts.RoutingURL},
-		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		wsIdleWatch:    idleDeadline,
 		adminEmails:    emailSet(opts.AdminEmails),
@@ -137,6 +116,7 @@ func newServer(st *store.Store, opts Options) *Server {
 	}
 	// FR-29.19: a shared position is stamped with the server's clock.
 	s.hub.now = func() time.Time { return s.now() }
+	s.notifier = notify.New(st, s.hub, notify.Options{Contact: opts.PushContact, Now: s.now})
 	// After the clock is settled, and reading it through a closure rather
 	// than by value: the checker's idea of "a day ago" must be the
 	// server's own clock, including the one a test injects (G-4).
@@ -420,13 +400,21 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	// FR-6.2 side effects last — FR-17.3: no second party in Single-User
 	// Mode, so no detection at all.
 	if s.identity.hasSecondParty() {
-		s.emitNotifications(r.Context(), tripID, userID, pushed)
+		s.notifier.Pushed(r.Context(), tripID, userID, landedMutations(pushed))
 	}
 }
 
-// columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
-// handed to — one column name on both tables.
-const columnAssignee = "assignee_user_id"
+// landedMutations are the mutations of a push that changed the trip — the
+// ones a side effect is owed for.
+func landedMutations(pushed []pushedMutation) []syncpkg.Mutation {
+	out := make([]syncpkg.Mutation, 0, len(pushed))
+	for _, p := range pushed {
+		if p.landed() {
+			out = append(out, p.mut)
+		}
+	}
+	return out
+}
 
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the
