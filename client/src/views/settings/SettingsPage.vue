@@ -11,24 +11,17 @@
  * stays read-only there rather than becoming an editable copy. Local Mode
  * has no server identity at all, so the section is a note.
  *
- * Data: NFR-4.5 exports (full JSON, per-trip CSV). Local Mode points to
- * the portable YAML path instead.
- *
- * Notifications (FR-6.2/NFR-4.6): per-kind toggles + the Web Push
- * opt-in for this device. Only with an OIDC session — Single-User and
- * Local Mode have no second party (FR-17.3/FR-19.3, G-8).
- *
  * Appearance (FR-21.3, FR-21.29): opt-in light theme (Tag, ADR-048) and
  * the start animation, device-local display preferences — shown in every
  * mode, never synced.
  *
- * Connection (FR-19.9): Server Mode only (G-8). The two ways off a device
- * that cannot talk to its instance — end the session, or forget the
- * connection altogether and be asked again.
+ * Notifications, Data, API tokens and Connection are their own components
+ * (`components/settings/Settings*Section.vue`); this page decides which of
+ * them a mode shows.
  */
 import { API } from '@/api/routes'
-import { API_TOKEN_EXPIRY, UPDATE_STATE } from '@/api/types'
-import type { APITokenExpiry, InstanceUpdateResponse } from '@/api/types'
+import { UPDATE_STATE } from '@/api/types'
+import type { InstanceUpdateResponse } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -42,53 +35,25 @@ import {
   IonNote,
   IonIcon,
   IonToggle,
-  alertController,
   onIonViewWillEnter,
 } from '@ionic/vue'
-import {
-  addOutline,
-  closeOutline,
-  downloadOutline,
-  personOutline,
-  warningOutline,
-} from 'ionicons/icons'
+import { addOutline, closeOutline, personOutline } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
-import {
-  EXPORT_REMINDER_DAYS,
-  backupCoversDevice,
-  lastExportAt,
-  lastLocalWriteAt,
-  reminderState,
-} from '@/local/exportReminder'
 
-import { endSession } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
-import { hasCollaborativeSession, readMode, resetConnection, switchToServer } from '@/mode'
-import { defaultServerBaseUrl, serverBaseUrl } from '@/config'
-import type { NotificationPrefs } from '@/notifications/format'
-import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
+import { hasCollaborativeSession, readMode } from '@/mode'
+import { serverBaseUrl } from '@/config'
 import { isValidDisplayName } from '@/domain/displayName'
-import { compositionFrom, serializeTemplate, serializeTrip } from '@/domain/portable'
-import { confirmAction, confirmDestructive } from '@/composables/shared/confirm'
-import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
-import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
 import { setSplashEnabled, splashEnabled } from '@/lib/splash'
-import {
-  type Locale,
-  type MessageKey,
-  currentLocale,
-  formatDate,
-  formatNumber,
-  setLocale,
-  t,
-} from '@/i18n'
+import { type Locale, currentLocale, formatDate, setLocale, t } from '@/i18n'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
-import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
-import LeaveLocalModeCard from '@/components/settings/LeaveLocalModeCard.vue'
-import { useDeviceBackup } from '@/composables/useDeviceBackup'
+import SettingsConnectionSection from '@/components/settings/SettingsConnectionSection.vue'
+import SettingsDataSection from '@/components/settings/SettingsDataSection.vue'
+import SettingsNotificationsSection from '@/components/settings/SettingsNotificationsSection.vue'
+import SettingsTokensSection from '@/components/settings/SettingsTokensSection.vue'
 import { useIdentity } from '@/composables/shared/useTripIdentity'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { PATH } from '@/router/paths'
@@ -97,11 +62,9 @@ import SectionHead from '@/components/global/SectionHead.vue'
 
 const orchestrator = useOrchestrator()
 const { me, directory, load: loadIdentity } = useIdentity(orchestrator.identity)
-const tripStore = useTripStore()
 const masterStore = useMasterStore()
 
 const mode = readMode()
-/** OIDC session → profile is IdP-sourced and read-only (UI-Spec M17). */
 /**
  * The display name is IdP-sourced with an OIDC session, so editing it there
  * would be editing a copy (FR-17.13).
@@ -124,12 +87,6 @@ const collaborative = hasCollaborativeSession()
  * push toggle the reminder needs to reach a closed app.
  */
 const notifiable = mode === 'server'
-/** The kinds a person alone can receive: none is anybody's act (FR-17.3's reason). */
-const SOLO_KINDS: ReadonlySet<keyof NotificationPrefs> = new Set([
-  'task_due',
-  'shopping_due',
-  'excursion_due',
-])
 
 const nameDraft = ref('')
 const nameSaved = ref(false)
@@ -139,13 +96,9 @@ onMounted(async () => {
   await loadIdentity()
   // Not awaited: the release line is the least urgent thing on this screen,
   // and on an instance that does not answer, awaiting it would hold the
-  // notification section behind a request that is allowed to time out.
+  // rest of the screen behind a request that is allowed to time out.
   void loadInstanceUpdate()
   nameDraft.value = me.value?.display_name ?? ''
-  if (notifiable) {
-    prefs.value = await orchestrator.notifications.fetchNotificationPrefs()
-    pushOn.value = await pushRegistered()
-  }
 })
 
 // --- Appearance (FR-21.3, device-local) ---
@@ -198,62 +151,6 @@ function changeLanguage(next: Locale) {
   language.value = next
 }
 
-// --- Notifications (FR-6.2 / NFR-4.6) ---
-
-const prefs = ref<NotificationPrefs | null>(null)
-const pushOn = ref(false)
-const pushAvailable = pushSupported()
-
-/*
- * Keys, not finished text: a module-level constant is evaluated once at import
- * and a language switch can never reach it — the same trap the nav anchors and
- * route titles were caught in during the i18n migration. `t()` runs during
- * render here, so it tracks the locale.
- */
-const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: MessageKey }[] = [
-  { kind: 'delegation', label: 'settings.prefDelegation', hint: 'settings.prefDelegationHint' },
-  { kind: 'mention', label: 'settings.prefMention', hint: 'settings.prefMentionHint' },
-  { kind: 'task', label: 'settings.prefTask', hint: 'settings.prefTaskHint' },
-  { kind: 'lock_taken', label: 'settings.prefLockTaken', hint: 'settings.prefLockTakenHint' },
-  { kind: 'note', label: 'settings.prefNote', hint: 'settings.prefNoteHint' },
-  { kind: 'note_reply', label: 'settings.prefNoteReply', hint: 'settings.prefNoteReplyHint' },
-  // FR-29.8: the planner's three kinds, each its own switch.
-  { kind: 'idea', label: 'settings.prefIdea', hint: 'settings.prefIdeaHint' },
-  { kind: 'idea_comment', label: 'settings.prefIdeaComment', hint: 'settings.prefIdeaCommentHint' },
-  {
-    kind: 'idea_shortlisted',
-    label: 'settings.prefIdeaShortlisted',
-    hint: 'settings.prefIdeaShortlistedHint',
-  },
-  { kind: 'task_due', label: 'settings.prefTaskDue', hint: 'settings.prefTaskDueHint' },
-  // FR-30.10: a purchase's reminder, its own switch.
-  { kind: 'shopping_due', label: 'settings.prefShoppingDue', hint: 'settings.prefShoppingDueHint' },
-  // FR-31.9: an excursion's reminder, its own switch.
-  {
-    kind: 'excursion_due',
-    label: 'settings.prefExcursionDue',
-    hint: 'settings.prefExcursionDueHint',
-  },
-]
-
-/** The rows this instance can actually send (FR-7.11, FR-30.10, FR-31.9: Single-User only the reminders). */
-const shownPrefRows = collaborative ? prefRows : prefRows.filter((row) => SOLO_KINDS.has(row.kind))
-
-async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {
-  if (!prefs.value) return
-  prefs.value = { ...prefs.value, [kind]: enabled }
-  await orchestrator.notifications.saveNotificationPrefs(prefs.value)
-}
-
-async function togglePush(enabled: boolean) {
-  if (enabled) {
-    pushOn.value = await registerPush(orchestrator.notifications.pushApi)
-  } else {
-    await unregisterPush(orchestrator.notifications.pushApi)
-    pushOn.value = false
-  }
-}
-
 // FR-17.13: validated inline, but only after the field was touched — the
 // untouched server-provided name must never greet the user with an error.
 const nameValid = computed(() => isValidDisplayName(nameDraft.value))
@@ -297,103 +194,9 @@ async function onAvatarCropped(blob: Blob) {
   avatarVersion.value++
 }
 
-/**
- * FR-24.3: how many master rows a delete only hid. Shown beside the row so
- * the screen is worth opening — or visibly not.
- */
-// --- API tokens (FR-23.7) ---------------------------------------------
-//
-// The minted token lives in component state and is dropped when the sheet
-// closes. It is never written to a store or to localStorage: nothing about a
-// token is persisted anywhere, which is the whole of ADR-039.
-
-const tokenName = ref('')
-const tokenExpiry = ref<APITokenExpiry>(API_TOKEN_EXPIRY['90d'])
-const tokenPending = ref(false)
-const tokenFailed = ref(false)
-const mintedToken = ref('')
-const mintedExpiresAt = ref('')
-const tokenSheetOpen = ref(false)
-
-/**
- * The four lifetimes, built as a computed rather than a module constant:
- * finished text in a module-level constant is unreachable by a language
- * switch, which is the trap M17 closed once already.
- */
-const tokenExpiryOptions = computed(() => [
-  { value: API_TOKEN_EXPIRY['1h'], label: t('settings.tokenExpiry1h') },
-  { value: API_TOKEN_EXPIRY['1d'], label: t('settings.tokenExpiry1d') },
-  { value: API_TOKEN_EXPIRY['7d'], label: t('settings.tokenExpiry7d') },
-  { value: API_TOKEN_EXPIRY['30d'], label: t('settings.tokenExpiry30d') },
-  { value: API_TOKEN_EXPIRY['90d'], label: t('settings.tokenExpiry90d') },
-  { value: API_TOKEN_EXPIRY['365d'], label: t('settings.tokenExpiry365d') },
-  { value: API_TOKEN_EXPIRY.never, label: t('settings.tokenExpiryNever') },
-])
-
-async function createToken() {
-  tokenPending.value = true
-  tokenFailed.value = false
-  try {
-    const out = await orchestrator.identity.createAPIToken(
-      tokenName.value.trim(),
-      tokenExpiry.value,
-    )
-    if (!out) {
-      tokenFailed.value = true
-      return
-    }
-    mintedToken.value = out.token
-    mintedExpiresAt.value = out.expires_at
-    tokenSheetOpen.value = true
-    tokenName.value = ''
-  } catch {
-    // Offline, or the server refused it — the sentence is the same either
-    // way, because neither is something the person can act on differently.
-    tokenFailed.value = true
-  } finally {
-    tokenPending.value = false
-  }
-}
-
-/** Closing the reveal is what ends the token's only readable moment. */
-function closeTokenSheet() {
-  tokenSheetOpen.value = false
-  mintedToken.value = ''
-  mintedExpiresAt.value = ''
-}
-
 const retiredCount = computed(
   () => masterStore.retiredItemList.length + masterStore.retiredTemplateList.length,
 )
-
-// --- Data section (NFR-4.5; Local Mode: portable YAML per NFR-4.11) ---
-
-const csvTripId = ref('')
-const yamlTripId = ref('')
-const yamlTemplateId = ref('')
-
-/*
- * NFR-4.11 export reminder. What it tracks is the **whole-device** backup —
- * the requirement's own words — which is the G-2 storage sheet's one-tap
- * export and nothing else. The two YAML downloads below are a single trip
- * and a single template, and they do not stamp this key: exporting one trip
- * must not silence the warning about everything the file does not contain.
- */
-const exportReminder = ref(reminderState(lastExportAt(), orchestrator.now()))
-
-/*
- * Computed rather than written into the template: the sentence differs by
- * whether a backup was ever made, and the stale form is a plural — both
- * decisions belong to the catalogue, not to a ternary in the markup.
- */
-const backupReminderText = computed(() => {
-  // Narrowed on daysSince rather than lastAt: they are null together, but only
-  // this one is the value being interpolated, and only this one narrows.
-  const days = exportReminder.value.daysSince
-  return days === null
-    ? t('settings.backupNever')
-    : t('settings.backupStale', { n: days, every: EXPORT_REMINDER_DAYS })
-})
 
 const modeText = computed(() =>
   mode === 'local' ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
@@ -443,139 +246,10 @@ const updateUnreachableText = computed(() =>
     ? t('settings.updateUnreachableSince', { when: updateCheckedAt.value })
     : t('settings.updateUnreachable'),
 )
-/**
- * Re-read the stamp whenever the screen is entered. The backup that clears
- * this warning is taken on the G-2 sheet — another component — so a value
- * captured once at setup would go on warning for the rest of the session
- * about a backup the user has just made. Ionic keeps this page mounted,
- * which is exactly why entering has to be the trigger rather than mounting.
- */
-function refreshReminder() {
-  exportReminder.value = reminderState(lastExportAt(), orchestrator.now())
-  backupCovered.value = backupCoversDevice(lastExportAt(), lastLocalWriteAt())
-}
-onIonViewWillEnter(refreshReminder)
 
-// --- FR-19.8: leaving Local Mode (ADR-045) ---
-
-const { saveBackup: writeDeviceBackup } = useDeviceBackup()
-
-/**
- * The guard on the switch: re-read with the reminder, because the last write
- * is stamped by the orchestrator from whatever screen made it.
- */
-const backupCovered = ref(backupCoversDevice(lastExportAt(), lastLocalWriteAt()))
-
-async function backupForMove() {
-  await writeDeviceBackup()
-  refreshReminder()
-}
-
-/** Step 2: the mode, the URL and the pending flag, then the reload M19's choice also needs. */
-function moveToServer(url: string) {
-  switchToServer(url)
-  window.location.reload()
-}
-
-/** One trip as portable YAML, written client-side: there is no server to ask.
- *  Not the NFR-4.11 backup — see the note on `exportReminder`. */
-function exportTripYAML() {
-  const trip = tripStore.getTrip(yamlTripId.value)
-  if (!trip) return
-  const yaml = serializeTrip({
-    trip,
-    items: tripStore.getItems(trip.id),
-    travelers: tripStore.getTravelers(trip.id),
-    containers: tripStore.getContainers(trip.id),
-    includeProgress: true,
-    ...masterStore.portableResolvers(),
-  })
-  saveText(yaml, `${safeFilename(trip.name)}.yaml`)
-}
-
-function exportTemplateYAML() {
-  const template = masterStore.getTemplate(yamlTemplateId.value)
-  if (!template) return
-  const yaml = serializeTemplate(
-    template,
-    masterStore.getTemplateItems(template.id),
-    masterStore.portableResolvers().masterItem,
-    compositionFrom(template, masterStore.compositionSource()),
-    masterStore.portableResolvers().tagsOf,
-  )
-  saveText(yaml, `${safeFilename(template.name)}.yaml`)
-}
-
-/** Storage-detail popover (NFR-4.11): how much of the origin's quota the
- * on-device data uses, and whether the browser has promised not to evict
- * it. Both come from the Storage API; absence is reported honestly. */
-async function showStorageDetails() {
-  let message = t('settings.storageUnavailable')
-  if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
-    const { usage = 0, quota = 0 } = await navigator.storage.estimate()
-    const persisted = (await navigator.storage.persisted?.()) ?? false
-    const mb = (n: number) => formatNumber(n / (1024 * 1024), { maximumFractionDigits: 1 })
-    message =
-      t('settings.storageUsed', { used: mb(usage), quota: mb(quota) }) +
-      '\n\n' +
-      t(persisted ? 'settings.storagePersistent' : 'settings.storageNotPersistent')
-  }
-  const alert = await alertController.create({
-    header: t('settings.storageTitle'),
-    message,
-    buttons: [t('common.ok')],
-  })
-  await alert.present()
-}
-
-// --- Connection (FR-19.9) ---
-
-/** Which instance this device is pointed at — the stored URL wins (`config.ts`). */
-const serverUrl = serverBaseUrl()
-
-/**
- * Only an OIDC session can be logged out of. Single-User Mode has no session
- * to end, so the action would be a button that does nothing (G-8).
- */
-const canLogOut = mode === 'server' && !!loadTokens()
-
-/** FR-19.9: end the session; the app shell takes the device back to M16. */
-async function logOut() {
-  const ok = await confirmAction({
-    header: t('settings.logoutConfirmTitle'),
-    message: t('settings.logoutConfirmBody'),
-    confirmLabel: t('settings.logout'),
-    testid: 'settings-logout-confirm',
-  })
-  if (ok) endSession()
-}
-
-/**
- * FR-19.9: forget the session, the mode and the server URL, then reload into
- * M19. Destructive in wording because it throws away a choice, not data —
- * which is exactly what the confirmation has to say.
- */
-async function forgetConnection() {
-  const ok = await confirmDestructive({
-    header: t('settings.resetConnectionConfirmTitle'),
-    message: t('settings.resetConnectionConfirmBody'),
-    confirmLabel: t('settings.resetConnection'),
-    testid: 'settings-reset-connection-confirm',
-  })
-  if (ok) resetConnection()
-}
-
-async function exportFull() {
-  const blob = await orchestrator.identity.downloadExport(API.meExport)
-  if (blob) saveBlob(blob, 'jitpack-export.json')
-}
-
-async function exportTripCSV() {
-  if (!csvTripId.value) return
-  const blob = await orchestrator.identity.downloadExport(API.tripExportCSV(csvTripId.value))
-  const trip = tripStore.getTrip(csvTripId.value)
-  if (blob) saveBlob(blob, `${trip?.name ?? 'trip'}.csv`)
-}
+/** The Data section re-reads its backup stamp on every entry (Ionic keeps this page mounted). */
+const dataSection = ref<InstanceType<typeof SettingsDataSection> | null>(null)
+onIonViewWillEnter(() => dataSection.value?.refreshReminder())
 </script>
 
 <template>
@@ -758,141 +432,10 @@ async function exportTripCSV() {
 
       <!-- Notifications (FR-6.2 / NFR-4.6) — every server; Single-User sees
            only what can happen to one person (FR-7.11), Local nothing (G-8). -->
-      <template v-if="notifiable">
-        <SectionHead
-          :title="t('settings.notifications')"
-          data-testid="settings-section-notifications"
-        />
-        <IonList v-if="prefs">
-          <IonItem
-            v-for="p in shownPrefRows"
-            :key="p.kind"
-            :data-testid="`settings-pref-${p.kind}`"
-          >
-            <IonLabel>
-              <h3>{{ t(p.label) }}</h3>
-              <p>{{ t(p.hint) }}</p>
-            </IonLabel>
-            <IonToggle
-              slot="end"
-              :checked="prefs[p.kind]"
-              :aria-label="t(p.label)"
-              @ionChange="(e: CustomEvent) => togglePref(p.kind, e.detail.checked)"
-            />
-          </IonItem>
-          <IonItem>
-            <IonLabel>
-              <h3>{{ t('settings.push') }}</h3>
-              <p>
-                {{ pushAvailable ? t('settings.pushHint') : t('settings.pushUnsupported') }}
-              </p>
-            </IonLabel>
-            <IonToggle
-              slot="end"
-              data-testid="settings-push"
-              :checked="pushOn"
-              :disabled="!pushAvailable"
-              :aria-label="t('settings.push')"
-              @ionChange="(e: CustomEvent) => togglePush(e.detail.checked)"
-            />
-          </IonItem>
-        </IonList>
-        <IonNote v-else>{{ t('settings.notificationsUnavailable') }}</IonNote>
-      </template>
+      <SettingsNotificationsSection v-if="notifiable" :collaborative="collaborative" />
 
       <!-- Data (NFR-4.5) -->
-      <SectionHead :title="t('settings.data')" data-testid="settings-section-data" />
-      <template v-if="mode === 'local'">
-        <div
-          v-if="exportReminder.due"
-          class="export-reminder"
-          data-testid="settings-backup-reminder"
-        >
-          <IonIcon :icon="warningOutline" />
-          <span>{{ backupReminderText }}</span>
-        </div>
-        <IonNote>{{ t('settings.localBackupNote') }}</IonNote>
-        <IonList>
-          <IonItem>
-            <IonSelect
-              :label="t('settings.tripYaml')"
-              interface="popover"
-              :value="yamlTripId"
-              @ionChange="(e: CustomEvent) => (yamlTripId = e.detail.value)"
-            >
-              <IonSelectOption v-for="trip in tripStore.tripList" :key="trip.id" :value="trip.id">
-                {{ trip.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <IonButton slot="end" size="small" :disabled="!yamlTripId" @click="exportTripYAML">
-              {{ t('common.download') }}
-            </IonButton>
-          </IonItem>
-          <IonItem>
-            <IonSelect
-              :label="t('settings.templateYaml')"
-              interface="popover"
-              :value="yamlTemplateId"
-              @ionChange="(e: CustomEvent) => (yamlTemplateId = e.detail.value)"
-            >
-              <IonSelectOption
-                v-for="tpl in masterStore.activeTemplateList"
-                :key="tpl.id"
-                :value="tpl.id"
-              >
-                {{ tpl.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <IonButton
-              slot="end"
-              size="small"
-              :disabled="!yamlTemplateId"
-              @click="exportTemplateYAML"
-            >
-              {{ t('common.download') }}
-            </IonButton>
-          </IonItem>
-          <IonItem button :detail="false" @click="showStorageDetails">
-            <IonLabel data-testid="settings-storage-details">{{
-              t('settings.storageDetails')
-            }}</IonLabel>
-            <IonNote slot="end">{{ t('settings.storageDetailsHint') }}</IonNote>
-          </IonItem>
-        </IonList>
-        <LeaveLocalModeCard
-          :last-backup-at="exportReminder.lastAt"
-          :covered="backupCovered"
-          :default-url="defaultServerBaseUrl()"
-          @backup="backupForMove"
-          @switch="moveToServer"
-        />
-      </template>
-      <template v-else>
-        <IonList>
-          <IonItem button :detail="false" data-testid="settings-full-export" @click="exportFull">
-            <IonIcon slot="start" :icon="downloadOutline" />
-            <IonLabel>
-              <h3>{{ t('settings.fullExport') }}</h3>
-              <p>{{ t('settings.fullExportHint') }}</p>
-            </IonLabel>
-          </IonItem>
-          <IonItem>
-            <IonSelect
-              :label="t('settings.tripCsv')"
-              interface="popover"
-              :value="csvTripId"
-              @ionChange="(e: CustomEvent) => (csvTripId = e.detail.value)"
-            >
-              <IonSelectOption v-for="trip in tripStore.tripList" :key="trip.id" :value="trip.id">
-                {{ trip.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <IonButton slot="end" size="small" :disabled="!csvTripId" @click="exportTripCSV">
-              {{ t('common.download') }}
-            </IonButton>
-          </IonItem>
-        </IonList>
-      </template>
+      <SettingsDataSection ref="dataSection" />
 
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
@@ -913,58 +456,8 @@ async function exportTripCSV() {
         </IonList>
       </template>
 
-      <!-- API tokens (FR-23.7, ADR-039). Gated on `collaborative`, which
-           already means "Server Mode with a session": Single-User Mode
-           bypasses authentication and Local Mode has no server, so in both
-           a token would prove nothing there is anything to prove (G-8). -->
-      <template v-if="collaborative">
-        <SectionHead :title="t('settings.apiTokens')" data-testid="settings-section-tokens" />
-        <p class="section-hint">{{ t('settings.apiTokensHint') }}</p>
-        <IonList>
-          <IonItem lines="none">
-            <IonInput
-              :label="t('settings.tokenName')"
-              label-placement="stacked"
-              data-testid="token-name"
-              :value="tokenName"
-              :placeholder="t('settings.tokenNamePlaceholder')"
-              :maxlength="60"
-              @ionInput="(e: CustomEvent) => (tokenName = e.detail.value ?? '')"
-            />
-          </IonItem>
-          <IonItem lines="none">
-            <IonSelect
-              :label="t('settings.tokenExpiry')"
-              data-testid="token-expiry"
-              interface="popover"
-              :value="tokenExpiry"
-              @ionChange="(e: CustomEvent) => (tokenExpiry = e.detail.value)"
-            >
-              <IonSelectOption
-                v-for="opt in tokenExpiryOptions"
-                :key="opt.value"
-                :value="opt.value"
-              >
-                {{ opt.label }}
-              </IonSelectOption>
-            </IonSelect>
-          </IonItem>
-          <IonItem lines="none">
-            <IonButton
-              slot="end"
-              size="small"
-              data-testid="token-create"
-              :disabled="!tokenName.trim() || tokenPending"
-              @click="createToken"
-            >
-              {{ t('settings.tokenCreate') }}
-            </IonButton>
-          </IonItem>
-          <IonItem v-if="tokenFailed" lines="none">
-            <IonNote data-testid="token-failed">{{ t('settings.tokenFailed') }}</IonNote>
-          </IonItem>
-        </IonList>
-      </template>
+      <!-- API tokens (FR-23.7, ADR-039): a session only (G-8). -->
+      <SettingsTokensSection v-if="collaborative" />
 
       <!-- M23 (FR-24.3): what a delete only hid, and the way back. Beside
            the conflict log because both are corrective surfaces rather than
@@ -991,46 +484,8 @@ async function exportTripCSV() {
       <SectionHead :title="t('settings.conflictLog')" data-testid="settings-section-conflicts" />
       <IonNote>{{ t('settings.conflictLogNote') }}</IonNote>
 
-      <!--
-        FR-19.9: the two ways back off a device that cannot reach its
-        instance. Server Mode only (G-8) — Local Mode has no connection, and
-        resetting the one thing M19 decided is not a Local Mode question.
-      -->
-      <template v-if="mode === 'server'">
-        <SectionHead :title="t('settings.connection')" data-testid="settings-section-connection" />
-        <IonList>
-          <IonItem lines="none">
-            <IonLabel>
-              <h3>{{ t('settings.connectionServer') }}</h3>
-              <p class="diagnostic" data-testid="settings-server-url">{{ serverUrl }}</p>
-            </IonLabel>
-          </IonItem>
-          <IonItem v-if="canLogOut" lines="none">
-            <IonLabel>
-              <h3>{{ t('settings.logout') }}</h3>
-              <p>{{ t('settings.logoutHint') }}</p>
-            </IonLabel>
-            <IonButton slot="end" size="small" data-testid="settings-logout" @click="logOut">
-              {{ t('settings.logout') }}
-            </IonButton>
-          </IonItem>
-          <IonItem lines="none">
-            <IonLabel>
-              <h3>{{ t('settings.resetConnection') }}</h3>
-              <p>{{ t('settings.resetConnectionHint') }}</p>
-            </IonLabel>
-            <IonButton
-              slot="end"
-              size="small"
-              color="warning"
-              data-testid="settings-reset-connection"
-              @click="forgetConnection"
-            >
-              {{ t('settings.resetConnection') }}
-            </IonButton>
-          </IonItem>
-        </IonList>
-      </template>
+      <!-- FR-19.9: Server Mode only (G-8). -->
+      <SettingsConnectionSection v-if="mode === 'server'" />
 
       <!-- App info -->
       <SectionHead :title="t('settings.about')" data-testid="settings-section-about" />
@@ -1074,30 +529,11 @@ async function exportTripCSV() {
           </IonLabel>
         </IonItem>
       </IonList>
-
-      <ApiTokenSheet
-        :open="tokenSheetOpen"
-        :token="mintedToken"
-        :expires-at="mintedExpiresAt"
-        @close="closeTokenSheet"
-      />
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
-/*
- * The recessive line under a section heading. It was already used at the
- * default-travelers block and defined nowhere — the class lives scoped inside
- * ItemEditorPage, so on this screen it painted nothing and the hint read as
- * ordinary body copy. Found by looking at the rendered screen; no test could
- * have said it, and no stylesheet reading would have either.
- */
-.diagnostic {
-  /* A URL is read out or copied from this line, never wrapped by hand. */
-  overflow-wrap: anywhere;
-}
-
 /*
  * FR-23.8's line. Larch (the brand) rather than a warning colour: a release
  * is not a fault, and the one thing the reader does here is decide whether
@@ -1140,27 +576,11 @@ async function exportTripCSV() {
   color: var(--ct-overlay1);
 }
 
+/* The recessive line under a section heading (scoped: the Tokens section keeps its own). */
 .section-hint {
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
   margin: 0 0 8px;
-}
-
-.export-reminder {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  border-radius: var(--jp-r-sm);
-  background: var(--ion-color-warning-tint);
-  color: var(--ion-color-warning-contrast);
-  font-size: var(--jp-text-sm);
-}
-
-.export-reminder ion-icon {
-  flex: none;
-  font-size: var(--jp-icon-sm);
 }
 
 .avatar-row {

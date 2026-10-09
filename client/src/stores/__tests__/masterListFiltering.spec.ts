@@ -153,7 +153,7 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
       // delete card's count above it does.
       'src/views/templates/TemplateListPage.vue',
       'src/components/global/InventoryBrowseSheet.vue',
-      'src/views/settings/SettingsPage.vue',
+      'src/components/settings/SettingsDataSection.vue', // M17's template YAML picker
     ]
     const byPath = new Map(sources.map(({ path, source }) => [path, source]))
     for (const path of offerSurfaces) {

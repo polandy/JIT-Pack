@@ -15,6 +15,7 @@ import { backupFilename, buildBackup } from '@/local/backup'
 import { markExported } from '@/local/exportReminder'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { useTripExport } from '@/composables/useTripExport'
 
 /** How long the "saved as …" toast stays up. */
 const BACKUP_TOAST_MS = 4000
@@ -23,6 +24,7 @@ const BACKUP_TOAST_MS = 4000
 export function useDeviceBackup() {
   const masterStore = useMasterStore()
   const tripStore = useTripStore()
+  const { tripParts } = useTripExport()
 
   /** Whether a backup would contain anything (NFR-4.11). */
   const hasBackupContent = computed(
@@ -37,10 +39,7 @@ export function useDeviceBackup() {
         items: masterStore.getTemplateItems(template.id),
       })),
       trips: tripStore.tripList.map((trip) => ({
-        trip,
-        items: tripStore.getItems(trip.id),
-        travelers: tripStore.getTravelers(trip.id),
-        containers: tripStore.getContainers(trip.id),
+        ...tripParts(trip),
         // FR-27.4: how the trip follows its groups travels with it, or a
         // restored device starts asking questions the user already answered.
         sources: tripStore.getTemplateSources(trip.id),

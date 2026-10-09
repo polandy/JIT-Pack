@@ -5,8 +5,7 @@
 1427 client/src/views/templates/TemplateEditorPage.vue
 1307 client/src/views/items/ItemEditorPage.vue
 1208 client/src/views/trips/TripExcursionPage.vue
-1178 client/src/views/settings/SettingsPage.vue
-1167 client/src/views/trips/TripListPage.vue
+1159 client/src/views/trips/TripListPage.vue
 1154 client/src/components/global/QuickAddItem.vue
 851 client/src/types/domain.ts
 1102 client/src/components/trips/ItemDetailSheet.vue
